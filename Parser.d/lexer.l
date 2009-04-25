@@ -90,7 +90,7 @@ TRAIL [a-zA-Z]*
 
 "PREL"[a-zA-Z]*|"prel"[a-zA-Z]*    { return PRELOAD; }
 
-"CONS"[a-zA-Z]*|"cons"[a-zA-Z]*    { return CONSISTENT; }
+"CONSI"[a-zA-Z]*|"consi"[a-zA-Z]*    { return CONSISTENT; }
 
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
 
@@ -495,6 +495,10 @@ TRAIL [a-zA-Z]*
 "pick_any_corner" { return PICKANYCORNER; }
 
 "DIRE"[a-zA-Z]*|"dire"[a-zA-Z]*    { return DIRECT; }
+
+"MULT"[a-zA-Z]*|"mult"[a-zA-Z]*    { return MULTIPLIERS; }
+
+"CONSTRAINTS"|"constraints"    { return CONSTRAINTS; }
 
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }
 

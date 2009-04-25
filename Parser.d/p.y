@@ -63,6 +63,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
 %token CONSTRAINTQUALIFICATION CQTYPE CONSTRAINKCC COMPLEXOUTTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DMPC DEBUGCNTL DEBUGICNTL 
+%token CONSTRAINTS MULTIPLIERS
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EXPANSION
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER
@@ -1714,8 +1715,6 @@ TETTList:
 LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
-	| LMPConstrain DIRECT NewLine
-	{ geoSource->setDirectMPC(true); }// Direct substitution of MPCs
 	;
 MPCList:
         MPCHeader MPCLine
@@ -2341,6 +2340,10 @@ Solver:
 	| STATS NewLine FETI NewLine
 	{ domain->solInfo().type =(2);
           domain->solInfo().setProbType(SolverInfo::Static); }
+        | Solver CONSTRAINTS DIRECT NewLine
+	{ geoSource->setDirectMPC(true); }// Direct substitution of MPCs
+        | Solver CONSTRAINTS MULTIPLIERS NewLine
+	{ geoSource->setDirectMPC(false); }// Treatment of MPCs through Lagrange multipliers
 	| FETI NewLine
         { domain->solInfo().type =(2);}
 	| FETI Integer NewLine

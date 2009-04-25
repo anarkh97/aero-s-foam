@@ -125,11 +125,16 @@ add_subdirectory(Paral.d)
 add_subdirectory(Problems.d)
 add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
-add_subdirectory(Pita.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
      Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt)
+
+IF(USE_MPI)
+  add_subdirectory(Pita.d)
+  add_subdirectory(OOPita.d)
+  SET(ALLLIBS pita ${ALLLIBS} pitadriver )
+ENDIF(USE_MPI)
 
 SET_TARGET_PROPERTIES(${ALLLIBS}
                 PROPERTIES COMPILE_FLAGS -fPIC)

@@ -1,4 +1,4 @@
-#include "HalfSliceNetworkStaticStrategy.h"
+#include "OOPita.d/HalfSliceNetworkStaticStrategy.h"
 
 namespace Pita {
 

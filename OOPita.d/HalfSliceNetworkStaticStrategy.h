@@ -1,7 +1,7 @@
 #ifndef PITA_HALFSLICENETWORKSTATICSTRATEGY_H
 #define PITA_HALFSLICENETWORKSTATICSTRATEGY_H
 
-#include "HalfSliceNetworkStrategy.h"
+#include "OOPita.d/HalfSliceNetworkStrategy.h"
 
 namespace Pita {
 

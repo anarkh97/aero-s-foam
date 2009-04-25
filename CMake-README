@@ -1,0 +1,21 @@
+
+
+This is a text file to help compile the fem/aeros code using cmake.
+
+note: this text file may be incomplete as cmake has only been tested on a macbook (OSX i386)
+note: calls for pita routines need to be commented in main.C
+note: the cmake option has been created by Michel Lesoinne and modified by JF Dord in February 2009.
+
+
+In order to use cmake, 
+- first type "cmake -i ."
+   + the fine options can be chosen here
+   + the debug/release option is chosen here
+   + a summary is given at the end (it may need improvement)
+   + a detailed summary of options and links to libraries is printed in CMakeCache.txt
+
+
+- to compile the executable type "make"
+
+On nivation:
+~michel/cmake-2.6.2-Linux-i386/bin/cmake -DEXTRALIB="-L/opt/intel/fc/9.0/lib/ -lifcore" .

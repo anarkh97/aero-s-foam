@@ -1,0 +1,132 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <alloca.h>
+
+#include <Element.d/Helm.d/LEIsoParamTri.h>
+#include <Element.d/Helm.d/IsoParamUtils2d.h>
+#include <Element.d/Helm.d/GaussRules.h>
+
+#include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+
+
+LEIsoParamTri::LEIsoParamTri(int o, int* nodenums) {
+
+ if (o==3) order = 2;
+ else if (o==6) order = 3;
+ else if (o==10) order = 4;
+ else if (o==15) order = 5;
+ else if (o==21) order = 6;
+ else {
+   fprintf(stderr,"Order too high in LEIsoParamTri::LEIsoParamTri.\n");
+   exit(-1);
+ }
+
+ int ordersq = (order*(order+1))/2;
+ nn = new int[ordersq];
+ int i;
+ for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
+}
+
+
+LEIsoParamTri::LEIsoParamTri(const LEIsoParamTri& e) {
+ order = e.order;
+ int ordersq = (order*(order+1))/2;
+ nn = new int[ordersq];
+ int i;
+ for(i=0;i<ordersq;i++) nn[i] = e.nn[i];
+}
+
+
+Element * LEIsoParamTri::clone() {
+ return new LEIsoParamTri(*this);
+}
+
+
+void LEIsoParamTri::renum(int *table) {
+ int i;
+ int ordersq = (order*(order+1))/2;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
+
+int* LEIsoParamTri::nodes(int *p) {
+
+ int ordersq = (order*(order+1))/2;
+ if(p == 0) p = new int[ordersq];
+ int i;
+ for(i=0;i<ordersq;i++) p[i] = nn[i];
+ return p;
+}
+
+
+int* LEIsoParamTri::dofs(DofSetArray &dsa, int *p) {
+
+ int i;
+ int ordersq = (order*(order+1))/2;
+ if(p == 0) p = new int[2*ordersq];
+ for(i=0;i<ordersq;i++) dsa.number(nn[i],DofSet::Xdisp|DofSet::Ydisp,p+2*i);
+ return p;
+}
+
+
+void LEIsoParamTri::markDofs(DofSetArray &dsa) {
+
+ int i;
+ int ordersq = (order*(order+1))/2;
+ for(i=0;i<ordersq;i++) dsa.mark(nn[i],DofSet::Xdisp|DofSet::Ydisp);
+}
+
+
+double LEIsoParamTri::getMass(CoordSet&) {
+ fprintf(stderr,"LEIsoParamTri::getMass not implemented.\n");
+ return 0.0;
+}
+
+
+FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
+
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ LEMassFunction2d f(2*ordersq,prop->rho,K);
+ ipu.zeroOut<double> (ordersq*ordersq,K);
+ int gorder = 7*7;
+ if (order<=3) gorder = 4*4;
+ ipu.areaInt2d(xyz, f, gorder);
+ ipu.symmetrize(2*ordersq,K);
+
+ FullSquareMatrix ret(2*ordersq,K);
+ return ret;
+}
+
+
+FullSquareMatrix LEIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ LEStiffFunction2d f(2*ordersq,prop->E, prop->nu,K);
+ ipu.zeroOut<double> (4*ordersq*ordersq,K);
+ int gorder = 7*7;
+ if (order<=3) gorder = 4*4;
+ ipu.areaInt2d(xyz, f, gorder);
+ ipu.symmetrize(2*ordersq,K);
+
+ FullSquareMatrix ret(2*ordersq,K);
+ return ret;
+}
+
+extern bool useFull;
+
+int
+LEIsoParamTri::numNodes() {
+  if(useFull)
+    return (order*(order+1))/2;
+  else
+    return(3);   // to ignore effect of mid-size nodes in dec
+}

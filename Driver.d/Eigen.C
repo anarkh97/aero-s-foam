@@ -1,0 +1,315 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <Utils.d/dbg_alloca.h>
+#include <math.h>
+
+#include <Utils.d/dofset.h>
+#include <Driver.d/Domain.h>
+#include <Utils.d/Connectivity.h>
+#include <Element.d/Element.h>
+#include <Driver.d/Dynam.h>
+#include <Utils.d/linkfc.h>
+#include <Math.d/VectorSet.h>
+#include <Math.d/mathUtility.h>
+#include <Utils.d/resize_array.h>
+#include <Utils.d/BinFileHandler.h>
+
+#include <Driver.d/GeoSource.h>
+
+extern "C"      {
+void _FORTRAN(cfjacobi)(double *,double *,double *, double *,int&,double&,int &);
+}
+
+void
+EigenMat::ortho(Vector *v1, Vector *vr, int nsub, int nrbm)
+{
+  int i,j;
+  for(j=0; j<nsub; ++j) {
+    for(i=0; i<nrbm; ++i) {
+      double s = v1[i]*vr[j+nrbm];
+      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
+    }
+  }
+}
+
+void
+EigenMat::ortho(VectorSet& v1, VectorSet& vr, int nsub, int nrbm)
+{
+  int i,j;
+  for(j=0; j<nsub; ++j) {
+    for(i=0; i<nrbm; ++i) {
+      double s = v1[i]*vr[j+nrbm];
+
+      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
+    }
+  }
+}
+
+void
+EigenMat::getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
+                    double *eigVal,int nsmax,int subSpaceSize, double tolJac)
+{
+  int i,j;
+
+  _FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
+
+  // sort eigenvalues.
+  int is = 1;
+  while(is != 0) {
+    is = 0;
+    for(i=1; i<subSpaceSize; ++i) {
+      if(eigVal[i] < eigVal[i-1] ) {
+        is = 1;
+        double tr = eigVal[i-1];
+        eigVal[i-1] = eigVal[i];
+        eigVal[i] = tr;
+
+        for(j=0; j<subSpaceSize; ++j) {
+          tr         = xx[i][j];
+
+          xx[i][j]   = xx[i-1][j];
+
+          xx[i-1][j] = tr;
+        }
+      }
+    }
+  }
+ fprintf(stderr,"%f\n",eigVal[0]);
+}
+
+
+void
+Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgIndex, double time)
+{
+  // Postprocessing: Computes the NODAL displacements for sloshing problem
+  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  // allocate integer array to store node numbers
+  int *nodeNumbers = new int[maxNumNodes];
+
+  int k;
+
+  // ... OUTPUT FILE field width
+  int w = oinfo[fileNumber].width;
+
+  // ... OUTPUT FILE precision
+  int p = oinfo[fileNumber].precision;
+
+  // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
+  if(fluidDispSlosh == 0) fluidDispSlosh = new Vector(numnodes,0.0);
+  if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
+
+  int iele;
+  if(elFluidDispSlosh == 0) {
+    int NodesPerElement, maxNodesPerElement=0;
+    for(iele=0; iele<numele; ++iele) {
+      NodesPerElement = elemToNode->num(iele);
+      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+    }
+    elFluidDispSlosh = new Vector(maxNodesPerElement, 0.0);
+  }
+
+  // zero the vectors
+  fluidDispSlosh->zero();
+  elPotSlosh->zero();
+  elFluidDispSlosh->zero();
+
+  // ... WRITE CURRENT TIME VALUE
+  if(oinfo[fileNumber].nodeNumber == -1)
+    fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
+
+
+  for(iele=0; iele<numele; ++iele) {
+     int NodesPerElement = elemToNode->num(iele);
+     packedEset[iele]->nodes(nodeNumbers);
+
+  // ... DETERMINE ELEMENT POTENTIAL VECTOR
+     for(k=0; k<allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          (*elPotSlosh)[k] = sloshPotSol[cn];
+        else
+          (*elPotSlosh)[k] = bcx[(*allDOFs)[iele][k]];
+     }
+
+// ... CALCULATE FLUID DISPLACEMENT VALUE FOR EACH NODE 
+//     OF THE ELEMENT
+
+      packedEset[iele]->computeSloshDisp(*elFluidDispSlosh, nodes, *elPotSlosh, hgIndex);
+
+// ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
+
+     for(k=0; k<NodesPerElement; ++k) {
+       //int actnod = (*elemToNode)[iele][k];
+       //fprintf(stderr, "Global node number = %d\n", actnod);
+       (*fluidDispSlosh)[(*elemToNode)[iele][k]] += (*elFluidDispSlosh)[k];
+       //fprintf(oinfo[fileNumber].filptr,"%d % *.*E\n",iele,w,p,(*elFluidDispSlosh)[k]);
+     }
+
+    }
+
+// ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
+      
+      for(k=0; k<numnodes; ++k)  {
+        //fprintf(stderr,"%d\t%f\n",k,(*fluidDispSlosh)[k]);
+        fprintf(oinfo[fileNumber].filptr,"% *.*E\n",w,p,(*fluidDispSlosh)[k]);
+      }
+
+    fflush(oinfo[fileNumber].filptr);
+}
+
+void
+Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double time)
+{
+  // Postprocessing: Computes the NODAL displacements for sloshing problem
+  // ADDED FOR SLOSHING PROBLEM, EC, 20081101
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  // allocate integer array to store node numbers
+  int *nodeNumbers = new int[maxNumNodes];
+
+  int k;
+
+  // ... OUTPUT FILE field width
+  int w = oinfo[fileNumber].width;
+
+  // ... OUTPUT FILE precision
+  int p = oinfo[fileNumber].precision;
+
+  // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
+  if(fluidDispSloshAll == 0)  {
+    fluidDispSloshAll = new Vector(numnodes*3,0.0);
+  }
+
+  if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
+
+  int iele;
+  if(elFluidDispSloshAll == 0) {
+    int NodesPerElement, maxNodesPerElement=0;
+    for(iele=0; iele<numele; ++iele) {
+      NodesPerElement = elemToNode->num(iele);
+      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+    }
+    elFluidDispSloshAll = new Vector(maxNodesPerElement*3, 0.0);
+  }
+
+  // zero the vectors
+  fluidDispSloshAll->zero();
+  elPotSlosh->zero();
+  elFluidDispSloshAll->zero();
+
+  // ... WRITE CURRENT TIME VALUE
+  if(oinfo[fileNumber].nodeNumber == -1)
+    fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
+
+  for(iele=0; iele<numele; ++iele) {
+     int NodesPerElement = elemToNode->num(iele);
+     packedEset[iele]->nodes(nodeNumbers);
+
+  // ... DETERMINE ELEMENT POTENTIAL VECTOR
+     for(k=0; k<allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          (*elPotSlosh)[k] = sloshPotSol[cn];
+        else
+          (*elPotSlosh)[k] = bcx[(*allDOFs)[iele][k]];
+     }
+
+// ... CALCULATE FLUID DISPLACEMENT VALUE FOR EACH NODE 
+//     OF THE ELEMENT
+     packedEset[iele]->computeSloshDispAll(*elFluidDispSloshAll, nodes, *elPotSlosh);
+
+// ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
+     for(k=0; k<NodesPerElement; ++k) {
+        for(int j = 0; j<3; ++j)  {
+          (*fluidDispSloshAll)[3*((*elemToNode)[iele][k])+j] += (*elFluidDispSloshAll)[3*k+j];
+       }
+     }
+  }
+
+// ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
+      for(k=0; k<numnodes; ++k)  {
+        for(int j = 0; j<3; ++j)  {
+          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*fluidDispSloshAll)[3*k+j]);
+        }
+        fprintf(oinfo[fileNumber].filptr,"\n");
+      }
+    fflush(oinfo[fileNumber].filptr);
+}
+
+void
+Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, int convEig) //modified FOR SLOSHING PROBLEM, EC, 20070723
+{
+  const double pi = 3.141592653589793;
+  
+  int maxmode = (convEig && convEig < eigenValues.size()) ? convEig : eigenValues.size(); 
+
+  if (sinfo.modeDecompFlag) {
+    fprintf(stderr," ... Outputting EigenVectors in Binary file requested ...\n");
+    fflush(stderr);
+    BinFileHandler modefile("EIGENMODES" ,"w");
+    modefile.write(&maxmode, 1);
+    int veclength = eigenVectors[1].size();
+    modefile.write(&veclength, 1);
+
+    // Write eigenmodes in file EIGENMODES
+    for (int imode=0; imode < maxmode; ++imode) {
+      double *modes = eigenVectors[imode].data();
+      modefile.write(modes, veclength);
+    }
+  }
+
+  // Create a dummy Vector
+  int veclength = eigenVectors[0].size();
+  GenVector<double> dummyVector(veclength,0.0);
+
+  for(int imode=0; imode < maxmode; ++imode) {
+    if(domain->solInfo().buckling || solInfo().soltyp == 2)
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,eigenValues[imode]);
+    else if(domain->solInfo().sloshing)
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
+    else 
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,sqrt(eigenValues[imode])/(2.0*pi));
+  }
+
+ // --- Print Problem statistics to screen ------------------------------
+ if(!domain->solInfo().doEigSweep) {
+   //printStatistics();
+
+   fprintf(stderr," --------------------------------------\n");
+
+   // Print omega and frequency values to screen
+   if(solInfo().buckling || solInfo().soltyp == 2) {
+     fprintf(stderr," Mode\tLambda\n");
+     fprintf(stderr," --------------------------------------\n");
+     int imode;
+     for(imode=0; imode<eigenValues.size(); ++imode)
+       fprintf(stderr," %d\t%e\n",imode+1,eigenValues[imode]);
+     fprintf(stderr," --------------------------------------\n");
+   } else {
+     if(domain->solInfo().sloshing) {
+       fprintf(stderr," Mode\tLambda\t\tSloshing Frequency\n");
+       fprintf(stderr," \t(=Omega^2/g)\t\t(=sqrt(Lambda*g)/(2*pi))\n");
+     }
+     else 
+       fprintf(stderr," Mode\tOmega^2\t\tFrequency\n");
+     fprintf(stderr," --------------------------------------\n");
+     int imode;
+     for(imode=0; imode<eigenValues.size(); ++imode) {
+       if(domain->solInfo().sloshing)
+         fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
+       else
+         fprintf(stderr," %d\t%e\t%e\n",imode+1,eigenValues[imode], sqrt(eigenValues[imode])/(2.0*pi));
+     }
+     fprintf(stderr," --------------------------------------\n");
+   }
+
+   // ... CALCULATE STRUCTURE MASS IF REQUESTED
+   if(sinfo.massFlag)  {
+     double mass = computeStructureMass();
+     fprintf(stderr," ... Structure mass = %e  ...\n",mass);
+     fprintf(stderr," --------------------------------------\n");
+   }
+ }
+}

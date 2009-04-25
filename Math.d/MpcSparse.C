@@ -1,0 +1,279 @@
+#include <Math.d/matrix.h>
+#include <Utils.d/Connectivity.h>
+#include <Utils.d/dofset.h>
+#include <Math.d/Vector.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Driver.d/Mpc.h>
+
+template<class Scalar>
+GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, DofSetArray *_dsa)
+{
+  NumCol = numMPC; // number of columns equals the number of mpcs
+  NumRow = _dsa->size();
+  mpc    = _mpc;
+  dsa    = _dsa;
+}
+
+template<class Scalar>
+GenMpcSparse<Scalar>::GenMpcSparse(int numMPC, SubLMPCons<Scalar> **_mpc, DofSetArray *_dsa,
+                                   DofSetArray *_DSA, int *_wetInterfaceMap, int _mpcOffset)
+{
+  // PJSA 10-19-04 for wet interface / mpc interaction
+  NumCol = numMPC; // number of columns equals the number of mpcs
+  NumRow = _dsa->size();
+  mpc    = _mpc;
+  dsa    = _dsa;
+  DSA    = _DSA;
+  wetInterfaceMap = _wetInterfaceMap;
+  mpcOffset = _mpcOffset;
+}
+
+template<class Scalar>
+GenMpcSparse<Scalar>::~GenMpcSparse()
+{
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::zeroAll()
+{
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::negate()
+{
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::print(FILE *file,const char*)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    fprintf(file," MPC %d\n",iMPC+1);
+    for(i=0; i<mpc[iMPC]->nterms; ++i)
+      fprintf(file," %d  node %d  dof %d coef %g    rhs %g \n",
+                   i+1,mpc[iMPC]->terms[i].nnum+1,
+                   mpc[iMPC]->terms[i].dofnum,
+                   mpc[iMPC]->terms[i].coef,
+                   mpc[iMPC]->rhs);
+  }
+}
+
+template<class Scalar>
+double
+GenMpcSparse<Scalar>::getMemoryUsed()
+{
+  return 0.0;
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multSubtract(const GenVector<Scalar> &, GenVector<Scalar> &)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support multSubtract(const GenVector<Scalar> &, GenVector<Scalar> &) \n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multSubtract(const Scalar *, Scalar *)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support multSubtract(const Scalar *, Scalar *) \n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+{
+  mult(rhs.data(),result.data() );
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    result[iMPC]=0.0;
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if(dof >= 0) 
+        result[iMPC] += mpc[iMPC]->terms[i].coef * rhs[dof];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multIdentity(int iMPC, Scalar *result)
+{
+  int i;
+  for(i=0; i<mpc[iMPC]->nterms; ++i) {
+    int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+    if(dof >= 0)
+      result[dof] += mpc[iMPC]->terms[i].coef;
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multIdentity(Scalar **result)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if(dof >= 0)
+        result[iMPC][dof] += mpc[iMPC]->terms[i].coef;
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multIdentity(Scalar *)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support multIdentity(double*)\n");
+}
+
+// vc = Kcr Krr^-1 Krc
+//
+// vr = Krr^-1 Krc (one column of Krc at a time)
+// vc = Kcr vr
+//
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if(dof >= 0)
+        result[iMPC] -= mpc[iMPC]->terms[i].coef * rhs[dof];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multSubWI(const Scalar *wi_rhs, Scalar *result)
+{
+  // PJSA: for wet interface / mpc interaction
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = DSA->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if((dof >= 0) && (wetInterfaceMap[dof] >= 0)) 
+        result[iMPC+mpcOffset] -= mpc[iMPC]->terms[i].coef * wi_rhs[wetInterfaceMap[dof]];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if(dof >= 0)
+        result[dof] -= mpc[iMPC]->terms[i].coef * rhs[iMPC];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::transposeMultSubtractWI(const Scalar *rhs, Scalar *wi_result)
+{
+  // PJSA: for wet interface / mpc interaction
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = DSA->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+      if((dof >= 0) && (wetInterfaceMap[dof] >= 0)) 
+        wi_result[wetInterfaceMap[dof]] -= mpc[iMPC]->terms[i].coef * rhs[iMPC+mpcOffset];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::transposeMult(const Scalar *, Scalar *)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support transposeMult(const Scalar *, Scalar *)\n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multSub(int, Scalar **, Scalar **)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support multSub(int nRHS, Scalar **, Scalar **)\n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
+{
+  int i,iMPC;
+  for(iMPC=0; iMPC<NumCol; ++iMPC) {
+    for(i=0; i<mpc[iMPC]->nterms; ++i) {
+      int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, 
+                            (1 << mpc[iMPC]->terms[i].dofnum));
+      if(dof >= 0)
+        result[iMPC] += mpc[iMPC]->terms[i].coef * rhs[dof];
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result)
+{
+   int i,iMPC;
+   for(iMPC=0; iMPC<NumCol; ++iMPC) {
+     for(i=0; i<mpc[iMPC]->nterms; ++i) {
+       int dof = dsa->locate(mpc[iMPC]->terms[i].nnum, (1 << mpc[iMPC]->terms[i].dofnum));
+       if(dof >= 0)
+         result[dof] += mpc[iMPC]->terms[i].coef * rhs[iMPC];
+     }
+  }
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::addBoeing(int, const int *, const int *, const double *, int *, Scalar)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support addBoeing(...) \n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::add(FullSquareMatrix&, int*)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support add(FullSquareMatrix&, int *)\n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::add(const double *const *, int *, int)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support add(const double *const *, int *, int)\n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::add(FullM&, int, int)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support add(FullM&, int, int)\n");
+}
+
+template<class Scalar>
+void
+GenMpcSparse<Scalar>::add(GenAssembledFullM<Scalar>&, int*)
+{
+  fprintf(stderr,"GenMpcSparse<Scalar> does not support add(GenAssembledFullM<Scalar>&, int*)\n");
+}

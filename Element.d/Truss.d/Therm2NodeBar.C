@@ -1,0 +1,203 @@
+#include <math.h>
+
+#include <Element.d/Truss.d/Therm2NodeBar.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <Element.d/State.h>
+
+
+Therm2NodeBar::Therm2NodeBar(int* nodenums)
+{
+        nn[0] = nodenums[0];
+        nn[1] = nodenums[1];
+}
+
+Element *
+Therm2NodeBar::clone()
+{
+	return new Therm2NodeBar(*this);
+}
+
+void
+Therm2NodeBar::renum(int *table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+}
+
+double
+Therm2NodeBar::getMass(CoordSet& cs)
+{
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double mass = length*prop->A*prop->rho*prop->Q;
+       
+        return mass;
+}
+
+FullSquareMatrix
+Therm2NodeBar::massMatrix(CoordSet &cs, double *mel, int cmflg)
+{
+        double mass = getMass(cs);
+        double massPerNode = 0.5*mass;
+
+        FullSquareMatrix elementMassMatrix(2,mel);
+
+// zero the element mass matrix
+
+	elementMassMatrix.zero();
+
+// set the diagonal elements
+
+        elementMassMatrix[0][0] = massPerNode;
+        elementMassMatrix[1][1] = massPerNode;
+
+        return elementMassMatrix;
+}
+
+FullSquareMatrix
+Therm2NodeBar::stiffness(CoordSet &cs,double *Ks, int flg)
+{
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+	double dx = x[1] - x[0];
+	double dy = y[1] - y[0];
+	double dz = z[1] - z[0];
+
+	double length = sqrt( dx*dx + dy*dy + dz*dz );
+
+	FullSquareMatrix ret(2,Ks);
+        
+// conduction contribution
+// A is the average cross sectional area
+
+        double k = prop->k*prop->A/length;
+
+        ret[0][0] = k ;
+        ret[1][1] = k ;
+        ret[1][0] = -k;
+        ret[0][1] = -k;
+                                    
+        return ret;
+}
+
+int
+Therm2NodeBar::numNodes()
+{
+        return 2;
+}
+
+int *
+Therm2NodeBar::nodes(int *p)
+{
+        if(p == 0) p = new int[2];
+        p[0] = nn[0];
+        p[1] = nn[1];
+        return p;
+}
+
+int
+Therm2NodeBar::numDofs()
+{
+        return 2;
+}
+
+int *
+Therm2NodeBar::dofs(DofSetArray &dsa, int *p)
+{
+        if(p == 0) p = new int[2];
+
+        p[0] = dsa.locate(nn[0],DofSet::Temp);
+        p[1] = dsa.locate(nn[1],DofSet::Temp);
+
+        return p;
+}
+
+void
+Therm2NodeBar::markDofs( DofSetArray &dsa )
+{
+        dsa.mark( nn, 2, DofSet::Temp);
+}
+
+int
+Therm2NodeBar::getTopNumber()
+{
+  return 109; // 1
+}
+
+void
+Therm2NodeBar::computeTemp(CoordSet&cs,
+      State &state, double gp[2], double*tres)
+{
+  double Temp[2][2];
+  
+ state.getTemp(nn[0], Temp[0], Temp[0]+1);
+ state.getTemp(nn[1], Temp[1], Temp[1]+1);
+
+/* fprintf(stderr, "TEMP iS : %14.5e\n", Temp[0][0]);
+ fprintf(stderr, "TEMP iS : %14.5e\n", Temp[1][0]); */
+
+ int j;
+ for(j=0; j<2; ++j)
+    tres[j] = (1-gp[0])*Temp[0][j] + gp[0]*Temp[1][j] ; 
+
+//     fprintf(stderr, "TEMP1 : %14.5e\n",tres[0]);
+//     fprintf(stderr, "DTEMP1: %14.5e\n",tres[1]);
+}
+
+void
+Therm2NodeBar::getFlFlux(double gp[2], double *flF, double *tresF)
+{
+// Projects a fluid flux contained in flF[0] to all 2 nodes
+// Returns tresF
+// fprintf(stderr, "Gauss Point %f\n ", gp[0]);
+
+   tresF[0] = (1-gp[0])*flF[0] ;
+   tresF[1] = gp[0]    *flF[0] ;
+}
+
+void
+Therm2NodeBar::trussHeatFluxes(double &trussflux, CoordSet &cs, Vector& elTemp,
+                                int hflInd )
+{
+// Heat flu per area
+ // trussflux must be a referenced parameter!!!
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+ 
+        double x[2], y[2], z[2];
+ 
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+ 
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+ 
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double k = prop ->k;
+
+        if (hflInd == 0) 
+          trussflux = -k*(elTemp[1]-elTemp[0])/length;
+        else
+          trussflux = (elTemp[1]-elTemp[0])/length; 
+}

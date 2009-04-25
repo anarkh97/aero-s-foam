@@ -1,0 +1,64 @@
+#include <Parser.d/AuxDefs.h>
+#include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+
+#ifdef STRUCTOPT
+#include <Structopt.d/Driver_opt.d/GeoSource_opt.h>
+#endif
+
+#include <map>
+
+#ifdef STRUCTOPT
+GeoSource *geoSource = new GeoSource_opt;
+#else
+GeoSource *geoSource = new GeoSource;
+#endif
+
+std::map<int,double > weightList;    // allows to change the weight of each class of elements dynamically
+
+
+BCList::BCList()
+{
+ maxbc = 32;
+ d     = new BCond[maxbc];
+ n     = 0;
+}
+
+void
+BCList::add(BCond&bc)
+{
+ if(n == maxbc) {
+   int nmaxbc = (3*maxbc)/2;
+   BCond *nd = new BCond[nmaxbc];
+   int i;
+   for(i=0; i < maxbc; ++i)
+      nd[i] = d[i];
+   delete [] d;
+   d = nd;
+   maxbc = nmaxbc;
+ }
+ d[n++] = bc;
+}
+
+ComplexBCList::ComplexBCList()
+{
+ maxbc = 32;
+ d     = new ComplexBCond[maxbc];
+ n     = 0;
+}
+
+void
+ComplexBCList::add(ComplexBCond &bc)
+{
+ if(n==maxbc) {
+   int nmaxbc = (3*maxbc)/2;
+   ComplexBCond *nd = new ComplexBCond[nmaxbc];
+   int i;
+   for(i=0; i < maxbc; ++i)
+      nd[i] = d[i];
+   delete[] d;
+   d = nd;
+   maxbc=nmaxbc;
+ }
+ d[n++] = bc;
+}

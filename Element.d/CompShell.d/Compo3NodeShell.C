@@ -1,0 +1,880 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <Utils.d/dbg_alloca.h>
+#include <math.h>
+
+#include <Element.d/CompShell.d/Compo3NodeShell.h>
+#include <Corotational.d/Shell3Corotator.h>
+#include <Corotational.d/utilities.h>
+#include <Corotational.d/GeomState.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <Utils.d/pstress.h>
+#include <Hetero.d/InterpPoint.h>
+
+extern "C" {
+void _FORTRAN(compms)(double*, double*, double*, double*, 
+                      const double&, double*, const int&, const int&, 
+                      const int&, const int&, int*, double*,    
+                      double*, const int&, const int&, const int&, 
+                      const int&, double*, double*, const int&, 
+                      double&, const int&);
+
+void _FORTRAN(compvms)(const int&, const int&, const int&, const int&,
+                       const int&, double&, double&, double*,
+                       double*, double*, double*, double*,
+                       double*, double*, const int&, const int&,
+                       const int&, double*, int*, double*, 
+                       double*, const int&, int*, const int&,
+                       const int&, const int&, const int&, const int&,
+                       const int&, const int&,const int&);
+
+void _FORTRAN(compst)(const double&, const int&, double*, double*,
+                      const int&, const double&, double*, double*, 
+                      double*, const int&, const int&, const int&, 
+                      double*, int*, double*, double*, 
+                      const int&, const int&, const int&, const int&,
+                      int&);
+
+void _FORTRAN(intes3)(const int&, const double&, const double&,
+                      const int&, double*, double*);
+
+}
+
+
+Compo3NodeShell::Compo3NodeShell(int* nodenums)
+{
+  nn[0] = nodenums[0];
+  nn[1] = nodenums[1];
+  nn[2] = nodenums[2];
+}
+
+Element *
+Compo3NodeShell::clone()
+{
+  return new Compo3NodeShell(*this);
+}
+
+void
+Compo3NodeShell::renum(int *table)
+{
+  if(table[nn[0]] < 0 || table[nn[1]] < 0 || table[nn[2]] < 0)  {
+    fprintf(stderr,"no mapping for these nodes %d %d %d \n",nn[0],nn[1],nn[2]);
+    return;
+  }
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
+
+
+void
+Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
+                             Vector &elDisp, int strInd, int surface,
+                             double *, double ylayer, double zlayer, int avgnum)
+
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  const int maxstr =  7;
+  const int maxgus =  3;
+
+  double elStress[3][7];
+  double *laysigm = NULL;// new double[numLayers*maxstr*maxgus];
+
+  int *laysgid = (int*)dbg_alloca(sizeof(int)*5*numLayers); 
+
+  int i;
+  for(i=0; i<5*numLayers; ++i)
+    laysgid[i] = 0;
+
+  int strainFlg = 0;
+  if(strInd > 6 ) strainFlg = 1;
+
+  double* disp = elDisp.data();
+
+  _FORTRAN(compvms)(1, 1, 1, maxstr, maxgus, prop->E, prop->nu, h,
+                    x, y, z, disp, (double*)elStress, (double*)laysigm,
+                    1, numLayers, 1, (double*)cCoefs, (int*)idlay,
+                    layData, cFrame, 0, laysgid, 1, type, 1, 1, numLayers,
+                    1, strainFlg, surface);
+
+  if(strInd < 7) {
+    stress[0] = elStress[0][strInd];
+    stress[1] = elStress[1][strInd];
+    stress[2] = elStress[2][strInd];
+  }
+  else {
+    stress[0] = elStress[0][strInd-7];
+    stress[1] = elStress[1][strInd-7];
+    stress[2] = elStress[2][strInd-7];
+  }
+}
+
+void
+Compo3NodeShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
+                              Vector &elDisp, int strInd, int surface,
+                              double *)
+{
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  const int maxstr =  7;
+  const int maxgus =  3;
+
+  double elStress[3][7];
+  double *laysigm = NULL;// new double[numLayers*maxstr*maxgus];
+
+  int *laysgid = (int*)dbg_alloca(sizeof(int)*5*numLayers);
+
+  int i;
+  for(i=0; i<5*numLayers; ++i)
+    laysgid[i] = 0;
+
+  double* disp = elDisp.data();
+
+  _FORTRAN(compvms)(1, 1, 1, maxstr, maxgus, prop->E, prop->nu, h,
+                    x, y, z, disp, (double*)elStress, (double*)laysigm,
+                    1, numLayers, 1, (double*)cCoefs, (int*)idlay, layData,
+                    cFrame, 0, laysgid, 1, type, 1, 1, numLayers,
+                    1, strInd, surface);
+
+  // Store all Stress or all Strain as defined by strInd
+  int j;
+  for(i=0; i<3; ++i) {
+    for(j=0; j<6; ++j) {
+      stress[i][j] = elStress[i][j];
+    }
+  }
+
+  // Get Element Principals
+  double svec[6], pvec[3];
+  for(j=0; j<6; ++j) {
+    svec[j] = stress[0][j];
+  }
+  // Convert Engineering to Tensor Strains
+  if(strInd != 0) {
+    svec[3] /= 2;
+    svec[4] /= 2;
+    svec[5] /= 2;
+  }
+
+  pstress(svec,pvec);
+  for(i=0; i<3; ++i) {
+    for(j=0; j<3; ++j) {
+      stress[i][j+6] = pvec[j];
+    }
+  }
+}
+
+void
+Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
+                                 Vector& gravityForce, int gravflg, GeomState *geomState)
+{
+  if (prop == NULL) {
+    gravityForce.zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
+
+  double grvfor[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  int grvflg = 1, masflg = 0;
+
+  double totmas = 0;
+
+  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
+                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
+                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   totmas, masflg);
+
+  // scale gravity force by number of nodes
+  grvfor[0] /= 3.0;
+  grvfor[1] /= 3.0;
+  grvfor[2] /= 3.0;
+
+  double mx[3],my[3],mz[3];
+  int i;
+  for(i=0; i<3; ++i) {
+    mx[i]=0.0;
+    my[i]=0.0;
+    mz[i]=0.0;
+  }
+
+  // Lumped
+  if(gravflg == 1) {
+    // Consistent
+    // Compute treating shell as 3 beams.
+  }
+  else if(gravflg == 2) {
+    //Node &nd1 = cs.getNode(nn[0]);
+    //Node &nd2 = cs.getNode(nn[1]);
+    //Node &nd3 = cs.getNode(nn[2]);
+
+    double T1[3],T2[3],T3[3];
+    // Vector 1 from Node 1->2
+    T1[0] = x[1] - x[0];
+    T1[1] = y[1] - y[0];
+    T1[2] = z[1] - z[0];
+    normalize( T1 );
+    // Vector 2 from Node 1->3
+    T2[0] = x[2] - x[0];
+    T2[1] = y[2] - y[0];
+    T2[2] = z[2] - z[0];
+    normalize( T2 );
+    // Local Z-axis as cross between V1 and V2
+    crossprod( T1, T2, T3 );
+    normalize( T3);
+
+    int beam, beamnode[3][2];
+    beamnode[0][0] = 0;
+    beamnode[0][1] = 1;
+    beamnode[1][0] = 0;
+    beamnode[1][1] = 2;
+    beamnode[2][0] = 1;
+    beamnode[2][1] = 2;
+
+    for(beam=0; beam<3; ++beam) {
+      double length, dx, dy, dz, localg[3];
+      int n1, n2;
+      n1 = beamnode[beam][0];
+      n2 = beamnode[beam][1];
+      dx = x[n2] - x[n1];
+      dy = y[n2] - y[n1];
+      dz = z[n2] - z[n1];
+      length = sqrt(dx*dx + dy*dy + dz*dz);
+      // Local X-axis from Node 1->2
+      T1[0] = x[n2] - x[n1];
+      T1[1] = y[n2] - y[n1];
+      T1[2] = z[n2] - z[n1];
+      normalize( T1 );
+      // Local Y-axis as cross between Z and X
+      crossprod( T3, T1, T2 );
+      normalize( T2);
+
+      for(i=0; i<3; ++i)
+        localg[i] = 0.0;
+      for(i=0; i<3; ++i) {
+        localg[0] += T1[i]*grvfor[i];
+        localg[1] += T2[i]*grvfor[i];
+        localg[2] += T3[i]*grvfor[i];
+      }
+      double lmy,lmz;
+      lmy = localg[2]*length/12.0;
+      lmz = localg[1]*length/12.0;
+      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+    }
+  }
+  else {
+    for(i=0; i<3; ++i) grvfor[i]=0.0;
+  }
+
+  // set gravity force
+  gravityForce[0]  = grvfor[0];
+  gravityForce[1]  = grvfor[1];
+  gravityForce[2]  = grvfor[2];
+  gravityForce[3]  = mx[0];
+  gravityForce[4]  = my[0];
+  gravityForce[5]  = mz[0];
+  gravityForce[6]  = grvfor[0];
+  gravityForce[7]  = grvfor[1];
+  gravityForce[8]  = grvfor[2];
+  gravityForce[9]  = mx[1];
+  gravityForce[10] = my[1];
+  gravityForce[11] = mz[1];
+  gravityForce[12] = grvfor[0];
+  gravityForce[13] = grvfor[1];
+  gravityForce[14] = grvfor[2];
+  gravityForce[15] = mx[2];
+  gravityForce[16] = my[2];
+  gravityForce[17] = mz[2];
+}
+
+double
+Compo3NodeShell::getMass(CoordSet &cs)
+{ 
+  if(prop == NULL) return 0.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
+  double *gravityAcceleration=NULL, *grvfor=NULL;
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  int grvflg = 0, masflg = 1;
+
+  double totmas = 0.0;
+
+  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
+                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
+                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   totmas, masflg);
+
+  return totmas;
+}
+
+FullSquareMatrix
+Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
+{
+  if(prop == NULL) {
+    FullSquareMatrix ret(18,mel);
+    ret.zero();
+    return ret;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3];
+
+  double *gravityAcceleration=NULL, *grvfor=NULL;
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  int grvflg = 0, masflg = 0;
+  double totmas = 0;
+
+  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
+                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
+                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   totmas, masflg);
+
+  FullSquareMatrix ret(18,mel);
+
+  return ret;
+}
+
+void
+Compo3NodeShell::setCompositeData(int _type, int nlays, double *lData,
+                                  double *coefs, double *frame)
+{
+ type = _type;
+ numLayers = nlays;
+ if(nlays > 0) {
+  idlay = new int[nlays][5];
+  int il;
+  for(il = 0; il < nlays; ++il) {
+    idlay[il][0] = 1;
+    idlay[il][1] = nlays;
+    idlay[il][2] = il+1;
+  }
+  layData = lData;
+ } else
+   idlay = NULL;
+ cFrame = frame;
+ cCoefs = coefs;
+}
+
+#define PI 3.14159265358979
+
+double *
+Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
+                                   double *coefs, CoordSet &cs, double theta)
+{
+ // PJSA: variant where cframe is not pre-defined but calculated from nodal coordinates and angle theta
+ // theta is the angle in degrees between node1-node2 and the material x axis
+ type = _type;
+ numLayers = nlays;
+ if(nlays > 0) {
+  idlay = new int[nlays][5];
+  int il;
+  for(il = 0; il < nlays; ++il) {
+    idlay[il][0] = 1;
+    idlay[il][1] = nlays;
+    idlay[il][2] = il+1;
+  }
+  layData = lData;
+ } else
+   idlay = NULL;
+ cCoefs = coefs;
+
+ // compute cFrame
+ cFrame = new double[9];
+                                                                                                        
+ Node &nd1 = cs.getNode(nn[0]);
+ Node &nd2 = cs.getNode(nn[1]);
+ Node &nd3 = cs.getNode(nn[2]);
+ 
+ double ab[3], ac[3], x[3], y[3], z[3];
+ ab[0] = nd2.x - nd1.x; ab[1] = nd2.y - nd1.y; ab[2] = nd2.z - nd1.z;
+ ac[0] = nd3.x - nd1.x; ac[1] = nd3.y - nd1.y; ac[2] = nd3.z - nd1.z;
+ // x = AB
+ x[0] = ab[0]; x[1] = ab[1]; x[2] = ab[2];
+ // z = AB cross AC
+ z[0] = ab[1]*ac[2]-ab[2]*ac[1];
+ z[1] = ab[2]*ac[0]-ab[0]*ac[2];
+ z[2] = ab[0]*ac[1]-ab[1]*ac[0];
+ // y = z cross x
+ y[0] = z[1]*x[2]-z[2]*x[1];
+ y[1] = z[2]*x[0]-z[0]*x[2];
+ y[2] = z[0]*x[1]-z[1]*x[0];
+ // rotate x and y about z
+ theta *= PI/180.; // convert to radians
+ double c = cos(theta), s = sin(theta);
+/*
+ cFrame[0] = x[0]*c-y[0]*s;
+ cFrame[1] = x[1]*c-y[1]*s;
+ cFrame[2] = x[2]*c-y[2]*s;
+ cFrame[3] = x[0]*s+y[0]*c;
+ cFrame[4] = x[1]*s+y[1]*c;
+ cFrame[5] = x[2]*s+y[2]*c;
+ cFrame[6] = z[0];
+ cFrame[7] = z[1];
+ cFrame[8] = z[2];
+*/
+ // use Rodrigues' Rotation Formula to rotation x and y about z by an angle theta
+ double R[3][3];
+ normalize(x); normalize(y); normalize(z); double wx = z[0], wy = z[1], wz = z[2];
+ R[0][0] = c + wx*wx*(1-c);
+ R[0][1] = wx*wy*(1-c)-wz*s;
+ R[0][2] = wy*s+wx*wz*(1-c);
+ R[1][0] = wz*s+wx*wy*(1-c);
+ R[1][1] = c+wy*wy*(1-c);
+ R[1][2] = -wx*s+wy*wz*(1-c);
+ R[2][0] = -wy*s+wx*wz*(1-c);
+ R[2][1] = wx*s+wy*wz*(1-c);
+ R[2][2] = c+wz*wz*(1-c);
+
+ cFrame[0] = R[0][0]*x[0] + R[0][1]*x[1] + R[0][2]*x[2];
+ cFrame[1] = R[1][0]*x[0] + R[1][1]*x[1] + R[1][2]*x[2];
+ cFrame[2] = R[2][0]*x[0] + R[2][1]*x[1] + R[2][2]*x[2];
+ cFrame[3] = R[0][0]*y[0] + R[0][1]*y[1] + R[0][2]*y[2];
+ cFrame[4] = R[1][0]*y[0] + R[1][1]*y[1] + R[1][2]*y[2];
+ cFrame[5] = R[2][0]*y[0] + R[2][1]*y[1] + R[2][2]*y[2];
+ cFrame[6] = z[0];
+ cFrame[7] = z[1];
+ cFrame[8] = z[2];
+ 
+ // DEBUG
+ //cerr << "cFrame: x = " << cFrame[0] << "," << cFrame[1] << "," << cFrame[2] << endl
+ //     << "        y = " << cFrame[3] << "," << cFrame[4] << "," << cFrame[5] << endl
+ //     << "        z = " << cFrame[6] << "," << cFrame[7] << "," << cFrame[8] << endl;
+ //cerr << "cCoefs = "; for(int i=0; i<36; ++i) cerr << cCoefs[i] << " "; cerr << endl;
+
+ return cFrame;
+}
+
+FullSquareMatrix
+Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
+{
+  if(prop == NULL) {
+    FullSquareMatrix ret(18,d);
+    ret.zero();
+    return ret;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+  h[0] = h[1] = h[2] = prop->eh;
+
+  // check if the thickness is negative or zero
+  if(h[0] <= 0.0 && type == 0) {
+    fprintf(stderr,"ERROR: Zero composite shell thickness %d %d %d\n",
+            nn[0], nn[1], nn[2]);
+    fprintf(stderr," ... exiting fem program ...\n");
+    exit(-1);
+  }
+
+  _FORTRAN(compst)(prop->E, 1, h, (double *)d, 18,
+                   prop->nu, x, y, z, 1, numLayers, 1, (double*) cCoefs,
+                   (int *)idlay,
+                   layData, cFrame, 1, type, 1, 1, flg);
+
+  FullSquareMatrix ret(18,d);
+
+  return ret;
+}
+
+int
+Compo3NodeShell::numNodes()
+{
+  return 3;
+}
+
+int*
+Compo3NodeShell::nodes(int *p)
+{
+  if(p == 0) p = new int[3];
+  p[0] = nn[0];
+  p[1] = nn[1];
+  p[2] = nn[2];
+  return p;
+}
+
+int
+Compo3NodeShell::numDofs()
+{
+  return 18;
+}
+
+int*
+Compo3NodeShell::dofs(DofSetArray &dsa, int *p)
+{
+  if(p == 0) p = new int[18];
+
+  dsa.number(nn[0],DofSet::XYZdisp | DofSet::XYZrot, p  );
+  dsa.number(nn[1],DofSet::XYZdisp | DofSet::XYZrot, p+6);
+  dsa.number(nn[2],DofSet::XYZdisp | DofSet::XYZrot, p+12);
+
+  return p;
+}
+
+void
+Compo3NodeShell::markDofs(DofSetArray &dsa)
+{
+  dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
+}
+
+#include <Element.d/State.h>
+
+void
+Compo3NodeShell::
+computeDisp(CoordSet&, State &state, const InterpPoint &ip,
+            double *res, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  double xyz[3][6];
+  state.getDV(nn[0], xyz[0], xyz[0]+3);
+  state.getDV(nn[1], xyz[1], xyz[1]+3);
+  state.getDV(nn[2], xyz[2], xyz[2]+3);
+
+  int j;
+  for(j = 0; j < 6; ++j)
+    res[j] = (1-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+}
+
+void
+Compo3NodeShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF, 
+                           double *resF, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  int i;
+  for(i = 0; i < 3; ++i) {
+    resF[i+3] = resF[i+9] = resF[i+15] = 0;
+    resF[i] = (1-gp[0]-gp[1]) * flF[i];
+    resF[6+i] = gp[0] * flF[i];
+    resF[12+i] = gp[1] * flF[i];
+  }
+}
+
+Corotator *
+Compo3NodeShell::getCorotator(CoordSet &cs, double *kel, int fitAlgShell, int)
+{
+  int flag = 0;
+  FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+  return new Shell3Corotator(nn[0],nn[1],nn[2],myStiff, fitAlgShell);
+}
+
+int
+Compo3NodeShell::getTopNumber()
+{
+  return 120;
+}
+
+void
+Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+                                      GeomState *geomState, int cflg)
+{ 
+  double px = 0.0;
+  double py = 0.0;
+  double pz = 0.0;
+  double mx[3],my[3],mz[3];
+  int i;
+  for(i=0; i<3; ++i) {
+    mx[i]=0.0;
+    my[i]=0.0;
+    mz[i]=0.0;
+  }
+
+  if(geomState) {
+
+    // Get Nodes current coordinates
+    NodeState &ns1 = (*geomState)[nn[0]];
+    NodeState &ns2 = (*geomState)[nn[1]];
+    NodeState &ns3 = (*geomState)[nn[2]];
+
+    double  t0[3][3];
+    double  xn[3][3];
+
+    xn[0][0]  = ns1.x; // x coordinate of node state 1
+    xn[0][1]  = ns1.y; // y coordinate of node state 1
+    xn[0][2]  = ns1.z; // z coordinate of node state 1
+ 
+    xn[1][0]  = ns2.x; // x coordinate of node state 2
+    xn[1][1]  = ns2.y; // y coordinate of node state 2
+    xn[1][2]  = ns2.z; // z coordinate of node state 2
+
+    xn[2][0]  = ns3.x; // x coordinate of node state 3
+    xn[2][1]  = ns3.y; // y coordinate of node state 3
+    xn[2][2]  = ns3.z; // z coordinate of node state 3
+
+    // Determine the area of the triangle
+    //TM there is a problem here
+    double xij[3][3];
+    double yij[3][3];
+    double zij[3][3];
+
+    // Compute nodal delta coordinates
+    int inod, jnod;
+    for(inod=0; inod<3; inod++) {
+      for(jnod=0; jnod<3; jnod++) {
+        xij[inod][jnod] = xn[inod][0] - xn[jnod][0];
+        yij[inod][jnod] = xn[inod][1] - xn[jnod][1];
+        zij[inod][jnod] = xn[inod][2] - xn[jnod][2];
+      }
+    }
+
+    /* TRIANGLE IN SPACE : WE COMPUTE THE LENGTH
+     *.... OF ONE SIDE AND THE DISTANCE OF THE
+     *.... OPPOSING NODE TO THAT SIDE TO COMPUTE THE AREA*/
+
+    double rlr = sqrt( xij[1][0]*xij[1][0]+yij[1][0]*yij[1][0]+zij[1][0]*zij[1][0] );
+    double rlb = sqrt( xij[2][1]*xij[2][1]+yij[2][1]*yij[2][1]+zij[2][1]*zij[2][1] );
+    double bpr = sqrt((xij[1][0]*xij[2][1]+yij[1][0]*yij[2][1]+zij[1][0]*zij[2][1] )
+                      *(xij[1][0]*xij[2][1]+yij[1][0]*yij[2][1]+zij[1][0]*zij[2][1] ))/rlr;
+
+    double area= rlr*(sqrt(rlb*rlb-bpr*bpr))/2.0;
+
+    // determine the normal to the plane of the element
+    /* Compute t0 transformation matrix with x axis along side 1-2 */
+    int i;
+    for(i=0; i<3; i++ ) t0[0][i] = xn[1][i] - xn[0][i];
+    normalize( t0[0] );
+
+    // local z axis
+    for( i=0; i<3; i++ ) t0[1][i] = xn[2][i] - xn[0][i];
+    crossprod( t0[0], t0[1], t0[2] );
+    normalize( t0[2] );
+
+    double normal[3];
+
+    normal[0] = t0[2][0];
+    normal[1] = t0[2][1];
+    normal[2] = t0[2][2];
+ 
+    // compute pressure force per node
+    double pressureForce = pressure * area / 3.0;
+
+    px = pressureForce*normal[0];
+    py = pressureForce*normal[1];
+    pz = pressureForce*normal[2];
+
+    if (cflg == 1) {
+
+      int beam, beamnode[3][2];
+      beamnode[0][0] = 0;
+      beamnode[0][1] = 1;
+      beamnode[1][0] = 0;
+      beamnode[1][1] = 2;
+      beamnode[2][0] = 1;
+      beamnode[2][1] = 2;
+
+      for(beam=0; beam<3; ++beam) {
+        double length, dx, dy, dz;
+        int n1, n2;
+        n1 = beamnode[beam][0];
+        n2 = beamnode[beam][1];
+        dx = xn[n2][0] - xn[n1][0];
+        dy = xn[n2][1] - xn[n1][1];
+        dz = xn[n2][2] - xn[n1][2];
+        length = sqrt(dx*dx + dy*dy + dz*dz);
+        // Local X-axis from Node 1->2
+        for(i=0; i<3; i++ ) t0[0][i] = xn[n2][i] - xn[n1][i];
+        normalize( t0[0] );
+        // Local Y-axis as cross between Z and X
+        crossprod( t0[2], t0[0], t0[1] );
+        normalize( t0[1] );
+
+        double lmy = pressureForce*length/12.0;
+        mx[n1] += (t0[1][0]*lmy);
+        my[n1] += (t0[1][1]*lmy);
+        mz[n1] += (t0[1][2]*lmy);
+        mx[n2] -= (t0[1][0]*lmy);
+        my[n2] -= (t0[1][1]*lmy);
+        mz[n2] -= (t0[1][2]*lmy);
+      }
+    }
+  }
+  else {
+
+    // Compute area of shell
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
+    Node &nd3 = cs.getNode(nn[2]);
+ 
+    double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
+ 
+    r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+    r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+    r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+ 
+    v1[0] = r3[0] - r1[0];
+    v1[1] = r3[1] - r1[1];
+    v1[2] = r3[2] - r1[2];
+ 
+    v2[0] = r2[0] - r1[0];
+    v2[1] = r2[1] - r1[1];
+    v2[2] = r2[2] - r1[2];
+ 
+    // Compute normal to shell using vector cross product rule
+    crossprod(v2, v1, normal);
+ 
+    double magnitude = sqrt(normal[0]*normal[0] + normal[1]*normal[1] 
+                            + normal[2]*normal[2]);
+    double area = 0.5*magnitude;
+ 
+    // compute pressure force per node
+    double pressureForce = pressure * area / 3.0;
+
+    // compute unit normal to shell surface
+
+    normal[0] /= magnitude;
+    normal[1] /= magnitude;
+    normal[2] /= magnitude;
+
+    px = pressureForce*normal[0];
+    py = pressureForce*normal[1];
+    pz = pressureForce*normal[2];
+
+    if (cflg == 1) {
+
+      int beam, beamnode[3][2];
+      beamnode[0][0] = 0;
+      beamnode[0][1] = 1;
+      beamnode[1][0] = 0;
+      beamnode[1][1] = 2;
+      beamnode[2][0] = 1;
+      beamnode[2][1] = 2;
+
+      double xn[3][3];
+      for(i=0; i<3; ++i) {
+        xn[0][i] = r1[i];
+        xn[1][i] = r2[i];
+        xn[2][i] = r3[i];
+      }
+
+      for(beam=0; beam<3; ++beam) {
+        double length, dx, dy, dz;
+        int n1, n2;
+        n1 = beamnode[beam][0];
+        n2 = beamnode[beam][1];
+        dx = xn[n2][0] - xn[n1][0];
+        dy = xn[n2][1] - xn[n1][1];
+        dz = xn[n2][2] - xn[n1][2];
+        length = sqrt(dx*dx + dy*dy + dz*dz);
+        // Local X-axis from Node 1->2
+        for(i=0; i<3; i++ ) v1[i] = xn[n2][i] - xn[n1][i];
+        normalize(v1);
+        // Local Y-axis as cross between Z and X
+        crossprod(normal, v1, v2);
+        normalize(v2);
+
+        double lmy = pressureForce*length/12.0;
+        mx[n1] += (v2[0]*lmy);
+        my[n1] += (v2[1]*lmy);
+        mz[n1] += (v2[2]*lmy);
+        mx[n2] -= (v2[0]*lmy);
+        my[n2] -= (v2[1]*lmy);
+        mz[n2] -= (v2[2]*lmy);
+      }
+    }
+  }
+
+  elPressureForce[0]  = px;
+  elPressureForce[1]  = py;
+  elPressureForce[2]  = pz;
+  elPressureForce[3]  = mx[0];
+  elPressureForce[4]  = my[0];
+  elPressureForce[5]  = mz[0];
+
+  elPressureForce[6]  = px;
+  elPressureForce[7]  = py;
+  elPressureForce[8]  = pz;
+  elPressureForce[9]  = mx[1];
+  elPressureForce[10] = my[1];
+  elPressureForce[11] = mz[1];
+
+  elPressureForce[12] = px;
+  elPressureForce[13] = py;
+  elPressureForce[14] = pz;
+  elPressureForce[15] = mx[2];
+  elPressureForce[16] = my[2];
+  elPressureForce[17] = mz[2];
+}
+
+double *
+Compo3NodeShell::getMidPoint(CoordSet &cs)
+{ 
+  double * midPoint = new double[3];
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  midPoint[0] = ( nd1.x + nd2.x + nd3.x ) / 3.0; 
+  midPoint[1] = ( nd1.y + nd2.y + nd3.y ) / 3.0; 
+  midPoint[2] = ( nd1.z + nd2.z + nd3.z ) / 3.0; 
+
+  return midPoint;
+}
+

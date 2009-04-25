@@ -1,0 +1,191 @@
+#include <stdio.h>
+#include <Solvers.d/KProject.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/SparseMatrix.h>
+#include <Solvers.d/Rbm.h>
+#include <Solvers.d/Preconditioner.h>
+#include <Math.d/Vector.h>
+#include <Timers.d/GetTime.h>
+#include <Utils.d/Memory.h>
+#include <Math.d/NBSparseMatrix.h>
+
+#include <Solvers.d/PCGSolver.h>
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::GenPCGSolver(AnyOperator *_A, int precno, int _maxitr, double _tolpcg, int _maxVecStorage, Rbm *_rbm) 
+: BasePCG<Scalar, AnyVector, AnyOperator, KrylovProjector<Scalar,AnyVector>, Preconditioner<AnyVector> >  
+  (_maxitr, _tolpcg, _A)
+{
+ // Preconditioner<AnyVector>* prec; 
+  if(precno == 0)
+    this->prec = new NullPreconditioner<AnyVector>();
+  else if(precno == 1)
+    this->prec = new DiagPrec<AnyVector,AnyOperator>(_A);
+//  else if(precno == 2) 
+//    this->prec = new BlockDiagPrec<Scalar,AnyVector,AnyOperator>(_A);
+  else if(precno == 2)
+    this->prec = new ScalarBlockDiagPrec<Scalar,AnyVector,AnyOperator>(_A); 
+  
+  kryflg     = 0;
+  initflg    = 0;
+  reorthoflg = 0;
+  numrbm     = 0;
+
+  // initialize rbm information
+  rbm    = _rbm;
+  if(rbm)
+    numrbm = rbm->numRBM();
+  else
+    numrbm = 0;
+
+  this->solveTime = 0.0;
+
+  if(_maxVecStorage)
+//    this->proj = new KrylovProjector<Scalar,AnyVector>(_A->dim(),_maxVecStorage); 
+    this->proj = new KrylovProjector<Scalar,AnyVector>(_A->neqs(),_maxVecStorage); 
+}
+
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::reSolve(AnyVector &rhs)
+{
+  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+  AnyVector sol(rhs.size());
+  doSolve(rhs,sol);
+  rhs = sol;
+  this->solveTime += getTime(); this->memUsed += memoryUsed();
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::solve(Scalar *rhs, Scalar *solution) 
+{
+ cerr << "GenPCGSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n";
+/*
+ this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+ AnyVector sol(solution, this->A->dim());
+ AnyVector f(rhs, this->A->dim());
+ doSolve(f,sol);
+ for(int i=0; i<this->A->dim(); ++i) solution[i] = sol[i];
+ this->solveTime += getTime(); this->memUsed += memoryUsed();
+*/
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::solve(AnyVector &rhs, AnyVector &solution)
+{
+ this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+ doSolve(rhs,solution);
+ this->solveTime += getTime(); this->memUsed += memoryUsed();
+ this->times.precond = this->prec->time; 
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::reSolve(Scalar *rhs)
+{
+  cerr << "GenPCGSolver::reSolve(Scalar *rhs) is not implemented\n";
+/*
+  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+  AnyVector sol(rhs, this->A->dim());
+  reSolve(sol);
+  for(int i=0; i<this->A->dim(); ++i) rhs[i] = sol[i];
+  this->solveTime += getTime(); this->memUsed += memoryUsed();
+*/
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::reSolve(int nRHS, Scalar **RHS)
+{
+ cerr << "GenPCGSolver::reSolve(int nRHS, Scalar **RHS) is not implemented\n";
+/*
+ this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+ int i,n;
+ for(n=0; n<nRHS; ++n) {
+   AnyVector sol(RHS[n], this->A->dim());
+   AnyVector rhs(RHS[n], this->A->dim());
+   doSolve(rhs, sol);
+   for(i=0; i<this->A->dim(); ++i)
+     RHS[n][i] = sol[i];
+ }
+ this->solveTime += getTime(); this->memUsed += memoryUsed();
+*/
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::reSolve(int nRHS, AnyVector *RHS)
+{
+ this->solveTime -= getTime(); this->memUsed -= memoryUsed();
+ AnyVector sol(RHS[0].size());
+ for(int n=0; n<nRHS; ++n) {
+   sol = RHS[n];
+   doSolve(RHS[n],sol);
+   RHS[n] = sol;
+ }
+ this->solveTime += getTime(); this->memUsed += memoryUsed();
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::getRBMs(double *rigidBodyModes)
+{
+  rbm->getRBMs(rigidBodyModes);
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::getRBMs(Vector *rigidBodyModes)
+{
+  rbm->getRBMs(rigidBodyModes);
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::getRBMs(VectorSet& rigidBodyModes)
+{
+ rbm->getRBMs(rigidBodyModes);
+}
+
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+int
+GenPCGSolver<Scalar, AnyVector, AnyOperator>::neqs()
+{
+  return BasePCG<Scalar,AnyVector,AnyOperator,KrylovProjector<Scalar,AnyVector>,Preconditioner<AnyVector> >::neqs();
+}
+

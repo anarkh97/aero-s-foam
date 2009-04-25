@@ -1,0 +1,201 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <alloca.h>
+
+#include <Element.d/Helm.d/HelmIsoParamQuad.h>
+#include <Element.d/Helm.d/IsoParamUtils2d.h>
+#include <Element.d/Helm.d/GaussRules.h>
+#include <Element.d/Helm.d/PML.h>
+
+#include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+
+
+HelmIsoParamQuad::HelmIsoParamQuad(int o, int* nodenums) {
+ int i;
+ order = int(rint(pow(double(o),1.0/2.0)));
+ int ordersq = order*order;
+ nn = new int[ordersq];
+ for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
+}
+
+
+HelmIsoParamQuad::HelmIsoParamQuad(const HelmIsoParamQuad& e) {
+ order = e.order;
+ int ordersq = order*order;
+ nn = new int[ordersq];
+ int i;
+ for(i=0;i<ordersq;i++) nn[i] = e.nn[i];
+}
+
+
+Element * HelmIsoParamQuad::clone() {
+ return new HelmIsoParamQuad(*this);
+}
+
+
+void HelmIsoParamQuad::renum(int *table) {
+ int i;
+ int ordersq = order*order;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
+
+int* HelmIsoParamQuad::nodes(int *p) {
+
+ int ordersq = order*order;
+ if(p == 0) p = new int[ordersq];
+ int i;
+ for(i=0;i<ordersq;i++) p[i] = nn[i];
+ return p;
+}
+
+
+int* HelmIsoParamQuad::dofs(DofSetArray &dsa, int *p) {
+
+ int i;
+ int ordersq = order*order;
+ if(p == 0) p = new int[ordersq];
+ for(i=0;i<ordersq;i++) dsa.number(nn[i],DofSet::Helm,p+i);
+ return p;
+}
+
+
+void HelmIsoParamQuad::markDofs(DofSetArray &dsa) {
+
+ int i;
+ int ordersq = order*order;
+ for(i=0;i<ordersq;i++) dsa.mark(nn[i],DofSet::Helm);
+}
+
+
+double HelmIsoParamQuad::getMass(CoordSet&) {
+ fprintf(stderr,"HelmIsoParamQuad::getMass not implemented.\n");
+ return 0.0;
+}
+
+
+FullSquareMatrix HelmIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
+
+ IsoParamUtils2d ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ GalMassFunction2d<double> f(ordersq,K);
+ ipu.zeroOut<double> (ordersq*ordersq,K);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+ ipu.areaInt2d(xyz, f, gorder);
+ ipu.symmetrize(ordersq,K);
+ int i;
+ for(i=0;i<ordersq*ordersq;i++) K[i] /= prop->rho;
+ 
+ FullSquareMatrix ret(ordersq,K);
+ return ret;
+}
+
+
+FullSquareMatrix HelmIsoParamQuad::stiffness(CoordSet &cs, double *K, int flg ) {
+ IsoParamUtils2d ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ GalStiffFunction2d<double> f(ordersq,K);
+ ipu.zeroOut<double> (ordersq*ordersq,K);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+ ipu.areaInt2d(xyz, f, gorder);
+ ipu.symmetrize(ordersq,K);
+ int i;
+ for(i=0;i<ordersq*ordersq;i++) K[i] /= prop->rho;
+
+ FullSquareMatrix ret(ordersq,K);
+ return ret;
+}
+
+
+FullSquareMatrixC HelmIsoParamQuad::massMatrix(CoordSet &cs,
+                                               complex<double> *K) {
+
+ IsoParamUtils2d ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ ipu.zeroOut<complex<double> > (ordersq*ordersq,K);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+
+ if (prop->fp.PMLtype==1) {
+   double Rm[2] = { -prop->fp.Rx, -prop->fp.Ry };
+   double Rp[2] = { prop->fp.Rx, prop->fp.Ry };
+   double Sm[2] = { -prop->fp.Sx, -prop->fp.Sy };
+   double Sp[2] = { prop->fp.Sx, prop->fp.Sy };
+   CartPMLGalMassFunction2d f(ordersq,Rm,Sm,Rp,Sp,prop->fp.gamma,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ } else if (prop->fp.PMLtype==2 || prop->fp.PMLtype==3) {
+   CylPMLGalMassFunction2d f(ordersq,prop->fp.Rx,prop->fp.Sx,prop->fp.gamma,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ } else {
+   GalMassFunction2d<complex<double> > f(ordersq,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ }
+
+ ipu.symmetrize(ordersq,K);
+ int i;
+ for(i=0;i<ordersq*ordersq;i++) K[i] /= prop->rho;
+
+ FullSquareMatrixC ret(ordersq,K);
+ return ret;
+}
+
+
+FullSquareMatrixC HelmIsoParamQuad::stiffness(CoordSet &cs,
+                                              complex<double> *K) {
+
+ IsoParamUtils2d ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ ipu.zeroOut< complex<double> > (ordersq*ordersq,K);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+
+ if (prop->fp.PMLtype==1) {
+   double Rm[2] = { -prop->fp.Rx, -prop->fp.Ry };
+   double Rp[2] = { prop->fp.Rx, prop->fp.Ry };
+   double Sm[2] = { -prop->fp.Sx, -prop->fp.Sy };
+   double Sp[2] = { prop->fp.Sx, prop->fp.Sy };
+   CartPMLGalStiffFunction2d f(ordersq,Rm,Sm,Rp,Sp,prop->fp.gamma,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ } else if (prop->fp.PMLtype==2 || prop->fp.PMLtype==3) {
+   CylPMLGalStiffFunction2d f(ordersq,prop->fp.Rx,prop->fp.Sx,prop->fp.gamma,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ } else {
+   GalStiffFunction2d<complex<double> > f(ordersq,K);
+   ipu.areaInt2d(xyz, f, gorder);
+ }
+
+ ipu.symmetrize(ordersq,K);
+ int i;
+ for(i=0;i<ordersq*ordersq;i++) K[i] /= prop->rho;
+
+ FullSquareMatrixC ret(ordersq,K);
+ return ret;
+}
+
+
+extern bool useFull;
+
+int
+HelmIsoParamQuad::numNodes() {
+  if(useFull)
+    return order*order;
+  else
+    return(4);   // to ignore effect of mid-size nodes in dec
+}
+

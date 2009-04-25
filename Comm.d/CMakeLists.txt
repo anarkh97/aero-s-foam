@@ -1,0 +1,5 @@
+ADD_LIBRARY(Comm CommunicatorCore.C)
+
+SET(INC_DIR ..)
+
+INCLUDE_DIRECTORIES( ${INC_DIR} )

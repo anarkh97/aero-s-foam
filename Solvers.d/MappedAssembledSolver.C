@@ -45,8 +45,8 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
     if(!lmpc[i]->terms[0].isNull()){
       int dof = dsa->locate(lmpc[i]->terms[0].nnum, 1 << lmpc[i]->terms[0].dofnum);
       int eqDof = cdsa->locate(lmpc[i]->terms[0].nnum, 1 << lmpc[i]->terms[0].dofnum);
-      std::cerr << "Mapping " << lmpc[i]->terms[0].nnum << " dof " <<
-        lmpc[i]->terms[0].dofnum << std::endl;
+      // std::cerr << "Mapping " << lmpc[i]->terms[0].nnum << " dof " <<
+        // lmpc[i]->terms[0].dofnum << std::endl;
       if(dof >= 0) {
         baseMap[dof].dofs = new int[lmpc[i]->nterms-1];
         baseMap[dof].coefs = new double[lmpc[i]->nterms-1];
@@ -85,8 +85,8 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
         baseMap[i].coefs = new double[1];
         baseMap[i].dofs[0] = i;
         baseMap[i].coefs[0] = 1;
-      } else
-        std::cerr << "Dof " << i << " maps to " << baseMap[i].dofs[0] << std::endl;
+      }// else
+        //std::cerr << "Dof " << i << " maps to " << baseMap[i].dofs[0] << std::endl;
   }
 
   for(int i = 0; i < dsa->numNodes(); ++i) {

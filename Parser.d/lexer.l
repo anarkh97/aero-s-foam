@@ -604,6 +604,8 @@ TRAIL [a-zA-Z]*
 
 "localbases"|"LocalBases"|"LOCALBASES" { return LOCALBASES; }
 
+"remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
+
 "oopita"|"OOPITA"|"OOPita"         { return OOPITA; }
 
 "heat"|"HEAT"                      { return HEAT; }

@@ -59,6 +59,8 @@ LinearDriverImpl::solve() {
 
   Activity::Manager::Ptr activityMgr = activityManagerInstance();
   
+  size_t vectorSize = probDesc_->solVecInfo();
+  
   Seconds fineTimeStep(domain->solInfo().dt);
   TimeStepCount halfSliceRatio(domain->solInfo().Jratio / 2);
   TimeStepCount sliceRatio(halfSliceRatio.value() * 2);
@@ -72,19 +74,16 @@ LinearDriverImpl::solve() {
   numSlices = HalfSliceCount(fullTimeSlices.value() * 2);
   finalTime = Seconds(numSlices.value() * halfSliceRatio.value() * fineTimeStep.value());
 
+  IterationRank lastIteration(domain->solInfo().kiter);
+  
   Communicator * timeCom = structCom;
   
   HalfSliceCount maxActive(domain->solInfo().numTSperCycleperCPU);
 
-  bool remoteCoarse = false; //(timeCom->numCPUs() > 1); // TODO Add flag to parser
-  
-  CpuCount numCpus(timeCom->numCPUs() - (remoteCoarse ? 1 : 0)); // HACK ?
+  bool remoteCoarse = domain->solInfo().remoteCoarse && (timeCom->numCPUs() > 1);
+  CpuCount numCpus(timeCom->numCPUs() - (remoteCoarse ? 1 : 0));
   CpuRank myCpu(timeCom->myID());
-  
-  IterationRank lastIteration(domain->solInfo().kiter);
 
-  size_t vectorSize = probDesc_->solVecInfo();
-  
   log() << "vectorSize = " << vectorSize << "\n";
   log() << "Slices = " << numSlices << ", MaxActive = " << maxActive << ", Cpus = " << numCpus << "\n";
   log() << "Num iter = " << lastIteration << "\n"; 
@@ -133,6 +132,10 @@ LinearDriverImpl::solve() {
 
     if (color == 0) {
       LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep , rho_infinity_coarse));
+      
+      double tac = getTime();
+      log() << "Total Init Time = " << (tac - tic) / 1000.0 << " s\n";
+      
       coarseIntegrator->initialConditionIs(initialSeed, initialTime);
       SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
       
@@ -140,6 +143,9 @@ LinearDriverImpl::solve() {
       RemoteSeedInitializer::Ptr remoteSeedInitializer = RemoteSeedInitializer::New(seedInitCom, seedInitializer.ptr(), mapping.ptr());
 
       remoteSeedInitializer->statusIs(RemoteSeedInitializer::BUSY);
+      
+      double toc = getTime();
+      log() << "Total Solve Time = " << (toc - tic) / 1000.0 << " s\n";
 
       log() << "End LinPita\n";
       return;
@@ -221,6 +227,9 @@ LinearDriverImpl::solve() {
       seedInitializer.ptr(),
       (correctionStrategy == HalfSliceCorrectionNetworkImpl::NON_HOMOGENEOUS) ? seedInitializer.ptr() : NULL);
 
+  double tac = getTime();
+  log() << "Total Init Time = " << (tac - tic) / 1000.0 << " s\n";
+  
   activityMgr->targetPhaseIs(lastIteration, PhaseRank(0));
 
   double toc = getTime();

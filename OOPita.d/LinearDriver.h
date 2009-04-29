@@ -8,11 +8,16 @@ namespace Pita {
 
 class LinearDriver : public Fwk::PtrInterface<LinearDriver> {
 public:
-  typedef Fwk::Ptr<LinearDriver> Ptr;
-  typedef Fwk::Ptr<const LinearDriver> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(LinearDriver);
 
   // Main routine
   virtual void solve() = 0;
+
+protected:
+  LinearDriver() {}
+
+private:
+  DISALLOW_COPY_AND_ASSIGN(LinearDriver);
 };
 
 } // end namespace Pita

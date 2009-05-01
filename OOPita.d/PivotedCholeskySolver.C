@@ -3,11 +3,9 @@
 /* Kernel routines */
 
 extern "C" {
-  // Pivoted Cholesky (LAPACK 3.2 routine calling BLAS level 3)
+  // Pivoted Cholesky (LAPACK 3.2 routine calling BLAS level 3, also in lev3pchol.f)
   void _FORTRAN(dpstrf)(const char* uplo, const int* n, double* a, const int* lda, int* piv,
-                           int* rank, const double* tol, double* work, int* info) {
-     fprintf(stderr, "I am sorry, but dpstrf is not available! Please modify the code to use something reasonable!\n");
-  }
+                        int* rank, const double* tol, double* work, int* info);
 
   // BLAS routine for Backward/Forward substitution
   void _FORTRAN(dtrsv)(const char * uplo, const char * trans, const char * diag, const int * n,
@@ -68,6 +66,8 @@ void PivotedCholeskySolver::statusIs(Status s) {
 
   status_ = s;
 }
+
+/* Read Accessor */
 
 Vector &
 PivotedCholeskySolver::solution(Vector & rhs) const {

@@ -135,7 +135,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
     if (p.first == HalfTimeSlice::BACKWARD) {
-      // Initial (premultiplied) state
+      // Initial state, premultiplied by metric
       DynamState initialOrtho(receivedBasis->state(p.second));
       metricBasis_->lastStateIs(initialOrtho);
     } else {
@@ -195,7 +195,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
 
   const double * originBufferBegin = mBuffer_.array();
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_->globalHalfIndex(initStateFlag); it; ++it) {
-    int rowIndex = (*it).second;
+    int rowIndex = (*it).second + previousMatrixSize;
     std::copy(originBufferBegin, originBufferBegin + (rowIndex + 1), normalMatrix_[rowIndex]);
     originBufferBegin += newMatrixSize;
   }

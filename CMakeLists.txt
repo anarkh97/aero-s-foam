@@ -87,14 +87,18 @@ if(USE_MPI)
    ENDIF(NOT APPLE)
 endif(USE_MPI)
 
-FIND_PROGRAM(MERCURIAL_EXECUTABLE hg)
+FIND_PROGRAM(MERCURIAL_EXECUTABLE hg2xx)
+
+MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
 
 IF(MERCURIAL_EXECUTABLE)
+  MESSAGE("Rule 1")
   add_custom_command(OUTPUT HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ELSE (MERCURIAL_EXECUTABLE)
+  MESSAGE("Rule 2")
   add_custom_command(OUTPUT HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
                  DEPENDS main.C
@@ -148,21 +152,6 @@ SET_TARGET_PROPERTIES(femexecutable
 			 DEBUG_OUTPUT_NAME aeros.debug
 		      )
 
-FIND_PROGRAM(MERCURIAL_EXECUTABLE hg)
-
-IF(MERCURIAL_EXECUTABLE)
-  add_custom_command(OUTPUT HgIdentity.C
-                   COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
-                 DEPENDS main.C ${ALLLIBS}
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-ELSE (MERCURIAL_EXECUTABLE)
-  add_custom_command(OUTPUT HgIdentity.C
-                   COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
-                 DEPENDS main.C ${ALLLIBS}
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-ENDIF (MERCURIAL_EXECUTABLE)
-
-		      
 MESSAGE(Lapack is ${LAPACK_LIBRARIES})
 
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})

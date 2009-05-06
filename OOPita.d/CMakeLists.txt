@@ -59,4 +59,7 @@ TaskManager.C
 TimeSlice.C
 TimeSliceImpl.C
 TimeSliceMapping.C
-TimeSliceNetwork.C)
+TimeSliceNetwork.C
+lev2pchol.f
+lev3pchol.f
+blas_dmax_val.f)

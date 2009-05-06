@@ -77,7 +77,8 @@ struct SolverInfo {
    int numTSperCycleperCPU; // Maximum number of active time-slices on each CPU (always required)
    int numSpaceMPIProc;     // Number of CPUs in the space domain (only when time-space parallelism is enabled)
    int baseImprovementMethodForPita; // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
-   
+   bool remoteCoarse;
+
    bool newPitaImplementation; // JC TODO Remove when new PITA implementation ready
 
    bool modal;          // true iff system is to be solved in modal coordinates
@@ -227,16 +228,17 @@ struct SolverInfo {
                   mppFactor = 1.0;
 		 
                   // Parameters for PITA 
-		  tiParall       = false;
+		              tiParall       = false;
                   mdPita         = false;
                   NoForcePita    = false;
                   ConstForcePita = false;
                   CkCoarse       = false;
-		  Jratio = 1;
-		  kiter  = 0;
+		              Jratio = 1;
+		              kiter  = 0;
                   numTSperCycleperCPU = 1;
                   numSpaceMPIProc     = 1;
                   baseImprovementMethodForPita = 0;
+                  remoteCoarse = false;
                   newPitaImplementation = false; // JC TODO Remove when new PITA implementation ready
 
                   acoustic = false;
@@ -257,13 +259,13 @@ struct SolverInfo {
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
 				  
-	          ATDARBFlag = -2.0;
+	                ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
-	   	  ATDROBVal = 0.0;
-		  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
-		  ATDROBbeta = 0.0;
+	   	            ATDROBVal = 0.0;
+		              ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
+		              ATDROBbeta = 0.0;
 
-		  aeroFlag = -1;
+		              aeroFlag = -1;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;

@@ -17,5 +17,10 @@ In order to use cmake,
 
 - to compile the executable type "make"
 
-On nivation:
+On nivation: Make sure /opt/intel/fc/9.0/bin is in your path.
 ~michel/cmake-2.6.2-Linux-i386/bin/cmake -DEXTRALIB="-L/opt/intel/fc/9.0/lib/ -lifcore" .
+
+On regelation, make sure /share/apps/intel/fce/9.1.039/bin/ is in your path and use:
+~michel/cmake-2.6.2-Linux-i386/bin/cmake -DEXTRALIB="-L/share/apps/intel/fce/9.1.039/lib/ -lifcore -limf -lirc" -DMPI_INCLUDE_PATH=/opt/mpich/myrinet/gnu/include .
+
+Note: Both directories given above can be in your path. Only one of them will contain a fortran compiler and cmake will pick it.

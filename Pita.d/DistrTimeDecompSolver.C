@@ -885,7 +885,6 @@ void DistrTimeDecompSolver<DynOps,VecType,PostProcessor,ProblemDescriptor,InfoSi
 
    //build workVec
    ptworkVec = new NewmarkWorkVec<VecType,ProblemDescriptor> (1,probDesc);
-   vector_Initialize(true);
 
    //Build K, M, C and dynK = ((1-alpham)/(1-alphaf))*M + (dt*gamma)*C + (dt*dt*beta)*K
    // if cr = true, ptdynOps = buildPitaOps else ptdynOps = buildOps
@@ -900,6 +899,8 @@ void DistrTimeDecompSolver<DynOps,VecType,PostProcessor,ProblemDescriptor,InfoSi
 
    Ptimes->dynOpstime += getTime();
    if (myCPU==0) cout<<"DynOpstime "<<Ptimes->dynOpstime/1000.0<<endl;
+   
+   vector_Initialize(true);
 
    //build TimeSlices and initialization
    Ptimes->buildTStime -= getTime();

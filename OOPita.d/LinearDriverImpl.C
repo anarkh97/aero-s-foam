@@ -38,6 +38,9 @@ extern Domain * domain;
 #include "ScheduledRemoteSeedWriter.h"
 #include "ScheduledRemoteSeedReader.h"
 
+#include "RemoteCoarseCorrectionServer.h"
+#include "RemoteDynamPropagator.h"
+
 #include "Log.h"
 #include <Timers.d/GetTime.h>
 
@@ -74,6 +77,8 @@ LinearDriverImpl::solve() {
   numSlices = HalfSliceCount(fullTimeSlices.value() * 2);
   finalTime = Seconds(numSlices.value() * halfSliceRatio.value() * fineTimeStep.value());
 
+  HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices);
+  
   IterationRank lastIteration(domain->solInfo().kiter);
   
   Communicator * timeCom = structCom;
@@ -110,7 +115,7 @@ LinearDriverImpl::solve() {
     HalfSliceCorrectionNetworkImpl::NON_HOMOGENEOUS;
 
   SeedInitializer::Ptr seedInitializer;
-  IntegratorPropagator::Ptr coarsePropagator = IntegratorPropagator::New(NULL);
+  DynamPropagator::Ptr coarsePropagator;
 
   if (remoteCoarse) {
     int originId = timeCom->myID();
@@ -135,27 +140,44 @@ LinearDriverImpl::solve() {
       
       double tac = getTime();
       log() << "Total Init Time = " << (tac - tic) / 1000.0 << " s\n";
-      
-      coarseIntegrator->initialConditionIs(initialSeed, initialTime);
-      SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
-      
+     
       Communicator * seedInitCom = new Communicator(interCom, stderr); // TODO delete
-      RemoteSeedInitializer::Ptr remoteSeedInitializer = RemoteSeedInitializer::New(seedInitCom, seedInitializer.ptr(), mapping.ptr());
-
-      remoteSeedInitializer->statusIs(RemoteSeedInitializer::BUSY);
       
+      if (correctionStrategy == HalfSliceCorrectionNetworkImpl::HOMOGENEOUS) {
+        coarseIntegrator->initialConditionIs(initialSeed, initialTime);
+        SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
+
+        RemoteSeedInitializer::Ptr remoteSeedInitializer = RemoteSeedInitializer::New(seedInitCom, seedInitializer.ptr(), mapping.ptr());
+
+        remoteSeedInitializer->statusIs(RemoteSeedInitializer::BUSY);
+
+      } else {
+        coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr())->timeStepCountIs(TimeStepCount(1));
+        RemoteDynamPropagatorServer::Ptr propagatorServer = new RemoteDynamPropagatorServer(coarsePropagator.ptr(), seedInitCom);
+        RemoteCoarseCorrectionServer::Ptr correctionServer = new RemoteCoarseCorrectionServer(propagatorServer.ptr(), mapping.ptr(), schedule->correction());
+        correctionServer->statusIs(RemoteCoarseCorrectionServer::ACTIVE);
+        
+        activityMgr->targetPhaseIs(lastIteration, PhaseRank(0));
+      }
+        
       double toc = getTime();
       log() << "Total Solve Time = " << (toc - tic) / 1000.0 << " s\n";
 
       log() << "End LinPita\n";
       return;
+
     } else {
       timeCom = new Communicator(splitCom, stderr); // TODO delete
 
       myCpu = CpuRank(timeCom->myID());
-
       Communicator * seedInitCom = new Communicator(interCom, stderr); // TODO delete
-      seedInitializer = RemoteSeedInitializerProxy::New(seedInitCom, vectorSize);
+
+      if (correctionStrategy == HalfSliceCorrectionNetworkImpl::HOMOGENEOUS) {
+        seedInitializer = RemoteSeedInitializerProxy::New(seedInitCom, vectorSize);
+      } else {
+        seedInitializer = SimpleSeedInitializer::New(initialSeed);
+        coarsePropagator = RemoteDynamPropagator::New(vectorSize, seedInitCom, CpuRank(0));
+      }
     }
   } else {
     LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep , rho_infinity_coarse));
@@ -165,11 +187,9 @@ LinearDriverImpl::solve() {
     } else {
       seedInitializer = SimpleSeedInitializer::New(initialSeed);
     }
-    coarsePropagator->integratorIs(coarseIntegrator.ptr());
-    coarsePropagator->timeStepCountIs(TimeStepCount(1));
+    coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
   } 
 
-  HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices);
   RemoteHalfSliceSurrogate::Ptr surrogate = RemoteHalfSliceSurrogate::New(mapping.ptr());
 
   Seed::Manager::Ptr seedMgr = Seed::Manager::New();

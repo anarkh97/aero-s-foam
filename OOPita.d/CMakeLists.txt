@@ -43,6 +43,9 @@ PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
 ProjectorPropagator.C
+RemoteCoarseCorrectionServer.C
+RemoteDynamPropagator.C
+RemoteDynamPropagatorServer.C
 RemoteHalfSliceSurrogate.C
 RemoteSeedInitializer.C
 RemoteSeedInitializerProxy.C

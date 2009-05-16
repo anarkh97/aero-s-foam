@@ -152,7 +152,9 @@ LinearDriverImpl::solve() {
         remoteSeedInitializer->statusIs(RemoteSeedInitializer::BUSY);
 
       } else {
-        coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr())->timeStepCountIs(TimeStepCount(1));
+        IntegratorPropagator::Ptr integratorPropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
+        integratorPropagator->timeStepCountIs(TimeStepCount(1));
+        coarsePropagator = integratorPropagator;
         RemoteDynamPropagatorServer::Ptr propagatorServer = new RemoteDynamPropagatorServer(coarsePropagator.ptr(), seedInitCom);
         RemoteCoarseCorrectionServer::Ptr correctionServer = new RemoteCoarseCorrectionServer(propagatorServer.ptr(), mapping.ptr(), schedule->correction());
         correctionServer->statusIs(RemoteCoarseCorrectionServer::ACTIVE);

@@ -180,7 +180,7 @@ void MappedAssembledSolver<BaseSolver, Scalar>::reSolve(Scalar *s) {
     }
  //   std::cerr<< std::endl;
   }
-  BaseSolver::reSolve(s2);
+  BaseSolver::reSolve(s2.data());
  // std::cerr<< "Resolved sizes " << s2.size() << " " << BaseSolver::neqs() << std::endl;
   for(int i = 0; i < numMappedEqs; ++i) {
     s[i] = 0;

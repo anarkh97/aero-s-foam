@@ -157,7 +157,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 {
    Element *ele;
    bool grbmeig = (domain->solInfo().probType == SolverInfo::Modal && domain->solInfo().rbmflg == 1);
-   bool rigidmpc = ((domain->solInfo().type == 2) 
+   bool rigidmpc = ((domain->solInfo().type == 2) || geoSource->getDirectMPC()
                     || (grbmeig && (etype != 66) && (etype != 73) && (etype != 74)) // safe to leave these as rigid for GRBM
                     || (domain->solInfo().isNonLin() && etype != 65));
    switch(etype) 

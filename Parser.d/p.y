@@ -1041,10 +1041,10 @@ NewmarkFirstOrder:
         Float // epsilon
         { 
           if(domain->solInfo().probType == SolverInfo::NonLinDynam) {
-            domain->solInfo().order = 1;
-          }
+          domain->solInfo().order = 1;
+         }
           else 
-            domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
+          domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
           domain->solInfo().setNewmarkFirstOrderInfo($1); 
         }
         ;
@@ -1910,8 +1910,8 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer THERMMAT Float Float Float Float Float Float Float Float NewLine
-        { StructProp sp;
-          sp.A = $3;  sp.rho = $4; sp.Q = $5;
+        { StructProp sp; 
+          sp.A = $3;  sp.rho = $4; sp.Q = $5; 
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
@@ -3156,6 +3156,7 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
             domain->solInfo().order = 1;
             domain->solInfo().probType = SolverInfo::NonLinDynam;
+            domain->solInfo().probType = SolverInfo::TempDynamic;
           }
           domain->solInfo().initNLInfo();
           domain->solInfo().fetiInfo.type = FetiInfo::nonlinear; // XXXX

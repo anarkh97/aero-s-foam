@@ -28,6 +28,8 @@ public:
         void computeHeatFluxes(Vector& heatflux, CoordSet &cs, Vector& elTemp,
                                int hflInd);
         void getThermalForce(CoordSet &, Vector &, Vector &force, int, GeomState *geomState=0) { force.zero(); }
+
+
 };
 
 #endif

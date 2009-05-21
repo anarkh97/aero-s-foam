@@ -894,6 +894,7 @@ int main(int argc, char** argv)
 
  }
  else {
+
    //--------------------------------
 #ifdef STRUCTOPT
    // print what type of problem we are doing

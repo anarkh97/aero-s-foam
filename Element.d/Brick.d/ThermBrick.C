@@ -190,3 +190,10 @@ ThermBrick::getTopNumber()
   return 151;//3;
 }
 
+
+Corotator *
+ThermBrick::getCorotator(CoordSet &cs, double* kel, int, int)
+{
+  return 0;
+}
+

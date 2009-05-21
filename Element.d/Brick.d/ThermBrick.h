@@ -28,6 +28,8 @@ public:
 	PrioInfo examine(int sub, MultiFront *);
         void getThermalForce(CoordSet &, Vector &, Vector &force, int, GeomState *geomState=0) { force.zero(); }
 
+	Corotator *	getCorotator(CoordSet &cs, double* kel, int, int);
+
 };
 #endif
 

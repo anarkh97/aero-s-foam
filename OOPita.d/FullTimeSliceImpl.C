@@ -446,7 +446,9 @@ RemoteTailProxy::reducedBasisComponentsIs(const Vector & c, Seed::Status cvgFlag
   // TODO Handle cvgFlag
   // TODO Asynchronous Send
   int messageTag = timeComm_->myID(); // TODO Id
-  timeComm_->sendTo(this->targetCpu().value(), messageTag, c.data(), c.size());
+  if (this->targetCpu() != CpuRank(-1)) {
+    timeComm_->sendTo(this->targetCpu().value(), messageTag, c.data(), c.size());
+  }
   timeComm_->waitForAllReq();
 }
 

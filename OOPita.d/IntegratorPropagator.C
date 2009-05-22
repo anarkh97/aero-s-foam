@@ -7,7 +7,7 @@ IntegratorPropagator::IntegratorPropagator(DynamTimeIntegrator * integrator) :
   DynamPropagator(integrator ? integrator->vectorSize() : 0),
   integrator_(integrator),
   initialTime_(Seconds(0.0)),
-  timeStepCount_(TimeStepCount(0))
+  timeStepCount_(TimeStepCount(1))
 {}
 
 void

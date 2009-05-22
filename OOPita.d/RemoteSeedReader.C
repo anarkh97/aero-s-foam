@@ -25,7 +25,7 @@ RemoteSeedReader::statusIs(Status s) {
   if (s != status()) {
     setStatus(s);
     if (status() == BUSY) {
-      if (timeComm_->myID() != targetCpu().value()) {
+      if (timeComm_->myID() != targetCpu().value() && targetCpu() != CpuRank(-1)) {
         DynamState state = notifier()->state();
         size_t dim = 2 * state.vectorSize() + 1;
         stateBuffer_.sizeIs(dim);

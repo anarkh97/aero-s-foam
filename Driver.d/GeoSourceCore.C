@@ -291,7 +291,7 @@ int GeoSource::addCFrame(int fn, double *f)  {
 
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
-  std::cerr << "MLXX Adding " << numLMPC << " MPC Elements" << std::endl;
+  //std::cerr << "MLXX Adding " << numLMPC << " MPC Elements" << std::endl;
 #ifndef SALINAS
   // PJSA: convert rigid elements into mpcs -- used for GRBM
   // 1. find largest lmpcnum

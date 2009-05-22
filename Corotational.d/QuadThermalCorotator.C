@@ -15,13 +15,14 @@ void _FORTRAN(q4shpe)(double &, double &, double *, double *,
 }
 
 QuadThermalCorotator::QuadThermalCorotator(int _n1, int _n2, int _n3, int _n4,
-                                           double _eps, double _Tr, CoordSet& cs)
+                                           double _eps, double _sigma, double _Tr, CoordSet& cs)
 {
  n1    = _n1;         	// Node 1
  n2    = _n2;   	// Node 2
  n3    = _n3;           // Node 3
  n4    = _n4;           // Node 4 
  eps   = _eps;          // Emissivity of the body
+ sigma = _sigma;        // Stefan's constant
  Tr    = _Tr;           // Temperature of the enclosure receiving the radiation
 }
 
@@ -127,7 +128,7 @@ QuadThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
  xn[3] = tn4.x; // temperature of node 4
 
  // Form tangent stiffness matrix
- formTangentStiffness(xl, yl, xn, eps, kt);
+ formTangentStiffness(xl, yl, xn, eps, sigma, kt); 
 
  // Copy tangent stiffness matrix to element K matrix
  for(i=0; i<4; ++i)
@@ -135,7 +136,7 @@ QuadThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
      elK[i][j] = kt[i][j];
  
  // Form internal force
- formInternalForce(xl, yl, xn, eps, Tr, ff);
+ formInternalForce(xl, yl, xn, eps, sigma, Tr, ff);
 
  // Copy internal force to element f matrix
  for(j=0; j<4; ++j)
@@ -143,7 +144,7 @@ QuadThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
 }
 
 void
-QuadThermalCorotator::formInternalForce(double xl[4], double yl[4], double xn[4], double eps, double Tr, double f[4])
+QuadThermalCorotator::formInternalForce(double xl[4], double yl[4], double xn[4], double eps, double sigma, double Tr, double f[4])
 /*******************************************************************
  *
  * Purpose :
@@ -162,7 +163,6 @@ QuadThermalCorotator::formInternalForce(double xl[4], double yl[4], double xn[4]
   f[2]=0;
   f[3]=0;
   
-  const double sigma = 5.670400E-8;
   int numgauss = 3;
   int i;
  
@@ -205,7 +205,7 @@ QuadThermalCorotator::formInternalForce(double xl[4], double yl[4], double xn[4]
 
 
 void
-QuadThermalCorotator::formTangentStiffness(double xl[4], double yl[4], double xn[4], double eps, double kt[4][4])
+QuadThermalCorotator::formTangentStiffness(double xl[4], double yl[4], double xn[4], double eps, double sigma, double kt[4][4]) 
 /*******************************************************************
  * 
  * Purpose :
@@ -223,7 +223,6 @@ QuadThermalCorotator::formTangentStiffness(double xl[4], double yl[4], double xn
  *****************************************************************/
 {
      int i, j;
-     const double sigma = 5.670400E-8; // Stefan Boltzmann Constant
      int numgauss = 3;
 
      for(i=0; i<4; ++i )

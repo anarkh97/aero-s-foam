@@ -123,6 +123,7 @@ class StructProp {
         double Ta;	// Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
+        double sigma;   // Stefan's constant (5.6704e-8 in SI)
 	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
 	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
 	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
@@ -163,7 +164,7 @@ class StructProp {
 
         StructProp() { E = 0.0; A = 0.0; nu = 0.0; rho = 1.0; eh = 0.0; Ixx = 0.0;
                        Iyy = 0.0; Izz = 0.0; c = 0.0; k = 0.0; Q = 0.0; W = 0.0;
-                       P = 0.0; Ta = 0.0;
+                       P = 0.0; Ta = 0.0; sigma = 0.0;
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0;
                        ymin = 0.0; ymax = 0.0;
@@ -171,7 +172,7 @@ class StructProp {
 
         StructProp(StructProp *p)  {E=p->E; A=p->A; nu=p->nu; rho=p->rho; eh=p->eh;
                                     Ixx=p->Ixx; Iyy=p->Iyy; Izz=p->Izz; c=p->c;
-                                    k=p->k; Q=p->Q; W=p->W; P=p->P; Ta=p->Ta;
+                                    k=p->k; Q=p->Q; W=p->W; P=p->P; Ta=p->Ta; sigma=p->sigma;
                                     ymin=p->ymin; ymax=p->ymax; zmin=p->zmin; zmax=p->zmax;
                                     kappaHelm = p->kappaHelm;
                                     kappaHelmImag = p->kappaHelmImag;

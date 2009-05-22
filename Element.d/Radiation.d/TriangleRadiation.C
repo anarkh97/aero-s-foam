@@ -88,7 +88,7 @@ TriangleRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 
 // ... Return thermal corotator 
 
-	return new TriangleThermalCorotator(nn[0], nn[1], nn[2], area, prop->eps, prop->Tr, cs);
+	return new TriangleThermalCorotator(nn[0], nn[1], nn[2], area, prop->eps, prop->sigma, prop->Tr, cs);
 }
 
 

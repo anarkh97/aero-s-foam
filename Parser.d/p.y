@@ -1909,10 +1909,10 @@ MatData:
 	  sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer THERMMAT Float Float Float Float Float Float Float Float NewLine
+        | Integer THERMMAT Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp; 
-          sp.A = $3;  sp.rho = $4; sp.Q = $5; 
-          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.A = $3;  sp.rho = $4; sp.Q = $5; sp.c = $6; 
+          sp.sigma = $7;  sp.k = $8;  sp.eh  = $9;  sp.P   = $10;  sp.Ta  = $11;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }

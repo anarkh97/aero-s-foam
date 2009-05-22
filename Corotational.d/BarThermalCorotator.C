@@ -6,12 +6,13 @@
 /* #include <Corotational.d/utilities.h> */
 
 BarThermalCorotator::BarThermalCorotator(int _n1, int _n2, double _P, 
-                                         double _eps, double _Tr, CoordSet& cs)
+                                         double _eps, double _sigma, double _Tr, CoordSet& cs)
 {
  n1    = _n1;         	// Node 1
  n2    = _n2;   	// Node 2
  P     = _P;    	// Perimeter
  eps   = _eps;          // Emissivity of the body
+ sigma = _sigma;        // Stefan's constant
  Tr    = _Tr;           // Temperature of the enclosure receiving the radiation
 
  // Get original coordinates of bar's nodes
@@ -64,7 +65,7 @@ BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
  xn[1] = tn2.x; // temperature of node 2
 
  // Form tangent stiffness matrix
- formTangentStiffness( xn, l0, P, eps, kt);
+ formTangentStiffness( xn, l0, P, eps, sigma, kt);
 
  // Copy tangent stiffness matrix to element K matrix
  for(i=0; i<2; ++i)
@@ -72,7 +73,7 @@ BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
      elK[i][j] = kt[i][j];
  
  // Form internal force
- formInternalForce( xn, l0, P, eps, Tr, ff);
+ formInternalForce( xn, l0, P, eps, sigma, Tr, ff);
 
  // Copy internal force to element f matrix
  for(k=0; k<2; ++k)
@@ -80,7 +81,7 @@ BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
 }
 
 void
-BarThermalCorotator::formInternalForce(double xn[2], double l0, double P, double eps, double Tr, double *f)
+BarThermalCorotator::formInternalForce(double xn[2], double l0, double P, double eps, double sigma, double Tr, double *f) 
 /*******************************************************************
  *
  * Purpose :
@@ -96,7 +97,6 @@ BarThermalCorotator::formInternalForce(double xn[2], double l0, double P, double
      f[1]=0.0;
 
      // Compute internal force in local system and store in f (analytically derived)
-     const double sigma = 5.670400E-8;
      double coeff = (eps*sigma*P*l0)/pow(2.0,6.0);
      f[0] = coeff*(pow(xn[0],4.0)*10.666667+4*pow(xn[0],3.0)*xn[1]*2.133333+6*pow(xn[0],2.0)*pow(xn[1],2.0)*1.066667+4*xn[0]*pow(xn[1],3.0)*1.066667+pow(xn[1],4.0)*2.133333)-pow(2.0,5.0)*coeff*pow(Tr,4.0);
      f[1] = coeff*(pow(xn[0],4.0)*2.133333+4*pow(xn[0],3.0)*xn[1]*1.066667+6*pow(xn[0],2.0)*pow(xn[1],2.0)*1.066667+4*xn[0]*pow(xn[1],3.0)*2.133333+pow(xn[1],4.0)*10.666667)-pow(2.0,5.0)*coeff*pow(Tr,4.0);
@@ -105,7 +105,7 @@ BarThermalCorotator::formInternalForce(double xn[2], double l0, double P, double
 
 
 void
-BarThermalCorotator::formTangentStiffness(double xn[2], double l0, double P, double eps, double kt[2][2])
+BarThermalCorotator::formTangentStiffness(double xn[2], double l0, double P, double eps, double sigma, double kt[2][2])
 /*******************************************************************
  * 
  * Purpose :
@@ -124,7 +124,6 @@ BarThermalCorotator::formTangentStiffness(double xn[2], double l0, double P, dou
  *****************************************************************/
 {
      int i, j;
-     const double sigma = 5.670400E-8; // Stefan Boltzmann Constant
   // Zero stiffness matrix
      for(i=0; i<2; ++i )
        for(j=0; j<2; ++j )
@@ -136,4 +135,3 @@ BarThermalCorotator::formTangentStiffness(double xn[2], double l0, double P, dou
  kt[1][0]=(4*eps*sigma*l0*P/pow(2.0,6.0))*(pow(xn[0],3.0)*2.1333333333+3*pow(xn[0],2.0)*xn[1]*1.0666666667+3*xn[0]*pow(xn[1],2.0)*1.0666666667+pow(xn[1],3.0)*1.0666666667);
  kt[1][1]=(4*eps*sigma*l0*P/pow(2.0,6.0))*(pow(xn[0],3.0)*1.0666666667+3*pow(xn[0],2.0)*xn[1]*1.0666666667+3*xn[0]*pow(xn[1],2.0)*2.1333333333+pow(xn[1],3.0)*10.6666666667);
 }
-

@@ -6,8 +6,9 @@
 #include "LinearDynamOps.h"
 #include "LinearGenAlphaIntegrator.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
+template <typename GenAlphaIntegratorType>
 class LinearFineIntegratorManager : public FineIntegratorManager {
 public:
   EXPORT_PTRINTERFACE_TYPES(LinearFineIntegratorManager);
@@ -30,6 +31,45 @@ private:
   GeneralizedAlphaParameter backwardParameter_;
 };
 
-} // end namespace Pita
+template <typename GenAlphaIntegratorType>
+LinearFineIntegratorManager<GenAlphaIntegratorType>::LinearFineIntegratorManager(LinearDynamOps::Manager * dom, const GeneralizedAlphaParameter & fp) :
+  FineIntegratorManager(fp.timeStepSize()),
+  dynamOpsManager_(dom),
+  forwardParameter_(fp),
+  backwardParameter_(GeneralizedAlphaParameter(-fp.timeStepSize(), fp.rhoInfinity()))
+{}
 
-#endif /* PITA_LINEARFINEINTEGRATORMANAGER_H */
+template <typename GenAlphaIntegratorType>
+const GeneralizedAlphaParameter &
+LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(HalfTimeSlice::Direction direction) const {
+  switch (direction) {
+    case HalfTimeSlice::NO_DIRECTION: // Fall through
+    case HalfTimeSlice::FORWARD:
+      return forwardParameter_;
+      break;
+    case HalfTimeSlice::BACKWARD:
+      return backwardParameter_; 
+      break;
+  }
+
+  throw Fwk::InternalException("In LinearFineIntegratorManager::parameter");
+}
+
+template <typename GenAlphaIntegratorType>
+LinearGenAlphaIntegrator *
+LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(HalfTimeSlice::Direction direction) const {
+  switch (direction) {
+    case HalfTimeSlice::NO_DIRECTION:
+      return NULL;
+      break;
+    case HalfTimeSlice::FORWARD: // Fall through
+    case HalfTimeSlice::BACKWARD:
+      return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
+      break;
+  }
+
+  throw Fwk::InternalException("In LinearFineIntegratorManager::createFineIntegrator");
+}
+} /* end namespace Hts */ } /* end namespace Pita */
+
+#endif /* PITA_HTS_LINEARFINEINTEGRATORMANAGER_H */

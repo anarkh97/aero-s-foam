@@ -222,7 +222,8 @@ LinearDriverImpl::solve() {
 
   PostProcessingManager::Ptr postProcessingMgr = PostProcessingManager::New(probDesc_->getPostProcessor(), localFileId.size(), &localFileId[0]);
 
-  LinearFineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager::New(dopsManager.ptr(), integrationParam);
+  // HACK 
+  LinearFineIntegratorManager<HackedGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<HackedGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
 
   HalfSlicePropagatorManager::Ptr propagatorMgr =
     new HalfSlicePropagatorManager(

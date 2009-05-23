@@ -1,7 +1,7 @@
 #include "LinearFineIntegratorManager.h"
 
-namespace Pita {
-
+namespace Pita { namespace Hts {
+/*
 LinearFineIntegratorManager::LinearFineIntegratorManager(LinearDynamOps::Manager * dom, const GeneralizedAlphaParameter & fp) :
   FineIntegratorManager(fp.timeStepSize()),
   dynamOpsManager_(dom),
@@ -32,11 +32,11 @@ LinearFineIntegratorManager::createFineIntegrator(HalfTimeSlice::Direction direc
       break;
     case HalfTimeSlice::FORWARD: // Fall through
     case HalfTimeSlice::BACKWARD:
-      return new LinearGenAlphaIntegrator(dynamOpsManager(), parameter(direction));
+      return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
       break;
   }
 
   throw Fwk::InternalException("In LinearFineIntegratorManager::createFineIntegrator");
 }
-
-} // end namespace Pita
+*/
+} /* end namespace Hts */ } /* end namespace Pita */

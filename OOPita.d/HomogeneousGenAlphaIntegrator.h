@@ -16,6 +16,18 @@ protected:
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState);
 };
 
+class HackedGenAlphaIntegrator : public LinearGenAlphaIntegrator {
+public:
+  EXPORT_PTRINTERFACE_TYPES(HackedGenAlphaIntegrator);
+
+  bool externalForceFlag;
+
+  HackedGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
+
+protected:
+  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState);
+};
+
 } // end namespace Pita
 
 #endif /* PITA_HOMOGENEOUSGENALPHAINTEGRATOR_H */

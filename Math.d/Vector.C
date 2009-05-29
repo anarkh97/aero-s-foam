@@ -398,7 +398,7 @@ GenVector<Scalar>::linC(const GenVector<Scalar> &v1, Scalar c, const GenVector<S
 // where c = constant
 
  if(v1.len != v2.len) {
-   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in dot product\n");
+   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in linC\n");
    exit(-1);
  }
  if(len != v2.len) {
@@ -420,7 +420,7 @@ GenVector<Scalar>::linC(Scalar c1, const GenVector<Scalar> &v1, Scalar c2, const
 // where c1 and c2 are constants
 
  if(v1.len != v2.len) {
-   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in dot product\n");
+   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in linC\n");
    exit(-1);
  }
  if(len != v2.len) {
@@ -590,7 +590,7 @@ GenVector<Scalar>::linAdd(Scalar c1, const GenVector<Scalar> &v1, Scalar c2, con
 // where c1 and c2 are constants
 
  if(v1.len != v2.len) {
-   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in dot product\n");
+   fprintf(stderr,"Incompatible length of GenVector<Scalar>s in linAdd\n");
    exit(-1);
  }
  if(len != v2.len) {

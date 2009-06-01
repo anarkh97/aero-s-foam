@@ -47,7 +47,7 @@ public:
   virtual void notifieeDel(NotifieeConst * n) const { notifierDelegate().notifieeDel(n); }
   
 protected:
-  DynamTimeIntegrator(size_t vectorSize);
+  explicit DynamTimeIntegrator(size_t vectorSize);
 
   typedef GenNotifierDelegate<NotifieeConst>::NotificationType NotificationType;
   void performNotification(NotificationType ln) { notifierDelegate().lastNotificationIs(ln); }

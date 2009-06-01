@@ -39,6 +39,6 @@ private:
   SliceRank sliceRank_;
 };
   
-};
+} // end namespace Pita
 
 #endif /* PITA_INTEGRATORPROPAGATOR_H */

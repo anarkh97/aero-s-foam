@@ -4,7 +4,7 @@ namespace Pita {
 
 HalfSlicePropagatorManager::HalfSlicePropagatorManager(HalfSliceBasisCollector * collector,
                                                        FineIntegratorManager * integratorMgr,
-                                                       PostProcessingManager * postProcessingMgr,
+                                                       PostProcessing::Manager * postProcessingMgr,
                                                        TimeStepCount halfSliceRatio,
                                                        Seconds initialTime) :
   collector_(collector),

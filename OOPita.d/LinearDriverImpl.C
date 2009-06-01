@@ -34,6 +34,8 @@ extern Domain * domain;
 #include "LinearGenAlphaIntegrator.h"
 #include "HomogeneousGenAlphaIntegrator.h"
 
+#include "AffinePostProcessor.h"
+
 #include "Seed.h"
 #include "ScheduledRemoteSeedWriter.h"
 #include "ScheduledRemoteSeedReader.h"
@@ -220,10 +222,11 @@ LinearDriverImpl::solve() {
   std::sort(localFileId.begin(), localFileId.end());
   localFileId.erase(std::unique(localFileId.begin(), localFileId.end()), localFileId.end());
 
-  PostProcessingManager::Ptr postProcessingMgr = PostProcessingManager::New(probDesc_->getPostProcessor(), localFileId.size(), &localFileId[0]);
-
   // HACK 
-  LinearFineIntegratorManager<HackedGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<HackedGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
+  LinearFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
+  AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
+  typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
+  PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   HalfSlicePropagatorManager::Ptr propagatorMgr =
     new HalfSlicePropagatorManager(

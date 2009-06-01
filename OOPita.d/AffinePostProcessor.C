@@ -1,18 +1,18 @@
 #include "AffinePostProcessor.h"
-#include "HomogeneousGenAlphaIntegrator.h"
+#include "LinearGenAlphaIntegrator.h"
 #include <Problems.d/DynamDescr.h>
 #include "Activity.h"
 
 namespace Pita {
 
 AffinePostProcessor::AffinePostProcessor(GeoSource * gs, int lfc, const int * lfi, SDDynamPostProcessor * bpp) :
-  GenPostProcessor<AffineGenAlphaIntegrator>(gs, lfc, lfi),
+  GenPostProcessor<LinearGenAlphaIntegrator>(gs, lfc, lfi),
   basePostProcessor_(bpp),
   constantTermMap_()
 {}
 
 void
-AffinePostProcessor::outputNew(FileSetId fileSetId, const AffineGenAlphaIntegrator * oi) {
+AffinePostProcessor::outputNew(FileSetId fileSetId, const LinearGenAlphaIntegrator * oi) {
   this->fileStatusIs(fileSetId, OPEN);
 
   FileSetMap::iterator it = constantTermMap_.lower_bound(fileSetId);

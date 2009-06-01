@@ -222,8 +222,7 @@ LinearDriverImpl::solve() {
   std::sort(localFileId.begin(), localFileId.end());
   localFileId.erase(std::unique(localFileId.begin(), localFileId.end()), localFileId.end());
 
-  // HACK 
-  LinearFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
+  LinearFineIntegratorManager<HomogeneousGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<HomogeneousGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
   AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());

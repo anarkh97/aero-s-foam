@@ -14,13 +14,13 @@ class SDDynamPostProcessor;
 
 namespace Pita {
 
-class AffineGenAlphaIntegrator;
+class LinearGenAlphaIntegrator;
 
-class AffinePostProcessor : public GenPostProcessor<AffineGenAlphaIntegrator> {
+class AffinePostProcessor : public GenPostProcessor<LinearGenAlphaIntegrator> {
 public:
   EXPORT_PTRINTERFACE_TYPES(AffinePostProcessor);
 
-  virtual void outputNew(FileSetId fileSetId, const AffineGenAlphaIntegrator * oi);
+  virtual void outputNew(FileSetId fileSetId, const LinearGenAlphaIntegrator * oi);
 
   SDDynamPostProcessor * basePostProcessor() const { return basePostProcessor_; }
 

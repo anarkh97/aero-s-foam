@@ -23,8 +23,16 @@ LinearGenAlphaIntegrator::LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOp
   constForce_(probDesc_->solVecInfo(), 0.0),
   externalForce_(probDesc_->solVecInfo(), 0.0),
   aeroForce_(probDesc_->solVecInfo(), 0.0),
+  currentDisplacement_(probDesc_->solVecInfo()),
+  currentVelocity_(probDesc_->solVecInfo()),
+  currentAcceleration_(probDesc_->solVecInfo()),
+  nextDisplacement_(probDesc_->solVecInfo()),
+  nextVelocity_(probDesc_->solVecInfo()),
+  nextAcceleration_(probDesc_->solVecInfo()),
   previousVelocity_(initialState().vectorSize(), 0.0),
-  rhs_(probDesc_->solVecInfo(), 0.0)
+  rhs_(probDesc_->solVecInfo(), 0.0),
+  temp_(probDesc_->solVecInfo(), 0.0),
+  temp2_(probDesc_->solVecInfo(), 0.0)
 {
   getDynamOps(param);
   probDesc()->getConstForce(constForce_);

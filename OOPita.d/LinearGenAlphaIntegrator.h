@@ -6,9 +6,6 @@
 template <typename Scalar> class SingleDomainDynamic;
 template <typename VectorType> class SysState;
 
-// HACK for output
-//#include <Driver.d/DynamProbType.h>
-
 namespace Pita {
 
 class LinearGenAlphaIntegrator : public DynamTimeIntegrator {

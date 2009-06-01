@@ -15,20 +15,19 @@ HomogeneousGenAlphaIntegrator::computeExternalForce(
   // Do nothing
 }
 
-HackedGenAlphaIntegrator::HackedGenAlphaIntegrator(
+AffineGenAlphaIntegrator::AffineGenAlphaIntegrator(
     LinearDynamOps::Manager * dOpsMgr,
     const GeneralizedAlphaParameter & param) :
   LinearGenAlphaIntegrator(dOpsMgr, param),
-  externalForceFlag(true)
+  externalForceFlag_(true)
 {}
 
 void
-HackedGenAlphaIntegrator::computeExternalForce(
+AffineGenAlphaIntegrator::computeExternalForce(
     Seconds forceEvalTime,
     SysState<VectorType> & currentState) { 
-  if (externalForceFlag) {
+  if (externalForceFlag()) {
     LinearGenAlphaIntegrator::computeExternalForce(forceEvalTime, currentState);
-    externalForceFlag = false;
   }
 }
 

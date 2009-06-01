@@ -39,7 +39,7 @@ private:
   void propagateSeed(); 
 
   DynamPropagator::Ptr propagator_;
-  DynamState lastUpdate_;
+  DynamState previousSeedState_;
 
   Fwk::Ptr<SchedulingReactor> schedulingReactor_;
   Fwk::Ptr<LocalPropagationReactor> localPropagationReactor_;

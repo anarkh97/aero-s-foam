@@ -16,16 +16,21 @@ protected:
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState);
 };
 
-class HackedGenAlphaIntegrator : public LinearGenAlphaIntegrator {
+class AffineGenAlphaIntegrator : public LinearGenAlphaIntegrator {
 public:
-  EXPORT_PTRINTERFACE_TYPES(HackedGenAlphaIntegrator);
+  EXPORT_PTRINTERFACE_TYPES(AffineGenAlphaIntegrator);
 
-  bool externalForceFlag;
+  bool externalForceFlag() const { return externalForceFlag_; }
 
-  HackedGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
+  void externalForceFlagIs(bool eff) { externalForceFlag_ = eff; }
+
+  AffineGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
 
 protected:
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState);
+
+private:
+  bool externalForceFlag_;
 };
 
 } // end namespace Pita

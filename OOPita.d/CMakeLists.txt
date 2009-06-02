@@ -25,7 +25,6 @@ IntegratorPropagator.C
 IntegratorSeedInitializer.C
 LinearDriverImpl.C
 LinearDynamOps.C
-LinearFineIntegratorManager.C
 LinearGenAlphaIntegrator.C
 LinearHalfSliceSchedule.C
 LinearizedPropagator.C

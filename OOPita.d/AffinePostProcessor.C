@@ -28,8 +28,10 @@ AffinePostProcessor::outputNew(FileSetId fileSetId, const LinearGenAlphaIntegrat
 
   ConstantTermMap::iterator kt = jt->second.lower_bound(oi->timeStepCount());
   if (kt != jt->second.end() && kt->first == oi->timeStepCount()) {
+    //log() << "Use state " << (direction ? 'F' : 'B') << " " << oi->timeStepCount() << "\n";
     kt->second += oi->currentState();
   } else {
+    //log() << "New state " << (direction ? 'F' : 'B') << " " << oi->timeStepCount() << "\n";
     kt = jt->second.insert(kt, std::make_pair(oi->timeStepCount(), oi->currentState()));
   }
 

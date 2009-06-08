@@ -41,8 +41,10 @@ void
 HalfTimeSliceImpl::propagateSeed() {
   if (seed()) {
     if (previousSeedState_.vectorSize() != 0) {
+      //log() << "Reuse state\n";
       propagator()->initialStateIs(seed()->state() - previousSeedState_);
     } else {
+      //log() << "New state\n";
       propagator()->initialStateIs(seed()->state());
     }
     if (propagatedSeed()) {

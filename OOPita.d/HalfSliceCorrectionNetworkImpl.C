@@ -82,7 +82,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   }
 
   cs = collector_->firstBackwardFinalState();
-  std::deque<HalfSliceBasisCollectorImpl::CollectedState> localInitialStates; // Temporarily preserve initial states
+  std::deque<HalfSliceBasisCollectorImpl::CollectedState> localInitialStates; // Preserve local initial states
   while (cs.second.vectorSize() != 0) {
     int inBufferRank = globalExchangeNumbering_->globalIndex(HalfSliceId(cs.first, HalfTimeSlice::BACKWARD));
     if (inBufferRank >= 0) {
@@ -92,6 +92,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
         const_cast<SparseMatrix*>(metric_->stiffnessMatrix())->mult(cs.second.displacement(), targetBuffer);
         const_cast<SparseMatrix*>(metric_->massMatrix())->mult(cs.second.velocity(), targetBuffer + vectorSize_);
       } else {
+        log() << "Warning, no metric found !\n";
         bufferStateCopy(cs.second, targetBuffer); 
       }
       localInitialStates.push_back(cs);
@@ -205,8 +206,30 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   tic = toc;
 
   solver_->matrixIs(normalMatrix_);
+  
+  /*if (timeCommunicator_->myID() == 0) {
+    log() << "Matrix\n";
+    for (int i = 0; i < solver_->matrixSize(); ++i) {
+      for (int j = 0; j < solver_->matrixSize(); ++j) {
+        log() << const_cast<FullSquareMatrix &>(solver_->choleskyFactor())[i][j] << " ";
+      }
+      log() << "\n";
+    }
+  }*/
+  
   solver_->statusIs(PivotedCholeskySolver::FACTORIZED);
-   
+  
+  /*if (timeCommunicator_->myID() == 0) {
+    log() << "Factor\n";
+    for (int i = 0; i < solver_->factorRank(); ++i) {
+      for (int j = 0; j < solver_->factorRank(); ++j) {
+        log() << const_cast<FullSquareMatrix &>(solver_->choleskyFactor())[i][j] << " ";
+      }
+      log() << "\n";
+    }
+  }*/
+  
+  
   // HACK to reset the Reductor and Reconstructor instances 
   reductorMgr_->defaultReductionBasisIs(metricBasis_.ptr());
   reconstructorMgr_->defaultReconstructionBasisIs(finalBasis_.ptr());
@@ -214,6 +237,50 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   toc = getTime();
   log() << "-> Factor: " << toc - tic << " ms\n";
   tic = toc;
+
+  // Debug
+  /*log() << "Debug\n";
+  log() << "Projector rank = " << solver_->factorRank() << "\n";
+  log() << "Permutation =";
+  for (int i = 0; i < solver_->factorRank(); ++i) {
+    log() << " " << solver_->factorPermutation(i);
+  }
+  log() << "\n";
+ 
+  
+  DynamStateReductor::Ptr reductor = reductorMgr_->instance("debug");
+  if (!reductor) reductor = reductorMgr_->instanceNew("debug");
+  DynamStateReconstructor::Ptr reconstructor = reconstructorMgr_->instance("debug");
+  if (!reconstructor) reconstructor = reconstructorMgr_->instanceNew("debug");
+  
+  for (std::deque<HalfSliceBasisCollectorImpl::CollectedState>::const_iterator it = localInitialStates.begin();
+      it != localInitialStates.end();
+      ++it) {
+
+      int metric_index = previousMatrixSize + globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first, HalfTimeSlice::BACKWARD));
+      double norm0 = metricBasis_->state(metric_index) * it->second;
+   
+      log() << "norm0 = " << norm0 << "\n";
+      
+      reductor->initialStateIs(it->second);
+      reconstructor->reducedBasisComponentsIs(reductor->reducedBasisComponents());
+
+      int final_index = globalExchangeNumbering_->globalIndex(HalfSliceId(it->first + HalfSliceCount(1), HalfTimeSlice::FORWARD));
+      log() << final_index << "\n";
+      test = receivedBasis->state(final_index) - reconstructor->finalState();
+      log() << "norm^2 error = " << (test * test) / norm0 << "\n";
+      
+      int state_index = previousMatrixSize + globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first + HalfSliceCount(1), HalfTimeSlice::FORWARD));
+      log() << state_index << "\n";
+      DynamState test = finalBasis_->state(state_index) - reconstructor->finalState();
+      
+      DynamState test_metric = test;
+      const_cast<SparseMatrix*>(metric_->stiffnessMatrix())->mult(test.displacement(), test_metric.displacement());
+      const_cast<SparseMatrix*>(metric_->massMatrix())->mult(test.velocity(), test_metric.velocity());
+      
+      log() << "norm_2 relative error = " << sqrt((test_metric * test) / norm0) << "\n";
+  }*/
+  
 }
 
 // HalfSliceCorrectionNetworkImpl Reactors

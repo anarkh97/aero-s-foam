@@ -22,7 +22,7 @@ public:
 
   bool externalForceFlag() const { return externalForceFlag_; }
 
-  void externalForceFlagIs(bool eff) { externalForceFlag_ = eff; }
+  void externalForceFlagIs(bool eff);
 
   AffineGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
 

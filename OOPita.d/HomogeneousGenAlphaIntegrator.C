@@ -23,6 +23,12 @@ AffineGenAlphaIntegrator::AffineGenAlphaIntegrator(
 {}
 
 void
+AffineGenAlphaIntegrator::externalForceFlagIs(bool eff) {
+  externalForceFlag_ = eff;
+  zeroExternalForce();
+}
+
+void
 AffineGenAlphaIntegrator::computeExternalForce(
     Seconds forceEvalTime,
     SysState<VectorType> & currentState) { 

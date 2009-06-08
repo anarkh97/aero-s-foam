@@ -4,7 +4,6 @@
 #include "FineIntegratorManager.h"
 
 #include "LinearDynamOps.h"
-#include "LinearGenAlphaIntegrator.h"
 
 namespace Pita { namespace Hts {
 
@@ -23,7 +22,7 @@ public:
 protected:
   LinearFineIntegratorManager(LinearDynamOps::Manager * dom, const GeneralizedAlphaParameter & fp);
 
-  virtual LinearGenAlphaIntegrator * createFineIntegrator(HalfTimeSlice::Direction direction) const; // Overriden
+  virtual GenAlphaIntegratorType * createFineIntegrator(HalfTimeSlice::Direction direction) const; // Overriden
 
 private:
   LinearDynamOps::Manager::Ptr dynamOpsManager_;
@@ -56,7 +55,7 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(HalfTimeSlice::Di
 }
 
 template <typename GenAlphaIntegratorType>
-LinearGenAlphaIntegrator *
+GenAlphaIntegratorType *
 LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(HalfTimeSlice::Direction direction) const {
   switch (direction) {
     case HalfTimeSlice::NO_DIRECTION:
@@ -70,6 +69,8 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(HalfTi
 
   throw Fwk::InternalException("In LinearFineIntegratorManager::createFineIntegrator");
 }
+
+
 } /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_HTS_LINEARFINEINTEGRATORMANAGER_H */

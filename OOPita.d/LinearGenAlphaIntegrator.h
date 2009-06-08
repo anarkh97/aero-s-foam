@@ -46,6 +46,8 @@ protected:
   const ProblemDescriptor * probDesc() const { return probDesc_; }
   ProblemDescriptor * probDesc() { return probDesc_; }
 
+  void zeroExternalForce() { externalForce_.zero(); }
+    
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); 
 
 private:

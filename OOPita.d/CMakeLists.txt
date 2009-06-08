@@ -1,5 +1,6 @@
 ADD_LIBRARY( pitadriver
 ActivityImpl.C
+AffineFineIntegratorManager.C
 AffinePostProcessor.C
 AlternatingIntegratorPropagator.C
 CommManager.C

@@ -4,7 +4,7 @@
 #include "DynamStateReductor.h"
 
 #include "DynamStateBasis.h"
-#include "PivotedCholeskySolver.h"
+#include "RankDeficientSolver.h"
 
 #include <map>
 
@@ -17,22 +17,22 @@ public:
   virtual void initialStateIs(const DynamState & is); // Overriden
   
   const DynamStateBasis * reductionBasis() const { return reductionBasis_.ptr(); }
-  const PivotedCholeskySolver * solver() const { return solver_.ptr(); }
+  const RankDeficientSolver * solver() const { return solver_.ptr(); }
 
   class Manager;
 
 protected:
   DynamStateReductorImpl(const DynamStateBasis * reductionBasis,
-                         const PivotedCholeskySolver * solver);
+                         const RankDeficientSolver * solver);
 
   void setReductionBasis(const DynamStateBasis * mb) { reductionBasis_ = mb; }
-  void setSolver(const PivotedCholeskySolver * s) { solver_ = s; }
+  void setSolver(const RankDeficientSolver * s) { solver_ = s; }
 
   void reset();
 
 private:
   DynamStateBasis::PtrConst reductionBasis_;
-  PivotedCholeskySolver::PtrConst solver_;
+  RankDeficientSolver::PtrConst solver_;
 
   friend class Manager;
 };
@@ -49,17 +49,17 @@ public:
 
   // Added members
   const DynamStateBasis * defaultReductionBasis() const { return defaultReductionBasis_.ptr(); }
-  const PivotedCholeskySolver * defaultSolver() const { return defaultSolver_.ptr(); }
+  const RankDeficientSolver * defaultSolver() const { return defaultSolver_.ptr(); }
 
-  void defaultSolverIs(const PivotedCholeskySolver * s);
+  void defaultSolverIs(const RankDeficientSolver * s);
   void defaultReductionBasisIs(const DynamStateBasis * mb);
 
-  static Ptr New(const DynamStateBasis * defaultReductionBasis, const PivotedCholeskySolver * defaultSolver) {
+  static Ptr New(const DynamStateBasis * defaultReductionBasis, const RankDeficientSolver * defaultSolver) {
     return new Manager(defaultReductionBasis, defaultSolver);
   }
 
 protected:
-  Manager(const DynamStateBasis * defaultReductionBasis, const PivotedCholeskySolver * defaultSolver);
+  Manager(const DynamStateBasis * defaultReductionBasis, const RankDeficientSolver * defaultSolver);
 
   void resetInstances();
 
@@ -68,7 +68,7 @@ private:
   InstanceContainer instance_;
 
   DynamStateBasis::PtrConst defaultReductionBasis_;
-  PivotedCholeskySolver::PtrConst defaultSolver_;
+  RankDeficientSolver::PtrConst defaultSolver_;
   
   //const SymFullMatrix & normalMatrix() const { return *normalMatrix_; }
   //void defaultNormalMatrixIs(const SymFullMatrix & nm);

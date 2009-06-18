@@ -16,6 +16,10 @@
 #include "DynamStateReductorImpl.h"
 #include "DynamStateReconstructorImpl.h"
 
+#include "PivotedCholeskySolver.h"
+#include "LeastSquareSolver.h"
+#include <Math.d/FullSquareMatrix.h>
+
 #include "Activity.h"
 
 #include "DynamStatePlainBasis.h"
@@ -201,8 +205,9 @@ private:
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
 
-  SymFullMatrix normalMatrix_;
-  PivotedCholeskySolver::Ptr solver_;
+  //SymFullMatrix normalMatrix_;
+  FullSquareMatrix normalMatrix_;
+  LeastSquareSolver::Ptr solver_;
   
   HalfSliceBasisCollectorImpl::Ptr collector_;
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;

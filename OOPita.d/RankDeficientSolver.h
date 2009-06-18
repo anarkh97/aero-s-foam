@@ -19,9 +19,8 @@ public:
   Status status() const { return status_; }
   int matrixSize() const { return matrixSize_; }
 
-  // These 2 accessors have meaningful values only if status() == FACTORIZED
   int factorRank() const { return factorRank_; }
-  int factorPermutation(int index) const { return factorPermutation_[index] - 1; }
+  int factorPermutation(int index) const { return factorPermutation_[index] - 1; } // 0 <= index <= factorRank
 
   virtual const Vector & solution(Vector & rhs) const = 0; // In-place solution: rhs modified
 

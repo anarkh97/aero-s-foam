@@ -33,7 +33,7 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
   metricBasis_(DynamStatePlainBasis::New(vectorSize_)),
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
-  solver_(PivotedCholeskySolver::New()),
+  solver_(LeastSquareSolver::New(1e-4)),
   collector_(strategy == NON_HOMOGENEOUS ?
       ptr_cast<HalfSliceBasisCollectorImpl>(NonHomogeneousBasisCollectorImpl::New()) :
       HalfSliceBasisCollectorImpl::New()),
@@ -132,7 +132,10 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
 
   // Add new states to projection bases
   DynamStateBasisWrapper::Ptr receivedBasis = DynamStateBasisWrapper::New(vectorSize_, globalExchangeNumbering_->stateCount(), gBuffer_.array());
-  
+ 
+  metricBasis_->stateBasisDel();
+  finalBasis_->stateBasisDel();
+
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
     if (p.first == HalfTimeSlice::BACKWARD) {
@@ -152,7 +155,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   // Assemble normal matrix in parallel (local rows)
   HalfTimeSlice::Direction initStateFlag(HalfTimeSlice::BACKWARD);
 
-  int previousMatrixSize = normalMatrix_.dim();
+  int previousMatrixSize = 0; // TODO accumulate --- normalMatrix_.dim();
   int matrixSizeIncrement = globalExchangeNumbering_->stateCount(initStateFlag);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
   
@@ -197,7 +200,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   const double * originBufferBegin = mBuffer_.array();
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_->globalHalfIndex(initStateFlag); it; ++it) {
     int rowIndex = (*it).second + previousMatrixSize;
-    std::copy(originBufferBegin, originBufferBegin + (rowIndex + 1), normalMatrix_[rowIndex]);
+    std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
     originBufferBegin += newMatrixSize;
   }
   
@@ -205,7 +208,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   log() << "-> Assemble normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
-  solver_->matrixIs(normalMatrix_);
+  solver_->transposedMatrixIs(normalMatrix_);
   
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Matrix\n";
@@ -217,7 +220,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     }
   }*/
   
-  solver_->statusIs(PivotedCholeskySolver::FACTORIZED);
+  solver_->statusIs(RankDeficientSolver::FACTORIZED);
   
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Factor\n";

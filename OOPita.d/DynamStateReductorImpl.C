@@ -5,7 +5,7 @@
 namespace Pita {
 
 DynamStateReductorImpl::DynamStateReductorImpl(const DynamStateBasis * reductionBasis,
-                                               const PivotedCholeskySolver * solver) :
+                                               const RankDeficientSolver * solver) :
   reductionBasis_(reductionBasis),
   solver_(solver)
 {
@@ -55,7 +55,7 @@ DynamStateReductorImpl::initialStateIs(const DynamState & is) {
 }
 
 DynamStateReductorImpl::Manager::Manager(const DynamStateBasis * defaultReductionBasis,
-                                         const PivotedCholeskySolver * defaultSolver) :
+                                         const RankDeficientSolver * defaultSolver) :
   instance_(),
   defaultReductionBasis_(defaultReductionBasis),
   defaultSolver_(defaultSolver)
@@ -98,7 +98,7 @@ DynamStateReductorImpl::Manager::normalMatrixIs(const SymFullMatrix & nm) {
   if (newSize > 0) {
     // Update solver
     solver_->matrixIs(nm);
-    solver_->statusIs(PivotedCholeskySolver::FACTORIZED);
+    solver_->statusIs(RankDeficientSolver::FACTORIZED);
   }
 
   // Update Reductor instances 
@@ -120,7 +120,7 @@ DynamStateReductorImpl::Manager::defaultReductionBasisIs(const DynamStateBasis *
 }
 
 void
-DynamStateReductorImpl::Manager::defaultSolverIs(const PivotedCholeskySolver * s) {
+DynamStateReductorImpl::Manager::defaultSolverIs(const RankDeficientSolver * s) {
   defaultSolver_ = s;
   resetInstances();
 }

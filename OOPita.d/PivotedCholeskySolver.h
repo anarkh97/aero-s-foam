@@ -30,6 +30,7 @@ public:
 
   // Mutators
   void matrixIs(const SymFullMatrix & matrix);
+  void matrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part
   void statusIs(Status s);
   
   // Solve in place: Input parameter rhs is modified

@@ -1,5 +1,4 @@
 #include "LeastSquareSolver.h"
-
 #include <algorithm>
 
 extern "C" {
@@ -20,12 +19,9 @@ extern "C" {
 namespace Pita {
 
 LeastSquareSolver::LeastSquareSolver(double tol) :
-  status_(NON_FACTORIZED),
+  RankDeficientSolver(),
   transposedMatrix_(),
-  matrixSize_(0),
   tolerance_(tol),
-  factorRank_(0),
-  factorPermutation_(),
   tau_(), 
   workspace_()
 {}
@@ -33,9 +29,9 @@ LeastSquareSolver::LeastSquareSolver(double tol) :
 void
 LeastSquareSolver::transposedMatrixIs(const FullSquareMatrix & transposedMatrix) {
   transposedMatrix_.copy(transposedMatrix);
-  matrixSize_ = transposedMatrix_.dim();
-  status_ = NON_FACTORIZED;
-  // Remark: factorRank, factorPermutation not up-to-date
+  setMatrixSize(transposedMatrix_.dim());
+  setFactorRank(0);
+  setStatus(NON_FACTORIZED);
 }
 
 void
@@ -46,8 +42,8 @@ LeastSquareSolver::statusIs(LeastSquareSolver::Status s) {
 
   if (s == FACTORIZED) {
     // Initialize arrays for factorization
-    factorPermutation_.sizeIs(matrixSize());
-    std::fill_n(factorPermutation_.array(), matrixSize(), 0); // All columns are free
+    getFactorPermutation().sizeIs(matrixSize());
+    std::fill_n(getFactorPermutation().array(), matrixSize(), 0); // All columns are free
 
     tau_.sizeIs(matrixSize());
 
@@ -57,14 +53,14 @@ LeastSquareSolver::statusIs(LeastSquareSolver::Status s) {
     int info;
 
     // Perform factorization
-    _FORTRAN(dgeqp3)(&matrixSize_, &matrixSize_, transposedMatrix_.data(), &matrixSize_, factorPermutation_.array(),
+    _FORTRAN(dgeqp3)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(), getFactorPermutation().array(),
         tau_.array(), workspace_.array(), &workspaceSize, &info);
 
     // Determine numerical rank
     updateFactorRank();
   }
 
-  status_ = s;
+  setStatus(s);
 }
 
 void
@@ -97,8 +93,8 @@ LeastSquareSolver::solution(Vector & rhs) const {
 
   int info;
 
-  _FORTRAN(dormqr)(&side, &qTrans, &matrixSize_, &cols, &factorRank_,
-                   transposedMatrix_.data(), &matrixSize_, tau_.array(), rhs.data(), &matrixSize_,
+  _FORTRAN(dormqr)(&side, &qTrans, &getMatrixSize(), &cols, &getFactorRank(),
+                   transposedMatrix_.data(), &getMatrixSize(), tau_.array(), rhs.data(), &getMatrixSize(),
                    workspace_.array(), &workspaceSize, &info); 
 
   // 2) rhs(1:rank) <- R_{11}^-1 rhs(1:rank)
@@ -107,15 +103,15 @@ LeastSquareSolver::solution(Vector & rhs) const {
   const char diag = 'N';   // Non-unit diagonal
   const int incx = 1;      // Rhs vector elements are contiguous
 
-  _FORTRAN(dtrsv)(&uplo, &sTrans, &diag, &factorRank_, transposedMatrix_.data(),
-                  &matrixSize_, rhs.data(), &incx);
+  _FORTRAN(dtrsv)(&uplo, &sTrans, &diag, &getFactorRank(), transposedMatrix_.data(),
+                  &getMatrixSize(), rhs.data(), &incx);
 
   // 3) rhs(perm) <- [rhs(1:rank); zeros(matrixSize - rank, 1)]
-  std::copy(rhs.data(), rhs.data() + factorRank_, workspace_.array());
+  std::copy(rhs.data(), rhs.data() + factorRank(), workspace_.array());
   rhs.zero();
   double * rhs_ptr = rhs.data() - 1; // Fortran -> C indexing
-  for (int i = 0; i < factorRank_; ++i) {
-    rhs_ptr[factorPermutation_[i]] = workspace_[i];
+  for (int i = 0; i < factorRank(); ++i) {
+    rhs_ptr[getFactorPermutation()[i]] = workspace_[i];
   }
 
   return rhs;
@@ -124,11 +120,11 @@ LeastSquareSolver::solution(Vector & rhs) const {
 void
 LeastSquareSolver::updateFactorRank() {
   double diagMax = abs(transposedMatrix_[0][0]);
-  factorRank_ = 0;
-  while (factorRank_ < matrixSize() && abs(transposedMatrix_[factorRank_][factorRank_]) > tolerance_ * diagMax) {
-    ++factorRank_;
+  int fr = 0;
+  while (fr < matrixSize() && abs(transposedMatrix_[fr][fr]) > tolerance_ * diagMax) {
+    ++fr;
   }
+  setFactorRank(fr);
 }
 
 } /* end namespace Pita */
-

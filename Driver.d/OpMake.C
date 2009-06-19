@@ -576,9 +576,18 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    //obtain the added mass operator
    for (int i=0; i<domain->nuNonZero; ++i)  {
      for (int j=i; j<domain->nuNonZero; ++j)  {
+       int iAdd, jAdd;
+       if (umap_add[i] < umap_add[j]) {
+          iAdd = i;
+          jAdd = j;
+       } else {
+          iAdd = j;
+          jAdd = i;
+       }
        for (int k=0; k<domain->npNonZero[i]; ++k)  {
          int K = domain->pmap[i][k];
-           Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
+           //Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
+           Ma_NZ[iAdd][jAdd] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
        }
      }
    }

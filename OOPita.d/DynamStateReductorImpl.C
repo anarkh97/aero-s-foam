@@ -40,11 +40,9 @@ DynamStateReductorImpl::initialStateIs(const DynamState & is) {
   //log() << "DynamStateReductorImpl::initialStateIs() with factorRank / reducedBasisSize = " << solver()->factorRank() << " / " << reducedBasisSize() << "\n";
 
   if (this->reducedBasisSize() > 0) {
-    // Assemble the relevant part of rhs
-    int factorRank = this->solver()->factorRank();
-    for (int i = 0; i < factorRank; ++i) {
-      int index = this->solver()->factorPermutation(i);
-      this->getReducedBasisComponents()[index] = is * this->reductionBasis()->state(index);
+    // Assemble rhs
+    for (int i = 0; i < reducedBasisSize(); ++i) {
+      this->getReducedBasisComponents()[i] = is * this->reductionBasis()->state(i);
     }
 
     // Perform in place resolution

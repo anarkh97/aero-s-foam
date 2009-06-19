@@ -87,15 +87,6 @@ LinearGenAlphaIntegrator::rhoInfinityIs(double r) {
   rhoInfinity_ = r;
 }
 
-// HACK for output
-/*SysState<LinearGenAlphaIntegrator::VectorType>
-LinearGenAlphaIntegrator::sysState() const {
-  return SysState<VectorType>(const_cast<VectorType&>(currentDisplacement_),
-                              const_cast<VectorType&>(currentVelocity_),
-                              const_cast<VectorType&>(currentAcceleration_),
-                              const_cast<VectorType&>(previousVelocity_));
-}*/
-
 // Protected functions
 
 void
@@ -131,9 +122,7 @@ LinearGenAlphaIntegrator::integrate(TimeStepCount s) {
 
     // ... Compute external force at time t+dt*(1-alphaf)
     Seconds externalForceTime = currentTime() + (alphaf_ * timeStepSize());
-    this->computeExternalForce(externalForceTime, currentSysState);
-
-    //probDesc_->computeExtForce2(currentSysState, externalForce_, constForce_, timeStepCount().value(), externalForceTime.value(), &aeroForce_, gamma_, alphaf_);
+    computeExternalForce(externalForceTime, currentSysState);
 
     // ... Construct R.H.S. vector
     // ... d_n_h = ((1-alpham)/(1-alphaf))*d_n 
@@ -185,15 +174,15 @@ LinearGenAlphaIntegrator::integrate(TimeStepCount s) {
     // one time step forward
     //d_n_p.linC(rhs,(-1.0*alphaf),d_n);
     //d_n_p *= (1.0/(1-alphaf));
-    //(temp - param.alphaf * state0.disp) / (1.0 - param.alphaf);
+    //(temp - alphaf * state0.disp) / (1.0 - alphaf);
     nextDisplacement_.linC(1.0 / (1.0 - alphaf_), rhs_, alphaf_ / (alphaf_ - 1.0), currentDisplacement_);
 
-    //state1.accel = (1.0 / (param.beta * dt^2)) * (state1.disp - state0.disp) + (-1.0 / (dt * param.beta)) * state0.velo + (1.0 - 0.5 / param.beta) * state0.accel;
+    //state1.accel = (1.0 / (beta * dt^2)) * (state1.disp - state0.disp) + (-1.0 / (dt * beta)) * state0.velo + (1.0 - 0.5 / beta) * state0.accel;
     temp_.linC(nextDisplacement_, -1.0, currentDisplacement_);
     nextAcceleration_.linC(- 1.0 / (dt * beta_), currentVelocity_, (1.0 - 0.5 / beta_), currentAcceleration_);
     nextAcceleration_.linAdd((1.0 / (beta_ * dt * dt)), temp_);
 
-    //state1.velo = ((dt * (1.0 - param.gamma)) * state0.accel + (dt * param.gamma) * state1.accel) + state0.velo;
+    //state1.velo = ((dt * (1.0 - gamma)) * state0.accel + (dt * gamma) * state1.accel) + state0.velo;
     nextVelocity_.linC(dt * (1.0 - gamma_), currentAcceleration_, dt * gamma_, nextAcceleration_);
     nextVelocity_ += currentVelocity_;
 

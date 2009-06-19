@@ -24,6 +24,7 @@ HalfTimeSliceImpl.C
 HomogeneousGenAlphaIntegrator.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
+LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C
 LinearGenAlphaIntegrator.C

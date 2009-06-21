@@ -33,6 +33,7 @@ LinearizedPropagator.C
 LinearPostProcessor.C
 LocalTimeSlice.C
 Log.C
+NearSymmetricSolver.C
 NlDriverImpl.C
 NlDynamOps.C
 NlDynamPostProcessor.C

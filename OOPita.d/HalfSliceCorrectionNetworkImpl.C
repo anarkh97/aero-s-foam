@@ -7,6 +7,7 @@
 #include <Math.d/SparseMatrix.h>
 #include <Comm.d/Communicator.h>
 
+#include <iterator>
 #include <stdexcept>
 
 #include <Timers.d/GetTime.h>
@@ -84,6 +85,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     if (inBufferRank >= 0) {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       bufferStateCopy(cs.second, targetBuffer); 
+      //log() << "Final state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
     }
     collector_->firstForwardFinalStateDel();
     cs = collector_->firstForwardFinalState();
@@ -103,6 +105,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
         log() << "Warning, no metric found !\n";
         bufferStateCopy(cs.second, targetBuffer); 
       }
+      //log() << "Metric state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
       int accumulatedIndex = globalExchangeNumbering_.back()->globalHalfIndex(HalfSliceId(cs.first, HalfTimeSlice::BACKWARD)) + previousMatrixSize;
       localInitialBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
@@ -142,6 +145,10 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   // Add new states to projection bases
   DynamStateBasisWrapper::Ptr receivedBasis = DynamStateBasisWrapper::New(vectorSize_, globalExchangeNumbering_.back()->stateCount(), gBuffer_.array());
 
+  /*for (int i = 0; i < globalExchangeNumbering_.back()->stateCount(); ++i) {
+    log() << "Received State # " << i << " disp[2] = " << receivedBasis->state(i).displacement()[2] << "\n";
+  }*/
+
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_.back()->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
     if (p.first == HalfTimeSlice::BACKWARD) {
@@ -153,13 +160,21 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
       finalBasis_->lastStateIs(receivedBasis->state(p.second));
     }
   }
-  
+ 
+  /*for (int i = 0; i < finalBasis_->stateCount(); ++i) {
+    log() << "Final State # " << i << " disp[2] = " << finalBasis_->state(i).displacement()[2] << "\n";
+  }
+
+  for (int i = 0; i < metricBasis_->stateCount(); ++i) {
+    log() << "Metric State # " << i << " disp[2] = " << metricBasis_->state(i).displacement()[2] << "\n";
+  }*/
+
   toc = getTime();
   log() << "-> Add new states: " << toc - tic << " ms\n";
   tic = toc;
  
   // Assemble normal matrix in parallel (local rows)
-  HalfTimeSlice::Direction initStateFlag(HalfTimeSlice::BACKWARD);
+  HalfTimeSlice::Direction initStateFlag(HalfTimeSlice::BACKWARD); // Consider only initial states in this section
 
   int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(initStateFlag);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
@@ -194,17 +209,16 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     displacements[i] = displacements[i-1] + recv_counts[i-1];
   }
 
-  // TODO Better efficiency: Do not recompute
+  // TODO Better efficiency: Do not recompute every coefs
   double * rowBuffer = mBuffer_.array() + displacements[myCpu];
   for (InitialBasis::const_iterator it = localInitialBasis_.begin();
       it != localInitialBasis_.end(); ++it) {
-    log() << "LocalInitialState # " << it->first << "\n";
     for (int i = 0; i < newMatrixSize; ++i) {
       rowBuffer[i] = metricBasis_->state(i) * it->second;
     }
     rowBuffer += newMatrixSize;
   }
-  
+
   toc = getTime();
   log() << "-> Compute normal matrix: " << toc - tic << " ms\n";
   tic = toc;
@@ -216,7 +230,14 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   log() << "-> Exchange normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
-  // Fill in normal matrix
+  /*log() << "Buffer is\n";
+  for (int i = 0; i < newMatrixSize; ++i) {
+    for (int j = 0; j < newMatrixSize; ++j) {
+      log() << "[" << i << "," << j << "] " << mBuffer_[i * newMatrixSize + j] << "\n";
+    }
+  }*/
+
+  // Assemble updated normal matrix
   normalMatrix_.reSize(newMatrixSize);
 
   /*const double * originBufferBegin = mBuffer_.array();
@@ -234,14 +255,21 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
     GlobalExchangeNumbering::PtrConst numbering = *it;
     GlobalExchangeNumbering::IteratorConst jt = numbering->globalHalfIndex(initStateFlag);
-    
+   
+    //log() << "Iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "\n";
+
     // Loop on cpus
     for (int cpu = 0; cpu < numCpus; ++cpu) {
+      //log() << "Cpu # " << cpu << "\n";
       double * originBufferBegin = mBuffer_.array() + displacements[cpu]; // Position in AllgatherBuffer
       int stateCountInIter = numbering->stateCount(CpuRank(cpu), initStateFlag);
+      //log() << "# states on cpu = " << stateCountInIter << "\n";
       for (int s = 0; s < stateCountInIter; ++s) {
         int rowIndex = (*jt).second + originRowIndex; // Row in target normal matrix
+        //log() << "Normal matrix row # = " << rowIndex << "\n";
+        //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
+        originBufferBegin += newMatrixSize;
         ++jt;
       }
       displacements[cpu] += newMatrixSize * stateCountInIter; // Update buffer cpu base displacement for next iteration
@@ -249,15 +277,6 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     
     originRowIndex += numbering->stateCount(initStateFlag); // Udpate normal matrix base row for next iteration
   }
-  
-  /*for (int cpu = 0; cpu < numCpus; ++cpu) {
-    const double * originBufferBegin = mBuffer_.array() + displacements[cpu];
-    for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
-      for (GlobalExchangeNumbering::IteratorConst jt = (*it)->globalHalfIndex(initStateFlag); jt; ++jt) {
-
-      }
-    }
-  }*/ 
   
   toc = getTime();
   log() << "-> Assemble normal matrix: " << toc - tic << " ms\n";

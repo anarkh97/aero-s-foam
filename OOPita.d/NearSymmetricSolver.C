@@ -100,7 +100,7 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
       _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[0][k], &getMatrixSize(), &transposedMatrix_[0][p], &getMatrixSize());
       
       // Check for singularity
-      if (*max_pivot <= first_pivot * tolerance()) {
+      if (*head_pivot <= first_pivot * tolerance()) {
         break;
       }
 

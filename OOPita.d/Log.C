@@ -13,6 +13,7 @@ public:
     std::stringstream s;
     s << std::string("debug.") << structCom->myID();
     outStream_.open(s.str().c_str());
+    outStream_.precision(12);
   }
 
   virtual ~LogImpl() { outStream_.close(); }

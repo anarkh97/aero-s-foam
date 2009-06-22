@@ -17,13 +17,16 @@
 #include "DynamStateReconstructorImpl.h"
 
 #include "PivotedCholeskySolver.h"
-#include "LeastSquareSolver.h"
+#include "NearSymmetricSolver.h"
 #include <Math.d/FullSquareMatrix.h>
 
 #include "Activity.h"
 
 #include "DynamStatePlainBasis.h"
 #include "SimpleBuffer.h"
+
+#include <list>
+#include <map>
 
 class Communicator;
 
@@ -202,12 +205,13 @@ private:
   SimpleBuffer<double> mBuffer_;
   SimpleBuffer<int> mpiParameters_;
 
+  typedef std::map<int, DynamState> InitialBasis;
+  InitialBasis localInitialBasis_;
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
 
-  //SymFullMatrix normalMatrix_;
   FullSquareMatrix normalMatrix_;
-  LeastSquareSolver::Ptr solver_;
+  NearSymmetricSolver::Ptr solver_;
   
   HalfSliceBasisCollectorImpl::Ptr collector_;
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
@@ -217,7 +221,8 @@ private:
   Strategy strategy_;
   SchedulingReactor::Ptr schedulingReactor_;
 
-  GlobalExchangeNumbering::Ptr globalExchangeNumbering_;
+  typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
+  NumberingList globalExchangeNumbering_;
 };
 
 } // end namespace Pita

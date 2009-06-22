@@ -77,7 +77,7 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
     const double minus_one = -1;
 
     double first_pivot = 0.0;
-    
+
     int k;
     for (k = 0; k < matrixSize(); ++k) {
       // Update pivot values, find largest and permute
@@ -96,9 +96,8 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
       }
 
       // Perform symmetric permutation
-      const int current_n = matrixSize() - k;
-      _FORTRAN(dswap)(&current_n, &transposedMatrix_[k][k], &int_one, &transposedMatrix_[p][k], &int_one);
-      _FORTRAN(dswap)(&current_n, &transposedMatrix_[k][k], &getMatrixSize(), &transposedMatrix_[k][p], &getMatrixSize());
+      _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[k][0], &int_one, &transposedMatrix_[p][0], &int_one);
+      _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[0][k], &getMatrixSize(), &transposedMatrix_[0][p], &getMatrixSize());
       
       // Check for singularity
       if (*max_pivot <= first_pivot * tolerance()) {
@@ -107,11 +106,11 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
 
       // Compute column of L
       const double pivot_inverse = 1.0 / *head_pivot;
-      const int current_n_minus_one = current_n - 1;
-      _FORTRAN(dscal)(&current_n_minus_one, &pivot_inverse, &transposedMatrix_[k][k+1], &int_one);
+      const int remainder_size = matrixSize() - (k + 1);
+      _FORTRAN(dscal)(&remainder_size, &pivot_inverse, &transposedMatrix_[k][k+1], &int_one);
 
       // Update remaining block of A
-      _FORTRAN(dger)(&current_n_minus_one, &current_n_minus_one, &minus_one,
+      _FORTRAN(dger)(&remainder_size, &remainder_size, &minus_one,
                      &transposedMatrix_[k][k+1], &int_one, &transposedMatrix_[k+1][k], &getMatrixSize(),
                      &transposedMatrix_[k+1][k+1], &getMatrixSize());
     }
@@ -131,7 +130,7 @@ NearSymmetricSolver::solution(Vector & rhs) const {
   if (status() != FACTORIZED) {
     throw Fwk::RangeException("in NearSymmetricSolver::solution - Non-factorized matrix");
   }
- 
+
   // 1) rhs <- P * rhs
   const int int_one = 1;
   _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
@@ -149,8 +148,11 @@ NearSymmetricSolver::solution(Vector & rhs) const {
   const char non_unit_diag = 'N';
   _FORTRAN(dtrsv)(&upper, &non_trans, &non_unit_diag, &getFactorRank(), transposedMatrix().data(),
                   &getMatrixSize(), rhs.data(), &int_one);
+  
+  // 4) Pad with zeros
+  std::fill(rhs.data() + getFactorRank(), rhs.data() + getMatrixSize(), 0.0);
 
-  // 4) rhs <- P * rhs
+  // 5) rhs <- P * rhs
   const int int_minus_one = -1;
   _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
                    pivots_.array(), &int_minus_one);

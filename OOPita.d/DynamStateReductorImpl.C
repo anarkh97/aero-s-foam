@@ -37,16 +37,28 @@ DynamStateReductorImpl::initialStateIs(const DynamState & is) {
     throw Fwk::RangeException("in SimpleDynamStateReductor::initialStateIs"); 
   }
 
-  //log() << "DynamStateReductorImpl::initialStateIs() with factorRank / reducedBasisSize = " << solver()->factorRank() << " / " << reducedBasisSize() << "\n";
-
   if (this->reducedBasisSize() > 0) {
-    // Assemble rhs
-    for (int i = 0; i < reducedBasisSize(); ++i) {
-      this->getReducedBasisComponents()[i] = is * this->reductionBasis()->state(i);
+    // Assemble relevant part of rhs
+    for (int i = 0; i < solver_->factorRank(); ++i) {
+      int index = solver_->factorPermutation(i);
+      this->getReducedBasisComponents()[index] = is * this->reductionBasis()->state(index);
     }
 
+    /*log() << "Rhs = ";
+    for (int i = 0; i < this->reducedBasisSize(); ++i) {
+      log() << this->getReducedBasisComponents()[i] << " ";
+    }
+    log() << "\n";*/
+    
     // Perform in place resolution
     this->solver()->solution(this->getReducedBasisComponents());
+
+    /*log() << "Solution = ";
+    for (int i = 0; i < this->reducedBasisSize(); ++i) {
+      log() << this->getReducedBasisComponents()[i] << " ";
+    }
+    log() << "\n";*/
+    
   }
 
   setInitialState(is);

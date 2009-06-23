@@ -11,6 +11,12 @@ class NearSymmetricSolver : public RankDeficientSolver {
 public:
   EXPORT_PTRINTERFACE_TYPES(NearSymmetricSolver);
 
+  enum RescalingStatus {
+    NO_RESCALING,
+    ROW_RESCALING,
+    SYMMETRIC_RESCALING
+  };
+
   double tolerance() const { return tolerance_; }
   const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; }
 
@@ -35,6 +41,9 @@ private:
   FullSquareMatrix transposedMatrix_;
 
   SimpleBuffer<int> pivots_;
+
+  RescalingStatus rescalingStatus_;
+  SimpleBuffer<double> scaling_;
 };
 
 } /* end namespace Pita */

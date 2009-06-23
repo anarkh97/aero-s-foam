@@ -29,6 +29,15 @@ extern "C" {
   // Blas: Vector scaling
   void _FORTRAN(dscal)(const int* n, const double* da, double* dx, const int* incx);
 
+  // Lapack: Diagonal scaling
+  void _FORTRAN(dpoequ)(const int* n, const double* a, const int* lda,
+                        double* s, double* scond, double* amax, int* info);
+
+  // Lapack: Perform scaling
+  // SUBROUTINE DLAQGE( M, N, A, LDA, R, C, ROWCND, COLCND, AMAX, EQUED )
+  void _FORTRAN(dlaqge)(const int* m, const int* n, double* a, const int* lda,
+                        const double* r, const double* c, const double* rowcnd, const double* colcnd,
+                        const double* amax, char* equed);
 }
 
 namespace Pita {
@@ -36,12 +45,15 @@ namespace Pita {
 NearSymmetricSolver::NearSymmetricSolver(double tol) :
   RankDeficientSolver(),
   tolerance_(tol),
-  transposedMatrix_()
+  transposedMatrix_(),
+  pivots_(),
+  rescalingStatus_(NO_RESCALING),
+  scaling_()
 {}
 
 void
 NearSymmetricSolver::toleranceIs(double tol) {
-  // TODO
+  // TODO Extend/shrink factorization ?
   setTolerance(tol);
 }
 
@@ -52,6 +64,7 @@ NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
   setMatrixSize(transposedMatrix_.dim());
   setFactorRank(0);
   setStatus(NON_FACTORIZED);
+  rescalingStatus_ = NO_RESCALING;
 }
 
 void
@@ -61,6 +74,33 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
   }
 
   if (s == FACTORIZED) {
+    // Rescale matrix
+    scaling_.sizeIs(matrixSize());
+    int info;
+    double scond, amax;
+    _FORTRAN(dpoequ)(&getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
+                    scaling_.array(), &scond, &amax, &info);
+    char equed;
+    _FORTRAN(dlaqge)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
+                     scaling_.array(), scaling_.array(), &scond, &scond, &amax, &equed); 
+
+    switch (equed) {
+      case 'N':
+        rescalingStatus_ = NO_RESCALING;
+        log() << "No rescaling\n";
+        break;
+      case 'R':
+        rescalingStatus_ = ROW_RESCALING;
+        log() << "Row rescaling\n";
+        break;
+      case 'B':
+        rescalingStatus_ = SYMMETRIC_RESCALING;
+        log() << "Symmetric rescaling\n";
+        break;
+      default:
+        throw Fwk::InternalException("NearSymmetricSolver::statusIs - Invalid rescaling status");
+    }
+
     // Initialize permutation
     getFactorPermutation().sizeIs(matrixSize());
     for (int i = 0; i < matrixSize(); ++i) {
@@ -136,23 +176,37 @@ NearSymmetricSolver::solution(Vector & rhs) const {
   _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
                    pivots_.array(), &int_one);
 
-  // 2) rhs <- L^{-1} * rhs
+  // 2) rhs <- S^{-1} * rhs
+  if (rescalingStatus_ != NO_RESCALING) {
+    for (int i = 0; i < factorRank(); ++i) {
+      rhs[i] *= scaling_[factorPermutation(i)];
+    }
+  }
+
+  // 3) rhs <- L^{-1} * rhs
   const char lower = 'L';
   const char non_trans = 'N';
   const char unit_diag = 'U';
   _FORTRAN(dtrsv)(&lower, &non_trans, &unit_diag, &getFactorRank(), transposedMatrix().data(),
                   &getMatrixSize(), rhs.data(), &int_one);
 
-  // 3) rhs <- U^{-1} * rhs
+  // 4) rhs <- U^{-1} * rhs
   const char upper = 'U';
   const char non_unit_diag = 'N';
   _FORTRAN(dtrsv)(&upper, &non_trans, &non_unit_diag, &getFactorRank(), transposedMatrix().data(),
                   &getMatrixSize(), rhs.data(), &int_one);
   
-  // 4) Pad with zeros
+  // 5) rhs <- S^{-1} * rhs
+  if (rescalingStatus_ == SYMMETRIC_RESCALING) {
+    for (int i = 0; i < factorRank(); ++i) {
+      rhs[i] *= scaling_[factorPermutation(i)];
+    }
+  }
+
+  // 6) Pad with zeros
   std::fill(rhs.data() + getFactorRank(), rhs.data() + getMatrixSize(), 0.0);
 
-  // 5) rhs <- P * rhs
+  // 7) rhs <- P * rhs
   const int int_minus_one = -1;
   _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
                    pivots_.array(), &int_minus_one);

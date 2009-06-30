@@ -90,7 +90,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                       FullSquareMatrix *kelArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
-
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
@@ -576,19 +575,15 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    //obtain the added mass operator
    for (int i=0; i<domain->nuNonZero; ++i)  {
      for (int j=i; j<domain->nuNonZero; ++j)  {
-       int iAdd, jAdd;
-       if (umap_add[i] < umap_add[j]) {
-          iAdd = i;
-          jAdd = j;
-       } else {
-          iAdd = j;
-          jAdd = i;
-       }
        for (int k=0; k<domain->npNonZero[i]; ++k)  {
          int K = domain->pmap[i][k];
-           //Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
-           Ma_NZ[iAdd][jAdd] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
+           Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
        }
+     }
+   }
+   for (int i=0; i<domain->nuNonZero; ++i)  {
+     for (int j=i; j<domain->nuNonZero; ++j)  {
+           Ma_NZ[j][i] = Ma_NZ[i][j];
      }
    }
 
@@ -596,7 +591,16 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
    //add added mass to structural mass for EVP!
    ops.M->add(Ma_NZ,domain->umap_add);
-   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass...\n");
+   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
+
+   if (isShifted)  {
+     omega2 = geoSource->shiftVal();
+     Ma_NZ *= (-omega2*Kcoef);
+     if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
+     if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
+   }
+
  }
 
  if(sinfo.isAcousticHelm()) assembleGlobalSommer<Scalar>(mat, &ops);
@@ -2782,10 +2786,15 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   if(numOutInfo && firstOutput && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
+  int numNodeLim;
+
   // organize displacements
-  Scalar (*xyz)[11] = new Scalar[numnodes][11];//DofSet::max_known_nonL_dof
+  if (sinfo.HEV) numNodeLim = numNodes; 
+  else numNodeLim = numnodes;
+    
+  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;
-  for(i = 0; i < numnodes; ++i)
+  for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
   /*int exactNumNodes =*/ mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);

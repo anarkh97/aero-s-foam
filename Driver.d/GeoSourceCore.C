@@ -334,16 +334,30 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
     if(lmpc[i]->lmpcnum > lmpcnum) lmpcnum = lmpc[i]->lmpcnum;
   // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
   int nEle = elemSet.last();
+  Elemset rigidSet;
+  int nRigid = 0;
   for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
     if((ele != 0) && (ele->isRigidMpcElement())) {
       if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes,lmpcnum);
+ // Delay this 'til later     ele->computeMPCs(nodes,lmpcnum);
     }
   }
+  int n101 = 0;
+  for(int i = 0; i < nEle; ++i) {
+	 Element *ele = elemSet[i];
+	 if(ele != 0 && ele->isRigidMpcElement())
+         rigidSet.elemadd(nRigid++,ele);
+  }
+  std::cerr << "Number of rigid elements: " << nRigid << " versus "<< nEle << std::endl;
+  rigidSet.collapseRigid6();
+  nRigid = rigidSet.last();
+  for(int i = 0; i < nRigid; ++i) {
+	  rigidSet[i]->computeMPCs(nodes,lmpcnum);
+  }
   numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
-
+  fprintf(stderr," New number of MPCs: %d\n", numLMPC);
   if(numLMPC) {
     std::map<pair<int,int>, int> tCount;
     for(int i=0; i < numLMPC; ++i) {
@@ -376,7 +390,13 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
         }
       }
       if(j == lmpc[i]->nterms) {
-        fprintf(stderr, "ERROR: An MPC could not be written independently. Please re-organize the MPCs!");
+        fprintf(stderr, "ERROR: MPC %d could not be written independently. Please re-organize the MPCs!\n", i+1);
+        for(j = 0; j < lmpc[i]->nterms; ++j) {
+            pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+        	fprintf(stderr, "%d %d %e - %d, ",
+        			lmpc[i]->terms[j].nnum+1, lmpc[i]->terms[j].dofnum+1,
+        			lmpc[i]->terms[j].coef.r_value, tCount[p]);
+        }
       }
     }
 

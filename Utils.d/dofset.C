@@ -53,6 +53,7 @@ int DofSet::AllLagrange[18] = {
    DofSet::Lagrange13,DofSet::Lagrange14,DofSet::Lagrange15,DofSet::Lagrange16,
    DofSet::Lagrange17,DofSet::Lagrange18 };
     
+DofSet DofSet::nullDofset(-1);
 
 void
 DofSet::print(char* msg)

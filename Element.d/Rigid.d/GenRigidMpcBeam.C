@@ -12,7 +12,11 @@ GenRigidMpcBeam::GenRigidMpcBeam(int* nodenums)
   nn[1] = nodenums[2];
   sprintf(cdofs,"%d\0",nodenums[1]+1);
   numcdofs = 0;
-  for(int i=0; i<8; ++i) if(cdofs[i] != '\0') numcdofs++;
+  for(int i=0; i<8; ++i)
+	  if(cdofs[i] != '\0') {
+		  numcdofs++;
+		  activeDofs |= 1 << (cdofs[i]-'1');
+	  }
 }
 
 GenRigidMpcBeam::GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs)
@@ -20,7 +24,10 @@ GenRigidMpcBeam::GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs)
   nn[0] = _nn[0];
   nn[1] = _nn[1];
   numcdofs = _numcdofs;
-  for(int i=0; i<numcdofs; ++i) cdofs[i] = _cdofs[i];
+  for(int i=0; i<numcdofs; ++i) {
+	  cdofs[i] = _cdofs[i];
+	  activeDofs |= 1 << (cdofs[i]-'1');
+  }
 }
 
 void 

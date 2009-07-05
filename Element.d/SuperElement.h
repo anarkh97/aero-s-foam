@@ -88,7 +88,7 @@ class SuperElement : public Element
         bool isSafe();
         bool isRotMidSideNode(int iNode);
         bool isMpcElement();
-        bool isRigidMpcElement();
+        bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
         void computeMPCs(CoordSet &cs, int &lmpcnum);
         void updateMPCs(GeomState &gState);
         void setMpcForces(double *mpcForces);

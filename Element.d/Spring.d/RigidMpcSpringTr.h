@@ -22,7 +22,8 @@ class RigidMpcSpringTr : public Element, public Corotator
 
   void computeMPCs(CoordSet &cs, int &lmpcnum);
   void updateMPCs(GeomState &gState);
-  bool isRigidMpcElement() { return true; }
+  bool isRigidMpcElement(const DofSet &ds = DofSet::nullDofset, bool forAllNodes=false)
+     { return   ds == DofSet::nullDofset || ds == DofSet::XYZdisp; }
   void setMpcForces(double *mpcForces) { for(int i=0; i<nmpc; ++i) lambda[i] = mpcForces[glMpcNb[i]]; }
 
   Corotator *getCorotator(CoordSet &, double *, int, int) { return this; }

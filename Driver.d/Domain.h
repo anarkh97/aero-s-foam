@@ -137,6 +137,9 @@ struct PrevFrc {
    PrevFrc(int neq) : lastFluidLoad(neq, 0.0) { lastTIndex = -1; }
 };
 
+/** Class representing a structure and containing all auxiliary data-structures
+ *
+ */
 class Domain : public HData {
   protected:
      MatrixTimers *matrixTimers;// timers to time factoring and assembly
@@ -370,9 +373,10 @@ class Domain : public HData {
       */
      template<class Scalar, class OpList>
      void assembleSparseOps(OpList &ops);
-// ... General build functions to replace the specialized build
-// ... functions and allow us to reuse the code in each problem
-// ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
+/** ... General build functions to replace the specialized build
+  * ... functions and allow us to reuse the code in each problem
+  * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
+  */
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
@@ -868,6 +872,9 @@ class Domain : public HData {
      void initSfem();
 
      ConstrainedDSA *makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap *eqMap);
+
+     /** Replaces all 6-DOF rigid elements that share a node by a single element */
+     void collapseRigid6();
 };
 
 #ifdef _TEMPLATE_FIX_

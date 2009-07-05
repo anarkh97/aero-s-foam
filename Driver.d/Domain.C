@@ -3826,3 +3826,9 @@ Domain::setEigenValues(double _lbound , double _ubound, int _neigps, int _maxArn
   sinfo.maxArnItr = _maxArnItr;
   sinfo.doEigSweep = true;
 }
+
+void
+Domain::collapseRigid6() {
+	packedEset.collapseRigid6();
+}
+

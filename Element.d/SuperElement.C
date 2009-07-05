@@ -533,12 +533,18 @@ SuperElement::isMpcElement()
 }
 
 bool
-SuperElement::isRigidMpcElement()
+SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
 {
+  if(forAllNodes) {
+	  // return true if one of the sub elements is a rigid mpc element
+	  for(int i=0; i<nSubElems; ++i)
+	    if(!subElems[i]->isRigidMpcElement(dset, forAllNodes))
+	      return false;
+	  return true;
+  }
   // return true if one of the sub elements is a rigid mpc element
-  int i;
-  for(i=0; i<nSubElems; ++i)
-    if(subElems[i]->isRigidMpcElement()) return true;
+  for(int i=0; i<nSubElems; ++i)
+    if(subElems[i]->isRigidMpcElement(dset, forAllNodes)) return true;
   return false;
 }
 

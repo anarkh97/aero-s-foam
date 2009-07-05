@@ -14,7 +14,7 @@ inline double abs(std::complex<double> a)
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
 
-class DofSetArray;
+#include <Utils.d/dofset.h>
 class Corotator;
 class State;
 class PolygonSet;
@@ -472,7 +472,8 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        virtual bool isRigidMpcElement() { return false; }
+        virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false)
+          { return false; }
         virtual bool isRigidElement() { return false; }
         virtual void computeMPCs(CoordSet &cs, int &lmpcnum) { };
         virtual void updateMPCs(GeomState &gState) { };
@@ -513,7 +514,9 @@ class Element {
 // *       The same remark as for node is valid for elements       *
 // *       The functions for this class are in Element.d/ElemSet.C *
 // *****************************************************************
-
+/** class containing a set of elements
+ *
+ */
 class Elemset
 {
   protected:
@@ -541,6 +544,9 @@ class Elemset
     //void deleteElems()  { if(elem) delete [] elem; elem = 0; emax = 0; }
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
+
+    /** Replaces all 6-DOF rigid elements that share a node by a single element */
+    void collapseRigid6();
 };
 
 class EsetGeomAccessor {

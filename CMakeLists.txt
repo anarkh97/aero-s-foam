@@ -93,13 +93,13 @@ MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
 
 IF(MERCURIAL_EXECUTABLE)
   MESSAGE("Rule 1")
-  add_custom_command(OUTPUT HgIdentity.C 
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ELSE (MERCURIAL_EXECUTABLE)
   MESSAGE("Rule 2")
-  add_custom_command(OUTPUT HgIdentity.C 
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

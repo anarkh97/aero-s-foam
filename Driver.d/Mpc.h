@@ -68,6 +68,7 @@ class GenLMPCTerm
   GenLMPCTerm() { dof = cdof = ccdof = -1; }
 };
 
+/** Linear Multi-Point Constraint class */
 class LMPCons
 {
  public:
@@ -113,6 +114,8 @@ class LMPCons
 
   void print(); 
 
+  /** remove the zero terms in this constraint */
+  void removeNullTerms();
 };
 
 template<> double LMPCons::getRhs<double>();
@@ -231,5 +234,12 @@ class SubLMPCons
 
   bool isActive() { return !isFree; }
 };
+
+inline void LMPCons::removeNullTerms() {
+	for(int i = 0; i < nterms; ++i) {
+		if(terms[i].isNull())
+			terms[i] = terms[--nterms];
+	}
+}
 
 #endif

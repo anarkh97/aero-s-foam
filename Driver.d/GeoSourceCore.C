@@ -22,6 +22,8 @@
 #include <utility>
 using std::map;
 #include <list>
+#include <vector>
+#include <queue>
 #include <Sfem.d/Sfem.h>
 
 EFrameData null_eframe;
@@ -325,6 +327,78 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 #endif
 }
 
+template<>
+class SetAccess<LMPCons> {
+    int numLMPC;
+	        ResizeArray<LMPCons *>&lmpc;
+	        std::map<std::pair<int,int>, int> &dofID;
+	public:
+	        SetAccess(int n, ResizeArray<LMPCons *>&l, std::map<std::pair<int,int>, int> &d)
+	          : numLMPC(n), lmpc(l), dofID(d) {}
+	        int size() {
+	                return numLMPC;
+	        }
+	        int numNodes(int i) {
+	                return lmpc[i]->nterms;
+	        }
+	        void getNodes(int i, int *nd) {
+	        	for(int j = 0; j < lmpc[i]->nterms; ++j)
+	                nd[j] = dofID[pair<int,int>(lmpc[i]->terms[j].nnum,
+	                		lmpc[i]->terms[j].dofnum)];
+	        }
+
+};
+
+/** Class to give priority to DOFs in MPCs */
+struct PrioCompare {
+	/** gives higher priority to dofs with a lower number of MPCs to which it participates */
+	bool operator()(std::pair<int,int> a, std::pair<int,int> b) const {
+		return a.second > b.second || (a.second == b.second && a.first > b.first);
+	}
+};
+
+// MLX Debug
+
+void printLMPC(LMPCons *lmpc, vector<int> &tCount, std::map<std::pair<int,int>, int > &dofID) {
+	for(int j = 0; j < lmpc->nterms; ++j)
+		fprintf(stderr, "%d, %d (%d); ", lmpc->terms[j].nnum+1,
+				lmpc->terms[j].dofnum+1, tCount[dofID[ std::pair<int,int>(lmpc->terms[j].nnum, lmpc->terms[j].dofnum)]]);
+	fprintf(stderr, "\n");
+}
+#include <set>
+void
+findGroups(Connectivity *nToN, Connectivity &nToE) {
+    // Examine all the nodes to form groups and for each group, collapse the elements
+	// that form it into a single group.
+	std::set<int> visitedNodes;
+	for(int i = 0; i < nToN->csize(); ++i) {
+      // Skip nodes that have no connection or that have already been treated
+      if(nToN->num(i) == 0 || visitedNodes.find(i) != visitedNodes.end())
+    	  continue;
+      std::set<int> nodeGroup, elementGroup;
+      std::queue<int> fifo;
+      for(fifo.push(i); !fifo.empty(); fifo.pop()) {
+    	  int j = fifo.front();
+    	  if(visitedNodes.insert(j).second == false)
+    		  continue; // We've already examined all the neighbors of this node
+    	  //std::cerr << "Starting at " << j+1 << ": ";
+
+    	  for(int ik = 0; ik < nToN->num(j); ++ik) {
+    		  int k = (*nToN)[j][ik];
+    		  // If this node has not been seen before, then we can
+    		  // add it to the queue.
+    		  if(nodeGroup.insert(k).second)
+    			  fifo.push(k);
+    		//  std::cerr << " " << k+1 << "(" << nodeGroup.size()<<")";
+    	  }
+    	 // std::cerr << std::endl;
+    	  for(int el = 0; el < nToE.num(j); ++el)
+    		  elementGroup.insert(nToE[j][el]);
+      }
+      // We now have the group of nodes that form a complete rigid body.
+      fprintf(stderr, "Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
+	}
+}
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
 void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
   std::cerr << "Making direct MPCs" << std::endl;
@@ -344,7 +418,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
  // Delay this 'til later     ele->computeMPCs(nodes,lmpcnum);
     }
   }
-  int n101 = 0;
+
   for(int i = 0; i < nEle; ++i) {
 	 Element *ele = elemSet[i];
 	 if(ele != 0 && ele->isRigidMpcElement())
@@ -359,28 +433,89 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
   numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
   fprintf(stderr," New number of MPCs: %d\n", numLMPC);
   if(numLMPC) {
-    std::map<pair<int,int>, int> tCount;
+
+
+    using std::map;
+    using std::pair;
+    using std::vector;
+    /** Create a unique integer ID for every DOF involved in an MPC and count
+     * in how many MPC each DOF appears. */
+    int nID = 0;
+    map<pair<int,int>, int> dofID;
+    vector<int> tCount;
+
     for(int i=0; i < numLMPC; ++i) {
-      for(int j = 0; j < lmpc[i]->nterms; ++j) {
-        if(lmpc[i]->terms[j].isNull())
-          continue;
-        pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
-        std::map<pair<int,int>, int>::iterator it =
-          tCount.find(p);
-        if(it == tCount.end())
-          tCount[p] = 1;
-        else
-          it->second++;
-      }
+    	// First flush the MPC from any zero terms
+    	lmpc[i]->removeNullTerms();
+    	for(int j = 0; j < lmpc[i]->nterms; ++j) {
+    		pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+    		map<pair<int,int>, int>::iterator it = dofID.find(p);
+    		if(it == dofID.end()) {
+    			dofID[p] = nID++;
+    			tCount.push_back(1);
+    		} else
+    			tCount[it->second]++;
+    	}
     }
 
+    // Obtain the MPC to DOF connectivity
+    SetAccess<LMPCons> lmpcAccess(numLMPC, lmpc, dofID);
+    Connectivity lmpcToDof(lmpcAccess);
+    Connectivity *dofToLMPC = lmpcToDof.reverse();
+    fprintf(stderr, "Number of DOFs in MPCS: %d\n", dofToLMPC->csize());
+
+    Connectivity *dToD = dofToLMPC->transcon(&lmpcToDof);
+    // findGroups(dToD, *dofToLMPC);
+
+    // Determine for each MPC which DOF will be slave
+    vector<int> mpcSlaveDOF(numLMPC, -1);
+    vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    std::priority_queue<pair<int,int> ,vector<pair<int,int> >, PrioCompare > queue;
+    for(int i = 0; i < dofToLMPC->csize(); ++i)
+    	queue.push(pair<int,int>(i, dofToLMPC->num(i)));
+    int nMPCtoView = numLMPC;
+    while(nMPCtoView > 0 && !queue.empty()) {
+    	int dof = queue.top().first;
+    	int chosenMPC = -1;
+    	int nDofsInChosen;
+    	for(int j = 0; j < dofToLMPC->num(dof); ++j) {
+    		int mpc = (*dofToLMPC)[dof][j];
+    		if(mpcSlaveDOF[mpc] >= 0)
+    			continue;
+    		int remainDOFs = 0;
+    		for(int k = 0; k <lmpcToDof.num(mpc); ++k) {
+    			if(dofSlaveOf[ lmpcToDof[mpc][k] ] < 0)
+    				remainDOFs++;
+    		}
+    		if(chosenMPC < 0 || remainDOFs < nDofsInChosen) {
+    			chosenMPC = mpc;
+    			nDofsInChosen = remainDOFs;
+    		}
+    	}
+    	if(chosenMPC >= 0) {
+    		mpcSlaveDOF[chosenMPC] = dof;
+    		dofSlaveOf[dof] = chosenMPC;
+    		nMPCtoView--;
+    	}
+    	queue.pop();
+    }
+    if(nMPCtoView > 0) {
+    	fprintf(stderr,"ERROR: Could not find a slave for each MPC. Number of MPCs remaining: %d\n",
+    	nMPCtoView);
+    	for(int i = 0; i < numLMPC; ++i)
+    		if(mpcSlaveDOF[i] < 0) {
+    			printLMPC(lmpc[i],tCount, dofID);
+    		}
+    } else
+    	std::cerr << "Found a Slave for each MPC!"<< std::endl;
+// First version:
     for(int i=0; i < numLMPC; ++i) {
       int j;
       for(j = 0; j < lmpc[i]->nterms; ++j) {
         if(lmpc[i]->terms[j].isNull())
           continue;
         pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
-        if(tCount[p] == 1) {
+        if(tCount[dofID[p]] == 1) {
           if(j != 0) {
             LMPCTerm lmTerm = lmpc[i]->terms[j];
             lmpc[i]->terms[j] = lmpc[i]->terms[0];
@@ -395,7 +530,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
             pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
         	fprintf(stderr, "%d %d %e - %d, ",
         			lmpc[i]->terms[j].nnum+1, lmpc[i]->terms[j].dofnum+1,
-        			lmpc[i]->terms[j].coef.r_value, tCount[p]);
+        			lmpc[i]->terms[j].coef.r_value, tCount[dofID[p]]);
         }
       }
     }

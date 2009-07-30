@@ -57,8 +57,9 @@ public:
                  const HalfSliceSchedule * schedule,
                  const SliceMapping * mapping,
                  const DynamOps * metric,
-                 Strategy strategy = HOMOGENEOUS) {
-    return new HalfSliceCorrectionNetworkImpl(vSize, timeComm, myCpu, schedule, mapping, metric, strategy);
+                 Strategy strategy,
+                 double projTol) {
+    return new HalfSliceCorrectionNetworkImpl(vSize, timeComm, myCpu, schedule, mapping, metric, strategy, projTol);
   }
 
   // Implementation classes
@@ -180,8 +181,8 @@ protected:
                                  const HalfSliceSchedule * schedule,
                                  const SliceMapping * mapping,
                                  const DynamOps * metric,
-                                 Strategy strategy);
-
+                                 Strategy strategy,
+                                 double projectionTolerance);
 
   void buildProjection();
 

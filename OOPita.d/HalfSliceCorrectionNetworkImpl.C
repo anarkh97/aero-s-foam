@@ -20,7 +20,8 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
                                                                const HalfSliceSchedule * schedule,
                                                                const SliceMapping * mapping,
                                                                const DynamOps * metric,
-                                                               Strategy strategy) :
+                                                               Strategy strategy,
+                                                               double projectionTolerance) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
   localCpu_(myCpu),
@@ -35,7 +36,7 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
   metricBasis_(DynamStatePlainBasis::New(vectorSize_)),
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
-  solver_(NearSymmetricSolver::New(1e-6)), // TODO tolerance
+  solver_(NearSymmetricSolver::New(projectionTolerance)),
   collector_(strategy == NON_HOMOGENEOUS ?
       ptr_cast<HalfSliceBasisCollectorImpl>(NonHomogeneousBasisCollectorImpl::New()) :
       HalfSliceBasisCollectorImpl::New()),

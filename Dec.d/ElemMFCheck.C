@@ -58,6 +58,8 @@
 #include <Element.d/Helm.d/HelmIsoParamTetra.h>
 #include <Element.d/Helm.d/LEIsoParamTetra.h>
 #include <Element.d/Helm.d/HelmIsoParamHexa.h>
+#include <Element.d/Helm.d/HelmIsoParamQuad.h>
+#include <Element.d/Helm.d/HelmIsoParamTri.h>
 #include <Element.d/Helm.d/HelmSpectralIsoParamHexa.h>
 #include <Element.d/Helm.d/LEIsoParamHexa.h>
 #include <Element.d/Helm.d/HelmLagQuadGal.h>
@@ -306,6 +308,7 @@ examineHex8(int sub, MultiFront *mf, int *nn)
  return res;
 }
 
+
 PrioInfo
 FourNodeQuad::examine(int sub, MultiFront *mf)
 {
@@ -373,6 +376,19 @@ SloshQuadGal::examine(int sub, MultiFront *mf)
   return examineQuad4(sub, mf, nn);
 }
 */
+
+PrioInfo
+HelmIsoParamQuad::examine(int sub, MultiFront *mf)
+{
+  int nSummit[4];
+
+  nSummit[0] = nn[0];
+  nSummit[1] = nn[order-1];
+  nSummit[2] = nn[order*order-1];
+  nSummit[3] = nn[order*order-order];
+  return examineQuad4(sub, mf, nSummit);
+}
+
 
 PrioInfo
 examineTri3(int sub, MultiFront *mf, int *nn)
@@ -477,6 +493,18 @@ ThermTriangle::examine(int sub, MultiFront *mf)
   return examineTri3(sub, mf, nn);
 }
 */
+
+
+PrioInfo
+HelmIsoParamTri::examine(int sub, MultiFront *mf)
+{
+  int nSummit[3];
+
+  nSummit[0] = nn[0];
+  nSummit[1] = nn[order-1];
+  nSummit[2] = nn[(order*(order+1))/2-1];
+  return examineTri3(sub, mf, nSummit);
+}
 
 PrioInfo 
 examineTri6(int sub, MultiFront *mf, int *nn)

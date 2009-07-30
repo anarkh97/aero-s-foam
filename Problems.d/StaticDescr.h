@@ -86,6 +86,7 @@ class SingleDomainStatic
     void getRHSinpc(VectorType &);
     void setIWaveDir(int _i) { domain->iWaveDir = _i; }
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
+    virtual void getRHS(VectorType &,double,double);
     void pade(VectorType *sol, VectorType **sol_prev, double *h, double x) { };
     virtual void preProcess();
     void rebuildSolver()

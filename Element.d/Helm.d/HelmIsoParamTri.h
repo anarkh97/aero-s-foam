@@ -31,7 +31,7 @@ public:
         int numNodes();
         int* nodes(int * = 0);
 
-//        PrioInfo examine(int sub, MultiFront *mf);
+        PrioInfo examine(int sub, MultiFront *mf);
 
 	double weight() {
 	  return order;

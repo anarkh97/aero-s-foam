@@ -148,7 +148,10 @@ public:
                             (incdir[0]*x[0]+incdir[1]*x[1]));
    complex<double> b = complex<double>(0.0,(nsign*
             (cross[0]*incdir[0]+cross[1]*incdir[1])));
-   e = b * pow(a,k-1) * (double(k)+a*kappa) * exp(a*kappa);
+   if (k==0)
+     e = b * kappa * exp(a*kappa);
+   else 
+     e = b * pow(a,k-1) * (double(k)+a*kappa) * exp(a*kappa);
    for(int i=0;i<n;i++)
        v[i] += w* N[i]* e;
  }

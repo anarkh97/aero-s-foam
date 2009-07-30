@@ -542,6 +542,8 @@ class GenSubDomain : public BaseSub
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void makeLoad(Scalar *, GeomState *gs = 0); //HB: add GeomState for computing 
                                               //    follower load (i.e. pressure)
+  void makeLoad(Scalar *, Scalar *, double, double, GeomState *gs = 0); //HB: add GeomState for computing 
+                                              //    follower load (i.e. pressure)
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   void rebuildKbbMpc();
@@ -770,15 +772,16 @@ class GenSubDomain : public BaseSub
   void reScaleAndReSplitKww();
   void addSommer(SommerElement *ele); // XDEBUG
 
- private:
   // frequency sweep
   GenSparseMatrix<Scalar> *M;
-  GenSparseMatrix<Scalar> *C;
   GenCuCSparse<Scalar> *Muc;
+  GenSparseMatrix<Scalar> *C;
   GenCuCSparse<Scalar> *Cuc;
   GenSparseMatrix<Scalar> **C_deriv;
   GenSparseMatrix<Scalar> **Cuc_deriv;
   int numC_deriv;
+ private:
+  // frequency sweep
   void constructLocalMassAndDampingMatrices();
   void makeFreqSweepLoad(Scalar *load, int iRHS, double omega);
   void updateLocalDampingMatrices(int *dofs, FullSquareMatrix *reEl, FullSquareMatrix *imEl, double ss, int n=0);

@@ -3344,7 +3344,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  int isCtcOrDualMpc = (numDualMpc) ? 1 : 0;
 
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
-                                domain->solInfo().alphaDamp, domain->solInfo().betaDamp, isFeti2,
+                                domain->solInfo().alphaDamp, domain->solInfo().betaDamp, domain->numSommer, isFeti2,
                                 solvertype, isCtcOrDualMpc);
 
  filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
@@ -3368,6 +3368,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    pat->finalize();
    ba = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
  }
+
  res.K   = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
@@ -3381,6 +3382,21 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  }
  res.M   = new GenSubDOp<Scalar>(numSub, dgt.M);
  res.Muc = new GenSubDOp<Scalar>(numSub, dgt.Muc);
+
+// RT
+ if(dgt.C_deriv[0]) {
+   res.C_deriv = new GenSubDOp<Scalar>*[1];
+   (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
+ } else {
+   res.C_deriv   = 0; //delete [] dgt.C_deriv;
+ }
+ if(dgt.Cuc_deriv[0]) {
+   res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
+   res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
+ } else {
+   res.Cuc_deriv = 0; //delete [] dgt.Cuc_deriv;
+ }
+// RT end
 
  if(isFeti) {
    if(make_feti) res.dynMat = getDynamicFetiSolver(dgt);

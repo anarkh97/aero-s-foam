@@ -1119,6 +1119,33 @@ GenFetiSolver<Scalar>::makeSubdomainStaticLoad(int iSub, GenDistrVector<Scalar> 
   sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),subgs);
 }
 
+
+template<class Scalar>
+void
+GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, double omega, double deltaomega,  DistrGeomState *gs)
+{
+  filePrint(stderr," ... Building the Force             ...\n");
+  f.zero();
+  GenDistrVector<Scalar> *tmp = new GenDistrVector<Scalar>(internalDI);
+  double o[2] = {omega,deltaomega};
+// RT: 4/30/09 - should be timed
+  execParal4R(nsub,this,&GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr, f, *tmp, o, gs);
+  delete tmp;
+}
+
+template<class Scalar>
+void
+GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o, DistrGeomState *gs)
+{
+  GeomState *subgs = 0;
+  if(gs) subgs = (*gs)[iSub];
+
+  sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),tmp.subData(sd[iSub]->localSubNum()),o[0],o[1],subgs);
+
+}
+
+
+
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::reSolve(GenDistrVector<Scalar> &u)

@@ -90,7 +90,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                       FullSquareMatrix *kelArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
-
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
@@ -582,12 +581,26 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        }
      }
    }
+   for (int i=0; i<domain->nuNonZero; ++i)  {
+     for (int j=i; j<domain->nuNonZero; ++j)  {
+           Ma_NZ[j][i] = Ma_NZ[i][j];
+     }
+   }
 
    fprintf(stderr," ... HEV Problem: Added mass obtained ...\n");
 
    //add added mass to structural mass for EVP!
    ops.M->add(Ma_NZ,domain->umap_add);
-   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass...\n");
+   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
+
+   if (isShifted)  {
+     omega2 = geoSource->shiftVal();
+     Ma_NZ *= (-omega2*Kcoef);
+     if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
+     if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
+   }
+
  }
 
  if(sinfo.isAcousticHelm()) assembleGlobalSommer<Scalar>(mat, &ops);
@@ -1377,7 +1390,8 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // for freqency sweep: need M, Muc, C, Cuc
  if(sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) {
    //---- UH ----
-   if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos) {
+   if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos ||
+      sinfo.freqSweepMethod == SolverInfo::GalProjection) {
      if (allOps.K)
        delete allOps.K;
      allOps.K = constructDBSparseMatrix<Scalar>();
@@ -2111,6 +2125,191 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
 }
 
 
+
+template<class Scalar>
+void
+Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
+  GenSparseMatrix<Scalar> *kuc,
+  GenSparseMatrix<Scalar> *muc, GenSparseMatrix<Scalar> **cuc_deriv,
+  double omega, double delta_omega, GeomState *gs)
+{
+  if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
+    checkSommerTypeBC(this);
+  // ... ZERO FORCE VECTOR INITIALLY
+  force.zero();
+
+  // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
+  int i;
+  for(i=0; i < numNeuman; ++i) {
+    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+    if(dof < 0) continue;
+    //if(nbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], nbc[i].val/fluidDensity); else // PJSA 1-9-2008 temp fix (homogenous fluid only) 
+    //                                                                                         // required for backward-compatibility with old versions (before acoustic equations divided by rho)
+    ScalarTypes::addScalar(force[dof], nbc[i].val); 
+  }
+
+  // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
+  for(i=0; i < numComplexNeuman; ++i) {
+    int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
+    if(dof < 0) continue;
+    //if(cnbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], cnbc[i].reval/fluidDensity, cnbc[i].imval/fluidDensity); else // PJSA 1-9-2008
+    ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
+  }
+
+  // PJSA: new FETI-H stuff
+  if (implicitFlag) {
+    int i, iele;
+    double *direction = getWaveDirection();
+// RT
+    ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
+    int* edofs = (int*) dbg_alloca(this->maxNumDOFs*sizeof(int));
+    for(iele=0; iele<numNeum; ++iele) {
+      double kappa = omega/ScalarTypes::Real(neum[iele]->soundSpeed);
+    //double kappa = neum[iele]->el->getProperty()->kappaHelm; // PJSA 1-15-2008
+      neum[iele]->dofs(*this->dsa,edofs);
+      neum[iele]->neumVector(this->nodes,elementNeumanScatterForce,
+                             kappa,direction[0],direction[1],direction[2],
+                             pointSourceFlag);
+      for(i=0;i<neum[iele]->numDofs();i++) { 
+       int cn = c_dsa->getRCN(edofs[i]);
+       if(cn >= 0) {
+        ScalarTypes::addScalar(force[cn], elementNeumanScatterForce[i].real(),
+                               elementNeumanScatterForce[i].imag());
+       }
+      }
+    }
+  }
+
+  if (implicitFlag) {
+
+    double *direction = getWaveDirection();
+
+    int iele;
+    ComplexVector elementWetInterfaceScatterForce(this->maxNumDOFs,0.0);
+    int* edofs = (int*) alloca(this->maxNumDOFs*4*sizeof(int));
+    int numWetDof;
+    for(iele=0; iele<numWet; ++iele) {
+      HelmElement *he = dynamic_cast<HelmElement *>(wet[iele]->el);
+      if (he==0 && wet[iele]->el2==0) {
+        numWetDof = wet[iele]->numSolidDofs();
+        wet[iele]->solidDofs(*this->dsa,edofs);
+      } else if (he!=0 && wet[iele]->el2==0) {
+        numWetDof = wet[iele]->numDofs();
+        wet[iele]->dofs(*this->dsa,edofs);
+      } else {
+        numWetDof = wet[iele]->numWetDofs();
+        wet[iele]->wetDofs(*this->dsa,edofs);
+      }
+
+      complex<double> kappaw =
+        omega/wet[iele]->soundSpeed;
+      wet[iele]->wetInterfaceVector(this->nodes,
+                        elementWetInterfaceScatterForce, real(kappaw),
+                        direction[0], direction[1], direction[2],0,
+                        pointSourceFlag);
+      int i; 
+      for(i=0;i<numWetDof;i++) {
+       int cn = c_dsa->getRCN(edofs[i]);
+       if(cn >= 0)
+        ScalarTypes::addScalar(force[cn],
+          elementWetInterfaceScatterForce[i].real(),
+          elementWetInterfaceScatterForce[i].imag());
+      }
+    }
+  }
+
+// see also Dynam.C for RHS - JF
+
+  // ... ADD GRAVITY FORCES
+  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+
+  // ... ADD PRESSURE LOAD
+  if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
+
+  GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
+
+  // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
+  for(i=0; i<numDirichlet; ++i) {
+    int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
+    if(dof < 0) continue;
+    dof = c_dsa->invRCN(dof);
+    if(dof >= 0) {
+      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
+      ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+    }
+  }
+
+  // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
+  ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
+  for(i=0; i<numComplexDirichlet; ++i) {
+    int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
+    if(dof2 < 0) continue;
+    dof2 = c_dsa->invRCN(dof2);
+    if(dof2 >= 0) {
+      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
+      ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+    }
+  }
+
+  // ... CONSTRUCT THERMAL FORCES
+  if(sinfo.thermalLoadFlag) {
+    double *nodalTemperatures = getNodalTemperatures();
+    buildThermalForce(nodalTemperatures, force, gs);
+  }
+
+  // ... ADD BOUNDARY CONVECTIVE FLUXES
+  for(i=0; i<numConvBC; ++i) {
+    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
+    if(dof < 0) continue;
+    ScalarTypes::addScalar(force[dof], cvbc[i].val);
+  }
+
+  // ... ADD BOUNDARY RADIATIVE FLUXES
+  for(i=0; i<numRadBC; ++i) {
+    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
+    fprintf(stderr,"i=%d, rdbc[i].nnum = %d, rdbc[i].val=%f\n",i,rdbc[i].nnum,rdbc[i].val);
+    if(dof < 0) continue;
+    ScalarTypes::addScalar(force[dof], rdbc[i].val);
+  }
+
+  // scale RHS force for coupled domains
+  if(sinfo.isCoupled) {
+    int cdofs[6];  DofSet structdofs = DofSet::XYZdisp | DofSet::XYZrot;
+    for(i=0; i<numnodes; ++i) {
+      c_dsa->number(i, structdofs, cdofs);
+      for(int j=0; j<6; ++j) 
+        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+    }
+  }
+
+  // COMPUTE NONHOMOGENEOUS FORCE CONTRIBUTION
+  // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
+  // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
+  // MODIFYING THE RHS VECTOR
+  if(probType() != SolverInfo::NonLinStatic &&
+     probType() != SolverInfo::NonLinDynam  &&
+     probType() != SolverInfo::ArcLength) {
+    if(kuc) {
+      kuc->multSubtract(Vc, force);
+    }
+    if (muc) {
+      tmp.zero();
+      muc->multSubtract(Vc, tmp);
+      tmp *= (omega-delta_omega)*(omega-delta_omega)-omega*omega;
+      force += tmp;
+    }
+    if(cuc_deriv) if (cuc_deriv[0]) {
+      tmp.zero();
+      cuc_deriv[0]->multSubtract(Vc, tmp);
+      Scalar c;
+      ScalarTypes::initScalar(c,0.0,delta_omega);
+      tmp *= c;
+      force += tmp;
+    }
+  }
+}
+
+
 template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NLState *gs)
@@ -2773,10 +2972,15 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   if(numOutInfo && firstOutput && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
+  int numNodeLim;
+
   // organize displacements
-  Scalar (*xyz)[11] = new Scalar[numnodes][11];//DofSet::max_known_nonL_dof
+  if (sinfo.HEV) numNodeLim = myMax(numNodes,numnodes); 
+  else numNodeLim = numnodes;
+    
+  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;
-  for(i = 0; i < numnodes; ++i)
+  for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
   /*int exactNumNodes =*/ mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);

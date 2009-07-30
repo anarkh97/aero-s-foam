@@ -3,14 +3,12 @@
 
 #include <math.h>
 #include <Element.d/DEM.d/DEMElement.h>
-#include <Math.d/ComplexD.h>
-#include <Utils.d/dofset.h>
 
 class DGMLE2d_LM: public DEMLM {
 public:
  virtual int nDofs()=0;
  virtual int type()=0;
- virtual void init(CoordSet &cs) {};
+ virtual void init() {};
  virtual void ldir(int,double[2],complex<double>*)=0;
 };
 
@@ -60,13 +58,13 @@ public:
  virtual int polyDofsPerNode() { return 2; }
 
  virtual void getRef(double *xyz,double *xy);
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void createRHS(complex<double>*);
  virtual void createSol(double *xyz, complex<double>*,
                             complex<double>*);
 
- virtual void enrichmentF(CoordSet &cs, double *x, complex<double> *f);
- virtual void polynomialF(CoordSet &cs, double *x, double *f);
+ virtual void enrichmentF(double *x, complex<double> *f);
+ virtual void polynomialF(double *x, double *f);
 };
 
 
@@ -91,8 +89,8 @@ public:
  virtual bool dgmFlag() { return false; }
  virtual int nPolynomialDofs() { return 2*o*o; }
 
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void createRHS(complex<double>*);
 };
 
 class DEMLE2d_4: public DEMLE2d {

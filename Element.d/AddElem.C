@@ -572,6 +572,17 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) DGMLE3d_50(nnodes,n);
        break;
 
+     case 1270:
+       ele = new (ba) DEMLE3d_6(nnodes,n);
+       break;
+     case 1271:
+       ele = new (ba) DEMLE3d_26(nnodes,n);
+       break;
+     case 1272:
+       ele = new (ba) DEMLE3d_50(nnodes,n);
+       break;
+
+
 // ADDED FOR SLOSHING ELEMENTS, EC, 20070713
      //case 5001:
      case 301:

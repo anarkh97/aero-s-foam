@@ -13,7 +13,7 @@ public:
  int nlmi;
  LMInput *lmi;
  DEMLM* createLM(int type);
- void run(Domain *d);
+ void run(Domain *d, GeoSource *g);
 };
 
 class FaceInfo {

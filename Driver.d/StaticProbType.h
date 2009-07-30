@@ -71,6 +71,9 @@ class StaticSolver
      void scaleDisp(VecType &u);
      void pade1(VecType *sol, VecType **sol_prev, double x);
      void pade(VecType *sol, VecType **u, double *h, double x);
+     void galProjection(bool,int,VecType *sol, VecType **u,
+                        Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                        double *h, double w, double deltaw);
      void fourier(VecType *sol, VecType **u, double *h, double x);
      void stochStress(VecType *sol);
  

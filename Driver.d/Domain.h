@@ -480,6 +480,13 @@ class Domain : public HData {
      template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
                                    GenSparseMatrix<Scalar> **cuc_deriv, int iRHS, double omega);
+     template<class Scalar>
+       void buildRHSForce(GenVector<Scalar> &force,GenVector<Scalar> &tmp,
+                         GenSparseMatrix<Scalar> *kuc,
+                         GenSparseMatrix<Scalar> *muc,
+                         GenSparseMatrix<Scalar> **cuc_deriv,
+                         double omega, double delta_omega,
+                         GeomState *gs=0);
 
      double * getNodalTemperatures();
 

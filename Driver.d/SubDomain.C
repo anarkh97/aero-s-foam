@@ -668,6 +668,23 @@ GenSubDomain<Scalar>::makeLoad(Scalar *d, GeomState *gs) // this makes a weighte
  buildRHSForce<Scalar>(force, Kuc, gs);
 }
 
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double deltaomega, GeomState *gs) // this makes a weighted load
+{                                                        // HB: add GeomState for following load
+ int numUncon = c_dsa->size();
+ GenStackVector<Scalar> force(numUncon, d);
+ force.zero();
+ GenStackVector<Scalar> vtmp(numUncon, tmp);
+ vtmp.zero();
+
+ // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
+ buildRHSForce<Scalar>(force, vtmp, Kuc, Muc, Cuc_deriv, omega, deltaomega,  gs);
+}
+
+
+
 template<class Scalar>
 void
 GenSubDomain<Scalar>::initScaling()

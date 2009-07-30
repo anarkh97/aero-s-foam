@@ -51,13 +51,20 @@ void HelmIsoParamTri::renum(int *table) {
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
 }
 
+extern bool useFull;
 
 int* HelmIsoParamTri::nodes(int *p) {
-
  int ordersq = (order*(order+1))/2;
- if(p == 0) p = new int[ordersq];
- int i;
- for(i=0;i<ordersq;i++) p[i] = nn[i];
+ if(useFull) {
+   if(p == 0) p = new int[ordersq];
+   int i;
+   for(i=0;i<ordersq;i++) p[i] = nn[i];
+ } else {
+   if(p == 0) p = new int[3];
+   p[0] = nn[0];
+   p[1] = nn[order-1];
+   p[2] = nn[ordersq-1];
+ }
  return p;
 }
 
@@ -198,8 +205,6 @@ FullSquareMatrixC HelmIsoParamTri::stiffness(CoordSet &cs,
  return ret;
 }
 
-
-extern bool useFull;
 
 int
 HelmIsoParamTri::numNodes() {

@@ -19,9 +19,7 @@
 #include <Element.d/DEM.d/DEMLE2d.h>
 #include <Element.d/DEM.d/DEMLE3d.h>
 
-
 using namespace std;
-
 
 class DEMFaceCompare: public binary_function<int,int,bool> {
  DEMFace *demF;
@@ -61,7 +59,7 @@ DEMLM* DEM::createLM(int type) {
  }
 }
 
-void DEM::run(Domain *d) {
+void DEM::run(Domain *d, GeoSource *g) {
  
  int gNodeOffset = d->getNodes().last();
  int nodeOffset = gNodeOffset;
@@ -219,7 +217,8 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
      deme2->lm[ele2FaceI[en][fi].fi2] = lm;
      lm->e2 = deme2;
    }
-   lm->init(d->getNodes());
+//   lm->init(d->getNodes());
+   lm->init();
    lm->setNodeOffset(nodeOffset);
    nodeOffset += lm->nDofs(); 
  }
@@ -254,7 +253,8 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
            deme2->lm[ele2FaceI[iele][fi].fi2] = lm;
            lm->e2 = deme2;
          }
-         lm->init(d->getNodes());
+//         lm->init(d->getNodes());
+         lm->init();
          lm->setNodeOffset(nodeOffset);
          nodeOffset += lm->nDofs(); 
        }
@@ -327,16 +327,19 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
       fprintf(stderr,"Assembled %.1f%%.\n",double(iele)*100.0/d->numElements());
    DEMElement *deme = dynamic_cast<DEMElement*>(d->getElementSet()[iele]);
    if (deme!=0) {
-     deme->systemMatrix(d->getNodes(), karray);
+//     deme->systemMatrix(d->getNodes(), karray);
+     deme->systemMatrix(karray);
      if (deme->nGeomNodes()>maxGNodes) maxGNodes = deme->nGeomNodes(); 
 //   GenStackFullM<complex<double> > kel(deme->numDofs(), karray);
      FullSquareMatrixC kel(deme->numDofs(), karray);
      if (deme->polyDofType()!=DofSet::Helm)
        kel *= (coupledScaling*coupledScaling);
      int *dofs = (*allDOFs)[iele];
-//     fprintf(stderr,"%d:",iele);
-//     for(int j=0;j<deme->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
-//     for(int j=0;j<deme->numDofs()*deme->numDofs();j++)  { if (j%deme->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"%e %e\n",real(karray[j]),imag(karray[j])); }
+
+     fprintf(stderr,"%d:",iele);
+     for(int j=0;j<deme->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
+     for(int j=0;j<deme->numDofs()*deme->numDofs();j++)  { if (j%deme->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"gaga %e %e\n",real(karray[j]),imag(karray[j])); }
+
      MK->add(kel,dofs);
    }
 // Wet interface
@@ -345,13 +348,16 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
    if (di!=0) {
      fprintf(stderr,"adding wet.\n");
      complex<double> *iarray = new complex<double>[di->numDofs()*di->numDofs()];
-     di->systemMatrix(d->getNodes(), iarray);
+//     di->systemMatrix(d->getNodes(), iarray);
+     di->systemMatrix(iarray);
      FullSquareMatrixC kel(di->numDofs(), iarray);
      kel *= coupledScaling;
      int *dofs = (*allDOFs)[iele];
-//     fprintf(stderr,"%d:",iele);
-//     for(int j=0;j<di->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
-//     for(int j=0;j<di->numDofs()*di->numDofs();j++) { if (j%di->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"(%.4e %.4e) ",real(iarray[j]),imag(iarray[j])); }
+/*
+     fprintf(stderr,"%d:",iele);
+     for(int j=0;j<di->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
+     for(int j=0;j<di->numDofs()*di->numDofs();j++) { if (j%di->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"(%.4e %.4e) ",real(iarray[j]),imag(iarray[j])); }
+*/
      MK->add(kel,dofs);
      delete[] iarray;
    }
@@ -360,7 +366,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  fprintf(stderr,"Done assembling.\n");
 
 // Factorize
-// K->print();
+ K->print();
 
  K->factor(); 
 
@@ -380,7 +386,8 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
    DEMElement *deme = dynamic_cast<DEMElement*>(d->getElementSet()[iele]);
    if (deme) {
      int ndofs = deme->numDofs();
-     deme->systemRHS(d->getNodes(), local);
+//     deme->systemRHS(d->getNodes(), local);
+     deme->systemRHS(local);
      int *dofs = (*allDOFs)[iele];
 
      if (deme->polyDofType()==DofSet::Helm)
@@ -391,13 +398,12 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  }
  delete[] local;
 
-
-// for(int i=0;i<dsa->size();i++)  fprintf(stderr,"rhs %e %e\n",real(rhs[i]),imag(rhs[i]));
+ for(int i=0;i<dsa->size();i++)  fprintf(stderr,"rhs %e %e\n",real(rhs[i]),imag(rhs[i]));
 
 // Solve
  K->solve(rhs,sol);
 
-// for(int i=0;i<dsa->size();i++)  fprintf(stderr,"sol %e %e\n",real(sol[i]),imag(sol[i]));
+ for(int i=0;i<dsa->size();i++)  fprintf(stderr,"sol %e %e\n",real(sol[i]),imag(sol[i]));
 
 // Post-process
 
@@ -434,6 +440,56 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
 
  for(int i=0;i<d->numNode();i++) 
    for(int j=0;j<8;j++) if (scaling[i][j]!=0) nodalSol[i][j] /= scaling[i][j];
+
+ complex<double>(*xyz)[11] = 
+    new complex<double>[d->numNode()][11];//DofSet::max_known_nonL_dof
+ for( int i = 0; i < d->numNode(); ++i) {
+   for (int j = 0 ; j < 6; j++)
+     xyz[i][j] = nodalSol[i][j+1];
+   for (int j = 6 ; j < 11 ; j++)
+     xyz[i][j] = 0.0;
+ }
+
+  int numOutInfo = geoSource->getNumOutInfo();
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  geoSource->openOutputFiles();
+  double freq = domain->getFrequencyOrWavenumber();
+  for(int i = 0; i < numOutInfo; ++i)  {
+      int dof=-1;
+      switch(oinfo[i].type)  {
+        default:
+          fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
+          break;
+        case OutputInfo::Displacement:
+          if (oinfo[i].nodeNumber == -1)
+            geoSource->outputNodeVectors(i, xyz, d->numNode(), freq);
+          else {
+            int iNode = oinfo[i].nodeNumber;
+            geoSource->outputNodeVectors(i, &(xyz[iNode]), 1, freq);
+          }
+          break;
+        case OutputInfo::Helmholtz:
+          if(dof==-1) dof = 0;
+        case OutputInfo::DispX:
+          if(dof==-1) dof = 1;
+        case OutputInfo::DispY:
+          if(dof==-1) dof = 2;
+        case OutputInfo::DispZ:
+          if(dof==-1) dof = 3;
+          complex<double> * globVal = new complex<double>[d->numNode()];
+          for(int iNode=0; iNode<d->numNode(); ++iNode) 
+            globVal[iNode] = nodalSol[iNode][dof];
+          if(oinfo[i].nodeNumber == -1)
+            geoSource->outputNodeScalars(i, globVal, d->numNode(), freq);
+          else {
+            int iNode = oinfo[i].nodeNumber;
+            geoSource->outputNodeScalars(i, &(globVal[iNode]), 1, freq);
+          }
+          delete[] globVal;
+          break;
+      }
+  }
+  delete[] xyz;
 
  for(int i=0;i<d->numNode();i++) {
    double xyz[3];

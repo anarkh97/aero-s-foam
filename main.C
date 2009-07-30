@@ -998,7 +998,7 @@ int main(int argc, char** argv)
      case SolverInfo::DisEnrM: {
         filePrint(stderr, " ... DEM Problem ...\n");
         DEM dem;
-        dem.run(domain);
+        dem.run(domain,geoSource);
         break;
      }
      case SolverInfo::Static:

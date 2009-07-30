@@ -435,6 +435,11 @@ ReconsInfo:
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
               break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
           }
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
@@ -463,6 +468,12 @@ ReconsInfo:
               if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
+              break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              l = $4;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
               break;
           }
         }

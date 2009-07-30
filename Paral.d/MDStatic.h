@@ -66,6 +66,7 @@ class GenMultiDomainStatic
     void clean();
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **sol_prev, int iRHS);
+    void getRHS(GenDistrVector<Scalar> &,double,double);
     void pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **sol_prev, double *h, double x);
     GenMDDynamMat<Scalar> *getAllOps() { return &allOps; }
     GenFetiSolver<Scalar> *getSolver();

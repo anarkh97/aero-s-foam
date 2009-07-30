@@ -22,6 +22,17 @@ class GenSubDOp {
        GenSubDOp(int _numSub, GenSparseMatrix<Scalar> **_sops, GenAssembler<Scalar> *_assembler = 0) {
           numSub = _numSub; sops =_sops; assembler =_assembler;
        }
+// RT
+       GenSubDOp(int _numSub, GenSparseMatrix<Scalar> ***_sops, int i, GenAssembler<Scalar> *_assembler = 0) {
+          numSub = _numSub;
+          sops = new GenSparseMatrix<Scalar> *[numSub];
+          for(int j=0;j<numSub;j++) {
+            if (_sops[j]) *(sops+j) = _sops[j][i];
+            else *(sops+j) = 0;
+          }
+          assembler =_assembler;
+       }
+// RT end
        ~GenSubDOp();
        void setAssembler(GenAssembler<Scalar> *_a) { assembler = _a; }
        void mult(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Opv); // multiplication routine

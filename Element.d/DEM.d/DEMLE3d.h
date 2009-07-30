@@ -3,14 +3,12 @@
 
 #include <math.h>
 #include <Element.d/DEM.d/DEMElement.h>
-#include <Math.d/ComplexD.h>
-#include <Utils.d/dofset.h>
 
 class DGMLE3d_LM: public DEMLM {
 public:
  virtual int nDofs()=0;
  virtual int type()=0;
- virtual void init(CoordSet &cs) {};
+ virtual void init() {};
  virtual void ldir(int,double*,double*,complex<double>*)=0;
 };
 
@@ -95,10 +93,13 @@ public:
  virtual int polyDofsPerNode() { return 3; }
 
  virtual void getRef(double *xyz,double *xy);
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void createRHS(complex<double>*);
  virtual void createSol(double *xyz, complex<double>*,
                             complex<double>*);
+
+ virtual void enrichmentF(double *x, complex<double> *f);
+ virtual void polynomialF(double *x, double *f);
 };
 
 
@@ -123,5 +124,36 @@ public:
  virtual int defaultLMType() { return 253; }
 };
 
-#endif
 
+class DEMLE3d: public DGMLE3d {
+public:
+ DEMLE3d(int _o, int* nodenums);
+ virtual bool dgmFlag() { return false; }
+ virtual int nPolynomialDofs() { return 3*o*o*o; }
+
+ virtual void createM(complex<double>*);
+ virtual void createRHS(complex<double>*);
+};
+
+class DEMLE3d_6: public DEMLE3d {
+public:
+ DEMLE3d_6(int _o, int* nodenums);
+ virtual void dir(int,complex<double>*);
+ virtual int defaultLMType() { return 251; }
+};
+
+class DEMLE3d_26: public DEMLE3d {
+public:
+ DEMLE3d_26(int _o, int* nodenums);
+ virtual void dir(int,complex<double>*);
+ virtual int defaultLMType() { return 252; }
+};
+
+class DEMLE3d_50: public DEMLE3d {
+public:
+ DEMLE3d_50(int _o, int* nodenums);
+ virtual void dir(int,complex<double>*);
+ virtual int defaultLMType() { return 253; }
+};
+
+#endif

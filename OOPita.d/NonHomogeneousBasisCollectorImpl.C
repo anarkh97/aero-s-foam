@@ -48,7 +48,7 @@ NonHomogeneousBasisCollectorImpl::PropagationReactor::PropagationReactor(
 void
 NonHomogeneousBasisCollectorImpl::PropagationReactor::onFinalState() {
   if (nonHomogeneousState().vectorSize() != 0) {
-    parent()->finalStateIs(sliceId(), notifier()->finalState() - nonHomogeneousState());
+    parent()->finalStateIs(sliceId(), notifier()->finalState());
   } else {
     nonHomogeneousState_ = notifier()->finalState();
   }

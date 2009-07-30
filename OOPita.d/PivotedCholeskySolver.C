@@ -44,6 +44,15 @@ PivotedCholeskySolver::matrixIs(const SymFullMatrix & matrix) {
   status_ = NON_FACTORIZED;
 }
 
+void
+PivotedCholeskySolver::matrixIs(const FullSquareMatrix & matrix) {
+  choleskyFactor_.copy(matrix);
+  
+  // Remark: factorRank_, factorPermutation_ not up-to-date
+  matrixSize_ = choleskyFactor_.dim();
+  status_ = NON_FACTORIZED;
+}
+
 void PivotedCholeskySolver::statusIs(Status s) {
   if (s == status())
     return;
@@ -72,11 +81,11 @@ void PivotedCholeskySolver::statusIs(Status s) {
 Vector &
 PivotedCholeskySolver::solution(Vector & rhs) const {
   if (rhs.size() != this->matrixSize()) {
-    throw Fwk::RangeException("in solve(PivotedCholeskySolver,Vector)"); 
+    throw Fwk::RangeException("in PivotedCholeskySolver::solution - Size mismatch"); 
   }
 
-  if (this->status() != PivotedCholeskySolver::FACTORIZED) {
-    throw Fwk::RangeException("in solve(PivotedCholeskySolver,Vector)");
+  if (this->status() != FACTORIZED) {
+    throw Fwk::RangeException("in PivotedCholeskySolver::solution - Non-factorized matrix");
   }
 
   // Pointer to the end of factorPermutation

@@ -50,6 +50,12 @@ private:
   DISALLOW_COPY_AND_ASSIGN(HalfSliceSchedule);
 };
 
+namespace Hts {
+  
+  typedef HalfSliceSchedule Schedule;
+
+} /* end namespace Hts */
+
 } // namespace Pita
 
 #endif /* PITA_HALFSLICESCHEDULE_H */

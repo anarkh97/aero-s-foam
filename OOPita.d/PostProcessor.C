@@ -4,7 +4,7 @@
 
 namespace Pita {
 
-PostProcessor::PostProcessor(GeoSource * gs, int localFileCount, const int * localFileId) :
+PostProcessorRoot::PostProcessorRoot(GeoSource * gs, int localFileCount, const int * localFileId) :
   geoSource_(gs),
   fileStatus_()
 {
@@ -14,30 +14,30 @@ PostProcessor::PostProcessor(GeoSource * gs, int localFileCount, const int * loc
   this->geoSource()->duplicateFilesForPita(localFileCount, localFileId);
 }
 
-PostProcessor::~PostProcessor() {
+PostProcessorRoot::~PostProcessorRoot() {
   this->geoSource()->closeOutputFiles();
 }
 
-PostProcessor::FileStatus
-PostProcessor::fileStatus(FileSetId fileSetId) const {
+PostProcessorRoot::FileStatus
+PostProcessorRoot::fileStatus(FileSetId fileSetId) const {
   std::map<FileSetId, FileStatus>::const_iterator it = fileStatus_.find(fileSetId);
   return it != fileStatus_.end() ? it->second : NO_FILE;
 }
 
 int
-PostProcessor::fileSetCount() const {
+PostProcessorRoot::fileSetCount() const {
   return fileStatus_.size();
 }
 
 void
-PostProcessor::fileStatusIs(FileSetId fileSet, FileStatus status) {
+PostProcessorRoot::fileStatusIs(FileSetId fileSet, FileStatus status) {
   if (status == NO_FILE) {
-    throw Fwk::RangeException("In PostProcessor::fileStatusIs: Invalid status");
+    throw Fwk::RangeException("In PostProcessorRoot::fileStatusIs: Invalid status");
   }
 
   std::map<FileSetId, FileStatus>::iterator it = fileStatus_.find(fileSet);
   if (it == fileStatus_.end()) {
-    throw Fwk::RangeException("In PostProcessor::fileStatusIs: Invalid fileSetId");
+    throw Fwk::RangeException("In PostProcessorRoot::fileStatusIs: Invalid fileSetId");
   }
 
   if (it->second != status) {

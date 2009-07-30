@@ -106,8 +106,8 @@ EigenSolver< EigOps, VecType, VecSet,
  // ... get the number of rigid body modes
  if (geoSource->shiftVal() > 0.0)  nrmod = 0; //CBM
  else nrmod = eM->dynMat->numRBM();
- nrmod = 0; // XXXX
- //nrmod = eM->dynMat->numRBM();
+
+ if(domain->solInfo().test_ulrich) nrmod = 0;
 
  // PJSA: number of rbms is now printed in the matrix factor
  //fprintf(stderr," ... Number of RBM(s)     =   %d     ...\n",this->nrmod);

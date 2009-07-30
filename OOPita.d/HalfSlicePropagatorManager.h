@@ -26,14 +26,14 @@ public:
 //protected:
   HalfSlicePropagatorManager(HalfSliceBasisCollector * collector,
                              FineIntegratorManager * integratorMgr,
-                             PostProcessingManager * postProcessingMgr,
+                             PostProcessing::Manager * postProcessingMgr,
                              TimeStepCount halfSliceRatio,
                              Seconds initialTime);
 
 private:
   HalfSliceBasisCollector * collector_;
   FineIntegratorManager::Ptr integratorMgr_;
-  PostProcessingManager::Ptr postProcessingMgr_;
+  PostProcessing::Manager::Ptr postProcessingMgr_;
   Seconds fineTimeStep_;
   TimeStepCount halfSliceRatio_;
   Seconds initialTime_;

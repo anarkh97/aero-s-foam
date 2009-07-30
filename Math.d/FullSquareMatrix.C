@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <cassert>
+#include <algorithm>
 
 #include <Math.d/FullSquareMatrix.h>
 
@@ -58,7 +59,7 @@ GenFullSquareMatrix<Scalar>::GenFullSquareMatrix(GenFullSquareMatrix<Scalar> &m,
 
 template<class Scalar>
 void
-GenFullSquareMatrix<Scalar>::copy(GenFullSquareMatrix<Scalar> &m)
+GenFullSquareMatrix<Scalar>::copy(const GenFullSquareMatrix<Scalar> &m)
 {
   if(size != m.dim()) {
     size = m.dim();
@@ -99,6 +100,36 @@ GenFullSquareMatrix<Scalar>::changeSize(int i, int numMax)
    size = i;
    length = size*size;
  }
+}
+
+
+template<class Scalar>
+void
+GenFullSquareMatrix<Scalar>::reSize(int newSize)
+{
+  if (newSize == size) {
+    return;
+  }
+  
+  // Create updated data
+  int newLength = newSize * newSize;
+  Scalar * newValue = new Scalar[newLength];
+  int copySize = std::min(newSize, size);
+
+  for (int i = 0; i < copySize; ++i) {
+    const Scalar * rowBegin = value + i * size;
+    Scalar * newRowBegin = newValue + i * newSize;
+    std::copy(rowBegin, rowBegin + copySize, newRowBegin);
+  } 
+
+  // Commit changes
+  size = newSize;
+  length = newLength;
+  if (myval) {
+    delete[] value;
+  }
+  value = newValue;
+  myval = 1;
 }
 
 template<class Scalar>

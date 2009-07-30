@@ -1,5 +1,7 @@
 ADD_LIBRARY( pitadriver
 ActivityImpl.C
+AffineFineIntegratorManager.C
+AffinePostProcessor.C
 AlternatingIntegratorPropagator.C
 CommManager.C
 CommManagerImpl.C
@@ -22,9 +24,9 @@ HalfTimeSliceImpl.C
 HomogeneousGenAlphaIntegrator.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
+LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C
-LinearFineIntegratorManager.C
 LinearGenAlphaIntegrator.C
 LinearHalfSliceSchedule.C
 LinearizedPropagator.C
@@ -43,6 +45,9 @@ PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
 ProjectorPropagator.C
+RemoteCoarseCorrectionServer.C
+RemoteDynamPropagator.C
+RemoteDynamPropagatorServer.C
 RemoteHalfSliceSurrogate.C
 RemoteSeedInitializer.C
 RemoteSeedInitializerProxy.C

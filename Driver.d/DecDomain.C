@@ -391,6 +391,22 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::preProcessMPCs()
 {
+#ifdef SOWER_SURFS
+  if(soweredInput) {
+    //HB compute mortar LMPCs
+    domain->SetMortarPairing();
+    domain->SetUpSurfaces(); //domain->SetUpSurfaces(geoSource->sower_nodes);
+    if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+      domain->ComputeMortarLMPC();
+      domain->computeMatchingWetInterfaceLMPC();
+      domain->CreateMortarToMPC();
+    }
+#ifdef MORTAR_DEBUG
+    domain->PrintSurfaceEntities();
+    domain->PrintMortarConds();
+#endif
+  }
+#endif
   if(domain->solInfo().fetiInfo.bmpc) addBMPCs();
   if(domain->getNumLMPC() > 0) {
     filePrint(stderr, " ... Applying the Multi-Point Constraints");
@@ -482,6 +498,9 @@ GenDecDomain<Scalar>::makeSubDomains()
     for(int iSub = 0; iSub < this->numSub; iSub++) { 
       subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);  
     }
+#ifdef SOWER_SURFS
+    geoSource->template readDistributedSurfs<Scalar>(localSubToGl[0]); //pass dummy sub number
+#endif
   }
   else {
     execParal(numSub, this, &GenDecDomain<Scalar>::constructSubDomains);

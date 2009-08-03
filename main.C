@@ -587,25 +587,31 @@ int main(int argc, char** argv)
  }
 
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
- // HB for checking Mortar & generating LMPCs from Mortar tied conditions
- if(topFlag < 0) {
-   domain->SetUpSurfaces(&(geoSource->GetNodes()));
-   if(!callSower) {
-     domain->ProcessSurfaceBCs();
-     domain->SetMortarPairing();
-     if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
-       domain->ComputeMortarLMPC();
-       domain->computeMatchingWetInterfaceLMPC();
-       domain->CreateMortarToMPC();
-     }
-   }
-#ifdef MORTAR_DEBUG
-   domain->PrintSurfaceEntities();
-   domain->PrintMortarConds();
+#ifdef SOWER_SURFS
+ else {
 #endif
-   //domain->printLMPC();
-   //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
+   // HB for checking Mortar & generating LMPCs from Mortar tied conditions
+   if(topFlag < 0) {
+     domain->SetUpSurfaces(&(geoSource->GetNodes()));
+     if(!callSower) {
+       domain->ProcessSurfaceBCs();
+       domain->SetMortarPairing();
+       if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+         domain->ComputeMortarLMPC();
+         domain->computeMatchingWetInterfaceLMPC();
+         domain->CreateMortarToMPC();
+       }
+     }
+#ifdef MORTAR_DEBUG
+     domain->PrintSurfaceEntities();
+     domain->PrintMortarConds();
+#endif
+     //domain->printLMPC();
+     //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
+   }
+#ifdef SOWER_SURFS
  }
+#endif
 
  //if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && !(domain->solInfo().HEV))
  if(geoSource->getDirectMPC())
@@ -672,10 +678,10 @@ int main(int argc, char** argv)
  if(domain->solInfo().noninpc || domain->solInfo().inpc) domain->initSfem();
 
  // 1. check to see if a decomposition has been provided or requested (three options: -d, --dec, or DECOMP)
- bool domain_decomp = (geoSource->getCheckFileInfo()->decPtr || callDec || decInit);
+ bool domain_decomp = (geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput);
  // 2. check to see how many cpus are available (mpi processes and threads)
 #ifdef USE_MPI
- bool parallel_proc = (structCom->numCPUs()*threadManager->numThr() > 1);
+ bool parallel_proc = (structCom->numCPUs()*threadManager->numThr() > 1 || geoSource->binaryInput);
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
@@ -1241,6 +1247,11 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::None:
        {
+         if(domain->solInfo().massFlag) {
+           domain->preProcessing();
+           double mass = domain->computeStructureMass();
+           fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+         }
          fprintf(stderr," ... No Analysis Type selected      ...\n");
        }
        break;

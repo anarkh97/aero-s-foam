@@ -2236,6 +2236,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
  // if (numScatter>0) fprintf(stderr,"Scatterer had %d positive and %d negative normals.\n",pos,neg);
 
 // pos = neg = 0;
+ if (!( (domain->solInfo().HEV) && (domain->probType() != SolverInfo::Modal) )) {
  for (i=0;i<totEle;i++) eleTouch[i] = -1;
  for(iSEle =0; iSEle < numWet; ++iSEle) {
    int s = wet[iSEle]->findAndSetBothEle(dom->nodes,dom->packedEset,
@@ -2246,6 +2247,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
      wet[iSEle]->flipNormal();
    }
 //   else neg++;
+ }
  }
  // if (numWet>0) fprintf(stderr,"Wet interface had %d positive and %d negative normals.\n",pos,neg);
 

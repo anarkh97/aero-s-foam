@@ -533,7 +533,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
- if (sinfo.HEV)  {
+ if ((sinfo.HEV) && (probType() ==SolverInfo::Modal))  {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.trbm, sinfo.sparse_renum, 0);
    Mff->zeroAll();
 

@@ -156,6 +156,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      //if(kelArray) { cerr << "****\n"; kel = kelArray[iele]; }
      if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
      else kel = packedEset[iele]->stiffness(nodes, karray);
+     std::cout << "TraceOrig: " << kel.trace() << std::endl;
      this->densProjectStiffness(kel, iele);
    }
 
@@ -291,6 +292,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if (isComplexF || (imag(kappa2)!=0)) {
      if(mat) mat->add(kcel,(*allDOFs)[iele]);
    } else {
+     std::cout << " Trace 2: " << kel.trace() << std::endl;
      if(mat) mat->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {

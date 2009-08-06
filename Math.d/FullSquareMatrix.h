@@ -58,6 +58,12 @@ public:
         void multiply(GenFullSquareMatrix<Scalar> &M2, GenFullSquareMatrix<Scalar> &result);
         void eigenVals(Scalar*);
         void eigenV(Scalar*);
+        Scalar trace() {
+        	Scalar res = 0;
+        	for(int i = 0; i < dim(); ++i)
+        		res += (*this)[i][i];
+        	return res;
+        }
         //void invert(GenFullSquareMatrix<Scalar>);
 };
 

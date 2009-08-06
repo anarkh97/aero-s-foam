@@ -549,6 +549,7 @@ public:
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   bool setDirectMPC(bool mode) { return mpcDirect = mode; }
+  /// Whether we are doing direct elimination for MPCs
   bool getDirectMPC() { return mpcDirect; }
   Element* getElem(int topid) { return elemSet[topid]; }
 

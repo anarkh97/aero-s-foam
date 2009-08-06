@@ -159,10 +159,10 @@ class MappedAssembledSolver : public BaseSolver {
 
     }
 
-    /* void factor() {
-      BaseSolver::print();
+    void factor() {
+     // BaseSolver::print();
       BaseSolver::factor();
-    } */
+    } 
 
     void reSolve(Scalar *rhs);
 };

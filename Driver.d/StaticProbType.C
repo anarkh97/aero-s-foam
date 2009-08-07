@@ -49,18 +49,31 @@ StaticSolver< Scalar, OpSolver, VecType,
    double *PadeLanczos_VtKV = 0, *PadeLanczos_Vtb = 0;
    VecType **PadeLanczos_solprev = 0;
    if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
-     filePrint(stderr, " ... Describe implementation PadeLanczos ... \n");
      //--- Allocate new set of pointers to have them without any gap
      PadeLanczos_solprev = new VecType * [nRHS*padeN];
      for (int ii = 0; ii < padeN; ++ii) {
-       for (int iRHS = 0; iRHS < nRHS; ++iRHS)
-         PadeLanczos_solprev[iRHS + ii*nRHS] = sol_prev[iRHS + ii*(nRHS+1)];
+       for (int iRHS = 0; iRHS < nRHS; ++iRHS) {
+         if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos)
+           PadeLanczos_solprev[iRHS + ii*nRHS] = sol_prev[iRHS + ii*(nRHS+1)];
+         else 
+           PadeLanczos_solprev[iRHS + ii*nRHS] = sol_prev[iRHS+1 + ii*(nRHS+1)];
+       }
      }
    } // if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos)
    //--- UH --- Data for Pade Lanczos
+   Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
+   VecType **GP_solprev = 0;
+   if ( domain->solInfo().freqSweepMethod == SolverInfo::GalProjection) {
+     //--- Allocate new set of pointers to have them without any gap
+     GP_solprev = new VecType * [nRHS*padeN];
+     for (int ii = 0; ii < padeN; ++ii)
+       for (int iRHS = 0; iRHS < nRHS; ++iRHS)
+         GP_solprev[iRHS + ii*nRHS] = sol_prev[iRHS+1 + ii*(nRHS+1)];
+   }
    
    // loop over coarse grid
    bool first_time = true;
+   bool gpReorthoFlag = true;
    double w0;
    int count = 0;
    while(domain->coarse_frequencies->size() > 0) {
@@ -73,12 +86,14 @@ StaticSolver< Scalar, OpSolver, VecType,
      // if this isn't the first coarse solve then rebuild solver with new frequency
      if(!first_time) rebuildSolver(wc); 
      else first_time = false;
+     gpReorthoFlag = true;
 
      //----- UH ------
      if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
-       filePrint(stderr,"\n ... Build Subspace M-orthonormal Basis      ... \n");
+       filePrint(stderr,"\n ... Build Subspace M-orthonormal Basis      ... \n"); 
        /*probDesc->*/ PadeLanczos_BuildSubspace(nRHS, PadeLanczos_solprev + count * nRHS, 
                                            PadeLanczos_solprev, count * nRHS);
+
      }
      else {
        for(int iRHS = 0; iRHS < nRHS; iRHS++) {
@@ -202,6 +217,11 @@ StaticSolver< Scalar, OpSolver, VecType,
                                             PadeLanczos_VtKV, PadeLanczos_Vtb, w, sol);
              break;
            //--- UH ---
+           case SolverInfo::GalProjection:
+             galProjection(gpReorthoFlag,nRHS*padeN,sol,
+                           GP_solprev, VhKV, VhMV, VhCV, h, w, w-wc);
+             gpReorthoFlag = false;
+             break;
            case SolverInfo::Fourier :
              fourier(sol, sol_prev, h, deltaw);
              break;
@@ -244,6 +264,9 @@ StaticSolver< Scalar, OpSolver, VecType,
    if (PadeLanczos_solprev)
      delete[] PadeLanczos_solprev;
    //--- UH --- Data for Pade Lanczos
+   if (GP_solprev) delete[] GP_solprev;
+   if (VhKV) delete[] VhKV;
+   if (VhMV) delete[] VhMV;
  } // if(domain->solInfo().doFreqSweep)
  else if(domain->solInfo().probType == SolverInfo::HelmholtzDirSweep) { // PJSA: never tested this in FEM/DPH
    int iRHS;

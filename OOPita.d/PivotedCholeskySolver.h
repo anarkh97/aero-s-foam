@@ -2,7 +2,7 @@
 #define PITA_PIVOTEDCHOLESKYSOLVER_H
 
 #include "Fwk.h"
-
+#include "RankDeficientSolver.h"
 #include <Math.d/Vector.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/SymFullMatrix.h>
@@ -10,44 +10,30 @@
 
 namespace Pita {
 
-class PivotedCholeskySolver : public Fwk::PtrInterface<PivotedCholeskySolver> {
+class PivotedCholeskySolver : public RankDeficientSolver {
 public:
-  typedef Fwk::Ptr<PivotedCholeskySolver> Ptr;
-  typedef Fwk::Ptr<const PivotedCholeskySolver> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(PivotedCholeskySolver);
 
-  enum Status {
-    NON_FACTORIZED,
-    FACTORIZED
-  };
-
-  Status status() const { return status_; }
-  int matrixSize() const { return matrixSize_; }
-
-  // These 3 accessors have meaningful values only if status() == FACTORIZED
-  int factorRank() const { return factorRank_; }
-  int factorPermutation(int index) const { return factorPermutation_[index] - 1; }
   const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; }
+  double tolerance() const { return tolerance_; } // -1.0 stands for default tolerance
 
   // Mutators
   void matrixIs(const SymFullMatrix & matrix);
+  void matrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part
   void statusIs(Status s);
   
-  // Solve in place: Input parameter rhs is modified
-  Vector & solution(Vector & rhs) const;
+  virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
-  static Ptr New() {
-    return new PivotedCholeskySolver();
+  static Ptr New(double tolerance = -1.0) {
+    return new PivotedCholeskySolver(tolerance);
   }
 
 protected:
-  PivotedCholeskySolver();
+  explicit PivotedCholeskySolver(double tolerance);
 
 private:
-  Status status_;
-  int matrixSize_;
-  int factorRank_;
   FullSquareMatrix choleskyFactor_;
-  SimpleBuffer<int> factorPermutation_; // Indices starting at 1 (Fortran convention)
+  double tolerance_;
 
   DISALLOW_COPY_AND_ASSIGN(PivotedCholeskySolver);
 }; 

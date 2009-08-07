@@ -5,7 +5,7 @@
 namespace Pita {
 
 DynamStateReductorImpl::DynamStateReductorImpl(const DynamStateBasis * reductionBasis,
-                                               const PivotedCholeskySolver * solver) :
+                                               const RankDeficientSolver * solver) :
   reductionBasis_(reductionBasis),
   solver_(solver)
 {
@@ -37,25 +37,35 @@ DynamStateReductorImpl::initialStateIs(const DynamState & is) {
     throw Fwk::RangeException("in SimpleDynamStateReductor::initialStateIs"); 
   }
 
-  //log() << "DynamStateReductorImpl::initialStateIs() with factorRank / reducedBasisSize = " << solver()->factorRank() << " / " << reducedBasisSize() << "\n";
-
   if (this->reducedBasisSize() > 0) {
-    // Assemble the relevant part of rhs
-    int factorRank = this->solver()->factorRank();
-    for (int i = 0; i < factorRank; ++i) {
-      int index = this->solver()->factorPermutation(i);
+    // Assemble relevant part of rhs
+    for (int i = 0; i < solver_->factorRank(); ++i) {
+      int index = solver_->factorPermutation(i);
       this->getReducedBasisComponents()[index] = is * this->reductionBasis()->state(index);
     }
 
+    /*log() << "Rhs = ";
+    for (int i = 0; i < this->reducedBasisSize(); ++i) {
+      log() << this->getReducedBasisComponents()[i] << " ";
+    }
+    log() << "\n";*/
+    
     // Perform in place resolution
     this->solver()->solution(this->getReducedBasisComponents());
+
+    /*log() << "Solution = ";
+    for (int i = 0; i < this->reducedBasisSize(); ++i) {
+      log() << this->getReducedBasisComponents()[i] << " ";
+    }
+    log() << "\n";*/
+    
   }
 
   setInitialState(is);
 }
 
 DynamStateReductorImpl::Manager::Manager(const DynamStateBasis * defaultReductionBasis,
-                                         const PivotedCholeskySolver * defaultSolver) :
+                                         const RankDeficientSolver * defaultSolver) :
   instance_(),
   defaultReductionBasis_(defaultReductionBasis),
   defaultSolver_(defaultSolver)
@@ -98,7 +108,7 @@ DynamStateReductorImpl::Manager::normalMatrixIs(const SymFullMatrix & nm) {
   if (newSize > 0) {
     // Update solver
     solver_->matrixIs(nm);
-    solver_->statusIs(PivotedCholeskySolver::FACTORIZED);
+    solver_->statusIs(RankDeficientSolver::FACTORIZED);
   }
 
   // Update Reductor instances 
@@ -120,7 +130,7 @@ DynamStateReductorImpl::Manager::defaultReductionBasisIs(const DynamStateBasis *
 }
 
 void
-DynamStateReductorImpl::Manager::defaultSolverIs(const PivotedCholeskySolver * s) {
+DynamStateReductorImpl::Manager::defaultSolverIs(const RankDeficientSolver * s) {
   defaultSolver_ = s;
   resetInstances();
 }

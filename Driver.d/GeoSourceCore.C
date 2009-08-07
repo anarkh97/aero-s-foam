@@ -3923,12 +3923,14 @@ void GeoSource::readGlobalBinaryData()
       exit(-1);
     }
 
+#ifdef SOWER_SURFS
     int nGlobSurfs;
     fp2.read(&nGlobSurfs,1);
     domain->setNumSurfs(nGlobSurfs);
 #ifdef SOWER_DEBUG
-    cerr << " *** global number of surfaces = " << nGlobSurfs << endl;
+    cerr << "*** global number of surfaces = " << nGlobSurfs << endl;
 #endif
+/*
     if(nGlobSurfs > 0) {
       Sower sower;
       BinFileHandler *f = sower.openBinaryFile(0);
@@ -3939,6 +3941,8 @@ void GeoSource::readGlobalBinaryData()
         domain->AddSurfaceEntity(surf,isurf);
       }
     }
+*/
+#endif
   }
 }
 #endif

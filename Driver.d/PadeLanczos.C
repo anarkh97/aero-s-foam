@@ -162,10 +162,50 @@ extern "C" {
 extern void _FORTRAN(dsysv)(const char &, const int &, const int &,
                  double *, const int &, int *, double *, const int &,
                  double *, int &, int &);
+extern void _FORTRAN(zsysv)(const char &, const int &, const int &,
+                 complex<double> *, const int &, int *, complex<double> *,
+                 const int &, complex<double> *, int &, int &);
 void _FORTRAN(dspev)(const char &JOBZ, const char &UPLO,
                      const int &N, double *AP, double *W,
                      double *Z, const int &LDZ, double *WORK, int &INFO);
 }
+
+#ifndef _TSYSV__
+#define _TSYSV__
+inline void Tsysv(const char &a, const int &b, const int &c,
+                 double *d, const int &e, int *f, double *g, const int &h,
+                 double *i, int &j, int &k) {
+ _FORTRAN(dsysv)(a,b,c,d,e,f,g,h,i,j,k);
+}
+inline void Tsysv(const char &a, const int &b, const int &c,
+                 complex<double> *d, const int &e, int *f, complex<double> *g,
+                 const int &h,
+                 complex<double> *i, int &j, int &k) {
+ _FORTRAN(zsysv)(a,b,c,d,e,f,g,h,i,j,k);
+}
+#endif
+/*
+void _FORTRAN(dgesv)(const int &, const int &, double *, const int &, int *, double *,
+                       const int &, int &);
+
+  void _FORTRAN(zgesv)(const int &, const int &, complex<double> *, const int &, int *, complex<double> *,
+                       const int &, int &);
+
+
+inline void Tgesv(const int &a, const int &b, double *c, const int &d, int *e, double *f,
+                  const int &g, int &h)
+{
+ _FORTRAN(dgesv)(a,b,c,d,e,f,g,h);
+}
+
+inline void Tgesv(const int &a, const int &b, complex<double> *c, const int &d, int *e, complex<double> *f,
+                  const int &g, int &h)
+{
+ _FORTRAN(zgesv)(a,b,c,d,e,f,g,h);
+}*/
+
+
+
 
 template < class Scalar,
            class OpSolver,
@@ -286,6 +326,17 @@ StaticSolver< Scalar, OpSolver, VecType,
   for (int ii = 0; ii < nRHS; ++ii)
     alpha[ii] = Vtb[ii];
 
+/*
+      FILE *ff = fopen("pm","a");
+      for(int ii=0;ii<nRHS;ii++) for(int jj=0;jj<nRHS;jj++) {
+        fprintf(ff,"%d %d %.20e %.20e\n",ii+1,jj+1,
+           ScalarTypes::Real(copyVtKV[ii*(nRHS)+jj]),
+           ScalarTypes::Imag(copyVtKV[ii*(nRHS)+jj]));
+      }
+      fclose(ff);
+*/
+
+
   //--- Solve the reduced linear system
   std::vector<int> ipiv(nRHS);
   int lwork = 3 * nRHS;
@@ -308,3 +359,185 @@ StaticSolver< Scalar, OpSolver, VecType,
     
 }
 
+
+
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::galProjection(bool gpReorthoFlag, int nRHS, VecType *sol, VecType **u,
+                  Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  double *h, double w, double deltaw)
+{
+ fprintf(stderr,"u %f %f %d\n",w,deltaw,sol->size());
+
+ if (gpReorthoFlag) {
+ // Orthogonalize
+   int ngs = 5;
+   for(int m=0;m<ngs;m++) { 
+     for(int i=0;i<nRHS;i++) {
+       for(int j=0;j<i;j++) {
+         Scalar dotp = *u[i] *  *u[j];
+         (*u[i]).linAdd(-dotp,*u[j]);
+         if (m==ngs-1) fprintf(stderr,"dot %d %d %e %e\n",
+                 i,j,ScalarTypes::Real(dotp),ScalarTypes::Imag(dotp));
+       }
+       Scalar nrm = *u[i] * *u[i];
+       if (m==0) fprintf(stderr,"nrm %d %e\n",
+                 i,sqrt(ScalarTypes::Real(nrm)));
+       *u[i] *= 1.0/sqrt(ScalarTypes::Real(nrm));
+     }
+   }
+ }
+
+/*
+ fprintf(stderr,"K\n");
+ for(int i=0;i<sol->size();i++) {
+   for(int j=0;j<sol->size();j++) (*f)[j] = 0;
+   (*f)[i] = 1;
+   allOps->K->mult(*f, *a);
+   for(int j=0;j<sol->size();j++) {
+    if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
+             ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
+    fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
+   }
+ }
+ fprintf(stderr,"M\n");
+ for(int i=0;i<sol->size();i++) {
+   for(int j=0;j<sol->size();j++) (*f)[j] = 0;
+   (*f)[i] = 1;
+   allOps->M->mult(*f, *a);
+   for(int j=0;j<sol->size();j++) {
+    if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
+             ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
+    fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
+   }
+ }
+ if (allOps->C_deriv) {
+  if (allOps->C_deriv[0])  {
+   fprintf(stderr,"allOps->C_deriv[0]\n");
+   for(int i=0;i<sol->size();i++) {
+     for(int j=0;j<sol->size();j++) (*f)[j] = 0;
+     (*f)[i] = 1;
+     allOps->C_deriv[0]->mult(*f, *a);
+     for(int j=0;j<sol->size();j++) {
+      if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
+               ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
+      fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
+     }
+   }
+  }
+ }
+ if (allOps->C) {
+   fprintf(stderr,"allOps->C\n");
+   for(int i=0;i<sol->size();i++) {
+     for(int j=0;j<sol->size();j++) (*f)[j] = 0;
+     (*f)[i] = 1;
+     allOps->C->mult(*f, *a);
+     for(int j=0;j<sol->size();j++) {
+      if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
+               ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
+      fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
+     }
+   }
+ }*/
+
+
+
+ // Project 
+ VecType *f = new VecType(probDesc->solVecInfo());
+ VecType *a = new VecType(probDesc->solVecInfo());
+ probDesc->getRHS(*f, w,deltaw);
+// (*f).print();
+// for(int k=0;k<sol->size();k++)
+//   fprintf(stderr,"f[%d]= %d %e %e\n",k+1,sizeof((*f)[0]),ScalarTypes::Real((*f)[k]),ScalarTypes::Imag((*f)[k]));
+
+
+ Scalar *z = new Scalar[nRHS];
+ for(int i=0;i<nRHS;i++) {
+   z[i] = *f * *u[i];
+ }
+
+// Scalar nrm = 0;
+// for(int k=0;k<sol->size();k++)
+//   nrm += ScalarTypes::conj((*f)[k]) * (*f)[k];
+// fprintf(stderr,"norm of f %e %e\n",ScalarTypes::Real(nrm),ScalarTypes::Imag(nrm));
+//     for(int k=0;k<sol->size();k++)
+//fprintf(stderr,"f %d %e %e\n",k,ScalarTypes::Real((*f)[k]),ScalarTypes::Imag((*f)[k]));
+   
+ if (gpReorthoFlag) {
+   VecType *b = new VecType(probDesc->solVecInfo());
+   VecType *c = new VecType(probDesc->solVecInfo());
+   if (VhMV==0) VhMV = new Scalar[(nRHS)*(nRHS)];
+   if (VhKV==0) VhKV = new Scalar[(nRHS)*(nRHS)];
+   if (VhCV==0) VhCV = new Scalar[(nRHS)*(nRHS)];
+   for(int i=0;i<nRHS;i++) {
+     
+     allOps->K->mult(*(u[i]), *a);
+     allOps->M->mult(*(u[i]), *b);
+     for(int k=0;k<sol->size();k++) (*c)[k] = 0;
+     if (allOps->C_deriv) {
+       if (allOps->C_deriv[0]) allOps->C_deriv[0]->mult(*(u[i]), *c);
+     } else (*c).zero(); 
+     //else if (allOps->C) allOps->C->mult(*(u[i]), *c);  
+
+     for(int j=0;j<nRHS;j++) {
+       VhMV[i*(nRHS)+j] = *b * *u[j];
+       VhCV[i*(nRHS)+j] = *c * *u[j];
+       VhKV[i*(nRHS)+j] = *a * *u[j] + (w-deltaw)*(w-deltaw) * VhMV[i*(nRHS)+j];
+       ScalarTypes::addComplex(VhKV[i*(nRHS)+j], -(w-deltaw)*VhCV[i*(nRHS)+j] );
+     }
+   }
+   delete b;
+   delete c;
+ }
+ delete a;
+ delete f;
+ 
+ fprintf(stderr,"haha %p\n",allOps->C_deriv);
+
+ Scalar *zz = new Scalar[(nRHS)*(nRHS)];
+ for(int i=0;i<nRHS;i++)
+   for(int j=0;j<nRHS;j++) {
+     zz[i*(nRHS)+j] = VhKV[i*(nRHS)+j] - w*w * VhMV[i*(nRHS)+j];
+     ScalarTypes::addComplex(zz[i*(nRHS)+j], 
+                      w * VhCV[i*(nRHS)+j]);
+   }
+
+/*
+      FILE *ff = fopen("pm","a");
+      for(int ii=0;ii<nRHS;ii++) for(int jj=0;jj<nRHS;jj++) {
+        fprintf(ff,"%d %d %.20e %.20e\n",ii+1,jj+1,
+           ScalarTypes::Real(zz[ii*(nRHS)+jj]),
+           ScalarTypes::Imag(zz[ii*(nRHS)+jj]));
+      }
+      fclose(ff);
+*/
+
+
+//--- Solve the reduced linear system
+ std::vector<int> ipiv(nRHS);
+ int lwork = 3 * nRHS;
+ std::vector<Scalar> work(lwork);
+ int info = 0;
+ Tgesv(nRHS, 1, &zz[0], nRHS, &ipiv[0], &z[0], nRHS, info);
+
+ fprintf(stderr,"gogo:");
+ for(int i=0;i<nRHS;i++)
+   fprintf(stderr," %e %e",ScalarTypes::Real(z[i]),
+                          ScalarTypes::Imag(z[i]));
+ fprintf(stderr,"\n");
+
+//--- Compute the approximant vector
+ (*sol).zero();
+ for(int i=0;i<nRHS;i++) 
+   (*sol).linAdd(z[i],*u[i]);
+
+ delete[] z;
+ delete[] zz;
+}

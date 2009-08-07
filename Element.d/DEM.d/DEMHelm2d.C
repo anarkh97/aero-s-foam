@@ -3,10 +3,6 @@
 #include <Element.d/DEM.d/DEMHelm2d.h>
 #include <Element.d/Helm.d/IsoParamUtils2d.h>
 
-// To be able to access omega
-#include <Driver.d/GeoSource.h>
-extern GeoSource *geoSource;
-
 class HelmDGMELMatrixFunction : public IntegFunctionL2d {
  double kappa;
  int ndir;
@@ -271,21 +267,21 @@ DGMHelm2d_Eva2_8::DGMHelm2d_Eva2_8(int _nnodes, int* nodenums) :
 }
 
 complex<double> DGMHelm2d_4::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] =  {
    1,0,-1,0,0,1,0,-1};
  return complex<double>(0.0,kappa*a[n]);
 }
 
 complex<double> DGMHelm2d_4t::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] =  {
    1,0,-1,0,0,1,0,-1};
  return complex<double>(0.0,kappa*a[n]);
 }
 
 complex<double> DGMHelm2d_8::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 1,0,
                 1/sqrt(2.0),1/sqrt(2.0),
                 0,1,
@@ -298,7 +294,7 @@ complex<double> DGMHelm2d_8::dir(int n) {
 }
 
 complex<double> DGMHelm2d_8t::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 1,0,
                 1/sqrt(2.0),1/sqrt(2.0),
                 0,1,
@@ -311,7 +307,7 @@ complex<double> DGMHelm2d_8t::dir(int n) {
 }
 
 complex<double> DGMHelm2d_16::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 
              cos(2*M_PI*double(0)/16), sin(2*M_PI*double(0)/16),
              cos(2*M_PI*double(1)/16), sin(2*M_PI*double(1)/16),
@@ -333,7 +329,7 @@ complex<double> DGMHelm2d_16::dir(int n) {
 }
 
 complex<double> DGMHelm2d_32::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 
              cos(2*M_PI*double(0)/32), sin(2*M_PI*double(0)/32),
              cos(2*M_PI*double(1)/32), sin(2*M_PI*double(1)/32),
@@ -372,7 +368,7 @@ complex<double> DGMHelm2d_32::dir(int n) {
 
 
 complex<double> DGMHelm2d_Eva2_8::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 1,0,
                 1/sqrt(2.0),1/sqrt(2.0),
                 0,1,
@@ -418,14 +414,14 @@ complex<double> DGMHelm2d_8_LM::coef(int n) {
  return a[n];
 }
 
-void DGMHelm2d_Eva1_2_LM::init(CoordSet &cs) {
+void DGMHelm2d_Eva1_2_LM::init() {
 
  DGMHelm2d *eh1 = dynamic_cast<DGMHelm2d*>(e1);
  int o = eh1->o;
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(e1->nn,os,xyz,xyz+os,xyz+2*os);
+ e1->getNodalCoord(os,e1->nn,xyz);
 
  int fi=-1;
  for(int i=0;i<e1->nFaces();i++) 
@@ -533,16 +529,16 @@ void DGMHelm2d::getRef(double *xyz,double *xy) {
  xy[0] = xy[1] = 0.0;
 }
 
-void DGMHelm2d::createM(CoordSet &cs, complex<double>*M) {
+void DGMHelm2d::createM(complex<double>*M) {
 
  IsoParamUtils2d *ipu =
      (o>0)?new IsoParamUtils2d(o):new IsoParamUtils2dTri(-o);
  int os = ipu->getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[2];
  getRef(xyz,xref);
@@ -654,17 +650,16 @@ class HelmDGMWetEMatrixFunction : public IntegFunctionL2d {
  double *xc;
  DEMElement *deme2;
  complex<double> *K;
- CoordSet &cs;
 public:
  HelmDGMWetEMatrixFunction(double _omega,
                       int _ndir, complex<double> *_dirs, double *_xc,
-                      DEMElement *_deme2, CoordSet &_cs,
-                      complex<double> *_K): cs(_cs) {
+                      DEMElement *_deme2,
+                      complex<double> *_K) {
    omega = _omega; ndir = _ndir; dirs = _dirs; xc = _xc; deme2 = _deme2;
    K = _K;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
-
+/*
    complex<double> *e = new complex<double>[ndir];
    for(int i=0;i<ndir;i++) { e[i] = omega*omega*w*
            exp(dirs[i*2+0]*(x[0]-xc[0]) + dirs[i*2+1]*(x[1]-xc[1]) );
@@ -672,7 +667,7 @@ public:
 
    int ndir2 = deme2->nEnrichmentDofs();
    complex<double> *e2 = new complex<double>[ndir2*2];
-   deme2->enrichmentF(cs,x,e2);
+   deme2->enrichmentF(x,e2);
    for(int j=0;j<ndir2;j++) {
 // Get deme2 function
      for(int i=0;i<ndir;i++) {
@@ -683,21 +678,60 @@ public:
    }
    delete[] e2;
    delete[] e;
+*/
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) { e[i] =
+           exp(dirs[i*2+0]*(x[0]-xc[0]) + dirs[i*2+1]*(x[1]-xc[1]) );
+   }
+
+   int os2 = deme2->nPolynomialDofs();
+   int ndir2 = deme2->nEnrichmentDofs();
+   int ndof = ndir + os2 + ndir2;
+   double oown = omega*omega*w*nsign;
+
+   complex<double> *e2 = new complex<double>[ndir2*2];
+   deme2->enrichmentF(x,e2); 
+
+   for(int j=0;j<ndir2;j++) {
+     complex<double> oownc = oown*(cross[0]*e2[j*2+0]+cross[1]*e2[j*2+1]);
+     for(int i=0;i<ndir;i++) {
+       K[(ndir+os2+j)*ndof+i] += oownc * e[i];
+       K[(i)*ndof+ndir+os2+j] += oownc * e[i];
+     }
+   }
+   delete[] e2;
+
+   if (os2>0)  {
+     double *u = new double[os2*2];
+     deme2->polynomialF(x,u);
+  
+     for(int j=0;j<os2;j++) {
+       double oownc = oown*(cross[0]*u[2*j+0]+cross[1]*u[2*j+1]);
+       for(int i=0;i<ndir;i++) {
+         K[(ndir+j)*ndof+i] += oownc * e[i];
+         K[(i)*ndof+ndir+j] += oownc * e[i];
+       }
+     }
+     delete[] u;
+   }
+   delete[] e;
+
  }
 };
 
 
 
-void DGMHelm2d::interfMatrix(CoordSet &cs, int fi, DEMElement* deme2,
+void DGMHelm2d::interfMatrix(int fi, DEMElement* deme2,
                               complex<double> *K) {
 
  IsoParamUtils2d *ipu =
      (o>0)?new IsoParamUtils2d(o):new IsoParamUtils2dTri(-o);
  int os = ipu->getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double omega = geoSource->omega();
+ double omega = getOmega();
 
  double xref[2];
  getRef(xyz,xref);
@@ -705,9 +739,11 @@ void DGMHelm2d::interfMatrix(CoordSet &cs, int fi, DEMElement* deme2,
  complex<double>* cdir = new complex<double>[ndir*2];
  for(int i=0;i<2*ndir;i++) cdir[i] = dir(i);
 
- for(int i=0;i<(ndir+deme2->nEnrichmentDofs())*(ndir+deme2->nEnrichmentDofs());i++) K[i] = 0.0;
+ int ndofs = nPolynomialDofs()+ndir+
+             deme2->nPolynomialDofs()+deme2->nEnrichmentDofs();
+ for(int i=0;i<ndofs*ndofs;i++) K[i] = 0.0;
 
- HelmDGMWetEMatrixFunction f(omega,ndir,cdir,xref,deme2,cs,K);
+ HelmDGMWetEMatrixFunction f(omega,ndir,cdir,xref,deme2,K);
  ipu->lineInt2d(xyz, fi, f);
 
  delete[] cdir;
@@ -763,7 +799,7 @@ void HelmDGMNeumV2d(int order, double *xy,
 
 
 
-void DGMHelm2d::createRHS(CoordSet &cs, complex<double>*v) {
+void DGMHelm2d::createRHS(complex<double>*v) {
  int os;
  if (o>0) { 
    IsoParamUtils2d ipu(o);
@@ -773,10 +809,10 @@ void DGMHelm2d::createRHS(CoordSet &cs, complex<double>*v) {
    os = ipu.getordersq();
  }
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[2];
  getRef(xyz,xref);
@@ -786,8 +822,10 @@ void DGMHelm2d::createRHS(CoordSet &cs, complex<double>*v) {
 
  complex<double> *vv = new complex<double>[ndir];
  for(int i=0;i<ndir;i++) vv[i] = 0.0;
- complex<double> incdir[2] = {complex<double>(0.0,kappa*1.0),
-                              complex<double>(0.0,kappa*0.0)};
+
+ double *dir = getWaveDirection();
+ complex<double> incdir[2] = {complex<double>(0.0,kappa*dir[0]),
+                              complex<double>(0.0,kappa*dir[1])};
  for(int i=0;i<nFaces();i++) {
    if (bc[i]==2) {
      HelmDGMNeumV2d(o, xyz, ndir, cdir, incdir, i+1 , xref, vv);
@@ -837,7 +875,7 @@ DEMHelm2d_16::DEMHelm2d_16(int _o, int* nodenums) : DEMHelm2d(_o,nodenums) { ndi
 DEMHelm2d_32::DEMHelm2d_32(int _o, int* nodenums) : DEMHelm2d(_o,nodenums) { ndir = 32; }
 
 complex<double> DEMHelm2d_4::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] =  {
    1,0,-1,0,0,1,0,-1};
  return complex<double>(0.0,kappa*a[n]);
@@ -845,14 +883,14 @@ complex<double> DEMHelm2d_4::dir(int n) {
 
 
 complex<double> DEMHelm2d_4t::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] =  {
    1,0,-1,0,0,1,0,-1};
  return complex<double>(0.0,kappa*a[n]);
 }
 
 complex<double> DEMHelm2d_8::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 1,0,
                 1/sqrt(2.0),1/sqrt(2.0),
                 0,1,
@@ -865,7 +903,7 @@ complex<double> DEMHelm2d_8::dir(int n) {
 }
 
 complex<double> DEMHelm2d_8t::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 1,0,
                 1/sqrt(2.0),1/sqrt(2.0),
                 0,1,
@@ -878,7 +916,7 @@ complex<double> DEMHelm2d_8t::dir(int n) {
 }
 
 complex<double> DEMHelm2d_16::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 
              cos(2*M_PI*double(0)/16), sin(2*M_PI*double(0)/16),
              cos(2*M_PI*double(1)/16), sin(2*M_PI*double(1)/16),
@@ -900,7 +938,7 @@ complex<double> DEMHelm2d_16::dir(int n) {
 }
 
 complex<double> DEMHelm2d_32::dir(int n) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[] = { 
              cos(2*M_PI*double(0)/32), sin(2*M_PI*double(0)/32),
              cos(2*M_PI*double(1)/32), sin(2*M_PI*double(1)/32),
@@ -1085,15 +1123,15 @@ void HelmPMatrices2d(int order, double *xy,
  }
 }
 
-void DEMHelm2d::createM(CoordSet &cs, complex<double>*M) {
+void DEMHelm2d::createM(complex<double>*M) {
 
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[2];
  getRef(xyz,xref);
@@ -1220,12 +1258,11 @@ class HelmDEMWetMatrixFunction : public IntegFunctionL2d {
  double *xc;
  DEMElement *deme2;
  complex<double> *K;
- CoordSet &cs;
 public:
  HelmDEMWetMatrixFunction(int _o, double _omega,
                       int _ndir, complex<double> *_dirs, double *_xc,
-                      DEMElement *_deme2, CoordSet &_cs,
-                      complex<double> *_K) : cs(_cs) {
+                      DEMElement *_deme2,
+                      complex<double> *_K) {
    o= _o; omega = _omega; ndir = _ndir; dirs = _dirs; xc = _xc; deme2 = _deme2;
    K = _K;
  }
@@ -1243,7 +1280,7 @@ public:
    double oown = omega*omega*w*nsign;
 
    complex<double> *e2 = new complex<double>[ndir2*2];
-   deme2->enrichmentF(cs,x,e2); 
+   deme2->enrichmentF(x,e2); 
 
    for(int j=0;j<ndir2;j++) {
      complex<double> oownc = oown*(cross[0]*e2[j*2+0]+cross[1]*e2[j*2+1]);
@@ -1259,7 +1296,7 @@ public:
    delete[] e2;
 
    double *u = new double[os2*2];
-   deme2->polynomialF(cs,x,u);
+   deme2->polynomialF(x,u);
 
    for(int j=0;j<os2;j++) {
      double oownc = oown*(cross[0]*u[2*j+0]+cross[1]*u[2*j+1]);
@@ -1277,15 +1314,15 @@ public:
  }
 };
 
-void DEMHelm2d::interfMatrix(CoordSet &cs, int fi, DEMElement* deme2,
+void DEMHelm2d::interfMatrix(int fi, DEMElement* deme2,
                               complex<double> *K) {
 
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double omega = geoSource->omega();
+ double omega = getOmega();
 
  double xref[2];
  getRef(xyz,xref);
@@ -1295,10 +1332,9 @@ void DEMHelm2d::interfMatrix(CoordSet &cs, int fi, DEMElement* deme2,
 
  int ndofs = nPolynomialDofs()+ndir+
              deme2->nPolynomialDofs()+deme2->nEnrichmentDofs();
-
  for(int i=0;i<ndofs*ndofs;i++) K[i] = 0.0;
 
- HelmDEMWetMatrixFunction f(o,omega,ndir,cdir,xref,deme2,cs,K);
+ HelmDEMWetMatrixFunction f(o,omega,ndir,cdir,xref,deme2,K);
  ipu.lineInt2d(xyz, fi, f);
 
  delete[] cdir;
@@ -1350,14 +1386,14 @@ void HelmDEMNeumV2d(int order, double *xy,
 }
 
 
-void DEMHelm2d::createRHS(CoordSet &cs, complex<double>*v) {
+void DEMHelm2d::createRHS(complex<double>*v) {
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[2];
  getRef(xyz,xref);
@@ -1368,8 +1404,9 @@ void DEMHelm2d::createRHS(CoordSet &cs, complex<double>*v) {
  complex<double> *vv = new complex<double>[nPolynomialDofs()+ndir];
  for(int i=0;i<nPolynomialDofs()+ndir;i++) vv[i] = 0.0;
 
- complex<double> incdir[2] = {complex<double>(0.0,kappa*1.0),
-                              complex<double>(0.0,kappa*0.0)};
+ double *dir = getWaveDirection();
+ complex<double> incdir[2] = {complex<double>(0.0,kappa*dir[0]),
+                              complex<double>(0.0,kappa*dir[1])};
  for(int i=0;i<nFaces();i++) {
    if (bc[i]==2)
      HelmDEMNeumV2d(o, xyz, ndir, cdir, incdir, i+1 , xref, vv);

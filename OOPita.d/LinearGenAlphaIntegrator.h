@@ -6,9 +6,6 @@
 template <typename Scalar> class SingleDomainDynamic;
 template <typename VectorType> class SysState;
 
-// HACK for output
-//#include <Driver.d/DynamProbType.h>
-
 namespace Pita {
 
 class LinearGenAlphaIntegrator : public DynamTimeIntegrator {
@@ -49,6 +46,8 @@ protected:
   const ProblemDescriptor * probDesc() const { return probDesc_; }
   ProblemDescriptor * probDesc() { return probDesc_; }
 
+  void zeroExternalForce() { externalForce_.zero(); }
+    
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); 
 
 private:

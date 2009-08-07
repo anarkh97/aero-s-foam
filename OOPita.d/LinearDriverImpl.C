@@ -15,6 +15,7 @@
 #include "NonHomogeneousBasisCollectorImpl.h"
 #include "HalfSlicePropagatorManager.h"
 #include "LinearFineIntegratorManager.h"
+#include "AffineFineIntegratorManager.h"
 
 #include "PostProcessingManager.h"
 
@@ -33,6 +34,8 @@ extern Domain * domain;
 
 #include "LinearGenAlphaIntegrator.h"
 #include "HomogeneousGenAlphaIntegrator.h"
+
+#include "AffinePostProcessor.h"
 
 #include "Seed.h"
 #include "ScheduledRemoteSeedWriter.h"
@@ -148,9 +151,7 @@ LinearDriverImpl::solve() {
         SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
 
         RemoteSeedInitializer::Ptr remoteSeedInitializer = RemoteSeedInitializer::New(seedInitCom, seedInitializer.ptr(), mapping.ptr());
-
         remoteSeedInitializer->statusIs(RemoteSeedInitializer::BUSY);
-
       } else {
         IntegratorPropagator::Ptr integratorPropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
         integratorPropagator->timeStepCountIs(TimeStepCount(1));
@@ -201,6 +202,8 @@ LinearDriverImpl::solve() {
   GeneralizedAlphaParameter integrationParam(fineTimeStep, rho_infinity_fine);
   LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(integrationParam);
 
+  double projectorTolerance = domain->solInfo().pitaProjTol;
+
   HalfSliceCorrectionNetworkImpl::Ptr correctionMgr =
     HalfSliceCorrectionNetworkImpl::New(
       vectorSize,
@@ -209,7 +212,8 @@ LinearDriverImpl::solve() {
       schedule.ptr(),
       mapping.ptr(),
       dynamOps.ptr(),
-      correctionStrategy); 
+      correctionStrategy,
+      projectorTolerance); 
 
   std::vector<int> localFileId;
   for (SliceMapping::SliceIdIterator it = mapping->hostedSlice(myCpu, HalfSliceRank(0), HalfSliceRank(0) + mapping->totalSlices()); it; ++it) {
@@ -220,9 +224,16 @@ LinearDriverImpl::solve() {
   std::sort(localFileId.begin(), localFileId.end());
   localFileId.erase(std::unique(localFileId.begin(), localFileId.end()), localFileId.end());
 
-  PostProcessingManager::Ptr postProcessingMgr = PostProcessingManager::New(probDesc_->getPostProcessor(), localFileId.size(), &localFileId[0]);
-
-  LinearFineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager::New(dopsManager.ptr(), integrationParam);
+  FineIntegratorManager::Ptr fineIntegratorMgr;
+  if (correctionStrategy == HalfSliceCorrectionNetworkImpl::HOMOGENEOUS) {
+    fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
+  } else {
+    fineIntegratorMgr = AffineFineIntegratorManager::New(dopsManager.ptr(), integrationParam, schedule.ptr());
+  }
+  
+  AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
+  typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
+  PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   HalfSlicePropagatorManager::Ptr propagatorMgr =
     new HalfSlicePropagatorManager(

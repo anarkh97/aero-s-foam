@@ -77,7 +77,8 @@ struct SolverInfo {
    int numTSperCycleperCPU; // Maximum number of active time-slices on each CPU (always required)
    int numSpaceMPIProc;     // Number of CPUs in the space domain (only when time-space parallelism is enabled)
    int baseImprovementMethodForPita; // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
-   bool remoteCoarse;
+   bool remoteCoarse;       // Coarse grid integrator on dedicated CPU 
+   double pitaProjTol;      // Tolerance used to build the projector
 
    bool newPitaImplementation; // JC TODO Remove when new PITA implementation ready
 
@@ -181,7 +182,7 @@ struct SolverInfo {
    int nFreqSweepRHS;
    bool doFreqSweep,doEigSweep;
    //--- UH --- 05/21/08
-   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos };
+   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection };
    //--- UH --- 05/21/08
    int freqSweepMethod;
    int padeL, padeM, padeN;
@@ -239,6 +240,7 @@ struct SolverInfo {
                   numSpaceMPIProc     = 1;
                   baseImprovementMethodForPita = 0;
                   remoteCoarse = false;
+                  pitaProjTol = 1.0e-6;
                   newPitaImplementation = false; // JC TODO Remove when new PITA implementation ready
 
                   acoustic = false;

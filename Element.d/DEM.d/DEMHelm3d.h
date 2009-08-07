@@ -2,16 +2,17 @@
 #define _DEMHELM3D_H_
 
 #include <math.h>
+#ifndef SANDIA
 #include <Element.d/DEM.d/DEMElement.h>
-#include <Math.d/ComplexD.h>
-#include <Utils.d/dofset.h>
-
+#else
+#include "DEMElement.h"
+#endif
 
 class DGMHelm3d_LM: public DEMLM {
 public:
  virtual int nDofs()=0;
  virtual int type()=0;
- virtual void init(CoordSet &cs) {};
+ virtual void init() {};
  virtual void ldir(int,double*,double*,complex<double>*)=0;
 };
 
@@ -56,10 +57,10 @@ public:
  virtual int defaultLMType() { return 51; }
  virtual bool dgmFlag() { return true; }
  virtual bool condensedFlag() {
-   for(int i=0;i<nFaces();i++) if (bc[i]==3) return false;
-   return true;
+   for(int i=0;i<nFaces();i++) if (bc[i]==3) return false&&condensedF;
+   return true&&condensedF;
  }
- virtual bool storeMatricesFlag() { return true; }
+ virtual bool storeMatricesFlag() { return storeMatricesF; }
 // virtual bool storeMatricesFlag() { return false; }
  virtual int nPolynomialDofs() { return 0; }
  virtual int nEnrichmentDofs() { return ndir; }
@@ -67,12 +68,15 @@ public:
  virtual int nFaces() { return (o>0)?6:4; }
  virtual int nFaceCorners(int fi) { return (o>0)?4:3; }
  virtual int *faceCorners(int fi);
+#ifndef SANDIA
  virtual int polyDofType() { return DofSet::Helm; }
+#endif
  virtual int polyDofsPerNode() { return 1; }
 
  virtual void getRef(double *xyz,double *xy);
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
+ virtual void createRHS(complex<double>*);
  virtual void createSol(double *xyz, complex<double>*,
                             complex<double>*);
 };
@@ -136,8 +140,9 @@ public:
  virtual bool dgmFlag() { return false; }
  virtual int nPolynomialDofs() { return o*o*o; }
 
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
+ virtual void createRHS(complex<double>*);
 };
 
 
@@ -170,4 +175,3 @@ public:
 };
 
 #endif
-

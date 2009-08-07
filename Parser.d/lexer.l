@@ -275,6 +275,8 @@ TRAIL [a-zA-Z]*
 
 "PadeLanczos"|"padelanczos"|"PADELANCZOS" { yylval.ival = 4; return RECONSALG; }
 
+"GalProjection"|"galprojection"|"GALPROJECTION" { yylval.ival = 5; return RECONSALG; }
+
 "padepoles"|"PADEPOLES"            { return PADEPOLES; }
 
 "modefilter"|"MODEFILTER"          { return MODEFILTER; }
@@ -606,7 +608,9 @@ TRAIL [a-zA-Z]*
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
 
-"oopita"|"OOPITA"|"OOPita"         { return OOPITA; }
+"ORTHOPROJTOL"|"orthoprojtol"      { return ORTHOPROJTOL; }
+
+"newimpl"|"NEWIMPL"|"OOPITA"       { return NEWIMPL; }
 
 "heat"|"HEAT"                      { return HEAT; }
 

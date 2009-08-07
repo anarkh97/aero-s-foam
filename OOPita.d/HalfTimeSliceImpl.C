@@ -13,6 +13,7 @@ HalfTimeSliceImpl::HalfTimeSliceImpl(HalfSliceRank r,
                                      DynamPropagator * dp) :
   HalfTimeSlice(r, d),
   propagator_(dp),
+  previousSeedState_(),
   schedulingReactor_(NULL),
   localPropagationReactor_(NULL)
 {}
@@ -25,6 +26,7 @@ HalfTimeSliceImpl::phaseIs(PhaseRank p) {
 
 void
 HalfTimeSliceImpl::seedIs(const Seed * s) {
+  previousSeedState_ = s->state();
   schedulingReactor_->notifierIs(s);
   setSeed(s);
 }
@@ -38,11 +40,23 @@ HalfTimeSliceImpl::propagatedSeedIs(Seed * ps) {
 void
 HalfTimeSliceImpl::propagateSeed() {
   if (seed()) {
-    propagator()->initialStateIs(seed()->state());
+    if (previousSeedState_.vectorSize() != 0) {
+      //log() << "Reuse state\n";
+      propagator()->initialStateIs(seed()->state() - previousSeedState_);
+    } else {
+      //log() << "New state\n";
+      propagator()->initialStateIs(seed()->state());
+    }
     if (propagatedSeed()) {
       propagatedSeed()->statusIs(seed()->status());
-      propagatedSeed()->stateIs(propagator()->finalState());
+      if (propagatedSeed()->state().vectorSize() != 0) {
+        propagatedSeed()->stateIs(propagatedSeed()->state() + propagator()->finalState());
+      } else {
+        propagatedSeed()->stateIs(propagator()->finalState());
+      }
     }
+    
+    previousSeedState_ = seed()->state(); 
   }
 }
 

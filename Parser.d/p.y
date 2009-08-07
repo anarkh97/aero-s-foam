@@ -81,7 +81,7 @@
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
-%token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES OOPITA REMOTECOARSE
+%token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
@@ -435,6 +435,11 @@ ReconsInfo:
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
               break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
           }
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
@@ -463,6 +468,12 @@ ReconsInfo:
               if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
+              break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              l = $4;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
               break;
           }
         }
@@ -1212,10 +1223,12 @@ ParallelInTimeKeyWord:
         { domain->solInfo().CkCoarse = true; }
         | LOCALBASES
         { domain->solInfo().baseImprovementMethodForPita = 1; }
-	| OOPITA
-	{ domain->solInfo().newPitaImplementation = true; }
-	| REMOTECOARSE
-	{ domain->solInfo().remoteCoarse = true; }
+	      | NEWIMPL
+	      { domain->solInfo().newPitaImplementation = true; }
+	      | REMOTECOARSE
+	      { domain->solInfo().remoteCoarse = true; }
+        | ORTHOPROJTOL Float
+        { domain->solInfo().pitaProjTol = $2; }
         ;
 DampInfo:
 	DAMPING Float Float NewLine

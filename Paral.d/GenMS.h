@@ -22,6 +22,8 @@ class GenMultiSparse : public GenSparseMatrix<Scalar>
    ~GenMultiSparse() {};
     
    void add(FullSquareMatrix & kel, int *dofs);
+   void add(FullSquareMatrixC & kel, int *dofs);
+   void addImaginary(FullSquareMatrix & kel, int *dofs);
    void addDiscreteMass(int dof, Scalar mass);
    Scalar diag(int i) const { return K->diag(i); }
    Scalar &diag(int i) { return K->diag(i); }
@@ -52,6 +54,31 @@ GenMultiSparse<Scalar>::add(FullSquareMatrix & kel, int *dofs)
  if(Kbb) Kbb->add(kel, dofs);
  if(Kib) Kib->add(kel, dofs);
  if(Kii) Kii->add(kel, dofs);
+}
+
+
+template<class Scalar>
+void
+GenMultiSparse<Scalar>::add(FullSquareMatrixC & kel, int *dofs) 
+{
+ if(K)     K->add(kel, dofs);
+ if(Krc) Krc->add(kel, dofs);
+ if(Kcc) Kcc->add(kel, dofs);
+ if(Kbb) Kbb->add(kel, dofs);
+ if(Kib) Kib->add(kel, dofs);
+ if(Kii) Kii->add(kel, dofs);
+}
+
+template<class Scalar>
+void
+GenMultiSparse<Scalar>::addImaginary(FullSquareMatrix & kel, int *dofs) 
+{
+ if(K)     K->addImaginary(kel, dofs);
+ if(Krc) Krc->addImaginary(kel, dofs);
+ if(Kcc) Kcc->addImaginary(kel, dofs);
+ if(Kbb) Kbb->addImaginary(kel, dofs);
+ if(Kib) Kib->addImaginary(kel, dofs);
+ if(Kii) Kii->addImaginary(kel, dofs);
 }
 
 template<class Scalar>

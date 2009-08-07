@@ -1014,7 +1014,6 @@ template <class Scalar>
 void
 SingleDomainDynamic<Scalar>::modeDecomp(double t, int tIndex, Vector& d_n)
 {
- 
 // Compute Alpha and error only if their output file is specified,
 // otherwise, it wouldn't make sense
 
@@ -1027,23 +1026,25 @@ SingleDomainDynamic<Scalar>::modeDecomp(double t, int tIndex, Vector& d_n)
   alfa = 0;
 
   for (i=0; i < numOutInfo; i++) {
-   if(oinfo[i].interval != 0 && tIndex % oinfo[i].interval == 0) {
+    if(oinfo[i].interval != 0 && tIndex % oinfo[i].interval == 0) {
 
-   int w = oinfo[i].width;
-   int p = oinfo[i].precision;
+      int w = oinfo[i].width;
+      int p = oinfo[i].precision;
 
       switch(oinfo[i].type) {
         case OutputInfo::ModeAlpha: {
           //fprintf(stderr, "Computing alfa_i\n");
 
-          alfa = new double[maxmode];
+          if(!alfa) {
+            alfa = new double[maxmode];
 
-          for (k=0; k<maxmode; ++k)
-            alfa[k] = 0;
- 
-          for (j = 0; j < maxmode; ++j)
-            for (k = 0; k < d_n.size(); ++k)
-               alfa[j] += tPhiM[j][k]*d_n[k];
+            for (k=0; k<maxmode; ++k)
+              alfa[k] = 0;
+
+            for (j = 0; j < maxmode; ++j)
+              for (k = 0; k < d_n.size(); ++k)
+                 alfa[j] += tPhiM[j][k]*d_n[k];
+          }
 
           // Write alfa
           fprintf(oinfo[i].filptr, "%e  ", t);
@@ -1055,30 +1056,41 @@ SingleDomainDynamic<Scalar>::modeDecomp(double t, int tIndex, Vector& d_n)
         } break;
 
         case OutputInfo::ModeError: {
-           //fprintf(stderr, "Computing relative error\n");
+          //fprintf(stderr, "Computing relative error\n");
 
-           double sumerror = 0;
-           double normerror = 0;
-           double sumdisp = 0;
-           double normdisp = 0;
+          if(!alfa) {
+            alfa = new double[maxmode];
+  
+            for (k=0; k<maxmode; ++k)
+              alfa[k] = 0;
+  
+            for (j = 0; j < maxmode; ++j)
+              for (k = 0; k < d_n.size(); ++k)
+                alfa[j] += tPhiM[j][k]*d_n[k];
+          }
 
-           int ersize = d_n.size();
+          double sumerror = 0;
+          double normerror = 0;
+          double sumdisp = 0;
+          double normdisp = 0;
 
-           double *sumalfa = new double[ersize];
-           double *error   = new double[ersize];
+          int ersize = d_n.size();
 
-           for (k=0; k < ersize; ++k) sumalfa[k] = 0;
+          double *sumalfa = new double[ersize];
+          double *error   = new double[ersize];
 
-           for (k=0; k < ersize; ++k)
+          for (k=0; k < ersize; ++k) sumalfa[k] = 0;
+
+          for (k=0; k < ersize; ++k)
             for (j=0; j < maxmode; ++j)
               sumalfa[k] += alfa[j]*eigmodes[j][k];
 
 
-           for (j=0; j < ersize; ++j) {
-             error[j] = d_n[j]-sumalfa[j];
-             sumerror += error[j]*error[j];
-             sumdisp += d_n[j]*d_n[j];
-           }
+          for (j=0; j < ersize; ++j) {
+            error[j] = d_n[j]-sumalfa[j];
+            sumerror += error[j]*error[j];
+            sumdisp += d_n[j]*d_n[j];
+          }
 
           normdisp = sqrt(sumdisp);
           if (normdisp == 0.0)  normerror = 0.0;
@@ -1087,13 +1099,13 @@ SingleDomainDynamic<Scalar>::modeDecomp(double t, int tIndex, Vector& d_n)
           // Write error
           fprintf(oinfo[i].filptr, "%e % *.*E\n", t, w, p, normerror);
           fflush(oinfo[i].filptr);
-       } break;
+        } break;
    
-       default: 
-         break;
-     }
+        default: 
+          break;
+      }
 
-   }
+    }
   }
   if(alfa) delete [] alfa;
 

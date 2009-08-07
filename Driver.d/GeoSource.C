@@ -182,6 +182,23 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
 #ifndef SALINAS
 #include <Driver.d/Sower.h>
 
+#ifdef SOWER_SURFS 
+template<class Scalar>
+void GeoSource::readDistributedSurfs(int subNum)
+{
+  Sower sower;
+  BinFileHandler *f = sower.openBinaryFile(subNum);
+  //filePrint(stderr," ... Read surfaces data\n");
+  for(int isurf=0; isurf<domain->getNumSurfs(); isurf++) {
+    //filePrint(stderr," ... Read data of surface %d\n",isurf);
+    int* dummy= 0;
+    SurfaceEntity* surf = sower.template read<SurfaceIO>(*f, isurf, dummy, true);
+    if(dummy) { delete [] dummy; dummy= 0; } // not used
+    domain->AddSurfaceEntity(surf,isurf);
+  }
+}
+#endif
+
 template<class Scalar>
 GenSubDomain<Scalar> *
 GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
@@ -206,6 +223,10 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
         std::cerr << "local " << i << ", global " << glNodeNums[i] << ", coords: " 
                   << (*cs)[i]->x << "," << (*cs)[i]->y << "," << (*cs)[i]->z << std::endl;
   }
+#endif
+#ifdef SOWER_SURFS
+  CoordSet &nodes = domain->getNodes();
+  for(int i = 0; i < cs->size(); i++) if((*cs)[i] != 0) nodes.nodeadd(glNodeNums[i], *(*cs)[i]);
 #endif
 
   // elements

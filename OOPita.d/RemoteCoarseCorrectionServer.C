@@ -21,7 +21,7 @@ RemoteCoarseCorrectionServer::statusIs(Status s) {
   if (s != status()) {
     if (s == ACTIVE) {
       Activity * activity = correctionReactor_->notifier().ptr();
-      activity->iterationIs(activity->currentIteration());
+      activity->iterationIs(IterationRank(1));
       activity->phaseIs(correctionPhase());
       activity->statusIs(Activity::scheduled);
     }

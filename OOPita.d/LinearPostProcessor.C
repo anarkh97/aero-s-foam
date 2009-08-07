@@ -5,7 +5,7 @@
 namespace Pita {
 
 LinearPostProcessor::LinearPostProcessor(GeoSource * gs, int lfc, const int * lfi, SDDynamPostProcessor * bpp) :
-  PostProcessor(gs, lfc, lfi),
+  GenPostProcessor<LinearGenAlphaIntegrator>(gs, lfc, lfi),
   basePostProcessor_(bpp)
 {}
 

@@ -1,7 +1,7 @@
 #include "Seed.h"
 
 namespace Pita {
-
+/*
 Seed::Seed(const Fwk::String & name) :
   Fwk::NamedInterface(name),
   status_(Seed::INACTIVE)
@@ -27,5 +27,5 @@ Seed *
 Seed::Manager::createNewInstance(const String & name) {
   return new Seed(name); 
 }
-
+*/
 } // end namespace Pita

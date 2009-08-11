@@ -57,7 +57,6 @@ RemoteSeedWriter.C
 RemoteTimeSlice.C
 ScheduledRemoteSeedReader.C
 ScheduledRemoteSeedWriter.C
-Seed.C
 SimpleSeedInitializer.C
 SliceMapping.C
 StaticSliceStrategy.C

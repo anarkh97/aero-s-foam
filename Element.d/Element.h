@@ -306,7 +306,7 @@ class Element {
 	void lumpMatrix(FullSquareMatrix&, double ratio);
   public:
         Element() { prop = 0; pressure = 0.0; preload = 0.0;
-        _weight=1.0; _trueWeight=1.0; myProp = false;  };
+        _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
 

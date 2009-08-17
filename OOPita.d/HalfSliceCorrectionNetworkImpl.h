@@ -16,10 +16,17 @@
 #include "DynamStateReductorImpl.h"
 #include "DynamStateReconstructorImpl.h"
 
+#include "PivotedCholeskySolver.h"
+#include "NearSymmetricSolver.h"
+#include <Math.d/FullSquareMatrix.h>
+
 #include "Activity.h"
 
 #include "DynamStatePlainBasis.h"
 #include "SimpleBuffer.h"
+
+#include <list>
+#include <map>
 
 class Communicator;
 
@@ -50,8 +57,9 @@ public:
                  const HalfSliceSchedule * schedule,
                  const SliceMapping * mapping,
                  const DynamOps * metric,
-                 Strategy strategy = HOMOGENEOUS) {
-    return new HalfSliceCorrectionNetworkImpl(vSize, timeComm, myCpu, schedule, mapping, metric, strategy);
+                 Strategy strategy,
+                 double projTol) {
+    return new HalfSliceCorrectionNetworkImpl(vSize, timeComm, myCpu, schedule, mapping, metric, strategy, projTol);
   }
 
   // Implementation classes
@@ -173,8 +181,8 @@ protected:
                                  const HalfSliceSchedule * schedule,
                                  const SliceMapping * mapping,
                                  const DynamOps * metric,
-                                 Strategy strategy);
-
+                                 Strategy strategy,
+                                 double projectionTolerance);
 
   void buildProjection();
 
@@ -198,11 +206,13 @@ private:
   SimpleBuffer<double> mBuffer_;
   SimpleBuffer<int> mpiParameters_;
 
+  typedef std::map<int, DynamState> InitialBasis;
+  InitialBasis localInitialBasis_;
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
 
-  SymFullMatrix normalMatrix_;
-  PivotedCholeskySolver::Ptr solver_;
+  FullSquareMatrix normalMatrix_;
+  NearSymmetricSolver::Ptr solver_;
   
   HalfSliceBasisCollectorImpl::Ptr collector_;
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
@@ -212,7 +222,8 @@ private:
   Strategy strategy_;
   SchedulingReactor::Ptr schedulingReactor_;
 
-  GlobalExchangeNumbering::Ptr globalExchangeNumbering_;
+  typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
+  NumberingList globalExchangeNumbering_;
 };
 
 } // end namespace Pita

@@ -202,6 +202,8 @@ LinearDriverImpl::solve() {
   GeneralizedAlphaParameter integrationParam(fineTimeStep, rho_infinity_fine);
   LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(integrationParam);
 
+  double projectorTolerance = domain->solInfo().pitaProjTol;
+
   HalfSliceCorrectionNetworkImpl::Ptr correctionMgr =
     HalfSliceCorrectionNetworkImpl::New(
       vectorSize,
@@ -210,7 +212,8 @@ LinearDriverImpl::solve() {
       schedule.ptr(),
       mapping.ptr(),
       dynamOps.ptr(),
-      correctionStrategy); 
+      correctionStrategy,
+      projectorTolerance); 
 
   std::vector<int> localFileId;
   for (SliceMapping::SliceIdIterator it = mapping->hostedSlice(myCpu, HalfSliceRank(0), HalfSliceRank(0) + mapping->totalSlices()); it; ++it) {

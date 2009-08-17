@@ -1,4 +1,5 @@
 #include "PivotedCholeskySolver.h"
+#include <algorithm>
 
 /* Kernel routines */
 
@@ -16,12 +17,10 @@ namespace Pita {
 
 /* Constructor */
 
-PivotedCholeskySolver::PivotedCholeskySolver() :
-  status_(NON_FACTORIZED),
-  matrixSize_(0),
-  factorRank_(0),
+PivotedCholeskySolver::PivotedCholeskySolver(double tolerance) :
+  RankDeficientSolver(), 
   choleskyFactor_(),
-  factorPermutation_()
+  tolerance_(tolerance)
 {}
 
 /* Mutators */
@@ -39,62 +38,65 @@ PivotedCholeskySolver::matrixIs(const SymFullMatrix & matrix) {
     sourceData = sourceDataEnd;
   }
 
-  // Remark: factorRank_, factorPermutation_ not up-to-date
-  matrixSize_ = newSize;
-  status_ = NON_FACTORIZED;
+  setMatrixSize(newSize);
+  setFactorRank(0);
+  setStatus(NON_FACTORIZED);
 }
 
 void
 PivotedCholeskySolver::matrixIs(const FullSquareMatrix & matrix) {
   choleskyFactor_.copy(matrix);
   
-  // Remark: factorRank_, factorPermutation_ not up-to-date
-  matrixSize_ = choleskyFactor_.dim();
-  status_ = NON_FACTORIZED;
+  setMatrixSize(choleskyFactor_.dim());
+  setFactorRank(0);
+  setStatus(NON_FACTORIZED);
 }
 
-void PivotedCholeskySolver::statusIs(Status s) {
+void
+PivotedCholeskySolver::statusIs(Status s) {
   if (s == status())
     return;
 
   if (s == FACTORIZED) {
     // Perform factorization
-    factorPermutation_.sizeIs(matrixSize());
+    getFactorPermutation().sizeIs(matrixSize());
 
     if (matrixSize() > 0) {
       const char uplo = 'U';   // Lower triangular in C indexing == upper triangular in Fortran indexing 
-      const double tol = -1.0; // Use default tolerance threshold
 
+      int rank;
       int info;
-      SimpleBuffer<double> workspace(2 * matrixSize_);
+      SimpleBuffer<double> workspace(2 * matrixSize());
 
-      _FORTRAN(dpstrf)(&uplo, &matrixSize_, choleskyFactor_.data(), &matrixSize_,
-                       factorPermutation_.array(), &factorRank_, &tol, workspace.array(), &info);
+      _FORTRAN(dpstrf)(&uplo, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
+                       getFactorPermutation().array(), &rank, &tolerance_, workspace.array(), &info);
+
+      setFactorRank(rank);
     }
   }
 
-  status_ = s;
+  setStatus(s);
 }
 
 /* Read Accessor */
 
-Vector &
+const Vector &
 PivotedCholeskySolver::solution(Vector & rhs) const {
-  if (rhs.size() != this->matrixSize()) {
+  if (rhs.size() != matrixSize()) {
     throw Fwk::RangeException("in PivotedCholeskySolver::solution - Size mismatch"); 
   }
 
-  if (this->status() != FACTORIZED) {
+  if (status() != FACTORIZED) {
     throw Fwk::RangeException("in PivotedCholeskySolver::solution - Non-factorized matrix");
   }
 
   // Pointer to the end of factorPermutation
-  const int * fp_ptr_end = factorPermutation_.array() + this->factorRank();
+  const int * fp_ptr_end = getFactorPermutation().array() + this->factorRank();
   const int * fp_ptr;
 
   // Permute rhs
   SimpleBuffer<double> vec(this->factorRank());
-  fp_ptr = factorPermutation_.array();
+  fp_ptr = getFactorPermutation().array();
   for (double * vec_ptr = vec.array(); fp_ptr != fp_ptr_end; ++vec_ptr, ++fp_ptr) {
     *vec_ptr = rhs[*fp_ptr - 1]; // Offset to get C indexing from Fortran indexing
   }
@@ -107,15 +109,15 @@ PivotedCholeskySolver::solution(Vector & rhs) const {
   const int incx = 1;                // Rhs vector elements are contiguous
 
   // Forward substitution
-  _FORTRAN(dtrsv)(&uplo, &forwardSubTrans, &diag, &factorRank_, this->choleskyFactor().data(),
-                  &matrixSize_, vec.array(), &incx);
+  _FORTRAN(dtrsv)(&uplo, &forwardSubTrans, &diag, &getFactorRank(), this->choleskyFactor().data(),
+                  &getMatrixSize(), vec.array(), &incx);
   // Backward substitution
-  _FORTRAN(dtrsv)(&uplo, &backwardSubTrans, &diag, &factorRank_, this->choleskyFactor().data(),
-                  &matrixSize_, vec.array(), &incx);
+  _FORTRAN(dtrsv)(&uplo, &backwardSubTrans, &diag, &getFactorRank(), this->choleskyFactor().data(),
+                  &getMatrixSize(), vec.array(), &incx);
 
   // Replace rhs by solution
   rhs.zero();
-  fp_ptr = factorPermutation_.array();
+  fp_ptr = getFactorPermutation().array();
   for (const double * vec_ptr = vec.array(); fp_ptr != fp_ptr_end; ++vec_ptr, ++fp_ptr) {
     rhs[*fp_ptr - 1] = *vec_ptr; // Offset to get C indexing from Fortran indexing
   }

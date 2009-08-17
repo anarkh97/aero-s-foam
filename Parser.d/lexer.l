@@ -608,7 +608,9 @@ TRAIL [a-zA-Z]*
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
 
-"oopita"|"OOPITA"|"OOPita"         { return OOPITA; }
+"ORTHOPROJTOL"|"orthoprojtol"      { return ORTHOPROJTOL; }
+
+"newimpl"|"NEWIMPL"|"OOPITA"       { return NEWIMPL; }
 
 "heat"|"HEAT"                      { return HEAT; }
 

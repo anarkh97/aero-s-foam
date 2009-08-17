@@ -127,6 +127,8 @@ extern Communicator *structCom;
 
 extern Domain *domain;
 
+extern GeoSource *geoSource;
+
 using namespace std;
 
 // -----------------------------------------------------------------------------------------------------
@@ -1299,6 +1301,7 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   std::cerr << "   * master face_block_types (true)= " << face_block_types[1]<< std::endl;	
 #endif
 
+#ifndef SOWER_SURFS
   // Check for common nodes.
   if(InteractionType != MortarHandler::FSI) { // Bypass this check for wet FSI interface
     std::vector<int> CommonNodes; CommonNodes.reserve(128);
@@ -1315,6 +1318,7 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
         filePrint(stderr,"%6d ",CommonNodes[i]+1);
     }
   }
+#endif
  
   // -> !!! UNDERLAYING LINEAR FACE ELEMENT NODES !!!
 #ifdef DIST_ACME_1

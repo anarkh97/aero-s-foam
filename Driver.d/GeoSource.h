@@ -504,6 +504,10 @@ public:
   void computeClusterInfo(int glSub);
 
   void writeDistributedInputFiles(int nCluster, Domain*);
+#ifdef SOWER_SURFS
+  template<class Scalar>
+    void readDistributedSurfs(int subNum);
+#endif
   template<class Scalar>
     GenSubDomain<Scalar> * readDistributedInputFiles(int localSubNum, int subNum);
 

@@ -28,9 +28,9 @@ class GenSolver {
     Timings times;
     double solveTime; // to store solution time
     double memUsed;
-    bool print_num_trbm, print_num_grbm;
+    bool print_nullity;
   public:
-    GenSolver() { solveTime = 0.0; memUsed = 0.0; print_num_trbm = print_num_grbm = true; }
+    GenSolver() { solveTime = 0.0; memUsed = 0.0; print_nullity = true; }
     virtual ~GenSolver() = 0;
 
     // Rbm functions
@@ -114,8 +114,7 @@ class GenSolver {
     virtual void getNullSpace(Scalar *rbm)
             { fprintf(stderr, " ... This solver has no getNullSpace(Scalar *)\n"); }
 
-    void setPrintNumTrbm(bool _p) { print_num_trbm = _p; }
-    void setPrintNumGrbm(bool _p) { print_num_grbm = _p; }
+    void setPrintNullity(bool _p) { print_nullity = _p; }
 
 };
 

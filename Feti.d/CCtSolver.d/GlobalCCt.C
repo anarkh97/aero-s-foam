@@ -44,7 +44,7 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
 #endif
 
   }
-  CCtsolver->setPrintNumTrbm(false);
+  CCtsolver->setPrintNullity(false);
 }
 
 template<class Scalar>

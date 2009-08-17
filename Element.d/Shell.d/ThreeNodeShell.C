@@ -327,6 +327,8 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[15] =  mx[2];
         gravityForce[16] =  my[2];
         gravityForce[17] =  mz[2];
+
+       //cerr << "shell gravityForce = "; for(int i=0; i<18; ++i) cerr << gravityForce[i] << " "; cerr << endl;
 }
 
 FullSquareMatrix
@@ -360,6 +362,9 @@ ThreeNodeShell::massMatrix(CoordSet &cs,double *mel,int cmflg)
                gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
         FullSquareMatrix ret(18,mel);
+
+        //cerr << "shell mass matrix = \n"; ret.print();
+        //for(int i=0; i<18; ++i) if(ret[i][i] == 0.0) cerr << "oops-a-daisy\n";
  
         return ret;
 

@@ -103,6 +103,8 @@ struct SolverInfo {
    double newmarkAlphaF;  // Newmark algorithm parameter (alphaf)
    double newmarkAlphaM; // Newmark algorithm parameter (alpham)
    bool stable;         // compute stability timestep for explicit
+   double stable_tol;   // convergence tolerance for computionation of stability timestep
+   int stable_maxit;    // stable_maxit*n is the maximum number of iterations for computation of stability timestep
    double qsMaxvel;     // final relaxation parameter in quasi-static alg.
    double delta;        // translation factor from time index to real time for quasistatics
    int nRestart;        // how many time steps per restart
@@ -132,13 +134,11 @@ struct SolverInfo {
    int HEV;
  
    const char *which;   /* for ARPACK: specifies "which" of the eigenvalues to compute, where:
-                          "LA" - compute the NEV largest (algebraic) eigenvalues.
-                          "SA" - compute the NEV smallest (algebraic) eigenvalues.
-                          "LM" - compute the NEV largest (in magnitude) eigenvalues.
-                          "SM" - compute the NEV smallest (in magnitude) eigenvalues.
-                          "BE" - compute NEV eigenvalues, half from each end of the
-                                 spectrum.  When NEV is odd, compute one more from the
-                                 high end than from the low end. */
+                          "LA" - compute the eigenvalues just to the right of sigma (sigma is the shift)
+                          "SA" - compute the eigenvalues just to the left of sigma
+                          "LM" - undefined for shift-invert on generalized eigenvalue problem
+                          "SM" - undefined for shift-invert on generalzied eigenvalue problem
+                          "BE" - compute eigenvalues to either side of sigma */
    double lbound;       // lower bound of a set or range of eigenvalues to be computed by ARPACK
    double ubound;       // upper bound of a set or range of eigenvalues to be computed by ARPACK
    int nshifts;         // number of shifts to be used by ARPACK when computing neigenpa eigenvalues
@@ -157,6 +157,7 @@ struct SolverInfo {
                         //   of the six rigid body modes: 0 = do not filter, 1 = do filter
 
    double condNumTolerance; // Condition number tolerance
+   int condNumMaxit;
 
    int massFlag;
    int filterFlags;
@@ -234,8 +235,8 @@ struct SolverInfo {
                   NoForcePita    = false;
                   ConstForcePita = false;
                   CkCoarse       = false;
-		              Jratio = 1;
-		              kiter  = 0;
+		  Jratio = 1;
+		  kiter  = 0;
                   numTSperCycleperCPU = 1;
                   numSpaceMPIProc     = 1;
                   baseImprovementMethodForPita = 0;
@@ -261,13 +262,13 @@ struct SolverInfo {
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
 				  
-	                ATDARBFlag = -2.0;
+	          ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
-	   	            ATDROBVal = 0.0;
-		              ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
-		              ATDROBbeta = 0.0;
+	   	  ATDROBVal = 0.0;
+		  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
+		  ATDROBbeta = 0.0;
 
-		              aeroFlag = -1;
+		  aeroFlag = -1;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
@@ -278,6 +279,7 @@ struct SolverInfo {
                   slzemFlag = 0;
                   slzemFilterFlag = 0;
                   condNumTolerance = 1.0E-3;
+                  condNumMaxit = 100;
                   nRestart = -1;    // default do not write binary restart file
                   initialTimeIndex = 0;
                   initialTime = 0.0;
@@ -289,6 +291,8 @@ struct SolverInfo {
                   // 2nd order newmark default: constant average acceleration
                   order = 2; timeIntegration = Newmark; newmarkBeta = 0.25; newmarkGamma = 0.5; newmarkAlphaF = 0.5; newmarkAlphaM = 0.5;
                   stable = true;
+                  stable_tol = 1.0e-3;
+                  stable_maxit = 100;
                   rbmflg = 0;
                   rbmFilters[0] = rbmFilters[1] = rbmFilters[2] = rbmFilters[3] = rbmFilters[4] = rbmFilters[5] = 0;
                   buckling = 0;
@@ -333,7 +337,7 @@ struct SolverInfo {
 
                   nEig = 0;
                   eigenSolverSubType = 0;
-                  which = "LM";
+                  which = "";
                   // CBM: new stuff
                   lbound = 0.0;
                   ubound = 0.0;
@@ -397,7 +401,7 @@ struct SolverInfo {
       { modeDecompFlag = alg; }
 
    // SET CONDITION NUMBER TOLERANCE
-   void setCondNumTol(double tolerance) { condNumTolerance = tolerance; }
+   void setCondNumTol(double tolerance, int maxit) { condNumTolerance = tolerance; condNumMaxit = maxit; }
 
    // ... NON LINEAR SOLVER INFORMATION VARIABLES
    NonlinearInfo *NLInfo;

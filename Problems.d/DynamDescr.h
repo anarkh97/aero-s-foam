@@ -144,7 +144,7 @@ class SingleDomainDynamic {
     PitaDynamMat *buildPitaOps(double cM, double cC, double cK, double cM_Dt, double cC_Dt, double cK_Dt, bool coarse);
     Solver *getSolver();
     SDDynamPostProcessor *getPostProcessor();
-    void printTimers(DynamMat * = 0);
+    void printTimers(DynamMat *, double);
     void addPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& dnc,
                          Vector& vnc, Vector& anc, Vector& result,
                          double t, double *pt_dt=0);

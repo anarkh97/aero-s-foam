@@ -32,57 +32,27 @@ SloshTriangleFS::renum(int *table)
 double
 SloshTriangleFS::getMass(CoordSet& cs)
 {
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
 
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-     Node &nd3 = cs.getNode(nn[2]);
+  Vector r1(3), r2(3), r3(3);
 
-     double x[3], y[3], z[3];
-     x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-     x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
 
-     Vector side1(3,0.0); 
-     Vector side2(3,0.0); 
-     Vector crossside(3,0.0); 
-   
-     side1[0] = x[1]-x[0];
-     side1[1] = y[1]-y[0];
-     side1[2] = z[1]-z[0];
-     side2[0] = x[2]-x[0];
-     side2[1] = y[2]-y[0];
-     side2[2] = z[2]-z[0];
-     
-     crossside = side1.cross(side2);
+  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
 
-     double area = 0.5*sqrt(  pow(crossside[0],2)
-                            + pow(crossside[1],2)
-                            + pow(crossside[2],2));
+  v1 = r2 - r1;
+  v2 = r3 - r1;
 
-/*
-     double area1 = pow( ( (x[1]*y[2]-x[2]*y[1])
-                          +(x[2]*y[0]-x[0]*y[2])
-                          +(x[0]*y[1]-x[1]*y[0])), 2);
+  v3 = v1.cross(v2);
 
-     double area2 = pow( ( (y[1]*z[2]-y[2]*z[1])
-                          +(y[2]*z[0]-y[0]*z[2])
-                          +(y[0]*z[1]-y[1]*z[0])), 2);
+  double area = 0.5*v3.magnitude();
+  double mass = area*prop->rho*prop->eh;
 
-     double area3 = pow( ( (z[1]*x[2]-z[2]*x[1])
-                          +(z[2]*x[0]-z[0]*x[2])
-                          +(z[0]*x[1]-z[1]*x[0])), 2);
-
-     double area = 0.5*sqrt(area1+area2+area3);
-*/
-
-     //double density = prop->rho;
-     //double t       = prop->eh;
-     //double cv      = prop->Q;
-
-     double mass = area;
-
-     return mass;
-
+  return mass;
 }
 
 FullSquareMatrix

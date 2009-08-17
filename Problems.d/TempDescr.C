@@ -267,7 +267,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
  }
 
  // assemble operators (K,Kuc,M), also construct/assemble/factor Ax=b solver where A = coek*K+coeM*M 
- if(!useHzem)
+ if(!useHzem || (domain->solInfo().timeIntegration != 1)) // only use for quasistatics
    domain->buildOps<double>(allOps, coeK, coeM, 0.0);
  else
    domain->buildOps<double>(allOps, coeK, coeM, 0.0, rbm);

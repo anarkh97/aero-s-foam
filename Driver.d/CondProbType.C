@@ -18,12 +18,12 @@ CondSolver < ConditionOps, PostProcessor, ProblemDescriptor >::solve()
 
  // ... Get the required input data
  double relTol;
- int ndof;
- probDesc->getConditionInfo(relTol,ndof);      
+ int ndof, maxIte;
+ probDesc->getConditionInfo(relTol,maxIte,ndof);      
 
  double eigmax, preeigmax = 0.0; 
  double eigmin, preeigmin = 0.0;
- int maxIte = ndof * 50;
+ //int maxIte = ndof * 50;
 
  Vector v(probDesc->solVecInfo());
  Vector z(probDesc->solVecInfo());

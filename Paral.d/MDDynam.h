@@ -142,7 +142,7 @@ class MultiDomainDynam
     void getRHS(DistrVector &);
     void preProcess();
     void processLastOutput();
-    void printTimers(MDDynamMat *);
+    void printTimers(MDDynamMat *, double);
 
     void trProject(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: trProject not implemented here"); }
     void project(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: project not implemented here"); }

@@ -327,8 +327,8 @@ public:
   int  addCFrame(int,double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
-  void setConsistentPFlag();
-  void setConsistentQFlag();
+  void setConsistentPFlag(int);
+  void setConsistentQFlag(int);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
 
   // Parser support Functions - Boundary Conditions
@@ -540,10 +540,8 @@ public:
   double omega() { return sqrt(shiftV); }
   double kappa() { /*if(numProps > 1) cerr << "warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << endl;*/ return sProps[0].kappaHelm; }
 
-  void initMRatio() { mratio = -1.0; }
   void setMRatio(double _mratio) { assert(_mratio >= 0.0 && _mratio <= 1.0); mratio = _mratio; }
-  double getMRatio() const { return (mratio >= 0.0 && mratio <= 1.0) ? mratio : 1.0; }
-  bool checkMRatio() { return (mratio >= 0.0 && mratio <= 1.0); } // returns true if mratio has been set to a valid number
+  double getMRatio() const { return mratio; }
 
   // Housekeeping functions
   void cleanUp();

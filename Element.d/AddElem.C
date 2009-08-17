@@ -173,6 +173,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 3:
        ele = new (ba) Therm3DQuad(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 4:
        ele = new (ba) Triangle3(n);
@@ -194,9 +195,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 9:
        ele = new (ba) Therm2NodeBar(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 10:
        ele = new (ba) ThermQuadGal(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 11:
        ele = new (ba) TorSpring(n);
@@ -266,33 +269,43 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 46:
        ele = new (ba) Therm3NoShell(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 47:
        ele = new (ba) BarConvec(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 48:
        ele = new (ba) QuadConvec(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 49:
        ele = new (ba) TriangleConvec(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 50:
        ele = new (ba) ThermIsoParamTetra(nnodes,n);
+       ele->setCategory(Element::Thermal);
        break;     
      case 51:
        ele = new (ba) ThermBrick(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 53:
        ele = new (ba) ThermTriangle(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 56:
        ele = new (ba) BarRadiation(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 57:
        ele = new (ba) TriangleRadiation(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 58:
        ele = new (ba) QuadRadiation(n);
+       ele->setCategory(Element::Thermal);
        break;
      case 59:
        ele = new (ba) HelmAxiTri6(n);
@@ -476,6 +489,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 4646:
        ele = new (ba) Therm4NoShell(n);
+       ele->setCategory(Element::Thermal);
        break; 
 
      case 1100:

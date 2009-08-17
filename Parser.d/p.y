@@ -74,8 +74,8 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INITIALLAMBDA
 %token JACOBI KRYLOVTYPE
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE 
-%token MASS MATERIALS MAXITR MAXORTHO MAXVEC MMRATIO MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE LUMPED
+%token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MAXRHO MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
@@ -91,7 +91,7 @@
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
-%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CONSISTENT CPUMAP
+%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP OUTERLOOPTYPE EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
@@ -123,7 +123,7 @@
 %type <ival>     RBMSET RENUMBERID
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
-%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE Consistent
+%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
 %type <ival>     OUTERLOOPTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
@@ -176,7 +176,7 @@ Component:
         | IterSolver
 	| Solver
 	| Pressure
-	| Consistent
+	| Lumped
         {}
         | Preload
         {}
@@ -218,7 +218,6 @@ Component:
 	| HzemFilterInfo
 	| SlzemFilterInfo
         | ModeFilterInfo
-	| MassMatrixInfo
         | Restart
 	| LoadCInfo
 	| UseCInfo
@@ -1003,9 +1002,9 @@ MassInfo:
         { domain->solInfo().massFlag = 1; }
 	;
 CondInfo:
-	CONDITION NewLine Float NewLine
+	CONDITION NewLine Float Integer NewLine
         { domain->solInfo().setProbType(SolverInfo::ConditionNumber); 
-	  domain->solInfo().setCondNumTol($3); }
+	  domain->solInfo().setCondNumTol($3, $4); }
 	| CONDITION NewLine
         { domain->solInfo().setProbType(SolverInfo::ConditionNumber);}
 	;
@@ -1023,6 +1022,8 @@ DynamInfo:
         { domain->solInfo().modal = true; }
         | DynamInfo STABLE SWITCH NewLine
         { domain->solInfo().stable = bool($3); }
+        | DynamInfo STABLE Float Integer NewLine
+        { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
         | DynamInfo NOSECONDARY NewLine
@@ -2241,6 +2242,7 @@ SurfacePressure:
         SPRESSURE NewLine PBCDataList
         { $$ = $3; }
         ;
+/* deprecated
 Consistent:
         CONSISTENT NewLine MASS NewLine
         { geoSource->setMRatio(1); }
@@ -2256,6 +2258,14 @@ Consistent:
         { geoSource->setConsistentQFlag(); geoSource->setConsistentPFlag(); }
         | CONSISTENT NewLine PLOAD NewLine
         { geoSource->setConsistentPFlag(); }
+	;
+*/
+Lumped:
+	LUMPED NewLine
+	{ geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false); 
+          geoSource->setConsistentPFlag(false); 
+        }
 	;
 Preload:
         PRELOAD NewLine
@@ -2450,10 +2460,14 @@ Solver:
         { domain->solInfo().debug_icntl[$2] = $3; }
         | DEBUGCNTL Integer Float NewLine
         { domain->solInfo().debug_cntl[$2] = $3; }
+/* potential conflict/confusion with LUMPED for mass matrix etc.
         | FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $1; }
+*/
 	| Solver PRECNO FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $3; }
+        | Solver PRECNO LUMPED NewLine
+        { domain->solInfo().fetiInfo.precno = FetiInfo::lumped; }
         | Solver PRECNO Integer NewLine
         { if(($3 < 0) || ($3 > 3)) { 
             $3 = 1;
@@ -3390,10 +3404,5 @@ Float:
 	| DblConstant 
 	{ $$ = $1; }
 	;
-
-MassMatrixInfo:
-	MMRATIO Float NewLine
-	{ geoSource->setMRatio($2); }
-        ;
 
 %%

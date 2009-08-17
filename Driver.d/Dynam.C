@@ -1095,11 +1095,11 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
         fprintf(stderr, " ... Checking Newmark Stability     ...\n");
 
       double eigmax;
-      double relTol    = 1.0e-3;
+      double relTol    = sinfo.stable_tol; // stable_tol default is 1.0e-3
       double preeigmax = 0.0;
 
       int numdofs = dMat.K->dim();
-      int maxIte  = numdofs * 50;
+      int maxIte  = sinfo.stable_maxit; // stable_maxit default is 100
 
       Vector v(numdofs);
       Vector z(numdofs);

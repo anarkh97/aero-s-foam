@@ -66,8 +66,8 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   prsflg = 0;
   prlflg = 0;
 
-  constpflg = 0;
-  constqflg = 0;
+  constpflg = 1;
+  constqflg = 1;
   maxGlobNode = 0;
   maxClusNode = 0;
   numProps = 0;
@@ -146,7 +146,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 
   mpcDirect = false;
 
-  initMRatio();
+  mratio = 1.0; // consistent mass matrix
 }
 
 //----------------------------------------------------------------------
@@ -600,7 +600,24 @@ void GeoSource::setUpData()
           global_average_rhof += prop->rho;
           fluid_element_count++;
         }
-
+#ifdef CHECK_MATE
+        double SPRING_MAX = 1.0e10;
+        if(ele->isSpring() && (fabs(prop->kx) > SPRING_MAX || fabs(prop->ky) > SPRING_MAX || fabs(prop->kz) > SPRING_MAX)) { // check springs
+          cerr << "ele " << attrib[i].nele+1 << " type " << ele->getElementType() << " has kx = " << prop->kx
+               << ", ky = " << prop->ky << ", kz = " << prop->kz << endl;
+          StructProp *tmp = new StructProp(prop); 
+          if(prop->kx > SPRING_MAX) tmp->kx = SPRING_MAX; else if(prop->kx < -SPRING_MAX) tmp->kx = -SPRING_MAX;
+          if(prop->ky > SPRING_MAX) tmp->ky = SPRING_MAX; else if(prop->ky < -SPRING_MAX) tmp->ky = -SPRING_MAX;
+          if(prop->kz > SPRING_MAX) tmp->kz = SPRING_MAX; else if(prop->kz < -SPRING_MAX) tmp->kz = -SPRING_MAX;
+          ele->setProp(tmp);
+        }
+        else if(!ele->isSpring() && (prop->nu >= 0.5 || prop->nu <= -1.0)) {
+          cerr << "ele " << attrib[i].nele+1 << " type " << ele->getElementType() << " nu = " << prop->nu << endl;
+          StructProp *tmp = new StructProp(prop); 
+          if(prop->nu >= 0.5) tmp->nu = 0.499; else if(prop->nu <= -1.0) tmp->nu = -0.999;
+          ele->setProp(tmp); 
+        } else 
+#endif
         ele->setProp(prop);
       }
     }
@@ -973,16 +990,14 @@ void GeoSource::setElementPreLoad(int elemNum, double preload)
 
 }
 
-void GeoSource::setConsistentPFlag()
+void GeoSource::setConsistentPFlag(int _constpflg)
 {
- fprintf(stderr," ... Using Consistent Pressure Force ...\n");
- constpflg = 1;
+ constpflg = _constpflg;
 }
 
-void GeoSource::setConsistentQFlag()
+void GeoSource::setConsistentQFlag(int _constqflg)
 {
- fprintf(stderr," ... Using Consistent Gravity Force ...\n");
- constqflg = 1;
+ constqflg = _constqflg;
 }
 
 int GeoSource::getTextDirichletBC(BCond *&bc)

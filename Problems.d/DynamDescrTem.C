@@ -665,7 +665,7 @@ SingleDomainDynamic<Scalar>::buildOps(double coeM, double coeC, double coeK)
  if (useGrbm || useProjector) 
    rigidBodyModes = domain->constructRbm();
    
- if (!useGrbm || (getTimeIntegration() != 1) ) 
+ if (!useGrbm || (getTimeIntegration() != 1) ) // only use for quasistatics
    domain->template buildOps<Scalar>(allOps, coeK, coeM, coeC, 0, kelArray);
  else
    domain->template buildOps<Scalar>(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray); 
@@ -805,13 +805,13 @@ SingleDomainDynamic<Scalar>::getPostProcessor()
 
 template <class Scalar>
 void
-SingleDomainDynamic<Scalar>::printTimers(DynamMat *dynamMat)
+SingleDomainDynamic<Scalar>::printTimers(DynamMat *dynamMat, double timeLoop)
 {
 
  long memoryUsed = (dynamMat->dynMat)->size();//solver->size();
  double solveTime  = dynamMat->dynMat->getSolutionTime();//solver->getSolutionTime();
 
- times->printStaticTimers(solveTime, memoryUsed, domain);
+ times->printStaticTimers(solveTime, memoryUsed, domain, timeLoop);
 
   if(domain->solInfo().massFlag)  {
    double mass = domain->computeStructureMass();

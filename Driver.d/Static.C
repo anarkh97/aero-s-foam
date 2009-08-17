@@ -18,6 +18,7 @@
 #include <list>
 
 // const double defaultTemp = -10000000;
+extern int verboseFlag;
 
 void
 Domain::buildPrescDisp(Vector &pDisp, double lambda)
@@ -121,7 +122,7 @@ Domain::computeStructureMass()
   // Compute total mass and mass center of gravity
   // Added calculation for moments of inertia
 
-  double totmas = 0.0; // total mass of structure
+  double totmas = 0.0; // total mass of structural system (including fluid elemets and discrete masses)
   double xc     = 0.0;
   double yc     = 0.0;
   double zc     = 0.0;
@@ -179,11 +180,63 @@ Domain::computeStructureMass()
     }
   }
 
+  delete [] nodeNumbers;
+
+  // now add the mass from the fluid elements (these are in a different element set)
+  if(geoSource->numElemFluid() > 0) {
+    for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
+      int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
+      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    }
+
+    nodeNumbers = new int[maxNumNodes];
+  
+    double fluidmas = 0.0;
+    for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
+      double elementMass = (*(geoSource->getPackedEsetFluid()))[iele]->getMass(nodes);
+      fluidmas += elementMass;
+      int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
+      (*(geoSource->getPackedEsetFluid()))[iele]->nodes(nodeNumbers);
+      int numRealNodes = 0;
+      for(i=0; i<numNodesPerElement; ++i)
+        if(nodes[nodeNumbers[i]]) numRealNodes++;
+
+      double massPerNode = elementMass/numRealNodes;
+
+      for(i=0; i<numNodesPerElement; ++i) {
+         if(nodes[nodeNumbers[i]] == 0) continue;
+         Node &node = nodes.getNode(nodeNumbers[i]);
+  
+         double x = node.x;
+         double y = node.y;
+         double z = node.z;
+
+         xc  += massPerNode*x;
+         yc  += massPerNode*y;
+         zc  += massPerNode*z;
+
+         Ixx += massPerNode*(y*y + z*z);
+         Iyy += massPerNode*(x*x + z*z);
+         Izz += massPerNode*(x*x + y*y);
+
+         Ixy -= massPerNode*x*y;
+         Ixz -= massPerNode*x*z;
+         Iyz -= massPerNode*y*z;
+      }
+    }
+
+    delete [] nodeNumbers;
+
+    filePrint(stderr," Fluid Mass = %f\n",fluidmas);
+    filePrint(stderr," --------------------------------------\n");
+
+    totmas += fluidmas;
+  
+  }
+
   double Iyx = Ixy;
   double Izx = Ixz;
   double Izy = Iyz;
-
-  delete [] nodeNumbers;
 
   // Add discrete masses
   DMassData *current = firstDiMass;
@@ -320,10 +373,10 @@ Domain::computeStructureMass()
   double ymax = 0.0;
   double zmax = 0.0;
 
-  int nComponents = renumb.numComp;
+  int nComponents = renumb.numComp + renumbFluid.numComp;
 
   filePrint(stderr," Number of Components = %d\n",renumb.numComp);
-  for(int n=0; n<nComponents; ++n) {
+  for(int n=0; n<renumb.numComp; ++n) {
     xc = 0.0, yc = 0.0, zc = 0.0;
     int realNodeCnt = 0;
     for(i = renumb.xcomp[n]; i<renumb.xcomp[n+1]; ++i) {
@@ -344,8 +397,199 @@ Domain::computeStructureMass()
     double yg = yc/realNodeCnt;
     double zg = zc/realNodeCnt;
 
+    filePrint(stderr," Component %d: Centroid\n", n+1);
+    filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+  }
+  for(int n=0; n<renumbFluid.numComp; ++n) {
+    xc = 0.0, yc = 0.0, zc = 0.0;
+    int realNodeCnt = 0;
+    for(i = renumbFluid.xcomp[n]; i<renumbFluid.xcomp[n+1]; ++i) {
+      int inode = renumbFluid.order[i];
+  
+      if(dsa->firstdof(inode) == -1 || nodes[inode] == 0) continue;
+      realNodeCnt++;
+      Node &nd = nodes.getNode(inode);
+      xc += nd.x;
+      yc += nd.y;
+      zc += nd.z;
+      if(nd.x > xmax) xmax = nd.x;
+      if(nd.y > ymax) ymax = nd.y;
+      if(nd.z > zmax) zmax = nd.z;
+    }
+  
+    double xg = xc/realNodeCnt;
+    double yg = yc/realNodeCnt;
+    double zg = zc/realNodeCnt;
+    
+    filePrint(stderr," Component %d (Fluid): Centroid\n", renumb.numComp+n+1);
+    filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+  }
+  
+  filePrint(stderr," --------------------------------------\n");
+
+  filePrint(stderr," Maximum x dimension = %f\n",xmax);
+  filePrint(stderr," Maximum y dimension = %f\n",ymax);
+  filePrint(stderr," Maximum z dimension = %f\n",zmax);
+  filePrint(stderr," --------------------------------------\n");
+
+  return totmas;
+}
+
+double
+Domain::computeFluidMass()
+{
+  // Compute total mass and mass center of gravity
+  // Added calculation for moments of inertia
+
+  double totmas = 0.0; // total mass of fluid
+  double xc     = 0.0;
+  double yc     = 0.0;
+  double zc     = 0.0;
+  double Mx     = 0.0;
+  double My     = 0.0;
+  double Mz     = 0.0;
+  double Ixx    = 0.0;
+  double Iyy    = 0.0;
+  double Izz    = 0.0;
+  double Ixy    = 0.0;
+  double Iyz    = 0.0;
+  double Ixz    = 0.0;
+  maxNumNodes = 0;
+
+  // compute max number nodes per element
+  int iele, i;
+  for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
+    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
+    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+  }
+
+  // allocate one array to store node numbers
+  int *nodeNumbers = new int[maxNumNodes];
+
+  for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
+    double elementMass = (*(geoSource->getPackedEsetFluid()))[iele]->getMass(nodes);
+    totmas += elementMass;
+    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
+    (*(geoSource->getPackedEsetFluid()))[iele]->nodes(nodeNumbers);
+    int numRealNodes = 0;
+    for(i=0; i<numNodesPerElement; ++i)
+      if(nodes[nodeNumbers[i]]) numRealNodes++;
+
+    double massPerNode = elementMass/numRealNodes;
+
+    for(i=0; i<numNodesPerElement; ++i) {
+       if(nodes[nodeNumbers[i]] == 0) continue;
+       Node &node = nodes.getNode(nodeNumbers[i]);
+
+       double x = node.x;
+       double y = node.y;
+       double z = node.z;
+
+       xc  += massPerNode*x;
+       yc  += massPerNode*y;
+       zc  += massPerNode*z;
+
+       Ixx += massPerNode*(y*y + z*z);
+       Iyy += massPerNode*(x*x + z*z);
+       Izz += massPerNode*(x*x + y*y);
+
+       Ixy -= massPerNode*x*y;
+       Ixz -= massPerNode*x*z;
+       Iyz -= massPerNode*y*z;
+    }
+  }
+
+  delete [] nodeNumbers;
+
+  if(totmas != 0.0) xc /= totmas;
+  if(totmas != 0.0) yc /= totmas;
+  if(totmas != 0.0) zc /= totmas;
+  // change moments of inertia to centroidal axes using parallel axes theorem: I_z = I_cm + m*d^2
+  Ixx -= (totmas*(yc*yc)+totmas*(zc*zc));
+  Iyy -= (totmas*(xc*xc)+totmas*(zc*zc));
+  Izz -= (totmas*(xc*xc)+totmas*(yc*yc));
+
+  Ixy += totmas*xc*yc;
+  Ixz += totmas*xc*zc;
+  Iyz += totmas*yc*zc;
+
+  filePrint(stderr," Moments of Inertia\n");
+  filePrint(stderr," Ixx = %e Iyy = %e Izz = %e\n",Ixx,Iyy,Izz);
+  filePrint(stderr," --------------------------------------\n");
+
+  filePrint(stderr," Products of Inertia\n");
+  filePrint(stderr," Ixy = %e Iyz = %e Ixz = %e\n",Ixy,Iyz,Ixz);
+  filePrint(stderr," --------------------------------------\n");
+
+  filePrint(stderr," Center of Gravity\n");
+  filePrint(stderr," x = %f y = %f z = %f\n",xc,yc,zc);
+  filePrint(stderr," --------------------------------------\n");
+
+  // Computation to find node closest to the center of gravity
+  int nodeMarker = 0;
+  double minDistance = 0.0;
+  for(i=0; i<numnodes; ++i) {
+    Node *node = nodes[i];
+    if(node) {
+      double x = node->x;
+      double y = node->y;
+      double z = node->z;
+
+      double dx = xc - x;
+      double dy = yc - y;
+      double dz = zc - z;
+
+      double distance = sqrt(dx*dx+dy*dy+dz*dz);
+
+      if(i == 0) minDistance = distance;
+
+      if(distance < minDistance) {
+        minDistance = distance;
+        nodeMarker  = i;
+      }
+    }
+  }
+
+  filePrint(stderr," Node %d is closest to the Center of Gravity\n",nodeMarker+1);
+  Node *thisNode = nodes[nodeMarker];
+  if(thisNode) {
+    filePrint(stderr," Node %d has coordinates: %e %e %e \n",
+              nodeMarker + 1, thisNode->x, thisNode->y, thisNode->z);
+    filePrint(stderr," It is %e from the center of gravity\n",minDistance);
+    filePrint(stderr," --------------------------------------\n");
+  }
+
+  // Compute Geometric center of gravity of fluid
+  double xmax = 0.0;
+  double ymax = 0.0;
+  double zmax = 0.0;
+
+  int nComponents = renumbFluid.numComp;
+
+  filePrint(stderr," Number of Components = %d\n",renumbFluid.numComp);
+  for(int n=0; n<nComponents; ++n) {
+    xc = 0.0, yc = 0.0, zc = 0.0;
+    int realNodeCnt = 0;
+    for(i = renumbFluid.xcomp[n]; i<renumb.xcomp[n+1]; ++i) {
+      int inode = renumbFluid.order[i];
+
+      if(dsa->firstdof(inode) == -1 || nodes[inode] == 0) continue;
+      realNodeCnt++;
+      Node &nd = nodes.getNode(inode);
+      xc += nd.x;
+      yc += nd.y;
+      zc += nd.z;
+      if(nd.x > xmax) xmax = nd.x;
+      if(nd.y > ymax) ymax = nd.y;
+      if(nd.z > zmax) zmax = nd.z;
+    }
+
+    double xg = xc/realNodeCnt;
+    double yg = yc/realNodeCnt;
+    double zg = zc/realNodeCnt;
+
     filePrint(stderr," Component (%d,%d): Centroid\n",
-              renumb.xcomp[n], renumb.xcomp[n+1]);
+              renumbFluid.xcomp[n], renumbFluid.xcomp[n+1]);
     filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
   }
   filePrint(stderr," --------------------------------------\n");
@@ -358,31 +602,36 @@ Domain::computeStructureMass()
   return totmas;
 }
 
-// Function to construct rigid body modes
 Rbm *
-Domain::constructHzem(int problemType)
+Domain::constructHzem(bool printFlag)
 {
-  return new Rbm(dsa, c_dsa);
+  Rbm *rbm = new Rbm(dsa, c_dsa);
+  if(printFlag)
+    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+  return rbm;
 }
 
 // Function to construct zero energy modes, ADDED FOR SLOSHING PROBLEM, EC, 20070723
 Rbm *
-Domain::constructSlzem(int problemType)
+Domain::constructSlzem(bool printFlag)
 {
-  return new Rbm(dsa, c_dsa);
+  Rbm *rbm = new Rbm(dsa, c_dsa);
+  if(printFlag)
+    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+  return rbm;
 }
 
 Rbm *
-Domain::constructRbm(int problemType)
+Domain::constructRbm(bool printFlag)
 {
-  if(numLMPC) {
-    cerr << " ... Number of bodies/components = " << renumb_nompc.numComp << ", number of LMPCs = " << numLMPC << endl;
-    return new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
-  }
-  else {
-    cerr << " ... Number of bodies/components = " << renumb.numComp << endl;
-    return new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
-  }
+  Rbm *rbm = 0;
+  if(numLMPC) 
+    rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
+  else 
+    rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
+  if(printFlag)
+    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+  return rbm;
 }
 
 /*
@@ -649,6 +898,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 	 else
 	   {
 	     cout << " Warning : virtual dimass" << endl;
+             curMass = curMass->next;
 	   }
        }
    }

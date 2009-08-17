@@ -224,7 +224,7 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
  switch(solvertype) {
    case 10:
     {
-      GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); // XML NEED TO DEAL WITH RBMS
+      GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); 
       dynMats[isub] = spm;
       spMats[isub] = spm;
     } break;
@@ -334,7 +334,7 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
 
 /* XXXX should be done in problem descriptor, eg. Paral.d/MDStatic.C
   if(make_feti && domain->solInfo().type == 2 && sd[isub]->solInfo().getFetiInfo().version != FetiInfo::fetidp)  // PJSA DEBUG
-    rbms[isub] = sd[isub]->constructRbm();
+    rbms[isub] = sd[isub]->constructRbm(false);
 */
 
   sd[isub]->setKuc((GenCuCSparse<Scalar>*)allOps.Kuc);

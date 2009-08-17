@@ -52,7 +52,7 @@ GenMumpsSolver<Scalar>::init()
 {
 #ifdef USE_MUMPS
   mumpsId.id.par = 1; // 1: working host model
-  mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric (default), 1: symmetric positive definite, 0: unsymmetric (unsupported)
+  mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
 #ifdef USE_MPI
   //mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
@@ -98,11 +98,10 @@ GenMumpsSolver<Scalar>::init()
     cerr << "user defined ICNTL(21) not supported, setting to 0\n";
     mumpsId.id.ICNTL(21) = 0; // 0: centralized solution
   }
-  if(mumpsId.id.sym != 1) { // matrix is not assumed to be positive definite, may be singularities 
-    // do this in FEM input file for now
-    //mumpsId.id.ICNTL(24) = 1; // 1: enable null pivot row detection
-    //mumpsId.id.ICNTL(13) = 1; // 1: ScaLAPACK will not be used for the root frontal matrix (use this setting for null pivot row detection)
-    //mumpsId.id.CNTL(3) = domain->solInfo().trbm; // tolerance used to detect zero pivots during factorization (not used for SPD matrix)
+  if(domain->solInfo().pivot) { // matrix is not assumed to be positive definite, may be singularities 
+    mumpsId.id.ICNTL(24) = 1; // 1: enable null pivot row detection
+    mumpsId.id.ICNTL(13) = 1; // 1: ScaLAPACK will not be used for the root frontal matrix (recommended for null pivot row detection)
+    mumpsId.id.CNTL(3) = -domain->solInfo().trbm; // tolerance used to detect zero pivots during factorization (not used for SPD matrix)
   }
 #endif
 }
@@ -309,8 +308,9 @@ GenMumpsSolver<Scalar>::factor()
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
-  if(this->print_num_trbm && host && nrbm) cerr << " ... Mumps matrix factorization found " << nrbm << " near-zero pivots using tolerance " 
-                                                << mumpsId.id.CNTL(3) << " ...\n";
+  if(this->print_nullity && host && nrbm > 0) 
+    cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
+
 #endif
 }
 

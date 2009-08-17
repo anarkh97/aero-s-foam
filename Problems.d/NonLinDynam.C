@@ -730,7 +730,7 @@ NonLinDynamic::preProcess()
  int useProjector=domain->solInfo().filterFlags;
  Rbm *rigidBodyModes = (useProjector || domain->solInfo().rbmflg == 1) ? domain->constructRbm() : 0; // PJSA 9-18-2006
 
- buildOps(allOps, Kcoef, Mcoef, Ccoef, rigidBodyModes);
+ buildOps(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // PJSA 8-9-2009 don't use Rbm's to factor in dynamics
 
  if(useProjector) {
 

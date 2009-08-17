@@ -66,9 +66,10 @@ SingleDomainCond::buildCondOps()
 }
 
 void
-SingleDomainCond::getConditionInfo(double& tolerance, int& numdof)
+SingleDomainCond::getConditionInfo(double& tolerance, int& maxit, int& numdof)
 {
  tolerance = domain->solInfo().condNumTolerance;
+ maxit     = domain->solInfo().condNumMaxit;
  numdof    = domain->numUncon();
 }
 

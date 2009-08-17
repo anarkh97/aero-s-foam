@@ -87,10 +87,10 @@ CoordSet::getNode(int i)
 {
  // KHPXXX: check if the node actually exists before returning
  //         a reference to it!
- //if(nodes[i]==0) {
- //  fprintf(stderr,"*** ERROR: Node %d does not Exist! Exiting\n",i+1);
- //  exit(-1);
- //}
+ if(nodes[i]==0) {
+   fprintf(stderr,"*** ERROR: Node %d does not exist! Exiting ...\n",i+1);
+   exit(-1);
+ }
  return *nodes[i];
 }
 

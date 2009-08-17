@@ -21,7 +21,7 @@ struct compStruct {
   int *xcomp;  // pointer to renum for the beginning of each component 
   int *order;  // order of the nodes
   int *renum;  // renumbering
-  compStruct() { xcomp=0; order=0; renum=0; }
+  compStruct() { numComp = 0; xcomp=0; order=0; renum=0; }
   void clearMemory() { if(xcomp) { delete [] xcomp; xcomp=0;}
                        if(order) { delete [] order; order=0;}
                        if(renum) { delete [] renum; renum=0;} }

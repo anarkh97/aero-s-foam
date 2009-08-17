@@ -62,7 +62,7 @@ public:
                         double gamma = 0.5, double alphaf = 0.5);
   void getInternalForce(Vector &d, Vector &f, double t);
 
-  void printTimers(ModalOps *mOps){ /* leave blank */}
+  void printTimers(ModalOps *, double) { /* leave blank */}
 
   int getModeDecompFlag(){ return domain->solInfo().modeDecompFlag; }
   void modeDecomp(double time, int tIndex, Vector& dsp){ /* leave blank */ }

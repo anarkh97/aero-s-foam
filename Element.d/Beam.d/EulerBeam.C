@@ -165,6 +165,11 @@ void
 EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                            Vector& gravityForce, int gravflg, GeomState *geomState)
 {
+        if (prop == NULL) {
+           gravityForce.zero();
+           return;
+        }
+
         double massPerNode = 0.5*getMass(cs);
 	
         double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
@@ -226,11 +231,20 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	gravityForce[10] = -globalm[1];
 	gravityForce[11] = -globalm[2];
 
+        //cerr << "beam gravityForce = "; for(int i=0; i<12; ++i) cerr << gravityForce[i] << " "; cerr << endl;
+
 }
 
 FullSquareMatrix
 EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
+       // Check for phantom element, which has no stiffness
+        if(prop == NULL) {
+           FullSquareMatrix ret(12,mel);
+           ret.zero();
+           return ret;
+        }
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 

@@ -486,7 +486,7 @@ MultiDomainDynam<Scalar>::getPostProcessor()
 
 template <class Scalar>
 void
-MultiDomainDynam<Scalar>::printTimers(MDDynamMat *dynOps)
+MultiDomainDynam<Scalar>::printTimers(MDDynamMat *dynOps, double timeLoop)
 {
   times->numSubdomain = decDomain->getNumSub();
   filePrint(stderr," ... Print Timers                   ... \n");

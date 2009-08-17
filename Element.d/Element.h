@@ -116,8 +116,14 @@ class StructProp {
 	double v2;      // Fracture Energy
 	double fc;      // Compressive strength -October 2001 - JMP
 	};
+     union {
         double Q;	// Specific heat coeffiecient
+        double betaDamp; // Rayleigh stiffness damping coefficient
+        };
+     union {
 	double W;	// Thermal expansion coefficient
+        double alphaDamp; // Rayleigh mass damping coefficient
+        };
         double P;	// Perimeter/circumference of thermal truss/beams
      union {
         double Ta;	// Ambient temperature
@@ -176,7 +182,7 @@ class StructProp {
                                     kappaHelm = p->kappaHelm;
                                     kappaHelmImag = p->kappaHelmImag;
                                     soundSpeed = p->soundSpeed;
-                                    fp.PMLtype = p->fp.PMLtype; isReal = true; }
+                                    fp.PMLtype = p->fp.PMLtype; isReal = p->isReal; }
 
         //StructProp(const StructProp &p) { cerr << "in StructProp copy constructor\n"; }
         //StructProp& operator = (const StructProp &p) { cerr << "in StructProp  assignment operator\n"; }
@@ -284,7 +290,10 @@ class MultiFront;
  ****************************************************************/
 
 class Element {
+  public:
+        enum Category { Structural, Acoustic, Thermal, Sloshing, HEV, Undefined };
   private:
+        Category category;
         double _weight, _trueWeight;
         int elementType;
   protected:
@@ -506,6 +515,10 @@ class Element {
         virtual FullSquareMatrixC complexStiffness(CoordSet& cs, DComplex *k,int flg=1);
 	virtual FullSquareMatrixC complexDampingMatrix(CoordSet& cs, DComplex* c, int flg=1);
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
+
+        Category getCategory() { return category; } 
+        void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
+        bool isDamped() { return (getCategory() != Thermal) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
 };
 
 // *****************************************************************
@@ -541,6 +554,7 @@ class Elemset
     //void deleteElems()  { if(elem) delete [] elem; elem = 0; emax = 0; }
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
+    bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
 };
 
 class EsetGeomAccessor {

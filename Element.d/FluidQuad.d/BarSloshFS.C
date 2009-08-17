@@ -32,7 +32,22 @@ BarSloshFS::renum(int *table)
 double
 BarSloshFS::getMass(CoordSet& cs)
 {
-        return 0.0;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  Vector r1(3), r2(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+
+  Vector v1(3);
+
+  v1 = r2 - r1;
+
+  double length = v1.magnitude();
+
+  double mass = length*(prop->rho)*(prop->A);
+  return mass;
 }
 
 FullSquareMatrix

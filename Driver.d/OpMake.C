@@ -93,13 +93,13 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
- double alpha = sinfo.alphaDamp;
- double  beta = sinfo.betaDamp;
+ double alphaDamp = sinfo.alphaDamp, alpha;
+ double  betaDamp = sinfo.betaDamp, beta;
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
- double *karray = (double *) dbg_alloca(size);
- double *marray = (double *) dbg_alloca(size);
+ double *karray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
+ double *marray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
  //double *carray = (double *) dbg_alloca(size);
 
  //FullSquareMatrix kel(1, karray);
@@ -107,29 +107,25 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  //FullSquareMatrix cel(1, carray);
  FullSquareMatrix kel, mel, cel;
 
- double mratio = geoSource->getMRatio();
- // toxa: FIXIT!!!! in input files via MMRATIO 0
- if(solInfo().newmarkBeta == 0.0 && mratio == 1)
-   {
-     fprintf(stderr, "*** WARNING: you may have to change your input files\n" \
-             "in order to compute with lumped mass matrices by adding a line <MMRATIO 0>!!!\n");
-   }
- complex<double> *kcarray = (complex<double> *) alloca(4*size);
- complex<double> *mcarray = (complex<double> *) alloca(4*size);
+ double mratio = geoSource->getMRatio(); // 0 for lumped, 1 for consistent mass matrix
+
+ complex<double> *kcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
+ complex<double> *mcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
 
  FullSquareMatrixC kcel(1, kcarray);
  FullSquareMatrixC mcel(1, mcarray);
 
  bool isShifted = geoSource->isShifted();
- bool isDamped = (alpha != 0.0) || (beta != 0.0);
+ //bool isDamped = (alpha != 0.0) || (beta != 0.0);
+ bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
 
  double *izarray = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
  FullSquareMatrix izel(1, izarray); // izel stores the imaginary part of impedence matrix zel
  double omega, omega2;
 
  int sizeC = sizeof(DComplex)*maxNumDOFs*maxNumDOFs;
- DComplex *karrayC = static_cast<DComplex*>(dbg_alloca(sizeC));
- DComplex *marrayC = static_cast<DComplex*>(dbg_alloca(sizeC));
+ DComplex *karrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
+ DComplex *marrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
  FullSquareMatrixC kelC(1, karrayC);
  FullSquareMatrixC melC(1, marrayC);
 
@@ -147,6 +143,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(packedEset[iele]->isPhantomElement()) continue;
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (packedEset[iele]->getProperty())->fp.PMLtype!=0;
+   alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : alphaDamp;
+   beta = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : betaDamp;
    // Form element stiffness and mass matrices
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if (isComplexF) {
@@ -215,6 +213,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
            if(isDamped && isStructureElement(iele))
               izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
            kel[i][j] -= o2*mel[i][j];
+           //kel.print();
          }
        }
      }
@@ -473,24 +472,29 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    // Damping Matrix and K tilda.
    Scalar m;
    DMassData *current = firstDiMass;
+   double omega2 = geoSource->shiftVal();
+   double omega = sqrt(geoSource->shiftVal()); 
    while(current != 0) {
      // PJSA: modified all addDiscreteMass functions to accept dsa dof rather than cdsa dof (much safer)
+     // XXXX what about Kuc, Cuc?
      int dof = dsa->locate(current->node, (1 << current->dof));
+     if(dof == -1) 
+       { current = current->next; continue; }
      if(current->jdof > -1) { // PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
        int jdof = dsa->locate(current->node, (1 << current->jdof));
+       if(jdof == -1) 
+         { current = current->next; continue; }
        if(isShifted) {
-         double mass = (sinfo.isCoupled && isStructureElement(iele)) ? current->diMass*cscale_factor2 : current->diMass;
-         double m_real = -(omega*omega)*mass;
-         // ML ARGH This has to be buggy!!! iele does not have a valid value by now!!!!!!
-         double m_imag = (isDamped && isStructureElement(iele)) ? -omega*alpha*mass : 0.0;
+         // note: for coupled problems we are assuming lumped mass is structural not fluid
+         double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
+         double m_real = -omega2*mass;
+         double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(ops.K) ops.K->add(dof, jdof, m);
          if(mat) mat->add(dof, jdof, m);
-         if(isDamped && isStructureElement(iele)) {
+         if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
          }
-         if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele)) mass /= (domain->fluidCelerity * domain->fluidCelerity);
          if(ops.M) ops.M->add(dof, jdof, mass);
          if(ops.Msolver) ops.Msolver->add(dof, jdof, mass);
        }
@@ -505,17 +509,15 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      }
      else {
        if(isShifted) {  // add discrete mass contributions to global matrices for frequency response analysis
-         double mass = (sinfo.isCoupled && isStructureElement(iele)) ? current->diMass*cscale_factor2 : current->diMass;
-         double m_real = -(omega*omega)*mass;
-         double m_imag = (isDamped && isStructureElement(iele)) ? -omega*alpha*mass : 0.0;
+         double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
+         double m_real = -omega2*mass;
+         double m_imag = isDamped ? -omega*alpha*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(ops.K) ops.K->addDiscreteMass(dof, m);
          if(mat) mat->addDiscreteMass(dof, m);
-         if(isDamped && isStructureElement(iele)) {
+         if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
          }
-         if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele)) mass /= (domain->fluidCelerity * domain->fluidCelerity);
          if(ops.M) ops.M->addDiscreteMass(dof, mass);
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, mass);
        }
@@ -602,6 +604,13 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
 
  }
+
+ delete [] karray;
+ delete [] marray;
+ delete [] kcarray;
+ delete [] mcarray;
+ delete [] karrayC;
+ delete [] marrayC;
 
  if(sinfo.isAcousticHelm()) assembleGlobalSommer<Scalar>(mat, &ops);
 
@@ -1109,14 +1118,8 @@ void Domain::makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc,
   FullSquareMatrix kel(1,karray);
   FullSquareMatrix kel_Dt(1,kDtarray);
 
-  double mratio = geoSource->getMRatio();
-  // toxa: FIXIT!!!! in input files via MMRATIO 0
-  if((sinfo.probType == SolverInfo::Dynamic) && (solInfo().newmarkBeta == 0.0) && mratio==1)
-    {
-      fprintf(stderr, "*** WARNING: you may have to change your input files\n" \
-	      "in order to compute with lumped mass matrices by adding a line <MMRATIO 0>!!!\n");
-    }
-  //int cmflg = ((sinfo.probType == SolverInfo::Dynamic) && (solInfo().newmarkBeta == 0.0)) ? 0 : 1;
+  double mratio = geoSource->getMRatio(); // 0 for lumped, 1 for consistent
+
   bool isShifted = geoSource->isShifted();
   //bool isDamped = (alpha != 0.0) || (beta != 0.0);
 
@@ -1335,11 +1338,11 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm(probType());
+ if(sinfo.rbmflg) rbm = constructRbm();
 
  // ... Construct "thermal rigid body mode" if necessary
  if(sinfo.hzemFlag) {
-   rbm = constructHzem(probType());
+   rbm = constructHzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1347,7 +1350,7 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
    fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem(probType());
+   rbm = constructSlzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1371,11 +1374,11 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm(probType());
+ if(sinfo.rbmflg) rbm = constructRbm();
 
  // ... Construct "thermal rigid body mode" if necessary
  if(sinfo.hzemFlag) {
-   rbm = constructHzem(probType());
+   rbm = constructHzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1383,7 +1386,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
    fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem(probType());
+   rbm = constructSlzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -3275,7 +3278,7 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {
        double mass = computeStructureMass();
-       filePrint(stderr," ... Structure mass = %10.4f    ...\n",mass);
+       filePrint(stderr," ... Total System mass = %10.4f ...\n",mass);
        filePrint(stderr," --------------------------------------\n");
      }
    }

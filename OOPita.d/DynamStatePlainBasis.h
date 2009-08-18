@@ -8,11 +8,11 @@ namespace Pita {
 
 class DynamStatePlainBasis : public DynamStateBasis {
 public:
-  typedef Fwk::Ptr<DynamStatePlainBasis> Ptr;
-  typedef Fwk::Ptr<const DynamStatePlainBasis> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(DynamStatePlainBasis);
 
   virtual size_t stateCount() const { return state_.size(); }
   DynamState state(size_t index) const { return state_[index]; } // Unsafe
+
   void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unsafe
 
   virtual void lastStateIs(const DynamState & ds);

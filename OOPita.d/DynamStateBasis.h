@@ -8,14 +8,14 @@ namespace Pita {
 
 class DynamStateBasis : public Fwk::PtrInterface<DynamStateBasis> {
 public:
-  typedef Fwk::Ptr<DynamStateBasis> Ptr;
-  typedef Fwk::Ptr<const DynamStateBasis> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(DynamStateBasis);
+  class IteratorConst;
 
   size_t vectorSize() const { return vectorSize_; }
   virtual size_t stateCount() const = 0;
+  
   virtual DynamState state(size_t index) const = 0; // Unsafe
-
-  //class IteratorConst;
+  IteratorConst state() const;
   
 protected:
   explicit DynamStateBasis(size_t vectorSize) : vectorSize_(vectorSize) {}
@@ -27,14 +27,51 @@ private:
   size_t vectorSize_;
 };
 
-/*class DynamStateBasis::IteratorConst {
-public:
-  virtual const DynamState & operator*() const = 0;
-  virtual IteratorConst & operator++() = 0;
-  virtual IteratorConst operator++(int) = 0;
-  virtual operator bool() = 0;
-};*/
 
+class DynamStateBasis::IteratorConst {
+public:
+  const DynamState & operator*() const { return current_; }
+  const DynamState * operator->() const { return &current_; }
+  
+  operator bool() const { return current_.vectorSize(); }
+
+  IteratorConst & operator++() { ++currentRank_; updateCurrent(); }
+  IteratorConst operator++(int) {
+    IteratorConst temp(*this);
+    ++(*this);
+    return temp;
+  }
+  
+  // IteratorConst(const IteratorConst &); // default
+  // IteratorConst & operator=(const IteratorConst &); // default
+
+protected:
+  explicit IteratorConst(const DynamStateBasis * parent) :
+    parent_(parent),
+    currentRank_(0),
+    current_()
+  {
+    updateCurrent();
+  }
+
+  friend class DynamStateBasis;
+
+private:
+  void updateCurrent() {
+    current_ = (currentRank_ < parent_->stateCount()) ? parent_->state(currentRank_) : DynamState();
+  }
+
+  DynamStateBasis::PtrConst parent_;
+  int currentRank_;
+  DynamState current_;
+};
+
+inline
+DynamStateBasis::IteratorConst
+DynamStateBasis::state() const {
+  return IteratorConst(this);
 }
+
+} /* end namespace Pita */
 
 #endif /* PITA_DYNAMSTATEBASIS_H */

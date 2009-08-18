@@ -1,7 +1,7 @@
 #include "DynamStatePlainBasis.h"
 
 namespace Pita {
- 
+
 void
 DynamStatePlainBasis::lastStateIs(const DynamState & ds) {
   if (ds.vectorSize() != this->vectorSize())

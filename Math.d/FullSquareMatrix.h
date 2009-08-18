@@ -24,7 +24,6 @@ public:
 
   void setMyval(int _myval) { myval = _myval; }
 
-
   GenFullSquareMatrix<Scalar> operator * (Scalar v);
   GenFullSquareMatrix<Scalar> operator / (Scalar v);
   GenFullSquareMatrix<Scalar> operator + (const GenFullSquareMatrix<Scalar> &M2);
@@ -56,7 +55,14 @@ public:
   void copy(Scalar *d);
 
   void add(GenFullSquareMatrix<Scalar> &m, int *rc);
-  template<class Scalar1, class Scalar2, class Scalar3> void multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c=1.0);
+ 
+  enum TransposeFlag {
+    NORMAL = 0,
+    TRANSPOSED
+  };
+
+  template<class Scalar1, class Scalar2, class Scalar3> void multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c = 1.0, TransposeFlag transpose = NORMAL);
+  
   void multiply(GenFullSquareMatrix<Scalar> &M2, GenFullSquareMatrix<Scalar> &result);
   void eigenVals(Scalar*);
   void eigenV(Scalar*);

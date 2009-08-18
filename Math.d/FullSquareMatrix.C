@@ -411,42 +411,42 @@ extern "C" {
 }
 
 template<> template<>
-inline void GenFullSquareMatrix<DComplex>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, double c)
+inline void GenFullSquareMatrix<DComplex>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, double c, GenFullSquareMatrix<DComplex>::TransposeFlag transposed)
 {
   DComplex alpha = c;
   DComplex beta  = 1.0;
   int one = 1;
-  char trans = 'T';
+  char trans = (transposed == TRANSPOSED) ? 'N' : 'T';
   _FORTRAN(zgemv)(trans, size, size, alpha, value, size, a.data(), one, beta, b.data(), one);
   return;
 }
 
 template<> template<>
-inline void GenFullSquareMatrix<DComplex>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, DComplex c)
+inline void GenFullSquareMatrix<DComplex>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, DComplex c, GenFullSquareMatrix<DComplex>::TransposeFlag transposed)
 {
   DComplex beta  = 1.0;
   int one = 1;
-  char trans = 'T';
+  char trans = (transposed == TRANSPOSED) ? 'N' : 'T';
   _FORTRAN(zgemv)(trans, size, size, c, value, size, a.data(), one, beta, b.data(), one);
   return;
 }
 
 template<> template<>
-inline void GenFullSquareMatrix<double>::multiply(GenVector<double>& a, GenVector<double>& b, double c)
+inline void GenFullSquareMatrix<double>::multiply(GenVector<double>& a, GenVector<double>& b, double c, GenFullSquareMatrix<double>::TransposeFlag transposed)
 {
   double beta  = 1.0;
   int one = 1;
-  char trans = 'T';
+  char trans = (transposed == TRANSPOSED) ? 'N' : 'T';
   _FORTRAN(dgemv)(trans, size, size, c, value, size, a.data(), one, beta, b.data(), one);
   return;
 }
 
 template<> template<>
-inline void GenFullSquareMatrix<double>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, double c)
+inline void GenFullSquareMatrix<double>::multiply(GenVector<DComplex>& a, GenVector<DComplex>& b, double c, GenFullSquareMatrix<double>::TransposeFlag transposed)
 {
   double beta  = 1.0;
   int two = 2;
-  char trans = 'T';
+  char trans = (transposed == TRANSPOSED) ? 'N' : 'T';
   _FORTRAN(dgemv)(trans, size, size, c, value, size,
 		  reinterpret_cast<double*>(a.data()), two, beta,
 		  reinterpret_cast<double*>(b.data()), two);
@@ -457,24 +457,34 @@ inline void GenFullSquareMatrix<double>::multiply(GenVector<DComplex>& a, GenVec
 }
 
 template<> template<>
-inline void GenFullSquareMatrix<double>::multiply(GenVector<double>& a, GenVector<double>& b, DComplex c)
+inline void GenFullSquareMatrix<double>::multiply(GenVector<double>& a, GenVector<double>& b, DComplex c, GenFullSquareMatrix<double>::TransposeFlag transposed)
 {
   assert(0);
 }
 
 template<class Scalar> template<class Scalar1, class Scalar2, class Scalar3>
-void GenFullSquareMatrix<Scalar>::multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c)
+void GenFullSquareMatrix<Scalar>::multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c, typename GenFullSquareMatrix<Scalar>::TransposeFlag transposed)
 {
   // multiply  b += c * matrix * a
   // Warning: no check for correct dimensions
   Scalar1* ap = a.data();
   Scalar2* bp = b.data();
-  for(int i=0;i<size;i++)
+  if (transposed == NORMAL) {
+    for(int i=0;i<size;i++)
     {
       for(int j=0;j<size;j++)
-	{
-	  bp[i] += c*(value+size*i)[j]*ap[j];
-	}
+      {
+        bp[i] += c*(value+size*i)[j]*ap[j];
+      }
     }
+  } else {
+    for(int i=0;i<size;i++)
+    {
+      for(int j=0;j<size;j++)
+      {
+        bp[j] += c*(value+size*i)[j]*ap[i];
+      }
+    }
+  }
   return;
 }

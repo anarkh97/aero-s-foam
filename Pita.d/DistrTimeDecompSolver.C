@@ -1090,7 +1090,11 @@ void DistrTimeDecompSolver<DynOps,VecType,PostProcessor,ProblemDescriptor,InfoSi
      filePrint(stderr," --------------------------------------\n");
      filePrint(stderr," ... Total Loop Time      = %.2e s\n",totalTime/1000.0);
      fflush(stderr);
-   if (myCPU==0)  probDesc->printTimers(ptdynOps);
+
+   if (myCPU==0) {
+     double timeLoopTime = 0.0; // TODO meaningful value
+     probDesc->printTimers(ptdynOps, timeLoopTime);
+   }
    }
   
    Ptimes->printPitaTimesFile();

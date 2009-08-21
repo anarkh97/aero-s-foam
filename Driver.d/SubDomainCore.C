@@ -82,7 +82,7 @@ GenSubDomain<double>::makeFrontal()
 
  Rbm *rbm = 0;
  if(sinfo.rbmflg && (solInfo().getFetiInfo().version != FetiInfo::fetidp))
-   rbm = constructRbm(probType());
+   rbm = constructRbm(false);
 
  // makeFrontalOps<double>(ops, Kcoef, Mcoef, Ccoef, rbm);
  this->makeFrontalOps<double>(ops, Kcoef, Mcoef, Ccoef, rbm);

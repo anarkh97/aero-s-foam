@@ -248,6 +248,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       algType = 1;
    }
    
+   double timeLoop = -getTime();
    switch ( algType )
    {
      // Newmark
@@ -320,7 +321,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        // Quasi-Static Loop
        quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);     
    }
-   probDesc->printTimers(dynOps);
+   timeLoop += getTime();
+   probDesc->printTimers(dynOps, timeLoop);
    
 
    // Delete arrays

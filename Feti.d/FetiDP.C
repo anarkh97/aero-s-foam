@@ -1228,8 +1228,6 @@ else
        BLKMatrix->zeroAll();
        KccSparse = BLKMatrix;
        KccSolver = BLKMatrix;
-       KccSolver->setPrintNumGrbm(false);
-       KccSolver->setPrintNumTrbm(false);
      }
      break;
 #ifdef USE_SPOOLES
@@ -1288,7 +1286,7 @@ else
      if (KccMat) KccMat->print(stderr);
    }
 
-   KccSolver->setPrintNumTrbm(false);
+   KccSolver->setPrintNullity(false);
 /*
    int n = KccSolver->neqs();
    long int nz = KccSolver->size();
@@ -3068,7 +3066,7 @@ GenFetiDPSolver<Scalar>::factorLocalMatrices(int iSub)
   GenSolver<Scalar> *K = this->sd[iSub]->Krr;
   //int numCornerDofs = this->sd[iSub]->numCornerDofs();
   if(K) {
-    K->setPrintNumGrbm(false);
+    K->setPrintNullity(false);
     K->factor(); 
     if(K->numRBM() != 0) {
       filePrint(stderr," ... Subdomain %3d found %3d ZEMs   ...\n",
@@ -3258,7 +3256,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == GtG) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    GtGtilda->setPrintNumTrbm(false);
+    GtGtilda->setPrintNullity(false);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 1);

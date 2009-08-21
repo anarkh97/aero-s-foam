@@ -1369,7 +1369,7 @@ GenSubDomain<Scalar>::constructLocalMatrices()
  if((sinfo.rbmflg && (solInfo().getFetiInfo().version != FetiInfo::fetidp))
      || ((solInfo().getFetiInfo().version == FetiInfo::fetidp) && (numCRNdof == 0) && !solInfo().getFetiInfo().dph_flag)
      || (solInfo().getFetiInfo().augment == FetiInfo::Gs)) {
-   rigidBodyModes = constructRbm(probType());
+   rigidBodyModes = constructRbm(false);
  }
 
  // construct Kuc

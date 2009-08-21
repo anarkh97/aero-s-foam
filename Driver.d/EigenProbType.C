@@ -104,7 +104,7 @@ EigenSolver< EigOps, VecType, VecSet,
  probDesc->buildEigOps( *eM );
 
  // ... get the number of rigid body modes
- if (geoSource->shiftVal() > 0.0)  nrmod = 0; //CBM
+ if (geoSource->shiftVal() != 0.0)  nrmod = 0; //CBM
  else nrmod = eM->dynMat->numRBM();
 
  if(domain->solInfo().test_ulrich) nrmod = 0;
@@ -1089,6 +1089,16 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
     else { // one eigen calculation
       sconv = true;
+      if(strcmp("",domain->solInfo().which) == 0) {
+        if(geoSource->shiftVal() == 0.0) {
+          sprintf(which,"LA");
+          //cerr << "which is undefined, setting to LA\n";
+        }
+        else {
+          sprintf(which,"BE");
+          //cerr << "which is undefined, setting to BE\n";
+        }
+      } else
       sprintf(which,domain->solInfo().which); // specifies which of the Ritz values of
                                               // OP to compute (see Arpack manual)
      // ... adjust subSpaceSize
@@ -1394,7 +1404,6 @@ SymArpackSolver< EigOps, VecType, VecSet,
       fprintf(stderr," ... Structure mass = %e  ...\n",mass);
       fprintf(stderr," --------------------------------------\n");
     }
-
   }
 
   // ... Print timers

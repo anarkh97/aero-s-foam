@@ -12,10 +12,10 @@ double
 GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
 {
       double eigmax;
-      double relTol    = 1.0e-3;
+      double relTol    = domain->solInfo().stable_tol; // stable_tol default is 1.0e-3
       double preeigmax = 0.0;
       int numdofs = internalInfo.len;
-      int maxIte  = numdofs * 50;
+      int maxIte  = domain->solInfo().stable_maxit; // stable_maxit default is 100
       GenDistrVector<double> v(internalInfo);
       GenDistrVector<double> z(internalInfo);
 // Starts from an arbitrary array.

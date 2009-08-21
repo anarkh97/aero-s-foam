@@ -90,8 +90,6 @@ TRAIL [a-zA-Z]*
 
 "PREL"[a-zA-Z]*|"prel"[a-zA-Z]*    { return PRELOAD; }
 
-"CONSI"[a-zA-Z]*|"consi"[a-zA-Z]*    { return CONSISTENT; }
-
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
 
 "CONTROL"[a-zA-Z]*|"control"[a-zA-Z]*    { return CONTROL;  }
@@ -807,7 +805,7 @@ TRAIL [a-zA-Z]*
 
 "noprec"[a-zA-Z]*|"NOPREC"[a-zA-Z]* { yylval.ival = FetiInfo::noPrec;    return FETIPREC; }
 
-"lump"[a-zA-Z]*|"LUMP"[a-zA-Z]*    { yylval.ival = FetiInfo::lumped;    return FETIPREC; }
+"lump"[a-zA-Z]*|"LUMP"[a-zA-Z]*    { return LUMPED; }
 
 "diri"[a-zA-Z]*|"DIRI"[a-zA-Z]*    { yylval.ival = FetiInfo::dirichlet; return FETIPREC; }
 
@@ -1130,7 +1128,6 @@ TRAIL [a-zA-Z]*
 "SFORC"[a-zA-Z]*|"sforc"[a-zA-Z]*  { return SFORCE; }
 "SPRES"[a-zA-Z]*|"spres"[a-zA-Z]*  { return SPRESSURE; }
 
-"MMRATIO"|"mmratio"      { return MMRATIO; }
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }
 "GROUP"|"group" { return GROUP; }

@@ -452,11 +452,11 @@ class Domain : public HData {
 
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
-     Rbm              *constructRbm(int problemType=0);
-     Rbm              *constructRbm(IntFullM *);
-     Rbm              *constructAllRbm();
-     Rbm              *constructHzem(int problemType=0);
-     Rbm              *constructSlzem(int problemType=0);
+     Rbm              *constructRbm(bool printFlag = true);
+     //Rbm              *constructRbm(IntFullM *);
+     //Rbm              *constructAllRbm();
+     Rbm              *constructHzem(bool printFlag = true);
+     Rbm              *constructSlzem(bool printFlag = true);
 
      template<class Scalar>
        void buildGravityForce(GenVector<Scalar> &force);
@@ -565,6 +565,7 @@ class Domain : public HData {
                           Vector&);
 
      double computeStructureMass();
+     double computeFluidMass();
      double getStructureMass();
 
      // Condition number estimated routines
@@ -853,7 +854,7 @@ class Domain : public HData {
      bool isComplex() {
        return ((numComplexDirichlet > 0) || (numComplexNeuman > 0)
                || (numSommer > 0) || (numComplexLMPC > 0) ||
-                   sinfo.hasDamping() || PMLFlag /*|| (numWet)*/ );
+                   sinfo.hasDamping() || PMLFlag /*|| (numWet)*/ || packedEset.hasDamping() );
      }
      bool isHomogeneous();
      void addWetInterface(int fluidSurfaceID, int structureSurfaceID, double normal_tol = 0.1, double tangential_tol = 0.001);

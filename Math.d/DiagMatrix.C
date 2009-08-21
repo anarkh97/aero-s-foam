@@ -147,3 +147,13 @@ GenDiagMatrix<Scalar>::addDiscreteMass(int dof, Scalar mass)
   if(dofI > -1) // skip constrained dofs
     v[dofI] += mass; 
 }
+
+template<class Scalar>
+void
+GenDiagMatrix<Scalar>::factor()
+{
+  // check for zero
+  for (int i = 0 ; i < neq ; i++) {
+    if(v[i] == 0.0) { cerr << " *** ERROR: zero diagonal detected in the mass matrix. Exiting to avoid division by zero ... \n"; exit(-1); }
+  }
+}

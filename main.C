@@ -685,12 +685,14 @@ int main(int argc, char** argv)
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
- // 3. choose mass lumping and diagonal "solver" for explicit dynamics unless mratio has been set nonzero 0.0 (using CONSISTENT keyword)
- if(domain->solInfo().newmarkBeta == 0.0 && (!geoSource->checkMRatio() || geoSource->getMRatio() == 0.0)) {
+ // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
+ if(domain->solInfo().newmarkBeta == 0.0) {
    domain->solInfo().subtype = 10;
    if(parallel_proc) domain->solInfo().type = 3;
-   geoSource->setMRatio(0);
-   filePrint(stderr, " ... Lumped Mass Matrix Selected    ... \n");
+   geoSource->setMRatio(0.0);
+   geoSource->setConsistentQFlag(false);
+   geoSource->setConsistentPFlag(false);
+   if(verboseFlag) filePrint(stderr, " ... Explicit Dynamics: lumped mass matrix, gravity and pressure will be used ... \n");
  }
 
  if(domain->solInfo().aeroFlag >= 0)

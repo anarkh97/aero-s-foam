@@ -115,18 +115,18 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  // construct geometric rigid body modes if necessary
  Rbm *rigidBodyModes = 0;
  if(domain->solInfo().rbmflg) { 
-   filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
+   //filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
    rigidBodyModes = domain->constructRbm();
  }
 
  if(domain->solInfo().hzemFlag) {
-   filePrint(stderr, " ... Constructing HZEMs             ... \n");
+   //filePrint(stderr, " ... Constructing HZEMs             ... \n");
    rigidBodyModes = domain->constructHzem();
  }
 
  // construct rigid body modes for sloshing problems if necessary
  if(domain->solInfo().slzemFlag) { 
-   filePrint(stderr, " ... Constructing Sloshing RBMs in EigenDescr.C  ... \n");
+   //filePrint(stderr, " ... Constructing Sloshing RBMs in EigenDescr.C  ... \n");
    rigidBodyModes = domain->constructSlzem();
  }
 

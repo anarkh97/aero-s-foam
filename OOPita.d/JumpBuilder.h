@@ -27,26 +27,13 @@ public:
   SeedStatus seedStatus(SeedId id) const;
   void seedStatusIs(SeedId id, SeedStatus status);
 
-  const DynamState & jump() const { return jump_; }
+  const Seed * jumpSeed() const { return jumpSeed_.ptr(); }
+  Seed * jumpSeed() { return jumpSeed_.ptr(); }
+  void jumpSeedIs(Seed * j);
 
   static Ptr New() {
     return new JumpBuilder();
   }
-
-  class NotifieeConst : public Fwk::BaseNotifiee<const JumpBuilder, NotifieeConst> {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(NotifieeConst);
-
-    virtual void onJump() {}
-
-  protected:
-    explicit NotifieeConst(const JumpBuilder * notifier) :
-      Fwk::BaseNotifiee<const JumpBuilder, NotifieeConst>(notifier)
-    {}
-  };
-
-  NotifieeConst::Ptr lastNotifiee() const { return notifiee_; }
-  void lastNotifieeIs(NotifieeConst * n) const { notifiee_ = n; }
 
 protected:
   class SeedReactor;
@@ -56,9 +43,7 @@ protected:
 private:
   SeedStatus seedStatus_[2];
   Fwk::Ptr<SeedReactor> seedReactor_[2];
-  DynamState jump_;
-
-  mutable NotifieeConst::Ptr notifiee_;
+  Seed::Ptr jumpSeed_;
 };
 
 } /* end namespace Pita */

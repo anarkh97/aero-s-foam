@@ -13,6 +13,9 @@
 
 #include "HalfSliceBasisCollectorImpl.h"
 
+#include "UpdateProjectorImpl.h"
+#include "UpdatedSeedAssemblerImpl.h"
+
 #include "DynamStateReductorImpl.h"
 #include "DynamStateReconstructorImpl.h"
 
@@ -45,6 +48,10 @@ public:
   };
 
   virtual HalfSliceBasisCollector * collector() const { return collector_.ptr(); }
+  
+  virtual UpdateProjector::Manager * updateProjectorMgr() const { return updateProjectorMgr_.ptr(); }
+  virtual UpdatedSeedAssembler::Manager * updatedSeedAssemblerMgr() const { return updatedSeedAssemblerMgr_.ptr() ;} 
+  
   virtual DynamStateReductor::Manager * reductorMgr() const { return reductorMgr_.ptr(); }
   virtual DynamStateReconstructor::Manager * reconstructorMgr() const { return reconstructorMgr_.ptr(); }
 
@@ -139,8 +146,10 @@ public:
     };
    
     // State count
-    size_t stateCount(HalfTimeSlice::Direction d = HalfTimeSlice::NO_DIRECTION) const;
-    size_t stateCount(CpuRank c, HalfTimeSlice::Direction d = HalfTimeSlice::NO_DIRECTION) const;
+    size_t stateCount() const;
+    size_t stateCount(HalfTimeSlice::Direction d) const;
+    size_t stateCount(CpuRank c) const;
+    size_t stateCount(CpuRank c, HalfTimeSlice::Direction d) const;
     
     // Numbering for all states (both initial AND final)
     int globalIndex(const HalfSliceId & id) const;
@@ -206,15 +215,21 @@ private:
   SimpleBuffer<double> mBuffer_;
   SimpleBuffer<int> mpiParameters_;
 
-  typedef std::map<int, DynamState> InitialBasis;
-  InitialBasis localInitialBasis_;
+  typedef std::map<int, DynamState> LocalBasis;
+  LocalBasis localBasis_;
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
 
   FullSquareMatrix normalMatrix_;
+  FullSquareMatrix reprojectionMatrix_;
+
   NearSymmetricSolver::Ptr solver_;
   
   HalfSliceBasisCollectorImpl::Ptr collector_;
+  
+  UpdateProjectorImpl::Manager::Ptr updateProjectorMgr_;
+  UpdatedSeedAssemblerImpl::Manager::Ptr updatedSeedAssemblerMgr_;
+
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
   DynamStateReconstructorImpl::Manager::Ptr reconstructorMgr_;
 

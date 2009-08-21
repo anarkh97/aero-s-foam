@@ -7,21 +7,9 @@
 
 namespace Pita {
 
-RemoteSeedReader::RemoteSeedReader(Communicator * comm) :
-  Seed::NotifieeConst(NULL),
-  targetCpu_(),
-  status_(READY),
-  timeComm_(comm),
-  stateBuffer_()
-{}
-
+template <>
 void
-RemoteSeedReader::onState() {
-  this->statusIs(BUSY);
-}
-
-void
-RemoteSeedReader::statusIs(Status s) {
+RemoteSharedStateReader<DynamState>::statusIs(Status s) {
   if (s != status()) {
     setStatus(s);
     if (status() == BUSY) {

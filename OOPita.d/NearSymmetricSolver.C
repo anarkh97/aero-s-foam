@@ -34,7 +34,6 @@ extern "C" {
                         double* s, double* scond, double* amax, int* info);
 
   // Lapack: Perform scaling
-  // SUBROUTINE DLAQGE( M, N, A, LDA, R, C, ROWCND, COLCND, AMAX, EQUED )
   void _FORTRAN(dlaqge)(const int* m, const int* n, double* a, const int* lda,
                         const double* r, const double* c, const double* rowcnd, const double* colcnd,
                         const double* amax, char* equed);

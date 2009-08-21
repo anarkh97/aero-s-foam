@@ -32,14 +32,17 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
   gBuffer_(),
   mBuffer_(),
   mpiParameters_(),
-  localInitialBasis_(),
+  localBasis_(),
   metricBasis_(DynamStatePlainBasis::New(vectorSize_)),
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
+  reprojectionMatrix_(),
   solver_(NearSymmetricSolver::New(projectionTolerance)),
   collector_(strategy == NON_HOMOGENEOUS ?
       ptr_cast<HalfSliceBasisCollectorImpl>(NonHomogeneousBasisCollectorImpl::New()) :
       HalfSliceBasisCollectorImpl::New()),
+  updateProjectorMgr_(UpdateProjectorImpl::Manager::New(metricBasis_.ptr(), &reprojectionMatrix_, solver_.ptr())),
+  updatedSeedAssemblerMgr_(UpdatedSeedAssemblerImpl::Manager::New(finalBasis_.ptr())),
   reductorMgr_(DynamStateReductorImpl::Manager::New(metricBasis_.ptr(), solver_.ptr())),
   reconstructorMgr_(DynamStateReconstructorImpl::Manager::New(finalBasis_.ptr())),
   projectionBuildingReactor_(new ProjectionBuildingReactor(activityManagerInstance()->activityNew("ProjectionBuilding").ptr(), this)),
@@ -87,6 +90,8 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       bufferStateCopy(cs.second, targetBuffer); 
       //log() << "Final state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
+      int accumulatedIndex = inBufferRank + previousMatrixSize;
+      localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstForwardFinalStateDel();
     cs = collector_->firstForwardFinalState();
@@ -107,8 +112,8 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
         bufferStateCopy(cs.second, targetBuffer); 
       }
       //log() << "Metric state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
-      int accumulatedIndex = globalExchangeNumbering_.back()->globalHalfIndex(HalfSliceId(cs.first, HalfTimeSlice::BACKWARD)) + previousMatrixSize;
-      localInitialBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
+      int accumulatedIndex = inBufferRank + previousMatrixSize;
+      localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstBackwardFinalStateDel();
     cs = collector_->firstBackwardFinalState();
@@ -152,14 +157,10 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
 
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_.back()->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
-    if (p.first == HalfTimeSlice::BACKWARD) {
-      // Initial state, premultiplied by metric
-      DynamState initialOrtho(receivedBasis->state(p.second));
-      metricBasis_->lastStateIs(initialOrtho);
-    } else {
-      // Final state
-      finalBasis_->lastStateIs(receivedBasis->state(p.second));
-    }
+    DynamStatePlainBasis * targetBasis = (p.first == HalfTimeSlice::BACKWARD) ?
+                                        metricBasis_.ptr() : // Initial state (premultiplied)
+                                        finalBasis_.ptr();   // Final state
+    targetBasis->lastStateIs(receivedBasis->state(p.second));
   }
  
   /*for (int i = 0; i < finalBasis_->stateCount(); ++i) {
@@ -174,15 +175,15 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   log() << "-> Add new states: " << toc - tic << " ms\n";
   tic = toc;
  
-  // Assemble normal matrix in parallel (local rows)
-  HalfTimeSlice::Direction initStateFlag(HalfTimeSlice::BACKWARD); // Consider only initial states in this section
+  // Assemble normal and reprojection matrices in parallel (local rows)
+  //HalfTimeSlice::Direction HalfTimeSlice::BACKWARD = HalfTimeSlice::BACKWARD; // Consider only initial states in this section
 
-  int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(initStateFlag);
+  int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(HalfTimeSlice::BACKWARD);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
  
   log() << "Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
   
-  size_t matrixBufferSize = newMatrixSize * newMatrixSize;
+  size_t matrixBufferSize = (2 * newMatrixSize) * newMatrixSize; // For normalMatrix and reprojectionMatrix data
   if (mBuffer_.size() < matrixBufferSize) {
     mBuffer_.sizeIs(matrixBufferSize);
   }
@@ -190,7 +191,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   /*for (std::deque<HalfSliceBasisCollectorImpl::CollectedState>::const_iterator it = localInitialStates.begin();
       it != localInitialStates.end();
       ++it) {
-    int inBufferRank = globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first, initStateFlag));
+    int inBufferRank = globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first, HalfTimeSlice::BACKWARD));
     double * rowBuffer = mBuffer_.array() + inBufferRank * newMatrixSize;
     for (int i = 0; i < newMatrixSize; ++i) {
       rowBuffer[i] = metricBasis_->state(i) * it->second;
@@ -200,7 +201,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   for (int i = 0; i < numCpus; ++i) {
     recv_counts[i] = 0;
     for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
-      recv_counts[i] += (*it)->stateCount(CpuRank(i), initStateFlag);
+      recv_counts[i] += (*it)->stateCount(CpuRank(i));
     }
     recv_counts[i] *= newMatrixSize;
   }
@@ -209,22 +210,22 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
   for (int i = 1; i < numCpus; ++i) {
     displacements[i] = displacements[i-1] + recv_counts[i-1];
   }
-
+  
   // TODO Better efficiency: Do not recompute every coefs
   double * rowBuffer = mBuffer_.array() + displacements[myCpu];
-  for (InitialBasis::const_iterator it = localInitialBasis_.begin();
-      it != localInitialBasis_.end(); ++it) {
+  for (LocalBasis::const_iterator it = localBasis_.begin();
+      it != localBasis_.end(); ++it) {
     for (int i = 0; i < newMatrixSize; ++i) {
       rowBuffer[i] = metricBasis_->state(i) * it->second;
     }
     rowBuffer += newMatrixSize;
   }
-
+  
   toc = getTime();
-  log() << "-> Compute normal matrix: " << toc - tic << " ms\n";
+  log() << "-> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
   tic = toc;
 
-  // Exchange normal matrix data  
+  // Exchange normal/reprojection matrix data  
   timeCommunicator_->allGatherv(mBuffer_.array() + displacements[myCpu], recv_counts[myCpu], mBuffer_.array(), recv_counts, displacements);
   
   toc = getTime();
@@ -233,50 +234,57 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
 
   /*log() << "Buffer is\n";
   for (int i = 0; i < newMatrixSize; ++i) {
-    for (int j = 0; j < newMatrixSize; ++j) {
+    for (int j = 0; j < 2 * newMatrixSize; ++j) {
       log() << "[" << i << "," << j << "] " << mBuffer_[i * newMatrixSize + j] << "\n";
     }
   }*/
 
-  // Assemble updated normal matrix
+  // Assemble updated normal & reprojection matrices
   normalMatrix_.reSize(newMatrixSize);
-
-  /*const double * originBufferBegin = mBuffer_.array();
-  for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
-    for (GlobalExchangeNumbering::IteratorConst jt = (*it)->globalHalfIndex(initStateFlag); jt; ++jt) {
-      int rowIndex = (*jt).second + originRowIndex;
-      std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
-      originBufferBegin += newMatrixSize;
-    }
-    originRowIndex += (*it)->stateCount(initStateFlag);
-  }*/
+  reprojectionMatrix_.reSize(newMatrixSize);
 
   // Loop on iterations
-  int originRowIndex = 0; 
+  int originRowIndex = 0; // Target matrix base row index for current iteration 
   for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
     GlobalExchangeNumbering::PtrConst numbering = *it;
-    GlobalExchangeNumbering::IteratorConst jt = numbering->globalHalfIndex(initStateFlag);
+    GlobalExchangeNumbering::IteratorConst jt_i = numbering->globalHalfIndex(HalfTimeSlice::BACKWARD);
+    GlobalExchangeNumbering::IteratorConst jt_f = numbering->globalHalfIndex(HalfTimeSlice::FORWARD);
    
-    //log() << "Iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "\n";
+    log() << "Iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "\n";
 
     // Loop on cpus
     for (int cpu = 0; cpu < numCpus; ++cpu) {
-      //log() << "Cpu # " << cpu << "\n";
+      log() << "Cpu # " << cpu << "\n";
       double * originBufferBegin = mBuffer_.array() + displacements[cpu]; // Position in AllgatherBuffer
-      int stateCountInIter = numbering->stateCount(CpuRank(cpu), initStateFlag);
-      //log() << "# states on cpu = " << stateCountInIter << "\n";
-      for (int s = 0; s < stateCountInIter; ++s) {
-        int rowIndex = (*jt).second + originRowIndex; // Row in target normal matrix
-        //log() << "Normal matrix row # = " << rowIndex << "\n";
-        //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
+      
+      int initialStateCountInIter = numbering->stateCount(CpuRank(cpu), HalfTimeSlice::BACKWARD);
+      log() << "# initial states on cpu = " << initialStateCountInIter << "\n";
+      for (int s = 0; s < initialStateCountInIter; ++s) {
+        int rowIndex = (*jt_i).second + originRowIndex; // Row in target normal matrix
+        log() << "Normal matrix row # = " << rowIndex << "\n";
+        log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
+        log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
-        ++jt;
+        ++jt_i;
       }
-      displacements[cpu] += newMatrixSize * stateCountInIter; // Update buffer cpu base displacement for next iteration
+
+      int finalStateCountInIter = numbering->stateCount(CpuRank(cpu), HalfTimeSlice::FORWARD);
+      log() << "# final states on cpu = " << initialStateCountInIter << "\n";
+      for (int s = 0; s < initialStateCountInIter; ++s) {
+        int rowIndex = (*jt_f).second + originRowIndex; // Row in target reprojection matrix
+        log() << "Reprojection matrix row # = " << rowIndex << "\n";
+        log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
+        log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
+        std::copy(originBufferBegin, originBufferBegin + newMatrixSize, reprojectionMatrix_[rowIndex]);
+        originBufferBegin += newMatrixSize;
+        ++jt_f;
+      }
+      // Update buffer cpu base displacement for next iteration
+      displacements[cpu] += newMatrixSize * (initialStateCountInIter + finalStateCountInIter);
     } 
     
-    originRowIndex += numbering->stateCount(initStateFlag); // Udpate normal matrix base row for next iteration
+    originRowIndex += numbering->stateCount(HalfTimeSlice::BACKWARD); // Udpate target matrix base row for next iteration
   }
   
   toc = getTime();
@@ -525,16 +533,31 @@ HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceM
 }
 
 size_t
+HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
+  return stateId_.size();
+}
+
+size_t
 HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direction d) const {
   switch (d) {
     case HalfTimeSlice::NO_DIRECTION:
-      return stateId_.size();
+      return 0;
     case HalfTimeSlice::FORWARD:
       return finalStateId_.size();
     case HalfTimeSlice::BACKWARD:
       return initialStateId_.size();
   }
-  return 0;
+  throw Fwk::InternalException("in HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+}
+
+size_t
+HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
+  try {
+    return stateCount_.at(c.value());
+  } catch (std::out_of_range & e) {
+    // Do nothing
+  }
+  return 0; 
 }
 
 size_t
@@ -542,16 +565,18 @@ HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, H
   try {
     switch (d) {
       case HalfTimeSlice::NO_DIRECTION:
-        return stateCount_.at(c.value());
+        return 0;
       case HalfTimeSlice::FORWARD:
         return finalStateCount_.at(c.value());
       case HalfTimeSlice::BACKWARD:
         return initialStateCount_.at(c.value());
+      default:
+        throw Fwk::InternalException("in HalfSliceCorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
     }
   } catch (std::out_of_range & e) {
     // Do nothing
   }
-  return 0; 
+  return 0;
 }
 
 int

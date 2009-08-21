@@ -24,6 +24,7 @@ HalfTimeSliceImpl.C
 HomogeneousGenAlphaIntegrator.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
+JumpBuilder.C
 LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C
@@ -46,6 +47,9 @@ PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
 ProjectorPropagator.C
+ReducedFullTimeSlice.C
+ReducedFullTimeSliceImpl.C
+ReducedLinearDriverImpl.C
 RemoteCoarseCorrectionServer.C
 RemoteDynamPropagator.C
 RemoteDynamPropagatorServer.C
@@ -55,8 +59,6 @@ RemoteSeedInitializerProxy.C
 RemoteSeedReader.C
 RemoteSeedWriter.C
 RemoteTimeSlice.C
-ScheduledRemoteSeedReader.C
-ScheduledRemoteSeedWriter.C
 SimpleSeedInitializer.C
 SliceMapping.C
 StaticSliceStrategy.C
@@ -65,6 +67,8 @@ TimeSlice.C
 TimeSliceImpl.C
 TimeSliceMapping.C
 TimeSliceNetwork.C
+UpdateProjectorImpl.C
+UpdatedSeedAssemblerImpl.C
 lev2pchol.f
 lev3pchol.f
 blas_dmax_val.f)

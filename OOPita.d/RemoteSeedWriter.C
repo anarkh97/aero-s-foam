@@ -3,18 +3,10 @@
 #include "Log.h"
 
 namespace Pita {
-    
-RemoteSeedWriter::RemoteSeedWriter(Communicator * timeComm) :
-    originCpu_(),
-    target_(NULL),
-    vectorSize_(0),
-    status_(READY),
-    timeComm_(timeComm),
-    stateBuffer_()
-{}
 
+template <>
 void
-RemoteSeedWriter::statusIs(Status s) {
+RemoteSharedStateWriter<DynamState>::statusIs(Status s) {
   if (s != status()) {
     setStatus(s);
     if (s == BUSY) {

@@ -3,13 +3,13 @@
 
 #include "SharedState.h"
 
-#include "Fwk.h"
 #include "DynamState.h"
-#include "Types.h"
+#include <Math.d/Vector.h>
 
 namespace Pita {
 
 typedef SharedState<DynamState> Seed;
+typedef SharedState<Vector> ReducedSeed;
 
 } // end namespace Pita
 

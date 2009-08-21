@@ -16,22 +16,36 @@ class GenManagerImpl {
 public:
   typedef std::map<K, Ptr<T> > InstanceMap;
   typedef typename InstanceMap::size_type InstanceCount;
+  typedef typename InstanceMap::const_iterator IteratorConst;
+  typedef typename InstanceMap::iterator Iterator;
+  typedef typename InstanceMap::value_type Pair;
+
+  /*class IteratorConst {
+  public:
+    const Pair & operator*() const { return *it_; }
+    const Pair * operator->() const { return it_.operator->(); }
+    IteratorConst & operator++() { ++it_; return *this; }
+    IteratorConst operator++(int) { IteratorConst tmp(*this); ++(*this); return tmp; }
+
+  private:
+    typename InstanceMap::const_iterator it_;
+  };*/
 
   T * instance(const K & key) const;
   InstanceCount instanceCount() const { return instance_.size(); }
   
   T * instanceNew(const K & key);
   void instanceDel(const K & key) { instance_.erase(key); } 
+  
+  IteratorConst instanceBegin() const { return instance_.begin(); }
+  IteratorConst instanceEnd() const { return instance_.end(); }
+
+  Iterator instanceBegin() { return instance_.begin(); }
+  Iterator instanceEnd() { return instance_.end(); }
 
 protected:
   virtual ~GenManagerImpl() {}
   virtual T * createNewInstance(const K & key) = 0;
-
-  typename InstanceMap::const_iterator instanceBegin() const { return instance_.begin(); }
-  typename InstanceMap::const_iterator instanceEnd() const { return instance_.end(); }
-
-  typename InstanceMap::iterator instanceBegin() { return instance_.begin(); }
-  typename InstanceMap::iterator instanceEnd() { return instance_.end(); }
 
 private:
   InstanceMap instance_;

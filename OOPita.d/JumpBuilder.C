@@ -38,7 +38,7 @@ JumpBuilder::SeedReactor::onState() {
 JumpBuilder::JumpBuilder() :
   seedStatus_(),
   seedReactor_(),
-  jump_()
+  jumpSeed_(NULL)
 {
   seedStatus_[LEFT] = seedStatus_[RIGHT] = MISSING;
   seedReactor_[LEFT] = new SeedReactor(NULL, this, LEFT);
@@ -66,16 +66,25 @@ JumpBuilder::seedStatus(JumpBuilder::SeedId id) const {
 
 void
 JumpBuilder::seedStatusIs(JumpBuilder::SeedId id, JumpBuilder::SeedStatus status) {
-  if (seedStatus(id) != status) {
-    seedStatus_[id] = status;
-    if (seedStatus_[RIGHT] == UPDATED && seedStatus_[LEFT] == UPDATED) {
-      jump_ = propagatedSeed(LEFT)->state() - propagatedSeed(RIGHT)->state();
-      seedStatus_[RIGHT] = seedStatus_[LEFT] = CURRENT;
-      if (notifiee_) {
-        notifiee_->onJump();
-      }
-    }
-  } 
+  if (seedStatus(id) == status)
+    return;
+  seedStatus_[id] = status;
+
+  if (seedStatus_[RIGHT] != UPDATED || seedStatus_[LEFT] != UPDATED)
+    return;
+
+  seedStatus_[RIGHT] = seedStatus_[LEFT] = CURRENT;
+
+  if (!jumpSeed_)
+    return;
+
+  DynamState newJumpSeed = propagatedSeed(LEFT)->state() - propagatedSeed(RIGHT)->state();
+  jumpSeed_->stateIs(newJumpSeed);
+}
+
+void
+JumpBuilder::jumpSeedIs(Seed * j) {
+  jumpSeed_ = j;
 }
 
 } /* end namespace Pita */

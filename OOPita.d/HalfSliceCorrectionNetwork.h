@@ -5,6 +5,10 @@
 #include "Types.h"
 
 #include "HalfSliceBasisCollector.h"
+
+#include "UpdateProjector.h"
+#include "UpdatedSeedAssembler.h"
+
 #include "DynamStateReductor.h"
 #include "DynamStateReconstructor.h"
 
@@ -13,6 +17,10 @@ namespace Pita {
 class HalfSliceCorrectionNetwork : public Fwk::PtrInterface<HalfSliceCorrectionNetwork> {
 public:
   virtual HalfSliceBasisCollector * collector() const = 0;
+
+  virtual UpdateProjector::Manager * updateProjectorMgr() const = 0;
+  virtual UpdatedSeedAssembler::Manager * updatedSeedAssemblerMgr() const = 0;
+
   virtual DynamStateReductor::Manager * reductorMgr() const = 0;
   virtual DynamStateReconstructor::Manager * reconstructorMgr() const = 0;
 

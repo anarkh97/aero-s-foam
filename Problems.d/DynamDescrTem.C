@@ -695,7 +695,7 @@ SingleDomainDynamic<Scalar>::buildOps(double coeM, double coeC, double coeK)
  kuc          = allOps.Kuc;
  dMat->kuc    = allOps.Kuc;
  dMat->dynMat = allOps.sysSolver;
- if(dMat->Msolver) dMat->Msolver->factor();
+ if(dMat->Msolver) { cerr << " ... Factoring mass matrix for iacc "; dMat->Msolver->factor(); cerr << "...\n"; }
 
  if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M); 
 

@@ -156,7 +156,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      //if(kelArray) { cerr << "****\n"; kel = kelArray[iele]; }
      if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
      else kel = packedEset[iele]->stiffness(nodes, karray);
-     std::cout << "TraceOrig: " << kel.trace() << std::endl;
+     //std::cout << "TraceOrig: " << kel.trace() << std::endl;
      this->densProjectStiffness(kel, iele);
    }
 
@@ -292,7 +292,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if (isComplexF || (imag(kappa2)!=0)) {
      if(mat) mat->add(kcel,(*allDOFs)[iele]);
    } else {
-     std::cout << " Trace 2: " << kel.trace() << std::endl;
+     //std::cout << " Trace 2: " << kel.trace() << std::endl;
      if(mat) mat->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {
@@ -479,8 +479,10 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    while(current != 0) {
      // PJSA: modified all addDiscreteMass functions to accept dsa dof rather than cdsa dof (much safer)
      int dof = dsa->locate(current->node, (1 << current->dof));
+     if(dof == -1) { cerr << "bad discrete mass #1\n"; current = current->next; continue; }
      if(current->jdof > -1) { // PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
        int jdof = dsa->locate(current->node, (1 << current->jdof));
+       if(jdof == -1) { cerr << "bad discrete mass #2\n"; current = current->next; continue; }
        if(isShifted) {
          double mass = (sinfo.isCoupled && isStructureElement(iele)) ? current->diMass*cscale_factor2 : current->diMass;
          double m_real = -(omega*omega)*mass;
@@ -766,15 +768,13 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
        return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
      else {
        DOFMap *baseMap = new DOFMap[dsa->size()];
-            DOFMap *eqMap = new DOFMap[DSA->size()];
-            // TODO Examine when DSA can be different from c_dsa
-            ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-            typename WrapSparseMat<Scalar>::CtorData
-              baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-            int nMappedEq = DSA->size();
-            return
-              new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-                  nMappedEq, eqMap);
+       DOFMap *eqMap = new DOFMap[DSA->size()];
+       // TODO Examine when DSA can be different from c_dsa
+       ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+       typename WrapSparseMat<Scalar>::CtorData
+         baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+       int nMappedEq = DSA->size();
+       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
      }
  }
 }

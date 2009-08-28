@@ -1615,8 +1615,12 @@ Domain::getRenumbering()
      Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
      Connectivity *renumToElem = elemToRenum->reverse();
      nodeToNode = renumToElem->transcon(elemToRenum);
+     //cerr << "nodeToNode = \n"; nodeToNode->print();
      delete renumToElem;
      delete elemToRenum;
+     // just for debugging make and print the ordinary nodeToNode connectivity
+     //Connectivity *nodeToNode_tmp = nodeToElem->transcon(elemToNode);
+     //cerr << "nodeToNode_tmp = \n"; nodeToNode_tmp->print();
    } else
      nodeToNode = nodeToElem->transcon(elemToNode);
 

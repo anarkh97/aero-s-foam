@@ -455,7 +455,7 @@ GenBLKSparseMatrix<Scalar>::factor()
     def = new int[numrbm];
     for(int i=0; i<numrbm; ++i) def[i] = deftemp[i];
   }
-
+  
   if(ngrbm > 0 && this->print_num_grbm) cerr << " ... Sparse matrix has " << ngrbm << " GRBMs/HZEMs ...\n";
   int ntrbm = numrbm - ngrbm;
   if(ntrbm > 0 && this->print_num_trbm)

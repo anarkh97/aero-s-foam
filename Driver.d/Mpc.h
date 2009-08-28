@@ -7,6 +7,7 @@
 #include <Utils.d/resize_array.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/Element.h>
+#include <vector>
 
 struct RealOrComplex 
 {
@@ -50,7 +51,7 @@ class LMPCTerm
    }
   
   bool isNull() {
-     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0;
+     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0.0;
   }
 }; 
 
@@ -74,7 +75,8 @@ class LMPCons
  public:
   bool isComplex;
   RealOrComplex rhs;              // right hand side of mpc
-  ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+  //ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+  std::vector<LMPCTerm> terms;
   union {
     int lmpcnum;                  // id number of the mpc from input
     int fluid_node;            
@@ -236,10 +238,14 @@ class SubLMPCons
 };
 
 inline void LMPCons::removeNullTerms() {
-	for(int i = 0; i < nterms; ++i) {
-		if(terms[i].isNull())
-			terms[i] = terms[--nterms];
-	}
+    vector<LMPCTerm>::iterator i = terms.begin();
+    while(i != terms.end()) {
+      if(i->isNull())
+        i = terms.erase(i);
+      else
+        ++i;
+    }
+    nterms = terms.size();
 }
 
 #endif

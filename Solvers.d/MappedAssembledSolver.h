@@ -59,8 +59,8 @@ class MappedAssembledSolver : public BaseSolver {
          //   " with flag " << flag[dofMaps[dofs[i]].dofs[j]];
           if(flag[dofMaps[dofs[i]].dofs[j]] != step) {
             flag[dofMaps[dofs[i]].dofs[j]] = step;
-            mappedDofs[nMappedDOFs] = dofMaps[dofs[i]].dofs[0];
-            subScript[dofMaps[dofs[i]].dofs[0]] = nMappedDOFs;
+            mappedDofs[nMappedDOFs] = dofMaps[dofs[i]].dofs[j]; // XXXX is this 0 correct
+            subScript[dofMaps[dofs[i]].dofs[j]] = nMappedDOFs; // XXXX is this 0 correct? subScript[dofMaps[dofs[i]].dofs[j]] is being used but not set
             nMappedDOFs++;
           }
         }
@@ -87,7 +87,8 @@ class MappedAssembledSolver : public BaseSolver {
         DOFMap &dMapK = dofMaps[dofs[k]];
         for(int iptr = 0; iptr < dMapK.ndofs; ++iptr) {
           int i = subScript[dMapK.dofs[iptr]];
-         // std::cerr << "(" << dMapK.dofs[iptr] << ", " << i << ") ";
+          //std::cerr << "(" << dMapK.dofs[iptr] << ", " << i << ") ";
+          //std::cerr << "(" << dMapK.coefs[iptr] << ", " << i << ") ";
           for(int j = 0; j < ndofs; ++j)
             mTmp[i][j] += dMapK.coefs[iptr]*mat[k][j];
         }
@@ -140,23 +141,29 @@ class MappedAssembledSolver : public BaseSolver {
     void add(GenFullM<Scalar> &mat, int *dofs)  {
    /*   GenFullM<Scalar> m = map(mat, dofs, mappedDofs, ds);
       BaseSolver::add(m, mappedDofs.data());*/
+      cerr << "MappedAssembledSolver::add(GenFullM<Scalar> &mat, int *dofs) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &, int, int) {
       // TODO revisit
+      cerr << "MappedAssembledSolver::add(GenFullM<Scalar> &, int, int) is not implemented\n";
     }
     void add(GenAssembledFullM<Scalar> &, int *) {
       // TODO revisit
+      cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar> &, int *) is not implemented\n";
     }
 
     // TODO revisit
-    void addDiscreteMass(int dof, Scalar) {
-
+    void addDiscreteMass(int dof, Scalar s) { // PJSA 8-7-2009
+      FullSquareMatrix mat(1); mat[0][0] = ScalarTypes::Real(s); int dofs[1] = { dof };
+      FullSquareMatrix m = map(mat, dofs, mappedDofs,dd);
+      BaseSolver::add(m, mappedDofs.data());
+      //cerr << "MappedAssembledSolver::addDiscreteMass(int dof, Scalar) is not implemented\n";
     }
 
     // TODO revisit
     void add(int dofi, int dofj, Scalar d) {
-
+      cerr << "MappedAssembledSolver::add(int dofi, int dofj, Scalar d) is not implemented\n";
     }
 
     void factor() {
@@ -165,23 +172,24 @@ class MappedAssembledSolver : public BaseSolver {
     } 
 
     void reSolve(Scalar *rhs);
+    void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { solution = rhs; reSolve(solution.data()); }
 };
 
 template<class BaseSolver, class Scalar>
 void MappedAssembledSolver<BaseSolver, Scalar>::reSolve(Scalar *s) {
   GenVector<Scalar> s2(BaseSolver::neqs());
   s2.zero();
-//  std::cerr << "Doing Mapping"<< std::endl;
+  //std::cerr << "Doing Mapping"<< std::endl;
   for(int i = 0; i < numMappedEqs; ++i) {
-//    std::cerr << i << " :=";
+    //std::cerr << i << " :=";
     for(int j = 0; j < eqMaps[i].ndofs; ++j) {
-  //    std::cerr << " + " << eqMaps[i].coefs[j] << "*" << eqMaps[i].dofs[j];
+      //std::cerr << " + " << eqMaps[i].coefs[j] << "*" << eqMaps[i].dofs[j];
       s2[eqMaps[i].dofs[j]] += eqMaps[i].coefs[j]*s[i];
     }
- //   std::cerr<< std::endl;
+    //std::cerr<< std::endl;
   }
   BaseSolver::reSolve(s2.data());
- // std::cerr<< "Resolved sizes " << s2.size() << " " << BaseSolver::neqs() << std::endl;
+  //std::cerr<< "Resolved sizes " << s2.size() << " " << BaseSolver::neqs() << std::endl;
   for(int i = 0; i < numMappedEqs; ++i) {
     s[i] = 0;
     for(int j = 0; j < eqMaps[i].ndofs; ++j)

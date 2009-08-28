@@ -369,9 +369,9 @@ void printLMPC(LMPCons *lmpc, vector<int> &tCount, std::map<std::pair<int,int>, 
 void
 findGroups(Connectivity *nToN, Connectivity &nToE) {
     // Examine all the nodes to form groups and for each group, collapse the elements
-	// that form it into a single group.
-	std::set<int> visitedNodes;
-	for(int i = 0; i < nToN->csize(); ++i) {
+    // that form it into a single group.
+    std::set<int> visitedNodes;
+    for(int i = 0; i < nToN->csize(); ++i) {
       // Skip nodes that have no connection or that have already been treated
       if(nToN->num(i) == 0 || visitedNodes.find(i) != visitedNodes.end())
     	  continue;
@@ -396,12 +396,17 @@ findGroups(Connectivity *nToN, Connectivity &nToE) {
     		  elementGroup.insert(nToE[j][el]);
       }
       // We now have the group of nodes that form a complete rigid body.
-      fprintf(stderr, "Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
-	}
+      fprintf(stderr, "in GeoSource::findGroups, Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
+    }
 }
+
+#include <Math.d/rref.h>
+#include <eigen2/Eigen/Core>
+using namespace Eigen;
+
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
-void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
-  std::cerr << "Making direct MPCs" << std::endl;
+void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
+{
   int lmpcnum = 0;
   bool print_flag = true;
   for(int i=0; i < numLMPC; ++i)
@@ -415,7 +420,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
     if((ele != 0) && (ele->isRigidMpcElement())) {
       if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
- // Delay this 'til later     ele->computeMPCs(nodes,lmpcnum);
+ /* Delay this 'til later */  //ele->computeMPCs(nodes,lmpcnum);
     }
   }
 
@@ -424,22 +429,23 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
 	 if(ele != 0 && ele->isRigidMpcElement())
          rigidSet.elemadd(nRigid++,ele);
   }
-  std::cerr << "Number of rigid elements: " << nRigid << " versus "<< nEle << std::endl;
+  //std::cerr << "Number of rigid elements: " << nRigid << " versus "<< nEle << std::endl;
   rigidSet.collapseRigid6();
   nRigid = rigidSet.last();
   for(int i = 0; i < nRigid; ++i) {
 	  rigidSet[i]->computeMPCs(nodes,lmpcnum);
   }
+
   numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
-  fprintf(stderr," New number of MPCs: %d\n", numLMPC);
+  //fprintf(stderr," New number of MPCs: %d\n", numLMPC);
+
   if(numLMPC) {
-
-
+    bool use_rref = false; // this is set to true if we cannot find a slave for each mpc, or if an mpc cannot be written independently
     using std::map;
     using std::pair;
     using std::vector;
-    /** Create a unique integer ID for every DOF involved in an MPC and count
-     * in how many MPC each DOF appears. */
+    // Create a unique integer ID for every DOF involved in an MPC and count
+    // in how many MPC each DOF appears.
     int nID = 0;
     map<pair<int,int>, int> dofID;
     vector<int> tCount;
@@ -464,8 +470,8 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
     Connectivity *dofToLMPC = lmpcToDof.reverse();
     fprintf(stderr, "Number of DOFs in MPCS: %d\n", dofToLMPC->csize());
 
-    Connectivity *dToD = dofToLMPC->transcon(&lmpcToDof);
-    // findGroups(dToD, *dofToLMPC);
+    //Connectivity *dToD = dofToLMPC->transcon(&lmpcToDof);
+    //findGroups(dToD, *dofToLMPC);
 
     // Determine for each MPC which DOF will be slave
     vector<int> mpcSlaveDOF(numLMPC, -1);
@@ -500,12 +506,15 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
     	queue.pop();
     }
     if(nMPCtoView > 0) {
-    	fprintf(stderr,"ERROR: Could not find a slave for each MPC. Number of MPCs remaining: %d\n",
+    	fprintf(stderr,"Could not find a slave for each MPC. Number of MPCs remaining: %d\n",
     	nMPCtoView);
+/*
     	for(int i = 0; i < numLMPC; ++i)
     		if(mpcSlaveDOF[i] < 0) {
     			printLMPC(lmpc[i],tCount, dofID);
     		}
+*/
+        use_rref = true;
     } else
     	std::cerr << "Found a Slave for each MPC!"<< std::endl;
 // First version:
@@ -516,6 +525,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
           continue;
         pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
         if(tCount[dofID[p]] == 1) {
+          //cerr << "slave is term " << j << endl;
           if(j != 0) {
             LMPCTerm lmTerm = lmpc[i]->terms[j];
             lmpc[i]->terms[j] = lmpc[i]->terms[0];
@@ -525,18 +535,72 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
         }
       }
       if(j == lmpc[i]->nterms) {
-        fprintf(stderr, "ERROR: MPC %d could not be written independently. Please re-organize the MPCs!\n", i+1);
+/*      fprintf(stderr, "MPC %d could not be written independently.\n", i+1);
         for(j = 0; j < lmpc[i]->nterms; ++j) {
             pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
         	fprintf(stderr, "%d %d %e - %d, ",
         			lmpc[i]->terms[j].nnum+1, lmpc[i]->terms[j].dofnum+1,
         			lmpc[i]->terms[j].coef.r_value, tCount[dofID[p]]);
         }
+        fprintf(stderr, "\n"); */
+        use_rref = true;
       }
     }
 
+    if(use_rref) {
+
+      vector<int> *term2col = new vector<int>[numLMPC];
+      vector<pair<int,int> > col2pair(dofToLMPC->csize());
+      for(int i = 0; i < numLMPC; ++i) {
+        for(int j = 0; j < lmpc[i]->nterms; ++j) {
+          pair<int, int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+          map<pair<int,int>, int>::iterator it = dofID.find(p);
+          term2col[i].push_back(it->second); col2pair[it->second] = p;
+        }
+      }      
+
+      // copy lmpc coefficients into a dense matrix for rref
+      Matrix<double,Dynamic,Dynamic> c(numLMPC, dofToLMPC->csize());  
+      c.setZero();
+      for(int i = 0; i < numLMPC; ++i) {
+        for(int j = 0; j < lmpc[i]->nterms; ++j) {
+          c(i,term2col[i][j]) = lmpc[i]->terms[j].coef.r_value;
+        }
+      }
+      delete [] term2col;
+
+      // do the rref
+      double t = -getTime();
+      cerr << " ... Converting LMPCs to Reduced Row Echelon Form ";
+      int *colmap = new int[c.cols()];
+      for(int i=0; i<c.cols(); ++i) colmap[i] = i;
+      int rank = rowEchelon<double, Matrix<double,Dynamic,Dynamic> >(c, true, NULL, colmap);
+      cerr << "took " << (t += getTime())/1000. << " seconds ...\n"; //cerr << "c = \n" << c << endl;
+      if(rank != numLMPC) {
+        cerr << "found " << numLMPC-rank << " redundant constraints\n";
+        domain->setNumLMPC(rank);
+      }
+
+      // copy the coefficients of the rref matrix into the lmpc data structure 
+      for(int i = 0; i < rank; ++i) { 
+        lmpc[i]->terms.clear(); 
+        lmpc[i]->nterms = 0;
+        for(int j = i; j < c.cols(); ++j) {
+          if(std::abs<double>(c(i,j)) > 10.0*std::numeric_limits<double>::epsilon()) { 
+            LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
+            lmpc[i]->terms.push_back(t);
+            lmpc[i]->nterms++;
+          }
+        }
+      }
+      delete [] colmap;
+
+      //setDirectMPC(false); geoSource->addMpcElements(numLMPC, lmpc); // for debugging
+      //for(int i=0; i<numLMPC; ++i) { cerr << "i = " << i << endl; lmpc[i]->print(); }
+    }
+
   }
-  std::cerr<< "NElement = " << nEle << std::endl;
+//  std::cerr<< "NElement = " << nEle << std::endl;
 }
 
 //----------------------------------------------------------------------

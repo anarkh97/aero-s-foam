@@ -101,7 +101,7 @@ HalfSliceNetwork::init() {
           PhaseRank slicePhase = schedule_->localPropagation(rank);
           //log() << "HalfTimeSliceNew(" << hsId << ") at phase " << slicePhase << "\n";
           HalfTimeSlice::Ptr slice = hsMgr_->instanceNew(hsId);
-          slice->phaseIs(slicePhase);
+          //slice->phaseIs(slicePhase);
           Seed * seed = getSeed(SeedId(MAIN_SEED, rank));
           if (rank.value() % 2 == 0) { // Add to Seed initialization list if necessary
             //log() << SeedId(MAIN_SEED, rank) << " to be initialized\n";
@@ -120,7 +120,7 @@ HalfSliceNetwork::init() {
           PhaseRank slicePhase = schedule_->localPropagation(rank);
           //log() << "HalfTimeSliceNew(" << hsId << ") at phase " << slicePhase << "\n";
           HalfTimeSlice::Ptr slice = hsMgr_->instanceNew(hsId);
-          slice->phaseIs(slicePhase);
+          //slice->phaseIs(slicePhase);
           HalfSliceRank seedRank(rank + HalfSliceCount(1));
           Seed * seed = getSeed(SeedId(MAIN_SEED, seedRank));
           if (seedRank.value() % 2 == 0) { // Add to Seed initialization list if necessary
@@ -143,7 +143,7 @@ HalfSliceNetwork::init() {
           FullTimeSliceHead::Ptr slice = fshMgr_->instanceNew(rank);
 
           slice->tailCpuIs(tailCpu); 
-          slice->phaseIs(slicePhase);
+          //slice->phaseIs(slicePhase);
           slice->updatedSeedIs(getSeed(SeedId(MAIN_SEED, rank)));
           slice->rightPropagatedSeedIs(getSeed(SeedId(RIGHT_SEED, rank)));
         }
@@ -158,7 +158,7 @@ HalfSliceNetwork::init() {
           //log() << "HeadCpu set to " << headCpu << "\n";
 
           slice->headCpuIs(headCpu);
-          slice->phaseIs(slicePhase);
+          //slice->phaseIs(slicePhase);
           slice->nextUpdatedSeedIs(getSeed(SeedId(MAIN_SEED, rank + HalfSliceCount(1))));
           slice->nextLeftPropagatedSeedIs(getSeed(SeedId(LEFT_SEED, rank + HalfSliceCount(1))));
         }

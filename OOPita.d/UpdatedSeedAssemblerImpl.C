@@ -14,7 +14,7 @@ UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const Manager * manager) :
 
 void
 UpdatedSeedAssemblerImpl::assemblyPhaseIs(PhaseRank ap) {
-  updateReactor_->notifier()->phaseIs(ap);
+  //updateReactor_->notifier()->phaseIs(ap);
   setAssemblyPhase(ap);
 }
 
@@ -30,8 +30,30 @@ UpdatedSeedAssemblerImpl::propagatedSeedIs(const Seed * ps) {
 
 void
 UpdatedSeedAssemblerImpl::correctionComponentsIs(const ReducedSeed * cc) {
-  schedulingReactor_->notifierIs(cc);
+  //schedulingReactor_->notifierIs(cc);
   setCorrectionComponents(cc);
+}
+
+void
+UpdatedSeedAssemblerImpl::doAssembly() {
+  if (!propagatedSeed() || !updatedSeed()) {
+    return;
+  }
+
+  //log() << "Reading state from " << correctionComponents()->name() << "\n";
+
+  const Vector & components = correctionComponents()->state();
+
+  DynamState result(propagatedSeed()->state());
+  int rbs = static_cast<int>(correctionBasis()->stateCount());
+  for (int i = 0; i < rbs; ++i) {
+    if (components[i] != 0.0) {
+      result.displacement().linAdd(components[i], correctionBasis()->state(i).displacement());
+      result.velocity().linAdd(components[i], correctionBasis()->state(i).velocity());
+    }
+  }
+
+  updatedSeed()->stateIs(result);
 }
 
 /* SchedulingReactor */

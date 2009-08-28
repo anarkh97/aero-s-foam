@@ -13,8 +13,9 @@
 
 #include "HalfSliceBasisCollectorImpl.h"
 
-#include "UpdateProjectorImpl.h"
+#include "JumpProjectorImpl.h"
 #include "UpdatedSeedAssemblerImpl.h"
+#include "ReducedFullTimeSliceImpl.h"
 
 #include "DynamStateReductorImpl.h"
 #include "DynamStateReconstructorImpl.h"
@@ -49,8 +50,9 @@ public:
 
   virtual HalfSliceBasisCollector * collector() const { return collector_.ptr(); }
   
-  virtual UpdateProjector::Manager * updateProjectorMgr() const { return updateProjectorMgr_.ptr(); }
-  virtual UpdatedSeedAssembler::Manager * updatedSeedAssemblerMgr() const { return updatedSeedAssemblerMgr_.ptr() ;} 
+  virtual JumpProjectorImpl::Manager * jumpProjectorMgr() const { return jumpProjectorMgr_.ptr(); }
+  virtual UpdatedSeedAssemblerImpl::Manager * updatedSeedAssemblerMgr() const { return updatedSeedAssemblerMgr_.ptr() ;} 
+  virtual ReducedFullTimeSliceImpl::Manager * fullTimeSliceMgr() const { return fullTimeSliceMgr_.ptr(); }
   
   virtual DynamStateReductor::Manager * reductorMgr() const { return reductorMgr_.ptr(); }
   virtual DynamStateReconstructor::Manager * reconstructorMgr() const { return reconstructorMgr_.ptr(); }
@@ -183,6 +185,9 @@ public:
     DISALLOW_COPY_AND_ASSIGN(GlobalExchangeNumbering);
   };
 
+  // HACK
+  void buildProjection();
+
 protected:
   HalfSliceCorrectionNetworkImpl(size_t vSize,
                                  Communicator * timeComm,
@@ -193,7 +198,6 @@ protected:
                                  Strategy strategy,
                                  double projectionTolerance);
 
-  void buildProjection();
 
   friend class ProjectionBuildingReactor;
   friend class SchedulingReactor;
@@ -227,8 +231,9 @@ private:
   
   HalfSliceBasisCollectorImpl::Ptr collector_;
   
-  UpdateProjectorImpl::Manager::Ptr updateProjectorMgr_;
+  JumpProjectorImpl::Manager::Ptr jumpProjectorMgr_;
   UpdatedSeedAssemblerImpl::Manager::Ptr updatedSeedAssemblerMgr_;
+  ReducedFullTimeSliceImpl::Manager::Ptr fullTimeSliceMgr_;
 
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
   DynamStateReconstructorImpl::Manager::Ptr reconstructorMgr_;

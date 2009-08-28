@@ -40,6 +40,8 @@ UpdateProjectorImpl::JumpReactor::onState() {
     int index = solver->factorPermutation(i);
     reducedJump[index] = jump * basis->state(index);
   }
+  
+  log() << "Reduced jump of size " << reducedJump.size() << "\n";
 }
 
 /* UpdateProjectorImpl::CorrectionReactor definition */
@@ -71,6 +73,8 @@ UpdateProjectorImpl::CorrectionReactor::onState() {
   
   // updateComponents <- reducedJump
   updateComponents = parent_->reducedJump();
+
+  log() << "updateComponents.size = " << updateComponents.size() << "\n";
   
   // updateComponents <- reprojectionMatrix * reducedCorrection + updateComponents
   const_cast<FullSquareMatrix *>(parent_->reprojectionMatrix())->multiply(const_cast<Vector &>(reducedCorrection), updateComponents, 1.0, FullSquareMatrix::TRANSPOSED);
@@ -88,6 +92,21 @@ UpdateProjectorImpl::UpdateProjectorImpl(const UpdateProjectorImpl::Manager * ma
   correctionReactor_(new CorrectionReactor(NULL, this))
 {}
 
+void
+UpdateProjectorImpl::doProjection() {
+  // reducedJump <- 0
+  reducedJump().reset(reductionBasis()->stateCount());
+ 
+  // Fill-in relevant part of reducedJump 
+  int factorRank = solver()->factorRank(); 
+  for (int i = 0; i < factorRank; ++i) {
+    int index = solver()->factorPermutation(i);
+    reducedJump()[index] = jump()->state() * reductionBasis()->state(index);
+  }
+  
+  log() << "Reduced jump of size " << reducedJump().size() << "\n";
+}
+
 size_t
 UpdateProjectorImpl::reducedBasisSize() const {
   return reductionBasis()->stateCount(); 
@@ -95,7 +114,7 @@ UpdateProjectorImpl::reducedBasisSize() const {
 
 void
 UpdateProjectorImpl::jumpIs(const Seed * j) {
-  jumpReactor_->notifierIs(j);
+  //jumpReactor_->notifierIs(j);
   setJump(j);
 }
 

@@ -111,7 +111,7 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
     SimpleBuffer<double> pivot_values;
     pivot_values.sizeIs(matrixSize());
 
-    // Numerical constant
+    // Numerical constants
     const int int_one = 1;
     const double minus_one = -1;
 
@@ -163,6 +163,7 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
 const Vector &
 NearSymmetricSolver::solution(Vector & rhs) const {
   if (rhs.size() != matrixSize()) {
+    log() << "rhs.size = " << rhs.size() << " / " << "matrixSize = " << matrixSize() << "\n";
     throw Fwk::RangeException("in NearSymmetricSolver::solution - Size mismatch"); 
   }
 

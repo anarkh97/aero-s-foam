@@ -6,8 +6,9 @@
 
 #include "HalfSliceBasisCollector.h"
 
-#include "UpdateProjector.h"
+#include "JumpProjector.h"
 #include "UpdatedSeedAssembler.h"
+#include "ReducedFullTimeSlice.h"
 
 #include "DynamStateReductor.h"
 #include "DynamStateReconstructor.h"
@@ -18,8 +19,9 @@ class HalfSliceCorrectionNetwork : public Fwk::PtrInterface<HalfSliceCorrectionN
 public:
   virtual HalfSliceBasisCollector * collector() const = 0;
 
-  virtual UpdateProjector::Manager * updateProjectorMgr() const = 0;
+  virtual JumpProjector::Manager * jumpProjectorMgr() const = 0;
   virtual UpdatedSeedAssembler::Manager * updatedSeedAssemblerMgr() const = 0;
+  virtual ReducedFullTimeSlice::Manager * fullTimeSliceMgr() const = 0;
 
   virtual DynamStateReductor::Manager * reductorMgr() const = 0;
   virtual DynamStateReconstructor::Manager * reconstructorMgr() const = 0;

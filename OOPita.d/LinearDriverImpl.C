@@ -274,6 +274,6 @@ LinearDriverImpl::solve() {
 } // end namespace Pita
 
 // Entrypoint
-Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
+/*Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
   return Pita::LinearDriverImpl::New(pbDesc);
-}
+}*/

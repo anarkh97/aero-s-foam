@@ -22,7 +22,7 @@ public:
   class LocalPropagationReactor;
 
   // Overriden mutators
-  virtual void phaseIs(PhaseRank p);
+  //virtual void phaseIs(PhaseRank p);
   virtual void seedIs(const Seed * s);
   virtual void propagatedSeedIs(Seed * ps);
 
@@ -30,13 +30,14 @@ public:
   const DynamPropagator * propagator() const { return propagator_.ptr(); }
   DynamPropagator * propagator() { return propagator_.ptr(); }
 
+  // HACK 
+  void propagateSeed(); 
 protected:
   HalfTimeSliceImpl(HalfSliceRank r,
                     HalfTimeSlice::Direction d,
                     DynamPropagator * propagator);
 
 private:
-  void propagateSeed(); 
 
   DynamPropagator::Ptr propagator_;
   DynamState previousSeedState_;

@@ -7,106 +7,52 @@
 
 namespace Pita {
 
-class ReducedFullTimeSliceHead : public Fwk::PtrInterface<ReducedFullTimeSliceHead> {
+class ReducedFullTimeSlice : public Fwk::PtrInterface<ReducedFullTimeSlice> {
 public:
   // Accessory types
-  EXPORT_PTRINTERFACE_TYPES(ReducedFullTimeSliceHead);
-  typedef Fwk::GenManagerInterface<ReducedFullTimeSliceHead *, HalfSliceRank> Manager;
+  EXPORT_PTRINTERFACE_TYPES(ReducedFullTimeSlice);
+  typedef Fwk::GenManagerInterface<ReducedFullTimeSlice *, HalfSliceRank> Manager;
 
-  // Read accessors
+  // Id
   HalfSliceRank headHalfSlice() const { return headHalfSlice_; }
   HalfSliceRank tailHalfSlice() const { return tailHalfSlice_; }
-  CpuRank tailCpu() const { return tailCpu_; }
-  PhaseRank phase() const { return phase_; } 
-  const Seed * rightPropagatedSeed() const { return rightPropagatedSeed_.ptr(); }
-  const Seed * leftPropagatedSeed() const { return leftPropagatedSeed_.ptr(); }
-  const Seed * updatedSeed() const { return updatedSeed_.ptr(); }
-  Seed * updatedSeed() { return updatedSeed_.ptr(); }
+  
+  // Seeds
+  const ReducedSeed * jump() const { return jump_.ptr(); }
   const ReducedSeed * correction() const { return correction_.ptr(); }
-
-  // Mutators
-  virtual void tailCpuIs(CpuRank tc) { setTailCpu(tc); }
-  virtual void phaseIs(PhaseRank p) { setPhase(p); }
-  virtual void rightPropagatedSeedIs(const Seed * rps) { setRightPropagatedSeed(rps); }
-  virtual void leftPropagatedSeedIs(const Seed * lps) { setLeftPropagatedSeed(lps); }
-  virtual void updatedSeedIs(Seed * us) { setUpdatedSeed(us); }
-  virtual void correctionIs(const ReducedSeed * c) { setCorrection(c); }
-
-protected:
-  ReducedFullTimeSliceHead(HalfSliceRank headRank, CpuRank tailCpu);
-
-  void setTailCpu(CpuRank tc) { tailCpu_ = tc; }
-  void setPhase(PhaseRank p) { phase_ = p; }
-  void setRightPropagatedSeed(const Seed * rps) { rightPropagatedSeed_ = rps; }
-  void setLeftPropagatedSeed(const Seed * lps) { leftPropagatedSeed_ = lps; }
-  void setUpdatedSeed(Seed * us) { updatedSeed_ = us; }
-  void setCorrection(const ReducedSeed * c) { correction_ = c; }
-
-private:
-  HalfSliceRank headHalfSlice_;
-  HalfSliceRank tailHalfSlice_;
-
-  CpuRank tailCpu_;
-
-  PhaseRank phase_;
-
-  Fwk::Ptr<const Seed> rightPropagatedSeed_;
-  Fwk::Ptr<const Seed> leftPropagatedSeed_;
-  Fwk::Ptr<Seed> updatedSeed_;
-  Fwk::Ptr<const ReducedSeed> correction_;
- 
-  DISALLOW_COPY_AND_ASSIGN(ReducedFullTimeSliceHead); 
-};
-
-
-class ReducedFullTimeSliceTail : public Fwk::PtrInterface<ReducedFullTimeSliceTail> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(ReducedFullTimeSliceTail);
-  typedef Fwk::GenManagerInterface<ReducedFullTimeSliceTail *, HalfSliceRank> Manager;
-
-  HalfSliceRank headHalfSlice() const { return headHalfSlice_; }
-  HalfSliceRank tailHalfSlice() const { return tailHalfSlice_; }
-
-  const Seed * nextLeftPropagatedSeed() const { return nextLeftPropagatedSeed_.ptr(); }
-  const Seed * nextUpdatedSeed() const { return nextUpdatedSeed_.ptr(); }
-  Seed * nextUpdatedSeed() { return nextUpdatedSeed_.ptr(); }
   const ReducedSeed * nextCorrection() const { return nextCorrection_.ptr(); }
   ReducedSeed * nextCorrection() { return nextCorrection_.ptr(); }
 
-  CpuRank headCpu() const { return headCpu_; }
-
-  PhaseRank phase() const { return phase_; }
-
-  virtual void nextLeftPropagatedSeedIs(const Seed * nlps) { setNextLeftPropagatedSeed(nlps); }
-  virtual void nextUpdatedSeedIs(Seed * nus) { setNextUpdatedSeed(nus); }
+  virtual void jumpIs(const ReducedSeed * j) { setJump(j); }
+  virtual void correctionIs(const ReducedSeed * c) { setCorrection(c); }
   virtual void nextCorrectionIs(ReducedSeed * nc) { setNextCorrection(nc); }
 
-  virtual void headCpuIs(CpuRank hc) { setHeadCpu(hc); }
-  
-  virtual void phaseIs(PhaseRank p) { setPhase(p); }
+  // Iteration control
+  IterationRank iteration() const { return iteration_; }
+  virtual void iterationIs(IterationRank i) = 0;
 
 protected:
-  ReducedFullTimeSliceTail(HalfSliceRank tailRank, CpuRank headCpu);
-  
-  void setNextLeftPropagatedSeed(const Seed * nlps) { nextLeftPropagatedSeed_ = nlps; }
-  void setNextUpdatedSeed(Seed * nus) { nextUpdatedSeed_ = nus; }
-  void setNextCorrection(ReducedSeed * nc) { nextCorrection_ = nc; }
-  void setHeadCpu(CpuRank hc) { headCpu_ = hc; }
-  void setPhase(PhaseRank p) { phase_ = p; }
+  explicit ReducedFullTimeSlice(HalfSliceRank headRank) :
+    headHalfSlice_(headRank),
+    tailHalfSlice_(headRank + HalfSliceCount(1))
+  {}
+
+  void setJump(const ReducedSeed * j) { jump_ = j; }
+  void setCorrection(const ReducedSeed * c) { correction_ = c; }
+  void setNextCorrection(ReducedSeed * c) { nextCorrection_ = c; }
+  void setIteration(IterationRank i) { iteration_ = i; }
 
 private:
   HalfSliceRank headHalfSlice_;
   HalfSliceRank tailHalfSlice_;
-  
-  CpuRank headCpu_;
- 
-  Fwk::Ptr<const Seed> nextLeftPropagatedSeed_;
-  Fwk::Ptr<Seed> nextUpdatedSeed_;
-  Fwk::Ptr<ReducedSeed> nextCorrection_;
- 
-  PhaseRank phase_;
 
-  DISALLOW_COPY_AND_ASSIGN(ReducedFullTimeSliceTail);
+  Fwk::Ptr<const ReducedSeed> jump_;
+  Fwk::Ptr<const ReducedSeed> correction_;
+  Fwk::Ptr<ReducedSeed> nextCorrection_;
+
+  IterationRank iteration_;
+
+  DISALLOW_COPY_AND_ASSIGN(ReducedFullTimeSlice); 
 };
 
 } // end namespace Pita

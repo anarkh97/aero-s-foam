@@ -32,6 +32,9 @@ public:
   const FullSquareMatrix * reprojectionMatrix() const;
   const RankDeficientSolver * solver() const;
 
+  // HACK
+  void doProjection();
+
 protected:
   class JumpReactor;
   class CorrectionReactor;

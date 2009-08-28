@@ -62,7 +62,7 @@ private:
   }
 
   DynamStateBasis::PtrConst parent_;
-  int currentRank_;
+  size_t currentRank_;
   DynamState current_;
 };
 

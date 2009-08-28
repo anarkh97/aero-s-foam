@@ -21,8 +21,8 @@ public:
     UPDATED
   };
   
-  const Seed * propagatedSeed(SeedId id) const;
-  void propagatedSeedIs(SeedId id, const Seed * s);
+  const Seed * seed(SeedId id) const;
+  void seedIs(SeedId id, const Seed * s);
 
   SeedStatus seedStatus(SeedId id) const;
   void seedStatusIs(SeedId id, SeedStatus status);

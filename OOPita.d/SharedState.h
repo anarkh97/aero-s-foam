@@ -2,17 +2,16 @@
 #define PITA_SHAREDSTATE_H
 
 #include "Fwk.h"
+#include "Types.h"
 
 namespace Pita {
 
-template <typename S>
-class SharedState : public Fwk::NamedInterface {
-public:
-  EXPORT_PTRINTERFACE_TYPES(SharedState);
+/* SharedStateRoot */
 
-  typedef S StateType;
-  class Manager;
-  
+class SharedStateRoot : public Fwk::NamedInterface {
+public:
+  EXPORT_PTRINTERFACE_TYPES(SharedStateRoot);
+
   enum Status {
     INACTIVE = 0,
     ACTIVE,
@@ -20,11 +19,44 @@ public:
     SPECIAL
   };
 
-  const StateType & state() const { return state_; }
   Status status() const { return status_; }
+  IterationRank iteration() const { return iteration_; }
+  
+  virtual void statusIs(Status s) = 0;
+  virtual void iterationIs(IterationRank i) = 0;
 
-  void stateIs(const StateType & s); 
-  void statusIs(Status s);
+protected:
+  explicit SharedStateRoot(const Fwk::String & name) :
+    Fwk::NamedInterface(name),
+    status_(INACTIVE),
+    iteration_(0)
+  {}
+
+  void setStatus(Status s) { status_ = s; }
+  void setIteration(IterationRank i) { iteration_ = i; }
+
+private:
+  Status status_;
+  IterationRank iteration_;
+  
+  DISALLOW_COPY_AND_ASSIGN(SharedStateRoot);
+};
+
+/* SharedState<StateType> */
+
+template <typename S>
+class SharedState : public SharedStateRoot {
+public:
+  EXPORT_PTRINTERFACE_TYPES(SharedState);
+
+  typedef S StateType;
+  class Manager;
+  
+  const StateType & state() const { return state_; }
+
+  virtual void stateIs(const StateType & s); 
+  virtual void statusIs(Status s);
+  virtual void iterationIs(IterationRank i);
 
   class NotifieeConst : public Fwk::BaseMultiNotifiee<const SharedState, NotifieeConst> {
   public:
@@ -33,6 +65,7 @@ public:
 
     virtual void onState() {}
     virtual void onStatus() {}
+    virtual void onIteration() {}
 
   protected:
     explicit NotifieeConst(const SharedState * notifier = NULL) :
@@ -48,7 +81,6 @@ protected:
   explicit SharedState(const Fwk::String & name);
 
   void setState(const StateType & s) { state_ = s; }
-  void setStatus(Status s) { status_ = s; }
   
   GenNotifierDelegate<NotifieeConst> & notifierDelegate() const { return const_cast<SharedState *>(this)->notifierDelegate_; }
   
@@ -56,12 +88,9 @@ protected:
 
 private:
   StateType state_;
-  Status status_;
   
   // Notifier implementation
   GenNotifierDelegate<NotifieeConst> notifierDelegate_;
-
-  DISALLOW_COPY_AND_ASSIGN(SharedState);
 };
 
 template <typename S>
@@ -82,8 +111,8 @@ protected:
 
 template <typename S>
 SharedState<S>::SharedState(const Fwk::String & name) :
-  Fwk::NamedInterface(name),
-  status_(SharedState<S>::INACTIVE)
+  SharedStateRoot(name),
+  state_()
 {}
 
 template <typename S>
@@ -91,6 +120,13 @@ void
 SharedState<S>::stateIs(const SharedState<S>::StateType & s) {
   setState(s);
   notifierDelegate_.lastNotificationIs(&NotifieeConst::onState);
+}
+
+template <typename S>
+void
+SharedState<S>::iterationIs(IterationRank s) {
+  setIteration(s);
+  notifierDelegate_.lastNotificationIs(&NotifieeConst::onIteration);
 }
 
 template <typename S>

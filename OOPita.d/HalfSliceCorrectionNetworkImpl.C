@@ -41,8 +41,9 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
   collector_(strategy == NON_HOMOGENEOUS ?
       ptr_cast<HalfSliceBasisCollectorImpl>(NonHomogeneousBasisCollectorImpl::New()) :
       HalfSliceBasisCollectorImpl::New()),
-  updateProjectorMgr_(UpdateProjectorImpl::Manager::New(metricBasis_.ptr(), &reprojectionMatrix_, solver_.ptr())),
+  jumpProjectorMgr_(JumpProjectorImpl::Manager::New(metricBasis_.ptr())),
   updatedSeedAssemblerMgr_(UpdatedSeedAssemblerImpl::Manager::New(finalBasis_.ptr())),
+  fullTimeSliceMgr_(ReducedFullTimeSliceImpl::Manager::New(&reprojectionMatrix_, solver_.ptr())),
   reductorMgr_(DynamStateReductorImpl::Manager::New(metricBasis_.ptr(), solver_.ptr())),
   reconstructorMgr_(DynamStateReconstructorImpl::Manager::New(finalBasis_.ptr())),
   projectionBuildingReactor_(new ProjectionBuildingReactor(activityManagerInstance()->activityNew("ProjectionBuilding").ptr(), this)),
@@ -61,6 +62,11 @@ HalfSliceCorrectionNetworkImpl::HalfSliceCorrectionNetworkImpl(size_t vSize,
 
 void
 HalfSliceCorrectionNetworkImpl::buildProjection() {
+  
+  // HACK !!!
+  GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
+  globalExchangeNumbering_.push_back(numbering);
+  
   double tic, toc;
   tic = getTime();
 
@@ -250,32 +256,32 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     GlobalExchangeNumbering::IteratorConst jt_i = numbering->globalHalfIndex(HalfTimeSlice::BACKWARD);
     GlobalExchangeNumbering::IteratorConst jt_f = numbering->globalHalfIndex(HalfTimeSlice::FORWARD);
    
-    log() << "Iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "\n";
+    log() << "[States from iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "]\n";
 
     // Loop on cpus
     for (int cpu = 0; cpu < numCpus; ++cpu) {
-      log() << "Cpu # " << cpu << "\n";
+      //log() << "Cpu # " << cpu << "\n";
       double * originBufferBegin = mBuffer_.array() + displacements[cpu]; // Position in AllgatherBuffer
       
       int initialStateCountInIter = numbering->stateCount(CpuRank(cpu), HalfTimeSlice::BACKWARD);
-      log() << "# initial states on cpu = " << initialStateCountInIter << "\n";
+      //log() << "# initial states on cpu = " << initialStateCountInIter << "\n";
       for (int s = 0; s < initialStateCountInIter; ++s) {
         int rowIndex = (*jt_i).second + originRowIndex; // Row in target normal matrix
-        log() << "Normal matrix row # = " << rowIndex << "\n";
-        log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
-        log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
+        //log() << "Normal matrix row # = " << rowIndex << "\n";
+        //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
+        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_i;
       }
 
       int finalStateCountInIter = numbering->stateCount(CpuRank(cpu), HalfTimeSlice::FORWARD);
-      log() << "# final states on cpu = " << initialStateCountInIter << "\n";
+      //log() << "# final states on cpu = " << initialStateCountInIter << "\n";
       for (int s = 0; s < initialStateCountInIter; ++s) {
         int rowIndex = (*jt_f).second + originRowIndex; // Row in target reprojection matrix
-        log() << "Reprojection matrix row # = " << rowIndex << "\n";
-        log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
-        log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
+        //log() << "Reprojection matrix row # = " << rowIndex << "\n";
+        //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
+        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, reprojectionMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_f;

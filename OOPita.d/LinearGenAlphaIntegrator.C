@@ -102,7 +102,7 @@ LinearGenAlphaIntegrator::getDynamOps(const GeneralizedAlphaParameter & param) {
   // Retrieve the dynamic operators 
   dynamOps_ = dynamOpsManager_->dynOps(param);
   if (!dynamOps_) {
-    // Corresponding dynamic operators do not exist, instanciate them
+    // Corresponding dynamic operators do not exist, create them
     dynamOps_ = dynamOpsManager_->dynOpsNew(param);
   }
 }

@@ -13,6 +13,8 @@ public:
   EXPORT_PTRINTERFACE_TYPES(UpdatedSeedAssemblerImpl);
   class Manager;
 
+  virtual size_t reducedBasisSize() const { return correctionBasis()->stateCount(); }
+
   using UpdatedSeedAssembler::updatedSeed;
   Seed * updatedSeed() { return const_cast<Seed *>(const_cast<const UpdatedSeedAssemblerImpl *>(this)->updatedSeed()); }
 
@@ -25,6 +27,8 @@ public:
   /* Added members */
   const Manager * manager() const { return manager_; }
   const DynamStateBasis * correctionBasis() const;
+
+  virtual void doAssembly();
 
 protected:
   friend class Manager;

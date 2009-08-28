@@ -12,6 +12,8 @@ public:
   EXPORT_PTRINTERFACE_TYPES(UpdatedSeedAssembler);
   typedef Fwk::GenManagerInterface<UpdatedSeedAssembler *, String> Manager;
 
+  virtual size_t reducedBasisSize() const = 0;
+
   /* Phase */
   PhaseRank assemblyPhase() const { return assemblyPhase_; }
 
@@ -28,6 +30,9 @@ public:
   
   virtual void propagatedSeedIs(const Seed * ps) = 0;
   virtual void correctionComponentsIs(const ReducedSeed * cc) = 0;
+
+
+  virtual void doAssembly() = 0;
 
 protected:
   UpdatedSeedAssembler() {}

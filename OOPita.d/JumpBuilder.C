@@ -30,6 +30,7 @@ JumpBuilder::SeedReactor::SeedReactor(
 
 void
 JumpBuilder::SeedReactor::onState() {
+  //log() << "JB: new state in " << notifier()->name() << "\n";
   parent_->seedStatusIs(id_, UPDATED);
 }
 
@@ -46,13 +47,14 @@ JumpBuilder::JumpBuilder() :
 }
 
 const Seed *
-JumpBuilder::propagatedSeed(JumpBuilder::SeedId id) const {
+JumpBuilder::seed(JumpBuilder::SeedId id) const {
   return seedReactor_[id]->notifier();
 }
 
 void
-JumpBuilder::propagatedSeedIs(JumpBuilder::SeedId id, const Seed * s) {
-  if (propagatedSeed(id) != s) {
+JumpBuilder::seedIs(JumpBuilder::SeedId id, const Seed * s) {
+  //log() << "JB: new seed " << s->name() << "\n";
+  if (seed(id) != s) {
     seedReactor_[id]->notifierIs(s);
     SeedStatus newStatus = seedReactor_[id]->notifier() ? CURRENT : MISSING;
     seedStatusIs(id, newStatus);
@@ -68,17 +70,21 @@ void
 JumpBuilder::seedStatusIs(JumpBuilder::SeedId id, JumpBuilder::SeedStatus status) {
   if (seedStatus(id) == status)
     return;
+  
+  //log() << "JB: got ps\n";
   seedStatus_[id] = status;
 
   if (seedStatus_[RIGHT] != UPDATED || seedStatus_[LEFT] != UPDATED)
     return;
 
+  //log() << "JB: both ps\n";
   seedStatus_[RIGHT] = seedStatus_[LEFT] = CURRENT;
 
   if (!jumpSeed_)
     return;
 
-  DynamState newJumpSeed = propagatedSeed(LEFT)->state() - propagatedSeed(RIGHT)->state();
+  //log() << "JB: compute j\n";
+  DynamState newJumpSeed = seed(LEFT)->state() - seed(RIGHT)->state();
   jumpSeed_->stateIs(newJumpSeed);
 }
 

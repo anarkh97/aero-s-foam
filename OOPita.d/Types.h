@@ -224,6 +224,8 @@ typedef Fwk::Numeric<FullTimeSlice, int> FullSliceCount;
 class FullSliceRank : public Fwk::Interval<FullTimeSlice, int, FullSliceCount> {
 public:
   explicit FullSliceRank(int v = 0) : Fwk::Interval<FullTimeSlice, int, FullSliceCount>(v) {}
+
+  operator SliceRank() const { return SliceRank(value()); }
 };
 
 inline

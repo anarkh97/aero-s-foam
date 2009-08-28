@@ -18,11 +18,11 @@ HalfTimeSliceImpl::HalfTimeSliceImpl(HalfSliceRank r,
   localPropagationReactor_(NULL)
 {}
 
-void
+/*void
 HalfTimeSliceImpl::phaseIs(PhaseRank p) {
   localPropagationReactor_->notifier()->phaseIs(p);
   setPhase(p);
-}
+}*/
 
 void
 HalfTimeSliceImpl::seedIs(const Seed * s) {
@@ -171,7 +171,7 @@ HalfTimeSliceImpl::Manager::createNewInstance(const HalfSliceId & id) {
   // Setup internals
   String activityName = String("LocalPropagation_") + toString(HalfSliceId(id.rank(), id.direction()));
   Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
-  activity->phaseIs(halfSlice->phase());
+  //activity->phaseIs(halfSlice->phase());
 
   SchedulingReactor::Ptr schedulingReactor;
   if (id.direction() == HalfTimeSlice::FORWARD) {

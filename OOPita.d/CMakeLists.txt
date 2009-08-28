@@ -25,6 +25,7 @@ HomogeneousGenAlphaIntegrator.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
 JumpBuilder.C
+JumpProjectorImpl.C
 LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C
@@ -47,7 +48,6 @@ PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
 ProjectorPropagator.C
-ReducedFullTimeSlice.C
 ReducedFullTimeSliceImpl.C
 ReducedLinearDriverImpl.C
 RemoteCoarseCorrectionServer.C
@@ -67,7 +67,6 @@ TimeSlice.C
 TimeSliceImpl.C
 TimeSliceMapping.C
 TimeSliceNetwork.C
-UpdateProjectorImpl.C
 UpdatedSeedAssemblerImpl.C
 lev2pchol.f
 lev3pchol.f

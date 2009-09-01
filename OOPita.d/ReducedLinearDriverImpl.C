@@ -19,6 +19,8 @@
 
 #include "Seed.h"
 
+#include "RemoteStateMpiImpl.h"
+
 #include "AffinePostProcessor.h"
 #include "LinearFineIntegratorManager.h"
 #include "HalfSlicePropagatorManager.h"
@@ -146,13 +148,13 @@ ReducedLinearDriverImpl::solve() {
       halfSliceRatio_,
       initialTime_);
 
-  /* Slices */
+  /* Slice Managers */
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
   JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
   ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
   UpdatedSeedAssembler::Manager::Ptr usMgr = correctionMgr->updatedSeedAssemblerMgr();
 
-  /* Instantiate the stuff */
+  /* Instantiate slices */
   for (HalfSliceRank rank(0); rank <= HalfSliceRank(0) + numSlices_; rank = rank + HalfSliceCount(1)) {
     Seed::Ptr mainSeed = seedMgr->instanceNew(String("MS_") + toString(rank)); 
     Seed::Ptr leftSeed = seedMgr->instanceNew(String("LPS_") + toString(rank)); 
@@ -191,7 +193,7 @@ ReducedLinearDriverImpl::solve() {
     fullSlice->nextCorrectionIs(reducedSeedMgr->instance(String("CC_") + toString(rank + HalfSliceCount(2))));
   }
 
-  /* Classify the stuff */
+  /* Classify slices */
   struct IterationData {
     std::deque<HalfTimeSliceImpl::Ptr> halfSlices;
     std::deque<JumpProjector::Ptr> jumpProjectors;
@@ -235,6 +237,7 @@ ReducedLinearDriverImpl::solve() {
     //log() << "Initial Seed " << rank << " " << (*it)->name() << "\n";
     DynamState initSeed = seedInitializer->initialSeed(rank);
     (*it)->stateIs(initSeed);
+    (*it)->iterationIs(IterationRank(0));
     (*it)->statusIs(Seed::ACTIVE);
   }
 

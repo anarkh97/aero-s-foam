@@ -54,6 +54,7 @@ HalfTimeSliceImpl::propagateSeed() {
       } else {
         propagatedSeed()->stateIs(propagator()->finalState());
       }
+      propagatedSeed()->iterationIs(seed()->iteration());
     }
     
     previousSeedState_ = seed()->state(); 

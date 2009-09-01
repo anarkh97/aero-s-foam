@@ -58,6 +58,7 @@ RemoteSeedInitializer.C
 RemoteSeedInitializerProxy.C
 RemoteSeedReader.C
 RemoteSeedWriter.C
+RemoteStateMpiImpl.C
 RemoteTimeSlice.C
 SimpleSeedInitializer.C
 SliceMapping.C

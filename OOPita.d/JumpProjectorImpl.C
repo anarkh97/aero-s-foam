@@ -47,6 +47,7 @@ JumpProjectorImpl::iterationIs(IterationRank i) {
   }
 
   reducedSeedJump()->stateIs(projectionResult);
+  reducedSeedJump()->iterationIs(seedJump()->iteration());
   setIteration(i); 
 }
 

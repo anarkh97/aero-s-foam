@@ -25,6 +25,7 @@ protected:
   explicit ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc);
 
 private:
+  /* Problem description */
   SingleDomainDynamic<double> * probDesc_;
 
   /* Initial condition */
@@ -50,14 +51,15 @@ private:
   bool remoteCoarse_;
   HalfSliceCount maxActive_;
  
-  /* Other paramters */ 
+  /* Other parameters */ 
   IterationRank lastIteration_;
   double projectorTolerance_;
   bool noForce_;
+
 };
 
-Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
-
 } // end namespace Pita
+
+Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 
 #endif /* PITA_REDUCEDLINEARDRIVERIMPL_H */

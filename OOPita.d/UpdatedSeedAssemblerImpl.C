@@ -54,6 +54,7 @@ UpdatedSeedAssemblerImpl::doAssembly() {
   }
 
   updatedSeed()->stateIs(result);
+  updatedSeed()->iterationIs(propagatedSeed()->iteration().next());
 }
 
 /* SchedulingReactor */

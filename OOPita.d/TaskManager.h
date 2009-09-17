@@ -9,8 +9,8 @@ namespace Pita {
 
 typedef int TaskCount;
 typedef int TaskRank;
-typedef int PoolCount;
-typedef int PoolRank;
+typedef int WorkerCount;
+typedef int WorkerRank;
 
 class TaskManager : public Fwk::PtrInterface<TaskManager> {
 public:
@@ -20,27 +20,27 @@ public:
 
   TaskCount totalTasks() const { return totalTasks_; }
   TaskCount maxWorkload() const { return maxWorkload_; }
-  PoolCount availablePools() const { return availablePools_; }
+  WorkerCount availableWorkers() const { return availableWorkers_; }
 
   TaskCount completedTasks() const { return completedTasks_; }
   void completedTasksInc(TaskCount increment = TaskCount(1));
 
-  TaskCount totalWorkload(PoolRank pr) const;
+  TaskCount totalWorkload(WorkerRank pr) const;
   TaskCount currentGlobalWorkload() const; 
-  TaskCount currentWorkload(PoolRank pr) const; 
+  TaskCount currentWorkload(WorkerRank pr) const; 
 
-  TaskIterator tasks(PoolRank cr) const;
-  PoolRank pool(TaskRank tr) const;
+  TaskIterator tasks(WorkerRank cr) const;
+  WorkerRank worker(TaskRank tr) const;
 
   TaskRank firstCurrentTask() const;
   TaskRank firstWaitingTask() const { return firstWaitingTask_; }
 
-  static Ptr New(TaskCount totalTasks, PoolCount availablePools, TaskCount maxWorkload) {
-    return new TaskManager(totalTasks, availablePools, maxWorkload);
+  static Ptr New(TaskCount totalTasks, WorkerCount availableWorkers, TaskCount maxWorkload) {
+    return new TaskManager(totalTasks, availableWorkers, maxWorkload);
   }
 
 protected:
-  TaskManager(TaskCount totalTasks, PoolCount availablePools, TaskCount maxWorkload);
+  TaskManager(TaskCount totalTasks, WorkerCount availableWorkers, TaskCount maxWorkload);
   virtual ~TaskManager();
 
   void updateFirstWaitingTask();
@@ -50,11 +50,11 @@ protected:
 private:
   TaskCount totalTasks_;
   TaskCount maxWorkload_;
-  PoolCount availablePools_;
+  WorkerCount availableWorkers_;
   TaskCount completedTasks_;
 
-  Connectivity * taskToPool_;
-  Connectivity * poolToTasks_;
+  Connectivity * taskToWorker_;
+  Connectivity * workerToTasks_;
 
   TaskRank firstWaitingTask_;
 
@@ -71,13 +71,13 @@ public:
   // Use default copy constructor, assignement operator
 
 protected:
-  TaskIterator(const TaskManager * parent, PoolRank pool);
+  TaskIterator(const TaskManager * parent, WorkerRank worker);
 
   friend class TaskManager;
 
 private:
   TaskManager::PtrConst parent_;
-  PoolRank pool_;
+  WorkerRank worker_;
   TaskCount offset_;
 };
 

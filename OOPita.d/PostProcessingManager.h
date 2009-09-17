@@ -186,7 +186,7 @@ IntegratorReactorImpl<PostProcessorType>::IntegratorReactorImpl(
 {
   this->notifierIs(notifier);
   if (!this->target() || this->target()->fileStatus(this->outputFileSet()) == PostProcessorRoot::NO_FILE) {
-    throw Fwk::RangeException("In IntegratorReactor::IntegratorReactor");
+    throw Fwk::RangeException("in PostProcessing::IntegratorReactorImpl::IntegratorReactorImpl");
   }
 }
 

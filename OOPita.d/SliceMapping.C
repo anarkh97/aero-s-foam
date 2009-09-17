@@ -17,7 +17,7 @@ SliceMapping::totalSlices() const {
 
 CpuCount
 SliceMapping::availableCpus() const {
-  return CpuCount(taskManager_->availablePools());
+  return CpuCount(taskManager_->availableWorkers());
 }
 
 
@@ -54,8 +54,8 @@ SliceMapping::SliceMapping::convergedSlicesInc(HalfSliceCount increment) {
 CpuRank
 SliceMapping::hostCpu(SliceId slice) const {
   TaskRank task = strategy_->task(slice);
-  PoolRank pool = taskManager_->pool(task);
-  return CpuRank(pool);
+  WorkerRank worker = taskManager_->worker(task);
+  return CpuRank(worker);
 }
 
 SliceMapping::SliceIdIterator
@@ -63,11 +63,11 @@ SliceMapping::hostedSlice(CpuRank cpu, HalfSliceRank begin, HalfSliceRank end) c
   SliceIdIterator::ContainerImpl::Ptr containerImpl = new SliceIdIterator::ContainerImpl();
   SliceMapping::SliceIdIterator::SliceIdContainer & slice = containerImpl->slice;
 
-  PoolRank pool = cpu.value();
+  WorkerRank worker = cpu.value();
   TaskRank beginTask = begin.value();
   TaskRank endTask = end.value();
 
-  for (TaskManager::TaskIterator it = taskManager_->tasks(pool); it; ++it) {
+  for (TaskManager::TaskIterator it = taskManager_->tasks(worker); it; ++it) {
     TaskRank current = *it;
     if (current < beginTask)
       continue;

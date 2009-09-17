@@ -6,17 +6,18 @@ namespace Pita {
 
 /* UpdatedSeedAssemblerImpl */
 
-UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const Manager * manager) :
-  manager_(manager),
-  schedulingReactor_(NULL),
-  updateReactor_(NULL)
+UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const String & name, const Manager * manager) :
+  UpdatedSeedAssembler(name),
+  manager_(manager)
+  //schedulingReactor_(NULL),
+  //updateReactor_(NULL)
 {}
 
-void
+/*void
 UpdatedSeedAssemblerImpl::assemblyPhaseIs(PhaseRank ap) {
   //updateReactor_->notifier()->phaseIs(ap);
   setAssemblyPhase(ap);
-}
+}*/
 
 void
 UpdatedSeedAssemblerImpl::updatedSeedIs(Seed * us) {
@@ -35,7 +36,7 @@ UpdatedSeedAssemblerImpl::correctionComponentsIs(const ReducedSeed * cc) {
 }
 
 void
-UpdatedSeedAssemblerImpl::doAssembly() {
+UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
   if (!propagatedSeed() || !updatedSeed()) {
     return;
   }
@@ -54,22 +55,22 @@ UpdatedSeedAssemblerImpl::doAssembly() {
   }
 
   updatedSeed()->stateIs(result);
-  updatedSeed()->iterationIs(propagatedSeed()->iteration().next());
+  updatedSeed()->iterationIs(ir);
 }
 
 /* SchedulingReactor */
 
-void
+/*void
 UpdatedSeedAssemblerImpl::SchedulingReactor::onState() {
   if (activity()->status() != Activity::scheduled) {
     activity()->iterationIs(activity()->currentIteration());
     activity()->statusIs(Activity::scheduled);
   }
-}
+}*/
 
 /* UpdateReactor */
 
-void
+/*void
 UpdatedSeedAssemblerImpl::UpdateReactor::onStatus() {
   if (!parent_->propagatedSeed() || !parent()->updatedSeed()) {
     return;
@@ -88,7 +89,7 @@ UpdatedSeedAssemblerImpl::UpdateReactor::onStatus() {
   }
 
   parent()->updatedSeed()->stateIs(result);
-}
+}*/
 
 /* Manager */
 
@@ -98,13 +99,14 @@ UpdatedSeedAssemblerImpl::Manager::Manager(const DynamStateBasis * dcb) :
 
 UpdatedSeedAssemblerImpl *
 UpdatedSeedAssemblerImpl::Manager::createNewInstance(const String & key) {
-  String activityName = String("USA_") + key;
-  Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
+  //String activityName = String("USA_") + key;
+  //Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
 
-  std::auto_ptr<UpdatedSeedAssemblerImpl> newInstance(new UpdatedSeedAssemblerImpl(this));
+  String taskName = String("UpdatedSeedAssembler ") + key;
+  std::auto_ptr<UpdatedSeedAssemblerImpl> newInstance(new UpdatedSeedAssemblerImpl(taskName, this));
   
-  newInstance->schedulingReactor_ = new SchedulingReactor(NULL, activity.ptr());
-  newInstance->updateReactor_ = new UpdateReactor(activity.ptr(), newInstance.get());
+  //newInstance->schedulingReactor_ = new SchedulingReactor(NULL, activity.ptr());
+  //newInstance->updateReactor_ = new UpdateReactor(activity.ptr(), newInstance.get());
 
   return newInstance.release();
 }

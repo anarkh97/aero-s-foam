@@ -49,11 +49,13 @@ ReducedFullTimeSliceImpl::iterationIs(IterationRank ir) {
 
   //log() << "In RFTS " << toString(headHalfSlice()) << "\n";
 
-  const_cast<FullSquareMatrix *>(reprojectionMatrix())->multiply(
-      const_cast<Vector &>(correction()->state()),
-      result,
-      1.0,
-      FullSquareMatrix::TRANSPOSED);
+  if (jump()->status() == Seed::ACTIVE) {
+    const_cast<FullSquareMatrix *>(reprojectionMatrix())->multiply(
+        const_cast<Vector &>(correction()->state()),
+        result,
+        1.0,
+        FullSquareMatrix::TRANSPOSED);
+  }
   
   /*log() << "rhs =\n";
   for (int i = 0; i < result.size(); ++i) {

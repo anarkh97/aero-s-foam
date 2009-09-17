@@ -2,8 +2,10 @@
 
 namespace Pita {
 
-JumpProjectorImpl::JumpProjectorImpl(const JumpProjectorImpl::Manager * manager,
+JumpProjectorImpl::JumpProjectorImpl(const String & name,
+                                     const JumpProjectorImpl::Manager * manager,
                                      JumpBuilder * jumpBuilder) :
+  JumpProjector(name),
   manager_(manager),
   jumpBuilder_(jumpBuilder)
 {}
@@ -58,7 +60,7 @@ JumpProjectorImpl::Manager::Manager(const DynamStateBasis * drb) :
 JumpProjectorImpl * 
 JumpProjectorImpl::Manager::createNewInstance(const String & key) {
   JumpBuilder::Ptr jumpBuilder = JumpBuilder::New();
-  return new JumpProjectorImpl(this, jumpBuilder.ptr());
+  return new JumpProjectorImpl(key, this, jumpBuilder.ptr());
 }
 
 } // end namespace Pita

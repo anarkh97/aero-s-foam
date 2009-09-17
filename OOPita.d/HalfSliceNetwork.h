@@ -31,8 +31,7 @@ using namespace Hts;
 
 class HalfSliceNetwork : public Fwk::PtrInterface<HalfSliceNetwork> {
 public:
-  typedef Fwk::Ptr<HalfSliceNetwork> Ptr;
-  typedef Fwk::Ptr<const HalfSliceNetwork> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(HalfSliceNetwork);
 
   HalfSliceNetwork(size_t vectorSize,
                    SliceMapping * mapping,

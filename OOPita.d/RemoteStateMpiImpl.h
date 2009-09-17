@@ -113,6 +113,8 @@ private:
 
 class MpiManager : public Manager {
 public:
+  EXPORT_PTRINTERFACE_TYPES(MpiManager);
+
   /* Overriden */
   virtual MpiSeedReader * readerNew(const Seed * origin, CpuRank targetCpu);
   virtual MpiReducedSeedReader * readerNew(const ReducedSeed * origin, CpuRank targetCpu);

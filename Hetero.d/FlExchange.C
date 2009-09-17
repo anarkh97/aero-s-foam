@@ -14,9 +14,9 @@
 
 // double dummyVariable[10];
 
-char *RECEIVE_LIST_KW = "RCVF";
-char *SUBDOMAIN_KW = "SUBD";
-char *SEND_LIST_KW = "SNDF";
+const char *RECEIVE_LIST_KW = "RCVF";
+const char *SUBDOMAIN_KW = "SUBD";
+const char *SEND_LIST_KW = "SNDF";
 
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;

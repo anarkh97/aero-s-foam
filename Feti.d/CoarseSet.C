@@ -810,7 +810,7 @@ GenCoarseSet<Scalar>::addFContrib(GenSymFullMatrix<Scalar> *GtFG, int iSub, EqNu
  int maxGs = numGs;
  int jSub;
  for(jSub =0; jSub < numNeighb; ++jSub) {
-   if(neighbNumRBMs[jSub] > maxGs);
+   if(neighbNumRBMs[jSub] > maxGs)
      maxGs = neighbNumRBMs[jSub];
  }
 

@@ -25,11 +25,5 @@ class DecInit
     skip(false),
     nosa(false)
     {}
-  ~DecInit()
-    {
-      if(file)
-	;;//free(file);
-    }
-  
 };
 #endif

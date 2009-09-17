@@ -9,8 +9,7 @@ namespace Pita {
 
 class DynamOps : public Fwk::PtrInterface<DynamOps> {
 public:
-  typedef Fwk::Ptr<DynamOps> Ptr;
-  typedef Fwk::Ptr<const DynamOps> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(DynamOps);
 
   virtual const GenSparseMatrix<double> * massMatrix() const = 0;
   virtual const GenSparseMatrix<double> * stiffnessMatrix() const = 0;

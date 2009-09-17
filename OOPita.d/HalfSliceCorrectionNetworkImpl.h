@@ -48,6 +48,8 @@ public:
     NON_HOMOGENEOUS
   };
 
+  virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
+
   virtual HalfSliceBasisCollector * collector() const { return collector_.ptr(); }
   
   virtual JumpProjectorImpl::Manager * jumpProjectorMgr() const { return jumpProjectorMgr_.ptr(); }

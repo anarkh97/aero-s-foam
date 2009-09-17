@@ -25,7 +25,7 @@ public:
   const JumpBuilder * jumpBuilder() const { return jumpBuilder_.ptr(); }
 
 protected:
-  JumpProjectorImpl(const Manager * manager, JumpBuilder * jumpBuilder);
+  JumpProjectorImpl(const String & name, const Manager * manager, JumpBuilder * jumpBuilder);
 
   friend class Manager;
 

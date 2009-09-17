@@ -73,7 +73,14 @@ enum SeedType {
   UNDEFINED_SEED = 0,
   MAIN_SEED,
   LEFT_SEED,
-  RIGHT_SEED
+  RIGHT_SEED,
+  SEED_JUMP,
+  SEED_CORRECTION
+};
+
+enum ReductionFlag {
+  FULL = 0,
+  REDUCED
 };
 
 inline
@@ -81,20 +88,13 @@ OStream &
 operator<<(OStream & out, SeedType t) {
   char c;
   switch (t) {
-    case UNDEFINED_SEED:
-      c = 'U';
-      break;
-    case MAIN_SEED:
-      c = 'M';
-      break;
-    case LEFT_SEED:
-      c = 'L';
-      break;
-    case RIGHT_SEED:
-      c = 'R';
-      break;
-    default:
-      break;
+    case UNDEFINED_SEED:          c = 'U'; break;
+    case MAIN_SEED:               c = 'M'; break;
+    case LEFT_SEED:               c = 'L'; break;
+    case RIGHT_SEED:              c = 'R'; break;
+    case SEED_JUMP:               c = 'J'; break;
+    case SEED_CORRECTION:         c = 'C'; break;
+    default:                      c = '?'; break;
   }
   out << c;
   return out;
@@ -164,21 +164,7 @@ typedef GenId<SliceType> SliceId;
 inline
 OStream &
 operator<<(OStream & out, const SeedId & id) {
-  String name;
-  switch (id.type()) {
-    case MAIN_SEED:
-      name = "HS";
-      break;
-    case LEFT_SEED:
-      name = "HL";
-      break;
-    case RIGHT_SEED:
-      name = "HR";
-      break;
-    default:
-      throw Fwk::InternalException();
-  }
-  out << name << id.rank();
+  out << id.type() << id.rank();
   return out;
 }
 

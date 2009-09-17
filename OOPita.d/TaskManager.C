@@ -4,49 +4,49 @@
 
 namespace Pita {
 
-TaskManager::TaskManager(TaskCount totTasks,  PoolCount availPools, TaskCount maxLoad) :
+TaskManager::TaskManager(TaskCount totTasks, WorkerCount availWorkers, TaskCount maxLoad) :
   totalTasks_(totTasks),
   maxWorkload_(maxLoad),
-  availablePools_(availPools),
+  availableWorkers_(availWorkers),
   completedTasks_(0),
-  taskToPool_(NULL),
-  poolToTasks_(NULL)
+  taskToWorker_(NULL),
+  workerToTasks_(NULL)
 {
   int * arrayTasks = new int[totalTasks() + 1];
   for (int i = 0; i <= totalTasks(); ++i)
     arrayTasks[i] = i;
 
-  int * targetPool = new int[totalTasks()];
+  int * targetWorker = new int[totalTasks()];
   
   int ratio, remain;
-  if (totalTasks() < availablePools() * maxWorkload()) {
-    ratio = totalTasks() / availablePools();
-    remain = totalTasks() - ratio * availablePools();
+  if (totalTasks() < availableWorkers() * maxWorkload()) {
+    ratio = totalTasks() / availableWorkers();
+    remain = totalTasks() - ratio * availableWorkers();
   } else {
     ratio = maxWorkload();
     remain = 0;
   }
 
-  int currentPool = 0;
-  int remainingSpotsOnCurrentPool = ratio + (remain > currentPool ? 1 : 0);
+  int currentWorker = 0;
+  int remainingSpotsForCurrentWorker = ratio + (remain > currentWorker ? 1 : 0);
   for (int currentTask = 0; currentTask < totalTasks(); ++currentTask) {
-    if (remainingSpotsOnCurrentPool <= 0) {
-      currentPool = (currentPool + 1) % availablePools();
-      remainingSpotsOnCurrentPool = ratio + (remain > currentPool ? 1 : 0);
+    if (remainingSpotsForCurrentWorker <= 0) {
+      currentWorker = (currentWorker + 1) % availableWorkers();
+      remainingSpotsForCurrentWorker = ratio + (remain > currentWorker ? 1 : 0);
     }
-    targetPool[currentTask] = currentPool;
-    --remainingSpotsOnCurrentPool;
+    targetWorker[currentTask] = currentWorker;
+    --remainingSpotsForCurrentWorker;
   }
 
-  taskToPool_ = new Connectivity(totalTasks(), arrayTasks, targetPool, 1);
-  poolToTasks_ = taskToPool_->reverse();
-  poolToTasks_->sortTargets(); 
+  taskToWorker_ = new Connectivity(totalTasks(), arrayTasks, targetWorker, 1);
+  workerToTasks_ = taskToWorker_->reverse();
+  workerToTasks_->sortTargets(); 
   updateFirstWaitingTask();
 }
   
 TaskManager::~TaskManager() {
-  delete taskToPool_;
-  delete poolToTasks_;
+  delete taskToWorker_;
+  delete workerToTasks_;
 }
 
 void
@@ -56,8 +56,8 @@ TaskManager::completedTasksInc(TaskCount increment) {
 }
 
 TaskCount
-TaskManager::totalWorkload(PoolRank pr) const {
-  return TaskCount(poolToTasks_->num(pr));
+TaskManager::totalWorkload(WorkerRank pr) const {
+  return TaskCount(workerToTasks_->num(pr));
 }
 
 TaskCount
@@ -66,7 +66,7 @@ TaskManager::currentGlobalWorkload() const {
 }
 
 TaskCount
-TaskManager::currentWorkload(PoolRank pr) const {
+TaskManager::currentWorkload(WorkerRank pr) const {
   TaskCount result(0);
   for (TaskIterator it = tasks(pr); it && (*it < firstWaitingTask()); ++it) {
     if (*it >= completedTasks()) {
@@ -77,16 +77,15 @@ TaskManager::currentWorkload(PoolRank pr) const {
 }
 
 TaskManager::TaskIterator
-TaskManager::tasks(PoolRank pr) const {
+TaskManager::tasks(WorkerRank pr) const {
   return TaskIterator(this, pr); 
 }
 
-PoolRank
-TaskManager::pool(TaskRank tr) const {
-  PoolRank result = (tr >= 0 && tr < totalTasks()) ?
-                    taskToPool_->getTargetValue(tr) :
-                    -1;
-  return result;
+WorkerRank
+TaskManager::worker(TaskRank tr) const {
+  return (tr >= 0 && tr < totalTasks())    ?
+         taskToWorker_->getTargetValue(tr) :
+         -1;
 }
 
 TaskRank
@@ -96,24 +95,24 @@ TaskManager::firstCurrentTask() const {
 
 void
 TaskManager::updateFirstWaitingTask() {
-  firstWaitingTask_ = std::min(totalTasks(), maxWorkload() *  availablePools() + completedTasks());
+  firstWaitingTask_ = std::min(totalTasks(), maxWorkload() *  availableWorkers() + completedTasks());
 }
 
 // TaskManager::TaskIterator
 
-TaskManager::TaskIterator::TaskIterator(const TaskManager * parent, PoolRank pool) :
+TaskManager::TaskIterator::TaskIterator(const TaskManager * parent, WorkerRank worker) :
   parent_(parent),
-  pool_(pool),
+  worker_(worker),
   offset_(0)
 {
-  if (parent_->totalWorkload(pool_) == TaskCount(0))
+  if (parent_->totalWorkload(worker_) == TaskCount(0))
     parent_ = NULL;
 }
 
 TaskManager::TaskIterator &
 TaskManager::TaskIterator::operator++() {
   if (parent_) {
-    if ((++offset_) >= parent_->totalWorkload(pool_))
+    if ((++offset_) >= parent_->totalWorkload(worker_))
       parent_ = NULL;
   }
   return *this;
@@ -129,7 +128,7 @@ TaskManager::TaskIterator::operator++(int) {
 TaskRank
 TaskManager::TaskIterator::operator*() const {
   TaskRank result = parent_ ?
-                    *(parent_->poolToTasks_->operator[](pool_) + offset_) :
+                    *(parent_->workerToTasks_->operator[](worker_) + offset_) :
                     -1;
   return result;
 }
@@ -141,9 +140,9 @@ TaskManager::TaskIterator::operator bool() const {
 // Output
 
 OStream & operator<<(OStream & out, const TaskManager & tmgr) {
-  for (int pool = 0; pool < tmgr.availablePools(); ++pool) {
-    out << "# " << pool << " ->";
-    for (TaskManager::TaskIterator it = tmgr.tasks(pool); it; ++it) {
+  for (int worker = 0; worker < tmgr.availableWorkers(); ++worker) {
+    out << "# " << worker << " ->";
+    for (TaskManager::TaskIterator it = tmgr.tasks(worker); it; ++it) {
       out << ' ' << *it;
     }
     out << '\n';

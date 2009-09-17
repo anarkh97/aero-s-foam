@@ -60,8 +60,7 @@ public:
 
   class NotifieeConst : public Fwk::BaseMultiNotifiee<const SharedState, NotifieeConst> {
   public:
-    typedef Fwk::Ptr<NotifieeConst> Ptr;
-    typedef Fwk::Ptr<const NotifieeConst> PtrConst;
+    EXPORT_PTRINTERFACE_TYPES(NotifieeConst);
 
     virtual void onState() {}
     virtual void onStatus() {}
@@ -96,9 +95,9 @@ private:
 template <typename S>
 class SharedState<S>::Manager : public Fwk::GenNamedInterfaceManager<SharedState<S> > {
 public:
-  EXPORT_PTRINTERFACE_TYPES(Manager);
+  EXPORT_PTRINTERFACE_TYPES(typename SharedState<S>::Manager);
 
-  static Ptr New() {
+  static typename SharedState<S>::Manager::Ptr New() {
     return new Manager();
   }
 

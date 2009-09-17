@@ -16,7 +16,7 @@ FilteredFile::FilteredFile(char *filename)
 }
 
 int
-FilteredFile::findToken(char *token)
+FilteredFile::findToken(const char *token)
 {
   char*     theLine;
 

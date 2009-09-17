@@ -5,9 +5,11 @@
 #include "Types.h"
 #include "Seed.h"
 
+#include "NamedTask.h"
+
 namespace Pita {
 
-class ReducedFullTimeSlice : public Fwk::PtrInterface<ReducedFullTimeSlice> {
+class ReducedFullTimeSlice : public NamedTask {
 public:
   // Accessory types
   EXPORT_PTRINTERFACE_TYPES(ReducedFullTimeSlice);
@@ -27,12 +29,9 @@ public:
   virtual void correctionIs(const ReducedSeed * c) { setCorrection(c); }
   virtual void nextCorrectionIs(ReducedSeed * nc) { setNextCorrection(nc); }
 
-  // Iteration control
-  IterationRank iteration() const { return iteration_; }
-  virtual void iterationIs(IterationRank i) = 0;
-
 protected:
   explicit ReducedFullTimeSlice(HalfSliceRank headRank) :
+    NamedTask(toString("ReducedFullTimeSlice ") + toString(headRank)),
     headHalfSlice_(headRank),
     tailHalfSlice_(headRank + HalfSliceCount(1))
   {}
@@ -40,7 +39,6 @@ protected:
   void setJump(const ReducedSeed * j) { jump_ = j; }
   void setCorrection(const ReducedSeed * c) { correction_ = c; }
   void setNextCorrection(ReducedSeed * c) { nextCorrection_ = c; }
-  void setIteration(IterationRank i) { iteration_ = i; }
 
 private:
   HalfSliceRank headHalfSlice_;
@@ -49,8 +47,6 @@ private:
   Fwk::Ptr<const ReducedSeed> jump_;
   Fwk::Ptr<const ReducedSeed> correction_;
   Fwk::Ptr<ReducedSeed> nextCorrection_;
-
-  IterationRank iteration_;
 
   DISALLOW_COPY_AND_ASSIGN(ReducedFullTimeSlice); 
 };

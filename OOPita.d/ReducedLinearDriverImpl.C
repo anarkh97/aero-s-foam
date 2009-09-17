@@ -33,8 +33,11 @@
 #include <Comm.d/Communicator.h>
 extern Communicator * structCom;
 
+
 #include <Driver.d/Domain.h>
 extern Domain * domain;
+
+#include "LocalNetwork.h"
 
 namespace Pita {
 
@@ -84,14 +87,13 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
 
 void
 ReducedLinearDriverImpl::solve() {
+  try {
+
   /* Summarize problem and parameters */ 
   log() << "vectorSize = " << vectorSize_ << "\n";
   log() << "Slices = " << numSlices_ << ", MaxActive = " << maxActive_ << ", Cpus = " << numCpus_ << "\n";
   log() << "Num iter = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", tf = " << finalTime_ << "\n";
-
-  //SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr());
-  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, CpuCount(1), numSlices_.value(), StaticSliceStrategy::New().ptr()); // HACK
 
   /* Integration parameters */
   LinearDynamOps::Manager::Ptr dopsManager = LinearDynamOps::Manager::New(probDesc());
@@ -107,25 +109,20 @@ ReducedLinearDriverImpl::solve() {
   LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(fineIntegrationParam);
  
   /* Postprocessing */ 
-  std::vector<int> localFileId;
-  for (SliceMapping::SliceIdIterator it = mapping->hostedSlice(myCpu_, HalfSliceRank(0), HalfSliceRank(0) + mapping->totalSlices()); it; ++it) {
-    if (it->type() == Hs::FORWARD_HALF_SLICE || it->type() == Hs::BACKWARD_HALF_SLICE) {
-      localFileId.push_back(it->rank().value());
-    }
+  std::vector<int> localFileId(numSlices_.value(), 0);
+  for (int i = 0; i < numSlices_.value(); ++i) {
+    localFileId[i] = i;
   }
-  std::sort(localFileId.begin(), localFileId.end());
-  localFileId.erase(std::unique(localFileId.begin(), localFileId.end()), localFileId.end());
-  
   AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   /* Seeds */ 
-  Seed::Manager::Ptr seedMgr = Seed::Manager::New();
-  ReducedSeed::Manager::Ptr reducedSeedMgr = ReducedSeed::Manager::New();
 
   /* Correction */
   HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices_);
+  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr());
+  
   HalfSliceCorrectionNetworkImpl::Ptr correctionMgr =
     HalfSliceCorrectionNetworkImpl::New(
       vectorSize_,
@@ -152,10 +149,112 @@ ReducedLinearDriverImpl::solve() {
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
   JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
   ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
-  UpdatedSeedAssembler::Manager::Ptr usMgr = correctionMgr->updatedSeedAssemblerMgr();
+  //UpdatedSeedAssembler::Manager::Ptr usMgr = correctionMgr->updatedSeedAssemblerMgr();
+
+  /* Mpi communication manager */
+  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);
+  commMgr->vectorSizeIs(vectorSize_);
+
+  log() << "Network setup\n";
+  LocalNetwork::Ptr network = new LocalNetwork(
+      fullTimeSlices_,
+      numCpus_,
+      maxActive_,
+      myCpu_,
+      hsMgr.ptr(),
+      jpMgr.ptr(),
+      fsMgr.ptr(),
+      commMgr.ptr()); 
+
+  LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
+  for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
+       it != mainSeeds.end();
+       ++it) {
+    log() << "Initial Seed " << it->first << " " << it->second->name() << "\n";
+    DynamState initSeed = seedInitializer->initialSeed(it->first);
+    Seed::Ptr seed = it->second;
+    seed->stateIs(initSeed);
+    seed->iterationIs(IterationRank(0));
+    seed->statusIs(Seed::ACTIVE);
+  }
+
+  // HTS
+  LocalNetwork::HTSList halfSlices = network->activeHalfTimeSlices();
+  for (LocalNetwork::HTSList::iterator it = halfSlices.begin();
+      it != halfSlices.end();
+      ++it) {
+    log() << "HTS " << (*it)->rank() << (*it)->direction() << "\n";
+    ptr_cast<HalfTimeSliceImpl>(*it)->propagateSeed(); // TODO ugly cast
+  }
+  
+  // Synchronize LEFT_SEED
+  LocalNetwork::SRList lSReaders = network->activeLeftSeedReaders();
+  for (LocalNetwork::SRList::iterator it = lSReaders.begin();
+       it != lSReaders.end();
+       ++it) {
+    log() << "LSR to Cpu " << (*it)->targetCpu() << "\n";
+    (*it)->statusIs(RemoteState::EXECUTING);
+  }
+  
+  LocalNetwork::SWList lSWriters = network->activeLeftSeedWriters();
+  for (LocalNetwork::SWList::iterator it = lSWriters.begin();
+       it != lSWriters.end();
+       ++it) {
+    log() << "LSW from Cpu " << (*it)->originCpu() << "\n";
+    (*it)->statusIs(RemoteState::EXECUTING);
+  }
+
+  // Basis
+  correctionMgr->buildProjection();
+  size_t reducedBasisSize = correctionMgr->reducedBasisSize();
+  log() << "ReducedBasisSize = " << reducedBasisSize << "\n";
+  commMgr->reducedStateSizeIs(reducedBasisSize);
+
+  // Next iteration 
+  network->convergedSlicesInc();
+
+  // Jump
+  LocalNetwork::JPList jumpProjectors = network->activeJumpProjectors();
+  for (LocalNetwork::JPList::iterator it = jumpProjectors.begin();
+      it != jumpProjectors.end();
+      ++it) {
+    log() << "JumpProjector " << (*it)->name() << "\n";
+    (*it)->iterationIs(IterationRank(1)); // TODO iteration rank
+  }
+
+  // Correction
+  LocalNetwork::TaskList correctionTasks = network->activeFullTimeSlices();
+  for (LocalNetwork::TaskList::iterator it = correctionTasks.begin();
+      it != correctionTasks.end();
+      ++it) {
+    NamedTask::Ptr task = *it;
+    log() << "Task: " << task->name() << "\n";
+    task->iterationIs(IterationRank(1)); // TODO iteration rank
+  }
+
+  // Update 
+
+
+  /*LocalNetwork::HTSList activeList; //= network->activeHalfTimeSlices();
+
+  log() << "Starting at slice " << network->firstActiveSlice() << "\n";
+  activeList = network->activeHalfTimeSlices();
+  for (LocalNetwork::HTSList::const_iterator it = activeList.begin(); it != activeList.end(); ++it) {
+    log() << (*it)->rank() << (*it)->direction() << "\n";
+  }
+
+  log() << "Next iteration\n";
+  network->convergedSlicesInc();
+
+  log() << "Starting at slice " << network->firstActiveSlice() << "\n";
+  activeList = network->activeHalfTimeSlices();
+  for (LocalNetwork::HTSList::const_iterator it = activeList.begin(); it != activeList.end(); ++it) {
+    log() << (*it)->rank() << (*it)->direction() << "\n";
+  }*/
+
 
   /* Instantiate slices */
-  for (HalfSliceRank rank(0); rank <= HalfSliceRank(0) + numSlices_; rank = rank + HalfSliceCount(1)) {
+  /*for (HalfSliceRank rank(0); rank <= HalfSliceRank(0) + numSlices_; rank = rank + HalfSliceCount(1)) {
     Seed::Ptr mainSeed = seedMgr->instanceNew(String("MS_") + toString(rank)); 
     Seed::Ptr leftSeed = seedMgr->instanceNew(String("LPS_") + toString(rank)); 
     Seed::Ptr rightSeed = seedMgr->instanceNew(String("RPS_") + toString(rank));
@@ -191,10 +290,10 @@ ReducedLinearDriverImpl::solve() {
     fullSlice->jumpIs(reducedSeedMgr->instance(String("JC_") + toString(rank)));
     fullSlice->correctionIs(reducedSeedMgr->instance(String("CC_") + toString(rank)));
     fullSlice->nextCorrectionIs(reducedSeedMgr->instance(String("CC_") + toString(rank + HalfSliceCount(2))));
-  }
+  }*/
 
   /* Classify slices */
-  struct IterationData {
+  /*struct IterationData {
     std::deque<HalfTimeSliceImpl::Ptr> halfSlices;
     std::deque<JumpProjector::Ptr> jumpProjectors;
     std::deque<ReducedFullTimeSlice::Ptr> fullSlices;
@@ -226,11 +325,11 @@ ReducedLinearDriverImpl::solve() {
     data[1].seedAssemblers.push_back(usMgr->instance(toString(headRank)));
 
     primalMainSeeds.push_back(seedMgr->instance(String("MS_" + toString(tailRank + HalfSliceCount(1)))));
-  }
+  }*/
 
   /* Do the stuff */
   // Initialize
-  for (std::deque<Seed::Ptr>::iterator it = primalMainSeeds.begin();
+  /*for (std::deque<Seed::Ptr>::iterator it = primalMainSeeds.begin();
        it != primalMainSeeds.end();
        ++it) {
     FullSliceRank rank(std::distance(primalMainSeeds.begin(), it));
@@ -291,6 +390,10 @@ ReducedLinearDriverImpl::solve() {
     data[1 - dataIndex].jumpProjectors.pop_front();
     data[1 - dataIndex].fullSlices.pop_front();
     data[1 - dataIndex].seedAssemblers.pop_front(); 
+  }*/
+
+  } catch(Fwk::Exception & e) {
+    log() << e.what() << "\n";
   }
 
   /* End */ 

@@ -146,6 +146,11 @@ Writer<S>::targetIs(SharedState<S> * t) {
   setStatus(isReady() ? READY : INACTIVE);
 }
 
+typedef Reader<DynamState> SeedReader;
+typedef Reader<Vector> ReducedSeedReader;
+typedef Writer<DynamState> SeedWriter;
+typedef Writer<Vector> ReducedSeedWriter;
+
 } /* end namespace RemoteState */ } /* end namespace Pita */
 
 #endif /* PITA_REMOTESTATE_H */

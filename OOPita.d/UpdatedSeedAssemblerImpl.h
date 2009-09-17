@@ -4,7 +4,6 @@
 #include "UpdatedSeedAssembler.h"
 
 #include "DynamStateBasis.h"
-#include "Activity.h"
 
 namespace Pita {
 
@@ -19,7 +18,7 @@ public:
   Seed * updatedSeed() { return const_cast<Seed *>(const_cast<const UpdatedSeedAssemblerImpl *>(this)->updatedSeed()); }
 
   /* Overriden members */
-  virtual void assemblyPhaseIs(PhaseRank ap);
+  //virtual void assemblyPhaseIs(PhaseRank ap);
   virtual void updatedSeedIs(Seed * us);
   virtual void propagatedSeedIs(const Seed * ps);
   virtual void correctionComponentsIs(const ReducedSeed * cc);
@@ -28,23 +27,23 @@ public:
   const Manager * manager() const { return manager_; }
   const DynamStateBasis * correctionBasis() const;
 
-  virtual void doAssembly();
+  virtual void iterationIs(IterationRank i);
 
 protected:
   friend class Manager;
-  class SchedulingReactor;
-  class UpdateReactor;
+  //class SchedulingReactor;
+  //class UpdateReactor;
 
-  explicit UpdatedSeedAssemblerImpl(const Manager * manager);
+  explicit UpdatedSeedAssemblerImpl(const String & name, const Manager * manager);
 
 private:
   const Manager * manager_; // Back pointer
-  Fwk::Ptr<SchedulingReactor> schedulingReactor_;
-  Fwk::Ptr<UpdateReactor> updateReactor_;
+  //Fwk::Ptr<SchedulingReactor> schedulingReactor_;
+  //Fwk::Ptr<UpdateReactor> updateReactor_;
 };
 
 
-class UpdatedSeedAssemblerImpl::SchedulingReactor : public ReducedSeed::NotifieeConst {
+/*class UpdatedSeedAssemblerImpl::SchedulingReactor : public ReducedSeed::NotifieeConst {
 public:
   EXPORT_PTRINTERFACE_TYPES(SchedulingReactor);
 
@@ -80,7 +79,7 @@ public:
 
 private:
   UpdatedSeedAssemblerImpl * parent_; // Back pointer
-};
+};*/
 
 class UpdatedSeedAssemblerImpl::Manager : public UpdatedSeedAssembler::Manager,
                                           private Fwk::GenManagerImpl<UpdatedSeedAssemblerImpl, String> {

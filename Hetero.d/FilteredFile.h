@@ -9,7 +9,7 @@ class FilteredFile {
     char *epos;
   public:
     FilteredFile(char *filename);
-    int findToken(char *token);
+    int findToken(const char *token);
     char *getLine();
     char *getLineAfterToken();
 };

@@ -54,7 +54,6 @@ private:
   DISALLOW_COPY_AND_ASSIGN(HalfTimeSlice);
 };
 
-// Unique identifier for HalfTimeSlice
 class HalfSliceId {
 public:
   HalfSliceId(HalfSliceRank r = HalfSliceRank(-1), HalfTimeSlice::Direction d = HalfTimeSlice::NO_DIRECTION) :
@@ -78,6 +77,7 @@ private:
   HalfTimeSlice::Direction direction_;
 };
 
+OStream & operator<<(OStream & out, const HalfTimeSlice::Direction & d);
 OStream & operator<<(OStream & out, const HalfSliceId & id);
 
 struct HalfSliceComparator :

@@ -4,10 +4,11 @@
 #include "Fwk.h"
 #include "Types.h"
 #include "Seed.h"
+#include "NamedTask.h"
 
 namespace Pita {
 
-class UpdatedSeedAssembler : public Fwk::PtrInterface<UpdatedSeedAssembler> {
+class UpdatedSeedAssembler : public NamedTask {
 public:
   EXPORT_PTRINTERFACE_TYPES(UpdatedSeedAssembler);
   typedef Fwk::GenManagerInterface<UpdatedSeedAssembler *, String> Manager;
@@ -15,9 +16,8 @@ public:
   virtual size_t reducedBasisSize() const = 0;
 
   /* Phase */
-  PhaseRank assemblyPhase() const { return assemblyPhase_; }
-
-  virtual void assemblyPhaseIs(PhaseRank ap) = 0;
+  //PhaseRank assemblyPhase() const { return assemblyPhase_; }
+  //virtual void assemblyPhaseIs(PhaseRank ap) = 0;
 
   /* Client */
   const Seed * updatedSeed() const { return updatedSeed_.ptr(); }
@@ -31,19 +31,18 @@ public:
   virtual void propagatedSeedIs(const Seed * ps) = 0;
   virtual void correctionComponentsIs(const ReducedSeed * cc) = 0;
 
-
-  virtual void doAssembly() = 0;
-
 protected:
-  UpdatedSeedAssembler() {}
+  explicit UpdatedSeedAssembler(const String & name) :
+    NamedTask(name)
+  {}
 
-  void setAssemblyPhase(PhaseRank ap) { assemblyPhase_ = ap; }
+  //void setAssemblyPhase(PhaseRank ap) { assemblyPhase_ = ap; }
   void setUpdatedSeed(Seed * us) { updatedSeed_ = us; }
   void setPropagatedSeed(const Seed * ps) { propagatedSeed_ = ps; }
   void setCorrectionComponents(const ReducedSeed * cc) { correctionComponents_ = cc; }
 
 private:
-  PhaseRank assemblyPhase_;
+  //PhaseRank assemblyPhase_;
   Seed::Ptr updatedSeed_;
   Seed::PtrConst propagatedSeed_;
   ReducedSeed::PtrConst correctionComponents_; 

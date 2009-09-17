@@ -17,6 +17,8 @@ namespace Pita {
 
 class HalfSliceCorrectionNetwork : public Fwk::PtrInterface<HalfSliceCorrectionNetwork> {
 public:
+  virtual size_t reducedBasisSize() const = 0;
+
   virtual HalfSliceBasisCollector * collector() const = 0;
 
   virtual JumpProjector::Manager * jumpProjectorMgr() const = 0;

@@ -6,7 +6,7 @@
 
 namespace Pita {
 
-class JumpProjector : public Fwk::PtrInterface<JumpProjector> {
+class JumpProjector : public Fwk::NamedInterface {
 public:
   EXPORT_PTRINTERFACE_TYPES(JumpProjector);
   typedef Fwk::GenManagerInterface<JumpProjector *, String> Manager;
@@ -35,7 +35,9 @@ public:
   virtual void iterationIs(IterationRank i) { setIteration(i); }
 
 protected:
-  JumpProjector() : iteration_(-1) {}
+  explicit JumpProjector(const String & name) :
+    NamedInterface(name),
+    iteration_(-1) {}
 
   void setPredictedSeed(const Seed * ps) { predictedSeed_ = ps; }
   void setActualSeed(const Seed * as) { actualSeed_ = as; }

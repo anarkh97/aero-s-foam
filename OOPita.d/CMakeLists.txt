@@ -33,6 +33,7 @@ LinearGenAlphaIntegrator.C
 LinearHalfSliceSchedule.C
 LinearizedPropagator.C
 LinearPostProcessor.C
+LocalNetwork.C
 LocalTimeSlice.C
 Log.C
 NearSymmetricSolver.C
@@ -59,6 +60,7 @@ RemoteSeedInitializerProxy.C
 RemoteSeedReader.C
 RemoteSeedWriter.C
 RemoteStateMpiImpl.C
+RemoteStateTask.C
 RemoteTimeSlice.C
 SimpleSeedInitializer.C
 SliceMapping.C

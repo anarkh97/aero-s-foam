@@ -117,11 +117,9 @@ ReducedLinearDriverImpl::solve() {
   typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
-  /* Seeds */ 
-
   /* Correction */
   HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices_);
-  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr());
+  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr()); // TODO remove
   
   HalfSliceCorrectionNetworkImpl::Ptr correctionMgr =
     HalfSliceCorrectionNetworkImpl::New(
@@ -149,13 +147,12 @@ ReducedLinearDriverImpl::solve() {
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
   JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
   ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
-  //UpdatedSeedAssembler::Manager::Ptr usMgr = correctionMgr->updatedSeedAssemblerMgr();
+  UpdatedSeedAssembler::Manager::Ptr usaMgr = correctionMgr->updatedSeedAssemblerMgr();
 
   /* Mpi communication manager */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);
   commMgr->vectorSizeIs(vectorSize_);
 
-  log() << "Network setup\n";
   LocalNetwork::Ptr network = new LocalNetwork(
       fullTimeSlices_,
       numCpus_,
@@ -164,8 +161,12 @@ ReducedLinearDriverImpl::solve() {
       hsMgr.ptr(),
       jpMgr.ptr(),
       fsMgr.ptr(),
+      usaMgr.ptr(),
       commMgr.ptr()); 
 
+  log() << "\n";
+
+  IterationRank iteration(0);
   LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
   for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
        it != mainSeeds.end();
@@ -174,66 +175,98 @@ ReducedLinearDriverImpl::solve() {
     DynamState initSeed = seedInitializer->initialSeed(it->first);
     Seed::Ptr seed = it->second;
     seed->stateIs(initSeed);
-    seed->iterationIs(IterationRank(0));
-    seed->statusIs(Seed::ACTIVE);
+    seed->iterationIs(iteration);
+    seed->statusIs(it->first == SliceRank(0) ? Seed::CONVERGED : Seed::ACTIVE);
   }
+
+  log() << "\nIteration " << iteration << "\n";
 
   // HTS
-  LocalNetwork::HTSList halfSlices = network->activeHalfTimeSlices();
-  for (LocalNetwork::HTSList::iterator it = halfSlices.begin();
+  LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
+  for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
       it != halfSlices.end();
-      ++it) {
-    log() << "HTS " << (*it)->rank() << (*it)->direction() << "\n";
-    ptr_cast<HalfTimeSliceImpl>(*it)->propagateSeed(); // TODO ugly cast
-  }
-  
-  // Synchronize LEFT_SEED
-  LocalNetwork::SRList lSReaders = network->activeLeftSeedReaders();
-  for (LocalNetwork::SRList::iterator it = lSReaders.begin();
-       it != lSReaders.end();
-       ++it) {
-    log() << "LSR to Cpu " << (*it)->targetCpu() << "\n";
-    (*it)->statusIs(RemoteState::EXECUTING);
-  }
-  
-  LocalNetwork::SWList lSWriters = network->activeLeftSeedWriters();
-  for (LocalNetwork::SWList::iterator it = lSWriters.begin();
-       it != lSWriters.end();
-       ++it) {
-    log() << "LSW from Cpu " << (*it)->originCpu() << "\n";
-    (*it)->statusIs(RemoteState::EXECUTING);
-  }
-
-  // Basis
-  correctionMgr->buildProjection();
-  size_t reducedBasisSize = correctionMgr->reducedBasisSize();
-  log() << "ReducedBasisSize = " << reducedBasisSize << "\n";
-  commMgr->reducedStateSizeIs(reducedBasisSize);
-
-  // Next iteration 
-  network->convergedSlicesInc();
-
-  // Jump
-  LocalNetwork::JPList jumpProjectors = network->activeJumpProjectors();
-  for (LocalNetwork::JPList::iterator it = jumpProjectors.begin();
-      it != jumpProjectors.end();
-      ++it) {
-    log() << "JumpProjector " << (*it)->name() << "\n";
-    (*it)->iterationIs(IterationRank(1)); // TODO iteration rank
-  }
-
-  // Correction
-  LocalNetwork::TaskList correctionTasks = network->activeFullTimeSlices();
-  for (LocalNetwork::TaskList::iterator it = correctionTasks.begin();
-      it != correctionTasks.end();
       ++it) {
     NamedTask::Ptr task = *it;
     log() << "Task: " << task->name() << "\n";
-    task->iterationIs(IterationRank(1)); // TODO iteration rank
+    task->iterationIs(iteration);
   }
+ 
+  // Iteration loop
+  for (iteration = IterationRank(1); iteration <= lastIteration_; iteration = iteration.next()) {
 
-  // Update 
+    log() << "\nIteration " << iteration << "\n";
+    
+    // Basis
+    correctionMgr->buildProjection();
+    size_t reducedBasisSize = correctionMgr->reducedBasisSize();
+    log() << "ReducedBasisSize = " << reducedBasisSize << "\n";
+    commMgr->reducedStateSizeIs(reducedBasisSize);
 
+    // Next iteration 
+    network->convergedSlicesInc();
+    mapping->convergedSlicesInc(); // TODO remove
+
+    // Propagated Seed Synchronization 
+    LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
+    for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
+        it != leftSeedSyncs.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+    // Jump
+    LocalNetwork::TaskList jumpProjectors = network->activeJumpProjectors();
+    for (LocalNetwork::TaskList::iterator it = jumpProjectors.begin();
+        it != jumpProjectors.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+    // Correction
+    LocalNetwork::TaskList fullSliceTasks = network->activeFullTimeSlices();
+    for (LocalNetwork::TaskList::iterator it = fullSliceTasks.begin();
+        it != fullSliceTasks.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+    // Correction Synchronization 
+    LocalNetwork::TaskList synchronizationTasks = network->activeCorrectionSyncs();
+    for (LocalNetwork::TaskList::iterator it = synchronizationTasks.begin();
+        it != synchronizationTasks.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+    // Update
+    LocalNetwork::TaskList assemblyTasks = network->activeSeedAssemblers();
+    for (LocalNetwork::TaskList::iterator it = assemblyTasks.begin();
+        it != assemblyTasks.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+  
+    // HTS
+    LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
+    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
+        it != halfSlices.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+  }
 
   /*LocalNetwork::HTSList activeList; //= network->activeHalfTimeSlices();
 

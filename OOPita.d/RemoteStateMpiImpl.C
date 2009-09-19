@@ -37,6 +37,7 @@ MpiSeedReader::statusIs(Status s) {
 
     int messageTag = communicator()->myID(); // TODO determine meaningful messageId
     log() << "RemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is busy\n";
+    log() << "dim = " << dim << "\n";
     communicator()->sendTo(targetCpu().value(), messageTag, stateBuffer().array(), dim);
     communicator()->waitForAllReq(); // TODO delay waitForAllReq
     log() << "RemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is done\n";
@@ -70,6 +71,7 @@ MpiSeedWriter::statusIs(Status s) {
   if (originCpu().value() != communicator()->myID()) {
     log() << "RemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is busy\n";
     size_t dim = 2 * vectorSize() + 2;
+    log() << "dim = " << dim << "\n";
     int messageTag = originCpu().value(); // TODO messageTag
     communicator()->recFrom(messageTag, stateBuffer().array(), dim); // Blocking MPI_RECV
     log() << "RemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is done\n";
@@ -111,10 +113,11 @@ MpiReducedSeedReader::statusIs(Status s) {
     stateBuffer()[dim - 1] = static_cast<double>(origin()->iteration().value());
 
     int messageTag = communicator()->myID(); // TODO determine meaningful messageId
-    log() << "RemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is busy\n";
+    log() << "RedRemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is busy\n";
+    log() << "dim = " << dim << "\n";
     communicator()->sendTo(targetCpu().value(), messageTag, stateBuffer().array(), dim);
     communicator()->waitForAllReq(); // TODO delay waitForAllReq
-    log() << "RemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is done\n";
+    log() << "RedRemoteReader for " << origin()->name() << " to Cpu " << targetCpu()  << " is done\n";
   }
 
   setStatus(READY);
@@ -143,11 +146,12 @@ MpiReducedSeedWriter::statusIs(Status s) {
     return;
 
   if (originCpu().value() != communicator()->myID()) {
-    log() << "RemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is busy\n";
+    log() << "RedRemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is busy\n";
     size_t dim = reducedStateSize() + 2;
+    log() << "dim = " << dim << "\n";
     int messageTag = originCpu().value(); // TODO messageTag
     communicator()->recFrom(messageTag, stateBuffer().array(), dim); // Blocking MPI_RECV
-    log() << "RemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is done\n";
+    log() << "RedRemoteWriter for " << target()->name() << " from Cpu " << originCpu()  << " is done\n";
     target()->statusIs(Seed::Status(static_cast<int>(stateBuffer()[dim - 2])));
     target()->stateIs(Vector(reducedStateSize(), stateBuffer().array()));
     target()->iterationIs(IterationRank(static_cast<int>(stateBuffer()[dim - 1])));

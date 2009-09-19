@@ -6,13 +6,14 @@
 #include "HalfSliceTypes.h"
 #include "Seed.h"
 #include "Activity.h"
+#include "NamedTask.h"
 
 namespace Pita {
 
 // Unique identifier for HalfTimeSlice
 class HalfSliceId;
 
-class HalfTimeSlice : public Fwk::PtrInterface<HalfTimeSlice> {
+class HalfTimeSlice : public NamedTask {
 public:
   EXPORT_PTRINTERFACE_TYPES(HalfTimeSlice);
 

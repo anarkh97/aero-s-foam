@@ -23,27 +23,15 @@ class LocalNetwork : public Fwk::PtrInterface<LocalNetwork> {
 public:
   EXPORT_PTRINTERFACE_TYPES(LocalNetwork);
 
+  typedef std::map<HalfSliceRank, NamedTask::Ptr> TaskMap;
+  typedef std::deque<NamedTask::Ptr> TaskList;
+
   typedef std::map<HalfSliceRank, Seed::Ptr> SeedMap;
   typedef std::map<SliceRank, Seed::Ptr> MainSeedMap;
   
   typedef std::deque<HalfTimeSlice::Ptr> HTSList;
-  typedef std::deque<JumpProjector::Ptr> JPList;
-  typedef std::map<HalfSliceRank, JumpProjector::Ptr> JPMap;
   typedef std::deque<ReducedFullTimeSlice::Ptr> FTSList;
   
-  typedef std::deque<RemoteState::SeedWriter::Ptr> SWList;
-  typedef std::map<HalfSliceRank, RemoteState::SeedWriter::Ptr> SWMap;
-  typedef std::deque<RemoteState::SeedReader::Ptr> SRList;
-  typedef std::map<HalfSliceRank, RemoteState::SeedReader::Ptr> SRMap;
-
-  typedef std::deque<RemoteState::ReducedSeedWriter::Ptr> RSWList;
-  typedef std::map<HalfSliceRank, RemoteState::ReducedSeedWriter::Ptr> RSWMap;
-  typedef std::deque<RemoteState::ReducedSeedReader::Ptr> RSRList;
-  typedef std::map<HalfSliceRank, RemoteState::ReducedSeedReader::Ptr> RSRMap;
-
-  typedef std::map<HalfSliceRank, NamedTask::Ptr> TaskMap;
-  typedef std::deque<NamedTask::Ptr> TaskList;
-
   /* Basic info */
   FullSliceCount totalFullSlices() const { return totalFullSlices_; }
   CpuCount availableCpus() const { return availableCpus_; }
@@ -59,11 +47,12 @@ public:
   /* Local network elements */
   HTSList halfTimeSlices() const { return HTSList(halfTimeSlice_); }
   
-  HTSList activeHalfTimeSlices() const;
-  JPList activeJumpProjectors() const;
-  SWList activeLeftSeedWriters() const;
-  SRList activeLeftSeedReaders() const;
+  TaskList activeHalfTimeSlices() const;
+  TaskList activeJumpProjectors() const;
+  TaskList activeLeftSeedSyncs() const;
   TaskList activeFullTimeSlices() const;
+  TaskList activeCorrectionSyncs() const;
+  TaskList activeSeedAssemblers() const;
 
   MainSeedMap activeMainSeeds() const;
 
@@ -74,6 +63,7 @@ public:
                HalfTimeSlice::Manager * sliceMgr,
                JumpProjector::Manager * jumpProjMgr,
                ReducedFullTimeSlice::Manager * ftsMgr,
+               UpdatedSeedAssembler::Manager * usaMgr,
                RemoteState::Manager * commMgr);
 
 protected:
@@ -93,6 +83,7 @@ private:
   HalfTimeSlice::Manager::Ptr sliceMgr_;
   JumpProjector::Manager::Ptr jumpProjMgr_;
   ReducedFullTimeSlice::Manager::Ptr ftsMgr_;
+  UpdatedSeedAssembler::Manager::Ptr usaMgr_;
 
   Seed::Manager::Ptr seedMgr_;
   ReducedSeed::Manager::Ptr reducedSeedMgr_;
@@ -100,13 +91,13 @@ private:
   RemoteState::Manager::Ptr commMgr_;
   
   HTSList halfTimeSlice_;
-  JPMap jumpProjector_;
+  TaskMap jumpProjector_;
   TaskMap fullTimeSlice_;
+  TaskMap correctionSync_;
+  TaskMap seedAssembler_;
+  TaskMap leftSeedSync_;
 
   SeedMap mainSeed_; 
-  
-  SWMap leftSeedWriter_;
-  SRMap leftSeedReader_;
 
   DISALLOW_COPY_AND_ASSIGN(LocalNetwork);
 };

@@ -256,7 +256,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     GlobalExchangeNumbering::IteratorConst jt_i = numbering->globalHalfIndex(HalfTimeSlice::BACKWARD);
     GlobalExchangeNumbering::IteratorConst jt_f = numbering->globalHalfIndex(HalfTimeSlice::FORWARD);
    
-    log() << "[States from iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "]\n";
+    //log() << "[States from iteration # " << std::distance((NumberingList::const_iterator)(globalExchangeNumbering_.begin()), it) << "]\n";
 
     // Loop on cpus
     for (int cpu = 0; cpu < numCpus; ++cpu) {
@@ -269,19 +269,19 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
         int rowIndex = (*jt_i).second + originRowIndex; // Row in target normal matrix
         //log() << "Normal matrix row # = " << rowIndex << "\n";
         //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
-        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
+        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize) << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, normalMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_i;
       }
 
       int finalStateCountInIter = numbering->stateCount(CpuRank(cpu), HalfTimeSlice::FORWARD);
-      //log() << "# final states on cpu = " << initialStateCountInIter << "\n";
-      for (int s = 0; s < initialStateCountInIter; ++s) {
+      //log() << "# final states on cpu = " << finalStateCountInIter << "\n";
+      for (int s = 0; s < finalStateCountInIter; ++s) {
         int rowIndex = (*jt_f).second + originRowIndex; // Row in target reprojection matrix
         //log() << "Reprojection matrix row # = " << rowIndex << "\n";
         //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
-        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array() + displacements[cpu], originBufferBegin) / newMatrixSize) << "\n";
+        //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize) << "\n";
         std::copy(originBufferBegin, originBufferBegin + newMatrixSize, reprojectionMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_f;
@@ -292,7 +292,23 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
     
     originRowIndex += numbering->stateCount(HalfTimeSlice::BACKWARD); // Udpate target matrix base row for next iteration
   }
+
+  /*log() << "ReprojectionMatrix:\n";
+  for (int i = 0; i < newMatrixSize; ++i) {
+    for (int j = 0; j < newMatrixSize; ++j) {
+      log() << reprojectionMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  } 
   
+  log() << "normalMatrix:\n";
+  for (int i = 0; i < newMatrixSize; ++i) {
+    for (int j = 0; j < newMatrixSize; ++j) {
+      log() << normalMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  } */
+
   toc = getTime();
   log() << "-> Assemble normal matrix: " << toc - tic << " ms\n";
   tic = toc;

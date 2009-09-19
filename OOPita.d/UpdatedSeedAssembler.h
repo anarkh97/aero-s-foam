@@ -19,7 +19,7 @@ public:
   //PhaseRank assemblyPhase() const { return assemblyPhase_; }
   //virtual void assemblyPhaseIs(PhaseRank ap) = 0;
 
-  /* Client */
+  /* Target */
   const Seed * updatedSeed() const { return updatedSeed_.ptr(); }
   
   virtual void updatedSeedIs(Seed * us) = 0;

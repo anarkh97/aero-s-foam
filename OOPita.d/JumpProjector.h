@@ -3,10 +3,11 @@
 
 #include "Fwk.h"
 #include "Seed.h"
+#include "NamedTask.h"
 
 namespace Pita {
 
-class JumpProjector : public Fwk::NamedInterface {
+class JumpProjector : public NamedTask {
 public:
   EXPORT_PTRINTERFACE_TYPES(JumpProjector);
   typedef Fwk::GenManagerInterface<JumpProjector *, String> Manager;
@@ -30,29 +31,21 @@ public:
   virtual void reducedSeedJumpIs(ReducedSeed * rsj) { setReducedSeedJump(rsj); }
   virtual void seedJumpIs(Seed * sj) { setSeedJump(sj); }
 
-  /* Progress */
-  IterationRank iteration() const { return iteration_; }
-  virtual void iterationIs(IterationRank i) { setIteration(i); }
-
 protected:
   explicit JumpProjector(const String & name) :
-    NamedInterface(name),
-    iteration_(-1) {}
+    NamedTask(name)
+  {}
 
   void setPredictedSeed(const Seed * ps) { predictedSeed_ = ps; }
   void setActualSeed(const Seed * as) { actualSeed_ = as; }
   void setSeedJump(Seed * sj) { seedJump_ = sj; }
   void setReducedSeedJump(ReducedSeed * rsj) { reducedSeedJump_ = rsj; }
-
-  void setIteration(IterationRank i) { iteration_ = i; }
     
 private:
   Seed::PtrConst predictedSeed_;
   Seed::PtrConst actualSeed_;
   Seed::Ptr seedJump_;
   ReducedSeed::Ptr reducedSeedJump_;
-
-  IterationRank iteration_;
 
   DISALLOW_COPY_AND_ASSIGN(JumpProjector);
 };

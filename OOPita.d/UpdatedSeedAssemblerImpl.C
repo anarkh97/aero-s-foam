@@ -47,6 +47,7 @@ UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
 
   DynamState result(propagatedSeed()->state());
   int rbs = static_cast<int>(correctionBasis()->stateCount());
+  //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
   for (int i = 0; i < rbs; ++i) {
     if (components[i] != 0.0) {
       result.displacement().linAdd(components[i], correctionBasis()->state(i).displacement());
@@ -56,6 +57,7 @@ UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
 
   updatedSeed()->stateIs(result);
   updatedSeed()->iterationIs(ir);
+  updatedSeed()->statusIs(propagatedSeed()->status());
 }
 
 /* SchedulingReactor */

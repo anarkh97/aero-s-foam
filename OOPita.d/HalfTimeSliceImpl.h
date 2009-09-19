@@ -30,12 +30,14 @@ public:
   const DynamPropagator * propagator() const { return propagator_.ptr(); }
   DynamPropagator * propagator() { return propagator_.ptr(); }
 
-  // HACK 
-  void propagateSeed(); 
+  // Overriden
+  virtual void iterationIs(IterationRank i);
+
 protected:
   HalfTimeSliceImpl(HalfSliceRank r,
                     HalfTimeSlice::Direction d,
                     DynamPropagator * propagator);
+  void propagateSeed(); 
 
 private:
 

@@ -50,6 +50,7 @@ JumpProjectorImpl::iterationIs(IterationRank i) {
 
   reducedSeedJump()->stateIs(projectionResult);
   reducedSeedJump()->iterationIs(seedJump()->iteration());
+  reducedSeedJump()->statusIs(seedJump()->status());
   setIteration(i); 
 }
 
@@ -59,8 +60,9 @@ JumpProjectorImpl::Manager::Manager(const DynamStateBasis * drb) :
 
 JumpProjectorImpl * 
 JumpProjectorImpl::Manager::createNewInstance(const String & key) {
+  String instanceName = String("JumpProjector ") + key;
   JumpBuilder::Ptr jumpBuilder = JumpBuilder::New();
-  return new JumpProjectorImpl(key, this, jumpBuilder.ptr());
+  return new JumpProjectorImpl(instanceName, this, jumpBuilder.ptr());
 }
 
 } // end namespace Pita

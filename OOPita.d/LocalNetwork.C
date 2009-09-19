@@ -1,6 +1,7 @@
 #include "LocalNetwork.h"
 
 #include "RemoteStateTask.h"
+#include "ZeroCorrection.h"
 
 #include <algorithm>
 #include <iterator>
@@ -30,6 +31,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
                            HalfTimeSlice::Manager * sliceMgr,
                            JumpProjector::Manager * jumpProjMgr,
                            ReducedFullTimeSlice::Manager * ftsMgr,
+                           UpdatedSeedAssembler::Manager * usaMgr,
                            RemoteState::Manager * commMgr) :
   totalFullSlices_(totalFullSlices),
   availableCpus_(availableCpus),
@@ -39,6 +41,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
   sliceMgr_(sliceMgr),
   jumpProjMgr_(jumpProjMgr),
   ftsMgr_(ftsMgr),
+  usaMgr_(usaMgr),
   commMgr_(commMgr),
   seedMgr_(Seed::Manager::New()),
   reducedSeedMgr_(ReducedSeed::Manager::New())
@@ -50,16 +53,25 @@ void
 LocalNetwork::init() {
   for (TaskManager::TaskIterator it = taskManager_->tasks(localCpu().value()); it; ++it) {
     HalfSliceRank sliceRank(*it);
-
+    HalfSliceRank nextSliceRank = sliceRank + HalfSliceCount(1);
+    HalfSliceRank previousSliceRank = sliceRank - HalfSliceCount(1);
+    HalfSliceRank previousFullSliceRank = sliceRank - HalfSliceCount(2);
+    HalfSliceRank nextFullSliceRank = sliceRank + HalfSliceCount(2);
+    
+    CpuRank previousCpu(taskManager_->worker(previousSliceRank.value()));
+    CpuRank nextCpu(taskManager_->worker(nextSliceRank.value()));
+    CpuRank previousFullSliceCpu(taskManager_->worker(previousFullSliceRank.value()));
+    CpuRank nextFullSliceCpu(taskManager_->worker(nextFullSliceRank.value()));
+    
     // HalfTimeSlices
     HalfTimeSlice::Ptr forwardSlice = sliceMgr_->instanceNew(HalfSliceId(sliceRank, HalfTimeSlice::FORWARD));
     forwardSlice->seedIs(getSeed(SeedId(MAIN_SEED, sliceRank)));
-    Seed::Ptr nextLeftPropagatedSeed = getSeed(SeedId(LEFT_SEED, sliceRank + HalfSliceCount(1)));
+    Seed::Ptr nextLeftPropagatedSeed = getSeed(SeedId(LEFT_SEED, nextSliceRank));
     forwardSlice->propagatedSeedIs(nextLeftPropagatedSeed.ptr());
     halfTimeSlice_.push_back(forwardSlice);
 
     HalfTimeSlice::Ptr backwardSlice = sliceMgr_->instanceNew(HalfSliceId(sliceRank, HalfTimeSlice::BACKWARD));
-    backwardSlice->seedIs(getSeed(SeedId(MAIN_SEED, sliceRank + HalfSliceCount(1))));
+    backwardSlice->seedIs(getSeed(SeedId(MAIN_SEED, nextSliceRank)));
     backwardSlice->propagatedSeedIs(getSeed(SeedId(RIGHT_SEED, sliceRank)));
     halfTimeSlice_.push_back(backwardSlice);
 
@@ -73,64 +85,96 @@ LocalNetwork::init() {
     jumpProjector_.insert(jumpProjector_.end(), std::make_pair(sliceRank, jumpProjector));
 
     // FullTimeSlices
-    if (sliceRank  + HalfSliceCount(1) < firstInactiveSlice()) {
+    ReducedSeed::Ptr correction = getReducedSeed(SeedId(SEED_CORRECTION, sliceRank));
+    ReducedSeed::Ptr nextCorrection(NULL);
+    if (nextSliceRank < firstInactiveSlice()) {
       ReducedFullTimeSlice::Ptr fullSlice = ftsMgr_->instanceNew(sliceRank);
       fullSlice->jumpIs(getReducedSeed(SeedId(SEED_JUMP, sliceRank)));
-      ReducedSeed::Ptr correction = getReducedSeed(SeedId(SEED_CORRECTION, sliceRank));
       fullSlice->correctionIs(correction.ptr());
-      ReducedSeed::Ptr nextCorrection = getReducedSeed(SeedId(SEED_CORRECTION, sliceRank + HalfSliceCount(2)));
+      nextCorrection = getReducedSeed(SeedId(SEED_CORRECTION, nextFullSliceRank));
       fullSlice->nextCorrectionIs(nextCorrection.ptr());
-      //log() << "Setup FTS head/tail = " << fullSlice->headHalfSlice() << "/" << fullSlice->tailHalfSlice() << "\n";
-
-      HalfSliceRank previousSliceRank = sliceRank - HalfSliceCount(2);
-      CpuRank previousCpu(taskManager_->worker(previousSliceRank.value()));
-      if (previousCpu != CpuRank(-1) && previousCpu != localCpu()) {
-        RemoteState::ReducedSeedWriter::Ptr writer = commMgr_->writerNew(correction.ptr(), previousCpu);
-        if (writer) {
-          String taskName = String("Receive Correction ") + toString(previousSliceRank);
-          RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
-          fullTimeSlice_.insert(fullTimeSlice_.end(), std::make_pair(previousSliceRank, task));
-        }
-      }
-
-      fullTimeSlice_.insert(fullTimeSlice_.end(), std::make_pair(sliceRank, fullSlice));
-      
-      HalfSliceRank nextSliceRank = sliceRank + HalfSliceCount(2);
-      CpuRank nextCpu(taskManager_->worker(nextSliceRank.value()));
-      if (nextCpu != CpuRank(-1) && nextCpu != localCpu()) {
-        RemoteState::ReducedSeedReader::Ptr reader = commMgr_->readerNew(nextCorrection.ptr(), nextCpu);
-        if (reader) {
-          String taskName = String("Send Correction ") + toString(nextSliceRank);
-          RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
-          fullTimeSlice_.insert(fullTimeSlice_.end(), std::make_pair(nextSliceRank, task));
-        }
-      }
+      log() << "Setup FTS head/tail = " << fullSlice->headHalfSlice() << "/" << fullSlice->tailHalfSlice() << "\n";
+      fullTimeSlice_.insert(std::make_pair(sliceRank, fullSlice));
     }
 
-    CpuRank writerCpu(taskManager_->worker(sliceRank.value() - 1));
-    if (writerCpu != CpuRank(-1) && writerCpu != localCpu()) {
-      //log() << "Setup writer from Cpu " << writerCpu << " for " << leftPropagatedSeed->name()
-      //  << " and " << "slice " << sliceRank - HalfSliceCount(1) << "\n";
-      RemoteState::SeedWriter::Ptr writer = commMgr_->writerNew(leftPropagatedSeed.ptr(), writerCpu);
-      if (writer) {
-        leftSeedWriter_.insert(leftSeedWriter_.end(),
-                               std::make_pair(sliceRank - HalfSliceCount(1), writer));
-      }
-    }
-
-    CpuRank readerCpu(taskManager_->worker(sliceRank.value() + 1));
-    if (readerCpu != CpuRank(-1) && readerCpu != localCpu()) {
-      //log() << "Setup reader to Cpu " << readerCpu << " for " << nextLeftPropagatedSeed->name() <<
-      //  " and " << "slice " << sliceRank << "\n";
-      RemoteState::SeedReader::Ptr reader = commMgr_->readerNew(nextLeftPropagatedSeed.ptr(), readerCpu);
-      if (reader) {
-        leftSeedReader_.insert(leftSeedReader_.end(),
-                               std::make_pair(sliceRank, reader));
-      }
-    }
 
     // Update
-  
+    String forwardAssemblerName = toString(sliceRank); 
+    UpdatedSeedAssembler::Ptr forwardAssembler = usaMgr_->instance(forwardAssemblerName);
+    if (!forwardAssembler) {
+      UpdatedSeedAssembler::Ptr forwardAssembler = usaMgr_->instanceNew(forwardAssemblerName);
+      forwardAssembler->propagatedSeedIs(getSeed(SeedId(LEFT_SEED, sliceRank)));
+      forwardAssembler->correctionComponentsIs(getReducedSeed(SeedId(SEED_CORRECTION, sliceRank)));
+      forwardAssembler->updatedSeedIs(getSeed(SeedId(MAIN_SEED, sliceRank)));
+      seedAssembler_.insert(seedAssembler_.end(), std::make_pair(sliceRank, forwardAssembler));
+    }
+
+    String backwardAssemberName = toString(nextSliceRank); // Performs duplicate work for communication optimization
+    UpdatedSeedAssembler::Ptr backwardAssembler = usaMgr_->instanceNew(backwardAssemberName);
+    backwardAssembler->propagatedSeedIs(getSeed(SeedId(LEFT_SEED, nextSliceRank)));
+    ReducedSeed::Ptr reducedCorrection = getReducedSeed(SeedId(SEED_CORRECTION, nextSliceRank));
+    backwardAssembler->correctionComponentsIs(reducedCorrection.ptr());
+    backwardAssembler->updatedSeedIs(getSeed(SeedId(MAIN_SEED, nextSliceRank)));
+    seedAssembler_.insert(seedAssembler_.end(), std::make_pair(nextSliceRank, backwardAssembler));
+    
+    // Communications: Left Propagated Seeds
+    if (previousCpu != CpuRank(-1) && previousCpu != localCpu()) {
+      RemoteState::SeedWriter::Ptr writer = commMgr_->writerNew(leftPropagatedSeed.ptr(), previousCpu);
+      if (writer) {
+        String taskName = String("Receive Propagated Seed ") + toString(sliceRank);
+        RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
+        leftSeedSync_.insert(std::make_pair(sliceRank, task));
+      }
+    }
+    if (nextCpu != CpuRank(-1) && nextCpu != localCpu()) {
+      RemoteState::SeedReader::Ptr reader = commMgr_->readerNew(nextLeftPropagatedSeed.ptr(), nextCpu);
+      if (reader) {
+        String taskName = String("Send Propagated Seed ") + toString(nextSliceRank);
+        RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
+        leftSeedSync_.insert(std::make_pair(nextSliceRank, task));
+      }
+    }
+
+    // Communications: Correction during sequential phase
+    if (previousFullSliceCpu != CpuRank(-1) && previousFullSliceCpu != localCpu()) {
+      RemoteState::ReducedSeedWriter::Ptr writer = commMgr_->writerNew(correction.ptr(), previousFullSliceCpu);
+      if (writer) {
+        String taskName = String("Receive Correction ") + toString(sliceRank);
+        RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
+        fullTimeSlice_.insert(std::make_pair(previousFullSliceRank, task));
+      }
+    }
+    if (nextCorrection) {    
+      if (nextFullSliceCpu != CpuRank(-1) && nextFullSliceCpu != localCpu()) {
+        RemoteState::ReducedSeedReader::Ptr reader = commMgr_->readerNew(nextCorrection.ptr(), nextFullSliceCpu);
+        if (reader) {
+          String taskName = String("Send Correction ") + toString(nextFullSliceRank);
+          RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
+          fullTimeSlice_.insert(std::make_pair(nextFullSliceRank, task));
+        }
+      }
+    }
+
+    // Communication: Correction as an optimization
+    if (previousCpu != CpuRank(-1) && previousCpu != localCpu() && localCpu() != nextCpu) {
+      RemoteState::ReducedSeedWriter::Ptr correctionWriter = commMgr_->writerNew(reducedCorrection.ptr(), previousCpu);
+      if (correctionWriter) {
+        String taskName = String("Receive Correction ") + toString(nextSliceRank);
+        RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionWriter.ptr());
+        correctionSync_.insert(correctionSync_.end(), std::make_pair(nextSliceRank, task));
+      }
+    }
+    if (nextCorrection) {    
+      if (nextCpu != CpuRank(-1) && nextCpu != localCpu() && nextCpu != nextFullSliceCpu) {
+        RemoteState::ReducedSeedReader::Ptr correctionReader = commMgr_->readerNew(nextCorrection.ptr(), nextCpu);
+        if (correctionReader) {
+          String taskName = String("Send Correction ") + toString(nextFullSliceRank);
+          RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionReader.ptr());
+          correctionSync_.insert(correctionSync_.end(), std::make_pair(nextFullSliceRank, task));
+        }
+      }
+    }
+
   }
 
 }
@@ -188,18 +232,37 @@ private:
   HalfSliceRank firstActive_;
 };
 
+/*template <typename T>
+struct IsConverged {
+  explicit IsConverged(HalfSliceRank firstActive) :
+    firstActive_(firstActive)
+  {}
+
+  bool operator()(const typename std::map<HalfSliceRank, T>::value_type & v) const {
+    return v.first < firstActive_;
+  }
+
+private:
+  HalfSliceRank firstActive_;
+};*/
+
 void
 LocalNetwork::convergedSlicesInc() {
   taskManager_->completedTasksInc(1);
   halfTimeSlice_.erase(std::remove_if(halfTimeSlice_.begin(), halfTimeSlice_.end(),
                                       HalfSliceIsConverged(firstActiveSlice())),
                        halfTimeSlice_.end());
-  // TODO other tasks
+
+  leftSeedSync_.erase(leftSeedSync_.begin(), leftSeedSync_.lower_bound(firstActiveSlice()));
+  jumpProjector_.erase(jumpProjector_.begin(), jumpProjector_.lower_bound(firstActiveSlice()));
+  fullTimeSlice_.erase(fullTimeSlice_.begin(), fullTimeSlice_.lower_bound(firstActiveSlice()));
+  correctionSync_.erase(correctionSync_.begin(), correctionSync_.lower_bound(firstActiveSlice()));
+  seedAssembler_.erase(seedAssembler_.begin(), seedAssembler_.lower_bound(firstActiveSlice()));
 }
 
-LocalNetwork::HTSList
+LocalNetwork::TaskList
 LocalNetwork::activeHalfTimeSlices() const {
-  HTSList active;
+  TaskList active;
 
   std::remove_copy_if(halfTimeSlice_.begin(), halfTimeSlice_.end(),
                       std::back_inserter(active),
@@ -209,12 +272,12 @@ LocalNetwork::activeHalfTimeSlices() const {
 }
 
 
-LocalNetwork::JPList
+LocalNetwork::TaskList
 LocalNetwork::activeJumpProjectors() const {
-  JPList active;
+  TaskList active;
 
-  JPMap::const_iterator it_end = jumpProjector_.end();
-  for (JPMap::const_iterator it = jumpProjector_.begin(); it != it_end; ++it) {
+  TaskMap::const_iterator it_end = jumpProjector_.end();
+  for (TaskMap::const_iterator it = jumpProjector_.begin(); it != it_end; ++it) {
     if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
       active.push_back(it->second);
     }
@@ -223,12 +286,12 @@ LocalNetwork::activeJumpProjectors() const {
   return active;
 }
 
-LocalNetwork::SWList
-LocalNetwork::activeLeftSeedWriters() const {
-  SWList active;
+LocalNetwork::TaskList
+LocalNetwork::activeLeftSeedSyncs() const {
+  TaskList active;
 
-  SWMap::const_iterator it_end = leftSeedWriter_.end();
-  for (SWMap::const_iterator it = leftSeedWriter_.begin(); it != it_end; ++it) {
+  TaskMap::const_iterator it_end = leftSeedSync_.end();
+  for (TaskMap::const_iterator it = leftSeedSync_.begin(); it != it_end; ++it) {
     if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
       active.push_back(it->second);
     }
@@ -237,7 +300,7 @@ LocalNetwork::activeLeftSeedWriters() const {
   return active;
 }
 
-LocalNetwork::SRList
+/*LocalNetwork::SRList
 LocalNetwork::activeLeftSeedReaders() const {
   SRList active;
 
@@ -249,7 +312,8 @@ LocalNetwork::activeLeftSeedReaders() const {
   }
 
   return active;
-}
+}*/
+
 /*
 struct CorrectionTaskIsActive {
   explicit CorrectionTaskIsActive(HalfSliceRank firstActive) :
@@ -269,9 +333,50 @@ private:
 LocalNetwork::TaskList
 LocalNetwork::activeFullTimeSlices() const {
   TaskList result;
- 
+
+  CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
+  CpuRank lastInactiveCpu(taskManager_->worker(taskManager_->firstCurrentTask() - 1));
+
+  if (localCpu() == firstActiveCpu || localCpu() == lastInactiveCpu) {
+    ZeroCorrection::Ptr zeroCorrection = ZeroCorrection::New();
+    ReducedSeed::Ptr firstActiveCorrection = reducedSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
+    zeroCorrection->reducedCorrectionIs(firstActiveCorrection.ptr());
+    UpdatedSeedAssembler::Ptr firstActiveAssembler = usaMgr_->instance(toString(firstActiveSlice()));
+    zeroCorrection->reducedBasisSizeIs(firstActiveAssembler->reducedBasisSize());
+    result.push_back(zeroCorrection);
+  }
+
   TaskMap::const_iterator it_end = fullTimeSlice_.end();
   for (TaskMap::const_iterator it = fullTimeSlice_.begin(); it != it_end; ++it) {
+    if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
+      result.push_back(it->second);
+    }
+  }
+
+  return result;
+}
+
+LocalNetwork::TaskList
+LocalNetwork::activeCorrectionSyncs() const {
+  TaskList result;
+
+  TaskMap::const_iterator it_end = correctionSync_.end();
+  for (TaskMap::const_iterator it = correctionSync_.begin(); it != it_end; ++it) {
+    if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
+      result.push_back(it->second);
+    }
+  }
+
+  return result;
+}
+
+
+LocalNetwork::TaskList
+LocalNetwork::activeSeedAssemblers() const {
+  TaskList result;
+
+  TaskMap::const_iterator it_end = seedAssembler_.end();
+  for (TaskMap::const_iterator it = seedAssembler_.begin(); it != it_end; ++it) {
     if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
       result.push_back(it->second);
     }

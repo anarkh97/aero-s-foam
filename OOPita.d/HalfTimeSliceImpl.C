@@ -32,6 +32,12 @@ HalfTimeSliceImpl::seedIs(const Seed * s) {
 }
 
 void
+HalfTimeSliceImpl::iterationIs(IterationRank i) {
+  propagateSeed();
+  propagatedSeed()->iterationIs(i);
+}
+
+void
 HalfTimeSliceImpl::propagatedSeedIs(Seed * ps) {
   // TODO: Update ps immediately ?
   setPropagatedSeed(ps);
@@ -54,7 +60,6 @@ HalfTimeSliceImpl::propagateSeed() {
       } else {
         propagatedSeed()->stateIs(propagator()->finalState());
       }
-      propagatedSeed()->iterationIs(seed()->iteration());
     }
     
     previousSeedState_ = seed()->state(); 

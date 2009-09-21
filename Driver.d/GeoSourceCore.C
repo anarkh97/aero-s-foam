@@ -571,7 +571,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 
       // do the rref
       double t = -getTime();
-      cerr << " ... Converting LMPCs to Reduced Row Echelon Form ";
+      cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form ";
       int *colmap = new int[c.cols()];
       for(int i=0; i<c.cols(); ++i) colmap[i] = i;
       int rank = rowEchelon<double, Matrix<double,Dynamic,Dynamic> >(c, true, NULL, colmap);

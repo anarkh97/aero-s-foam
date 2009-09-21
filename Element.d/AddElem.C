@@ -157,9 +157,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 {
    Element *ele;
    bool grbmeig = (domain->solInfo().probType == SolverInfo::Modal && domain->solInfo().rbmflg == 1);
-   bool rigidmpc = true; //((domain->solInfo().type == 2) || geoSource->getDirectMPC()
-                    //|| (grbmeig && (etype != 66) && (etype != 73) && (etype != 74)) // safe to leave these as rigid for GRBM
-                    //|| (domain->solInfo().isNonLin() && etype != 65));
+   bool rigidmpc = ((domain->solInfo().type == 2) || geoSource->getDirectMPC()
+                   || (grbmeig && (etype != 66) && (etype != 73) && (etype != 74)) // safe to leave these as rigid for GRBM
+                   || (domain->solInfo().isNonLin() && etype != 65));
    switch(etype) 
    {
      case 1:
@@ -352,8 +352,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        else ele = new (ba) RigidSolid6Dof(nnodes,n);
        break;
      case 75:  // PJSA 3-30-05
-       if(rigidmpc) 
-         ele = new (ba) RBE2Mpc(nnodes,n);
+       if(rigidmpc) ele = new (ba) RBE2Mpc(nnodes,n);
        else ele = new (ba) RBE2(nnodes,n);
        break;
      case 80:

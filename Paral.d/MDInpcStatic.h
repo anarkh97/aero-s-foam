@@ -72,6 +72,7 @@ class GenMultiDomainInpcStatic
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(DistrBlockVector<Scalar> *rhs, DistrBlockVector<Scalar> **sol_prev, int iRHS)
            {cerr << "getFreqSweepRHS(DistrBlockVector) not implemented" << endl; }	
+    void getRHS(DistrBlockVector<Scalar> &,double,double) {cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << endl;}
     void pade(DistrBlockVector<Scalar> *sol, DistrBlockVector<Scalar> **sol_prev, double *h, double x)
            {cerr << "pade(DistrBlockVector) not implemented" << endl; }
     GenSolver<Scalar> *getSolver();

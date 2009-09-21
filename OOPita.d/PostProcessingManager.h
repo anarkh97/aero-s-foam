@@ -2,7 +2,7 @@
 #define PITA_POSTPROCESSINGMANAGER_H
 
 #include "Fwk.h"
-#include "LinearPostProcessor.h"
+#include "PostProcessor.h"
 #include "IntegratorPropagator.h"
 #include "LinearGenAlphaIntegrator.h"
 
@@ -10,92 +10,187 @@
 
 namespace Pita {
 
-// TODO: Handle other types of postprocessors
+namespace PostProcessing {
 
-class PostProcessingReactor : public LinearGenAlphaIntegrator::NotifieeConst {
+// class IntegratorReactor
+
+class IntegratorReactor : public DynamTimeIntegrator::NotifieeConst {
 public:
-  EXPORT_PTRINTERFACE_TYPES(PostProcessingReactor);
+  EXPORT_PTRINTERFACE_TYPES(IntegratorReactor);
 
-  const LinearPostProcessor * target() { return target_; }
+  class Builder : public Fwk::PtrInterface<Builder> {
+  public:
+    EXPORT_PTRINTERFACE_TYPES(Builder);
+
+    virtual PostProcessorRoot * postProcessor() const = 0;
+    
+    virtual IntegratorReactor * reactorNew(const DynamTimeIntegrator * notifier, PostProcessor::FileSetId outputFileSet) const = 0;
+
+  protected:
+    Builder() {}
+
+  private:
+    DISALLOW_COPY_AND_ASSIGN(Builder);
+  };
 
   PostProcessor::FileSetId outputFileSet() const { return outputFileSet_; }
 
-  virtual void onInitialCondition();
-  virtual void onCurrentCondition();
+protected:
+  IntegratorReactor(const DynamTimeIntegrator * notifier, PostProcessor::FileSetId outputFileSet) :
+    DynamTimeIntegrator::NotifieeConst(notifier),
+    outputFileSet_(outputFileSet)
+  {}
 
-  virtual void notifierIs(const DynamTimeIntegrator * notifier);
+private:
+  PostProcessor::FileSetId outputFileSet_;
 
-  static Ptr New(const LinearGenAlphaIntegrator * notifier, 
-                 LinearPostProcessor * target,
-                 PostProcessor::FileSetId outputFileSet) {
-    return new PostProcessingReactor(notifier, target, outputFileSet);
+  DISALLOW_COPY_AND_ASSIGN(IntegratorReactor);
+};
+
+// class PropagatorReactor
+
+class PropagatorReactor : public IntegratorPropagator::Notifiee {
+public:
+  EXPORT_PTRINTERFACE_TYPES(PropagatorReactor);
+
+  class Manager : public Fwk::PtrInterface<PropagatorReactor> {
+  public:
+    EXPORT_PTRINTERFACE_TYPES(Manager);
+    
+    const IntegratorReactor::Builder * reactorBuilder() const { return reactorBuilder_.ptr(); }
+
+    PostProcessor::FileSetId outputFileSet(const IntegratorPropagator * observedPropagator) const;
+    void outputFileSetIs(const IntegratorPropagator * observedPropagator, PostProcessor::FileSetId fileSet);
+
+    static Ptr New(IntegratorReactor::Builder * reactorBuilder) { 
+      return new Manager(reactorBuilder);
+    }
+
+  protected:
+    explicit Manager(IntegratorReactor::Builder * reactorBuilder);
+    
+    friend class PropagatorReactor;
+
+  private:
+    IntegratorReactor::Builder::Ptr reactorBuilder_;
+
+    typedef std::map<const IntegratorPropagator *, PropagatorReactor::Ptr> PropagatorReactorContainer;
+    PropagatorReactorContainer propagatorReactor_;
+
+    DISALLOW_COPY_AND_ASSIGN(Manager);
+  };
+
+  virtual void onInitialState();
+  virtual void onFinalState();
+
+  PostProcessor::FileSetId fileSet() const { return fileSet_; }
+  void fileSetIs(PostProcessor::FileSetId fs) { fileSet_ = fs; }
+
+protected:
+  PropagatorReactor(const IntegratorPropagator * notifier,
+      Manager * parent,
+      PostProcessor::FileSetId fileSet);
+  
+  friend class Manager;
+
+private:
+  const IntegratorPropagator * notifier_; // Need a specialized DynamPropagator
+  Manager * parent_;
+  PostProcessor::FileSetId fileSet_;
+
+  DynamTimeIntegrator::NotifieeConst::Ptr integratorReactor_; // Collects the output data
+};
+
+typedef PropagatorReactor::Manager Manager;
+
+// class  IntegratorReactorImpl
+
+template <typename PostProcessorType>
+class IntegratorReactorImpl : public IntegratorReactor {
+public:
+  EXPORT_PTRINTERFACE_TYPES(IntegratorReactorImpl);
+
+  typedef typename PostProcessorType::Integrator Integrator;
+
+  class Builder : public IntegratorReactor::Builder {
+  public:
+    EXPORT_PTRINTERFACE_TYPES(Builder);
+  
+    PostProcessorType * postProcessor() const { return postProcessor_.ptr(); }
+
+    virtual IntegratorReactorImpl<PostProcessorType> * reactorNew(
+        const DynamTimeIntegrator * integrator,
+        PostProcessor::FileSetId fileSet) const {
+      return new IntegratorReactorImpl<PostProcessorType>(
+          dynamic_cast<const typename PostProcessorType::Integrator*>(integrator),
+          postProcessor_.ptr(),
+          fileSet);
+    }
+
+    static Ptr New(PostProcessorType * postProcessor) {
+      return new Builder(postProcessor);
+    }
+
+  protected:
+    Builder(PostProcessorType * postProcessor) :
+      postProcessor_(postProcessor)
+    {}
+
+  private:
+    typename PostProcessorType::Ptr postProcessor_;
+  };
+
+  const PostProcessorType * target() { return target_; }
+
+  virtual void onInitialCondition() {
+    // Reset file(s) before writing initial state
+    this->target_->fileStatusIs(this->outputFileSet(), PostProcessorRoot::CLOSED);
+    this->target_->fileStatusIs(this->outputFileSet(), PostProcessorRoot::OPEN);
+    this->performOutput();
+  }
+
+  virtual void onCurrentCondition() {
+    this->performOutput();
+  }
+
+  virtual void notifierIs(const DynamTimeIntegrator * notifier) {
+    // If notifier is not actually a PostProcessorType::Integrator, do not accept notifications
+    this->notifier_ = dynamic_cast<const Integrator *>(notifier);
+    IntegratorReactor::notifierIs(notifier_);
   }
 
 protected:
-  PostProcessingReactor(const LinearGenAlphaIntegrator * n, 
-                        LinearPostProcessor * t, 
+  IntegratorReactorImpl(const Integrator * n, 
+                        PostProcessorType * t, 
                         PostProcessor::FileSetId ofs);
 
-  void performOutput() const;
+  void performOutput() const {
+    this->target_->outputNew(this->outputFileSet(), this->notifier_);
+  }
+
+  friend class Builder;
 
 private:
-  const LinearGenAlphaIntegrator * notifier_; // Need a specialized DynamTimeIntegrator
-  LinearPostProcessor * target_;
+  const Integrator * notifier_; // Need a specialized DynamTimeIntegrator
+  PostProcessorType * target_;
   PostProcessor::FileSetId outputFileSet_;
 };
 
-
-class PostProcessingManager : public Fwk::PtrInterface<PostProcessingManager> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(PostProcessingManager);
-
-  const LinearPostProcessor * postProcessor() const { return postProcessor_.ptr(); }
-
-  PostProcessor::FileSetId outputFileSet(const IntegratorPropagator * observedPropagator) const;
-  void outputFileSetIs(const IntegratorPropagator * observedPropagator, PostProcessor::FileSetId fileSet);
-
-  static Ptr New(SDDynamPostProcessor * basePostProcessor,
-                 int localFileCount,
-                 const int * localFileId) // Pointer to array of size localFileCount
-  {     
-    return new PostProcessingManager(basePostProcessor, localFileCount, localFileId);
+template <typename PostProcessorType>
+IntegratorReactorImpl<PostProcessorType>::IntegratorReactorImpl(
+    const IntegratorReactorImpl<PostProcessorType>::Integrator * notifier,
+    PostProcessorType * target,
+    PostProcessor::FileSetId outputFileSet) :
+  IntegratorReactor(NULL, outputFileSet),
+  target_(target)
+{
+  this->notifierIs(notifier);
+  if (!this->target() || this->target()->fileStatus(this->outputFileSet()) == PostProcessorRoot::NO_FILE) {
+    throw Fwk::RangeException("In IntegratorReactor::IntegratorReactor");
   }
+}
 
-protected:
-  class PropagatorReactor : public IntegratorPropagator::Notifiee {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(PropagatorReactor);
-
-    virtual void onInitialState();
-    virtual void onFinalState();
-
-    PostProcessor::FileSetId fileSet() const { return fileSet_; }
-    void fileSetIs(PostProcessor::FileSetId fs) { fileSet_ = fs; }
-
-    PropagatorReactor(const IntegratorPropagator * notifier,
-                      LinearPostProcessor * target,
-                      PostProcessor::FileSetId fileSet);
-
-  private:
-    const IntegratorPropagator * notifier_; // Need a specialized DynamPropagator
-    LinearPostProcessor * target_;          // Smart pointer to be kept by creator of PropagatorReactor
-    PostProcessor::FileSetId fileSet_;
-
-    PostProcessingReactor::Ptr integratorReactor_; // Collects the output data
-  };
-
-  PostProcessingManager(SDDynamPostProcessor * basePostProcessor,
-                        int localFileCount,
-                        const int * localFileId);
-
-private:
-  LinearPostProcessor::Ptr postProcessor_;
-
-  typedef std::map<const IntegratorPropagator *, PropagatorReactor::Ptr> PropagatorReactorContainer;
-  PropagatorReactorContainer propagatorReactor_;
-  
-  DISALLOW_COPY_AND_ASSIGN(PostProcessingManager);
-};
+} // end namespace PostProcessing
 
 } // end namespace Pita
 

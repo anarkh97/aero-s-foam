@@ -14,7 +14,7 @@ inline double abs(std::complex<double> a)
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
 
-#include <Utils.d/dofset.h>
+class DofSetArray;
 class Corotator;
 class State;
 class PolygonSet;
@@ -116,13 +116,22 @@ class StructProp {
 	double v2;      // Fracture Energy
 	double fc;      // Compressive strength -October 2001 - JMP
 	};
+     union {
         double Q;	// Specific heat coeffiecient
+        double alphaDamp; // Rayleigh mass damping coefficient
+        };
+     union {
 	double W;	// Thermal expansion coefficient
+        };
+     union {
         double P;	// Perimeter/circumference of thermal truss/beams
+        double betaDamp; // Rayleigh stiffness damping coefficient
+        };
      union {
         double Ta;	// Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
+        double sigma;   // Stefan's constant (5.6704e-8 in SI)
 	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
 	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
 	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
@@ -163,7 +172,7 @@ class StructProp {
 
         StructProp() { E = 0.0; A = 0.0; nu = 0.0; rho = 1.0; eh = 0.0; Ixx = 0.0;
                        Iyy = 0.0; Izz = 0.0; c = 0.0; k = 0.0; Q = 0.0; W = 0.0;
-                       P = 0.0; Ta = 0.0;
+                       P = 0.0; Ta = 0.0; sigma = 0.0;
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0;
                        ymin = 0.0; ymax = 0.0;
@@ -171,12 +180,12 @@ class StructProp {
 
         StructProp(StructProp *p)  {E=p->E; A=p->A; nu=p->nu; rho=p->rho; eh=p->eh;
                                     Ixx=p->Ixx; Iyy=p->Iyy; Izz=p->Izz; c=p->c;
-                                    k=p->k; Q=p->Q; W=p->W; P=p->P; Ta=p->Ta;
+                                    k=p->k; Q=p->Q; W=p->W; P=p->P; Ta=p->Ta; sigma=p->sigma;
                                     ymin=p->ymin; ymax=p->ymax; zmin=p->zmin; zmax=p->zmax;
                                     kappaHelm = p->kappaHelm;
                                     kappaHelmImag = p->kappaHelmImag;
                                     soundSpeed = p->soundSpeed;
-                                    fp.PMLtype = p->fp.PMLtype; isReal = true; }
+                                    fp.PMLtype = p->fp.PMLtype; isReal = p->isReal; }
 
         //StructProp(const StructProp &p) { cerr << "in StructProp copy constructor\n"; }
         //StructProp& operator = (const StructProp &p) { cerr << "in StructProp  assignment operator\n"; }
@@ -284,7 +293,10 @@ class MultiFront;
  ****************************************************************/
 
 class Element {
+  public:
+        enum Category { Structural, Acoustic, Thermal, Sloshing, HEV, Undefined };
   private:
+        Category category;
         double _weight, _trueWeight;
         int elementType;
   protected:
@@ -293,10 +305,11 @@ class Element {
         double preload;
         bool myProp;
         int glNum;
-	void lumpMatrix(FullSquareMatrix&, double ratio);
+        vector<double> factors;
+	void lumpMatrix(FullSquareMatrix&);
   public:
         Element() { prop = 0; pressure = 0.0; preload = 0.0;
-        _weight=1.0; _trueWeight=1.0; myProp = false;  };
+        _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
 
@@ -472,12 +485,12 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false)
-          { return false; }
+        //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
+        virtual bool isRigidMpcElement() { return false; }
         virtual bool isRigidElement() { return false; }
-        virtual void computeMPCs(CoordSet &cs, int &lmpcnum) { };
-        virtual void updateMPCs(GeomState &gState) { };
-        virtual void setMpcForces(double *mpcForces) { };
+        virtual void computeMPCs(CoordSet &cs) { }
+        virtual int getNumMPCs() { return 0; }
+        virtual LMPCons** getMPCs() { return 0; }
 
         virtual double helmCoef() { return prop->kappaHelm * prop->kappaHelm; }
         virtual complex<double> helmCoefC() { return
@@ -507,6 +520,14 @@ class Element {
         virtual FullSquareMatrixC complexStiffness(CoordSet& cs, DComplex *k,int flg=1);
 	virtual FullSquareMatrixC complexDampingMatrix(CoordSet& cs, DComplex* c, int flg=1);
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
+
+        Category getCategory() { return category; } 
+        void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
+        bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+
+        virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
+                                                 // notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
+                                                 //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
 };
 
 // *****************************************************************
@@ -514,9 +535,7 @@ class Element {
 // *       The same remark as for node is valid for elements       *
 // *       The functions for this class are in Element.d/ElemSet.C *
 // *****************************************************************
-/** class containing a set of elements
- *
- */
+
 class Elemset
 {
   protected:
@@ -544,9 +563,8 @@ class Elemset
     //void deleteElems()  { if(elem) delete [] elem; elem = 0; emax = 0; }
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
-
-    /** Replaces all 6-DOF rigid elements that share a node by a single element */
-    void collapseRigid6();
+    bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
+   void collapseRigid6(); // replaces all 6-DOF rigid elements that share a node by a single element
 };
 
 class EsetGeomAccessor {

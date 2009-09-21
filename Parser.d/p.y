@@ -74,14 +74,14 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INITIALLAMBDA
 %token JACOBI KRYLOVTYPE
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE 
-%token MASS MATERIALS MAXITR MAXORTHO MAXVEC MMRATIO MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE LUMPED
+%token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MAXRHO MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
-%token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES OOPITA REMOTECOARSE
+%token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
@@ -91,9 +91,9 @@
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
-%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CONSISTENT CPUMAP
+%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CPUMAP
 %token NODALCONTACT MODE FRIC GAP
-%token OUTERLOOP OUTERLOOPTYPE EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
+%token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
@@ -123,8 +123,7 @@
 %type <ival>     RBMSET RENUMBERID
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
-%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE Consistent
-%type <ival>     OUTERLOOPTYPE
+%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -176,7 +175,7 @@ Component:
         | IterSolver
 	| Solver
 	| Pressure
-	| Consistent
+	| Lumped
         {}
         | Preload
         {}
@@ -218,7 +217,6 @@ Component:
 	| HzemFilterInfo
 	| SlzemFilterInfo
         | ModeFilterInfo
-	| MassMatrixInfo
         | Restart
 	| LoadCInfo
 	| UseCInfo
@@ -435,6 +433,11 @@ ReconsInfo:
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
               break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
           }
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
@@ -463,6 +466,12 @@ ReconsInfo:
               if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
               l = m-1;
               domain->solInfo().nFreqSweepRHS = m/n;
+              break;
+            case SolverInfo::GalProjection:
+              n = $3;
+              l = $4;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
               break;
           }
         }
@@ -992,9 +1001,9 @@ MassInfo:
         { domain->solInfo().massFlag = 1; }
 	;
 CondInfo:
-	CONDITION NewLine Float NewLine
+	CONDITION NewLine Float Integer NewLine
         { domain->solInfo().setProbType(SolverInfo::ConditionNumber); 
-	  domain->solInfo().setCondNumTol($3); }
+	  domain->solInfo().setCondNumTol($3, $4); }
 	| CONDITION NewLine
         { domain->solInfo().setProbType(SolverInfo::ConditionNumber);}
 	;
@@ -1012,6 +1021,8 @@ DynamInfo:
         { domain->solInfo().modal = true; }
         | DynamInfo STABLE SWITCH NewLine
         { domain->solInfo().stable = bool($3); }
+        | DynamInfo STABLE Float Integer NewLine
+        { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
         | DynamInfo NOSECONDARY NewLine
@@ -1041,10 +1052,10 @@ NewmarkFirstOrder:
         Float // epsilon
         { 
           if(domain->solInfo().probType == SolverInfo::NonLinDynam) {
-            domain->solInfo().order = 1;
-          }
+          domain->solInfo().order = 1;
+         }
           else 
-            domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
+          domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
           domain->solInfo().setNewmarkFirstOrderInfo($1); 
         }
         ;
@@ -1212,10 +1223,12 @@ ParallelInTimeKeyWord:
         { domain->solInfo().CkCoarse = true; }
         | LOCALBASES
         { domain->solInfo().baseImprovementMethodForPita = 1; }
-	| OOPITA
-	{ domain->solInfo().newPitaImplementation = true; }
-	| REMOTECOARSE
-	{ domain->solInfo().remoteCoarse = true; }
+	      | NEWIMPL
+	      { domain->solInfo().newPitaImplementation = true; }
+	      | REMOTECOARSE
+	      { domain->solInfo().remoteCoarse = true; }
+        | ORTHOPROJTOL Float
+        { domain->solInfo().pitaProjTol = $2; }
         ;
 DampInfo:
 	DAMPING Float Float NewLine
@@ -1909,10 +1922,10 @@ MatData:
 	  sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer THERMMAT Float Float Float Float Float Float Float Float NewLine
-        { StructProp sp;
-          sp.A = $3;  sp.rho = $4; sp.Q = $5;
-          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+        | Integer THERMMAT Float Float Float Float Float Float Float Float Float NewLine
+        { StructProp sp; 
+          sp.A = $3;  sp.rho = $4; sp.Q = $5; sp.c = $6; 
+          sp.sigma = $7;  sp.k = $8;  sp.eh  = $9;  sp.P   = $10;  sp.Ta  = $11;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
@@ -2228,6 +2241,7 @@ SurfacePressure:
         SPRESSURE NewLine PBCDataList
         { $$ = $3; }
         ;
+/* deprecated
 Consistent:
         CONSISTENT NewLine MASS NewLine
         { geoSource->setMRatio(1); }
@@ -2243,6 +2257,19 @@ Consistent:
         { geoSource->setConsistentQFlag(); geoSource->setConsistentPFlag(); }
         | CONSISTENT NewLine PLOAD NewLine
         { geoSource->setConsistentPFlag(); }
+	;
+*/
+Lumped:
+	LUMPED NewLine
+	{ geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false); 
+          geoSource->setConsistentPFlag(false); 
+        }
+        | LUMPED Integer NewLine
+        { geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false, $2);
+          geoSource->setConsistentPFlag(false);
+        }
 	;
 Preload:
         PRELOAD NewLine
@@ -2287,7 +2314,7 @@ Solver:
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
 	| STATS NewLine ITERTYPE Integer Float Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3,3); 
+	{ domain->solInfo().setSolver($4,$5,$6,$3); 
           domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer Integer NewLine
 	{ domain->solInfo().setSolver($4,$5,$6,$3,$7); 
@@ -2437,10 +2464,14 @@ Solver:
         { domain->solInfo().debug_icntl[$2] = $3; }
         | DEBUGCNTL Integer Float NewLine
         { domain->solInfo().debug_cntl[$2] = $3; }
+/* potential conflict/confusion with LUMPED for mass matrix etc.
         | FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $1; }
+*/
 	| Solver PRECNO FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $3; }
+        | Solver PRECNO LUMPED NewLine
+        { domain->solInfo().fetiInfo.precno = FetiInfo::lumped; }
         | Solver PRECNO Integer NewLine
         { if(($3 < 0) || ($3 > 3)) { 
             $3 = 1;
@@ -2817,9 +2848,9 @@ Solver:
           domain->curvatureConst2 = $4;
           domain->curvatureFlag = 2;
         }
-        | OUTERLOOP OUTERLOOPTYPE NewLine
+        | OUTERLOOP ITERTYPE NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2; }
-        | OUTERLOOP OUTERLOOPTYPE HERMITIAN NewLine
+        | OUTERLOOP ITERTYPE HERMITIAN NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2;
           domain->solInfo().fetiInfo.complex_hermitian = true; }
         | INITIALLAMBDA Integer NewLine
@@ -3156,6 +3187,7 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
             domain->solInfo().order = 1;
             domain->solInfo().probType = SolverInfo::NonLinDynam;
+            domain->solInfo().probType = SolverInfo::TempDynamic;
           }
           domain->solInfo().initNLInfo();
           domain->solInfo().fetiInfo.type = FetiInfo::nonlinear; // XXXX
@@ -3376,10 +3408,5 @@ Float:
 	| DblConstant 
 	{ $$ = $1; }
 	;
-
-MassMatrixInfo:
-	MMRATIO Float NewLine
-	{ geoSource->setMRatio($2); }
-        ;
 
 %%

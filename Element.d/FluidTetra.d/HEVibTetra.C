@@ -30,9 +30,32 @@ HEVibTetra::renum(int *table)
 }
 
 double
-HEVibTetra::getMass(CoordSet&)
+HEVibTetra::getMass(CoordSet& cs)
 {
-  return 0.0;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  Vector r1(3), r2(3), r3(3), r4(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = nd4.z;
+
+  Vector v1(3), v2(3), v3(3), v4(3);
+
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
+
+  v4 = v2.cross(v3);
+  double volume = fabs(v1*v4) / 6.0;
+
+  double mass = volume*prop->rho;
+
+  return mass;
 }
 
 FullSquareMatrix

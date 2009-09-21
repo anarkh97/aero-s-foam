@@ -6,13 +6,14 @@
 #include <Corotational.d/TemperatureState.h> 
 
 TriangleThermalCorotator::TriangleThermalCorotator(int _n1, int _n2, int _n3, double _A, 
-                                                   double _eps, double _Tr, CoordSet& cs)
+                                                   double _eps, double _sigma, double _Tr, CoordSet& cs)
 {
  n1    = _n1;         	// Node 1
  n2    = _n2;   	// Node 2
  n3    = _n3;           // Node 3
  A     = _A;    	// Area
  eps   = _eps;          // Emissivity of the body
+ sigma = _sigma;	// Stefan's constant
  Tr    = _Tr;           // Temperature of the enclosure receiving the radiation
 }
 
@@ -57,7 +58,7 @@ TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
  xn[1] = tn2.x; // temperature of node 2
  xn[2] = tn3.x; // temperature of node 3
  // Form tangent stiffness matrix
- formTangentStiffness( xn, A, eps, kt);
+ formTangentStiffness( xn, A, eps, sigma, kt);
 
  // Copy tangent stiffness matrix to element K matrix
  for(i=0; i<3; ++i)
@@ -65,7 +66,7 @@ TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
      elK[i][j] = kt[i][j];
  
  // Form internal force
- formInternalForce( xn, A, eps, Tr, ff);
+ formInternalForce( xn, A, eps, sigma, Tr, ff);
 
  // Copy internal force to element f matrix
  for(j=0; j<3; ++j)
@@ -73,7 +74,7 @@ TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
 }
 
 void
-TriangleThermalCorotator::formInternalForce(double xn[3], double A, double eps, double Tr, double f[3])
+TriangleThermalCorotator::formInternalForce(double xn[3], double A, double eps, double sigma, double Tr, double f[3])
 /*******************************************************************
  *
  * Purpose :
@@ -89,7 +90,6 @@ TriangleThermalCorotator::formInternalForce(double xn[3], double A, double eps, 
   f[1]=0;
   f[2]=0;
   
-  const double sigma = 5.670400E-8;
   double coeff = (A*eps*sigma)/630;
 
   // Compute internal force in local system and store in f (analytically derived)
@@ -100,7 +100,7 @@ TriangleThermalCorotator::formInternalForce(double xn[3], double A, double eps, 
 
 
 void
-TriangleThermalCorotator::formTangentStiffness(double xn[3], double A, double eps, double kt[3][3])
+TriangleThermalCorotator::formTangentStiffness(double xn[3], double A, double eps, double sigma, double kt[3][3])
 /*******************************************************************
  * 
  * Purpose :
@@ -118,7 +118,6 @@ TriangleThermalCorotator::formTangentStiffness(double xn[3], double A, double ep
  *****************************************************************/
 {
      int i, j;
-     const double sigma = 5.670400E-8; // Stefan Boltzmann Constant
      double coeff = (4*eps*sigma*A)/630;
   // Zero stiffness matrix
      for(i=0; i<3; ++i )

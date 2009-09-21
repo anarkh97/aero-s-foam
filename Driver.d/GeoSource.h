@@ -189,6 +189,7 @@ class GeoSource {
   double mratio; // consistent-lumped matrix ratio; 1==consistent, 0==lumped
 
  public:
+  int fixedEndM; // 0: don't include fixed end moments in gravity force vector for beams and shells
   int *gl2ClSubMap;
 
   // BC Data
@@ -327,8 +328,8 @@ public:
   int  addCFrame(int,double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
-  void setConsistentPFlag();
-  void setConsistentQFlag();
+  void setConsistentPFlag(int);
+  void setConsistentQFlag(int, int=1);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
 
   // Parser support Functions - Boundary Conditions
@@ -504,6 +505,10 @@ public:
   void computeClusterInfo(int glSub);
 
   void writeDistributedInputFiles(int nCluster, Domain*);
+#ifdef SOWER_SURFS
+  template<class Scalar>
+    void readDistributedSurfs(int subNum);
+#endif
   template<class Scalar>
     GenSubDomain<Scalar> * readDistributedInputFiles(int localSubNum, int subNum);
 
@@ -536,15 +541,14 @@ public:
   double omega() { return sqrt(shiftV); }
   double kappa() { /*if(numProps > 1) cerr << "warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << endl;*/ return sProps[0].kappaHelm; }
 
-  void initMRatio() { mratio = -1.0; }
   void setMRatio(double _mratio) { assert(_mratio >= 0.0 && _mratio <= 1.0); mratio = _mratio; }
-  double getMRatio() const { return (mratio >= 0.0 && mratio <= 1.0) ? mratio : 1.0; }
-  bool checkMRatio() { return (mratio >= 0.0 && mratio <= 1.0); } // returns true if mratio has been set to a valid number
+  double getMRatio() const { return mratio; }
 
   // Housekeeping functions
   void cleanUp();
   void cleanAuxData();
 
+  void setUpRigidElements(bool flag);
   void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);

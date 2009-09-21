@@ -65,24 +65,24 @@ RigidSpringRo::stiffness(CoordSet &cs, double *d, int flg)
         int indices = 0;
         
         // Rotation in X
-        if (prop->A != 0.0){
+        if (prop->A != 0.0) {
             indices++; 
-            ret[3][11 + indices] = ret[11 + indices][3] =  1;
-            ret[9][11 + indices] = ret[11 + indices][9] = -1; 
+            ret[3][11 + indices] = ret[11 + indices][3] =  1.0;
+            ret[9][11 + indices] = ret[11 + indices][9] = -1.0; 
         }
 
         // Rotation in Y
-        if (prop->E != 0.0){
+        if (prop->E != 0.0) {
             indices++;
-            ret[4][11 + indices] = ret[11 + indices][4] = 1;
-            ret[10][11 + indices] = ret[11 + indices][10] = -1;
+            ret[4][11 + indices] = ret[11 + indices][4] = 1.0;
+            ret[10][11 + indices] = ret[11 + indices][10] = -1.0;
         }
 
         // Rotation in Z
-        if (prop->nu != 0.0){
+        if (prop->nu != 0.0) {
             indices++;
-            ret[5][11 + indices] = ret[11 + indices][5] = 1;
-            ret[11][11 + indices]= ret[11 + indices][11] = -1;
+            ret[5][11 + indices] = ret[11 + indices][5] = 1.0;
+            ret[11][11 + indices]= ret[11 + indices][11] = -1.0;
         }
 
         return ret;

@@ -1,5 +1,5 @@
-#ifndef _GENRIGIDMPCBEAM_H_
-#define _GENRIGIDMPCBEAM_H_
+#ifndef _GENRIGIDMPCBEAM_
+#define _GENRIGIDMPCBEAM_
 
 #include <Element.d/Element.h>
 #include <Corotational.d/Corotator.h>
@@ -15,8 +15,6 @@ class GenRigidMpcBeam : public Element, public Corotator
     int numcdofs;
     char cdofs[9];
     LMPCons* mpc[8];
-    double lambda[8];
-    int glMpcNb[8]; 
     DofSet activeDofs;
 
   public:
@@ -24,12 +22,8 @@ class GenRigidMpcBeam : public Element, public Corotator
     GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs); // used by RBE2 superelement
     ~GenRigidMpcBeam() { /* nothing to delete */ };
 
-    virtual void computeMPCs(CoordSet &cs, int &lmpcnum);
-    virtual void updateMPCs(GeomState &gState);
-    bool isRigidMpcElement(const DofSet &ds = DofSet::nullDofset, bool forAllNodes=false)
-       { return ds == DofSet::nullDofset || ds == activeDofs; }
-
-    void setMpcForces(double *mpcForces) { for(int i=0; i<numcdofs; ++i) lambda[i] = mpcForces[glMpcNb[i]]; }
+    virtual void computeMPCs(CoordSet &cs);
+    bool isRigidMpcElement() { return true; }
 
     Corotator *getCorotator(CoordSet &, double *, int, int) { return this; }
     void setProp(StructProp *p) { };

@@ -113,25 +113,25 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  allOps.K = domain->constructDBSparseMatrix<double>();
 
  // construct geometric rigid body modes if necessary
- Rbm *rigidBodyModes = 0;
+ //Rbm *rigidBodyModes = 0;
  if(domain->solInfo().rbmflg) { 
-   filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
-   rigidBodyModes = domain->constructRbm();
+   //filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
+   dMat.rigidBodyModes = domain->constructRbm();
  }
 
  if(domain->solInfo().hzemFlag) {
-   filePrint(stderr, " ... Constructing HZEMs             ... \n");
-   rigidBodyModes = domain->constructHzem();
+   //filePrint(stderr, " ... Constructing HZEMs             ... \n");
+   dMat.rigidBodyModes = domain->constructHzem();
  }
 
  // construct rigid body modes for sloshing problems if necessary
  if(domain->solInfo().slzemFlag) { 
-   filePrint(stderr, " ... Constructing Sloshing RBMs in EigenDescr.C  ... \n");
-   rigidBodyModes = domain->constructSlzem();
+   //filePrint(stderr, " ... Constructing Sloshing RBMs in EigenDescr.C  ... \n");
+   dMat.rigidBodyModes = domain->constructSlzem();
  }
 
  // build stiffness and mass matrices
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, rigidBodyModes, kelArray);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
 
@@ -148,16 +148,6 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
      dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
    }
  }
-
- int numUncon = domain->numUncon();
- int nrmod    = dMat.dynMat->numRBM();
-
- if(nrmod > 0) {  // PJSA: bug fix
-     VectorSet rbms(nrmod, numUncon);
-     dMat.dynMat->getRBMs(rbms);
-     dMat.rbm = rbms+0;
- }
- else dMat.rbm = 0;
 }
 
 void

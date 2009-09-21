@@ -104,8 +104,8 @@ EigenSolver< EigOps, VecType, VecSet,
  probDesc->buildEigOps( *eM );
 
  // ... get the number of rigid body modes
- if (geoSource->shiftVal() > 0.0)  nrmod = 0; //CBM
- else nrmod = eM->dynMat->numRBM();
+ if (geoSource->shiftVal() != 0.0 || domain->solInfo().rbmflg == 0) nrmod = 0; //CBM, PJSA
+ else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
 
  if(domain->solInfo().test_ulrich) nrmod = 0;
 
@@ -292,7 +292,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-  this->eM->dynMat->getRBMs((*Z));
+  if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
 
   // ... initialize the first set of vectors
   this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -672,7 +672,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  // ... Store the rbms in the first this->nrmod vectors of VecSet Z
- this->eM->dynMat->getRBMs((*Z));
+ if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
 
  // ... initialize the first set of vectors
  this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -1089,6 +1089,16 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
     else { // one eigen calculation
       sconv = true;
+      if(strcmp("",domain->solInfo().which) == 0) {
+        if(geoSource->shiftVal() == 0.0) {
+          sprintf(which,"LA");
+          //cerr << "which is undefined, setting to LA\n";
+        }
+        else {
+          sprintf(which,"BE");
+          //cerr << "which is undefined, setting to BE\n";
+        }
+      } else
       sprintf(which,domain->solInfo().which); // specifies which of the Ritz values of
                                               // OP to compute (see Arpack manual)
      // ... adjust subSpaceSize
@@ -1123,7 +1133,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
 
     // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-    if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
+    if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
  
     // ... copy the this->nrmod Z vectors to vector set Q
     for(i=0; i<this->nrmod; ++i) (*Q)[i] = (*Z)[i];
@@ -1394,7 +1404,6 @@ SymArpackSolver< EigOps, VecType, VecSet,
       fprintf(stderr," ... Structure mass = %e  ...\n",mass);
       fprintf(stderr," --------------------------------------\n");
     }
-
   }
 
   // ... Print timers

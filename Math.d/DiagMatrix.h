@@ -34,7 +34,7 @@ class GenDiagMatrix: public GenSparseMatrix<Scalar> , public GenSolver<Scalar>
      //void print();
      void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
      void mult(const Scalar *rhs, Scalar *result);
-     void factor() { int count=0; for(int i=0; i<neq; ++i) if(v[i] == 0.0) count++; cerr << count << " zero diagonal terms\n"; }
+     void factor();
 
 };
 

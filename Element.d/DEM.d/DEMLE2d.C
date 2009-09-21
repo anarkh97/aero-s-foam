@@ -4,11 +4,6 @@
 #include <Element.d/DEM.d/DEMLE2d.h>
 #include <Element.d/Helm.d/IsoParamUtils2d.h>
 
-// To be able to access omega
-#include <Driver.d/GeoSource.h>
-extern GeoSource *geoSource;
-
-
 template<class Scalar>
 Scalar elasticForm(double lambda, double mu, double omega, double rho,
          Scalar (*gradu)[2], Scalar (*gradv)[2], Scalar *u, Scalar *v) {
@@ -183,12 +178,12 @@ void DGMLE2d::getRef(double *xyz,double *xy) {
 }
 
 
-void DGMLE2d::createM(CoordSet &cs, complex<double>*M) {
+void DGMLE2d::createM(complex<double>*M) {
 
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xref[2];
  getRef(xyz,xref);
@@ -260,12 +255,12 @@ void DGMLE2d::createM(CoordSet &cs, complex<double>*M) {
  }
 
  double materialc[5];
- materialc[1] = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
+ materialc[1] = getOmega();
+ double E = getE();
+ double nu = getNu();
  materialc[2] = nu*E/((1.0+nu)*(1.0-2.0*nu));
  materialc[3] = E/(2.0*(1.0+nu));
- materialc[4] = prop->rho;
+ materialc[4] = getRho();
 
  SolidDGMEMatrices2d(o, xyz, materialc,
                     ndir, cdir, cndir, nldir, cldir, clndir,
@@ -297,12 +292,12 @@ void DGMLE2d::createM(CoordSet &cs, complex<double>*M) {
 }
 
 
-void DGMLE2d::enrichmentF(CoordSet &cs, double *x, complex<double> *f) {
+void DGMLE2d::enrichmentF(double *x, complex<double> *f) {
 
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xref[2];
  getRef(xyz,xref);
@@ -319,14 +314,14 @@ void DGMLE2d::enrichmentF(CoordSet &cs, double *x, complex<double> *f) {
 }
 
 
-void DGMLE2d::polynomialF(CoordSet &cs, double *x, double *f) {
+void DGMLE2d::polynomialF(double *x, double *f) {
 
 
 //  Find x in the coordinate system of the element using Newton's method
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xi[2] = {0,0};
  double *NN = new double[2*2*o];
@@ -385,7 +380,7 @@ void DGMLE2d::polynomialF(CoordSet &cs, double *x, double *f) {
 
 DGMLE2d_4::DGMLE2d_4(int _nnodes, int* nodenums) :
   DGMLE2d(_nnodes,nodenums) {
- ndir = 4;
+ ndir = 8;
 }
 
 DGMLE2d_16::DGMLE2d_16(int _nnodes, int* nodenums) :
@@ -394,10 +389,10 @@ DGMLE2d_16::DGMLE2d_16(int _nnodes, int* nodenums) :
 }
 
 void DGMLE2d_4::dir(int n, complex<double> *d) {
- double omega = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
- double rho = prop->rho;
+ double omega = getOmega();
+ double E = getE();
+ double nu = getNu();
+ double rho = getRho();
 
  double lambda = nu*E/((1.0+nu)*(1.0-2.0*nu));
  double mu = E/(2.0*(1.0+nu));
@@ -421,10 +416,10 @@ void DGMLE2d_4::dir(int n, complex<double> *d) {
 }
 
 void DGMLE2d_16::dir(int n, complex<double> *d) {
- double omega = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
- double rho = prop->rho;
+ double omega = getOmega();
+ double E = getE();
+ double nu = getNu();
+ double rho = getRho();
 
  double lambda = nu*E/((1.0+nu)*(1.0-2.0*nu));
  double mu = E/(2.0*(1.0+nu));
@@ -481,7 +476,7 @@ void DGMLE2d_16::dir(int n, complex<double> *d) {
 
 
 void DGMLE2d_1_LM::ldir(int n, double tau[2], complex<double> *d) {
- double E = e1->getProperty()->E;
+ double E = e1->getE();
  if (n==0) {
    d[0] = 0.0;
    d[1] = 0.0;
@@ -496,12 +491,10 @@ void DGMLE2d_1_LM::ldir(int n, double tau[2], complex<double> *d) {
 }
 
 void DGMLE2d_4_LM::ldir(int n, double tau[2], complex<double> *d) {
-// double lkappa = max(e1->getProperty()->kappaHelm,
-//                     e2->getProperty()->kappaHelm);
- double omega = geoSource->omega();
- double E = e1->getProperty()->E;
- double nu = e1->getProperty()->nu;
- double rho = e1->getProperty()->rho;
+ double omega = e1->getOmega();
+ double E = e1->getE();
+ double nu = e1->getNu();
+ double rho = e1->getRho();
  double lambda = nu*E/((1.0+nu)*(1.0-2.0*nu));
  double mu = E/(2.0*(1.0+nu));
  double kp = omega*sqrt(rho/(lambda+2*mu));
@@ -568,11 +561,11 @@ void SolidDGMNaturalEVector2d(int order, double *xy, double *materialc,
 }
 
 
-void DGMLE2d::createRHS(CoordSet &cs, complex<double>*v) {
+void DGMLE2d::createRHS(complex<double>*v) {
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xref[2];
  getRef(xyz,xref);
@@ -592,12 +585,12 @@ void DGMLE2d::createRHS(CoordSet &cs, complex<double>*v) {
  for(int i=0;i<ndir;i++) vv[i] = 0.0;
 
  double materialc[5];
- materialc[1] = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
+ materialc[1] = getOmega();
+ double E = getE();
+ double nu = getNu();
  materialc[2] = nu*E/((1.0+nu)*(1.0-2.0*nu));
  materialc[3] = E/(2.0*(1.0+nu));
- materialc[4] = prop->rho;
+ materialc[4] = getRho();
 
  double omega = materialc[1];
  double lambda = materialc[2];
@@ -647,10 +640,10 @@ DEMLE2d::DEMLE2d(int _nnodes, int* nodenums) : DGMLE2d(_nnodes, nodenums)  { }
 DEMLE2d_4::DEMLE2d_4(int _o, int* nodenums) : DEMLE2d(_o,nodenums) { ndir = 1; }
 
 void DEMLE2d_4::dir(int n, complex<double> *d) {
- double omega = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
- double rho = prop->rho;
+ double omega = getOmega();
+ double E = getE();
+ double nu = getNu();
+ double rho = getRho();
 
  double lambda = nu*E/((1.0+nu)*(1.0-2.0*nu));
  double mu = E/(2.0*(1.0+nu));
@@ -837,7 +830,7 @@ void LEDEMMatrices2d(int order, double *xy, double *materialc,
  int c = 0;
  for(int faceindex=1;faceindex<=4;faceindex++) {
    LEPELFunction2d f(order,materialc,ndir,dirs,coef,
-                nldirs[faceindex-1],ldirs+c*2,lcoef,
+                nldirs[faceindex-1],ldirs+c*2,lcoef+c*2,
                 xsc + (faceindex-1)*2, xc,
                 kel+c*ndir,kpl+c*tos);
    ipu.lineInt2d(xy, faceindex, f);
@@ -850,12 +843,12 @@ void LEDEMMatrices2d(int order, double *xy, double *materialc,
 
 
 
-void DEMLE2d::createM(CoordSet &cs, complex<double>*M) {
+void DEMLE2d::createM(complex<double>*M) {
 
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xref[2];
  getRef(xyz,xref);
@@ -924,12 +917,12 @@ void DEMLE2d::createM(CoordSet &cs, complex<double>*M) {
  }
 
  double materialc[5];
- materialc[1] = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
+ materialc[1] = getOmega();
+ double E = getE();
+ double nu = getNu();
+ double rho = getRho();
  materialc[2] = nu*E/((1.0+nu)*(1.0-2.0*nu));
  materialc[3] = E/(2.0*(1.0+nu));
- materialc[4] = prop->rho;
 
  int tos = 2*os;
 
@@ -1046,11 +1039,11 @@ void LEDEMNaturalVector2d(int order, double *xy, double *materialc,
 }
 
 
-void DEMLE2d::createRHS(CoordSet &cs, complex<double>*v) {
+void DEMLE2d::createRHS(complex<double>*v) {
  IsoParamUtils2d ipu(o);
  int os = ipu.getordersq();
  double *xyz= new double[3*os];
- cs.getCoordinates(nn,os,xyz,xyz+os,xyz+2*os);
+ getNodalCoord(os,nn,xyz);
 
  double xref[2];
  getRef(xyz,xref);
@@ -1067,12 +1060,12 @@ void DEMLE2d::createRHS(CoordSet &cs, complex<double>*v) {
  }
 
  double materialc[5];
- materialc[1] = geoSource->omega();
- double E = prop->E;
- double nu = prop->nu;
+ materialc[1] = getOmega();
+ double E = getE();
+ double nu = getNu();
  materialc[2] = nu*E/((1.0+nu)*(1.0-2.0*nu));
  materialc[3] = E/(2.0*(1.0+nu));
- materialc[4] = prop->rho;
+ materialc[4] = getRho();
 
  double omega = materialc[1];
  double lambda = materialc[2];

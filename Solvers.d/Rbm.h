@@ -7,6 +7,7 @@
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/GeomState.h>
+#include <Feti.d/DistrVectorSet.h>
 
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
@@ -15,6 +16,8 @@ template <class Scalar> class GenVectorSet;
 typedef GenVectorSet<double> VectorSet;
 class IntFullM;
 template <class Scalar> class SubLMPCons;
+template <class Scalar> class GenDistrVectorSet;
+typedef GenDistrVectorSet<double> DistrVectorSet;
 
 class Rbm 
 {
@@ -94,6 +97,7 @@ public:
   void getScaledRBMs(double *, int nc, int *dofs, double *scaling, int _numG=-1, int offset=0);
   void getRBMs(Vector* rigidBodyModes);
   void getRBMs(VectorSet& rigidBodyModes);
+  void getRBMs(DistrVectorSet& rigidBodyModes) { cerr << "Rbm::getRBMs(DistrVectorSet& rigidBodyModes) is not implemented\n"; }
 
   void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow,
                                   double max_value, int &numgrbm, int &rank);

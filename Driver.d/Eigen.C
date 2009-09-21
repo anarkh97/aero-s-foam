@@ -269,8 +269,10 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
       domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,eigenValues[imode]);
     else if(domain->solInfo().sloshing)
       domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
-    else 
-      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,sqrt(eigenValues[imode])/(2.0*pi));
+    else {
+      double freq = (eigenValues[imode] < 0.0) ? 0.0 : sqrt(eigenValues[imode])/(2.0*pi);
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,freq);
+    }
   }
 
  // --- Print Problem statistics to screen ------------------------------
@@ -305,11 +307,13 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
      fprintf(stderr," --------------------------------------\n");
    }
 
+/* this is done in Domain::postProcessing in OpMake.C
    // ... CALCULATE STRUCTURE MASS IF REQUESTED
    if(sinfo.massFlag)  {
      double mass = computeStructureMass();
      fprintf(stderr," ... Structure mass = %e  ...\n",mass);
      fprintf(stderr," --------------------------------------\n");
    }
+*/
  }
 }

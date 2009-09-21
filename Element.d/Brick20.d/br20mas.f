@@ -74,7 +74,8 @@ C
 C
 C.... COMPUTE THE MATRIX COEFFICIENT
 C
-        c1 = 0.125*totmas
+cPJSA        c1 = 0.125*totmas
+        c1 = 0.05*totmas
 C
 C.... COMPUTE BRICK ELEMENT MASS MATRIX
 C
@@ -91,7 +92,8 @@ C
 C..... COMPUTE THE BODY FORCE DUE TO GRAVITY IF NEEDED
 C
         if (grvflg) then
-          coef = 8.0d0*c1
+cPJSA          coef = 8.0d0*c1
+          coef = 20.0d0*c1
           grvfor(1) = coef*gamma(1)
           grvfor(2) = coef*gamma(2)
           grvfor(3) = coef*gamma(3)

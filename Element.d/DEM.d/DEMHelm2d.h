@@ -3,14 +3,12 @@
 
 #include <math.h>
 #include <Element.d/DEM.d/DEMElement.h>
-#include <Math.d/ComplexD.h>
-#include <Utils.d/dofset.h>
 
 class DGMHelm2d_LM: public DEMLM {
 public:
  virtual int nDofs()=0;
  virtual int type()=0;
- virtual void init(CoordSet &cs) {};
+ virtual void init() {};
  virtual complex<double> coef(int)=0;
 };
 
@@ -59,7 +57,7 @@ public:
    // needs to be initialized
    ndofs = 0;
  }
- virtual void init(CoordSet &cs);
+ virtual void init();
  virtual int nDofs() { return ndofs; }
  virtual int type() { return 5; }
  virtual complex<double> ldir(int,double[2]);
@@ -106,9 +104,9 @@ public:
  virtual int polyDofsPerNode() { return 1; }
 
  virtual void getRef(double *xyz,double *xy);
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void interfMatrix(CoordSet &cs, int fi, DEMElement*,complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
+ virtual void createRHS(complex<double>*);
  virtual void createSol(double *xyz, complex<double>*,
                             complex<double>*);
 };
@@ -178,9 +176,9 @@ public:
  virtual bool dgmFlag() { return false; }
  virtual int nPolynomialDofs() { return (o>0)?o*o:((-o)*(-o+1))/2; }
 
- virtual void createM(CoordSet &cs, complex<double>*);
- virtual void interfMatrix(CoordSet &cs, int fi, DEMElement*,complex<double>*);
- virtual void createRHS(CoordSet &cs, complex<double>*);
+ virtual void createM(complex<double>*);
+ virtual void interfMatrix(int fi, DEMElement*,complex<double>*);
+ virtual void createRHS(complex<double>*);
 };
 
 

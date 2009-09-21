@@ -23,6 +23,7 @@ typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenSubDOp;
 typedef GenSubDOp<double> SubDOp;
 class Domain;
+class Rbm;
 
 //template <class VecType> class SysState;
 
@@ -43,8 +44,9 @@ class GenMDDynamMat {
    GenSubDOp<Scalar> *Kuc;
    GenSubDOp<Scalar> **C_deriv;
    GenSubDOp<Scalar> **Cuc_deriv;
+   Rbm* rigidBodyModes;
 
-   GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; C = 0; Cuc = 0; M = 0; Muc = 0; Mcc = 0; Kuc = 0; C_deriv = 0; Cuc_deriv = 0; };
+   GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; C = 0; Cuc = 0; M = 0; Muc = 0; Mcc = 0; Kuc = 0; C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
 /*
    ~MDDynamMat() { 
      if(dynMat) delete dynMat; 
@@ -142,7 +144,7 @@ class MultiDomainDynam
     void getRHS(DistrVector &);
     void preProcess();
     void processLastOutput();
-    void printTimers(MDDynamMat *);
+    void printTimers(MDDynamMat *, double);
 
     void trProject(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: trProject not implemented here"); }
     void project(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: project not implemented here"); }

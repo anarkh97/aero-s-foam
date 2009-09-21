@@ -4,16 +4,8 @@
 // Shape fcts & derivatives for 15 nodes wedge element 
 // Serendipity finite element basis
 // Iso-parametric formulation
-// ---------------------------------------------------------------------
-// EXPERIMENTAL ...
-// ---------------------------------------------------------------------
-// Std C/C++ lib
 #include <stdio.h>
-#include <stdlib.h>
 #include <iostream>
-#include <string.h>
-#include <Utils.d/linkfc.h>
-
 
 // HB (01-15-06): for given reference shape fct derivatives dShape & nodes coordinates (X.Y,Z), 
 //                compute the jacobian & shape fcts derivative w.r.t to the global coordinate system.
@@ -78,116 +70,91 @@ computePenta15DShapeFct(double dShape[15][3], double X[15], double Y[15], double
   return(J);
 }
 
-// z in [-1,1]
 void Penta15ShapeFct(double Shape[15], double m[3])
 {
-  double r = m[0];
-  double s = m[1];
-  double z = m[2];
+  double xi = m[0];
+  double et = m[1];
+  double ze = m[2];
+  double a = 1.0-xi-et;
 
-  double t = 1.-r-s;
-  
-  double zm  = 0.5*(1.-z);
-  double zp  = 0.5*(1.+z);
-  double zzm = 1.-z*z;
- 
-  // Lower & upper wegde's corners  
-  Shape[ 0] = zm*t*( 2.*t-z-2. );
-  Shape[ 1] = zm*r*( 2.*r-z-2. );
-  Shape[ 2] = zm*s*( 2.*s-z-2. );
-  Shape[ 3] = zp*t*( 2.*t+z-2. );
-  Shape[ 4] = zp*r*( 2.*r+z-2. );
-  Shape[ 5] = zp*s*( 2.*s+z-2. );
+  Shape[0] = -0.5*a*(1.0-ze)*(2.0*xi+2.0*et+ze);
+  Shape[1] = 0.5*xi*(1.0-ze)*(2.0*xi-2.0-ze);
+  Shape[2] = 0.5*et*(1.0-ze)*(2.0*et-2.0-ze);
+  Shape[3] = -0.5*a*(1.0+ze)*(2.0*xi+2.0*et-ze);
+  Shape[4] = 0.5*xi*(1.0+ze)*(2.0*xi-2.0+ze);
+  Shape[5] = 0.5*et*(1.0+ze)*(2.0*et-2.0+ze);
+  Shape[6] = 2.0*xi*a*(1.0-ze);
+  Shape[7] = 2.0*xi*et*(1.0-ze);
+  Shape[8] = 2.0*et*a*(1.0-ze);
+  Shape[9] = 2.0*xi*a*(1.0+ze);
+  Shape[10] = 2.0*xi*et*(1.0+ze);
+  Shape[11] = 2.0*et*a*(1.0+ze);
+  Shape[12] = a*(1.0-ze*ze);
+  Shape[13] = xi*(1.0-ze*ze);
+  Shape[14] = et*(1.0-ze*ze);
 
-  // Lower & upper Wegde's triangular edges'nodes
-  Shape[ 6] = 4.*zm*t*r;
-  Shape[ 7] = 4.*zm*r*s;
-  Shape[ 8] = 4.*zm*s*t;
-  Shape[ 9] = 4.*zp*t*r;
-  Shape[10] = 4.*zp*r*s;
-  Shape[11] = 4.*zp*s*t;
-
-  // Wegde vertical edges'nodes
-  Shape[12] = zzm*t;
-  Shape[13] = zzm*r;
-  Shape[14] = zzm*s;
 }
 
-// z in [-1,1]
 void Penta15dShapeFct(double dShape[15][3], double m[3])
 {
-  double r = m[0];
-  double s = m[1];
-  double z = m[2];
-
-  double t = 1.-r-s;
-
-  double zm  = 0.5*(1.-z);
-  double zp  = 0.5*(1.+z);
-  double zzm = 1.-z*z;
-
-  // Lower & upper wegde's corners
-  dShape[ 0][0] = zm*( 2.+z-4.*t ); 
-  dShape[ 0][1] = zm*( 2.+z-4.*t );
-  dShape[ 0][2] =  t*(  z-t+0.5  );
-
-  dShape[ 1][0] = zm*( 4.*r-z-2. ); 
-  dShape[ 1][1] = zm*( 4.*r-z-2. );
-  dShape[ 1][2] =  r*(  z-r+0.5  );
-
-  dShape[ 2][0] = zm*( 4.*s-z-2. ); 
-  dShape[ 2][1] = zm*( 4.*s-z-2. );
-  dShape[ 2][2] =  s*(  z-s+0.5  );
-
-  dShape[ 3][0] = zp*( 2.-z-4.*t );
-  dShape[ 3][1] = zp*( 2.-z-4.*t );
-  dShape[ 3][2] =  t*(  z+t-0.5  );
-
-  dShape[ 4][0] = zp*( 4.*r+z-2. );
-  dShape[ 4][1] = zp*( 4.*r+z-2. );
-  dShape[ 4][2] =  r*(  z+r-0.5  );
-
-  dShape[ 5][0] = zp*( 4.*s+z-2. );
-  dShape[ 5][1] = zp*( 4.*s+z-2. );
-  dShape[ 5][2] =  s*(  z+s-0.5  );
-
-  // Lower & upper Wegde's triangular edges'nodes
-  dShape[ 6][0] =  4.*zm*(t-r);
-  dShape[ 6][1] = -4.*zm*r    ;
-  dShape[ 6][2] = -2.* t*r    ;
-
-  dShape[ 7][0] =  4.*zm*s;
-  dShape[ 7][1] =  4.*zm*r;
-  dShape[ 7][2] = -2.* r*s;
-
-  dShape[ 8][0] = -4.*zm*s;
-  dShape[ 8][1] =  4.*zm*(t-s);
-  dShape[ 8][2] = -2.* s*t;
-
-  dShape[ 9][0] =  4.*zp*(t-r);
-  dShape[ 9][1] = -4.*zp*r    ;
-  dShape[ 9][2] =  2.* t*r    ;
-
-  dShape[10][0] =  4.*zp*s;
-  dShape[10][1] =  4.*zp*r;
-  dShape[10][2] =  2.* r*s;
-
-  dShape[11][0] = -4.*zp*s;
-  dShape[11][1] =  4.*zp*(t-s);
-  dShape[11][2] =  2.* s*t;
-
-  // Wegde vertical edges'nodes
-  dShape[12][0] = -zzm;
-  dShape[12][1] = -zzm;
-  dShape[12][2] = -2.*z*t;
-
-  dShape[13][0] =  zzm;
-  dShape[13][1] =  0.0;
-  dShape[13][2] = -2.*z*r;
-
-  dShape[14][0] =  0.0;
-  dShape[14][1] =  zzm;
-  dShape[14][2] = -2.*z*s;
+  double xi = m[0];
+  double et = m[1];
+  double ze = m[2];
+  double a = 1.0-xi-et;
+//
+// local derivatives of the shape functions: xi-derivative
+//
+  dShape[0][0] = 0.5*(1.0-ze)*(4.0*xi+4.0*et+ze-2.0);
+  dShape[1][0] = 0.5*(1.0-ze)*(4.0*xi-ze-2.0);
+  dShape[2][0] = 0.0;
+  dShape[3][0] = 0.5*(1.0+ze)*(4.0*xi+4.0*et-ze-2.0);
+  dShape[4][0] = 0.5*(1.0+ze)*(4.0*xi+ze-2.0);
+  dShape[5][0] = 0.0;
+  dShape[6][0] = 2.0*(1.0-ze)*(1.0-2.0*xi-et);
+  dShape[7][0] = 2.0*et*(1.0-ze);
+  dShape[8][0] = -2.0*et*(1.0-ze);
+  dShape[9][0] = 2.0*(1.0+ze)*(1.0-2.0*xi-et);
+  dShape[10][0] = 2.0*et*(1.0+ze);
+  dShape[11][0] = -2.0*et*(1.0+ze);
+  dShape[12][0] = -(1.0-ze*ze);
+  dShape[13][0] = (1.0-ze*ze);
+  dShape[14][0] = 0.0;
+//
+// local derivatives of the shape functions: eta-derivative
+//
+  dShape[0][1] = 0.5*(1.0-ze)*(4.0*xi+4.0*et+ze-2.0);
+  dShape[1][1] = 0.0;
+  dShape[2][1] = 0.5*(1.0-ze)*(4.0*et-ze-2.0);
+  dShape[3][1] = 0.5*(1.0+ze)*(4.0*xi+4.0*et-ze-2.0);
+  dShape[4][1] = 0.0;
+  dShape[5][1] = 0.5*(1.0+ze)*(4.0*et+ze-2.0);
+  dShape[6][1] =-2.0*xi*(1.0-ze);
+  dShape[7][1] = 2.0*xi*(1.0-ze);
+  dShape[8][1] = 2.0*(1.0-ze)*(1.0-xi-2.0*et);
+  dShape[9][1] =-2.0*xi*(1.0+ze);
+  dShape[10][1] = 2.0*xi*(1.0+ze);
+  dShape[11][1] = 2.0*(1.0+ze)*(1.0-xi-2.0*et);
+  dShape[12][1] =-(1.0-ze*ze);
+  dShape[13][1] = 0.0;
+  dShape[14][1] = (1.0-ze*ze);
+//
+// local derivatives of the shape functions: zeta-derivative
+//
+  dShape[0][2] = a*(xi+et+ze-0.5);
+  dShape[1][2] = xi*(-xi+ze+0.5);
+  dShape[2][2] = et*(-et+ze+0.5);
+  dShape[3][2] = a*(-xi-et+ze+0.5);
+  dShape[4][2] = xi*(xi+ze-0.5);
+  dShape[5][2] = et*(et+ze-0.5);
+  dShape[6][2] = -2.0*xi*a;
+  dShape[7][2] = -2.0*xi*et;
+  dShape[8][2] = -2.0*et*a;
+  dShape[9][2] = 2.0*xi*a;
+  dShape[10][2] = 2.0*xi*et;
+  dShape[11][2] = 2.0*et*a;
+  dShape[12][2] = -2.0*a*ze;
+  dShape[13][2] = -2.0*xi*ze;
+  dShape[14][2] = -2.0*et*ze;
 }
 
 // HB (01-15-06): shape fct & derivatives for the 15 nodes wedge element (Iso-parametric formulation)
@@ -207,7 +174,4 @@ Penta15ShapeFct(double Shape[15], double DShape[15][3], double m[3], double X[15
 
   return(computePenta15DShapeFct(dShape, X, Y, Z, DShape));
 }
-
-
-
 

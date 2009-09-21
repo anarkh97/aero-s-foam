@@ -31,7 +31,7 @@ class SingleDomainCond {
     SDCondPostProcessor *getPostProcessor();
 
     DynamMat buildCondOps();
-    void getConditionInfo(double &tolerance, int &ndof);
+    void getConditionInfo(double &tolerance, int &maxit, int &ndof);
 };
 
 #endif

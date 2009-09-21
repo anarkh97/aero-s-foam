@@ -227,5 +227,6 @@ Therm3DQuad::computeHeatFluxes(Vector& heatflux, CoordSet &cs, Vector& elTemp,
      heatflux[2] = elGradTemp[2][hgInd-3];
      heatflux[3] = elGradTemp[3][hgInd-3];
     }
+
 }
 

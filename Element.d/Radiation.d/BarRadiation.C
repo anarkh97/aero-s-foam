@@ -79,7 +79,7 @@ BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 Corotator *
 BarRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 {
- return new BarThermalCorotator(nn[0], nn[1], prop->P, prop->eps, prop->Tr, cs);
+ return new BarThermalCorotator(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs); 
 }
 
 int

@@ -18,10 +18,6 @@ extern "C"      {
 void	_FORTRAN(mstf25)(double*, double*, double*, double&, double&, double*, 
 		const int&, double*, double*, int &);
 
-void	_FORTRAN(mass25)(double*, double*, double*, double&, double*, 
-		const int&, double*, double*, const int&, 
-		double&, const int&, double*, double*);
-
 void    _FORTRAN(sands25)(const int&,    double*,    double*,    double*,    
                              double&,    double&,    double*,    double*,    
                              double*, const int&, const int&, const int&, 
@@ -253,58 +249,88 @@ TenNodeTetrahedral::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 double
 TenNodeTetrahedral::getMass(CoordSet& cs)
 {
-
-  double x[10], y[10], z[10], ElementMassMatrix[30][30];
-
+  double x[10], y[10], z[10]; 
   cs.getCoordinates(nn, numNodes(), x, y, z);
 
-  double *gravityAcceleration = 0, *grvfor = 0, totmas = 0.0;
+  const int numgauss = 15;
+  extern double dp[15][10][3]; // contains the values of the Tet10 shape fct at the 15 integration pts
 
-  int grvflg = 0, masflg = 1;
+  // integration: loop over Gauss pts
+  // reuse the 15 pts integration rule (order 5) -> reuse arrays vp1 & dp 
+  const double weight[15] = {1.975308731198311E-02, 1.198951396316977E-02,
+                             1.198951396316977E-02, 1.198951396316977E-02,
+                             1.198951396316977E-02, 1.151136787104540E-02,
+                             1.151136787104540E-02, 1.151136787104540E-02,
+                             1.151136787104540E-02, 8.818342350423336E-03,
+                             8.818342350423336E-03, 8.818342350423336E-03,
+                             8.818342350423336E-03, 8.818342350423336E-03,
+                             8.818342350423336E-03};
+  double dOmega; // det of jacobian
+  double volume = 0.0;
+  for(int i = 0; i < numgauss; i++) {
+    dOmega = computeTet10DShapeFct(dp[i], x, y, z);
+    volume += fabs(dOmega)*weight[i];
+  }
 
-  extern double dp[15][10][3];
-  extern double vp1[15][10];
-
-  _FORTRAN(mass25)(x, y, z, prop->rho, (double*)ElementMassMatrix, numDofs(),
-          gravityAcceleration, grvfor, grvflg, totmas, masflg, (double *)dp, 
-          (double *)vp1);
-
-  return totmas;
+  return volume*prop->rho;
 }
 
 void
-TenNodeTetrahedral::getGravityForce(CoordSet& cs,double *gravityAcceleration,  
+TenNodeTetrahedral::getGravityForce(CoordSet& cs, double *gravityAcceleration,  
                                     Vector& gravityForce, int gravflg, GeomState *geomState)
 {
+  int nnodes = 10;
 
-  double x[10], y[10], z[10], ElementMassMatrix[30][30];
+  // Lumped
+  if (gravflg != 2) {
 
-  cs.getCoordinates(nn, numNodes(), x, y, z);
+    double totmas = getMass(cs);
 
-  double grvfor[3], totmas = 0.0;
-
-  int grvflg = 1, masflg = 0;
-
-  extern double dp[15][10][3];
-  extern double vp1[15][10];
-
-  _FORTRAN(mass25)(x, y, z, prop->rho, (double*)ElementMassMatrix, numDofs(),
-           gravityAcceleration, grvfor, grvflg, totmas, masflg, (double *)dp, 
-           (double *)vp1);
-
-// Distribute the grvfor vector among nodes.
-
-  grvfor[0] *= 0.1;
-  grvfor[1] *= 0.1;
-  grvfor[2] *= 0.1;
-
-  int i;
-  for(i=0; i<10; ++i) {
-    gravityForce[3*i+0] = grvfor[0];
-    gravityForce[3*i+1] = grvfor[1];
-    gravityForce[3*i+2] = grvfor[2];
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
+    }
   }
+  // Consistent
+  else {
 
+    double x[10], y[10], z[10];
+    cs.getCoordinates(nn, numNodes(), x, y, z);
+
+    double lforce[10];
+    for(int i = 0; i < nnodes; ++i) lforce[i] = 0.0;
+
+    const int numgauss = 15;
+    extern double dp[15][10][3]; // arrays vp1 & dp contain the values of the Tet10 shape fct  & their 
+    extern double vp1[15][10];   // derivatives w.r.t reference coordinate system at the 15 integration pts
+
+    // integration: loop over Gauss pts
+    // reuse the 15 pts integration rule (order 5) -> reuse arrays vp1 & dp 
+    const double weight[15] = {1.975308731198311E-02, 1.198951396316977E-02,
+                               1.198951396316977E-02, 1.198951396316977E-02,
+                               1.198951396316977E-02, 1.151136787104540E-02,
+                               1.151136787104540E-02, 1.151136787104540E-02,
+                               1.151136787104540E-02, 8.818342350423336E-03,
+                               8.818342350423336E-03, 8.818342350423336E-03,
+                               8.818342350423336E-03, 8.818342350423336E-03,
+                               8.818342350423336E-03};
+    double dOmega; //det of jacobian
+    for(int i = 0; i < numgauss; i++) {
+      dOmega = computeTet10DShapeFct(dp[i], x, y, z);
+      double w = fabs(dOmega)*weight[i]*prop->rho;
+
+      for(int n = 0; n < nnodes; ++n)
+        lforce[n] += w*vp1[i][n];
+    }
+
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*gravityAcceleration[2];
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------------
@@ -407,19 +433,14 @@ TenNodeTetrahedral::getThermalForce(CoordSet &cs,Vector &ndTemps,
 FullSquareMatrix
 TenNodeTetrahedral::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
-
   double X[10], Y[10], Z[10];
   cs.getCoordinates(nn, numNodes(), X, Y, Z);
-
-  double *gravityAcceleration = 0, *grvfor = 0, totmas = 0.0;
-
-  int grvflg = 0, masflg = 0;
 
   const int numgauss = 15;     // use 15 pts integration rule (order 5)
   extern double dp[15][10][3]; // arrays vp1 & dp contain the values of the Tet10 shape fct  & their 
   extern double vp1[15][10];   // derivatives w.r.t reference coordinate system at the 15 integration pts
 
-  const int nnodes= 10;
+  const int nnodes = 10;
   const int ndofs = 30;
   FullSquareMatrix M(ndofs,mel);
                                                                                                                              
@@ -442,19 +463,18 @@ TenNodeTetrahedral::massMatrix(CoordSet &cs,double *mel,int cmflg)
                                8.818342350423336E-03};
     double dOmega;//det of jacobian
     int jSign = 0;
-    for(int i=0;i<numgauss;i++){
-      dOmega = computeTet10DShapeFct(dp[i],X,Y,Z);
+    for(int i = 0; i < numgauss; i++){
+      dOmega = computeTet10DShapeFct(dp[i], X, Y, Z);
 #ifdef CHECK_JACOBIAN
       checkJacobian(&dOmega, &jSign, getGlNum()+1, "TenNodeTetrahedral::massMatrix");
 #endif
       double w = fabs(dOmega)*weight[i]*prop->rho;
       addNtDNtoM3DSolid(M, vp1[i], w, nnodes, ls);
     }
-  } else { // Lumped mass matrix
-    //fprintf(stderr," *** In TenNodeTetrahedral::massMatrix: make Lumped mass matrix.\n");
-    _FORTRAN(mass25)(X, Y, Z, prop->rho, (double*)mel, ndofs,
-    	             gravityAcceleration, grvfor, grvflg, totmas, masflg, (double *)dp, 
-                     (double *)vp1);
+  } 
+  else { // Lumped mass matrix
+    fprintf(stderr," *** In TenNodeTetrahedral::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
+    exit(-1);
   }
                                                                                                                              
   return(M);

@@ -140,8 +140,8 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 
 // ... NOW COPY MECHANISM MODES TO GEOMETRIC RIGID BODY MODES IF NECESSARY
    nzem = nTotZem + ngrbm;
-   if(ngrbm > 0 && print_num_grbm) cerr << " ... Skyline matrix has " << ngrbm << " GRBMs/HZEMs ...\n";
-   if(nTotZem > 0 && print_num_trbm) cerr << " ... Skyline matrix factorization found " << nzem << " TRBMs using tolerance " << TOLERANCE << " ...\n";
+   if(print_nullity && nzem > 0)
+     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-nzem << ", nullity = " << nzem << " ...\n";
 
    if(nTotZem > 0) {
      rbm = new Rbm(allrbms,nzem,numUncon);

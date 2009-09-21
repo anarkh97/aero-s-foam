@@ -27,7 +27,7 @@ class IntFullM;
 template<class Scalar>
 GenDomainGroupTask<Scalar>::GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double _cm, 
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
-                                               double _alpha, double _beta, int _f2, 
+                                               double _alpha, double _beta, int _numSommer, int _f2, 
                                                int _solvertype, int _isCtcOrDualMpc)
 {
   sd = _sd;
@@ -38,6 +38,10 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **
   // XML Mcc  = new GenSparseMatrix<Scalar> *[nsub];
   C    = new GenSparseMatrix<Scalar> *[nsub];
   Cuc  = new GenSparseMatrix<Scalar> *[nsub];
+// RT
+  C_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+  Cuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
+// RT end
   K    = new GenSparseMatrix<Scalar> *[nsub];
   //rbms = new Rbm *[nsub];
   rbms = _rbms;
@@ -48,6 +52,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **
   coeM    = _cm;
   coeC    = _cc;
   coeK    = _ck;
+  numSommer = _numSommer;
   alpha   = _alpha; 
   beta    = _beta;
   isFeti2 = _f2;
@@ -125,12 +130,38 @@ GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int>
  if(domain->solInfo().inpc) { C[isub] = 0; Cuc[isub] = 0; }
  else 
  {
-   if(alpha != 0.0 || beta != 0.0) { // for rayleigh damping
+   if(alpha != 0.0 || beta != 0.0 || (numSommer>0)) { // for rayleigh damping
      C[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+
      if((cdsa->size() - dsa->size()) == 0) // PJSA
        Cuc[isub] = 0;
      else 
        Cuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
+// RT
+     int numC_deriv, numRHS;
+//     if((numSommer > 0) && ((sommerfeldType == 2) || (sommerfeldType == 4)))
+//       numC_deriv = sinfo.nFreqSweepRHS - 1;
+//     else
+     numC_deriv = 1; numRHS = 1+1;
+     C_deriv[isub] = new GenSparseMatrix<Scalar> * [numRHS - 1];
+     for(int n=0; n<numC_deriv; ++n) {
+       C_deriv[isub][n] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+     }
+     for(int n=numC_deriv; n<numRHS - 1; ++n)
+       C_deriv[isub][n] = 0;
+//     if(cdsa->size() > 0 && (cdsa->size() - dsa->size()) != 0) {}
+     if((cdsa->size() - dsa->size()) != 0) {
+       Cuc_deriv[isub] = new GenSparseMatrix<Scalar> * [numRHS - 1];
+       for(int n=0; n<numC_deriv; ++n) {
+         Cuc_deriv[isub][n] = sd[isub]->template constructCuCSparse<Scalar>();
+       }
+       for(int n=numC_deriv; n<numRHS - 1; ++n)
+         Cuc_deriv[isub][n] = 0;
+     } else {
+       Cuc_deriv[isub] = 0;
+     }
+
+// RT end
    }
    else if (domain->solInfo().ATDARBFlag != -2.0) {// for acoustic damping
      if (solvertype != 10) {
@@ -147,6 +178,10 @@ GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int>
    else {
      C[isub] = 0;
      Cuc[isub] = 0;
+// RT
+     C_deriv[isub] = 0;
+     Cuc_deriv[isub] = 0;
+// RT end
    }
  }
 
@@ -189,7 +224,7 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
  switch(solvertype) {
    case 10:
     {
-      GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); // XML NEED TO DEAL WITH RBMS
+      GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); 
       dynMats[isub] = spm;
       spMats[isub] = spm;
     } break;
@@ -288,13 +323,18 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
   allOps.M = M[isub];
   allOps.Muc = Muc[isub];
   allOps.Kuc = Kuc[isub];
+// RT
+  allOps.C_deriv = C_deriv[isub];
+//  if (C_deriv[isub]) allOps.C_deriv[0] = C_deriv[isub][0];
+  allOps.Cuc_deriv = Cuc_deriv[isub];
+//  if (Cuc_deriv[isub]) allOps.Cuc_deriv[0] = Cuc_deriv[isub][0];
+// RT end
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
- 
   sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray);
 
 /* XXXX should be done in problem descriptor, eg. Paral.d/MDStatic.C
   if(make_feti && domain->solInfo().type == 2 && sd[isub]->solInfo().getFetiInfo().version != FetiInfo::fetidp)  // PJSA DEBUG
-    rbms[isub] = sd[isub]->constructRbm();
+    rbms[isub] = sd[isub]->constructRbm(false);
 */
 
   sd[isub]->setKuc((GenCuCSparse<Scalar>*)allOps.Kuc);

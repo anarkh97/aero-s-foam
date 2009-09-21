@@ -19,6 +19,7 @@
 #include <Solvers.d/UFront.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
+#include <Solvers.d/GmresSolver.h>
 #include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
@@ -90,17 +91,16 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                       FullSquareMatrix *kelArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
-
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
- double alpha = sinfo.alphaDamp;
- double  beta = sinfo.betaDamp;
+ double alphaDamp = sinfo.alphaDamp, alpha;
+ double  betaDamp = sinfo.betaDamp, beta;
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
- double *karray = (double *) dbg_alloca(size);
- double *marray = (double *) dbg_alloca(size);
+ double *karray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
+ double *marray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
  //double *carray = (double *) dbg_alloca(size);
 
  //FullSquareMatrix kel(1, karray);
@@ -108,29 +108,25 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  //FullSquareMatrix cel(1, carray);
  FullSquareMatrix kel, mel, cel;
 
- double mratio = geoSource->getMRatio();
- // toxa: FIXIT!!!! in input files via MMRATIO 0
- if(solInfo().newmarkBeta == 0.0 && mratio == 1)
-   {
-     fprintf(stderr, "*** WARNING: you may have to change your input files\n" \
-             "in order to compute with lumped mass matrices by adding a line <MMRATIO 0>!!!\n");
-   }
- complex<double> *kcarray = (complex<double> *) alloca(4*size);
- complex<double> *mcarray = (complex<double> *) alloca(4*size);
+ double mratio = geoSource->getMRatio(); // 0 for lumped, 1 for consistent mass matrix
+
+ complex<double> *kcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
+ complex<double> *mcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
 
  FullSquareMatrixC kcel(1, kcarray);
  FullSquareMatrixC mcel(1, mcarray);
 
  bool isShifted = geoSource->isShifted();
- bool isDamped = (alpha != 0.0) || (beta != 0.0);
+ //bool isDamped = (alpha != 0.0) || (beta != 0.0);
+ bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
 
  double *izarray = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
  FullSquareMatrix izel(1, izarray); // izel stores the imaginary part of impedence matrix zel
  double omega, omega2;
 
  int sizeC = sizeof(DComplex)*maxNumDOFs*maxNumDOFs;
- DComplex *karrayC = static_cast<DComplex*>(dbg_alloca(sizeC));
- DComplex *marrayC = static_cast<DComplex*>(dbg_alloca(sizeC));
+ DComplex *karrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
+ DComplex *marrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
  FullSquareMatrixC kelC(1, karrayC);
  FullSquareMatrixC melC(1, marrayC);
 
@@ -148,6 +144,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(packedEset[iele]->isPhantomElement()) continue;
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (packedEset[iele]->getProperty())->fp.PMLtype!=0;
+   alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : alphaDamp;
+   beta = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : betaDamp;
    // Form element stiffness and mass matrices
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if (isComplexF) {
@@ -217,6 +215,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
            if(isDamped && isStructureElement(iele))
               izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
            kel[i][j] -= o2*mel[i][j];
+           //kel.print();
          }
        }
      }
@@ -476,26 +475,29 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    // Damping Matrix and K tilda.
    Scalar m;
    DMassData *current = firstDiMass;
+   double omega2 = geoSource->shiftVal();
+   double omega = sqrt(geoSource->shiftVal()); 
    while(current != 0) {
      // PJSA: modified all addDiscreteMass functions to accept dsa dof rather than cdsa dof (much safer)
+     // XXXX what about Kuc, Cuc?
      int dof = dsa->locate(current->node, (1 << current->dof));
-     if(dof == -1) { cerr << "bad discrete mass #1\n"; current = current->next; continue; }
+     if(dof == -1) 
+       { current = current->next; continue; }
      if(current->jdof > -1) { // PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
        int jdof = dsa->locate(current->node, (1 << current->jdof));
-       if(jdof == -1) { cerr << "bad discrete mass #2\n"; current = current->next; continue; }
+       if(jdof == -1) 
+         { current = current->next; continue; }
        if(isShifted) {
-         double mass = (sinfo.isCoupled && isStructureElement(iele)) ? current->diMass*cscale_factor2 : current->diMass;
-         double m_real = -(omega*omega)*mass;
-         // ML ARGH This has to be buggy!!! iele does not have a valid value by now!!!!!!
-         double m_imag = (isDamped && isStructureElement(iele)) ? -omega*alpha*mass : 0.0;
+         // note: for coupled problems we are assuming lumped mass is structural not fluid
+         double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
+         double m_real = -omega2*mass;
+         double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(ops.K) ops.K->add(dof, jdof, m);
          if(mat) mat->add(dof, jdof, m);
-         if(isDamped && isStructureElement(iele)) {
+         if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
          }
-         if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele)) mass /= (domain->fluidCelerity * domain->fluidCelerity);
          if(ops.M) ops.M->add(dof, jdof, mass);
          if(ops.Msolver) ops.Msolver->add(dof, jdof, mass);
        }
@@ -510,17 +512,15 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      }
      else {
        if(isShifted) {  // add discrete mass contributions to global matrices for frequency response analysis
-         double mass = (sinfo.isCoupled && isStructureElement(iele)) ? current->diMass*cscale_factor2 : current->diMass;
-         double m_real = -(omega*omega)*mass;
-         double m_imag = (isDamped && isStructureElement(iele)) ? -omega*alpha*mass : 0.0;
+         double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
+         double m_real = -omega2*mass;
+         double m_imag = isDamped ? -omega*alpha*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(ops.K) ops.K->addDiscreteMass(dof, m);
          if(mat) mat->addDiscreteMass(dof, m);
-         if(isDamped && isStructureElement(iele)) {
+         if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
          }
-         if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele)) mass /= (domain->fluidCelerity * domain->fluidCelerity);
          if(ops.M) ops.M->addDiscreteMass(dof, mass);
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, mass);
        }
@@ -538,7 +538,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
- if (sinfo.HEV)  {
+ if ((sinfo.HEV) && (probType() ==SolverInfo::Modal))  {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.trbm, sinfo.sparse_renum, 0);
    Mff->zeroAll();
 
@@ -586,13 +586,34 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        }
      }
    }
+   for (int i=0; i<domain->nuNonZero; ++i)  {
+     for (int j=i; j<domain->nuNonZero; ++j)  {
+           Ma_NZ[j][i] = Ma_NZ[i][j];
+     }
+   }
 
    fprintf(stderr," ... HEV Problem: Added mass obtained ...\n");
 
    //add added mass to structural mass for EVP!
    ops.M->add(Ma_NZ,domain->umap_add);
-   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass...\n");
+   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
+
+   if (isShifted)  {
+     omega2 = geoSource->shiftVal();
+     Ma_NZ *= (-omega2*Kcoef);
+     if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
+     if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
+   }
+
  }
+
+ delete [] karray;
+ delete [] marray;
+ delete [] kcarray;
+ delete [] mcarray;
+ delete [] karrayC;
+ delete [] marrayC;
 
  if(sinfo.isAcousticHelm()) assembleGlobalSommer<Scalar>(mat, &ops);
 
@@ -935,18 +956,18 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  else {
    switch(sinfo.iterType) {
      default:
-     case 1 : {
+     case 0 : {
        fprintf(stderr," ... PCG Method is Selected          ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
      }
-     case 2: {
+     case 4: {
        fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
        allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
-     case 3: {
+     case 5: {
        fprintf(stderr," ... CR Method is Selected          ...\n");
        allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
@@ -1098,14 +1119,8 @@ void Domain::makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc,
   FullSquareMatrix kel(1,karray);
   FullSquareMatrix kel_Dt(1,kDtarray);
 
-  double mratio = geoSource->getMRatio();
-  // toxa: FIXIT!!!! in input files via MMRATIO 0
-  if((sinfo.probType == SolverInfo::Dynamic) && (solInfo().newmarkBeta == 0.0) && mratio==1)
-    {
-      fprintf(stderr, "*** WARNING: you may have to change your input files\n" \
-	      "in order to compute with lumped mass matrices by adding a line <MMRATIO 0>!!!\n");
-    }
-  //int cmflg = ((sinfo.probType == SolverInfo::Dynamic) && (solInfo().newmarkBeta == 0.0)) ? 0 : 1;
+  double mratio = geoSource->getMRatio(); // 0 for lumped, 1 for consistent
+
   bool isShifted = geoSource->isShifted();
   //bool isDamped = (alpha != 0.0) || (beta != 0.0);
 
@@ -1324,11 +1339,11 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm(probType());
+ if(sinfo.rbmflg) rbm = constructRbm();
 
  // ... Construct "thermal rigid body mode" if necessary
  if(sinfo.hzemFlag) {
-   rbm = constructHzem(probType());
+   rbm = constructHzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1336,7 +1351,7 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
    fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem(probType());
+   rbm = constructSlzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1360,11 +1375,11 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm(probType());
+ if(sinfo.rbmflg) rbm = constructRbm();
 
  // ... Construct "thermal rigid body mode" if necessary
  if(sinfo.hzemFlag) {
-   rbm = constructHzem(probType());
+   rbm = constructHzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
@@ -1372,14 +1387,15 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
    fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem(probType());
+   rbm = constructSlzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
 
  // for freqency sweep: need M, Muc, C, Cuc
  if(sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) {
    //---- UH ----
-   if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos) {
+   if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos ||
+      sinfo.freqSweepMethod == SolverInfo::GalProjection) {
      if (allOps.K)
        delete allOps.K;
      allOps.K = constructDBSparseMatrix<Scalar>();
@@ -1510,7 +1526,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
     default:
-    case 1: {
+    case 0: {
       fprintf(stderr," ... CG Method is Selected          ...\n");
       if (sinfo.precond==3) {
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
@@ -1526,18 +1542,26 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       systemSolver         = pcgSolver;
       break;
     }
-    case 2: {
+    case 4: {
       fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
       GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
       systemSolver = bcgSolver;
       break;
     }
-    case 3: {
+    case 5: {
       fprintf(stderr," ... CR Method is Selected          ...\n");
       GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *crSolver = new  GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
       systemSolver = crSolver;
+      break;
+    }
+    case 1 : {
+      fprintf(stderr," ... GMRES Method is Selected       ...\n");
+      GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+        *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+         (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, NULL, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+      systemSolver = gmresSolver;
       break;
     }
   }
@@ -1548,23 +1572,27 @@ template<class Scalar>
 void
 Domain::buildGravityForce(GenVector<Scalar> &force)
 {
-  int gravflg = gravityFlag();
-
-  if(gravflg) {
-    if (geoSource->consistentQFlag()) gravflg=2;
+  if(gravityFlag()) {
 
     // ... ADD ELEMENT MASS CONTRIBUTION ...
-    int i, cn, iele;
-    Vector ElementGravityForce(maxNumDOFs,0.0);
+    Vector ElementGravityForce(maxNumDOFs, 0.0);
+    int gravflg;
 
-    for(iele=0; iele<numele; ++iele) {
-      packedEset[iele]->getGravityForce(nodes,gravityAcceleration,
-                                        ElementGravityForce,gravflg);
+    for(int iele = 0; iele < numele; ++iele) {
+      if(packedEset[iele]->getProperty() != NULL) {
+       
+        if (geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0)) 
+             gravflg = 2;                      // 2: consistent (for dynamics, consistent gravity should not be used if element only has a lumped mass matrix)
+        else gravflg = geoSource->fixedEndM;   // 1: lumped with fixed-end moments
+                                               // 0: lumped without fixed-end moments
 
-      for(i=0; i<allDOFs->num(iele); ++i) {
-        cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-        if(cn >= 0)
-          force[cn] += ElementGravityForce[i];
+        packedEset[iele]->getGravityForce(nodes, gravityAcceleration, ElementGravityForce, gravflg);
+
+        for(int i = 0; i < allDOFs->num(iele); ++i) {
+          int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
+          if(cn >= 0)
+            force[cn] += ElementGravityForce[i];
+        }
       }
     }
 
@@ -1582,37 +1610,34 @@ Domain::buildGravityForce(GenVector<Scalar> &force)
       }
       current = current->next;
     }
- }
+  }
 }
 
 template<class Scalar>
 void
 Domain::buildPressureForce(GenVector<Scalar> &force, GeomState *gs)
 {
- Vector ElementPressureForce(maxNumDOFs,0.0);
- int cflg = geoSource->consistentPFlag();
+  Vector ElementPressureForce(maxNumDOFs, 0.0);
+  int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE geoSource->consistentPFlag();
 
- int i, iele;
- // for(iele = 0; iele< numele; ++iele) {
- int nEls = packedEset.last(); //HB: performance issue (avoid calling method last() at each loop)
- for(iele = 0; iele<nEls;  ++iele) {  // PJSA: 5-2-05 for phantoms
-   // If there is a zero pressure defined, skip it.
-   if( packedEset[iele]->getPressure() == 0.0 ) continue;
+  int nEls = packedEset.last(); //HB: performance issue (avoid calling method last() at each loop)
+  for(int iele = 0; iele < nEls;  ++iele) {  // PJSA: 5-2-05 for phantoms
+    // If there is a zero pressure defined, skip it.
+    if( packedEset[iele]->getPressure() == 0.0 ) continue;
 
-   // Otherwise, compute element pressure force
-   packedEset[iele]->computePressureForce(nodes, ElementPressureForce,
-                                          gs, cflg);
+    // Otherwise, compute element pressure force
+    packedEset[iele]->computePressureForce(nodes, ElementPressureForce, gs, cflg);
 
-   // Assemble element pressure forces into global rhs vector
-   for(i=0; i<allDOFs->num(iele); ++i) {
-     if((*allDOFs)[iele][i] > -1) {
-       int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-       if(cn >= 0) {
-         force[cn] += ElementPressureForce[i];
-       }
-     }
-   }
- }
+    // Assemble element pressure forces into global rhs vector
+    for(int i = 0; i < allDOFs->num(iele); ++i) {
+      if((*allDOFs)[iele][i] > -1) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
+        if(cn >= 0) {
+          force[cn] += ElementPressureForce[i];
+        }
+      }
+    }
+  }
 }
 
 template<class Scalar>
@@ -2110,6 +2135,191 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
     if(kuc) {
       kuc->multSubtract(Vc, force);
     }
+}
+
+
+
+template<class Scalar>
+void
+Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
+  GenSparseMatrix<Scalar> *kuc,
+  GenSparseMatrix<Scalar> *muc, GenSparseMatrix<Scalar> **cuc_deriv,
+  double omega, double delta_omega, GeomState *gs)
+{
+  if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
+    checkSommerTypeBC(this);
+  // ... ZERO FORCE VECTOR INITIALLY
+  force.zero();
+
+  // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
+  int i;
+  for(i=0; i < numNeuman; ++i) {
+    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+    if(dof < 0) continue;
+    //if(nbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], nbc[i].val/fluidDensity); else // PJSA 1-9-2008 temp fix (homogenous fluid only) 
+    //                                                                                         // required for backward-compatibility with old versions (before acoustic equations divided by rho)
+    ScalarTypes::addScalar(force[dof], nbc[i].val); 
+  }
+
+  // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
+  for(i=0; i < numComplexNeuman; ++i) {
+    int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
+    if(dof < 0) continue;
+    //if(cnbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], cnbc[i].reval/fluidDensity, cnbc[i].imval/fluidDensity); else // PJSA 1-9-2008
+    ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
+  }
+
+  // PJSA: new FETI-H stuff
+  if (implicitFlag) {
+    int i, iele;
+    double *direction = getWaveDirection();
+// RT
+    ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
+    int* edofs = (int*) dbg_alloca(this->maxNumDOFs*sizeof(int));
+    for(iele=0; iele<numNeum; ++iele) {
+      double kappa = omega/ScalarTypes::Real(neum[iele]->soundSpeed);
+    //double kappa = neum[iele]->el->getProperty()->kappaHelm; // PJSA 1-15-2008
+      neum[iele]->dofs(*this->dsa,edofs);
+      neum[iele]->neumVector(this->nodes,elementNeumanScatterForce,
+                             kappa,direction[0],direction[1],direction[2],
+                             pointSourceFlag);
+      for(i=0;i<neum[iele]->numDofs();i++) { 
+       int cn = c_dsa->getRCN(edofs[i]);
+       if(cn >= 0) {
+        ScalarTypes::addScalar(force[cn], elementNeumanScatterForce[i].real(),
+                               elementNeumanScatterForce[i].imag());
+       }
+      }
+    }
+  }
+
+  if (implicitFlag) {
+
+    double *direction = getWaveDirection();
+
+    int iele;
+    ComplexVector elementWetInterfaceScatterForce(this->maxNumDOFs,0.0);
+    int* edofs = (int*) alloca(this->maxNumDOFs*4*sizeof(int));
+    int numWetDof;
+    for(iele=0; iele<numWet; ++iele) {
+      HelmElement *he = dynamic_cast<HelmElement *>(wet[iele]->el);
+      if (he==0 && wet[iele]->el2==0) {
+        numWetDof = wet[iele]->numSolidDofs();
+        wet[iele]->solidDofs(*this->dsa,edofs);
+      } else if (he!=0 && wet[iele]->el2==0) {
+        numWetDof = wet[iele]->numDofs();
+        wet[iele]->dofs(*this->dsa,edofs);
+      } else {
+        numWetDof = wet[iele]->numWetDofs();
+        wet[iele]->wetDofs(*this->dsa,edofs);
+      }
+
+      complex<double> kappaw =
+        omega/wet[iele]->soundSpeed;
+      wet[iele]->wetInterfaceVector(this->nodes,
+                        elementWetInterfaceScatterForce, real(kappaw),
+                        direction[0], direction[1], direction[2],0,
+                        pointSourceFlag);
+      int i; 
+      for(i=0;i<numWetDof;i++) {
+       int cn = c_dsa->getRCN(edofs[i]);
+       if(cn >= 0)
+        ScalarTypes::addScalar(force[cn],
+          elementWetInterfaceScatterForce[i].real(),
+          elementWetInterfaceScatterForce[i].imag());
+      }
+    }
+  }
+
+// see also Dynam.C for RHS - JF
+
+  // ... ADD GRAVITY FORCES
+  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+
+  // ... ADD PRESSURE LOAD
+  if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
+
+  GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
+
+  // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
+  for(i=0; i<numDirichlet; ++i) {
+    int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
+    if(dof < 0) continue;
+    dof = c_dsa->invRCN(dof);
+    if(dof >= 0) {
+      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
+      ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+    }
+  }
+
+  // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
+  ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
+  for(i=0; i<numComplexDirichlet; ++i) {
+    int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
+    if(dof2 < 0) continue;
+    dof2 = c_dsa->invRCN(dof2);
+    if(dof2 >= 0) {
+      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
+      ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+    }
+  }
+
+  // ... CONSTRUCT THERMAL FORCES
+  if(sinfo.thermalLoadFlag) {
+    double *nodalTemperatures = getNodalTemperatures();
+    buildThermalForce(nodalTemperatures, force, gs);
+  }
+
+  // ... ADD BOUNDARY CONVECTIVE FLUXES
+  for(i=0; i<numConvBC; ++i) {
+    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
+    if(dof < 0) continue;
+    ScalarTypes::addScalar(force[dof], cvbc[i].val);
+  }
+
+  // ... ADD BOUNDARY RADIATIVE FLUXES
+  for(i=0; i<numRadBC; ++i) {
+    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
+    fprintf(stderr,"i=%d, rdbc[i].nnum = %d, rdbc[i].val=%f\n",i,rdbc[i].nnum,rdbc[i].val);
+    if(dof < 0) continue;
+    ScalarTypes::addScalar(force[dof], rdbc[i].val);
+  }
+
+  // scale RHS force for coupled domains
+  if(sinfo.isCoupled) {
+    int cdofs[6];  DofSet structdofs = DofSet::XYZdisp | DofSet::XYZrot;
+    for(i=0; i<numnodes; ++i) {
+      c_dsa->number(i, structdofs, cdofs);
+      for(int j=0; j<6; ++j) 
+        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+    }
+  }
+
+  // COMPUTE NONHOMOGENEOUS FORCE CONTRIBUTION
+  // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
+  // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
+  // MODIFYING THE RHS VECTOR
+  if(probType() != SolverInfo::NonLinStatic &&
+     probType() != SolverInfo::NonLinDynam  &&
+     probType() != SolverInfo::ArcLength) {
+    if(kuc) {
+      kuc->multSubtract(Vc, force);
+    }
+    if (muc) {
+      tmp.zero();
+      muc->multSubtract(Vc, tmp);
+      tmp *= (omega-delta_omega)*(omega-delta_omega)-omega*omega;
+      force += tmp;
+    }
+    if(cuc_deriv) if (cuc_deriv[0]) {
+      tmp.zero();
+      cuc_deriv[0]->multSubtract(Vc, tmp);
+      Scalar c;
+      ScalarTypes::initScalar(c,0.0,delta_omega);
+      tmp *= c;
+      force += tmp;
+    }
+  }
 }
 
 
@@ -2775,10 +2985,15 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   if(numOutInfo && firstOutput && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
+  int numNodeLim;
+
   // organize displacements
-  Scalar (*xyz)[11] = new Scalar[numnodes][11];//DofSet::max_known_nonL_dof
+  if (sinfo.HEV) numNodeLim = myMax(numNodes,numnodes); 
+  else numNodeLim = numnodes;
+    
+  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;
-  for(i = 0; i < numnodes; ++i)
+  for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
   /*int exactNumNodes =*/ mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
@@ -3073,7 +3288,7 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {
        double mass = computeStructureMass();
-       filePrint(stderr," ... Structure mass = %10.4f    ...\n",mass);
+       filePrint(stderr," ... Total System mass = %10.4f ...\n",mass);
        filePrint(stderr," --------------------------------------\n");
      }
    }

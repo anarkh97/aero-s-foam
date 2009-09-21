@@ -272,8 +272,8 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
                               Vector& gravityForce, int gravflg, GeomState *geomState)
 {
 
-// Lumped
-  if (gravflg == 1) {
+  // Lumped
+  if (gravflg != 2) {
     double massPerNode = 0.25*getMass(cs);
 
     double fx = massPerNode*gravityAcceleration[0];
@@ -287,10 +287,9 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
     gravityForce[5] = fy;
     gravityForce[6] = fx;
     gravityForce[7] = fy;
-
-// Consistent
   }
-  else if (gravflg == 2) {
+  // Consistent
+  else {
 
     int i;
     int numgauss = 2;
@@ -334,11 +333,6 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
       gravityForce[2*i+0] = lforce[i]*h*rho*gravityAcceleration[0];
       gravityForce[2*i+1] = lforce[i]*h*rho*gravityAcceleration[1];
     }
-  }
-  else {
-    int i;
-    for(i=0; i<8; ++i) 
-      gravityForce[i] = 0.0;
   }
 }
 

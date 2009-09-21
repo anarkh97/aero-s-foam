@@ -587,34 +587,41 @@ int main(int argc, char** argv)
  }
 
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
- // HB for checking Mortar & generating LMPCs from Mortar tied conditions
- if(topFlag < 0) {
-   domain->SetUpSurfaces(&(geoSource->GetNodes()));
-   if(!callSower) {
-     domain->ProcessSurfaceBCs();
-     domain->SetMortarPairing();
-     if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
-       domain->ComputeMortarLMPC();
-       domain->computeMatchingWetInterfaceLMPC();
-       domain->CreateMortarToMPC();
-     }
-   }
-#ifdef MORTAR_DEBUG
-   domain->PrintSurfaceEntities();
-   domain->PrintMortarConds();
+#ifdef SOWER_SURFS
+ else {
 #endif
-   //domain->printLMPC();
-   //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
+   // HB for checking Mortar & generating LMPCs from Mortar tied conditions
+   if(topFlag < 0) {
+     domain->SetUpSurfaces(&(geoSource->GetNodes()));
+     if(!callSower) {
+       domain->ProcessSurfaceBCs();
+       domain->SetMortarPairing();
+       if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+         domain->ComputeMortarLMPC();
+         domain->computeMatchingWetInterfaceLMPC();
+         domain->CreateMortarToMPC();
+       }
+     }
+#ifdef MORTAR_DEBUG
+     domain->PrintSurfaceEntities();
+     domain->PrintMortarConds();
+#endif
+     //domain->printLMPC();
+     //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
+   }
+#ifdef SOWER_SURFS
  }
+#endif
 
- //if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && !(domain->solInfo().HEV))
- if(geoSource->getDirectMPC()) {
+ bool flag = (geoSource->getDirectMPC() || domain->solInfo().type == 2);
+ geoSource->setUpRigidElements(flag);
+
+ if(geoSource->getDirectMPC())
    geoSource->makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
  else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0.0) // don't use lmpc elements for explicit
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
-// if(domain->solInfo().type != 2 || domain->solInfo().fetiInfo.fsi_element)
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
@@ -673,19 +680,21 @@ int main(int argc, char** argv)
  if(domain->solInfo().noninpc || domain->solInfo().inpc) domain->initSfem();
 
  // 1. check to see if a decomposition has been provided or requested (three options: -d, --dec, or DECOMP)
- bool domain_decomp = (geoSource->getCheckFileInfo()->decPtr || callDec || decInit);
+ bool domain_decomp = (geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput);
  // 2. check to see how many cpus are available (mpi processes and threads)
 #ifdef USE_MPI
- bool parallel_proc = (structCom->numCPUs()*threadManager->numThr() > 1);
+ bool parallel_proc = (structCom->numCPUs()*threadManager->numThr() > 1 || geoSource->binaryInput);
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
- // 3. choose mass lumping and diagonal "solver" for explicit dynamics unless mratio has been set nonzero 0.0 (using CONSISTENT keyword)
- if(domain->solInfo().newmarkBeta == 0.0 && (!geoSource->checkMRatio() || geoSource->getMRatio() == 0.0)) {
+ // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
+ if(domain->solInfo().newmarkBeta == 0.0) {
    domain->solInfo().subtype = 10;
    if(parallel_proc) domain->solInfo().type = 3;
-   geoSource->setMRatio(0);
-   filePrint(stderr, " ... Lumped Mass Matrix Selected    ... \n");
+   geoSource->setMRatio(0.0);
+   geoSource->setConsistentQFlag(false);
+   geoSource->setConsistentPFlag(false);
+   if(verboseFlag) filePrint(stderr, " ... Explicit Dynamics: lumped mass matrix, gravity and pressure will be used ... \n");
  }
 
  if(domain->solInfo().aeroFlag >= 0)
@@ -895,6 +904,7 @@ int main(int argc, char** argv)
 
  }
  else {
+
    //--------------------------------
 #ifdef STRUCTOPT
    // print what type of problem we are doing
@@ -999,7 +1009,7 @@ int main(int argc, char** argv)
      case SolverInfo::DisEnrM: {
         filePrint(stderr, " ... DEM Problem ...\n");
         DEM dem;
-        dem.run(domain);
+        dem.run(domain,geoSource);
         break;
      }
      case SolverInfo::Static:
@@ -1242,6 +1252,11 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::None:
        {
+         if(domain->solInfo().massFlag) {
+           domain->preProcessing();
+           double mass = domain->computeStructureMass();
+           fprintf(stderr," ... Structure mass = %10.4f    ...\n",mass);
+         }
          fprintf(stderr," ... No Analysis Type selected      ...\n");
        }
        break;

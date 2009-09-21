@@ -549,24 +549,10 @@ SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
 }
 
 void 
-SuperElement::computeMPCs(CoordSet &cs, int &lmpcnum)
+SuperElement::computeMPCs(CoordSet &cs)
 {
   int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->computeMPCs(cs, lmpcnum);
-}
-
-void
-SuperElement::updateMPCs(GeomState &gState)
-{
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->updateMPCs(gState);
-}
-
-void 
-SuperElement::setMpcForces(double *mpcForces)
-{
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->setMpcForces(mpcForces);
+  for(i=0; i<nSubElems; ++i) subElems[i]->computeMPCs(cs);
 }
 
 SuperElement::~SuperElement()
@@ -585,4 +571,8 @@ SuperElement::~SuperElement()
 */
 }
 
-
+int
+SuperElement::getMassType()
+{
+  return subElems[0]->getMassType();
+}

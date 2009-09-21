@@ -10,7 +10,7 @@ namespace Pita {
 
 class LinearGenAlphaIntegrator;
 
-class LinearPostProcessor : public PostProcessor {
+class LinearPostProcessor : public GenPostProcessor<LinearGenAlphaIntegrator> {
 public:
   EXPORT_PTRINTERFACE_TYPES(LinearPostProcessor);
 

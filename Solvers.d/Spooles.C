@@ -319,7 +319,8 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 */
 }
 
-#define THREADS
+//PJSA warning THREADS defined causes bug for nonlinear
+//#define THREADS
 
 template<class Scalar>
 Scalar
@@ -555,6 +556,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   double tau = domain->solInfo().spooles_tau; // default is 100.0
   int error = 0;
   //double t0 = getTime();
+  Chv *rootchv = NULL;
 #ifdef THREADS
   if(fctIsParal) {
     int nfront;
@@ -564,12 +566,14 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
     cumopsDV = DV_new();
     DV_init(cumopsDV, numThreads, NULL);
     ownersIV = ETree_ddMap(frontETree, SpoolesType<Scalar>::type, SPOOLES_SYMMETRIC, cumopsDV,1./(2.*numThreads));
-    /*Chv *rootchv =*/ FrontMtx_MT_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
-                                            ownersIV, 0, &error, cpus, stats, msglvl, msgfile);
+    rootchv = FrontMtx_MT_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
+                                           ownersIV, 0, &error, cpus, stats, msglvl, msgfile);
   } else
 #endif
-    /*Chv *rootchv =*/ FrontMtx_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
+  rootchv = FrontMtx_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
                                          &error, cpus, stats, msglvl, msgfile);
+  if(rootchv != NULL) cerr << " ... WARNING: Matrix factored by spooles found to be singular ... \n";
+  // note: spooles is only for full rank matrices. For symmetric positive semi definite matrices try sparse or skyline, and for general symmetric indefinite try mumps pivot
 
   ChvManager_free(chvmanager);
 
@@ -641,6 +645,7 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
 {
+  this->solveTime = -getTime();
 #ifdef USE_SPOOLES
   //double tt0 = getTime();
   Scalar *rhs = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
@@ -710,6 +715,7 @@ for(i=0;i<neq;i++) solution[i] = 0;
        << "     total solve time = " << cpus[4] << endl;
 #endif
 #endif
+  this->solveTime = +getTime();
 }
 
 template<class Scalar>

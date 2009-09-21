@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <algorithm>
 
+#ifndef SANDIA
 #include <Element.d/DEM.d/DEMHelm3d.h>
 #include <Element.d/Helm.d/IsoParamUtils.h>
-#include <math.h>
+#else
+#include "DEMHelm3d.h"
+#include "IsoParamUtils.h"
+#endif
 
 class HelmDGMEMatricesFunction3d : public IntegFunctionA3d {
  int o;
@@ -351,7 +357,7 @@ DGMHelm3d_98::DGMHelm3d_98(int _nnodes, int* nodenums) :
 }
 
 void DGMHelm3d_6::dir(int n, complex<double> *d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[][3] =  {
                     {1,0,0},
                     {-1,0,0},
@@ -366,7 +372,7 @@ void DGMHelm3d_6::dir(int n, complex<double> *d) {
 }
 
 void DGMHelm3d_6t::dir(int n, complex<double> *d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[][3] =  {
                     {1,0,0},
                     {-1,0,0},
@@ -412,7 +418,7 @@ double* DGMHelm3d::getCubeDir(int n) {
 }
 
 void DGMHelm3d_26::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(2);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -420,7 +426,7 @@ void DGMHelm3d_26::dir(int n, complex<double>* d) {
 }
 
 void DGMHelm3d_26t::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(2);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -428,7 +434,7 @@ void DGMHelm3d_26t::dir(int n, complex<double>* d) {
 }
 
 void DGMHelm3d_56::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(3);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -436,7 +442,7 @@ void DGMHelm3d_56::dir(int n, complex<double>* d) {
 }
 
 void DGMHelm3d_56t::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(3);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -444,7 +450,7 @@ void DGMHelm3d_56t::dir(int n, complex<double>* d) {
 }
 
 void DGMHelm3d_98::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(4);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -453,16 +459,17 @@ void DGMHelm3d_98::dir(int n, complex<double>* d) {
 
 
 void DGMHelm3d_1_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) {
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max( e1->getOmega()/e1->getSpeedOfSound(),
+                      (e2!=0)?e2->getOmega()/e2->getSpeedOfSound():0.0);
+
  d[0] = 0.0;
  d[1] = 0.0;
  d[2] = 0.0;
 }
 
 void DGMHelm3d_4_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) {
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max( e1->getOmega()/e1->getSpeedOfSound(),
+                      (e2!=0)?e2->getOmega()/e2->getSpeedOfSound():0.0);
  double a[][2] = { 
     { 1.0/sqrt(2.0), 1.0/sqrt(2.0) },
     { -1.0/sqrt(2.0), 1.0/sqrt(2.0) }, 
@@ -474,8 +481,8 @@ void DGMHelm3d_4_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) 
 }
 
 void DGMHelm3d_8_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) {
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max( e1->getOmega()/e1->getSpeedOfSound(),
+                      (e2!=0)?e2->getOmega()/e2->getSpeedOfSound():0.0);
  if (n<4) {
    double a[][2] = { 
       { 1.0/sqrt(2.0), 1.0/sqrt(2.0) },
@@ -496,8 +503,8 @@ void DGMHelm3d_8_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) 
 }
 
 void DGMHelm3d_12_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d) {
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max( e1->getOmega()/e1->getSpeedOfSound(),
+                      (e2!=0)?e2->getOmega()/e2->getSpeedOfSound():0.0);
  if (n<6) {
    double c = cos(n*M_PI/6.0+M_PI/12.0);
    double s = sin(n*M_PI/6.0+M_PI/12.0);
@@ -536,6 +543,8 @@ DGMHelm3d::DGMHelm3d(int _nnodes, int* nodenums) {
  bc = new int[nFaces()];
  for(int i=0;i<nFaces();i++) bc[i] = 0;
  ndir = 0;
+ storeMatricesF = true;
+ condensedF = true;
 }
 
 
@@ -550,16 +559,16 @@ void DGMHelm3d::getRef(double *xyz,double *cxyz) {
  cxyz[0] = cxyz[1] = cxyz[2] = 0.0;
 }
 
-void DGMHelm3d::createM(CoordSet &cs, complex<double>*M) {
+void DGMHelm3d::createM(complex<double>*M) {
 
  IsoParamUtils *ipu = (o>0)? new IsoParamUtils(o):new IsoParamUtilsTetra(-o);
  int os = ipu->getordersq();
  int oc = ipu->getorderc();
  double *xyz= new double[3*oc];
- cs.getCoordinates(nn,oc,xyz,xyz+oc,xyz+2*oc);
+ getNodalCoord(oc,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[3];
  getRef(xyz,xref);
@@ -689,6 +698,116 @@ void DGMHelm3d::createM(CoordSet &cs, complex<double>*M) {
  delete ipu;
 }
 
+
+class HelmDGMWetEMatrixFunction3d : public IntegFunctionA3d {
+ double omega;
+ int ndir;
+ complex<double> *dirs;
+ double *xc;
+ DEMElement *deme2;
+ complex<double> *K;
+public:
+ HelmDGMWetEMatrixFunction3d(double _omega,
+                      int _ndir, complex<double> *_dirs, double *_xc,
+                      DEMElement *_deme2,
+                      complex<double> *_K) {
+   omega = _omega; ndir = _ndir; dirs = _dirs; xc = _xc; deme2 = _deme2;
+   K = _K;
+ }
+ void evaluate(double *x, double *N, double *cross, double nsign, double w) {
+/*
+   for(int i=0;i<ndir;i++) { e[i] = omega*omega*w*
+    exp(dirs[i*3+0]*(x[0]-xc[0]) + dirs[i*3+1]*(x[1]-xc[1]) + 
+        dirs[i*3+2]*(x[2]-xc[2]) );
+   }
+
+   int ndir2 = deme2->nEnrichmentDofs();
+   complex<double> *e2 = new complex<double>[ndir2*3];
+   deme2->enrichmentF(x,e2);
+   for(int j=0;j<ndir2;j++) {
+     for(int i=0;i<ndir;i++) {
+       complex<double> v = nsign*e[i]*
+          (cross[0]*e2[3*j+0]+cross[1]*e2[3*j+1]+cross[2]*e2[3*j+2]);
+       K[(j+ndir)*(ndir+ndir2)+i] += v;
+       K[i*(ndir+ndir2)+j+ndir] += v;
+     }
+   }
+   delete[] e2;
+   delete[] e;
+*/
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) {
+       e[i] = exp(dirs[i*3+0]*(x[0]-xc[0]) +
+                  dirs[i*3+1]*(x[1]-xc[1]) +
+                  dirs[i*3+2]*(x[2]-xc[2]) );
+   }
+
+   int oc2 = deme2->nPolynomialDofs();
+   int ndir2 = deme2->nEnrichmentDofs();
+   int ndof = ndir + oc2 + ndir2;
+   double oown = omega*omega*w*nsign;
+
+   complex<double> *e2 = new complex<double>[ndir2*3];
+   deme2->enrichmentF(x,e2); 
+
+   for(int j=0;j<ndir2;j++) {
+     complex<double> oownc = oown*
+       (cross[0]*e2[j*3+0]+cross[1]*e2[j*3+1]+cross[2]*e2[j*3+2]);
+     for(int i=0;i<ndir;i++) {
+       K[(ndir+oc2+j)*ndof+i] += oownc * e[i];
+       K[(i)*ndof+ndir+oc2+j] += oownc * e[i];
+     }
+   }
+   delete[] e2;
+
+   if (oc2>0) {
+     double *u = new double[oc2*3];
+    deme2->polynomialF(x,u);
+
+     for(int j=0;j<oc2;j++) {
+       double oownc = oown*
+          (cross[0]*u[3*j+0]+cross[1]*u[3*j+1]+cross[2]*u[3*j+2]);
+       for(int i=0;i<ndir;i++) {
+         K[(ndir+j)*ndof+i] += oownc * e[i];
+         K[(i)*ndof+ndir+j] += oownc * e[i];
+       }
+     }
+     delete[] u;
+   }
+   delete[] e;
+ }
+};
+
+
+
+void DGMHelm3d::interfMatrix(int fi, DEMElement* deme2,
+                              complex<double> *K) {
+
+ IsoParamUtils *ipu = (o>0)? new IsoParamUtils(o):new IsoParamUtilsTetra(-o);
+ int oc = ipu->getorderc();
+ double *xyz= new double[3*oc];
+ getNodalCoord(oc,nn,xyz);
+
+ double omega = getOmega();
+
+ double xref[3];
+ getRef(xyz,xref);
+
+ complex<double>* cdir = new complex<double>[ndir*3];
+ for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
+
+ int ndofs = ndir+deme2->nPolynomialDofs()+deme2->nEnrichmentDofs();
+ for(int i=0;i<ndofs*ndofs;i++) K[i] = 0.0;
+
+ HelmDGMWetEMatrixFunction3d f(omega,ndir,cdir,xref,deme2,K);
+ int gorder = (o>0)?7:13;
+ ipu->surfInt3d(xyz, fi, f, gorder);
+
+ delete[] cdir;
+}
+
+
 class HelmDGMENeumVFunction3d : public IntegFunctionA3d {
  int ndir;
  complex<double> *dirs;
@@ -748,6 +867,51 @@ void HelmDGMENeumV(int order, double *xyz,
  delete ipu;
 }
 
+class HelmDGMNeumFVFunction3d : public IntegFunctionA3d {
+ int order;
+ int ndir;
+ complex<double> *dirs;
+ complex<double> *f;
+ double *xc;
+ complex<double> *v;
+public:
+ HelmDGMNeumFVFunction3d(int _order,
+                      int _ndir, complex<double> *_dirs,
+                      complex<double> *_f, double *_xc,
+                      complex<double> *_v) {
+   order = _order; ndir = _ndir; dirs = _dirs; f = _f; xc = _xc;
+   v = _v;
+ }
+ void evaluate(double *x, double *N, double *cross, double nsign, double w) {
+   int oc = order*order*order;
+  
+   double wc = w*sqrt(cross[0]*cross[0]+cross[1]*cross[1]+cross[2]*cross[2]); 
+   complex<double> ff = 0.0;
+   for(int i=0;i<oc;i++) ff = f[i]*N[i];
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) e[i] = exp(dirs[i*3+0]*(x[0]-xc[0]) +
+                                      dirs[i*3+1]*(x[1]-xc[1])+
+                                      dirs[i*3+2]*(x[2]-xc[2]));
+   for(int i=0;i<ndir;i++)
+     v[i] += wc*ff*e[i];
+   delete[] e;
+ }
+};
+
+
+void HelmDGMNeumFV(int order, double *xy,
+                     int ndir, complex<double> *dirs,
+                     complex<double> *fv, int faceindex,
+                     double *xc,
+                     complex<double>* v) {
+ IsoParamUtils ipu(order);
+ int gorder = (order>0)?7:13;
+
+ HelmDGMNeumFVFunction3d f(order,ndir,dirs,fv,xc,v);
+ ipu.surfInt3d(xy, faceindex, f, gorder);
+}
+
 class HelmDGMERobVFunction3d : public IntegFunctionA3d {
  int ndir;
  complex<double> *dirs;
@@ -799,7 +963,7 @@ void HelmDGMERobV(int order, double *xyz,
 
 
 
-void DGMHelm3d::createRHS(CoordSet &cs, complex<double>*v) {
+void DGMHelm3d::createRHS(complex<double>*v) {
  int oc;
  if (o>0) {
    IsoParamUtils ipu(o);
@@ -809,10 +973,10 @@ void DGMHelm3d::createRHS(CoordSet &cs, complex<double>*v) {
    oc = ipu.getorderc();
  }
  double *xyz= new double[3*oc];
- cs.getCoordinates(nn,oc,xyz,xyz+oc,xyz+2*oc);
+ getNodalCoord(oc,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[3];
  getRef(xyz,xref);
@@ -820,21 +984,24 @@ void DGMHelm3d::createRHS(CoordSet &cs, complex<double>*v) {
  complex<double>* cdir = new complex<double>[ndir*3];
  for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
 
- complex<double> incdir[3] = {complex<double>(0.0,kappa*0.0),
-                              complex<double>(0.0,kappa*0.0),
-                              complex<double>(0.0,kappa*1.0)};
- incdir[0] = complex<double>(0.0,kappa*2.672612419124244e-01);
- incdir[1] = complex<double>(0.0,kappa*5.345224838248488e-01);
- incdir[2] = complex<double>(0.0,kappa*8.017837257372732e-01);
+
 
  complex<double> *vv = new complex<double>[ndir];
  for(int i=0;i<ndir;i++) vv[i] = 0.0;
 
  for(int i=0;i<nFaces();i++) {
-//   if (bc[i]==2)
-//     HelmDGMENeumV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
-   if (bc[i]==1)
-     HelmDGMERobV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
+   if (bc[i]==2) {
+     double *dir = getWaveDirection();
+     complex<double> incdir[3] = {complex<double>(0.0,kappa*dir[0]),
+                                  complex<double>(0.0,kappa*dir[1]),
+                                  complex<double>(0.0,kappa*dir[2])};
+     HelmDGMENeumV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
+   } else if (bc[i]==4) {
+     complex<double> *f = getField();
+     HelmDGMNeumFV(o, xyz, ndir, cdir, f, i+1, xref, vv);
+   }
+//   else if (bc[i]==1)
+//     HelmDGMERobV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
  }
 
  delete[] cdir;
@@ -884,7 +1051,7 @@ DEMHelm3d_98::DEMHelm3d_98(int _nnodes, int* nodenums) :
 }
 
 void DEMHelm3d_6::dir(int n, complex<double> *d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double a[][3] =  {
                     {1,0,0},
                     {-1,0,0},
@@ -899,7 +1066,7 @@ void DEMHelm3d_6::dir(int n, complex<double> *d) {
 }
 
 void DEMHelm3d_26::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(2);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -907,7 +1074,7 @@ void DEMHelm3d_26::dir(int n, complex<double>* d) {
 }
 
 void DEMHelm3d_56::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(3);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -915,7 +1082,7 @@ void DEMHelm3d_56::dir(int n, complex<double>* d) {
 }
 
 void DEMHelm3d_98::dir(int n, complex<double>* d) {
- double kappa = prop ->kappaHelm;
+ double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(4);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
  d[1] = complex<double>(0.0,kappa*a[n*3+1]);
@@ -984,7 +1151,7 @@ void HelmDEMMatrices3d(int order, double *xyz,
    HelmDGMEMatricesFunction3d f(order,kappa,ndir,dirs,
                 nldirs[faceindex-1],ldirs+c*3,
                 xsc + (faceindex-1)*3, xc, sflags[faceindex-1], faceindex,
-                kee,kel+c*ndir,kpl+c*ndir,kpp,kpe);
+                kee,kel+c*ndir,kpl+c*oc,kpp,kpe);
    ipu.surfInt3d(xyz, faceindex, f);
    c += nldirs[faceindex-1];
  }
@@ -1003,16 +1170,16 @@ void HelmDEMMatrices3d(int order, double *xyz,
 }
 
 
-void DEMHelm3d::createM(CoordSet &cs, complex<double>*M) {
+void DEMHelm3d::createM(complex<double>*M) {
 
  IsoParamUtils ipu(o);
  int os = ipu.getordersq();
  int oc = ipu.getorderc();
  double *xyz= new double[3*oc];
- cs.getCoordinates(nn,oc,xyz,xyz+oc,xyz+2*oc);
+ getNodalCoord(oc,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[3];
  getRef(xyz,xref);
@@ -1147,7 +1314,104 @@ void DEMHelm3d::createM(CoordSet &cs, complex<double>*M) {
  delete[] cdir;
 }
 
-class HelmDEMNeumVFunction : public IntegFunctionA3d {
+
+class HelmDEMWetMatrixFunction3d : public IntegFunctionA3d {
+ int o;
+ double omega;
+ int ndir;
+ complex<double> *dirs;
+ double *xc;
+ DEMElement *deme2;
+ complex<double> *K;
+public:
+ HelmDEMWetMatrixFunction3d(int _o, double _omega,
+                      int _ndir, complex<double> *_dirs, double *_xc,
+                      DEMElement *_deme2,
+                      complex<double> *_K) {
+   o= _o; omega = _omega; ndir = _ndir; dirs = _dirs; xc = _xc; deme2 = _deme2;
+   K = _K;
+ }
+ void evaluate(double *x, double *N, double *cross, double nsign, double w) {
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) {
+       e[i] = exp(dirs[i*3+0]*(x[0]-xc[0]) +
+                  dirs[i*3+1]*(x[1]-xc[1]) +
+                  dirs[i*3+2]*(x[2]-xc[2]) );
+   }
+
+   int oc = o*o*o;
+   int oc2 = deme2->nPolynomialDofs();
+   int ndir2 = deme2->nEnrichmentDofs();
+   int ndof = oc + ndir + oc2 + ndir2;
+   double oown = omega*omega*w*nsign;
+
+   complex<double> *e2 = new complex<double>[ndir2*3];
+   deme2->enrichmentF(x,e2); 
+
+   for(int j=0;j<ndir2;j++) {
+     complex<double> oownc = oown*
+       (cross[0]*e2[j*3+0]+cross[1]*e2[j*3+1]+cross[2]*e2[j*3+2]);
+     for(int i=0;i<ndir;i++) {
+       K[(oc+ndir+oc2+j)*ndof+oc+i] += oownc * e[i];
+       K[(oc+i)*ndof+oc+ndir+oc2+j] += oownc * e[i];
+     }
+     for(int i=0;i<oc;i++) {
+       K[(oc+ndir+oc2+j)*ndof+i] += oownc * N[i];
+       K[(i)*ndof+oc+ndir+oc2+j] += oownc * N[i];
+     }
+   }
+   delete[] e2;
+
+   double *u = new double[oc2*3];
+   deme2->polynomialF(x,u);
+
+   for(int j=0;j<oc2;j++) {
+     double oownc = oown*
+        (cross[0]*u[3*j+0]+cross[1]*u[3*j+1]+cross[2]*u[3*j+2]);
+     for(int i=0;i<ndir;i++) {
+       K[(oc+ndir+j)*ndof+oc+i] += oownc * e[i];
+       K[(oc+i)*ndof+oc+ndir+j] += oownc * e[i];
+     }
+     for(int i=0;i<oc;i++) {
+       K[(oc+ndir+j)*ndof+i] += oownc * N[i];
+       K[(i)*ndof+oc+ndir+j] += oownc * N[i];
+     }
+   }
+   delete[] u;
+   delete[] e;
+ }
+};
+
+void DEMHelm3d::interfMatrix(int fi, DEMElement* deme2,
+                              complex<double> *K) {
+
+ IsoParamUtils ipu(o);
+ int oc = ipu.getorderc();
+ double *xyz= new double[3*oc];
+ getNodalCoord(oc,nn,xyz);
+
+ double omega = getOmega();
+
+ double xref[3];
+ getRef(xyz,xref);
+
+ complex<double>* cdir = new complex<double>[ndir*3];
+ for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
+
+ int ndofs = nPolynomialDofs()+ndir+
+             deme2->nPolynomialDofs()+deme2->nEnrichmentDofs();
+
+ for(int i=0;i<ndofs*ndofs;i++) K[i] = 0.0;
+
+ HelmDEMWetMatrixFunction3d f(o,omega,ndir,cdir,xref,deme2,K);
+ ipu.surfInt3d(xyz, fi, f);
+
+ delete[] cdir;
+
+}
+
+class HelmDEMNeumVFunction3d : public IntegFunctionA3d {
  int order;
  int ndir;
  complex<double> *dirs;
@@ -1155,7 +1419,7 @@ class HelmDEMNeumVFunction : public IntegFunctionA3d {
  double *xc;
  complex<double> *v;
 public:
- HelmDEMNeumVFunction(int _order,
+ HelmDEMNeumVFunction3d(int _order,
                       int _ndir, complex<double> *_dirs,
                       complex<double> *_incdir, double *_xc,
                       complex<double> *_v) {
@@ -1163,7 +1427,6 @@ public:
    v = _v;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
-  
    int oc = order*order*order;
    
    complex<double> ince = w* (nsign* 
@@ -1183,27 +1446,76 @@ public:
 };
 
 
+class HelmDEMNeumFVFunction3d : public IntegFunctionA3d {
+ int order;
+ int ndir;
+ complex<double> *dirs;
+ complex<double> *f;
+ double *xc;
+ complex<double> *v;
+public:
+ HelmDEMNeumFVFunction3d(int _order,
+                      int _ndir, complex<double> *_dirs,
+                      complex<double> *_f, double *_xc,
+                      complex<double> *_v) {
+   order = _order; ndir = _ndir; dirs = _dirs; f = _f; xc = _xc;
+   v = _v;
+ }
+ void evaluate(double *x, double *N, double *cross, double nsign, double w) {
+   int oc = order*order*order;
+  
+   double wc = w*sqrt(cross[0]*cross[0]+cross[1]*cross[1]+cross[2]*cross[2]); 
+   complex<double> ff = 0.0;
+   for(int i=0;i<oc;i++) ff = f[i]*N[i];
+
+   for(int i=0;i<oc;i++) v[i] += wc*ff*N[i];
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) e[i] = exp(dirs[i*3+0]*(x[0]-xc[0]) +
+                                      dirs[i*3+1]*(x[1]-xc[1])+
+                                      dirs[i*3+2]*(x[2]-xc[2]));
+   for(int i=0;i<ndir;i++)
+     v[oc+i] += wc*ff*e[i];
+   delete[] e;
+ }
+};
+
+
 void HelmDEMNeumV(int order, double *xy,
                      int ndir, complex<double> *dirs,
                      complex<double> *incdir, int faceindex,
                      double *xc,
                      complex<double>* v) {
  IsoParamUtils ipu(order);
+ int gorder = (order>0)?7:13;
 
- HelmDEMNeumVFunction f(order,ndir,dirs,incdir,xc,v);
- ipu.surfInt3d(xy, faceindex, f);
+ HelmDEMNeumVFunction3d f(order,ndir,dirs,incdir,xc,v);
+ ipu.surfInt3d(xy, faceindex, f, gorder);
+}
+
+
+void HelmDEMNeumFV(int order, double *xy,
+                     int ndir, complex<double> *dirs,
+                     complex<double> *ff, int faceindex,
+                     double *xc,
+                     complex<double>* v) {
+ IsoParamUtils ipu(order);
+ int gorder = (order>0)?7:13;
+
+ HelmDEMNeumFVFunction3d f(order,ndir,dirs,ff,xc,v);
+ ipu.surfInt3d(xy, faceindex, f, gorder);
 }
 
 
 
-void DEMHelm3d::createRHS(CoordSet &cs, complex<double>*v) {
+void DEMHelm3d::createRHS(complex<double>*v) {
  IsoParamUtils ipu(o);
  int oc = ipu.getorderc();
  double *xyz= new double[3*oc];
- cs.getCoordinates(nn,oc,xyz,xyz+oc,xyz+2*oc);
+ getNodalCoord(oc,nn,xyz);
 
- double kappa = prop ->kappaHelm;
- double rho = prop ->rho;
+ double kappa = getOmega()/getSpeedOfSound();
+ double rho = getRho();
 
  double xref[3];
  getRef(xyz,xref);
@@ -1211,16 +1523,21 @@ void DEMHelm3d::createRHS(CoordSet &cs, complex<double>*v) {
  complex<double>* cdir = new complex<double>[ndir*3];
  for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
 
- complex<double> incdir[3] = {complex<double>(0.0,kappa*0.0),
-                              complex<double>(0.0,kappa*0.0),
-                              complex<double>(0.0,kappa*1.0)};
 
  complex<double> *vv = new complex<double>[nPolynomialDofs()+ndir];
  for(int i=0;i<nPolynomialDofs()+ndir;i++) vv[i] = 0.0;
 
  for(int i=0;i<nFaces();i++) {
-   if (bc[i]==2)
+   if (bc[i]==2) {
+     double *dr = getWaveDirection();
+     complex<double> incdir[3] = {complex<double>(0.0,kappa*dr[0]),
+                                  complex<double>(0.0,kappa*dr[1]),
+                                  complex<double>(0.0,kappa*dr[2])};
      HelmDEMNeumV(o, xyz, ndir, cdir, incdir, i+1 , xref, vv);
+   } else if (bc[i]==4) {
+     complex<double> *f = getField();
+     HelmDEMNeumFV(o, xyz, ndir, cdir, f, i+1, xref, vv);
+   }
  }
 
  delete[] cdir;

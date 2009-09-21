@@ -171,21 +171,23 @@ Membrane::getMass(CoordSet& cs)
 }
 
 void
-Membrane::getGravityForce(CoordSet& cs,double *gravityAcceleration,
+Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
                           Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-      double mass = getMass(cs);
-      double massPerNode = mass/3.0;
-      double fx, fy, fz;
+        double mass = getMass(cs);
+        double massPerNode = mass/3.0;
+        double fx, fy, fz;
 
-      if (gravflg != 0) {
+        // Lumped
+        if(gravflg != 2) {
 
-        fx = massPerNode*gravityAcceleration[0];
-        fy = massPerNode*gravityAcceleration[1];
-        fz = massPerNode*gravityAcceleration[2];
+          fx = massPerNode*gravityAcceleration[0];
+          fy = massPerNode*gravityAcceleration[1];
+          fz = massPerNode*gravityAcceleration[2];
+
         }
-// Consistent
-        else if (gravflg == 2) {
+        // Consistent
+        else {
           int i;
           Node &nd1 = cs.getNode(nn[0]);
           Node &nd2 = cs.getNode(nn[1]);
@@ -228,16 +230,11 @@ Membrane::getGravityForce(CoordSet& cs,double *gravityAcceleration,
           localf[1] = massPerNode*localg[1];
           localf[2] = massPerNode*localg[2];
 
-  
           fx = (T1[0]*localf[0]) + (T2[0]*localf[1]) + (T3[0]*localf[2]);
           fy = (T1[1]*localf[0]) + (T2[1]*localf[1]) + (T3[1]*localf[2]);
           fz = (T1[2]*localf[0]) + (T2[2]*localf[1]) + (T3[2]*localf[2]);
         }
-        else {
-          fx = 0.0;
-          fy = 0.0;
-          fz = 0.0;
-        }
+
         gravityForce[0] =  fx;
         gravityForce[1] =  fy;
         gravityForce[2] =  fz;

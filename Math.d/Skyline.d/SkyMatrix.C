@@ -528,8 +528,8 @@ GenSkyMatrix<Scalar>::Factor()
    Tsvbu4b(skyA, dlp, lacol, dummyRHS, w, pivot, TOLERANCE, numUncon,
            flag, nops, numrbm, dummyZEM);
 
-   if(numrbm > 0 && this->print_num_trbm)
-     cerr << " ... Skyline matrix factorization found " << numrbm << " TRBMs using tolerance " << TOLERANCE << " ...\n";
+   if(numrbm > 0 && this->print_nullity)
+     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
    // set number of zero energy modes
    nzem = numrbm;
@@ -610,8 +610,8 @@ GenSkyMatrix<Scalar>::parallelFactor()
 #if defined(sgi) && !defined(USE_OPENMP)
    }
 #endif
-  if(numrbm > 0 && this->print_num_trbm)
-     cerr << " ... Skyline matrix factorization found " << numrbm << " TRBMs using tolerance " << TOLERANCE << " ...\n";
+  if(numrbm > 0 && this->print_nullity)
+     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
   // set number of zero energy modes
   GenVector<Scalar> *zem = getNullSpace();

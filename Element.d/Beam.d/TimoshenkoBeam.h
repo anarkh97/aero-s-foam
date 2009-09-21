@@ -47,6 +47,7 @@ public:
 	                 int strInd,int surface=0, double *ndTemps=0,
 			 double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
+        int getMassType() { return 0; } // lumped only
 private:
        
         void updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len);

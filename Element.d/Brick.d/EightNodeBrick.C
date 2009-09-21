@@ -15,11 +15,7 @@ void  _FORTRAN(brkcmt)(double&, double&, double*);
 
 void  _FORTRAN(brik8v)(double*, double*, double*,double*,const int&,
                        double*, int &);
-		       
-void  _FORTRAN(vol17)(const int&,double*,double*,double*,double &);
-void  _FORTRAN(br8mas)(const int&,double&,double*,double*,double*,
-                        double*,double*,double*,const int&, double &);
-			
+
 void  _FORTRAN(sands17)(const int&,double*,double*,double*,double*,
                         double*,double*,double*,const int&,const int&,
 			const int&,const int&,const int&);
@@ -312,70 +308,69 @@ Vector& elDisp, int strInd,int surface, double *ndTemps)
 double
 EightNodeBrick::getMass(CoordSet& cs)
 {
-  const int nnodes=  8;
+  const int nnodes = 8;
   const int numgauss = 2;
  
-  double X[8], Y[8], Z[8];                                                                                                                             
+  double X[8], Y[8], Z[8]; 
   cs.getCoordinates(nn, nnodes, X, Y, Z);
 
-  double volume=0.0;
-  _FORTRAN(vol17)(numgauss,X,Y,Z,volume);
-  double totmas = prop->rho*volume;
+  double m[3], Shape[8], DShape[8][3];
+  double wx, wy, wz, dOmega;
+  double volume = 0.0;
+  for(int i = 1; i <= numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+    for(int j = 1; j <= numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+      for(int k = 1; k <= numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
+        dOmega = Hexa8ShapeFct(Shape, DShape, m, X, Y, Z);
+        volume += fabs(dOmega)*wx*wy*wz;
+      }
+    }
+  }
 
-  return(totmas);
+  return prop->rho*volume;
 }
 
 void
-EightNodeBrick::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
+EightNodeBrick::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                 Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-  const int nnodes=  8;
-  int numgauss = 2;
- 
-  double X[8], Y[8], Z[8];                                                                                                                             
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
+  const int nnodes = 8;
 
-  double grvfor[3];
-  double ElementMassMatrix[24][24];
-  
-// Lumped
-  if (gravflg == 1) {
+  // Lumped
+  if (gravflg != 2) {
 
-    int grvflg = 1;
-    double totmas = 0.0;
-
-    _FORTRAN(br8mas)(numgauss,prop->rho,(double*)ElementMassMatrix,X, Y, Z,
-                    gravityAcceleration,grvfor,grvflg,totmas);
-
-// ... DISTRIBUTE GRAVITY FORCE AMONG NODES
-
-    grvfor[0] *= 0.125;
-    grvfor[1] *= 0.125;
-    grvfor[2] *= 0.125;
-
-    for(int i=0; i<nnodes; ++i) {
-      gravityForce[3*i+0] = grvfor[0];
-      gravityForce[3*i+1] = grvfor[1];
-      gravityForce[3*i+2] = grvfor[2];
+    double totmas = getMass(cs);
+    
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
     }
   }
-// Consistent
-  else if (gravflg == 2) {
+  // Consistent
+  else {
+ 
+    int numgauss = 2;
+
+    double X[8], Y[8], Z[8];
+    cs.getCoordinates(nn, nnodes, X, Y, Z);
+
     double lforce[8];
     for(int i=0; i<nnodes; ++i) lforce[i] = 0.0;
 
-    int fortran = 1;  // fortran routines start from index 1
-    int pt1, pt2, pt3;
-    for (pt1 = 0 + fortran; pt1 < numgauss + fortran; pt1++)  {
-      for (pt2 = 0 + fortran; pt2 < numgauss + fortran; pt2++)  {
-        for (pt3 = 0 + fortran; pt3 < numgauss + fortran; pt3++)  {
+    for (int pt1 = 1; pt1 <= numgauss; pt1++)  {
+      for (int pt2 = 1; pt2 <= numgauss; pt2++)  {
+        for (int pt3 = 1; pt3 <= numgauss; pt3++)  {
           // get gauss point
           double xi, eta, mu, wt;
           _FORTRAN(hxgaus)(numgauss, pt1, numgauss, pt2, numgauss, pt3, xi, eta, mu, wt);
 
           //compute shape functions
           double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
-          double detJ;  //det of jacobian
+          double detJ; // det of jacobian
 
           _FORTRAN(h8shpe)(xi, eta, mu, X, Y, Z,
                            shapeFunc, shapeGradX, shapeGradY, shapeGradZ, detJ);
@@ -385,71 +380,59 @@ EightNodeBrick::getGravityForce(CoordSet& cs,double *gravityAcceleration,
         }
       }
     }
-    double rho = prop->rho;
-    for(int i=0; i<nnodes; ++i) {
-      gravityForce[3*i+0] = lforce[i]*rho*gravityAcceleration[0];
-      gravityForce[3*i+1] = lforce[i]*rho*gravityAcceleration[1];
-      gravityForce[3*i+2] = lforce[i]*rho*gravityAcceleration[2];
-    }
-  }
-  else {
-    for(int i=0; i<nnodes; ++i) {
-      gravityForce[3*i+0] = 0.0;
-      gravityForce[3*i+1] = 0.0;
-      gravityForce[3*i+2] = 0.0;
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*prop->rho*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*prop->rho*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*prop->rho*gravityAcceleration[2];
     }
   }
 }
 
 FullSquareMatrix
-EightNodeBrick::massMatrix(CoordSet &cs,double *mel,int cmflg)
+EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
-  //int status = 0;
   const int nnodes= 8;
   const int ndofs = 24;
   const int numgauss= 2;
 
-  double X[8], Y[8], Z[8];                                                                                                                             
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-  
   FullSquareMatrix M(ndofs,mel);
-  double *gravityAcceleration = 0, *grvfor = 0;
 
-  int grvflg = 0;
-  double totmas = 0.0;
-
-  if(cmflg) { //HB: consistent mass matrix
+  if(cmflg) { // HB: consistent mass matrix
     //fprintf(stderr," *** In EightNodeBrick::massMatrix: make consistent mass matrix.\n");
     M.zero();
     int ls[24] = {0,3,6,9,12,15,18,21,
                   1,4,7,10,13,16,19,22,
                   2,5,8,11,14,17,20,23};
+
+    double X[8], Y[8], Z[8];
+    cs.getCoordinates(nn, nnodes, X, Y, Z);
                                                                                                                                        
     // integration: loop over Gauss pts
     double m[3], Shape[8], DShape[8][3];
-    double wx,wy,wz,w, dOmega;//det of jacobian
+    double wx, wy, wz, w;
+    double dOmega; // det of jacobian
 #ifdef CHECK_JACOBIAN
     int jSign = 0; 
 #endif
-    for(int i=1;i<=numgauss;i++){
-      _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
-      for(int j=1;j<=numgauss;j++){
-        _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
-        for(int k=1;k<=numgauss;k++){
-          _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
+    for(int i = 1; i <= numgauss; i++) {
+      _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+      for(int j = 1; j <= numgauss; j++) {
+        _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+        for(int k = 1; k <= numgauss; k++) {
+          _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
           dOmega = Hexa8ShapeFct(Shape, DShape, m, X, Y, Z);
 #ifdef CHECK_JACOBIAN
-          checkJacobian(&dOmega, &jSign,"EightNodeBrick::massMatrix");
+          checkJacobian(&dOmega, &jSign, "EightNodeBrick::massMatrix");
 #endif
           w = fabs(dOmega)*wx*wy*wz*prop->rho;
           addNtDNtoM3DSolid(M, Shape, w, nnodes, ls);
         }
       }
     }
-  } else { // Lumped mass matrix
-    //fprintf(stderr," *** In EightNodeBrick::massMatrix: make Lumped mass matrix.\n");
-    _FORTRAN(br8mas)(numgauss,prop->rho,(double*)mel,
-                     X,Y,Z,gravityAcceleration,grvfor,grvflg,totmas);
+  } 
+  else { // Lumped mass matrix
+    fprintf(stderr," *** In EightNodeBrick::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
+    exit(-1);
   }
 
   return(M);

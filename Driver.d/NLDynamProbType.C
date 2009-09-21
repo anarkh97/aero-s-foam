@@ -47,7 +47,11 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
  // Get pointer to Solver
  OpSolver *solver = probDesc->getSolver();
 
+if(domain->solInfo().order==1)
+ filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
+else
  filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.25,0.5,0.5,0.5);
+
 
  // Allocate Vectors to store external force, residual velocity 
  // and mid-point force

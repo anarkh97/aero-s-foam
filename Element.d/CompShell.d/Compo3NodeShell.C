@@ -238,10 +238,10 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   }
 
   // Lumped
-  if(gravflg == 1) {
-    // Consistent
-    // Compute treating shell as 3 beams.
+  if(gravflg == 0) {
+
   }
+  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
   else if(gravflg == 2) {
     //Node &nd1 = cs.getNode(nn[0]);
     //Node &nd2 = cs.getNode(nn[1]);
@@ -296,8 +296,14 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         localg[2] += T3[i]*grvfor[i];
       }
       double lmy,lmz;
-      lmy = localg[2]*length/12.0;
-      lmz = localg[1]*length/12.0;
+      if (gravflg == 2) { // consistent
+        lmy = -localg[2]*length/12.0;
+        lmz = localg[1]*length/12.0;
+      }
+      else { // lumped with fixed-end moments
+        lmy = -localg[2]*length/16.0;
+        lmz = localg[1]*length/16.0;
+      }
       mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
       my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
       mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
@@ -745,7 +751,7 @@ Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
         crossprod( t0[2], t0[0], t0[1] );
         normalize( t0[1] );
 
-        double lmy = pressureForce*length/12.0;
+        double lmy = -pressureForce*length/12.0;
         mx[n1] += (t0[1][0]*lmy);
         my[n1] += (t0[1][1]*lmy);
         mz[n1] += (t0[1][2]*lmy);
@@ -829,7 +835,7 @@ Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
         crossprod(normal, v1, v2);
         normalize(v2);
 
-        double lmy = pressureForce*length/12.0;
+        double lmy = -pressureForce*length/12.0;
         mx[n1] += (v2[0]*lmy);
         my[n1] += (v2[1]*lmy);
         mz[n1] += (v2[2]*lmy);

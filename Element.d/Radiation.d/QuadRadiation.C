@@ -82,7 +82,7 @@ QuadRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
 
 // ... Return thermal corotator 
 	
-	return new QuadThermalCorotator(nn[0], nn[1], nn[2], nn[3], prop->eps, prop->Tr, cs);
+	return new QuadThermalCorotator(nn[0], nn[1], nn[2], nn[3], prop->eps, prop->sigma, prop->Tr, cs);
 }
 
 

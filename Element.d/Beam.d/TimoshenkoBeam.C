@@ -234,9 +234,19 @@ TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
         localf[0] =  massPerNode*localg[0];
         localf[1] =  massPerNode*localg[1];
         localf[2] =  massPerNode*localg[2];
-        localm[0] =  0.0;
-        localm[1] = -massPerNode*localg[2]*length/6.0;
-        localm[2] =  massPerNode*localg[1]*length/6.0;
+        if(gravflg == 2) { // consistent
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/6.0;
+          localm[2] =  massPerNode*localg[1]*length/6.0;
+        } 
+        else if(gravflg == 1) { // lumped with fixed-end moments
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/8.0;
+          localm[2] =  massPerNode*localg[1]*length/8.0;
+        } 
+        else {
+          localm[0] = localm[1] = localm[2] = 0.0; // lumped without fixed-end moments
+        }
 
         for(i=0; i<3; ++i) {
           globalf[i] = (t0n[0][i]*localf[0]) + (t0n[1][i]*localf[1]) + (t0n[2][i]*localf[2]);

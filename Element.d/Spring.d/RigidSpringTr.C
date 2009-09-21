@@ -50,41 +50,6 @@ RigidSpringTr::stiffness(CoordSet &cs, double *d, int flg)
             exit(-1);
         }
 
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-
-        double x[2], y[2], z[2];
-
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-
-        double dx = x[1] - x[0];
-        double dy = y[1] - y[0];
-        double dz = z[1] - z[0];
-
-        double length = sqrt( dx*dx + dy*dy + dz*dz );
-
-        double c1[3];
-       
-        if (dx == 0.0)
-           c1[0] = 1;
-        else{
-           c1[0] = dx/length;
-        }
-
-        if (dy == 0.0)
-           c1[1] = 1;
-        else{
-           c1[1] = dy/length;
-        }
-
-        if (dz == 0.0)
-           c1[2] = 1;
-        else{
-           c1[2] = dz/length;
-        }
-        
-
         int index = 0;
         if (prop->A != 0.0)
             index++;
@@ -100,24 +65,24 @@ RigidSpringTr::stiffness(CoordSet &cs, double *d, int flg)
         int indices = 0;
  
         // Translation in X
-        if (prop->A != 0.0){
+        if (prop->A != 0.0) {
             indices++;
-            ret[0][11 + indices] = ret[11 + indices][0] =  c1[0];
-            ret[6][11 + indices] = ret[11 + indices][6] = -c1[0]; 
+            ret[0][11 + indices] = ret[11 + indices][0] =  1.0;
+            ret[6][11 + indices] = ret[11 + indices][6] = -1.0; 
         }
 
         // Translation in Y
-        if (prop->E != 0.0){
+        if (prop->E != 0.0) {
            indices++;
-           ret[1][11 + indices] = ret[11 + indices][1] =  c1[1];
-           ret[7][11 + indices] = ret[11 + indices][7] = -c1[1];
+           ret[1][11 + indices] = ret[11 + indices][1] =  1.0;
+           ret[7][11 + indices] = ret[11 + indices][7] = -1.0;
         }
 
         // Translation in Z
-        if (prop->nu != 0.0){
+        if (prop->nu != 0.0) {
            indices++;
-           ret[2][11 + indices] = ret[11 + indices][2] =  c1[2];
-           ret[8][11 + indices] = ret[11 + indices][8] = -c1[2];
+           ret[2][11 + indices] = ret[11 + indices][2] =  1.0;
+           ret[8][11 + indices] = ret[11 + indices][8] = -1.0;
         }
         
         return ret;

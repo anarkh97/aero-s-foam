@@ -1,9 +1,9 @@
-#include <Element.d/Shell.d/RigidThreeNodeShell.h>
-#include <Element.d/Beam.d/RigidBeam.h>
+#include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
+#include <Element.d/Beam.d/RigidMpcBeam.h>
 
 // Rigid three node shell superelement comprising two rigid beams connected together
 
-RigidThreeNodeShell::RigidThreeNodeShell(int *nodenums)
+RigidMpcThreeNodeShell::RigidMpcThreeNodeShell(int *nodenums)
 {
   nnodes = 3;
   ndofs = nnodes*6;
@@ -24,14 +24,14 @@ RigidThreeNodeShell::RigidThreeNodeShell(int *nodenums)
       subElemDofs[i][j] = 6*i+j;
       subElemDofs[i][j+6] = 6*(i+1)+j;
     }
-    subElems[i] = new RigidBeam(subElemNodes[i]);
+    subElems[i] = new RigidMpcBeam(subElemNodes[i]);
     subElems[i]->setGlNum(-1);
   }
 }
 
-Element *
-RigidThreeNodeShell::clone()
+int
+RigidMpcThreeNodeShell::getTopNumber()
 {
-  return new RigidThreeNodeShell(*this);
+  return 108;
 }
 

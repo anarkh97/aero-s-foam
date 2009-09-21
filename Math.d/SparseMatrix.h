@@ -85,6 +85,8 @@ class GenSparseMatrix {
         virtual void print();
 
         void mult(DistrBlockVector<double>&, DistrBlockVector<double>&) { }; // hack to get code to compile
+
+        virtual void matvec(GenVector<Scalar> &rhs, GenVector<Scalar> &result) { mult(rhs, result); }
 };
 
 

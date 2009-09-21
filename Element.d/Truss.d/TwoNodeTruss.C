@@ -123,17 +123,9 @@ TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector 
         double fx,fy,fz;
         double massPerNode = 0.5*getMass(cs);
 
-// Lumped
-        if (gravflg != 0) {
-          fx = massPerNode*gravityAcceleration[0];
-          fy = massPerNode*gravityAcceleration[1];
-          fz = massPerNode*gravityAcceleration[2];
-        }
-        else {
-          fx = 0.0;
-          fy = 0.0;
-          fz = 0.0;
-        } 
+        fx = massPerNode*gravityAcceleration[0];
+        fy = massPerNode*gravityAcceleration[1];
+        fz = massPerNode*gravityAcceleration[2];
 
         gravityForce[0] = fx;
         gravityForce[1] = fy;

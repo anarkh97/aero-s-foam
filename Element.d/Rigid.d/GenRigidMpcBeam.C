@@ -24,14 +24,11 @@ GenRigidMpcBeam::GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs)
 }
 
 void 
-GenRigidMpcBeam::computeMPCs(CoordSet &cs, int &lmpcnum)
+GenRigidMpcBeam::computeMPCs(CoordSet &cs)
 {
-  double rhs = 0.0;
   int i;
-  for(i=0; i<numcdofs; ++i) {
-    lmpcnum++;
-    mpc[i] = new LMPCons(lmpcnum, rhs);
-  }
+  for(i = 0; i < numcdofs; ++i)
+    mpc[i] = new LMPCons(0, 0.0);
 
   Node &node1 = cs.getNode(nn[0]);
   Node &node2 = cs.getNode(nn[1]);
@@ -128,13 +125,7 @@ GenRigidMpcBeam::computeMPCs(CoordSet &cs, int &lmpcnum)
   }
 
   for(i=0; i<numcdofs; ++i) 
-    glMpcNb[i] = domain->addLMPC(mpc[i]);
-}
-
-void
-GenRigidMpcBeam::updateMPCs(GeomState &gState)
-{
-  cerr << " *** WARNING: GenRigidMpcBeam::updateMPCs(...) is not implemented \n";
+    domain->addLMPC(mpc[i]);
 }
 
 void

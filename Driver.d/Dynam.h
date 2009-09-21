@@ -15,6 +15,7 @@ template <class Scalar> class GenFetiSolver;
 typedef GenFetiSolver<double> FetiSolver;
 template <class Scalar> class GenVectorSet;
 typedef GenVectorSet<double> VectorSet;
+class Rbm;
 
 template <class Scalar>
 class GenDynamMat {
@@ -30,16 +31,17 @@ class GenDynamMat {
    GenSparseMatrix<Scalar> *Mcc;        // constrained to constrained Mass Matrix
    GenSparseMatrix<Scalar> *kuc;
    int           numdofs;	// number of dof
-   Vector       *rbm;		// rigid Body Modes
+   Rbm* rigidBodyModes;
 
    // Constructor
-   GenDynamMat() { dynMat = 0; Msolver = 0; C = 0; M = 0; rbm = 0; Cuc = 0; Muc = 0; Mcc = 0; refK = 0; kuc = 0;}
+   GenDynamMat() { dynMat = 0; Msolver = 0; C = 0; M = 0; Cuc = 0; Muc = 0; Mcc = 0; refK = 0; kuc = 0; rigidBodyModes = 0; }
    GenDynamMat(GenDynamMat *d) { 
        dynMat = (*d).dynMat; Msolver = (*d).Msolver;
        K = (*d).K; refK = (*d).refK; 
        C = (*d).C; Cuc = (*d).Cuc; 
        M = (*d).M; Muc = (*d).Muc; Mcc = (*d).Mcc;
-       numdofs = (*d).numdofs; rbm = (*d).rbm;
+       numdofs = (*d).numdofs;
+       rigidBodyModes = (*d).rigidBodyModes;
    }
 };
 typedef GenDynamMat<double> DynamMat;

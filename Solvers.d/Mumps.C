@@ -18,6 +18,8 @@ extern Domain * domain;
 #define CNTL(I)        	cntl[(I)-1]
 #define INFOG(I)        infog[(I)-1]
 #define INFO(I)         info[(I)-1]
+#define RINFOG(I)       rinfog[(I)-1]
+#define RINFO(I)        rinfo[(I)-1]
 
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int *map, FSCommunicator *_mpicomm)
@@ -300,11 +302,19 @@ GenMumpsSolver<Scalar>::factor()
     copyToMumpsLHS(mumpsId.id.a_loc, unonz, nNonZero);
   }
   mumpsId.id.job = 4; // 4: analysis and factorization, 1: analysis only, 2: factorization only
-  Tmumps_c(mumpsId.id);
+  while(true) {
+    Tmumps_c(mumpsId.id);
 
-  if(host && mumpsId.id.INFOG(1) < 0) {
-    cerr << "error in MUMPS factorization: INFOG(1) = " << mumpsId.id.INFOG(1) << ", INFOG(2) = " << mumpsId.id.INFOG(2) << endl;
-    exit(-1);
+    if(mumpsId.id.INFOG(1) == -8 || mumpsId.id.INFOG(1)  == -9) { 
+       cerr << " ... increasing MUMPS workspace     ...\n"; 
+       mumpsId.id.ICNTL(14) *= 2; 
+        mumpsId.id.job = 2; // recall factorization
+    }
+    else if(mumpsId.id.INFOG(1) < 0) { 
+      cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
+      exit(-1);
+    }
+    else break;
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
@@ -330,6 +340,7 @@ GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
 #ifdef USE_MPI
   if(mpicomm) mpicomm->broadcast(numUncon, solution, 0); // send from host to others
 #endif
+  if(mumpsId.id.ICNTL(11) > 0) printStatistics();
 #endif
   this->solveTime += getTime();
 }
@@ -351,6 +362,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
 #ifdef USE_MPI
   if(mpicomm) mpicomm->broadcast(numUncon*nRHS, rhs, 0); // send from host to all others
 #endif
+  if(mumpsId.id.ICNTL(11) > 0) printStatistics();
 #endif
   this->solveTime += getTime();
 }
@@ -372,6 +384,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar **rhs)
 #ifdef USE_MPI
   if(mpicomm) for(int i=0; i<nRHS; ++i) mpicomm->broadcast(numUncon, rhs[i], 0); // send from host to others
 #endif
+  if(mumpsId.id.ICNTL(11) > 0) printStatistics();
 #endif
   this->solveTime += getTime();
 }
@@ -393,6 +406,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *rhs)
 #ifdef USE_MPI
   if(mpicomm) for(int i=0; i<nRHS; ++i) mpicomm->broadcast(numUncon, rhs[i].data(), 0); // send from host to others
 #endif
+  if(mumpsId.id.ICNTL(11) > 0) printStatistics();
 #endif
   this->solveTime += getTime();
 }
@@ -434,6 +448,18 @@ GenMumpsSolver<Scalar>::size()
 #endif
 #endif
   return nNonZero;
+}
+
+template<class Scalar>
+void
+GenMumpsSolver<Scalar>::printStatistics()
+{
+  if(host) {
+    cerr << "RINFOG(4,...,11) = " << "("
+         << mumpsId.id.RINFOG(4) << ", " << mumpsId.id.RINFOG(5) << ", "  << mumpsId.id.RINFOG(6) << ", "
+         << mumpsId.id.RINFOG(7) << ", " << mumpsId.id.RINFOG(8) << ", "  << mumpsId.id.RINFOG(9) << ", "
+         << mumpsId.id.RINFOG(10) << ", " << mumpsId.id.RINFOG(11) << ")" << endl;
+  }
 }
 
 template<class Scalar>

@@ -287,11 +287,17 @@ TRAIL [a-zA-Z]*
 
 "MODE"|"mode"                      { return MODE; }
 
-"PCG"|"pcg"                        { yylval.ival = 1; return ITERTYPE; }
+"CG"|"cg"|"PCG"|"pcg"              { yylval.ival = 0; return ITERTYPE; }
 
-"BCG"|"bcg"                        { yylval.ival = 2; return ITERTYPE; }
+"GMRES"|"gmres"                    { yylval.ival = 1; return ITERTYPE; }
 
-"CR"|"cr"                          { yylval.ival = 3; return ITERTYPE; }
+"GCR"|"gcr"                        { yylval.ival = 2; return ITERTYPE; }
+
+"CGAL"|"cgal"                      { yylval.ival = 3; return ITERTYPE; }
+
+"BCG"|"bcg"                        { yylval.ival = 4; return ITERTYPE; }
+
+"CR"|"cr"                          { yylval.ival = 5; return ITERTYPE; }
 
 "FETIH"|"fetih"                    { return FETIH; }
 
@@ -433,14 +439,6 @@ TRAIL [a-zA-Z]*
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
-
-"CG"|"cg"                          { yylval.ival = 0; return OUTERLOOPTYPE; }
-
-"GMRES"|"gmres"                    { yylval.ival = 1; return OUTERLOOPTYPE; }
-
-"GCR"|"gcr"                        { yylval.ival = 2; return OUTERLOOPTYPE; }
-
-"CGAL"|"cgal"                      { yylval.ival = 3; return OUTERLOOPTYPE; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 

@@ -14,7 +14,6 @@ class RBE2 : public SuperElement
     Element* clone();
     int getTopNumber() { return 503; }
     int numTopNodes() { return nnodes/2; }
-    void getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *) { }
     bool isRigidElement() { return true; }
 
 };

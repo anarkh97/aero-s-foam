@@ -371,48 +371,69 @@ void
 Tetrahedral::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                              Vector& gravityForce, int gravflg, GeomState *geomState)
 {
+  int nnodes = 4;
+  double x[4], y[4], z[4];
+  cs.getCoordinates(nn, numNodes(), x, y, z);
 
-  int i;
-  if (gravflg != 0) {
-    Node &nd1 = cs.getNode(nn[0]);
-    Node &nd2 = cs.getNode(nn[1]);
-    Node &nd3 = cs.getNode(nn[2]);
-    Node &nd4 = cs.getNode(nn[3]);
+  // Lumped
+  if (gravflg != 2) {
 
-    double x[4], y[4], z[4], ElementMassMatrix[12][12];
-
-    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-    x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
-
-
+    double ElementMassMatrix[12][12];
     double grvfor[3], totmas = 0.0;
-
     int grvflg = 1, masflg = 0;
-
     const int numdof = 12;
     _FORTRAN(mass23)(x, y, z, prop->rho, (double*)ElementMassMatrix, numdof,
                      gravityAcceleration, grvfor, grvflg, totmas, masflg);
 
-// Distribute the grvfor vector among nodes.
+    grvfor[0] /= double(nnodes);
+    grvfor[1] /= double(nnodes);
+    grvfor[2] /= double(nnodes);
 
-    grvfor[0] *= 0.25;
-    grvfor[1] *= 0.25;
-    grvfor[2] *= 0.25;
-
-    for(i=0; i<4; ++i) {
+    for(int i=0; i<nnodes; ++i) {
       gravityForce[3*i+0] = grvfor[0];
       gravityForce[3*i+1] = grvfor[1];
       gravityForce[3*i+2] = grvfor[2];
     }
   }
+  // Consistent
   else {
-    for(i=0; i<8; ++i) {
-      gravityForce[3*i+0] = 0.0;
-      gravityForce[3*i+1] = 0.0;
-      gravityForce[3*i+2] = 0.0;
+
+    double lforce[4];
+    for(int i=0; i<nnodes; ++i) lforce[i] = 0.0;
+
+    // integration: loop over Gauss pts
+    double w;
+    double m[3], Shape[8], DShape[8][3];
+    double dOmega;//det of jacobian
+
+    // hard coded order 2 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
+    int ngp = 4;
+    double w1 = 1./24.;
+    double r1 = (5.+3.*sqrt(5.))/20.;
+    double s1 = (5.-  sqrt(5.))/20.;
+    double t1 = s1;
+    double u1 = 1.-r1-s1-t1;
+    double TetGPt2[4][5] = {{r1, s1, t1, u1, w1},
+                            {s1, t1, u1, r1, w1},
+                            {t1, u1, r1, s1, w1},
+                            {u1, r1, s1, t1, w1}};
+
+    for(int igp = 0; igp < ngp; igp++) {
+      // get x, y, z  position & weight of the integration pt
+      m[0] = TetGPt2[igp][0]; m[1] = TetGPt2[igp][1];  m[2] = TetGPt2[igp][2]; w = TetGPt2[igp][4];
+      dOmega = Tetra4ShapeFct(Shape, DShape, m, x, y, z);
+      w *= prop->rho*fabs(dOmega);
+
+      for(int n = 0; n < nnodes; ++n)
+        lforce[n] += w*Shape[n];
     }
+    
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*gravityAcceleration[2];
+    }
+
   }
 }
 
@@ -425,9 +446,6 @@ Tetrahedral::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
   double X[4], Y[4], Z[4];
   cs.getCoordinates(nn, nnodes, X, Y, Z);
-
-  double *gravityAcceleration = 0, *grvfor = 0, totmas = 0.0;
-  int grvflg = 0, masflg = 0;
 
   FullSquareMatrix M(ndofs,mel);
 
@@ -467,6 +485,8 @@ Tetrahedral::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
   } else { // Lumped mass matrix
     //fprintf(stderr," *** In Tetrahedral::massMatrix: make Lumped mass matrix.\n");
+    double *gravityAcceleration = 0, *grvfor = 0, totmas = 0.0;
+    int grvflg = 0, masflg = 0;
     _FORTRAN(mass23)(X, Y, Z, prop->rho, (double*)mel, ndofs,
   		    gravityAcceleration, grvfor, grvflg, totmas, masflg);
   }

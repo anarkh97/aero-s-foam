@@ -53,6 +53,8 @@ public:
 	                                        
         bool isShell() { return true; }
 
+        int getMassType() { return 0; } // lumped only
+
 #ifdef STRUCTOPT
 
         int chkOptInf(CoordSet&);

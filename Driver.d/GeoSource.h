@@ -189,6 +189,7 @@ class GeoSource {
   double mratio; // consistent-lumped matrix ratio; 1==consistent, 0==lumped
 
  public:
+  int fixedEndM; // 0: don't include fixed end moments in gravity force vector for beams and shells
   int *gl2ClSubMap;
 
   // BC Data
@@ -328,7 +329,7 @@ public:
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
   void setConsistentPFlag(int);
-  void setConsistentQFlag(int);
+  void setConsistentQFlag(int, int=1);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
 
   // Parser support Functions - Boundary Conditions
@@ -547,6 +548,7 @@ public:
   void cleanUp();
   void cleanAuxData();
 
+  void setUpRigidElements(bool flag);
   void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);

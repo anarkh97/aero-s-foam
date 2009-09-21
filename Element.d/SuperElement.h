@@ -89,9 +89,9 @@ class SuperElement : public Element
         bool isRotMidSideNode(int iNode);
         bool isMpcElement();
         bool isRigidMpcElement();
-        void computeMPCs(CoordSet &cs, int &lmpcnum);
-        void updateMPCs(GeomState &gState);
-        void setMpcForces(double *mpcForces);
+        void computeMPCs(CoordSet &cs);
+
+        int getMassType();
 };
 
 #endif

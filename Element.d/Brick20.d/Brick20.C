@@ -15,12 +15,7 @@ void  _FORTRAN(brkcmt)(double&, double&, double*);
 
 void  _FORTRAN(brik20v)(double*, double*, double*,double*,const int&,
                         double*, int &);
-		       
-void   _FORTRAN(vol20)(const int&,double*,double*,double*,double &);
 
-void   _FORTRAN(br20mas)(const int&,double&,double*,double*,double*,
-                         double*,double*,double*,const int&, double &);
-			
 void   _FORTRAN(sands20)(const int&,double*,double*,double*,double*,
                          double*,double*,double*,const int&,const int&,
 	 		 const int&,const int&,const int&);
@@ -308,67 +303,95 @@ Brick20::getVonMisesInt(CoordSet &cs, Vector &d, double& sigbar,
 double
 Brick20::getMass(CoordSet& cs)
 {
-// Need a loop here to get nodal coordinates
   double x[20], y[20], z[20];
   cs.getCoordinates(nn, numNodes(), x, y, z);
 
   const int numgauss = 3;
-
-  double volume=0.0;
-  _FORTRAN(vol20)(numgauss,x,y,z,volume);
+  double wx, wy, wz;
+  double m[3], Shape[20], DShape[20][3];
+  double dOmega; // det of jacobian
+  double volume = 0.0;
+  for(int i = 1; i <= numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+    for(int j = 1; j <= numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+      for(int k = 1; k <= numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
+        dOmega = Hexa20ShapeFct(Shape, DShape, m, x, y, z);
+        volume += fabs(dOmega)*wx*wy*wz;
+      }
+    }
+  }
   double totmas = prop->rho*volume;
 
   return totmas;
-
 }
 
 void
 Brick20::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
-                                Vector& gravityForce, int gravflg, GeomState *geomState)
+                         Vector& gravityForce, int gravflg, GeomState *geomState)
 {
+  int nnodes = 20;
 
-  double x[20], y[20], z[20], ElementMassMatrix[60][60];
-  cs.getCoordinates(nn, numNodes(), x, y, z);
+  // Lumped
+  if (gravflg != 2) {
 
-  double grvfor[3];
+    double totmas = getMass(cs);
 
-  int grvflg = 1;
-  double totmas = 0.0;
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
+    }
 
-  const int numgauss = 3;
+  }
+  // Consistent
+  else {
 
- _FORTRAN(br20mas)(numgauss,prop->rho,(double*)ElementMassMatrix,x,y,z,
-                  gravityAcceleration,grvfor,grvflg,totmas);
+    double lforce[20];
+    for(int i=0; i<nnodes; ++i) lforce[i] = 0.0;
 
-// ... DISTRIBUTE GRAVITY FORCE AMONG NODES
+    double x[20], y[20], z[20];
+    cs.getCoordinates(nn, numNodes(), x, y, z);
 
- grvfor[0] *= 0.125;
- grvfor[1] *= 0.125;
- grvfor[2] *= 0.125;
+    int numgauss = 3;
+    // integration: loop over Gauss pts
+    double wx, wy, wz, w;
+    double m[3], Shape[20], DShape[20][3];
+    double dOmega; // det of jacobian
+    for(int i = 1; i <= numgauss; i++) {
+      _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+      for(int j = 1; j <= numgauss; j++) {
+        _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+        for(int k = 1; k <= numgauss; k++) {
+          _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
 
- int i;
- for(i=0; i<20; ++i) {
-   gravityForce[3*i+0] = grvfor[0];
-   gravityForce[3*i+1] = grvfor[1];
-   gravityForce[3*i+2] = grvfor[2];
- }
+          dOmega = Hexa20ShapeFct(Shape, DShape, m, x, y, z);
+          w = fabs(dOmega)*wx*wy*wz*prop->rho;
 
+          for (int n = 0; n < nnodes; ++n) 
+            lforce[n] += w*Shape[n];
+        }
+      }
+    }
+
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*gravityAcceleration[2];
+    }
+  }
 }
 
-
 FullSquareMatrix
-Brick20::massMatrix(CoordSet &cs,double *mel, int cmflg)
+Brick20::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
   double X[20], Y[20], Z[20];
   cs.getCoordinates(nn, numNodes(), X, Y, Z);
 
-  double *gravityAcceleration = 0, *grvfor = 0;
-
-  int grvflg = 0;
-  double totmas = 0.0;
-  //int status = 0;
   const int numgauss = 3;
-  const int nnodes= 20;
+  const int nnodes = 20;
   const int ndofs = 60;
   FullSquareMatrix M(ndofs,mel);
 
@@ -400,11 +423,10 @@ Brick20::massMatrix(CoordSet &cs,double *mel, int cmflg)
       }
     }
   } else { // Lumped mass matrix
-    //fprintf(stderr," *** In Brick20::massMatrix: make Lumped mass matrix.\n");
-    _FORTRAN(br20mas)(numgauss,prop->rho,(double*)mel,
-                     X,Y,Z,gravityAcceleration,grvfor,grvflg,totmas);
+    fprintf(stderr," *** In Brick20::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
+    exit(-1);
   }
-                                                                                               
+
   return(M);
 }
 

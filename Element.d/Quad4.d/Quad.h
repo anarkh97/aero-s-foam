@@ -18,8 +18,6 @@ public:
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double           getMass(CoordSet&);
 
-        void             getGravityForce(CoordSet&,double *gravity, Vector& f, 
-	                                 int gravflg, GeomState *gs);
         virtual void     getVonMises (Vector &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp,
                                       int strInd, int surface=0,
@@ -36,6 +34,7 @@ public:
 
 	int getTopNumber();
 
+        int getMassType() { return 0; } // lumped only
 };
 #endif
 

@@ -6,12 +6,9 @@
 class RigidMpcSolid6Dof : public SuperElement
 {
   public:
-    RigidMpcSolid6Dof(int numnodes, int *nodenums);
-
-    Element* clone();
-    int getTopNumber() { return 101; }
-    int numTopNodes() { return 2; }
-
+    RigidMpcSolid6Dof(int, int*);
+    int getTopNumber();
+    int numTopNodes();
 };
 
 #endif

@@ -68,6 +68,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 
   constpflg = 1;
   constqflg = 1;
+  fixedEndM = 1;
   maxGlobNode = 0;
   maxClusNode = 0;
   numProps = 0;
@@ -289,61 +290,48 @@ int GeoSource::addCFrame(int fn, double *f)  {
 
 //----------------------------------------------------------------------
 
-void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+void GeoSource::setUpRigidElements(bool flag)
 {
-  //std::cerr << "MLXX Adding " << numLMPC << " MPC Elements" << std::endl;
-#ifndef SALINAS
-  // PJSA: convert rigid elements into mpcs -- used for GRBM
-  // 1. find largest lmpcnum
-  int lmpcnum = 0;
-  bool print_flag = true;
-  for(int i=0; i < numLMPC; ++i)
-    if(lmpc[i]->lmpcnum > lmpcnum) lmpcnum = lmpc[i]->lmpcnum;
-  // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
-  int nEle = elemSet.last();
-  for(int i = 0; i < na; ++i) {
+  int count1 = 0, count2 = 0;
+  for(int i = 0; i < na; ++i) { // this seems a bit dangerous: what if a rigid element has no attribute?
     Element *ele = elemSet[ attrib[i].nele ];
     if((ele != 0) && (ele->isRigidMpcElement())) {
-      if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes,lmpcnum);
+      ele->computeMPCs(nodes);
+
+      // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
+      // and add these to the domain. In this case the rigid element remains in the element set but acts
+      // as a phantom with no "internal nodes" (with lagrange dofs) and zero'd stiffness matrix
+      // This must be used for FETI and for the direct elimination method but is otherwise optional
+      if(flag) {
+        int nmpc = ele->getNumMPCs();
+        LMPCons **mpc = ele->getMPCs();
+        for(int j = 0; j < nmpc; ++j) domain->addLMPC(mpc[j], false);
+        count1++; count2 += nmpc;
+      }
+      // if flag==false, the element has lagrange multiplier degrees of freedom 
+      // assigned to internal nodes and implements the stiffness matrix [ 0 C^T ]
+      //                                                                [ C  0  ]
     }
   }
-  numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
+  if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
+}
 
+void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+  int nEle = elemSet.last();
   if(numLMPC) {
-
-    fprintf(stderr," ... Converting LMPCs to MpcElements \n");
     for(int i = 0; i < numLMPC; ++i) {
       elemSet.mpcelemadd(nEle, lmpc[i]);
       nEle++;
     }
+    cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
-#else
-  cerr << "*** ERROR: GeoSource::addMpcElements(...) not included in Salinas library \n";
-#endif
 }
 
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
 void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
-  std::cerr << "Making direct MPCs" << std::endl;
-  int lmpcnum = 0;
-  bool print_flag = true;
-  for(int i=0; i < numLMPC; ++i)
-    if(lmpc[i]->lmpcnum > lmpcnum) lmpcnum = lmpc[i]->lmpcnum;
-  // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
-  int nEle = elemSet.last();
-  for(int i = 0; i < na; ++i) {
-    Element *ele = elemSet[ attrib[i].nele ];
-    if((ele != 0) && (ele->isRigidMpcElement())) {
-      if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
-      ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes,lmpcnum);
-    }
-  }
-  numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
-
   if(numLMPC) {
     std::map<pair<int,int>, int> tCount;
     for(int i=0; i < numLMPC; ++i) {
@@ -381,7 +369,6 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
     }
 
   }
-  std::cerr<< "NElement = " << nEle << std::endl;
 }
 
 //----------------------------------------------------------------------
@@ -474,30 +461,25 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
   }
 }
 
-
-//----------------------------------------------------------------------
 void GeoSource::setUpData()
 {
-  int iElem;
-
   // Setup the internal nodes
   int lastNode = numNodes = nodes.last();
   int nMaxEle = elemSet.size();
-  for(iElem = 0; iElem < nMaxEle; ++iElem)
-    {
-      Element *ele = elemSet[iElem];
-      if(ele == 0) continue;
-      int nIN = ele->numInternalNodes();
-      int nn[125];
-      if(nIN > 125) {
-	fprintf(stderr, " *** ERROR: Code was not developed for elements with more "
-		"than 125 internal nodes");
-	exit(-1);
-      }
-      for(int i = 0; i < nIN; ++i)
-	nn[i] = lastNode++;
-      ele->setInternalNodes(nn);
-      localToGlobalElementsNumber.push_back(iElem);
+  for (int iElem = 0; iElem < nMaxEle; ++iElem) {
+    Element *ele = elemSet[iElem];
+    if(ele == 0) continue;
+    int nIN = ele->numInternalNodes();
+    int nn[125];
+    if(nIN > 125) {
+      fprintf(stderr, " *** ERROR: Code was not developed for elements with more "
+                      "than 125 internal nodes");
+      exit(-1);
+    }
+    for(int i = 0; i < nIN; ++i)
+      nn[i] = lastNode++;
+    ele->setInternalNodes(nn);
+    localToGlobalElementsNumber.push_back(iElem);
   }
   numInternalNodes = lastNode-numNodes;
 
@@ -513,7 +495,6 @@ void GeoSource::setUpData()
 
   // Set up element attributes
   int i;
-
   SolverInfo sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) { // PJSA
     fprintf(stderr," **************************************\n");
@@ -521,7 +502,6 @@ void GeoSource::setUpData()
     fprintf(stderr," **************************************\n");
     exit(-1);
   }
-  //if((na != nMaxEle) && ((sinfo.probType == SolverInfo::Top) || (sinfo.probType == SolverInfo::Decomp))) { // PJSA
   if(na != nMaxEle) {
     // check for elements with no attribute, and add dummy properties
     bool *hasAttr = (bool *)dbg_alloca(nMaxEle*sizeof(bool));
@@ -540,7 +520,6 @@ void GeoSource::setUpData()
 
   // create map for used material properties
   // & compute average E and nu (for coupled_dph)
-//  std::map<int, StructProp *> usedMat;
   int structure_element_count = 0;
   int fluid_element_count = 0;
   global_average_E = 0.0;
@@ -564,24 +543,6 @@ void GeoSource::setUpData()
       ele->setProp(new StructProp(), true);
     }
     else  {
-/* PJSA 1-16-08 this doesn't make sense to me
-      StructProp *prop;
-      std::map<int, StructProp *>::iterator it = usedMat.find(attrib[i].attr);
-      if(it == usedMat.end()) {
-        if((!sProps[attrib[i].attr].isReal) && (sinfo.probType != SolverInfo::Top)
-            && !domain->solInfo().isAcousticHelm() && (sinfo.probType != SolverInfo::Decomp)
-            && !elemSet[attrib[i].nele]->isConstraintElement()) {
-          fprintf(stderr, " *** WARNING: The material for element %d does not exist\n",
-                  attrib[i].nele+1);
-        }
-        // prop = new StructProp(sProps[attrib[i].attr]);
-        prop = &sProps[attrib[i].attr]; // PJSA: for helmsweep, helmCoef is updated in sProps[0] so don't copy!!
-                                        // check with Thuan why he decided to make a copy of the material here
-        usedMat[attrib[i].attr] = prop;
-      }
-      else
-        prop = it->second;
-*/
       SPropContainer::iterator it = sProps.find(attrib[i].attr);
       if(it == sProps.end()) { // in this case the material does not exist (this is only permitted for -t and --dec)
         if((sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp))
@@ -995,9 +956,10 @@ void GeoSource::setConsistentPFlag(int _constpflg)
  constpflg = _constpflg;
 }
 
-void GeoSource::setConsistentQFlag(int _constqflg)
+void GeoSource::setConsistentQFlag(int _constqflg, int _fixedEndM)
 {
  constqflg = _constqflg;
+ fixedEndM = _fixedEndM;
 }
 
 int GeoSource::getTextDirichletBC(BCond *&bc)

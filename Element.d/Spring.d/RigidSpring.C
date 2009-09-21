@@ -39,29 +39,28 @@ RigidSpring::stiffness(CoordSet &cs, double *d, int flg)
         ret.zero();
         
         // Translation in X
-        ret[0][12] = ret[12][0] =  1;
-        ret[6][12] = ret[12][6] = -1; 
+        ret[0][12] = ret[12][0] =  1.0;
+        ret[6][12] = ret[12][6] = -1.0; 
 
         // Translation in Y
-        ret[1][13] = ret[13][1] =  1;
-        ret[7][13] = ret[13][7] = -1;
+        ret[1][13] = ret[13][1] =  1.0;
+        ret[7][13] = ret[13][7] = -1.0;
 
         // Translation in Z
-        ret[2][14] = ret[14][2] =  1;
-        ret[8][14] = ret[14][8] = -1;
+        ret[2][14] = ret[14][2] =  1.0;
+        ret[8][14] = ret[14][8] = -1.0;
 
-        
         // Rotation in X
-        ret[3][15] = ret[15][3] =  1;
-        ret[9][15] = ret[15][9] = -1; 
+        ret[3][15] = ret[15][3] =  1.0;
+        ret[9][15] = ret[15][9] = -1.0;
 
         // Rotation in Y
-        ret[4][16] = ret[16][4] = 1;
-        ret[10][16] = ret[16][10] = -1;
+        ret[4][16] = ret[16][4] = 1.0;
+        ret[10][16] = ret[16][10] = -1.0;
 
         // Rotation in Z
-        ret[5][17] = ret[17][5] = 1;
-        ret[11][17]= ret[17][11] = -1;
+        ret[5][17] = ret[17][5] = 1.0;
+        ret[11][17]= ret[17][11] = -1.0;
 
         return ret;
 }

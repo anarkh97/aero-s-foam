@@ -1,17 +1,15 @@
 #ifndef _RIGIDMPCSOLID_H_
 #define _RIGIDMPCSOLID_H_
 
-#include <Element.d/SuperElement.h>
+#include <Element.d/MpcElement.d/RigidMpcElement.h>
 
-class RigidMpcSolid : public SuperElement
+class RigidMpcSolid : public RigidMpcElement
 {
-  public:
-    RigidMpcSolid(int numnodes, int *nodenums);
-
-    Element* clone();
-    int getTopNumber() { return 101; }
-    int numTopNodes() { return 2; }
-
+ public:
+  RigidMpcSolid(int, int*);
+  void computeMPCs(CoordSet&);
+  int getTopNumber();
+  int numTopNodes();
 };
 
 #endif

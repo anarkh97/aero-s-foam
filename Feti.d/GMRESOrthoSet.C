@@ -148,6 +148,27 @@ GenGMRESOrthoSet<Scalar>::init(Scalar *v0, double beta)
 }
 
 template<class Scalar>
+double
+GmresOrthoSet<Scalar>::init(Scalar *p)
+{
+  if(numP > 0) reset();
+
+  double beta = 0.0;
+  for(int i = 0; i < len; i++) beta += ScalarTypes::sqNorm(p[i]);
+#ifdef DISTRIBUTED
+  if(this->fetiCom)
+    beta = this->fetiCom->globalSum(beta);
+#endif
+  beta = sqrt(beta);
+  for(int i = 0; i < len; i++) p[i] /= beta;
+
+  init(p, beta);
+
+  return beta;
+}
+
+
+template<class Scalar>
 double 
 GenGMRESOrthoSet<Scalar>::orthoAdd(Scalar *Fv, Scalar *v) 
 {

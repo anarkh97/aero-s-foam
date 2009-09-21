@@ -221,9 +221,8 @@ void
 ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                               Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-
-// Lumped
-      if (gravflg == 1) {
+      // Lumped
+      if(gravflg != 2) {
         double massPerNode = 0.25*getMass(cs);
 
         double fx = massPerNode*gravityAcceleration[0];
@@ -242,10 +241,10 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
         gravityForce[9]  = fx;
         gravityForce[10] = fy;
         gravityForce[11] = fz;
-
-// Consistent
       }
-      else if (gravflg == 2) {
+      
+      // Consistent
+      else {
 
         int i;
         int numgauss = 2;
@@ -346,11 +345,7 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
           gravityForce[3*i+2] = (T1[2]*lfx) + (T2[2]*lfy);
         }
       }
-      else {
-        int i;
-        for(i=0; i<12; ++i)
-          gravityForce[i] = 0.0;
-      }
+
 }
 
 FullSquareMatrix

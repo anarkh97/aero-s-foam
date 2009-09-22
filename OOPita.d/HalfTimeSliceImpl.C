@@ -27,7 +27,7 @@ HalfTimeSliceImpl::phaseIs(PhaseRank p) {
 void
 HalfTimeSliceImpl::seedIs(const Seed * s) {
   previousSeedState_ = s->state();
-  schedulingReactor_->notifierIs(s);
+  //schedulingReactor_->notifierIs(s);
   setSeed(s);
 }
 
@@ -175,20 +175,20 @@ HalfTimeSliceImpl::Manager::createNewInstance(const HalfSliceId & id) {
   std::auto_ptr<HalfTimeSliceImpl> halfSlice(new HalfTimeSliceImpl(id.rank(), id.direction(), newPropagator.ptr()));
   
   // Setup internals
-  String activityName = String("LocalPropagation_") + toString(HalfSliceId(id.rank(), id.direction()));
-  Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
+  //String activityName = String("LocalPropagation_") + toString(HalfSliceId(id.rank(), id.direction()));
+  //Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
   //activity->phaseIs(halfSlice->phase());
 
-  SchedulingReactor::Ptr schedulingReactor;
+  /*SchedulingReactor::Ptr schedulingReactor;
   if (id.direction() == HalfTimeSlice::FORWARD) {
     schedulingReactor = new ForwardSchedulingReactor(halfSlice->seed(), activity.ptr());
   } else {
     schedulingReactor = new BackwardSchedulingReactor(halfSlice->seed(), activity.ptr());
   }
-  LocalPropagationReactor::Ptr localPropagationReactor = new LocalPropagationReactor(activity.ptr(), halfSlice.get());
+  LocalPropagationReactor::Ptr localPropagationReactor = new LocalPropagationReactor(activity.ptr(), halfSlice.get());*/
 
-  halfSlice->schedulingReactor_ = schedulingReactor;
-  halfSlice->localPropagationReactor_ = localPropagationReactor;
+  //halfSlice->schedulingReactor_ = schedulingReactor;
+  //halfSlice->localPropagationReactor_ = localPropagationReactor;
 
   return halfSlice.release();
 }

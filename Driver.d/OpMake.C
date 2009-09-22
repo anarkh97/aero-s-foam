@@ -3299,6 +3299,9 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
                         Scalar *userDefineDisp, int *userMap, Vector *af,
                         double gamma, double alphaf)
 {
+  if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
+    checkSommerTypeBC(this);
+
   int i;
   // ... ZERO THE FORCE VECTOR
   f.zero();

@@ -96,7 +96,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       bufferStateCopy(cs.second, targetBuffer); 
       //log() << "Final state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
-      int accumulatedIndex = inBufferRank + previousMatrixSize;
+      int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
       localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstForwardFinalStateDel();
@@ -118,7 +118,7 @@ HalfSliceCorrectionNetworkImpl::buildProjection() {
         bufferStateCopy(cs.second, targetBuffer); 
       }
       //log() << "Metric state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
-      int accumulatedIndex = inBufferRank + previousMatrixSize;
+      int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
       localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstBackwardFinalStateDel();

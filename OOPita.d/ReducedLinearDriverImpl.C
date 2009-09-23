@@ -87,6 +87,8 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
 
 void
 ReducedLinearDriverImpl::solve() {
+  double tic = getTime();
+  
   try {
 
   /* Summarize problem and parameters */ 
@@ -430,6 +432,9 @@ ReducedLinearDriverImpl::solve() {
   }
 
   /* End */ 
+  double toc = getTime();
+
+  log() << "Total Solve Time = " << (toc - tic) / 1000.0 << " s\n";
   log() << "\nEnd Reduced HalfSlice Linear Pita\n";
 }
 

@@ -1,5 +1,5 @@
-#ifndef PITA_LINEARFINEINTEGRATORMANAGER_H
-#define PITA_LINEARFINEINTEGRATORMANAGER_H
+#ifndef PITA_HTS_LINEARFINEINTEGRATORMANAGER_H
+#define PITA_HTS_LINEARFINEINTEGRATORMANAGER_H
 
 #include "FineIntegratorManager.h"
 
@@ -73,4 +73,4 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(HalfTi
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HTS_LINEARFINEINTEGRATORMANAGER_H */
+#endif /* PITA_HTS_HTS_LINEARFINEINTEGRATORMANAGER_H */

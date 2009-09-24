@@ -46,10 +46,7 @@ extern Domain * domain;
 
 #include <Timers.d/GetTime.h>
 
-namespace Pita {
-
-// TODO HACK
-using namespace Hts;
+namespace Pita { namespace Hts {
 
 LinearDriverImpl::LinearDriverImpl(SingleDomainDynamic<double> * pbDesc) :
   probDesc_(pbDesc)
@@ -270,7 +267,7 @@ LinearDriverImpl::solve() {
   log() << "End LinPita\n";
 }
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 // Entrypoint
 /*Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {

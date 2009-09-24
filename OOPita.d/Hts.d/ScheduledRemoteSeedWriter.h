@@ -1,5 +1,5 @@
-#ifndef PITA_SCHEDULEDREMOTESEEDWRITER_H
-#define PITA_SCHEDULEDREMOTESEEDWRITER_H
+#ifndef PITA_HTS_SCHEDULEDREMOTESEEDWRITER_H
+#define PITA_HTS_SCHEDULEDREMOTESEEDWRITER_H
 
 #include "../RemoteSeedWriter.h"
 
@@ -12,4 +12,4 @@ typedef ScheduledRemoteSharedStateWriter<DynamState> ScheduledRemoteSeedWriter;
 
 } // end namespace Pita
 
-#endif /* PITA_SCHEDULEDREMOTESEEDWRITER_H */
+#endif /* PITA_HTS_SCHEDULEDREMOTESEEDWRITER_H */

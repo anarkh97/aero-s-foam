@@ -1,5 +1,5 @@
-#ifndef PITA_SCHEDULEDREMOTESHAREDSTATE_H
-#define PITA_SCHEDULEDREMOTESHAREDSTATE_H
+#ifndef PITA_HTS_SCHEDULEDREMOTESHAREDSTATE_H
+#define PITA_HTS_SCHEDULEDREMOTESHAREDSTATE_H
 
 #include "../RemoteSharedState.h"
 
@@ -285,4 +285,4 @@ ScheduledRemoteSharedStateWriter<S>::Manager::createNewInstance(const Hts::SeedI
 
 } // end namespace Pita
 
-#endif /* PITA_SCHEDULEDREMOTESHAREDSTATE_H */
+#endif /* PITA_HTS_SCHEDULEDREMOTESHAREDSTATE_H */

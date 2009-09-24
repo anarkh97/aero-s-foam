@@ -1,5 +1,5 @@
-#ifndef PITA_HALFSLICENETWORKTOPOLOGY_H
-#define PITA_HALFSLICENETWORKTOPOLOGY_H
+#ifndef PITA_HTS_NETWORKTOPOLOGY_H
+#define PITA_HTS_NETWORKTOPOLOGY_H
 
 #include <vector>
 #include <map>
@@ -67,4 +67,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HALFSLICENETWORKTOPOLOGY_H */
+#endif /* PITA_HTS_NETWORKTOPOLOGY_H */

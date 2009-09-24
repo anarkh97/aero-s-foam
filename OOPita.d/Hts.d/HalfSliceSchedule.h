@@ -1,5 +1,5 @@
-#ifndef PITA_HALFSLICESCHEDULE_H
-#define PITA_HALFSLICESCHEDULE_H
+#ifndef PITA_HTS_SCHEDULE_H
+#define PITA_HTS_SCHEDULE_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -53,4 +53,4 @@ typedef HalfSliceSchedule Schedule;
 
 } /* end namespace Hts */ } /* namespace Pita */
 
-#endif /* PITA_HALFSLICESCHEDULE_H */
+#endif /* PITA_HTS_SCHEDULE_H */

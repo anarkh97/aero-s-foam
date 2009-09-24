@@ -1,11 +1,11 @@
-#ifndef PITA_LINEARDRIVERIMPL_H
-#define PITA_LINEARDRIVERIMPL_H
+#ifndef PITA_HTS_LINEARDRIVERIMPL_H
+#define PITA_HTS_LINEARDRIVERIMPL_H
 
 #include "../LinearDriver.h"
 
 Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class LinearDriverImpl : public LinearDriver {
 public:
@@ -27,6 +27,6 @@ private:
   SingleDomainDynamic<double> * probDesc_;
 };
 
-} // end namespace Pita
+} /* end namespace namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_LINEARDRIVERIMPL_H */
+#endif /* PITA_HTS_LINEARDRIVERIMPL_H */

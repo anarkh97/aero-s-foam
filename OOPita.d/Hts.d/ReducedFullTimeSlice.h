@@ -1,5 +1,5 @@
-#ifndef PITA_REDUCEDFULLTIMESLICE_H
-#define PITA_REDUCEDFULLTIMESLICE_H
+#ifndef PITA_HTS_REDUCEDFULLTIMESLICE_H
+#define PITA_HTS_REDUCEDFULLTIMESLICE_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -53,4 +53,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_REDUCEDFULLTIMESLICE_H */
+#endif /* PITA_HTS_REDUCEDFULLTIMESLICE_H */

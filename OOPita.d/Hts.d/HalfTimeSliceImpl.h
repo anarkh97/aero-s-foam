@@ -1,5 +1,5 @@
-#ifndef PITA_HALFTIMESLICEIMPL_H
-#define PITA_HALFTIMESLICEIMPL_H
+#ifndef PITA_HTS_HALFTIMESLICEIMPL_H
+#define PITA_HTS_HALFTIMESLICEIMPL_H
 
 #include "HalfTimeSlice.h"
 #include "../DynamPropagator.h"
@@ -139,4 +139,4 @@ protected:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HALFTIMESLICEIMPL_H */
+#endif /* PITA_HTS_HALFTIMESLICEIMPL_H */

@@ -1,8 +1,8 @@
 #ifndef PITA_FWK_H
 #define PITA_FWK_H
 
-#include "Fwk.d/Fwk.h"
-#include "Log.h"
+#include "../Fwk.d/Fwk.h"
+#include "../Log.h"
 
 namespace Pita {
 

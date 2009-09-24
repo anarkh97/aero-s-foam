@@ -3,7 +3,6 @@
 
 #include "Fwk.h"
 #include "Types.h"
-#include "HalfSliceTypes.h"
 
 #include "Seed.h"
 

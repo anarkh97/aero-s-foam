@@ -2,7 +2,7 @@
 
 #include <Math.d/FullSquareMatrix.h>
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 // ReducedFullTimeSliceImpl implementation
 
@@ -96,4 +96,4 @@ ReducedFullTimeSliceImpl::Manager::createNewInstance(const HalfSliceRank & r) {
   return new ReducedFullTimeSliceImpl(r, defaultReprojectionMatrix(), defaultProjectionSolver());
 }
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

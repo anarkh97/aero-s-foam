@@ -7,7 +7,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class HalfSliceNetworkTopology : public Fwk::PtrInterface<HalfSliceNetworkTopology> {
 public:
@@ -65,6 +65,6 @@ private:
                                        void (* const buildFunc)(const K &, std::vector<T> &)) const;
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_HALFSLICENETWORKTOPOLOGY_H */

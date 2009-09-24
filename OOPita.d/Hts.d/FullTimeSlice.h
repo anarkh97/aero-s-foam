@@ -5,7 +5,7 @@
 #include "Types.h"
 #include "../Seed.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class FullTimeSliceHead : public Fwk::PtrInterface<FullTimeSliceHead> {
 public:
@@ -95,6 +95,6 @@ private:
   DISALLOW_COPY_AND_ASSIGN(FullTimeSliceTail);
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_FULLTIMESLICE_H */

@@ -3,7 +3,7 @@
 
 #include "HalfSliceSchedule.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class LinearHalfSliceSchedule : public HalfSliceSchedule {
 public:
@@ -18,6 +18,6 @@ protected:
   explicit LinearHalfSliceSchedule(HalfSliceCount nts);
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_LINEARHALFSLICESCHEDULE_H */

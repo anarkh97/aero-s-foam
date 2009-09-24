@@ -5,7 +5,7 @@
 #include "Types.h"
 #include "../Activity.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class HalfSliceSchedule : public Fwk::PtrInterface<HalfSliceSchedule> {
 public:
@@ -49,12 +49,8 @@ private:
   DISALLOW_COPY_AND_ASSIGN(HalfSliceSchedule);
 };
 
-namespace Hts {
-  
-  typedef HalfSliceSchedule Schedule;
+typedef HalfSliceSchedule Schedule;
 
-} /* end namespace Hts */
-
-} // namespace Pita
+} /* end namespace Hts */ } /* namespace Pita */
 
 #endif /* PITA_HALFSLICESCHEDULE_H */

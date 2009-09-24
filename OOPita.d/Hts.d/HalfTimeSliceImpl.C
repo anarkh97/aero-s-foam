@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 /* HalfTimeSliceImpl */
 
@@ -193,4 +193,4 @@ HalfTimeSliceImpl::Manager::createNewInstance(const HalfSliceId & id) {
   return halfSlice.release();
 }
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

@@ -16,7 +16,7 @@
 
 class Communicator;
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class FullTimeSliceHeadImpl : public FullTimeSliceHead {
 public:
@@ -272,8 +272,6 @@ private:
   FullTimeSliceTailImpl * parent_;
 };
 
-
-
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_FULLTIMESLICEIMPL_H */

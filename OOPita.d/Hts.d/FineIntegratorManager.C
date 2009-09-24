@@ -1,6 +1,6 @@
 #include "FineIntegratorManager.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 FineIntegratorManager::FineIntegratorManager(Seconds fineTimeStepSize) :
   fineTimeStepSize_(fineTimeStepSize),
@@ -34,4 +34,4 @@ FineIntegratorManager::fineIntegrator(HalfTimeSlice::Direction direction) const 
   return integrator;
 }
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

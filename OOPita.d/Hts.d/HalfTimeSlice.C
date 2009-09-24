@@ -1,6 +1,6 @@
 #include "HalfTimeSlice.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 HalfTimeSlice::HalfTimeSlice(HalfSliceRank r, HalfTimeSlice::Direction d) :
   NamedTask(String("HalfTimeSlice ") + toString(HalfSliceId(r, d))),
@@ -21,5 +21,5 @@ OStream & operator<<(OStream & out, const HalfSliceId & id) {
   return out; 
 }
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 

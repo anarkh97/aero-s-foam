@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 /*class ReductorPropagatorHead : public DynamPropagatorHead {
 public:
@@ -503,4 +503,4 @@ RemoteHeadProxy::reducedBasisComponents(Vector & components) const {
   
 } // end namespace FullTimeSliceProxy
 
-} // end namespace Pita
+} /* end namespace Hts */ } // end namespace Pita

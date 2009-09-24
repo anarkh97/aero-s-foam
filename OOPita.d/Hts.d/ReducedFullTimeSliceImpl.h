@@ -8,7 +8,7 @@
 template <typename Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class ReducedFullTimeSliceImpl : public ReducedFullTimeSlice {
 public:
@@ -66,6 +66,6 @@ private:
   RankDeficientSolver::PtrConst defaultProjectionSolver_;
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_REDUCEDFULLTIMESLICEIMPL_H */

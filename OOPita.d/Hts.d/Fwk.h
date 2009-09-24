@@ -1,13 +1,12 @@
-#ifndef PITA_FWK_H
-#define PITA_FWK_H
+#ifndef PITA_HTS_FWK_H
+#define PITA_HTS_FWK_H
 
-#include "../Fwk.d/Fwk.h"
-#include "../Log.h"
+#include "../Fwk.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
-  using namespace Fwk;
+using namespace Fwk;
   
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_FWK_H */
+#endif /* PITA_HTS_FWK_H */

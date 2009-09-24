@@ -8,7 +8,7 @@
 
 #include "Fwk.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class HalfTimeSliceImpl : public HalfTimeSlice {
 public:
@@ -137,6 +137,6 @@ protected:
   virtual bool schedulingCondition() const; // overriden
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_HALFTIMESLICEIMPL_H */

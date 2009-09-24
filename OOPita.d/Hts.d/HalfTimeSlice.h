@@ -7,7 +7,7 @@
 #include "../Activity.h"
 #include "../NamedTask.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 // Unique identifier for HalfTimeSlice
 class HalfSliceId;
@@ -88,6 +88,6 @@ public:
   }
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_HALFTIMESLICE_H */

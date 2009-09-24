@@ -1,6 +1,6 @@
 #include "LinearHalfSliceSchedule.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 LinearHalfSliceSchedule::LinearHalfSliceSchedule(HalfSliceCount nts) :
   HalfSliceSchedule(PhaseRank(5), // localPropagation,
@@ -11,4 +11,4 @@ LinearHalfSliceSchedule::LinearHalfSliceSchedule(HalfSliceCount nts) :
                     nts)
 {}
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

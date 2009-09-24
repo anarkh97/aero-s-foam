@@ -5,7 +5,7 @@
 #include "HalfTimeSlice.h"
 #include "../DynamTimeIntegrator.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class FineIntegratorManager : public Fwk::PtrInterface<FineIntegratorManager> {
 public:
@@ -30,6 +30,6 @@ private:
   mutable IntegratorType::Ptr backwardFineIntegrator_;
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Hts */
 
 #endif /* PITA_FINEINTEGRATORMANAGER_H */

@@ -7,7 +7,7 @@
 
 #include "../NamedTask.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 class ReducedFullTimeSlice : public NamedTask {
 public:
@@ -51,6 +51,6 @@ private:
   DISALLOW_COPY_AND_ASSIGN(ReducedFullTimeSlice); 
 };
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_REDUCEDFULLTIMESLICE_H */

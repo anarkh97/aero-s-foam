@@ -1,6 +1,6 @@
 #include "FullTimeSlice.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 // FullTimeSliceHead implemetation
 
@@ -23,4 +23,4 @@ FullTimeSliceTail::FullTimeSliceTail(HalfSliceRank tailRank, CpuRank headCpu) :
   nextUpdatedSeed_(NULL)
 {}
 
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

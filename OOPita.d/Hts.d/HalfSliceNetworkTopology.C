@@ -1,6 +1,6 @@
 #include "HalfSliceNetworkTopology.h"
 
-namespace Pita {
+namespace Pita { namespace Hts {
 
 namespace {
 
@@ -104,5 +104,4 @@ HalfSliceNetworkTopology::seed(const Hts::SliceId & id) const {
   return createIterator(seed_, id, &buildSeed);
 }
 
-
-} // end namespace Pita
+} /* end namespace Hts */ } /* end namespace Pita */

@@ -5,18 +5,18 @@ namespace Pita {
 namespace {
 
 void
-buildWriter(const Hs::SeedId & id, std::vector<Hs::SliceId> & writer) {
+buildWriter(const Hts::SeedId & id, std::vector<Hts::SliceId> & writer) {
   switch (id.type()) {
-    case Hs::UNDEFINED_SLICE:
+    case Hts::UNDEFINED_SLICE:
       break;
-    case Hs::MAIN_SEED:
-      writer.push_back(Hs::SliceId(Hs::TAIL_FULL_SLICE, id.rank() - HalfSliceCount(1)));
+    case Hts::MAIN_SEED:
+      writer.push_back(Hts::SliceId(Hts::TAIL_FULL_SLICE, id.rank() - HalfSliceCount(1)));
       break;
-    case Hs::LEFT_SEED:
-      writer.push_back(Hs::SliceId(Hs::FORWARD_HALF_SLICE, id.rank() - HalfSliceCount(1)));
+    case Hts::LEFT_SEED:
+      writer.push_back(Hts::SliceId(Hts::FORWARD_HALF_SLICE, id.rank() - HalfSliceCount(1)));
       break;
-    case Hs::RIGHT_SEED:
-      writer.push_back(Hs::SliceId(Hs::BACKWARD_HALF_SLICE, id.rank()));
+    case Hts::RIGHT_SEED:
+      writer.push_back(Hts::SliceId(Hts::BACKWARD_HALF_SLICE, id.rank()));
       break;
     default:
       throw Fwk::InternalException(); 
@@ -24,20 +24,20 @@ buildWriter(const Hs::SeedId & id, std::vector<Hs::SliceId> & writer) {
 }
 
 void
-buildReader(const Hs::SeedId & id, std::vector<Hs::SliceId> & reader) {
+buildReader(const Hts::SeedId & id, std::vector<Hts::SliceId> & reader) {
   switch (id.type()) {
-    case Hs::UNDEFINED_SLICE:
+    case Hts::UNDEFINED_SLICE:
       break;
-    case Hs::MAIN_SEED:
-      reader.push_back(Hs::SliceId(Hs::BACKWARD_HALF_SLICE, id.rank() - HalfSliceCount(1)));
-      reader.push_back(Hs::SliceId(Hs::FORWARD_HALF_SLICE, id.rank()));
-      reader.push_back(Hs::SliceId(Hs::HEAD_FULL_SLICE, id.rank()));
+    case Hts::MAIN_SEED:
+      reader.push_back(Hts::SliceId(Hts::BACKWARD_HALF_SLICE, id.rank() - HalfSliceCount(1)));
+      reader.push_back(Hts::SliceId(Hts::FORWARD_HALF_SLICE, id.rank()));
+      reader.push_back(Hts::SliceId(Hts::HEAD_FULL_SLICE, id.rank()));
       break;
-    case Hs::LEFT_SEED:
-      reader.push_back(Hs::SliceId(Hs::TAIL_FULL_SLICE, id.rank() - HalfSliceCount(1)));
+    case Hts::LEFT_SEED:
+      reader.push_back(Hts::SliceId(Hts::TAIL_FULL_SLICE, id.rank() - HalfSliceCount(1)));
       break;
-    case Hs::RIGHT_SEED:
-      reader.push_back(Hs::SliceId(Hs::HEAD_FULL_SLICE, id.rank()));
+    case Hts::RIGHT_SEED:
+      reader.push_back(Hts::SliceId(Hts::HEAD_FULL_SLICE, id.rank()));
       break;
     default:
       throw Fwk::InternalException();
@@ -45,25 +45,25 @@ buildReader(const Hs::SeedId & id, std::vector<Hs::SliceId> & reader) {
 }
 
 void
-buildSeed(const Hs::SliceId & id, std::vector<Hs::SeedId> & seed) {
+buildSeed(const Hts::SliceId & id, std::vector<Hts::SeedId> & seed) {
   switch (id.type()) {
-    case Hs::UNDEFINED_SEED:
+    case Hts::UNDEFINED_SEED:
       break;
-    case Hs::FORWARD_HALF_SLICE:
-      seed.push_back(Hs::SeedId(Hs::MAIN_SEED, id.rank()));
-      seed.push_back(Hs::SeedId(Hs::LEFT_SEED, id.rank() + HalfSliceCount(1)));
+    case Hts::FORWARD_HALF_SLICE:
+      seed.push_back(Hts::SeedId(Hts::MAIN_SEED, id.rank()));
+      seed.push_back(Hts::SeedId(Hts::LEFT_SEED, id.rank() + HalfSliceCount(1)));
       break;
-    case Hs::BACKWARD_HALF_SLICE:
-      seed.push_back(Hs::SeedId(Hs::MAIN_SEED, id.rank() + HalfSliceCount(1)));
-      seed.push_back(Hs::SeedId(Hs::RIGHT_SEED, id.rank()));
+    case Hts::BACKWARD_HALF_SLICE:
+      seed.push_back(Hts::SeedId(Hts::MAIN_SEED, id.rank() + HalfSliceCount(1)));
+      seed.push_back(Hts::SeedId(Hts::RIGHT_SEED, id.rank()));
       break;
-    case Hs::HEAD_FULL_SLICE:
-      seed.push_back(Hs::SeedId(Hs::MAIN_SEED, id.rank()));
-      seed.push_back(Hs::SeedId(Hs::RIGHT_SEED, id.rank()));
+    case Hts::HEAD_FULL_SLICE:
+      seed.push_back(Hts::SeedId(Hts::MAIN_SEED, id.rank()));
+      seed.push_back(Hts::SeedId(Hts::RIGHT_SEED, id.rank()));
       break;
-    case Hs::TAIL_FULL_SLICE:
-      seed.push_back(Hs::SeedId(Hs::MAIN_SEED, id.rank() + HalfSliceCount(1)));
-      seed.push_back(Hs::SeedId(Hs::LEFT_SEED, id.rank() + HalfSliceCount(1)));
+    case Hts::TAIL_FULL_SLICE:
+      seed.push_back(Hts::SeedId(Hts::MAIN_SEED, id.rank() + HalfSliceCount(1)));
+      seed.push_back(Hts::SeedId(Hts::LEFT_SEED, id.rank() + HalfSliceCount(1)));
   }
 }
 
@@ -90,17 +90,17 @@ HalfSliceNetworkTopology::createIterator(std::map<K, std::vector<T> > & m, const
 }
  
 HalfSliceNetworkTopology::SliceIteratorConst
-HalfSliceNetworkTopology::writer(const Hs::SeedId & id) const {
+HalfSliceNetworkTopology::writer(const Hts::SeedId & id) const {
   return createIterator(writer_, id, &buildWriter);
 }
 
 HalfSliceNetworkTopology::SliceIteratorConst
-HalfSliceNetworkTopology::reader(const Hs::SeedId & id) const {
+HalfSliceNetworkTopology::reader(const Hts::SeedId & id) const {
   return createIterator(reader_, id, &buildReader);
 }
  
 HalfSliceNetworkTopology::SeedIteratorConst
-HalfSliceNetworkTopology::seed(const Hs::SliceId & id) const {
+HalfSliceNetworkTopology::seed(const Hts::SliceId & id) const {
   return createIterator(seed_, id, &buildSeed);
 }
 

@@ -1,10 +1,10 @@
 #ifndef PITA_SCHEDULEDREMOTESEEDWRITER_H
 #define PITA_SCHEDULEDREMOTESEEDWRITER_H
 
-#include "RemoteSeedWriter.h"
+#include "../RemoteSeedWriter.h"
 
 #include "ScheduledRemoteSharedState.h"
-#include "DynamState.h"
+#include "../DynamState.h"
 
 namespace Pita {
 

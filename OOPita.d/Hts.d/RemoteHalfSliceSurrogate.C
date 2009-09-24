@@ -22,9 +22,9 @@ RemoteHalfSliceSurrogate::iterationIs(IterationRank i) {
 
 inline
 RemoteHalfSliceSurrogate::RecvRectorContainer &
-RemoteHalfSliceSurrogate::getReactorContainer(const Hs::SeedId & key) {
+RemoteHalfSliceSurrogate::getReactorContainer(const Hts::SeedId & key) {
   // HACK ! TODO
-  if (key.type() == Hs::UNDEFINED_SEED) {
+  if (key.type() == Hts::UNDEFINED_SEED) {
     return (key.rank().value() % 2 == 0) ? oddReactor_ : evenReactor_;
   }
   return (key.rank().value() % 2 == 0) ? evenReactor_ : oddReactor_;
@@ -32,12 +32,12 @@ RemoteHalfSliceSurrogate::getReactorContainer(const Hs::SeedId & key) {
 
 inline
 const RemoteHalfSliceSurrogate::RecvRectorContainer &
-RemoteHalfSliceSurrogate::getReactorContainer(const Hs::SeedId & key) const {
+RemoteHalfSliceSurrogate::getReactorContainer(const Hts::SeedId & key) const {
   return const_cast<RemoteHalfSliceSurrogate *>(this)->getReactorContainer(key); 
 }
 
 void
-RemoteHalfSliceSurrogate::instanceNew(const Hs::SeedId & key, ScheduledRemoteSeedWriter * writer) {
+RemoteHalfSliceSurrogate::instanceNew(const Hts::SeedId & key, ScheduledRemoteSeedWriter * writer) {
   Activity * activity = activityManagerInstance()->activityNew("RemoteWriter_" + toString(key.type()) + toString(key.rank())).ptr();
   activity->iterationIs(activityManagerInstance()->currentIteration());
   ReceiveReactor::Ptr reactor = new ReceiveReactor(activity, writer);
@@ -47,7 +47,7 @@ RemoteHalfSliceSurrogate::instanceNew(const Hs::SeedId & key, ScheduledRemoteSee
 }
 
 void
-RemoteHalfSliceSurrogate::instanceDel(const Hs::SeedId & key) {
+RemoteHalfSliceSurrogate::instanceDel(const Hts::SeedId & key) {
   RecvRectorContainer & reactorContainer = getReactorContainer(key);
   reactorContainer.erase(key); 
 }

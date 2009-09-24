@@ -10,7 +10,7 @@ public:
   typedef Fwk::Ptr<HalfSliceNetworkStaticStrategy> Ptr;
   typedef Fwk::Ptr<const HalfSliceNetworkStaticStrategy> PtrConst;
 
-  virtual HalfSliceRank workLoadShare(const Hs::SliceId & id) const;
+  virtual HalfSliceRank workLoadShare(const Hts::SliceId & id) const;
   virtual SliceIteratorConst slice(HalfSliceRank workLoadId) const;
 
   static HalfSliceNetworkStaticStrategy::Ptr New() {

@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../ScheduledRemoteSeedWriter.h"
+#include "ScheduledRemoteSeedWriter.h"
 
 #include "../Activity.h"
 #include "SliceMapping.h"
@@ -26,8 +26,8 @@ public:
   }
 
 protected:
-  virtual void instanceNew(const Hs::SeedId & key, ScheduledRemoteSeedWriter *); // overriden
-  virtual void instanceDel(const Hs::SeedId & key); // overriden
+  virtual void instanceNew(const Hts::SeedId & key, ScheduledRemoteSeedWriter *); // overriden
+  virtual void instanceDel(const Hts::SeedId & key); // overriden
 
   explicit RemoteHalfSliceSurrogate(SliceMapping * mapping);
 
@@ -36,13 +36,13 @@ private:
   IterationRank iteration_;
 
   typedef ScheduledRemoteSeedWriter::ReceiveReactor ReceiveReactor;
-  typedef std::map<Hs::SeedId, ReceiveReactor::Ptr> RecvRectorContainer;
+  typedef std::map<Hts::SeedId, ReceiveReactor::Ptr> RecvRectorContainer;
   
   RecvRectorContainer evenReactor_;
   RecvRectorContainer oddReactor_;
 
-  RecvRectorContainer & getReactorContainer(const Hs::SeedId & key);
-  const RecvRectorContainer & getReactorContainer(const Hs::SeedId & key) const;
+  RecvRectorContainer & getReactorContainer(const Hts::SeedId & key);
+  const RecvRectorContainer & getReactorContainer(const Hts::SeedId & key) const;
 };
 
 

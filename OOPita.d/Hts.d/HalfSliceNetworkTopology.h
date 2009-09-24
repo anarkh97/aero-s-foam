@@ -36,29 +36,29 @@ public:
     {}
   };
 
-  typedef GenIteratorConst<Hs::SliceId> SliceIteratorConst;
-  typedef GenIteratorConst<Hs::SeedId> SeedIteratorConst;
+  typedef GenIteratorConst<Hts::SliceId> SliceIteratorConst;
+  typedef GenIteratorConst<Hts::SeedId> SeedIteratorConst;
 
-  SliceIteratorConst writer(const Hs::SeedId & id) const;
-  SliceIteratorConst reader(const Hs::SeedId & id) const;
-  SeedIteratorConst seed(const Hs::SliceId & id) const;
+  SliceIteratorConst writer(const Hts::SeedId & id) const;
+  SliceIteratorConst reader(const Hts::SeedId & id) const;
+  SeedIteratorConst seed(const Hts::SliceId & id) const;
   
   static HalfSliceNetworkTopology::Ptr New() {
     return new HalfSliceNetworkTopology();
   }
 
 protected:
-  friend class GenIteratorConst<Hs::SeedId>;
-  friend class GenIteratorConst<Hs::SliceId>;
+  friend class GenIteratorConst<Hts::SeedId>;
+  friend class GenIteratorConst<Hts::SliceId>;
 
   HalfSliceNetworkTopology() {}
 
 private:
-  typedef std::vector<Hs::SliceId> SliceContainer;
-  typedef std::vector<Hs::SeedId> SeedContainer;
+  typedef std::vector<Hts::SliceId> SliceContainer;
+  typedef std::vector<Hts::SeedId> SeedContainer;
 
-  mutable std::map<Hs::SeedId, SliceContainer> writer_, reader_;
-  mutable std::map<Hs::SliceId, SeedContainer> seed_;
+  mutable std::map<Hts::SeedId, SliceContainer> writer_, reader_;
+  mutable std::map<Hts::SliceId, SeedContainer> seed_;
 
   template <typename K, typename T>
     GenIteratorConst<T> createIterator(std::map<K, std::vector<T> > & m, const K & id,

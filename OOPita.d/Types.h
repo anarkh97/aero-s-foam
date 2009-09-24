@@ -202,8 +202,6 @@ operator<<(OStream & out, const CommId & c) {
 
 } // end namespace Hts
 
-namespace Hs = Hts;
-
 class FullTimeSlice;
 typedef Fwk::Numeric<FullTimeSlice, int> FullSliceCount;
 

@@ -38,8 +38,8 @@ extern Domain * domain;
 #include "../AffinePostProcessor.h"
 
 #include "../Seed.h"
-#include "../ScheduledRemoteSeedWriter.h"
-#include "../ScheduledRemoteSeedReader.h"
+#include "ScheduledRemoteSeedWriter.h"
+#include "ScheduledRemoteSeedReader.h"
 
 #include "RemoteCoarseCorrectionServer.h"
 #include "../RemoteDynamPropagator.h"
@@ -196,7 +196,7 @@ LinearDriverImpl::solve() {
 
   Seed::Manager::Ptr seedMgr = Seed::Manager::New();
   ScheduledRemoteSeedWriter::Manager::Ptr writerMgr = ScheduledRemoteSeedWriter::Manager::New(timeCom, surrogate.ptr());
-  ScheduledRemoteSeedReader::Manager<Hs::CommId>::Ptr readerMgr = ScheduledRemoteSeedReader::Manager<Hs::CommId>::New(timeCom);
+  ScheduledRemoteSeedReader::Manager<Hts::CommId>::Ptr readerMgr = ScheduledRemoteSeedReader::Manager<Hts::CommId>::New(timeCom);
 
   GeneralizedAlphaParameter integrationParam(fineTimeStep, rho_infinity_fine);
   LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(integrationParam);
@@ -216,7 +216,7 @@ LinearDriverImpl::solve() {
 
   std::vector<int> localFileId;
   for (SliceMapping::SliceIdIterator it = mapping->hostedSlice(myCpu, HalfSliceRank(0), HalfSliceRank(0) + mapping->totalSlices()); it; ++it) {
-    if (it->type() == Hs::FORWARD_HALF_SLICE || it->type() == Hs::BACKWARD_HALF_SLICE) {
+    if (it->type() == Hts::FORWARD_HALF_SLICE || it->type() == Hts::BACKWARD_HALF_SLICE) {
       localFileId.push_back(it->rank().value());
     }
   }

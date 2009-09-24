@@ -11,8 +11,8 @@
 #include "HalfSliceNetworkTopology.h"
 
 #include "../Seed.h"
-#include "../ScheduledRemoteSeedReader.h"
-#include "../ScheduledRemoteSeedWriter.h"
+#include "ScheduledRemoteSeedReader.h"
+#include "ScheduledRemoteSeedWriter.h"
 
 #include "HalfTimeSlice.h"
 #include "FullTimeSlice.h"
@@ -40,7 +40,7 @@ public:
                    HalfTimeSlice::Manager * hsMgr,
                    FullTimeSliceHead::Manager * fshMgr,
                    FullTimeSliceTail::Manager * fstMgr,
-                   ScheduledRemoteSeedReader::Manager<Hs::CommId> * sendMgr,
+                   ScheduledRemoteSeedReader::Manager<Hts::CommId> * sendMgr,
                    ScheduledRemoteSeedWriter::Manager * recvMgr,
                    RemoteHalfSliceSurrogate * surrogate, // HACK
                    HalfSliceSchedule * schedule,
@@ -94,7 +94,7 @@ private:
   
   //HalfSliceBasisCollector::Ptr collector_;
 
-  ScheduledRemoteSeedReader::Manager<Hs::CommId>::Ptr sendMgr_;
+  ScheduledRemoteSeedReader::Manager<Hts::CommId>::Ptr sendMgr_;
   ScheduledRemoteSeedWriter::Manager::Ptr recvMgr_;
  
   RemoteHalfSliceSurrogate::Ptr surrogate_; // HACK
@@ -116,11 +116,11 @@ private:
   SeedContainer leftPropagatedSeed_;
   SeedContainer rightPropagatedSeed_;
 
-  SeedContainer & getSeedContainer(Hs::SeedType);*/
+  SeedContainer & getSeedContainer(Hts::SeedType);*/
   void init();
 
-  Seed * getSeed(const Hs::SeedId & id);
-  PhaseRank getSeedSyncPhase(Hs::SliceType originSliceType, Hs::SliceType targetSliceType, HalfSliceRank remoteSliceRank) const;
+  Seed * getSeed(const Hts::SeedId & id);
+  PhaseRank getSeedSyncPhase(Hts::SliceType originSliceType, Hts::SliceType targetSliceType, HalfSliceRank remoteSliceRank) const;
 
   DISALLOW_COPY_AND_ASSIGN(HalfSliceNetwork);
 };

@@ -1,7 +1,7 @@
 #ifndef PITA_SCHEDULEDREMOTESEEDREADER_H
 #define PITA_SCHEDULEDREMOTESEEDREADER_H
 
-#include "RemoteSeedReader.h"
+#include "../RemoteSeedReader.h"
 #include "ScheduledRemoteSharedState.h"
 
 namespace Pita {

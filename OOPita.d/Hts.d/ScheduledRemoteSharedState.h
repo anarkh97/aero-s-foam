@@ -1,9 +1,9 @@
 #ifndef PITA_SCHEDULEDREMOTESHAREDSTATE_H
 #define PITA_SCHEDULEDREMOTESHAREDSTATE_H
 
-#include "RemoteSharedState.h"
+#include "../RemoteSharedState.h"
 
-#include "Activity.h"
+#include "../Activity.h"
 
 namespace Pita {
 
@@ -187,8 +187,8 @@ public:
   friend class ScheduledRemoteSharedStateWriter::Manager;
 
 protected:
-  virtual void instanceNew(const Hs::SeedId & key, ScheduledRemoteSharedStateWriter<S> *) = 0;
-  virtual void instanceDel(const Hs::SeedId & key) = 0;
+  virtual void instanceNew(const Hts::SeedId & key, ScheduledRemoteSharedStateWriter<S> *) = 0;
+  virtual void instanceDel(const Hts::SeedId & key) = 0;
 
   typename ScheduledRemoteSharedStateWriter<S>::ReceiveReactor * getReceiveReactor(ScheduledRemoteSharedStateWriter<S> * w) const {
     return w ? w->receiveReactor_.ptr() : NULL;
@@ -200,16 +200,16 @@ protected:
 };
 
 template <typename S>
-class ScheduledRemoteSharedStateWriter<S>::Manager : public Fwk::PtrInterface<Manager>, private Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter<S>, Hs::SeedId> {
+class ScheduledRemoteSharedStateWriter<S>::Manager : public Fwk::PtrInterface<Manager>, private Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter<S>, Hts::SeedId> {
 public:
   EXPORT_PTRINTERFACE_TYPES(Manager);
-  typedef Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter, Hs::SeedId> Impl;
+  typedef Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter, Hts::SeedId> Impl;
 
-  ScheduledRemoteSharedStateWriter * instance(const Hs::SeedId & key) const { return Impl::instance(key); }
-  typename Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter<S>, Hs::SeedId>::InstanceCount instanceCount() const { return Impl::instanceCount(); }
+  ScheduledRemoteSharedStateWriter * instance(const Hts::SeedId & key) const { return Impl::instance(key); }
+  typename Fwk::GenManagerImpl<ScheduledRemoteSharedStateWriter<S>, Hts::SeedId>::InstanceCount instanceCount() const { return Impl::instanceCount(); }
   
-  ScheduledRemoteSharedStateWriter * instanceNew(const Hs::SeedId & key);
-  void instanceDel(const Hs::SeedId & key);
+  ScheduledRemoteSharedStateWriter * instanceNew(const Hts::SeedId & key);
+  void instanceDel(const Hts::SeedId & key);
 
   static Ptr New(Communicator * timeComm, ScheduledRemoteSharedStateWriter::Scheduler * scheduler) { 
     return new Manager(timeComm, scheduler);
@@ -218,7 +218,7 @@ public:
 protected:
   Manager(Communicator * timeComm, ScheduledRemoteSharedStateWriter::Scheduler * scheduler);
 
-  virtual ScheduledRemoteSharedStateWriter * createNewInstance(const Hs::SeedId & key);
+  virtual ScheduledRemoteSharedStateWriter * createNewInstance(const Hts::SeedId & key);
 
 private:
   Communicator * timeComm_;
@@ -259,7 +259,7 @@ ScheduledRemoteSharedStateWriter<S>::ReceiveReactor::onStatus() {
 
 template <typename S>
 ScheduledRemoteSharedStateWriter<S> *
-ScheduledRemoteSharedStateWriter<S>::Manager::instanceNew(const Hs::SeedId & key) {
+ScheduledRemoteSharedStateWriter<S>::Manager::instanceNew(const Hts::SeedId & key) {
   ScheduledRemoteSharedStateWriter * i = Impl::instanceNew(key);
   if (scheduler_) {
     scheduler_->instanceNew(key, i);
@@ -269,7 +269,7 @@ ScheduledRemoteSharedStateWriter<S>::Manager::instanceNew(const Hs::SeedId & key
 
 template <typename S>
 void
-ScheduledRemoteSharedStateWriter<S>::Manager::instanceDel(const Hs::SeedId & key) {
+ScheduledRemoteSharedStateWriter<S>::Manager::instanceDel(const Hts::SeedId & key) {
   if (scheduler_) {
     scheduler_->instanceDel(key);
   }
@@ -279,7 +279,7 @@ ScheduledRemoteSharedStateWriter<S>::Manager::instanceDel(const Hs::SeedId & key
 
 template <typename S>
 ScheduledRemoteSharedStateWriter<S> *
-ScheduledRemoteSharedStateWriter<S>::Manager::createNewInstance(const Hs::SeedId & key) {
+ScheduledRemoteSharedStateWriter<S>::Manager::createNewInstance(const Hts::SeedId & key) {
   return new ScheduledRemoteSharedStateWriter<S>(timeComm_);
 }
 

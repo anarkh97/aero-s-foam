@@ -1,9 +1,9 @@
-#ifndef PITA_HTS_SIMPLESEEDINITIALIZER_H
-#define PITA_HTS_SIMPLESEEDINITIALIZER_H
+#ifndef PITA_SIMPLESEEDINITIALIZER_H
+#define PITA_SIMPLESEEDINITIALIZER_H
 
 #include "SeedInitializer.h"
 
-namespace Pita { namespace Hts {
+namespace Pita {
 class SimpleSeedInitializer : public SeedInitializer {
 public:
   EXPORT_PTRINTERFACE_TYPES(SimpleSeedInitializer);
@@ -21,6 +21,6 @@ private:
   DynamState firstInitialSeed_;
 };
 
-} /* end namespace Hts */ } /* end namespace Pita */
+} /* end namespace Pita */
 
-#endif /* PITA_HTS_SIMPLESEEDINITIALIZER_H */
+#endif /* PITA_SIMPLESEEDINITIALIZER_H */

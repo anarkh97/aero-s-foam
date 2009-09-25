@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace Pita { namespace Hts {
+namespace Pita {
 
 SimpleSeedInitializer::SimpleSeedInitializer(const DynamState & firstInitialSeed) :
   SeedInitializer(firstInitialSeed.vectorSize()),
@@ -15,4 +15,4 @@ SimpleSeedInitializer::initialSeed(SliceRank rank) const {
   return (rank == SliceRank(0)) ? firstInitialSeed_ : DynamState(vectorSize(), 0.0);
 }
 
-} /* end namespace Hts */ } /* end namespace Pita */
+} /* end namespace Pita */

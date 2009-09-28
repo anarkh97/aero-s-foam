@@ -1,7 +1,7 @@
 #include "LocalNetwork.h"
 
 #include "../RemoteStateTask.h"
-#include "../ZeroCorrection.h"
+#include "../ZeroSharedState.h"
 
 #include <algorithm>
 #include <iterator>
@@ -32,6 +32,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
                            JumpProjector::Manager * jumpProjMgr,
                            ReducedFullTimeSlice::Manager * ftsMgr,
                            UpdatedSeedAssembler::Manager * usaMgr,
+                           CorrectionTimeSlice::Manager * ctsMgr,
                            RemoteState::Manager * commMgr) :
   totalFullSlices_(totalFullSlices),
   availableCpus_(availableCpus),
@@ -42,6 +43,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
   jumpProjMgr_(jumpProjMgr),
   ftsMgr_(ftsMgr),
   usaMgr_(usaMgr),
+  ctsMgr_(ctsMgr),
   commMgr_(commMgr),
   seedMgr_(Seed::Manager::New()),
   reducedSeedMgr_(ReducedSeed::Manager::New())
@@ -96,7 +98,6 @@ LocalNetwork::init() {
       log() << "Setup FTS head/tail = " << fullSlice->headHalfSlice() << "/" << fullSlice->tailHalfSlice() << "\n";
       fullTimeSlice_.insert(std::make_pair(sliceRank, fullSlice));
     }
-
 
     // Update
     String forwardAssemblerName = toString(sliceRank); 
@@ -175,6 +176,42 @@ LocalNetwork::init() {
       }
     }
 
+    // Affine (HACK)
+    if (ctsMgr_) {
+      Seed::Ptr correction = getSeed(SeedId(SEED_CORRECTION, sliceRank));
+      Seed::Ptr nextCorrection(NULL);
+      // Coarse Propagation
+      if (nextSliceRank < firstInactiveSlice()) {
+        CorrectionTimeSlice::Ptr correctionSlice = ctsMgr_->instanceNew(sliceRank);
+        correctionSlice->predictedSeedIs(getSeed(SeedId(RIGHT_SEED, sliceRank)));
+        correctionSlice->actualSeedIs(getSeed(SeedId(LEFT_SEED, sliceRank)));
+        correctionSlice->correctionIs(correction.ptr());
+        correctionSlice->jumpIs(getSeed(SeedId(SEED_JUMP, sliceRank)));
+        nextCorrection = getSeed(SeedId(SEED_CORRECTION, nextFullSliceRank));
+        correctionSlice->nextCorrectionIs(nextCorrection.ptr());
+        coarseTimeSlice_.insert(std::make_pair(sliceRank, correctionSlice.ptr()));
+      }
+      
+      // Communications: Correction during coarse propagation (sequential phase)
+      if (previousFullSliceCpu != CpuRank(-1) && previousFullSliceCpu != localCpu()) {
+        RemoteState::SeedWriter::Ptr writer = commMgr_->writerNew(correction.ptr(), previousFullSliceCpu);
+        if (writer) {
+          String taskName = String("Receive Coarse Correction ") + toString(sliceRank);
+          RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
+          coarseTimeSlice_.insert(std::make_pair(previousFullSliceRank, task));
+        }
+      }
+      if (nextCorrection) {    
+        if (nextFullSliceCpu != CpuRank(-1) && nextFullSliceCpu != localCpu()) {
+          RemoteState::SeedReader::Ptr reader = commMgr_->readerNew(nextCorrection.ptr(), nextFullSliceCpu);
+          if (reader) {
+            String taskName = String("Send Coarse Correction ") + toString(nextFullSliceRank);
+            RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
+            coarseTimeSlice_.insert(std::make_pair(nextFullSliceRank, task));
+          }
+        }
+      }
+    }
   }
 
 }
@@ -264,6 +301,10 @@ LocalNetwork::convergedSlicesInc() {
 
 }
 
+LocalNetwork::TaskList
+LocalNetwork::halfTimeSlices() const {
+  return TaskList(halfTimeSlice_.begin(), halfTimeSlice_.end());
+}
 
 
 LocalNetwork::TaskList
@@ -344,11 +385,11 @@ LocalNetwork::activeFullTimeSlices() const {
   CpuRank lastInactiveCpu(taskManager_->worker(taskManager_->firstCurrentTask() - 1));
 
   if (localCpu() == firstActiveCpu || localCpu() == lastInactiveCpu) {
-    ZeroCorrection::Ptr zeroCorrection = ZeroCorrection::New();
+    ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Zero Correction");
     ReducedSeed::Ptr firstActiveCorrection = reducedSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
-    zeroCorrection->reducedCorrectionIs(firstActiveCorrection.ptr());
+    zeroCorrection->targetIs(firstActiveCorrection.ptr());
     UpdatedSeedAssembler::Ptr firstActiveAssembler = usaMgr_->instance(toString(firstActiveSlice()));
-    zeroCorrection->reducedBasisSizeIs(firstActiveAssembler->reducedBasisSize());
+    zeroCorrection->stateSizeIs(firstActiveAssembler->reducedBasisSize());
     result.push_back(zeroCorrection);
   }
 
@@ -376,6 +417,30 @@ LocalNetwork::activeCorrectionSyncs() const {
   return result;
 }
 
+LocalNetwork::TaskList
+LocalNetwork::activeCoarseTimeSlices() const {
+  TaskList result;
+
+  CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
+  CpuRank lastInactiveCpu(taskManager_->worker(taskManager_->firstCurrentTask() - 1));
+
+  if (localCpu() == firstActiveCpu || localCpu() == lastInactiveCpu) {
+    ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Zero Coarse Correction");
+    Seed::Ptr firstActiveCorrection = seedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
+    zeroCorrection->targetIs(firstActiveCorrection.ptr());
+    zeroCorrection->stateSizeIs(seedMgr_->instance(toString(SeedId(LEFT_SEED, firstActiveSlice())))->state().vectorSize());
+    result.push_back(zeroCorrection);
+  }
+
+  TaskMap::const_iterator it_end = coarseTimeSlice_.end();
+  for (TaskMap::const_iterator it = coarseTimeSlice_.begin(); it != it_end; ++it) {
+    if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
+      result.push_back(it->second);
+    }
+  }
+
+  return result;
+}
 
 LocalNetwork::TaskList
 LocalNetwork::activeSeedAssemblers() const {
@@ -389,6 +454,12 @@ LocalNetwork::activeSeedAssemblers() const {
   }
 
   return result;
+}
+
+
+LocalNetwork::SeedMap
+LocalNetwork::mainSeeds() const {
+  return SeedMap(mainSeed_);
 }
 
 LocalNetwork::MainSeedMap

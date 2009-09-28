@@ -10,6 +10,7 @@
 #include "../HomogeneousGenAlphaIntegrator.h"
 #include "../IntegratorPropagator.h"
 #include "../IntegratorSeedInitializer.h"
+#include "../SimpleSeedInitializer.h"
 
 #include "StaticSliceStrategy.h"
 #include "SliceMapping.h"
@@ -23,12 +24,14 @@
 
 #include "../AffinePostProcessor.h"
 #include "LinearFineIntegratorManager.h"
+#include "AffineFineIntegratorManager.h"
 #include "PropagatorManager.h"
 #include "HalfTimeSliceImpl.h"
 
 #include "ReducedFullTimeSliceImpl.h"
 #include "../JumpProjector.h"
 #include "../UpdatedSeedAssembler.h"
+#include "LocalCorrectionTimeSlice.h"
 
 #include <Comm.d/Communicator.h>
 extern Communicator * structCom;
@@ -86,27 +89,34 @@ void
 ReducedLinearDriverImpl::solve() {
   double tic = getTime();
   
-  try {
-
   /* Summarize problem and parameters */ 
   log() << "vectorSize = " << vectorSize_ << "\n";
   log() << "Slices = " << numSlices_ << ", MaxActive = " << maxActive_ << ", Cpus = " << numCpus_ << "\n";
   log() << "Num iter = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", tf = " << finalTime_ << "\n";
+ 
+  try {
+    solveParallel();
+  } catch(Fwk::Exception & e) {
+    log() << e.what() << "\n";
+  }
+  
+  double toc = getTime();
+
+  log() << "\nTotal Solve Time = " << (toc - tic) / 1000.0 << " s\n";
+  log() << "\nEnd Reduced HalfSlice Linear Pita\n";
+}
+
+void
+ReducedLinearDriverImpl::solveParallel() {
 
   /* Integration parameters */
   LinearDynamOps::Manager::Ptr dopsManager = LinearDynamOps::Manager::New(probDesc());
-  double coarseRhoInfinity = 1.0;
   double fineRhoInfinity = 1.0;
 
-  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity));
-  coarseIntegrator->initialConditionIs(initialSeed_, initialTime_);
-  SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
-  DynamPropagator::Ptr coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
-  
   GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, fineRhoInfinity);
   LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(fineIntegrationParam);
- 
+
   /* Postprocessing */ 
   std::vector<int> localFileId(numSlices_.value(), 0);
   for (int i = 0; i < numSlices_.value(); ++i) {
@@ -119,28 +129,33 @@ ReducedLinearDriverImpl::solve() {
   /* Correction */
   HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices_);
   SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr()); // TODO remove
-  
+
   CorrectionNetworkImpl::Ptr correctionMgr =
     CorrectionNetworkImpl::New(
-      vectorSize_,
-      timeCom_,
-      myCpu_,
-      schedule.ptr(),
-      mapping.ptr(),
-      dynamOps.ptr(),
-      CorrectionNetworkImpl::HOMOGENEOUS,
-      projectorTolerance_); 
+        vectorSize_,
+        timeCom_,
+        myCpu_,
+        schedule.ptr(),
+        mapping.ptr(),
+        dynamOps.ptr(),
+        (noForce_ ? CorrectionNetworkImpl::HOMOGENEOUS : CorrectionNetworkImpl::NON_HOMOGENEOUS),
+        projectorTolerance_); 
 
   /* Fine integrators */
-  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
+  FineIntegratorManager::Ptr fineIntegratorMgr;
+  if (noForce_) {
+    fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
+  } else {
+    fineIntegratorMgr = AffineFineIntegratorManager::New(dopsManager.ptr(), fineIntegrationParam, schedule.ptr());
+  }
 
   PropagatorManager::Ptr propagatorMgr =
     new PropagatorManager(
-      correctionMgr->collector(),
-      fineIntegratorMgr.ptr(), 
-      postProcessingMgr.ptr(),
-      halfSliceRatio_,
-      initialTime_);
+        correctionMgr->collector(),
+        fineIntegratorMgr.ptr(), 
+        postProcessingMgr.ptr(),
+        halfSliceRatio_,
+        initialTime_);
 
   /* Slice Managers */
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
@@ -151,7 +166,27 @@ ReducedLinearDriverImpl::solve() {
   /* Mpi communication manager */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);
   commMgr->vectorSizeIs(vectorSize_);
-
+ 
+  /* Coarse time-integration */ 
+  double coarseRhoInfinity = 1.0;
+  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity));
+  coarseIntegrator->initialConditionIs(initialSeed_, initialTime_);
+  DynamPropagator::Ptr coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
+ 
+  CorrectionTimeSlice::Manager::Ptr ctsMgr;
+  if (!noForce_) {
+    ctsMgr = LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
+  }
+  
+  /* Seed initializer */
+  SeedInitializer::Ptr seedInitializer;
+  if (noForce_) {
+    seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1)); // TODO provided initial seeds
+  } else {
+    seedInitializer = SimpleSeedInitializer::New(initialSeed_); // TODO Useful ???
+  }
+  
+  /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
       fullTimeSlices_,
       numCpus_,
@@ -161,26 +196,77 @@ ReducedLinearDriverImpl::solve() {
       jpMgr.ptr(),
       fsMgr.ptr(),
       usaMgr.ptr(),
-      commMgr.ptr()); 
+      ctsMgr.ptr(),
+      commMgr.ptr());
 
   log() << "\n";
 
+  /* Initial seeds */
   IterationRank iteration(0);
-  LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
-  for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
-       it != mainSeeds.end();
-       ++it) {
-    log() << "Initial Seed " << it->first << " " << it->second->name() << "\n";
-    DynamState initSeed = seedInitializer->initialSeed(it->first);
-    Seed::Ptr seed = it->second;
-    seed->stateIs(initSeed);
-    seed->iterationIs(iteration);
-    seed->statusIs(it->first == SliceRank(0) ? Seed::CONVERGED : Seed::ACTIVE);
+ 
+  if (noForce_) { 
+    LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
+    for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
+        it != mainSeeds.end();
+        ++it) {
+      log() << "Initial Seed " << it->first << " " << it->second->name() << "\n";
+      DynamState initSeed = seedInitializer->initialSeed(it->first);
+      Seed::Ptr seed = it->second;
+      seed->stateIs(initSeed);
+      seed->iterationIs(iteration);
+      seed->statusIs(it->first == SliceRank(0) ? Seed::CONVERGED : Seed::ACTIVE);
+    }
+
+    /* Begin iterations */
+    log() << "\nIteration " << iteration << "\n";
+
+  } else {
+    LocalNetwork::SeedMap mainSeeds = network->mainSeeds();
+    for (LocalNetwork::SeedMap::iterator it = mainSeeds.begin();
+        it != mainSeeds.end();
+        ++it) {
+      log() << "Zero initial Seed " << it->first << " " << it->second->name() << "\n";
+      Seed::Ptr seed = it->second;
+      seed->stateIs(DynamState(vectorSize_, 0.0));
+      seed->iterationIs(iteration);
+      seed->statusIs(it->first == HalfSliceRank(0) ? Seed::CONVERGED : Seed::SPECIAL);
+    }
+    
+    log() << "\nAffine term precomputation\n";
+    LocalNetwork::TaskList halfSlices = network->halfTimeSlices();
+    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
+        it != halfSlices.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+    
+    network->convergedSlicesInc();
+    mapping->convergedSlicesInc(); // TODO remove
+    
+    log() << "\nIteration " << iteration << "\n";
+    // Propagated Seed Synchronization 
+    LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
+    for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
+        it != leftSeedSyncs.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
+
+    // Coarse propagation
+    LocalNetwork::TaskList coarseCorr = network->activeCoarseTimeSlices();
+    for (LocalNetwork::TaskList::iterator it = coarseCorr.begin();
+        it != coarseCorr.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
   }
-
-  log() << "\nIteration " << iteration << "\n";
-
-  // HTS
+  // Local Fine Propagation
   LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
   for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
       it != halfSlices.end();
@@ -189,13 +275,13 @@ ReducedLinearDriverImpl::solve() {
     log() << "Task: " << task->name() << "\n";
     task->iterationIs(iteration);
   }
- 
+
   // Iteration loop
-  for (iteration = IterationRank(1); iteration <= lastIteration_; iteration = iteration.next()) {
+  for (iteration = IterationRank(1); iteration < lastIteration_; iteration = iteration.next()) {
 
     log() << "\nIteration " << iteration << "\n";
-    
-    // Basis
+
+    // Projection Basis
     correctionMgr->buildProjection();
     size_t reducedBasisSize = correctionMgr->reducedBasisSize();
     log() << "ReducedBasisSize = " << reducedBasisSize << "\n";
@@ -215,7 +301,7 @@ ReducedLinearDriverImpl::solve() {
       task->iterationIs(iteration);
     }
 
-    // Jump
+    // Jumps
     LocalNetwork::TaskList jumpProjectors = network->activeJumpProjectors();
     for (LocalNetwork::TaskList::iterator it = jumpProjectors.begin();
         it != jumpProjectors.end();
@@ -245,7 +331,7 @@ ReducedLinearDriverImpl::solve() {
       task->iterationIs(iteration);
     }
 
-    // Update
+    // Update Seeds
     LocalNetwork::TaskList assemblyTasks = network->activeSeedAssemblers();
     for (LocalNetwork::TaskList::iterator it = assemblyTasks.begin();
         it != assemblyTasks.end();
@@ -254,8 +340,8 @@ ReducedLinearDriverImpl::solve() {
       log() << "Task: " << task->name() << "\n";
       task->iterationIs(iteration);
     }
-  
-    // HTS
+
+    // Local Fine Propagation
     LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
     for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
         it != halfSlices.end();
@@ -266,173 +352,10 @@ ReducedLinearDriverImpl::solve() {
     }
 
   }
+}
 
-  /*LocalNetwork::HTSList activeList; //= network->activeHalfTimeSlices();
-
-  log() << "Starting at slice " << network->firstActiveSlice() << "\n";
-  activeList = network->activeHalfTimeSlices();
-  for (LocalNetwork::HTSList::const_iterator it = activeList.begin(); it != activeList.end(); ++it) {
-    log() << (*it)->rank() << (*it)->direction() << "\n";
-  }
-
-  log() << "Next iteration\n";
-  network->convergedSlicesInc();
-
-  log() << "Starting at slice " << network->firstActiveSlice() << "\n";
-  activeList = network->activeHalfTimeSlices();
-  for (LocalNetwork::HTSList::const_iterator it = activeList.begin(); it != activeList.end(); ++it) {
-    log() << (*it)->rank() << (*it)->direction() << "\n";
-  }*/
-
-
-  /* Instantiate slices */
-  /*for (HalfSliceRank rank(0); rank <= HalfSliceRank(0) + numSlices_; rank = rank + HalfSliceCount(1)) {
-    Seed::Ptr mainSeed = seedMgr->instanceNew(String("MS_") + toString(rank)); 
-    Seed::Ptr leftSeed = seedMgr->instanceNew(String("LPS_") + toString(rank)); 
-    Seed::Ptr rightSeed = seedMgr->instanceNew(String("RPS_") + toString(rank));
-    Seed::Ptr seedJump = seedMgr->instanceNew(String("SJ_") + toString(rank));
-
-    ReducedSeed::Ptr jumpComp = reducedSeedMgr->instanceNew(String("JC_") + toString(rank)); 
-    ReducedSeed::Ptr correctionComp = reducedSeedMgr->instanceNew(String("CC_") + toString(rank)); 
-  }
-
-  for (HalfSliceRank rank = HalfSliceRank(0); rank < HalfSliceRank(0) + numSlices_; rank = rank + HalfSliceCount(1)) {
-    HalfTimeSliceImpl::Ptr forwardSlice = hsMgr->instanceNew(HalfSliceId(rank, HalfTimeSlice::FORWARD));
-    forwardSlice->seedIs(seedMgr->instance(String("MS_") + toString(rank)));
-    forwardSlice->propagatedSeedIs(seedMgr->instance(String("LPS_") + toString(rank + HalfSliceCount(1))));
-
-    HalfTimeSliceImpl::Ptr backwardSlice = hsMgr->instanceNew(HalfSliceId(rank, HalfTimeSlice::BACKWARD));
-    backwardSlice->seedIs(seedMgr->instance(String("MS_") + toString(rank + HalfSliceCount(1))));
-    backwardSlice->propagatedSeedIs(seedMgr->instance(String("RPS_") + toString(rank)));
-    
-    JumpProjector::Ptr jumpProjector = jpMgr->instanceNew(toString(rank));
-    jumpProjector->predictedSeedIs(seedMgr->instance(String("RPS_") + toString(rank)));
-    jumpProjector->actualSeedIs(seedMgr->instance(String("LPS_") + toString(rank)));
-    jumpProjector->seedJumpIs(seedMgr->instance(String("SJ_") + toString(rank)));
-    jumpProjector->reducedSeedJumpIs(reducedSeedMgr->instance(String("JC_") + toString(rank)));
-
-    UpdatedSeedAssembler::Ptr seedAssembler = usMgr->instanceNew(toString(rank));
-    seedAssembler->updatedSeedIs(seedMgr->instance(String("MS_") + toString(rank)));
-    seedAssembler->propagatedSeedIs(seedMgr->instance(String("LPS_") + toString(rank)));
-    seedAssembler->correctionComponentsIs(reducedSeedMgr->instance(String("CC_") + toString(rank)));
-  }
-
-  for (HalfSliceRank rank = HalfSliceRank(0); rank < HalfSliceRank(0) + numSlices_ - HalfSliceCount(1); rank = rank + HalfSliceCount(1)) {
-    ReducedFullTimeSlice::Ptr fullSlice = fsMgr->instanceNew(rank);
-    fullSlice->jumpIs(reducedSeedMgr->instance(String("JC_") + toString(rank)));
-    fullSlice->correctionIs(reducedSeedMgr->instance(String("CC_") + toString(rank)));
-    fullSlice->nextCorrectionIs(reducedSeedMgr->instance(String("CC_") + toString(rank + HalfSliceCount(2))));
-  }*/
-
-  /* Classify slices */
-  /*struct IterationData {
-    std::deque<HalfTimeSliceImpl::Ptr> halfSlices;
-    std::deque<JumpProjector::Ptr> jumpProjectors;
-    std::deque<ReducedFullTimeSlice::Ptr> fullSlices;
-    std::deque<UpdatedSeedAssembler::Ptr> seedAssemblers;
-  };
-  IterationData data[2];
-
-  std::deque<Seed::Ptr> primalMainSeeds;
-  primalMainSeeds.push_back(seedMgr->instance("MS_0"));
-
-  for (FullSliceRank rank(0); rank < FullSliceRank(0) + fullTimeSlices_; rank = rank + FullSliceCount(1)) {
-    HalfSliceRank headRank = HalfSliceRank(rank.value() * 2);
-    HalfSliceRank tailRank = headRank + HalfSliceCount(1);
-
-    data[0].halfSlices.push_back(hsMgr->instance(HalfSliceId(headRank, HalfTimeSlice::FORWARD)));
-    data[0].halfSlices.push_back(hsMgr->instance(HalfSliceId(tailRank, HalfTimeSlice::BACKWARD)));
-
-    data[0].jumpProjectors.push_back(jpMgr->instance(toString(tailRank)));
-    ReducedFullTimeSlice::Ptr fs = fsMgr->instance(tailRank);
-    if (fs) data[0].fullSlices.push_back(fs);
-    data[0].seedAssemblers.push_back(usMgr->instance(toString(tailRank)));
-
-    data[1].halfSlices.push_back(hsMgr->instance(HalfSliceId(headRank, HalfTimeSlice::BACKWARD)));
-    data[1].halfSlices.push_back(hsMgr->instance(HalfSliceId(tailRank, HalfTimeSlice::FORWARD)));
-    
-    data[1].jumpProjectors.push_back(jpMgr->instance(toString(headRank)));
-    fs = fsMgr->instance(headRank);
-    if (fs) data[1].fullSlices.push_back(fs);
-    data[1].seedAssemblers.push_back(usMgr->instance(toString(headRank)));
-
-    primalMainSeeds.push_back(seedMgr->instance(String("MS_" + toString(tailRank + HalfSliceCount(1)))));
-  }*/
-
-  /* Do the stuff */
-  // Initialize
-  /*for (std::deque<Seed::Ptr>::iterator it = primalMainSeeds.begin();
-       it != primalMainSeeds.end();
-       ++it) {
-    FullSliceRank rank(std::distance(primalMainSeeds.begin(), it));
-    //log() << "Initial Seed " << rank << " " << (*it)->name() << "\n";
-    DynamState initSeed = seedInitializer->initialSeed(rank);
-    (*it)->stateIs(initSeed);
-    (*it)->iterationIs(IterationRank(0));
-    (*it)->statusIs(Seed::ACTIVE);
-  }
-
-  // Loop
-  //for (IterationRank iteration(0); iteration <= lastIteration_; iteration = iteration.next()) {
-  for (IterationRank iteration(0); iteration < lastIteration_; iteration = iteration.next()) {
-    int dataIndex = iteration.value() % 2;
-    log() << "\nIteration # " << iteration << "\n";
-    IterationData & iterData = data[dataIndex];
-
-    for (std::deque<HalfTimeSliceImpl::Ptr>::iterator it = iterData.halfSlices.begin();
-        it != iterData.halfSlices.end();
-        ++it) {
-      //log() << "HTS ";
-      //log() << (*it)->rank() << ((*it)->direction() == HalfTimeSlice::FORWARD ? 'F' : 'B') << "\n";
-      (*it)->propagateSeed();
-    }
-
-    // Basis
-    correctionMgr->buildProjection();
-
-    // Correction
-    for (std::deque<JumpProjector::Ptr>::iterator it = iterData.jumpProjectors.begin();
-        it != iterData.jumpProjectors.end();
-        ++it) {
-      (*it)->iterationIs(iteration);
-    }
-
-    ReducedSeed::Ptr firstCorrection = reducedSeedMgr->instance(String("CC_") + toString(mapping->firstActiveSlice() + HalfSliceCount(1)));
-    firstCorrection->stateIs(Vector(iterData.fullSlices.front()->jump()->state().size(), 0.0));
-    log() << "First correction is " << firstCorrection->name() << "\n";
-
-    for (std::deque<ReducedFullTimeSlice::Ptr>::iterator it = iterData.fullSlices.begin();
-        it != iterData.fullSlices.end();
-        ++it) {
-      (*it)->iterationIs(iteration);
-    }
-
-    for (std::deque<UpdatedSeedAssembler::Ptr>::iterator it = iterData.seedAssemblers.begin();
-        it != iterData.seedAssemblers.end();
-        ++it) {
-      (*it)->doAssembly();
-    }
-
-    // Next iteration
-    mapping->convergedSlicesInc();
-
-    data[0].halfSlices.pop_front();
-    data[1].halfSlices.pop_front();
-
-    data[1 - dataIndex].jumpProjectors.pop_front();
-    data[1 - dataIndex].fullSlices.pop_front();
-    data[1 - dataIndex].seedAssemblers.pop_front(); 
-  }*/
-
-  } catch(Fwk::Exception & e) {
-    log() << e.what() << "\n";
-  }
-
-  /* End */ 
-  double toc = getTime();
-
-  log() << "Total Solve Time = " << (toc - tic) / 1000.0 << " s\n";
-  log() << "\nEnd Reduced HalfSlice Linear Pita\n";
+void
+solveCoarse() {
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */

@@ -1,7 +1,7 @@
 #ifndef PITA_HTS_FULLTIMESLICEIMPL_H
 #define PITA_HTS_FULLTIMESLICEIMPL_H
 
-#include "FullTimeSlice.h"
+#include "FullTimeSliceHeadTail.h"
 
 #include "../Seed.h"
 #include "../Activity.h"

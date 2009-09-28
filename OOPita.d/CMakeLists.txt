@@ -55,8 +55,9 @@ blas_dmax_val.f
 Hts.d/AffineFineIntegratorManager.C
 Hts.d/BasisCollectorImpl.C
 Hts.d/CorrectionNetworkImpl.C
+Hts.d/LocalCorrectionTimeSlice.C
 Hts.d/FineIntegratorManager.C
-Hts.d/FullTimeSlice.C
+Hts.d/FullTimeSliceHeadTail.C
 Hts.d/FullTimeSliceImpl.C
 Hts.d/HalfSliceNetwork.C
 Hts.d/HalfSliceNetworkTopology.C

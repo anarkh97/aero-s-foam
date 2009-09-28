@@ -11,6 +11,7 @@
 #include "../JumpProjector.h"
 #include "ReducedFullTimeSlice.h"
 #include "../UpdatedSeedAssembler.h"
+#include "CorrectionTimeSlice.h"
 
 #include "../RemoteState.h"
 
@@ -45,8 +46,7 @@ public:
   void convergedSlicesInc();
 
   /* Local network elements */
-  HTSList halfTimeSlices() const { return HTSList(halfTimeSlice_); }
-  
+  TaskList halfTimeSlices() const;
   TaskList activeHalfTimeSlices() const;
   TaskList activeJumpProjectors() const;
   TaskList activeLeftSeedSyncs() const;
@@ -54,6 +54,9 @@ public:
   TaskList activeCorrectionSyncs() const;
   TaskList activeSeedAssemblers() const;
 
+  TaskList activeCoarseTimeSlices() const;
+  
+  SeedMap mainSeeds() const;
   MainSeedMap activeMainSeeds() const;
 
   LocalNetwork(FullSliceCount totalFullSlices,
@@ -64,6 +67,7 @@ public:
                JumpProjector::Manager * jumpProjMgr,
                ReducedFullTimeSlice::Manager * ftsMgr,
                UpdatedSeedAssembler::Manager * usaMgr,
+               CorrectionTimeSlice::Manager * ctsMgr, // Can be NULL
                RemoteState::Manager * commMgr);
 
 protected:
@@ -84,6 +88,7 @@ private:
   JumpProjector::Manager::Ptr jumpProjMgr_;
   ReducedFullTimeSlice::Manager::Ptr ftsMgr_;
   UpdatedSeedAssembler::Manager::Ptr usaMgr_;
+  CorrectionTimeSlice::Manager::Ptr ctsMgr_;
 
   Seed::Manager::Ptr seedMgr_;
   ReducedSeed::Manager::Ptr reducedSeedMgr_;
@@ -97,6 +102,8 @@ private:
   TaskMap seedAssembler_;
   TaskMap leftSeedSync_;
 
+  TaskMap coarseTimeSlice_;
+  
   SeedMap mainSeed_; 
 
   DISALLOW_COPY_AND_ASSIGN(LocalNetwork);

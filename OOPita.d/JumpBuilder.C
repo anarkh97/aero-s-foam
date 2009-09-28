@@ -85,9 +85,9 @@ JumpBuilder::seedStatusIs(JumpBuilder::SeedId id, JumpBuilder::SeedStatus status
 
   //log() << "JB: compute j\n";
   DynamState newJumpSeed = seed(LEFT)->state() - seed(RIGHT)->state();
+  jumpSeed_->statusIs(seed(LEFT)->status());
   jumpSeed_->stateIs(newJumpSeed);
   jumpSeed_->iterationIs(seed(LEFT)->iteration());
-  jumpSeed_->statusIs(seed(LEFT)->status());
 }
 
 void

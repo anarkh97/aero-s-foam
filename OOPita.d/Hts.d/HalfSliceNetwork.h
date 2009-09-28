@@ -15,7 +15,7 @@
 #include "ScheduledRemoteSeedWriter.h"
 
 #include "HalfTimeSlice.h"
-#include "FullTimeSlice.h"
+#include "FullTimeSliceHeadTail.h"
 
 #include "BasisCollector.h"
 

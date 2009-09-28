@@ -1,4 +1,4 @@
-#include "FullTimeSlice.h"
+#include "FullTimeSliceHeadTail.h"
 
 namespace Pita { namespace Hts {
 

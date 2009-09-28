@@ -24,6 +24,9 @@ public:
 protected:
   explicit ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc);
 
+  void solveCoarse();
+  void solveParallel();
+  
 private:
   /* Problem description */
   SingleDomainDynamic<double> * probDesc_;

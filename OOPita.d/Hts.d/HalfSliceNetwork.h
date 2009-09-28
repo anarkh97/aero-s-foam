@@ -1,5 +1,5 @@
-#ifndef PITA_HALFSLICENETWORK_H
-#define PITA_HALFSLICENETWORK_H
+#ifndef PITA_HTS_NETWORK_H
+#define PITA_HTS_NETWORK_H
 
 #include <map>
 
@@ -133,4 +133,4 @@ public:
 
 } // end namespace Pita
 
-#endif /* PITA_HALFSLICENETWORK_H */
+#endif /* PITA_HTS_NETWORK_H */

@@ -1,5 +1,5 @@
-#ifndef PITA_HALFTIMESLICE_H
-#define PITA_HALFTIMESLICE_H
+#ifndef PITA_HTS_HALFTIMESLICE_H
+#define PITA_HTS_HALFTIMESLICE_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -90,4 +90,4 @@ public:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HALFTIMESLICE_H */
+#endif /* PITA_HTS_HALFTIMESLICE_H */

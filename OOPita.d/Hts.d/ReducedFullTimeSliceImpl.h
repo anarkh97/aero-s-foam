@@ -1,5 +1,5 @@
-#ifndef PITA_REDUCEDFULLTIMESLICEIMPL_H
-#define PITA_REDUCEDFULLTIMESLICEIMPL_H
+#ifndef PITA_HTS_REDUCEDFULLTIMESLICEIMPL_H
+#define PITA_HTS_REDUCEDFULLTIMESLICEIMPL_H
 
 #include "ReducedFullTimeSlice.h"
 
@@ -68,4 +68,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_REDUCEDFULLTIMESLICEIMPL_H */
+#endif /* PITA_HTS_REDUCEDFULLTIMESLICEIMPL_H */

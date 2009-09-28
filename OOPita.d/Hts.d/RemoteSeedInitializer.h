@@ -1,5 +1,5 @@
-#ifndef PITA_REMOTESEEDINITIALIZER_H
-#define PITA_REMOTESEEDINITIALIZER_H
+#ifndef PITA_HTS_REMOTESEEDINITIALIZER_H
+#define PITA_HTS_REMOTESEEDINITIALIZER_H
 
 #include "../SeedInitializer.h"
 #include "SliceMapping.h"
@@ -41,4 +41,4 @@ private:
 } // end namespace Hts
 } // end namespace Pita
 
-#endif /* PITA_REMOTESEEDINITIALIZER_H */
+#endif /* PITA_HTS_REMOTESEEDINITIALIZER_H */

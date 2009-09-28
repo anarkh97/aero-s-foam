@@ -1,5 +1,5 @@
-#ifndef PITA_FULLTIMESLICE_H
-#define PITA_FULLTIMESLICE_H
+#ifndef PITA_HTS_FULLTIMESLICE_H
+#define PITA_HTS_FULLTIMESLICE_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -97,4 +97,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_FULLTIMESLICE_H */
+#endif /* PITA_HTS_FULLTIMESLICE_H */

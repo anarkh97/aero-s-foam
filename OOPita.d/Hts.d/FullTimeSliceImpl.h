@@ -1,5 +1,5 @@
-#ifndef PITA_FULLTIMESLICEIMPL_H
-#define PITA_FULLTIMESLICEIMPL_H
+#ifndef PITA_HTS_FULLTIMESLICEIMPL_H
+#define PITA_HTS_FULLTIMESLICEIMPL_H
 
 #include "FullTimeSlice.h"
 
@@ -274,4 +274,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_FULLTIMESLICEIMPL_H */
+#endif /* PITA_HTS_FULLTIMESLICEIMPL_H */

@@ -1,5 +1,5 @@
-#ifndef PITA_LINEARHALFSLICESCHEDULE_H
-#define PITA_LINEARHALFSLICESCHEDULE_H
+#ifndef PITA_HTS_LINEARHALFSLICESCHEDULE_H
+#define PITA_HTS_LINEARHALFSLICESCHEDULE_H
 
 #include "HalfSliceSchedule.h"
 
@@ -20,4 +20,4 @@ protected:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_LINEARHALFSLICESCHEDULE_H */
+#endif /* PITA_HTS_LINEARHALFSLICESCHEDULE_H */

@@ -598,7 +598,7 @@ void TriangleSommerBC::GaussCoordinates(int Ngp, double* uPg, double* vPg, doubl
     uPg[1] = 0.6; vPg[1] = 0.2;
     uPg[2] = 0.2; vPg[2] = 0.6;
     uPg[3] = 0.2; vPg[3] = 0.2;
-    weight[0] = 0.28125;
+    weight[0] = -0.28125;
     weight[1] = weight[2] = weight[3] = 0.260416666666666;
   }
   else if (Ngp==7) {

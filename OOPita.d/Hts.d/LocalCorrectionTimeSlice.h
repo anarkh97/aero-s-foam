@@ -3,7 +3,7 @@
 
 #include "CorrectionTimeSlice.h"
 
-#include "../JumpBuilder.h"
+//#include "../JumpBuilder.h"
 #include "../DynamPropagator.h"
 
 namespace Pita { namespace Hts {
@@ -25,7 +25,7 @@ protected:
   LocalCorrectionTimeSlice(HalfSliceRank head, DynamPropagator * prop);
   
 private:
-  JumpBuilder::Ptr jumpBuilder_;
+  //JumpBuilder::Ptr jumpBuilder_;
   DynamPropagator::Ptr propagator_;  
 };
 

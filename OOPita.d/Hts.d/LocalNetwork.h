@@ -55,6 +55,7 @@ public:
   TaskList activeSeedAssemblers() const;
 
   TaskList activeCoarseTimeSlices() const;
+  TaskList activeFullCorrectionSyncs() const;
   
   SeedMap mainSeeds() const;
   MainSeedMap activeMainSeeds() const;
@@ -103,6 +104,7 @@ private:
   TaskMap leftSeedSync_;
 
   TaskMap coarseTimeSlice_;
+  TaskMap fullCorrectionSync_;
   
   SeedMap mainSeed_; 
 

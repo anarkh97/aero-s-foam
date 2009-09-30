@@ -42,6 +42,19 @@ private:
   DISALLOW_COPY_AND_ASSIGN(SharedStateRoot);
 };
 
+inline
+OStream & operator<<(OStream & os, SharedStateRoot::Status s) {
+  String out;
+  switch(s) {
+    case SharedStateRoot::INACTIVE:  out = "Inactive";  break;
+    case SharedStateRoot::ACTIVE:    out = "Active";    break;
+    case SharedStateRoot::CONVERGED: out = "Converged"; break;
+    case SharedStateRoot::SPECIAL:   out = "Special";   break;
+    default:                         out = "Unknown";
+  }
+  return os << out; 
+}
+
 /* SharedState<StateType> */
 
 template <typename S>

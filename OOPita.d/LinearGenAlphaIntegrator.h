@@ -15,7 +15,7 @@ public:
 
   // Type aliases for (future) templating
   typedef double Scalar;
-  typedef GenVector<Scalar> VectorType;
+  typedef ::GenVector<Scalar> VectorType;
   typedef SingleDomainDynamic<Scalar> ProblemDescriptor;
   //typedef PitaDynamMat DynOps;
 

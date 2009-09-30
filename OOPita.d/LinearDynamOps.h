@@ -17,7 +17,7 @@ public:
 
   typedef double Scalar;
   typedef GenDynamMat<Scalar> DynOpsType;
-  typedef GenSparseMatrix<Scalar> MatrixType;
+  typedef ::GenSparseMatrix<Scalar> MatrixType;
   typedef GenSolver<Scalar> SolverType;
 
   /* Not implemented // virtual size_t unconCount() const { return unconCount_; } */

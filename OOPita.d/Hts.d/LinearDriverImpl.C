@@ -15,7 +15,6 @@
 #include "NonHomogeneousBasisCollectorImpl.h"
 #include "PropagatorManager.h"
 #include "LinearFineIntegratorManager.h"
-#include "AffineFineIntegratorManager.h"
 
 #include "../PostProcessingManager.h"
 
@@ -35,7 +34,7 @@ extern Domain * domain;
 #include "../LinearGenAlphaIntegrator.h"
 #include "../HomogeneousGenAlphaIntegrator.h"
 
-#include "../AffinePostProcessor.h"
+#include "../IncrementalPostProcessor.h"
 
 #include "../Seed.h"
 #include "ScheduledRemoteSeedWriter.h"
@@ -220,15 +219,11 @@ LinearDriverImpl::solve() {
   std::sort(localFileId.begin(), localFileId.end());
   localFileId.erase(std::unique(localFileId.begin(), localFileId.end()), localFileId.end());
 
-  FineIntegratorManager::Ptr fineIntegratorMgr;
-  if (correctionStrategy == CorrectionNetworkImpl::HOMOGENEOUS) {
-    fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
-  } else {
-    fineIntegratorMgr = AffineFineIntegratorManager::New(dopsManager.ptr(), integrationParam, schedule.ptr());
-  }
+  // HACKED... Not working anymore anyway
+  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), integrationParam);
   
-  AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
-  typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
+  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
+  typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   PropagatorManager::Ptr propagatorMgr =

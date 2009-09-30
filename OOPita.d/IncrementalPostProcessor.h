@@ -1,5 +1,5 @@
-#ifndef PITA_AFFINEPOSTPROCESSOR_H
-#define PITA_AFFINEPOSTPROCESSOR_H
+#ifndef PITA_INCREMENTALPOSTPROCESSOR_H
+#define PITA_INCREMENTALPOSTPROCESSOR_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -16,9 +16,10 @@ namespace Pita {
 
 class LinearGenAlphaIntegrator;
 
-class AffinePostProcessor : public GenPostProcessor<LinearGenAlphaIntegrator> {
+// TODO: Rename as IncrementalPostProcessor
+class IncrementalPostProcessor : public GenPostProcessor<LinearGenAlphaIntegrator> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(AffinePostProcessor);
+  EXPORT_PTRINTERFACE_TYPES(IncrementalPostProcessor);
 
   virtual void outputNew(FileSetId fileSetId, const LinearGenAlphaIntegrator * oi);
 
@@ -28,15 +29,14 @@ public:
                  int localFileCount,
                  const int * localFileId,
                  SDDynamPostProcessor * basePostProcessor) {
-    return new AffinePostProcessor(geoSource, localFileCount, localFileId, basePostProcessor);
+    return new IncrementalPostProcessor(geoSource, localFileCount, localFileId, basePostProcessor);
   }
 
 protected:
-  AffinePostProcessor(GeoSource * gs, int lfc, const int * lfi, SDDynamPostProcessor * bpp);
+  IncrementalPostProcessor(GeoSource * gs, int lfc, const int * lfi, SDDynamPostProcessor * bpp);
 
 private:
   SDDynamPostProcessor * basePostProcessor_;
-
 
   typedef std::map<TimeStepCount, DynamState> ConstantTermMap;
   typedef std::map<bool, ConstantTermMap> DirectionMap; // true = forward, false = backward
@@ -47,4 +47,4 @@ private:
 
 } // namespace Pita
 
-#endif /* PITA_AFFINEPOSTPROCESSOR_H */
+#endif /* PITA_INCREMENTALPOSTPROCESSOR_H */

@@ -8,7 +8,7 @@ class JumpBuilder::SeedReactor : public Seed::NotifieeConst {
 public:
   EXPORT_PTRINTERFACE_TYPES(SeedReactor);
 
-  virtual void onState(); // overriden
+  virtual void onIteration(); // overriden
 
   SeedReactor(const Seed * notifier, JumpBuilder * parent, SeedId id);
 
@@ -29,9 +29,11 @@ JumpBuilder::SeedReactor::SeedReactor(
 {}
 
 void
-JumpBuilder::SeedReactor::onState() {
-  //log() << "JB: new state in " << notifier()->name() << "\n";
-  parent_->seedStatusIs(id_, UPDATED);
+JumpBuilder::SeedReactor::onIteration() {
+  if (notifier()->status() != Seed::SPECIAL) {
+    //log() << "JumpBuilder : new state " << notifier()->name() << "\n";
+    parent_->seedStatusIs(id_, UPDATED);
+  }
 }
 
 /* JumpBuilder implementation */

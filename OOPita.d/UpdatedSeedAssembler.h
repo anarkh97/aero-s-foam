@@ -15,13 +15,11 @@ public:
 
   virtual size_t reducedBasisSize() const = 0;
 
-  /* Phase */
-  //PhaseRank assemblyPhase() const { return assemblyPhase_; }
-  //virtual void assemblyPhaseIs(PhaseRank ap) = 0;
-
-  /* Target */
-  const Seed * updatedSeed() const { return updatedSeed_.ptr(); }
-  
+  /* Targets */
+  Seed * correction() const { return correction_.ptr(); }
+  Seed * updatedSeed() const { return updatedSeed_.ptr(); }
+ 
+  virtual void correctionIs(Seed * c) = 0; 
   virtual void updatedSeedIs(Seed * us) = 0;
 
   /* Sources */
@@ -36,13 +34,13 @@ protected:
     NamedTask(name)
   {}
 
-  //void setAssemblyPhase(PhaseRank ap) { assemblyPhase_ = ap; }
+  void setCorrection(Seed * c) { correction_ = c; }
   void setUpdatedSeed(Seed * us) { updatedSeed_ = us; }
   void setPropagatedSeed(const Seed * ps) { propagatedSeed_ = ps; }
   void setCorrectionComponents(const ReducedSeed * cc) { correctionComponents_ = cc; }
 
 private:
-  //PhaseRank assemblyPhase_;
+  Seed::Ptr correction_;
   Seed::Ptr updatedSeed_;
   Seed::PtrConst propagatedSeed_;
   ReducedSeed::PtrConst correctionComponents_; 

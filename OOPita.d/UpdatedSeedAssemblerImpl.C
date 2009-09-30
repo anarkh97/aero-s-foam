@@ -1,6 +1,7 @@
 #include "UpdatedSeedAssemblerImpl.h"
 
 #include <memory>
+#include <cassert>
 
 namespace Pita {
 
@@ -9,15 +10,12 @@ namespace Pita {
 UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const String & name, const Manager * manager) :
   UpdatedSeedAssembler(name),
   manager_(manager)
-  //schedulingReactor_(NULL),
-  //updateReactor_(NULL)
 {}
 
-/*void
-UpdatedSeedAssemblerImpl::assemblyPhaseIs(PhaseRank ap) {
-  //updateReactor_->notifier()->phaseIs(ap);
-  setAssemblyPhase(ap);
-}*/
+void
+UpdatedSeedAssemblerImpl::correctionIs(Seed * c) {
+  setCorrection(c);
+}
 
 void
 UpdatedSeedAssemblerImpl::updatedSeedIs(Seed * us) {
@@ -31,7 +29,6 @@ UpdatedSeedAssemblerImpl::propagatedSeedIs(const Seed * ps) {
 
 void
 UpdatedSeedAssemblerImpl::correctionComponentsIs(const ReducedSeed * cc) {
-  //schedulingReactor_->notifierIs(cc);
   setCorrectionComponents(cc);
 }
 
@@ -41,57 +38,33 @@ UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
     return;
   }
 
-  //log() << "Reading state from " << correctionComponents()->name() << "\n";
-
-  const Vector & components = correctionComponents()->state();
-
-  DynamState result(propagatedSeed()->state());
-  int rbs = static_cast<int>(correctionBasis()->stateCount());
-  //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
-  for (int i = 0; i < rbs; ++i) {
-    if (components[i] != 0.0) {
-      result.displacement().linAdd(components[i], correctionBasis()->state(i).displacement());
-      result.velocity().linAdd(components[i], correctionBasis()->state(i).velocity());
+  if (correction()->iteration() < correctionComponents()->iteration()) {
+  
+    //log() << "Reading state from " << correctionComponents()->name() << "\n";
+    const Vector & components = correctionComponents()->state();
+    
+    DynamState result(propagatedSeed()->state().vectorSize(), 0.0);
+    int rbs = static_cast<int>(correctionBasis()->stateCount());
+    //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
+    for (int i = 0; i < rbs; ++i) {
+      if (components[i] != 0.0) {
+        result.displacement().linAdd(components[i], correctionBasis()->state(i).displacement());
+        result.velocity().linAdd(components[i], correctionBasis()->state(i).velocity());
+      }
     }
+
+    correction()->stateIs(result);
+    correction()->statusIs(correctionComponents()->status());
+    correction()->iterationIs(correctionComponents()->iteration());
   }
 
-  updatedSeed()->stateIs(result);
-  updatedSeed()->iterationIs(ir);
+  assert(correction()->iteration() == ir);
+  assert(propagatedSeed()->iteration() == ir);
+  
+  updatedSeed()->stateIs(correction()->state() + propagatedSeed()->state());
   updatedSeed()->statusIs(propagatedSeed()->status());
+  updatedSeed()->iterationIs(propagatedSeed()->iteration());
 }
-
-/* SchedulingReactor */
-
-/*void
-UpdatedSeedAssemblerImpl::SchedulingReactor::onState() {
-  if (activity()->status() != Activity::scheduled) {
-    activity()->iterationIs(activity()->currentIteration());
-    activity()->statusIs(Activity::scheduled);
-  }
-}*/
-
-/* UpdateReactor */
-
-/*void
-UpdatedSeedAssemblerImpl::UpdateReactor::onStatus() {
-  if (!parent_->propagatedSeed() || !parent()->updatedSeed()) {
-    return;
-  }
-
-  const DynamStateBasis * basis = parent_->correctionBasis();
-  const Vector & components = parent_->correctionComponents()->state();
-
-  DynamState result(parent_->propagatedSeed()->state());
-  int rbs = static_cast<int>(basis->stateCount());
-  for (int i = 0; i < rbs; ++i) {
-    if (components[i] != 0.0) {
-      result.displacement().linAdd(components[i], basis->state(i).displacement());
-      result.velocity().linAdd(components[i], basis->state(i).velocity());
-    }
-  }
-
-  parent()->updatedSeed()->stateIs(result);
-}*/
 
 /* Manager */
 
@@ -101,15 +74,8 @@ UpdatedSeedAssemblerImpl::Manager::Manager(const DynamStateBasis * dcb) :
 
 UpdatedSeedAssemblerImpl *
 UpdatedSeedAssemblerImpl::Manager::createNewInstance(const String & key) {
-  //String activityName = String("USA_") + key;
-  //Activity::Ptr activity = activityManagerInstance()->activityNew(activityName);
-
   String taskName = String("UpdatedSeedAssembler ") + key;
   std::auto_ptr<UpdatedSeedAssemblerImpl> newInstance(new UpdatedSeedAssemblerImpl(taskName, this));
-  
-  //newInstance->schedulingReactor_ = new SchedulingReactor(NULL, activity.ptr());
-  //newInstance->updateReactor_ = new UpdateReactor(activity.ptr(), newInstance.get());
-
   return newInstance.release();
 }
 

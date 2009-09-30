@@ -22,9 +22,8 @@
 
 #include "../RemoteStateMpiImpl.h"
 
-#include "../AffinePostProcessor.h"
+#include "../IncrementalPostProcessor.h"
 #include "LinearFineIntegratorManager.h"
-#include "AffineFineIntegratorManager.h"
 #include "PropagatorManager.h"
 #include "HalfTimeSliceImpl.h"
 
@@ -122,13 +121,13 @@ ReducedLinearDriverImpl::solveParallel() {
   for (int i = 0; i < numSlices_.value(); ++i) {
     localFileId[i] = i;
   }
-  AffinePostProcessor::Ptr pitaPostProcessor = AffinePostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
-  typedef PostProcessing::IntegratorReactorImpl<AffinePostProcessor> LinearIntegratorReactor;
+  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
+  typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   /* Correction */
   HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices_);
-  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr()); // TODO remove
+  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr()); // TODO remove one
 
   CorrectionNetworkImpl::Ptr correctionMgr =
     CorrectionNetworkImpl::New(
@@ -142,12 +141,7 @@ ReducedLinearDriverImpl::solveParallel() {
         projectorTolerance_); 
 
   /* Fine integrators */
-  FineIntegratorManager::Ptr fineIntegratorMgr;
-  if (noForce_) {
-    fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
-  } else {
-    fineIntegratorMgr = AffineFineIntegratorManager::New(dopsManager.ptr(), fineIntegrationParam, schedule.ptr());
-  }
+  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
 
   PropagatorManager::Ptr propagatorMgr =
     new PropagatorManager(
@@ -183,7 +177,7 @@ ReducedLinearDriverImpl::solveParallel() {
   if (noForce_) {
     seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1)); // TODO provided initial seeds
   } else {
-    seedInitializer = SimpleSeedInitializer::New(initialSeed_); // TODO Useful ???
+    seedInitializer = SimpleSeedInitializer::New(initialSeed_); // TODO Not used in current setup
   }
   
   /* Local tasks */
@@ -202,9 +196,11 @@ ReducedLinearDriverImpl::solveParallel() {
   log() << "\n";
 
   /* Initial seeds */
-  IterationRank iteration(0);
+  IterationRank iteration;
  
   if (noForce_) { 
+    iteration = IterationRank(0);
+    
     LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
     for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
         it != mainSeeds.end();
@@ -221,17 +217,23 @@ ReducedLinearDriverImpl::solveParallel() {
     log() << "\nIteration " << iteration << "\n";
 
   } else {
+    iteration = IterationRank(-1);
+
     LocalNetwork::SeedMap mainSeeds = network->mainSeeds();
     for (LocalNetwork::SeedMap::iterator it = mainSeeds.begin();
         it != mainSeeds.end();
         ++it) {
       log() << "Zero initial Seed " << it->first << " " << it->second->name() << "\n";
       Seed::Ptr seed = it->second;
-      seed->stateIs(DynamState(vectorSize_, 0.0));
+      seed->stateIs(seed->name() == "M0" ? initialSeed_ : DynamState(vectorSize_, 0.0));
       seed->iterationIs(iteration);
-      seed->statusIs(it->first == HalfSliceRank(0) ? Seed::CONVERGED : Seed::SPECIAL);
+      Seed::Status status = (it->first == HalfSliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
+      if (it->first.value() % 2 != 0) {
+        status = Seed::SPECIAL;
+      }
+      seed->statusIs(status);
     }
-    
+   
     log() << "\nAffine term precomputation\n";
     LocalNetwork::TaskList halfSlices = network->halfTimeSlices();
     for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
@@ -241,39 +243,66 @@ ReducedLinearDriverImpl::solveParallel() {
       log() << "Task: " << task->name() << "\n";
       task->iterationIs(iteration);
     }
-    
-    network->convergedSlicesInc();
-    mapping->convergedSlicesInc(); // TODO remove
-    
-    log() << "\nIteration " << iteration << "\n";
-    // Propagated Seed Synchronization 
-    LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
-    for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
-        it != leftSeedSyncs.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
 
-    // Coarse propagation
-    LocalNetwork::TaskList coarseCorr = network->activeCoarseTimeSlices();
-    for (LocalNetwork::TaskList::iterator it = coarseCorr.begin();
-        it != coarseCorr.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
+    if (iteration < lastIteration_) {
+
+      network->convergedSlicesInc();
+      mapping->convergedSlicesInc(); // TODO remove one
+
+      iteration = iteration.next(); 
+      log() << "\nIteration " << iteration << "\n";
+      // Propagated Seed Synchronization 
+      LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
+      for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
+          it != leftSeedSyncs.end();
+          ++it) {
+        NamedTask::Ptr task = *it;
+        log() << "Task: " << task->name() << "\n";
+        task->iterationIs(iteration);
+      }
+
+      // Coarse propagation
+      LocalNetwork::TaskList coarseCorr = network->activeCoarseTimeSlices();
+      for (LocalNetwork::TaskList::iterator it = coarseCorr.begin();
+          it != coarseCorr.end();
+          ++it) {
+        NamedTask::Ptr task = *it;
+        log() << "Task: " << task->name() << "\n";
+        task->iterationIs(iteration);
+      }
+
+      // Correction Synchronization 
+      LocalNetwork::TaskList synchronizationTasks = network->activeFullCorrectionSyncs();
+      for (LocalNetwork::TaskList::iterator it = synchronizationTasks.begin();
+          it != synchronizationTasks.end();
+          ++it) {
+        NamedTask::Ptr task = *it;
+        log() << "Task: " << task->name() << "\n";
+        task->iterationIs(iteration);
+      }
+
+      // Update Seeds
+      LocalNetwork::TaskList assemblyTasks = network->activeSeedAssemblers();
+      for (LocalNetwork::TaskList::iterator it = assemblyTasks.begin();
+          it != assemblyTasks.end();
+          ++it) {
+        NamedTask::Ptr task = *it;
+        log() << "Task: " << task->name() << "\n";
+        task->iterationIs(iteration);
+      }
     }
   }
+  
   // Local Fine Propagation
-  LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
-  for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
-      it != halfSlices.end();
-      ++it) {
-    NamedTask::Ptr task = *it;
-    log() << "Task: " << task->name() << "\n";
-    task->iterationIs(iteration);
+  if (iteration < lastIteration_) {
+    LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
+    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
+        it != halfSlices.end();
+        ++it) {
+      NamedTask::Ptr task = *it;
+      log() << "Task: " << task->name() << "\n";
+      task->iterationIs(iteration);
+    }
   }
 
   // Iteration loop
@@ -289,7 +318,7 @@ ReducedLinearDriverImpl::solveParallel() {
 
     // Next iteration 
     network->convergedSlicesInc();
-    mapping->convergedSlicesInc(); // TODO remove
+    mapping->convergedSlicesInc(); // TODO remove one
 
     // Propagated Seed Synchronization 
     LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
@@ -356,6 +385,7 @@ ReducedLinearDriverImpl::solveParallel() {
 
 void
 solveCoarse() {
+  // TODO
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */

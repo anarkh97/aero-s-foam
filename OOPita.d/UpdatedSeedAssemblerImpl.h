@@ -18,7 +18,7 @@ public:
   Seed * updatedSeed() { return const_cast<Seed *>(const_cast<const UpdatedSeedAssemblerImpl *>(this)->updatedSeed()); }
 
   /* Overriden members */
-  //virtual void assemblyPhaseIs(PhaseRank ap);
+  virtual void correctionIs(Seed * c);
   virtual void updatedSeedIs(Seed * us);
   virtual void propagatedSeedIs(const Seed * ps);
   virtual void correctionComponentsIs(const ReducedSeed * cc);
@@ -31,55 +31,13 @@ public:
 
 protected:
   friend class Manager;
-  //class SchedulingReactor;
-  //class UpdateReactor;
 
   explicit UpdatedSeedAssemblerImpl(const String & name, const Manager * manager);
 
 private:
   const Manager * manager_; // Back pointer
-  //Fwk::Ptr<SchedulingReactor> schedulingReactor_;
-  //Fwk::Ptr<UpdateReactor> updateReactor_;
 };
 
-
-/*class UpdatedSeedAssemblerImpl::SchedulingReactor : public ReducedSeed::NotifieeConst {
-public:
-  EXPORT_PTRINTERFACE_TYPES(SchedulingReactor);
-
-  virtual void onState(); // overriden
-
-  const Activity * activity() const { return activity_.ptr(); }
-  Activity * activity() { return activity_.ptr(); }
-  void activityIs(Activity * a) { activity_ = a; }
-
-  SchedulingReactor(const ReducedSeed * n, Activity * a) :
-    ReducedSeed::NotifieeConst(n),
-    activity_(a)
-  {}
-
-private:
-  Activity::Ptr activity_;
-};
-
-class UpdatedSeedAssemblerImpl::UpdateReactor : public Activity::Notifiee {
-public:
-  EXPORT_PTRINTERFACE_TYPES(UpdateReactor);
-
-  // overriden
-  virtual void onStatus();
-
-  const UpdatedSeedAssemblerImpl * parent() const { return parent_; }
-  UpdatedSeedAssemblerImpl * parent() { return parent_; }
-
-  UpdateReactor(Activity * notifier, UpdatedSeedAssemblerImpl * parent) :
-    Activity::Notifiee(notifier),
-    parent_(parent)
-  {}
-
-private:
-  UpdatedSeedAssemblerImpl * parent_; // Back pointer
-};*/
 
 class UpdatedSeedAssemblerImpl::Manager : public UpdatedSeedAssembler::Manager,
                                           private Fwk::GenManagerImpl<UpdatedSeedAssemblerImpl, String> {

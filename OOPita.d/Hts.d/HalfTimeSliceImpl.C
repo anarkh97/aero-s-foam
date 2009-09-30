@@ -2,7 +2,13 @@
 
 #include "../IntegratorPropagator.h"
 
+// TODO Remove ugly HACK
+#include "../IntegratorPropagator.h"
+#include "../HomogeneousGenAlphaIntegrator.h"
+
 #include <memory>
+
+#include <cassert>
 
 namespace Pita { namespace Hts {
 
@@ -33,13 +39,13 @@ HalfTimeSliceImpl::seedIs(const Seed * s) {
 
 void
 HalfTimeSliceImpl::iterationIs(IterationRank i) {
+  assert(seed()->iteration() == i);
   propagateSeed();
-  propagatedSeed()->iterationIs(i);
+  propagatedSeed()->iterationIs(seed()->iteration().next());
 }
 
 void
 HalfTimeSliceImpl::propagatedSeedIs(Seed * ps) {
-  // TODO: Update ps immediately ?
   setPropagatedSeed(ps);
 }
 
@@ -48,6 +54,14 @@ HalfTimeSliceImpl::propagateSeed() {
   if (seed()) {
     if (previousSeedState_.vectorSize() != 0) {
       //log() << "Reuse state\n";
+
+      // TODO Remove ugly HACK
+      if (IntegratorPropagator * prop = dynamic_cast<IntegratorPropagator *>(propagator())) {
+        if (AffineGenAlphaIntegrator * integr = dynamic_cast<AffineGenAlphaIntegrator *>(prop->integrator())) {
+          integr->externalForceFlagIs(false);
+          //log() << "External force flagged off\n"; 
+        }
+      }
       propagator()->initialStateIs(seed()->state() - previousSeedState_);
     } else {
       //log() << "New state\n";

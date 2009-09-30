@@ -1,6 +1,5 @@
 ADD_LIBRARY( pitadriver
 ActivityImpl.C
-AffinePostProcessor.C
 AlternatingIntegratorPropagator.C
 CommManager.C
 CommManagerImpl.C
@@ -11,6 +10,7 @@ DynamStateReconstructorImpl.C
 DynamStateReductorImpl.C
 DynamTimeIntegrator.C
 HomogeneousGenAlphaIntegrator.C
+IncrementalPostProcessor.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
 JumpBuilder.C
@@ -52,7 +52,6 @@ UpdatedSeedAssemblerImpl.C
 lev2pchol.f
 lev3pchol.f
 blas_dmax_val.f
-Hts.d/AffineFineIntegratorManager.C
 Hts.d/BasisCollectorImpl.C
 Hts.d/CorrectionNetworkImpl.C
 Hts.d/LocalCorrectionTimeSlice.C

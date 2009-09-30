@@ -2,6 +2,8 @@
 
 #include <Math.d/FullSquareMatrix.h>
 
+#include <cassert>
+
 namespace Pita { namespace Hts {
 
 // ReducedFullTimeSliceImpl implementation
@@ -16,6 +18,9 @@ ReducedFullTimeSliceImpl::ReducedFullTimeSliceImpl(HalfSliceRank headRank,
 
 void
 ReducedFullTimeSliceImpl::iterationIs(IterationRank ir) {
+
+  assert(jump()->iteration() == ir);
+  assert(correction()->iteration() == ir);
   /*if (iteration() == i) {
     return;
   }

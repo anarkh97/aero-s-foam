@@ -1,35 +1,40 @@
 #include "LocalCorrectionTimeSlice.h"
 
+#include <cassert>
+
 namespace Pita { namespace Hts {
 
 /* LocalCorrectionTimeSlice implementation */
   
 LocalCorrectionTimeSlice::LocalCorrectionTimeSlice(HalfSliceRank headRank, DynamPropagator * propagator) :
   CorrectionTimeSlice(headRank),
-  jumpBuilder_(JumpBuilder::New()),
+  //jumpBuilder_(JumpBuilder::New()),
   propagator_(propagator)
 {}
 
 void
 LocalCorrectionTimeSlice::predictedSeedIs(const Seed * ps) {
-  jumpBuilder_->seedIs(JumpBuilder::RIGHT, ps);
+  //jumpBuilder_->seedIs(JumpBuilder::RIGHT, ps);
   setPredictedSeed(ps);
 }
 
 void
 LocalCorrectionTimeSlice::actualSeedIs(const Seed * as) {
-  jumpBuilder_->seedIs(JumpBuilder::LEFT, as);
+  //jumpBuilder_->seedIs(JumpBuilder::LEFT, as);
   setActualSeed(as);
 }
 
 void
 LocalCorrectionTimeSlice::jumpIs(Seed * j) {
-  jumpBuilder_->jumpSeedIs(j);
+  //jumpBuilder_->jumpSeedIs(j);
   setJump(j);
 }
 
 void
 LocalCorrectionTimeSlice::iterationIs(IterationRank ir) {
+  assert(correction()->iteration() == ir);
+  assert(jump()->iteration() == ir);
+  
   DynamState seedUpdate = correction()->state() + jump()->state();
   propagator_->initialStateIs(seedUpdate);
   
@@ -37,7 +42,7 @@ LocalCorrectionTimeSlice::iterationIs(IterationRank ir) {
   nextCorrection()->statusIs(updateStatus);
   nextCorrection()->stateIs(propagator_->finalState());
   nextCorrection()->iterationIs(ir);
-  
+ 
   setIteration(ir);
 }
 

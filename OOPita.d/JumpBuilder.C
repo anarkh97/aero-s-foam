@@ -30,8 +30,8 @@ JumpBuilder::SeedReactor::SeedReactor(
 
 void
 JumpBuilder::SeedReactor::onIteration() {
-  if (notifier()->status() != Seed::SPECIAL) {
-    //log() << "JumpBuilder : new state " << notifier()->name() << "\n";
+  if (notifier()->status() != Seed::SPECIAL && notifier()->status() != Seed::INACTIVE) {
+    log() << "JumpBuilder : new state " << notifier()->name() << "\n";
     parent_->seedStatusIs(id_, UPDATED);
   }
 }
@@ -55,7 +55,7 @@ JumpBuilder::seed(JumpBuilder::SeedId id) const {
 
 void
 JumpBuilder::seedIs(JumpBuilder::SeedId id, const Seed * s) {
-  //log() << "JB: new seed " << s->name() << "\n";
+  log() << "JB: new seed " << s->name() << "\n";
   if (seed(id) != s) {
     seedReactor_[id]->notifierIs(s);
     SeedStatus newStatus = seedReactor_[id]->notifier() ? CURRENT : MISSING;
@@ -85,7 +85,7 @@ JumpBuilder::seedStatusIs(JumpBuilder::SeedId id, JumpBuilder::SeedStatus status
   if (!jumpSeed_)
     return;
 
-  //log() << "JB: compute j\n";
+  log() << "JB: compute j\n";
   DynamState newJumpSeed = seed(LEFT)->state() - seed(RIGHT)->state();
   jumpSeed_->statusIs(seed(LEFT)->status());
   jumpSeed_->stateIs(newJumpSeed);

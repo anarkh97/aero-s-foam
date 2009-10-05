@@ -319,6 +319,9 @@ LocalNetwork::convergedSlicesInc() {
   correctionSync_.erase(correctionSync_.begin(), correctionSync_.lower_bound(firstActiveSlice()));
   seedAssembler_.erase(seedAssembler_.begin(), seedAssembler_.lower_bound(firstActiveSlice()));
 
+  coarseTimeSlice_.erase(coarseTimeSlice_.begin(), coarseTimeSlice_.lower_bound(firstActiveSlice()));
+  fullCorrectionSync_.erase(fullCorrectionSync_.begin(), fullCorrectionSync_.lower_bound(firstActiveSlice()));
+  
   mainSeed_.erase(mainSeed_.begin(), mainSeed_.lower_bound(firstActiveSlice()));
 
 

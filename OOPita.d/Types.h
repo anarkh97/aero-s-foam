@@ -22,6 +22,18 @@ typedef Fwk::Numeric<Cpu, int> CpuCount;
 class CpuTempFix;
 typedef Fwk::Numeric<CpuTempFix, int> CpuRank;
 
+inline
+CpuRank
+operator+(const CpuRank & a, const CpuCount & d) {
+  return CpuRank(a.value() + d.value());
+}
+
+inline 
+CpuRank
+operator-(const CpuRank & a, const CpuCount & d) {
+  return CpuRank(a.value() - d.value());
+}
+
 class IterationRank : public Fwk::Ordinal<IterationRank, Fwk::S32> {
 public:
   explicit IterationRank(Fwk::U32 rank = 0) : Fwk::Ordinal<IterationRank, Fwk::S32>(rank) {}

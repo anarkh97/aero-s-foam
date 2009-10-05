@@ -161,12 +161,12 @@ LocalNetwork::init() {
     }
 
     // Communication: Correction as an optimization
-    if (previousCpu != CpuRank(-1) && previousCpu != localCpu() && localCpu() != nextCpu) {
+    if (previousCpu != CpuRank(-1) && localCpu() != previousCpu && localCpu() != nextCpu) {
       RemoteState::ReducedSeedWriter::Ptr correctionWriter = commMgr_->writerNew(reducedCorrection.ptr(), previousCpu);
       if (correctionWriter) {
         String taskName = String("Receive Correction ") + toString(nextSliceRank);
         RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionWriter.ptr());
-        correctionSync_.insert(correctionSync_.end(), std::make_pair(nextSliceRank, task));
+        correctionSync_.insert(correctionSync_.end(), std::make_pair(previousSliceRank, task));
       }
     }
     if (nextCorrection) {    
@@ -175,7 +175,7 @@ LocalNetwork::init() {
         if (correctionReader) {
           String taskName = String("Send Correction ") + toString(nextFullSliceRank);
           RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionReader.ptr());
-          correctionSync_.insert(correctionSync_.end(), std::make_pair(nextFullSliceRank, task));
+          correctionSync_.insert(correctionSync_.end(), std::make_pair(sliceRank, task));
         }
       }
     }
@@ -200,7 +200,7 @@ LocalNetwork::init() {
       if (previousFullSliceCpu != CpuRank(-1) && previousFullSliceCpu != localCpu()) {
         RemoteState::SeedWriter::Ptr writer = commMgr_->writerNew(correction.ptr(), previousFullSliceCpu);
         if (writer) {
-          String taskName = String("Receive Coarse Correction ") + toString(sliceRank);
+          String taskName = String("Receive (Affine) Coarse Correction ") + toString(sliceRank);
           RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
           coarseTimeSlice_.insert(std::make_pair(previousFullSliceRank, task));
         }
@@ -209,7 +209,7 @@ LocalNetwork::init() {
         if (nextFullSliceCpu != CpuRank(-1) && nextFullSliceCpu != localCpu()) {
           RemoteState::SeedReader::Ptr reader = commMgr_->readerNew(nextCorrection.ptr(), nextFullSliceCpu);
           if (reader) {
-            String taskName = String("Send Coarse Correction ") + toString(nextFullSliceRank);
+            String taskName = String("Send (Affine) Coarse Correction ") + toString(nextFullSliceRank);
             RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
             coarseTimeSlice_.insert(std::make_pair(nextFullSliceRank, task));
           }
@@ -217,10 +217,10 @@ LocalNetwork::init() {
       }
 
       // Communication: Correction as an optimization
-      if (previousCpu != CpuRank(-1) && previousCpu != localCpu() && localCpu() != nextCpu) {
-        RemoteState::SeedWriter::Ptr correctionWriter = commMgr_->writerNew(correction.ptr(), previousCpu);
+      if (previousCpu != CpuRank(-1) && localCpu() != previousCpu && localCpu() != nextCpu) {
+        RemoteState::SeedWriter::Ptr correctionWriter = commMgr_->writerNew(getSeed(SeedId(SEED_CORRECTION, nextSliceRank)), previousCpu);
         if (correctionWriter) {
-          String taskName = String("Receive Coarse Correction ") + toString(nextSliceRank);
+          String taskName = String("Receive (Affine/Optim) Coarse Correction ") + toString(nextSliceRank);
           RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionWriter.ptr());
           fullCorrectionSync_.insert(fullCorrectionSync_.end(), std::make_pair(nextSliceRank, task));
         }
@@ -229,7 +229,7 @@ LocalNetwork::init() {
         if (nextCpu != CpuRank(-1) && nextCpu != localCpu() && nextCpu != nextFullSliceCpu) {
           RemoteState::SeedReader::Ptr correctionReader = commMgr_->readerNew(nextCorrection.ptr(), nextCpu);
           if (correctionReader) {
-            String taskName = String("Send Coarse Correction ") + toString(nextFullSliceRank);
+            String taskName = String("Send (Affine/Optim) Coarse Correction ") + toString(nextFullSliceRank);
             RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, correctionReader.ptr());
             fullCorrectionSync_.insert(fullCorrectionSync_.end(), std::make_pair(nextFullSliceRank, task));
           }
@@ -408,9 +408,9 @@ LocalNetwork::activeFullTimeSlices() const {
   TaskList result;
 
   CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
-  CpuRank lastInactiveCpu(taskManager_->worker(taskManager_->firstCurrentTask() - 1));
+  CpuRank lastConvergedCpu(taskManager_->worker(taskManager_->firstCurrentTask()) - 1);
 
-  if (localCpu() == firstActiveCpu || localCpu() == lastInactiveCpu) {
+  if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Zero Correction");
     ReducedSeed::Ptr firstActiveCorrection = reducedSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
     zeroCorrection->targetIs(firstActiveCorrection.ptr());
@@ -462,9 +462,9 @@ LocalNetwork::activeCoarseTimeSlices() const {
   TaskList result;
 
   CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
-  CpuRank lastInactiveCpu(taskManager_->worker(taskManager_->firstCurrentTask() - 1));
+  CpuRank lastConvergedCpu(taskManager_->worker(taskManager_->firstCurrentTask()) - 1);
 
-  if (localCpu() == firstActiveCpu || localCpu() == lastInactiveCpu) {
+  if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Zero Coarse Correction");
     Seed::Ptr firstActiveCorrection = seedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
     zeroCorrection->targetIs(firstActiveCorrection.ptr());

@@ -11,10 +11,6 @@ RemoteStateTask::RemoteStateTask(
 
 void
 RemoteStateTask::iterationIs(IterationRank i) {
-  if (i == iteration()) {
-    return;
-  }
-
   remoteActivity_->statusIs(RemoteState::EXECUTING);
   setIteration(i);
 }

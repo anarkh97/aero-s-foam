@@ -13,23 +13,9 @@ void    _FORTRAN(cspsmvp)(int&, complex<double> *, int*, int*, const complex<dou
 void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const DComplex*, DComplex*);
 }
 
-inline void Tcspsmvp(int& numUncon, double* unonz, int* xunonz, int* rowu, const double* rhs, double* result)
+inline void Tcspsmvp(int& a, double* b, int* c, int* d, const double* e, double* f)
 {
-  std::fill_n(result, numUncon, 0.0);
-  for (int col = 0; col < numUncon; ++col) {
-    for (int k = xunonz[col]; k < xunonz[col+1] - 1; ++k) {
-      int row = rowu[k - 1] - 1;
-      double s = unonz[k-1];
-      result[row] += s * rhs[col];
-      result[col] += s * rhs[row];
-    }
-    int k = xunonz[col+1] - 1;
-    if (k >= xunonz[col]) {
-      int row = rowu[k-1] - 1;
-      double s = unonz[k-1];
-      result[col] += s * rhs[col];
-    }
-  } 
+_FORTRAN(micspsmvp)(a,b,c,d,e,f);
 }
 
 inline void Tcspsmvp(int& a, complex<double> * b, int* c, int* d, const complex<double> * e, 

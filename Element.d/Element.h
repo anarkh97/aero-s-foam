@@ -118,15 +118,13 @@ class StructProp {
 	};
      union {
         double Q;	// Specific heat coeffiecient
-        double alphaDamp; // Rayleigh mass damping coefficient
+        double betaDamp; // Rayleigh stiffness damping coefficient
         };
      union {
 	double W;	// Thermal expansion coefficient
+        double alphaDamp; // Rayleigh mass damping coefficient
         };
-     union {
         double P;	// Perimeter/circumference of thermal truss/beams
-        double betaDamp; // Rayleigh stiffness damping coefficient
-        };
      union {
         double Ta;	// Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation

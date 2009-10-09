@@ -1,7 +1,5 @@
 #include "CorrectionNetworkImpl.h"
 
-#include "NonHomogeneousBasisCollectorImpl.h"
-
 #include "../DynamStateBasisWrapper.h"
 
 #include <Math.d/SparseMatrix.h>
@@ -18,8 +16,8 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
                                              Communicator * timeComm,
                                              CpuRank myCpu,
                                              const SliceMapping * mapping,
+                                             BasisCollectorImpl * collector,
                                              const DynamOps * metric,
-                                             Strategy strategy,
                                              double projectionTolerance) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
@@ -35,15 +33,12 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   normalMatrix_(),
   reprojectionMatrix_(),
   solver_(NearSymmetricSolver::New(projectionTolerance)),
-  collector_(strategy == NON_HOMOGENEOUS ?
-      ptr_cast<BasisCollectorImpl>(NonHomogeneousBasisCollectorImpl::New()) :
-      BasisCollectorImpl::New()),
+  collector_(collector),
   jumpProjectorMgr_(JumpProjectorImpl::Manager::New(metricBasis_.ptr())),
   updatedSeedAssemblerMgr_(UpdatedSeedAssemblerImpl::Manager::New(finalBasis_.ptr())),
   fullTimeSliceMgr_(ReducedFullTimeSliceImpl::Manager::New(&reprojectionMatrix_, solver_.ptr())),
   reductorMgr_(DynamStateReductorImpl::Manager::New(metricBasis_.ptr(), solver_.ptr())),
   reconstructorMgr_(DynamStateReconstructorImpl::Manager::New(finalBasis_.ptr())),
-  strategy_(strategy),
   globalExchangeNumbering_()
 {}
 

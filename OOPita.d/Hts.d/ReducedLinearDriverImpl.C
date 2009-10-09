@@ -13,6 +13,8 @@
 
 #include "SliceMapping.h"
 
+#include "BasisCollectorImpl.h"
+#include "NonHomogeneousBasisCollectorImpl.h"
 #include "CorrectionNetworkImpl.h"
 
 #include "../Seed.h"
@@ -124,6 +126,12 @@ ReducedLinearDriverImpl::solveParallel() {
 
   /* Correction */
   SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value()); // TODO
+  BasisCollectorImpl::Ptr collector;
+  if (noForce_) {
+    collector = BasisCollectorImpl::New();
+  } else {
+    collector = NonHomogeneousBasisCollectorImpl::New();
+  }
 
   CorrectionNetworkImpl::Ptr correctionMgr =
     CorrectionNetworkImpl::New(
@@ -131,8 +139,8 @@ ReducedLinearDriverImpl::solveParallel() {
         timeCom_,
         myCpu_,
         mapping.ptr(),
+        collector.ptr(),
         dynamOps.ptr(),
-        (noForce_ ? CorrectionNetworkImpl::HOMOGENEOUS : CorrectionNetworkImpl::NON_HOMOGENEOUS),
         projectorTolerance_); 
 
   /* Fine integrators */
@@ -140,7 +148,7 @@ ReducedLinearDriverImpl::solveParallel() {
 
   PropagatorManager::Ptr propagatorMgr =
     new PropagatorManager(
-        correctionMgr->collector(),
+        collector.ptr(),
         fineIntegratorMgr.ptr(), 
         postProcessingMgr.ptr(),
         halfSliceRatio_,

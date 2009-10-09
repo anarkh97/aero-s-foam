@@ -37,11 +37,6 @@ class CorrectionNetworkImpl : public CorrectionNetwork {
 public:
   EXPORT_PTRINTERFACE_TYPES(CorrectionNetworkImpl);
 
-  enum Strategy {
-    HOMOGENEOUS = 0,
-    NON_HOMOGENEOUS
-  };
-
   virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
 
   virtual BasisCollector * collector() const { return collector_.ptr(); }
@@ -53,14 +48,12 @@ public:
   virtual DynamStateReductor::Manager * reductorMgr() const { return reductorMgr_.ptr(); }
   virtual DynamStateReconstructor::Manager * reconstructorMgr() const { return reconstructorMgr_.ptr(); }
 
-  Strategy strategy() const { return strategy_; }
-
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
                  const SliceMapping * mapping,
+                 BasisCollectorImpl * collector,
                  const DynamOps * metric,
-                 Strategy strategy,
                  double projTol) {
-    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, metric, strategy, projTol);
+    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, projTol);
   }
 
 
@@ -137,13 +130,12 @@ public:
 
 protected:
   CorrectionNetworkImpl(size_t vSize,
-                                 Communicator * timeComm,
-                                 CpuRank myCpu,
-                                 const SliceMapping * mapping,
-                                 const DynamOps * metric,
-                                 Strategy strategy,
-                                 double projectionTolerance);
-
+                        Communicator * timeComm,
+                        CpuRank myCpu,
+                        const SliceMapping * mapping,
+                        BasisCollectorImpl * collector,
+                        const DynamOps * metric,
+                        double projectionTolerance);
 
 private:
   size_t vectorSize_;
@@ -180,8 +172,6 @@ private:
 
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
   DynamStateReconstructorImpl::Manager::Ptr reconstructorMgr_;
-
-  Strategy strategy_;
 
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;

@@ -25,10 +25,10 @@ public:
 
 //protected:
   PropagatorManager(BasisCollector * collector,
-                             FineIntegratorManager * integratorMgr,
-                             PostProcessing::Manager * postProcessingMgr,
-                             TimeStepCount halfSliceRatio,
-                             Seconds initialTime);
+                    FineIntegratorManager * integratorMgr,
+                    PostProcessing::Manager * postProcessingMgr,
+                    TimeStepCount halfSliceRatio,
+                    Seconds initialTime);
 
 private:
   BasisCollector * collector_;

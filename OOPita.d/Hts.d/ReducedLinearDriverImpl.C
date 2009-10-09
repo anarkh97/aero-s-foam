@@ -10,7 +10,6 @@
 #include "../HomogeneousGenAlphaIntegrator.h"
 #include "../IntegratorPropagator.h"
 #include "../IntegratorSeedInitializer.h"
-#include "../SimpleSeedInitializer.h"
 
 #include "StaticSliceStrategy.h"
 #include "SliceMapping.h"
@@ -109,7 +108,7 @@ ReducedLinearDriverImpl::solve() {
 void
 ReducedLinearDriverImpl::solveParallel() {
 
-  /* Integration parameters */
+  /* Time Integration */
   LinearDynamOps::Manager::Ptr dopsManager = LinearDynamOps::Manager::New(probDesc());
   double fineRhoInfinity = 1.0;
 
@@ -151,7 +150,7 @@ ReducedLinearDriverImpl::solveParallel() {
         halfSliceRatio_,
         initialTime_);
 
-  /* Slice Managers */
+  /* Tasks */
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
   JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
   ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
@@ -170,14 +169,6 @@ ReducedLinearDriverImpl::solveParallel() {
   CorrectionTimeSlice::Manager::Ptr ctsMgr;
   if (!noForce_) {
     ctsMgr = LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
-  }
-  
-  /* Seed initializer */
-  SeedInitializer::Ptr seedInitializer;
-  if (noForce_) {
-    seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1)); // TODO provided initial seeds
-  } else {
-    seedInitializer = SimpleSeedInitializer::New(initialSeed_); // TODO Not used in current setup
   }
   
   /* Local tasks */
@@ -199,6 +190,7 @@ ReducedLinearDriverImpl::solveParallel() {
   IterationRank iteration;
  
   if (noForce_) { 
+    SeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1)); // TODO provided initial seeds
     iteration = IterationRank(0);
     
     LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();

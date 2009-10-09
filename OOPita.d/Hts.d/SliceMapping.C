@@ -6,7 +6,7 @@ namespace Pita { namespace Hts {
 
 SliceMapping::SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus,
                            TaskCount maxWorkload, const SliceStrategy * strategy) :
-  taskManager_(TaskManager::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload)),
+  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload)),
   strategy_(strategy)
 {}
 
@@ -67,7 +67,7 @@ SliceMapping::hostedSlice(CpuRank cpu, HalfSliceRank begin, HalfSliceRank end) c
   TaskRank beginTask = begin.value();
   TaskRank endTask = end.value();
 
-  for (TaskManager::TaskIterator it = taskManager_->tasks(worker); it; ++it) {
+  for (LoadBalancer::TaskIterator it = taskManager_->tasks(worker); it; ++it) {
     TaskRank current = *it;
     if (current < beginTask)
       continue;

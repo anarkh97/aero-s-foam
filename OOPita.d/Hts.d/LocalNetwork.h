@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../TaskManager.h"
+#include "../LoadBalancer.h"
 #include "../Seed.h"
 
 #include "HalfTimeSlice.h"
@@ -83,7 +83,7 @@ private:
   HalfSliceCount maxWorkload_;
   CpuRank localCpu_;
 
-  TaskManager::Ptr taskManager_;
+  LoadBalancer::Ptr taskManager_;
  
   HalfTimeSlice::Manager::Ptr sliceMgr_;
   JumpProjector::Manager::Ptr jumpProjMgr_;

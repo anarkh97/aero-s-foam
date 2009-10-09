@@ -20,6 +20,7 @@ LinearDynamOps.C
 LinearGenAlphaIntegrator.C
 LinearizedPropagator.C
 LinearPostProcessor.C
+LoadBalancer.C
 LocalTimeSlice.C
 Log.C
 NearSymmetricSolver.C
@@ -43,7 +44,6 @@ RemoteStateMpiImpl.C
 RemoteStateTask.C
 RemoteTimeSlice.C
 SimpleSeedInitializer.C
-TaskManager.C
 TimeSlice.C
 TimeSliceImpl.C
 TimeSliceMapping.C

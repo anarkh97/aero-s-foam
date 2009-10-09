@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../TaskManager.h"
+#include "../LoadBalancer.h"
 
 #include <vector>
 

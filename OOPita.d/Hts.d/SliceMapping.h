@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../TaskManager.h"
+#include "../LoadBalancer.h"
 #include "SliceStrategy.h"
 
 #include <vector>
@@ -46,7 +46,7 @@ protected:
   friend class SliceIdIterator;
 
 private:
-  TaskManager::Ptr taskManager_;
+  LoadBalancer::Ptr taskManager_;
   SliceStrategy::PtrConst strategy_;
 
   DISALLOW_COPY_AND_ASSIGN(SliceMapping);

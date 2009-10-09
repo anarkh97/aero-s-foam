@@ -1,5 +1,5 @@
-#ifndef PITA_TASKMANAGER_H
-#define PITA_TASKMANAGER_H
+#ifndef PITA_LOADBALANCER_H
+#define PITA_LOADBALANCER_H
 
 #include "Fwk.h"
 
@@ -12,9 +12,9 @@ typedef int TaskRank;
 typedef int WorkerCount;
 typedef int WorkerRank;
 
-class TaskManager : public Fwk::PtrInterface<TaskManager> {
+class LoadBalancer : public Fwk::PtrInterface<LoadBalancer> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(TaskManager);
+  EXPORT_PTRINTERFACE_TYPES(LoadBalancer);
   
   class TaskIterator;
 
@@ -36,12 +36,12 @@ public:
   TaskRank firstWaitingTask() const { return firstWaitingTask_; }
 
   static Ptr New(TaskCount totalTasks, WorkerCount availableWorkers, TaskCount maxWorkload) {
-    return new TaskManager(totalTasks, availableWorkers, maxWorkload);
+    return new LoadBalancer(totalTasks, availableWorkers, maxWorkload);
   }
 
 protected:
-  TaskManager(TaskCount totalTasks, WorkerCount availableWorkers, TaskCount maxWorkload);
-  virtual ~TaskManager();
+  LoadBalancer(TaskCount totalTasks, WorkerCount availableWorkers, TaskCount maxWorkload);
+  virtual ~LoadBalancer();
 
   void updateFirstWaitingTask();
   
@@ -58,10 +58,10 @@ private:
 
   TaskRank firstWaitingTask_;
 
-  DISALLOW_COPY_AND_ASSIGN(TaskManager);
+  DISALLOW_COPY_AND_ASSIGN(LoadBalancer);
 };
 
-class TaskManager::TaskIterator {
+class LoadBalancer::TaskIterator {
 public:
   TaskIterator & operator++();
   TaskIterator operator++(int);
@@ -71,18 +71,18 @@ public:
   // Use default copy constructor, assignement operator
 
 protected:
-  TaskIterator(const TaskManager * parent, WorkerRank worker);
+  TaskIterator(const LoadBalancer * parent, WorkerRank worker);
 
-  friend class TaskManager;
+  friend class LoadBalancer;
 
 private:
-  TaskManager::PtrConst parent_;
+  LoadBalancer::PtrConst parent_;
   WorkerRank worker_;
   TaskCount offset_;
 };
 
-OStream & operator<<(OStream & out, const TaskManager & tmgr);
+OStream & operator<<(OStream & out, const LoadBalancer & tmgr);
 
 } // end namespace Pita
 
-#endif /* PITA_TASKMANAGER_H */
+#endif /* PITA_LOADBALANCER_H */

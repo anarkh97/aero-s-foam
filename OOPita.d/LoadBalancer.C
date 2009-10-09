@@ -1,10 +1,10 @@
-#include "TaskManager.h"
+#include "LoadBalancer.h"
 
 #include <Utils.d/Connectivity.h>
 
 namespace Pita {
 
-TaskManager::TaskManager(TaskCount totTasks, WorkerCount availWorkers, TaskCount maxLoad) :
+LoadBalancer::LoadBalancer(TaskCount totTasks, WorkerCount availWorkers, TaskCount maxLoad) :
   totalTasks_(totTasks),
   maxWorkload_(maxLoad),
   availableWorkers_(availWorkers),
@@ -44,29 +44,29 @@ TaskManager::TaskManager(TaskCount totTasks, WorkerCount availWorkers, TaskCount
   updateFirstWaitingTask();
 }
   
-TaskManager::~TaskManager() {
+LoadBalancer::~LoadBalancer() {
   delete taskToWorker_;
   delete workerToTasks_;
 }
 
 void
-TaskManager::completedTasksInc(TaskCount increment) {
+LoadBalancer::completedTasksInc(TaskCount increment) {
   completedTasks_ += increment;
   updateFirstWaitingTask();
 }
 
 TaskCount
-TaskManager::totalWorkload(WorkerRank pr) const {
+LoadBalancer::totalWorkload(WorkerRank pr) const {
   return TaskCount(workerToTasks_->num(pr));
 }
 
 TaskCount
-TaskManager::currentGlobalWorkload() const {
+LoadBalancer::currentGlobalWorkload() const {
   return firstWaitingTask() - completedTasks();
 }
 
 TaskCount
-TaskManager::currentWorkload(WorkerRank pr) const {
+LoadBalancer::currentWorkload(WorkerRank pr) const {
   TaskCount result(0);
   for (TaskIterator it = tasks(pr); it && (*it < firstWaitingTask()); ++it) {
     if (*it >= completedTasks()) {
@@ -76,31 +76,31 @@ TaskManager::currentWorkload(WorkerRank pr) const {
   return result;
 }
 
-TaskManager::TaskIterator
-TaskManager::tasks(WorkerRank pr) const {
+LoadBalancer::TaskIterator
+LoadBalancer::tasks(WorkerRank pr) const {
   return TaskIterator(this, pr); 
 }
 
 WorkerRank
-TaskManager::worker(TaskRank tr) const {
+LoadBalancer::worker(TaskRank tr) const {
   return (tr >= 0 && tr < totalTasks())    ?
          taskToWorker_->getTargetValue(tr) :
          -1;
 }
 
 TaskRank
-TaskManager::firstCurrentTask() const { 
+LoadBalancer::firstCurrentTask() const { 
   return TaskRank(completedTasks());
 }
 
 void
-TaskManager::updateFirstWaitingTask() {
+LoadBalancer::updateFirstWaitingTask() {
   firstWaitingTask_ = std::min(totalTasks(), maxWorkload() *  availableWorkers() + completedTasks());
 }
 
-// TaskManager::TaskIterator
+// LoadBalancer::TaskIterator
 
-TaskManager::TaskIterator::TaskIterator(const TaskManager * parent, WorkerRank worker) :
+LoadBalancer::TaskIterator::TaskIterator(const LoadBalancer * parent, WorkerRank worker) :
   parent_(parent),
   worker_(worker),
   offset_(0)
@@ -109,8 +109,8 @@ TaskManager::TaskIterator::TaskIterator(const TaskManager * parent, WorkerRank w
     parent_ = NULL;
 }
 
-TaskManager::TaskIterator &
-TaskManager::TaskIterator::operator++() {
+LoadBalancer::TaskIterator &
+LoadBalancer::TaskIterator::operator++() {
   if (parent_) {
     if ((++offset_) >= parent_->totalWorkload(worker_))
       parent_ = NULL;
@@ -118,31 +118,31 @@ TaskManager::TaskIterator::operator++() {
   return *this;
 }
 
-TaskManager::TaskIterator
-TaskManager::TaskIterator::operator++(int) {
+LoadBalancer::TaskIterator
+LoadBalancer::TaskIterator::operator++(int) {
   TaskIterator temp(*this);
   ++(*this);
   return temp;
 }
 
 TaskRank
-TaskManager::TaskIterator::operator*() const {
+LoadBalancer::TaskIterator::operator*() const {
   TaskRank result = parent_ ?
                     *(parent_->workerToTasks_->operator[](worker_) + offset_) :
                     -1;
   return result;
 }
 
-TaskManager::TaskIterator::operator bool() const {
+LoadBalancer::TaskIterator::operator bool() const {
   return (parent_ != NULL);
 }
 
 // Output
 
-OStream & operator<<(OStream & out, const TaskManager & tmgr) {
+OStream & operator<<(OStream & out, const LoadBalancer & tmgr) {
   for (int worker = 0; worker < tmgr.availableWorkers(); ++worker) {
     out << "# " << worker << " ->";
-    for (TaskManager::TaskIterator it = tmgr.tasks(worker); it; ++it) {
+    for (LoadBalancer::TaskIterator it = tmgr.tasks(worker); it; ++it) {
       out << ' ' << *it;
     }
     out << '\n';

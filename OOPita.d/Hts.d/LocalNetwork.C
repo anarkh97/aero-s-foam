@@ -38,7 +38,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
   availableCpus_(availableCpus),
   maxWorkload_(maxWorkload),
   localCpu_(localCpu),
-  taskManager_(TaskManager::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload.value())),
+  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload.value())),
   sliceMgr_(sliceMgr),
   jumpProjMgr_(jumpProjMgr),
   ftsMgr_(ftsMgr),
@@ -53,7 +53,7 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
 
 void
 LocalNetwork::init() {
-  for (TaskManager::TaskIterator it = taskManager_->tasks(localCpu().value()); it; ++it) {
+  for (LoadBalancer::TaskIterator it = taskManager_->tasks(localCpu().value()); it; ++it) {
     HalfSliceRank sliceRank(*it);
     HalfSliceRank nextSliceRank = sliceRank + HalfSliceCount(1);
     HalfSliceRank previousSliceRank = sliceRank - HalfSliceCount(1);

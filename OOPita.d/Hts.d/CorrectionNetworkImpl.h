@@ -6,7 +6,6 @@
 
 #include "CorrectionNetwork.h"
 
-#include "HalfSliceSchedule.h"
 #include "SliceMapping.h"
 
 #include "../DynamOps.h"
@@ -23,8 +22,6 @@
 #include "../PivotedCholeskySolver.h"
 #include "../NearSymmetricSolver.h"
 #include <Math.d/FullSquareMatrix.h>
-
-#include "../Activity.h"
 
 #include "../DynamStatePlainBasis.h"
 #include "../SimpleBuffer.h"
@@ -58,63 +55,14 @@ public:
 
   Strategy strategy() const { return strategy_; }
 
-  PhaseRank correctionPhase() const { return correctionPhase_; }
-  PhaseRank schedulingPhase() const { return schedulingPhase_; }
-
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
-                 const HalfSliceSchedule * schedule,
                  const SliceMapping * mapping,
                  const DynamOps * metric,
                  Strategy strategy,
                  double projTol) {
-    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, schedule, mapping, metric, strategy, projTol);
+    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, metric, strategy, projTol);
   }
 
-  // Implementation classes
-  class ProjectionBuildingReactor : public Activity::Notifiee {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(ProjectionBuildingReactor);
-
-    CorrectionNetworkImpl * parent() const { return parent_; }
-
-    virtual void onStatus(); // Overriden
-
-    ProjectionBuildingReactor(Activity * notifier, CorrectionNetworkImpl * parent) :
-      Activity::Notifiee(notifier),
-      parent_(parent)
-    {}
-
-  private:
-    CorrectionNetworkImpl * parent_;
-  };
-
-  class SchedulingReactor : public Activity::Notifiee {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(SchedulingReactor);
-
-    CorrectionNetworkImpl * parent() const { return parent_; }
-
-    virtual void onStatus(); // Overriden
-
-    SchedulingReactor(Activity * notifier, CorrectionNetworkImpl * parent) :
-      Activity::Notifiee(notifier),
-      parent_(parent)
-    {}
-
-  private:
-    CorrectionNetworkImpl * parent_;
-  };
-
-  class NonHomogeneousSchedulingReactor : public SchedulingReactor {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(NonHomogeneousSchedulingReactor);
-
-    virtual void onStatus(); // Overriden
-
-    NonHomogeneousSchedulingReactor(Activity * notifier, CorrectionNetworkImpl * parent) :
-      SchedulingReactor(notifier, parent)
-    {}
-  };
 
   class GlobalExchangeNumbering : public Fwk::PtrInterface<GlobalExchangeNumbering> {
   public:
@@ -191,15 +139,11 @@ protected:
   CorrectionNetworkImpl(size_t vSize,
                                  Communicator * timeComm,
                                  CpuRank myCpu,
-                                 const HalfSliceSchedule * schedule,
                                  const SliceMapping * mapping,
                                  const DynamOps * metric,
                                  Strategy strategy,
                                  double projectionTolerance);
 
-
-  friend class ProjectionBuildingReactor;
-  friend class SchedulingReactor;
 
 private:
   size_t vectorSize_;
@@ -237,9 +181,7 @@ private:
   DynamStateReductorImpl::Manager::Ptr reductorMgr_;
   DynamStateReconstructorImpl::Manager::Ptr reconstructorMgr_;
 
-  ProjectionBuildingReactor::Ptr projectionBuildingReactor_;
   Strategy strategy_;
-  SchedulingReactor::Ptr schedulingReactor_;
 
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;

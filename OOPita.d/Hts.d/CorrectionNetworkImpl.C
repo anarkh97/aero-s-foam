@@ -15,18 +15,15 @@
 namespace Pita { namespace Hts {
 
 CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
-                                                               Communicator * timeComm,
-                                                               CpuRank myCpu,
-                                                               const HalfSliceSchedule * schedule,
-                                                               const SliceMapping * mapping,
-                                                               const DynamOps * metric,
-                                                               Strategy strategy,
-                                                               double projectionTolerance) :
+                                             Communicator * timeComm,
+                                             CpuRank myCpu,
+                                             const SliceMapping * mapping,
+                                             const DynamOps * metric,
+                                             Strategy strategy,
+                                             double projectionTolerance) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
   localCpu_(myCpu),
-  correctionPhase_(schedule->correction()),
-  schedulingPhase_(schedule->endIteration()),
   mapping_(mapping),
   metric_(metric),
   gBuffer_(),
@@ -46,18 +43,9 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   fullTimeSliceMgr_(ReducedFullTimeSliceImpl::Manager::New(&reprojectionMatrix_, solver_.ptr())),
   reductorMgr_(DynamStateReductorImpl::Manager::New(metricBasis_.ptr(), solver_.ptr())),
   reconstructorMgr_(DynamStateReconstructorImpl::Manager::New(finalBasis_.ptr())),
-  projectionBuildingReactor_(new ProjectionBuildingReactor(activityManagerInstance()->activityNew("ProjectionBuilding").ptr(), this)),
   strategy_(strategy),
-  schedulingReactor_(strategy == NON_HOMOGENEOUS ?
-      new NonHomogeneousSchedulingReactor(activityManagerInstance()->activityNew("ScheduleProjectionBuilding").ptr(), this) :
-      new SchedulingReactor(activityManagerInstance()->activityNew("ScheduleProjectionBuilding").ptr(), this)),
   globalExchangeNumbering_()
-{
-  projectionBuildingReactor_->notifier()->phaseIs(correctionPhase_);
-  schedulingReactor_->notifier()->phaseIs(schedulingPhase_);
-  schedulingReactor_->notifier()->iterationIs(schedulingReactor_->notifier()->currentIteration());
-  schedulingReactor_->notifier()->statusIs(Activity::scheduled);
-}
+{}
 
 
 void
@@ -429,49 +417,6 @@ CorrectionNetworkImpl::buildProjection() {
       log() << "norm^2 of final state error = " << test_metric * test << "\n";
   }*/
   
-}
-
-// CorrectionNetworkImpl Reactors
-
-void
-CorrectionNetworkImpl::ProjectionBuildingReactor::onStatus() {
-  if (notifier()->status() == Activity::executing) {
-    parent()->buildProjection();
-  }
-}
-
-
-void
-CorrectionNetworkImpl::SchedulingReactor::onStatus() {
-  switch (notifier()->status()) {
-    case Activity::free:
-      // Automatic rescheduling
-      notifier()->iterationIs(notifier()->currentIteration().next());
-      notifier()->statusIs(Activity::scheduled);
-      break;
-    case Activity::scheduled:
-      break;
-    case Activity::executing:
-      // Use the current convergence status (before it is updated) 
-      //parent()->globalExchangeNumbering_.clear();
-      GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(parent()->mapping_.ptr());
-      parent()->globalExchangeNumbering_.push_back(numbering);
-      {
-        Activity * activity = parent()->projectionBuildingReactor_->notifier().ptr();
-        activity->iterationIs(activity->currentIteration().next());
-        activity->statusIs(Activity::scheduled);
-      }
-      break;
-  }
-}
-
-void
-CorrectionNetworkImpl::NonHomogeneousSchedulingReactor::onStatus() {
-  if (notifier()->status() != Activity::executing ||
-      notifier()->currentIteration() > IterationRank(0))
-  {
-    SchedulingReactor::onStatus();
-  }
 }
   
 // CorrectionNetworkImpl::GlobalExchangeNumbering

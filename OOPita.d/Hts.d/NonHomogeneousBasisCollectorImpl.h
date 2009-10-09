@@ -4,9 +4,6 @@
 #include "BasisCollectorImpl.h"
 
 #include "../SeedInitializer.h"
-#include "HalfSliceSchedule.h"
-
-#include "../Activity.h"
 
 namespace Pita { namespace Hts {
 

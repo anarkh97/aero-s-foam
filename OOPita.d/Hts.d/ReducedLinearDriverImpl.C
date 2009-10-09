@@ -14,7 +14,6 @@
 #include "StaticSliceStrategy.h"
 #include "SliceMapping.h"
 
-#include "LinearHalfSliceSchedule.h"
 #include "CorrectionNetworkImpl.h"
 
 #include "../Seed.h"
@@ -125,7 +124,6 @@ ReducedLinearDriverImpl::solveParallel() {
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
   /* Correction */
-  HalfSliceSchedule::Ptr schedule = LinearHalfSliceSchedule::New(numSlices_);
   SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value(), StaticSliceStrategy::New().ptr()); // TODO remove one
 
   CorrectionNetworkImpl::Ptr correctionMgr =
@@ -133,7 +131,6 @@ ReducedLinearDriverImpl::solveParallel() {
         vectorSize_,
         timeCom_,
         myCpu_,
-        schedule.ptr(),
         mapping.ptr(),
         dynamOps.ptr(),
         (noForce_ ? CorrectionNetworkImpl::HOMOGENEOUS : CorrectionNetworkImpl::NON_HOMOGENEOUS),

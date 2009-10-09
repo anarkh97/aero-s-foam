@@ -8,17 +8,12 @@ RemoteCoarseCorrectionServer::RemoteCoarseCorrectionServer(
     PhaseRank correctionPhase) :
   status_(IDLE),
   server_(server),
-  mapping_(mapping),
-  correctionPhase_(correctionPhase),
-  correctionReactor_(NULL)
-{
-  Activity::Ptr activity = activityManagerInstance()->activityNew("RemoteCoarseCorrection");
-  correctionReactor_ = new CorrectionReactor(activity.ptr(), this);
-}
+  mapping_(mapping)
+{}
 
 void
 RemoteCoarseCorrectionServer::statusIs(Status s) {
-  if (s != status()) {
+  /*if (s != status()) {
     if (s == ACTIVE) {
       Activity * activity = correctionReactor_->notifier().ptr();
       activity->iterationIs(IterationRank(1));
@@ -26,17 +21,13 @@ RemoteCoarseCorrectionServer::statusIs(Status s) {
       activity->statusIs(Activity::scheduled);
     }
     status_ = s;
-  }
+  }*/
+  // TODO
 }
 
 // CorrectionReactor
 
-RemoteCoarseCorrectionServer::CorrectionReactor::CorrectionReactor(
-    Activity * notifier, RemoteCoarseCorrectionServer * parent) :
-  Activity::Notifiee(notifier),
-  parent_(parent)
-{}
-
+/*
 void
 RemoteCoarseCorrectionServer::CorrectionReactor::onStatus() {
   if (notifier()->status() == Activity::executing) {
@@ -51,5 +42,7 @@ RemoteCoarseCorrectionServer::CorrectionReactor::onStatus() {
 
   parent_->statusIs(ACTIVE);
 }
+*/
+// TODO
 
 } /* end namespace Hts */ } /* end namespace Pita */

@@ -12,17 +12,11 @@ namespace Pita { namespace Hts {
 
 class HalfTimeSliceImpl : public HalfTimeSlice {
 public:
-  typedef Fwk::Ptr<HalfTimeSliceImpl> Ptr;
-  typedef Fwk::Ptr<const HalfTimeSliceImpl> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(HalfTimeSliceImpl);
 
   class Manager;
-  class SchedulingReactor;
-  class ForwardSchedulingReactor;
-  class BackwardSchedulingReactor;
-  class LocalPropagationReactor;
 
   // Overriden mutators
-  //virtual void phaseIs(PhaseRank p);
   virtual void seedIs(const Seed * s);
   virtual void propagatedSeedIs(Seed * ps);
 
@@ -44,11 +38,7 @@ private:
   DynamPropagator::Ptr propagator_;
   DynamState previousSeedState_;
 
-  Fwk::Ptr<SchedulingReactor> schedulingReactor_;
-  Fwk::Ptr<LocalPropagationReactor> localPropagationReactor_;
-
   friend class Manager;
-  friend class LocalPropagationReactor;
 };
 
 // Helper classes
@@ -79,62 +69,6 @@ private:
   typedef Fwk::GenManagerImpl<HalfTimeSliceImpl, HalfSliceId> Impl;
 
   PropagatorManager::Ptr propagatorManager_;
-};
-
-class HalfTimeSliceImpl::SchedulingReactor : public Seed::NotifieeConst {
-public:
-  typedef Fwk::Ptr<SchedulingReactor> Ptr;
-  typedef Fwk::Ptr<const SchedulingReactor> PtrConst;
-
-  virtual void notifierIs(const Seed * s); // overriden
-
-  virtual void onState(); // overriden
-  virtual void onStatus(); // overriden
-
-  Activity * activity() const { return activity_.ptr(); }
-
-protected:
-  SchedulingReactor(const Seed * notifier, Activity * activity);
-
-  virtual bool schedulingCondition() const = 0;
-
-private:
-  void scheduleIfCondition();
-
-  Activity::Ptr activity_;
-};
-  
-class HalfTimeSliceImpl::LocalPropagationReactor : public Activity::Notifiee {
-public:
-  typedef Fwk::Ptr<LocalPropagationReactor> Ptr;
-  typedef Fwk::Ptr<const LocalPropagationReactor> PtrConst;
-
-  virtual void onStatus(); // overriden
-
-  LocalPropagationReactor(Activity * notifier, HalfTimeSliceImpl * hs);
-
-private:
-  HalfTimeSliceImpl * halfSlice_;
-};
-
-class HalfTimeSliceImpl::ForwardSchedulingReactor : public HalfTimeSliceImpl::SchedulingReactor {
-public:
-  ForwardSchedulingReactor(const Seed * notifier, Activity * activity) :
-    HalfTimeSliceImpl::SchedulingReactor(notifier, activity)
-  {}
-
-protected:
-  virtual bool schedulingCondition() const; // overriden
-};
-
-class HalfTimeSliceImpl::BackwardSchedulingReactor : public HalfTimeSliceImpl::SchedulingReactor {
-public:
-  BackwardSchedulingReactor(const Seed * notifier, Activity * activity) :
-    HalfTimeSliceImpl::SchedulingReactor(notifier, activity)
-  {}
-
-protected:
-  virtual bool schedulingCondition() const; // overriden
 };
 
 } /* end namespace Hts */ } /* end namespace Pita */

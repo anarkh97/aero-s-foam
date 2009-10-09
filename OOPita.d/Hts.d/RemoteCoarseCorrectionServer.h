@@ -6,7 +6,6 @@
 #include "SliceMapping.h"
 #include "../RemoteDynamPropagatorServer.h"
 
-#include "../Activity.h"
 #include <map>
 
 namespace Pita { namespace Hts {
@@ -23,7 +22,6 @@ public:
   Status status() const { return status_; }
   RemoteDynamPropagatorServer * server() const { return server_.ptr(); }
   const SliceMapping * mapping() const { return mapping_.ptr(); }
-  PhaseRank correctionPhase() const { return correctionPhase_; }
 
   void statusIs(Status s);
 
@@ -32,25 +30,10 @@ public:
       const SliceMapping * mapping,
       PhaseRank correctionPhase);
 
-protected:
-  class CorrectionReactor : public Activity::Notifiee {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(CorrectionReactor);
-
-    virtual void onStatus();
-
-    CorrectionReactor(Activity * notifier, RemoteCoarseCorrectionServer * parent);
-  private:
-    RemoteCoarseCorrectionServer * parent_;
-  };
-
 private:
   Status status_;
   RemoteDynamPropagatorServer::Ptr server_;
   SliceMapping::PtrConst mapping_;
-  PhaseRank correctionPhase_;
-
-  CorrectionReactor::Ptr correctionReactor_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteCoarseCorrectionServer);
 };

@@ -4,10 +4,8 @@
 
 namespace Pita { namespace Hts {
 
-SliceMapping::SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus,
-                           TaskCount maxWorkload, const SliceStrategy * strategy) :
-  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload)),
-  strategy_(strategy)
+SliceMapping::SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload) :
+  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload))
 {}
 
 HalfSliceCount
@@ -52,36 +50,13 @@ SliceMapping::SliceMapping::convergedSlicesInc(HalfSliceCount increment) {
 }
 
 CpuRank
-SliceMapping::hostCpu(SliceId slice) const {
-  TaskRank task = strategy_->task(slice);
-  WorkerRank worker = taskManager_->worker(task);
-  return CpuRank(worker);
+SliceMapping::hostCpu(HalfSliceRank slice) const {
+  return CpuRank(taskManager_->worker(slice.value()));
 }
 
-SliceMapping::SliceIdIterator
-SliceMapping::hostedSlice(CpuRank cpu, HalfSliceRank begin, HalfSliceRank end) const {
-  SliceIdIterator::ContainerImpl::Ptr containerImpl = new SliceIdIterator::ContainerImpl();
-  SliceMapping::SliceIdIterator::SliceIdContainer & slice = containerImpl->slice;
-
-  WorkerRank worker = cpu.value();
-  TaskRank beginTask = begin.value();
-  TaskRank endTask = end.value();
-
-  for (LoadBalancer::TaskIterator it = taskManager_->tasks(worker); it; ++it) {
-    TaskRank current = *it;
-    if (current < beginTask)
-      continue;
-    if (current >= endTask)
-      break;
-    
-    for (SliceStrategy::SliceIdIterator jt = strategy_->slice(current); jt; ++jt) {
-      slice.push_back(*jt);
-    }
-  }
-  
-  std::sort(slice.begin(), slice.end()); 
-
-  return SliceIdIterator(containerImpl.ptr());
+SliceMapping::SliceIterator
+SliceMapping::hostedSlice(CpuRank cpu) const {
+  return SliceIterator(taskManager_->tasks(cpu.value()));
 }
 
 

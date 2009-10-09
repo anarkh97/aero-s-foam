@@ -450,12 +450,12 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * 
   HalfSliceRank r = HalfSliceRank(1) + mapping->convergedSlices();
   for (int fts = 0; fts < fullSliceCount; ++fts) {
     // Initial states <=> Backward
-    CpuRank cpu = mapping->hostCpu(SliceId(BACKWARD_HALF_SLICE, r));
+    CpuRank cpu = mapping->hostCpu(r);
     currentStateMapping[cpu.value()].first.insert(r);
     r = r + HalfSliceCount(1); 
 
     // Initial states <=> Forward
-    cpu = mapping->hostCpu(SliceId(FORWARD_HALF_SLICE, r));
+    cpu = mapping->hostCpu(r);
     currentStateMapping[cpu.value()].second.insert(r);
     r = r + HalfSliceCount(1); 
   }

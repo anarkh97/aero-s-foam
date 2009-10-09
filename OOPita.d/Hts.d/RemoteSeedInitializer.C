@@ -29,13 +29,13 @@ RemoteSeedInitializer::statusIs(RemoteSeedInitializer::Status s) {
      
       CpuRank backwardTarget(-1);
       if (s != 0) {
-        backwardTarget = mapping_->hostCpu(SliceId(BACKWARD_HALF_SLICE, HalfSliceRank(s * 2 - 1)));
+        backwardTarget = mapping_->hostCpu(HalfSliceRank(s * 2 - 1));
         clientCommunicator_->sendTo(backwardTarget.value(), s, buffer, stateSize);
       }
 
       CpuRank forwardTarget(-1);
       if (s != seedCount - 1) {
-        forwardTarget = mapping_->hostCpu(SliceId(FORWARD_HALF_SLICE, HalfSliceRank(s * 2)));
+        forwardTarget = mapping_->hostCpu(HalfSliceRank(s * 2));
         if (forwardTarget != backwardTarget) {
           clientCommunicator_->sendTo(forwardTarget.value(), s, buffer, stateSize);
         }
@@ -48,5 +48,4 @@ RemoteSeedInitializer::statusIs(RemoteSeedInitializer::Status s) {
   status_ = READY;
 }
 
-} // end namespace Pita
-} // end namespace Hts
+} /* end namespace Hts */ } /* end namespace Hts */

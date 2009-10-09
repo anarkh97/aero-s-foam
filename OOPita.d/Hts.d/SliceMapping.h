@@ -5,7 +5,6 @@
 #include "Types.h"
 
 #include "../LoadBalancer.h"
-#include "SliceStrategy.h"
 
 #include <vector>
 
@@ -15,7 +14,7 @@ class SliceMapping : public Fwk::PtrInterface<SliceMapping> {
 public:
   EXPORT_PTRINTERFACE_TYPES(SliceMapping);
 
-  class SliceIdIterator;
+  class SliceIterator;
 
   HalfSliceCount totalSlices() const;
   CpuCount availableCpus() const;
@@ -28,72 +27,43 @@ public:
   HalfSliceCount convergedSlices() const;
   void convergedSlicesInc(HalfSliceCount increment = HalfSliceCount(1));
 
-  CpuRank hostCpu(SliceId slice) const;
+  CpuRank hostCpu(HalfSliceRank slice) const;
  
-  SliceIdIterator hostedSlice(CpuRank cpu,
-                              HalfSliceRank begin,
-                              HalfSliceRank end) const; 
+  SliceIterator hostedSlice(CpuRank cpu) const;
 
-  static Ptr New(FullSliceCount totalFullSlices, CpuCount availableCpus,
-                 TaskCount maxWorkload, const SliceStrategy * strategy) {
-    return new SliceMapping(totalFullSlices, availableCpus, maxWorkload, strategy); 
+  static Ptr New(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload) {
+    return new SliceMapping(totalFullSlices, availableCpus, maxWorkload); 
   }
 
 protected:
-  SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus,
-               TaskCount maxWorkload, const SliceStrategy * strategy);
+  SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload);
 
-  friend class SliceIdIterator;
+  friend class SliceIterator;
 
 private:
   LoadBalancer::Ptr taskManager_;
-  SliceStrategy::PtrConst strategy_;
 
   DISALLOW_COPY_AND_ASSIGN(SliceMapping);
 };
 
 
-class SliceMapping::SliceIdIterator {
+class SliceMapping::SliceIterator {
 public:
-  const SliceId & operator*() const { return *current_; }
-  const SliceId * operator->() const { return current_.operator->(); }
-  SliceIdIterator & operator++() { ++current_; return *this; }
-  SliceIdIterator operator++(int) { SliceIdIterator tmp(*this); ++(*this); return tmp; }
-  operator bool() const { return current_ != end_; }
+  HalfSliceRank operator*() const { return HalfSliceRank(*impl_); }
+  SliceIterator & operator++() { ++impl_; return *this; }
+  SliceIterator operator++(int) { SliceIterator tmp(*this); ++(*this); return tmp; }
+  operator bool() const { return impl_; }
 
-  SliceIdIterator() :
-    container_(new ContainerImpl()),
-    current_(container_->slice.begin()),
-    end_(container_->slice.end())
+  explicit SliceIterator(LoadBalancer::TaskIterator impl) :
+    impl_(impl)
   {}
 
   // Default copy, assignment
 
-protected:
-  typedef std::vector<SliceId> SliceIdContainer;
-  typedef SliceIdContainer::const_iterator ItImpl;
-  
-  class ContainerImpl : public Fwk::PtrInterface<ContainerImpl> {
-  public:
-    EXPORT_PTRINTERFACE_TYPES(ContainerImpl);
-    ContainerImpl() : slice() {}
-    SliceIdContainer slice;
-  };
-
-  explicit SliceIdIterator(const ContainerImpl * container) :
-    container_(container),
-    current_(container_->slice.begin()),
-    end_(container_->slice.end())
-  {}
-
-  friend class SliceMapping;
-
 private:
-  ContainerImpl::PtrConst container_;
-  ItImpl current_, end_;  
+  LoadBalancer::TaskIterator impl_;
 };
 
-} /* end namespace Hts */
-} /* end namespace Pita */
+} /* end namespace Hts */ } /* end namespace Pita */
 
 #endif /* PITA_HTS_SLICEMAPPING_H */

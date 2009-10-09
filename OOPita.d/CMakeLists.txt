@@ -64,5 +64,4 @@ Hts.d/PropagatorManager.C
 Hts.d/ReducedFullTimeSliceImpl.C
 Hts.d/ReducedLinearDriverImpl.C
 Hts.d/RemoteSeedInitializer.C
-Hts.d/SliceMapping.C
-Hts.d/StaticSliceStrategy.C)
+Hts.d/SliceMapping.C)

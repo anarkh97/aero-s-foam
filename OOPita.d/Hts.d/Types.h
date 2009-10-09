@@ -63,40 +63,6 @@ operator<<(OStream & out, SeedType t) {
   return out;
 }
 
-enum SliceType {
-  UNDEFINED_SLICE = 0,
-  FORWARD_HALF_SLICE,
-  BACKWARD_HALF_SLICE,
-  HEAD_FULL_SLICE,
-  TAIL_FULL_SLICE
-};
-
-inline
-OStream &
-operator<<(OStream & out, SliceType t) {
-  char c;
-  switch (t) {
-    case UNDEFINED_SLICE:
-      c = 'U';
-      break;
-    case FORWARD_HALF_SLICE:
-      c = 'F';
-      break;
-    case BACKWARD_HALF_SLICE:
-      c = 'B';
-      break;
-    case HEAD_FULL_SLICE:
-      c = 'H';
-      break;
-    case TAIL_FULL_SLICE:
-      c = 'T';
-      break;
-    default:
-      break;
-  }
-  out << c;
-  return out;
-}
 
 template <typename T>
 class GenId {
@@ -122,7 +88,6 @@ private:
 };
 
 typedef GenId<SeedType> SeedId;
-typedef GenId<SliceType> SliceId;
 
 inline
 OStream &

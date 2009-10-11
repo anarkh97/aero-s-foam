@@ -18,9 +18,8 @@ namespace Pita {
 /* Constructor */
 
 PivotedCholeskySolver::PivotedCholeskySolver(double tolerance) :
-  RankDeficientSolver(), 
-  choleskyFactor_(),
-  tolerance_(tolerance)
+  RankDeficientSolver(tolerance), 
+  choleskyFactor_()
 {}
 
 /* Mutators */
@@ -69,7 +68,7 @@ PivotedCholeskySolver::statusIs(Status s) {
       SimpleBuffer<double> workspace(2 * matrixSize());
 
       _FORTRAN(dpstrf)(&uplo, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
-                       getFactorPermutation().array(), &rank, &tolerance_, workspace.array(), &info);
+                       getFactorPermutation().array(), &rank, &getTolerance(), workspace.array(), &info);
 
       setFactorRank(rank);
     }

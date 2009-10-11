@@ -13,6 +13,10 @@
 
 #include "SliceMapping.h"
 
+#include "../RankDeficientSolver.h"
+#include "../NearSymmetricSolver.h"
+#include "../PivotedCholeskySolver.h"
+
 #include "BasisCollectorImpl.h"
 #include "NonHomogeneousBasisCollectorImpl.h"
 #include "CorrectionNetworkImpl.h"
@@ -133,6 +137,7 @@ ReducedLinearDriverImpl::solveParallel() {
     collector = NonHomogeneousBasisCollectorImpl::New();
   }
 
+  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
   CorrectionNetworkImpl::Ptr correctionMgr =
     CorrectionNetworkImpl::New(
         vectorSize_,
@@ -141,7 +146,7 @@ ReducedLinearDriverImpl::solveParallel() {
         mapping.ptr(),
         collector.ptr(),
         dynamOps.ptr(),
-        projectorTolerance_); 
+        normalMatrixSolver.ptr()); 
 
   /* Fine integrators */
   FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);

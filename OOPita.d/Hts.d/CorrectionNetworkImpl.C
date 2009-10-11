@@ -18,7 +18,7 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
                                              const SliceMapping * mapping,
                                              BasisCollectorImpl * collector,
                                              const DynamOps * metric,
-                                             double projectionTolerance) :
+                                             RankDeficientSolver * solver) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
   localCpu_(myCpu),
@@ -32,13 +32,11 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
   reprojectionMatrix_(),
-  solver_(NearSymmetricSolver::New(projectionTolerance)),
+  solver_(solver),
   collector_(collector),
   jumpProjectorMgr_(JumpProjectorImpl::Manager::New(metricBasis_.ptr())),
   updatedSeedAssemblerMgr_(UpdatedSeedAssemblerImpl::Manager::New(finalBasis_.ptr())),
   fullTimeSliceMgr_(ReducedFullTimeSliceImpl::Manager::New(&reprojectionMatrix_, solver_.ptr())),
-  reductorMgr_(DynamStateReductorImpl::Manager::New(metricBasis_.ptr(), solver_.ptr())),
-  reconstructorMgr_(DynamStateReconstructorImpl::Manager::New(finalBasis_.ptr())),
   globalExchangeNumbering_()
 {}
 
@@ -360,8 +358,8 @@ CorrectionNetworkImpl::buildProjection() {
   }*/
   
   // HACK to reset the Reductor and Reconstructor instances 
-  reductorMgr_->defaultReductionBasisIs(metricBasis_.ptr());
-  reconstructorMgr_->defaultReconstructionBasisIs(finalBasis_.ptr());
+  //reductorMgr_->defaultReductionBasisIs(metricBasis_.ptr());
+  //reconstructorMgr_->defaultReconstructionBasisIs(finalBasis_.ptr());
 
   toc = getTime();
   log() << "-> Factor: " << toc - tic << " ms\n";

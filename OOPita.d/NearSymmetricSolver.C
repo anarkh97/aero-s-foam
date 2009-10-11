@@ -42,8 +42,7 @@ extern "C" {
 namespace Pita {
 
 NearSymmetricSolver::NearSymmetricSolver(double tol) :
-  RankDeficientSolver(),
-  tolerance_(tol),
+  RankDeficientSolver(tol),
   transposedMatrix_(),
   pivots_(),
   rescalingStatus_(NO_RESCALING),
@@ -139,7 +138,7 @@ NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
       _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[0][k], &getMatrixSize(), &transposedMatrix_[0][p], &getMatrixSize());
       
       // Check for singularity
-      if (*head_pivot <= first_pivot * tolerance()) {
+      if (*head_pivot <= first_pivot * tolerance()) { // TODO default tolerance
         break;
       }
 

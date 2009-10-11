@@ -16,11 +16,7 @@
 #include "../UpdatedSeedAssemblerImpl.h"
 #include "ReducedFullTimeSliceImpl.h"
 
-#include "../DynamStateReductorImpl.h"
-#include "../DynamStateReconstructorImpl.h"
-
-#include "../PivotedCholeskySolver.h"
-#include "../NearSymmetricSolver.h"
+#include "../RankDeficientSolver.h"
 #include <Math.d/FullSquareMatrix.h>
 
 #include "../DynamStatePlainBasis.h"
@@ -45,15 +41,12 @@ public:
   virtual UpdatedSeedAssemblerImpl::Manager * updatedSeedAssemblerMgr() const { return updatedSeedAssemblerMgr_.ptr() ;} 
   virtual ReducedFullTimeSliceImpl::Manager * fullTimeSliceMgr() const { return fullTimeSliceMgr_.ptr(); }
   
-  virtual DynamStateReductor::Manager * reductorMgr() const { return reductorMgr_.ptr(); }
-  virtual DynamStateReconstructor::Manager * reconstructorMgr() const { return reconstructorMgr_.ptr(); }
-
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
                  const SliceMapping * mapping,
                  BasisCollectorImpl * collector,
                  const DynamOps * metric,
-                 double projTol) {
-    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, projTol);
+                 RankDeficientSolver * solver) {
+    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, solver);
   }
 
 
@@ -135,7 +128,7 @@ protected:
                         const SliceMapping * mapping,
                         BasisCollectorImpl * collector,
                         const DynamOps * metric,
-                        double projectionTolerance);
+                        RankDeficientSolver * solver);
 
 private:
   size_t vectorSize_;
@@ -162,16 +155,13 @@ private:
   FullSquareMatrix normalMatrix_;
   FullSquareMatrix reprojectionMatrix_;
 
-  NearSymmetricSolver::Ptr solver_;
+  RankDeficientSolver::Ptr solver_;
   
   BasisCollectorImpl::Ptr collector_;
   
   JumpProjectorImpl::Manager::Ptr jumpProjectorMgr_;
   UpdatedSeedAssemblerImpl::Manager::Ptr updatedSeedAssemblerMgr_;
   ReducedFullTimeSliceImpl::Manager::Ptr fullTimeSliceMgr_;
-
-  DynamStateReductorImpl::Manager::Ptr reductorMgr_;
-  DynamStateReconstructorImpl::Manager::Ptr reconstructorMgr_;
 
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;

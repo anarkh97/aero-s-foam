@@ -19,9 +19,8 @@ extern "C" {
 namespace Pita {
 
 LeastSquareSolver::LeastSquareSolver(double tol) :
-  RankDeficientSolver(),
+  RankDeficientSolver(tol),
   transposedMatrix_(),
-  tolerance_(tol),
   tau_(), 
   workspace_()
 {}
@@ -66,7 +65,7 @@ LeastSquareSolver::statusIs(LeastSquareSolver::Status s) {
 void
 LeastSquareSolver::toleranceIs(double tol) {
   if (tolerance() != tol) {
-    tolerance_ = tol;
+    setTolerance(tol);
     if (status() == FACTORIZED) {
       updateFactorRank();
     }
@@ -121,7 +120,7 @@ void
 LeastSquareSolver::updateFactorRank() {
   double diagMax = abs(transposedMatrix_[0][0]);
   int fr = 0;
-  while (fr < matrixSize() && abs(transposedMatrix_[fr][fr]) > tolerance_ * diagMax) {
+  while (fr < matrixSize() && abs(transposedMatrix_[fr][fr]) > tolerance() * diagMax) {
     ++fr;
   }
   setFactorRank(fr);

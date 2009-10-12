@@ -5,7 +5,6 @@
 #include <Math.d/SparseMatrix.h>
 #include <Comm.d/Communicator.h>
 
-#include <iterator>
 #include <stdexcept>
 
 #include <Timers.d/GetTime.h>
@@ -34,9 +33,6 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   reprojectionMatrix_(),
   solver_(solver),
   collector_(collector),
-  jumpProjectorMgr_(JumpProjectorImpl::Manager::New(metricBasis_.ptr())),
-  updatedSeedAssemblerMgr_(UpdatedSeedAssemblerImpl::Manager::New(finalBasis_.ptr())),
-  fullTimeSliceMgr_(ReducedFullTimeSliceImpl::Manager::New(&reprojectionMatrix_, solver_.ptr())),
   globalExchangeNumbering_()
 {}
 

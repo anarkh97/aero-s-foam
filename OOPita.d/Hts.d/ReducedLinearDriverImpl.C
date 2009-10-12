@@ -31,8 +31,8 @@
 #include "HalfTimeSliceImpl.h"
 
 #include "ReducedFullTimeSliceImpl.h"
-#include "../JumpProjector.h"
-#include "../UpdatedSeedAssembler.h"
+#include "../JumpProjectorImpl.h"
+#include "../UpdatedSeedAssemblerImpl.h"
 #include "LocalCorrectionTimeSlice.h"
 
 #include <Comm.d/Communicator.h>
@@ -161,9 +161,9 @@ ReducedLinearDriverImpl::solveParallel() {
 
   /* Tasks */
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
-  JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
-  ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
-  UpdatedSeedAssembler::Manager::Ptr usaMgr = correctionMgr->updatedSeedAssemblerMgr();
+  JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
+  ReducedFullTimeSlice::Manager::Ptr fsMgr = ReducedFullTimeSliceImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
+  UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
 
   /* Mpi communication manager */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);

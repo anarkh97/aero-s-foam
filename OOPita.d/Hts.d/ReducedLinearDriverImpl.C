@@ -70,6 +70,7 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
   lastIteration_ = IterationRank(domain->solInfo().kiter);
   projectorTolerance_ = domain->solInfo().pitaProjTol;
   noForce_ = domain->solInfo().NoForcePita;
+  coarseRhoInfinity_ = 1.0; // TODO
  
   /* Available cpus and communication */ 
   remoteCoarse_ = false; //domain->solInfo().remoteCoarse && (timeCom_->numCPUs() > 1);
@@ -77,7 +78,7 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
   numCpus_ = CpuCount(timeCom_->numCPUs() - (remoteCoarse_ ? 1 : 0));
   myCpu_ = CpuRank(timeCom_->myID());
  
-  /* Initial state */
+  /* Initial condition */
   vectorSize_ = probDesc_->solVecInfo();
   initialSeed_ = DynamState(vectorSize_);
   Vector & init_d = initialSeed_.displacement();
@@ -111,25 +112,24 @@ ReducedLinearDriverImpl::solve() {
 
 void
 ReducedLinearDriverImpl::solveParallel() {
-
-  /* Time Integration */
+  /// Always needed ///
+  /* Load balancing */
+  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value());
+ 
+  /* Linear operators */ 
   LinearDynamOps::Manager::Ptr dopsManager = LinearDynamOps::Manager::New(probDesc());
-  double fineRhoInfinity = 1.0;
-
-  GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, fineRhoInfinity);
-  LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(fineIntegrationParam);
-
+ 
+  /// For solveParallel only /// 
   /* Postprocessing */ 
-  std::vector<int> localFileId(numSlices_.value(), 0);
-  for (int i = 0; i < numSlices_.value(); ++i) {
-    localFileId[i] = i;
+  std::vector<int> localFileId;
+  for (SliceMapping::SliceIterator it = mapping->hostedSlice(myCpu_); it; ++it) {
+    localFileId.push_back((*it).value());
   }
   IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
-  /* Correction */
-  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value()); // TODO
+  /* Local Basis Collector */
   BasisCollectorImpl::Ptr collector;
   if (noForce_) {
     collector = BasisCollectorImpl::New();
@@ -137,18 +137,11 @@ ReducedLinearDriverImpl::solveParallel() {
     collector = NonHomogeneousBasisCollectorImpl::New();
   }
 
-  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
-  CorrectionNetworkImpl::Ptr correctionMgr =
-    CorrectionNetworkImpl::New(
-        vectorSize_,
-        timeCom_,
-        myCpu_,
-        mapping.ptr(),
-        collector.ptr(),
-        dynamOps.ptr(),
-        normalMatrixSolver.ptr()); 
+  /* Fine time integration */
+  const double noDampingRhoInfinity = 1.0; // No damping allowed for time-reversible
+  GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, noDampingRhoInfinity);
+  LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(fineIntegrationParam);
 
-  /* Fine integrators */
   FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
 
   PropagatorManager::Ptr propagatorMgr =
@@ -158,9 +151,21 @@ ReducedLinearDriverImpl::solveParallel() {
         postProcessingMgr.ptr(),
         halfSliceRatio_,
         initialTime_);
-
-  /* Tasks */
+  
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
+  
+  /* Correction */
+  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
+  
+  CorrectionNetworkImpl::Ptr correctionMgr = CorrectionNetworkImpl::New(
+      vectorSize_,
+      timeCom_,
+      myCpu_,
+      mapping.ptr(),
+      collector.ptr(),
+      dynamOps.ptr(),
+      normalMatrixSolver.ptr());
+
   JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
   ReducedFullTimeSlice::Manager::Ptr fsMgr = ReducedFullTimeSliceImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
@@ -168,10 +173,10 @@ ReducedLinearDriverImpl::solveParallel() {
   /* Mpi communication manager */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);
   commMgr->vectorSizeIs(vectorSize_);
- 
+
+  /// To rework /// 
   /* Coarse time-integration */ 
-  double coarseRhoInfinity = 1.0;
-  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity));
+  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity_));
   coarseIntegrator->initialConditionIs(initialSeed_, initialTime_);
   DynamPropagator::Ptr coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
  
@@ -179,7 +184,8 @@ ReducedLinearDriverImpl::solveParallel() {
   if (!noForce_) {
     ctsMgr = LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
   }
-  
+
+  /// solve Parallel only /// 
   /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
       mapping.ptr(),

@@ -58,6 +58,7 @@ private:
   IterationRank lastIteration_;
   double projectorTolerance_;
   bool noForce_;
+  double coarseRhoInfinity_;
 };
 
 } /* namespace Hts */ } /* end namespace Pita */

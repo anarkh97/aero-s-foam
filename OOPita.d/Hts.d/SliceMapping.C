@@ -19,9 +19,9 @@ SliceMapping::availableCpus() const {
 }
 
 
-TaskCount
+HalfSliceCount
 SliceMapping::maxWorkload() const {
-  return taskManager_->maxWorkload();
+  return HalfSliceCount(taskManager_->maxWorkload());
 }
 
 HalfSliceCount

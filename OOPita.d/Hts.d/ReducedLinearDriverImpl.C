@@ -182,9 +182,7 @@ ReducedLinearDriverImpl::solveParallel() {
   
   /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
-      fullTimeSlices_,
-      numCpus_,
-      maxActive_,
+      mapping.ptr(),
       myCpu_,
       hsMgr.ptr(),
       jpMgr.ptr(),
@@ -248,7 +246,6 @@ ReducedLinearDriverImpl::solveParallel() {
     if (iteration < lastIteration_) {
 
       network->convergedSlicesInc();
-      mapping->convergedSlicesInc(); // TODO remove one
 
       iteration = iteration.next(); 
       log() << "\nIteration " << iteration << "\n";
@@ -319,7 +316,6 @@ ReducedLinearDriverImpl::solveParallel() {
 
     // Next iteration 
     network->convergedSlicesInc();
-    mapping->convergedSlicesInc(); // TODO remove one
 
     // Propagated Seed Synchronization 
     LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();

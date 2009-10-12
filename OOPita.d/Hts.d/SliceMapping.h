@@ -16,9 +16,10 @@ public:
 
   class SliceIterator;
 
+  FullSliceCount totalFullSlices() const { return FullSliceCount(totalSlices().value() / 2); }
   HalfSliceCount totalSlices() const;
   CpuCount availableCpus() const;
-  TaskCount maxWorkload() const;
+  HalfSliceCount maxWorkload() const;
 
   HalfSliceCount activeSlices() const;
   HalfSliceRank firstActiveSlice() const;

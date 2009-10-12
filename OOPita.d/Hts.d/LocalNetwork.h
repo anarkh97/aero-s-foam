@@ -4,16 +4,16 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../LoadBalancer.h"
+#include "SliceMapping.h"
+
 #include "../Seed.h"
+#include "../RemoteState.h"
 
 #include "HalfTimeSlice.h"
 #include "../JumpProjector.h"
 #include "ReducedFullTimeSlice.h"
 #include "../UpdatedSeedAssembler.h"
 #include "CorrectionTimeSlice.h"
-
-#include "../RemoteState.h"
 
 #include <map>
 #include <deque>
@@ -34,15 +34,15 @@ public:
   typedef std::deque<ReducedFullTimeSlice::Ptr> FTSList;
   
   /* Basic info */
-  FullSliceCount totalFullSlices() const { return totalFullSlices_; }
-  CpuCount availableCpus() const { return availableCpus_; }
-  HalfSliceCount maxWorkload() const { return maxWorkload_; }
+  FullSliceCount totalFullSlices() const { return mapping_->totalFullSlices(); }
+  CpuCount availableCpus() const { return mapping_->availableCpus(); }
+  HalfSliceCount maxWorkload() const { return mapping_->maxWorkload(); }
   CpuRank localCpu() const { return localCpu_; }
 
   /* Current state */
-  HalfSliceRank firstActiveSlice() const { return HalfSliceRank(taskManager_->firstCurrentTask()); }
-  HalfSliceRank firstInactiveSlice() const { return HalfSliceRank(taskManager_->firstWaitingTask()); }
-  HalfSliceCount convergedSlices() const { return HalfSliceCount(taskManager_->completedTasks()); }
+  HalfSliceRank firstActiveSlice() const { return mapping_->firstActiveSlice(); }
+  HalfSliceRank firstInactiveSlice() const { return mapping_->firstInactiveSlice(); }
+  HalfSliceCount convergedSlices() const { return mapping_->convergedSlices(); }
   void convergedSlicesInc();
 
   /* Local network elements */
@@ -60,9 +60,7 @@ public:
   SeedMap mainSeeds() const;
   MainSeedMap activeMainSeeds() const;
 
-  LocalNetwork(FullSliceCount totalFullSlices,
-               CpuCount availableCpus,
-               HalfSliceCount maxWorkload,
+  LocalNetwork(SliceMapping * mapping,
                CpuRank localCpu,
                HalfTimeSlice::Manager * sliceMgr,
                JumpProjector::Manager * jumpProjMgr,
@@ -78,13 +76,9 @@ protected:
   ReducedSeed * getReducedSeed(const SeedId & id);
 
 private:
-  FullSliceCount totalFullSlices_;
-  CpuCount availableCpus_;
-  HalfSliceCount maxWorkload_;
+  SliceMapping::Ptr mapping_;
   CpuRank localCpu_;
 
-  LoadBalancer::Ptr taskManager_;
- 
   HalfTimeSlice::Manager::Ptr sliceMgr_;
   JumpProjector::Manager::Ptr jumpProjMgr_;
   ReducedFullTimeSlice::Manager::Ptr ftsMgr_;

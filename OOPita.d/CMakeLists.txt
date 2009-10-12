@@ -3,6 +3,7 @@ ActivityImpl.C
 AlternatingIntegratorPropagator.C
 CommManager.C
 CommManagerImpl.C
+CommSplitter.C
 DynamStateBasisWrapper.C
 DynamState.C
 DynamStatePlainBasis.C

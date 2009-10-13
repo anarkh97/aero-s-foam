@@ -12,33 +12,30 @@ class CommSplitter : public Fwk::PtrInterface<CommSplitter> {
 public:
   EXPORT_PTRINTERFACE_TYPES(CommSplitter);
 
-  enum CpuColor {
-    FINE   = 0,
-    COARSE = 1
+  enum CpuGroup {
+    STANDARD    = 0,
+    SPECIALIZED = 1
   };
 
-  CpuColor localColor() const { return localColor_; }
-  CpuRank coarseCpu() const { return defaultCoarseCpu_; }
+  CpuGroup localGroup() const { return localGroup_; }
 
-  Communicator * originComm() const { return originComm_; } // Not owned by CommSplitter
-  Communicator * splitComm() const { return splitComm_; } // Owned by CommSplitter
-  Communicator * interComm() const { return interComm_; } // Owned by CommSplitter
+  Communicator * originComm() const { return originComm_; } // Original intracommunicator, not owned by CommSplitter
+  Communicator * splitComm()  const { return splitComm_; }  // Local intracommunicator, owned by CommSplitter
+  Communicator * interComm()  const { return interComm_; }  // Intercommunicator, owned by CommSplitter
 
-  static Ptr New(Communicator * originComm) {
-    return new CommSplitter(originComm);
+  // Creates 2 intracommunicators from originComm linked by an intercommunicator
+  // The communicator originComm must remain valid while CommSplitter exists
+  static Ptr New(Communicator * originComm, CpuCount specializedCpus) {
+    return new CommSplitter(originComm, specializedCpus);
   }
 
 protected:
-  explicit CommSplitter(Communicator * originComm); // Must remain valid while CommSplitter is alive
+  explicit CommSplitter(Communicator * originComm, CpuCount specializedCpus);
 
   ~CommSplitter();
 
-  static const CpuRank defaultCoarseCpu_;
-  static const CpuRank defaultFineLeader_;
-
 private:
-  CpuRank coarseCpu_;
-  CpuColor localColor_;
+  CpuGroup localGroup_;
   Communicator * originComm_;
   Communicator * splitComm_;
   Communicator * interComm_;

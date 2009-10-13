@@ -2,37 +2,39 @@
 
 namespace Pita {
 
-const CpuRank CommSplitter::defaultCoarseCpu_ = CpuRank(0);
-const CpuRank CommSplitter::defaultFineLeader_ = CpuRank(1);
-
-CommSplitter::CommSplitter(Communicator * originComm) :
-  localColor_(FINE),
+CommSplitter::CommSplitter(Communicator * originComm, CpuCount specializedCpus) :
+  localGroup_(STANDARD),
   originComm_(originComm),
   splitComm_(NULL),
   interComm_(NULL)
 {
-  // Determine local task
-  int originId = originComm->myID();
-  if (CpuRank(originComm->myID()) == defaultCoarseCpu_) {
-    localColor_ = COARSE;
+  // Determine local context
+  CpuRank firstSpecializedCpu(0);
+  CpuRank firstStandardCpu = firstSpecializedCpu + specializedCpus; 
+  if (CpuRank(originComm->myID()) < firstStandardCpu) {
+    localGroup_ = SPECIALIZED;
   }
 
-  // Create non-overlapping communicators
-  int originCpus = originComm->numCPUs();
-  MPI_Comm * originMComm = originComm->getCommunicator();
+  // Private common communicator
+  MPI_Comm peerMComm;
+  MPI_Comm_dup(*originComm->getCommunicator(), &peerMComm);
+  int peerId;
+  MPI_Comm_rank(peerMComm, &peerId);
 
+  // Create non-overlapping communicators
   MPI_Comm splitMComm;
-  MPI_Comm_split(*originMComm, localColor_, originId, &splitMComm);
+  MPI_Comm_split(peerMComm, localGroup_, peerId, &splitMComm);
 
   // Create intercommunicator
-  int splitCpus, splitId;
-  MPI_Comm_size(splitMComm, &splitCpus);
-  MPI_Comm_rank(splitMComm, &splitId); 
-
   MPI_Comm interMComm;
-  CpuRank remoteLeader = (localColor_ == COARSE) ? defaultFineLeader_ : defaultCoarseCpu_;
-  MPI_Intercomm_create(splitMComm, 0, *originMComm, remoteLeader.value(), 0, &interMComm);
- 
+  CpuRank remoteLeader = (localGroup_ == SPECIALIZED) ? firstStandardCpu : firstSpecializedCpu;
+  const int localLeader = 0;
+  const int msgTag = 0;
+  MPI_Intercomm_create(splitMComm, localLeader, peerMComm, remoteLeader.value(), msgTag, &interMComm);
+
+  // Release private communicator
+  MPI_Comm_free(&peerMComm); 
+
   // Publish results
   splitComm_ = new Communicator(splitMComm, stderr);
   interComm_ = new Communicator(interMComm, stderr);

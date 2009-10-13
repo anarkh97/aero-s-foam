@@ -35,6 +35,7 @@
 #include "../UpdatedSeedAssemblerImpl.h"
 #include "LocalCorrectionTimeSlice.h"
 
+#include "../CommSplitter.h"
 #include <Comm.d/Communicator.h>
 extern Communicator * structCom;
 
@@ -70,11 +71,11 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
   lastIteration_ = IterationRank(domain->solInfo().kiter);
   projectorTolerance_ = domain->solInfo().pitaProjTol;
   noForce_ = domain->solInfo().NoForcePita;
-  coarseRhoInfinity_ = 1.0; // TODO
+  coarseRhoInfinity_ = 1.0; // TODO set in input file
  
   /* Available cpus and communication */ 
-  remoteCoarse_ = false; //domain->solInfo().remoteCoarse && (timeCom_->numCPUs() > 1);
   timeCom_ = structCom;
+  remoteCoarse_ = domain->solInfo().remoteCoarse && (timeCom_->numCPUs() > 1) && noForce_; // TODO allow for non-homogeneous
   numCpus_ = CpuCount(timeCom_->numCPUs() - (remoteCoarse_ ? 1 : 0));
   myCpu_ = CpuRank(timeCom_->myID());
  
@@ -90,7 +91,7 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
 
 void
 ReducedLinearDriverImpl::solve() {
-  double tic = getTime();
+  double tic = getTime(); // Total solve time
   
   /* Summarize problem and parameters */ 
   log() << "vectorSize = " << vectorSize_ << "\n";
@@ -99,6 +100,13 @@ ReducedLinearDriverImpl::solve() {
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", tf = " << finalTime_ << "\n";
  
   try {
+    if (remoteCoarse_) {
+      CommSplitter::Ptr commSplitter = CommSplitter::New(timeCom_, CpuCount(1)); // Specializes one cpu
+
+      // Original communicator minus the first cpu
+      timeCom_ = (commSplitter->localGroup() == CommSplitter::STANDARD) ? commSplitter->splitComm() : commSplitter->interComm();
+    }
+
     solveParallel();
   } catch(Fwk::Exception & e) {
     log() << e.what() << "\n";

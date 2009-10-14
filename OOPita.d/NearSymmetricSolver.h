@@ -17,12 +17,11 @@ public:
     SYMMETRIC_RESCALING
   };
 
-  double tolerance() const { return tolerance_; }
   const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; }
 
-  void toleranceIs(double tol);
-  void transposedMatrixIs(const FullSquareMatrix & tm); 
-  void statusIs(Status s);
+  virtual void toleranceIs(double tol);
+  virtual void transposedMatrixIs(const FullSquareMatrix & tm); 
+  virtual void statusIs(Status s);
 
   virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
@@ -33,11 +32,9 @@ public:
 protected:
   explicit NearSymmetricSolver(double tol);
 
-  void setTolerance(double tol) { tolerance_ = tol; }
   void setTransposedMatrix(const FullSquareMatrix & tm) { transposedMatrix_ = tm; } 
 
 private:
-  double tolerance_;
   FullSquareMatrix transposedMatrix_;
 
   SimpleBuffer<int> pivots_;

@@ -16,12 +16,11 @@ class LeastSquareSolver : public RankDeficientSolver {
 public:
   EXPORT_PTRINTERFACE_TYPES(LeastSquareSolver);
   
-  double tolerance() const { return tolerance_; }
   const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; }
   
-  void transposedMatrixIs(const FullSquareMatrix & transposedMatrix); // The matrix is copied
-  void statusIs(Status s);
-  void toleranceIs(double tol);
+  virtual void transposedMatrixIs(const FullSquareMatrix & transposedMatrix); // The matrix is copied
+  virtual void statusIs(Status s);
+  virtual void toleranceIs(double tol);
 
   // In place solution, argument rhs is modified
   virtual const Vector & solution(Vector & rhs) const;
@@ -37,7 +36,6 @@ protected:
 
 private:
   FullSquareMatrix transposedMatrix_; // To have column-major ordering
-  double tolerance_;
 
   SimpleBuffer<double> tau_;
   mutable SimpleBuffer<double> workspace_;

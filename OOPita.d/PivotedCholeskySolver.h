@@ -15,13 +15,12 @@ public:
   EXPORT_PTRINTERFACE_TYPES(PivotedCholeskySolver);
 
   const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; }
-  double tolerance() const { return tolerance_; } // -1.0 stands for default tolerance
 
   // Mutators
   void matrixIs(const SymFullMatrix & matrix);
   void matrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part
   virtual void transposedMatrixIs(const FullSquareMatrix & matrix) { matrixIs(matrix); } // Use only upper triangular part
-  void statusIs(Status s);
+  virtual void statusIs(Status s);
   
   virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
@@ -34,7 +33,6 @@ protected:
 
 private:
   FullSquareMatrix choleskyFactor_;
-  double tolerance_;
 
   DISALLOW_COPY_AND_ASSIGN(PivotedCholeskySolver);
 }; 

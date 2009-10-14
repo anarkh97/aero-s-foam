@@ -4,8 +4,8 @@
 
 namespace Pita { namespace Hts {
 
-SliceMapping::SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload) :
-  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload))
+SliceMapping::SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, HalfSliceCount maxWorkload) :
+  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload.value()))
 {}
 
 HalfSliceCount

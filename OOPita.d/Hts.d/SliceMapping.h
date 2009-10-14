@@ -32,12 +32,12 @@ public:
  
   SliceIterator hostedSlice(CpuRank cpu) const;
 
-  static Ptr New(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload) {
+  static Ptr New(FullSliceCount totalFullSlices, CpuCount availableCpus, HalfSliceCount maxWorkload) {
     return new SliceMapping(totalFullSlices, availableCpus, maxWorkload); 
   }
 
 protected:
-  SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, TaskCount maxWorkload);
+  SliceMapping(FullSliceCount totalFullSlices, CpuCount availableCpus, HalfSliceCount maxWorkload);
 
   friend class SliceIterator;
 

@@ -1,11 +1,17 @@
-#ifndef PITA_HTS__REDUCEDLINEARDRIVERIMPL_H
-#define PITA_HTS__REDUCEDLINEARDRIVERIMPL_H
+#ifndef PITA_HTS_REDUCEDLINEARDRIVERIMPL_H
+#define PITA_HTS_REDUCEDLINEARDRIVERIMPL_H
 
 #include "../LinearDriver.h"
 
 #include "../DynamState.h"
+#include "../LinearDynamOps.h"
+#include "SliceMapping.h"
 
+template <typename Scalar> class SingleDomainDynamic;
+class Domain;
+class SolverInfo;
 class Communicator;
+class SDDynamPostProcessor;
 
 namespace Pita { namespace Hts {
 
@@ -16,48 +22,56 @@ public:
   virtual void solve();
 
   SingleDomainDynamic<double> * probDesc() const { return probDesc_; }
+  Domain * domain() const { return domain_; }
+  SolverInfo * solverInfo() const { return solverInfo_; }
+  Communicator * baseComm() const { return baseComm_; }
 
-  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc) {
-    return new ReducedLinearDriverImpl(pbDesc);
+  // Independent from global state
+  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
+                                          Domain * domain,
+                                          SolverInfo * solverInfo,
+                                          Communicator * baseComm) {
+    return new ReducedLinearDriverImpl(pbDesc, domain, solverInfo, baseComm);
   }
 
 protected:
-  explicit ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc);
+  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, Domain *, SolverInfo *, Communicator *);
 
-  void solveCoarse();
-  void solveParallel();
-  
-private:
-  /* Problem description */
-  SingleDomainDynamic<double> * probDesc_;
-
-  /* Initial condition */
-  size_t vectorSize_;
-  DynamState initialSeed_;
+  void preprocess();
+  void solveParallel(Communicator * timeComm);
+  void solveCoarse(Communicator * timeComm);
  
-  /* Time parameters */ 
+  DynamState initialSeed() const;
+
+private:
+  /* Primary sources */
+  SingleDomainDynamic<double> * probDesc_;
+  Domain * domain_;
+  SolverInfo * solverInfo_;
+  Communicator * baseComm_;
+
+  /* Space-domain */
+  size_t vectorSize_;
+  LinearDynamOps::Manager::Ptr dynamOpsMgr_;
+
+  /* Time-domain */ 
   Seconds fineTimeStep_;
   TimeStepCount halfSliceRatio_;
   TimeStepCount sliceRatio_;
   Seconds coarseTimeStep_;
   Seconds initialTime_;
   Seconds finalTime_;
-  
-  /* Time domain decomposition */
-  HalfSliceCount numSlices_;
-  FullSliceCount fullTimeSlices_;
 
-  /* CPUs & Network */ 
-  Communicator * timeCom_;
-  CpuRank myCpu_;
-  CpuCount numCpus_;
+  /* Main options */
+  bool noForce_;
   bool remoteCoarse_;
-  HalfSliceCount maxActive_;
- 
-  /* Other parameters */ 
+  
+  /* Load balancing */ 
+  SliceMapping::Ptr mapping_;
+
+  /* Other parameters */
   IterationRank lastIteration_;
   double projectorTolerance_;
-  bool noForce_;
   double coarseRhoInfinity_;
 };
 
@@ -65,4 +79,4 @@ private:
 
 Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 
-#endif /* PITA_HTS__REDUCEDLINEARDRIVERIMPL_H */
+#endif /* PITA_HTS_REDUCEDLINEARDRIVERIMPL_H */

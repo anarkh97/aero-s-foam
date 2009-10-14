@@ -1,11 +1,19 @@
 #ifndef PITA_HTS_REDUCEDLINEARDRIVERIMPL_H
 #define PITA_HTS_REDUCEDLINEARDRIVERIMPL_H
 
+#include "Fwk.h"
+#include "Types.h"
+
 #include "../LinearDriver.h"
 
 #include "../DynamState.h"
-#include "../LinearDynamOps.h"
+
 #include "SliceMapping.h"
+
+#include "../PostProcessingManager.h"
+#include "BasisCollectorImpl.h"
+#include "LocalCorrectionTimeSlice.h"
+#include "../SeedInitializer.h"
 
 template <typename Scalar> class SingleDomainDynamic;
 class Domain;
@@ -38,10 +46,21 @@ protected:
   ReducedLinearDriverImpl(SingleDomainDynamic<double> *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
-  void solveParallel(Communicator * timeComm);
+  void solveParallel(Communicator * timeComm, Communicator * coarseComm);
   void solveCoarse(Communicator * timeComm);
  
   DynamState initialSeed() const;
+  
+  HalfTimeSlice::Manager::Ptr buildHalfTimeSliceManager(
+      GeneralizedAlphaParameter fineIntegrationParam,
+      PostProcessing::Manager * postProcessingMgr,
+      BasisCollector * collector) const;
+  
+  PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
+  BasisCollectorImpl::Ptr buildBasisCollector() const;
+  CorrectionTimeSlice::Manager::Ptr buildCoarseCorrection(DynamTimeIntegrator * coarseIntegrator) const;
+  LinearGenAlphaIntegrator::Ptr buildCoarseIntegrator() const; 
+  SeedInitializer::Ptr buildSeedInitializer(bool local, Communicator * timeComm) const;
 
 private:
   /* Primary sources */

@@ -1,10 +1,10 @@
-#include "RemoteSeedInitializer.h"
+#include "RemoteSeedInitializerServer.h"
 
 #include <Comm.d/Communicator.h>
 
 namespace Pita { namespace Hts {
 
-RemoteSeedInitializer::RemoteSeedInitializer(Communicator * cc, SeedInitializer * si, SliceMapping * m) :
+RemoteSeedInitializerServer::RemoteSeedInitializerServer(Communicator * cc, SeedInitializer * si, SliceMapping * m) :
   clientCommunicator_(cc),
   baseInitializer_(si),
   mapping_(m),
@@ -13,7 +13,7 @@ RemoteSeedInitializer::RemoteSeedInitializer(Communicator * cc, SeedInitializer 
 {}
 
 void
-RemoteSeedInitializer::statusIs(RemoteSeedInitializer::Status s) {
+RemoteSeedInitializerServer::statusIs(RemoteSeedInitializerServer::Status s) {
   if (status() == s)
     return;
 

@@ -64,5 +64,5 @@ Hts.d/NonHomogeneousBasisCollectorImpl.C
 Hts.d/PropagatorManager.C
 Hts.d/ReducedFullTimeSliceImpl.C
 Hts.d/ReducedLinearDriverImpl.C
-Hts.d/RemoteSeedInitializer.C
+Hts.d/RemoteSeedInitializerServer.C
 Hts.d/SliceMapping.C)

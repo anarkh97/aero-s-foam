@@ -1,5 +1,5 @@
-#ifndef PITA_HTS_REMOTESEEDINITIALIZER_H
-#define PITA_HTS_REMOTESEEDINITIALIZER_H
+#ifndef PITA_HTS_REMOTESEEDINITIALIZERSERVER_H
+#define PITA_HTS_REMOTESEEDINITIALIZERSERVER_H
 
 #include "../SeedInitializer.h"
 #include "SliceMapping.h"
@@ -9,9 +9,9 @@ class Communicator;
 
 namespace Pita { namespace Hts {
 
-class RemoteSeedInitializer : public Fwk::PtrInterface<RemoteSeedInitializer> {
+class RemoteSeedInitializerServer : public Fwk::PtrInterface<RemoteSeedInitializerServer> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(RemoteSeedInitializer);
+  EXPORT_PTRINTERFACE_TYPES(RemoteSeedInitializerServer);
 
   enum Status {
     READY = 0,
@@ -22,11 +22,11 @@ public:
   void statusIs(Status s);
 
   static Ptr New(Communicator * clientCommunicator, SeedInitializer * baseInitializer, SliceMapping * mapping) {
-    return new RemoteSeedInitializer(clientCommunicator, baseInitializer, mapping);
+    return new RemoteSeedInitializerServer(clientCommunicator, baseInitializer, mapping);
   }
 
 protected:
-  RemoteSeedInitializer(Communicator * cc, SeedInitializer * si, SliceMapping * m);
+  RemoteSeedInitializerServer(Communicator * cc, SeedInitializer * si, SliceMapping * m);
 
 private:
   Communicator * clientCommunicator_;
@@ -41,4 +41,4 @@ private:
 } // end namespace Hts
 } // end namespace Pita
 
-#endif /* PITA_HTS_REMOTESEEDINITIALIZER_H */
+#endif /* PITA_HTS_REMOTESEEDINITIALIZERSERVER_H */

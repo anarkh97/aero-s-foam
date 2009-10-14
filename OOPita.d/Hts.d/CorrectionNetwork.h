@@ -5,10 +5,9 @@
 #include "Types.h"
 
 #include "BasisCollector.h"
-
-#include "../JumpProjector.h"
-#include "../UpdatedSeedAssembler.h"
-#include "ReducedFullTimeSlice.h"
+#include "../DynamStateBasis.h"
+#include "../RankDeficientSolver.h"
+#include <Math.d/FullSquareMatrix.h>
 
 namespace Pita { namespace Hts {
 
@@ -18,9 +17,10 @@ public:
 
   virtual BasisCollector * collector() const = 0;
 
-  virtual JumpProjector::Manager * jumpProjectorMgr() const = 0;
-  virtual UpdatedSeedAssembler::Manager * updatedSeedAssemblerMgr() const = 0;
-  virtual ReducedFullTimeSlice::Manager * fullTimeSliceMgr() const = 0;
+  virtual const DynamStateBasis * projectionBasis() const = 0;
+  virtual const DynamStateBasis * propagatedBasis() const = 0;
+  virtual const RankDeficientSolver * normalMatrixSolver() const = 0;
+  virtual const FullSquareMatrix * reprojectionMatrix() const = 0;
 
   EXPORT_PTRINTERFACE_TYPES(CorrectionNetwork);
 

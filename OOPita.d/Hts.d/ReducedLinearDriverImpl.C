@@ -31,105 +31,134 @@
 #include "HalfTimeSliceImpl.h"
 
 #include "ReducedFullTimeSliceImpl.h"
-#include "../JumpProjector.h"
-#include "../UpdatedSeedAssembler.h"
+#include "../JumpProjectorImpl.h"
+#include "../UpdatedSeedAssemblerImpl.h"
 #include "LocalCorrectionTimeSlice.h"
 
+#include "../CommSplitter.h"
 #include <Comm.d/Communicator.h>
-extern Communicator * structCom;
-
 
 #include <Driver.d/Domain.h>
-extern Domain * domain;
 
 #include "LocalNetwork.h"
 
 namespace Pita { namespace Hts {
 
-ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc) :
-  probDesc_(pbDesc)
-{
-  probDesc_->preProcess();
+ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
+                                                 Domain * domain,
+                                                 SolverInfo * solverInfo,
+                                                 Communicator * baseComm) :
+  probDesc_(pbDesc),
+  domain_(domain),
+  solverInfo_(solverInfo),
+  baseComm_(baseComm)
+{}
+
+void
+ReducedLinearDriverImpl::preprocess() {
+  double tic = getTime();
   
-  /* Time domain */
-  fineTimeStep_ = Seconds(domain->solInfo().dt);
-  halfSliceRatio_ = TimeStepCount(domain->solInfo().Jratio / 2);
+  probDesc()->preProcess();
+  
+  /* Space-domain */
+  vectorSize_ = probDesc()->solVecInfo();
+  dynamOpsMgr_= LinearDynamOps::Manager::New(probDesc());
+
+  /* Time-domain */
+  fineTimeStep_ = Seconds(solverInfo()->dt);
+  halfSliceRatio_ = TimeStepCount(solverInfo()->Jratio / 2);
   sliceRatio_ = TimeStepCount(halfSliceRatio_.value() * 2);
   coarseTimeStep_ = fineTimeStep_ * sliceRatio_.value(); 
-  initialTime_ = Seconds(domain->solInfo().initialTime);
-  finalTime_ = Seconds(domain->solInfo().tmax);
+  initialTime_ = Seconds(solverInfo()->initialTime);
+  finalTime_ = Seconds(solverInfo()->tmax);
+ 
+  HalfSliceCount numSlices(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (halfSliceRatio_.value() * fineTimeStep_.value()))));
+  FullSliceCount fullTimeSlices((numSlices.value() / 2) + (numSlices.value() % 2));
+  numSlices = HalfSliceCount(fullTimeSlices.value() * 2);
+  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * halfSliceRatio_.value()); // To have a whole number of full time-slices 
   
-  /* Time domain decomposition */
-  numSlices_ = HalfSliceCount(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (halfSliceRatio_.value() * fineTimeStep_.value()))));
-  fullTimeSlices_ = FullSliceCount((numSlices_.value() / 2) + (numSlices_.value() % 2));
-  numSlices_ = HalfSliceCount(fullTimeSlices_.value() * 2);
-  finalTime_ = fineTimeStep_ * Seconds(numSlices_.value() * halfSliceRatio_.value());
+  /* Main options */
+  noForce_ = solverInfo()->NoForcePita;
+  remoteCoarse_ = solverInfo()->remoteCoarse && (baseComm()->numCPUs() > 1) && noForce_; // TODO allow also for non-homogeneous
 
-  /* Other parameters & options */ 
-  maxActive_ = HalfSliceCount(domain->solInfo().numTSperCycleperCPU);
-  lastIteration_ = IterationRank(domain->solInfo().kiter);
-  projectorTolerance_ = domain->solInfo().pitaProjTol;
-  noForce_ = domain->solInfo().NoForcePita;
+  /* Load balancing */ 
+  CpuCount numCpus(baseComm()->numCPUs() - (remoteCoarse_ ? 1 : 0));
+  HalfSliceCount maxActive(solverInfo()->numTSperCycleperCPU);
+  mapping_ = SliceMapping::New(fullTimeSlices, numCpus, maxActive);
+
+  /* Other parameters */ 
+  lastIteration_ = IterationRank(solverInfo()->kiter);
+  projectorTolerance_ = solverInfo()->pitaProjTol;
+  coarseRhoInfinity_ = 1.0; // TODO Could be set in input file
  
-  /* Available cpus and communication */ 
-  remoteCoarse_ = false; //domain->solInfo().remoteCoarse && (timeCom_->numCPUs() > 1);
-  timeCom_ = structCom;
-  numCpus_ = CpuCount(timeCom_->numCPUs() - (remoteCoarse_ ? 1 : 0));
-  myCpu_ = CpuRank(timeCom_->myID());
- 
-  /* Initial state */
-  vectorSize_ = probDesc_->solVecInfo();
-  initialSeed_ = DynamState(vectorSize_);
-  Vector & init_d = initialSeed_.displacement();
-  Vector & init_v = initialSeed_.velocity();
-  Vector init_a(vectorSize_);
-  Vector init_vp(vectorSize_);
-  domain->initDispVeloc(init_d, init_v, init_a, init_vp);
+  double toc = getTime();
+  log() << "\n";
+  log() << "Total Preprocessing Time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
 void
 ReducedLinearDriverImpl::solve() {
-  double tic = getTime();
-  
-  /* Summarize problem and parameters */ 
-  log() << "vectorSize = " << vectorSize_ << "\n";
-  log() << "Slices = " << numSlices_ << ", MaxActive = " << maxActive_ << ", Cpus = " << numCpus_ << "\n";
-  log() << "Num iter = " << lastIteration_ << "\n"; 
-  log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", tf = " << finalTime_ << "\n";
- 
+  log() << "Begin Reversible Linear Pita\n";
+  double tic = getTime(); // Total time
+
   try {
-    solveParallel();
+    preprocess();
+
+    /* Summarize problem and parameters */
+    log() << "\n"; 
+    log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
+    log() << "Iteration count = " << lastIteration_ << "\n"; 
+    log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+    if (noForce_) { log() << "No external force\n"; }
+    if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
+    log() << "VectorSize = " << vectorSize_ << " dofs\n";
+    log() << "Projector tol = " << projectorTolerance_ << "\n";
+
+    /* Determine process task */
+    if (remoteCoarse_) { // TODO Consider non homgeneous
+      CommSplitter::Ptr commSplitter = CommSplitter::New(baseComm(), CpuCount(1)); // Specializes one cpu
+
+      if (commSplitter->localGroup() == CommSplitter::STANDARD) {
+        solveParallel(commSplitter->splitComm());
+      } else {
+        solveCoarse(commSplitter->interComm());
+      }
+
+    } else {
+      solveParallel(baseComm());
+    }
+
   } catch(Fwk::Exception & e) {
-    log() << e.what() << "\n";
+    log() << "\n" << e.what() << "\n";
   }
   
   double toc = getTime();
 
-  log() << "\nTotal Solve Time = " << (toc - tic) / 1000.0 << " s\n";
-  log() << "\nEnd Reduced HalfSlice Linear Pita\n";
+  log() << "\n";
+  log() << "Total Time = " << (toc - tic) / 1000.0 << " s\n";
+
+  log() << "\n";
+  log() << "End Reversible Linear Pita\n";
 }
 
 void
-ReducedLinearDriverImpl::solveParallel() {
+ReducedLinearDriverImpl::solveParallel(Communicator * timeComm) {
+  log() << "\n";
+  log() << "Parallel solver initialization\n";
 
-  /* Time Integration */
-  LinearDynamOps::Manager::Ptr dopsManager = LinearDynamOps::Manager::New(probDesc());
-  double fineRhoInfinity = 1.0;
+  /* Local process identity */
+  CpuRank myCpu(timeComm->myID());
 
-  GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, fineRhoInfinity);
-  LinearDynamOps::Ptr dynamOps = dopsManager->dynOpsNew(fineIntegrationParam);
-
-  /* Postprocessing */ 
-  std::vector<int> localFileId(numSlices_.value(), 0);
-  for (int i = 0; i < numSlices_.value(); ++i) {
-    localFileId[i] = i;
+  /* Postprocessing */
+  std::vector<int> localFileId;
+  for (SliceMapping::SliceIterator it = mapping_->hostedSlice(myCpu); it; ++it) {
+    localFileId.push_back((*it).value());
   }
-  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc_->getPostProcessor());
+  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc()->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   PostProcessing::Manager::Ptr postProcessingMgr = PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 
-  /* Correction */
-  SliceMapping::Ptr mapping = SliceMapping::New(fullTimeSlices_, numCpus_, maxActive_.value()); // TODO
+  /* Local Basis Collector */
   BasisCollectorImpl::Ptr collector;
   if (noForce_) {
     collector = BasisCollectorImpl::New();
@@ -137,19 +166,12 @@ ReducedLinearDriverImpl::solveParallel() {
     collector = NonHomogeneousBasisCollectorImpl::New();
   }
 
-  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
-  CorrectionNetworkImpl::Ptr correctionMgr =
-    CorrectionNetworkImpl::New(
-        vectorSize_,
-        timeCom_,
-        myCpu_,
-        mapping.ptr(),
-        collector.ptr(),
-        dynamOps.ptr(),
-        normalMatrixSolver.ptr()); 
+  /* Fine time integration */
+  const double noDampingRhoInfinity = 1.0; // No damping allowed for time-reversible
+  GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, noDampingRhoInfinity);
+  LinearDynamOps::Ptr dynamOps = dynamOpsMgr_->dynOpsNew(fineIntegrationParam);
 
-  /* Fine integrators */
-  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dopsManager.ptr(), fineIntegrationParam);
+  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
   PropagatorManager::Ptr propagatorMgr =
     new PropagatorManager(
@@ -158,34 +180,45 @@ ReducedLinearDriverImpl::solveParallel() {
         postProcessingMgr.ptr(),
         halfSliceRatio_,
         initialTime_);
-
-  /* Tasks */
+  
   HalfTimeSliceImpl::Manager::Ptr hsMgr = HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
-  JumpProjector::Manager::Ptr jpMgr = correctionMgr->jumpProjectorMgr();
-  ReducedFullTimeSlice::Manager::Ptr fsMgr = correctionMgr->fullTimeSliceMgr();
-  UpdatedSeedAssembler::Manager::Ptr usaMgr = correctionMgr->updatedSeedAssemblerMgr();
+  
+  /* Correction */
+  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
+  
+  CorrectionNetworkImpl::Ptr correctionMgr = CorrectionNetworkImpl::New(
+      vectorSize_,
+      timeComm,
+      myCpu,
+      mapping_.ptr(),
+      collector.ptr(),
+      dynamOps.ptr(),
+      normalMatrixSolver.ptr());
+
+  JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
+  ReducedFullTimeSlice::Manager::Ptr fsMgr = ReducedFullTimeSliceImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
+  UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
 
   /* Mpi communication manager */
-  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeCom_);
+  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm);
   commMgr->vectorSizeIs(vectorSize_);
- 
+
+  /// To rework /// 
   /* Coarse time-integration */ 
-  double coarseRhoInfinity = 1.0;
-  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dopsManager.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity));
-  coarseIntegrator->initialConditionIs(initialSeed_, initialTime_);
+  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dynamOpsMgr_.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity_));
+  coarseIntegrator->initialConditionIs(initialSeed(), initialTime_);
   DynamPropagator::Ptr coarsePropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
  
   CorrectionTimeSlice::Manager::Ptr ctsMgr;
   if (!noForce_) {
     ctsMgr = LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
   }
-  
+
+  /// solve Parallel only /// 
   /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
-      fullTimeSlices_,
-      numCpus_,
-      maxActive_,
-      myCpu_,
+      mapping_.ptr(),
+      myCpu,
       hsMgr.ptr(),
       jpMgr.ptr(),
       fsMgr.ptr(),
@@ -226,7 +259,7 @@ ReducedLinearDriverImpl::solveParallel() {
         ++it) {
       log() << "Zero initial Seed " << it->first << " " << it->second->name() << "\n";
       Seed::Ptr seed = it->second;
-      seed->stateIs(seed->name() == "M0" ? initialSeed_ : DynamState(vectorSize_, 0.0));
+      seed->stateIs(seed->name() == "M0" ? initialSeed() : DynamState(vectorSize_, 0.0));
       seed->iterationIs(iteration);
       Seed::Status status = (it->first == HalfSliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
       if (it->first.value() % 2 != 0) {
@@ -248,7 +281,6 @@ ReducedLinearDriverImpl::solveParallel() {
     if (iteration < lastIteration_) {
 
       network->convergedSlicesInc();
-      mapping->convergedSlicesInc(); // TODO remove one
 
       iteration = iteration.next(); 
       log() << "\nIteration " << iteration << "\n";
@@ -319,7 +351,6 @@ ReducedLinearDriverImpl::solveParallel() {
 
     // Next iteration 
     network->convergedSlicesInc();
-    mapping->convergedSlicesInc(); // TODO remove one
 
     // Propagated Seed Synchronization 
     LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
@@ -384,15 +415,35 @@ ReducedLinearDriverImpl::solveParallel() {
   }
 }
 
+DynamState
+ReducedLinearDriverImpl::initialSeed() const {
+  DynamState result = DynamState(vectorSize_);
+
+  Vector & init_d = result.displacement();
+  Vector & init_v = result.velocity();
+  Vector init_a(vectorSize_);
+  Vector init_vp(vectorSize_);
+  domain()->initDispVeloc(init_d, init_v, init_a, init_vp);
+
+  return result;
+}
+
 void
-solveCoarse() {
+ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
   // TODO
+  log() << "\n";
+  log() << "TODO ReducedLinearDriverImpl::solveCoarse\n";
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
+// Global state
+extern Communicator * structCom;
+extern Domain * domain;
+
 /* Entrypoint */
 Pita::LinearDriver::Ptr
 linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
-  return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc);
+  return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, domain, &domain->solInfo(), structCom);
 }
+

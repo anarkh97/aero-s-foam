@@ -7,21 +7,11 @@
 #include "CorrectionNetwork.h"
 
 #include "SliceMapping.h"
-
 #include "../DynamOps.h"
-
 #include "BasisCollectorImpl.h"
-
-#include "../JumpProjectorImpl.h"
-#include "../UpdatedSeedAssemblerImpl.h"
-#include "ReducedFullTimeSliceImpl.h"
-
-#include "../RankDeficientSolver.h"
-#include <Math.d/FullSquareMatrix.h>
-
 #include "../DynamStatePlainBasis.h"
-#include "../SimpleBuffer.h"
 
+#include "../SimpleBuffer.h"
 #include <list>
 #include <map>
 
@@ -37,9 +27,10 @@ public:
 
   virtual BasisCollector * collector() const { return collector_.ptr(); }
   
-  virtual JumpProjectorImpl::Manager * jumpProjectorMgr() const { return jumpProjectorMgr_.ptr(); }
-  virtual UpdatedSeedAssemblerImpl::Manager * updatedSeedAssemblerMgr() const { return updatedSeedAssemblerMgr_.ptr() ;} 
-  virtual ReducedFullTimeSliceImpl::Manager * fullTimeSliceMgr() const { return fullTimeSliceMgr_.ptr(); }
+  virtual const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
+  virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
+  virtual const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
+  virtual const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
   
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
                  const SliceMapping * mapping,
@@ -149,20 +140,15 @@ private:
 
   typedef std::map<int, DynamState> LocalBasis;
   LocalBasis localBasis_;
+  
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
-
   FullSquareMatrix normalMatrix_;
   FullSquareMatrix reprojectionMatrix_;
-
   RankDeficientSolver::Ptr solver_;
   
   BasisCollectorImpl::Ptr collector_;
   
-  JumpProjectorImpl::Manager::Ptr jumpProjectorMgr_;
-  UpdatedSeedAssemblerImpl::Manager::Ptr updatedSeedAssemblerMgr_;
-  ReducedFullTimeSliceImpl::Manager::Ptr fullTimeSliceMgr_;
-
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;
 };

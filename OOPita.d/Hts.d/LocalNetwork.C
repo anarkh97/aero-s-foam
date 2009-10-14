@@ -24,9 +24,7 @@ private:
   HalfSliceRank ref_;
 }*/
 
-LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
-                           CpuCount availableCpus,
-                           HalfSliceCount maxWorkload,
+LocalNetwork::LocalNetwork(SliceMapping * mapping,
                            CpuRank localCpu,
                            HalfTimeSlice::Manager * sliceMgr,
                            JumpProjector::Manager * jumpProjMgr,
@@ -34,11 +32,8 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
                            UpdatedSeedAssembler::Manager * usaMgr,
                            CorrectionTimeSlice::Manager * ctsMgr,
                            RemoteState::Manager * commMgr) :
-  totalFullSlices_(totalFullSlices),
-  availableCpus_(availableCpus),
-  maxWorkload_(maxWorkload),
+  mapping_(mapping),
   localCpu_(localCpu),
-  taskManager_(LoadBalancer::New(2 * totalFullSlices.value(), availableCpus.value(), maxWorkload.value())),
   sliceMgr_(sliceMgr),
   jumpProjMgr_(jumpProjMgr),
   ftsMgr_(ftsMgr),
@@ -53,17 +48,17 @@ LocalNetwork::LocalNetwork(FullSliceCount totalFullSlices,
 
 void
 LocalNetwork::init() {
-  for (LoadBalancer::TaskIterator it = taskManager_->tasks(localCpu().value()); it; ++it) {
-    HalfSliceRank sliceRank(*it);
+  for (SliceMapping::SliceIterator it = mapping_->hostedSlice(localCpu()); it; ++it) {
+    HalfSliceRank sliceRank = *it;
     HalfSliceRank nextSliceRank = sliceRank + HalfSliceCount(1);
     HalfSliceRank previousSliceRank = sliceRank - HalfSliceCount(1);
     HalfSliceRank previousFullSliceRank = sliceRank - HalfSliceCount(2);
     HalfSliceRank nextFullSliceRank = sliceRank + HalfSliceCount(2);
     
-    CpuRank previousCpu(taskManager_->worker(previousSliceRank.value()));
-    CpuRank nextCpu(taskManager_->worker(nextSliceRank.value()));
-    CpuRank previousFullSliceCpu(taskManager_->worker(previousFullSliceRank.value()));
-    CpuRank nextFullSliceCpu(taskManager_->worker(nextFullSliceRank.value()));
+    CpuRank previousCpu = mapping_->hostCpu(previousSliceRank);
+    CpuRank nextCpu(mapping_->hostCpu(nextSliceRank));
+    CpuRank previousFullSliceCpu(mapping_->hostCpu(previousFullSliceRank));
+    CpuRank nextFullSliceCpu(mapping_->hostCpu(nextFullSliceRank));
     
     // HalfTimeSlices
     HalfTimeSlice::Ptr forwardSlice = sliceMgr_->instanceNew(HalfSliceId(sliceRank, HalfTimeSlice::FORWARD));
@@ -308,7 +303,7 @@ private:
 
 void
 LocalNetwork::convergedSlicesInc() {
-  taskManager_->completedTasksInc(1);
+  mapping_->convergedSlicesInc();
   halfTimeSlice_.erase(std::remove_if(halfTimeSlice_.begin(), halfTimeSlice_.end(),
                                       HalfSliceIsConverged(firstActiveSlice())),
                        halfTimeSlice_.end());
@@ -323,8 +318,6 @@ LocalNetwork::convergedSlicesInc() {
   fullCorrectionSync_.erase(fullCorrectionSync_.begin(), fullCorrectionSync_.lower_bound(firstActiveSlice()));
   
   mainSeed_.erase(mainSeed_.begin(), mainSeed_.lower_bound(firstActiveSlice()));
-
-
 }
 
 LocalNetwork::TaskList
@@ -351,7 +344,7 @@ LocalNetwork::activeJumpProjectors() const {
 
   TaskMap::const_iterator it_end = jumpProjector_.end();
   for (TaskMap::const_iterator it = jumpProjector_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
+    if ((it->first.value() - mapping_->firstActiveSlice().value()) % 2 == 0) {
       active.push_back(it->second);
     }
   }
@@ -365,7 +358,7 @@ LocalNetwork::activeLeftSeedSyncs() const {
 
   TaskMap::const_iterator it_end = leftSeedSync_.end();
   for (TaskMap::const_iterator it = leftSeedSync_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
+    if ((it->first.value() - mapping_->firstActiveSlice().value()) % 2 == 0) {
       active.push_back(it->second);
     }
   }
@@ -379,7 +372,7 @@ LocalNetwork::activeLeftSeedReaders() const {
 
   SRMap::const_iterator it_end = leftSeedReader_.end();
   for (SRMap::const_iterator it = leftSeedReader_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
+    if ((it->first - mapping_->firstActiveSlice()) % 2 == 0) {
       active.push_back(it->second);
     }
   }
@@ -407,8 +400,8 @@ LocalNetwork::TaskList
 LocalNetwork::activeFullTimeSlices() const {
   TaskList result;
 
-  CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
-  CpuRank lastConvergedCpu(taskManager_->worker(taskManager_->firstCurrentTask()) - 1);
+  CpuRank firstActiveCpu = mapping_->hostCpu(mapping_->firstActiveSlice());
+  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice()) - CpuCount(1);
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Zero Correction");
@@ -461,8 +454,8 @@ LocalNetwork::TaskList
 LocalNetwork::activeCoarseTimeSlices() const {
   TaskList result;
 
-  CpuRank firstActiveCpu(taskManager_->worker(taskManager_->firstCurrentTask()));
-  CpuRank lastConvergedCpu(taskManager_->worker(taskManager_->firstCurrentTask()) - 1);
+  CpuRank firstActiveCpu = mapping_->hostCpu(mapping_->firstActiveSlice());
+  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice()) - CpuCount(1);
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Zero Coarse Correction");
@@ -508,7 +501,7 @@ LocalNetwork::activeMainSeeds() const {
 
   SeedMap::const_iterator it_end = mainSeed_.end();
   for (SeedMap::const_iterator it = mainSeed_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - taskManager_->firstCurrentTask()) % 2 == 0) {
+    if ((it->first.value() - mapping_->firstActiveSlice().value()) % 2 == 0) {
       msp.insert(msp.end(), std::make_pair(SliceRank(it->first.value() / 2), it->second));
     }
   }

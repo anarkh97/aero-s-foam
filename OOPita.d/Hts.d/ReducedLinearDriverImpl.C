@@ -194,8 +194,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       ctsMgr.ptr(),
       commMgr.ptr());
 
-  log() << "\n";
-
   /* Initial seeds */
   IterationRank iteration;
  

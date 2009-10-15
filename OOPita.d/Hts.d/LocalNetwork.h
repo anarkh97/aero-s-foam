@@ -92,12 +92,14 @@ private:
   
   HTSList halfTimeSlice_;
   TaskMap jumpProjector_;
-  TaskMap fullTimeSlice_;
+  TaskMap evenFullTimeSlice_;
+  TaskMap oddFullTimeSlice_;
   TaskMap correctionSync_;
   TaskMap seedAssembler_;
   TaskMap leftSeedSync_;
 
-  TaskMap coarseTimeSlice_;
+  TaskMap evenCoarseTimeSlice_;
+  TaskMap oddCoarseTimeSlice_;
   TaskMap fullCorrectionSync_;
   
   SeedMap mainSeed_; 

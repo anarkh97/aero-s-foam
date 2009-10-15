@@ -6,8 +6,9 @@
 #include <algorithm>
 #include <iterator>
 
-namespace Pita {
-namespace Hts {
+#include <cassert>
+
+namespace Pita { namespace Hts {
 
 /*struct SameParity {
 public:
@@ -84,6 +85,7 @@ LocalNetwork::init() {
     jumpProjector_.insert(jumpProjector_.end(), std::make_pair(sliceRank, jumpProjector));
 
     // FullTimeSlices
+    TaskMap & fullTimeSlice = ((sliceRank.value()) % 2 == 0) ? evenFullTimeSlice_ : oddFullTimeSlice_;
     ReducedSeed::Ptr correction = getReducedSeed(SeedId(SEED_CORRECTION, sliceRank));
     ReducedSeed::Ptr nextCorrection(NULL);
     if (nextSliceRank < firstInactiveSlice()) {
@@ -93,7 +95,7 @@ LocalNetwork::init() {
       nextCorrection = getReducedSeed(SeedId(SEED_CORRECTION, nextFullSliceRank));
       fullSlice->nextCorrectionIs(nextCorrection.ptr());
       //log() << "Setup FTS head/tail = " << fullSlice->headHalfSlice() << "/" << fullSlice->tailHalfSlice() << "\n";
-      fullTimeSlice_.insert(std::make_pair(sliceRank, fullSlice));
+      fullTimeSlice.insert(std::make_pair(sliceRank, fullSlice));
     }
 
     // Update
@@ -141,7 +143,7 @@ LocalNetwork::init() {
       if (writer) {
         String taskName = String("Receive Correction ") + toString(sliceRank);
         RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
-        fullTimeSlice_.insert(std::make_pair(previousFullSliceRank, task));
+        fullTimeSlice.insert(std::make_pair(previousSliceRank, task));
       }
     }
     if (nextCorrection) {    
@@ -150,7 +152,7 @@ LocalNetwork::init() {
         if (reader) {
           String taskName = String("Send Correction ") + toString(nextFullSliceRank);
           RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
-          fullTimeSlice_.insert(std::make_pair(nextFullSliceRank, task));
+          fullTimeSlice.insert(std::make_pair(nextSliceRank, task));
         }
       }
     }
@@ -177,6 +179,8 @@ LocalNetwork::init() {
 
     // Affine (HACK)
     if (ctsMgr_) {
+      TaskMap & coarseTimeSlice = ((sliceRank.value()) % 2 == 0) ? evenCoarseTimeSlice_ : oddCoarseTimeSlice_;
+      
       Seed::Ptr correction = getSeed(SeedId(SEED_CORRECTION, sliceRank));
       Seed::Ptr nextCorrection(NULL);
       // Coarse Propagation
@@ -188,7 +192,7 @@ LocalNetwork::init() {
         correctionSlice->jumpIs(getSeed(SeedId(SEED_JUMP, sliceRank)));
         nextCorrection = getSeed(SeedId(SEED_CORRECTION, nextFullSliceRank));
         correctionSlice->nextCorrectionIs(nextCorrection.ptr());
-        coarseTimeSlice_.insert(std::make_pair(sliceRank, correctionSlice.ptr()));
+        coarseTimeSlice.insert(std::make_pair(sliceRank, correctionSlice.ptr()));
       }
 
       // Communications: Correction during coarse propagation (sequential phase)
@@ -197,7 +201,7 @@ LocalNetwork::init() {
         if (writer) {
           String taskName = String("Receive (Affine) Coarse Correction ") + toString(sliceRank);
           RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
-          coarseTimeSlice_.insert(std::make_pair(previousFullSliceRank, task));
+          coarseTimeSlice.insert(std::make_pair(previousFullSliceRank, task));
         }
       }
       if (nextCorrection) {    
@@ -206,7 +210,7 @@ LocalNetwork::init() {
           if (reader) {
             String taskName = String("Send (Affine) Coarse Correction ") + toString(nextFullSliceRank);
             RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
-            coarseTimeSlice_.insert(std::make_pair(nextFullSliceRank, task));
+            coarseTimeSlice.insert(std::make_pair(nextFullSliceRank, task));
           }
         }
       }
@@ -310,11 +314,13 @@ LocalNetwork::convergedSlicesInc() {
 
   leftSeedSync_.erase(leftSeedSync_.begin(), leftSeedSync_.lower_bound(firstActiveSlice()));
   jumpProjector_.erase(jumpProjector_.begin(), jumpProjector_.lower_bound(firstActiveSlice()));
-  fullTimeSlice_.erase(fullTimeSlice_.begin(), fullTimeSlice_.lower_bound(firstActiveSlice()));
+  evenFullTimeSlice_.erase(evenFullTimeSlice_.begin(), evenFullTimeSlice_.lower_bound(firstActiveSlice()));
+  oddFullTimeSlice_.erase(oddFullTimeSlice_.begin(), oddFullTimeSlice_.lower_bound(firstActiveSlice()));
   correctionSync_.erase(correctionSync_.begin(), correctionSync_.lower_bound(firstActiveSlice()));
   seedAssembler_.erase(seedAssembler_.begin(), seedAssembler_.lower_bound(firstActiveSlice()));
 
-  coarseTimeSlice_.erase(coarseTimeSlice_.begin(), coarseTimeSlice_.lower_bound(firstActiveSlice()));
+  evenCoarseTimeSlice_.erase(evenCoarseTimeSlice_.begin(), evenCoarseTimeSlice_.lower_bound(firstActiveSlice()));
+  oddCoarseTimeSlice_.erase(oddCoarseTimeSlice_.begin(), oddCoarseTimeSlice_.lower_bound(firstActiveSlice()));
   fullCorrectionSync_.erase(fullCorrectionSync_.begin(), fullCorrectionSync_.lower_bound(firstActiveSlice()));
   
   mainSeed_.erase(mainSeed_.begin(), mainSeed_.lower_bound(firstActiveSlice()));
@@ -401,22 +407,27 @@ LocalNetwork::activeFullTimeSlices() const {
   TaskList result;
 
   CpuRank firstActiveCpu = mapping_->hostCpu(mapping_->firstActiveSlice());
-  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice()) - CpuCount(1);
+  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice() - HalfSliceCount(1));
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Zero Correction");
     ReducedSeed::Ptr firstActiveCorrection = reducedSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
+   
+    assert(firstActiveCorrection);
+    
     zeroCorrection->targetIs(firstActiveCorrection.ptr());
     UpdatedSeedAssembler::Ptr firstActiveAssembler = usaMgr_->instance(toString(firstActiveSlice()));
+    
+    assert(firstActiveAssembler);
+    
     zeroCorrection->stateSizeIs(firstActiveAssembler->reducedBasisSize());
     result.push_back(zeroCorrection);
   }
 
-  TaskMap::const_iterator it_end = fullTimeSlice_.end();
-  for (TaskMap::const_iterator it = fullTimeSlice_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
-      result.push_back(it->second);
-    }
+  const TaskMap & fullTimeSlice = ((firstActiveSlice().value()) % 2 == 0) ? evenFullTimeSlice_ : oddFullTimeSlice_;
+  TaskMap::const_iterator it_end = fullTimeSlice.end();
+  for (TaskMap::const_iterator it = fullTimeSlice.begin(); it != it_end; ++it) {
+    result.push_back(it->second);
   }
 
   return result;
@@ -455,7 +466,7 @@ LocalNetwork::activeCoarseTimeSlices() const {
   TaskList result;
 
   CpuRank firstActiveCpu = mapping_->hostCpu(mapping_->firstActiveSlice());
-  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice()) - CpuCount(1);
+  CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice() - HalfSliceCount(1));
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
     ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Zero Coarse Correction");
@@ -465,8 +476,9 @@ LocalNetwork::activeCoarseTimeSlices() const {
     result.push_back(zeroCorrection);
   }
 
-  TaskMap::const_iterator it_end = coarseTimeSlice_.end();
-  for (TaskMap::const_iterator it = coarseTimeSlice_.begin(); it != it_end; ++it) {
+  const TaskMap & coarseTimeSlice = ((firstActiveSlice().value()) % 2 == 0) ? evenCoarseTimeSlice_ : oddCoarseTimeSlice_;
+  TaskMap::const_iterator it_end = coarseTimeSlice.end();
+  for (TaskMap::const_iterator it = coarseTimeSlice.begin(); it != it_end; ++it) {
     if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
       result.push_back(it->second);
     }

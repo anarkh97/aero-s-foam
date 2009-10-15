@@ -1,8 +1,8 @@
-#include "RemoteDynamPropagator.h"
+#include "RemoteDynamPropagatorProxy.h"
 
 namespace Pita {
 
-RemoteDynamPropagator::RemoteDynamPropagator(
+RemoteDynamPropagatorProxy::RemoteDynamPropagatorProxy(
     size_t vectorSize, Communicator * serverCommunicator, CpuRank serverCpu) :
   DynamPropagator(vectorSize),
   serverCommunicator_(serverCommunicator),
@@ -10,7 +10,7 @@ RemoteDynamPropagator::RemoteDynamPropagator(
 {}
 
 void
-RemoteDynamPropagator::initialStateIs(const DynamState & is) {
+RemoteDynamPropagatorProxy::initialStateIs(const DynamState & is) {
   setInitialState(is);
   initialStateNotify();
 

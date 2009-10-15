@@ -4,21 +4,21 @@
 
 namespace Pita { namespace Hts {
 
-RemoteSeedInitializerServer::RemoteSeedInitializerServer(Communicator * cc, SeedInitializer * si, SliceMapping * m) :
-  clientCommunicator_(cc),
+RemoteSeedInitializerServer::RemoteSeedInitializerServer(Communicator * cc, SeedInitializer * si, const SliceMapping * m) :
+  RemoteCoarseServer(cc, m),
   baseInitializer_(si),
-  mapping_(m),
-  status_(READY),
   sBuffer_()
 {}
 
 void
-RemoteSeedInitializerServer::statusIs(RemoteSeedInitializerServer::Status s) {
+RemoteSeedInitializerServer::statusIs(RemoteCoarseServer::Status s) {
   if (status() == s)
     return;
 
   if (s == BUSY) {
-    int seedCount = (mapping_->activeSlices().value() / 2) + 1;
+    setStatus(BUSY);
+
+    int seedCount = (clientMapping()->activeSlices().value() / 2) + 1;
     size_t stateSize = 2 * baseInitializer_->vectorSize();
     sBuffer_.sizeIs(stateSize * seedCount);
  
@@ -29,23 +29,23 @@ RemoteSeedInitializerServer::statusIs(RemoteSeedInitializerServer::Status s) {
      
       CpuRank backwardTarget(-1);
       if (s != 0) {
-        backwardTarget = mapping_->hostCpu(HalfSliceRank(s * 2 - 1));
-        clientCommunicator_->sendTo(backwardTarget.value(), s, buffer, stateSize);
+        backwardTarget = clientMapping()->hostCpu(HalfSliceRank(s * 2 - 1));
+        clientCommunicator()->sendTo(backwardTarget.value(), s, buffer, stateSize);
       }
 
       CpuRank forwardTarget(-1);
       if (s != seedCount - 1) {
-        forwardTarget = mapping_->hostCpu(HalfSliceRank(s * 2));
+        forwardTarget = clientMapping()->hostCpu(HalfSliceRank(s * 2));
         if (forwardTarget != backwardTarget) {
-          clientCommunicator_->sendTo(forwardTarget.value(), s, buffer, stateSize);
+          clientCommunicator()->sendTo(forwardTarget.value(), s, buffer, stateSize);
         }
       }
     }
 
-    clientCommunicator_->waitForAllReq();
+    clientCommunicator()->waitForAllReq();
   }
   
-  status_ = READY;
+  setStatus(READY);
 }
 
 } /* end namespace Hts */ } /* end namespace Hts */

@@ -36,7 +36,7 @@ PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
 ProjectorPropagator.C
-RemoteDynamPropagator.C
+RemoteDynamPropagatorProxy.C
 RemoteDynamPropagatorServer.C
 RemoteSeedInitializerProxy.C
 RemoteSeedReader.C
@@ -64,5 +64,6 @@ Hts.d/NonHomogeneousBasisCollectorImpl.C
 Hts.d/PropagatorManager.C
 Hts.d/ReducedFullTimeSliceImpl.C
 Hts.d/ReducedLinearDriverImpl.C
+Hts.d/RemoteCoarseCorrectionServer.C
 Hts.d/RemoteSeedInitializerServer.C
 Hts.d/SliceMapping.C)

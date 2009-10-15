@@ -3,37 +3,33 @@
 
 #include "Fwk.h"
 #include "Types.h"
-#include "SliceMapping.h"
+
+#include "RemoteCoarseServer.h" 
+
 #include "../RemoteDynamPropagatorServer.h"
 
 #include <map>
 
 namespace Pita { namespace Hts {
 
-class RemoteCoarseCorrectionServer : public Fwk::PtrInterface<RemoteCoarseCorrectionServer> {
+class RemoteCoarseCorrectionServer : public RemoteCoarseServer {
 public:
   EXPORT_PTRINTERFACE_TYPES(RemoteCoarseCorrectionServer);
 
-  enum Status {
-    IDLE = 0,
-    ACTIVE
-  };
-
-  Status status() const { return status_; }
+  virtual void statusIs(Status s); // overriden
+  
   RemoteDynamPropagatorServer * server() const { return server_.ptr(); }
-  const SliceMapping * mapping() const { return mapping_.ptr(); }
 
-  void statusIs(Status s);
+  // Caution: mapping must be kept up-to-date 
+  static Ptr New(RemoteDynamPropagatorServer * server, const SliceMapping * mapping) {
+    return new RemoteCoarseCorrectionServer(server, mapping);
+  }
 
-  RemoteCoarseCorrectionServer(
-      RemoteDynamPropagatorServer * server,
-      const SliceMapping * mapping,
-      PhaseRank correctionPhase);
+protected:
+  RemoteCoarseCorrectionServer(RemoteDynamPropagatorServer * server, const SliceMapping * mapping);
 
 private:
-  Status status_;
   RemoteDynamPropagatorServer::Ptr server_;
-  SliceMapping::PtrConst mapping_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteCoarseCorrectionServer);
 };

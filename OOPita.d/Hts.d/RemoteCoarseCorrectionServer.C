@@ -4,45 +4,31 @@ namespace Pita { namespace Hts {
 
 RemoteCoarseCorrectionServer::RemoteCoarseCorrectionServer(
     RemoteDynamPropagatorServer * server,
-    const SliceMapping * mapping,
-    PhaseRank correctionPhase) :
-  status_(IDLE),
-  server_(server),
-  mapping_(mapping)
+    const SliceMapping * clientMapping) :
+  RemoteCoarseServer(server->clientCommunicator(), clientMapping),
+  server_(server)
 {}
 
 void
 RemoteCoarseCorrectionServer::statusIs(Status s) {
-  /*if (s != status()) {
-    if (s == ACTIVE) {
-      Activity * activity = correctionReactor_->notifier().ptr();
-      activity->iterationIs(IterationRank(1));
-      activity->phaseIs(correctionPhase());
-      activity->statusIs(Activity::scheduled);
-    }
-    status_ = s;
-  }*/
-  // TODO
-}
+  if (status() == s)
+    return;
 
-// CorrectionReactor
+  if (s == BUSY) {
+    setStatus(BUSY);
 
-/*
-void
-RemoteCoarseCorrectionServer::CorrectionReactor::onStatus() {
-  if (notifier()->status() == Activity::executing) {
-    const SliceMapping * mapping = parent_->mapping();
-    int seedCount = mapping->activeSlices().value() / 2;
-
-    for (int s = 0; s < seedCount; ++s) {
-      CpuRank clientCpu = mapping->hostCpu(SliceId(BACKWARD_HALF_SLICE, HalfSliceRank(s * 2 + 1)));
-      parent_->server()->initialStateNew(clientCpu);
+    // Only serve the even-numbered (starting from first active) active slices
+    // That is: (firstActive, firstActive + 2, ..., firstActive + 2*n)
+    // where firstActive + 2*n + 1 < firstInactive and firstActive + 2*n + 3 >= firstInactive
+    HalfSliceRank firstInactive = clientMapping()->firstInactiveSlice();
+    for (HalfSliceRank r = clientMapping()->firstActiveSlice(); r + HalfSliceCount(1) < firstInactive; r = r + HalfSliceCount(2)) {
+      CpuRank clientCpu = clientMapping()->hostCpu(r);
+      server_->initialStateNew(clientCpu);
     }
   }
 
-  parent_->statusIs(ACTIVE);
+  setStatus(READY);
 }
-*/
-// TODO
+
 
 } /* end namespace Hts */ } /* end namespace Pita */

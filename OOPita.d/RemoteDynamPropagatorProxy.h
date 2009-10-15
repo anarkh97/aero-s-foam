@@ -1,5 +1,5 @@
-#ifndef PITA_REMOTEPROPAGATOR_H
-#define PITA_REMOTEPROPAGATOR_H
+#ifndef PITA_REMOTEPROPAGATORPPROXY_H
+#define PITA_REMOTEPROPAGATORPPROXY_H
 
 #include "DynamPropagator.h"
 #include "SimpleBuffer.h"
@@ -7,9 +7,9 @@
 
 namespace Pita {
 
-class RemoteDynamPropagator : public DynamPropagator {
+class RemoteDynamPropagatorProxy : public DynamPropagator {
 public:
-  EXPORT_PTRINTERFACE_TYPES(RemoteDynamPropagator);
+  EXPORT_PTRINTERFACE_TYPES(RemoteDynamPropagatorProxy);
 
   // Added
   Communicator * serverCommunicator() const { return serverCommunicator_; }
@@ -19,11 +19,11 @@ public:
   virtual void initialStateIs(const DynamState & is);
 
   static Ptr New(size_t vectorSize, Communicator * serverCommunicator, CpuRank serverCpu) {
-    return new RemoteDynamPropagator(vectorSize, serverCommunicator, serverCpu);
+    return new RemoteDynamPropagatorProxy(vectorSize, serverCommunicator, serverCpu);
   }
 
 protected:
-  RemoteDynamPropagator(size_t vectorSize, Communicator * serverCommunicator, CpuRank serverCpu);
+  RemoteDynamPropagatorProxy(size_t vectorSize, Communicator * serverCommunicator, CpuRank serverCpu);
   
 private:
   Communicator * serverCommunicator_;
@@ -34,4 +34,4 @@ private:
 
 } // end namespace Pita
 
-#endif /* PITA_REMOTEPROPAGATOR_H */
+#endif /* PITA_REMOTEPROPAGATORPPROXY_H */

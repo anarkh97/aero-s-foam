@@ -38,6 +38,9 @@
 #include "RemoteSeedInitializerServer.h"
 #include "../RemoteSeedInitializerProxy.h"
 
+#include "../RemoteDynamPropagatorProxy.h"
+#include "RemoteCoarseCorrectionServer.h"
+
 #include "../CommSplitter.h"
 #include <Comm.d/Communicator.h>
 
@@ -63,46 +66,35 @@ ReducedLinearDriverImpl::solve() {
   log() << "Begin Reversible Linear Pita\n";
   double tic = getTime(); // Total time
 
-  try {
-    preprocess();
+  preprocess();
 
-    /* Summarize problem and parameters */
-    log() << "\n"; 
-    log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-    log() << "Iteration count = " << lastIteration_ << "\n"; 
-    log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
-    if (noForce_) { log() << "No external force\n"; }
-    if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
-    log() << "VectorSize = " << vectorSize_ << " dofs\n";
-    log() << "Projector tol = " << projectorTolerance_ << "\n";
+  /* Summarize problem and parameters */
+  log() << "\n"; 
+  log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+  if (noForce_) { log() << "No external force\n"; }
+  if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
+  log() << "VectorSize = " << vectorSize_ << " dofs\n";
+  log() << "Projector tol = " << projectorTolerance_ << "\n";
 
-    /* Determine process task */
-    if (remoteCoarse_) { // TODO Consider non homgeneous case
-      CommSplitter::Ptr commSplitter = CommSplitter::New(baseComm(), CpuCount(1)); // Specializes one cpu
+  /* Determine process task */
+  if (remoteCoarse_) {
+    CommSplitter::Ptr commSplitter = CommSplitter::New(baseComm(), CpuCount(1)); // Specializes one cpu
 
-      if (commSplitter->localGroup() == CommSplitter::STANDARD) {
-        solveParallel(commSplitter->splitComm(), commSplitter->interComm());
-      } else {
-        solveCoarse(commSplitter->interComm());
-      }
-
+    if (commSplitter->localGroup() == CommSplitter::STANDARD) {
+      solveParallel(commSplitter->splitComm(), commSplitter->interComm());
     } else {
-      solveParallel(baseComm(), NULL);
+      solveCoarse(commSplitter->interComm());
     }
-
-  } catch(Fwk::Exception & e) {
-    log() << "\n" << e.what() << "\n";
+  } else {
+    solveParallel(baseComm(), NULL);
   }
   
   double toc = getTime();
-
-  log() << "\n";
-  log() << "Total Time = " << (toc - tic) / 1000.0 << " s\n";
-
-  log() << "\n";
-  log() << "End Reversible Linear Pita\n";
+  log() << "\n" << "Total Time = " << (toc - tic) / 1000.0 << " s\n";
+  log() << "\n" << "End Reversible Linear Pita\n";
 }
-
 
 void
 ReducedLinearDriverImpl::preprocess() {
@@ -129,7 +121,7 @@ ReducedLinearDriverImpl::preprocess() {
   
   /* Main options */
   noForce_ = solverInfo()->NoForcePita;
-  remoteCoarse_ = solverInfo()->remoteCoarse && (baseComm()->numCPUs() > 1) && noForce_; // TODO allow also for non-homogeneous
+  remoteCoarse_ = solverInfo()->remoteCoarse && (baseComm()->numCPUs() > 1);
 
   /* Load balancing */ 
   CpuCount numCpus(baseComm()->numCPUs() - (remoteCoarse_ ? 1 : 0));
@@ -167,7 +159,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   BasisCollectorImpl::Ptr collector = buildBasisCollector(); 
 
   /* Correction */
-  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO PivotedCholeskySolver
+  RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO Other solver implementations ?
   
   CorrectionNetworkImpl::Ptr correctionMgr = CorrectionNetworkImpl::New(
       vectorSize_,
@@ -188,13 +180,9 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm);
   commMgr->vectorSizeIs(vectorSize_);
 
-  /// To rework /// 
   /* Coarse time-integration */ 
-  LinearGenAlphaIntegrator::Ptr coarseIntegrator = buildCoarseIntegrator(); // Expensive
-  CorrectionTimeSlice::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseIntegrator.ptr());
-  /// End To rework ///
+  CorrectionTimeSlice::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
 
-  /// solve Parallel only /// 
   /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
       mapping_.ptr(),
@@ -395,6 +383,31 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   }
 }
 
+void
+ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
+  RemoteCoarseServer::Ptr coarseServer;
+
+  if (noForce_) {
+    SeedInitializer::Ptr seedInitializer = buildSeedInitializer(true, NULL);
+    coarseServer = RemoteSeedInitializerServer::New(timeComm, seedInitializer.ptr(), mapping_.ptr());
+
+    log() << "\n";
+    log() << "Remote coarse initialization\n";
+  } else {
+    DynamPropagator::Ptr coarsePropagator = buildCoarsePropagator(true, NULL);
+
+    RemoteDynamPropagatorServer::Ptr propagatorServer = new RemoteDynamPropagatorServer(coarsePropagator.ptr(), timeComm);
+    coarseServer = RemoteCoarseCorrectionServer::New(propagatorServer.ptr(), mapping_.ptr());
+
+    mapping_->convergedSlicesInc(); // Since the coarse correction occurs at the second iteration (iteration 0 is after after iteration -1)
+    
+    log() << "\n";
+    log() << "Remote coarse propagation\n";
+  }
+
+  coarseServer->statusIs(RemoteCoarseServer::BUSY);
+}
+
 DynamState
 ReducedLinearDriverImpl::initialSeed() const {
   DynamState result = DynamState(vectorSize_);
@@ -407,7 +420,6 @@ ReducedLinearDriverImpl::initialSeed() const {
 
   return result;
 }
-
 
 HalfTimeSlice::Manager::Ptr
 ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fineIntegrationParam,
@@ -448,42 +460,42 @@ ReducedLinearDriverImpl::buildBasisCollector() const {
 }
 
 CorrectionTimeSlice::Manager::Ptr
-ReducedLinearDriverImpl::buildCoarseCorrection(DynamTimeIntegrator * coarseIntegrator) const {
+ReducedLinearDriverImpl::buildCoarseCorrection(Communicator * coarseComm) const {
   if (noForce_) {
     return NULL;
   }
 
-  DynamPropagator::Ptr coarsePropagator = IntegratorPropagator::New(coarseIntegrator);
+  DynamPropagator::Ptr coarsePropagator = buildCoarsePropagator(!remoteCoarse_, coarseComm);
   return LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
 }
 
 LinearGenAlphaIntegrator::Ptr
 ReducedLinearDriverImpl::buildCoarseIntegrator() const {
-  LinearGenAlphaIntegrator::Ptr coarseIntegrator = new HomogeneousGenAlphaIntegrator(dynamOpsMgr_.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity_));
-  coarseIntegrator->initialConditionIs(initialSeed(), initialTime_);
-  return coarseIntegrator;
+  return new HomogeneousGenAlphaIntegrator(dynamOpsMgr_.ptr(), GeneralizedAlphaParameter(coarseTimeStep_, coarseRhoInfinity_));
 }
+
+DynamPropagator::Ptr
+ReducedLinearDriverImpl::buildCoarsePropagator(bool local, Communicator * coarseComm) const {
+  if (local) {
+    LinearGenAlphaIntegrator::Ptr coarseIntegrator = buildCoarseIntegrator();
+    IntegratorPropagator::Ptr integratorPropagator = IntegratorPropagator::New(coarseIntegrator.ptr());
+    integratorPropagator->timeStepCountIs(TimeStepCount(1));
+    return integratorPropagator;
+  }
+
+  return RemoteDynamPropagatorProxy::New(vectorSize_, coarseComm, CpuRank(0));
+}
+
 
 SeedInitializer::Ptr
 ReducedLinearDriverImpl::buildSeedInitializer(bool local, Communicator * timeComm) const {
   if (local) {
     LinearGenAlphaIntegrator::Ptr coarseIntegrator = buildCoarseIntegrator();
+    coarseIntegrator->initialConditionIs(initialSeed(), initialTime_);
     return IntegratorSeedInitializer::New(coarseIntegrator.ptr(), TimeStepCount(1));
   }
 
   return RemoteSeedInitializerProxy::New(timeComm, vectorSize_);
-}
-
-void
-ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
-  SeedInitializer::Ptr seedInitializer = buildSeedInitializer(true, NULL);
-
-  RemoteSeedInitializerServer::Ptr remoteSeedInitializer = RemoteSeedInitializerServer::New(timeComm, seedInitializer.ptr(), mapping_.ptr());
-  
-  log() << "\n";
-  log() << "Remote coarse initialization\n";
-  
-  remoteSeedInitializer->statusIs(RemoteSeedInitializerServer::BUSY);
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */

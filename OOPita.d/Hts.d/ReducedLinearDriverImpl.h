@@ -58,8 +58,9 @@ protected:
   
   PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
   BasisCollectorImpl::Ptr buildBasisCollector() const;
-  CorrectionTimeSlice::Manager::Ptr buildCoarseCorrection(DynamTimeIntegrator * coarseIntegrator) const;
+  CorrectionTimeSlice::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;
   LinearGenAlphaIntegrator::Ptr buildCoarseIntegrator() const; 
+  DynamPropagator::Ptr buildCoarsePropagator(bool local, Communicator * coarseComm) const;
   SeedInitializer::Ptr buildSeedInitializer(bool local, Communicator * timeComm) const;
 
 private:

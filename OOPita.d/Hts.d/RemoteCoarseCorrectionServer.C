@@ -17,9 +17,8 @@ RemoteCoarseCorrectionServer::statusIs(Status s) {
   if (s == BUSY) {
     setStatus(BUSY);
 
-    // Only serve the even-numbered (starting from first active) active slices
-    // That is: (firstActive, firstActive + 2, ..., firstActive + 2*n)
-    // where firstActive + 2*n + 1 < firstInactive and firstActive + 2*n + 3 >= firstInactive
+    // Only serve the even-numbered (starting from first active) active half-slices corresponding to a complete full time-slice
+    // That is, [firstActive, firstActive + 2, ..., firstActive + 2*n] where firstActive + 2*n + 1 < firstInactive and firstActive + 2*n + 3 >= firstInactive
     HalfSliceRank firstInactive = clientMapping()->firstInactiveSlice();
     for (HalfSliceRank r = clientMapping()->firstActiveSlice(); r + HalfSliceCount(1) < firstInactive; r = r + HalfSliceCount(2)) {
       CpuRank clientCpu = clientMapping()->hostCpu(r);

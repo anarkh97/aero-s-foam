@@ -35,7 +35,7 @@ public:
   
   operator bool() const { return current_.vectorSize(); }
 
-  IteratorConst & operator++() { ++currentRank_; updateCurrent(); }
+  IteratorConst & operator++() { ++currentRank_; updateCurrent(); return *this; }
   IteratorConst operator++(int) {
     IteratorConst temp(*this);
     ++(*this);

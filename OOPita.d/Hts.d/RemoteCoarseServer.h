@@ -24,6 +24,7 @@ public:
 
 protected:
   RemoteCoarseServer(Communicator * clientComm, const SliceMapping * clientMapping) :
+    status_(READY),
     clientCommunicator_(clientComm),
     clientMapping_(clientMapping)
   {}

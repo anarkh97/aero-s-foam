@@ -27,12 +27,10 @@ public:
   // Read accessors
   HalfSliceRank rank() const { return rank_; }
   Direction direction() const { return direction_; }
-  //PhaseRank phase() const { return phase_; }
   const Seed * seed() const { return seed_.ptr(); }
   Seed * propagatedSeed() const { return propagatedSeed_.ptr(); }
 
   // Mutators
-  //virtual void phaseIs(PhaseRank p) { setPhase(p); }
   virtual void seedIs(const Seed * s) { setSeed(s); }
   virtual void propagatedSeedIs(Seed * ps) { setPropagatedSeed(ps); }
 
@@ -41,12 +39,10 @@ protected:
 
   void setSeed(const Seed * s) { seed_ = s; }
   void setPropagatedSeed(Seed * ps) { propagatedSeed_ = ps; }
-  //void setPhase(PhaseRank p) { phase_ = p; }
 
 private:
   HalfSliceRank rank_;
   Direction direction_;
-  //PhaseRank phase_;
 
   Seed::PtrConst seed_;
   Seed::Ptr propagatedSeed_;

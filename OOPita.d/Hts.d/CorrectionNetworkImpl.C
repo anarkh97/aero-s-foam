@@ -40,18 +40,14 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
 void
 CorrectionNetworkImpl::buildProjection() {
   
-  // HACK !!!
+  // TODO: Remove HACK
   GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
   globalExchangeNumbering_.push_back(numbering);
   
   double tic, toc;
   tic = getTime();
 
-  // No accumulation
-  //localInitialBasis_.empty();
-  //metricBasis_->stateBasisDel();
-  //finalBasis_->stateBasisDel();
-  int previousMatrixSize = normalMatrix_.dim(); // TODO accumulate --- normalMatrix_.dim();
+  int previousMatrixSize = normalMatrix_.dim();
 
   // Build buffer
   size_t stateSize = 2 * vectorSize_;
@@ -159,8 +155,6 @@ CorrectionNetworkImpl::buildProjection() {
   tic = toc;
  
   // Assemble normal and reprojection matrices in parallel (local rows)
-  //HalfTimeSlice::Direction HalfTimeSlice::BACKWARD = HalfTimeSlice::BACKWARD; // Consider only initial states in this section
-
   int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(HalfTimeSlice::BACKWARD);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
  
@@ -170,17 +164,6 @@ CorrectionNetworkImpl::buildProjection() {
   if (mBuffer_.size() < matrixBufferSize) {
     mBuffer_.sizeIs(matrixBufferSize);
   }
-
-  /*for (std::deque<BasisCollectorImpl::CollectedState>::const_iterator it = localInitialStates.begin();
-      it != localInitialStates.end();
-      ++it) {
-    int inBufferRank = globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first, HalfTimeSlice::BACKWARD));
-    double * rowBuffer = mBuffer_.array() + inBufferRank * newMatrixSize;
-    for (int i = 0; i < newMatrixSize; ++i) {
-      rowBuffer[i] = metricBasis_->state(i) * it->second;
-    }
-  }*/
-  
   for (int i = 0; i < numCpus; ++i) {
     recv_counts[i] = 0;
     for (NumberingList::const_iterator it = globalExchangeNumbering_.begin(); it != globalExchangeNumbering_.end(); ++it) {
@@ -353,10 +336,6 @@ CorrectionNetworkImpl::buildProjection() {
     }
   }*/
   
-  // HACK to reset the Reductor and Reconstructor instances 
-  //reductorMgr_->defaultReductionBasisIs(metricBasis_.ptr());
-  //reconstructorMgr_->defaultReconstructionBasisIs(finalBasis_.ptr());
-
   toc = getTime();
   log() << "-> Factor: " << toc - tic << " ms\n";
   tic = toc;
@@ -368,43 +347,7 @@ CorrectionNetworkImpl::buildProjection() {
   for (int i = 0; i < solver_->factorRank(); ++i) {
     log() << " " << solver_->factorPermutation(i);
   }
-  log() << "\n";
- 
-  
-  DynamStateReductor::Ptr reductor = reductorMgr_->instance("debug");
-  if (!reductor) reductor = reductorMgr_->instanceNew("debug");
-  DynamStateReconstructor::Ptr reconstructor = reconstructorMgr_->instance("debug");
-  if (!reconstructor) reconstructor = reconstructorMgr_->instanceNew("debug");
-  
-  for (std::deque<BasisCollectorImpl::CollectedState>::const_iterator it = localInitialStates.begin();
-      it != localInitialStates.end();
-      ++it) {
-
-      int metric_index = previousMatrixSize + globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first, HalfTimeSlice::BACKWARD));
-
-      log() << "State index : " << metric_index << "\n";
-      
-      double norm0 = metricBasis_->state(metric_index) * it->second;
-   
-      log() << "norm^2 of initial state = " << norm0 << "\n";
-      
-      reductor->initialStateIs(it->second);
-      reconstructor->reducedBasisComponentsIs(reductor->reducedBasisComponents());
-
-      //int final_index = globalExchangeNumbering_->globalIndex(HalfSliceId(it->first + HalfSliceCount(1), HalfTimeSlice::FORWARD));
-      //log() << "State index : " << final_index << "\n";
-      //DynamState test = receivedBasis->state(final_index) - reconstructor->finalState();
-      //log() << "norm^2 of final state error = " << test * test << "\n";
-      
-      int state_index = previousMatrixSize + globalExchangeNumbering_->globalHalfIndex(HalfSliceId(it->first + HalfSliceCount(1), HalfTimeSlice::FORWARD));
-      DynamState test = finalBasis_->state(state_index) - reconstructor->finalState();
-      
-      DynamState test_metric = test;
-      const_cast<SparseMatrix*>(metric_->stiffnessMatrix())->mult(test.displacement(), test_metric.displacement());
-      const_cast<SparseMatrix*>(metric_->massMatrix())->mult(test.velocity(), test_metric.velocity());
-      
-      log() << "norm^2 of final state error = " << test_metric * test << "\n";
-  }*/
+  log() << "\n";*/
   
 }
   

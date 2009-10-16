@@ -127,9 +127,6 @@ private:
   CpuRank localCpu_;
   Communicator * timeCommunicator_;
 
-  PhaseRank correctionPhase_;
-  PhaseRank schedulingPhase_;
-
   SliceMapping::PtrConst mapping_;
  
   DynamOps::PtrConst metric_;

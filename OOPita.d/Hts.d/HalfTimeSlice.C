@@ -6,7 +6,6 @@ HalfTimeSlice::HalfTimeSlice(HalfSliceRank r, HalfTimeSlice::Direction d) :
   NamedTask(String("HalfTimeSlice ") + toString(HalfSliceId(r, d))),
   rank_(r),
   direction_(d),
-  //phase_(),
   seed_(NULL),
   propagatedSeed_(NULL)
 {}

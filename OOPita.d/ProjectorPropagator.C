@@ -94,7 +94,7 @@ ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
   }
   log() << " - Final = " << projectionBasis_->stateCount() << "\n";
   propagatedBasis_->stateBasisDel();
-  propagatedBasis_->lastStateBasisIs(ptr_cast<const DynamStatePlainBasis>(projectionBasis_));
+  propagatedBasis_->lastStateBasisIs(projectionBasis_.ptr());
   /*for (int i = 0; i < orthoBasis_->stateCount(); ++i) {
     for (int j = 0; j < propagatedBasis_->stateCount(); ++j) {
        log() << orthoBasis_->state(i) * propagatedBasis_->state(j) << " ";

@@ -29,7 +29,10 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   localBasis_(),
   metricBasis_(DynamStatePlainBasis::New(vectorSize_)),
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
+  originalMetricBasis_(DynamStatePlainBasis::New(vectorSize_)),
+  originalFinalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
+  transmissionMatrix_(),
   reprojectionMatrix_(),
   solver_(solver),
   collector_(collector),
@@ -137,8 +140,8 @@ CorrectionNetworkImpl::buildProjection() {
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_.back()->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
     DynamStatePlainBasis * targetBasis = (p.first == HalfTimeSlice::BACKWARD) ?
-                                        metricBasis_.ptr() : // Initial state (premultiplied)
-                                        finalBasis_.ptr();   // Final state
+                                        originalMetricBasis_.ptr() : // Initial state (premultiplied)
+                                        originalFinalBasis_.ptr();   // Final state
     targetBasis->lastStateIs(receivedBasis->state(p.second));
   }
  
@@ -182,7 +185,7 @@ CorrectionNetworkImpl::buildProjection() {
   for (LocalBasis::const_iterator it = localBasis_.begin();
       it != localBasis_.end(); ++it) {
     for (int i = 0; i < newMatrixSize; ++i) {
-      rowBuffer[i] = metricBasis_->state(i) * it->second;
+      rowBuffer[i] = originalMetricBasis_->state(i) * it->second;
     }
     rowBuffer += newMatrixSize;
   }
@@ -207,7 +210,7 @@ CorrectionNetworkImpl::buildProjection() {
 
   // Assemble updated normal & reprojection matrices
   normalMatrix_.reSize(newMatrixSize);
-  reprojectionMatrix_.reSize(newMatrixSize);
+  transmissionMatrix_.reSize(newMatrixSize);
 
   // Loop on iterations
   int originRowIndex = 0; // Target matrix base row index for current iteration 
@@ -242,7 +245,7 @@ CorrectionNetworkImpl::buildProjection() {
         //log() << "Reprojection matrix row # = " << rowIndex << "\n";
         //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
         //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize) << "\n";
-        std::copy(originBufferBegin, originBufferBegin + newMatrixSize, reprojectionMatrix_[rowIndex]);
+        std::copy(originBufferBegin, originBufferBegin + newMatrixSize, transmissionMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_f;
       }
@@ -313,7 +316,66 @@ CorrectionNetworkImpl::buildProjection() {
   log() << " x^T (K y) / y^T (K x) = " << x_dTKy_d << " / " << y_dTKx_d << "\n";*/
 
   solver_->transposedMatrixIs(normalMatrix_);
+
+  /*reprojectionMatrix_.copy(transmissionMatrix_);
+  metricBasis_->stateBasisDel();
+  finalBasis_->stateBasisDel();
+  metricBasis_->lastStateBasisIs(originalMetricBasis_.ptr());
+  finalBasis_->lastStateBasisIs(originalFinalBasis_.ptr());*/
+
+  reprojectionMatrix_.reSize(solver_->factorRank());
+  metricBasis_->stateBasisDel();
+  finalBasis_->stateBasisDel();
+
+  for (int compactIndex = 0; compactIndex < solver_->factorRank(); ++compactIndex) {
+    int originalIndex = solver_->factorPermutation(compactIndex);
+
+    for (int j = 0; j < solver_->factorRank(); ++j) {
+      reprojectionMatrix_[compactIndex][j] = transmissionMatrix_[originalIndex][solver_->factorPermutation(j)];
+    }
+
+    metricBasis_->lastStateIs(originalMetricBasis_->state(originalIndex));
+    finalBasis_->lastStateIs(originalFinalBasis_->state(originalIndex));
+  }
+
+  /*log() << "TransmissionMatrix (size = " << transmissionMatrix_.dim() << "):\n";
+  for (int i = 0; i < transmissionMatrix_.dim(); ++i) {
+    for (int j = 0; j < transmissionMatrix_.dim(); ++j) {
+      log() << transmissionMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  } 
+
+  log() << "ReprojectionMatrix (size = " << reprojectionMatrix_.dim() << "):\n";
+  for (int i = 0; i < reprojectionMatrix_.dim(); ++i) {
+    for (int j = 0; j < reprojectionMatrix_.dim(); ++j) {
+      log() << reprojectionMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  }
   
+  log() << "Permutation =";
+  for (int i = 0; i < solver_->factorRank(); ++i) {
+    log() << " " << solver_->factorPermutation(i);
+  }
+  log() << "\n";
+
+  log() << "check\n";
+  for (int i = 0; i < reprojectionMatrix_.dim(); ++i) {
+    for (int j = 0; j < reprojectionMatrix_.dim(); ++j) {
+      log() << reprojectionMatrix_[i][j] - transmissionMatrix_[solver_->factorPermutation(i)][solver_->factorPermutation(j)] << " ";
+    }
+    log() << "\n";
+  }*/
+  
+  solver_->orderingIs(RankDeficientSolver::COMPACT);
+
+  /*log() << "Compact permutation =";
+  for (int i = 0; i < solver_->factorRank(); ++i) {
+    log() << " " << solver_->factorPermutation(i);
+  }
+  log() << "\n";*/
+
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Matrix\n";
     for (int i = 0; i < solver_->matrixSize(); ++i) {
@@ -324,7 +386,7 @@ CorrectionNetworkImpl::buildProjection() {
     }
   }*/
   
-  solver_->statusIs(RankDeficientSolver::FACTORIZED);
+  //solver_->statusIs(RankDeficientSolver::FACTORIZED);
   
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Factor\n";

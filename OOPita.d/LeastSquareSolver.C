@@ -29,44 +29,35 @@ void
 LeastSquareSolver::transposedMatrixIs(const FullSquareMatrix & transposedMatrix) {
   transposedMatrix_.copy(transposedMatrix);
   setMatrixSize(transposedMatrix_.dim());
-  setFactorRank(0);
-  setStatus(NON_FACTORIZED);
-}
 
-void
-LeastSquareSolver::statusIs(LeastSquareSolver::Status s) {
-  if (status() == s) {
-    return;
-  }
+  // Initialize arrays for factorization
+  setVectorSize(matrixSize());
+  setOrdering(PERMUTED);
+  getFactorPermutation().sizeIs(vectorSize());
+  
+  // All columns are free
+  std::fill_n(getFactorPermutation().array(), getFactorPermutation().size(), 0);
 
-  if (s == FACTORIZED) {
-    // Initialize arrays for factorization
-    getFactorPermutation().sizeIs(matrixSize());
-    std::fill_n(getFactorPermutation().array(), matrixSize(), 0); // All columns are free
+  tau_.sizeIs(matrixSize());
 
-    tau_.sizeIs(matrixSize());
+  const int workspaceSize = 3 * matrixSize() + 1; // TODO optimize ?
+  workspace_.sizeIs(workspaceSize); 
 
-    const int workspaceSize = 3 * matrixSize() + 1; // TODO optimize
-    workspace_.sizeIs(workspaceSize); 
+  int info;
 
-    int info;
+  // Perform factorization
+  _FORTRAN(dgeqp3)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(), getFactorPermutation().array(),
+      tau_.array(), workspace_.array(), &workspaceSize, &info);
 
-    // Perform factorization
-    _FORTRAN(dgeqp3)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(), getFactorPermutation().array(),
-        tau_.array(), workspace_.array(), &workspaceSize, &info);
-
-    // Determine numerical rank
-    updateFactorRank();
-  }
-
-  setStatus(s);
+  // Determine numerical rank
+  updateFactorRank();
 }
 
 void
 LeastSquareSolver::toleranceIs(double tol) {
   if (tolerance() != tol) {
     setTolerance(tol);
-    if (status() == FACTORIZED) {
+    if (matrixSize() > 0) {
       updateFactorRank();
     }
   }
@@ -76,10 +67,6 @@ const Vector &
 LeastSquareSolver::solution(Vector & rhs) const {
   if (this->matrixSize() != rhs.size()) {
     throw Fwk::RangeException("in LeastSquareSolver::solution - Size mismatch");
-  }
-
-  if (this->status() != FACTORIZED) {
-    throw Fwk::RangeException("in LeastSquareSolver::solution - Non-factorized matrix");
   }
 
   // 1) rhs(1:rank) <- Q_1^T rhs
@@ -117,10 +104,19 @@ LeastSquareSolver::solution(Vector & rhs) const {
 }
 
 void
+LeastSquareSolver::orderingIs(Ordering o) {
+  if (ordering() == o)
+    return;
+  
+  throw Fwk::RangeException("Forbidden transition");
+  setOrdering(o);
+}
+
+void
 LeastSquareSolver::updateFactorRank() {
   double diagMax = abs(transposedMatrix_[0][0]);
   int fr = 0;
-  while (fr < matrixSize() && abs(transposedMatrix_[fr][fr]) > tolerance() * diagMax) {
+  while (fr < vectorSize() && abs(transposedMatrix_[fr][fr]) > tolerance() * diagMax) {
     ++fr;
   }
   setFactorRank(fr);

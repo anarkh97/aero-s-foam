@@ -16,8 +16,8 @@ public:
   void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unsafe
 
   virtual void lastStateIs(const DynamState & ds);
-  virtual void lastStateBasisIs(const DynamStateBasis::PtrConst & dsb);
-  virtual void lastStateBasisIs(const DynamStatePlainBasis::PtrConst & dsb);
+  virtual void lastStateBasisIs(const DynamStateBasis * dsb);
+  virtual void lastStateBasisIs(const DynamStatePlainBasis * dsb);
 
   void stateBasisDel();
   
@@ -27,7 +27,7 @@ protected:
   explicit DynamStatePlainBasis(size_t vectorSize) : DynamStateBasis(vectorSize) {}
  
   void addState(const DynamState & ds);
-  void addStateBasis(const DynamStatePlainBasis::PtrConst & dsb);
+  void addStateBasis(const DynamStatePlainBasis * dsb);
   
 private:
   std::deque<DynamState> state_;
@@ -47,7 +47,7 @@ DynamStatePlainBasis::addState(const DynamState & ds) {
 
 inline 
 void
-DynamStatePlainBasis::addStateBasis(const DynamStatePlainBasis::PtrConst & dsb) {
+DynamStatePlainBasis::addStateBasis(const DynamStatePlainBasis * dsb) {
   this->state_.insert(this->state_.end(), dsb->state_.begin(), dsb->state_.end());
 }
 

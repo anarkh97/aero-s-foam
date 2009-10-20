@@ -50,135 +50,115 @@ NearSymmetricSolver::NearSymmetricSolver(double tol) :
 {}
 
 void
-NearSymmetricSolver::toleranceIs(double tol) {
-  // TODO Extend/shrink factorization ?
-  setTolerance(tol);
-}
-
-void
 NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
   transposedMatrix_.copy(tm);
-  
   setMatrixSize(transposedMatrix_.dim());
-  setFactorRank(0);
-  setStatus(NON_FACTORIZED);
-  rescalingStatus_ = NO_RESCALING;
-}
+    
+  // Rescale matrix
+  scaling_.sizeIs(matrixSize());
+  int info;
+  double scond, amax;
+  _FORTRAN(dpoequ)(&getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
+      scaling_.array(), &scond, &amax, &info);
+  char equed;
+  _FORTRAN(dlaqge)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
+      scaling_.array(), scaling_.array(), &scond, &scond, &amax, &equed); 
 
-void
-NearSymmetricSolver::statusIs(RankDeficientSolver::Status s) {
-  if (status() == s) {
-    return;
+  switch (equed) {
+    case 'N':
+      rescalingStatus_ = NO_RESCALING;
+      log() << "No rescaling\n";
+      break;
+    case 'R':
+      rescalingStatus_ = ROW_RESCALING;
+      log() << "Row rescaling\n";
+      break;
+    case 'B':
+      rescalingStatus_ = SYMMETRIC_RESCALING;
+      log() << "Symmetric rescaling\n";
+      break;
+    default:
+      throw Fwk::InternalException("NearSymmetricSolver::statusIs - Invalid rescaling status");
   }
 
-  if (s == FACTORIZED) {
-    // Rescale matrix
-    scaling_.sizeIs(matrixSize());
-    int info;
-    double scond, amax;
-    _FORTRAN(dpoequ)(&getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
-                    scaling_.array(), &scond, &amax, &info);
-    char equed;
-    _FORTRAN(dlaqge)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
-                     scaling_.array(), scaling_.array(), &scond, &scond, &amax, &equed); 
+  // Initialize permutation
+  setVectorSize(matrixSize());
+  setOrdering(PERMUTED);
+  getFactorPermutation().sizeIs(vectorSize());
+  for (int i = 0; i < matrixSize(); ++i) {
+    getFactorPermutation()[i] = i + 1;
+  }
+  pivots_.sizeIs(matrixSize());
 
-    switch (equed) {
-      case 'N':
-        rescalingStatus_ = NO_RESCALING;
-        log() << "No rescaling\n";
-        break;
-      case 'R':
-        rescalingStatus_ = ROW_RESCALING;
-        log() << "Row rescaling\n";
-        break;
-      case 'B':
-        rescalingStatus_ = SYMMETRIC_RESCALING;
-        log() << "Symmetric rescaling\n";
-        break;
-      default:
-        throw Fwk::InternalException("NearSymmetricSolver::statusIs - Invalid rescaling status");
-    }
+  // Initialize diagonal pivot values
+  SimpleBuffer<double> pivot_values;
+  pivot_values.sizeIs(matrixSize());
 
-    // Initialize permutation
-    getFactorPermutation().sizeIs(matrixSize());
+  // Numerical constants
+  const int int_one = 1;
+  const double minus_one = -1;
+
+  double first_pivot = 0.0;
+
+  int k;
+  for (k = 0; k < matrixSize(); ++k) {
+    // Update pivot values, find largest and permute
     for (int i = 0; i < matrixSize(); ++i) {
-      getFactorPermutation()[i] = i + 1;
+      pivot_values[i] = transposedMatrix()[i][i];
     }
-    pivots_.sizeIs(matrixSize());
+    double * head_pivot = pivot_values.array() + k;
+    double * max_pivot = std::max_element(head_pivot, pivot_values.array() + matrixSize());
+    const int p = std::distance(pivot_values.array(), max_pivot);
+    pivots_[k] = p + 1;
+    std::swap(head_pivot, max_pivot);
+    std::swap(getFactorPermutation()[k], getFactorPermutation()[p]);
+    std::swap(scaling_.array()[k], scaling_.array()[p]);
 
-    // Initialize diagonal pivot values
-    SimpleBuffer<double> pivot_values;
-    pivot_values.sizeIs(matrixSize());
-
-    // Numerical constants
-    const int int_one = 1;
-    const double minus_one = -1;
-
-    double first_pivot = 0.0;
-
-    int k;
-    for (k = 0; k < matrixSize(); ++k) {
-      // Update pivot values, find largest and permute
-      for (int i = 0; i < matrixSize(); ++i) {
-        pivot_values[i] = transposedMatrix()[i][i];
-      }
-      double * head_pivot = pivot_values.array() + k;
-      double * max_pivot = std::max_element(head_pivot, pivot_values.array() + matrixSize());
-      const int p = std::distance(pivot_values.array(), max_pivot);
-      pivots_[k] = p + 1;
-      std::swap(head_pivot, max_pivot);
-      std::swap(getFactorPermutation()[k], getFactorPermutation()[p]);
-      
-      if (k == 0) {
-        first_pivot = *head_pivot;
-      }
-
-      // Perform symmetric permutation
-      _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[k][0], &int_one, &transposedMatrix_[p][0], &int_one);
-      _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[0][k], &getMatrixSize(), &transposedMatrix_[0][p], &getMatrixSize());
-      
-      // Check for singularity
-      if (*head_pivot <= first_pivot * tolerance()) { // TODO default tolerance
-        break;
-      }
-
-      // Compute column of L
-      const double pivot_inverse = 1.0 / *head_pivot;
-      const int remainder_size = matrixSize() - (k + 1);
-      _FORTRAN(dscal)(&remainder_size, &pivot_inverse, &transposedMatrix_[k][k+1], &int_one);
-
-      // Update remaining block of A
-      _FORTRAN(dger)(&remainder_size, &remainder_size, &minus_one,
-                     &transposedMatrix_[k][k+1], &int_one, &transposedMatrix_[k+1][k], &getMatrixSize(),
-                     &transposedMatrix_[k+1][k+1], &getMatrixSize());
+    if (k == 0) {
+      first_pivot = *head_pivot;
     }
 
-    setFactorRank(k);
+    // Perform symmetric permutation
+    _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[k][0], &int_one, &transposedMatrix_[p][0], &int_one);
+    _FORTRAN(dswap)(&getMatrixSize(), &transposedMatrix_[0][k], &getMatrixSize(), &transposedMatrix_[0][p], &getMatrixSize());
+
+    // Check for singularity
+    if (*head_pivot <= first_pivot * tolerance()) { // TODO default tolerance
+      break;
+    }
+
+    // Compute column of L
+    const double pivot_inverse = 1.0 / *head_pivot;
+    const int remainder_size = matrixSize() - (k + 1);
+    _FORTRAN(dscal)(&remainder_size, &pivot_inverse, &transposedMatrix_[k][k+1], &int_one);
+
+    // Update remaining block of A
+    _FORTRAN(dger)(&remainder_size, &remainder_size, &minus_one,
+        &transposedMatrix_[k][k+1], &int_one, &transposedMatrix_[k+1][k], &getMatrixSize(),
+        &transposedMatrix_[k+1][k+1], &getMatrixSize());
   }
 
-  setStatus(s);
+  setFactorRank(k);
 }
 
 const Vector &
 NearSymmetricSolver::solution(Vector & rhs) const {
-  if (rhs.size() != matrixSize()) {
-    log() << "rhs.size = " << rhs.size() << " / " << "matrixSize = " << matrixSize() << "\n";
+  if (rhs.size() != vectorSize()) {
+    log() << "rhs.size = " << rhs.size() << " / " << "matrixSize = " << vectorSize() << "\n";
     throw Fwk::RangeException("in NearSymmetricSolver::solution - Size mismatch"); 
-  }
-
-  if (status() != FACTORIZED) {
-    throw Fwk::RangeException("in NearSymmetricSolver::solution - Non-factorized matrix");
   }
 
   // 1) rhs <- P * rhs
   const int int_one = 1;
-  _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
-                   pivots_.array(), &int_one);
+  if (ordering() == PERMUTED) {
+    _FORTRAN(dlaswp)(&int_one, rhs.data(), &getVectorSize(), &int_one, &getFactorRank(),
+        pivots_.array(), &int_one);
+  }
 
   // 2) rhs <- S^{-1} * rhs
   if (rescalingStatus_ != NO_RESCALING) {
     for (int i = 0; i < factorRank(); ++i) {
-      rhs[i] *= scaling_[factorPermutation(i)];
+      rhs[i] *= scaling_[i];
     }
   }
 
@@ -198,19 +178,47 @@ NearSymmetricSolver::solution(Vector & rhs) const {
   // 5) rhs <- S^{-1} * rhs
   if (rescalingStatus_ == SYMMETRIC_RESCALING) {
     for (int i = 0; i < factorRank(); ++i) {
-      rhs[i] *= scaling_[factorPermutation(i)];
+      rhs[i] *= scaling_[i];
     }
   }
 
   // 6) Pad with zeros
-  std::fill(rhs.data() + getFactorRank(), rhs.data() + getMatrixSize(), 0.0);
+  std::fill(rhs.data() + getFactorRank(), rhs.data() + getVectorSize(), 0.0);
 
   // 7) rhs <- P * rhs
   const int int_minus_one = -1;
-  _FORTRAN(dlaswp)(&int_one, rhs.data(), &getMatrixSize(), &int_one, &getFactorRank(),
-                   pivots_.array(), &int_minus_one);
+  if (ordering() == PERMUTED) {
+    _FORTRAN(dlaswp)(&int_one, rhs.data(), &getVectorSize(), &int_one, &getFactorRank(),
+        pivots_.array(), &int_minus_one);
+  }
 
   return rhs;
 }
+
+void
+NearSymmetricSolver::orderingIs(Ordering o) {
+  if (ordering() == o)
+    return;
+
+  if (o == COMPACT) {
+    setVectorSize(factorRank());
+    getFactorPermutation().sizeIs(vectorSize());
+
+    for (int i = 0; i < factorRank(); ++i) {
+      getFactorPermutation()[i] = i + 1; // Fortran numbering
+    }
+  } else {
+    throw Fwk::RangeException("Forbidden transition");
+  }
+
+  setOrdering(o);
+}
+
+void
+NearSymmetricSolver::toleranceIs(double tol) {
+  // TODO Extend/shrink factorization ?
+  setTolerance(tol);
+}
+
 
 } /* end namespace Pita */

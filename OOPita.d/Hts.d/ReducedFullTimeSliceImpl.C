@@ -18,7 +18,6 @@ ReducedFullTimeSliceImpl::ReducedFullTimeSliceImpl(HalfSliceRank headRank,
 
 void
 ReducedFullTimeSliceImpl::iterationIs(IterationRank ir) {
-
   assert(jump()->iteration() == ir);
   assert(correction()->iteration() == ir);
 

@@ -14,22 +14,24 @@ class PivotedCholeskySolver : public RankDeficientSolver {
 public:
   EXPORT_PTRINTERFACE_TYPES(PivotedCholeskySolver);
 
+  // Accessors
   const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; }
+  virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
   // Mutators
   void matrixIs(const SymFullMatrix & matrix);
   void matrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part
   virtual void transposedMatrixIs(const FullSquareMatrix & matrix) { matrixIs(matrix); } // Use only upper triangular part
-  virtual void statusIs(Status s);
+  virtual void orderingIs(Ordering o);
   
-  virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
-
   static Ptr New(double tolerance = -1.0) {
     return new PivotedCholeskySolver(tolerance);
   }
 
 protected:
   explicit PivotedCholeskySolver(double tolerance);
+
+  void performFactorization();
 
 private:
   FullSquareMatrix choleskyFactor_;

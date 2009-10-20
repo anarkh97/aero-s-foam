@@ -140,7 +140,12 @@ private:
   
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
+  
+  DynamStatePlainBasis::Ptr originalMetricBasis_;
+  DynamStatePlainBasis::Ptr originalFinalBasis_;
+  
   FullSquareMatrix normalMatrix_;
+  FullSquareMatrix transmissionMatrix_;
   FullSquareMatrix reprojectionMatrix_;
   RankDeficientSolver::Ptr solver_;
   

@@ -15,6 +15,7 @@
 #include "../RankDeficientSolver.h"
 #include "../NearSymmetricSolver.h"
 #include "../PivotedCholeskySolver.h"
+#include "../LeastSquareSolver.h"
 
 #include "BasisCollectorImpl.h"
 #include "NonHomogeneousBasisCollectorImpl.h"

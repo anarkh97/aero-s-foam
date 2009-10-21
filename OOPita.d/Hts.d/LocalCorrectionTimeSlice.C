@@ -8,30 +8,32 @@ namespace Pita { namespace Hts {
   
 LocalCorrectionTimeSlice::LocalCorrectionTimeSlice(HalfSliceRank headRank, DynamPropagator * propagator) :
   CorrectionTimeSlice(headRank),
-  //jumpBuilder_(JumpBuilder::New()),
   propagator_(propagator)
 {}
 
 void
 LocalCorrectionTimeSlice::predictedSeedIs(const Seed * ps) {
-  //jumpBuilder_->seedIs(JumpBuilder::RIGHT, ps);
   setPredictedSeed(ps);
 }
 
 void
 LocalCorrectionTimeSlice::actualSeedIs(const Seed * as) {
-  //jumpBuilder_->seedIs(JumpBuilder::LEFT, as);
   setActualSeed(as);
 }
 
 void
 LocalCorrectionTimeSlice::jumpIs(Seed * j) {
-  //jumpBuilder_->jumpSeedIs(j);
   setJump(j);
 }
 
 void
 LocalCorrectionTimeSlice::iterationIs(IterationRank ir) {
+  DynamState newJumpSeed = actualSeed()->state() - predictedSeed()->state();
+  
+  jump()->statusIs(actualSeed()->status());
+  jump()->stateIs(newJumpSeed);
+  jump()->iterationIs(actualSeed()->iteration());
+  
   assert(correction()->iteration() == ir);
   assert(jump()->iteration() == ir);
   

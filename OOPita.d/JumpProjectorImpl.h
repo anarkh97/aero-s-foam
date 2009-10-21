@@ -3,7 +3,6 @@
 
 #include "JumpProjector.h"
 
-#include "JumpBuilder.h"
 #include "DynamStateBasis.h"
 
 namespace Pita {
@@ -20,18 +19,16 @@ public:
   virtual void seedJumpIs(Seed * j);
   virtual void iterationIs(IterationRank i);
 
-  /* Reduced basis and operators */
+  /* Reduced basis */
   const DynamStateBasis * reducedBasis() const;
-  const JumpBuilder * jumpBuilder() const { return jumpBuilder_.ptr(); }
 
 protected:
-  JumpProjectorImpl(const String & name, const Manager * manager, JumpBuilder * jumpBuilder);
+  JumpProjectorImpl(const String & name, const Manager * manager);
 
   friend class Manager;
 
 private:
   const Manager * manager_;
-  JumpBuilder::Ptr jumpBuilder_;
 };
 
 /* JumpProjectorImpl::Manager definition */

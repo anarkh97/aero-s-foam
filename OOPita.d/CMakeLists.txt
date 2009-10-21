@@ -14,7 +14,6 @@ HomogeneousGenAlphaIntegrator.C
 IncrementalPostProcessor.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
-JumpBuilder.C
 JumpProjectorImpl.C
 LeastSquareSolver.C
 LinearDynamOps.C

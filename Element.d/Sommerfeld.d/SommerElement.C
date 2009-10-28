@@ -1170,7 +1170,9 @@ FullSquareMatrix SommerElement::dampingMatrix(CoordSet &cs, double *Cs, int flg)
   }
   else {
     FullSquareMatrix ret(nNo,Cs);
-    ret = refinedSommerMatrix(cs,Cs); //JTG
+    /*ret = refinedSommerMatrix(cs,Cs); //JTG*/
+    ret = sommerMatrix(cs,Cs); // PJSA 10/27/09 replaced call to refinedSommerMatrix with sommerMatrix after observing incorrect solution. 
+                               // refinedSommerMatrix functions in TriangleSommerBC.C and QuadSommerBC.C need to be tested and debugged before using
     ret /= -ss;
     return ret;
   }

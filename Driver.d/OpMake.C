@@ -898,7 +898,8 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
  GenSolver<Scalar> *systemSolver = 0;
- GenSparseMatrix<Scalar> *spm = 0;
+ //GenSparseMatrix<Scalar> *spm = 0;
+ allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
  int ndim = 0;
@@ -920,15 +921,15 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                     systemSolver, spm, rbm, kelArray); // also used for eigen
+                                     systemSolver, allOps.spm, rbm, kelArray); // also used for eigen
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                      systemSolver, spm, rbm, kelArray);
+                                      systemSolver, allOps.spm, rbm, kelArray);
       break;
    }
    if(sinfo.inpc) {
-     sfbm->setKi(spm,i);
+     sfbm->setKi(allOps.spm,i);
      if(i==0 && sinfo.precond==3) {
        GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
        prec_solver->zeroAll();
@@ -943,11 +944,6 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      }
      if(allOps.Kuc) allOps.Kuc->zeroAll();
    }
-    // print stiffness matrix // YYY
-/*    GenDBSparseMatrix<Scalar>* ops_new = (GenDBSparseMatrix<Scalar> *) spm;
-    char fname[30];
-    sprintf(fname,"kfile_%d",i);
-    ops_new->print(fname); */
  }
 
  // Set allOps pointer to system solver

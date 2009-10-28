@@ -467,6 +467,28 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
 
      solver->add( kelArray[iele], (*allDofs)[iele] );
    }
+
+   // PJSA 10/28/09 also add discrete mass
+   DMassData *current = domain->getFirstDMassData();
+   DofSetArray *dsa = domain->getDSA();
+   while(current != 0) {
+     int dof = dsa->locate(current->node, (1 << current->dof));
+     if(dof == -1)
+       { current = current->next; continue; }
+     if(current->jdof > -1) { // off-diagonal mass terms eg. products of inertia I21, I31, I32
+       int jdof = dsa->locate(current->node, (1 << current->jdof));
+       if(jdof == -1)
+         { current = current->next; continue; }
+       spm->add(dof, jdof, current->diMass);
+       if(C) C->add(dof, jdof, current->diMass);
+     }
+     else {
+       spm->addDiscreteMass(dof, current->diMass);
+       if(C) C->addDiscreteMass(dof, current->diMass);
+     }
+     current = current->next;
+   }
+
    solver->factor();
    //if (solver->numRBM() > 0)
    //  fprintf(stderr, " *** WARNING: %d ZEM(s) Found in Rebuilt Tangent Matrix!       \n", solver->numRBM());
@@ -748,6 +770,7 @@ NonLinDynamic::preProcess()
  M      = allOps.M;
  C      = allOps.C;
  solver = allOps.sysSolver;
+ spm    = allOps.spm;
 
  // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
  allCorot = new Corotator *[domain->numElements()];

@@ -94,6 +94,8 @@ template<class Scalar>
 struct AllOps
 {
   GenSolver<Scalar> *sysSolver;  // system solver: to solve (coeM*M+coeC*C+coeK*K)x = b
+  GenSparseMatrix<Scalar> *spm; // note: system solver is a subclass of both GenSolver and GenSparseMatrix
+
   GenSparseMatrix<Scalar> *Msolver;  // for assembling mass solver: to solve Mx = b
   GenSparseMatrix<Scalar> *K;    // stiffness matrix
   GenSparseMatrix<Scalar> *M;    // mass matrix
@@ -107,7 +109,7 @@ struct AllOps
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();

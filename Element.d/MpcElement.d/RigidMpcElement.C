@@ -142,9 +142,9 @@ RigidMpcElement::getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix& Ktan,
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
 }
 
-bool
-RigidMpcElement::isRigidMpcElement()
-{
-  return true;
+bool 
+RigidMpcElement::isRigidMpcElement(const DofSet& ds, bool forAllNodes)
+{ 
+  return  ds == DofSet::nullDofset || ds == nodalDofs;
 }
 

@@ -3,6 +3,7 @@
 
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
+#include <Utils.d/dofset.h>
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -14,7 +15,6 @@ inline double abs(std::complex<double> a)
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
 
-class DofSetArray;
 class Corotator;
 class State;
 class PolygonSet;
@@ -485,8 +485,7 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
-        virtual bool isRigidMpcElement() { return false; }
+        virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
         virtual bool isRigidElement() { return false; }
         virtual void computeMPCs(CoordSet &cs) { }
         virtual int getNumMPCs() { return 0; }

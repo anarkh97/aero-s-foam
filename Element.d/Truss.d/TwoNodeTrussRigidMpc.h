@@ -5,11 +5,18 @@
 
 class TwoNodeTrussRigidMpc : public RigidMpcElement
 {
- public:
-  TwoNodeTrussRigidMpc(int*);
-  void computeMPCs(CoordSet&);
-  int getTopNumber();
-  bool isSafe();
+    EFrame *elemframe;
+  public:
+    TwoNodeTrussRigidMpc(int*);
+    void computeMPCs(CoordSet&);
+    int getTopNumber();
+    bool isSafe();
+    void computePressureForce(CoordSet&, Vector&, GeomState*, int);
+    void setFrame(EFrame *_elemframe) { elemframe = _elemframe; }
+    int buildFrame(CoordSet&);
+  private:
+    void getLength(CoordSet&, double&);
+    void updTransMatrix(CoordSet&, GeomState*, double t[3][3], double &);
 };
 
 #endif

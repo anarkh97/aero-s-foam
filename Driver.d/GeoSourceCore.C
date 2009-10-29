@@ -317,6 +317,47 @@ void GeoSource::setUpRigidElements(bool flag)
     }
   }
   if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
+
+/*
+  for(int i = 0; i < na; ++i) {
+    Element *ele = elemSet[ attrib[i].nele ];
+    if((ele != 0) && (ele->isRigidMpcElement())) {
+      ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
+    }
+  }
+
+  Elemset rigidSet;
+  int nRigid = 0;
+  int nEle = elemSet.last();
+  for(int i = 0; i < nEle; ++i) {
+    Element *ele = elemSet[i];
+    if(ele != 0 && ele->isRigidMpcElement())
+      rigidSet.elemadd(nRigid++, ele);
+  }
+  rigidSet.collapseRigid6();
+  cerr << "nRigid = " << nRigid  << ", rigidSet.last() = "  << rigidSet.last() << endl;
+  nRigid = rigidSet.last();
+
+  int count1 = 0, count2 = 0;
+  for(int i = 0; i < nRigid; ++i) {
+    rigidSet[i]->computeMPCs(nodes);
+
+    // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
+    // and add these to the domain. In this case the rigid element remains in the element set but acts
+    // as a phantom with no "internal nodes" (with lagrange dofs) and zero'd stiffness matrix
+    // This must be used for FETI and for the direct elimination method but is otherwise optional
+    if(flag) {
+      int nmpc = rigidSet[i]->getNumMPCs();
+      LMPCons **mpc = rigidSet[i]->getMPCs();
+      for(int j = 0; j < nmpc; ++j) domain->addLMPC(mpc[j], false);
+      count1++; count2 += nmpc;
+    }
+    // if flag==false, the element has lagrange multiplier degrees of freedom 
+    // assigned to internal nodes and implements the stiffness matrix [ 0 C^T ]
+    //                                                                [ C  0  ]
+  }
+  if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
+*/
 }
 
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
@@ -412,6 +453,7 @@ using namespace Eigen;
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
 void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
 {
+/* XXXX needs to be resolved
   int lmpcnum = 0;
   bool print_flag = true;
   for(int i=0; i < numLMPC; ++i)
@@ -425,7 +467,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     if((ele != 0) && (ele->isRigidMpcElement())) {
       if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
- /* Delay this 'til later */  //ele->computeMPCs(nodes,lmpcnum);
+ // Delay this 'til later:  //ele->computeMPCs(nodes,lmpcnum);
     }
   }
 
@@ -443,6 +485,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 
   numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
   //fprintf(stderr," New number of MPCs: %d\n", numLMPC);
+*/
 
   if(numLMPC) {
     bool use_rref = false; // this is set to true if we cannot find a slave for each mpc, or if an mpc cannot be written independently

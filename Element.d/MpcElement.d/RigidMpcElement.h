@@ -42,7 +42,7 @@ class RigidMpcElement : public Element, public Corotator
     Corotator* getCorotator(CoordSet&, double*, int, int);
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*);
 
-    bool isRigidMpcElement();
+    bool isRigidMpcElement(const DofSet& = DofSet::nullDofset, bool = false);
 
 };
 #endif

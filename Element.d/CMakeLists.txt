@@ -41,6 +41,7 @@ Brick.d/brik8v.f
 Brick.d/brkcmt.f
 Brick.d/EightNodeBrick.C
 Brick.d/EightNodeBrickRigid.C
+Brick.d/EightNodeBrickRigidMpc.C
 Brick.d/h8shpe.f
 Brick.d/Hexa8ShapeFct.C
 Brick.d/hxgaus.f
@@ -159,6 +160,7 @@ Membrane.d/sands19.f
 Membrane.d/trimem.f
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
+MpcElement.d/RigidMpcElement.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/3DShapeFunction.C
 NonLinearity.d/BilinPlasKinHardMat.C
@@ -228,6 +230,7 @@ Shell.d/mass8.f
 Shell.d/membra.f
 Shell.d/momen.f
 Shell.d/RigidThreeNodeShell.C
+Shell.d/RigidMpcThreeNodeShell.C
 Shell.d/rotati.f
 Shell.d/rotation.f
 Shell.d/sands8.f

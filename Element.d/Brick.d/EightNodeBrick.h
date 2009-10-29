@@ -78,6 +78,7 @@ public:
         void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 		               Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
 
+
 };
 #endif
 

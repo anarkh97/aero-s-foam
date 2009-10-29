@@ -12,7 +12,11 @@ GenRigidMpcBeam::GenRigidMpcBeam(int* nodenums)
   nn[1] = nodenums[2];
   sprintf(cdofs,"%d\0",nodenums[1]+1);
   numcdofs = 0;
-  for(int i=0; i<8; ++i) if(cdofs[i] != '\0') numcdofs++;
+  for(int i=0; i<8; ++i)
+	  if(cdofs[i] != '\0') {
+		  numcdofs++;
+		  activeDofs |= 1 << (cdofs[i]-'1');
+	  }
 }
 
 GenRigidMpcBeam::GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs)
@@ -20,18 +24,18 @@ GenRigidMpcBeam::GenRigidMpcBeam(int* _nn, int _numcdofs, char* _cdofs)
   nn[0] = _nn[0];
   nn[1] = _nn[1];
   numcdofs = _numcdofs;
-  for(int i=0; i<numcdofs; ++i) cdofs[i] = _cdofs[i];
+  for(int i=0; i<numcdofs; ++i) {
+	  cdofs[i] = _cdofs[i];
+	  activeDofs |= 1 << (cdofs[i]-'1');
+  }
 }
 
 void 
-GenRigidMpcBeam::computeMPCs(CoordSet &cs, int &lmpcnum)
+GenRigidMpcBeam::computeMPCs(CoordSet &cs)
 {
-  double rhs = 0.0;
   int i;
-  for(i=0; i<numcdofs; ++i) {
-    lmpcnum++;
-    mpc[i] = new LMPCons(lmpcnum, rhs);
-  }
+  for(i = 0; i < numcdofs; ++i)
+    mpc[i] = new LMPCons(0, 0.0);
 
   Node &node1 = cs.getNode(nn[0]);
   Node &node2 = cs.getNode(nn[1]);
@@ -128,13 +132,7 @@ GenRigidMpcBeam::computeMPCs(CoordSet &cs, int &lmpcnum)
   }
 
   for(i=0; i<numcdofs; ++i) 
-    glMpcNb[i] = domain->addLMPC(mpc[i]);
-}
-
-void
-GenRigidMpcBeam::updateMPCs(GeomState &gState)
-{
-  cerr << " *** WARNING: GenRigidMpcBeam::updateMPCs(...) is not implemented \n";
+    domain->addLMPC(mpc[i]);
 }
 
 void

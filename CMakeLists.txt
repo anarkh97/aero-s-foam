@@ -28,7 +28,7 @@ ELSE(LAPACK_FOUND)
  SET(LAPACK_FOUND TRUE)
 ENDIF(LAPACK_FOUND)
 
-SET(INC_DIR .)
+SET(INC_DIR . ${CMAKE_CURRENT_BINARY_DIR})
 SET(BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 if(AERO)
@@ -41,6 +41,11 @@ IF(NOT SPOOLESDIR)
 ENDIF(NOT SPOOLESDIR)
 
 SET(SPOOLESDIR ${SPOOLESDIR} CACHE STRING "Location of the SPOOLES library and includes")
+
+IF(NOT ACMEDIR)
+  SET(ACMEDIR "")
+ENDIF(NOT ACMEDIR)
+SET(ACMEDIR ${ACMEDIR} CACHE STRING "Location of the ACME library and includes")
 
 IF(NOT MUMPSDIR)
   SET(MUMPSDIR "")
@@ -99,6 +104,12 @@ IF(UNIX)
       SET(INC_DIR ${INC_DIR} ${SPOOLESINC})
     ENDIF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
 
+     IF(ACMEDIR)
+       add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI)
+       SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${ACMEDIR}/lib/libacmeSharedOPT.a)
+       SET(INC_DIR ${INC_DIR} ${ACMEDIR}/search ${ACMEDIR}/enforcement ${ACMEDIR}/drivers)
+     ENDIF(ACMEDIR)
+
      IF(MUMPSDIR)
        add_definitions(-DUSE_MUMPS)
        SET(INC_DIR ${INC_DIR} ${MUMPSDIR}/include)
@@ -114,6 +125,7 @@ IF(UNIX)
          endif (BLACSDIR AND SCALAPACKDIR)
        endif (NOT USE_MPI)
      ENDIF(MUMPSDIR)
+
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
 
@@ -151,13 +163,13 @@ MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
 
 IF(MERCURIAL_EXECUTABLE)
   MESSAGE("Rule 1")
-  add_custom_command(OUTPUT HgIdentity.C 
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ELSE (MERCURIAL_EXECUTABLE)
   MESSAGE("Rule 2")
-  add_custom_command(OUTPUT HgIdentity.C 
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -165,6 +177,7 @@ ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -D__LINUX -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS  -DMAP_MIN_MEMORY)
 
+MESSAGE ("INC_DIR is" ${INC_DIR} )
 INCLUDE_DIRECTORIES( ${INC_DIR} )
 
 add_subdirectory(Element.d)
@@ -253,10 +266,15 @@ IF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
 ELSE(SPOOLESLIB AND SPOOLESMTLIB)
  MESSAGE("Spooles:                  NO *******")
 ENDIF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
+IF(ACMEDIR)
+ MESSAGE("Acme:                     YES")
+ELSE(ACMEDIR)
+ MESSAGE("Acme:                     NO *******")
+ENDIF(ACMEDIR)
 IF(MUMPSDIR)
  MESSAGE("Mumps:                    YES")
 ELSE(MUMPSDIR)
- MESSAGE("Mumps:                    NO *******") 
+ MESSAGE("Mumps:                    NO *******")
 ENDIF(MUMPSDIR)
 MESSAGE("Build type:               " ${CMAKE_BUILD_TYPE})
 MESSAGE("Extra libraries:          " ${EXTRALIB})

@@ -17,14 +17,9 @@ extern "C"      {
 
 void	_FORTRAN(mstf24)(double*, double*, double*, double&, double&, double*, 
 			 const int&, int &);
-void	_FORTRAN(mass24)(double*, double*, double*, double&, double*, 
-			 const int&, double*, double*, const int&, 
-			 double&, const int&);
 void    _FORTRAN(sands24)(const int&, double*, double*, double*, double&, 
 			  double&, double*, double*, double*, const int&, const int&,
 			  const int&, const int&, const int&,const int&);
-void	_FORTRAN(grav24)(double*, double*, double*, double&,
-			 const int&, double*, double*);
 // HB: for getThermalForce
 void  _FORTRAN(lgauss)(int &, int &, double *, double *); 
 #ifdef USE_NEW_PENTA6_STIFF //HB: used in the new version of the stiffness matrix
@@ -273,74 +268,96 @@ Pentahedral::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 double
 Pentahedral::getMass(CoordSet& cs)
 {
-
-  const int nnodes=  6;
-  const int ndofs = 18;
-
-  double X[6], Y[6], Z[6];                                                                                                                             
+  const int nnodes = 6;
+  double X[6], Y[6], Z[6];
   cs.getCoordinates(nn, nnodes, X, Y, Z);
 
-  double ElementMassMatrix[18][18];
+  // hard coded order 2 triangle quadrature rule: {r,s,t(=1-r-s),w}
+  double TriGPt3[3][4] = {{1./6.,1./6.,1./6.,1./6.},
+                          {2./3.,1./6.,1./6.,1./6.},
+                          {1./6.,2./3.,1./6.,1./6.}};
 
-  double *gravityAcceleration = NULL, *grvfor = NULL, totmas = 0.0;
-  int grvflg = 0, masflg = 1;
+  // integration: loop over Gauss pts
+  double wxy, wz;
+  int ngpz = 2;  // number of (linear) Gauss pts in the (local) z direction
+  int ngpxy = 3; // numbder of (triangular) integration pts (in the local x-y plane)
+  double m[3], Shape[6], DShape[6][3];
+  double dOmega; // det of jacobian
+  double volume = 0.0;
+  for(int iz = 1; iz <= ngpz; iz++){
+    // get z position & weight of the Gauss pt
+    _FORTRAN(lgauss)(ngpz, iz, &m[2], &wz);
+    for(int ixy = 0; ixy < ngpxy; ixy++) { // triangle Gauss pts
+      // get x, y  position & weight of the Gauss pt
+      m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
+      dOmega = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
+      volume += fabs(dOmega)*wxy*wz;
+    }
+  }
 
-  _FORTRAN(mass24)(X, Y, Z, prop->rho, (double*)ElementMassMatrix, ndofs,
-                   gravityAcceleration, grvfor, grvflg, totmas, masflg);
-
-  return totmas;
+  return volume*prop->rho;
 }
 
 void
-Pentahedral::getGravityForce(CoordSet& cs,double *gravityAcceleration,
+Pentahedral::getGravityForce(CoordSet& cs, double *gravityAcceleration,
                              Vector& gravityForce, int gravflg, GeomState *geomState)
 
 {
   const int nnodes=  6;
-  const int ndofs = 18;
 
-  double X[6], Y[6], Z[6];                                                                                                                             
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
+  // Lumped
+  if (gravflg != 2) {
 
-// Lumped
-  if (gravflg == 1) {
+    double totmas = getMass(cs);
 
-    double ElementMassMatrix[18][18];
-    double grvfor[3], totmas = 0.0;
-    int grvflg = 1, masflg = 0;
-
-    _FORTRAN(mass24)(X, Y, Z, prop->rho, (double*)ElementMassMatrix, ndofs,
-                   gravityAcceleration, grvfor, grvflg, totmas, masflg);
-
-  // Distribute the grvfor vector among nodes.
-
-    grvfor[0] /= 6.0;
-    grvfor[1] /= 6.0;
-    grvfor[2] /= 6.0;
-
-    for(int i=0; i<nnodes; ++i) {
-      gravityForce[3*i+0] = grvfor[0];
-      gravityForce[3*i+1] = grvfor[1];
-      gravityForce[3*i+2] = grvfor[2];
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
     }
 
   }
-// Consistent
-  else if (gravflg == 2) {
-
-    double grvfor[18];
-
-    _FORTRAN(grav24)(X, Y, Z, prop->rho, ndofs,
-                     gravityAcceleration, grvfor);
-    for(int i=0; i<ndofs; ++i) 
-      gravityForce[i] = grvfor[i];
-
-  }
+  // Consistent
   else {
-    for(int i=0; i<nnodes; ++i) {
-      gravityForce[3*i+0] = 0.0;
-      gravityForce[3*i+1] = 0.0;
-      gravityForce[3*i+2] = 0.0;
+
+    const int ndofs = 18;
+
+    double lforce[20];
+    for(int i=0; i<nnodes; ++i) lforce[i] = 0.0;
+
+    double X[6], Y[6], Z[6];
+    cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+    // hard coded order 2 triangle quadrature rule: {r,s,t(=1-r-s),w}
+    double TriGPt3[3][4] = {{1./6.,1./6.,1./6.,1./6.},
+                            {2./3.,1./6.,1./6.,1./6.},
+                            {1./6.,2./3.,1./6.,1./6.}};
+
+    // integration: loop over Gauss pts
+    double wxy, wz, w;
+    int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
+    int ngpxy = 3; // numbder of (triangular) integration pts (in the local x-y plane)
+    double m[3], Shape[6], DShape[6][3];
+    double dOmega; // det of jacobian
+    for(int iz = 1; iz <= ngpz; iz++){
+      // get z position & weight of the Gauss pt
+      _FORTRAN(lgauss)(ngpz, iz, &m[2], &wz);
+      for(int ixy = 0; ixy < ngpxy; ixy++) { // triangle Gauss pts
+        // get x, y  position & weight of the Gauss pt
+        m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
+        dOmega = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
+        w = fabs(dOmega)*wxy*wz*prop->rho;
+
+        for (int n = 0; n < nnodes; ++n) 
+          lforce[n] += w*Shape[n];
+      }
+    }
+
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*gravityAcceleration[2];
     }
   }
 }
@@ -348,20 +365,13 @@ Pentahedral::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 FullSquareMatrix
 Pentahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
-  //int status = 0;
   const int nnodes=  6;
   const int ndofs = 18;
 
-  double X[6], Y[6], Z[6];                                                                                                                             
+  double X[6], Y[6], Z[6];
   cs.getCoordinates(nn, nnodes, X, Y, Z);
   
   FullSquareMatrix M(ndofs,mel);
-  
-  double *gravityAcceleration = 0, *grvfor = 0;
-
-  int grvflg = 0;
-  double totmas = 0.0;
-  int masflg = 0;
   
   if(cmflg) { //HB: consistent mass matrix
     //fprintf(stderr," *** In Pentahedral::massMatrix: make consistent mass matrix.\n");
@@ -376,16 +386,16 @@ Pentahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
                             {1./6.,2./3.,1./6.,1./6.}};
                                                                                                                                                                                                                                                                          
     // integration: loop over Gauss pts
-    double wxy,wz,w;
+    double wxy, wz, w;
     int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
     int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
     double m[3], Shape[6], DShape[6][3];
-    double dOmega;//det of jacobian
+    double dOmega; //det of jacobian
     int jSign = 0;
-    for(int iz=1;iz<=ngpz;iz++){ 
+    for(int iz = 1; iz <= ngpz; iz++){ 
       // get z position & weight of the Gauss pt
-      _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
-      for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
+      _FORTRAN(lgauss)(ngpz, iz, &m[2], &wz);
+      for(int ixy = 0; ixy < ngpxy; ixy++) { // triangle Gauss pts
         // get x, y  position & weight of the Gauss pt
         m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
         dOmega = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
@@ -396,11 +406,10 @@ Pentahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
         addNtDNtoM3DSolid(M, Shape, w, nnodes, ls);
       }
     }
-  } else { // Lumped mass matrix
-    //fprintf(stderr," *** In Pentahedral::massMatrix: make Lumped mass matrix.\n");
-     //const int numgauss= 2;
-    _FORTRAN(mass24)(X, Y, Z, prop->rho, (double*)mel, ndofs,
-		    gravityAcceleration, grvfor, grvflg, totmas, masflg);
+  } 
+  else { // Lumped mass matrix
+    fprintf(stderr," *** In Pentahedral::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
+    exit(-1);
   }
 
   return(M);

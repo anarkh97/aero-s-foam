@@ -209,11 +209,6 @@ void
 ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                 Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-        if (prop == NULL) {
-	   gravityForce.zero();
-	   return;
-        }
-
         double mass = getMass(cs);
         double massPerNode = mass/3.0;
 
@@ -222,20 +217,19 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         double fz = massPerNode*gravityAcceleration[2];
         double mx[3],my[3],mz[3];
         int i;   
-        for(i=0; i<3; ++i) {
-          mx[i]=0.0;
-          my[i]=0.0;
-          mz[i]=0.0;
+        for(i = 0; i < 3; ++i) {
+          mx[i] = 0.0;
+          my[i] = 0.0;
+          mz[i] = 0.0;
         }
 
-// Lumped
-        if (gravflg == 1) {
+        // Lumped with no fixed-end moments
+        if (gravflg == 0) {
 
-// Consistent
-//  Compute treating shell as 3 beams.
         }
-        else if (gravflg == 2) {
-          
+        // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+        else {
+
           Node &nd1 = cs.getNode(nn[0]);
           Node &nd2 = cs.getNode(nn[1]);
           Node &nd3 = cs.getNode(nn[2]);
@@ -285,16 +279,22 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
             crossprod( T3, T1, T2 );
             normalize( T2);
 
-            for(i=0; i<3; ++i)
+            for(i = 0; i < 3; ++i)
               localg[i] = 0.0;
-            for(i=0; i<3; ++i) {
+            for(i = 0; i < 3; ++i) {
               localg[0] += T1[i]*gravityAcceleration[i];
               localg[1] += T2[i]*gravityAcceleration[i];
               localg[2] += T3[i]*gravityAcceleration[i];
             }
             double lmy,lmz;
-            lmy = massPerNode*localg[2]*length/12.0;
-            lmz = massPerNode*localg[1]*length/12.0;
+            if (gravflg == 2) { // consistent
+              lmy = -massPerNode*localg[2]*length/12.0;
+              lmz = massPerNode*localg[1]*length/12.0;
+            }
+            else { // lumped with fixed-end moments
+              lmy = -massPerNode*localg[2]*length/16.0;
+              lmz = massPerNode*localg[1]*length/16.0;
+            }
             mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
             my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
             mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
@@ -303,36 +303,29 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
             mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
           }
         }
-        else {
-          fx = 0.0;
-          fy = 0.0;
-          fz = 0.0;
-        }
         
-        gravityForce[0]  =  fx;
-        gravityForce[1]  =  fy;
-        gravityForce[2]  =  fz;
-        gravityForce[3]  =  mx[0];
-        gravityForce[4]  =  my[0];
-        gravityForce[5]  =  mz[0];
-        gravityForce[6]  =  fx;
-        gravityForce[7]  =  fy;
-        gravityForce[8]  =  fz;
-        gravityForce[9]  =  mx[1];
-        gravityForce[10] =  my[1];
-        gravityForce[11] =  mz[1];
-        gravityForce[12] =  fx;
-        gravityForce[13] =  fy;
-        gravityForce[14] =  fz;
-        gravityForce[15] =  mx[2];
-        gravityForce[16] =  my[2];
-        gravityForce[17] =  mz[2];
-
-       //cerr << "shell gravityForce = "; for(int i=0; i<18; ++i) cerr << gravityForce[i] << " "; cerr << endl;
+        gravityForce[0]  = fx;
+        gravityForce[1]  = fy;
+        gravityForce[2]  = fz;
+        gravityForce[3]  = mx[0];
+        gravityForce[4]  = my[0];
+        gravityForce[5]  = mz[0];
+        gravityForce[6]  = fx;
+        gravityForce[7]  = fy;
+        gravityForce[8]  = fz;
+        gravityForce[9]  = mx[1];
+        gravityForce[10] = my[1];
+        gravityForce[11] = mz[1];
+        gravityForce[12] = fx;
+        gravityForce[13] = fy;
+        gravityForce[14] = fz;
+        gravityForce[15] = mx[2];
+        gravityForce[16] = my[2];
+        gravityForce[17] = mz[2];
 }
 
 FullSquareMatrix
-ThreeNodeShell::massMatrix(CoordSet &cs,double *mel,int cmflg)
+ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
         // Check for phantom element, which has no stiffness
         if(prop == NULL) {
@@ -346,7 +339,7 @@ ThreeNodeShell::massMatrix(CoordSet &cs,double *mel,int cmflg)
         Node &nd3 = cs.getNode(nn[2]);
 
         double x[3], y[3], z[3], h[3];
-        double *gravityAcceleration = NULL, *grvfor = NULL,totmas = 0.0;
+        double *gravityAcceleration = NULL, *grvfor = NULL, totmas = 0.0;
 
         x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
@@ -363,15 +356,11 @@ ThreeNodeShell::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
         FullSquareMatrix ret(18,mel);
 
-        //cerr << "shell mass matrix = \n"; ret.print();
-        //for(int i=0; i<18; ++i) if(ret[i][i] == 0.0) cerr << "oops-a-daisy\n";
- 
         return ret;
-
 }
 
 FullSquareMatrix
-ThreeNodeShell::stiffness(CoordSet &cs,double *d, int flg)
+ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
 {
         // Check for phantom element, which has no stiffness
         if (prop == NULL) {
@@ -621,7 +610,7 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            crossprod( t0[2], t0[0], t0[1] );
            normalize( t0[1] );
  
-           double lmy = pressureForce*length/12.0;
+           double lmy = -pressureForce*length/12.0;
            mx[n1] += (t0[1][0]*lmy);
            my[n1] += (t0[1][1]*lmy);
            mz[n1] += (t0[1][2]*lmy);
@@ -706,7 +695,7 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            crossprod( normal, v1, v2 );
            normalize( v2 );
 
-           double lmy = pressureForce*length/12.0;
+           double lmy = -pressureForce*length/12.0;
            mx[n1] += (v2[0]*lmy);
            my[n1] += (v2[1]*lmy);
            mz[n1] += (v2[2]*lmy);

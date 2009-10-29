@@ -19,6 +19,7 @@ class Compo4NodeShell : public SuperElement
 
     // Routines for the decomposer
     PrioInfo examine(int sub, MultiFront *);
+
 };
 
 #endif

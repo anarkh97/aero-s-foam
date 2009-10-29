@@ -47,7 +47,7 @@ extern void computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6],
 extern double computeStress3DSolid(double Stress[6],double Strain[6], double C[6][6]);
 extern double computeVonMisesStress(double Stress[6]);
 extern double computeVonMisesStrain(double Strain[6]);
-                                                                                                                                         
+ 
 Brick32::Brick32(int* nodenums)
 {
   for(int i=0; i<32; i++)
@@ -273,16 +273,86 @@ Brick32::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 double
 Brick32::getMass(CoordSet& cs)
 {
-  fprintf(stderr," *** WARNING: Brick32::getMass: NOT implemented. Return null mass.\n");
-  return(0.0);
+  const int nnodes = 32;
+  double *X = new double[nnodes], *Y = new double[nnodes], *Z = new double[nnodes];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
+  const int numgauss= 4;
+  double wx, wy, wz;
+  double m[3], Shape[32], DShape[32][3];
+  double dOmega; // det of jacobian
+  double v = 0.0; // volume
+  for(int i = 1; i <= numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+    for(int j = 1; j <= numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+      for(int k = 1; k <= numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
+        dOmega = Hexa32ShapeFct(Shape, DShape, m, X, Y, Z);
+        v += fabs(dOmega)*wx*wy*wz;
+      }
+    }
+  }
+
+  delete [] X; delete [] Y; delete [] Z;
+
+  return v*prop->rho;
 }
 
 void
-Brick32::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
-                                Vector& gravityForce, int gravflg, GeomState *geomState)
+Brick32::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
+                         Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-  fprintf(stderr," *** WARNING: Brick32::getGravityForce: NOT implemented. Return null gravity force.\n");
-  gravityForce.zero();
+  int nnodes = 32;
+
+  // Lumped
+  if (gravflg != 2) {
+
+    double totmas = getMass(cs);
+
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
+    }
+
+  }
+  // Consistent
+  else {
+    double x[32], y[32], z[32];
+    cs.getCoordinates(nn, numNodes(), x, y, z);
+
+    double lforce[32];
+    for(int i=0; i<nnodes; ++i) lforce[i] = 0.0;
+
+    int numgauss = 4;
+    // integration: loop over Gauss pts
+    double wx, wy, wz, w;
+    double m[3], Shape[32], DShape[32][3];
+    double dOmega; // det of jacobian
+    for(int i = 1; i <= numgauss; i++) {
+      _FORTRAN(lgauss)(numgauss, i, &m[0], &wx);
+      for(int j = 1; j <= numgauss; j++) {
+        _FORTRAN(lgauss)(numgauss, j, &m[1], &wy);
+        for(int k = 1; k <= numgauss; k++) {
+          _FORTRAN(lgauss)(numgauss, k, &m[2], &wz);
+
+          dOmega = Hexa32ShapeFct(Shape, DShape, m, x, y, z);
+          w = fabs(dOmega)*wx*wy*wz*prop->rho;
+
+          for (int n = 0; n < nnodes; ++n)
+            lforce[n] += w*Shape[n];
+        }
+      }
+    }
+
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = lforce[i]*gravityAcceleration[0];
+      gravityForce[3*i+1] = lforce[i]*gravityAcceleration[1];
+      gravityForce[3*i+2] = lforce[i]*gravityAcceleration[2];
+    }
+  }
 }
 
 FullSquareMatrix
@@ -297,9 +367,6 @@ Brick32::massMatrix(CoordSet &cs,double *mel,int cmflg)
   cs.getCoordinates(nn, nnodes, X, Y, Z);
 
   FullSquareMatrix M(ndofs,mel);
-  //double *gravityAcceleration = 0, *grvfor = 0;
-  //int grvflg = 0;
-  //double totmas = 0.0;
 
   if(cmflg) { //HB: consistent mass matrix
     //fprintf(stderr," *** In Brick32::massMatrix: make consistent mass matrix.\n");

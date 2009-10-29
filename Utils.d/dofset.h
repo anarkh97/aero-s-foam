@@ -40,13 +40,15 @@ class DofSet {
       Lagrange16,
       Lagrange17,
       Lagrange18;
+    static const int DispAndRot = 0x3f;
     static int AllLagrange[18];
+    static DofSet nullDofset;
     // constructors
     DofSet()      { flags = 0; }
     DofSet(int t) { flags = t; }
 
     DofSet & operator|=(const DofSet &ds) { flags |= ds.flags; return *this; }
-    bool operator == (DofSet ds) { return flags == ds.flags; }
+    bool operator == (const DofSet &ds) const { return flags == ds.flags; }
 
     // mark marks given dofs as being used
     void mark(int dofs) { flags |= dofs; }

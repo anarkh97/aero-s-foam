@@ -1,44 +1,22 @@
 #ifndef _TWONODETRUSSRIGIDMPC_H_
 #define _TWONODETRUSSRIGIDMPC_H_
 
-#include <Element.d/Element.h>
-#include <Corotational.d/Corotator.h>
-#include <Corotational.d/GeomState.h>
+#include <Element.d/MpcElement.d/RigidMpcElement.h>
 
-class TwoNodeTrussRigidMpc : public Element, public Corotator
+class TwoNodeTrussRigidMpc : public RigidMpcElement
 {
-  int nn[2];
-  double len0;
-  LMPCons *mpc;
-  double lambda;
-  int glMpcNb; 
-
- public:
-  TwoNodeTrussRigidMpc(int *);
-  ~TwoNodeTrussRigidMpc() { /* nothing to delete */ };
-
-  virtual void computeMPCs(CoordSet &cs, int &lmpcnum);
-  virtual void updateMPCs(GeomState &gState);
-  bool isRigidMpcElement() { return true; }
-  void setMpcForces(double *mpcForces) { lambda = mpcForces[glMpcNb]; }
-
-  Corotator *getCorotator(CoordSet &, double *, int, int) { return this; }
-  void setProp(StructProp *p) { };
-
-  void renum(int *);
-
-  FullSquareMatrix stiffness(CoordSet &, double *, int = 1);
-  FullSquareMatrix massMatrix(CoordSet &, double *, int = 1);
-
-  void markDofs(DofSetArray &);
-  int* dofs(DofSetArray &, int * = 0);
-  int numDofs();
-  int numNodes();
-  int* nodes(int * = 0);
-
-  void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
-  int  getTopNumber() { return 101; }
-  bool isSafe() { return false; }
-
+    EFrame *elemframe;
+  public:
+    TwoNodeTrussRigidMpc(int*);
+    void computeMPCs(CoordSet&);
+    int getTopNumber();
+    bool isSafe();
+    void computePressureForce(CoordSet&, Vector&, GeomState*, int);
+    void setFrame(EFrame *_elemframe) { elemframe = _elemframe; }
+    int buildFrame(CoordSet&);
+  private:
+    void getLength(CoordSet&, double&);
+    void updTransMatrix(CoordSet&, GeomState*, double t[3][3], double &);
 };
+
 #endif

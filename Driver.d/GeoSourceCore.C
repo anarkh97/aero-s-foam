@@ -22,6 +22,8 @@
 #include <utility>
 using std::map;
 #include <list>
+#include <vector>
+#include <queue>
 #include <Sfem.d/Sfem.h>
 
 EFrameData null_eframe;
@@ -68,6 +70,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 
   constpflg = 1;
   constqflg = 1;
+  fixedEndM = 1;
   maxGlobNode = 0;
   maxClusNode = 0;
   numProps = 0;
@@ -289,84 +292,288 @@ int GeoSource::addCFrame(int fn, double *f)  {
 
 //----------------------------------------------------------------------
 
-void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+void GeoSource::setUpRigidElements(bool flag)
 {
-  //std::cerr << "MLXX Adding " << numLMPC << " MPC Elements" << std::endl;
-#ifndef SALINAS
-  // PJSA: convert rigid elements into mpcs -- used for GRBM
-  // 1. find largest lmpcnum
-  int lmpcnum = 0;
-  bool print_flag = true;
-  for(int i=0; i < numLMPC; ++i)
-    if(lmpc[i]->lmpcnum > lmpcnum) lmpcnum = lmpc[i]->lmpcnum;
-  // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
-  int nEle = elemSet.last();
+  int count1 = 0, count2 = 0;
+  for(int i = 0; i < na; ++i) { // this seems a bit dangerous: what if a rigid element has no attribute?
+    Element *ele = elemSet[ attrib[i].nele ];
+    if((ele != 0) && (ele->isRigidMpcElement())) {
+      ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
+      ele->computeMPCs(nodes);
+
+      // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
+      // and add these to the domain. In this case the rigid element remains in the element set but acts
+      // as a phantom with no "internal nodes" (with lagrange dofs) and zero'd stiffness matrix
+      // This must be used for FETI and for the direct elimination method but is otherwise optional
+      if(flag) {
+        int nmpc = ele->getNumMPCs();
+        LMPCons **mpc = ele->getMPCs();
+        for(int j = 0; j < nmpc; ++j) domain->addLMPC(mpc[j], false);
+        count1++; count2 += nmpc;
+      }
+      // if flag==false, the element has lagrange multiplier degrees of freedom 
+      // assigned to internal nodes and implements the stiffness matrix [ 0 C^T ]
+      //                                                                [ C  0  ]
+    }
+  }
+  if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
+
+/*
   for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
     if((ele != 0) && (ele->isRigidMpcElement())) {
-      if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes,lmpcnum);
     }
   }
-  numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
 
+  Elemset rigidSet;
+  int nRigid = 0;
+  int nEle = elemSet.last();
+  for(int i = 0; i < nEle; ++i) {
+    Element *ele = elemSet[i];
+    if(ele != 0 && ele->isRigidMpcElement())
+      rigidSet.elemadd(nRigid++, ele);
+  }
+  rigidSet.collapseRigid6();
+  cerr << "nRigid = " << nRigid  << ", rigidSet.last() = "  << rigidSet.last() << endl;
+  nRigid = rigidSet.last();
+
+  int count1 = 0, count2 = 0;
+  for(int i = 0; i < nRigid; ++i) {
+    rigidSet[i]->computeMPCs(nodes);
+
+    // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
+    // and add these to the domain. In this case the rigid element remains in the element set but acts
+    // as a phantom with no "internal nodes" (with lagrange dofs) and zero'd stiffness matrix
+    // This must be used for FETI and for the direct elimination method but is otherwise optional
+    if(flag) {
+      int nmpc = rigidSet[i]->getNumMPCs();
+      LMPCons **mpc = rigidSet[i]->getMPCs();
+      for(int j = 0; j < nmpc; ++j) domain->addLMPC(mpc[j], false);
+      count1++; count2 += nmpc;
+    }
+    // if flag==false, the element has lagrange multiplier degrees of freedom 
+    // assigned to internal nodes and implements the stiffness matrix [ 0 C^T ]
+    //                                                                [ C  0  ]
+  }
+  if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
+*/
+}
+
+void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+  int nEle = elemSet.last();
   if(numLMPC) {
-
-    fprintf(stderr," ... Converting LMPCs to MpcElements \n");
     for(int i = 0; i < numLMPC; ++i) {
       elemSet.mpcelemadd(nEle, lmpc[i]);
       nEle++;
     }
+    cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
-#else
-  cerr << "*** ERROR: GeoSource::addMpcElements(...) not included in Salinas library \n";
-#endif
 }
 
+template<>
+class SetAccess<LMPCons> {
+    int numLMPC;
+	        ResizeArray<LMPCons *>&lmpc;
+	        std::map<std::pair<int,int>, int> &dofID;
+	public:
+	        SetAccess(int n, ResizeArray<LMPCons *>&l, std::map<std::pair<int,int>, int> &d)
+	          : numLMPC(n), lmpc(l), dofID(d) {}
+	        int size() {
+	                return numLMPC;
+	        }
+	        int numNodes(int i) {
+	                return lmpc[i]->nterms;
+	        }
+	        void getNodes(int i, int *nd) {
+	        	for(int j = 0; j < lmpc[i]->nterms; ++j)
+	                nd[j] = dofID[pair<int,int>(lmpc[i]->terms[j].nnum,
+	                		lmpc[i]->terms[j].dofnum)];
+	        }
+
+};
+
+/** Class to give priority to DOFs in MPCs */
+struct PrioCompare {
+	/** gives higher priority to dofs with a lower number of MPCs to which it participates */
+	bool operator()(std::pair<int,int> a, std::pair<int,int> b) const {
+		return a.second > b.second || (a.second == b.second && a.first > b.first);
+	}
+};
+
+// MLX Debug
+
+void printLMPC(LMPCons *lmpc, vector<int> &tCount, std::map<std::pair<int,int>, int > &dofID) {
+	for(int j = 0; j < lmpc->nterms; ++j)
+		fprintf(stderr, "%d, %d (%d); ", lmpc->terms[j].nnum+1,
+				lmpc->terms[j].dofnum+1, tCount[dofID[ std::pair<int,int>(lmpc->terms[j].nnum, lmpc->terms[j].dofnum)]]);
+	fprintf(stderr, "\n");
+}
+#include <set>
+void
+findGroups(Connectivity *nToN, Connectivity &nToE) {
+    // Examine all the nodes to form groups and for each group, collapse the elements
+    // that form it into a single group.
+    std::set<int> visitedNodes;
+    for(int i = 0; i < nToN->csize(); ++i) {
+      // Skip nodes that have no connection or that have already been treated
+      if(nToN->num(i) == 0 || visitedNodes.find(i) != visitedNodes.end())
+    	  continue;
+      std::set<int> nodeGroup, elementGroup;
+      std::queue<int> fifo;
+      for(fifo.push(i); !fifo.empty(); fifo.pop()) {
+    	  int j = fifo.front();
+    	  if(visitedNodes.insert(j).second == false)
+    		  continue; // We've already examined all the neighbors of this node
+    	  //std::cerr << "Starting at " << j+1 << ": ";
+
+    	  for(int ik = 0; ik < nToN->num(j); ++ik) {
+    		  int k = (*nToN)[j][ik];
+    		  // If this node has not been seen before, then we can
+    		  // add it to the queue.
+    		  if(nodeGroup.insert(k).second)
+    			  fifo.push(k);
+    		//  std::cerr << " " << k+1 << "(" << nodeGroup.size()<<")";
+    	  }
+    	 // std::cerr << std::endl;
+    	  for(int el = 0; el < nToE.num(j); ++el)
+    		  elementGroup.insert(nToE[j][el]);
+      }
+      // We now have the group of nodes that form a complete rigid body.
+      fprintf(stderr, "in GeoSource::findGroups, Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
+    }
+}
+
+#include <Math.d/rref.h>
+#include <eigen2/Eigen/Core>
+using namespace Eigen;
+
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
-void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
-  std::cerr << "Making direct MPCs" << std::endl;
+void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
+{
+/* XXXX needs to be resolved
   int lmpcnum = 0;
   bool print_flag = true;
   for(int i=0; i < numLMPC; ++i)
     if(lmpc[i]->lmpcnum > lmpcnum) lmpcnum = lmpc[i]->lmpcnum;
   // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
   int nEle = elemSet.last();
+  Elemset rigidSet;
+  int nRigid = 0;
   for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
     if((ele != 0) && (ele->isRigidMpcElement())) {
       if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes,lmpcnum);
+ // Delay this 'til later:  //ele->computeMPCs(nodes,lmpcnum);
     }
   }
+
+  for(int i = 0; i < nEle; ++i) {
+	 Element *ele = elemSet[i];
+	 if(ele != 0 && ele->isRigidMpcElement())
+         rigidSet.elemadd(nRigid++,ele);
+  }
+  //std::cerr << "Number of rigid elements: " << nRigid << " versus "<< nEle << std::endl;
+  rigidSet.collapseRigid6();
+  nRigid = rigidSet.last();
+  for(int i = 0; i < nRigid; ++i) {
+	  rigidSet[i]->computeMPCs(nodes,lmpcnum);
+  }
+
   numLMPC = domain->getNumLMPC(); // update to include RigidMpcElements
+  //fprintf(stderr," New number of MPCs: %d\n", numLMPC);
+*/
 
   if(numLMPC) {
-    std::map<pair<int,int>, int> tCount;
+    bool use_rref = false; // this is set to true if we cannot find a slave for each mpc, or if an mpc cannot be written independently
+    using std::map;
+    using std::pair;
+    using std::vector;
+    // Create a unique integer ID for every DOF involved in an MPC and count
+    // in how many MPC each DOF appears.
+    int nID = 0;
+    map<pair<int,int>, int> dofID;
+    vector<int> tCount;
+
     for(int i=0; i < numLMPC; ++i) {
-      for(int j = 0; j < lmpc[i]->nterms; ++j) {
-        if(lmpc[i]->terms[j].isNull())
-          continue;
-        pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
-        std::map<pair<int,int>, int>::iterator it =
-          tCount.find(p);
-        if(it == tCount.end())
-          tCount[p] = 1;
-        else
-          it->second++;
-      }
+    	// First flush the MPC from any zero terms
+    	lmpc[i]->removeNullTerms();
+    	for(int j = 0; j < lmpc[i]->nterms; ++j) {
+    		pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+    		map<pair<int,int>, int>::iterator it = dofID.find(p);
+    		if(it == dofID.end()) {
+    			dofID[p] = nID++;
+    			tCount.push_back(1);
+    		} else
+    			tCount[it->second]++;
+    	}
     }
 
+    // Obtain the MPC to DOF connectivity
+    SetAccess<LMPCons> lmpcAccess(numLMPC, lmpc, dofID);
+    Connectivity lmpcToDof(lmpcAccess);
+    Connectivity *dofToLMPC = lmpcToDof.reverse();
+    fprintf(stderr, "Number of DOFs in MPCS: %d\n", dofToLMPC->csize());
+
+    //Connectivity *dToD = dofToLMPC->transcon(&lmpcToDof);
+    //findGroups(dToD, *dofToLMPC);
+
+    // Determine for each MPC which DOF will be slave
+    vector<int> mpcSlaveDOF(numLMPC, -1);
+    vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    std::priority_queue<pair<int,int> ,vector<pair<int,int> >, PrioCompare > queue;
+    for(int i = 0; i < dofToLMPC->csize(); ++i)
+    	queue.push(pair<int,int>(i, dofToLMPC->num(i)));
+    int nMPCtoView = numLMPC;
+    while(nMPCtoView > 0 && !queue.empty()) {
+    	int dof = queue.top().first;
+    	int chosenMPC = -1;
+    	int nDofsInChosen;
+    	for(int j = 0; j < dofToLMPC->num(dof); ++j) {
+    		int mpc = (*dofToLMPC)[dof][j];
+    		if(mpcSlaveDOF[mpc] >= 0)
+    			continue;
+    		int remainDOFs = 0;
+    		for(int k = 0; k <lmpcToDof.num(mpc); ++k) {
+    			if(dofSlaveOf[ lmpcToDof[mpc][k] ] < 0)
+    				remainDOFs++;
+    		}
+    		if(chosenMPC < 0 || remainDOFs < nDofsInChosen) {
+    			chosenMPC = mpc;
+    			nDofsInChosen = remainDOFs;
+    		}
+    	}
+    	if(chosenMPC >= 0) {
+    		mpcSlaveDOF[chosenMPC] = dof;
+    		dofSlaveOf[dof] = chosenMPC;
+    		nMPCtoView--;
+    	}
+    	queue.pop();
+    }
+    if(nMPCtoView > 0) {
+    	fprintf(stderr,"Could not find a slave for each MPC. Number of MPCs remaining: %d\n",
+    	nMPCtoView);
+/*
+    	for(int i = 0; i < numLMPC; ++i)
+    		if(mpcSlaveDOF[i] < 0) {
+    			printLMPC(lmpc[i],tCount, dofID);
+    		}
+*/
+        use_rref = true;
+    } else
+    	std::cerr << "Found a Slave for each MPC!"<< std::endl;
+// First version:
     for(int i=0; i < numLMPC; ++i) {
       int j;
       for(j = 0; j < lmpc[i]->nterms; ++j) {
         if(lmpc[i]->terms[j].isNull())
           continue;
         pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
-        if(tCount[p] == 1) {
+        if(tCount[dofID[p]] == 1) {
+          //cerr << "slave is term " << j << endl;
           if(j != 0) {
             LMPCTerm lmTerm = lmpc[i]->terms[j];
             lmpc[i]->terms[j] = lmpc[i]->terms[0];
@@ -376,12 +583,72 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) {
         }
       }
       if(j == lmpc[i]->nterms) {
-        fprintf(stderr, "ERROR: An MPC could not be written independently. Please re-organize the MPCs!");
+/*      fprintf(stderr, "MPC %d could not be written independently.\n", i+1);
+        for(j = 0; j < lmpc[i]->nterms; ++j) {
+            pair<int,int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+        	fprintf(stderr, "%d %d %e - %d, ",
+        			lmpc[i]->terms[j].nnum+1, lmpc[i]->terms[j].dofnum+1,
+        			lmpc[i]->terms[j].coef.r_value, tCount[dofID[p]]);
+        }
+        fprintf(stderr, "\n"); */
+        use_rref = true;
       }
     }
 
+    if(use_rref) {
+
+      vector<int> *term2col = new vector<int>[numLMPC];
+      vector<pair<int,int> > col2pair(dofToLMPC->csize());
+      for(int i = 0; i < numLMPC; ++i) {
+        for(int j = 0; j < lmpc[i]->nterms; ++j) {
+          pair<int, int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
+          map<pair<int,int>, int>::iterator it = dofID.find(p);
+          term2col[i].push_back(it->second); col2pair[it->second] = p;
+        }
+      }      
+
+      // copy lmpc coefficients into a dense matrix for rref
+      Matrix<double,Dynamic,Dynamic> c(numLMPC, dofToLMPC->csize());  
+      c.setZero();
+      for(int i = 0; i < numLMPC; ++i) {
+        for(int j = 0; j < lmpc[i]->nterms; ++j) {
+          c(i,term2col[i][j]) = lmpc[i]->terms[j].coef.r_value;
+        }
+      }
+      delete [] term2col;
+
+      // do the rref
+      double t = -getTime();
+      cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form ";
+      int *colmap = new int[c.cols()];
+      for(int i=0; i<c.cols(); ++i) colmap[i] = i;
+      int rank = rowEchelon<double, Matrix<double,Dynamic,Dynamic> >(c, true, NULL, colmap);
+      cerr << "took " << (t += getTime())/1000. << " seconds ...\n"; //cerr << "c = \n" << c << endl;
+      if(rank != numLMPC) {
+        cerr << "found " << numLMPC-rank << " redundant constraints\n";
+        domain->setNumLMPC(rank);
+      }
+
+      // copy the coefficients of the rref matrix into the lmpc data structure 
+      for(int i = 0; i < rank; ++i) { 
+        lmpc[i]->terms.clear(); 
+        lmpc[i]->nterms = 0;
+        for(int j = i; j < c.cols(); ++j) {
+          if(std::abs<double>(c(i,j)) > 10.0*std::numeric_limits<double>::epsilon()) { 
+            LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
+            lmpc[i]->terms.push_back(t);
+            lmpc[i]->nterms++;
+          }
+        }
+      }
+      delete [] colmap;
+
+      //setDirectMPC(false); geoSource->addMpcElements(numLMPC, lmpc); // for debugging
+      //for(int i=0; i<numLMPC; ++i) { cerr << "i = " << i << endl; lmpc[i]->print(); }
+    }
+
   }
-  std::cerr<< "NElement = " << nEle << std::endl;
+//  std::cerr<< "NElement = " << nEle << std::endl;
 }
 
 //----------------------------------------------------------------------
@@ -474,30 +741,25 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
   }
 }
 
-
-//----------------------------------------------------------------------
 void GeoSource::setUpData()
 {
-  int iElem;
-
   // Setup the internal nodes
   int lastNode = numNodes = nodes.last();
   int nMaxEle = elemSet.size();
-  for(iElem = 0; iElem < nMaxEle; ++iElem)
-    {
-      Element *ele = elemSet[iElem];
-      if(ele == 0) continue;
-      int nIN = ele->numInternalNodes();
-      int nn[125];
-      if(nIN > 125) {
-	fprintf(stderr, " *** ERROR: Code was not developed for elements with more "
-		"than 125 internal nodes");
-	exit(-1);
-      }
-      for(int i = 0; i < nIN; ++i)
-	nn[i] = lastNode++;
-      ele->setInternalNodes(nn);
-      localToGlobalElementsNumber.push_back(iElem);
+  for (int iElem = 0; iElem < nMaxEle; ++iElem) {
+    Element *ele = elemSet[iElem];
+    if(ele == 0) continue;
+    int nIN = ele->numInternalNodes();
+    int nn[125];
+    if(nIN > 125) {
+      fprintf(stderr, " *** ERROR: Code was not developed for elements with more "
+                      "than 125 internal nodes");
+      exit(-1);
+    }
+    for(int i = 0; i < nIN; ++i)
+      nn[i] = lastNode++;
+    ele->setInternalNodes(nn);
+    localToGlobalElementsNumber.push_back(iElem);
   }
   numInternalNodes = lastNode-numNodes;
 
@@ -513,7 +775,6 @@ void GeoSource::setUpData()
 
   // Set up element attributes
   int i;
-
   SolverInfo sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) { // PJSA
     fprintf(stderr," **************************************\n");
@@ -521,7 +782,6 @@ void GeoSource::setUpData()
     fprintf(stderr," **************************************\n");
     exit(-1);
   }
-  //if((na != nMaxEle) && ((sinfo.probType == SolverInfo::Top) || (sinfo.probType == SolverInfo::Decomp))) { // PJSA
   if(na != nMaxEle) {
     // check for elements with no attribute, and add dummy properties
     bool *hasAttr = (bool *)dbg_alloca(nMaxEle*sizeof(bool));
@@ -540,7 +800,6 @@ void GeoSource::setUpData()
 
   // create map for used material properties
   // & compute average E and nu (for coupled_dph)
-//  std::map<int, StructProp *> usedMat;
   int structure_element_count = 0;
   int fluid_element_count = 0;
   global_average_E = 0.0;
@@ -564,24 +823,6 @@ void GeoSource::setUpData()
       ele->setProp(new StructProp(), true);
     }
     else  {
-/* PJSA 1-16-08 this doesn't make sense to me
-      StructProp *prop;
-      std::map<int, StructProp *>::iterator it = usedMat.find(attrib[i].attr);
-      if(it == usedMat.end()) {
-        if((!sProps[attrib[i].attr].isReal) && (sinfo.probType != SolverInfo::Top)
-            && !domain->solInfo().isAcousticHelm() && (sinfo.probType != SolverInfo::Decomp)
-            && !elemSet[attrib[i].nele]->isConstraintElement()) {
-          fprintf(stderr, " *** WARNING: The material for element %d does not exist\n",
-                  attrib[i].nele+1);
-        }
-        // prop = new StructProp(sProps[attrib[i].attr]);
-        prop = &sProps[attrib[i].attr]; // PJSA: for helmsweep, helmCoef is updated in sProps[0] so don't copy!!
-                                        // check with Thuan why he decided to make a copy of the material here
-        usedMat[attrib[i].attr] = prop;
-      }
-      else
-        prop = it->second;
-*/
       SPropContainer::iterator it = sProps.find(attrib[i].attr);
       if(it == sProps.end()) { // in this case the material does not exist (this is only permitted for -t and --dec)
         if((sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp))
@@ -995,9 +1236,10 @@ void GeoSource::setConsistentPFlag(int _constpflg)
  constpflg = _constpflg;
 }
 
-void GeoSource::setConsistentQFlag(int _constqflg)
+void GeoSource::setConsistentQFlag(int _constqflg, int _fixedEndM)
 {
  constqflg = _constqflg;
+ fixedEndM = _fixedEndM;
 }
 
 int GeoSource::getTextDirichletBC(BCond *&bc)

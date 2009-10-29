@@ -767,7 +767,6 @@ Domain::preProcessing()
   dof_file.close();
   exit(1);
 */
-
 }
 
 void

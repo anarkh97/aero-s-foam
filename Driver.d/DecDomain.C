@@ -40,21 +40,6 @@ GenDecDomain<Scalar>::GenDecDomain(Domain *d)
 #else
   communicator = new FSCommunicator;
 #endif
-
-#ifndef SALINAS 
-  // PJSA: convert rigid elements into mpcs 
-  // 1. find largest lmpcnum
-  //domain->printLMPC();
-  int i;
-  int lmpcnum = 0;
-  for(i=0; i < domain->getNumLMPC(); ++i) 
-    if(domain->getLMPC(i)->lmpcnum > lmpcnum) lmpcnum = domain->getLMPC(i)->lmpcnum; 
-  // 2. loop through all elements & if element is a rigid element then compute lmpc & add to global list
-  for(i=0; i < domain->getElementSet().last(); ++i) {
-    Element *ele = domain->getElementSet()[i];
-    if(ele->isRigidMpcElement()) ele->computeMPCs(domain->getNodes(),lmpcnum);
-  }
-#endif
 }
 
 template<class Scalar>

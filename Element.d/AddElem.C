@@ -71,7 +71,6 @@
 #include <Element.d/BulkFluid.d/TriangleBulk.h>
 #include <Element.d/BulkFluid.d/TetraBulk.h>
 #include <Element.d/BulkFluid.d/PentaBulk.h>
-#include <Element.d/CtcVirtualElt.d/CtcVirtualElt.h>
 #include <Element.d/Truss.d/TwoNodeTrussRigid.h>
 #include <Element.d/Beam.d/RigidBeam.h>
 #include <Element.d/Spring.d/RigidSpring.h>
@@ -102,10 +101,12 @@ extern map<int,double > weightList;
 #include <Element.d/Spring.d/RigidMpcSpring.h>
 #include <Element.d/Spring.d/RigidMpcSpringTr.h>
 #include <Element.d/Spring.d/RigidMpcSpringRo.h>
+#include <Element.d/Brick.d/EightNodeBrickRigidMpc.h>
 #include <Element.d/Solid.d/RigidMpcSolid6Dof.h>
 #include <Element.d/Solid.d/RigidMpcSolid.h>
 #include <Element.d/Rigid.d/RBE2Mpc.h>
 #include <Element.d/Rigid.d/RBE2.h>
+#include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -156,10 +157,6 @@ Element*
 ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 {
    Element *ele;
-   bool grbmeig = (domain->solInfo().probType == SolverInfo::Modal && domain->solInfo().rbmflg == 1);
-   bool rigidmpc = ((domain->solInfo().type == 2) 
-                    || (grbmeig && (etype != 66) && (etype != 73) && (etype != 74)) // safe to leave these as rigid for GRBM
-                    || (domain->solInfo().isNonLin() && etype != 65));
    switch(etype) 
    {
      case 1:
@@ -322,52 +319,43 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        break;
-     case 64: // CKT virtual Elements for contact =64
-       ele = new (ba) CtcVirtualElt(nnodes,n);
-       break;
      case 65:
-       if(rigidmpc) ele = new (ba) TwoNodeTrussRigidMpc(n); // FETI
-       else ele = new (ba) TwoNodeTrussRigid(n); // direct
+       ele = new (ba) TwoNodeTrussRigidMpc(n); // cf TwoNodeTrussRigid
        break;
      case 66:
-       if(rigidmpc) ele = new (ba) RigidMpcBeam(n);
-       else ele = new (ba) RigidBeam(n);
+       ele = new (ba) RigidMpcBeam(n); // cf RigidBeam
        break;
      case 67:
-       if(rigidmpc) ele = new (ba) RigidMpcSpring(n);
-       else ele = new (ba) RigidSpring(n);
+       ele = new (ba) RigidMpcSpring(n); // cf RigidSpring
        break;
      case 68:
-       if(rigidmpc) ele = new (ba) RigidMpcSpringTr(n);
-       else ele = new (ba) RigidSpringTr(n);
+       ele = new (ba) RigidMpcSpringTr(n); // cf RigidSpringTr
        break;
      case 69:
-       if(rigidmpc) ele = new (ba) RigidMpcSpringRo(n);
-       else ele = new (ba) RigidSpringRo(n);
+       ele = new (ba) RigidMpcSpringRo(n); // cf RigidSpringRo
        break;
      case 70:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid(8,n);
-       else ele = new (ba) EightNodeBrickRigid(n);
+       ele = new (ba) EightNodeBrickRigidMpc(n); // cf EightNodeBrickRigid
        break;
      case 71:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid(nnodes,n);
-       else ele = new (ba) RigidSolid(nnodes,n);
+       ele = new (ba) RigidMpcSolid(nnodes,n); // cf RigidSolid
        break;
      case 72:
        ele = new (ba) Brick20(n);
        break;
      case 73:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid6Dof(3,n);
-       else ele = new (ba) RigidThreeNodeShell(n);
+       ele = new (ba) RigidMpcThreeNodeShell(n); // cf RigidThreeNodeShell
        break;
      case 74:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid6Dof(nnodes,n);
-       else ele = new (ba) RigidSolid6Dof(nnodes,n);
+       ele = new (ba) RigidMpcSolid6Dof(nnodes,n); // cf RigidSolid6Dof
        break;
      case 75:  // PJSA 3-30-05
+       cerr << "RBE element is currently disabled\n";
+/* this needs to be checked and updated
        if(rigidmpc) 
          ele = new (ba) RBE2Mpc(nnodes,n);
        else ele = new (ba) RBE2(nnodes,n);
+*/
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);

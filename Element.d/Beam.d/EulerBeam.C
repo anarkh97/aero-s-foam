@@ -165,11 +165,6 @@ void
 EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                            Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-        if (prop == NULL) {
-           gravityForce.zero();
-           return;
-        }
-
         double massPerNode = 0.5*getMass(cs);
 	
         double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
@@ -190,9 +185,7 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	      }
            }
         }         
-	  
-        // Consistent
-	 
+
         int i;
         double localg[3];
 
@@ -209,9 +202,17 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         localf[0] =  massPerNode*localg[0];
         localf[1] =  massPerNode*localg[1];
         localf[2] =  massPerNode*localg[2];
-        localm[0] =  0.0;
-        localm[1] = -massPerNode*localg[2]*length/6.0;
-        localm[2] =  massPerNode*localg[1]*length/6.0;
+        if (gravflg == 2) { // consistent
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/6.0;
+          localm[2] =  massPerNode*localg[1]*length/6.0;
+        }
+        else if (gravflg == 1) { // lumped with fixed-end moments
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/8.0;
+          localm[2] =  massPerNode*localg[1]*length/8.0;
+        }
+        else localm[0] = localm[1] = localm[2] = 0.0; // lumped without fixed-end moments
 
         for(i=0; i<3; ++i) {
           globalf[i] = (t0n[0][i]*localf[0]) + (t0n[1][i]*localf[1]) + (t0n[2][i]*localf[2]);
@@ -230,8 +231,6 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	gravityForce[9]  = -globalm[0];
 	gravityForce[10] = -globalm[1];
 	gravityForce[11] = -globalm[2];
-
-        //cerr << "beam gravityForce = "; for(int i=0; i<12; ++i) cerr << gravityForce[i] << " "; cerr << endl;
 
 }
 

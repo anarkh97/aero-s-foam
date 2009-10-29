@@ -7,6 +7,7 @@
 #include <Utils.d/resize_array.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/Element.h>
+#include <vector>
 
 struct RealOrComplex 
 {
@@ -50,7 +51,7 @@ class LMPCTerm
    }
   
   bool isNull() {
-     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0;
+     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0.0;
   }
 }; 
 
@@ -68,12 +69,14 @@ class GenLMPCTerm
   GenLMPCTerm() { dof = cdof = ccdof = -1; }
 };
 
+/** Linear Multi-Point Constraint class */
 class LMPCons
 {
  public:
   bool isComplex;
   RealOrComplex rhs;              // right hand side of mpc
-  ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+  //ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+  std::vector<LMPCTerm> terms;
   union {
     int lmpcnum;                  // id number of the mpc from input
     int fluid_node;            
@@ -113,6 +116,8 @@ class LMPCons
 
   void print(); 
 
+  /** remove the zero terms in this constraint */
+  void removeNullTerms();
 };
 
 template<> double LMPCons::getRhs<double>();
@@ -231,5 +236,16 @@ class SubLMPCons
 
   bool isActive() { return !isFree; }
 };
+
+inline void LMPCons::removeNullTerms() {
+    vector<LMPCTerm>::iterator i = terms.begin();
+    while(i != terms.end()) {
+      if(i->isNull())
+        i = terms.erase(i);
+      else
+        ++i;
+    }
+    nterms = terms.size();
+}
 
 #endif

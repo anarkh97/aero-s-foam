@@ -613,13 +613,14 @@ int main(int argc, char** argv)
  }
 #endif
 
- //if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && !(domain->solInfo().HEV))
+ bool flag = (geoSource->getDirectMPC() || domain->solInfo().type == 2);
+ geoSource->setUpRigidElements(flag);
+
  if(geoSource->getDirectMPC())
    geoSource->makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0.0) // don't use lmpc elements for explicit
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
-// if(domain->solInfo().type != 2 || domain->solInfo().fetiInfo.fsi_element)
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 

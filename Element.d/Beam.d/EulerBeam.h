@@ -59,6 +59,8 @@ public:
 	// be a germination center for a subdomain (bars are not)
 	bool isStart() { return true; }  
 	bool hasRot() { return true; }
+   
+        int getMassType() { return 2; } // both consistent and lumped
 	
 private:
 

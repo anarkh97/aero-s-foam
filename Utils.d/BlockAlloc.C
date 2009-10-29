@@ -32,6 +32,11 @@ void * operator new(size_t nbyte, BlockAlloc &block)
  return block.getMem(nbyte);
 }
 
+void * operator new[](size_t nbyte, BlockAlloc &block)
+{
+ return block.getMem(nbyte);
+}
+
 BlockAlloc global_ba;
 
 void operator delete(void *p, BlockAlloc &block)

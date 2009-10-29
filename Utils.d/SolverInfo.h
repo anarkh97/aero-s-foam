@@ -55,7 +55,7 @@ struct SolverInfo {
    // Solver parameters
    int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
    int subtype;  // subtype and matrix storage... 9 is mumps  10 is diag
-   int iterType; // 0 = CG, 1 = CR, 2 = BCG
+   int iterType; // 0 = CG, 1 = GMRES, 2 = GCR, 4 = BCG, 5 = CR
    int precond;  // preconditioner 0 = none, 1 = jacobi
    int maxit;    // maximum number of iterations
    double tol;   // tolerance for convergence
@@ -569,7 +569,7 @@ struct SolverInfo {
    // DEFINE SOLVER
    void setSolver(int _substype) { type = 0; subtype = _substype;  }
 
-   void setSolver(int _precond, double _tol,int _maxit,int _iterType=1,
+   void setSolver(int _precond, double _tol, int _maxit, int _iterType=1,
                   int _subtype=3, int _maxvecsize=0)
     { type = 1; precond = _precond; tol = _tol; maxit = _maxit; 
       iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; }

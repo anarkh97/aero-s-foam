@@ -116,7 +116,7 @@ template<class Scalar>
 int
 GenSolver<Scalar>::numRBM()
 {
- fprintf(stderr,"Selected Solver does not support Rigid Body Modes\n");
+ fprintf(stderr,"Selected Solver does not support numRBM() function\n");
  return 0;
 }
 
@@ -124,21 +124,21 @@ template<class Scalar>
 void
 GenSolver<Scalar>::getRBMs(double *)
 {
- fprintf(stderr,"Selected Solver does not support Rigid Body Modes\n");
+ fprintf(stderr,"Selected Solver does not support getRBMs(double *) function\n");
 }
 
 template<class Scalar> 
 void
 GenSolver<Scalar>::getRBMs(Vector *)
 {
- fprintf(stderr,"Selected Solver does not support Rigid Body Modes\n");
+ fprintf(stderr,"Selected Solver does not support getRBMs(Vector *) function\n");
 }
 
 template<class Scalar> 
 void
 GenSolver<Scalar>::getRBMs(VectorSet &)
 {
- fprintf(stderr,"Selected Solver does not support Rigid Body Modes\n");
+ fprintf(stderr,"Selected Solver does not support getRBMs(VectorSet &) function\n");
 }
 
 template<class Scalar> 

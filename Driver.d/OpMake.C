@@ -19,6 +19,7 @@
 #include <Solvers.d/UFront.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
+#include <Solvers.d/GmresSolver.h>
 #include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
@@ -153,6 +154,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      //if(kelArray) { cerr << "****\n"; kel = kelArray[iele]; }
      if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
      else kel = packedEset[iele]->stiffness(nodes, karray);
+     //std::cout << "TraceOrig: " << kel.trace() << std::endl;
      this->densProjectStiffness(kel, iele);
    }
 
@@ -289,6 +291,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if (isComplexF || (imag(kappa2)!=0)) {
      if(mat) mat->add(kcel,(*allDOFs)[iele]);
    } else {
+     //std::cout << " Trace 2: " << kel.trace() << std::endl;
      if(mat) mat->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {
@@ -786,15 +789,13 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
        return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
      else {
        DOFMap *baseMap = new DOFMap[dsa->size()];
-            DOFMap *eqMap = new DOFMap[DSA->size()];
-            // TODO Examine when DSA can be different from c_dsa
-            ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-            typename WrapSparseMat<Scalar>::CtorData
-              baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-            int nMappedEq = DSA->size();
-            return
-              new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-                  nMappedEq, eqMap);
+       DOFMap *eqMap = new DOFMap[DSA->size()];
+       // TODO Examine when DSA can be different from c_dsa
+       ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+       typename WrapSparseMat<Scalar>::CtorData
+         baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+       int nMappedEq = DSA->size();
+       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
      }
  }
 }
@@ -951,18 +952,18 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  else {
    switch(sinfo.iterType) {
      default:
-     case 1 : {
+     case 0 : {
        fprintf(stderr," ... PCG Method is Selected          ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
      }
-     case 2: {
+     case 4: {
        fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
        allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
-     case 3: {
+     case 5: {
        fprintf(stderr," ... CR Method is Selected          ...\n");
        allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
@@ -1521,7 +1522,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
     default:
-    case 1: {
+    case 0: {
       fprintf(stderr," ... CG Method is Selected          ...\n");
       if (sinfo.precond==3) {
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
@@ -1537,18 +1538,26 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       systemSolver         = pcgSolver;
       break;
     }
-    case 2: {
+    case 4: {
       fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
       GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
       systemSolver = bcgSolver;
       break;
     }
-    case 3: {
+    case 5: {
       fprintf(stderr," ... CR Method is Selected          ...\n");
       GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *crSolver = new  GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
       systemSolver = crSolver;
+      break;
+    }
+    case 1 : {
+      fprintf(stderr," ... GMRES Method is Selected       ...\n");
+      GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+        *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+         (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, NULL, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+      systemSolver = gmresSolver;
       break;
     }
   }
@@ -1559,23 +1568,27 @@ template<class Scalar>
 void
 Domain::buildGravityForce(GenVector<Scalar> &force)
 {
-  int gravflg = gravityFlag();
-
-  if(gravflg) {
-    if (geoSource->consistentQFlag()) gravflg=2;
+  if(gravityFlag()) {
 
     // ... ADD ELEMENT MASS CONTRIBUTION ...
-    int i, cn, iele;
-    Vector ElementGravityForce(maxNumDOFs,0.0);
+    Vector ElementGravityForce(maxNumDOFs, 0.0);
+    int gravflg;
 
-    for(iele=0; iele<numele; ++iele) {
-      packedEset[iele]->getGravityForce(nodes,gravityAcceleration,
-                                        ElementGravityForce,gravflg);
+    for(int iele = 0; iele < numele; ++iele) {
+      if(packedEset[iele]->getProperty() != NULL) {
+       
+        if (geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0)) 
+             gravflg = 2;                      // 2: consistent (for dynamics, consistent gravity should not be used if element only has a lumped mass matrix)
+        else gravflg = geoSource->fixedEndM;   // 1: lumped with fixed-end moments
+                                               // 0: lumped without fixed-end moments
 
-      for(i=0; i<allDOFs->num(iele); ++i) {
-        cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-        if(cn >= 0)
-          force[cn] += ElementGravityForce[i];
+        packedEset[iele]->getGravityForce(nodes, gravityAcceleration, ElementGravityForce, gravflg);
+
+        for(int i = 0; i < allDOFs->num(iele); ++i) {
+          int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
+          if(cn >= 0)
+            force[cn] += ElementGravityForce[i];
+        }
       }
     }
 
@@ -1593,37 +1606,34 @@ Domain::buildGravityForce(GenVector<Scalar> &force)
       }
       current = current->next;
     }
- }
+  }
 }
 
 template<class Scalar>
 void
 Domain::buildPressureForce(GenVector<Scalar> &force, GeomState *gs)
 {
- Vector ElementPressureForce(maxNumDOFs,0.0);
- int cflg = geoSource->consistentPFlag();
+  Vector ElementPressureForce(maxNumDOFs, 0.0);
+  int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE geoSource->consistentPFlag();
 
- int i, iele;
- // for(iele = 0; iele< numele; ++iele) {
- int nEls = packedEset.last(); //HB: performance issue (avoid calling method last() at each loop)
- for(iele = 0; iele<nEls;  ++iele) {  // PJSA: 5-2-05 for phantoms
-   // If there is a zero pressure defined, skip it.
-   if( packedEset[iele]->getPressure() == 0.0 ) continue;
+  int nEls = packedEset.last(); //HB: performance issue (avoid calling method last() at each loop)
+  for(int iele = 0; iele < nEls;  ++iele) {  // PJSA: 5-2-05 for phantoms
+    // If there is a zero pressure defined, skip it.
+    if( packedEset[iele]->getPressure() == 0.0 ) continue;
 
-   // Otherwise, compute element pressure force
-   packedEset[iele]->computePressureForce(nodes, ElementPressureForce,
-                                          gs, cflg);
+    // Otherwise, compute element pressure force
+    packedEset[iele]->computePressureForce(nodes, ElementPressureForce, gs, cflg);
 
-   // Assemble element pressure forces into global rhs vector
-   for(i=0; i<allDOFs->num(iele); ++i) {
-     if((*allDOFs)[iele][i] > -1) {
-       int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-       if(cn >= 0) {
-         force[cn] += ElementPressureForce[i];
-       }
-     }
-   }
- }
+    // Assemble element pressure forces into global rhs vector
+    for(int i = 0; i < allDOFs->num(iele); ++i) {
+      if((*allDOFs)[iele][i] > -1) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
+        if(cn >= 0) {
+          force[cn] += ElementPressureForce[i];
+        }
+      }
+    }
+  }
 }
 
 template<class Scalar>

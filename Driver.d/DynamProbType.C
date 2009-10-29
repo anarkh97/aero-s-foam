@@ -236,7 +236,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
-   probDesc->getConstForce( *constForce );
+   //probDesc->getConstForce( *constForce ); PJSA moved to after buildOps
 
    // Get SteadyState Flag and Parameters
    probDesc->getSteadyStateParam(steadyFlag, steadyMin, steadyMax, steadyTol);
@@ -279,6 +279,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          else
            dynOps = probDesc->buildOps(1.0, 0.0, 0.0);
 
+         probDesc->getConstForce( *constForce );
+
          // Check stability time step
          if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
@@ -299,6 +301,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Build K, M, C and dynK = ((1-alpham)/(1-alphaf))*M + (dt*gamma)*C + (dt*dt*beta)*K
          dynOps = probDesc->buildOps(((1.0-alpham)/(1.0-alphaf)), dt*gamma, dt*dt*beta);
 
+         probDesc->getConstForce( *constForce );
+
          // Time Integration Loop 
          implicitNewmarkLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax);
        }
@@ -316,7 +320,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        workVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(-1,probDesc);
 
        // Build Necessary Operators (only K!)
-       dynOps = probDesc->buildOps(0,0,1);       
+       dynOps = probDesc->buildOps(0,0,1); 
+ 
+       probDesc->getConstForce( *constForce );
        
        // Quasi-Static Loop
        quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);     

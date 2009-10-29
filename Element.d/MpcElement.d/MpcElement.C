@@ -73,6 +73,7 @@ MpcElement::stiffness(CoordSet &cs, double *k, int flg)
       ret[i][ndofs-1] = ret[ndofs-1][i] = val;
     }
   }
+  //ret *= 1.0e3; // XXXX
   return ret;
 }
 

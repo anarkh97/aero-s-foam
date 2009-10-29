@@ -533,34 +533,26 @@ SuperElement::isMpcElement()
 }
 
 bool
-SuperElement::isRigidMpcElement()
+SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
 {
+  if(forAllNodes) {
+	  // return true if one of the sub elements is a rigid mpc element
+	  for(int i=0; i<nSubElems; ++i)
+	    if(!subElems[i]->isRigidMpcElement(dset, forAllNodes))
+	      return false;
+	  return true;
+  }
   // return true if one of the sub elements is a rigid mpc element
-  int i;
-  for(i=0; i<nSubElems; ++i)
-    if(subElems[i]->isRigidMpcElement()) return true;
+  for(int i=0; i<nSubElems; ++i)
+    if(subElems[i]->isRigidMpcElement(dset, forAllNodes)) return true;
   return false;
 }
 
 void 
-SuperElement::computeMPCs(CoordSet &cs, int &lmpcnum)
+SuperElement::computeMPCs(CoordSet &cs)
 {
   int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->computeMPCs(cs, lmpcnum);
-}
-
-void
-SuperElement::updateMPCs(GeomState &gState)
-{
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->updateMPCs(gState);
-}
-
-void 
-SuperElement::setMpcForces(double *mpcForces)
-{
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->setMpcForces(mpcForces);
+  for(i=0; i<nSubElems; ++i) subElems[i]->computeMPCs(cs);
 }
 
 SuperElement::~SuperElement()
@@ -579,4 +571,8 @@ SuperElement::~SuperElement()
 */
 }
 
-
+int
+SuperElement::getMassType()
+{
+  return subElems[0]->getMassType();
+}

@@ -26,7 +26,7 @@ public:
         int              numInternalNodes() {return 1;}
         void             setInternalNodes(int *in) { nn[2] = in[0]; }
 
-        int  getTopNumber() { return 101; }
+        int  getTopNumber() { return 106; }
         bool isRigidElement() { return true; }
 
 

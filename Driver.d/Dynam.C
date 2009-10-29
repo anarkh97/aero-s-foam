@@ -307,6 +307,8 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                          double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
+  //cerr << "numnodes = " << numnodes << ", geoSource->numNode() = " << geoSource->numNode() << endl;
+  // XXXX numnodes is no longer reliable since it comes from the reduced node to node for direct mpcs
   double (*glDisp)[11] = new double[numnodes][11];//DofSet::max_known_nonL_dof
   for (int i = 0; i < numnodes; ++i)
     for (int j = 0 ; j < 11 ; j++)

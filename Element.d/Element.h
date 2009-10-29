@@ -3,6 +3,7 @@
 
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
+#include <Utils.d/dofset.h>
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -14,7 +15,6 @@ inline double abs(std::complex<double> a)
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
 
-class DofSetArray;
 class Corotator;
 class State;
 class PolygonSet;
@@ -303,7 +303,8 @@ class Element {
         double preload;
         bool myProp;
         int glNum;
-	void lumpMatrix(FullSquareMatrix&, double ratio);
+        vector<double> factors;
+	void lumpMatrix(FullSquareMatrix&);
   public:
         Element() { prop = 0; pressure = 0.0; preload = 0.0;
         _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
@@ -482,11 +483,11 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        virtual bool isRigidMpcElement() { return false; }
+        virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
         virtual bool isRigidElement() { return false; }
-        virtual void computeMPCs(CoordSet &cs, int &lmpcnum) { };
-        virtual void updateMPCs(GeomState &gState) { };
-        virtual void setMpcForces(double *mpcForces) { };
+        virtual void computeMPCs(CoordSet &cs) { }
+        virtual int getNumMPCs() { return 0; }
+        virtual LMPCons** getMPCs() { return 0; }
 
         virtual double helmCoef() { return prop->kappaHelm * prop->kappaHelm; }
         virtual complex<double> helmCoefC() { return
@@ -519,7 +520,11 @@ class Element {
 
         Category getCategory() { return category; } 
         void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
-        bool isDamped() { return (getCategory() != Thermal) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+        bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+
+        virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
+                                                 // notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
+                                                 //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
 };
 
 // *****************************************************************
@@ -556,6 +561,7 @@ class Elemset
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
+   void collapseRigid6(); // replaces all 6-DOF rigid elements that share a node by a single element
 };
 
 class EsetGeomAccessor {

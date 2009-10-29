@@ -93,7 +93,7 @@
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
 %token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CPUMAP
 %token NODALCONTACT MODE FRIC GAP
-%token OUTERLOOP OUTERLOOPTYPE EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
+%token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
@@ -124,7 +124,6 @@
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
-%type <ival>     OUTERLOOPTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -2266,6 +2265,11 @@ Lumped:
           geoSource->setConsistentQFlag(false); 
           geoSource->setConsistentPFlag(false); 
         }
+        | LUMPED Integer NewLine
+        { geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false, $2);
+          geoSource->setConsistentPFlag(false);
+        }
 	;
 Preload:
         PRELOAD NewLine
@@ -2310,7 +2314,7 @@ Solver:
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
 	| STATS NewLine ITERTYPE Integer Float Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3,3); 
+	{ domain->solInfo().setSolver($4,$5,$6,$3); 
           domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer Integer NewLine
 	{ domain->solInfo().setSolver($4,$5,$6,$3,$7); 
@@ -2844,9 +2848,9 @@ Solver:
           domain->curvatureConst2 = $4;
           domain->curvatureFlag = 2;
         }
-        | OUTERLOOP OUTERLOOPTYPE NewLine
+        | OUTERLOOP ITERTYPE NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2; }
-        | OUTERLOOP OUTERLOOPTYPE HERMITIAN NewLine
+        | OUTERLOOP ITERTYPE HERMITIAN NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2;
           domain->solInfo().fetiInfo.complex_hermitian = true; }
         | INITIALLAMBDA Integer NewLine

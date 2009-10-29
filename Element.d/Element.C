@@ -268,47 +268,42 @@ Element::imStiffness(CoordSet& cs, double *m, int cmflg)
   return ret;
 }
 
-//------------------------------------------------------------------------------
-// ratio == 1 => consistent
-// ratio == 0 => lumped
-void Element::lumpMatrix(FullSquareMatrix& m, double ratio)
+void Element::lumpMatrix(FullSquareMatrix& m)
 {
-  if(ratio < 1)
-    {
-      double MM = 0;//total mass of element
-      double MD = 0;//mass of the diagonal
-      const int dim = m.dim();
-      for(int i = 0; i < dim; ++i)
-	{
-	  MD += m[i][i];
-	  for(int j = 0; j < i; ++j)
-	    { MM += m[i][j]; }
-	}
-      MM = MD + 2*MM;
-      if(MD>0)
-	{
-	  const double factor = MM/MD*(1-ratio) + ratio;
-	  for(int i=0; i<dim; ++i)
-	    {
-	      m[i][i] *= factor;
-	      for(int j=0; j<i; ++j)
-		{
-		  m[i][j] *= ratio;
-		  m[j][i] *= ratio;
-		}
-	    }
-	}
+  double MM = 0.0; // total mass of element
+  double MD = 0.0; // mass of the diagonal
+  const int dim = m.dim();
+  for(int i = 0; i < dim; ++i) {
+    MD += m[i][i];
+    for(int j = 0; j < i; ++j) { 
+      MM += m[i][j]; 
     }
+  }
+  MM = MD + 2.0*MM;
+  if (MD > 0) {
+    const double factor = MM/MD;
+    for(int i = 0; i < dim; ++i) {
+      m[i][i] *= factor;
+      //cerr << "i = " << i << ", m[i][i] = " << m[i][i] << endl;
+      factors.push_back(m[i][i]/MM); // PJSA store this for getGravityForce
+      for(int j = 0; j < i; ++j) {
+        m[i][j] = m[j][i] = 0.0;
+      }
+    }
+  }
   return;
 }
 
-
-//------------------------------------------------------------------------------
+// mratio = 1.0 for consistent
+// mratio = 0.0 for lumped
 FullSquareMatrix Element::massMatrix(CoordSet& cs, double* m, double mratio)
 {
-  FullSquareMatrix result = massMatrix(cs, m, 1);
-  lumpMatrix(result, mratio);
-  return result;
+  if(mratio == 0.0 && getMassType() == 1) { // in this case, get the consistent mass matrix and lump it using diagonal scaling
+    FullSquareMatrix result = massMatrix(cs, m, 1);
+    lumpMatrix(result);
+    return result;
+  }
+  else return massMatrix(cs, m, int(mratio));
 }
 
 FullSquareMatrixC Element::complexStiffness(CoordSet&, DComplex* kel, int cmflg)

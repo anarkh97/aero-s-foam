@@ -20,17 +20,14 @@ class AffineGenAlphaIntegrator : public LinearGenAlphaIntegrator {
 public:
   EXPORT_PTRINTERFACE_TYPES(AffineGenAlphaIntegrator);
 
-  bool externalForceFlag() const { return externalForceFlag_; }
-
-  void externalForceFlagIs(bool eff);
+  // Overriden
+  virtual void externalForceStatusIs(ExternalForceStatus efs);
 
   AffineGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
 
 protected:
+  // Overriden
   virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState);
-
-private:
-  bool externalForceFlag_;
 };
 
 } // end namespace Pita

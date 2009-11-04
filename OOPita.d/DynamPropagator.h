@@ -7,73 +7,16 @@
 
 namespace Pita {
 
-class DynamPropagatorRoot : public Fwk::PtrInterface<DynamPropagatorRoot> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(DynamPropagatorRoot);
-
-  size_t vectorSize() const { return vectorSize_; }
-
-protected:
-  explicit DynamPropagatorRoot(size_t vectorSize = 0) :
-    vectorSize_(vectorSize)
-  {}
-
-  void setVectorSize(size_t v) { vectorSize_ = v; }
-
-private:
-  size_t vectorSize_;
-
-  DISALLOW_COPY_AND_ASSIGN(DynamPropagatorRoot);
-};
-
-class DynamPropagatorHead : virtual public DynamPropagatorRoot {
-public:
-  EXPORT_PTRINTERFACE_TYPES(DynamPropagatorHead);
-
-  const DynamState & initialState() const { return initialState_; }
-  virtual void initialStateIs(const DynamState & is) = 0;
-
-protected:
-  explicit DynamPropagatorHead(size_t vectorSize) :
-    DynamPropagatorRoot(vectorSize),
-    initialState_(vectorSize)
-  {}
-
-  void setInitialState(const DynamState & is) { initialState_ = is; }
-
-private:
-  DynamState initialState_;
-
-  DISALLOW_COPY_AND_ASSIGN(DynamPropagatorHead);
-};
-
-class DynamPropagatorTail : virtual public DynamPropagatorRoot {
-public:
-  EXPORT_PTRINTERFACE_TYPES(DynamPropagatorTail);
-
-  const DynamState & finalState() const { return finalState_; }
-
-protected:
-  explicit DynamPropagatorTail(size_t vectorSize) :
-    DynamPropagatorRoot(vectorSize),
-    finalState_(vectorSize)
-  {}
-
-  void setFinalState(const DynamState & fs) { finalState_ = fs; }
-
-private:
-  DynamState finalState_;
-
-  DISALLOW_COPY_AND_ASSIGN(DynamPropagatorTail);
-};
-
-class DynamPropagator : public DynamPropagatorHead, public DynamPropagatorTail {
+class DynamPropagator : public Fwk::PtrInterface<DynamPropagator> {
 public:
   EXPORT_PTRINTERFACE_TYPES(DynamPropagator);
 
-  // Overriden
-  virtual void initialStateIs(const DynamState & is) { setInitialState(is); };
-
+  size_t vectorSize() const { return vectorSize_; }
+  const DynamState & initialState() const { return initialState_; }
+  const DynamState & finalState() const { return finalState_; }
+  
+  virtual void initialStateIs(const DynamState & is) = 0;
+  
   class Notifiee : public Fwk::BaseMultiNotifiee<const DynamPropagator> {
   public:
     EXPORT_PTRINTERFACE_TYPES(Notifiee);
@@ -82,7 +25,7 @@ public:
     virtual void onFinalState()   {}
 
   protected:
-    Notifiee(const DynamPropagator * notifier) :
+    explicit Notifiee(const DynamPropagator * notifier) :
       Fwk::BaseMultiNotifiee<const DynamPropagator>(notifier)
     {}
   };
@@ -93,11 +36,14 @@ public:
 
 protected:
   explicit DynamPropagator(size_t vectorSize) :
-    DynamPropagatorHead(vectorSize),
-    DynamPropagatorTail(vectorSize)
-  {
-    setVectorSize(vectorSize);
-  }
+    vectorSize_(vectorSize),
+    initialState_(vectorSize_),
+    finalState_(vectorSize_)
+  {}
+
+  void setVectorSize(size_t v) { vectorSize_ = v; }
+  void setInitialState(DynamState is) { initialState_ = is; }
+  void setFinalState(const DynamState & fs) { finalState_ = fs; }
 
   void initialStateNotify() { this->notifierDelegate().lastNotificationIs(&Notifiee::onInitialState); }
   void finalStateNotify() { this->notifierDelegate().lastNotificationIs(&Notifiee::onFinalState); } 
@@ -105,6 +51,9 @@ protected:
   GenNotifierDelegate<Notifiee> & notifierDelegate() const { return const_cast<DynamPropagator *>(this)->notifierDelegate_; }
 
 private:
+  size_t vectorSize_;
+  DynamState initialState_;
+  DynamState finalState_;
   GenNotifierDelegate<Notifiee> notifierDelegate_;
 
   DISALLOW_COPY_AND_ASSIGN(DynamPropagator);

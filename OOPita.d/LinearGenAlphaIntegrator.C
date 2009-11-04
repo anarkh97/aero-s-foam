@@ -10,8 +10,10 @@ namespace Pita {
 
 // Constructors
 
-LinearGenAlphaIntegrator::LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param) :
-  DynamTimeIntegrator(dOpsMgr->probDesc()->solVecInfo()),
+LinearGenAlphaIntegrator::LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr,
+                                                   const GeneralizedAlphaParameter & param,
+                                                   ExternalForceStatus efs) :
+  AffineDynamTimeIntegrator(dOpsMgr->probDesc()->solVecInfo(), efs),
   dynamOpsManager_(dOpsMgr),
   probDesc_(dOpsMgr->probDesc()),
   dynamOps_(NULL),
@@ -85,6 +87,11 @@ LinearGenAlphaIntegrator::rhoInfinityIs(double r) {
   GeneralizedAlphaParameter param(timeStepSize(), r);
   getDynamOps(param);
   rhoInfinity_ = r;
+}
+
+void
+LinearGenAlphaIntegrator::externalForceStatusIs(LinearGenAlphaIntegrator::ExternalForceStatus efs) {
+  throw Fwk::RangeException();
 }
 
 // Protected functions

@@ -12,10 +12,9 @@ public:
   EXPORT_PTRINTERFACE_TYPES(BasisCollectorImpl);
   
   // Overriden interface
-  virtual IntegratorPropagator * source(const HalfSliceId & sliceId) const;
+  virtual DynamPropagator * source(const HalfSliceId & sliceId) const;
   virtual size_t sourceCount() const;
-  virtual IntegratorPropagator * sourceNew(const HalfSliceId & sliceId, DynamTimeIntegrator * baseIntegrator);
-  virtual void sourceDel(const HalfSliceId & sliceId);
+  virtual void sourceIs(const HalfSliceId & sliceId, DynamPropagator * source);
 
   // Specialized interface 
   typedef std::pair<HalfSliceRank, DynamState> CollectedState;
@@ -41,7 +40,7 @@ protected:
     return propagationReactor_;
   }
 
-  virtual PropagationReactor * propagationReactorNew(IntegratorPropagator * notifier,
+  virtual PropagationReactor * propagationReactorNew(DynamPropagator * notifier,
                                                      const HalfSliceId & id);
 
 private:

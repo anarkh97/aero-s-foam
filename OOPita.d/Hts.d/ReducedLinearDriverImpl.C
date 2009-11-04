@@ -11,7 +11,9 @@
 
 #include "../LinearGenAlphaIntegrator.h"
 #include "../HomogeneousGenAlphaIntegrator.h"
+
 #include "../IntegratorPropagator.h"
+#include "../AffineIntegratorPropagator.h"
 
 #include "SliceMapping.h"
 
@@ -31,7 +33,7 @@
 #include "../IncrementalPostProcessor.h"
 #include "LinearFineIntegratorManager.h"
 #include "PropagatorManager.h"
-#include "HalfTimeSliceImpl.h"
+#include "AffineHalfTimeSliceImpl.h"
 
 #include "ReducedFullTimeSliceImpl.h"
 #include "../JumpProjectorImpl.h"
@@ -309,17 +311,16 @@ HalfTimeSlice::Manager::Ptr
 ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fineIntegrationParam,
                                                    PostProcessing::Manager * postProcessingMgr,
                                                    BasisCollector * collector) const {
-  FineIntegratorManager::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
+  GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
-  PropagatorManager::Ptr propagatorMgr =
-    new PropagatorManager(
-        collector,
-        fineIntegratorMgr.ptr(), 
-        postProcessingMgr,
-        halfSliceRatio_,
-        initialTime_);
+  PropagatorManager::Ptr propagatorMgr = PropagatorManager::New(
+      collector,
+      fineIntegratorMgr.ptr(), 
+      postProcessingMgr,
+      halfSliceRatio_,
+      initialTime_);
   
-  return HalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
+  return AffineHalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
 }
 
 PostProcessing::Manager::Ptr

@@ -1,5 +1,6 @@
 ADD_LIBRARY( pitadriver
 ActivityImpl.C
+AffineIntegratorPropagator.C
 AlternatingIntegratorPropagator.C
 CommManager.C
 CommManagerImpl.C
@@ -57,9 +58,8 @@ blas_dmax_val.f
 Hts.d/BasisCollectorImpl.C
 Hts.d/CorrectionNetworkImpl.C
 Hts.d/LocalCorrectionTimeSlice.C
-Hts.d/FineIntegratorManager.C
 Hts.d/HalfTimeSlice.C
-Hts.d/HalfTimeSliceImpl.C
+Hts.d/AffineHalfTimeSliceImpl.C
 Hts.d/HomogeneousTaskManager.C
 Hts.d/LinearTaskManager.C
 Hts.d/LocalNetwork.C

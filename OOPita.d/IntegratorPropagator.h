@@ -17,7 +17,7 @@ public:
   TimeStepCount timeStepCount() const { return timeStepCount_; }
   
   virtual void initialStateIs(const DynamState & initialState);
-  void integratorIs(const Fwk::Ptr<DynamTimeIntegrator> & integrator) { integrator_ = integrator; };
+  //void integratorIs(DynamTimeIntegrator * integrator) { integrator_ = integrator; };
   void initialTimeIs(Seconds t0) { initialTime_ = t0; } 
   void timeStepCountIs(TimeStepCount timeStepCount) { timeStepCount_ = timeStepCount; }
  

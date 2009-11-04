@@ -15,13 +15,13 @@ PropagatorReactor::Manager::Manager(IntegratorReactor::Builder * reactorBuilder)
 {}
 
 PostProcessor::FileSetId
-PropagatorReactor::Manager::outputFileSet(const IntegratorPropagator * op) const {
+PropagatorReactor::Manager::outputFileSet(const AffineIntegratorPropagator * op) const {
   PropagatorReactorContainer::const_iterator it = propagatorReactor_.find(op);
   return it != propagatorReactor_.end() ? it->second->fileSet() : PostProcessor::FileSetId();
 }
 
 void
-PropagatorReactor::Manager::outputFileSetIs(const IntegratorPropagator * op, PostProcessor::FileSetId fs) {
+PropagatorReactor::Manager::outputFileSetIs(const AffineIntegratorPropagator * op, PostProcessor::FileSetId fs) {
   PropagatorReactorContainer::iterator it = propagatorReactor_.lower_bound(op);
   if (it != propagatorReactor_.end() && it->first == op) {
     // The propagator is already associated with a FileSet
@@ -34,7 +34,7 @@ PropagatorReactor::Manager::outputFileSetIs(const IntegratorPropagator * op, Pos
     }
   } else {
     if (fs != PostProcessor::FileSetId()) {
-      // Begin observing propagator with associated FileSet
+      // Start observing propagator with associated FileSet
       PropagatorReactor::Ptr reactor = new PropagatorReactor(op, this, fs);
       propagatorReactor_.insert(it, make_pair(op, reactor));
     }
@@ -43,10 +43,10 @@ PropagatorReactor::Manager::outputFileSetIs(const IntegratorPropagator * op, Pos
 
 // PropagatorReactor implementation
 
-PropagatorReactor::PropagatorReactor(const IntegratorPropagator * notifier,
+PropagatorReactor::PropagatorReactor(const AffineIntegratorPropagator * notifier,
                                      PropagatorReactor::Manager * parent,
                                      PostProcessor::FileSetId fileSet) :
-  IntegratorPropagator::Notifiee(NULL),
+  AffineIntegratorPropagator::Notifiee(NULL),
   notifier_(notifier),
   parent_(parent),
   fileSet_(fileSet),

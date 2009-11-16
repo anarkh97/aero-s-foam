@@ -22,7 +22,7 @@ protected:
   class PropagationReactor;
 
   virtual BasisCollectorImpl::PropagationReactor * propagationReactorNew(
-      DynamPropagator * notifier,
+      const DynamPropagator * notifier,
       const HalfSliceId & id); // Overriden
 
   NonHomogeneousBasisCollectorImpl();
@@ -39,7 +39,7 @@ public:
   // Added members
   DynamState nonHomogeneousState() const { return nonHomogeneousState_; }
 
-  PropagationReactor(DynamPropagator * notifier,
+  PropagationReactor(const DynamPropagator * notifier,
                      const HalfSliceId & id,
                      NonHomogeneousBasisCollectorImpl * parent);
 

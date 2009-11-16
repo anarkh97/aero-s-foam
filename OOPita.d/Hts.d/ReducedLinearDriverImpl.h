@@ -10,12 +10,14 @@
 
 #include "SliceMapping.h"
 
+#include "../LinearGenAlphaIntegrator.h"
 #include "../PostProcessingManager.h"
 #include "BasisCollectorImpl.h"
-#include "LocalCorrectionTimeSlice.h"
+#include "../CorrectionPropagator.h"
 #include "../SeedInitializer.h"
 
 template <typename Scalar> class SingleDomainDynamic;
+class GeoSource;
 class Domain;
 class SolverInfo;
 class Communicator;
@@ -30,20 +32,22 @@ public:
   virtual void solve();
 
   SingleDomainDynamic<double> * probDesc() const { return probDesc_; }
+  GeoSource * geoSource() const { return geoSource_; }
   Domain * domain() const { return domain_; }
   SolverInfo * solverInfo() const { return solverInfo_; }
   Communicator * baseComm() const { return baseComm_; }
 
   // Independent from global state
   static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
+                                          GeoSource * geoSource,
                                           Domain * domain,
                                           SolverInfo * solverInfo,
                                           Communicator * baseComm) {
-    return new ReducedLinearDriverImpl(pbDesc, domain, solverInfo, baseComm);
+    return new ReducedLinearDriverImpl(pbDesc, geoSource, domain, solverInfo, baseComm);
   }
 
 protected:
-  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, Domain *, SolverInfo *, Communicator *);
+  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
@@ -58,7 +62,7 @@ protected:
   
   PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
   BasisCollectorImpl::Ptr buildBasisCollector() const;
-  CorrectionTimeSlice::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;
+  CorrectionPropagator<DynamState>::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;
   LinearGenAlphaIntegrator::Ptr buildCoarseIntegrator() const; 
   DynamPropagator::Ptr buildCoarsePropagator(bool local, Communicator * coarseComm) const;
   SeedInitializer::Ptr buildSeedInitializer(bool local, Communicator * timeComm) const;
@@ -66,6 +70,7 @@ protected:
 private:
   /* Primary sources */
   SingleDomainDynamic<double> * probDesc_;
+  GeoSource * geoSource_;
   Domain * domain_;
   SolverInfo * solverInfo_;
   Communicator * baseComm_;

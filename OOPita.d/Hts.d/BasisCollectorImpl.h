@@ -12,9 +12,9 @@ public:
   EXPORT_PTRINTERFACE_TYPES(BasisCollectorImpl);
   
   // Overriden interface
-  virtual DynamPropagator * source(const HalfSliceId & sliceId) const;
+  virtual const DynamPropagator * source(const HalfSliceId & sliceId) const;
   virtual size_t sourceCount() const;
-  virtual void sourceIs(const HalfSliceId & sliceId, DynamPropagator * source);
+  virtual void sourceIs(const HalfSliceId & sliceId, const DynamPropagator * source);
 
   // Specialized interface 
   typedef std::pair<HalfSliceRank, DynamState> CollectedState;
@@ -40,7 +40,7 @@ protected:
     return propagationReactor_;
   }
 
-  virtual PropagationReactor * propagationReactorNew(DynamPropagator * notifier,
+  virtual PropagationReactor * propagationReactorNew(const DynamPropagator * notifier,
                                                      const HalfSliceId & id);
 
 private:
@@ -55,7 +55,7 @@ class BasisCollectorImpl::PropagationReactor : public DynamPropagator::Notifiee 
 public:
   EXPORT_PTRINTERFACE_TYPES(PropagationReactor);
   
-  PropagationReactor(DynamPropagator * notifier, const HalfSliceId & id, BasisCollectorImpl * parent);
+  PropagationReactor(const DynamPropagator * notifier, const HalfSliceId & id, BasisCollectorImpl * parent);
 
   virtual void onFinalState(); // Overriden
 

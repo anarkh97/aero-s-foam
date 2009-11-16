@@ -1,7 +1,8 @@
 #include "PostProcessingManager.h"
 
-#include <Driver.d/GeoSource.h>
-extern GeoSource * geoSource;
+// HACK ...
+#include "AffineIntegratorPropagator.h"
+#include "IntegratorPropagator.h"
 
 namespace Pita {
 
@@ -15,13 +16,13 @@ PropagatorReactor::Manager::Manager(IntegratorReactor::Builder * reactorBuilder)
 {}
 
 PostProcessor::FileSetId
-PropagatorReactor::Manager::outputFileSet(const AffineIntegratorPropagator * op) const {
+PropagatorReactor::Manager::outputFileSet(const DynamPropagator * op) const {
   PropagatorReactorContainer::const_iterator it = propagatorReactor_.find(op);
   return it != propagatorReactor_.end() ? it->second->fileSet() : PostProcessor::FileSetId();
 }
 
 void
-PropagatorReactor::Manager::outputFileSetIs(const AffineIntegratorPropagator * op, PostProcessor::FileSetId fs) {
+PropagatorReactor::Manager::outputFileSetIs(const DynamPropagator * op, PostProcessor::FileSetId fs) {
   PropagatorReactorContainer::iterator it = propagatorReactor_.lower_bound(op);
   if (it != propagatorReactor_.end() && it->first == op) {
     // The propagator is already associated with a FileSet
@@ -43,10 +44,10 @@ PropagatorReactor::Manager::outputFileSetIs(const AffineIntegratorPropagator * o
 
 // PropagatorReactor implementation
 
-PropagatorReactor::PropagatorReactor(const AffineIntegratorPropagator * notifier,
+PropagatorReactor::PropagatorReactor(const DynamPropagator * notifier,
                                      PropagatorReactor::Manager * parent,
                                      PostProcessor::FileSetId fileSet) :
-  AffineIntegratorPropagator::Notifiee(NULL),
+  DynamPropagator::Notifiee(NULL),
   notifier_(notifier),
   parent_(parent),
   fileSet_(fileSet),
@@ -57,9 +58,16 @@ PropagatorReactor::PropagatorReactor(const AffineIntegratorPropagator * notifier
 
 void
 PropagatorReactor::onInitialState() {
-  const DynamTimeIntegrator * integrator = dynamic_cast<const LinearGenAlphaIntegrator *>(notifier_->integrator());
-  if (integrator) {
-    integratorReactor_ = parent_->reactorBuilder()->reactorNew(integrator, fileSet_);
+  if (const AffineIntegratorPropagator * downcasted = dynamic_cast<const AffineIntegratorPropagator *>(notifier_)) {
+    if (const DynamTimeIntegrator * integrator = downcasted->integrator()) {
+      integratorReactor_ = parent_->reactorBuilder()->reactorNew(integrator, fileSet_);
+    }
+  }
+  
+  if (const IntegratorPropagator * downcasted = dynamic_cast<const IntegratorPropagator *>(notifier_)) {
+    if (const DynamTimeIntegrator * integrator = downcasted->integrator()) {
+      integratorReactor_ = parent_->reactorBuilder()->reactorNew(integrator, fileSet_);
+    }
   }
 }
 

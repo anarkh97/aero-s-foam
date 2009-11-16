@@ -16,7 +16,7 @@ public:
     NamedTask("Seed initialization " + toString(target->name())),
     target_(target),
     state_(state),
-    status_(status_)
+    status_(status)
   {}
 
 private:
@@ -28,8 +28,8 @@ private:
 
 class AffineTermPrecomputation;
 
-NonHomogeneousTaskManager::NonHomogeneousTaskManager(LocalNetwork * network,
-                                                     CorrectionNetworkImpl * correctionMgr,
+NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * network,
+                                                     LinearProjectionNetworkImpl * correctionMgr,
                                                      RemoteState::MpiManager * commMgr,
                                                      DynamState initialCondition) :
   LinearTaskManager(IterationRank(-1), network, correctionMgr, commMgr),
@@ -53,7 +53,7 @@ NonHomogeneousTaskManager::iterationInc() {
     scheduleNormalIteration();
   }
   
-  setIteration(iteration().next());
+  setIteration(nextIteration);
 }
 
 void
@@ -68,8 +68,8 @@ NonHomogeneousTaskManager::scheduleBasicSeedInitialization() {
 
   DynamState zeroState(initialCondition_.vectorSize(), 0.0);
 
-  LocalNetwork::SeedMap mainSeeds = network()->mainSeeds();
-  for (LocalNetwork::SeedMap::iterator it = mainSeeds.begin();
+  LinearLocalNetwork::SeedMap mainSeeds = network()->mainSeeds();
+  for (LinearLocalNetwork::SeedMap::iterator it = mainSeeds.begin();
       it != mainSeeds.end();
       ++it) {
   
@@ -92,6 +92,7 @@ NonHomogeneousTaskManager::scheduleBasicSeedInitialization() {
 void
 NonHomogeneousTaskManager::scheduleIterationZero() {
   schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Jumps", network()->activeJumpProjectors());
   schedulePhase("Coarse propagation", network()->activeCoarseTimeSlices());
   schedulePhase("Correction synchronization", network()->activeFullCorrectionSyncs());
   schedulePhase("Seed update", network()->activeSeedAssemblers());

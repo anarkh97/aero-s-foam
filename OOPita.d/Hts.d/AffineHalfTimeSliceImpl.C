@@ -24,6 +24,7 @@ AffineHalfTimeSliceImpl::seedIs(const Seed * s) {
 void
 AffineHalfTimeSliceImpl::iterationIs(IterationRank i) {
   assert(seed()->iteration() == i);
+  assert(seed()->status() != Seed::INACTIVE);
   propagateSeed();
   propagatedSeed()->iterationIs(seed()->iteration().next());
 }
@@ -35,27 +36,24 @@ AffineHalfTimeSliceImpl::propagatedSeedIs(Seed * ps) {
 
 void
 AffineHalfTimeSliceImpl::propagateSeed() {
-  if (seed()) {
-    if (previousSeedState_.vectorSize() != 0) {
-      //log() << "Reuse state\n";
-      propagator()->constantTermIs(AffineDynamPropagator::HOMOGENEOUS);
-      //log() << "External force flagged off\n"; 
-      propagator()->initialStateIs(seed()->state() - previousSeedState_);
-    } else {
-      //log() << "New state\n";
-      propagator()->initialStateIs(seed()->state());
-    }
-    if (propagatedSeed()) {
-      propagatedSeed()->statusIs(seed()->status());
-      if (propagatedSeed()->state().vectorSize() != 0) {
-        propagatedSeed()->stateIs(propagatedSeed()->state() + propagator()->finalState());
-      } else {
-        propagatedSeed()->stateIs(propagator()->finalState());
-      }
-    }
-    
-    previousSeedState_ = seed()->state(); 
+  if (previousSeedState_.vectorSize() != 0) {
+    //log() << "Reuse state\n";
+    propagator()->constantTermIs(AffineDynamPropagator::HOMOGENEOUS);
+    //log() << "External force flagged off\n"; 
+    propagator()->initialStateIs(seed()->state() - previousSeedState_);
+  } else {
+    //log() << "New state\n";
+    propagator()->initialStateIs(seed()->state());
   }
+ 
+  propagatedSeed()->statusIs(seed()->status());
+  if (propagatedSeed()->state().vectorSize() != 0) {
+    propagatedSeed()->stateIs(propagatedSeed()->state() + propagator()->finalState());
+  } else {
+    propagatedSeed()->stateIs(propagator()->finalState());
+  }
+
+  previousSeedState_ = seed()->state(); 
 }
 
 

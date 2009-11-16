@@ -13,56 +13,32 @@ UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const String & name, const Ma
 {}
 
 void
-UpdatedSeedAssemblerImpl::correctionIs(Seed * c) {
-  setCorrection(c);
-}
-
-void
-UpdatedSeedAssemblerImpl::updatedSeedIs(Seed * us) {
-  setUpdatedSeed(us);
-}
-
-void
-UpdatedSeedAssemblerImpl::propagatedSeedIs(const Seed * ps) {
-  setPropagatedSeed(ps);
-}
-
-void
-UpdatedSeedAssemblerImpl::correctionComponentsIs(const ReducedSeed * cc) {
-  setCorrectionComponents(cc);
-}
-
-void
 UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
-  if (!propagatedSeed() || !updatedSeed()) {
-    return;
-  }
-
-  if (correction()->iteration() < correctionComponents()->iteration()) {
+  assert(correctionComponents()->iteration() == propagatedSeed()->iteration() || correctionComponents()->status() == Seed::INACTIVE);
   
-    //log() << "Reading state from " << correctionComponents()->name() << "\n";
-    const Vector & components = correctionComponents()->state();
-    
-    DynamState result(propagatedSeed()->state().vectorSize(), 0.0);
-    int rbs = static_cast<int>(correctionBasis()->stateCount());
-    //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
-    for (int i = 0; i < rbs; ++i) {
-      if (components[i] != 0.0) {
-        result.linAdd(components[i], correctionBasis()->state(i));
-      }
-    }
+  if (correction()->iteration() < correctionComponents()->iteration()) {
+    if (correctionComponents()->status() != Seed::INACTIVE) { 
+      //log() << "Reading state from " << correctionComponents()->name() << "\n";
+      const Vector & components = correctionComponents()->state();
 
-    correction()->stateIs(result);
+      DynamState result(propagatedSeed()->state().vectorSize(), 0.0);
+      int rbs = static_cast<int>(correctionBasis()->stateCount());
+      //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
+      for (int i = 0; i < rbs; ++i) {
+        if (components[i] != 0.0) {
+          result.linAdd(components[i], correctionBasis()->state(i));
+        }
+      }
+
+      correction()->stateIs(result);
+    }
     correction()->statusIs(correctionComponents()->status());
     correction()->iterationIs(correctionComponents()->iteration());
   }
 
-  assert(correction()->iteration() == ir);
-  assert(propagatedSeed()->iteration() == ir);
-  
-  updatedSeed()->stateIs(correction()->state() + propagatedSeed()->state());
-  updatedSeed()->statusIs(propagatedSeed()->status());
-  updatedSeed()->iterationIs(propagatedSeed()->iteration());
+  updateSeed();
+
+  setIteration(ir);
 }
 
 /* Manager */

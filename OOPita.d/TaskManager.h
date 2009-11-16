@@ -42,7 +42,6 @@ protected:
     typename std::vector<Fwk::Ptr<E> >::iterator it_end_;
   };
 
-
 public:
   class Phase : public NamedInterface {
   public:

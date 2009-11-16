@@ -51,6 +51,20 @@ private:
   NotifieeConst * notifiee_;*/
 };
 
+template <typename PtrT, typename K, typename Base>
+class GenManagerSubInterface : public Base {
+public:
+  EXPORT_PTRINTERFACE_TYPES(GenManagerSubInterface);
+  
+  // Read accessors
+  virtual PtrT instance(const K & key) const = 0;
+  virtual size_t instanceCount() const = 0;
+
+  // Mutators
+  virtual PtrT instanceNew(const K & key) = 0;
+  virtual void instanceDel(const K & key) = 0;
+};
+
 /* Generic Manager Implementation
 ** T => Managed type
 ** K => Key                       */
@@ -88,6 +102,7 @@ public:
 
 protected:
   virtual ~GenManagerImpl() {}
+
   virtual T * createNewInstance(const K & key) = 0;
 
 private:
@@ -116,6 +131,70 @@ GenManagerImpl<T, K>::instanceNew(const K & key) {
   return newInstance.ptr();
 }
 
+/* Factory-based generic manager implementation */
+template <typename T, typename K>
+struct InstanceFactory {
+  typedef T InstanceType;
+  typedef K KeyType;
+
+  /* Derived classes should implement T * operator()(const K & key) [const] */
+};
+
+template <typename FactoryType> 
+class FactoryManagerImpl {
+public:
+  typedef typename FactoryType::InstanceType InstanceType;
+  typedef typename FactoryType::KeyType KeyType;
+  typedef std::map<KeyType, Ptr<InstanceType> > InstanceMap;
+  typedef typename InstanceMap::size_type InstanceCount;
+  typedef typename InstanceMap::const_iterator IteratorConst;
+  typedef typename InstanceMap::iterator Iterator;
+  typedef typename InstanceMap::value_type Pair;
+
+  InstanceType * instance(const KeyType & key) const;
+  InstanceCount instanceCount() const { return instance_.size(); }
+  
+  InstanceType * instanceNew(const KeyType & key);
+  void instanceDel(const KeyType & key) { instance_.erase(key); } 
+  
+  IteratorConst instanceBegin() const { return instance_.begin(); }
+  IteratorConst instanceEnd() const { return instance_.end(); }
+
+  Iterator instanceBegin() { return instance_.begin(); }
+  Iterator instanceEnd() { return instance_.end(); }
+
+  explicit FactoryManagerImpl(FactoryType factory) :
+    factory_(factory),
+    instance_()
+  {}
+
+private:
+  FactoryType factory_;
+  InstanceMap instance_;
+};
+
+template <typename FactoryType>
+typename FactoryManagerImpl<FactoryType>::InstanceType *
+FactoryManagerImpl<FactoryType>::instance(const typename FactoryManagerImpl<FactoryType>::KeyType & key) const {
+  typename InstanceMap::const_iterator it = instance_.find(key);
+  return (it != instance_.end()) ? it->second.ptr() : NULL;
+}
+
+template <typename FactoryType>
+typename FactoryManagerImpl<FactoryType>::InstanceType *
+FactoryManagerImpl<FactoryType>::instanceNew(const typename FactoryManagerImpl<FactoryType>::KeyType & key) {
+  // Find insertion point
+  typename InstanceMap::iterator it = instance_.lower_bound(key);
+  if (it != instance_.end() && it->first == key)
+    throw NameInUseException();
+ 
+  // Build and add new instance
+  Ptr<InstanceType> newInstance = factory_(key);
+  instance_.insert(it, std::make_pair(key, newInstance));
+
+  return newInstance.ptr();
+}
+
 /* Template Manager */
 template <typename T, typename K>
 class GenManager : public PtrInterface<GenManager<T, K> >, private GenManagerImpl<T, K> {
@@ -139,6 +218,7 @@ protected:
 
   DISALLOW_COPY_AND_ASSIGN(GenManager);
 };
+
 
 /* Specialized Manager for NamedInterface */
 typedef GenManagerImpl<NamedInterface, String> NamedInterfaceManagerImpl;

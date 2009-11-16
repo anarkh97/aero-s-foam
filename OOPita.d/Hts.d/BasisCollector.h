@@ -14,9 +14,9 @@ class BasisCollector : public Fwk::PtrInterface<BasisCollector> {
 public:
   EXPORT_PTRINTERFACE_TYPES(BasisCollector);
   
-  virtual DynamPropagator * source(const HalfSliceId & id) const = 0;
+  virtual const DynamPropagator * source(const HalfSliceId & id) const = 0;
   virtual size_t sourceCount() const = 0;
-  virtual void sourceIs(const HalfSliceId & id, DynamPropagator * source) = 0;
+  virtual void sourceIs(const HalfSliceId & id, const DynamPropagator * source) = 0;
 
 protected:
   BasisCollector() {}

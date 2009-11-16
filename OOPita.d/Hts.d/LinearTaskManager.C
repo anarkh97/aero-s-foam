@@ -11,20 +11,20 @@ public:
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
-  ProjectionBasis(CorrectionNetworkImpl * correctionMgr, RemoteState::MpiManager * commMgr) :
+  ProjectionBasis(LinearProjectionNetworkImpl * correctionMgr, RemoteState::MpiManager * commMgr) :
     NamedTask("Projection building"),
     correctionMgr_(correctionMgr),
     commMgr_(commMgr)
   {}
 
 private:
-  CorrectionNetworkImpl::Ptr correctionMgr_;
+  LinearProjectionNetworkImpl::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 };
 
 LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
-                                     LocalNetwork * network,
-                                     CorrectionNetworkImpl * correctionMgr,
+                                     LinearLocalNetwork * network,
+                                     LinearProjectionNetworkImpl * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
   network_(network),
@@ -40,7 +40,7 @@ LinearTaskManager::scheduleNormalIteration() {
 
 void
 LinearTaskManager::scheduleFinePropagation() {
-  schedulePhase("Fine propagation", network_->activeHalfTimeSlices());
+  schedulePhase("Fine propagation", network()->activeHalfTimeSlices());
 }
 
 void
@@ -51,15 +51,15 @@ LinearTaskManager::scheduleCorrection() {
   Phase::Ptr projectionBasis = phaseNew("Projection basis", taskList);
   phases().push_back(projectionBasis);
 
-  schedulePhase("Propagated seed synchronization", network_->activeLeftSeedSyncs());
-  schedulePhase("Jumps", network_->activeJumpProjectors());
-  schedulePhase("Correction", network_->activeFullTimeSlices());
-  schedulePhase("Correction synchronization", network_->activeCorrectionSyncs());
-  schedulePhase("Seed update", network_->activeSeedAssemblers());
+  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Jumps", network()->activeJumpProjectors());
+  schedulePhase("Correction", network()->activeFullTimeSlices());
+  schedulePhase("Correction synchronization", network()->activeCorrectionSyncs());
+  schedulePhase("Seed update", network()->activeSeedAssemblers());
 }
 
 void
-LinearTaskManager::schedulePhase(const String & phaseName, const LocalNetwork::TaskList & networkTaskList) {
+LinearTaskManager::schedulePhase(const String & phaseName, const LinearLocalNetwork::TaskList & networkTaskList) {
   TaskList taskList(networkTaskList.begin(), networkTaskList.end());
 
   Phase::Ptr projectionBasis = phaseNew(phaseName, taskList);

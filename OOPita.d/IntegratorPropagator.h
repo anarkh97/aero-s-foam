@@ -15,13 +15,15 @@ public:
   DynamTimeIntegrator * integrator() const { return integrator_.ptr(); }
   Seconds initialTime() const { return initialTime_; }
   TimeStepCount timeStepCount() const { return timeStepCount_; }
+  Seconds timeStepSize() const { return timeStepSize_; }
   
   virtual void initialStateIs(const DynamState & initialState);
-  //void integratorIs(DynamTimeIntegrator * integrator) { integrator_ = integrator; };
-  void initialTimeIs(Seconds t0) { initialTime_ = t0; } 
+  void integratorIs(DynamTimeIntegrator * integrator) { integrator_ = integrator; }
+  void initialTimeIs(Seconds t0) { initialTime_ = t0; }
   void timeStepCountIs(TimeStepCount timeStepCount) { timeStepCount_ = timeStepCount; }
- 
-  // TODO: HACK
+  void timeStepSizeIs(Seconds tss) { timeStepSize_ = tss; }
+
+  // HACK
   SliceRank sliceRank() const { return sliceRank_; }
   void sliceRankIs(SliceRank slice) { sliceRank_ = slice; }
   
@@ -36,6 +38,9 @@ private:
   Fwk::Ptr<DynamTimeIntegrator> integrator_;
   Seconds initialTime_;
   TimeStepCount timeStepCount_;
+  Seconds timeStepSize_;
+
+  // HACK
   SliceRank sliceRank_;
 };
   

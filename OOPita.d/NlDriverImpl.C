@@ -14,9 +14,9 @@
 
 extern Communicator * structCom;
 
-Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
+/*Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
   return new Pita::NlDriverImpl(problemDescriptor) ;
-}
+}*/
 
 namespace Pita {
 
@@ -27,6 +27,8 @@ NlDriverImpl::NlDriverImpl(PitaNonLinDynamic * pbDesc) :
 
 void
 NlDriverImpl::solve() {
+  probDesc()->preProcess();
+
   Activity::Manager::Ptr activityMgr = activityManagerInstance(); 
   
   TimeSliceMapping::Ptr sliceMapping_(TimeSliceMapping::New(SliceCount(probDesc()->getNumTS()), SliceCount(probDesc()->getNumTSonCPU()), CpuCount(timeCommunicator_->numCPUs())));

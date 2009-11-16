@@ -22,6 +22,7 @@ public:
   virtual void statusIs(Status s); // overriden
 
   Communicator * communicator() const { return communicator_; }
+  CpuRank localCpu() const;
 
 protected:
   MpiSeedReader(CpuRank targetCpu, Communicator * comm, SimpleBuffer<double> * buffer);
@@ -43,6 +44,7 @@ public:
   virtual void statusIs(Status s); // overriden
 
   Communicator * communicator() const { return communicator_; }
+  CpuRank localCpu() const;
 
   size_t vectorSize() const { return vectorSize_; }
   void vectorSizeIs(size_t vSize) { vectorSize_ = vSize; }
@@ -70,6 +72,7 @@ public:
   virtual void statusIs(Status s); // overriden
 
   Communicator * communicator() const { return communicator_; }
+  CpuRank localCpu() const;
 
 protected:
   MpiReducedSeedReader(CpuRank targetCpu, Communicator * comm, SimpleBuffer<double> * buffer);
@@ -91,6 +94,7 @@ public:
   virtual void statusIs(Status s); // overriden
 
   Communicator * communicator() const { return communicator_; }
+  CpuRank localCpu() const;
 
   size_t reducedStateSize() const { return reducedStateSize_; }
   void reducedStateSizeIs(size_t rSize) { reducedStateSize_ = rSize; }
@@ -116,12 +120,26 @@ public:
   EXPORT_PTRINTERFACE_TYPES(MpiManager);
 
   /* Overriden */
-  virtual MpiSeedReader * readerNew(const Seed * origin, CpuRank targetCpu);
-  virtual MpiReducedSeedReader * readerNew(const ReducedSeed * origin, CpuRank targetCpu);
+  virtual CpuRank localCpu() const;
+  
+  virtual MpiSeedReader * reader(const Seed * origin, CpuRank targetCpu) const;
+  virtual MpiSeedWriter * writer(Seed * target, CpuRank originCpu) const;
 
+  virtual MpiSeedReader * readerNew(const Seed * origin, CpuRank targetCpu);
   virtual MpiSeedWriter * writerNew(Seed * target, CpuRank originCpu);
+  
+  virtual void readerDel(const Seed * origin, CpuRank targetCpu);
+  virtual void writerDel(Seed * target, CpuRank originCpu);
+  
+  virtual MpiReducedSeedReader * reader(const ReducedSeed * origin, CpuRank targetCpu) const;
+  virtual MpiReducedSeedWriter * writer(ReducedSeed * target, CpuRank originCpu) const;
+  
+  virtual MpiReducedSeedReader * readerNew(const ReducedSeed * origin, CpuRank targetCpu);
   virtual MpiReducedSeedWriter * writerNew(ReducedSeed * target, CpuRank originCpu);
 
+  virtual void readerDel(const ReducedSeed * origin, CpuRank targetCpu);
+  virtual void writerDel(ReducedSeed * target, CpuRank originCpu);
+  
   /* Added */
   Communicator * communicator() const { return communicator_; }
 
@@ -131,6 +149,8 @@ public:
   void vectorSizeIs(size_t vSize);
   void reducedStateSizeIs(size_t rSize);
 
+  SimpleBuffer<double> * sharedBuffer() { return &sharedBuffer_; }
+  
   static Ptr New(Communicator * comm) {
     return new MpiManager(comm);
   }
@@ -144,15 +164,102 @@ private:
   size_t vectorSize_, reducedStateSize_;
   SimpleBuffer<double> sharedBuffer_;
 
-  typedef std::multimap<const Seed *, MpiSeedReader::Ptr>               SeedReaderSet;
-  typedef std::multimap<const Seed *, MpiSeedWriter::Ptr>               SeedWriterSet;
-  typedef std::multimap<const ReducedSeed *, MpiReducedSeedReader::Ptr> ReducedSeedReaderSet;
-  typedef std::multimap<const ReducedSeed *, MpiReducedSeedWriter::Ptr> ReducedSeedWriterSet;
+
+  /* Manager implementations (4 x) */
+  template <typename T>
+  class ActivityId {
+  public:
+    ActivityId(T * state, CpuRank peerCpu) :
+      state_(state), peerCpu_(peerCpu)
+    {}
+
+    T * state() const { return state_; }
+    CpuRank peerCpu() const { return peerCpu_; }
+
+    bool operator<(const ActivityId<T> & other) const {
+      return state() != other.state() ? state() < other.state() : peerCpu() < other.peerCpu();
+    }
+
+    bool operator==(const ActivityId<T> & other) const {
+      return state() == other.state() && peerCpu() == other.peerCpu();
+    }
+
+  private:
+    T * state_;
+    CpuRank peerCpu_;
+  };
+
+
+  class SeedReaderFactory : public Fwk::InstanceFactory<MpiSeedReader, ActivityId<const Seed> > {
+  public:
+    explicit SeedReaderFactory(MpiManager * parent) : parent_(parent) {}
+
+    MpiSeedReader * operator()(const ActivityId<const Seed> & key) const {
+      MpiSeedReader * result = new MpiSeedReader(key.peerCpu(), parent_->communicator(), parent_->sharedBuffer());
+      result->originIs(key.state());
+      return result;
+    }
+
+  private:
+    MpiManager * parent_;
+  };
+
+  typedef Fwk::FactoryManagerImpl<SeedReaderFactory> SeedReaderMgr;
+  SeedReaderMgr seedReaderMgr_;
+
+
+  class ReducedSeedReaderFactory : public Fwk::InstanceFactory<MpiReducedSeedReader, ActivityId<const ReducedSeed> > {
+  public:
+    explicit ReducedSeedReaderFactory(MpiManager * parent) : parent_(parent) {}
+
+    MpiReducedSeedReader * operator()(const ActivityId<const ReducedSeed> & key) const {
+      MpiReducedSeedReader * result = new MpiReducedSeedReader(key.peerCpu(), parent_->communicator(), parent_->sharedBuffer());
+      result->originIs(key.state());
+      return result;
+    }
+
+  private:
+    MpiManager * parent_;
+  };
+
+  typedef Fwk::FactoryManagerImpl<ReducedSeedReaderFactory> ReducedSeedReaderMgr;
+  ReducedSeedReaderMgr reducedSeedReaderMgr_;
   
-  SeedReaderSet        seedReader_;
-  SeedWriterSet        seedWriter_;
-  ReducedSeedReaderSet reducedSeedReader_;
-  ReducedSeedWriterSet reducedSeedWriter_;
+  
+  class SeedWriterFactory : public Fwk::InstanceFactory<MpiSeedWriter, ActivityId<Seed> > {
+  public:
+    explicit SeedWriterFactory(MpiManager * parent) : parent_(parent) {}
+
+    MpiSeedWriter * operator()(const ActivityId<Seed> & key) const {
+      MpiSeedWriter * result = new MpiSeedWriter(key.peerCpu(), parent_->communicator(), parent_->vectorSize(), parent_->sharedBuffer());
+      result->targetIs(key.state());
+      return result;
+    }
+
+  private:
+    MpiManager * parent_;
+  };
+
+  typedef Fwk::FactoryManagerImpl<SeedWriterFactory> SeedWriterMgr;
+  SeedWriterMgr seedWriterMgr_;
+
+
+  class ReducedSeedWriterFactory : public Fwk::InstanceFactory<MpiReducedSeedWriter, ActivityId<ReducedSeed> > {
+  public:
+    explicit ReducedSeedWriterFactory(MpiManager * parent) : parent_(parent) {}
+
+    MpiReducedSeedWriter * operator()(const ActivityId<ReducedSeed> & key) const {
+      MpiReducedSeedWriter * result = new MpiReducedSeedWriter(key.peerCpu(), parent_->communicator(), parent_->reducedStateSize(), parent_->sharedBuffer());
+      result->targetIs(key.state());
+      return result;
+    }
+
+  private:
+    MpiManager * parent_;
+  };
+
+  typedef Fwk::FactoryManagerImpl<ReducedSeedWriterFactory> ReducedSeedWriterMgr;
+  ReducedSeedWriterMgr reducedSeedWriterMgr_;
 };
 
 } /* end namespace RemoteState */ } /* end namespace Pita */

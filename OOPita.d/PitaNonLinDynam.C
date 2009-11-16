@@ -9,26 +9,27 @@ extern Communicator* structCom;
 
 namespace Pita {
 
-PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
-  NonLinDynamic(d)//,
-  //pitaTimers("NonLinear Pita"),
-  //defaultPostProcessor_(*this)
-{ 
-  this->preProcess();
-  this->computeTimeInfo();
+PitaNonLinDynamic::PitaNonLinDynamic(Domain *domain) :
+  NonLinDynamic(domain)
+{}
+
+void
+PitaNonLinDynamic::preProcess() {
+  NonLinDynamic::preProcess();
+  computeTimeInfo();
  
-  kiter = d->solInfo().kiter;
-  Jratio = d->solInfo().Jratio;
-  numTSonCPU = d->solInfo().numTSperCycleperCPU;
+  kiter = domain->solInfo().kiter;
+  Jratio = domain->solInfo().Jratio;
+  numTSonCPU = domain->solInfo().numTSperCycleperCPU;
 
-  coarseDt = this->getDt() * Jratio;
-  coarseDelta = this->getDelta() * Jratio;
+  coarseDt = getDt() * Jratio;
+  coarseDelta = getDelta() * Jratio;
 
-  numTS = int( ceil( ( this->getTotalTime() / this->getDt() ) / Jratio) );
+  numTS = int( ceil( ( getTotalTime() / getDt() ) / Jratio) );
 
   totalTime = numTS * coarseDt;
 
-  baseImprovementMethod = d->solInfo().baseImprovementMethodForPita;
+  baseImprovementMethod = domain->solInfo().baseImprovementMethodForPita;
 }
 
 int PitaNonLinDynamic::getInitSeedCount() const {
@@ -38,8 +39,8 @@ int PitaNonLinDynamic::getInitSeedCount() const {
 int PitaNonLinDynamic::getInitState(DynamState & ds)
 {
   // Dummy vectors: We do not need that information for PITA
-  GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-  GenVector<double> dummy_vp(this->solVecInfo(), 0.0);
+  GenVector<double> dummy_acc(solVecInfo(), 0.0);
+  GenVector<double> dummy_vp(solVecInfo(), 0.0);
   return NonLinDynamic::getInitState(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp);
 }
 
@@ -53,8 +54,8 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   {
     domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
     double sliceTime = domain->solInfo().dt * domain->solInfo().Jratio * sliceRank;
-    GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-    GenVector<double> dummy_vp(this->solVecInfo(), 0.0);
+    GenVector<double> dummy_acc(solVecInfo(), 0.0);
+    GenVector<double> dummy_vp(solVecInfo(), 0.0);
     updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);
     return 0; // Default value for int aeroAlg
   }
@@ -73,7 +74,6 @@ void PitaNonLinDynamic::reBuildKonly()
   Connectivity *allDofs = solver->getAllDofs();
   for( iele = 0; iele < domain->numElements(); ++iele)
   {
-    //int dim = kelArray[iele].dim();
     if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );
     if (K) K->add( kelArray[iele], (*allDofs)[iele] );
   }
@@ -124,16 +124,16 @@ double PitaNonLinDynamic::energyDot(const Vector &disp1, const Vector &velo1, co
 
 void PitaNonLinDynamic::openResidualFile()
 {
-  if (this->res != (FILE*) 0)
-    fclose(this->res);
-                                                                                                                                                   
+  if (res != (FILE*) 0)
+    fclose(res);
+  
   int myCPU  = structCom->myID();
   
   std::stringstream s;
   s << "residuals." << myCPU;
-  this->res = fopen(s.str().c_str(), "wt");
-                                                                                                                                                   
-  if (this->res == (FILE *) 0)
+  res = fopen(s.str().c_str(), "wt");
+  
+  if (res == (FILE *) 0)
     filePrint(stderr, " *** ERROR: Cannot open residual file for CPU # %d\n", myCPU);
 }
 
@@ -159,44 +159,5 @@ PitaNonLinDynamic::closeOutputFiles()
 {
   geoSource->closeOutputFiles();
 }
-
-/*void 
-PitaNonLinDynamic::printNLPitaTimerFile(int CPUid)
-{
-  std::string fileNameString(geoSource->getCheckFileInfo()->checkfile);
-  std::stringstream s;
-  s << ".pitaTiming." << CPUid;
-  fileNameString.append(s.str());
-  std::ofstream out(fileNameString.c_str());
-  if (out.fail())
-  {
-    fprintf(stderr, "Failed to open %s\n", fileNameString.c_str());
-    return;
-  }
-  out.precision(5);
-  out << std::fixed << pitaTimers;
-  out.close();
-}*/
-
-// class PitaNLDynamOutput
-/*PitaNonLinDynamic::PitaPostProcessor::PitaPostProcessor(PitaNonLinDynamic & probDesc) :
-  probDesc_(probDesc),
-  sliceRank_(-1)
-{
-}
-                                                                                                                                                                                                     
-PitaNonLinDynamic::PitaPostProcessor::~PitaPostProcessor()
-{
-  probDesc_.closeOutputFiles();
-}
-                                                                                                                                                                                                     
-void
-PitaNonLinDynamic::PitaPostProcessor::sliceRank(int rank)
-{
-  probDesc_.closeOutputFiles();
-  if (rank >= 0)
-    probDesc_.openOutputFiles(rank);
-  sliceRank_ = rank;
-}*/
 
 } // end namespace Pita

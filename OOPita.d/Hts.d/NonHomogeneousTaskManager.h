@@ -11,8 +11,8 @@ public:
 
   virtual void iterationInc(); //overriden
 
-  NonHomogeneousTaskManager(LocalNetwork * network,
-                            CorrectionNetworkImpl * correctionMgr,
+  NonHomogeneousTaskManager(LinearLocalNetwork * network,
+                            LinearProjectionNetworkImpl * correctionMgr,
                             RemoteState::MpiManager * commMgr,
                             DynamState initialCondition);
 

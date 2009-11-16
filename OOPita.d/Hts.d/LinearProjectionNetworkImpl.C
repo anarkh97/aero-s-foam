@@ -1,4 +1,4 @@
-#include "CorrectionNetworkImpl.h"
+#include "LinearProjectionNetworkImpl.h"
 
 #include "../DynamStateBasisWrapper.h"
 
@@ -11,7 +11,7 @@
 
 namespace Pita { namespace Hts {
 
-CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
+LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
                                              Communicator * timeComm,
                                              CpuRank myCpu,
                                              const SliceMapping * mapping,
@@ -40,13 +40,13 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
 {}
 
 void
-CorrectionNetworkImpl::prepareProjection() {
+LinearProjectionNetworkImpl::prepareProjection() {
   GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
   globalExchangeNumbering_.push_back(numbering);
 }
 
 void
-CorrectionNetworkImpl::buildProjection() {
+LinearProjectionNetworkImpl::buildProjection() {
   double tic = getTime(), toc;
 
   int previousMatrixSize = normalMatrix_.dim();
@@ -411,15 +411,15 @@ CorrectionNetworkImpl::buildProjection() {
   
 }
   
-// CorrectionNetworkImpl::GlobalExchangeNumbering
+// LinearProjectionNetworkImpl::GlobalExchangeNumbering
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
 {
   this->initialize(mapping);
 }
 
 void
-CorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
   // Count only full timeslices
   int fullSliceCount = std::max(0, (mapping->activeSlices().value() - 1) / 2);
   int numCpus = mapping->availableCpus().value();
@@ -492,12 +492,12 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * 
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
   return stateId_.size();
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direction d) const {
   switch (d) {
     case HalfTimeSlice::NO_DIRECTION:
       return 0;
@@ -506,11 +506,11 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direct
     case HalfTimeSlice::BACKWARD:
       return initialStateId_.size();
   }
-  throw Fwk::InternalException("in CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+  throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
   try {
     return stateCount_.at(c.value());
   } catch (std::out_of_range & e) {
@@ -520,7 +520,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSlice::Direction d) const {
   try {
     switch (d) {
       case HalfTimeSlice::NO_DIRECTION:
@@ -530,7 +530,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSl
       case HalfTimeSlice::BACKWARD:
         return initialStateCount_.at(c.value());
       default:
-        throw Fwk::InternalException("in CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+        throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
     }
   } catch (std::out_of_range & e) {
     // Do nothing
@@ -539,18 +539,18 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSl
 }
 
 int
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
   IndexMap::const_iterator it = globalIndex_.find(id);
   return (it != globalIndex_.end()) ? static_cast<int>(it->second) : -1; 
 }
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalIndex() const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex() const {
   return IteratorConst(this->globalIndex_.begin(), this->globalIndex_.end());
 }
 
 int
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
   int result = -1;
   
   IndexMap::const_iterator it;
@@ -571,8 +571,8 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceI
   return result;
 }
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::Direction d) const {
   switch (d) {
     case HalfTimeSlice::NO_DIRECTION:
       break;
@@ -585,7 +585,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::D
 }
 
 HalfSliceId
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
   try {
     return stateId_.at(gfi);
   } catch (std::out_of_range & e) {
@@ -595,7 +595,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
 }
 
 HalfSliceId
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int ghi, HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int ghi, HalfTimeSlice::Direction d) const {
   try {
     switch (d) {
       case HalfTimeSlice::NO_DIRECTION:

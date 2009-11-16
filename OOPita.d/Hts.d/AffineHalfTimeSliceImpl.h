@@ -28,7 +28,7 @@ public:
 protected:
   AffineHalfTimeSliceImpl(HalfSliceRank r, HalfTimeSlice::Direction d, AffineDynamPropagator * propagator);
 
-  void propagateSeed(); 
+  void propagateSeed();
 
 private:
   AffineDynamPropagator::Ptr propagator_;

@@ -13,6 +13,12 @@ public:
 
   virtual const GenSparseMatrix<double> * massMatrix() const = 0;
   virtual const GenSparseMatrix<double> * stiffnessMatrix() const = 0;
+
+protected:
+  DynamOps() {}
+
+private:
+  DISALLOW_COPY_AND_ASSIGN(DynamOps);
 };
   
 } // end namespace Pita

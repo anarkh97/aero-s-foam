@@ -12,12 +12,9 @@ public:
   EXPORT_PTRINTERFACE_TYPES(JumpProjectorImpl);
   class Manager;
 
-  virtual size_t reducedBasisSize() const;
+  virtual void iterationIs(IterationRank ir);
 
-  virtual void predictedSeedIs(const Seed * ps);
-  virtual void actualSeedIs(const Seed * as);
-  virtual void seedJumpIs(Seed * j);
-  virtual void iterationIs(IterationRank i);
+  virtual size_t reducedBasisSize() const;
 
   /* Reduced basis */
   const DynamStateBasis * reducedBasis() const;
@@ -40,7 +37,7 @@ public:
   // Overriden members
   virtual JumpProjectorImpl * instance(const String & key) const { return Impl::instance(key); }
   virtual size_t instanceCount() const { return Impl::instanceCount(); }
-  virtual JumpProjectorImpl * instanceNew(const String & key) { return Impl::instanceNew(key); } 
+  virtual JumpProjectorImpl * instanceNew(const String & key) { return Impl::instanceNew(key); }
   virtual void instanceDel(const String & key) { Impl::instanceDel(key); }
 
   // Added members

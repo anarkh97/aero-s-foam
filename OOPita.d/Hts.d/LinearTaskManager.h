@@ -3,9 +3,9 @@
 
 #include "../TaskManager.h"
 
-#include "LocalNetwork.h"
+#include "LinearLocalNetwork.h"
 
-#include "CorrectionNetworkImpl.h"
+#include "LinearProjectionNetworkImpl.h"
 #include "../RemoteStateMpiImpl.h"
 
 namespace Pita { namespace Hts {
@@ -16,23 +16,23 @@ public:
 
 protected:
   LinearTaskManager(IterationRank initialIteration,
-                    LocalNetwork * network,
-                    CorrectionNetworkImpl * correctionMgr,
+                    LinearLocalNetwork * network,
+                    LinearProjectionNetworkImpl * correctionMgr,
                     RemoteState::MpiManager * commMgr);
 
-  LocalNetwork * network() { return network_.ptr(); }
-  CorrectionNetworkImpl * correctionMgr() { return correctionMgr_.ptr(); }
+  LinearLocalNetwork * network() { return network_.ptr(); }
+  LinearProjectionNetworkImpl * correctionMgr() { return correctionMgr_.ptr(); }
   RemoteState::MpiManager * commMgr() { return commMgr_.ptr(); }
 
   void scheduleNormalIteration();
   void scheduleFinePropagation();
   void scheduleCorrection();
 
-  void schedulePhase(const String & phaseName, const LocalNetwork::TaskList & networkTaskList);
+  void schedulePhase(const String & phaseName, const LinearLocalNetwork::TaskList & networkTaskList);
 
 private:
-  LocalNetwork::Ptr network_;
-  CorrectionNetworkImpl::Ptr correctionMgr_;
+  LinearLocalNetwork::Ptr network_;
+  LinearProjectionNetworkImpl::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 };
 

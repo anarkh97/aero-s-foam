@@ -24,7 +24,7 @@
 
 #include "BasisCollectorImpl.h"
 #include "NonHomogeneousBasisCollectorImpl.h"
-#include "CorrectionNetworkImpl.h"
+#include "LinearProjectionNetworkImpl.h"
 
 #include "../Seed.h"
 
@@ -35,10 +35,10 @@
 #include "PropagatorManager.h"
 #include "AffineHalfTimeSliceImpl.h"
 
-#include "ReducedFullTimeSliceImpl.h"
+#include "../ReducedCorrectionPropagatorImpl.h"
 #include "../JumpProjectorImpl.h"
 #include "../UpdatedSeedAssemblerImpl.h"
-#include "LocalCorrectionTimeSlice.h"
+#include "../FullCorrectionPropagatorImpl.h"
 
 #include "../IntegratorSeedInitializer.h"
 #include "RemoteSeedInitializerServer.h"
@@ -54,17 +54,19 @@
 
 #include "HomogeneousTaskManager.h"
 #include "NonHomogeneousTaskManager.h"
-#include "LocalNetwork.h"
+#include "LinearLocalNetwork.h"
 
 #include "../SeedErrorEvaluator.h"
 
 namespace Pita { namespace Hts {
 
 ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
+                                                 GeoSource * geoSource,
                                                  Domain * domain,
                                                  SolverInfo * solverInfo,
                                                  Communicator * baseComm) :
   probDesc_(pbDesc),
+  geoSource_(geoSource),
   domain_(domain),
   solverInfo_(solverInfo),
   baseComm_(baseComm)
@@ -173,7 +175,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Correction */
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO Other solver implementations ?
   
-  CorrectionNetworkImpl::Ptr correctionMgr = CorrectionNetworkImpl::New(
+  LinearProjectionNetworkImpl::Ptr correctionMgr = LinearProjectionNetworkImpl::New(
       vectorSize_,
       timeComm,
       myCpu,
@@ -186,27 +188,25 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   HalfTimeSlice::Manager::Ptr hsMgr = buildHalfTimeSliceManager(fineIntegrationParam, postProcessingMgr.ptr(), collector.ptr());
 
   JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
-  ReducedFullTimeSlice::Manager::Ptr fsMgr = ReducedFullTimeSliceImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
+  CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
+
+  /* Coarse time-integration */ 
+  CorrectionPropagator<DynamState>::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
 
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm);
   commMgr->vectorSizeIs(vectorSize_);
-
-  /* Coarse time-integration */ 
-  CorrectionTimeSlice::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
 
   /* Jump error */
   SeedErrorEvaluator::Manager::Ptr jumpErrorMgr = SeedErrorEvaluator::Manager::New(dynamOps.ptr());
 
   /* Local tasks */
-  LocalNetwork::Ptr network = new LocalNetwork(
+  ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
+  LinearLocalNetwork::Ptr network = new LinearLocalNetwork(
       mapping_.ptr(),
       myCpu,
       hsMgr.ptr(),
-      jpMgr.ptr(),
-      fsMgr.ptr(),
-      usaMgr.ptr(),
-      ctsMgr.ptr(),
+      reducedCorrMgr.ptr(),
       commMgr.ptr(),
       jumpErrorMgr.ptr());
 
@@ -325,12 +325,11 @@ ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fin
 
 PostProcessing::Manager::Ptr
 ReducedLinearDriverImpl::buildPostProcessor(CpuRank localCpu) const {
-  CpuRank myCpu();
   std::vector<int> localFileId;
   for (SliceMapping::SliceIterator it = mapping_->hostedSlice(localCpu); it; ++it) {
     localFileId.push_back((*it).value());
   }
-  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource, localFileId.size(), &localFileId[0], probDesc()->getPostProcessor());
+  IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource(), localFileId.size(), &localFileId[0], probDesc()->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   return PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 }
@@ -344,14 +343,14 @@ ReducedLinearDriverImpl::buildBasisCollector() const {
   return NonHomogeneousBasisCollectorImpl::New();
 }
 
-CorrectionTimeSlice::Manager::Ptr
+CorrectionPropagator<DynamState>::Manager::Ptr
 ReducedLinearDriverImpl::buildCoarseCorrection(Communicator * coarseComm) const {
   if (noForce_) {
     return NULL;
   }
 
   DynamPropagator::Ptr coarsePropagator = buildCoarsePropagator(!remoteCoarse_, coarseComm);
-  return LocalCorrectionTimeSlice::Manager::New(coarsePropagator.ptr());
+  return FullCorrectionPropagatorImpl::Manager::New(coarsePropagator.ptr());
 }
 
 LinearGenAlphaIntegrator::Ptr
@@ -386,11 +385,12 @@ ReducedLinearDriverImpl::buildSeedInitializer(bool local, Communicator * timeCom
 } /* end namespace Hts */ } /* end namespace Pita */
 
 // Global state
+extern GeoSource * geoSource;
 extern Communicator * structCom;
 extern Domain * domain;
 
 /* Entrypoint */
 Pita::LinearDriver::Ptr
 linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
-  return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, domain, &domain->solInfo(), structCom);
+  return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, geoSource, domain, &domain->solInfo(), structCom);
 }

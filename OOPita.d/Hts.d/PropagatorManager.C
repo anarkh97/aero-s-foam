@@ -21,7 +21,7 @@ PropagatorManager::PropagatorManager(BasisCollector * collector,
 
 AffineDynamPropagator *
 PropagatorManager::instance(const HalfSliceId & id) const {
-  DynamPropagator * original = collector_->source(id);
+  DynamPropagator * original = const_cast<DynamPropagator *>(collector_->source(id));
   if (original) {
     AffineDynamPropagator * downcasted = dynamic_cast<AffineDynamPropagator *>(original);
     assert(downcasted);

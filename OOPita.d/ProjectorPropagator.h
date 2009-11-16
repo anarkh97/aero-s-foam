@@ -12,8 +12,7 @@ namespace Pita {
   
 class ProjectorPropagator : public DynamPropagator {
 public:
-  typedef Fwk::Ptr<ProjectorPropagator> Ptr;
-  typedef Fwk::Ptr<const ProjectorPropagator> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(ProjectorPropagator);
 
   // Base attributes 
   virtual void initialStateIs(const DynamState & initialState);
@@ -25,11 +24,11 @@ public:
   TimeStepCount timeStepCount() const { return timeStepCount_; }
   void timeStepCountInc();
  
-  DynamStatePlainBasis::PtrConst projectionBasis() const { return projectionBasis_; }
-  void projectionBasisIs(DynamStateBasis::PtrConst basis);
-  void projectionBasisInc(DynamStateBasis::PtrConst lastBasis);
+  const DynamStatePlainBasis * projectionBasis() const { return projectionBasis_.ptr(); }
+  void projectionBasisIs(const DynamStateBasis * basis);
+  void projectionBasisInc(const DynamStateBasis * lastBasis);
   
-  DynamStatePlainBasis::PtrConst propagatedBasis() const { return propagatedBasis_; }
+  const DynamStatePlainBasis * propagatedBasis() const { return propagatedBasis_.ptr(); }
   
   // Instanciation
   static Ptr New(DynamPropagator * basePropagator, NlDynamOps * dynamOps) {

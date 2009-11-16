@@ -1049,12 +1049,12 @@ int main(int argc, char** argv)
 #ifdef DISTRIBUTED
              double solver=getTime();
              if (domain->solInfo().newPitaImplementation) {
-                 fprintf(stderr," ... Linear PITA - New implementation ...\n");
+                 fprintf(stderr," ... Time-reversible linear PITA ...\n");
                  SingleDomainDynamic<double> dynamProb(domain);
                  Pita::LinearDriver::Ptr driver = linearPitaDriverNew(&dynamProb);
                  driver->solve();
              } else {
-                 fprintf(stderr," ... Linear PITA - Old implementation ...\n");
+                 fprintf(stderr," ... Linear PITA ...\n");
                  SingleDomainDynamic<double> dynamProb(domain);
                  SDDistrTimeDecompSolver<PitaDynamMat,Vector,SDDynamPostProcessor,
                      SingleDomainDynamic<double>,SingleInfo> distrTimedec(&dynamProb);
@@ -1062,7 +1062,7 @@ int main(int argc, char** argv)
                  cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;
              }
 #else
-             fprintf(stderr," ... PITA enabled only on fem.dist ...\n");
+             fprintf(stderr," ... PITA requires distributed version ...\n");
 #endif
 	  } else {
             if (domain->solInfo().ATDARBFlag>=1.5) {
@@ -1149,20 +1149,19 @@ int main(int argc, char** argv)
          if(domain->solInfo().tiParall) {
 #ifdef DISTRIBUTED
            if (domain->solInfo().newPitaImplementation) {
-             filePrint(stderr, " ... Nonlinear PITA (Time-Parallel Integration) - New implementation ...\n");
+             filePrint(stderr, " ... Time-reversible nonlinear PITA ...\n");
              Pita::PitaNonLinDynamic pitaProblem(domain);
              Pita::NlDriver::Ptr pitaDriver = nlPitaDriverNew(&pitaProblem);
              pitaDriver->solve();
            } else {
-             filePrint(stderr, " ... Nonlinear PITA (Time-Parallel Integration) - Old implementation ...\n");
+             filePrint(stderr, " ... Nonlinear PITA ...\n");
              PitaNonLinDynamic pitaProblem(domain);
              NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
              pitaSolver.solve();
            }
            fprintf(stderr, "End NlPita\n");
 #else
-           fprintf(stderr," ... Pita is not enabled by current executable ...\n");
-           fprintf(stderr," ... Use fem.dist instead                      ...\n");
+           fprintf(stderr," ... PITA requires distributed version ...\n");
 #endif
          }
          else {

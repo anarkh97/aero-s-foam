@@ -14,9 +14,9 @@ public:
   // overriden
   virtual void iterationInc();
 
-  explicit HomogeneousTaskManager(LocalNetwork * network,
+  explicit HomogeneousTaskManager(LinearLocalNetwork * network,
                                   SeedInitializer * initializer,
-                                  CorrectionNetworkImpl * correctionMgr,
+                                  LinearProjectionNetworkImpl * correctionMgr,
                                   RemoteState::MpiManager * commMgr);
 
 protected:

@@ -29,9 +29,9 @@ private:
 };
 
 
-HomogeneousTaskManager::HomogeneousTaskManager(LocalNetwork * network,
+HomogeneousTaskManager::HomogeneousTaskManager(LinearLocalNetwork * network,
                                                SeedInitializer * initializer,
-                                               CorrectionNetworkImpl * correctionMgr,
+                                               LinearProjectionNetworkImpl * correctionMgr,
                                                RemoteState::MpiManager * commMgr) :
   LinearTaskManager(IterationRank(0), network, correctionMgr, commMgr),
   initializer_(initializer)
@@ -41,14 +41,15 @@ HomogeneousTaskManager::HomogeneousTaskManager(LocalNetwork * network,
 
 void
 HomogeneousTaskManager::iterationInc() {
+  phases().clear();
+  
+  IterationRank nextIteration = iteration().next();
+  
   correctionMgr()->prepareProjection();
   network()->convergedSlicesInc();
-
-  phases().clear();
-
   scheduleNormalIteration();
   
-  setIteration(iteration().next());
+  setIteration(nextIteration);
 }
 
 void
@@ -62,8 +63,8 @@ void
 HomogeneousTaskManager::scheduleSeedInitialization() {
   TaskList taskList;
   
-  LocalNetwork::MainSeedMap mainSeeds = network()->activeMainSeeds();
-  for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
+  LinearLocalNetwork::MainSeedMap mainSeeds = network()->activeMainSeeds();
+  for (LinearLocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
       it != mainSeeds.end();
       ++it) {
     taskList.push_back(new InitialSeed(initializer_.ptr(), it->first, it->second.ptr()));

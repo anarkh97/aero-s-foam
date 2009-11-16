@@ -10,13 +10,12 @@ namespace Pita {
 
 class PitaNonLinDynamic : public NonLinDynamic {
 public:
-
-  // TODO Timers
-  // NiceTimerHandler pitaTimers;
-  
   typedef Vector VecType;
   typedef double ScalarType;
-  
+
+  // Overriden
+  virtual void preProcess();
+
   // Constructor
   PitaNonLinDynamic(Domain *);
    
@@ -37,12 +36,8 @@ public:
   int getBaseImprovementMethod() const { return baseImprovementMethod; }
  
   // Added methods
-  void reBuildCoarse(GeomState & geomState, int iter = 0);
-  void reBuildFine(GeomState & geomState, int iter = 0);
   void reBuildKonly();
   void zeroRotDofs(VecType &) const;
-  double formRHSCoarseCorrector(Vector & inc_displac, Vector & velocity, Vector & residual, Vector & rhs);
-  void formRHSCoarsePredictor(Vector & velocity, Vector & residual, Vector & rhs, GeomState & geomState, double mid = 0.0);
   double energyNorm(const Vector & disp, const Vector & velo);
   double energyDot(const Vector & disp1, const Vector & velo1, const Vector & disp2, const Vector & velo2);
 
@@ -52,27 +47,6 @@ public:
                        Vector & vp, double time, int step, Vector & force, Vector & aeroF);
   void openOutputFiles(int sliceRank);
   void closeOutputFiles(); 
-  //void printNLPitaTimerFile(int CPUid);
-
-  /*class PitaPostProcessor : public NLDynamPostProcessor
-  {
-  public:
-    explicit PitaPostProcessor(PitaNonLinDynamic & probDesc);
-    virtual ~PitaPostProcessor();
-    int sliceRank() const { return sliceRank_; }
-    void sliceRank(int rank);
-    virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
-                                Vector& velocity, Vector& bkVelocity,
-                                Vector& vp, Vector& bkVp, int step, int parity,
-                                int aeroAlg) {};
-    virtual void dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF) const;
-  private:
-    PitaNonLinDynamic & probDesc_;
-    int sliceRank_;  
-  };*/
-
-  //virtual const NLDynamPostProcessor & defaultPostProcessor() const { return defaultPostProcessor_; }
-  //virtual PitaPostProcessor & defaultPostProcessor() { return defaultPostProcessor_; }
 
 protected:
   SparseMatrix *K;               // PITA requires to explicitely build the stiffness matrix
@@ -84,38 +58,7 @@ protected:
 private:
   // Overloaded method, to build the stiffness matrix during NonLinDynamic::preProcess() 
   void buildOps(AllOps<double> &, double, double, double, Rbm *);
-  //PitaPostProcessor defaultPostProcessor_;
 };
-
-inline void
-PitaNonLinDynamic::reBuildFine(GeomState & geomState, int iter)
-{
-  reBuild(geomState, iter, getDelta());
-}
-
-inline void
-PitaNonLinDynamic::reBuildCoarse(GeomState & geomState, int iter)
-{
-  reBuild(geomState, iter, getCoarseDelta());
-}
-
-inline double
-PitaNonLinDynamic::formRHSCoarseCorrector(Vector & inc_displac, Vector & velocity, Vector & residual, Vector & rhs)
-{
-  return formRHScorrector(inc_displac, velocity, residual, rhs, getCoarseDelta());
-}
-
-inline void
-PitaNonLinDynamic::formRHSCoarsePredictor(Vector & velocity, Vector & residual, Vector & rhs, GeomState & geomState, double mid)
-{
-  formRHSpredictor(velocity, residual, rhs, geomState, mid, getCoarseDelta());
-}
-
-/*inline void
-PitaNonLinDynamic::PitaPostProcessor::dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF) const
-{
-  probDesc_.pitaDynamOutput(sliceRank_, geomState, velocity, vp, time, step, force, aeroF);
-}*/
 
 } // end namespace Pita
 

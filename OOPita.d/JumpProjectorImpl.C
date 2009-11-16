@@ -1,5 +1,7 @@
 #include "JumpProjectorImpl.h"
 
+#include <cassert>
+
 namespace Pita {
 
 JumpProjectorImpl::JumpProjectorImpl(const String & name,
@@ -14,32 +16,13 @@ JumpProjectorImpl::reducedBasisSize() const {
 }
 
 void
-JumpProjectorImpl::predictedSeedIs(const Seed * ps) {
-  setPredictedSeed(ps);
-}
+JumpProjectorImpl::iterationIs(IterationRank ir) {
+  assert(actualSeed()->iteration() == ir);
 
-void
-JumpProjectorImpl::actualSeedIs(const Seed * as) {
-  setActualSeed(as);
-}
-
-void
-JumpProjectorImpl::seedJumpIs(Seed * sj) {
-  setSeedJump(sj);
-}
-
-void
-JumpProjectorImpl::iterationIs(IterationRank i) {
-  DynamState newJumpSeed = actualSeed()->state() - predictedSeed()->state();
-  
-  seedJump()->statusIs(actualSeed()->status());
-  seedJump()->stateIs(newJumpSeed);
-  seedJump()->iterationIs(actualSeed()->iteration());
-
-  Vector projectionResult(reducedBasisSize());
-
+  updateJump();
   //log() << "seedJump()->state().vectorSize() = " << seedJump()->state().vectorSize() << "\n";
 
+  Vector projectionResult(reducedBasisSize());
   for (size_t index = 0; index < reducedBasisSize(); ++index) {
     //log() << "reducedBasis()->state(index).vectorSize() = " << reducedBasis()->state(index).vectorSize() << "\n";
     projectionResult[index] = seedJump()->state() * reducedBasis()->state(index); 
@@ -48,7 +31,8 @@ JumpProjectorImpl::iterationIs(IterationRank i) {
   reducedSeedJump()->stateIs(projectionResult);
   reducedSeedJump()->iterationIs(seedJump()->iteration());
   reducedSeedJump()->statusIs(seedJump()->status());
-  setIteration(i); 
+
+  setIteration(ir); 
 }
 
 JumpProjectorImpl::Manager::Manager(const DynamStateBasis * drb) :

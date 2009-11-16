@@ -15,8 +15,7 @@ class PitaNonLinDynamic;
 
 class NlDynamTimeIntegrator : public DynamTimeIntegrator {
 public:
-  typedef Fwk::Ptr<NlDynamTimeIntegrator> Ptr;
-  typedef Fwk::Ptr<const NlDynamTimeIntegrator> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(NlDynamTimeIntegrator);
 
   virtual void timeStepSizeIs(Seconds dt);
   virtual void initialConditionIs(const DynamState & initialState, Seconds initialTime = Seconds(0.0));

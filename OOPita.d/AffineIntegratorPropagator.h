@@ -6,6 +6,7 @@
 
 namespace Pita {
 
+// TODO: Allow time-integrator sharing by adding attribute (Seconds timeStepSize)
 class AffineIntegratorPropagator : public AffineDynamPropagator {
 public:
   EXPORT_PTRINTERFACE_TYPES(AffineIntegratorPropagator);

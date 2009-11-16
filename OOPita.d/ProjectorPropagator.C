@@ -39,7 +39,7 @@ ProjectorPropagator::initialStateIs(const DynamState & initialState) {
 }
 
 void
-ProjectorPropagator::projectionBasisIs(DynamStateBasis::PtrConst basis) {
+ProjectorPropagator::projectionBasisIs(const DynamStateBasis * basis) {
   orthoBasis_->stateBasisDel();
   propagatedBasis_->stateBasisDel();
   projectionBasis_->stateBasisDel();
@@ -55,12 +55,12 @@ ProjectorPropagator::referenceDisplacementIs(const GenVector<double> & disp, Sec
     projectionBasis_ = DynamStatePlainBasis::New(tempBasis->vectorSize());
     orthoBasis_->stateBasisDel();
     propagatedBasis_->stateBasisDel();
-    projectionBasisInc(tempBasis);
+    projectionBasisInc(tempBasis.ptr());
   }
 }
 
 void
-ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
+ProjectorPropagator::projectionBasisInc(const DynamStateBasis * lastBasis) {
   log() << "ProjectorPropagator::projectionBasisInc - Current = " << projectionBasis_->stateCount() << " - Adding = " << lastBasis->stateCount();
   if (lastBasis->stateCount() != 0) {
 

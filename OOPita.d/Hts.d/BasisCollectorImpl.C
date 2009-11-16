@@ -7,12 +7,10 @@ BasisCollectorImpl::BasisCollectorImpl() :
   propagationReactor_()
 {}
 
-DynamPropagator *
+const DynamPropagator *
 BasisCollectorImpl::source(const HalfSliceId & sliceId) const {
   PropagationReactorContainer::const_iterator it = propagationReactor_.find(sliceId);
-  return (it != propagationReactor_.end()) ?
-    static_cast<DynamPropagator *>(const_cast<DynamPropagator *>(it->second->notifier())) :
-    NULL;
+  return (it != propagationReactor_.end()) ? it->second->notifier() : NULL;
 }
 
 size_t
@@ -21,7 +19,7 @@ BasisCollectorImpl::sourceCount() const {
 }
 
 void
-BasisCollectorImpl::sourceIs(const HalfSliceId & sliceId, DynamPropagator * source) {
+BasisCollectorImpl::sourceIs(const HalfSliceId & sliceId, const DynamPropagator * source) {
   if (source == NULL) {
     propagationReactor_.erase(sliceId); // Remove current
     return;
@@ -66,14 +64,14 @@ BasisCollectorImpl::finalStateIs(const HalfSliceId & sliceId, const DynamState &
 }
 
 BasisCollectorImpl::PropagationReactor *
-BasisCollectorImpl::propagationReactorNew(DynamPropagator * notifier,
-                                                   const HalfSliceId & id) {
+BasisCollectorImpl::propagationReactorNew(const DynamPropagator * notifier,
+                                          const HalfSliceId & id) {
   return new PropagationReactor(notifier, id, this);
 }
 
-BasisCollectorImpl::PropagationReactor::PropagationReactor(DynamPropagator * notifier,
-                                                                    const HalfSliceId & id,
-                                                                    BasisCollectorImpl * parent) :
+BasisCollectorImpl::PropagationReactor::PropagationReactor(const DynamPropagator * notifier,
+                                                           const HalfSliceId & id,
+                                                           BasisCollectorImpl * parent) :
   DynamPropagator::Notifiee(notifier),
   sliceId_(id),
   parent_(parent)

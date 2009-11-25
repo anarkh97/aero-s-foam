@@ -131,9 +131,7 @@ TRAIL [a-zA-Z]*
 
 "global"|"GLOBAL"                  { return GLOBAL; }
 
-"matcher"|"MATCHER"                { return MATCHER; }
-
-"Matcher"	                   { return Matcher; }
+"matcher"|"MATCHER"|"Matcher"      { return MATCHER; }
 
 "geometry"|"GEOMETRY"              { return GEOMETRY; }
 

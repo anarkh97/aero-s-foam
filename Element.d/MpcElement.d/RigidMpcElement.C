@@ -7,16 +7,14 @@ RigidMpcElement::RigidMpcElement(int _nNodes, int _nDofsPerNode, int _nodalDofs,
  : nNodes(_nNodes), nDofsPerNode(_nDofsPerNode), nodalDofs(_nodalDofs), nMpcs(_nMpcs), mode(1)
 {
   nn = new int[nNodes+nMpcs];
-  nn_orig = new int[nNodes];
   for(int i = 0; i < nNodes; ++i) 
-    nn[i] = nn_orig[i] = _nn[i];
+    nn[i] = _nn[i];
   mpcs = new LMPCons*[nMpcs];
 }
 
 RigidMpcElement::~RigidMpcElement()
 {
   delete [] nn;
-  delete [] nn_orig;
   if(mpcs) delete [] mpcs;
 }
 
@@ -65,8 +63,11 @@ RigidMpcElement::renum(int* table)
 {
   for(int i = 0; i < nNodes; ++i) nn[i] = table[nn[i]];
   if(mode != 0) {
-    for(int i = 0; i < nMpcs; ++i) 
+    for(int i = 0; i < nMpcs; ++i) {
       nn[nNodes+i] = table[nn[nNodes+i]];
+      for(int j = 0; j < mpcs[i]->nterms; ++j)
+        mpcs[i]->terms[j].nnum = table[mpcs[i]->terms[j].nnum];
+    }
   }
 }
 
@@ -111,21 +112,23 @@ RigidMpcElement::markDofs(DofSetArray &dsa)
 }
 
 FullSquareMatrix
-RigidMpcElement::stiffness(CoordSet&, double* k, int)
+RigidMpcElement::stiffness(CoordSet&, double* karray, int)
 {
-  FullSquareMatrix ret(numDofs(), k);
+  FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
   if(mode != 0) {
-    int offset = nNodes*nDofsPerNode;
-    int i, j, k, l;
+    int i, j, k, l, m;
+    m = nNodes*nDofsPerNode;
     for(i = 0; i < nMpcs; ++i) {
       for(j = 0; j < mpcs[i]->nterms; ++j) {
-        for(k = 0; k < nNodes; ++k) if ( mpcs[i]->terms[j].nnum == nn_orig[k]) break;
+        for(k = 0; k < nNodes; ++k) if ( mpcs[i]->terms[j].nnum == nn[k]) break;
         l = k*nDofsPerNode + mpcs[i]->terms[j].dofnum;
-        ret[l][offset+i] = ret[offset+i][l] = mpcs[i]->terms[j].coef.r_value;
+        ret[l][m+i] = ret[m+i][l] = mpcs[i]->terms[j].coef.r_value;
       }
     }
   }
+  //cerr << "here in RigidMpcElement::stiffness\n";
+  //ret.print();
   return ret;
 }
 
@@ -136,10 +139,33 @@ RigidMpcElement::getCorotator(CoordSet&, double*, int, int)
 }
 
 void
-RigidMpcElement::getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix& Ktan, double* f)
+RigidMpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f)
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
+
+  if(mode != 0) {
+    updateLMPCs(c1, c0); // update the rhs and coefficients of each mpc to the value and gradient of it's constraint function, respectively 
+    int i, j, k, l, m;
+    m = nNodes*nDofsPerNode;
+    FullSquareMatrix J(m);
+    for(i = 0; i < nMpcs; ++i) {
+      getJacobian(c1, c0, i, J); // compute the jacobian of the ith constraint function and store in J
+      double lambda = c1[nn[nNodes+i]].x;
+      for(j = 0; j < m; ++j)
+        for(k = 0; k < m; ++k) 
+          Ktan[j][k] += lambda*J[j][k];
+      for(j = 0; j < mpcs[i]->nterms; ++j) {
+        for(k = 0; k < nNodes; ++k) if ( mpcs[i]->terms[j].nnum == nn[k]) break;
+        l = k*nDofsPerNode + mpcs[i]->terms[j].dofnum;
+        Ktan[l][m+i] = Ktan[m+i][l] = mpcs[i]->terms[j].coef.r_value;
+        f[l] += lambda*mpcs[i]->terms[j].coef.r_value;
+      }
+      f[m+i] = mpcs[i]->rhs.r_value; // value of the ith constraint function
+    }
+  }
+  //cerr << "here in RigidMpcElement::getStiffAndForce\n";
+  //Ktan.print();
 }
 
 bool 
@@ -148,3 +174,15 @@ RigidMpcElement::isRigidMpcElement(const DofSet& ds, bool forAllNodes)
   return  ds == DofSet::nullDofset || ds == nodalDofs;
 }
 
+void 
+RigidMpcElement::updateLMPCs(GeomState&, CoordSet&) 
+{ 
+  for(int i = 0; i < nMpcs; ++i) 
+    mpcs[i]->rhs.r_value = 0.0; 
+}
+
+void 
+RigidMpcElement::getJacobian(GeomState&, CoordSet&, int, FullSquareMatrix& J) 
+{ 
+  J.zero(); 
+}

@@ -16,31 +16,29 @@ TwoNodeTrussRigidMpc::computeMPCs(CoordSet &cs)
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
 
-  double dx = nd2.x - nd1.x;
-  double dy = nd2.y - nd1.y;
-  double dz = nd2.z - nd1.z;
+  double lx = nd1.x - nd2.x;
+  double ly = nd1.y - nd2.y;
+  double lz = nd1.z - nd2.z;
 
-  double length = sqrt( dx*dx + dy*dy + dz*dz );
+  double l = sqrt( lx*lx + ly*ly + lz*lz );
 
-  double c1[3], c2[3], c3[3];
-
-  if(length == 0.0) {
+  if(l == 0.0) {
     cerr << " *** ERROR: Rigid truss has zero length, nodes: " << nn[0]+1 << " " << nn[1]+1 << ". Exiting...\n";
     exit(-1);
   }
   else {
     mpcs[0] = new LMPCons(0, 0.0);
  
-    double c1[3], c2[3], c3[3];
-    c1[0] = dx/length;
-    c1[1] = dy/length;
-    c1[2] = dz/length;
+    double c1[3];
+    c1[0] = lx/l;
+    c1[1] = ly/l;
+    c1[2] = lz/l;
 
     // translation in x, y, z (1 constraint equation)
-    for(int i = 0; i < 3; ++i) {
+    for(int i = 0; i < 3; ++i)
       mpcs[0]->addterm(new LMPCTerm(nn[0], i, c1[i]));
+    for(int i = 0; i < 3; ++i)
       mpcs[0]->addterm(new LMPCTerm(nn[1], i, -c1[i]));
-    }
   }
 }
 
@@ -222,3 +220,136 @@ TwoNodeTrussRigidMpc::getLength(CoordSet& cs, double& length)
   length = sqrt(dx*dx + dy*dy + dz*dz);
 }
 
+/*
+void
+TwoNodeTrussRigidMpc::getStiffAndForce(GeomState& gState, CoordSet& cs,
+                                       FullSquareMatrix& Ktan, double* f)
+{
+  cerr << "here in TwoNodeTrussRigidMpc::getStiffAndForce\n";
+  // nodes' original coordinates
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double l0x = nd1.x-nd2.x;
+  double l0y = nd1.y-nd2.y;
+  double l0z = nd1.z-nd2.z;
+  double l0 = sqrt(l0x*l0x + l0y*l0y + l0z*l0z);
+
+  // nodes' current coordinates
+  NodeState ns1 = gState[nn[0]];
+  NodeState ns2 = gState[nn[1]];
+
+  double lx = ns1.x-ns2.x;
+  double ly = ns1.y-ns2.y;
+  double lz = ns1.z-ns2.z;
+  double l = sqrt(lx*lx + ly*ly + lz*lz);
+
+  // current value of constraint's lagrange multiplier
+  double lambda = gState[nn[2]].x;
+
+  // let c = the constraint function: c(x) = sqrt( (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2 ) - l0
+  // let g = gradient of constraint function
+  //     H = hessian of constraint function
+
+  // from SQP theory, the contribution of the constraint to the "internal force vector" is [ lambda*g ]
+  //                                                                                       [ c        ]
+  f[0] = lambda*(lx/l);
+  f[1] = lambda*(ly/l);
+  f[2] = lambda*(lz/l);
+  f[3] = -f[0];
+  f[4] = -f[1];
+  f[5] = -f[2];
+  f[6] = l-l0;
+
+  // and to the "tangent stiffness" is [ lambda*H  g ]
+  //                                   [ g^T         ] (note: lambda*h is a scalar multiplication)
+  double l2 = l*l;
+  double l3 = l*l*l;
+  Ktan[0][0] = Ktan[3][3] = lambda*((l2-lx*lx)/l3);
+  Ktan[1][1] = Ktan[4][4] = lambda*((l2-ly*ly)/l3);
+  Ktan[2][2] = Ktan[5][5] = lambda*((l2-lz*lz)/l3);
+
+  Ktan[0][1] = Ktan[1][0] = Ktan[3][4] = Ktan[4][3] = lambda*(-lx*ly/l3);
+  Ktan[0][2] = Ktan[2][0] = Ktan[3][5] = Ktan[5][3] = lambda*(-lx*lz/l3);
+  Ktan[1][2] = Ktan[2][1] = Ktan[4][5] = Ktan[5][4] = lambda*(-ly*lz/l3);
+
+  Ktan[0][3] = Ktan[3][0] = -Ktan[0][0];
+  Ktan[1][4] = Ktan[4][1] = -Ktan[1][1];
+  Ktan[2][5] = Ktan[5][2] = -Ktan[2][2];
+
+  Ktan[0][4] = Ktan[4][0] = Ktan[1][3] = Ktan[3][1] = -Ktan[0][1];
+  Ktan[0][5] = Ktan[5][0] = Ktan[2][3] = Ktan[3][2] = -Ktan[0][2];
+  Ktan[1][5] = Ktan[5][1] = Ktan[2][4] = Ktan[4][2] = -Ktan[1][2];
+  
+  Ktan[6][0] = Ktan[0][6] = lx/l;
+  Ktan[6][1] = Ktan[1][6] = ly/l;
+  Ktan[6][2] = Ktan[2][6] = lz/l;
+  Ktan[6][3] = Ktan[3][6] = -Ktan[0][6];
+  Ktan[6][4] = Ktan[4][6] = -Ktan[1][6];
+  Ktan[6][5] = Ktan[5][6] = -Ktan[2][6];
+}
+*/
+
+void
+TwoNodeTrussRigidMpc::updateLMPCs(GeomState& gState, CoordSet& cs)
+{
+  // nodes' original coordinates
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double lx0 = nd1.x - nd2.x;
+  double ly0 = nd1.y - nd2.y;
+  double lz0 = nd1.z - nd2.z;
+  double l0 = sqrt( lx0*lx0 + ly0*ly0 + lz0*lz0 );
+
+  // nodes' current coordinates
+  NodeState ns1 = gState[nn[0]];
+  NodeState ns2 = gState[nn[1]];
+
+  double lx = ns1.x - ns2.x;
+  double ly = ns1.y - ns2.y;
+  double lz = ns1.z - ns2.z;
+  double l = sqrt(lx*lx + ly*ly + lz*lz);
+
+  double c1[3];
+  c1[0] = lx/l;
+  c1[1] = ly/l;
+  c1[2] = lz/l;
+
+  for(int i = 0; i < 3; ++i) {
+    mpcs[0]->terms[i].coef.r_value = c1[i];
+    mpcs[0]->terms[3+i].coef.r_value = -c1[i];
+  }
+  mpcs[0]->rhs.r_value = l - l0;
+}
+
+void 
+TwoNodeTrussRigidMpc::getJacobian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J)
+{
+  // nodes' current coordinates
+  NodeState ns1 = gState[nn[0]];
+  NodeState ns2 = gState[nn[1]];
+
+  double lx = ns1.x-ns2.x;
+  double ly = ns1.y-ns2.y;
+  double lz = ns1.z-ns2.z;
+  double l = sqrt(lx*lx + ly*ly + lz*lz);
+  
+  double l2 = l*l;
+  double l3 = l*l*l;
+  J[0][0] = J[3][3] = (l2-lx*lx)/l3;
+  J[1][1] = J[4][4] = (l2-ly*ly)/l3;
+  J[2][2] = J[5][5] = (l2-lz*lz)/l3;
+
+  J[0][1] = J[1][0] = J[3][4] = J[4][3] = -lx*ly/l3;
+  J[0][2] = J[2][0] = J[3][5] = J[5][3] = -lx*lz/l3;
+  J[1][2] = J[2][1] = J[4][5] = J[5][4] = -ly*lz/l3;
+
+  J[0][3] = J[3][0] = -J[0][0];
+  J[1][4] = J[4][1] = -J[1][1];
+  J[2][5] = J[5][2] = -J[2][2];
+
+  J[0][4] = J[4][0] = J[1][3] = J[3][1] = -J[0][1];
+  J[0][5] = J[5][0] = J[2][3] = J[3][2] = -J[0][2];
+  J[1][5] = J[5][1] = J[2][4] = J[4][2] = -J[1][2];
+}

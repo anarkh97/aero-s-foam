@@ -71,16 +71,16 @@
 #include <Element.d/BulkFluid.d/TriangleBulk.h>
 #include <Element.d/BulkFluid.d/TetraBulk.h>
 #include <Element.d/BulkFluid.d/PentaBulk.h>
-#include <Element.d/Truss.d/TwoNodeTrussRigid.h>
-#include <Element.d/Beam.d/RigidBeam.h>
-#include <Element.d/Spring.d/RigidSpring.h>
-#include <Element.d/Spring.d/RigidSpringTr.h>
-#include <Element.d/Spring.d/RigidSpringRo.h>
-#include <Element.d/Brick.d/EightNodeBrickRigid.h>
-#include <Element.d/Solid.d/RigidSolid.h>
-#include <Element.d/Solid.d/RigidSolid6Dof.h>
+//#include <Element.d/Truss.d/TwoNodeTrussRigid.h>
+//#include <Element.d/Beam.d/RigidBeam.h>
+//#include <Element.d/Spring.d/RigidSpring.h>
+//#include <Element.d/Spring.d/RigidSpringTr.h>
+//#include <Element.d/Spring.d/RigidSpringRo.h>
+//#include <Element.d/Brick.d/EightNodeBrickRigid.h>
+//#include <Element.d/Solid.d/RigidSolid.h>
+//#include <Element.d/Solid.d/RigidSolid6Dof.h>
 #include <Element.d/Brick20.d/Brick20.h>
-#include <Element.d/Shell.d/RigidThreeNodeShell.h>
+//#include <Element.d/Shell.d/RigidThreeNodeShell.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/Shell.d/ConnectedTri.h>
@@ -104,8 +104,8 @@ extern map<int,double > weightList;
 #include <Element.d/Brick.d/EightNodeBrickRigidMpc.h>
 #include <Element.d/Solid.d/RigidMpcSolid6Dof.h>
 #include <Element.d/Solid.d/RigidMpcSolid.h>
-#include <Element.d/Rigid.d/RBE2Mpc.h>
-#include <Element.d/Rigid.d/RBE2.h>
+//#include <Element.d/Rigid.d/RBE2Mpc.h>
+//#include <Element.d/Rigid.d/RBE2.h>
 #include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 

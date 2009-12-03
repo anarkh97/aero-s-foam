@@ -137,6 +137,26 @@ GmresOrthoSet<Scalar>::init(Scalar *v0, double beta)
 }
 
 template<class Scalar>
+double
+GmresOrthoSet<Scalar>::init(Scalar *p)
+{
+  if(numP > 0) reset();
+
+  double beta = 0.0;
+  for(int i = 0; i < len; i++) beta += ScalarTypes::sqNorm(p[i]);
+#ifdef DISTRIBUTED
+  if(com)
+    beta = com->globalSum(beta);
+#endif
+  beta = sqrt(beta);
+  for(int i = 0; i < len; i++) p[i] /= beta;
+
+  init(p, beta);
+
+  return beta;
+}
+
+template<class Scalar>
 double 
 GmresOrthoSet<Scalar>::orthoAdd(Scalar *Fv, Scalar *v) 
 {
@@ -320,7 +340,7 @@ GmresOrthoSet<Scalar>::ModorthoAdd(Scalar *Fv, Scalar *v)
   double nrm=0.0;
   for(i = 0; i < len; ++i) nrm += ScalarTypes::Real(ScalarTypes::conj(v[i])*v[i]);
 #ifdef DISTRIBUTED
-  nrm = com->globalSum(nrm);
+  if(com) nrm = com->globalSum(nrm);
 #endif
  
   _H(numP,numP-1) = Scalar(sqrt(nrm));

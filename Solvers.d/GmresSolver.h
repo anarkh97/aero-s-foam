@@ -10,7 +10,7 @@ template<class Scalar, class AnyVector, class AnyOperator, class LeftPreconditio
 class GmresSolver : public GenSolver<Scalar>
 {
   private: 
-    int maxit, maxortho, printNumber, verbose;
+    int maxit;
     double tol;
     AnyOperator *op;
     void (AnyOperator::*matvec)(AnyVector &, AnyVector &);
@@ -32,6 +32,8 @@ class GmresSolver : public GenSolver<Scalar>
 
     // Destructor
     ~GmresSolver();
+
+    int maxortho, printNumber, verbose;
 
     // Linear solution function
     void solve(AnyVector &b, AnyVector &x) { x=b; reSolve(x); }

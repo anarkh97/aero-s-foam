@@ -11,8 +11,8 @@ class RigidMpcElement : public Element, public Corotator
     int nDofsPerNode;        // number of degrees of freedom per node (not including "internal node")
     int nodalDofs;           // active dofs on each node
     int nMpcs;               // number of constraints
-    int *nn, *nn_orig;       // node numbers (renumbered and original)
-    LMPCons** mpcs;          // constraints
+    int *nn;                 // node numbers
+    LMPCons** mpcs;          // linearized constraints
     int mode;                // mode 0: constraints extracted by getMPCs, mode 1: otherwise
 
   public:
@@ -43,6 +43,10 @@ class RigidMpcElement : public Element, public Corotator
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*);
 
     bool isRigidMpcElement(const DofSet& = DofSet::nullDofset, bool = false);
+
+    // if the following two functions do not need to be implemented if the constraint function is linear
+    virtual void updateLMPCs(GeomState& gState, CoordSet& cs);
+    virtual void getJacobian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J);
 
 };
 #endif

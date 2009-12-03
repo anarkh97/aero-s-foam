@@ -3,101 +3,82 @@
 #include <Timers.d/GetTime.h>
 
 /*
-  All dot products defined as:
-
-                  T
-      (x, y) = {x} {y} (operator *)
+  CR is for real symmetric indefinite linear systems
 */
 
-template<class Scalar, class AnyVector, class AnyOperator>
+template<class Scalar, class AnyVector, class AnyOperator, class AnyPreconditioner>
 void
-GenCRSolver<Scalar, AnyVector, AnyOperator>::solve(AnyVector &rhs, AnyVector &sol)
+GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector &rhs, AnyVector &sol)
 {
  solveTime = -getTime();
-
  AnyVector r(rhs);
 
  // ... INITIALIZE SOL TO ZERO
- sol.zero(); 
+ sol.zero();
 
  double r0r0 = r.squareNorm();
 
  if(r0r0 == 0.0) return;
 
-// ... FIRST ITERATION
-
- AnyVector p ( r   );
- AnyVector Ap( rhs );
- AnyVector Ar( rhs );
+ // ... FIRST ITERATION
+ AnyVector q ( r );
+ AnyVector Aq( q );
 
  int niter = 1;
 
- A->mult(p, Ap);
+ if(P) P->apply(r, q);
 
-// ofstream writefile("rel_residual",ios::out);
+ A->mult(q, Aq);
+
+ AnyVector p  ( q   );
+ AnyVector Ap ( Aq  );
+ AnyVector PAp( Ap  );
+
+ if(P) P->apply(PAp, PAp);
+
+ Scalar qAq = q*Aq, qAq_prev;
 
  while( 1 )
  {
+   if(P) P->apply(Ap, PAp); else PAp = Ap;
 
-   // FIRST CHECK CONVERGENCE
+   Scalar alpha = (qAq)/(PAp*Ap);
+
+   // sol = sol + alpha*p
+   sol.linAdd(alpha, p);
+
+   // r = r - alpha*Ap 
+   r.linAdd(-alpha, Ap);
+
+   // CHECK CONVERGENCE
    double r2 = r.squareNorm();
 
    fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\t  Rel. residual  %1.7e \n",niter,r2,sqrt(r2/r0r0));
-//   writefile << sqrt(r2/r0r0) << endl;
    if( r2 <= r0r0*tolerance*tolerance || niter >= maxiter )  {
       fprintf(stderr,"\n ... Total # Iterations = %d",niter);
       fprintf(stderr,"\n ...     Final Two norm = %1.7e\n",r2);
       solveTime += getTime();
-//      writefile.close();
       return;
    }
 
-   A->mult(r, Ar);
+   // q = q - alpha*PAp
+   q.linAdd(-alpha, PAp);
 
-   Scalar ApAp = Ap*Ap;
+   A->mult(q, Aq);
 
-   Scalar Ar_r = Ar*r;
+   qAq_prev = qAq;
+   qAq = q*Aq;
 
-   Scalar alpha = Ar_r/ApAp;
+   Scalar beta = qAq/qAq_prev;
 
-   // sol = sol + alpha*p
-   sol.linAdd(alpha,p);
-  
-   // r = r - alpha*Ap 
-   r.linAdd(-alpha,Ap);
+   // p = q + beta*p
+   p.linC(q, beta, p);
 
-   A->mult(r, Ar);
-
-   /* 
-      Book's choice. Works with the dot 
-      product defined as:
-
-                  T
-      (x, y) = {x} {y}
-   */
-   //Scalar beta = (Ar^r)/(Ar_r);
-   Scalar beta = (Ar*r)/(Ar_r);
-
-   /* 
-      Michel's choice. Slow convergence and needs the 
-      following definition of the dot product:
-
-                  *
-      (x, y) = {x} {y}  (note: * is transpose conjugate)
-   */
- 
-   //Scalar beta = -(Ap^Ar)/(ApAp);
-
-   p.linC(r, beta, p);
-
-   // Ap = Ar + beta*Ap
-   Ap.linC(Ar, beta, Ap);
+   // Ap = Aq + beta*Ap
+   Ap.linC(Aq, beta, Ap);
 
    ++niter;
-
-  
  }
-
 }
 
 

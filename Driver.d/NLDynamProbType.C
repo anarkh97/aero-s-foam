@@ -197,6 +197,7 @@ else
                                    rhs, geomState, midtime);
 
      double resN = rhs.norm();
+     double initialRes = resN;
      residual = rhs;
 
      // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
@@ -269,7 +270,8 @@ else
      }
      // NOTE: Something better could be done here, like a restart ...
      if(converged == 0) 
-       filePrint(stderr,"\r *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxit, currentRes, probDesc->getTolerance());
+       filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
+                 time, maxit, initialRes, currentRes, probDesc->getTolerance());
 
      StateUpdate::copyState(geomState, refState);
 

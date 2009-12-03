@@ -22,6 +22,7 @@ class SfemBlockMatrix {
   void setKi(GenSparseMatrix<Scalar>* K, int i);
   void matvec_sfem_block(GenVector<Scalar> &u);
   void mult(GenVector<Scalar> &u, GenVector<Scalar> &ku);
+  void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result) { cerr << "transposeMult not implemented in SfemBlockMatrix\n"; }
   BlockInfo & dim(); 
   Scalar diag(int i);
   int* getFirstDof();

@@ -2313,14 +2313,20 @@ Solver:
           domain->solInfo().setProbType(SolverInfo::Static);
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
+        | STATS NewLine ITERTYPE Integer NewLine
+        { domain->solInfo().setSolver($3,$4);    
+          domain->solInfo().setProbType(SolverInfo::Static); }
+        | STATS NewLine ITERTYPE Integer Float NewLine
+        { domain->solInfo().setSolver($3,$4,$5);    
+          domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3); 
+	{ domain->solInfo().setSolver($3,$4,$5,$6); 
           domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3,$7); 
+	{ domain->solInfo().setSolver($3,$4,$5,$6,$7); 
           domain->solInfo().setProbType(SolverInfo::Static); }
         | STATS NewLine ITERTYPE Integer Float Integer Integer Integer NewLine
-        { domain->solInfo().setSolver($4,$5,$6,$3,$7,$8);
+        { domain->solInfo().setSolver($3,$4,$5,$6,$7,$8);
           domain->solInfo().setProbType(SolverInfo::Static); }
 /*
         | STATS NewLine ITERTYPE NewLine PRECNO Integer NewLine TOLPCG Float NewLine MAXITR Integer NewLine

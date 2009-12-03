@@ -284,6 +284,13 @@ GenDBSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result)
   Tcspsmvp(numUncon, unonz, xunonz, rowu, rhs.data(), result);
 }
 
+template<class Scalar>
+void
+GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
+{
+  // PJSA 11/2/09 (same as mult since this class is for symmetric matrices)
+  mult(rhs, result);
+}
 
 template<class Scalar>
 void

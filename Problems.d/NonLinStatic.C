@@ -141,8 +141,18 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
 
  // KHP: MODIFICATION
  if( iteration % domain->solInfo().getNLInfo().updateK == 0 )  {
-   cerr << "REBUILDING SOLVER\n";
-   solver->reBuild(kelArray);
+   //cerr << "REBUILDING SOLVER\n";
+   //solver->reBuild(kelArray);
+   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
+   spm->zeroAll();
+   AllOps<double> ops;
+   if(spp) { // rebuild preconditioner as well as the solver
+     spp->zeroAll();
+     ops.spp = spp;
+   }
+   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray);
+   solver->factor();
+   if(prec) prec->factor();
    rebuildFlag = 1;
  }
  times->rebuild += getTime();
@@ -270,6 +280,9 @@ NonLinStatic::preProcess()
  //fflush(stderr);
 
  solver = allOps.sysSolver;
+ spm = allOps.spm;
+ prec = allOps.prec;
+ spp = allOps.spp;
 
  fprintf(stderr," ... Creating Element Corotators    ...\n");
  fflush(stderr);

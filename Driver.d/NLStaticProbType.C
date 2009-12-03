@@ -374,8 +374,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
     if(rebuildFlag) {
       filePrint(stderr," ... Newton : Iter #%d --- Rebuild Tangent Stiffness (res = %e)\n", iter+1, residualNorm); // HB
-      if(solver->numRBM())
-        filePrint(stderr," ... Newton : Iter #%d --- Tangent Stiffness Has %d RBM(s)...\n", iter+1, solver->numRBM());
+      //if(solver->numRBM())
+      //  filePrint(stderr," ... Newton : Iter #%d --- Tangent Stiffness Has %d RBM(s)...\n", iter+1, solver->numRBM());
     }
 
     // Solve current system Kt*u = residual, overwrite residual with u
@@ -404,7 +404,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     converged = probDesc->checkConvergence(iter, normDv, residualNorm);
 
     // If converged, break out of loop
-    if(converged) break;
+    if(converged == 1) break; // PJSA_DEBUG don't test for divergence
   }
 
   // return with the number of iterations newton took to converge/diverge

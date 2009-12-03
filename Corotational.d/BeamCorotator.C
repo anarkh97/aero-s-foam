@@ -103,9 +103,9 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  }
 
 
-// Compute nonlinear projector matrix relative to deformed element
-// and correct stiffness and force
-// pmat = projector matrix
+ // Compute nonlinear projector matrix relative to deformed element
+ // and correct stiffness and force
+ // pmat = projector matrix
  double pmat[12][12];
  gradDefDisp( zVecL, xln, pmat);
 
@@ -120,7 +120,7 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
   _FORTRAN(dgemv)('N',12,12,1.0,(double *)pmat,12,fe,1,0.0,f,1);
 
-// Form geometric stiffness from internal force and material stiffness
+ // Form geometric stiffness from internal force and material stiffness
 
  double stiffGeo1[12][12], stiffGeo2[12][12];
  corotStiffGeo(zVecL,xln,pmat,f,stiffGeo1,stiffGeo2);
@@ -138,10 +138,12 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  _FORTRAN(dgemm)('T','T',12,12,12,1.0,(double*)scrstiff,12,
                  (double*)pmat,12,1.0,elK.data(),12);
 
-// Transform internal force and stiffness matrix to global coordinate system 
+ // Transform internal force and stiffness matrix to global coordinate system 
 
  tran_fsl(f,elK,t0n,2);
 
+ //cerr << "here in BeamCorotator::getStiffAndForce\n";
+ //elK.print();
 }
 
 void

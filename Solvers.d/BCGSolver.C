@@ -3,81 +3,59 @@
 #include <Timers.d/GetTime.h>
 
 /*
-  All dot products defined as:
-
-                  T
-      (x, y) = {x} {y} (operator *)
+  Bi-CG is for real nonsymmetric linear systems
 */
 
-template<class Scalar, class AnyVector, class AnyOperator>
+template<class Scalar, class AnyVector, class AnyOperator, class AnyPreconditioner>
 void
-GenBCGSolver<Scalar, AnyVector, AnyOperator>::solve(AnyVector &rhs, AnyVector &sol)
+GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector &rhs, AnyVector &sol)
 {
- solveTime = -getTime();
+  double resid;
+  Scalar rho_1, rho_2, alpha, beta;
+  AnyVector z(rhs), ztilde(rhs), p(rhs), ptilde(rhs), q(rhs), qtilde(rhs);
 
- AnyVector r( rhs );
+  double normb = rhs.norm();
+  sol.zero();
+  AnyVector r(rhs); // r = b - A * x  (ASSUMING x^0 = 0)
+  AnyVector rtilde(r);
 
- // ... INITIALIZE SOL TO ZERO
- sol.zero();
+  if (normb == 0.0)
+    normb = 1.0;
+  
+  if ((resid = r.norm() / normb) <= tolerance) {
+    return;
+  }
 
- double r0r0 = r.squareNorm();
-
- //AnyScalar r1r1 = r*r;
-
- if(r0r0 == 0.0) return;
-
-// ... FIRST ITERATION
-
- AnyVector p ( r   );
- AnyVector Ap( rhs );
-
- int niter = 1;
-
- A->mult(p, Ap);
-
- while( 1 )
- {
-
-   double r2 = r.squareNorm();
-   Scalar rr = r*r;
-
-   // FIRST CHECK CONVERGENCE
-
-  fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\n",niter,r2);	
-
-   if( r2 <= sqrt(r0r0*tolerance*tolerance) || niter >= maxiter )  {
-      fprintf(stderr,"\n ... Total # Iterations = %d",niter);
-      fprintf(stderr,"\n ...     Final Two norm = %1.7e\n",r2);
-      solveTime += getTime();
+  for (int i = 1; i <= maxiter; i++) {
+    fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\tRelative residual = %1.7e\n",i,r.sqNorm(),resid);
+    if(P) P->apply(r, z); else z=r; // z = M^{1}*r
+    if(P) P->apply(rtilde, ztilde); else ztilde = rtilde; // ztilde = M^{-T}*rtilde (ASSUMING here that preconditioner is symmetric)
+    rho_1 = z*rtilde;
+    if (rho_1 == 0.0) { 
       return;
-   }
+    }
+    if (i == 1) {
+      p = z;
+      ptilde = ztilde;
+    } else {
+      beta = rho_1 / rho_2;
+      p.linC(z, beta, p); // p = z + beta*p
+      ptilde.linC(ztilde, beta, ptilde); // ptilde = ztilde + beta*ptilde
+    }
+    A->mult(p, q); // q = A * p
+    A->transposeMult(ptilde,qtilde); //qtilde = A^T*ptilde;
+    alpha = rho_1 / (ptilde*q);
+    sol.linAdd(alpha, p); // sol += alpha * p;
+    r.linAdd(-alpha, q); // r -= alpha*q
+    rtilde.linAdd(-alpha, qtilde); // rtilde -= alpha*qtilde
 
-   A->mult(p, Ap);
+    rho_2 = rho_1;
+    if ((resid = r.norm() / normb) < tolerance) {
+      return;
+    }
+  }
 
-   Scalar pAp = p*Ap;
-
-   Scalar alpha = rr/pAp;
-
-   // sol = sol + alpha*p
-   sol.linAdd(alpha,p);
-  
-   // r = r - alpha*Ap 
-   r.linAdd(-alpha,Ap);
-
-   Scalar r1r1 = r*r;
-
-   Scalar beta = r1r1/rr;
-
-   // p = r + beta*p
-   p.linC(r, beta, p);
-
-   ++niter;
-
-   //For convergence check
-   //fprintf(stderr, "\n %d    %1.12e ", niter, r2 );
-  
- }
-
+  return;
 }
 
 

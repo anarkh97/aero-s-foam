@@ -370,9 +370,9 @@ struct SolverInfo {
 
                   // iterative solver defaults
                   precond = 0; 
-                  tol = 1.0e-6; 
-                  maxit = 100;
-                  iterType = 1; 
+                  tol = 1.0e-8; 
+                  maxit = 1000;
+                  iterType = 0; 
                   subtype = 3; 
                   maxvecsize = 0; 
 
@@ -566,13 +566,15 @@ struct SolverInfo {
      tolJac = _tolJac; 
    }
 
-   // DEFINE SOLVER
+   // direct solver
    void setSolver(int _substype) { type = 0; subtype = _substype;  }
 
-   void setSolver(int _precond, double _tol, int _maxit, int _iterType=1,
+   // iterative solver
+   void setSolver(int _iterType, int _precond, double _tol=1.0e-8, int _maxit=1000,
                   int _subtype=3, int _maxvecsize=0)
     { type = 1; precond = _precond; tol = _tol; maxit = _maxit; 
-      iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; }
+      iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; 
+    }
 
    void setTrbm(double _tolzpv)
     { trbm = _tolzpv; rbmflg = 0; }

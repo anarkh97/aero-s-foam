@@ -13,6 +13,7 @@ Beam.d/modmstif6.f
 Beam.d/modmstif7.f
 Beam.d/RigidBeam.C
 Beam.d/RigidMpcBeam.C
+Beam.d/exp-map.C
 Beam.d/sands6.f
 Beam.d/sands7.f
 Beam.d/TimoshenkoBeam.C

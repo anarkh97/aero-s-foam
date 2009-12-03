@@ -62,6 +62,7 @@ class GenSparseMatrix {
         virtual void multAdd(const Scalar *rhs, Scalar *result);
         virtual void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
         virtual void multSubtract(const Scalar *rhs, Scalar *result);
+        virtual void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
         virtual void transposeMult(const Scalar *, Scalar *);
         virtual void transposeMultAdd(const Scalar *, Scalar *);
         virtual void transposeMultSubtract(const Scalar *, Scalar *);

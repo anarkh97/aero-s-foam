@@ -18,6 +18,9 @@ class NonLinStatic {
     Domain *domain;
     double *bcx;
     Solver *solver;
+    SparseMatrix *spm;
+    Solver *prec;
+    SparseMatrix *spp;
     FullSquareMatrix *kelArray;
     Corotator **allCorot;
     double firstRes;

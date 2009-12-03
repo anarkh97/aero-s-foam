@@ -244,7 +244,7 @@ void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
   constantForce.zero();
-  if(domain->gravityFlag()) domain->buildGravityForce<double>(constantForce);
+  //PJSA 11/11/09if(domain->gravityFlag()) domain->buildGravityForce<double>(constantForce);
   //if(domain->pressureFlag()) domain->buildPressureForce<double>(constantForce);
 }
 
@@ -445,6 +445,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
  if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 
+/*
    double delta2 = localDelta * localDelta;
    solver->zeroAll();
    int iele;
@@ -490,6 +491,22 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    }
 
    solver->factor();
+*/
+
+   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
+   spm->zeroAll();
+   AllOps<double> ops;
+   if(spp) {
+     spp->zeroAll();
+     ops.spp = spp;
+   }
+   double Kcoef = (domain->solInfo().order == 1) ? localDelta : localDelta*localDelta;
+   double Ccoef = (domain->solInfo().order != 1 && C) ? localDelta : 0.0;
+   double Mcoef = 1.0;
+   domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+   solver->factor();
+   if(prec) prec->factor();
+
    //if (solver->numRBM() > 0)
    //  fprintf(stderr, " *** WARNING: %d ZEM(s) Found in Rebuilt Tangent Matrix!       \n", solver->numRBM());
  }
@@ -526,6 +543,10 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t,
 
  domain->computeExtForce4(*prevFrc, rhs, gf, tIndex, t, (SparseMatrix *) 0, (double *) 0, (int *) 0, &aeroForce);
 
+ // PJSA 11/11/09 add the GRAVITY forces at t = time^{n} (current geomState)
+ if(domain->gravityFlag()) {
+   domain->buildGravityForce<double>(rhs, geomState);
+ }
  // add the PRESSURE forces at t = time^{n} (current geomState)
  if(domain->pressureFlag()) { 
    domain->buildPressureForce(rhs, geomState);
@@ -771,6 +792,8 @@ NonLinDynamic::preProcess()
  C      = allOps.C;
  solver = allOps.sysSolver;
  spm    = allOps.spm;
+ prec   = allOps.prec;
+ spp    = allOps.spp;
 
  // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
  allCorot = new Corotator *[domain->numElements()];

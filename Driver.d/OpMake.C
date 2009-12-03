@@ -1,31 +1,32 @@
 #include <typeinfo>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
+//#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
-#include <Math.d/NonLinBLKSparseMatrix.h>
+//#include <Math.d/NonLinBLKSparseMatrix.h>
 #include <Math.d/SGISparseMatrix.h>
-#include <Math.d/NonLinSGISparseMatrix.h>
+//#include <Math.d/NonLinSGISparseMatrix.h>
 #include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/Skyline.d/NonLinBlockSky.h>
+//#include <Math.d/Skyline.d/NonLinBlockSky.h>
 #include <Math.d/Skyline.d/SGISky.h>
-#include <Math.d/Skyline.d/NonLinSGISky.h>
+//#include <Math.d/Skyline.d/NonLinSGISky.h>
 #include <Solvers.d/PCGSolver.h>
-#include <Solvers.d/NonLinPCGSolver.h>
+//#include <Solvers.d/NonLinPCGSolver.h>
 #include <Solvers.d/UFront.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
 #include <Solvers.d/GmresSolver.h>
+#include <Solvers.d/Spooles.h>
 #include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
-#include <Solvers.d/NonLinSpooles.h>
-#include <Solvers.d/NonLinMumps.h>
+//#include <Solvers.d/NonLinSpooles.h>
+//#include <Solvers.d/NonLinMumps.h>
 #include <Solvers.d/MappedAssembledSolver.h>
 #include <Driver.d/Dynam.h>
 #include <Sfem.d/Sfem.h>
@@ -88,7 +89,7 @@ template<class Scalar>
 void
 Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 		      double Ccoef, GenSparseMatrix<Scalar> *mat,
-                      FullSquareMatrix *kelArray)
+                      FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
@@ -151,10 +152,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if (isComplexF) {
      kcel = packedEset[iele]->stiffness(nodes, kcarray);
    } else {
-     //if(kelArray) { cerr << "****\n"; kel = kelArray[iele]; }
      if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
      else kel = packedEset[iele]->stiffness(nodes, karray);
-     //std::cout << "TraceOrig: " << kel.trace() << std::endl;
      this->densProjectStiffness(kel, iele);
    }
 
@@ -168,9 +167,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if (isComplexF) {
        mcel = packedEset[iele]->massMatrix(nodes, mcarray);
      } else {
-       mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
+       if(melArray) mel.copy(melArray[iele]); // PJSA 11-5-09
+       else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
-
      }
      if(sinfo.isCoupled && isStructureElement(iele)) mel *= cscale_factor2;
    }
@@ -259,6 +258,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.K)   ops.K->addImaginary(izel,(*allDOFs)[iele]);
        if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
        if(mat) mat->addImaginary(izel,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
      }
      if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
      if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
@@ -290,9 +290,11 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(matrixTimers) matrixTimers->assemble -= getTime();
    if (isComplexF || (imag(kappa2)!=0)) {
      if(mat) mat->add(kcel,(*allDOFs)[iele]);
+     if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
    } else {
      //std::cout << " Trace 2: " << kel.trace() << std::endl;
      if(mat) mat->add(kel,(*allDOFs)[iele]);
+     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {
      if(isDamped && isStructureElement(iele)) {
@@ -375,6 +377,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
        if(ops.Msolver) ops.Msolver->add(melC,(*allDOFs)[iele]);
        if(mat) mat->add(kelC,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->add(kelC,(*allDOFs)[iele]);
        if(matrixTimers) matrixTimers->assemble += getTime();
      }
    }
@@ -408,6 +411,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
    if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
    cel.zero();
@@ -416,6 +420,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
    if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
    kel.zero();
@@ -424,6 +429,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    //add Imaginary part of stiffness
    kel.zero();
    kel = packedEset[iele]->imStiffness(nodes, karray);
@@ -431,6 +437,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->addImaginary(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
   }
  }
  else
@@ -451,6 +458,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
    if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
    cel.zero();
@@ -459,6 +467,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
    if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
    kel.zero();
@@ -467,6 +476,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
  }
 
  if(makeMass || isShifted) {
@@ -494,6 +504,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mat) mat->add(dof, jdof, m);
+         if(ops.spp) ops.spp->add(dof, jdof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
@@ -508,6 +519,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
          if(mat) mat->add(dof,jdof,mass);
+         if(ops.spp) ops.spp->add(dof,jdof,mass);
        }
      }
      else {
@@ -517,6 +529,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_imag = isDamped ? -omega*alpha*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mat) mat->addDiscreteMass(dof, m);
+         if(ops.spp) ops.spp->addDiscreteMass(dof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
@@ -531,6 +544,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
          if(mat) mat->addDiscreteMass(dof, mass);
+         if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
        }
      }
      current = current->next;
@@ -603,6 +617,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      Ma_NZ *= (-omega2*Kcoef);
      if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
      if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     if (ops.spp)   ops.spp->add(Ma_NZ,domain->umap_add);
      fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
    }
 
@@ -689,6 +704,7 @@ GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
  if(DSA==0) DSA=c_dsa;
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -696,6 +712,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
      probType() == SolverInfo::ArcLength )
      return new GenNonLinSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs, rbm);
  else
+*/
    if(!geoSource->getDirectMPC())
     return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, rbm);
    else {
@@ -716,7 +733,7 @@ GenBlockSky<Scalar> *
 Domain::constructBlockSky(DofSetArray *DSA)
 {
  if(DSA==0) DSA=c_dsa;
-
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -724,6 +741,7 @@ Domain::constructBlockSky(DofSetArray *DSA)
      probType() == SolverInfo::ArcLength )
    return new GenNonLinBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs);
  else
+*/
    return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
 }
 
@@ -758,7 +776,7 @@ GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
  if(DSA==0) DSA=c_dsa;
-
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -766,7 +784,8 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
      probType() == SolverInfo::ArcLength )
    return new GenNonLinBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, numele,
 	                                       allDOFs, sinfo.trbm, sinfo.sparse_renum, rbm);
- else {
+ else 
+*/
    //axess the newmark parameters for acoustic time domain - JFD
    if (sinfo.newmarkBeta==0.0 && sinfo.acoustic) {
      if (sinfo.ATDARBFlag>-1.0) {
@@ -797,13 +816,14 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
        int nMappedEq = DSA->size();
        return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
      }
- }
+ 
 }
 
 template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(Rbm *rbm)
 {
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -812,6 +832,7 @@ Domain::constructSGISparseMatrix(Rbm *rbm)
    return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
                                                allDOFs, rbm);
  else
+*/
    return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm);
 }
 
@@ -819,6 +840,7 @@ template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(int subNumber, Rbm *rbm)
 {
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -827,6 +849,7 @@ Domain::constructSGISparseMatrix(int subNumber, Rbm *rbm)
    return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
                                                allDOFs, rbm);
  else
+*/
    return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm, subNumber);
 }
 
@@ -835,6 +858,7 @@ GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *
 Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
 {
  GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *pcgSolver;
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -847,10 +871,11 @@ Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
                                      allDOFs, sinfo.getNLInfo().kryflg, sinfo.getNLInfo().initflg,
                                      sinfo.getNLInfo().reorthoflg, sinfo.getNLInfo().maxVec, rbm);
  }
- else {
+ else 
+*/
     pcgSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
                                 (K, sinfo.precond, sinfo.maxit, sinfo.tol, sinfo.maxvecsize, rbm);
- }
+ 
 
  return pcgSolver;
 }
@@ -860,6 +885,7 @@ GenSpoolesSolver<Scalar> *
 Domain::constructSpooles(ConstrainedDSA *CDSA, Rbm *rbm)
 {
  if(CDSA==0) CDSA=c_dsa;
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -868,6 +894,7 @@ Domain::constructSpooles(ConstrainedDSA *CDSA, Rbm *rbm)
    return new GenNonLinSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
                                              allDOFs, rbm);
  else
+*/
    return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
 }
 
@@ -876,6 +903,7 @@ GenMumpsSolver<Scalar> *
 Domain::constructMumps(ConstrainedDSA *CDSA, Rbm *rbm, FSCommunicator *com)
 {
  if(CDSA==0) CDSA=c_dsa;
+/* PJSA 11/5/09
  if( probType() == SolverInfo::NonLinStatic ||
      probType() == SolverInfo::NonLinDynam  ||
      probType() == SolverInfo::MatNonLinDynam  ||
@@ -885,6 +913,7 @@ Domain::constructMumps(ConstrainedDSA *CDSA, Rbm *rbm, FSCommunicator *com)
    return new GenNonLinMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
                                            allDOFs, rbm);
  else
+*/
    return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
 }
 
@@ -953,19 +982,19 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    switch(sinfo.iterType) {
      default:
      case 0 : {
-       fprintf(stderr," ... PCG Method is Selected          ...\n");
+       fprintf(stderr," ... CG Solver is Selected           ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
      }
      case 4: {
-       fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
-       allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
+       fprintf(stderr," ... Bi-CG Solver is Selected       ...\n");
+       allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
      case 5: {
-       fprintf(stderr," ... CR Method is Selected          ...\n");
-       allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
+       fprintf(stderr," ... CR Solver is Selected          ...\n");
+       allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
    }
@@ -1518,12 +1547,21 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       spm = constructDBSparseMatrix<Scalar>();
       break;
   }
+  switch(sinfo.precond) {
+    case 1:
+      fprintf(stderr," ... Diagonal Preconditioner        ...\n");
+      GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(c_dsa);
+      allOps.prec = (GenSolver<Scalar> *) diag;
+      allOps.spp = (GenSparseMatrix<Scalar> *) diag;
+      break;
+  }
   makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray);
+  if(allOps.prec) allOps.prec->factor();
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
     default:
     case 0: {
-      fprintf(stderr," ... CG Method is Selected          ...\n");
+      fprintf(stderr," ... CG Solver is Selected          ...\n");
       if (sinfo.precond==3) {
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
         prec_solver->zeroAll();
@@ -1535,28 +1573,31 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 
       GenPCGSolver<Scalar,GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *pcgSolver = constructPCGSolver<Scalar>(spm, rbm);
-      systemSolver         = pcgSolver;
+      systemSolver = pcgSolver;
       break;
     }
     case 4: {
-      fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
-      GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-        *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
+      fprintf(stderr," ... Bi-CG Solver is Selected       ...\n");
+      GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+        *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = bcgSolver;
       break;
     }
     case 5: {
-      fprintf(stderr," ... CR Method is Selected          ...\n");
-      GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-        *crSolver = new  GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
+      fprintf(stderr," ... CR Solver is Selected          ...\n");
+      GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+        *crSolver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = crSolver;
       break;
     }
     case 1 : {
-      fprintf(stderr," ... GMRES Method is Selected       ...\n");
+      fprintf(stderr," ... GMRES Solver is Selected       ...\n");
       GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
         *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
-         (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, NULL, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+         (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, allOps.prec, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+      if(sinfo.maxvecsize > 0) gmresSolver->maxortho = sinfo.maxvecsize;
+      gmresSolver->verbose = verboseFlag;
+      gmresSolver->printNumber = sinfo.fetiInfo.printNumber;
       systemSolver = gmresSolver;
       break;
     }
@@ -1566,7 +1607,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 
 template<class Scalar>
 void
-Domain::buildGravityForce(GenVector<Scalar> &force)
+Domain::buildGravityForce(GenVector<Scalar> &force, GeomState *gs)
 {
   if(gravityFlag()) {
 
@@ -1582,7 +1623,7 @@ Domain::buildGravityForce(GenVector<Scalar> &force)
         else gravflg = geoSource->fixedEndM;   // 1: lumped with fixed-end moments
                                                // 0: lumped without fixed-end moments
 
-        packedEset[iele]->getGravityForce(nodes, gravityAcceleration, ElementGravityForce, gravflg);
+        packedEset[iele]->getGravityForce(nodes, gravityAcceleration, ElementGravityForce, gravflg, gs);
 
         for(int i = 0; i < allDOFs->num(iele); ++i) {
           int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
@@ -2060,7 +2101,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
 // see also Dynam.C for RHS - JF
 
   // ... ADD GRAVITY FORCES
-  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+  if(domain->gravityFlag()) buildGravityForce<Scalar>(force, gs);
 
   // ... ADD PRESSURE LOAD
   if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
@@ -2230,7 +2271,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
 // see also Dynam.C for RHS - JF
 
   // ... ADD GRAVITY FORCES
-  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+  if(domain->gravityFlag()) buildGravityForce<Scalar>(force, gs);
 
   // ... ADD PRESSURE LOAD
   if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
@@ -2370,7 +2411,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NL
   // ... ADD GRAVITY FORCES
   if(domain->gravityFlag()) {
     // fprintf(stderr," ... Building Gravity Forces        ...\n");
-    buildGravityForce<Scalar>(force);
+    buildGravityForce<Scalar>(force, gs);
   }
 
   // ... ADD PRESSURE LOAD
@@ -2912,11 +2953,13 @@ Domain::updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, in
    FullSquareMatrix temp(reEl->dim(),(double*)dbg_alloca(reEl->dim()*reEl->dim()*sizeof(double)));
    reEl->multiply(temp,Kcoef);
    if(K) K->add(temp,dofs);
+   if(ops && ops->spp) ops->spp->add(temp,dofs);
    if(ops && ops->K) ops->K->add(*reEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
   }
   if(imEl) {//there should not be imaginary part
    if(K) K->addImaginary(*imEl, dofs);
+   if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
    if(ops && ops->K) ops->K->addImaginary(*imEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
   }
@@ -2924,11 +2967,13 @@ Domain::updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, in
  else {
   if(reEl) {
    if(K) K->add(*reEl, dofs);
+   if(ops && ops->spp) ops->spp->add(*reEl, dofs);
    if(ops && ops->K) ops->K->add(*reEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
   }
   if(imEl) {
    if(K) K->addImaginary(*imEl, dofs);
+   if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
    if(ops && ops->K) ops->K->addImaginary(*imEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
   }

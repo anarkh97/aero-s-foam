@@ -12,6 +12,7 @@
 #include        <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <iostream>
+#define FOLLOWER_FORCE
 
 // Define FORTRAN routines as external function
 extern "C" {
@@ -171,11 +172,9 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	double length;
 	  
 	if (geomState) {
-          
 	    updTransMatrix(cs, geomState, t0n, length);
 		 
         }  else  {
-	  
            getLength(cs, length);
 	     
            for(int i=0; i<3; ++i) {   

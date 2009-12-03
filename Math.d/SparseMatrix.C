@@ -152,6 +152,13 @@ GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
 }
 
 template<class Scalar>
+void 
+GenSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result)
+{
+ fprintf(stderr,"GenSparseMatrix<Scalar>::transposeMult((const GenVector<Scalar> &, GenVector<Scalar> &) not implemented\n");
+}
+
+template<class Scalar>
 void
 GenSparseMatrix<Scalar>::transposeMult(const Scalar *, Scalar *)
 {

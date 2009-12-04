@@ -511,7 +511,6 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
   double thetax13 = thetax12*thetax1, thetay13 = thetay12*thetay1, thetaz13 = thetaz12*thetaz1;
 
   J.zero();
-
 /*
   switch(i) {
     case 0 : {
@@ -526,17 +525,17 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
       J[3][3] = ly0 + (lx0*thetaz1)/3 - lz0*thetax1;
       J[4][4] = (lx0*thetaz1)/3 - (lz0*thetax1)/3;
       J[5][5] = ly0 + lx0*thetaz1 - (lz0*thetax1)/3;
-      J[3][4] = - lx0/2 - (lz0*thetay1)/3;
-      J[3][5] = (lx0*thetax1)/3 - (lz0*thetaz1)/3;
-      J[4][5] = (lx0*thetay1)/3 - lz0/2;
+      J[3][4] = J[4][3] = - lx0/2 - (lz0*thetay1)/3;
+      J[3][5] = J[5][3] = (lx0*thetax1)/3 - (lz0*thetaz1)/3;
+      J[4][5] = J[5][4] = (lx0*thetay1)/3 - lz0/2;
     } break;
     case 2 : {
       J[3][3] = lz0 - (lx0*thetay1)/3 + ly0*thetax1;
       J[4][4] = lz0 - lx0*thetay1 + (ly0*thetax1)/3;
       J[5][5] = (ly0*thetax1)/3 - (lx0*thetay1)/3;
-      J[3][4] = (ly0*thetay1)/3 - (lx0*thetax1)/3;
-      J[3][5] = (ly0*thetaz1)/3 - lx0/2;
-      J[4][5] = - ly0/2 - (lx0*thetaz1)/3;
+      J[3][4] = J[4][3] = (ly0*thetay1)/3 - (lx0*thetax1)/3;
+      J[3][5] = J[5][3] = (ly0*thetaz1)/3 - lx0/2;
+      J[4][5] = J[5][4] = - ly0/2 - (lx0*thetaz1)/3;
     } break;
     default : {
     } break;
@@ -574,7 +573,7 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
   }
 */
 
-/*
+
 switch(i) {
 case 0 : {
 double H[3][3] = { 
@@ -622,7 +621,7 @@ for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) J[3+i][3+j] = H[i][j];
 } break;
 
 }
-*/
+
 #else
   J.zero();
 #endif

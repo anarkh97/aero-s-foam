@@ -504,6 +504,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    double Ccoef = (domain->solInfo().order != 1 && C) ? localDelta : 0.0;
    double Mcoef = 1.0;
    domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+   if(!verboseFlag) solver->setPrintNullity(false);
    solver->factor();
    if(prec) prec->factor();
 
@@ -617,6 +618,7 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
   }
 }
 
+#include <Element.d/MpcElement.d/RigidMpcElement.h>
 void
 NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &geomState, 
                                 double midtime, double localDelta)
@@ -662,6 +664,16 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs,
   }
 
   times->predictorTime += getTime();
+
+/* XXXX
+  for(int iele = 0; iele < domain->numElements(); ++iele) {
+    RigidMpcElement* my_b = dynamic_cast<RigidMpcElement*>(domain->getElementSet()[iele]);
+    if(my_b) {
+      //cerr << "iele " << iele << " is a rigid mpc element, updating LMPCs\n";
+      my_b->updateLMPCs(geomState, domain->getNodes());
+    }
+  }
+*/
 }
 
 double

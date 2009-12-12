@@ -4,8 +4,6 @@
 #include <Corotational.d/utilities.h>
 #define FOLLOWER_FORCE
 
-#define PJSA_DEBUG
-
 RigidMpcBeam::RigidMpcBeam(int* _nn)
  : RigidMpcElement(2, 6, DofSet::XYZdisp | DofSet::XYZrot, 6, _nn)
 {
@@ -15,39 +13,6 @@ RigidMpcBeam::RigidMpcBeam(int* _nn)
 void 
 RigidMpcBeam::computeMPCs(CoordSet& cs)
 {
-#ifdef PJSA_DEBUG
-  for(int i = 0; i < nMpcs; ++i)
-    mpcs[i] = new LMPCons(0, 0.0);
-
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-
-  double lx0 = nd2.x - nd1.x;
-  double ly0 = nd2.y - nd1.y;
-  double lz0 = nd2.z - nd1.z;
-
-  for(int i = 0; i < 3; ++i)
-    mpcs[i]->addterm(new LMPCTerm(nn[0], i, -1.0));
-  mpcs[0]->addterm(new LMPCTerm(nn[0], 3, 0.0));
-  mpcs[0]->addterm(new LMPCTerm(nn[0], 4, -lz0));
-  mpcs[0]->addterm(new LMPCTerm(nn[0], 5, ly0));
-  mpcs[1]->addterm(new LMPCTerm(nn[0], 3, lz0));
-  mpcs[1]->addterm(new LMPCTerm(nn[0], 4, 0.0));
-  mpcs[1]->addterm(new LMPCTerm(nn[0], 5, -lx0));
-  mpcs[2]->addterm(new LMPCTerm(nn[0], 3, -ly0));
-  mpcs[2]->addterm(new LMPCTerm(nn[0], 4, lx0)); 
-  mpcs[2]->addterm(new LMPCTerm(nn[0], 5, 0.0));
-  for(int i = 0; i < 3; ++i)
-      mpcs[i]->addterm(new LMPCTerm(nn[1], i, 1.0));
-
-  for(int i = 0; i < 3; ++i) {
-    mpcs[i+3]->addterm(new LMPCTerm(nn[0], i+3, 1.0));
-    mpcs[i+3]->addterm(new LMPCTerm(nn[1], i+3, -1.0));
-  }
-  //for(int i = 0; i<6; ++i) {
-  //  cerr << "lmpc " << i+1 << " has coefs "; for(int j=0; j<mpcs[i]->nterms; ++j) cerr << mpcs[i]->terms[j].coef.r_value << " "; cerr << endl;
-  //}
-#else
   for(int i = 0; i < nMpcs; ++i)
     mpcs[i] = new LMPCons(0, 0.0);
 
@@ -68,63 +33,66 @@ RigidMpcBeam::computeMPCs(CoordSet& cs)
     }
   }
   else {
-    double c1[3], c2[3], c3[3];
-    c1[0] = dx/length;
-    c1[1] = dy/length;
-    c1[2] = dz/length;
+    c0[0][0] = dx/length;
+    c0[0][1] = dy/length;
+    c0[0][2] = dz/length;
+
+    double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
+    double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
+
+    if (N1 > N2) {
+      c0[1][0] = -c0[0][1]/N1;
+      c0[1][1] = c0[0][0]/N1;
+      c0[1][2] = 0.0;
+    }
+    else {
+      c0[1][0] = c0[0][2]/N2;
+      c0[1][1] = 0.0;
+      c0[1][2] = -c0[0][0]/N2;
+    }
+
+    c0[2][0] = c0[0][1] * c0[1][2] - c0[0][2] * c0[1][1];
+    c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
+    c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
 
     // translation in x, y, z (1 constraint equation)
     for(int i = 0; i < 3; ++i)
-      mpcs[0]->addterm(new LMPCTerm(nn[0], i, c1[i]));
+      mpcs[0]->addterm(new LMPCTerm(nn[0], i, c0[0][i]));
     for(int i = 0; i < 3; ++i)
-      mpcs[0]->addterm(new LMPCTerm(nn[1], i, -c1[i]));
+      mpcs[0]->addterm(new LMPCTerm(nn[1], i, -c0[0][i]));
 
     // rotation in x, y, z (3 constraint equations)
     for(int i = 0; i < 3; ++i) {
-      mpcs[i+1]->addterm(new LMPCTerm(nn[0], i+3, 1.0));
-      mpcs[i+1]->addterm(new LMPCTerm(nn[1], i+3, -1.0));
+      for(int j = 0; j < 3; ++j) {
+        double coef = (i == j) ? 1.0 : 0.0;
+        mpcs[i+1]->addterm(new LMPCTerm(nn[0], 3+j, coef));
+      }
+      for(int j = 0; j < 3; ++j) {
+        double coef = (i == j) ? -1.0 : 0.0;
+        mpcs[i+1]->addterm(new LMPCTerm(nn[1], 3+j, coef));
+      }
     }
 
-    // relative rotation in y and z (2 constraint equations)
-    double N1 = sqrt( c1[0]*c1[0] + c1[1]*c1[1] );
-    double N2 = sqrt( c1[0]*c1[0] + c1[2]*c1[2] );
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 0, c0[1][0]));
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 1, c0[1][1]));
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 2, c0[1][2]));
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 3, -c0[1][1] * dz + c0[1][2] * dy));
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 4, c0[1][0] * dz - c0[1][2] * dx));
+    mpcs[4]->addterm(new LMPCTerm(nn[0], 5, -c0[1][0] * dy + c0[1][1] * dx));
+    mpcs[4]->addterm(new LMPCTerm(nn[1], 0, -c0[1][0]));
+    mpcs[4]->addterm(new LMPCTerm(nn[1], 1, -c0[1][1]));
+    mpcs[4]->addterm(new LMPCTerm(nn[1], 2, -c0[1][2]));
 
-    if (N1 > N2) {
-      c2[0] = -c1[1]/N1;
-      c2[1] = c1[0]/N1;
-      c2[2] = 0.0;
-    }
-    else {
-      c2[0] = c1[2]/N2;
-      c2[1] = 0.0;
-      c2[2] = -c1[0]/N2;
-    }
-
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 0, c2[0]));
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 1, c2[1]));
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 2, c2[2]));
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 3, -c2[1] * dz + c2[2] * dy));
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 4, c2[0] * dz - c2[2] * dx));
-    mpcs[4]->addterm(new LMPCTerm(nn[0], 5, -c2[0] * dy + c2[1] * dx));
-    mpcs[4]->addterm(new LMPCTerm(nn[1], 0, -c2[0]));
-    mpcs[4]->addterm(new LMPCTerm(nn[1], 1, -c2[1]));
-    mpcs[4]->addterm(new LMPCTerm(nn[1], 2, -c2[2]));
-
-    c3[0] = c1[1] * c2[2] - c1[2] * c2[1];
-    c3[1] = c1[2] * c2[0] - c1[0] * c2[2];
-    c3[2] = c1[0] * c2[1] - c1[1] * c2[0];
-
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 0, c3[0]));
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 1, c3[1]));
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 2, c3[2]));
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 3, -c3[1] * dz + c3[2] * dy));
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 4, c3[0] * dz - c3[2] * dx));
-    mpcs[5]->addterm(new LMPCTerm(nn[0], 5, -c3[0] * dy + c3[1] * dx));
-    mpcs[5]->addterm(new LMPCTerm(nn[1], 0, -c3[0]));
-    mpcs[5]->addterm(new LMPCTerm(nn[1], 1, -c3[1]));
-    mpcs[5]->addterm(new LMPCTerm(nn[1], 2, -c3[2]));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 0, c0[2][0]));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 1, c0[2][1]));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 2, c0[2][2]));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 3, -c0[2][1] * dz + c0[2][2] * dy));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 4, c0[2][0] * dz - c0[2][2] * dx));
+    mpcs[5]->addterm(new LMPCTerm(nn[0], 5, -c0[2][0] * dy + c0[2][1] * dx));
+    mpcs[5]->addterm(new LMPCTerm(nn[1], 0, -c0[2][0]));
+    mpcs[5]->addterm(new LMPCTerm(nn[1], 1, -c0[2][1]));
+    mpcs[5]->addterm(new LMPCTerm(nn[1], 2, -c0[2][2]));
   }
-#endif
 }
 
 int 
@@ -315,94 +283,6 @@ RigidMpcBeam::getLength(CoordSet& cs, double& length)
 void 
 RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 {
-#ifdef PJSA_DEBUG
-  // nodes' original coordinates
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-
-  double lx0 = nd2.x - nd1.x;
-  double ly0 = nd2.y - nd1.y;
-  double lz0 = nd2.z - nd1.z;
-  double l0 = sqrt(lx0*lx0+ly0*ly0+lz0*lz0);
-
-  // nodes' current state
-  NodeState ns1 = gState[nn[0]];
-  NodeState ns2 = gState[nn[1]];
-  double lx = ns2.x - ns1.x;
-  double ly = ns2.y - ns1.y;
-  double lz = ns2.z - ns1.z;
-  double l = sqrt(lx*lx+ly*ly+lz*lz);
-  double r1[3], r2[3];
-  mat_to_vec(ns1.R, r1);
-  mat_to_vec(ns2.R, r2);
-  double thetax1 = r1[0], thetay1 = r1[1], thetaz1 = r1[2];
-  double thetax12 = thetax1*thetax1, thetay12 = thetay1*thetay1, thetaz12 = thetaz1*thetaz1;
-
-/*
-  mpcs[0]->terms[1].coef.r_value = - ly0*(thetay1/2 + (thetax1*thetaz1)/3) - lz0*(thetaz1/2 - (thetax1*thetay1)/3);
-  mpcs[0]->terms[2].coef.r_value = lx0*thetay1 - ly0*(thetax1/2 + (thetay1*thetaz1)/3) + lz0*(thetax12/6 + thetay12/2 + thetaz12/6 - 1); //-lz0*exp(r1[1]);
-  mpcs[0]->terms[3].coef.r_value = lx0*thetaz1 - lz0*(thetax1/2 - (thetay1*thetaz1)/3) - ly0*(thetax12/6 + thetay12/6 + thetaz12/2 - 1); //ly0*exp(r1[2]);
-  mpcs[1]->terms[1].coef.r_value = ly0*thetax1 - lx0*(thetay1/2 - (thetax1*thetaz1)/3) - lz0*(thetax12/2 + thetay12/6 + thetaz12/6 - 1); //lz0*exp(r1[0]);
-  mpcs[1]->terms[2].coef.r_value = - lx0*(thetax1/2 - (thetay1*thetaz1)/3) - lz0*(thetaz1/2 + (thetax1*thetay1)/3);
-  mpcs[1]->terms[3].coef.r_value = ly0*thetaz1 - lz0*(thetay1/2 + (thetax1*thetaz1)/3) + lx0*(thetax12/6 + thetay12/6 + thetaz12/2 - 1); //-lx0*exp(r1[2]);
-  mpcs[2]->terms[1].coef.r_value = lz0*thetax1 - lx0*(thetaz1/2 + (thetax1*thetay1)/3) + ly0*(thetax12/2 + thetay12/6 + thetaz12/6 - 1); //-ly0*exp(r1[0]);
-  mpcs[2]->terms[2].coef.r_value = lz0*thetay1 - ly0*(thetaz1/2 - (thetax1*thetay1)/3) - lx0*(thetax12/6 + thetay12/2 + thetaz12/6 - 1); //lx0*exp(r1[1]);
-  mpcs[2]->terms[3].coef.r_value = - lx0*(thetax1/2 + (thetay1*thetaz1)/3) - ly0*(thetay1/2 - (thetax1*thetaz1)/3);
-*/
-
-  mpcs[0]->rhs.r_value = ns2.x - ns1.x - ns1.R[0][0]*lx0 - ns1.R[0][1]*ly0 - ns1.R[0][2]*lz0;
-  mpcs[1]->rhs.r_value = ns2.y - ns1.y - ns1.R[1][0]*lx0 - ns1.R[1][1]*ly0 - ns1.R[1][2]*lz0;
-  mpcs[2]->rhs.r_value = ns2.z - ns1.z - ns1.R[2][0]*lx0 - ns1.R[2][1]*ly0 - ns1.R[2][2]*lz0;
-  mpcs[3]->rhs.r_value = (r1[0] - r2[0]);
-  mpcs[4]->rhs.r_value = (r1[1] - r2[1]);
-  mpcs[5]->rhs.r_value = (r1[2] - r2[2]);
-
-/*
-  cerr << "R1 = " << ns1.R[0][0] << " " << ns1.R[0][1] << " " << ns1.R[0][2] << endl;
-  cerr << "     " << ns1.R[1][0] << " " << ns1.R[1][1] << " " << ns1.R[1][2] << endl;
-  cerr << "     " << ns1.R[2][0] << " " << ns1.R[2][1] << " " << ns1.R[2][2] << endl;
-  cerr << "R2 = " << ns2.R[0][0] << " " << ns2.R[0][1] << " " << ns2.R[0][2] << endl;
-  cerr << "     " << ns2.R[1][0] << " " << ns2.R[1][1] << " " << ns2.R[1][2] << endl;
-  cerr << "     " << ns2.R[2][0] << " " << ns2.R[2][1] << " " << ns2.R[2][2] << endl;
-  cerr << "r1 = " << r1[0] << " " << r1[1] << " " << r1[2] << endl;
-  cerr << "r2 = " << r2[0] << " " << r2[1] << " " << r2[2] << endl;
-  for(int i=0; i<6; ++i) cerr << "mpc " << i << " rhs = " << mpcs[i]->rhs.r_value << endl;
-  cerr << "l - l0 = " << l - l0 << endl;
-*/
-
-/*
-  double R[4][4];
-  EM3_To_R(r1, R);
-  cerr << "R  = " << R[0][0] << " " << R[0][1] << " " << R[0][2] << " " << R[0][3] << endl;
-  cerr << "     " << R[1][0] << " " << R[1][1] << " " << R[1][2] << " " << R[1][3] << endl;
-  cerr << "     " << R[2][0] << " " << R[2][1] << " " << R[2][2] << " " << R[1][3] << endl;
-  cerr << "     " << R[3][0] << " " << R[3][1] << " " << R[3][2] << " " << R[3][3] << endl;
-*/
-  int rep;
-  double dRdvi[4][4];
-  for(int i=0; i<3; ++i) {
-    rep = Partial_R_Partial_EM3(r1, i, dRdvi);
-    //if(rep) cerr << "dynamic reparametrization activated\n";
-    //cerr << "i = " << i << ", rep = " << rep << endl;
-    //cerr << "dRdvi  = " << dRdvi[0][0] << " " << dRdvi[0][1] << " " << dRdvi[0][2] << " " << dRdvi[0][3] << endl;
-    //cerr << "         " << dRdvi[1][0] << " " << dRdvi[1][1] << " " << dRdvi[1][2] << " " << dRdvi[1][3] << endl;
-    //cerr << "         " << dRdvi[2][0] << " " << dRdvi[2][1] << " " << dRdvi[2][2] << " " << dRdvi[1][3] << endl;
-    //cerr << "         " << dRdvi[3][0] << " " << dRdvi[3][1] << " " << dRdvi[3][2] << " " << dRdvi[3][3] << endl;
-    for(int j=0; j<3; ++j)
-      mpcs[j]->terms[i+1].coef.r_value = -(dRdvi[j][0]*lx0+dRdvi[j][1]*ly0+dRdvi[j][2]*lz0);
-  }
-  //for(int i = 0; i<6; ++i) {
-  //  cerr << "lmpc " << i+1 << " has coefs "; for(int j=0; j<mpcs[i]->nterms; ++j) cerr << mpcs[i]->terms[j].coef.r_value << " "; cerr << endl;
-  //}
-/*
-  mpcs[0]->rhs.r_value = ns2.x - ns1.x - ns1.R[0][0]*lx0 - ns1.R[0][1]*ly0 - ns1.R[0][2]*lz0;
-  mpcs[1]->rhs.r_value = ns2.y - ns1.y - ns1.R[1][0]*lx0 - ns1.R[1][1]*ly0 - ns1.R[1][2]*lz0;
-  mpcs[2]->rhs.r_value = ns2.z - ns1.z - ns1.R[2][0]*lx0 - ns1.R[2][1]*ly0 - ns1.R[2][2]*lz0;
-  mpcs[3]->rhs.r_value = (r1[0] - r2[0]);
-  mpcs[4]->rhs.r_value = (r1[1] - r2[1]);
-  mpcs[5]->rhs.r_value = (r1[2] - r2[2]); 
-*/
-#else
   // nodes' original coordinates
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -410,7 +290,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
   double dx0 = nd2.x - nd1.x;
   double dy0 = nd2.y - nd1.y;
   double dz0 = nd2.z - nd1.z;
-  double l0 = sqrt(dx*dx + dy*dy + dz*dz);
+  double l0 = sqrt(dx0*dx0 + dy0*dy0 + dz0*dz0);
 
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
@@ -419,211 +299,98 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
   double dx = ns2.x - ns1.x;
   double dy = ns2.y - ns1.y;
   double dz = ns2.z - ns1.z;
-  double l = sqrt(lx*lx + ly*ly + lz*lz);
+  double l = sqrt(dx*dx + dy*dy + dz*dz);
 
   if(l0 == 0.0) {
-    /* revisit this case */
+    /* linear */
   }
   else {
-    double c1[3], c2[3], c3[3];
-    c1[0] = dx/l;
-    c1[1] = dy/l;
-    c1[2] = dz/l;
+    double d[3] = { dx/l, dy/l, dz/l };
 
-    // translation in x, y, z (1 constraint equation)
+    // rotated cframes
+    double c1[3][3], c2[3][3];
+    mat_mult_mat(ns1.R, c0, c1, 1);
+    mat_mult_mat(ns2.R, c0, c2, 1);
+
+    // partial derivatives of constraint functions wrt x, y, z 
     for(int i = 0; i < 3; ++i) {
-      mpcs[0]->terms[i].coef.r_value = c1[i];
-      mpcs[0]->terms[3+i].coef.r_value = -c1[i] ;
+      mpcs[0]->terms[i].coef.r_value = -d[i];
+      mpcs[0]->terms[3+i].coef.r_value = d[i] ;
+      mpcs[4]->terms[0+i].coef.r_value = -c1[2][i];
+      mpcs[4]->terms[6+i].coef.r_value = c1[2][i];
+      mpcs[5]->terms[0+i].coef.r_value = -c1[1][i];
+      mpcs[5]->terms[6+i].coef.r_value = c1[1][i];
     }
+
+    // rotation parameters (thetax, thetay, thetaz)
+    double r1[3], r2[3];
+    mat_to_vec(ns1.R, r1);
+    mat_to_vec(ns2.R, r2);
+
+    double dRdvi1[3][3], dRdvi2[3][3], d1[3][3], d2[3][3];
+    for(int k=0; k<3; ++k) {
+      // partial derivatives of rotation matrices wrt kth rotation parameters
+      Partial_R_Partial_EM3(r1, k, dRdvi1);
+      Partial_R_Partial_EM3(r2, k, dRdvi2);
+
+      // partial derivatives of constraint functions wrt kth rotation parameters
+      mat_mult_mat(dRdvi1, c0, d1, 1);
+      mat_mult_mat(dRdvi2, c0, d2, 1);
+      mpcs[1]->terms[0+k].coef.r_value = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
+      mpcs[1]->terms[3+k].coef.r_value = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
+      mpcs[2]->terms[0+k].coef.r_value = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
+      mpcs[2]->terms[3+k].coef.r_value = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
+      mpcs[3]->terms[0+k].coef.r_value = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
+      mpcs[3]->terms[3+k].coef.r_value = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
+      mpcs[4]->terms[3+k].coef.r_value = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
+      mpcs[5]->terms[3+k].coef.r_value = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
+    }
+
+    // values of constraint functions
     mpcs[0]->rhs.r_value = l - l0;
-
-    // rotation in x, y, z (3 constraint equations)
-    mpcs[1]->rhs.r_value = thetax1-thetax2;
-    mpcs[2]->rhs.r_value = thetay1-thetay2;
-    mpcs[3]->rhs.r_value = thetaz1-thetaz2;
-
-    // relative rotation in y and z (2 constraint equations)
-    double N1 = sqrt( c1[0]*c1[0] + c1[1]*c1[1] );
-    double N2 = sqrt( c1[0]*c1[0] + c1[2]*c1[2] );
-
-    if (N1 > N2) {
-      c2[0] = -c1[1]/N1;
-      c2[1] = c1[0]/N1;
-      c2[2] = 0.0;
-    }
-    else {
-      c2[0] = c1[2]/N2;
-      c2[1] = 0.0;
-      c2[2] = -c1[0]/N2;
-    }
-
-    mpcs[4]->terms[0].coef.r_value = c2[0];
-    mpcs[4]->terms[1].coef.r_value = c2[1];
-    mpcs[4]->terms[2].coef.r_value = c2[2];
-    mpcs[4]->terms[3].coef.r_value = -c2[1] * dz + c2[2] * dy;
-    mpcs[4]->terms[4].coef.r_value = c2[0] * dz - c2[2] * dx;
-    mpcs[4]->terms[5].coef.r_value = -c2[0] * dy + c2[1] * dx;
-    mpcs[4]->terms[6].coef.r_value = -c2[0];
-    mpcs[4]->terms[7].coef.r_value = -c2[1];
-    mpcs[4]->terms[8].coef.r_value = -c2[2];
-    mpcs[4]->rhs.r_value = xxxx;
-
-    c3[0] = c1[1] * c2[2] - c1[2] * c2[1];
-    c3[1] = c1[2] * c2[0] - c1[0] * c2[2];
-    c3[2] = c1[0] * c2[1] - c1[1] * c2[0];
-
-    mpcs[5]->terms[0].coef.r_value = c3[0];
-    mpcs[5]->terms[1].coef.r_value = c3[1];
-    mpcs[5]->terms[2].coef.r_value = c3[2];
-    mpcs[5]->terms[3].coef.r_value = -c3[1] * dz + c3[2] * dy;
-    mpcs[5]->terms[4].coef.r_value = c3[0] * dz - c3[2] * dx;
-    mpcs[5]->terms[5].coef.r_value = -c3[0] * dy + c3[1] * dx;
-    mpcs[5]->terms[6].coef.r_value = -c3[0];
-    mpcs[5]->terms[7].coef.r_value = -c3[1];
-    mpcs[5]->terms[8].coef.r_value = -c3[2];
-    mpcs[5]->rhs.r_value = yyyy;
+    mpcs[1]->rhs.r_value = c1[2][0]*c2[1][0] + c1[2][1]*c2[1][1] + c1[2][2]*c2[1][2];
+    mpcs[2]->rhs.r_value = c1[2][0]*c2[0][0] + c1[2][1]*c2[0][1] + c1[2][2]*c2[0][2];
+    mpcs[3]->rhs.r_value = c1[1][0]*c2[0][0] + c1[1][1]*c2[0][1] + c1[1][2]*c2[0][2];
+    mpcs[4]->rhs.r_value = c1[2][0]*d[0]   + c1[2][1]*d[1]   + c1[2][2]*d[2];
+    mpcs[5]->rhs.r_value = c1[1][0]*d[0]   + c1[1][1]*d[1]   + c1[1][2]*d[2];
   }
-#endif
+
+  //for(int i = 0; i<6; ++i) mpcs[i]->print();
 }
 
 void
 RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatrix& J)
 {
-#ifdef PJSA_DEBUG
-  // nodes' original coordinates
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-
-  double lx0 = nd2.x - nd1.x;
-  double ly0 = nd2.y - nd1.y;
-  double lz0 = nd2.z - nd1.z;
-    
-  // nodes' current state
+  // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
-  double lx = ns2.x - ns1.x;
-  double ly = ns2.y - ns1.y;
-  double lz = ns2.z - ns1.z;
-  double r1[3];
-  mat_to_vec(ns1.R, r1);
-  double thetax1 = r1[0], thetay1 = r1[1], thetaz1 = r1[2];
-  double thetax12 = thetax1*thetax1, thetay12 = thetay1*thetay1, thetaz12 = thetaz1*thetaz1;
-  double thetax13 = thetax12*thetax1, thetay13 = thetay12*thetay1, thetaz13 = thetaz12*thetaz1;
+
+  double lx = ns1.x-ns2.x;
+  double ly = ns1.y-ns2.y;
+  double lz = ns1.z-ns2.z;
+  double l = sqrt(lx*lx + ly*ly + lz*lz);
 
   J.zero();
-/*
-  switch(i) {
+  switch(i) { 
     case 0 : {
-      J[3][3] = (lz0*thetay1)/3 - (ly0*thetaz1)/3;
-      J[4][4] = lx0 - (ly0*thetaz1)/3 + lz0*thetay1;
-      J[5][5] = lx0 - ly0*thetaz1 + (lz0*thetay1)/3;
-      J[3][4] = J[4][3] = (lz0*thetax1)/3 - ly0/2;
-      J[3][5] = J[5][3] = - lz0/2 - (ly0*thetax1)/3;
-      J[4][5] = J[5][4] = (lz0*thetaz1)/3 - (ly0*thetay1)/3;
-    } break;
-    case 1 : {
-      J[3][3] = ly0 + (lx0*thetaz1)/3 - lz0*thetax1;
-      J[4][4] = (lx0*thetaz1)/3 - (lz0*thetax1)/3;
-      J[5][5] = ly0 + lx0*thetaz1 - (lz0*thetax1)/3;
-      J[3][4] = J[4][3] = - lx0/2 - (lz0*thetay1)/3;
-      J[3][5] = J[5][3] = (lx0*thetax1)/3 - (lz0*thetaz1)/3;
-      J[4][5] = J[5][4] = (lx0*thetay1)/3 - lz0/2;
-    } break;
-    case 2 : {
-      J[3][3] = lz0 - (lx0*thetay1)/3 + ly0*thetax1;
-      J[4][4] = lz0 - lx0*thetay1 + (ly0*thetax1)/3;
-      J[5][5] = (ly0*thetax1)/3 - (lx0*thetay1)/3;
-      J[3][4] = J[4][3] = (ly0*thetay1)/3 - (lx0*thetax1)/3;
-      J[3][5] = J[5][3] = (ly0*thetaz1)/3 - lx0/2;
-      J[4][5] = J[5][4] = - ly0/2 - (lx0*thetaz1)/3;
-    } break;
-    default : {
+      double l2 = l*l;
+      double l3 = l*l*l;
+      J[0][0] = J[6][6] = (l2-lx*lx)/l3;
+      J[1][1] = J[7][7] = (l2-ly*ly)/l3;
+      J[2][2] = J[8][8] = (l2-lz*lz)/l3;
+
+      J[0][1] = J[1][0] = J[3][4] = J[4][3] = -lx*ly/l3;
+      J[0][2] = J[2][0] = J[3][5] = J[5][3] = -lx*lz/l3;
+      J[1][2] = J[2][1] = J[4][5] = J[5][4] = -ly*lz/l3;
+
+      J[0][6] = J[6][0] = -J[0][0];
+      J[1][7] = J[7][1] = -J[1][1];
+      J[2][8] = J[8][2] = -J[2][2];
+
+      J[0][7] = J[7][0] = J[1][6] = J[6][1] = -J[0][1];
+      J[0][8] = J[8][0] = J[2][6] = J[6][2] = -J[0][2];
+      J[1][8] = J[8][1] = J[2][7] = J[7][2] = -J[1][2];
     } break;
   }
-*/
-
-/*
-  switch(i) {
-    case 0 : {
-      J[3][3] = lz0*(thetay1/3.0 + (thetax1*thetaz1)/4.0) - ly0*(thetaz1/3.0 - (thetax1*thetay1)/4.0) - lx0*(thetay12/12.0 + thetaz12/12.0);
-      J[4][4] = lz0*(thetay1 + (thetax1*thetaz1)/12.0) - lx0*(thetax12/12.0 + thetay12/2 + thetaz12/6.0 - 1.0) - ly0*(thetaz1/3.0 - (thetax1*thetay1)/4.0);
-      J[5][5] = lz0*(thetay1/3.0 + (thetax1*thetaz1)/4.0) - lx0*(thetax12/12.0 + thetay12/6.0 + thetaz12/2 - 1.0) - ly0*(thetaz1 - (thetax1*thetay1)/12.0);
-      J[4][3] = J[3][4] = lz0*(thetax1/3.0 + (thetay1*thetaz1)/12.0) + ly0*(thetax12/8.0 + thetay12/8.0 + thetaz12/24 - 0.5) - (lx0*thetax1*thetay1)/6.0;
-      J[5][3] = J[3][5] = lz0*(thetax12/8.0 + thetay12/24 + thetaz12/8.0 - 0.5) - ly0*(thetax1/3.0 - (thetay1*thetaz1)/12.0) - (lx0*thetax1*thetaz1)/6.0;
-      J[5][4] = J[4][5] = lz0*(thetaz1/3.0 + (thetax1*thetay1)/12.0) - ly0*(thetay1/3.0 - (thetax1*thetaz1)/12.0) - (lx0*thetay1*thetaz1)/3.0;
-    } break;
-    case 1 : {
-      J[3][3] = lx0*(thetaz1/3.0 + (thetax1*thetay1)/4.0) - ly0*(thetax12/2 + thetay12/12.0 + thetaz12/6.0 - 1.0) - lz0*(thetax1 - (thetay1*thetaz1)/12.0);
-      J[4][4] = lx0*(thetaz1/3.0 + (thetax1*thetay1)/4.0) - lz0*(thetax1/3.0 - (thetay1*thetaz1)/4.0) - ly0*(thetax12/12.0 + thetaz12/12.0);
-      J[5][5] = lx0*(thetaz1 + (thetax1*thetay1)/12.0) - ly0*(thetax12/6.0 + thetay12/12.0 + thetaz12/2 - 1.0) - lz0*(thetax1/3.0 - (thetay1*thetaz1)/4.0);
-      J[4][3] = J[3][4] = lx0*(thetax12/8.0 + thetay12/8.0 + thetaz12/24 - 0.5) - lz0*(thetay1/3.0 - (thetax1*thetaz1)/12.0) - (ly0*thetax1*thetay1)/6.0;
-      J[5][3] = J[3][5] = lx0*(thetax1/3.0 + (thetay1*thetaz1)/12.0) - lz0*(thetaz1/3.0 - (thetax1*thetay1)/12.0) - (ly0*thetax1*thetaz1)/3.0;
-      J[5][4] = J[4][5] = lx0*(thetay1/3.0 + (thetax1*thetaz1)/12.0) + lz0*(thetax12/24 + thetay12/8.0 + thetaz12/8.0 - 0.5) - (ly0*thetay1*thetaz1)/6.0;
-    } break;
-    case 2 : {
-      J[3][3] = ly0*(thetax1 + (thetay1*thetaz1)/12.0) - lz0*(thetax12/2 + thetay12/6.0 + thetaz12/12.0 - 1.0) - lx0*(thetay1/3.0 - (thetax1*thetaz1)/4.0);
-      J[4][4] = ly0*(thetax1/3.0 + (thetay1*thetaz1)/4.0) - lz0*(thetax12/6.0 + thetay12/2 + thetaz12/12.0 - 1.0) - lx0*(thetay1 - (thetax1*thetaz1)/12.0);
-      J[5][5] = ly0*(thetax1/3.0 + (thetay1*thetaz1)/4.0) - lx0*(thetay1/3.0 - (thetax1*thetaz1)/4.0) - lz0*(thetax12/12.0 + thetay12/12.0);
-      J[4][3] = J[3][4] = ly0*(thetay1/3.0 + (thetax1*thetaz1)/12.0) - lx0*(thetax1/3.0 - (thetay1*thetaz1)/12.0) - (lz0*thetax1*thetay1)/3.0;
-      J[5][3] = J[3][5] = ly0*(thetaz1/3.0 + (thetax1*thetay1)/12.0) + lx0*(thetax12/8.0 + thetay12/24 + thetaz12/8.0 - 0.5) - (lz0*thetax1*thetaz1)/6.0;
-      J[5][4] = J[4][5] = ly0*(thetax12/24 + thetay12/8.0 + thetaz12/8.0 - 0.5) - lx0*(thetaz1/3.0 - (thetax1*thetay1)/12.0) - (lz0*thetay1*thetaz1)/6.0;
-    } break;
-    default : {
-    } break;
-  }
-*/
-
-
-switch(i) {
-case 0 : {
-double H[3][3] = { 
-{ ly0*((thetax1*thetay1)/4 - thetaz1/3 + (thetax12*thetaz1)/60 + (thetaz1*(12*thetax12 + 2*thetax12 + 4*thetax12))/120) - lx0*(thetax12/12 + thetax12/12) + lz0*(thetay1/3 + (thetax1*thetaz1)/4 - (thetay1*thetax12)/60 - (thetay1*(12*thetax12 + 4*thetax12 + 2*thetax12))/120), 
-  ly0*(thetax12/8 + (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/24 - 0.5) - lz0*((thetax1*(3*thetax12 + thetax12 + thetax12))/120 - thetax1/3 - (thetay1*thetaz1)/12 + (thetax1*thetax12)/12 + (thetax1*thetax12)/40 + (thetax1*(thetax12 + thetax12))/120) + lx0*((thetax12*thetaz1)/120 - (thetax1*thetay1)/6 - (thetaz1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax12*thetaz1)/60 + (thetaz1*(thetax12 + thetax12))/120), 
- ly0*((thetax1*(3*thetax12 + thetax12 + thetax12))/120 - thetax1/3 + (thetay1*thetaz1)/12 + (thetax1*thetax12)/40 + (thetax1*thetax12)/12 + (thetax1*(thetax12 + thetax12))/120) + lz0*(thetax12/8 - (thetax1*thetay1*thetaz1)/15 + thetax12/24 + thetax12/8 - 0.5) - lx0*((thetax1*thetaz1)/6 - (thetay1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetax12*thetay1)/120 + (thetay1*thetax12)/60 + (thetay1*(thetax12 + thetax12))/120) },
-{ ly0*(thetax12/8 + (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/24 - 0.5) - lz0*((thetax1*(3*thetax12 + thetax12 + thetax12))/120 - thetax1/3 - (thetay1*thetaz1)/12 + (thetax1*thetax12)/12 + (thetax1*thetax12)/40 + (thetax1*(thetax12 + thetax12))/120) + lx0*((thetax12*thetaz1)/120 - (thetax1*thetay1)/6 - (thetaz1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax12*thetaz1)/60 + (thetaz1*(thetax12 + thetax12))/120),
- ly0*((thetaz1*thetax12)/10 + (thetax1*thetay1)/4 - thetaz1/3 + (thetaz1*(2*thetax12 + 2*thetax12))/120 + (thetaz1*(thetax12 + thetax12))/60) - lz0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/60 - thetay1 - (thetax1*thetaz1)/12 + (thetax12*thetay1)/30 + (thetay1*thetax12)/15 + (thetay1*(4*thetax12 + 12*thetax12 + 2*thetax12))/120 + (thetay1*(thetax12 + thetax12))/60) - lx0*(thetax12/12 + thetax12/2 + thetax12/6 - 1),
- ly0*((thetay1*(thetax12 + thetax12 + 3*thetax12))/60 - thetay1/3 + (thetax1*thetaz1)/12 + (thetax12*thetay1)/60 + (thetay1*thetax12)/20 + thetay13/60) - lz0*((thetaz1*(thetax12 + 3*thetax12 + thetax12))/60 - thetaz1/3 - (thetax1*thetay1)/12 + (thetax12*thetaz1)/60 + (thetax12*thetaz1)/20 + thetaz13/60) - lx0*((thetax1*(thetax12 + 3*thetax12 + thetax12))/120 - (thetax1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetay1*thetaz1)/3 - (thetax1*thetax12)/60 + (thetax1*thetax12)/60) },
-{ ly0*((thetax1*(3*thetax12 + thetax12 + thetax12))/120 - thetax1/3 + (thetay1*thetaz1)/12 + (thetax1*thetax12)/40 + (thetax1*thetax12)/12 + (thetax1*(thetax12 + thetax12))/120) + lz0*(thetax12/8 - (thetax1*thetay1*thetaz1)/15 + thetax12/24 + thetax12/8 - 0.5) - lx0*((thetax1*thetaz1)/6 - (thetay1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetax12*thetay1)/120 + (thetay1*thetax12)/60 + (thetay1*(thetax12 + thetax12))/120),
- ly0*((thetay1*(thetax12 + thetax12 + 3*thetax12))/60 - thetay1/3 + (thetax1*thetaz1)/12 + (thetax12*thetay1)/60 + (thetay1*thetax12)/20 + thetay13/60) - lz0*((thetaz1*(thetax12 + 3*thetax12 + thetax12))/60 - thetaz1/3 - (thetax1*thetay1)/12 + (thetax12*thetaz1)/60 + (thetax12*thetaz1)/20 + thetaz13/60) - lx0*((thetax1*(thetax12 + 3*thetax12 + thetax12))/120 - (thetax1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetay1*thetaz1)/3 - (thetax1*thetax12)/60 + (thetax1*thetax12)/60),
- ly0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/60 - thetaz1 + (thetax1*thetay1)/12 + (thetax12*thetaz1)/30 + (thetax12*thetaz1)/15 + (thetaz1*(4*thetax12 + 2*thetax12 + 12*thetax12))/120 + (thetaz1*(thetax12 + thetax12))/60) - lz0*((thetay1*thetax12)/10 - (thetax1*thetaz1)/4 - thetay1/3 + (thetay1*(2*thetax12 + 2*thetax12))/120 + (thetay1*(thetax12 + thetax12))/60) - lx0*(thetax12/12 + thetax12/6 + thetax12/2 - 1) }
-};
-for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) J[3+i][3+j] = H[i][j];
-} break;
-
-case 1: {
-double H[3][3] = {
-{ lz0*((thetax1*(3*thetax12 + thetax12 + thetax12))/60 - thetax1 + (thetay1*thetaz1)/12 + (thetax1*thetax12)/30 + (thetax1*thetax12)/15 + (thetax1*(12*thetax12 + 4*thetax12 + 2*thetax12))/120 + (thetax1*(thetax12 + thetax12))/60) - lx0*((thetaz1*thetax12)/10 - (thetay1*thetax1)/4 - thetaz1/3 + (thetaz1*(2*thetax12 + 2*thetax12))/120 + (thetaz1*(thetax12 + thetax12))/60) - ly0*(thetax12/2 + thetax12/12 + thetax12/6 - 1),
- lz0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/120 - thetay1/3 + (thetax1*thetaz1)/12 + (thetax12*thetay1)/12 + (thetay1*thetax12)/40 + (thetay1*(thetax12 + thetax12))/120) + lx0*(thetax12/8 - (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/24 - 0.5) - ly0*((thetax1*thetay1)/6 - (thetaz1*(3*thetax12 + thetax12 + thetax12))/120 + (thetax12*thetaz1)/60 + (thetax12*thetaz1)/120 + (thetaz1*(thetax12 + thetax12))/120),
- lz0*((thetaz1*(3*thetax12 + thetax12 + thetax12))/60 - thetaz1/3 + (thetax1*thetay1)/12 + (thetax12*thetaz1)/20 + (thetax12*thetaz1)/60 + thetaz13/60) - lx0*((thetax1*(thetax12 + thetax12 + 3*thetax12))/60 - thetax1/3 - (thetay1*thetaz1)/12 + (thetax1*thetax12)/60 + (thetax1*thetax12)/20 + thetax13/60) - ly0*((thetay1*(thetax12 + thetax12 + 3*thetax12))/120 - (thetay1*(3*thetax12 + thetax12 + thetax12))/120 + (thetax1*thetaz1)/3 + (thetax12*thetay1)/60 - (thetay1*thetax12)/60) },
-{ lz0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/120 - thetay1/3 + (thetax1*thetaz1)/12 + (thetax12*thetay1)/12 + (thetay1*thetax12)/40 + (thetay1*(thetax12 + thetax12))/120) + lx0*(thetax12/8 - (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/24 - 0.5) - ly0*((thetax1*thetay1)/6 - (thetaz1*(3*thetax12 + thetax12 + thetax12))/120 + (thetax12*thetaz1)/60 + (thetax12*thetaz1)/120 + (thetaz1*(thetax12 + thetax12))/120),
- lx0*(thetaz1/3 + (thetax1*thetay1)/4 - (thetax12*thetaz1)/60 - (thetaz1*(2*thetax12 + 12*thetax12 + 4*thetax12))/120) - ly0*(thetax12/12 + thetax12/12) + lz0*((thetay1*thetaz1)/4 - thetax1/3 + (thetax1*thetax12)/60 + (thetax1*(4*thetax12 + 12*thetax12 + 2*thetax12))/120),
- lz0*(thetax12/24 + (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/8 - 0.5) - lx0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/120 - thetay1/3 - (thetax1*thetaz1)/12 + (thetax12*thetay1)/40 + (thetay1*thetax12)/12 + (thetay1*(thetax12 + thetax12))/120) + ly0*((thetax1*thetax12)/120 - (thetay1*thetaz1)/6 - (thetax1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetax1*thetax12)/60 + (thetax1*(thetax12 + thetax12))/120) },
-{ lz0*((thetaz1*(3*thetax12 + thetax12 + thetax12))/60 - thetaz1/3 + (thetax1*thetay1)/12 + (thetax12*thetaz1)/20 + (thetax12*thetaz1)/60 + thetaz13/60) - lx0*((thetax1*(thetax12 + thetax12 + 3*thetax12))/60 - thetax1/3 - (thetay1*thetaz1)/12 + (thetax1*thetax12)/60 + (thetax1*thetax12)/20 + thetax13/60) - ly0*((thetay1*(thetax12 + thetax12 + 3*thetax12))/120 - (thetay1*(3*thetax12 + thetax12 + thetax12))/120 + (thetax1*thetaz1)/3 + (thetax12*thetay1)/60 - (thetay1*thetax12)/60),
- lz0*(thetax12/24 + (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/8 - 0.5) - lx0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/120 - thetay1/3 - (thetax1*thetaz1)/12 + (thetax12*thetay1)/40 + (thetay1*thetax12)/12 + (thetay1*(thetax12 + thetax12))/120) + ly0*((thetax1*thetax12)/120 - (thetay1*thetaz1)/6 - (thetax1*(thetax12 + thetax12 + 3*thetax12))/120 + (thetax1*thetax12)/60 + (thetax1*(thetax12 + thetax12))/120),
- lz0*((thetax1*thetax12)/10 + (thetay1*thetaz1)/4 - thetax1/3 + (thetax1*(2*thetax12 + 2*thetax12))/120 + (thetax1*(thetax12 + thetax12))/60) - lx0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/60 - thetaz1 - (thetax1*thetay1)/12 + (thetax12*thetaz1)/15 + (thetax12*thetaz1)/30 + (thetaz1*(2*thetax12 + 4*thetax12 + 12*thetax12))/120 + (thetaz1*(thetax12 + thetax12))/60) - ly0*(thetax12/6 + thetax12/12 + thetax12/2 - 1) }
-};
-for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) J[3+i][3+j] = H[i][j];
-} break; 
-
-case 2: {
-double H[3][3] = {
-{ lx0*((thetay1*thetax12)/10 + (thetaz1*thetax1)/4 - thetay1/3 + (thetay1*(2*thetax12 + 2*thetax12))/120 + (thetay1*(thetax12 + thetax12))/60) - ly0*((thetax1*(3*thetax12 + thetax12 + thetax12))/60 - thetax1 - (thetay1*thetaz1)/12 + (thetax1*thetax12)/15 + (thetax1*thetax12)/30 + (thetax1*(12*thetax12 + 2*thetax12 + 4*thetax12))/120 + (thetax1*(thetax12 + thetax12))/60) - lz0*(thetax12/2 + thetax12/6 + thetax12/12 - 1),
- lx0*((thetax1*(thetax12 + 3*thetax12 + thetax12))/60 - thetax1/3 + (thetay1*thetaz1)/12 + (thetax1*thetax12)/20 + (thetax1*thetax12)/60 + thetax13/60) - ly0*((thetay1*(3*thetax12 + thetax12 + thetax12))/60 - thetay1/3 - (thetax1*thetaz1)/12 + (thetax12*thetay1)/20 + (thetay1*thetax12)/60 + thetay13/60) - lz0*((thetaz1*(3*thetax12 + thetax12 + thetax12))/120 - (thetaz1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax1*thetay1)/3 - (thetax12*thetaz1)/60 + (thetax12*thetaz1)/60),
- lx0*(thetax12/8 + (thetax1*thetay1*thetaz1)/15 + thetax12/24 + thetax12/8 - 0.5) - ly0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/120 - thetaz1/3 - (thetax1*thetay1)/12 + (thetax12*thetaz1)/12 + (thetax12*thetaz1)/40 + (thetaz1*(thetax12 + thetax12))/120) + lz0*((thetax12*thetay1)/60 - (thetax1*thetaz1)/6 - (thetay1*(3*thetax12 + thetax12 + thetax12))/120 + (thetay1*thetax12)/120 + (thetay1*(thetax12 + thetax12))/120) },
-{ lx0*((thetax1*(thetax12 + 3*thetax12 + thetax12))/60 - thetax1/3 + (thetay1*thetaz1)/12 + (thetax1*thetax12)/20 + (thetax1*thetax12)/60 + thetax13/60) - ly0*((thetay1*(3*thetax12 + thetax12 + thetax12))/60 - thetay1/3 - (thetax1*thetaz1)/12 + (thetax12*thetay1)/20 + (thetay1*thetax12)/60 + thetay13/60) - lz0*((thetaz1*(3*thetax12 + thetax12 + thetax12))/120 - (thetaz1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax1*thetay1)/3 - (thetax12*thetaz1)/60 + (thetax12*thetaz1)/60),
- lx0*((thetay1*(thetax12 + 3*thetax12 + thetax12))/60 - thetay1 + (thetax1*thetaz1)/12 + (thetax12*thetay1)/15 + (thetay1*thetax12)/30 + (thetay1*(2*thetax12 + 12*thetax12 + 4*thetax12))/120 + (thetay1*(thetax12 + thetax12))/60) - ly0*((thetax1*thetax12)/10 - (thetaz1*thetay1)/4 - thetax1/3 + (thetax1*(2*thetax12 + 2*thetax12))/120 + (thetax1*(thetax12 + thetax12))/60) - lz0*(thetax12/6 + thetax12/2 + thetax12/12 - 1),
- lx0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/120 - thetaz1/3 + (thetax1*thetay1)/12 + (thetax12*thetaz1)/40 + (thetax12*thetaz1)/12 + (thetaz1*(thetax12 + thetax12))/120) + ly0*(thetax12/24 - (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/8 - 0.5) - lz0*((thetay1*thetaz1)/6 - (thetax1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax1*thetax12)/60 + (thetax1*thetax12)/120 + (thetax1*(thetax12 + thetax12))/120) },
-{ lx0*(thetax12/8 + (thetax1*thetay1*thetaz1)/15 + thetax12/24 + thetax12/8 - 0.5) - ly0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/120 - thetaz1/3 - (thetax1*thetay1)/12 + (thetax12*thetaz1)/12 + (thetax12*thetaz1)/40 + (thetaz1*(thetax12 + thetax12))/120) + lz0*((thetax12*thetay1)/60 - (thetax1*thetaz1)/6 - (thetay1*(3*thetax12 + thetax12 + thetax12))/120 + (thetay1*thetax12)/120 + (thetay1*(thetax12 + thetax12))/120),
- lx0*((thetaz1*(thetax12 + thetax12 + 3*thetax12))/120 - thetaz1/3 + (thetax1*thetay1)/12 + (thetax12*thetaz1)/40 + (thetax12*thetaz1)/12 + (thetaz1*(thetax12 + thetax12))/120) + ly0*(thetax12/24 - (thetax1*thetay1*thetaz1)/15 + thetax12/8 + thetax12/8 - 0.5) - lz0*((thetay1*thetaz1)/6 - (thetax1*(thetax12 + 3*thetax12 + thetax12))/120 + (thetax1*thetax12)/60 + (thetax1*thetax12)/120 + (thetax1*(thetax12 + thetax12))/120),
- lx0*((thetax1*thetaz1)/4 - thetay1/3 + (thetax12*thetay1)/60 + (thetay1*(2*thetax12 + 4*thetax12 + 12*thetax12))/120) - lz0*(thetax12/12 + thetax12/12) + ly0*(thetax1/3 + (thetay1*thetaz1)/4 - (thetax1*thetax12)/60 - (thetax1*(4*thetax12 + 2*thetax12 + 12*thetax12))/120) }
-};
-for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) J[3+i][3+j] = H[i][j];
-} break;
-
-}
-
-#else
-  J.zero();
-#endif
 }
 

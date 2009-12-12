@@ -177,6 +177,7 @@ RigidMpcElement::isRigidMpcElement(const DofSet& ds, bool forAllNodes)
 void 
 RigidMpcElement::updateLMPCs(GeomState&, CoordSet&) 
 { 
+  //cerr << "here in RigidMpcElement::updateLMPCs(GeomState&, CoordSet&)\n";
   for(int i = 0; i < nMpcs; ++i) 
     mpcs[i]->rhs.r_value = 0.0; 
 }

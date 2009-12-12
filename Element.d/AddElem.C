@@ -96,6 +96,7 @@
 #include <map>
 extern map<int,double > weightList;
 
+#include <Element.d/Beam.d/TransRotLink.h>
 #include <Element.d/Truss.d/TwoNodeTrussRigidMpc.h>
 #include <Element.d/Beam.d/RigidMpcBeam.h>
 #include <Element.d/Spring.d/RigidMpcSpring.h>
@@ -318,6 +319,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
+       break;
+     case 64:
+       ele = new (ba) TransRotLink(n); 
        break;
      case 65:
        ele = new (ba) TwoNodeTrussRigidMpc(n); // cf TwoNodeTrussRigid

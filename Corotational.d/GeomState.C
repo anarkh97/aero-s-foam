@@ -215,6 +215,8 @@ NodeState::operator=(const NodeState &node)
 void
 GeomState::update(const Vector &v)
 {
+ //cerr << "here in GeomState::update, v*v = " << v*v << endl;
+ if(v*v == 0.0) return; // PJSA DEBUG
  // v = incremental displacement vector
 
  double dtheta[3];
@@ -227,6 +229,8 @@ GeomState::update(const Vector &v)
      double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
      double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
      double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     if(!flag[i]) { ns[i].x += dx; /*cerr << "lambda = " << ns[i].x << endl;*/ continue; }
 
      // Set incremental rotations
 
@@ -242,8 +246,14 @@ GeomState::update(const Vector &v)
 
      // Increment rotation tensor R = R(dtheta)Ra
      inc_rottensor( dtheta, ns[i].R );
+
+     //double r[3];
+     //mat_to_vec(ns[i].R,r);
+     //cerr << "incremented r = " << r[0] << " " << r[1] << " " << r[2] << endl;
    }
+/* PJSA DEBUG: this updates gRot which doesn't seem to be used anywhere
  computeGlobalRotation();
+*/
 }
 
 void
@@ -281,19 +291,26 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
 
  int i;
  for(i=0; i<numnodes; ++i) {
-   if(loc[i][0] >= 0)    
+   if(flag[i] && loc[i][0] >= 0) // XXXX
      vel_n[loc[i][0]] = coef*(ns[i].x - ss.ns[i].x) - vel_n[loc[i][0]];
    
-   if(loc[i][1] >= 0) 
+   if(flag[i] && loc[i][1] >= 0) // XXXX
      vel_n[loc[i][1]] = coef*(ns[i].y - ss.ns[i].y) - vel_n[loc[i][1]];
 
-   if(loc[i][2] >= 0)
+   if(flag[i] && loc[i][2] >= 0) // XXXX
      vel_n[loc[i][2]] = coef*(ns[i].z - ss.ns[i].z) - vel_n[loc[i][2]];
+/*
+   if(flag[i])
+   cerr << "i = " << i << " vel_n = " << vel_n[loc[i][0]] << "," << vel_n[loc[i][1]] << "," << vel_n[loc[i][2]]
+                       << " ns = " << ns[i].x << "," << ns[i].y << "," << ns[i].z << ","
+                       << " ss = " << ss.ns[i].x << "," << ss.ns[i].y << "," << ss.ns[i].z << endl;
+*/
  }
 
  // Update step translational displacements
  int inode;
  for(inode=0; inode<numnodes; ++inode) {
+   //if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
    ns[inode].x    = 2.0*ns[inode].x - ss.ns[inode].x;
    ns[inode].y    = 2.0*ns[inode].y - ss.ns[inode].y;
    ns[inode].z    = 2.0*ns[inode].z - ss.ns[inode].z;
@@ -303,14 +320,36 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
  }
 
  // Update step rotational tensor
+ //cerr << "here in GeomState::midpoint_step_update\n";
  double result[3][3], result2[3][3];
 
  for(inode=0; inode<numnodes; ++inode) {
-
+   if(!flag[inode]) continue; // XXXX
+/*
+   cerr << "inode = " << inode << endl;
+   double r1[3], r2[3], r3[3];
+   mat_to_vec(ss.ns[inode].R, r1);
+   mat_to_vec(ns[inode].R, r2);
+   double theta1 = sqrt(r1[0]*r1[0]+r1[1]*r1[1]+r1[2]*r1[2]);
+   double theta2 = sqrt(r2[0]*r2[0]+r2[1]*r2[1]+r2[2]*r2[2]);
+   cerr << " t^n:       theta = " << theta1*180.0/M_PI << ", e = " << r1[0]/theta1 << " " << r1[1]/theta1 << " " << r1[2]/theta1
+        << " , r = " << r1[0] << " " << r1[1] << " " << r1[2] << endl;
+   cerr << " t^{n+1/2}: theta = " << theta2*180.0/M_PI << ", e = " << r2[0]/theta2 << " " << r2[1]/theta2 << " " << r2[2]/theta2
+        << " , r = " << r2[0] << " " << r2[1] << " " << r2[2] << endl;
+*/
    mat_mult_mat( ss.ns[inode].R, ns[inode].R, result2, 1 );
+
+   orthonorm3(result2); // XXXX
 
    mat_mult_mat( ns[inode].R, result2, result, 0 );
 
+   orthonorm3(result); // XXXX
+/*
+   mat_to_vec(result, r3);
+   double theta3 = sqrt(r3[0]*r3[0]+r3[1]*r3[1]+r3[2]*r3[2]);
+   cerr << " t^{n+1}:   theta = " << theta3*180.0/M_PI << ", e = " << r3[0]/theta3 << " " << r3[1]/theta3 << " " << r3[2]/theta3
+        << " , r = " << r3[0] << " " << r3[1] << " " << r3[2] << endl;
+*/
    ss.ns[inode].R[0][0] = ns[inode].R[0][0] = result[0][0];
    ss.ns[inode].R[0][1] = ns[inode].R[0][1] = result[0][1];
    ss.ns[inode].R[0][2] = ns[inode].R[0][2] = result[0][2];
@@ -323,6 +362,20 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
    ss.ns[inode].R[2][1] = ns[inode].R[2][1] = result[2][1];
    ss.ns[inode].R[2][2] = ns[inode].R[2][2] = result[2][2];
 
+/*
+   // PJSA DEBUG
+   ss.ns[inode].R[0][0] = ns[inode].R[0][0];
+   ss.ns[inode].R[0][1] = ns[inode].R[0][1];
+   ss.ns[inode].R[0][2] = ns[inode].R[0][2];
+
+   ss.ns[inode].R[1][0] = ns[inode].R[1][0];
+   ss.ns[inode].R[1][1] = ns[inode].R[1][1];
+   ss.ns[inode].R[1][2] = ns[inode].R[1][2];
+
+   ss.ns[inode].R[2][0] = ns[inode].R[2][0];
+   ss.ns[inode].R[2][1] = ns[inode].R[2][1];
+   ss.ns[inode].R[2][2] = ns[inode].R[2][2];
+*/
  }
 
 }

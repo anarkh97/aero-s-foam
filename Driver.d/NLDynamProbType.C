@@ -227,7 +227,7 @@ else
          // Set residual = lambda*external force 
          residual.linC(external_force, lambda);
          
-         // Compute element tangent stiffness and global residual force
+         // And stateIncr to geomState and compute element tangent stiffness and global residual force
          StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                                 elementInternalForce, totalRes, velocity_n,
                                 acceleration, midtime);
@@ -253,6 +253,8 @@ else
 
 	 // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
          solver->reSolve(rhs);
+         //filePrint(stderr,"|fext| = %e, |residual| = %e, |dv| = %e, |v_n| = %e, |a_n| = %e\n", 
+         //          sqrt(external_force*external_force), resN, sqrt(rhs*rhs), sqrt(velocity_n*velocity_n), sqrt(acceleration*acceleration));
 
          // Check for convergence
          converged = probDesc->checkConvergence(iter+1, resN, residual, rhs, time);
@@ -261,8 +263,9 @@ else
          if(converged == 1)
 	   break;
 	 else if(converged == -1) {  
-	   filePrint(stderr," ... Exiting, Solution diverged\n");
-	   exit(-1);
+           filePrint(stderr," ... Warning, Solution diverging\n");
+	   //filePrint(stderr," ... Exiting, Solution diverged\n");
+	   //exit(-1);
 	 }
  
        }

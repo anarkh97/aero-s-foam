@@ -1,14 +1,13 @@
-#ifndef _RIGIDMPCBEAM_H_
-#define _RIGIDMPCBEAM_H_
+#ifndef _TRANSROTLINK_H_
+#define _TRANSROTLINK_H_
 
 #include <Element.d/MpcElement.d/RigidMpcElement.h>
 
-class RigidMpcBeam : public RigidMpcElement
+class TransRotLink : public RigidMpcElement
 {
     EFrame *elemframe;
-    double c0[3][3];
   public:
-    RigidMpcBeam(int*);
+    TransRotLink(int*);
     void computeMPCs(CoordSet&);
     int getTopNumber();
     void computePressureForce(CoordSet&, Vector&, GeomState*, int);

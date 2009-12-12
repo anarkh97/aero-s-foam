@@ -47,6 +47,7 @@ void vec_to_quat( double rvec[3], double q[4] )
       q[3] /= norm;
       //std::cerr << "1. q = " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << std::endl;
 
+   if(q[0] < 0.0) for(int l=0; l<4; ++l) q[l] = -q[l]; // PJSA DEBUG
 /*
   Quat quat;
   EM_To_Q(rvec, quat, 1);

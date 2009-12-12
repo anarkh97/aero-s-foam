@@ -105,6 +105,9 @@ void mat_to_quat( double rten[3][3], double q[4] )
       q[2] = A[13];
       q[3] = A[14];
 
+      double norm = sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3]);
+      //for(int l=0; l<4; ++l) q[l] /= norm;
+
       if(q[0] < 0.0) for(int l=0; l<4; ++l) q[l] = -q[l];
 
 }

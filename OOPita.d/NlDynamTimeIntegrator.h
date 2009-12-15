@@ -51,6 +51,7 @@ private:
   GeomState * refState_; 
   GenVector<double> displacement_;
   GenVector<double> velocity_;
+  GenVector<double> acceleration_;
   GenVector<double> incDisplac_;
   GenVector<double> gravityForce_;
   

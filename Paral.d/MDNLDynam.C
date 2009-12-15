@@ -96,7 +96,7 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
 }
 
 double
-MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity,
+MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                               DistrVector& residual, DistrVector& rhs, double localDelta)
 {
   // PJSA 10-4-2007 copied from NonLinDynamic

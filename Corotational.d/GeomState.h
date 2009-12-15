@@ -1,6 +1,8 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
+#define NO_MIDPOINT
+
 class DofSetArray;
 class CoordSet;
 template <class Scalar> class GenVector;
@@ -64,7 +66,7 @@ class GeomState {
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
                                        CoordSet &cs );
-     virtual void midpoint_step_update(Vector &veloc_n, double delta, GeomState &ss);
+     virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);

@@ -305,7 +305,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     /* linear */
   }
   else {
-    double d[3] = { dx/l, dy/l, dz/l };
+    double d[3] = { dx, dy, dz };
 
     // rotated cframes
     double c1[3][3], c2[3][3];
@@ -314,8 +314,8 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 
     // partial derivatives of constraint functions wrt x, y, z 
     for(int i = 0; i < 3; ++i) {
-      mpcs[0]->terms[i].coef.r_value = -d[i];
-      mpcs[0]->terms[3+i].coef.r_value = d[i] ;
+      mpcs[0]->terms[0+i].coef.r_value = -d[i]/l;
+      mpcs[0]->terms[3+i].coef.r_value = d[i]/l;
       mpcs[4]->terms[0+i].coef.r_value = -c1[2][i];
       mpcs[4]->terms[6+i].coef.r_value = c1[2][i];
       mpcs[5]->terms[0+i].coef.r_value = -c1[1][i];
@@ -354,10 +354,13 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     mpcs[4]->rhs.r_value = c1[2][0]*d[0] + c1[2][1]*d[1] + c1[2][2]*d[2];
     mpcs[5]->rhs.r_value = c1[1][0]*d[0] + c1[1][1]*d[1] + c1[1][2]*d[2];
     if(first) {
-      for(int i=0; i<6; ++i) first_rhs[i] = mpcs[i]->rhs.r_value;
+    //  for(int i=0; i<6; ++i) { first_rhs[i] = mpcs[i]->rhs.r_value; mpcs[i]->rhs.r_value = 0.0; }
+    //  cerr << "first\n";
       first = false;
-    } else
-      for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
+    } 
+    //else
+    //  for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
+    //cerr << "rhs = "; for(int i=0; i<6; ++i) cerr << mpcs[i]->rhs.r_value << " "; cerr << endl;
   }
 
   //for(int i = 0; i<6; ++i) mpcs[i]->print();
@@ -379,7 +382,7 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
   double dx = ns2.x - ns1.x;
   double dy = ns2.y - ns1.y;
   double dz = ns2.z - ns1.z;
-  double d[3] = { dx/l, dy/l, dz/l };
+  double d[3] = { dx, dy, dz };
 
   // rotated cframes
   double c1[3][3], c2[3][3];
@@ -393,15 +396,29 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
 
   switch(k) { 
     case 0 : {
+/*
+[ 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0, lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0]
+[-lx*ly/l^3,      1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0, lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0]
+[-lx*lz/l^3,      -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0, lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+[ lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0, 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0]
+[ lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0, -lx*ly/l^3,     1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0]
+[ lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0, -lx*lz/l^3,     -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+*/
       double l2 = l*l;
       double l3 = l*l*l;
       J[0][0] = J[6][6] = (l2-lx*lx)/l3;
       J[1][1] = J[7][7] = (l2-ly*ly)/l3;
       J[2][2] = J[8][8] = (l2-lz*lz)/l3;
 
-      J[0][1] = J[1][0] = J[3][4] = J[4][3] = -lx*ly/l3;
-      J[0][2] = J[2][0] = J[3][5] = J[5][3] = -lx*lz/l3;
-      J[1][2] = J[2][1] = J[4][5] = J[5][4] = -ly*lz/l3;
+      J[0][1] = J[1][0] = J[6][7] = J[7][6] = -lx*ly/l3;
+      J[0][2] = J[2][0] = J[6][8] = J[8][6] = -lx*lz/l3;
+      J[1][2] = J[2][1] = J[7][8] = J[8][7] = -ly*lz/l3;
 
       J[0][6] = J[6][0] = -J[0][0];
       J[1][7] = J[7][1] = -J[1][1];
@@ -410,6 +427,7 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
       J[0][7] = J[7][0] = J[1][6] = J[6][1] = -J[0][1];
       J[0][8] = J[8][0] = J[2][6] = J[6][2] = -J[0][2];
       J[1][8] = J[8][1] = J[2][7] = J[7][2] = -J[1][2];
+
     } break;
     case 1 : {
       double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
@@ -465,7 +483,6 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
       }
     } break;
     case 3 : {
-
       double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
@@ -503,6 +520,14 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
           J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
         }
       }
+      for(int i=0; i<3; ++i) {
+        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
+        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        for(int j=0; j<3; ++j) {
+          J[3+i][j] = J[j][3+i] = -d1[2][j];
+          J[3+i][6+j] = J[6+j][3+i] = d1[2][j];
+        }
+      }
     } break;
     case 5 : {
       double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
@@ -516,7 +541,16 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
           J[3+i][3+j] = J[3+j][3+i] = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
         }
       }
+      for(int i=0; i<3; ++i) {
+        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
+        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        for(int j=0; j<3; ++j) {
+          J[3+i][j] = J[j][3+i] = -d1[1][j];
+          J[3+i][6+j] = J[6+j][3+i] = d1[1][j];
+        }
+      }
     } break;
   }
+  //cerr << "k = " << k << ", J = \n"; J.print();
 }
 

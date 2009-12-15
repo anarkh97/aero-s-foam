@@ -141,11 +141,10 @@ class NonLinDynamic : public NLDynamPostProcessor {
                           GeomState* geomState, Vector& elementInternalForce, 
                           Vector &aeroF);
 
-    double formRHScorrector(Vector& inc_displac, Vector &velocity, 
+    double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs);
-    double formRHScorrector(Vector& inc_displac, Vector &velocity,
-                            Vector &residual, Vector &rhs,
-                            double localDelta);
+    double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
+                            Vector &residual, Vector &rhs, double localDelta);
 
     void formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &, double mid = 0.0);
     void formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
@@ -195,10 +194,10 @@ class NonLinDynamic : public NLDynamPostProcessor {
 };
 
 inline double
-NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity,
+NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
                                 Vector &residual,         Vector &rhs)
 {
-  return formRHScorrector(inc_displacement, velocity, residual, rhs, delta);
+  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
 }
 
 inline void

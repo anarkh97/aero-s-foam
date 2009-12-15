@@ -90,6 +90,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
      filePrint(stderr," ... Newton : Step #%d diverged after %d iterations\n",step,
                    numIter);
      filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
+     probDesc->staticOutput( geomState, time, force, totalRes);
      break;
    } 
 

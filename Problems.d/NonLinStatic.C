@@ -96,7 +96,7 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
    converged = 1;
 
  // Check Divergence
- if(normRes > 1000*firstRes) converged = -1;
+ if(normRes > 10000*firstRes) converged = -1;
 
  // Store residual norm and dv norm for output
  times->norms[iter].normDv      = normDv;

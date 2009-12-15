@@ -105,9 +105,9 @@ class MDNLDynamic
                           int tIndex, double time, DistrGeomState *geomState, 
                           DistrVector &elementInternalForce, DistrVector &aeroF);
 
-    double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity,
+    double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs);
-    double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity,
+    double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
     
     void formRHSpredictor(DistrVector& velocity, DistrVector& residual, 
@@ -171,10 +171,10 @@ class MDNLDynamic
 };
 
 inline double
-MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity,
+MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                               DistrVector& residual, DistrVector& rhs)
 {
-  return formRHScorrector(inc_displacement, velocity, residual, rhs, delta);
+  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
 }
 
 inline void 

@@ -18,6 +18,7 @@ NlDynamTimeIntegrator::NlDynamTimeIntegrator(PitaNonLinDynamic * pbDesc) :
   refState_(pbDesc->createGeomState()),
   displacement_(pbDesc->solVecInfo()),
   velocity_(pbDesc->solVecInfo()),
+  acceleration_(pbDesc->solVecInfo()),
   incDisplac_(pbDesc->solVecInfo()),
   gravityForce_(pbDesc->solVecInfo()),
   elementInternalForce_(pbDesc->elemVecInfo()),
@@ -36,8 +37,7 @@ NlDynamTimeIntegrator::NlDynamTimeIntegrator(PitaNonLinDynamic * pbDesc) :
 {
   pbDesc->getConstForce(gravityForce_);
   setTimeStepSize(Seconds(localDt_));
-  GenVector<double> dummyAcceleration(pbDesc->solVecInfo());
-  probDesc_->getInitState(displacement_, velocity_, dummyAcceleration, dummyVp_);
+  probDesc_->getInitState(displacement_, velocity_, acceleration_, dummyVp_);
   double initTime;
   probDesc_->getInitialTime(currStep_, initTime);
   initialConditionIs(DynamState(displacement_, velocity_), Seconds(initTime));
@@ -144,7 +144,7 @@ NlDynamTimeIntegrator::integrate(unsigned int steps) {
         prevIntForce_ = lambda * externalForce_ - residual_;
         probDesc_->reBuild(*geomState_, iter + 1, localDelta_); // Assemble [Kt] and factor ([M] + delta^2 * [Kt])
         geomState_->get_inc_displacement(incDisplac_, *stepState_); // Compute incremental displacement
-        resN = probDesc_->formRHScorrector(incDisplac_, velocity_, residual_, rhs_, localDelta_); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
+        resN = probDesc_->formRHScorrector(incDisplac_, velocity_, acceleration_, residual_, rhs_, localDelta_); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
         if (verboseFlag)
           fprintf(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", externalForce_ * externalForce_, resN * resN);
         currentRes = resN;
@@ -172,7 +172,7 @@ NlDynamTimeIntegrator::integrate(unsigned int steps) {
     {
       fprintf(stderr," *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxNumIter_, currentRes, probDesc_->getTolerance());
     }
-    geomState_->midpoint_step_update(velocity_, localDelta_, *stepState_);
+    geomState_->midpoint_step_update(velocity_, acceleration_, localDelta_, *stepState_);
     // if (step+1 == maxStep)  probDesc_->processLastOutput(); // Was I right to deactivate ?
     
     // Update attributes 

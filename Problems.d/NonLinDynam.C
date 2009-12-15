@@ -677,9 +677,8 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs,
 }
 
 double
-NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity,
-                                Vector &residual, Vector &rhs,
-                                double localDelta)
+NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector &acceleration,
+                                Vector &residual, Vector &rhs, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->solInfo().order == 1) {
@@ -688,7 +687,12 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity,
   }
   else {
     // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
+#ifdef NO_MIDPOINT
+    localTemp.linC(inc_displacement, -localDelta*2.0, velocity);
+    localTemp.linAdd(-delta*delta, acceleration);
+#else
     localTemp.linC(inc_displacement, -localDelta, velocity);
+#endif
     M->mult(localTemp, rhs);
     rhs.linC(localDelta * localDelta, residual, -1.0, rhs);
     if(C) { // DAMPING

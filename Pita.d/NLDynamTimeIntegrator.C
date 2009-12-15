@@ -15,6 +15,7 @@ NLDynamTimeIntegrator::NLDynamTimeIntegrator(NonLinDynamic & pbDesc) :
   stepState(pbDesc.createGeomState()),
   refState(pbDesc.createGeomState()),
   velocity(pbDesc.solVecInfo()),
+  acceleration(pbDesc.solVecInfo()),
   inc_displac(pbDesc.solVecInfo()),
   gravityForce(pbDesc.solVecInfo()),
   elementInternalForce(pbDesc.elemVecInfo()),
@@ -33,8 +34,7 @@ NLDynamTimeIntegrator::NLDynamTimeIntegrator(NonLinDynamic & pbDesc) :
 {
   probDesc.getConstForce(gravityForce);
   VecType initialDisplacement(pbDesc.solVecInfo());
-  VecType dummyAcceleration(pbDesc.solVecInfo());
-  /*int aeroAlg =*/ probDesc.getInitState(initialDisplacement, velocity, dummyAcceleration, dummyVp);
+  /*int aeroAlg =*/ probDesc.getInitState(initialDisplacement, velocity, acceleration, dummyVp);
   setCurrentDisplacement(initialDisplacement);
   double initialTime;
   probDesc.getInitialTime(currStep, initialTime);
@@ -108,7 +108,7 @@ void NLDynamTimeIntegrator::integrate(int numSteps)
         prev_int_force = lambda * external_force - residual;
         probDesc.reBuild(*geomState, iter + 1, localDelta); // Assemble [Kt] and factor ([M] + delta^2 * [Kt])
         geomState->get_inc_displacement(inc_displac, *stepState); // Compute incremental displacement
-        resN = probDesc.formRHScorrector(inc_displac, velocity, residual, rhs, localDelta); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
+        resN = probDesc.formRHScorrector(inc_displac, velocity, acceleration, residual, rhs, localDelta); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
         if (verboseFlag) fprintf(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force * external_force, resN * resN);
         currentRes = resN;
         residual = rhs;
@@ -135,7 +135,7 @@ void NLDynamTimeIntegrator::integrate(int numSteps)
     {
       fprintf(stderr," *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxNumIter, currentRes, probDesc.getTolerance());
     }
-    geomState->midpoint_step_update(velocity, localDelta, *stepState);
+    geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState);
     // if (step+1 == maxStep)  probDesc->processLastOutput(); // Was I right to deactivate ?
     postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, currStep, external_force, aeroForce, acceleration);
   }

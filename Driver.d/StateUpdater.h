@@ -40,7 +40,7 @@ public:
 //
 
 
-     geomState->midpoint_step_update(velN, delta, *refState);
+     geomState->midpoint_step_update(velN, acceleration, delta, *refState);
   }
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 
@@ -50,7 +50,7 @@ public:
   }
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
-    return pbd->formRHScorrector(inc_displac, vel_n, residual, rhs); 
+    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs); 
   }
 
   static void copyTo(RefState *refState, GeomType *geomState, GeomType *stepState, StateIncr *stateIncr, VecType &v, VecType &a, VecType &vp, VecType &force,

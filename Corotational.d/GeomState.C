@@ -278,12 +278,16 @@ GeomState::setVelocity(const Vector &v)
 }
 
 void
-GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
+GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss)
 {
 
  // Update incremental displacements at end of step:
-
+ // note: delta = dt/2
+#ifdef NO_MIDPOINT
+ double coef = 1.0/delta;
+#else
  double coef = 2.0/delta;
+#endif
 
  // x,y,z velocity step update (velocity_n+1 = 2.0*velocity_n+1/2 - velocity_n)
  // note: we are computing translational velocity_n+1/2 locally
@@ -311,9 +315,11 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
  int inode;
  for(inode=0; inode<numnodes; ++inode) {
    if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
+#ifndef NO_MIDPOINT
    ns[inode].x    = 2.0*ns[inode].x - ss.ns[inode].x;
    ns[inode].y    = 2.0*ns[inode].y - ss.ns[inode].y;
    ns[inode].z    = 2.0*ns[inode].z - ss.ns[inode].z;
+#endif
    ss.ns[inode].x = ns[inode].x;
    ss.ns[inode].y = ns[inode].y;
    ss.ns[inode].z = ns[inode].z;
@@ -325,18 +331,9 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
 
  for(inode=0; inode<numnodes; ++inode) {
    if(!flag[inode]) continue; // XXXX
-/*
-   cerr << "inode = " << inode << endl;
-   double r1[3], r2[3], r3[3];
-   mat_to_vec(ss.ns[inode].R, r1);
-   mat_to_vec(ns[inode].R, r2);
-   double theta1 = sqrt(r1[0]*r1[0]+r1[1]*r1[1]+r1[2]*r1[2]);
-   double theta2 = sqrt(r2[0]*r2[0]+r2[1]*r2[1]+r2[2]*r2[2]);
-   cerr << " t^n:       theta = " << theta1*180.0/M_PI << ", e = " << r1[0]/theta1 << " " << r1[1]/theta1 << " " << r1[2]/theta1
-        << " , r = " << r1[0] << " " << r1[1] << " " << r1[2] << endl;
-   cerr << " t^{n+1/2}: theta = " << theta2*180.0/M_PI << ", e = " << r2[0]/theta2 << " " << r2[1]/theta2 << " " << r2[2]/theta2
-        << " , r = " << r2[0] << " " << r2[1] << " " << r2[2] << endl;
-*/
+#ifdef NO_MIDPOINT
+   for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) ss.ns[inode].R[i][j] = ns[inode].R[i][j];
+#else
    mat_mult_mat( ss.ns[inode].R, ns[inode].R, result2, 1 );
 
    orthonorm3(result2); // XXXX
@@ -344,12 +341,7 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
    mat_mult_mat( ns[inode].R, result2, result, 0 );
 
    orthonorm3(result); // XXXX
-/*
-   mat_to_vec(result, r3);
-   double theta3 = sqrt(r3[0]*r3[0]+r3[1]*r3[1]+r3[2]*r3[2]);
-   cerr << " t^{n+1}:   theta = " << theta3*180.0/M_PI << ", e = " << r3[0]/theta3 << " " << r3[1]/theta3 << " " << r3[2]/theta3
-        << " , r = " << r3[0] << " " << r3[1] << " " << r3[2] << endl;
-*/
+
    ss.ns[inode].R[0][0] = ns[inode].R[0][0] = result[0][0];
    ss.ns[inode].R[0][1] = ns[inode].R[0][1] = result[0][1];
    ss.ns[inode].R[0][2] = ns[inode].R[0][2] = result[0][2];
@@ -361,21 +353,7 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
    ss.ns[inode].R[2][0] = ns[inode].R[2][0] = result[2][0];
    ss.ns[inode].R[2][1] = ns[inode].R[2][1] = result[2][1];
    ss.ns[inode].R[2][2] = ns[inode].R[2][2] = result[2][2];
-
-/*
-   // PJSA DEBUG
-   ss.ns[inode].R[0][0] = ns[inode].R[0][0];
-   ss.ns[inode].R[0][1] = ns[inode].R[0][1];
-   ss.ns[inode].R[0][2] = ns[inode].R[0][2];
-
-   ss.ns[inode].R[1][0] = ns[inode].R[1][0];
-   ss.ns[inode].R[1][1] = ns[inode].R[1][1];
-   ss.ns[inode].R[1][2] = ns[inode].R[1][2];
-
-   ss.ns[inode].R[2][0] = ns[inode].R[2][0];
-   ss.ns[inode].R[2][1] = ns[inode].R[2][1];
-   ss.ns[inode].R[2][2] = ns[inode].R[2][2];
-*/
+#endif
  }
 
 }

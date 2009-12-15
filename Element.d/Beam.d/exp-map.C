@@ -212,6 +212,37 @@ void Partial_R_Partial_Vi(Quat q, Quat dqdvi, double dRdvi[3][3])
 
 }
 
+void Second_Partial_R_Partial_Vij(Quat q, Quat dqdvi, Quat dqdvj, Quat d2qdvidvj, double d2Rdvidvj[3][3])
+{
+    double    prod[9];
+    int       i;
+
+    /* This efficient formulation is arrived at by writing out the
+     * entire chain rule product dRdq * dqdv in terms of 'q' and 
+     * noticing that all the entries are formed from sums of just
+     * nine products of 'q' and 'dqdv' */
+    prod[0] = -4*q[X]*dqdvi[X];
+    prod[1] = -4*q[Y]*dqdvi[Y];
+    prod[2] = -4*q[Z]*dqdvi[Z];
+    prod[3] = 2*(q[Y]*dqdvi[X] + q[X]*dqdvi[Y]);
+    prod[4] = 2*(q[W]*dqdvi[Z] + q[Z]*dqdvi[W]);
+    prod[5] = 2*(q[Z]*dqdvi[X] + q[X]*dqdvi[Z]);
+    prod[6] = 2*(q[W]*dqdvi[Y] + q[Y]*dqdvi[W]);
+    prod[7] = 2*(q[Z]*dqdvi[Y] + q[Y]*dqdvi[Z]);
+    prod[8] = 2*(q[W]*dqdvi[X] + q[X]*dqdvi[W]);
+
+    /* first row, followed by second and third */
+    dRdvi[0][0] = - 4*d2qdvidvj[Y]*q[Y] - 4*d2qdvidvj[Z]*q[Z] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W])
+    dRdvi[0][1] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] - 2*d2qdvidvj[W]*q[Z] - 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[0][2] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] + 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] + 2*d2qdvidvj[Y]*q[W] + dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[1][0] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] + 2*d2qdvidvj[W]*q[Z] + 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[1][1] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Z]*q[Z];
+    dRdvi[1][2] = 2*d2qdvidvj[Z]*q[Y] - 2*d2qdvidvj[W]*q[X] - 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[Y]*q[Z] - 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[2][0] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] - 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] - 2*d2qdvidvj[Y]*q[W] - dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[2][1] = 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[W]*q[X] + 2*d2qdvidvj[Z]*q[Y] + 2*d2qdvidvj[Y]*q[Z] + 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    dRdvi[2][2] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Y]*q[Y] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
+ 
+}
 
 
 /* -----------------------------------------------------------------
@@ -228,13 +259,12 @@ void Partial_Q_Partial_3V(double v[3], int i, Quat dqdx)
     /* This is an efficient implementation of the derivatives given
      * in Appendix A of the paper with common subexpressions factored out */
     if (theta < MIN_ANGLE){
-        //std::cerr << "here in Partial_Q_Partial_3V, theta = " << theta << std::endl;
 	const int i2 = (i+1)%3, i3 = (i+2)%3;
 	double Tsinc = 0.5 - theta*theta/48.0;
 	double vTerm = v[i] * (theta*theta/40.0 - 1.0) / 24.0;
 	
 	dqdx[W] = -.5*v[i]*Tsinc;
-	dqdx[i]  = v[i]* vTerm + Tsinc;
+	dqdx[i]  = v[i]* vTerm + Tsinc; // note this should really be theta^4/3840 + v[i]* vTerm + Tsinc but the 4th order term is dropped
 	dqdx[i2] = v[i2]*vTerm;
 	dqdx[i3] = v[i3]*vTerm;
     }
@@ -248,6 +278,88 @@ void Partial_Q_Partial_3V(double v[3], int i, Quat dqdx)
 	dqdx[i3] = cterm*v[i3];
 	dqdx[W] = -.5*v[i]*sang;
     }
+}
+
+
+/* -----------------------------------------------------------------
+ * 'Second_Partial_Q_Partial_3V' Second partial derivative of 
+ * quaternion wrt i'th component of EM vector 'v'
+ * -----------------------------------------------------------------*/
+/*
+void Second_Partial_Q_Partial_3V(double v[3], int i, Quat d2qdx2)
+{
+    double   theta = V3Magnitude(v);
+    double   cosp = cos(.5*theta), sinp = sin(.5*theta);
+
+    assert(i>=0 && i<3);
+
+    // This is an efficient implementation of the derivatives with 
+    // common subexpressions factored out
+    if (theta < MIN_ANGLE){
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        double Tsinc = v[i]*v[i]/32.0 + v[i2]*v[i2]/96.0 + v[i3]*v[i3]/96.0;
+        double vTerm = Tsinc/10.0 - 1.0/24.0;
+
+        d2qdx2[W] = Tsinc - 0.25;
+        d2qdx2[i]  = v[i]*(vTerm + theta*theta/480.0 - 1.0/12.0);
+        d2qdx2[i2] = v[i2]*vTerm;
+        d2qdx2[i3] = v[i3]*vTerm;
+    }
+    else{
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        const double  ang = 1.0/theta, ang2 = ang*ang*v[i], sang = sinp*ang;
+        const double  cterm = ang2*(.5*cosp - sang);
+        const double theta2 = theta*theta, ang3 = ang*ang*ang*v[i]*v[i];
+        const double cterm2 = 0.5*cosp/theta2 - sang/theta2 - 1.5*ang3*cosp/theta - 0.25*ang3*sinp + 3.0*ang3*sinp/theta2
+
+        d2qdx2[i]  = v[i]*cterm2 + 2.0*cterm;
+        d2qdx2[i2] = v[i2]*cterm2;
+        d2qdx2[i3] = v[i3]*cterm2;
+        d2qdx2[W] = -.5*v[i]*cterm - .5*sang;
+   }
+}
+*/
+void Second_Partial_Q_Partial_3V(double v[3], int i, int j, Quat d2qdxidxj)
+{
+    double   theta = V3Magnitude(v);
+    double   cosp = cos(.5*theta), sinp = sin(.5*theta);
+    double   theta2 = theta*theta, theta3 = theta2*theta, theta4 = theta3*theta, theta5 = theta4*theta;
+
+    assert(i>=0 && i<3);
+    assert(j>=0 && j<3);
+
+    if (theta < MIN_ANGLE) {
+      if(i == j) {
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        d2qdxidxj[i ] = (v[i]*theta2)/480 - v[i]/12 + v[i]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
+        d2qdxidxj[i2] = v[i2]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
+        d2qdxidxj[i3] = v[i3]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
+        d2qdxidxj[W ] = v[i]*v[i]/32 + v[i2]*v[i2]/96 + v[i3]*v[i3]/96 - .25;
+      } 
+      else { 
+        const int k = 3-i-j;
+        d2qdxidxj[i] = (v[i]*v[i]*v[j])/480 - v[j]/24 + (v[j]*theta2)/960;
+        d2qdxidxj[j] = (v[i]*v[j]*v[j])/480 - v[i]/24 + (v[i]*theta2)/960;
+        d2qdxidxj[k] = (v[i]*v[j]*v[k])/480;
+        d2qdxidxj[W] = (v[i]*v[j])/48;
+      }
+    }
+    else {
+      if(i == j) {
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        d2qdxidxj[i ] = (3*v[i]*cosp)/(2*theta2) - (3*v[i]*sinp)/theta3 - (3*v[i]*v[i]*v[i]*cosp)/(2*theta4) - (v[i]*v[i]*v[i]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i]*sinp)/theta5;
+        d2qdxidxj[i2] = (v[i2]*cosp)/(2*theta2) - (v[i2]*sinp)/theta3 - (3*v[i]*v[i]*v[i2]*cosp)/(2*theta4) - (v[i]*v[i]*v[i2]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i2]*sinp)/theta5;
+        d2qdxidxj[i3] = (v[i3]*cosp)/(2*theta2) - (v[i3]*sinp)/theta3 - (3*v[i]*v[i]*v[i3]*cosp)/(2*theta4) - (v[i]*v[i]*v[i3]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i3]*sinp)/theta5;
+        d2qdxidxj[W ] = (v[i]*v[i]*sinp)/(2*theta3) - (v[i]*v[i]*cosp)/(4*theta2) - sinp/(2*theta);
+      }
+      else {
+        const int k = 3-i-j;
+        d2qdxidxj[i] = (v[j]*cosp)/(2*theta2) - (v[j]*sinp)/theta3 - (3*v[i]*v[i]*v[j]*cosp)/(2*theta4) - (v[i]*v[i]*v[j]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[j]*sinp)/theta5;
+        d2qdxidxj[j] = (v[i]*cosp)/(2*theta2) - (v[i]*sinp)/theta3 - (3*v[i]*v[j]*v[j]*cosp)/(2*theta4) - (v[i]*v[j]*v[j]*sinp)/(4*theta3) + (3*v[i]*v[j]*v[j]*sinp)/theta5;
+        d2qdxidxj[k] = (3*v[i]*v[j]*v[k]*sinp)/theta5 - (v[i]*v[j]*v[k]*sinp)/(4*theta3) - (3*v[i]*v[j]*v[k]*cosp)/(2*theta4);
+        d2qdxidxj[W] = (v[i]*v[j]*sinp)/(2*theta3) - (v[i]*v[j]*cosp)/(4*theta2);
+      }
+   }
 }
 
 

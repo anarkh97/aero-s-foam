@@ -361,6 +361,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 void
 RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatrix& J)
 {
+  J.zero();
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
@@ -370,7 +371,6 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
   double lz = ns1.z-ns2.z;
   double l = sqrt(lx*lx + ly*ly + lz*lz);
 
-  J.zero();
   switch(i) { 
     case 0 : {
       double l2 = l*l;

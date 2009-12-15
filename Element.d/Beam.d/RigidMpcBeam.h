@@ -7,6 +7,7 @@ class RigidMpcBeam : public RigidMpcElement
 {
     EFrame *elemframe;
     double c0[3][3];
+    double first_rhs[6];
   public:
     RigidMpcBeam(int*);
     void computeMPCs(CoordSet&);

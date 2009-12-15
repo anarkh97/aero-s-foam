@@ -14,6 +14,7 @@ class RigidMpcElement : public Element, public Corotator
     int *nn;                 // node numbers
     LMPCons** mpcs;          // linearized constraints
     int mode;                // mode 0: constraints extracted by getMPCs, mode 1: otherwise
+    bool first;
 
   public:
     RigidMpcElement(int, int, int, int, int*);
@@ -45,6 +46,7 @@ class RigidMpcElement : public Element, public Corotator
     bool isRigidMpcElement(const DofSet& = DofSet::nullDofset, bool = false);
 
     // if the following two functions do not need to be implemented if the constraint function is linear
+    void init() { first = true; }
     virtual void updateLMPCs(GeomState& gState, CoordSet& cs);
     virtual void getJacobian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J);
 

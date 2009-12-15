@@ -214,33 +214,16 @@ void Partial_R_Partial_Vi(Quat q, Quat dqdvi, double dRdvi[3][3])
 
 void Second_Partial_R_Partial_Vij(Quat q, Quat dqdvi, Quat dqdvj, Quat d2qdvidvj, double d2Rdvidvj[3][3])
 {
-    double    prod[9];
-    int       i;
-
-    /* This efficient formulation is arrived at by writing out the
-     * entire chain rule product dRdq * dqdv in terms of 'q' and 
-     * noticing that all the entries are formed from sums of just
-     * nine products of 'q' and 'dqdv' */
-    prod[0] = -4*q[X]*dqdvi[X];
-    prod[1] = -4*q[Y]*dqdvi[Y];
-    prod[2] = -4*q[Z]*dqdvi[Z];
-    prod[3] = 2*(q[Y]*dqdvi[X] + q[X]*dqdvi[Y]);
-    prod[4] = 2*(q[W]*dqdvi[Z] + q[Z]*dqdvi[W]);
-    prod[5] = 2*(q[Z]*dqdvi[X] + q[X]*dqdvi[Z]);
-    prod[6] = 2*(q[W]*dqdvi[Y] + q[Y]*dqdvi[W]);
-    prod[7] = 2*(q[Z]*dqdvi[Y] + q[Y]*dqdvi[Z]);
-    prod[8] = 2*(q[W]*dqdvi[X] + q[X]*dqdvi[W]);
-
     /* first row, followed by second and third */
-    dRdvi[0][0] = - 4*d2qdvidvj[Y]*q[Y] - 4*d2qdvidvj[Z]*q[Z] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W])
-    dRdvi[0][1] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] - 2*d2qdvidvj[W]*q[Z] - 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[0][2] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] + 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] + 2*d2qdvidvj[Y]*q[W] + dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[1][0] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] + 2*d2qdvidvj[W]*q[Z] + 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[1][1] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Z]*q[Z];
-    dRdvi[1][2] = 2*d2qdvidvj[Z]*q[Y] - 2*d2qdvidvj[W]*q[X] - 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[Y]*q[Z] - 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[2][0] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] - 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] - 2*d2qdvidvj[Y]*q[W] - dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[2][1] = 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[W]*q[X] + 2*d2qdvidvj[Z]*q[Y] + 2*d2qdvidvj[Y]*q[Z] + 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    dRdvi[2][2] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Y]*q[Y] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
+    d2Rdvidvj[0][0] = - 4*d2qdvidvj[Y]*q[Y] - 4*d2qdvidvj[Z]*q[Z] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
+    d2Rdvidvj[0][1] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] - 2*d2qdvidvj[W]*q[Z] - 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[0][2] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] + 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] + 2*d2qdvidvj[Y]*q[W] + dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[1][0] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] + 2*d2qdvidvj[W]*q[Z] + 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[1][1] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Z]*q[Z];
+    d2Rdvidvj[1][2] = 2*d2qdvidvj[Z]*q[Y] - 2*d2qdvidvj[W]*q[X] - 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[Y]*q[Z] - 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[2][0] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] - 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] - 2*d2qdvidvj[Y]*q[W] - dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[2][1] = 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[W]*q[X] + 2*d2qdvidvj[Z]*q[Y] + 2*d2qdvidvj[Y]*q[Z] + 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
+    d2Rdvidvj[2][2] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Y]*q[Y] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
  
 }
 
@@ -407,6 +390,19 @@ int Partial_R_Partial_EM3(double v[3], int i, double dRdvi[3][3])
 
     Partial_Q_Partial_3V(v, i, dqdvi);
     Partial_R_Partial_Vi(q, dqdvi, dRdvi);
+
+    return rep;
+}
+
+int Second_Partial_R_Partial_EM3(double v[3], int i, int j, double d2Rdvidvj[3][3])
+{
+    Quat  q, dqdvi, dqdvj, d2qdvidvj;
+    int   rep = EM_To_Q(v, q, 1);
+
+    Partial_Q_Partial_3V(v, i, dqdvi);
+    Partial_Q_Partial_3V(v, j, dqdvj);
+    Second_Partial_Q_Partial_3V(v, i, j, d2qdvidvj);
+    Second_Partial_R_Partial_Vij(q, dqdvi, dqdvj, d2qdvidvj, d2Rdvidvj);
 
     return rep;
 }

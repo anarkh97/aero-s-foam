@@ -34,3 +34,4 @@ int Partial_R_Partial_EM2(double r[2], double s[3], double t[3],
 /* Compute time deriv of 'v' given angular velocity 'omega' */
 void Vdot(double v[3], double omega[3], double vdot[3]);
 
+int Second_Partial_R_Partial_EM3(double v[3], int i, int j, double d2Rdvidvj[3][3]);

@@ -310,7 +310,7 @@ GeomState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
  // Update step translational displacements
  int inode;
  for(inode=0; inode<numnodes; ++inode) {
-   //if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
+   if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
    ns[inode].x    = 2.0*ns[inode].x - ss.ns[inode].x;
    ns[inode].y    = 2.0*ns[inode].y - ss.ns[inode].y;
    ns[inode].z    = 2.0*ns[inode].z - ss.ns[inode].z;

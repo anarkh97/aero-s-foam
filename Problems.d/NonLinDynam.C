@@ -665,15 +665,15 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs,
 
   times->predictorTime += getTime();
 
-/* XXXX
+  // XXXX
   for(int iele = 0; iele < domain->numElements(); ++iele) {
     RigidMpcElement* my_b = dynamic_cast<RigidMpcElement*>(domain->getElementSet()[iele]);
     if(my_b) {
       //cerr << "iele " << iele << " is a rigid mpc element, updating LMPCs\n";
-      my_b->updateLMPCs(geomState, domain->getNodes());
+      my_b->init();
     }
   }
-*/
+
 }
 
 double

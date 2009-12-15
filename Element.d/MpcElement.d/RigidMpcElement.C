@@ -10,6 +10,7 @@ RigidMpcElement::RigidMpcElement(int _nNodes, int _nDofsPerNode, int _nodalDofs,
   for(int i = 0; i < nNodes; ++i) 
     nn[i] = _nn[i];
   mpcs = new LMPCons*[nMpcs];
+  first = true;
 }
 
 RigidMpcElement::~RigidMpcElement()
@@ -178,8 +179,8 @@ void
 RigidMpcElement::updateLMPCs(GeomState&, CoordSet&) 
 { 
   //cerr << "here in RigidMpcElement::updateLMPCs(GeomState&, CoordSet&)\n";
-  for(int i = 0; i < nMpcs; ++i) 
-    mpcs[i]->rhs.r_value = 0.0; 
+  for(int i = 0; i < nMpcs; ++i)
+    mpcs[i]->rhs.r_value = 0.0;
 }
 
 void 
@@ -187,3 +188,4 @@ RigidMpcElement::getJacobian(GeomState&, CoordSet&, int, FullSquareMatrix& J)
 { 
   J.zero(); 
 }
+

@@ -351,15 +351,20 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     mpcs[1]->rhs.r_value = c1[2][0]*c2[1][0] + c1[2][1]*c2[1][1] + c1[2][2]*c2[1][2];
     mpcs[2]->rhs.r_value = c1[2][0]*c2[0][0] + c1[2][1]*c2[0][1] + c1[2][2]*c2[0][2];
     mpcs[3]->rhs.r_value = c1[1][0]*c2[0][0] + c1[1][1]*c2[0][1] + c1[1][2]*c2[0][2];
-    mpcs[4]->rhs.r_value = c1[2][0]*d[0]   + c1[2][1]*d[1]   + c1[2][2]*d[2];
-    mpcs[5]->rhs.r_value = c1[1][0]*d[0]   + c1[1][1]*d[1]   + c1[1][2]*d[2];
+    mpcs[4]->rhs.r_value = c1[2][0]*d[0] + c1[2][1]*d[1] + c1[2][2]*d[2];
+    mpcs[5]->rhs.r_value = c1[1][0]*d[0] + c1[1][1]*d[1] + c1[1][2]*d[2];
+    if(first) {
+      for(int i=0; i<6; ++i) first_rhs[i] = mpcs[i]->rhs.r_value;
+      first = false;
+    } else
+      for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
   }
 
   //for(int i = 0; i<6; ++i) mpcs[i]->print();
 }
 
 void
-RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatrix& J)
+RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatrix& J)
 {
   J.zero();
   // nodes' current coordinates
@@ -371,7 +376,22 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
   double lz = ns1.z-ns2.z;
   double l = sqrt(lx*lx + ly*ly + lz*lz);
 
-  switch(i) { 
+  double dx = ns2.x - ns1.x;
+  double dy = ns2.y - ns1.y;
+  double dz = ns2.z - ns1.z;
+  double d[3] = { dx/l, dy/l, dz/l };
+
+  // rotated cframes
+  double c1[3][3], c2[3][3];
+  mat_mult_mat(ns1.R, c0, c1, 1);
+  mat_mult_mat(ns2.R, c0, c2, 1);
+
+  // rotation parameters (thetax, thetay, thetaz)
+  double r1[3], r2[3];
+  mat_to_vec(ns1.R, r1);
+  mat_to_vec(ns2.R, r2);
+
+  switch(k) { 
     case 0 : {
       double l2 = l*l;
       double l3 = l*l*l;
@@ -390,6 +410,112 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int i, FullSquareMatr
       J[0][7] = J[7][0] = J[1][6] = J[6][1] = -J[0][1];
       J[0][8] = J[8][0] = J[2][6] = J[6][2] = -J[0][2];
       J[1][8] = J[8][1] = J[2][7] = J[7][2] = -J[1][2];
+    } break;
+    case 1 : {
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      for(int i=0; i<3; ++i) {
+        // second partial derivatives of rotation matrices wrt rotation parameters
+        for(int j=i; j<3; ++j) {
+          Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+          Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+
+          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
+          J[9+i][9+j] = J[9+j][9+i] = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
+        }
+      }
+      for(int i=0; i<3; ++i) {
+        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
+        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        for(int j=0; j<3; ++j) {
+          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          // is this really symmetric?
+          J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[1][0] + d1[2][1]*d2[1][1] + d1[2][2]*d2[1][2];
+        }
+      }
+    } break;
+    case 2 : {
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      for(int i=0; i<3; ++i) {
+        // second partial derivatives of rotation matrices wrt rotation parameters
+        for(int j=i; j<3; ++j) {
+          Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+          Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+
+          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
+          J[9+i][9+j] = J[9+j][9+i] = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
+        }
+      }
+      for(int i=0; i<3; ++i) {
+        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
+        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        for(int j=0; j<3; ++j) {
+          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[0][0] + d1[2][1]*d2[0][1] + d1[2][2]*d2[0][2];
+        }
+      }
+    } break;
+    case 3 : {
+
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      for(int i=0; i<3; ++i) {
+        // second partial derivatives of rotation matrices wrt rotation parameters
+        for(int j=i; j<3; ++j) {
+          Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+          Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+
+          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          J[3+i][3+j] = J[3+j][3+i] = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
+          J[9+i][9+j] = J[9+j][9+i] = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
+        }
+      }
+      for(int i=0; i<3; ++i) {
+        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
+        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        for(int j=0; j<3; ++j) {
+          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
+          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+
+          J[3+i][9+j] = J[9+j][3+i] = d1[1][0]*d2[0][0] + d1[1][1]*d2[0][1] + d1[1][2]*d2[0][2];
+        }
+      }
+    } break;
+    case 4 : {
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      for(int i=0; i<3; ++i) {
+        // second partial derivatives of rotation matrices wrt rotation parameters
+        for(int j=i; j<3; ++j) {
+          Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+
+          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+
+          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
+        }
+      }
+    } break;
+    case 5 : {
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      for(int i=0; i<3; ++i) {
+        // second partial derivatives of rotation matrices wrt rotation parameters
+        for(int j=i; j<3; ++j) {
+          Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+
+          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+
+          J[3+i][3+j] = J[3+j][3+i] = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
+        }
+      }
     } break;
   }
 }

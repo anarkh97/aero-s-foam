@@ -1,7 +1,7 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
-#define NO_MIDPOINT
+//#define NO_MIDPOINT
 
 class DofSetArray;
 class CoordSet;
@@ -78,6 +78,7 @@ class GeomState {
      void print();
      void printNode(int nodeNumber);
 
+     // these functions are used by the spring corotator
      void computeGlobalRotation();
      void getGlobalRot(double R[3][3]);
      void computeCG(double cg[3]);
@@ -86,6 +87,7 @@ class GeomState {
      void computeRotGradAndJac(double cg [3], 
 			       double  grad[3], double jac[3][3]);
      void rotate(double mat[3][3], double vec[3]);
+
 };
 
 #endif

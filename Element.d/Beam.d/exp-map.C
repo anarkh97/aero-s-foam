@@ -215,6 +215,13 @@ void Partial_R_Partial_Vi(Quat q, Quat dqdvi, double dRdvi[3][3])
 void Second_Partial_R_Partial_Vij(Quat q, Quat dqdvi, Quat dqdvj, Quat d2qdvidvj, double d2Rdvidvj[3][3])
 {
     /* first row, followed by second and third */
+/*
+d2Rdvidvj =
+ 
+[                                                                       - 4*dq2dvi*dq2dvj - 4*dq3dvi*dq3dvj - 4*d2q2dvidvj*q2 - 4*d2q3dvidvj*q3, 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi - 2*dq3dvi*dq4dvj - 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 - 2*d2q4dvidvj*q3 - 2*d2q3dvidvj*q4, 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi + 2*dq2dvi*dq4dvj + 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 + 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 + 2*d2q2dvidvj*q4]
+[ 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi + 2*dq3dvi*dq4dvj + 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 + 2*d2q4dvidvj*q3 + 2*d2q3dvidvj*q4,                                                                       - 4*dq1dvi*dq1dvj - 4*dq3dvi*dq3dvj - 4*d2q1dvidvj*q1 - 4*d2q3dvidvj*q3, 2*dq2dvi*dq3dvj - 2*dq1dvj*dq4dvi - 2*dq1dvi*dq4dvj + 2*dq2dvj*dq3dvi - 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 - 2*d2q1dvidvj*q4]
+[ 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi - 2*dq2dvi*dq4dvj - 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 - 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 - 2*d2q2dvidvj*q4, 2*dq1dvi*dq4dvj + 2*dq1dvj*dq4dvi + 2*dq2dvi*dq3dvj + 2*dq2dvj*dq3dvi + 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 + 2*d2q1dvidvj*q4,                                                                       - 4*dq1dvi*dq1dvj - 4*dq2dvi*dq2dvj - 4*d2q1dvidvj*q1 - 4*d2q2dvidvj*q2]
+*/ 
     d2Rdvidvj[0][0] = - 4*d2qdvidvj[Y]*q[Y] - 4*d2qdvidvj[Z]*q[Z] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
     d2Rdvidvj[0][1] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] - 2*d2qdvidvj[W]*q[Z] - 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
     d2Rdvidvj[0][2] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] + 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] + 2*d2qdvidvj[Y]*q[W] + dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
@@ -247,7 +254,7 @@ void Partial_Q_Partial_3V(double v[3], int i, Quat dqdx)
 	double vTerm = v[i] * (theta*theta/40.0 - 1.0) / 24.0;
 	
 	dqdx[W] = -.5*v[i]*Tsinc;
-	dqdx[i]  = v[i]* vTerm + Tsinc; // note this should really be theta^4/3840 + v[i]* vTerm + Tsinc but the 4th order term is dropped
+	dqdx[i]  = pow(theta,4)/3840.0 + v[i]* vTerm + Tsinc; // PJSA: added theta^4/3840 term
 	dqdx[i2] = v[i2]*vTerm;
 	dqdx[i3] = v[i3]*vTerm;
     }
@@ -293,7 +300,7 @@ void Second_Partial_Q_Partial_3V(double v[3], int i, Quat d2qdx2)
         const double  ang = 1.0/theta, ang2 = ang*ang*v[i], sang = sinp*ang;
         const double  cterm = ang2*(.5*cosp - sang);
         const double theta2 = theta*theta, ang3 = ang*ang*ang*v[i]*v[i];
-        const double cterm2 = 0.5*cosp/theta2 - sang/theta2 - 1.5*ang3*cosp/theta - 0.25*ang3*sinp + 3.0*ang3*sinp/theta2
+        const double cterm2 = 0.5*cosp/theta2 - sang/theta2 - 1.5*ang3*cosp/theta - 0.25*ang3*sinp + 3.0*ang3*sinp/theta2;
 
         d2qdx2[i]  = v[i]*cterm2 + 2.0*cterm;
         d2qdx2[i2] = v[i2]*cterm2;
@@ -302,6 +309,7 @@ void Second_Partial_Q_Partial_3V(double v[3], int i, Quat d2qdx2)
    }
 }
 */
+
 void Second_Partial_Q_Partial_3V(double v[3], int i, int j, Quat d2qdxidxj)
 {
     double   theta = V3Magnitude(v);
@@ -314,9 +322,9 @@ void Second_Partial_Q_Partial_3V(double v[3], int i, int j, Quat d2qdxidxj)
     if (theta < MIN_ANGLE) {
       if(i == j) {
         const int i2 = (i+1)%3, i3 = (i+2)%3;
-        d2qdxidxj[i ] = (v[i]*theta2)/480 - v[i]/12 + v[i]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
-        d2qdxidxj[i2] = v[i2]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
-        d2qdxidxj[i3] = v[i3]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1./24.);
+        d2qdxidxj[i ] = (v[i]*theta2)/480 - v[i]/12 + v[i]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1/24.);
+        d2qdxidxj[i2] = v[i2]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1/24.);
+        d2qdxidxj[i3] = v[i3]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1/24.);
         d2qdxidxj[W ] = v[i]*v[i]/32 + v[i2]*v[i2]/96 + v[i3]*v[i3]/96 - .25;
       } 
       else { 

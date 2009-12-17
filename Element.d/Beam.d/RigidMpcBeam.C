@@ -353,14 +353,16 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     mpcs[3]->rhs.r_value = c1[1][0]*c2[0][0] + c1[1][1]*c2[0][1] + c1[1][2]*c2[0][2];
     mpcs[4]->rhs.r_value = c1[2][0]*d[0] + c1[2][1]*d[1] + c1[2][2]*d[2];
     mpcs[5]->rhs.r_value = c1[1][0]*d[0] + c1[1][1]*d[1] + c1[1][2]*d[2];
+/*
     if(first) {
-    //  for(int i=0; i<6; ++i) { first_rhs[i] = mpcs[i]->rhs.r_value; mpcs[i]->rhs.r_value = 0.0; }
+      for(int i=0; i<6; ++i) { first_rhs[i] = mpcs[i]->rhs.r_value; mpcs[i]->rhs.r_value = 0.0; }
     //  cerr << "first\n";
       first = false;
     } 
-    //else
-    //  for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
+    else
+      for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
     //cerr << "rhs = "; for(int i=0; i<6; ++i) cerr << mpcs[i]->rhs.r_value << " "; cerr << endl;
+*/
   }
 
   //for(int i = 0; i<6; ++i) mpcs[i]->print();
@@ -369,7 +371,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 void
 RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatrix& J)
 {
-  J.zero();
+  J.zero(); 
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
@@ -395,21 +397,22 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
   mat_to_vec(ns2.R, r2);
 
   switch(k) { 
+
     case 0 : {
-/*
-[ 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0, lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0]
-[-lx*ly/l^3,      1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0, lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0]
-[-lx*lz/l^3,      -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0, lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-[ lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0, 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0]
-[ lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0, -lx*ly/l^3,     1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0]
-[ lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0, -lx*lz/l^3,     -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-[ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-*/
+
+// [ 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0, lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0]
+// [-lx*ly/l^3,      1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0, lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0]
+// [-lx*lz/l^3,      -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0, lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+// [ lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0, 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0]
+// [ lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0, -lx*ly/l^3,     1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0]
+// [ lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0, -lx*lz/l^3,     -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
+
       double l2 = l*l;
       double l3 = l*l*l;
       J[0][0] = J[6][6] = (l2-lx*lx)/l3;
@@ -429,8 +432,9 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
       J[1][8] = J[8][1] = J[2][7] = J[7][2] = -J[1][2];
 
     } break;
+
     case 1 : {
-      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], dRdvi1[3][3], dRdvj2[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -445,19 +449,20 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
       for(int i=0; i<3; ++i) {
-        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
-        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        Partial_R_Partial_EM3(r1, i, dRdvi1);
+        mat_mult_mat(dRdvi1, c0, d1, 1);
         for(int j=0; j<3; ++j) {
-          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+          Partial_R_Partial_EM3(r2, j, dRdvj2);
+          mat_mult_mat(dRdvj2, c0, d2, 1);
 
           // is this really symmetric?
           J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[1][0] + d1[2][1]*d2[1][1] + d1[2][2]*d2[1][2];
         }
       }
     } break;
+
     case 2 : {
-      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], dRdvi1[3][3], dRdvj2[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -472,18 +477,19 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
       for(int i=0; i<3; ++i) {
-        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
-        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        Partial_R_Partial_EM3(r1, i, dRdvi1);
+        mat_mult_mat(dRdvi1, c0, d1, 1);
         for(int j=0; j<3; ++j) {
-          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+          Partial_R_Partial_EM3(r2, j, dRdvj2);
+          mat_mult_mat(dRdvj2, c0, d2, 1);
 
           J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[0][0] + d1[2][1]*d2[0][1] + d1[2][2]*d2[0][2];
         }
       }
     } break;
+
     case 3 : {
-      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], dRdvi1[3][3], dRdvj2[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -498,18 +504,19 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
       for(int i=0; i<3; ++i) {
-        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
-        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        Partial_R_Partial_EM3(r1, i, dRdvi1);
+        mat_mult_mat(dRdvi1, c0, d1, 1);
         for(int j=0; j<3; ++j) {
-          Partial_R_Partial_EM3(r2, j, d2Rdvidvj2);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
+          Partial_R_Partial_EM3(r2, j, dRdvj2);
+          mat_mult_mat(dRdvj2, c0, d2, 1);
 
           J[3+i][9+j] = J[9+j][3+i] = d1[1][0]*d2[0][0] + d1[1][1]*d2[0][1] + d1[1][2]*d2[0][2];
         }
       }
     } break;
+/*
     case 4 : {
-      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -521,16 +528,17 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
       for(int i=0; i<3; ++i) {
-        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
-        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        Partial_R_Partial_EM3(r1, i, dRdvi1);
+        mat_mult_mat(dRdvi1, c0, d1, 1);
         for(int j=0; j<3; ++j) {
           J[3+i][j] = J[j][3+i] = -d1[2][j];
           J[3+i][6+j] = J[6+j][3+i] = d1[2][j];
         }
       }
     } break;
+
     case 5 : {
-      double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3], d2[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -542,14 +550,15 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
       for(int i=0; i<3; ++i) {
-        Partial_R_Partial_EM3(r1, i, d2Rdvidvj1);
-        mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
+        Partial_R_Partial_EM3(r1, i, dRdvi1);
+        mat_mult_mat(dRdvi1, c0, d1, 1);
         for(int j=0; j<3; ++j) {
           J[3+i][j] = J[j][3+i] = -d1[1][j];
           J[3+i][6+j] = J[6+j][3+i] = d1[1][j];
         }
       }
     } break;
+*/
   }
   //cerr << "k = " << k << ", J = \n"; J.print();
 }

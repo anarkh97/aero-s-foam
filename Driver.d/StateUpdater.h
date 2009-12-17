@@ -46,7 +46,7 @@ public:
 
   static void formRHSpredictor(ProbDescr *pbd, VecType &vel_n, VecType &accel,
     VecType &residual, VecType &rhs, GeomType *geomState, double midtime){
-    pbd->formRHSpredictor(vel_n, residual, rhs, *geomState, midtime);
+    pbd->formRHSpredictor(vel_n, accel, residual, rhs, *geomState, midtime);
   }
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){

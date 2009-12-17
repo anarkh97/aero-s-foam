@@ -8,7 +8,6 @@
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
  : X0(cs)
-
 /****************************************************************
  *
  *  Purpose: determine geometric state of nodal coordinates
@@ -101,9 +100,13 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(NULL), numnodes(0), loc(NULL), X0(emptyCoord), numReal(0), flag(NULL) {}
+GeomState::GeomState() : ns(NULL), numnodes(0), loc(NULL), X0(emptyCoord), numReal(0), flag(NULL) 
+{
+}
 
-GeomState::GeomState(CoordSet &cs) : ns(NULL), numnodes(0), loc(NULL), X0(cs), numReal(0), flag(NULL) {}
+GeomState::GeomState(CoordSet &cs) : ns(NULL), numnodes(0), loc(NULL), X0(cs), numReal(0), flag(NULL) 
+{
+}
 
 GeomState::~GeomState() {
   delete[] flag;
@@ -114,6 +117,7 @@ GeomState::~GeomState() {
 void
 GeomState::print()
 {
+/*
  // Prints nodal coordinates and associated rotation tensor
  int i;
  for(i=0; i<numnodes; ++i) {
@@ -124,7 +128,13 @@ GeomState::print()
    fprintf(stderr,"% e % e % e\n",ns[i].R[1][0],ns[i].R[1][1],ns[i].R[1][2]);
    fprintf(stderr,"% e % e % e\n",ns[i].R[2][0],ns[i].R[2][1],ns[i].R[2][2]);
  }
-
+*/
+ for(int i=0; i<numnodes; ++i) {
+   if(loc[i][0] >= 0) cerr << ns[i].x << " ";
+   if(loc[i][1] >= 0) cerr << ns[i].y << " ";
+   if(loc[i][2] >= 0) cerr << ns[i].z << " ";
+ }
+ cerr << endl;
 }
 
 void
@@ -215,8 +225,7 @@ NodeState::operator=(const NodeState &node)
 void
 GeomState::update(const Vector &v)
 {
- //cerr << "here in GeomState::update, v*v = " << v*v << endl;
- if(v*v == 0.0) return; // PJSA DEBUG
+ //if(v*v == 0.0) return; // XXXX
  // v = incremental displacement vector
 
  double dtheta[3];
@@ -229,8 +238,6 @@ GeomState::update(const Vector &v)
      double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
      double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
      double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
-
-     if(!flag[i]) { ns[i].x += dx; /*cerr << "lambda = " << ns[i].x << endl;*/ continue; }
 
      // Set incremental rotations
 
@@ -245,15 +252,11 @@ GeomState::update(const Vector &v)
      ns[i].z += dz;
 
      // Increment rotation tensor R = R(dtheta)Ra
+     //if(dtheta[0] == 0.0 && dtheta[1] == 0.0 && dtheta[2] == 0.0) continue; // XXXX
      inc_rottensor( dtheta, ns[i].R );
-
-     //double r[3];
-     //mat_to_vec(ns[i].R,r);
-     //cerr << "incremented r = " << r[0] << " " << r[1] << " " << r[2] << endl;
    }
-/* PJSA DEBUG: this updates gRot which doesn't seem to be used anywhere
+
  computeGlobalRotation();
-*/
 }
 
 void
@@ -280,7 +283,6 @@ GeomState::setVelocity(const Vector &v)
 void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss)
 {
-
  // Update incremental displacements at end of step:
  // note: delta = dt/2
 #ifdef NO_MIDPOINT
@@ -295,26 +297,21 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
  int i;
  for(i=0; i<numnodes; ++i) {
-   if(flag[i] && loc[i][0] >= 0) // XXXX
+   
+   if(loc[i][0] >= 0) // if(flag(i) // XXXX
      vel_n[loc[i][0]] = coef*(ns[i].x - ss.ns[i].x) - vel_n[loc[i][0]];
    
-   if(flag[i] && loc[i][1] >= 0) // XXXX
+   if(loc[i][1] >= 0)
      vel_n[loc[i][1]] = coef*(ns[i].y - ss.ns[i].y) - vel_n[loc[i][1]];
 
-   if(flag[i] && loc[i][2] >= 0) // XXXX
+   if(loc[i][2] >= 0)
      vel_n[loc[i][2]] = coef*(ns[i].z - ss.ns[i].z) - vel_n[loc[i][2]];
-/*
-   if(flag[i])
-   cerr << "i = " << i << " vel_n = " << vel_n[loc[i][0]] << "," << vel_n[loc[i][1]] << "," << vel_n[loc[i][2]]
-                       << " ns = " << ns[i].x << "," << ns[i].y << "," << ns[i].z << ","
-                       << " ss = " << ss.ns[i].x << "," << ss.ns[i].y << "," << ss.ns[i].z << endl;
-*/
  }
 
  // Update step translational displacements
  int inode;
  for(inode=0; inode<numnodes; ++inode) {
-   if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
+   //if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
 #ifndef NO_MIDPOINT
    ns[inode].x    = 2.0*ns[inode].x - ss.ns[inode].x;
    ns[inode].y    = 2.0*ns[inode].y - ss.ns[inode].y;
@@ -326,21 +323,20 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
  }
 
  // Update step rotational tensor
- //cerr << "here in GeomState::midpoint_step_update\n";
  double result[3][3], result2[3][3];
 
  for(inode=0; inode<numnodes; ++inode) {
-   if(!flag[inode]) continue; // XXXX
+   //if(!flag[inode]) continue; // XXXX
 #ifdef NO_MIDPOINT
    for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) ss.ns[inode].R[i][j] = ns[inode].R[i][j];
 #else
    mat_mult_mat( ss.ns[inode].R, ns[inode].R, result2, 1 );
 
-   orthonorm3(result2); // XXXX
+   //orthonorm3(result2); // XXXX
 
    mat_mult_mat( ns[inode].R, result2, result, 0 );
 
-   orthonorm3(result); // XXXX
+   //orthonorm3(result); // XXXX
 
    ss.ns[inode].R[0][0] = ns[inode].R[0][0] = result[0][0];
    ss.ns[inode].R[0][1] = ns[inode].R[0][1] = result[0][1];
@@ -361,7 +357,6 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 void
 GeomState::interp(double xi, const GeomState &unp, const GeomState &un)
 {
-
   double coef = 1.0 - xi;
 
   // Update displacements
@@ -433,10 +428,7 @@ GeomState::diff1(const GeomState &un, Vector &vD, int inode)
 void
 GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 {
-
   // Update incremental translational displacements and rotations
-
-  double R[3][3], vec[3];
 
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
@@ -446,22 +438,22 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
     if(loc[inode][1] >= 0) incVec[loc[inode][1]] = ns[inode].y - ss.ns[inode].y;
     if(loc[inode][2] >= 0) incVec[loc[inode][2]] = ns[inode].z - ss.ns[inode].z;
     
-    if (zeroRot)
-    {
-      // Set rotational displacements equal to zero.
-      if(loc[inode][3] >= 0) incVec[loc[inode][3]] = 0.0;
-      if(loc[inode][4] >= 0) incVec[loc[inode][4]] = 0.0;
-      if(loc[inode][5] >= 0) incVec[loc[inode][5]] = 0.0;
-    }
-    else
-    {
-      mat_mult_mat( ns[inode].R, ss.ns[inode].R, R, 2 );
-      mat_to_vec( R, vec );
-      if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
-      if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
-      if( loc[inode][5] >= 0 ) incVec[loc[inode][5]] = vec[2];
-    }
-  
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      if(zeroRot) {
+        // Set rotational displacements equal to zero.
+        if(loc[inode][3] >= 0) incVec[loc[inode][3]] = 0.0;
+        if(loc[inode][4] >= 0) incVec[loc[inode][4]] = 0.0;
+        if(loc[inode][5] >= 0) incVec[loc[inode][5]] = 0.0;
+      }
+      else {
+        double R[3][3], vec[3];
+        mat_mult_mat( ns[inode].R, ss.ns[inode].R, R, 2 );
+        mat_to_vec( R, vec );
+        if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
+        if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
+        if( loc[inode][5] >= 0 ) incVec[loc[inode][5]] = vec[2];
+      }
+    } 
   }
 
 }
@@ -598,7 +590,8 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
     if(dth[i][0] == 0.0 &&
        dth[i][1] == 0.0 &&
        dth[i][2] == 0.0) continue;
-    inc_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
+    //inc_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
+    form_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
   }
 
  // check whether this is the appropriate method of
@@ -681,9 +674,8 @@ GeomState::setRotations(double *rotations)
 
 }
 
-//-----------------------------------------------------------
-void GeomState::computeGlobalRotation()  {
-
+void GeomState::computeGlobalRotation() 
+{
   double cg[3];
   computeCG(cg);
 
@@ -716,7 +708,6 @@ void GeomState::computeGlobalRotation()  {
   }
 } 
 
-//-----------------------------------------------------------
 void GeomState::computeRotMat(double *angle, double mat[3][3])
 {
   // trig functions of angles
@@ -728,30 +719,29 @@ void GeomState::computeRotMat(double *angle, double mat[3][3])
   double s3 = sin(angle[2]);
 
 
-  // Compute rotation matrix
-  /* computed as R1.R2.R3
+  /* Compute rotation matrix
+     computed as R1.R2.R3
      where R1 is rotation about z
            R2 is rotation about y
            R3 is rotation about x
   mat[0][0] = c1*c2;
   mat[0][1] = c1*s2*s3 - c3*s1;
   mat[0][2] = c1*c3*s2 + s1*s3;
-
+  
   mat[1][0] = c2*s1;
   mat[1][1] = c1*c3+s1*s2*s3;
   mat[1][2] = c3*s1*s2 - c1*s3;
-
+  
   mat[2][0] = -s2;
   mat[2][1] = c2*s3;
-  mat[2][2] = c2*c3;
-  */
+  mat[2][2] = c2*c3; */
   
 
   /* computed as R1.R2.R3
      where R1 is rotation about x
            R2 is rotation about y
            R3 is rotation about z
-  */
+  */ 
   mat[0][0] = c2*c3;
   mat[0][1] = -c2*s3;
   mat[0][2] = s2;
@@ -765,10 +755,8 @@ void GeomState::computeRotMat(double *angle, double mat[3][3])
   mat[2][2] = c1*c2;
 }
 
-//----------------------------------------------------------------
-
-void GeomState::solve(double m[3][3], double v[3])  {
-
+void GeomState::solve(double m[3][3], double v[3]) 
+{
   int i,j,k;
 
   for (i = 0; i < 2; i++)
@@ -798,11 +786,8 @@ void GeomState::solve(double m[3][3], double v[3])  {
   }
 }
 
-
-//----------------------------------------------------------------
-
-void GeomState::computeRotGradAndJac(double cg[3], double  grad[3], double jac[3][3])  {
-
+void GeomState::computeRotGradAndJac(double cg[3], double grad[3], double jac[3][3]) 
+{
   // init grad and jac
   int i,j;
   for (i = 0; i < 3; i++)  {
@@ -865,10 +850,8 @@ void GeomState::computeRotGradAndJac(double cg[3], double  grad[3], double jac[3
   jac[2][1] = jac[1][2];
 }
 
-//----------------------------------------------------------------
-
-void GeomState::computeCG(double cg[3])  {
-
+void GeomState::computeCG(double cg[3])
+{
   // init cg
   cg[0] = 0.0;
   cg[1] = 0.0;
@@ -881,7 +864,6 @@ void GeomState::computeCG(double cg[3])  {
       cg[1] += ns[i].y;
       cg[2] += ns[i].z;
     }
-    
   }
 
   double invTotNd = 1.0 / numReal;
@@ -889,10 +871,8 @@ void GeomState::computeCG(double cg[3])  {
     cg[i] *= invTotNd;
 }
 
-//----------------------------------------------------------------
-
-void GeomState::rotate(double R[3][3], double v[3])  {
-
+void GeomState::rotate(double R[3][3], double v[3]) 
+{
   double c[3];
   for (int j = 0; j < 3; j++)
     c[j] = R[j][0]*v[0] +
@@ -904,17 +884,13 @@ void GeomState::rotate(double R[3][3], double v[3])  {
   v[2] = c[2];
 }
 
-//----------------------------------------------------------------
-
-void GeomState::getGlobalRot(double R[3][3])  {
-
+void GeomState::getGlobalRot(double R[3][3]) 
+{
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       R[i][j] = gRot[i][j];
 
 }
-
-//----------------------------------------------------------------
 
 double
 NodeState::diff(const Node &un, int dof)

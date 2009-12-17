@@ -620,7 +620,7 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
 
 #include <Element.d/MpcElement.d/RigidMpcElement.h>
 void
-NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &geomState, 
+NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, 
                                 double midtime, double localDelta)
 {
   times->predictorTime -= getTime();
@@ -656,11 +656,17 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs,
   if(domain->solInfo().order == 1) 
     rhs.linC(localDelta, residual);
   else {
+#ifdef NO_MIDPOINT
+    localTemp.linC(2*localDelta, velocity, delta*delta, acceleration);
+    M->mult(localTemp, rhs);
+    rhs.linC(rhs, localDelta*localDelta, residual);
+#else
     // rhs = M*velocity
     M->mult(velocity, rhs);
 
     // rhs = delta*M*velocity + delta^2*residual
     rhs.linC(localDelta, rhs, localDelta * localDelta, residual);
+#endif
   }
 
   times->predictorTime += getTime();
@@ -689,7 +695,7 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
 #ifdef NO_MIDPOINT
     localTemp.linC(inc_displacement, -localDelta*2.0, velocity);
-    localTemp.linAdd(-delta*delta, acceleration);
+    localTemp.linAdd(-localDelta*localDelta, acceleration);
 #else
     localTemp.linC(inc_displacement, -localDelta, velocity);
 #endif

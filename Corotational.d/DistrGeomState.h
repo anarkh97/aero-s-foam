@@ -31,6 +31,7 @@ class DistrGeomState {
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot = true);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
+     void print() { };
 
      //HB
      DistrGeomState &operator=(DistrGeomState &unp);     

@@ -119,7 +119,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
 }
 
 void
-MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& residual,
+MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                               DistrVector& rhs, DistrGeomState &geomState,
                               double midtime, double localDelta)
 {

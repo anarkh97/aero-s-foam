@@ -110,9 +110,9 @@ class MDNLDynamic
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
     
-    void formRHSpredictor(DistrVector& velocity, DistrVector& residual, 
+    void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual, 
                           DistrVector& rhs, DistrGeomState &, double mid = 0.0);
-    void formRHSpredictor(DistrVector& velocity, DistrVector& residual,
+    void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);
 
     void formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce,
@@ -178,10 +178,10 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
 }
 
 inline void 
-MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& residual,
+MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                               DistrVector& rhs, DistrGeomState &geomState, double mid)
 {
-  formRHSpredictor(velocity, residual, rhs, geomState, mid, delta);
+  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, delta);
 }
 
 inline void

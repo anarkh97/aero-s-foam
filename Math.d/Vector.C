@@ -496,6 +496,9 @@ template<class Scalar>
 void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
+ for(int i=0; i<len; ++i) cerr << d[i] << " ";
+ cerr << endl;
+/*
  if(*msg) fprintf(stderr,"%s\n",msg);
  if(d) {
    int i;
@@ -505,6 +508,7 @@ GenVector<Scalar>::print(const char *msg, const char* msg2)
  }
  else
    fprintf(stderr,"--- This GenVector<Scalar> is Null ---\n");
+*/
 }
 
 template<class Scalar>

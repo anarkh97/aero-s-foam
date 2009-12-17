@@ -39,7 +39,7 @@ public:
   void reBuildKonly();
   void zeroRotDofs(VecType &) const;
   double formRHSCoarseCorrector(Vector & inc_displac, Vector & velocity, Vector & acceleration, Vector & residual, Vector & rhs);
-  void formRHSCoarsePredictor(Vector & velocity, Vector & residual, Vector & rhs, GeomState & geomState, double mid = 0.0);
+  void formRHSCoarsePredictor(Vector & velocity, Vector & acceleration, Vector & residual, Vector & rhs, GeomState & geomState, double mid = 0.0);
   double energyNorm(const Vector & disp, const Vector & velo);
   double energyDot(const Vector & disp1, const Vector & velo1, const Vector & disp2, const Vector & velo2);
 
@@ -104,9 +104,9 @@ PitaNonLinDynamic::formRHSCoarseCorrector(Vector & inc_displac, Vector & velocit
 }
 
 inline void
-PitaNonLinDynamic::formRHSCoarsePredictor(Vector & velocity, Vector & residual, Vector & rhs, GeomState & geomState, double mid)
+PitaNonLinDynamic::formRHSCoarsePredictor(Vector & velocity, Vector & acceleration, Vector & residual, Vector & rhs, GeomState & geomState, double mid)
 {
-  formRHSpredictor(velocity, residual, rhs, geomState, mid, getCoarseDelta());
+  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, getCoarseDelta());
 }
 
 inline void

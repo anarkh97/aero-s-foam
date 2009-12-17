@@ -89,7 +89,7 @@ void NLDynamTimeIntegrator::integrate(int numSteps)
     probDesc.getExternalForce(external_force, gravityForce, 1 /* "currStep" */, midTime, geomState, elementInternalForce, aeroForce);
     residual = external_force - prev_int_force;
     stateIncr.zero();
-    probDesc.formRHSpredictor(velocity, residual, rhs, *geomState, midTime, localDelta); // rhs = [M] (disp + delta * velocity) + delta^2 * residual
+    probDesc.formRHSpredictor(velocity, acceleration, residual, rhs, *geomState, midTime, localDelta); // rhs = [M] (disp + delta * velocity) + delta^2 * residual
     resN = rhs.norm();
     currentRes = resN;
     residual = rhs;

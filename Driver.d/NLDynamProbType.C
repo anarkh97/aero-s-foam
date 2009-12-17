@@ -240,6 +240,8 @@ else
 
          // Compute incremental displacements
          geomState->get_inc_displacement(inc_displac, *stepState);
+         //cerr << "geomState = "; geomState->print();
+         //cerr << "inc displacement = "; inc_displac.print();
 
          // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
          resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
@@ -259,6 +261,7 @@ else
          // Check for convergence
          converged = probDesc->checkConvergence(iter+1, resN, residual, rhs, time);
          StateUpdate::updateIncr(stateIncr, rhs);
+         //cerr << "state increment = "; rhs.print();
 
          if(converged == 1)
 	   break;
@@ -285,6 +288,8 @@ else
                                     elementInternalForce, totalRes, acceleration);
      // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
      acceleration.linC(-1.0, acceleration, -1.0/delta, v_p); acceleration.linAdd(1.0/delta, velocity_n);
+     //cerr << "velocity = "; velocity_n.print();
+     //cerr << "acceleration = "; acceleration.print();
 
      // Output results at current time
      if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();

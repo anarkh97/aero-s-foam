@@ -125,7 +125,7 @@ NlDynamTimeIntegrator::integrate(unsigned int steps) {
     probDesc_->getExternalForce(externalForce_, gravityForce_, 1 /* "currStep" */, midTime_, geomState_, elementInternalForce_, aeroForce_);
     residual_ = externalForce_ - prevIntForce_;
     stateIncr_.zero();
-    probDesc_->formRHSpredictor(velocity_, residual_, rhs_, *geomState_, midTime_, localDelta_); // rhs = [M] (disp + delta * velocity) + delta^2 * residual
+    probDesc_->formRHSpredictor(velocity_, acceleration_, residual_, rhs_, *geomState_, midTime_, localDelta_); // rhs = [M] (disp + delta * velocity) + delta^2 * residual
     resN = rhs_.norm();
     currentRes = resN;
     residual_ = rhs_;

@@ -326,6 +326,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     double r1[3], r2[3];
     mat_to_vec(ns1.R, r1);
     mat_to_vec(ns2.R, r2);
+    //cerr << "theta1 = " << sqrt(r1[0]*r1[0]+r1[1]*r1[1]+r1[2]*r1[2]) << ", theta2 = " << sqrt(r2[0]*r2[0]+r2[1]*r2[1]+r2[2]*r2[2]) << endl;
 
     double dRdvi1[3][3], dRdvi2[3][3], d1[3][3], d2[3][3];
     for(int k=0; k<3; ++k) {
@@ -371,7 +372,7 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 void
 RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatrix& J)
 {
-  J.zero(); 
+  J.zero();
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
@@ -455,7 +456,6 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
           Partial_R_Partial_EM3(r2, j, dRdvj2);
           mat_mult_mat(dRdvj2, c0, d2, 1);
 
-          // is this really symmetric?
           J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[1][0] + d1[2][1]*d2[1][1] + d1[2][2]*d2[1][2];
         }
       }
@@ -514,9 +514,9 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
     } break;
-/*
+
     case 4 : {
-      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -538,7 +538,7 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
     } break;
 
     case 5 : {
-      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3], d2[3][3];
+      double d2Rdvidvj1[3][3], dRdvi1[3][3], d1[3][3];
       for(int i=0; i<3; ++i) {
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
@@ -558,7 +558,7 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         }
       }
     } break;
-*/
+
   }
   //cerr << "k = " << k << ", J = \n"; J.print();
 }

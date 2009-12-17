@@ -18,14 +18,14 @@ public:
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes) {
     geomState->update(*du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes);
+    return (pbd) ? pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes) : 0.0;
   }
   static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime) {
     geomState->update(*du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime);
+    return (pbd) ? pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime) : 0.0;
   }
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, GeomType *refState, 

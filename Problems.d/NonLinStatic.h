@@ -57,6 +57,8 @@ class NonLinStatic {
     void printTimers();
 
     double getTolerance(){return tolerance*firstRes;}
+
+    double getEnergy(double lambda, Vector& force, GeomState* geomState);
 };
 
 #endif

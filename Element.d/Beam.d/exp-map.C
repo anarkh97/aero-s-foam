@@ -181,7 +181,6 @@ void EM2_To_R(double r[2], double s[3], double t[3], double R[3][3])
 void Partial_R_Partial_Vi(Quat q, Quat dqdvi, double dRdvi[3][3])
 {
     double    prod[9];
-    int       i;
     
     /* This efficient formulation is arrived at by writing out the
      * entire chain rule product dRdq * dqdv in terms of 'q' and 
@@ -214,24 +213,47 @@ void Partial_R_Partial_Vi(Quat q, Quat dqdvi, double dRdvi[3][3])
 
 void Second_Partial_R_Partial_Vij(Quat q, Quat dqdvi, Quat dqdvj, Quat d2qdvidvj, double d2Rdvidvj[3][3])
 {
-    /* first row, followed by second and third */
 /*
-d2Rdvidvj =
- 
-[                                                                       - 4*dq2dvi*dq2dvj - 4*dq3dvi*dq3dvj - 4*d2q2dvidvj*q2 - 4*d2q3dvidvj*q3, 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi - 2*dq3dvi*dq4dvj - 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 - 2*d2q4dvidvj*q3 - 2*d2q3dvidvj*q4, 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi + 2*dq2dvi*dq4dvj + 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 + 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 + 2*d2q2dvidvj*q4]
-[ 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi + 2*dq3dvi*dq4dvj + 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 + 2*d2q4dvidvj*q3 + 2*d2q3dvidvj*q4,                                                                       - 4*dq1dvi*dq1dvj - 4*dq3dvi*dq3dvj - 4*d2q1dvidvj*q1 - 4*d2q3dvidvj*q3, 2*dq2dvi*dq3dvj - 2*dq1dvj*dq4dvi - 2*dq1dvi*dq4dvj + 2*dq2dvj*dq3dvi - 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 - 2*d2q1dvidvj*q4]
-[ 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi - 2*dq2dvi*dq4dvj - 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 - 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 - 2*d2q2dvidvj*q4, 2*dq1dvi*dq4dvj + 2*dq1dvj*dq4dvi + 2*dq2dvi*dq3dvj + 2*dq2dvj*dq3dvi + 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 + 2*d2q1dvidvj*q4,                                                                       - 4*dq1dvi*dq1dvj - 4*dq2dvi*dq2dvj - 4*d2q1dvidvj*q1 - 4*d2q2dvidvj*q2]
-*/ 
-    d2Rdvidvj[0][0] = - 4*d2qdvidvj[Y]*q[Y] - 4*d2qdvidvj[Z]*q[Z] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
-    d2Rdvidvj[0][1] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] - 2*d2qdvidvj[W]*q[Z] - 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[0][2] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] + 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] + 2*d2qdvidvj[Y]*q[W] + dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[1][0] = 2*dqdvi[X]*dqdvj[Y] + 2*d2qdvidvj[Y]*q[X] + 2*d2qdvidvj[X]*q[Y] + 2*d2qdvidvj[W]*q[Z] + 2*d2qdvidvj[Z]*q[W] + dqdvj[X]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[1][1] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Z]*q[Z];
-    d2Rdvidvj[1][2] = 2*d2qdvidvj[Z]*q[Y] - 2*d2qdvidvj[W]*q[X] - 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[Y]*q[Z] - 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[2][0] = 2*dqdvi[X]*dqdvj[Z] + 2*d2qdvidvj[Z]*q[X] - 2*d2qdvidvj[W]*q[Y] + 2*d2qdvidvj[X]*q[Z] - 2*d2qdvidvj[Y]*q[W] - dqdvj[W]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[2][1] = 2*dqdvi[X]*dqdvj[W] + 2*d2qdvidvj[W]*q[X] + 2*d2qdvidvj[Z]*q[Y] + 2*d2qdvidvj[Y]*q[Z] + 2*d2qdvidvj[X]*q[W] + dqdvj[Z]*(2*dqdvi[Y] + 2*dqdvi[Z] + 2*dqdvi[W]);
-    d2Rdvidvj[2][2] = - 4*dqdvi[X]*dqdvj[X] - 4*d2qdvidvj[X]*q[X] - 4*d2qdvidvj[Y]*q[Y] - dqdvj[Y]*(4*dqdvi[Y] + 4*dqdvi[Z] + 4*dqdvi[W]);
- 
+    double q1 = q[X], q2 = q[Y], q3 = q[Z], q4 = q[W];
+    double dq1dvi = dqdvi[X], dq2dvi = dqdvi[Y], dq3dvi = dqdvi[Z], dq4dvi = dqdvi[W];
+    double dq1dvj = dqdvj[X], dq2dvj = dqdvj[Y], dq3dvj = dqdvj[Z], dq4dvj = dqdvj[W];
+    double d2q1dvidvj = d2qdvidvj[X], d2q2dvidvj = d2qdvidvj[Y], d2q3dvidvj = d2qdvidvj[Z], d2q4dvidvj = d2qdvidvj[W];
+
+    d2Rdvidvj[0][0] = - 4*dq2dvi*dq2dvj - 4*dq3dvi*dq3dvj - 4*d2q2dvidvj*q2 - 4*d2q3dvidvj*q3;
+    d2Rdvidvj[0][1] = 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi - 2*dq3dvi*dq4dvj - 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 - 2*d2q4dvidvj*q3 - 2*d2q3dvidvj*q4;
+    d2Rdvidvj[0][2] = 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi + 2*dq2dvi*dq4dvj + 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 + 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 + 2*d2q2dvidvj*q4;
+    d2Rdvidvj[1][0] = 2*dq1dvi*dq2dvj + 2*dq1dvj*dq2dvi + 2*dq3dvi*dq4dvj + 2*dq3dvj*dq4dvi + 2*d2q2dvidvj*q1 + 2*d2q1dvidvj*q2 + 2*d2q4dvidvj*q3 + 2*d2q3dvidvj*q4;
+    d2Rdvidvj[1][1] = - 4*dq1dvi*dq1dvj - 4*dq3dvi*dq3dvj - 4*d2q1dvidvj*q1 - 4*d2q3dvidvj*q3;
+    d2Rdvidvj[1][2] = 2*dq2dvi*dq3dvj - 2*dq1dvj*dq4dvi - 2*dq1dvi*dq4dvj + 2*dq2dvj*dq3dvi - 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 - 2*d2q1dvidvj*q4;
+    d2Rdvidvj[2][0] = 2*dq1dvi*dq3dvj + 2*dq1dvj*dq3dvi - 2*dq2dvi*dq4dvj - 2*dq2dvj*dq4dvi + 2*d2q3dvidvj*q1 - 2*d2q4dvidvj*q2 + 2*d2q1dvidvj*q3 - 2*d2q2dvidvj*q4;
+    d2Rdvidvj[2][1] = 2*dq1dvi*dq4dvj + 2*dq1dvj*dq4dvi + 2*dq2dvi*dq3dvj + 2*dq2dvj*dq3dvi + 2*d2q4dvidvj*q1 + 2*d2q3dvidvj*q2 + 2*d2q2dvidvj*q3 + 2*d2q1dvidvj*q4;
+    d2Rdvidvj[2][2] = - 4*dq1dvi*dq1dvj - 4*dq2dvi*dq2dvj - 4*d2q1dvidvj*q1 - 4*d2q2dvidvj*q2;
+*/
+    double    prod[9];
+
+    // efficient implementation
+    prod[0]  = -4*(d2qdvidvj[X]*q[X] + dqdvi[X]*dqdvj[X]);
+    prod[1]  = -4*(d2qdvidvj[Y]*q[Y] + dqdvi[Y]*dqdvj[Y]);
+    prod[2]  = -4*(d2qdvidvj[Z]*q[Z] + dqdvi[Z]*dqdvj[Z]);
+    prod[3]  = 2*(d2qdvidvj[Y]*q[X] + d2qdvidvj[X]*q[Y] + dqdvi[X]*dqdvj[Y] + dqdvj[X]*dqdvi[Y]);
+    prod[4]  = 2*(d2qdvidvj[W]*q[Z] + d2qdvidvj[Z]*q[W] + dqdvi[Z]*dqdvj[W] + dqdvj[Z]*dqdvi[W]);
+    prod[5]  = 2*(d2qdvidvj[Z]*q[X] + d2qdvidvj[X]*q[Z] + dqdvi[X]*dqdvj[Z] + dqdvj[X]*dqdvi[Z]);
+    prod[6]  = 2*(d2qdvidvj[W]*q[Y] + d2qdvidvj[Y]*q[W] + dqdvi[Y]*dqdvj[W] + dqdvj[Y]*dqdvi[W]);
+    prod[7]  = 2*(d2qdvidvj[Z]*q[Y] + d2qdvidvj[Y]*q[Z] + dqdvi[Y]*dqdvj[Z] + dqdvj[Y]*dqdvi[Z]);
+    prod[8]  = 2*(d2qdvidvj[W]*q[X] + d2qdvidvj[X]*q[W] + dqdvi[X]*dqdvj[W] + dqdvj[X]*dqdvi[W]);
+
+    d2Rdvidvj[0][0] = prod[1] + prod[2];
+    d2Rdvidvj[0][1] = prod[3] - prod[4];
+    d2Rdvidvj[0][2] = prod[5] + prod[6];
+
+    d2Rdvidvj[1][0] = prod[3] + prod[4];
+    d2Rdvidvj[1][1] = prod[0] + prod[2];
+    d2Rdvidvj[1][2] = prod[7] - prod[8];
+
+    d2Rdvidvj[2][0] = prod[5] - prod[6];
+    d2Rdvidvj[2][1] = prod[7] + prod[8];
+    d2Rdvidvj[2][2] = prod[0] + prod[1];
+
 }
 
 
@@ -351,6 +373,41 @@ void Second_Partial_Q_Partial_3V(double v[3], int i, int j, Quat d2qdxidxj)
         d2qdxidxj[W] = (v[i]*v[j]*sinp)/(2*theta3) - (v[i]*v[j]*cosp)/(4*theta2);
       }
    }
+/* work in progress
+    // efficient implementation with common sub-expressions factored out
+    if (theta < MIN_ANGLE) {
+      if(i == j) {
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        d2qdxidxj[i ] = 3*v[i]*theta2/960 - 3*v[i]/24 + v[i]*v[i]*v[i]/480;
+        d2qdxidxj[i2] = v[i2]*(v[i]*v[i]/480 + theta2/960 - 1/24.);
+        d2qdxidxj[i3] = v[i3]*(v[i]*v[i]/320 + v[i2]*v[i2]/960 + v[i3]*v[i3]/960 - 1/24.);
+        d2qdxidxj[W ] = v[i]*v[i]/32 + v[i2]*v[i2]/96 + v[i3]*v[i3]/96 - .25;
+      }
+      else {
+        const int k = 3-i-j;
+        d2qdxidxj[i] = (v[i]*v[i]*v[j])/480 - v[j]/24 + (v[j]*theta2)/960;
+        d2qdxidxj[j] = (v[i]*v[j]*v[j])/480 - v[i]/24 + (v[i]*theta2)/960;
+        d2qdxidxj[k] = (v[i]*v[j]*v[k])/480;
+        d2qdxidxj[W] = (v[i]*v[j])/48;
+      }
+    }
+    else {
+      if(i == j) {
+        const int i2 = (i+1)%3, i3 = (i+2)%3;
+        d2qdxidxj[i ] = (3*v[i]*cosp)/(2*theta2) - (3*v[i]*sinp)/theta3 - (3*v[i]*v[i]*v[i]*cosp)/(2*theta4) - (v[i]*v[i]*v[i]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i]*sinp)/theta5;
+        d2qdxidxj[i2] = (v[i2]*cosp)/(2*theta2) - (v[i2]*sinp)/theta3 - (3*v[i]*v[i]*v[i2]*cosp)/(2*theta4) - (v[i]*v[i]*v[i2]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i2]*sinp)/theta5;
+        d2qdxidxj[i3] = (v[i3]*cosp)/(2*theta2) - (v[i3]*sinp)/theta3 - (3*v[i]*v[i]*v[i3]*cosp)/(2*theta4) - (v[i]*v[i]*v[i3]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[i3]*sinp)/theta5;
+        d2qdxidxj[W ] = (v[i]*v[i]*sinp)/(2*theta3) - (v[i]*v[i]*cosp)/(4*theta2) - sinp/(2*theta);
+      }
+      else {
+        const int k = 3-i-j;
+        d2qdxidxj[i] = (v[j]*cosp)/(2*theta2) - (v[j]*sinp)/theta3 - (3*v[i]*v[i]*v[j]*cosp)/(2*theta4) - (v[i]*v[i]*v[j]*sinp)/(4*theta3) + (3*v[i]*v[i]*v[j]*sinp)/theta5;
+        d2qdxidxj[j] = (v[i]*cosp)/(2*theta2) - (v[i]*sinp)/theta3 - (3*v[i]*v[j]*v[j]*cosp)/(2*theta4) - (v[i]*v[j]*v[j]*sinp)/(4*theta3) + (3*v[i]*v[j]*v[j]*sinp)/theta5;
+        d2qdxidxj[k] = (3*v[i]*v[j]*v[k]*sinp)/theta5 - (v[i]*v[j]*v[k]*sinp)/(4*theta3) - (3*v[i]*v[j]*v[k]*cosp)/(2*theta4);
+        d2qdxidxj[W] = (v[i]*v[j]*sinp)/(2*theta3) - (v[i]*v[j]*cosp)/(4*theta2);
+      }
+   }
+*/
 }
 
 

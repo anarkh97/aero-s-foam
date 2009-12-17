@@ -76,6 +76,9 @@ class MDNLStatic
 
     double getTolerance() {return tolerance*firstRes;}
 
+    double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
+      { cerr << "MDNLStatic::getEnergy is not implemented\n"; }
+
 };
 
 #endif

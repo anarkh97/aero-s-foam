@@ -354,3 +354,46 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
   domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot);
   times->output += getTime();
 }
+
+double
+NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
+{
+  Vector sol(domain->numUncon(), 0.0);
+  for(int i=0; i<domain->numNode(); ++i) {
+    Node *node_i = domain->getNodes()[i];
+    int xloc  = domain->getCDSA()->locate(i, DofSet::Xdisp);
+    if(xloc >= 0 && node_i) {
+      sol[xloc]  = ( (*geomState)[i].x - node_i->x);
+    }
+    int yloc  = domain->getCDSA()->locate(i, DofSet::Ydisp);
+    if(yloc >= 0 && node_i)
+      sol[yloc]  = ( (*geomState)[i].y - node_i->y);
+    int zloc  = domain->getCDSA()->locate(i, DofSet::Zdisp);
+    if(zloc >= 0 && node_i)
+      sol[zloc]  = ( (*geomState)[i].z - node_i->z);
+    double rot[3];
+    mat_to_vec((*geomState)[i].R,rot);
+    int xrot  = domain->getCDSA()->locate(i, DofSet::Xrot);
+    if(xrot >= 0 && node_i)
+      sol[xrot]  = rot[0];
+    int yrot  = domain->getCDSA()->locate(i, DofSet::Yrot);
+    if(yrot >= 0 && node_i)
+      sol[yrot]  = rot[1];
+    int zrot  = domain->getCDSA()->locate(i, DofSet::Zrot);
+    if(zrot >= 0 && node_i)
+      sol[zrot]  = rot[2];
+  }
+
+  // compute external energy
+  double Wext = lambda*force*sol;
+
+  // compute internal energy (this is done at the element level)
+  double Wela = 0.0;
+  for(int i = 0; i < domain->numElements(); ++i)
+     Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
+  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
+
+  // Total Energy = Wext + Wela
+  return -Wext + Wela;
+}
+

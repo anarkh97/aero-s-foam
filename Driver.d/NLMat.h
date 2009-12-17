@@ -134,7 +134,8 @@ public:
    void initNewton() { /* do nothing */ }
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }
-    void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &) { cerr << "NLMatProbDesc::formRHSinitializer is not implemented\n"; }
+   void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &) { cerr << "NLMatProbDesc::formRHSinitializer is not implemented\n"; }
+   double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; }
 };
 
 inline

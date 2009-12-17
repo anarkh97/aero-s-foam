@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <Timers.d/GetTime.h>
 
+#define LINESEARCH
+
 extern int verboseFlag;
 
 template < class OpSolver, 
@@ -347,6 +349,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 //  timeUpdate += getTime();
   
   // Main Newton Iteration Loop
+  double e_k = std::numeric_limits<double>::max();
   int iter, converged;
   for(iter = 0; iter < maxit; ++iter) {
 
@@ -391,7 +394,25 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
     // Update geometric state of problem
     timeUpdate -= getTime();
+#ifdef LINESEARCH
+    double alpha = 1.0;
+    VecType du(probDesc->solVecInfo());
+    for(alpha = 1.0; alpha > std::numeric_limits<double>::epsilon() ; alpha *= 0.99) {
+      GeomType *tmpState = new GeomType(*geomState);
+      du.linC(residual,alpha);
+      StateUpdate::updateIncr(stateIncr, du);
+      StateUpdate::integrate(NULL, refState, tmpState, stateIncr, residual, elementInternalForce, totalRes);
+      double e = probDesc->getEnergy(lambda, force, tmpState);
+      //cerr << "alpha = " << alpha << ", e = " << e << endl;
+      delete tmpState;
+      if(e < e_k) { e_k = e; break; }
+    }
+    cerr << "alpha = " << alpha << endl;
+    residual *= alpha;
+#endif
+    cerr << "energy = " << probDesc->getEnergy(lambda, force, geomState);
     StateUpdate::updateIncr(stateIncr, residual);
+
 //    StateUpdate::update(refState, geomState, stateIncr, residual);
     timeUpdate += getTime();
 

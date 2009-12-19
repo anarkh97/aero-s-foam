@@ -1,7 +1,7 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
-//#define NO_MIDPOINT
+#define GENERALIZED_ALPHA
 
 class DofSetArray;
 class CoordSet;
@@ -11,18 +11,23 @@ class ControlLawInfo;
 class BCond;
 class Node;
 
+
 class NodeState {
+//  private:
+//    DirectionCosineMatrix* dRdr;        // vector of the partial derivatives of R wrt thetax, thetay and thetaz
+//    DirectionCosineMatrix* d2Rdr2;      // vector of the second parital derivatives of R wrt thetax, thetay and thetaz
   public:
     double x,   y,  z;			// x,y,z coordinates
     double vx, vy, vz;			// x,y,z velocities
-    double R[3][3]; 			// Rotation Tensor
+    double R[3][3];      	        // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
 };
 
 
 class GeomState {
-//   private:
+   private:
+     double beta, gamma, alpham, alphaf;
   public:
      NodeState *ns;     // node state (x,y,z position and rotation tensor)
   protected:
@@ -87,7 +92,7 @@ class GeomState {
      void computeRotGradAndJac(double cg [3], 
 			       double  grad[3], double jac[3][3]);
      void rotate(double mat[3][3], double vec[3]);
-
+     void setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf);
 };
 
 #endif

@@ -48,7 +48,7 @@ class RigidMpcElement : public Element, public Corotator
     // if the following two functions do not need to be implemented if the constraint function is linear
     void init() { first = true; }
     virtual void updateLMPCs(GeomState& gState, CoordSet& cs);
-    virtual void getJacobian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J);
+    virtual void getHessian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J);
 
 };
 #endif

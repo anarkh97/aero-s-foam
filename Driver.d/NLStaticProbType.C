@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <Timers.d/GetTime.h>
 
-#define LINESEARCH
+//#define LINESEARCH
 
 extern int verboseFlag;
 
@@ -397,7 +397,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 #ifdef LINESEARCH
     double alpha = 1.0;
     VecType du(probDesc->solVecInfo());
-    for(alpha = 1.0; alpha > std::numeric_limits<double>::epsilon() ; alpha *= 0.99) {
+    for(alpha = 1.0; alpha > std::numeric_limits<double>::epsilon() ; alpha *= 0.9) {
       GeomType *tmpState = new GeomType(*geomState);
       du.linC(residual,alpha);
       StateUpdate::updateIncr(stateIncr, du);

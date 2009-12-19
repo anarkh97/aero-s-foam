@@ -281,14 +281,32 @@ GeomState::setVelocity(const Vector &v)
 }
 
 void
+GeomState::setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf)
+{
+  beta = _beta;
+  gamma = _gamma;
+  alpham = _alpham;
+  alphaf = _alphaf;
+}
+
+void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss)
 {
+ Vector vel_p(vel_n); // make a copy, used to update accelerations
  // Update incremental displacements at end of step:
  // note: delta = dt/2
-#ifdef NO_MIDPOINT
- double coef = 1.0/delta;
+#ifdef GENERALIZED_ALPHA
+ double dt = 2.0*delta;
+ double coef = 1/(1-alphaf);
+ double dcoef = gamma/(dt*beta);
+ double vcoef = (1-(1-alphaf)*gamma/beta)-alphaf;
+ double acoef = dt*(1-alphaf)*(2*beta-gamma)/(2*beta);
+ double dcoef2 = 1/(dt*dt*beta);
+ double vcoef2 = -1/(dt*beta);
+ double acoef2 = (2*beta-1)/(2*beta);
 #else
  double coef = 2.0/delta;
+ double coef2 = coef*coef;
 #endif
 
  // x,y,z velocity step update (velocity_n+1 = 2.0*velocity_n+1/2 - velocity_n)
@@ -297,7 +315,16 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
  int i;
  for(i=0; i<numnodes; ++i) {
-   
+#ifdef GENERALIZED_ALPHA
+   if(loc[i][0] >= 0)
+     vel_n[loc[i][0]] = coef*(dcoef*(ns[i].x - ss.ns[i].x) + vcoef*vel_n[loc[i][0]] + acoef*acc_n[loc[i][0]]);
+
+   if(loc[i][1] >= 0)
+     vel_n[loc[i][1]] = coef*(dcoef*(ns[i].y - ss.ns[i].y) + vcoef*vel_n[loc[i][1]] + acoef*acc_n[loc[i][1]]);
+
+   if(loc[i][2] >= 0)
+     vel_n[loc[i][2]] = coef*(dcoef*(ns[i].z - ss.ns[i].z) + vcoef*vel_n[loc[i][2]] + acoef*acc_n[loc[i][2]]);
+#else   
    if(loc[i][0] >= 0) // if(flag(i) // XXXX
      vel_n[loc[i][0]] = coef*(ns[i].x - ss.ns[i].x) - vel_n[loc[i][0]];
    
@@ -306,20 +333,27 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
    if(loc[i][2] >= 0)
      vel_n[loc[i][2]] = coef*(ns[i].z - ss.ns[i].z) - vel_n[loc[i][2]];
+#endif
  }
 
  // Update step translational displacements
  int inode;
  for(inode=0; inode<numnodes; ++inode) {
    //if(!flag[inode]) { ns[inode].x = ss.ns[inode].x = 0.0;  continue; } // XXXX
-#ifndef NO_MIDPOINT
+#ifdef GENERALIZED_ALPHA
+   ns[inode].x    = coef*(ns[inode].x - alphaf*ss.ns[inode].x);
+   ns[inode].y    = coef*(ns[inode].y - alphaf*ss.ns[inode].y);
+   ns[inode].z    = coef*(ns[inode].z - alphaf*ss.ns[inode].z);
+#else
    ns[inode].x    = 2.0*ns[inode].x - ss.ns[inode].x;
    ns[inode].y    = 2.0*ns[inode].y - ss.ns[inode].y;
    ns[inode].z    = 2.0*ns[inode].z - ss.ns[inode].z;
 #endif
+/* moved to end
    ss.ns[inode].x = ns[inode].x;
    ss.ns[inode].y = ns[inode].y;
    ss.ns[inode].z = ns[inode].z;
+*/
  }
 
  // Update step rotational tensor
@@ -327,9 +361,11 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
  for(inode=0; inode<numnodes; ++inode) {
    //if(!flag[inode]) continue; // XXXX
-#ifdef NO_MIDPOINT
-   for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) ss.ns[inode].R[i][j] = ns[inode].R[i][j];
-#else
+#ifdef GENERALIZED_ALPHA
+   if(alpham == 0.0 &&  alphaf == 0.0)
+     for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) ss.ns[inode].R[i][j] = ns[inode].R[i][j];
+   else { // actually I think the following is only correct for alpham = alphaf = 0.5
+#endif
    mat_mult_mat( ss.ns[inode].R, ns[inode].R, result2, 1 );
 
    //orthonorm3(result2); // XXXX
@@ -349,7 +385,37 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
    ss.ns[inode].R[2][0] = ns[inode].R[2][0] = result[2][0];
    ss.ns[inode].R[2][1] = ns[inode].R[2][1] = result[2][1];
    ss.ns[inode].R[2][2] = ns[inode].R[2][2] = result[2][2];
+#ifdef GENERALIZED_ALPHA
+   }
 #endif
+ }
+
+ for(i=0; i<numnodes; ++i) {
+#ifdef GENERALIZED_ALPHA
+   if(loc[i][0] >= 0)
+     acc_n[loc[i][0]] = dcoef2*(ns[i].x - ss.ns[i].x) + vcoef2*vel_p[loc[i][0]] + acoef2*acc_n[loc[i][0]];
+
+   if(loc[i][1] >= 0)
+     acc_n[loc[i][1]] = dcoef2*(ns[i].y - ss.ns[i].y) + vcoef2*vel_p[loc[i][1]] + acoef2*acc_n[loc[i][1]];
+
+   if(loc[i][2] >= 0)
+     acc_n[loc[i][2]] = dcoef2*(ns[i].z - ss.ns[i].z) + vcoef2*vel_p[loc[i][2]] + acoef2*acc_n[loc[i][2]];
+#else
+   if(loc[i][0] >= 0)
+     acc_n[loc[i][0]] = coef2*(ns[i].x - ss.ns[i].x) - coef*vel_p[loc[i][0]] - acc_n[loc[i][0]];
+
+   if(loc[i][1] >= 0)
+     acc_n[loc[i][1]] = coef2*(ns[i].y - ss.ns[i].y) - coef*vel_p[loc[i][1]] - acc_n[loc[i][1]];
+
+   if(loc[i][2] >= 0)
+     acc_n[loc[i][2]] = coef2*(ns[i].z - ss.ns[i].z) - coef*vel_p[loc[i][2]] - acc_n[loc[i][2]];
+#endif
+ }
+
+ for(inode=0; inode<numnodes; ++inode) {
+   ss.ns[inode].x = ns[inode].x;
+   ss.ns[inode].y = ns[inode].y;
+   ss.ns[inode].z = ns[inode].z;
  }
 
 }

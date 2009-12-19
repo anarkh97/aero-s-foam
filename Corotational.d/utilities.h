@@ -31,6 +31,7 @@ void   tran_fsl(  double force[], FullSquareMatrix &stiff,
                 double t0n[3][3], int num_nodes );
 void   mat_mult_mat(double R1[3][3], double R2[3][3], double result[3][3], 
                     int transflag);
+void mat_mult_vec(double A[3][3], double b[3], double c[3]);
 
 void tran_force( double force[18], double tmat[3][3], int num_nodes );
 void tran_stiff( FullSquareMatrix &stiff, double tmat[3][3]);

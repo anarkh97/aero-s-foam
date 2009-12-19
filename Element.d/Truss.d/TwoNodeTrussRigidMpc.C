@@ -324,7 +324,7 @@ TwoNodeTrussRigidMpc::updateLMPCs(GeomState& gState, CoordSet& cs)
 }
 
 void 
-TwoNodeTrussRigidMpc::getJacobian(GeomState& gState, CoordSet&, int, FullSquareMatrix& J)
+TwoNodeTrussRigidMpc::getHessian(GeomState& gState, CoordSet&, int, FullSquareMatrix& H)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
@@ -337,19 +337,19 @@ TwoNodeTrussRigidMpc::getJacobian(GeomState& gState, CoordSet&, int, FullSquareM
   
   double l2 = l*l;
   double l3 = l*l*l;
-  J[0][0] = J[3][3] = (l2-lx*lx)/l3;
-  J[1][1] = J[4][4] = (l2-ly*ly)/l3;
-  J[2][2] = J[5][5] = (l2-lz*lz)/l3;
+  H[0][0] = H[3][3] = (l2-lx*lx)/l3;
+  H[1][1] = H[4][4] = (l2-ly*ly)/l3;
+  H[2][2] = H[5][5] = (l2-lz*lz)/l3;
 
-  J[0][1] = J[1][0] = J[3][4] = J[4][3] = -lx*ly/l3;
-  J[0][2] = J[2][0] = J[3][5] = J[5][3] = -lx*lz/l3;
-  J[1][2] = J[2][1] = J[4][5] = J[5][4] = -ly*lz/l3;
+  H[0][1] = H[1][0] = H[3][4] = H[4][3] = -lx*ly/l3;
+  H[0][2] = H[2][0] = H[3][5] = H[5][3] = -lx*lz/l3;
+  H[1][2] = H[2][1] = H[4][5] = H[5][4] = -ly*lz/l3;
 
-  J[0][3] = J[3][0] = -J[0][0];
-  J[1][4] = J[4][1] = -J[1][1];
-  J[2][5] = J[5][2] = -J[2][2];
+  H[0][3] = H[3][0] = -H[0][0];
+  H[1][4] = H[4][1] = -H[1][1];
+  H[2][5] = H[5][2] = -H[2][2];
 
-  J[0][4] = J[4][0] = J[1][3] = J[3][1] = -J[0][1];
-  J[0][5] = J[5][0] = J[2][3] = J[3][2] = -J[0][2];
-  J[1][5] = J[5][1] = J[2][4] = J[4][2] = -J[1][2];
+  H[0][4] = H[4][0] = H[1][3] = H[3][1] = -H[0][1];
+  H[0][5] = H[5][0] = H[2][3] = H[3][2] = -H[0][2];
+  H[1][5] = H[5][1] = H[2][4] = H[4][2] = -H[1][2];
 }

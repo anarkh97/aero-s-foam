@@ -149,13 +149,13 @@ RigidMpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&
     updateLMPCs(c1, c0); // update the rhs and coefficients of each mpc to the value and gradient of it's constraint function, respectively 
     int i, j, k, l, m;
     m = nNodes*nDofsPerNode;
-    FullSquareMatrix J(m);
+    FullSquareMatrix H(m);
     for(i = 0; i < nMpcs; ++i) {
-      getJacobian(c1, c0, i, J); // compute the jacobian of the ith constraint function and store in J
+      getHessian(c1, c0, i, H); // compute the hessian of the ith constraint function and store in H
       double lambda = c1[nn[nNodes+i]].x;
       for(j = 0; j < m; ++j)
         for(k = 0; k < m; ++k) 
-          Ktan[j][k] += lambda*J[j][k];
+          Ktan[j][k] += lambda*H[j][k];
       for(j = 0; j < mpcs[i]->nterms; ++j) {
         for(k = 0; k < nNodes; ++k) if ( mpcs[i]->terms[j].nnum == nn[k]) break;
         l = k*nDofsPerNode + mpcs[i]->terms[j].dofnum;
@@ -184,8 +184,8 @@ RigidMpcElement::updateLMPCs(GeomState&, CoordSet&)
 }
 
 void 
-RigidMpcElement::getJacobian(GeomState&, CoordSet&, int, FullSquareMatrix& J) 
+RigidMpcElement::getHessian(GeomState&, CoordSet&, int, FullSquareMatrix& H) 
 { 
-  J.zero(); 
+  H.zero(); 
 }
 

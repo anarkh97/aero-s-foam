@@ -286,8 +286,10 @@ else
      StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                     stepState, geomState, stateIncr, residual,
                                     elementInternalForce, totalRes, acceleration);
+/* this is now done inside the previous function call
      // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
      acceleration.linC(-1.0, acceleration, -1.0/delta, v_p); acceleration.linAdd(1.0/delta, velocity_n);
+*/
      //cerr << "velocity = "; velocity_n.print();
      //cerr << "acceleration = "; acceleration.print();
 

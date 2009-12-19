@@ -23,9 +23,9 @@ RigidMpcBeam::computeMPCs(CoordSet& cs)
   double dy = nd2.y - nd1.y;
   double dz = nd2.z - nd1.z;
 
-  double length = sqrt( dx*dx + dy*dy + dz*dz );
+  l0 = sqrt( dx*dx + dy*dy + dz*dz );
 
-  if(length == 0.0) {
+  if(l0 == 0.0) {
     cerr << " *** WARNING: Rigid beam has zero length, nodes: " << nn[0]+1 << " " << nn[1]+1 << endl;
     for(int i = 0; i < 6; ++i) {
       mpcs[i]->addterm(new LMPCTerm(nn[0], i, 1.0));
@@ -33,9 +33,9 @@ RigidMpcBeam::computeMPCs(CoordSet& cs)
     }
   }
   else {
-    c0[0][0] = dx/length;
-    c0[0][1] = dy/length;
-    c0[0][2] = dz/length;
+    c0[0][0] = dx/l0;
+    c0[0][1] = dy/l0;
+    c0[0][2] = dz/l0;
 
     double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
     double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
@@ -283,15 +283,6 @@ RigidMpcBeam::getLength(CoordSet& cs, double& length)
 void 
 RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 {
-  // nodes' original coordinates
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-
-  double dx0 = nd2.x - nd1.x;
-  double dy0 = nd2.y - nd1.y;
-  double dz0 = nd2.z - nd1.z;
-  double l0 = sqrt(dx0*dx0 + dy0*dy0 + dz0*dz0);
-
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
@@ -309,8 +300,8 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
 
     // rotated cframes
     double c1[3][3], c2[3][3];
-    mat_mult_mat(ns1.R, c0, c1, 1);
-    mat_mult_mat(ns2.R, c0, c2, 1);
+    mat_mult_mat(c0, ns1.R, c1, 2);
+    mat_mult_mat(c0, ns2.R, c2, 2);
 
     // partial derivatives of constraint functions wrt x, y, z 
     for(int i = 0; i < 3; ++i) {
@@ -326,25 +317,25 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     double r1[3], r2[3];
     mat_to_vec(ns1.R, r1);
     mat_to_vec(ns2.R, r2);
-    //cerr << "theta1 = " << sqrt(r1[0]*r1[0]+r1[1]*r1[1]+r1[2]*r1[2]) << ", theta2 = " << sqrt(r2[0]*r2[0]+r2[1]*r2[1]+r2[2]*r2[2]) << endl;
 
     double dRdvi1[3][3], dRdvi2[3][3], d1[3][3], d2[3][3];
-    for(int k=0; k<3; ++k) {
-      // partial derivatives of rotation matrices wrt kth rotation parameters
-      Partial_R_Partial_EM3(r1, k, dRdvi1);
-      Partial_R_Partial_EM3(r2, k, dRdvi2);
+    for(int i=0; i<3; ++i) {
+      // partial derivatives of rotation matrices wrt ith rotation parameters
+      Partial_R_Partial_EM3(r1, i, dRdvi1);
+      Partial_R_Partial_EM3(r2, i, dRdvi2);
 
-      // partial derivatives of constraint functions wrt kth rotation parameters
-      mat_mult_mat(dRdvi1, c0, d1, 1);
-      mat_mult_mat(dRdvi2, c0, d2, 1);
-      mpcs[1]->terms[0+k].coef.r_value = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
-      mpcs[1]->terms[3+k].coef.r_value = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
-      mpcs[2]->terms[0+k].coef.r_value = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
-      mpcs[2]->terms[3+k].coef.r_value = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
-      mpcs[3]->terms[0+k].coef.r_value = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
-      mpcs[3]->terms[3+k].coef.r_value = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
-      mpcs[4]->terms[3+k].coef.r_value = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
-      mpcs[5]->terms[3+k].coef.r_value = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
+      // partial derivatives of constraint functions wrt ith rotation parameters
+      mat_mult_mat(c0, dRdvi1, d1, 2);
+      mat_mult_mat(c0, dRdvi2, d2, 2);
+
+      mpcs[1]->terms[0+i].coef.r_value = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
+      mpcs[1]->terms[3+i].coef.r_value = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
+      mpcs[2]->terms[0+i].coef.r_value = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
+      mpcs[2]->terms[3+i].coef.r_value = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
+      mpcs[3]->terms[0+i].coef.r_value = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
+      mpcs[3]->terms[3+i].coef.r_value = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
+      mpcs[4]->terms[3+i].coef.r_value = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
+      mpcs[5]->terms[3+i].coef.r_value = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
     }
 
     // values of constraint functions
@@ -354,43 +345,28 @@ RigidMpcBeam::updateLMPCs(GeomState& gState, CoordSet& cs)
     mpcs[3]->rhs.r_value = c1[1][0]*c2[0][0] + c1[1][1]*c2[0][1] + c1[1][2]*c2[0][2];
     mpcs[4]->rhs.r_value = c1[2][0]*d[0] + c1[2][1]*d[1] + c1[2][2]*d[2];
     mpcs[5]->rhs.r_value = c1[1][0]*d[0] + c1[1][1]*d[1] + c1[1][2]*d[2];
-/*
-    if(first) {
-      for(int i=0; i<6; ++i) { first_rhs[i] = mpcs[i]->rhs.r_value; mpcs[i]->rhs.r_value = 0.0; }
-    //  cerr << "first\n";
-      first = false;
-    } 
-    else
-      for(int i=0; i<6; ++i) mpcs[i]->rhs.r_value -= first_rhs[i];
-    //cerr << "rhs = "; for(int i=0; i<6; ++i) cerr << mpcs[i]->rhs.r_value << " "; cerr << endl;
-*/
   }
-
-  //for(int i = 0; i<6; ++i) mpcs[i]->print();
 }
 
 void
-RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatrix& J)
+RigidMpcBeam::getHessian(GeomState& gState, CoordSet& cs, int k, FullSquareMatrix& H)
 {
-  J.zero();
+  H.zero();
+
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
 
-  double lx = ns1.x-ns2.x;
-  double ly = ns1.y-ns2.y;
-  double lz = ns1.z-ns2.z;
-  double l = sqrt(lx*lx + ly*ly + lz*lz);
-
   double dx = ns2.x - ns1.x;
   double dy = ns2.y - ns1.y;
   double dz = ns2.z - ns1.z;
+  double l = sqrt(dx*dx + dy*dy + dz*dz);
   double d[3] = { dx, dy, dz };
 
   // rotated cframes
   double c1[3][3], c2[3][3];
-  mat_mult_mat(ns1.R, c0, c1, 1);
-  mat_mult_mat(ns2.R, c0, c2, 1);
+  mat_mult_mat(c0, ns1.R, c1, 2);
+  mat_mult_mat(c0, ns2.R, c2, 2);
 
   // rotation parameters (thetax, thetay, thetaz)
   double r1[3], r2[3];
@@ -400,37 +376,23 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
   switch(k) { 
 
     case 0 : {
-
-// [ 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0, lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0]
-// [-lx*ly/l^3,      1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0, lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0]
-// [-lx*lz/l^3,      -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0, lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-// [ lx^2/l^3 - 1/l, lx*ly/l^3,      lx*lz/l^3,      0, 0, 0, 1/l - lx^2/l^3, -lx*ly/l^3,     -lx*lz/l^3,     0, 0, 0]
-// [ lx*ly/l^3,      ly^2/l^3 - 1/l, ly*lz/l^3,      0, 0, 0, -lx*ly/l^3,     1/l - ly^2/l^3, -ly*lz/l^3,     0, 0, 0]
-// [ lx*lz/l^3,      ly*lz/l^3,      lz^2/l^3 - 1/l, 0, 0, 0, -lx*lz/l^3,     -ly*lz/l^3,     1/l - lz^2/l^3, 0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-// [ 0,              0,              0,              0, 0, 0, 0,              0,              0,              0, 0, 0]
-
       double l2 = l*l;
       double l3 = l*l*l;
-      J[0][0] = J[6][6] = (l2-lx*lx)/l3;
-      J[1][1] = J[7][7] = (l2-ly*ly)/l3;
-      J[2][2] = J[8][8] = (l2-lz*lz)/l3;
+      H[0][0] = H[6][6] = (l2-dx*dx)/l3;
+      H[1][1] = H[7][7] = (l2-dy*dy)/l3;
+      H[2][2] = H[8][8] = (l2-dz*dz)/l3;
 
-      J[0][1] = J[1][0] = J[6][7] = J[7][6] = -lx*ly/l3;
-      J[0][2] = J[2][0] = J[6][8] = J[8][6] = -lx*lz/l3;
-      J[1][2] = J[2][1] = J[7][8] = J[8][7] = -ly*lz/l3;
+      H[0][1] = H[1][0] = H[6][7] = H[7][6] = -dx*dy/l3;
+      H[0][2] = H[2][0] = H[6][8] = H[8][6] = -dx*dz/l3;
+      H[1][2] = H[2][1] = H[7][8] = H[8][7] = -dy*dz/l3;
 
-      J[0][6] = J[6][0] = -J[0][0];
-      J[1][7] = J[7][1] = -J[1][1];
-      J[2][8] = J[8][2] = -J[2][2];
+      H[0][6] = H[6][0] = -H[0][0];
+      H[1][7] = H[7][1] = -H[1][1];
+      H[2][8] = H[8][2] = -H[2][2];
 
-      J[0][7] = J[7][0] = J[1][6] = J[6][1] = -J[0][1];
-      J[0][8] = J[8][0] = J[2][6] = J[6][2] = -J[0][2];
-      J[1][8] = J[8][1] = J[2][7] = J[7][2] = -J[1][2];
+      H[0][7] = H[7][0] = H[1][6] = H[6][1] = -H[0][1];
+      H[0][8] = H[8][0] = H[2][6] = H[6][2] = -H[0][2];
+      H[1][8] = H[8][1] = H[2][7] = H[7][2] = -H[1][2];
 
     } break;
 
@@ -441,22 +403,21 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         for(int j=i; j<3; ++j) {
           Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
           Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+          mat_mult_vec(d2Rdvidvj1, c0[2], d1[2]);
+          mat_mult_vec(d2Rdvidvj2, c0[1], d2[1]);
 
-          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
-
-          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
-          J[9+i][9+j] = J[9+j][9+i] = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
+          H[3+i][3+j] = H[3+j][3+i] = d1[2][0]*c2[1][0] + d1[2][1]*c2[1][1] + d1[2][2]*c2[1][2];
+          H[9+i][9+j] = H[9+j][9+i] = c1[2][0]*d2[1][0] + c1[2][1]*d2[1][1] + c1[2][2]*d2[1][2];
         }
       }
       for(int i=0; i<3; ++i) {
         Partial_R_Partial_EM3(r1, i, dRdvi1);
-        mat_mult_mat(dRdvi1, c0, d1, 1);
+        mat_mult_vec(dRdvi1, c0[2], d1[2]);
         for(int j=0; j<3; ++j) {
           Partial_R_Partial_EM3(r2, j, dRdvj2);
-          mat_mult_mat(dRdvj2, c0, d2, 1);
+          mat_mult_vec(dRdvj2, c0[1], d2[1]);
 
-          J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[1][0] + d1[2][1]*d2[1][1] + d1[2][2]*d2[1][2];
+          H[3+i][9+j] = H[9+j][3+i] = d1[2][0]*d2[1][0] + d1[2][1]*d2[1][1] + d1[2][2]*d2[1][2];
         }
       }
     } break;
@@ -468,22 +429,20 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         for(int j=i; j<3; ++j) {
           Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
           Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+          mat_mult_vec(d2Rdvidvj1, c0[2], d1[2]);
+          mat_mult_vec(d2Rdvidvj2, c0[0], d2[0]);
 
-          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
-
-          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
-          J[9+i][9+j] = J[9+j][9+i] = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
+          H[3+i][3+j] = H[3+j][3+i] = d1[2][0]*c2[0][0] + d1[2][1]*c2[0][1] + d1[2][2]*c2[0][2];
+          H[9+i][9+j] = H[9+j][9+i] = c1[2][0]*d2[0][0] + c1[2][1]*d2[0][1] + c1[2][2]*d2[0][2];
         }
       }
       for(int i=0; i<3; ++i) {
         Partial_R_Partial_EM3(r1, i, dRdvi1);
-        mat_mult_mat(dRdvi1, c0, d1, 1);
+        mat_mult_vec(dRdvi1, c0[2], d1[2]);
         for(int j=0; j<3; ++j) {
           Partial_R_Partial_EM3(r2, j, dRdvj2);
-          mat_mult_mat(dRdvj2, c0, d2, 1);
-
-          J[3+i][9+j] = J[9+j][3+i] = d1[2][0]*d2[0][0] + d1[2][1]*d2[0][1] + d1[2][2]*d2[0][2];
+          mat_mult_vec(dRdvj2, c0[0], d2[0]);
+          H[3+i][9+j] = H[9+j][3+i] = d1[2][0]*d2[0][0] + d1[2][1]*d2[0][1] + d1[2][2]*d2[0][2];
         }
       }
     } break;
@@ -495,22 +454,20 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         for(int j=i; j<3; ++j) {
           Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
           Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+          mat_mult_vec(d2Rdvidvj1, c0[1], d1[1]);
+          mat_mult_vec(d2Rdvidvj2, c0[0], d2[0]);
 
-          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
-          mat_mult_mat(d2Rdvidvj2, c0, d2, 1);
-
-          J[3+i][3+j] = J[3+j][3+i] = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
-          J[9+i][9+j] = J[9+j][9+i] = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
+          H[3+i][3+j] = H[3+j][3+i] = d1[1][0]*c2[0][0] + d1[1][1]*c2[0][1] + d1[1][2]*c2[0][2];
+          H[9+i][9+j] = H[9+j][9+i] = c1[1][0]*d2[0][0] + c1[1][1]*d2[0][1] + c1[1][2]*d2[0][2];
         }
       }
       for(int i=0; i<3; ++i) {
         Partial_R_Partial_EM3(r1, i, dRdvi1);
-        mat_mult_mat(dRdvi1, c0, d1, 1);
+        mat_mult_vec(dRdvi1, c0[1], d1[1]);
         for(int j=0; j<3; ++j) {
           Partial_R_Partial_EM3(r2, j, dRdvj2);
-          mat_mult_mat(dRdvj2, c0, d2, 1);
-
-          J[3+i][9+j] = J[9+j][3+i] = d1[1][0]*d2[0][0] + d1[1][1]*d2[0][1] + d1[1][2]*d2[0][2];
+          mat_mult_vec(dRdvj2, c0[0], d2[0]);
+          H[3+i][9+j] = H[9+j][3+i] = d1[1][0]*d2[0][0] + d1[1][1]*d2[0][1] + d1[1][2]*d2[0][2];
         }
       }
     } break;
@@ -521,18 +478,16 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
           Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
-
-          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
-
-          J[3+i][3+j] = J[3+j][3+i] = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
+          mat_mult_vec(d2Rdvidvj1, c0[2], d1[2]);
+          H[3+i][3+j] = H[3+j][3+i] = d1[2][0]*d[0] + d1[2][1]*d[1] + d1[2][2]*d[2];
         }
       }
       for(int i=0; i<3; ++i) {
         Partial_R_Partial_EM3(r1, i, dRdvi1);
-        mat_mult_mat(dRdvi1, c0, d1, 1);
+        mat_mult_vec(dRdvi1, c0[2], d1[2]);
         for(int j=0; j<3; ++j) {
-          J[3+i][j] = J[j][3+i] = -d1[2][j];
-          J[3+i][6+j] = J[6+j][3+i] = d1[2][j];
+          H[3+i][j] = H[j][3+i] = -d1[2][j];
+          H[3+i][6+j] = H[6+j][3+i] = d1[2][j];
         }
       }
     } break;
@@ -543,23 +498,20 @@ RigidMpcBeam::getJacobian(GeomState& gState, CoordSet& cs, int k, FullSquareMatr
         // second partial derivatives of rotation matrices wrt rotation parameters
         for(int j=i; j<3; ++j) {
           Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
-
-          mat_mult_mat(d2Rdvidvj1, c0, d1, 1);
-
-          J[3+i][3+j] = J[3+j][3+i] = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
+          mat_mult_vec(d2Rdvidvj1, c0[1], d1[1]);
+          H[3+i][3+j] = H[3+j][3+i] = d1[1][0]*d[0] + d1[1][1]*d[1] + d1[1][2]*d[2];
         }
       }
       for(int i=0; i<3; ++i) {
         Partial_R_Partial_EM3(r1, i, dRdvi1);
-        mat_mult_mat(dRdvi1, c0, d1, 1);
+        mat_mult_vec(dRdvi1, c0[1], d1[1]);
         for(int j=0; j<3; ++j) {
-          J[3+i][j] = J[j][3+i] = -d1[1][j];
-          J[3+i][6+j] = J[6+j][3+i] = d1[1][j];
+          H[3+i][j] = H[j][3+i] = -d1[1][j];
+          H[3+i][6+j] = H[6+j][3+i] = d1[1][j];
         }
       }
     } break;
 
   }
-  //cerr << "k = " << k << ", J = \n"; J.print();
 }
 

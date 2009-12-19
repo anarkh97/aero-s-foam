@@ -500,9 +500,20 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
      spp->zeroAll();
      ops.spp = spp;
    }
+#ifdef GENERALIZED_ALPHA
+   double dt = 2*localDelta;
+   double alpham = domain->solInfo().newmarkAlphaM;
+   double alphaf = domain->solInfo().newmarkAlphaF;
+   double beta = domain->solInfo().newmarkBeta;
+   double gamma = domain->solInfo().newmarkGamma;
+   double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
+   double Ccoef = (domain->solInfo().order != 1 && C) ? dt*gamma : 0.0;
+   double Mcoef = (1-alpham)/(1-alphaf);
+#else
    double Kcoef = (domain->solInfo().order == 1) ? localDelta : localDelta*localDelta;
    double Ccoef = (domain->solInfo().order != 1 && C) ? localDelta : 0.0;
    double Mcoef = 1.0;
+#endif
    domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
    if(!verboseFlag) solver->setPrintNullity(false);
    solver->factor();
@@ -537,6 +548,8 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t,
                                 GeomState* geomState, Vector& elemNonConForce, 
                                 Vector &aeroForce)
 {
+ geomState->setNewmarkParameters(domain->solInfo().newmarkBeta, domain->solInfo().newmarkGamma,
+                                domain->solInfo().newmarkAlphaM, domain->solInfo().newmarkAlphaF); // XXXX
  // ... BUILD THE RHS FORCE at t = time^{n+1/2}
  // note: follower forces which depend on the geomState (pressure and actuator) are computed
  //       here for time^{n} and NOT updated at each Newton iteration. This doesn't seem quite right. Is it a bug or a reasonable simplification?
@@ -656,10 +669,16 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
   if(domain->solInfo().order == 1) 
     rhs.linC(localDelta, residual);
   else {
-#ifdef NO_MIDPOINT
-    localTemp.linC(2*localDelta, velocity, delta*delta, acceleration);
+#ifdef GENERALIZED_ALPHA
+    /* no damping for now */
+    double dt = 2*localDelta;
+    double alpham = domain->solInfo().newmarkAlphaM;
+    double beta = domain->solInfo().newmarkBeta;
+    double vcoef = dt*(1-alpham);
+    double acoef = dt*dt*((1-alpham)/2-beta);
+    localTemp.linC(vcoef, velocity, acoef, acceleration);
     M->mult(localTemp, rhs);
-    rhs.linC(rhs, localDelta*localDelta, residual);
+    rhs.linC(rhs, dt*dt*beta, residual);
 #else
     // rhs = M*velocity
     M->mult(velocity, rhs);
@@ -693,9 +712,20 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
   }
   else {
     // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
-#ifdef NO_MIDPOINT
-    localTemp.linC(inc_displacement, -localDelta*2.0, velocity);
-    localTemp.linAdd(-localDelta*localDelta, acceleration);
+#ifdef GENERALIZED_ALPHA
+    double dt = 2*localDelta;
+    double alpham = domain->solInfo().newmarkAlphaM;
+    double alphaf = domain->solInfo().newmarkAlphaF;
+    double beta = domain->solInfo().newmarkBeta;
+    double vcoef = dt*(1-alpham);
+    double acoef = dt*dt*((1-alpham)/2-beta);
+    double dcoef = (1-alpham)/(1-alphaf);
+    localTemp.linC(vcoef, velocity, acoef, acceleration);
+    M->mult(localTemp, rhs);
+    rhs.linC(rhs, dt*dt*beta, residual);
+
+    localTemp.linC(dcoef, inc_displacement, -vcoef, velocity);
+    localTemp.linAdd(-acoef, acceleration);
 #else
     localTemp.linC(inc_displacement, -localDelta, velocity);
 #endif

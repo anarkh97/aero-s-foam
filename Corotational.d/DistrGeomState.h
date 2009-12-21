@@ -27,7 +27,8 @@ class DistrGeomState {
 // The following functions are necessary to implement NL dynamics and
 // the arclength method
 
-     void midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n, double &delta, DistrGeomState &ss);
+     void midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n, double &delta, DistrGeomState &ss,
+                               double beta, double gamma, double alphaf, double alpham);
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot = true);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
@@ -41,7 +42,8 @@ class DistrGeomState {
 
   private:
      void subStep_update(int isub, DistrVector &veloc_n, DistrVector &accel_n,
-                         double &delta, DistrGeomState &ss);
+                         double &delta, DistrGeomState &ss,
+                         double beta, double gamma, double alphaf, double alpham);
      void subInc_update(int isub, DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
      void subInterp(int isub, double&, DistrGeomState &, DistrGeomState &);
      void subDiff(int isub, DistrGeomState &unp, DistrVector &un);

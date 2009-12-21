@@ -26,8 +26,6 @@ class NodeState {
 
 
 class GeomState {
-   private:
-     double beta, gamma, alpham, alphaf;
   public:
      NodeState *ns;     // node state (x,y,z position and rotation tensor)
   protected:
@@ -71,7 +69,8 @@ class GeomState {
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
                                        CoordSet &cs );
-     virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss);
+     virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
+                                       double beta, double gamma, double alphaf, double alpham);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);

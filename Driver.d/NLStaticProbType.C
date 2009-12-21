@@ -397,7 +397,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 #ifdef LINESEARCH
     double alpha = 1.0;
     VecType du(probDesc->solVecInfo());
-    for(alpha = 1.0; alpha > std::numeric_limits<double>::epsilon() ; alpha *= 0.9) {
+    for(alpha = 1.0; alpha > std::numeric_limits<double>::epsilon(); alpha *= 0.9) {
       GeomType *tmpState = new GeomType(*geomState);
       du.linC(residual,alpha);
       StateUpdate::updateIncr(stateIncr, du);
@@ -410,7 +410,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     cerr << "alpha = " << alpha << endl;
     residual *= alpha;
 #endif
-    cerr << "energy = " << probDesc->getEnergy(lambda, force, geomState);
+    cerr << "energy = " << setprecision(20) << probDesc->getEnergy(lambda, force, geomState);
     StateUpdate::updateIncr(stateIncr, residual);
 
 //    StateUpdate::update(refState, geomState, stateIncr, residual);

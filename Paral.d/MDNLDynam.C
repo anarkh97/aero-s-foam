@@ -725,6 +725,16 @@ MDNLDynamic::getInitialTime(int &initTimeIndex, double &initTime)
   initTime      = domain->solInfo().initialTime;
 }
 
+void
+MDNLDynamic::getNewmarkParameters(double &beta, double &gamma,
+                                  double &alphaf, double &alpham)
+{
+  beta  = domain->solInfo().newmarkBeta;
+  gamma = domain->solInfo().newmarkGamma;
+  alphaf = domain->solInfo().newmarkAlphaF;
+  alpham = domain->solInfo().newmarkAlphaM;
+}
+
 int
 MDNLDynamic::getMaxit()
 {

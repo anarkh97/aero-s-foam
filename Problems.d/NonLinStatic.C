@@ -391,7 +391,7 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
   double Wela = 0.0;
   for(int i = 0; i < domain->numElements(); ++i)
      Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
-  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
+  cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
 
   // Total Energy = Wext + Wela
   return -Wext + Wela;

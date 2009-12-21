@@ -501,17 +501,14 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
      ops.spp = spp;
    }
 #ifdef GENERALIZED_ALPHA
-   double dt = 2*localDelta;
-   double alpham = domain->solInfo().newmarkAlphaM;
-   double alphaf = domain->solInfo().newmarkAlphaF;
-   double beta = domain->solInfo().newmarkBeta;
-   double gamma = domain->solInfo().newmarkGamma;
+   double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+   getNewmarkParameters(beta, gamma, alphaf, alpham);
    double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
-   double Ccoef = (domain->solInfo().order != 1 && C) ? dt*gamma : 0.0;
+   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
    double Mcoef = (1-alpham)/(1-alphaf);
 #else
    double Kcoef = (domain->solInfo().order == 1) ? localDelta : localDelta*localDelta;
-   double Ccoef = (domain->solInfo().order != 1 && C) ? localDelta : 0.0;
+   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : localDelta;
    double Mcoef = 1.0;
 #endif
    domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
@@ -548,8 +545,6 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t,
                                 GeomState* geomState, Vector& elemNonConForce, 
                                 Vector &aeroForce)
 {
- geomState->setNewmarkParameters(domain->solInfo().newmarkBeta, domain->solInfo().newmarkGamma,
-                                domain->solInfo().newmarkAlphaM, domain->solInfo().newmarkAlphaF); // XXXX
  // ... BUILD THE RHS FORCE at t = time^{n+1/2}
  // note: follower forces which depend on the geomState (pressure and actuator) are computed
  //       here for time^{n} and NOT updated at each Newton iteration. This doesn't seem quite right. Is it a bug or a reasonable simplification?
@@ -670,35 +665,25 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
     rhs.linC(localDelta, residual);
   else {
 #ifdef GENERALIZED_ALPHA
-    /* no damping for now */
-    double dt = 2*localDelta;
-    double alpham = domain->solInfo().newmarkAlphaM;
-    double beta = domain->solInfo().newmarkBeta;
-    double vcoef = dt*(1-alpham);
-    double acoef = dt*dt*((1-alpham)/2-beta);
-    localTemp.linC(vcoef, velocity, acoef, acceleration);
+    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+    getNewmarkParameters(beta, gamma, alphaf, alpham);
+    // rhs = dt*dt*beta*residual + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
+    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
+    localTemp.linC(dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
     M->mult(localTemp, rhs);
-    rhs.linC(rhs, dt*dt*beta, residual);
+    if(C) {
+      localTemp.linC(-dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
+      C->multAdd(localTemp, rhs);
+    }
+    rhs.linAdd(dt*dt*beta, residual);
 #else
-    // rhs = M*velocity
-    M->mult(velocity, rhs);
-
     // rhs = delta*M*velocity + delta^2*residual
+    M->mult(velocity, rhs);
     rhs.linC(localDelta, rhs, localDelta * localDelta, residual);
 #endif
   }
 
   times->predictorTime += getTime();
-
-  // XXXX
-  for(int iele = 0; iele < domain->numElements(); ++iele) {
-    RigidMpcElement* my_b = dynamic_cast<RigidMpcElement*>(domain->getElementSet()[iele]);
-    if(my_b) {
-      //cerr << "iele " << iele << " is a rigid mpc element, updating LMPCs\n";
-      my_b->init();
-    }
-  }
-
 }
 
 double
@@ -711,30 +696,29 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linC(localDelta, residual, -1.0, rhs);
   }
   else {
-    // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
 #ifdef GENERALIZED_ALPHA
-    double dt = 2*localDelta;
-    double alpham = domain->solInfo().newmarkAlphaM;
-    double alphaf = domain->solInfo().newmarkAlphaF;
-    double beta = domain->solInfo().newmarkBeta;
-    double vcoef = dt*(1-alpham);
-    double acoef = dt*dt*((1-alpham)/2-beta);
-    double dcoef = (1-alpham)/(1-alphaf);
-    localTemp.linC(vcoef, velocity, acoef, acceleration);
+    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+    getNewmarkParameters(beta, gamma, alphaf, alpham);
+    // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
+    //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
+    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
+    localTemp.linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
     M->mult(localTemp, rhs);
-    rhs.linC(rhs, dt*dt*beta, residual);
-
-    localTemp.linC(dcoef, inc_displacement, -vcoef, velocity);
-    localTemp.linAdd(-acoef, acceleration);
+    if(C) {
+      localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
+      C->multAdd(localTemp, rhs);
+    }
+    rhs.linAdd(dt*dt*beta, residual);
 #else
+    // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
     localTemp.linC(inc_displacement, -localDelta, velocity);
-#endif
     M->mult(localTemp, rhs);
     rhs.linC(localDelta * localDelta, residual, -1.0, rhs);
-    if(C) { // DAMPING
+    if(C) {
       C->mult(inc_displacement, localTemp);
       rhs.linAdd(-localDelta, localTemp);
     }
+#endif
   }
   times->correctorTime += getTime();
   return rhs.norm();
@@ -1103,5 +1087,15 @@ NonLinDynamic::getInitialTime(int &initTimeIndex, double &initTime)
 {
  initTimeIndex = domain->solInfo().initialTimeIndex;
  initTime      = domain->solInfo().initialTime;
+}
+
+void
+NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
+                                    double &alphaf, double &alpham)
+{
+ beta  = domain->solInfo().newmarkBeta;
+ gamma = domain->solInfo().newmarkGamma;
+ alphaf = domain->solInfo().newmarkAlphaF;
+ alpham = domain->solInfo().newmarkAlphaM;
 }
 

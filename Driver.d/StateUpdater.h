@@ -32,15 +32,9 @@ public:
                   GeomType *geomState,
 		  StateIncr *, VecType &, 
 		  VecType &, VecType &, VecType &acceleration) {
-
-//   This method should return the proper reactions.
-//   the computation requires the accelerations.
-//
-//
-//
-
-
-     geomState->midpoint_step_update(velN, acceleration, delta, *refState);
+     double beta, gamma, alphaf, alpham;
+     pbd->getNewmarkParameters(beta, gamma, alphaf, alpham);
+     geomState->midpoint_step_update(velN, acceleration, delta, *refState, beta, gamma, alphaf, alpham);
   }
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 

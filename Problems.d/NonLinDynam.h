@@ -190,6 +190,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);
     int getAeroAlg() { return domain->solInfo().aeroFlag; }
     int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+    void getNewmarkParameters(double &beta, double &gamma,
+                              double &alphaf, double &alpham);
 
 };
 

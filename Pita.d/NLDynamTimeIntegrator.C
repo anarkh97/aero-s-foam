@@ -39,6 +39,7 @@ NLDynamTimeIntegrator::NLDynamTimeIntegrator(NonLinDynamic & pbDesc) :
   double initialTime;
   probDesc.getInitialTime(currStep, initialTime);
   currentTimeIs(initialTime);  
+  probDesc.getNewmarkParameters(beta, gamma, alphaf, alpham);
 }
 
 NLDynamTimeIntegrator::~NLDynamTimeIntegrator()
@@ -135,7 +136,7 @@ void NLDynamTimeIntegrator::integrate(int numSteps)
     {
       fprintf(stderr," *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxNumIter, currentRes, probDesc.getTolerance());
     }
-    geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState);
+    geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState, beta, gamma, alphaf, alpham);
     // if (step+1 == maxStep)  probDesc->processLastOutput(); // Was I right to deactivate ?
     postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, currStep, external_force, aeroForce, acceleration);
   }

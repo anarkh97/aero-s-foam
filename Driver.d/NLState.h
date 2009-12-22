@@ -16,7 +16,7 @@ class NLState {
    void update(NLState &ref, Vector &newDisp);
    void update (Vector &);
    void midpoint_step_update (Vector &, double, NLState &, Vector &);
-   void get_inc_displacement (Vector &, NLState &);
+   void get_inc_displacement (Vector &, NLState &, bool=true);
    void printNode (int);
    void print(){}
 

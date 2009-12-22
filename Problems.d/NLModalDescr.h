@@ -180,6 +180,8 @@ public:
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+
+  void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham) { cerr << "NLModalDescr::getNewmarkParameters is not implemented\n"; }
 };
 
 #endif

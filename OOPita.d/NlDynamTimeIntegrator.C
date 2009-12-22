@@ -43,6 +43,7 @@ NlDynamTimeIntegrator::NlDynamTimeIntegrator(PitaNonLinDynamic * pbDesc) :
   initialConditionIs(DynamState(displacement_, velocity_), Seconds(initTime));
   if (currStep_ != 0)
     setTimeStepCount(TimeStepCount(currStep_));
+  probDesc_->getNewmarkParameters(beta_, gamma_, alphaf_, alpham_);
 }
 
 NlDynamTimeIntegrator::~NlDynamTimeIntegrator() {
@@ -172,7 +173,7 @@ NlDynamTimeIntegrator::integrate(unsigned int steps) {
     {
       fprintf(stderr," *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxNumIter_, currentRes, probDesc_->getTolerance());
     }
-    geomState_->midpoint_step_update(velocity_, acceleration_, localDelta_, *stepState_);
+    geomState_->midpoint_step_update(velocity_, acceleration_, localDelta_, *stepState_, beta_, gamma_, alphaf_, alpham_);
     // if (step+1 == maxStep)  probDesc_->processLastOutput(); // Was I right to deactivate ?
     
     // Update attributes 

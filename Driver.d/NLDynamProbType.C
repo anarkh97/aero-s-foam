@@ -43,15 +43,15 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
  // Compute time integration values: dt, totalTime, maxStep
  probDesc->computeTimeInfo();
+ probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
 
  // Get pointer to Solver
  OpSolver *solver = probDesc->getSolver();
 
-if(domain->solInfo().order==1)
- filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
-else
- filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.25,0.5,0.5,0.5);
-
+ if(domain->solInfo().order==1)
+   filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
+ else
+   filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",beta, gamma, alphaf, alpham);
 
  // Allocate Vectors to store external force, residual velocity 
  // and mid-point force
@@ -240,8 +240,6 @@ else
 
          // Compute incremental displacements
          geomState->get_inc_displacement(inc_displac, *stepState);
-         //cerr << "geomState = "; geomState->print();
-         //cerr << "inc displacement = "; inc_displac.print();
 
          // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
          resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
@@ -255,8 +253,6 @@ else
 
 	 // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
          solver->reSolve(rhs);
-         //filePrint(stderr,"|fext| = %e, |residual| = %e, |dv| = %e, |v_n| = %e, |a_n| = %e\n", 
-         //          sqrt(external_force*external_force), resN, sqrt(rhs*rhs), sqrt(velocity_n*velocity_n), sqrt(acceleration*acceleration));
 
          // Check for convergence
          converged = probDesc->checkConvergence(iter+1, resN, residual, rhs, time);
@@ -281,15 +277,16 @@ else
 
      StateUpdate::copyState(geomState, refState);
 
-     // Step Update (updates state which includes displacement and velocity) 
+     // Step Update (updates state which includes displacement and velocity, but not acceleration) 
      v_p = velocity_n;
      StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                     stepState, geomState, stateIncr, residual,
                                     elementInternalForce, totalRes, acceleration);
-/* this is now done inside the previous function call
+// this is now done inside the previous function call
      // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
-     acceleration.linC(-1.0, acceleration, -1.0/delta, v_p); acceleration.linAdd(1.0/delta, velocity_n);
-*/
+     //acceleration.linC(-1.0, acceleration, -1.0/delta, v_p); acceleration.linAdd(1.0/delta, velocity_n);
+     acceleration.linC(-(1-gamma)/gamma, acceleration, -1/(2*delta*gamma), v_p, 1/(2*delta*gamma), velocity_n);
+
      //cerr << "velocity = "; velocity_n.print();
      //cerr << "acceleration = "; acceleration.print();
 

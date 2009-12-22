@@ -1,8 +1,6 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
-#define GENERALIZED_ALPHA
-
 class DofSetArray;
 class CoordSet;
 template <class Scalar> class GenVector;

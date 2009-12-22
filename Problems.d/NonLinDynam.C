@@ -445,54 +445,6 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
  if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 
-/*
-   double delta2 = localDelta * localDelta;
-   solver->zeroAll();
-   int iele;
-
-   if (kuc) kuc->zeroAll();
-   Connectivity *allDofs = solver->getAllDofs();
-   for( iele = 0; iele < domain->numElements(); ++iele) {
-
-     int dim = kelArray[iele].dim();
-     if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );
-
-     for(int i = 0; i < dim; ++i)
-       for(int j = 0; j < dim; ++j)
-         if(domain->solInfo().order == 1)
-           kelArray[iele][i][j] = localDelta *  kelArray[iele][i][j] + melArray[iele][i][j];
-         else {
-           if(C) kelArray[iele][i][j] = delta2 * kelArray[iele][i][j] + localDelta * celArray[iele][i][j] + melArray[iele][i][j];
-           else kelArray[iele][i][j] = delta2 * kelArray[iele][i][j] + melArray[iele][i][j];
-         }
-
-     solver->add( kelArray[iele], (*allDofs)[iele] );
-   }
-
-   // PJSA 10/28/09 also add discrete mass
-   DMassData *current = domain->getFirstDMassData();
-   DofSetArray *dsa = domain->getDSA();
-   while(current != 0) {
-     int dof = dsa->locate(current->node, (1 << current->dof));
-     if(dof == -1)
-       { current = current->next; continue; }
-     if(current->jdof > -1) { // off-diagonal mass terms eg. products of inertia I21, I31, I32
-       int jdof = dsa->locate(current->node, (1 << current->jdof));
-       if(jdof == -1)
-         { current = current->next; continue; }
-       spm->add(dof, jdof, current->diMass);
-       if(C) C->add(dof, jdof, current->diMass);
-     }
-     else {
-       spm->addDiscreteMass(dof, current->diMass);
-       if(C) C->addDiscreteMass(dof, current->diMass);
-     }
-     current = current->next;
-   }
-
-   solver->factor();
-*/
-
    //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
    spm->zeroAll();
    AllOps<double> ops;
@@ -500,24 +452,16 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
      spp->zeroAll();
      ops.spp = spp;
    }
-#ifdef GENERALIZED_ALPHA
    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
    getNewmarkParameters(beta, gamma, alphaf, alpham);
    double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
    double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
    double Mcoef = (1-alpham)/(1-alphaf);
-#else
-   double Kcoef = (domain->solInfo().order == 1) ? localDelta : localDelta*localDelta;
-   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : localDelta;
-   double Mcoef = 1.0;
-#endif
    domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
    if(!verboseFlag) solver->setPrintNullity(false);
    solver->factor();
    if(prec) prec->factor();
 
-   //if (solver->numRBM() > 0)
-   //  fprintf(stderr, " *** WARNING: %d ZEM(s) Found in Rebuilt Tangent Matrix!       \n", solver->numRBM());
  }
  times->rebuild += getTime();
 }
@@ -664,7 +608,6 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
   if(domain->solInfo().order == 1) 
     rhs.linC(localDelta, residual);
   else {
-#ifdef GENERALIZED_ALPHA
     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
     getNewmarkParameters(beta, gamma, alphaf, alpham);
     // rhs = dt*dt*beta*residual + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
@@ -676,11 +619,11 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
       C->multAdd(localTemp, rhs);
     }
     rhs.linAdd(dt*dt*beta, residual);
-#else
+/* old version
     // rhs = delta*M*velocity + delta^2*residual
     M->mult(velocity, rhs);
     rhs.linC(localDelta, rhs, localDelta * localDelta, residual);
-#endif
+*/
   }
 
   times->predictorTime += getTime();
@@ -696,7 +639,6 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linC(localDelta, residual, -1.0, rhs);
   }
   else {
-#ifdef GENERALIZED_ALPHA
     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
     getNewmarkParameters(beta, gamma, alphaf, alpham);
     // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
@@ -709,16 +651,6 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
       C->multAdd(localTemp, rhs);
     }
     rhs.linAdd(dt*dt*beta, residual);
-#else
-    // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
-    localTemp.linC(inc_displacement, -localDelta, velocity);
-    M->mult(localTemp, rhs);
-    rhs.linC(localDelta * localDelta, residual, -1.0, rhs);
-    if(C) {
-      C->mult(inc_displacement, localTemp);
-      rhs.linAdd(-localDelta, localTemp);
-    }
-#endif
   }
   times->correctorTime += getTime();
   return rhs.norm();

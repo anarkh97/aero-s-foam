@@ -136,6 +136,7 @@ public:
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }
    void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &) { cerr << "NLMatProbDesc::formRHSinitializer is not implemented\n"; }
    double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; }
+   void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham) { cerr << "NLModalDescr::getNewmarkParameters is not implemented\n"; }
 };
 
 inline

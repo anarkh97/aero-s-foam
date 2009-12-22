@@ -112,6 +112,7 @@ class GenDistrVector {
     GenDistrVector &linC(GenDistrVector<Scalar> &, Scalar);
     GenDistrVector &linC(GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
     GenDistrVector &linC(Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
+    GenDistrVector &linC(Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &, Scalar, GenDistrVector<Scalar> &);
     GenDistrVector &swap(GenDistrVector<Scalar> &);
     template <class T>
       GenDistrVector &operator=(const Expr<T,Scalar> &);

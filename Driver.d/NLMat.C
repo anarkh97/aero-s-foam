@@ -889,7 +889,7 @@ NLMatProbDesc::extract(Vector &, Vector &, Vector &, double *, double *, double 
 }
 
 void
-NLState::get_inc_displacement (Vector &inc, NLState &prev)
+NLState::get_inc_displacement (Vector &inc, NLState &prev, bool)
 {
  inc = disp;
  inc -= prev.disp;

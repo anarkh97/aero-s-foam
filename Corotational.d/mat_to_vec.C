@@ -31,11 +31,10 @@ void mat_to_vec(double rten[3][3] ,double rvec[3] )
       else              
         th = 2.0*acos( cthh );
 
-      //std::cerr << "here in mat_to_vec, sthh = " << sthh << ", cthh = " << cthh << ", th = " << th << std::endl;
       if ( sthh < epsilon )
-        { coef = 2.0;  /*std::cerr << "here in mat_to_vec #1, sthh = " << sthh << std::endl;*/ }
+        coef = 2.0;
       else {
-        if ( sthh > 1.0 ) { std::cerr << "here in mat_to_vec #2, sthh = " << sthh << std::endl; sthh = 1.0; }
+        if ( sthh > 1.0 ) sthh = 1.0;
         coef = th/sthh;
       }
 

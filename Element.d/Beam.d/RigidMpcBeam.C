@@ -55,7 +55,7 @@ RigidMpcBeam::computeMPCs(CoordSet& cs)
     c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
     c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
 
-    // translation in x, y, z (1 constraint equation)
+    // translation along axis of beam (1 constraint equation)
     for(int i = 0; i < 3; ++i)
       mpcs[0]->addterm(new LMPCTerm(nn[0], i, c0[0][i]));
     for(int i = 0; i < 3; ++i)
@@ -73,6 +73,7 @@ RigidMpcBeam::computeMPCs(CoordSet& cs)
       }
     }
 
+    // relative rotation (2 constraint equations)
     mpcs[4]->addterm(new LMPCTerm(nn[0], 0, c0[1][0]));
     mpcs[4]->addterm(new LMPCTerm(nn[0], 1, c0[1][1]));
     mpcs[4]->addterm(new LMPCTerm(nn[0], 2, c0[1][2]));

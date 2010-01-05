@@ -729,10 +729,14 @@ void
 MDNLDynamic::getNewmarkParameters(double &beta, double &gamma,
                                   double &alphaf, double &alpham)
 {
+/*
   beta  = domain->solInfo().newmarkBeta;
   gamma = domain->solInfo().newmarkGamma;
   alphaf = domain->solInfo().newmarkAlphaF;
   alpham = domain->solInfo().newmarkAlphaM;
+*/
+  cerr << "WARNING: Generalized Alpha not implemented for MDNLDynamic\n";
+  beta = 0.25; gamma = 0.5; alphaf = 0.5; alpham = 0.5;
 }
 
 int

@@ -46,16 +46,6 @@ MpcElement::renum(int *table)
   renumTable[mpc->nterms] = table[nn[nnodes-1]];
 }
 
-
-FullSquareMatrix
-MpcElement::massMatrix(CoordSet &cs, double *mel, int cmflg)
-{
-  FullSquareMatrix elementMassMatrix(ndofs,mel);
-  // zero the element mass matrix
-  elementMassMatrix.zero();
-  return elementMassMatrix;
-}
-
 FullSquareMatrix
 MpcElement::stiffness(CoordSet &cs, double *k, int flg)
 {

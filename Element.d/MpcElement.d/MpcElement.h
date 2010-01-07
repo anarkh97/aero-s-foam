@@ -26,7 +26,6 @@ class MpcElement : public Element , public Corotator
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
     FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
 
     void markDofs(DofSetArray &);
     int* dofs(DofSetArray &, int *p=0);
@@ -60,12 +59,12 @@ class MpcElement : public Element , public Corotator
      void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr)
        { /*cerr << "extractRigidBodyMotion() not implemented for MpcElement \n";*/ };
 
-     int  getTopNumber() { return 501; }
-     int  numTopNodes() { return nnodes-1; }
+    int  getTopNumber() { return 501; }
+    int  numTopNodes() { return nnodes-1; }
 
-     PrioInfo examine(int sub, MultiFront *mf);
+    PrioInfo examine(int sub, MultiFront *mf);
 
-     bool isSafe() { return false; }
+    bool isSafe() { return false; }
 };
 #endif
 

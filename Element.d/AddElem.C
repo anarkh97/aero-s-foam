@@ -108,6 +108,11 @@ extern map<int,double > weightList;
 //#include <Element.d/Rigid.d/RBE2.h>
 #include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
 
+#include <Element.d/Joint.d/SphericalJoint.h>
+#include <Element.d/Joint.d/RevoluteJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
+#include <Element.d/Joint.d/RigidJoint.h>
+
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
 #include <Element.d/Helm.d/HelmBrick32.h> 
@@ -356,6 +361,18 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          ele = new (ba) RBE2Mpc(nnodes,n);
        else ele = new (ba) RBE2(nnodes,n);
 */
+       break;
+     case 76:
+       ele = new (ba) SphericalJoint(n);
+       break;
+     case 77:
+       ele = new (ba) RevoluteJoint(n);
+       break;
+     case 78:
+       ele = new (ba) TranslationalJoint(n);
+       break;
+     case 79:
+       ele = new (ba) RigidJoint(n);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);

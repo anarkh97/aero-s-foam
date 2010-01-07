@@ -576,3 +576,24 @@ SuperElement::getMassType()
 {
   return subElems[0]->getMassType();
 }
+
+int
+SuperElement::getNumMPCs()
+{
+  int ret = 0;
+  int i;
+  for(i=0; i<nSubElems; ++i) ret += subElems[i]->getNumMPCs();
+  return ret;
+}
+
+LMPCons**
+SuperElement::getMPCs()
+{
+  LMPCons** ret = new LMPCons * [getNumMPCs()];
+  int i,j,k=0;
+  for(i=0; i<nSubElems; ++i) {
+    LMPCons** submpcs = subElems[i]->getMPCs();
+    for(j=0; j<subElems[i]->getNumMPCs(); ++j) ret[k++] = submpcs[j];
+  }
+  return ret;
+}

@@ -75,8 +75,7 @@ class LMPCons
  public:
   bool isComplex;
   RealOrComplex rhs;              // right hand side of mpc
-  //ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
-  std::vector<LMPCTerm> terms;
+  std::vector<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
   union {
     int lmpcnum;                  // id number of the mpc from input
     int fluid_node;            

@@ -294,12 +294,29 @@ int GeoSource::addCFrame(int fn, double *f)  {
 
 void GeoSource::setUpRigidElements(bool flag)
 {
+  // XXXX now this is done twice --> need to fix.
+  // Set up element frames
+  for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
+    Element *ele = elemSet[efd[iFrame].elnum];
+    if(ele == 0) {
+      fprintf(stderr," *** WARNING: Frame was found for non-existent"
+                     " element %d \n", efd[iFrame].elnum+1);
+    }
+    else ele->setFrame(&(efd[iFrame].frame));
+  }
+
+  int last = elemSet.last();
+  for(int iEle = 0; iEle < last; ++iEle) {
+    Element *ele = elemSet[iEle];
+    if(ele) ele->computeMPCs(nodes);
+  }
+
   int count1 = 0, count2 = 0;
   for(int i = 0; i < na; ++i) { // this seems a bit dangerous: what if a rigid element has no attribute?
     Element *ele = elemSet[ attrib[i].nele ];
     if((ele != 0) && (ele->isRigidMpcElement())) {
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      ele->computeMPCs(nodes);
+      //ele->computeMPCs(nodes);
 
       // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
       // and add these to the domain. In this case the rigid element remains in the element set but acts
@@ -767,8 +784,8 @@ void GeoSource::setUpData()
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
     if(ele == 0) {
-      // fprintf(stderr," *** WARNING: Frame was found for non-existent"
-      //                " element %d \n", efd[iFrame].elnum+1);
+      fprintf(stderr," *** WARNING: Frame was found for non-existent"
+                     " element %d \n", efd[iFrame].elnum+1);
     }
     else ele->setFrame(&(efd[iFrame].frame));
   }

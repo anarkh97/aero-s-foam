@@ -155,6 +155,15 @@ Helm.d/TetraHelmGLS.C
 Helm.d/trig6mass1.f
 Helm.d/trig6shape.f
 Helm.d/trig6stif1.f
+Joint.d/DistanceConstraint.C
+Joint.d/DotConstraintType1.C
+Joint.d/DotConstraintType2.C
+Joint.d/ParallelAxisConstraintType1.C
+Joint.d/ParallelAxisConstraintType2.C
+Joint.d/RevoluteJoint.C
+Joint.d/RigidJoint.C
+Joint.d/SphericalJoint.C
+Joint.d/TranslationalJoint.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f
@@ -162,6 +171,7 @@ Membrane.d/trimem.f
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
 MpcElement.d/RigidMpcElement.C
+MpcElement.d/ConstraintElement.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/3DShapeFunction.C
 NonLinearity.d/BilinPlasKinHardMat.C

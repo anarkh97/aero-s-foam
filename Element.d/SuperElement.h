@@ -92,6 +92,8 @@ class SuperElement : public Element
         void computeMPCs(CoordSet &cs);
 
         int getMassType();
+        int getNumMPCs();
+        LMPCons** getMPCs();
 };
 
 #endif

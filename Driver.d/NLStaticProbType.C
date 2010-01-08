@@ -410,7 +410,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     cerr << "alpha = " << alpha << endl;
     residual *= alpha;
 #endif
-    cerr << "energy = " << setprecision(20) << probDesc->getEnergy(lambda, force, geomState);
+    //cerr << "energy = " << setprecision(20) << probDesc->getEnergy(lambda, force, geomState);
     StateUpdate::updateIncr(stateIncr, residual);
 
 //    StateUpdate::update(refState, geomState, stateIncr, residual);

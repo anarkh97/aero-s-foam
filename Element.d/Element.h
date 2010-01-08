@@ -503,7 +503,7 @@ class Element {
 
         virtual bool isShell() { return false; }
 
-        bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isRigidMpcElement() || isFsiElement()); }
+        virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isRigidMpcElement() || isFsiElement()); }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
         int getElementType() { return elementType; }

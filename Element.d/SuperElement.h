@@ -18,6 +18,7 @@ class SuperElement : public Element
         int *nn; // all the node numbers
 
         FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
+        void initialize(int, int*);
   public:
         SuperElement() { superCorotator = 0; };
         virtual ~SuperElement();
@@ -89,6 +90,7 @@ class SuperElement : public Element
         bool isRotMidSideNode(int iNode);
         bool isMpcElement();
         bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
+        bool isConstraintElement();
         void computeMPCs(CoordSet &cs);
 
         int getMassType();

@@ -1,41 +1,19 @@
 #include <Element.d/Joint.d/RigidJoint.h>
-#include <Element.d/Joint.d/DistanceConstraint.h>
-#include <Element.d/Joint.d/ParallelAxisConstraintType1.h>
+#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
+#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
 #include <Element.d/Joint.d/DotConstraintType1.h>
-#include <Element.d/Joint.d/ParallelAxisConstraintType2.h>
+#include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
 
 RigidJoint::RigidJoint(int* _nn)
 {
-  nSubElems = 4, nnodes = 2; int nDofsPerNode = 6;
+  nSubElems = 4;
   subElems = new Element * [nSubElems];
-  subElems[0] = new DistanceConstraint(_nn);
-  subElems[1] = new ParallelAxisConstraintType1(_nn);
-  subElems[2] = new DotConstraintType1(_nn, 2, 1);
-  subElems[3] = new ParallelAxisConstraintType2(_nn);
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(-1);
-
-  subElemNodes = new int * [nSubElems];
-  int l = 0;
-  for(int i = 0; i < nSubElems; ++i) {
-    subElemNodes[i] = new int[subElems[i]->numNodes()];
-    for(int j = 0; j < nnodes; ++j) subElemNodes[i][j] = j;
-    for(int j = nnodes; j < nnodes + subElems[i]->numInternalNodes(); ++j) subElemNodes[i][j] = nnodes + l++;
-  }
-  nn = new int[nnodes+l];
-  for(int i = 0; i < nnodes; ++i) nn[i] = _nn[i];
-  
-  int o[4] = { 0, 3, 3, 0 };
-  subElemDofs = new int * [nSubElems];
-  l = 0;
-  for(int i = 0; i < nSubElems; ++i) {
-    subElemDofs[i] = new int[subElems[i]->numDofs()];
-    int m = (subElems[i]->numDofs()-subElems[i]->numInternalNodes())/nnodes;
-    for(int j = 0; j < nnodes; ++j) for(int k = 0; k < m; ++k) subElemDofs[i][j*m+k] = j*nDofsPerNode+o[i]+k;
-    for(int j = nnodes*m; j < subElems[i]->numDofs(); ++j) subElemDofs[i][j] = nnodes*nDofsPerNode + l++;
-  }
-
-  ndofs = nnodes*nDofsPerNode + l;
-  nnodes = nnodes + l; 
+  int nnloc[2] = { 0, 1 };
+  subElems[0] = new ConstantDistanceConstraint(nnloc);
+  subElems[1] = new ParallelAxesConstraintType1(nnloc);
+  subElems[2] = new DotConstraintType1(nnloc, 2, 1);
+  subElems[3] = new ParallelAxesConstraintType2(nnloc);
+  initialize(2, _nn);
 }
 
 int 

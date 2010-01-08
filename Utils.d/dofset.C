@@ -128,7 +128,7 @@ DofSet::number(DofSet r, int *list)
 //for DEC
 DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 {
- initialize(); //HB
+ initialize();
  numnodes = nnode;
  dofs = new DofSet[numnodes];
  myDofs = true;
@@ -150,7 +150,7 @@ DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 
 DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
 {
- initialize(); //HB
+ initialize();
  rowcolnum=invrowcol=dofType=0;
  myMap = _myMap;
  numnodes = nnode;
@@ -162,13 +162,8 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
  for(iele=0; iele < nele; ++iele) {
    Element *c_ele = eles[iele];
    if(c_ele)
-     if(!c_ele->isPhantomElement())//getProperty())
+     if(!c_ele->isPhantomElement())
        c_ele->markDofs(*this);
-/*  PJSA: any element can now be a phantom, not just a ThreeNodeShell
-     else 
-       if(dynamic_cast<ThreeNodeShell *> (c_ele) == 0) 
-         fprintf(stderr, " *** Non Shell Phantom Element ele %d, type %d\n", iele, c_ele->getElementType());
-*/
  }
  renummap = renumtable;
  makeOffset();

@@ -1,16 +1,13 @@
 #ifndef _SPHERICALJOINT_H_
 #define _SPHERICALJOINT_H_
 
-#include <Element.d/MpcElement.d/RigidMpcElement.h>
+#include <Element.d/SuperElement.h>
 
-class SphericalJoint : public RigidMpcElement
+class SphericalJoint : public SuperElement
 {
-    double d0[3];
   public:
     SphericalJoint(int*);
-    void computeMPCs(CoordSet&);
     int getTopNumber();
-    void updateLMPCs(GeomState& gState, CoordSet& cs);
 };
 
 #endif

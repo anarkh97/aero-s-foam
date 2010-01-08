@@ -64,13 +64,7 @@ DotConstraintType1::computeMPCs(CoordSet& cs)
     c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
     c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
   }
-/*
-  // create mpc with zero coefficients and rhs
-  for(int i = 0; i < 3; ++i) 
-    addterm(new LMPCTerm(nn[0], 3+i, 0.0));
-  for(int i = 0; i < 3; ++i)  
-    addterm(new LMPCTerm(nn[1], 3+i, 0.0));
-*/
+
   // fill in the coefficients and rhs (same as updateLMPC but with initial configuration ie zero rotation at each node)
   double r[3] = { 0.0, 0.0, 0.0 };
   double dRdvi[3][3], d1[3], d2[3];
@@ -95,7 +89,7 @@ DotConstraintType1::getTopNumber()
 }
 
 void 
-DotConstraintType1::updateLMPCs(GeomState& gState, CoordSet& cs)
+DotConstraintType1::update(GeomState& gState, CoordSet& cs)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];

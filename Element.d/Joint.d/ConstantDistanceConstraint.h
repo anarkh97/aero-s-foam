@@ -1,20 +1,18 @@
-#ifndef _DOTCONSTRAINTTYPE2_H_
-#define _DOTCONSTRAINTTYPE2_H_
+#ifndef _CONSTANTDISTANCECONSTRAINT_H_
+#define _CONSTANTDISTANCECONSTRAINT_H_
 
 #include <Element.d/MpcElement.d/ConstraintElement.h>
 
-class DotConstraintType2 : public ConstraintElement
+class ConstantDistanceConstraint : public ConstraintElement
 {
     EFrame *elemframe;
-    int axis;
-    double c0[3][3]; // initial frame (axes stored row-wise)
+    double l0;       // initial length
   public:
-    DotConstraintType2(int*, int);
+    ConstantDistanceConstraint(int*);
     void computeMPCs(CoordSet&);
     int getTopNumber();
     void update(GeomState& gState, CoordSet& cs);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
-    void setFrame(EFrame *);
 };
 
 #endif

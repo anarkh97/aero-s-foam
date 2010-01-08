@@ -26,13 +26,10 @@ SuperElement::buildCorotator(CoordSet &cs)
 void 
 SuperElement::setProp(StructProp *p, bool _myProp) 
 {
-// cerr << "SuperElement::setProp called" << endl; 
- if(myProp && prop)  {
-  delete prop;
-  prop=0;
-//   cerr << "prop deleted" << endl;
+  if(myProp && prop) {
+    delete prop;
+    prop = 0;
   }
-//  else cerr << "prop not deleted" << endl;
 
   prop = p; 
   myProp = _myProp;
@@ -332,13 +329,12 @@ SuperElement::markDofs(DofSetArray &dsa)
 int*
 SuperElement::dofs(DofSetArray &dsa, int *p)
 {
-  if(p == 0) { cerr << "*!*!*!\n"; p = new int[numDofs()]; }
+  if(p == 0) p = new int[numDofs()];
   int i, j;
   for(i=0; i<nSubElems; ++i) {
     int *subp = new int[subElems[i]->numDofs()];
     subp = subElems[i]->dofs(dsa, subp);
     for(j=0; j<subElems[i]->numDofs(); ++j) {
-      // cerr << "i = " << i << ", j = " << j << ", subElemDofs[i][j] = " << subElemDofs[i][j] << endl;
       p[subElemDofs[i][j]] = subp[j];
     }
     if(subp) delete [] subp;
@@ -548,6 +544,14 @@ SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
   return false;
 }
 
+bool
+SuperElement::isConstraintElement()
+{
+  // return true if one of the sub elements is a rigid mpc element
+  for(int i=0; i<nSubElems; ++i)
+    if(subElems[i]->isConstraintElement()) return true;
+}
+
 void 
 SuperElement::computeMPCs(CoordSet &cs)
 {
@@ -596,4 +600,52 @@ SuperElement::getMPCs()
     for(j=0; j<subElems[i]->getNumMPCs(); ++j) ret[k++] = submpcs[j];
   }
   return ret;
+}
+
+void
+SuperElement::initialize(int l, int* _nn)
+{
+  // this function is designed to be called in the constructor of a super element
+  // after the sub elements have been instantiated. See for example Element.d/Joint.d/RigidJoint.C
+  // l is the number of nodes, excluding internal nodes
+  // _nn is an array of dimension l containing the node numbers
+
+  // make the element set
+  Elemset eset; eset.setMyData(false);
+  for(int i = 0; i < nSubElems; ++i) eset.elemadd(i, subElems[i]);
+
+  // count and number the internal nodes
+  int m = 0;
+  for(int i = 0; i < nSubElems; ++i) {
+    int k = subElems[i]->numInternalNodes();
+    int *in = new int[k];
+    for(int j = 0; j < k; ++j) in[j] = l + (m++);
+    subElems[i]->setInternalNodes(in);
+    delete [] in;
+  }
+  nnodes = l + m;
+
+  // get the sub-to-super node numbering maps
+  subElemNodes = new int * [nSubElems];
+  for(int i = 0; i < nSubElems; ++i) { 
+    subElemNodes[i] = new int[subElems[i]->numNodes()];
+    subElems[i]->nodes(subElemNodes[i]); 
+  }
+  //for(int i=0; i<nSubElems; ++i) { cerr << "subElemNodes[" << i << "] = "; for(int j=0; j<subElems[i]->numNodes(); ++j) cerr << subElemNodes[i][j] << " "; cerr << endl; }
+
+  // number the sub-to-super dof numbering maps
+  DofSetArray dsa(nnodes, eset);
+  subElemDofs = new int * [nSubElems];
+  for(int i = 0; i < nSubElems; ++i) { 
+    subElemDofs[i] = new int[subElems[i]->numDofs()]; 
+    subElems[i]->dofs(dsa, subElemDofs[i]); 
+  }
+  ndofs = dsa.size();
+
+  // renumber sub element nodes to global node numbering
+  nn = new int[nnodes];
+  for(int i = 0; i < l; ++i) nn[i] = _nn[i]; for(int i = l; i < nnodes; ++i) nn[i] = -1;
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(nn);
+
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(-1);  
 }

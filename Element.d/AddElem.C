@@ -108,10 +108,14 @@ extern map<int,double > weightList;
 //#include <Element.d/Rigid.d/RBE2.h>
 #include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
 
+#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
 #include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/RigidJoint.h>
+#include <Element.d/Joint.d/UniversalJoint.h>
+#include <Element.d/Joint.d/CylindricalJoint.h>
+#include <Element.d/Joint.d/PrismaticJoint.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -324,11 +328,16 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        break;
+     case 64:
+       ele = new (ba) SphericalJoint(n);
+       break;
      case 65:
-       ele = new (ba) TwoNodeTrussRigidMpc(n); // cf TwoNodeTrussRigid
+       //ele = new (ba) TwoNodeTrussRigidMpc(n); // cf TwoNodeTrussRigid
+       ele = new (ba) ConstantDistanceConstraint(n);
        break;
      case 66:
-       ele = new (ba) RigidMpcBeam(n); // cf RigidBeam
+       //ele = new (ba) RigidMpcBeam(n); // cf RigidBeam
+       ele = new (ba) RigidJoint(n);
        break;
      case 67:
        ele = new (ba) RigidMpcSpring(n); // cf RigidSpring
@@ -354,25 +363,21 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 74:
        ele = new (ba) RigidMpcSolid6Dof(nnodes,n); // cf RigidSolid6Dof
        break;
-     case 75:  // PJSA 3-30-05
-       cerr << "RBE element is currently disabled\n";
-/* this needs to be checked and updated
-       if(rigidmpc) 
-         ele = new (ba) RBE2Mpc(nnodes,n);
-       else ele = new (ba) RBE2(nnodes,n);
-*/
+     case 75:
+       //ele = new (ba) RBE2Mpc(nnodes,n); // cf RBE2
+       ele = new (ba) TranslationalJoint(n);
        break;
      case 76:
-       ele = new (ba) SphericalJoint(n);
+       ele = new (ba) UniversalJoint(n);
        break;
      case 77:
        ele = new (ba) RevoluteJoint(n);
        break;
      case 78:
-       ele = new (ba) TranslationalJoint(n);
+       ele = new (ba) CylindricalJoint(n);
        break;
      case 79:
-       ele = new (ba) RigidJoint(n);
+       ele = new (ba) PrismaticJoint(n);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);

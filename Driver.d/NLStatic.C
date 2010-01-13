@@ -276,7 +276,10 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::Displacement:
 	 if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           //cerr << "numNodes = " << numNodes << ", nodes.size() = " << nodes.size() << ", nodes.last() = " << nodes.last() << ", geomState->numNodes() = " << geomState->numNodes() << endl;
+           for(i=0; i < geomState->numNodes(); ++i) {
+             //cerr << "i = " << i << ", nodes[i]     = " << nodes[i]->x << ", " << nodes[i]->y << ", " << nodes[i]->z << endl;
+             //cerr << "i = " << i << ", geomState[i] = " << (*geomState)[i].x << ", " << (*geomState)[i].y << ", " << (*geomState)[i].z << endl;
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
@@ -298,7 +301,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       case OutputInfo::Temperature:
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double x = (nodes[i]) ? (*geomState)[i].x : 0;
              fprintf(oinfo[iInfo].filptr," % *.*E\n"
                                  ,w,p,x);
@@ -317,7 +320,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
          // 6 dof output should include node number
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
@@ -348,7 +351,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        {
          StackVector v_n(velocity, numUncon());
          int first_node, last_node;
-         if (oinfo[iInfo].nodeNumber == -1) { fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time); first_node=0; last_node=numNodes; }
+         if (oinfo[iInfo].nodeNumber == -1) { fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time); first_node=0; last_node=geomState->numNodes(); }
          else { fprintf(oinfo[iInfo].filptr,"  % *.*E",w,p,time); first_node=oinfo[iInfo].nodeNumber; last_node=first_node+1; }
 
          for (int iNode=first_node; iNode<last_node; ++iNode)  {
@@ -375,7 +378,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n", w, p, time);
            first_node = 0;
-           last_node = numNodes;
+           last_node = geomState->numNodes();
          }
          else {
            fprintf(oinfo[iInfo].filptr,"  % *.*E", w, p, time);
@@ -395,7 +398,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        {
          StackVector a_n(acceleration, numUncon()); // XXXX acceleration not passed
          int first_node, last_node;
-         if (oinfo[iInfo].nodeNumber == -1) { fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time); first_node=0; last_node=numNodes; }
+         if (oinfo[iInfo].nodeNumber == -1) { fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time); first_node=0; last_node=geomState->numNodes(); }
          else { fprintf(oinfo[iInfo].filptr,"  % *.*E",w,p,time); first_node=oinfo[iInfo].nodeNumber; last_node=first_node+1; }
 
          for (int iNode=first_node; iNode<last_node; ++iNode) {
@@ -419,7 +422,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::DispX:
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,x);
            }
@@ -434,7 +437,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::DispY:
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,y);
            }
@@ -449,7 +452,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::DispZ:
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,z);
            }
@@ -464,7 +467,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::RotX:
           if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double rot[3];
              mat_to_vec((*geomState)[i].R,rot);
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,rot[0]);
@@ -481,7 +484,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::RotY:
           if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double rot[3];
              mat_to_vec((*geomState)[i].R,rot);
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,rot[1]);
@@ -498,7 +501,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::RotZ:
           if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double rot[3];
              mat_to_vec((*geomState)[i].R,rot);
              fprintf(oinfo[iInfo].filptr," % *.*E\n",w,p,rot[2]);
@@ -515,7 +518,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::DispMod:
         if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
@@ -536,7 +539,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::RotMod:
          if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double rot[3];
              mat_to_vec((*geomState)[i].R,rot);
              double mod = sqrt(rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
@@ -556,7 +559,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       case OutputInfo::TotMod:
         if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
-           for(i=0; i < numNodes; ++i) {
+           for(i=0; i < geomState->numNodes(); ++i) {
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
@@ -698,7 +701,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
            // Build displacement Vector
            Vector sol(numUncon(), 0.0 );
            int i;
-           for(i=0; i<numNodes; ++i) {
+           for(i=0; i<geomState->numNodes(); ++i) {
              int xloc  = c_dsa->locate(i, DofSet::Xdisp);
              if(xloc >= 0)
                sol[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
@@ -853,13 +856,13 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
 void
 Domain::createCorotators(Corotator **allCorot)
 {
-
  // Allocate memory for element stiffness matrix
  double *kmatrix = new double[maxNumDOFs*maxNumDOFs];
 
  // Loop over elements to get their Corotators
  int iele;
- for(iele = 0; iele < numele; ++iele)  {
+ for(iele = 0; iele < numele; ++iele) {
+   if(packedEset[iele]->isPhantomElement()) allCorot[iele] = 0; else
    allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
                                       sinfo.getNLInfo().fitAlgShell,
                                       sinfo.getNLInfo().fitAlgBeam);

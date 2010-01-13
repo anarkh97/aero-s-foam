@@ -1,12 +1,12 @@
 #include <Element.d/Joint.d/LinearConstraintType1.h>
 
 LinearConstraintType1::LinearConstraintType1(int* _nn, DofSet *nodalDofs)
- : ConstraintElement(2, nodalDofs, _nn)
+ : MpcElement(2, nodalDofs, _nn)
 {
 }
 
 void 
-LinearConstraintType1::computeMPCs(CoordSet& cs)
+LinearConstraintType1::buildFrame(CoordSet& cs)
 {
   terms[0].coef.r_value = 1.0;
   terms[1].coef.r_value = -1.0;

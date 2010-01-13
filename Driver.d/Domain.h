@@ -461,8 +461,6 @@ class Domain : public HData {
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
      Rbm              *constructRbm(bool printFlag = true);
-     //Rbm              *constructRbm(IntFullM *);
-     //Rbm              *constructAllRbm();
      Rbm              *constructHzem(bool printFlag = true);
      Rbm              *constructSlzem(bool printFlag = true);
 
@@ -649,8 +647,7 @@ class Domain : public HData {
 
      // returns the number of unconstrained dof
      int numUncon() {
-       return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0; // YYY DG
-//       return c_dsa ? c_dsa->size() : dsa->size();
+       return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
      }
 
      // returns the number of unconstrained Fluid dof

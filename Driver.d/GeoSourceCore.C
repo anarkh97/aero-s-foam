@@ -294,51 +294,10 @@ int GeoSource::addCFrame(int fn, double *f)  {
 
 void GeoSource::setUpRigidElements(bool flag)
 {
-  // XXXX now this is done twice --> need to fix.
-  // Set up element frames
-  for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
-    Element *ele = elemSet[efd[iFrame].elnum];
-    if(ele == 0) {
-      fprintf(stderr," *** WARNING: Frame was found for non-existent"
-                     " element %d \n", efd[iFrame].elnum+1);
-    }
-    else ele->setFrame(&(efd[iFrame].frame));
-  }
-
-  int last = elemSet.last();
-  for(int iEle = 0; iEle < last; ++iEle) {
-    Element *ele = elemSet[iEle];
-    if(ele) ele->computeMPCs(nodes);
-  }
-
-  int count1 = 0, count2 = 0;
-  for(int i = 0; i < na; ++i) { // this seems a bit dangerous: what if a rigid element has no attribute?
-    Element *ele = elemSet[ attrib[i].nele ];
-    if((ele != 0) && (ele->isRigidMpcElement())) {
-      ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
-      //ele->computeMPCs(nodes);
-
-      // if flag==true, we get the constraints from the rigid element as an array of LMPCs objects
-      // and add these to the domain. In this case the rigid element remains in the element set but acts
-      // as a phantom with no "internal nodes" (with lagrange dofs) and zero'd stiffness matrix
-      // This must be used for FETI and for the direct elimination method but is otherwise optional
-      if(flag) {
-        int nmpc = ele->getNumMPCs();
-        LMPCons **mpc = ele->getMPCs();
-        for(int j = 0; j < nmpc; ++j) domain->addLMPC(mpc[j], false);
-        count1++; count2 += nmpc;
-      }
-      // if flag==false, the element has lagrange multiplier degrees of freedom 
-      // assigned to internal nodes and implements the stiffness matrix [ 0 C^T ]
-      //                                                                [ C  0  ]
-    }
-  }
-  if(count1) cerr << " ... Converted " << count1 << " rigid elements to " << count2  << " LMPCs ...\n";
-
 /*
   for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
-    if((ele != 0) && (ele->isRigidMpcElement())) {
+    if((ele != 0) && (ele->isRigidElement())) {
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
     }
   }
@@ -348,7 +307,7 @@ void GeoSource::setUpRigidElements(bool flag)
   int nEle = elemSet.last();
   for(int i = 0; i < nEle; ++i) {
     Element *ele = elemSet[i];
-    if(ele != 0 && ele->isRigidMpcElement())
+    if(ele != 0 && ele->isRigidElement())
       rigidSet.elemadd(nRigid++, ele);
   }
   rigidSet.collapseRigid6();
@@ -481,8 +440,8 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   int nRigid = 0;
   for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
-    if((ele != 0) && (ele->isRigidMpcElement())) {
-      if(print_flag) { fprintf(stderr," ... Converting RigidMpcElements to LMPCs \n"); print_flag = false; }
+    if((ele != 0) && (ele->isRigidElement())) {
+      if(print_flag) { fprintf(stderr," ... Converting RigidElements to LMPCs \n"); print_flag = false; }
       ele->setProp(&sProps[attrib[i].attr]);  // PJSA 9-18-06 rigid springs need prop
  // Delay this 'til later:  //ele->computeMPCs(nodes,lmpcnum);
     }
@@ -490,7 +449,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 
   for(int i = 0; i < nEle; ++i) {
 	 Element *ele = elemSet[i];
-	 if(ele != 0 && ele->isRigidMpcElement())
+	 if(ele != 0 && ele->isRigidElement())
          rigidSet.elemadd(nRigid++,ele);
   }
   //std::cerr << "Number of rigid elements: " << nRigid << " versus "<< nEle << std::endl;
@@ -760,7 +719,7 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
 
 void GeoSource::setUpData()
 {
-  // Setup the internal nodes
+  // Set up the internal nodes
   int lastNode = numNodes = nodes.last();
   int nMaxEle = elemSet.size();
   for (int iElem = 0; iElem < nMaxEle; ++iElem) {
@@ -789,9 +748,10 @@ void GeoSource::setUpData()
     }
     else ele->setFrame(&(efd[iFrame].frame));
   }
+  for (int i = 0; i < nMaxEle; ++i)
+    if(elemSet[i]) elemSet[i]->buildFrame(nodes);
 
   // Set up element attributes
-  int i;
   SolverInfo sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) { // PJSA
     fprintf(stderr," **************************************\n");
@@ -801,28 +761,28 @@ void GeoSource::setUpData()
   }
   if(na != nMaxEle) {
     // check for elements with no attribute, and add dummy properties
-    bool *hasAttr = (bool *)dbg_alloca(nMaxEle*sizeof(bool));
-    for(i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
-    for(i = 0; i < na; ++i) hasAttr[attrib[i].nele] = true;
-
-    int dattr = maxattrib+1;  // dummy attribute
-    bool topdec = (sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp); // top & decomp should work without attributes defined
-    for(i = 0; i < nMaxEle; ++i) {
+    bool *hasAttr = (bool *) dbg_alloca(nMaxEle*sizeof(bool));
+    for(int i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
+    for(int i = 0; i < na; ++i) hasAttr[attrib[i].nele] = true;
+    int dattr = maxattrib + 1;
+    StructProp *dprop = new StructProp(); 
+    addMat(dattr, *dprop);
+    for(int i = 0; i < nMaxEle; ++i) {
       if(elemSet[i] && !hasAttr[i]) {
-        if(topdec || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
+        if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
         else cerr << " *** WARNING: Element " << i+1 << " has no attribute defined\n";
       }
     }
   }
 
-  // create map for used material properties
+  // Set up material properties
   // & compute average E and nu (for coupled_dph)
   int structure_element_count = 0;
   int fluid_element_count = 0;
   global_average_E = 0.0;
   global_average_nu = 0.0;
   global_average_rhof = 0.0;
-  for(i = 0; i < na; ++i) {
+  for(int i = 0; i < na; ++i) {
     Element *ele = elemSet[ attrib[i].nele ];
 
     // Check if element exists
@@ -836,59 +796,37 @@ void GeoSource::setUpData()
       phantomFlag = 1;
       ele->setProp(0);
     }
-    else if(elemSet[attrib[i].nele]->isConstraintElement()) { // rigid/mpc/fsi
-      ele->setProp(new StructProp(), true);
-    }
     else  {
       SPropContainer::iterator it = sProps.find(attrib[i].attr);
-      if(it == sProps.end()) { // in this case the material does not exist (this is only permitted for -t and --dec)
-        if((sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp))
-          fprintf(stderr, " *** ERROR: The material for element %d does not exist\n",
-                  attrib[i].nele+1);
+      if(it == sProps.end()) {
+        fprintf(stderr, " *** ERROR: The material for element %d does not exist\n",
+                attrib[i].nele+1);
       }
       else {
         StructProp *prop = &(it->second);
+        ele->setProp(prop);
 
         // compute global average structural and fluid properties
-        if(! dynamic_cast<HelmElement *>(elemSet[attrib[i].nele])) { // not a fluid element
-          global_average_E += prop->E;
-          global_average_nu += prop->nu;
-          structure_element_count++;
-        } else {
-          global_average_rhof += prop->rho;
-          fluid_element_count++;
+        if(!ele->isConstraintElement()) {
+          if(! dynamic_cast<HelmElement *>(elemSet[attrib[i].nele])) { // not a fluid element
+            global_average_E += prop->E;
+            global_average_nu += prop->nu;
+            structure_element_count++;
+          } else {
+            global_average_rhof += prop->rho;
+            fluid_element_count++;
+          }
         }
-#ifdef CHECK_MATE
-        double SPRING_MAX = 1.0e10;
-        if(ele->isSpring() && (fabs(prop->kx) > SPRING_MAX || fabs(prop->ky) > SPRING_MAX || fabs(prop->kz) > SPRING_MAX)) { // check springs
-          cerr << "ele " << attrib[i].nele+1 << " type " << ele->getElementType() << " has kx = " << prop->kx
-               << ", ky = " << prop->ky << ", kz = " << prop->kz << endl;
-          StructProp *tmp = new StructProp(prop); 
-          if(prop->kx > SPRING_MAX) tmp->kx = SPRING_MAX; else if(prop->kx < -SPRING_MAX) tmp->kx = -SPRING_MAX;
-          if(prop->ky > SPRING_MAX) tmp->ky = SPRING_MAX; else if(prop->ky < -SPRING_MAX) tmp->ky = -SPRING_MAX;
-          if(prop->kz > SPRING_MAX) tmp->kz = SPRING_MAX; else if(prop->kz < -SPRING_MAX) tmp->kz = -SPRING_MAX;
-          ele->setProp(tmp);
-        }
-        else if(!ele->isSpring() && (prop->nu >= 0.5 || prop->nu <= -1.0)) {
-          cerr << "ele " << attrib[i].nele+1 << " type " << ele->getElementType() << " nu = " << prop->nu << endl;
-          StructProp *tmp = new StructProp(prop); 
-          if(prop->nu >= 0.5) tmp->nu = 0.499; else if(prop->nu <= -1.0) tmp->nu = -0.999;
-          ele->setProp(tmp); 
-        } else 
-#endif
-        ele->setProp(prop);
       }
     }
 
-    ele->buildFrame(nodes);
-
     if(attrib[i].cmp_attr >= 0) {
       if(coefData[attrib[i].cmp_attr] != 0) {
-        if(attrib[i].cmp_frm > -1) { // user input cframe
+        if(attrib[i].cmp_frm > -1) { // cframe
           ele->setCompositeData(1, 0, 0, coefData[attrib[i].cmp_attr]->values(),
                                 cframes[attrib[i].cmp_frm]);
         }
-        else { // PJSA 4-8-05: user input ctheta
+        else { // ctheta
           ele->setCompositeData2(1, 0, 0, coefData[attrib[i].cmp_attr]->values(),
                                  nodes, attrib[i].cmp_theta);
         }
@@ -901,10 +839,9 @@ void GeoSource::setUpData()
                          attrib[i].cmp_attr+1);
           continue;
         }
-        // PJSA 3-31-05: set layer material properties if necessary
+        // Set up layer material properties if necessary
         for(int k=0; k<li->nLayers(); ++k) {
           int mid = li->getLayerMaterialId(k);
-          // cerr << "k = " << k << ", mid = " << mid << endl;
           if(mid > -1) {
             LayMat *lmk = layMat[mid];
             li->setLayerMaterialProperties(k,lmk->data);
@@ -912,11 +849,11 @@ void GeoSource::setUpData()
         }
         // type is 3 for LAYC 2 for LAYN
         int type = 3 - li->getType();
-        if(attrib[i].cmp_frm > -1) { // user input cframe
+        if(attrib[i].cmp_frm > -1) { // cframe
           ele->setCompositeData(type, li->nLayers(), li->values(), 0,
                                 cframes[attrib[i].cmp_frm]);
         }
-        else { // PJSA 4-8-05: user input ctheta
+        else { // ctheta
           ele->setCompositeData2(type, li->nLayers(), li->values(), 0,
                                  nodes, attrib[i].cmp_theta);
         }
@@ -931,7 +868,7 @@ void GeoSource::setUpData()
     global_average_rhof /= double(fluid_element_count);
   }
 
-  // setup beam element offsets
+  // Set up beam element offsets
   for(vector<OffsetData>::iterator offIt = offsets.begin();
         	  offIt != offsets.end(); ++offIt) {
     for(int i = offIt->first; i <= offIt->last; ++i) {
@@ -944,7 +881,7 @@ void GeoSource::setUpData()
     }
   }
 
-  // Set new Material data in elements
+  // Set up material data in elements
   map<int,int>::iterator uIter = matUsage.begin();
   while(uIter != matUsage.end()) {
     int elemNum = uIter->first;
@@ -954,7 +891,7 @@ void GeoSource::setUpData()
     // Check if element exists
     if (ele == 0) {
       fprintf(stderr," *** WARNING: Material was found for"
-                       " non existent element %d \n",attrib[i].nele+1);
+                       " non existent element %d \n", elemNum+1);
       uIter++; // go to the next mapping
       continue;
     }
@@ -1009,17 +946,14 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   // add real elements to list
   for(iEle = 0; iEle < numele; ++iEle) {
     Element *ele = elemSet[iEle];
-    if(ele)  {
-      //if(ele->isPhantomElement()==0) {//getProperty()  //original
-      if(!ele->isPhantomElement() && (!ele->isHEVFluidElement() || (!sinfo.HEV))) {//getProperty()  //MODIFIED FOR HEV PROBLEM, EC, 20070820
+    if(ele) {
+      if(!ele->isPhantomElement() && (!ele->isHEVFluidElement() || (!sinfo.HEV))) {
         packedEset.elemadd(nElem, ele);
         packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;
       }
-      //ADDED FOR HEV PROBLEM, EC, 20070820
-      //else if(!ele->isPhantomElement() && ele->isHEVFluidElement() && (sinfo.HEV)) {
       else if(!ele->isPhantomElement() && ele->isHEVFluidElement()) {
         packedEsetFluid->elemadd(nElemFluid, ele);
         (*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
@@ -1030,40 +964,36 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     }
   }
 
-  if(!domain->getSowering())
-    {
-      //add the sommerElement from vector sommer -JF
-      //cerr << "GeoSourceCore.C, adding sommer in packedEset" << endl;
-      if (sinfo.ATDARBFlag!=-2.0) {
-	for (int i = 0 ;i<domain->numSommer;i++) {
-	  packedEset.elemadd(nElem,domain->sommer[i]);
-	  packedEset[nElem]->setGlNum(numele+i);
-	  if(packFlag)
-	    glToPckElems[numele+i] = nElem;
-	  nElem++;
-	}
+  // add sommer elements
+  if(!domain->getSowering()) {
+    if (sinfo.ATDARBFlag != -2.0) {
+      for (int i = 0; i < domain->numSommer; i++) {
+        packedEset.elemadd(nElem,domain->sommer[i]);
+        packedEset[nElem]->setGlNum(numele+i);
+        if(packFlag)
+          glToPckElems[numele+i] = nElem;
+        nElem++;
       }
     }
+  }
 
   int nRealElems = nElem;
 
   // set number of real elements
   packedEset.setEmax(nElem);
-  packedEset.setNumPhantoms(nPhantoms);
 
   //ADDED FOR HEV PROBLEM, EC, 20070820
   if(sinfo.HEV) {
     packedEsetFluid->setEmax(nElemFluid);
-    packedEsetFluid->setNumPhantoms(0);
   }
 
   // add phantom elements to list
   iEle = 0;
   int nPhants = 0;
-  while (nPhants < nPhantoms)  {
+  while (nPhants < nPhantoms) {
     Element *ele = elemSet[iEle];
-    if(ele)  {
-      if(ele->isPhantomElement()) {//getProperty() == 0
+    if(ele) {
+      if(ele->isPhantomElement()) {
         packedEset.elemadd(nElem, ele);
         packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
@@ -1177,7 +1107,7 @@ int GeoSource::getNonMpcElems(Elemset &eset)
   for(int iEle = 0; iEle < numele; ++iEle) {
     Element *ele = elemSet[iEle];
     if(ele)  {
-      if(!ele->isRigidMpcElement() && !ele->isMpcElement())  {
+      if(!ele->isRigidElement() && !ele->isMpcElement())  {
         eset.elemadd(elecount, ele);
         eset[nElem]->setGlNum(iEle);
         elecount++;
@@ -3683,7 +3613,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
   for(iEle = 0; iEle < maxEle; ++iEle)
    if(elemSet[iEle]) {
      if(elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false
-        && elemSet[iEle]->isRigidMpcElement() == false)  // PJSA 7-21-05  these are converted to LMPCs for feti solver
+        && elemSet[iEle]->isRigidElement() == false)  // PJSA 7-21-05  these are converted to LMPCs for feti solver
        baseSet.elemadd(iEle, elemSet[iEle]);
      else {
        if(elemSet[iEle]->isSpring()) {

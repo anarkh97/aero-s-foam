@@ -923,11 +923,6 @@ void Domain::printCTETT()
   }
 }
 
-
-
-
-
-
 int
 Domain::setIDis6(int _numIDis6, BCond *_iDis6)
 {
@@ -968,14 +963,6 @@ int Domain::setITemp(int _numITemp, BCond *_iTemp)
  return 0;
 }
 
-/*
-void
-Domain::addOutput(OutputInfo &outputInfo)
-{
- oinfo[numOutInfo++] = outputInfo;
-}
-*/
-
 void
 Domain::setGravity(double ax, double ay, double az)
 {
@@ -985,15 +972,11 @@ Domain::setGravity(double ax, double ay, double az)
  gravityAcceleration[2] = az;
 }
 
-//ADDED FOR SLOSHING PROBLEM, EC, 20070724
-
 void
 Domain::setGravitySloshing(double gg)
 {
  gravitySloshing = gg;
 }
-
-//---------------------------------------------------------------
 
 void
 Domain::setUpData()
@@ -1001,13 +984,13 @@ Domain::setUpData()
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
   Elemset eset_tmp;
-  if(sinfo.type == 0) { // PJSA
+  if(sinfo.type == 0) {
     if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
   }
 
   geoSource->setUpData();
 
-  if(sinfo.type == 0) { // PJSA
+  if(sinfo.type == 0) {
     if(numLMPC) {
       Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
@@ -1037,7 +1020,6 @@ Domain::setUpData()
 
   // set dirichlet
   numBC = geoSource->getDirichletBC(bc);
-  //fprintf(stderr,"numBC = %d\n",numBC);
   numTextBC = geoSource->getTextDirichletBC(textBC);
   if (numTextBC)
     geoSource->augmentBC(numTextBC, textBC, bc, numBC);
@@ -1045,7 +1027,6 @@ Domain::setUpData()
     int numBCFluid;
     BCond *bcFluid;
     numBCFluid = geoSource->getDirichletBCFluid(bcFluid);
-    //fprintf(stderr,"numBCFluid = %d\n",numBCFluid);
     setDirichletFluid(numBCFluid, bcFluid);
   }
   setDirichlet(numBC, bc);
@@ -1080,9 +1061,6 @@ Domain::setUpData()
 
   // set Control Law
   claw = geoSource->getControlLaw();
-
-  // GR: create the unit tangents defining the plane of friction
-  // FRICTION if(ctc->hasFriction()) ctc->setUnitTangents();
 
   // PJSA: compute temperature dependent material properties
   computeTDProps();
@@ -1556,7 +1534,8 @@ Domain::resProcessing(Vector &totRes, int index, double t)
 }
 
 Connectivity *
-Domain::makeSommerToNode() {
+Domain::makeSommerToNode() 
+{
  int size = numSommer;
  // Find out the number of targets we will have
  int *pointer = new int[size+1] ;
@@ -1615,12 +1594,8 @@ Domain::getRenumbering()
      Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
      Connectivity *renumToElem = elemToRenum->reverse();
      nodeToNode = renumToElem->transcon(elemToRenum);
-     //cerr << "nodeToNode = \n"; nodeToNode->print();
      delete renumToElem;
      delete elemToRenum;
-     // just for debugging make and print the ordinary nodeToNode connectivity
-     //Connectivity *nodeToNode_tmp = nodeToElem->transcon(elemToNode);
-     //cerr << "nodeToNode_tmp = \n"; nodeToNode_tmp->print();
    } else
      nodeToNode = nodeToElem->transcon(elemToNode);
 
@@ -2271,82 +2246,6 @@ void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
  }
 
 }
-
-//-------------------------------------------------------------------
-
-/*
-void
-Domain::aeroSolve() {
-
-
-  double timeAero = - getTime();
-
-  switch(domain->probType())
-  {
-    case SolverInfo::Dynamic:  {
-      if(domain->solInfo().modal){
-        fprintf(stderr," ... Modal Dynamics  ...\n");
-        ModalDescr<double> modalProb(domain);
-        DynamicSolver <ModalOps, Vector, ModalDescr<double>, ModalDescr<double>, double>
-          modalSolver(&modalProb);
-        modalSolver.solve();
-      }
-      else {
-        SingleDomainDynamic<double> dynamProb(domain);
-        DynamicSolver <DynamMat, Vector, SDDynamPostProcessor, SingleDomainDynamic<double>, double>
-          dynaSolver(&dynamProb);
-        dynaSolver.solve();
-      }
-    }
-    break;
-
-    case SolverInfo::NonLinDynam:
-    {
-      if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-        SingleDomainDynamic<double> dynamProb(domain);
-        DynamicSolver <GenDynamMat<double>, Vector,
-              SDDynamPostProcessor, SingleDomainDynamic<double>, double>
-          dynaSolver(&dynamProb);
-        dynaSolver.solve();
-      }
-      else { // implicit
-        NonLinDynamic nldynamic(domain);
-        NLDynamSolver <Solver,Vector,SDDynamPostProcessor,
-                     NonLinDynamic, GeomState  > nldynamicSolver(&nldynamic);
-        nldynamicSolver.solve();
-      }
-    }
-    break;
-
-    default:
-      filePrint(stderr,"Incorrect problem type, exiting\n");
-  }
-  timeAero += getTime();
-
-  filePrint(stderr," ... Aeroelastic simulation time: %.2e s\n",
-         timeAero/1000.0);
-
-  //_FORTRAN(endcom)();
-}
-
-void
-Domain::aeroheatSolve()
-{
- //int structID = 3;  // structID is the identification number of the structure
-                      // code. The fluid uses 1 and control 3
-
- fprintf(stderr, " ... Calling inicom\n");
- // TO be changed
- //_FORTRAN(inicom)(structID);
-
- SingleDomainTemp tempProb(domain);
- TempSolver <DynamMat, Vector, SDTempDynamPostProcessor, SingleDomainTemp>
-      dynaSolver(&tempProb);
- dynaSolver.solve();
-
- //_FORTRAN(endcom)();
-}
-*/
 
 void Domain::mergeDisp(double (*xyz)[11], double *u, double *cdisp)//DofSet::max_known_nonL_dof
 {
@@ -3103,30 +3002,6 @@ Domain::~Domain()
    if(lmpc[i]) delete lmpc[i];
 }
 
-/*
-double
-LMPCons::computeError(GeomState &gState, CoordSet &cs, int *glToLocalNode)
-{
-  int i;
-  double error = -original_rhs; // question: should this always be the original rhs??
-  // cerr << "gState.numNodes() = " << gState.numNodes() << endl;
-  for(i = 0; i < nterms; i++) {
-    double val = terms[i].val;
-    // cerr << "terms[i].nnum = " << terms[i].nnum << endl;
-    // int nnum = glToLocalNode[terms[i].nnum];
-    // cerr << "glToLocalNode[terms[i].nnum] = " << glToLocalNode[terms[i].nnum] << endl;
-    int nnum = terms[i].nnum;
-    int dofnum = terms[i].dofnum;
-    Node &node1 = cs.getNode(nnum);
-    // cerr << "node1 xyz = " << node1.x << " " << node1.y << " " << node1.z << endl;
-    NodeState ns1 = gState[nnum];
-    error += val * ns1.diff(node1, dofnum);
-  }
-  return error;
-  // return 0.0;
-}
-*/
-
 #include <Element.d/Helm.d/HelmElement.h>
 
 int
@@ -3831,8 +3706,10 @@ Domain::setEigenValues(double _lbound , double _ubound, int _neigps, int _maxArn
   sinfo.doEigSweep = true;
 }
 
+/*
 void
 Domain::collapseRigid6() {
 	packedEset.collapseRigid6();
 }
+*/
 

@@ -903,8 +903,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
    }
 
  // output phantom elements in a separate elementset if there are any
- if( (packedEset.numPhantoms()>0) && phantoms.size()>0)
-   {
+ if (phantoms.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_phantom using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
      int m_phantoms = phantoms.size();
@@ -928,8 +927,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
    }
 
  // output constraint elements in a separate elementset if there are any
- if( constraints.size()>0)
-   {
+ if (constraints.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_constraints using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
      int m_constraints = constraints.size();

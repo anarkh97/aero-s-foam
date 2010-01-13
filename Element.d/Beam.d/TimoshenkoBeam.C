@@ -49,7 +49,7 @@ TimoshenkoBeam::renum(int *table)
      nn[1] = table[nn[1]];
 }
 
-int
+void
 TimoshenkoBeam::buildFrame(CoordSet& cs)
 {
  if(cs.exist(nn[0]) == 0) {
@@ -97,7 +97,7 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
       normalize(theFrame[2]);
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
-    return 0;
+    return;
   }
   if(cs.exist(nn[2])) {
     Node &nd3 = cs.getNode(nn[2]);
@@ -113,9 +113,9 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
     crossprod(xz,theFrame[0],theFrame[1]);
     normalize(theFrame[1]);
     crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    return 1;
+    return;
   } else {
-    return 0;
+    return;
   }
 }
 

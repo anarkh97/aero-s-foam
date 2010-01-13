@@ -19,7 +19,7 @@ public:
 	void renum(int *);
 
 	void setFrame(EFrame *ef) { elemframe = ef; }
-        int buildFrame(CoordSet&);
+        void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet&, double *kel,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
@@ -55,9 +55,6 @@ public:
 
 	// Routines for the decomposer
 	PrioInfo examine(int sub, MultiFront *);
-	// isStart indicates if an element is suitable to
-	// be a germination center for a subdomain (bars are not)
-	bool isStart() { return true; }  
 	bool hasRot() { return true; }
    
         int getMassType() { return 2; } // both consistent and lumped

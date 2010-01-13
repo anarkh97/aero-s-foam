@@ -270,7 +270,7 @@ TwoNodeTruss::getCorotator(CoordSet &cs, double *kel, int, int)
 int
 TwoNodeTruss::getTopNumber()
 {
-  return 101;//1;
+  return 101;
 }
 
 void

@@ -22,27 +22,11 @@ class DofSet {
       Contact,
       IntPress,
       Potential,
-      Lagrange1,
-      Lagrange2,
-      Lagrange3,
-      Lagrange4,
-      Lagrange5,
-      Lagrange6,
-      Lagrange7,
-      Lagrange8,
-      Lagrange9,
-      Lagrange10,
-      Lagrange11,
-      Lagrange12,
-      Lagrange13,
-      Lagrange14,
-      Lagrange15,
-      Lagrange16,
-      Lagrange17,
-      Lagrange18;
+      Lagrange;
+
     static const int DispAndRot = 0x3f;
-    static int AllLagrange[18];
     static DofSet nullDofset;
+
     // constructors
     DofSet()      { flags = 0; }
     DofSet(int t) { flags = t; }

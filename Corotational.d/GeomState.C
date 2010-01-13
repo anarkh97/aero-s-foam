@@ -84,7 +84,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
       ns[i].R[2][1] = 0.0;
       ns[i].R[2][2] = 1.0;
 
-      loc[i][0] = cdsa.locate( i, DofSet::Lagrange1 );
+      loc[i][0] = cdsa.locate( i, DofSet::Lagrange );
       flag[i] = false;
       //flag[i] = true;
     }
@@ -940,7 +940,7 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
     else  {
       // HB: TEMPORARY BAD FIX FOR DEALING WITH LAGRANGE MULTIPLIERS (RIGID BAR) !!!
       ns[i].x = 0.0;
-      loc[i][0] = cdsa.locate( i, DofSet::Lagrange1 );
+      loc[i][0] = cdsa.locate( i, DofSet::Lagrange );
       flag[i] = false;
       //flag[i] = true;
     }
@@ -1072,108 +1072,4 @@ TemperatureState::midpoint_step_update(Vector &vel_n, double delta, GeomState &s
    ss.ns[inode].x = ns[inode].x;
  }
 }
-/*
-#include <Corotational.d/TemperatureState.h>
-TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
- : GeomState(cs)
-{
-  numnodes = dsa.numNodes();            // Number of nodes
-  ns       = new NodeState[numnodes];   // Array of Node States
-  loc      = new int[numnodes][1];      // dof locations
-  flag     = new bool[numnodes];     // flag for node to element connectivity
-  numReal = 0;
 
-  int i;
-  for(i=0; i<numnodes; ++i) {
-
-    // Store location of each degree of freedom
-    loc[i][0] = cdsa.locate( i, DofSet::Temp );
-
-    // Get Node i from the Coordinate (Node) set
-    Node *node_i = cs[i];
-
-    if (node_i)  {
-
-      ns[i].x = 0.0;//XXXXX
-      if(dsa[i].list() != 0)  {
-        flag[i] = true;
-        numReal++;
-      }
-      else
-        flag[i] = false;
-
-    }
-    else  {
-      // HB: TEMPORARY BAD FIX FOR DEALING WITH LAGRANGE MULTIPLIERS (RIGID BAR) !!!
-      ns[i].x = 0.0;//XXXXX
-      loc[i][0] = cdsa.locate( i, DofSet::Lagrange1 );
-      flag[i] = false;
-      //flag[i] = true;
-    }
-
-  }
-
-  // Initialize Global Rotation Matrix to Identity
-  //double zeroRot[3] = {0.0, 0.0, 0.0};
-  //computeRotMat(zeroRot, gRot);
-  //computeCG(refCG);
-
-}
-
-void
-TemperatureState::update(const Vector &v)
-{
- // v = incremental displacement vector
-
- int i;
- for(i=0; i<numnodes; ++i) {
-
-     // Set incremental translational displacements
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-
-     // Increment total translational displacements
-     ns[i].x += dx;
-
-   }
-}
-
-void
-TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
-                                        double delta)
-{
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[numnodes][3];
-
-  // initialize to zero, rotational prescribed dofs
-  int i;
-  for(i=0; i<numnodes; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
-
-  for(i=0; i<numDirichlet; ++i) {
-
-    int nodeNumber = dbc[i].nnum;
-    int dofNumber  = dbc[i].dofnum;
-
-
-    // we multiply the total prescribed value by delta which
-    // is a parameter prescribed by the user in the input file
-    // it is a load control parameter. By default, it is set to 1.0
-    // which is applying the full prescribed displacement all at once.
-
-    double prescribedValue = delta*dbc[i].val;
-
-    // if prescribed value is zero, we do nothing.
-    if( prescribedValue == 0.0 ) continue;
-
-    switch(dofNumber) {
-        case 6:
-                ns[nodeNumber].x += prescribedValue;
-                break;
-        default:
-                break;
-    }
-
-  }
-  delete [] dth;
-}
-*/

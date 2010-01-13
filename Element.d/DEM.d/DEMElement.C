@@ -114,7 +114,7 @@ int* DEMElement::dofs(DofSetArray &dsa, int *p) {
    if (lm[i] != 0) {
      int j;
      for(j=0;j<lm[i]->nDofs();j++) {
-        dsa.number(lm[i]->getNodeOffset()+j, DofSet::Lagrange1,p+ii++);
+        dsa.number(lm[i]->getNodeOffset()+j, DofSet::Lagrange,p+ii++);
        
      }
    }
@@ -168,7 +168,7 @@ void DEMElement::markDofs(DofSetArray &dsa) {
    if (lm[i] != 0) {
      int j;
      for(j=0;j<lm[i]->nDofs();j++) {
-        dsa.mark(lm[i]->getNodeOffset()+j, DofSet::Lagrange1);
+        dsa.mark(lm[i]->getNodeOffset()+j, DofSet::Lagrange);
      }
    }
  }

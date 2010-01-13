@@ -1,10 +1,9 @@
 #include <Element.d/Joint.d/DotConstraintType2.h>
-#include <Driver.d/Mpc.h>
 #include <Corotational.d/utilities.h>
-#include <Element.d/Beam.d/exp-map.h>
+#include <Element.d/Joint.d/exp-map.h>
 
 DotConstraintType2::DotConstraintType2(int* _nn, int _axis)
- : ConstraintElement(2, DofSet::XYZdisp | DofSet::XYZrot, _nn)
+ : MpcElement(2, DofSet::XYZdisp | DofSet::XYZrot, _nn)
 {
   axis = _axis;
   elemframe = 0;
@@ -17,7 +16,7 @@ DotConstraintType2::setFrame(EFrame *_elemframe)
 }
 
 void 
-DotConstraintType2::computeMPCs(CoordSet& cs)
+DotConstraintType2::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
   if(elemframe) {
@@ -36,7 +35,7 @@ DotConstraintType2::computeMPCs(CoordSet& cs)
     double l0 = sqrt( dx*dx + dy*dy + dz*dz );
 
     if(l0 == 0.0) {
-      cerr << " *** ERROR: division by zero in DotConstraintType2 between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
+      cerr << " *** ERROR: division by zero in DotConstraintType2::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
       exit(-1);
     }
 

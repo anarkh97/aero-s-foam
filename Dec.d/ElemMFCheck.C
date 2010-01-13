@@ -80,14 +80,21 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
 
-//ADDED FOR SLOSHING PROBLEM, EC, 20070713
 #include <Element.d/FluidQuad.d/SloshQuadGal.h>
 #include <Element.d/FluidQuad.d/BarSloshFS.h>
 #include <Element.d/FluidTetra.d/SloshTetra.h>
 #include <Element.d/FluidTriangle3.d/SloshTriangleFS.h>
-
-//ADDED FOR SLOSHING PROBLEM, EC, 20070713
 #include <Element.d/FluidTetra.d/HEVibTetra.h>
+
+#include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
+#include <Element.d/Rigid.d/RigidBeam.h>
+#include <Element.d/Rigid.d/RigidSpring.h>
+#include <Element.d/Rigid.d/RigidTransSprlink.h>
+#include <Element.d/Rigid.d/RigidRotnSprlink.h>
+#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
+#include <Element.d/Rigid.d/RigidEightNodeBrick.h>
+#include <Element.d/Rigid.d/RigidSolid.h>
+#include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
 PrioInfo
 examineBar2(int sub, MultiFront *mf, int *nn)
@@ -188,7 +195,6 @@ EulerBeam::examine(int sub, MultiFront *mf)
   return examineBeam2(sub, mf, nn);
 }
 
-
 PrioInfo 
 TorSpring::examine(int sub, MultiFront *mf)
 {
@@ -203,7 +209,6 @@ TorSpring::examine(int sub, MultiFront *mf)
  res.isReady = true;
  return res;
 }
-
 
 PrioInfo
 examineQuad4(int sub, MultiFront *mf, int *nn)
@@ -242,7 +247,7 @@ MpcElement::examine(int sub, MultiFront *mf)
 {
  // PJSA 7-31-06
  int count = 0;
- for(int i = 0; i < nnodes; ++i) {
+ for(int i = 0; i < nNodes; ++i) {
    int wn = mf->weight(sub, nn[i]);
    if(wn > 0) count++;
  }
@@ -1143,5 +1148,79 @@ PrioInfo
 HelmSpectralIsoParamQuad::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
+}
+
+PrioInfo
+RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
+RigidBeam::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RigidSpring::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RigidTransSprlink::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
+RigidRotnSprlink::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
+RigidThreeNodeShell::examine(int sub, MultiFront *mf)
+{
+  return examineTri3Shell(sub, mf, nn);
+}
+
+PrioInfo
+RigidEightNodeBrick::examine(int sub, MultiFront *mf)
+{
+  return examineHex8(sub, mf, nn);
+}
+
+PrioInfo
+RigidSolid::examine(int sub, MultiFront *mf)
+{
+  switch(nnodes-numInternalNodes()) {
+    case 4 : return examineTet4(sub, mf, nn); // 4-node tetra
+    case 6 : return examinePenta6(sub, mf, nn); // 6-node penta
+    case 8 : return examineHex8(sub, mf, nn); // 8-node hexa
+    case 10 : return examineTet10(sub, mf, nn); // 10-node tetra
+    case 15 : return examinePenta6(sub, mf, nn); // 15-node penta
+    case 20 : return examineHex20(sub, mf, nn); // 20-node hexa
+    case 26 : return examinePenta6(sub, mf, nn); // 26-node penta
+    case 32 : return examineHex8(sub, mf, nn); // 32-node hexa
+    default : return examineBar2(sub, mf, nn);
+  }
+}
+
+PrioInfo
+RigidSolid6Dof::examine(int sub, MultiFront *mf)
+{
+  switch(nnodes-numInternalNodes()) {
+    case 4 : return examineTet4(sub, mf, nn); // 4-node tetra
+    case 6 : return examinePenta6(sub, mf, nn); // 6-node penta
+    case 8 : return examineHex8(sub, mf, nn); // 8-node hexa
+    case 10 : return examineTet10(sub, mf, nn); // 10-node tetra
+    case 15 : return examinePenta6(sub, mf, nn); // 15-node penta
+    case 20 : return examineHex20(sub, mf, nn); // 20-node hexa
+    case 26 : return examinePenta6(sub, mf, nn); // 26-node penta
+    case 32 : return examineHex8(sub, mf, nn); // 32-node hexa
+    default : return examineBar2(sub, mf, nn);
+  }
 }
 

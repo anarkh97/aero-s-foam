@@ -51,13 +51,11 @@ SuperElement::setFrame(EFrame *frame)
   for(i=0; i<nSubElems; ++i) subElems[i]->setFrame(frame);
 }
 
-int
+void
 SuperElement::buildFrame(CoordSet& cs)
 {
-  int ret = 0;
   int i;
-  for(i=0; i<nSubElems; ++i) ret += subElems[i]->buildFrame(cs);
-  return ret;
+  for(i=0; i<nSubElems; ++i) subElems[i]->buildFrame(cs);
 }
 
 void 
@@ -528,6 +526,7 @@ SuperElement::isMpcElement()
   return false;
 }
 
+/*
 bool
 SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
 {
@@ -543,6 +542,7 @@ SuperElement::isRigidMpcElement(const DofSet &dset, bool forAllNodes)
     if(subElems[i]->isRigidMpcElement(dset, forAllNodes)) return true;
   return false;
 }
+*/
 
 bool
 SuperElement::isConstraintElement()
@@ -552,12 +552,14 @@ SuperElement::isConstraintElement()
     if(subElems[i]->isConstraintElement()) return true;
 }
 
+/*
 void 
 SuperElement::computeMPCs(CoordSet &cs)
 {
   int i;
   for(i=0; i<nSubElems; ++i) subElems[i]->computeMPCs(cs);
 }
+*/
 
 SuperElement::~SuperElement()
 {
@@ -643,9 +645,10 @@ SuperElement::initialize(int l, int* _nn)
   ndofs = dsa.size();
 
   // renumber sub element nodes to global node numbering
-  nn = new int[nnodes];
-  for(int i = 0; i < l; ++i) nn[i] = _nn[i]; for(int i = l; i < nnodes; ++i) nn[i] = -1;
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(nn);
+  int *new_nn = new int[nnodes];
+  for(int i = 0; i < l; ++i) new_nn[i] = _nn[i]; for(int i = l; i < nnodes; ++i) new_nn[i] = -1;
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(new_nn);
+  if(nn) delete [] nn; nn = new_nn;
 
   for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(-1);  
 }

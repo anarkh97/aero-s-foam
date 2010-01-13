@@ -20,7 +20,7 @@ class SuperElement : public Element
         FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
         void initialize(int, int*);
   public:
-        SuperElement() { superCorotator = 0; };
+        SuperElement() { nn = 0; superCorotator = 0; };
         virtual ~SuperElement();
 
         int getNumSubElems() { return nSubElems; }
@@ -38,7 +38,7 @@ class SuperElement : public Element
         void setProp(StructProp *p, bool _myProp = false); 
         void setPreLoad(double load, int &flg);
         void setFrame(EFrame *frame);
-        int buildFrame(CoordSet &cs);
+        void buildFrame(CoordSet &cs);
         void setOffset(double *o);
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame);
@@ -89,9 +89,8 @@ class SuperElement : public Element
         bool isSafe();
         bool isRotMidSideNode(int iNode);
         bool isMpcElement();
-        bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
+        //bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
         bool isConstraintElement();
-        void computeMPCs(CoordSet &cs);
 
         int getMassType();
         int getNumMPCs();

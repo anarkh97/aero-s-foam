@@ -71,16 +71,7 @@
 #include <Element.d/BulkFluid.d/TriangleBulk.h>
 #include <Element.d/BulkFluid.d/TetraBulk.h>
 #include <Element.d/BulkFluid.d/PentaBulk.h>
-//#include <Element.d/Truss.d/TwoNodeTrussRigid.h>
-//#include <Element.d/Beam.d/RigidBeam.h>
-//#include <Element.d/Spring.d/RigidSpring.h>
-//#include <Element.d/Spring.d/RigidSpringTr.h>
-//#include <Element.d/Spring.d/RigidSpringRo.h>
-//#include <Element.d/Brick.d/EightNodeBrickRigid.h>
-//#include <Element.d/Solid.d/RigidSolid.h>
-//#include <Element.d/Solid.d/RigidSolid6Dof.h>
 #include <Element.d/Brick20.d/Brick20.h>
-//#include <Element.d/Shell.d/RigidThreeNodeShell.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/Shell.d/ConnectedTri.h>
@@ -96,23 +87,20 @@
 #include <map>
 extern map<int,double > weightList;
 
-#include <Element.d/Truss.d/TwoNodeTrussRigidMpc.h>
-#include <Element.d/Beam.d/RigidMpcBeam.h>
-#include <Element.d/Spring.d/RigidMpcSpring.h>
-#include <Element.d/Spring.d/RigidMpcSpringTr.h>
-#include <Element.d/Spring.d/RigidMpcSpringRo.h>
-#include <Element.d/Brick.d/EightNodeBrickRigidMpc.h>
-#include <Element.d/Solid.d/RigidMpcSolid6Dof.h>
-#include <Element.d/Solid.d/RigidMpcSolid.h>
-//#include <Element.d/Rigid.d/RBE2Mpc.h>
+#include <Element.d/Rigid.d/RigidBeam.h>
+//#include <Element.d/Rigid.d/RigidSpring.h>
+#include <Element.d/Rigid.d/RigidTransSprlink.h>
+#include <Element.d/Rigid.d/RigidRotnSprlink.h>
+#include <Element.d/Rigid.d/RigidEightNodeBrick.h>
+#include <Element.d/Rigid.d/RigidSolid.h>
+#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
+#include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
+#include <Element.d/Rigid.d/RigidSolid6Dof.h>
 //#include <Element.d/Rigid.d/RBE2.h>
-#include <Element.d/Shell.d/RigidMpcThreeNodeShell.h>
 
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
 #include <Element.d/Joint.d/TranslationalJoint.h>
-#include <Element.d/Joint.d/RigidJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
@@ -328,56 +316,40 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        break;
-     case 64:
-       ele = new (ba) SphericalJoint(n);
-       break;
      case 65:
-       //ele = new (ba) TwoNodeTrussRigidMpc(n); // cf TwoNodeTrussRigid
-       ele = new (ba) ConstantDistanceConstraint(n);
+       ele = new (ba) RigidTwoNodeTruss(n);
        break;
      case 66:
-       //ele = new (ba) RigidMpcBeam(n); // cf RigidBeam
-       ele = new (ba) RigidJoint(n);
+       ele = new (ba) RigidBeam(n);
        break;
      case 67:
-       ele = new (ba) RigidMpcSpring(n); // cf RigidSpring
+       //ele = new (ba) RigidSpring(n);
+       cerr  << "Error: Element type 67 is not supported\n"; exit(-1);
        break;
      case 68:
-       ele = new (ba) RigidMpcSpringTr(n); // cf RigidSpringTr
+       ele = new (ba) RigidTransSprlink(n);
        break;
      case 69:
-       ele = new (ba) RigidMpcSpringRo(n); // cf RigidSpringRo
+       ele = new (ba) RigidRotnSprlink(n);
        break;
      case 70:
-       ele = new (ba) EightNodeBrickRigidMpc(n); // cf EightNodeBrickRigid
+       ele = new (ba) RigidEightNodeBrick(n);
        break;
      case 71:
-       ele = new (ba) RigidMpcSolid(nnodes,n); // cf RigidSolid
+       ele = new (ba) RigidSolid(nnodes,n);
        break;
      case 72:
        ele = new (ba) Brick20(n);
        break;
      case 73:
-       ele = new (ba) RigidMpcThreeNodeShell(n); // cf RigidThreeNodeShell
+       ele = new (ba) RigidThreeNodeShell(n);
        break;
      case 74:
-       ele = new (ba) RigidMpcSolid6Dof(nnodes,n); // cf RigidSolid6Dof
+       ele = new (ba) RigidSolid6Dof(nnodes,n);
        break;
      case 75:
-       //ele = new (ba) RBE2Mpc(nnodes,n); // cf RBE2
-       ele = new (ba) TranslationalJoint(n);
-       break;
-     case 76:
-       ele = new (ba) UniversalJoint(n);
-       break;
-     case 77:
-       ele = new (ba) RevoluteJoint(n);
-       break;
-     case 78:
-       ele = new (ba) CylindricalJoint(n);
-       break;
-     case 79:
-       ele = new (ba) PrismaticJoint(n);
+       //else = new (ba) RBE2(nnodes,n);
+       cerr  << "Error: Element type 75 is not supported\n"; exit(-1);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);
@@ -430,19 +402,15 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) HelmPenta(n); 
        break;
      case 91:
-       //filePrint(stderr," *** add a Brick32 element\n");
        ele = new (ba) Brick32(n); 
        break;
      case 92:
-       //filePrint(stderr," *** add a Penta26 element\n");
        ele = new (ba) Penta26(n); 
        break;
      case 93:
-       //filePrint(stderr," *** add a HelmBrick32 element\n");
        ele = new (ba) HelmBrick32(n); 
        break;
      case 94:
-       //filePrint(stderr," *** add a HelmPenta26 element\n");
        ele = new (ba) HelmPenta26(n); 
        break;
      case 95:
@@ -452,7 +420,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) HelmIsoParamTetra(nnodes,n);
        break;
      case 97:
-       //filePrint(stderr," *** add a Penta15 element\n");
        ele = new (ba) Penta15(n);
        break;
      case 98:
@@ -481,6 +448,24 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
+       break;
+     case 120:
+       ele = new (ba) SphericalJoint(n);
+       break;
+     case 121:
+       ele = new (ba) TranslationalJoint(n);
+       break;
+     case 122:
+       ele = new (ba) UniversalJoint(n);
+       break;
+     case 123:
+       ele = new (ba) RevoluteJoint(n);
+       break;
+     case 124:
+       ele = new (ba) CylindricalJoint(n);
+       break;
+     case 125:
+       ele = new (ba) PrismaticJoint(n);
        break;
      case 201:
        ele = new (ba) NLHexahedral(n,true); // linear kinematics

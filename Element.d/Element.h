@@ -336,8 +336,8 @@ class Element {
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame
-        virtual int buildFrame(CoordSet&) { return 1; }
-        virtual void setOffset(double*){}
+        virtual void buildFrame(CoordSet&) {}
+        virtual void setOffset(double*) {}
 	    virtual void setCompositeData(int _type, int nlays, double *lData,
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
@@ -409,7 +409,6 @@ class Element {
 	virtual int    numDofs()=0;
 
 	virtual int    numNodes() = 0;
-        virtual int    totNumNodes() { return numNodes(); }
 	virtual int*   nodes(int * = 0) = 0;
         virtual int*   allNodes(int *x = 0) { return nodes(x); }
 
@@ -417,9 +416,9 @@ class Element {
         { printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0; }
 
 	virtual int  getTopNumber();
-        virtual int  numTopNodes() { return numNodes(); }   // this is the number of nodes printed in the top file
-                                                            // can make it different to numNodes for elements that aren't
-                                                            // supported by xpost eg RigidSolid6Dof
+        virtual int  numTopNodes() { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
+                                                                                 // can make it different to numNodes for elements that aren't
+                                                                                 // supported by xpost eg RigidSolid6Dof
         virtual void computePressureForce(CoordSet& cs,Vector& elPressureForce,
                                           GeomState *gs=0, int cflg = 0);
         virtual void computePressureForce(Node *nd,Vector& elPressureForce,
@@ -483,9 +482,8 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
+        //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
         virtual bool isRigidElement() { return false; }
-        virtual void computeMPCs(CoordSet &cs) { }
         virtual int getNumMPCs() { return 0; }
         virtual LMPCons** getMPCs() { return 0; }
 
@@ -503,7 +501,7 @@ class Element {
 
         virtual bool isShell() { return false; }
 
-        virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isRigidMpcElement() || isFsiElement()); }
+        virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
         int getElementType() { return elementType; }
@@ -538,7 +536,6 @@ class Elemset
   protected:
     Element **elem;
     int emax;
-    int nPhantoms;
     BlockAlloc ba;
     bool myData;
   public:
@@ -547,27 +544,24 @@ class Elemset
     Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap);
     int size() const { return emax; }
     int last() const;
-    int numPhantoms()  { return nPhantoms; }
     Element *operator[] (int i) const { return elem[i]; }
     void elemadd(int num, Element *);
     void elemadd(int num, int type, int nnodes, int *nodes);
     void mpcelemadd(int num, LMPCons *mpc);
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
-    void setNumPhantoms(int n)  { nPhantoms = n; }
     void list();
     void deleteElems()  { if(elem) { if(myData) for(int i=0; i<last(); ++i) delete elem[i]; delete [] elem; elem = 0; emax = 0;} }
-    //void deleteElems()  { if(elem) delete [] elem; elem = 0; emax = 0; }
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
-   void collapseRigid6(); // replaces all 6-DOF rigid elements that share a node by a single element
+    void collapseRigid6(); // replaces all 6-DOF rigid elements that share a node by a single element
 };
 
 class EsetGeomAccessor {
   public:
     static int getNum(/*const*/ Elemset &eSet, int elNum)
-     { return eSet[elNum] ? eSet[elNum]->totNumNodes() : 0; }
+     { return eSet[elNum] ? eSet[elNum]->numNodes() : 0; }
     static int getSize(const Elemset &eSet)
      { return eSet.last(); }
     static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)

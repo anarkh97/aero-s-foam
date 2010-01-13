@@ -1,13 +1,12 @@
 #include <Element.d/Joint.d/ConstantDistanceConstraint.h>
-#include <Driver.d/Mpc.h>
 
 ConstantDistanceConstraint::ConstantDistanceConstraint(int* _nn)
- : ConstraintElement(2, DofSet::XYZdisp, _nn)
+ : MpcElement(2, DofSet::XYZdisp, _nn)
 {
 }
 
 void 
-ConstantDistanceConstraint::computeMPCs(CoordSet& cs)
+ConstantDistanceConstraint::buildFrame(CoordSet& cs)
 {
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -19,7 +18,7 @@ ConstantDistanceConstraint::computeMPCs(CoordSet& cs)
   l0 = sqrt( dx*dx + dy*dy + dz*dz );
 
   if(l0 == 0.0) {
-    cerr << " *** ERROR: division by zero in ConstantDistanceConstraint::computeMPCs between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
+    cerr << " *** ERROR: division by zero in ConstantDistanceConstraint::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
     exit(-1);
   }
 

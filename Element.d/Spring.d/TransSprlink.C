@@ -14,14 +14,14 @@ extern "C" {
 
 TransSprlink::TransSprlink(int* nodenums)
 {
-        nn[0] = nodenums[0];
-        nn[1] = nodenums[1];
+  nn[0] = nodenums[0];
+  nn[1] = nodenums[1];
 }
 
 Element *
 TransSprlink::clone()
 {
- return new TransSprlink(*this);
+  return new TransSprlink(*this);
 }
 
 
@@ -35,101 +35,97 @@ TransSprlink::renum(int *table)
 FullSquareMatrix
 TransSprlink::massMatrix(CoordSet &, double *mel, int cmflg)
 {
-        FullSquareMatrix elementMassMatrix(numDofs(),mel);
+  FullSquareMatrix elementMassMatrix(numDofs(), mel);
 
-	elementMassMatrix.zero();
+  elementMassMatrix.zero();
 
-        return elementMassMatrix;
+  return elementMassMatrix;
 }
 
 FullSquareMatrix
 TransSprlink::stiffness(CoordSet &, double *d, int flg)
 {
+  double karray[6*6];
 
- double karray[6*6];
+  _FORTRAN(mstf21)((double*)karray, prop->A, prop->E, prop->nu, prop->rho,
+                   prop->c, prop->k, prop->eh, prop->P,
+                   prop->Ta, prop->Q, prop->W, prop->Ixx);
 
- _FORTRAN(mstf21)((double*)karray,prop->A, prop->E, prop->nu, prop->rho,
-                  prop->c, prop->k, prop->eh, prop->P,
-                  prop->Ta, prop->Q, prop->W, prop->Ixx);
-
- //
- // karray contains the spring's stiffness matrix
- //
+  //
+  // karray contains the spring's stiffness matrix
+  //
 
 #ifdef DEBUG_SPRING
- std::cout << "local dofs: " << localDofs[0] << " "
-                        << localDofs[1] << " "
-                        << localDofs[2] << " "
-                        << localDofs[3] << " "
-                        << localDofs[4] << " "
-                        << localDofs[5] << std::endl;
+  std::cout << "local dofs: " << localDofs[0] << " "
+                              << localDofs[1] << " "
+                              << localDofs[2] << " "
+                              << localDofs[3] << " "
+                              << localDofs[4] << " "
+                              << localDofs[5] << std::endl;
 #endif
 
- FullSquareMatrix ret(numDofs(),d);
- FullSquareMatrix kel(6,karray);
+  FullSquareMatrix ret(numDofs(), d);
+  FullSquareMatrix kel(6,karray);
 
- int i,j;
- for(i=0; i<6; ++i) {
+  int i,j;
+  for(i=0; i<6; ++i) {
     for(j=0; j<6; ++j) {
       ret[i][j] = kel[i][j];
     }
- }
- //if(nn[0] == 19 || nn[1] == 19)
- //  ret.print();
- return ret;
-
+  }
+ 
+  return ret;
 }
 
 int
 TransSprlink::numNodes()
 {
-        return 2;
+  return 2;
 }
 
 int *
-TransSprlink::nodes(int *p)
+TransSprlink::nodes(int* p)
 {
-        if(p == 0) p = new int[2];
-        p[0] = nn[0];
-        p[1] = nn[1];
-        return p;
+  if(p == 0) p = new int[2];
+  p[0] = nn[0];
+  p[1] = nn[1];
+  return p;
 }
 
 int
 TransSprlink::numDofs()
 {
-        return 6;
+  return 6;
 }
 
 int *
-TransSprlink::dofs(DofSetArray &dsa, int *p)
+TransSprlink::dofs(DofSetArray& dsa, int* p)
 {
-        int ndof=0;
-        if(p == 0) p = new int[numDofs()];
+  int ndof = 0;
+  if(p == 0) p = new int[numDofs()];
 
-          dsa.number(nn[0],DofSet::Xdisp,p+ndof++);
-          dsa.number(nn[0],DofSet::Ydisp,p+ndof++);
-          dsa.number(nn[0],DofSet::Zdisp,p+ndof++);
+  dsa.number(nn[0], DofSet::Xdisp, p+ndof++);
+  dsa.number(nn[0], DofSet::Ydisp, p+ndof++);
+  dsa.number(nn[0], DofSet::Zdisp, p+ndof++);
 
-          dsa.number(nn[1],DofSet::Xdisp,p+ndof++);
-          dsa.number(nn[1],DofSet::Ydisp,p+ndof++);
-          dsa.number(nn[1],DofSet::Zdisp,p+ndof++);
+  dsa.number(nn[1], DofSet::Xdisp, p+ndof++);
+  dsa.number(nn[1], DofSet::Ydisp, p+ndof++);
+  dsa.number(nn[1], DofSet::Zdisp, p+ndof++);
 
-        return p;
+  return p;
 }
 
 void
-TransSprlink::markDofs( DofSetArray &dsa )
+TransSprlink::markDofs(DofSetArray& dsa)
 {
+  dsa.mark(nn[0], DofSet::Xdisp);
+  dsa.mark(nn[1], DofSet::Xdisp);
 
-          dsa.mark( nn[0], DofSet::Xdisp );
-          dsa.mark( nn[1], DofSet::Xdisp );
+  dsa.mark(nn[0], DofSet::Ydisp);
+  dsa.mark(nn[1], DofSet::Ydisp);
 
-          dsa.mark( nn[0], DofSet::Ydisp );
-          dsa.mark( nn[1], DofSet::Ydisp );
-
-          dsa.mark( nn[0], DofSet::Zdisp );
-          dsa.mark( nn[1], DofSet::Zdisp );
+  dsa.mark(nn[0], DofSet::Zdisp);
+  dsa.mark(nn[1], DofSet::Zdisp);
 }
 
 int
@@ -139,12 +135,12 @@ TransSprlink::getTopNumber()
 }
 
 Corotator *
-TransSprlink::getCorotator(CoordSet &cs, double *kel, int , int)
+TransSprlink::getCorotator(CoordSet& cs, double* kel, int, int)
 {
- int flag = 0;
- FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+  int flag = 0;
+  FullSquareMatrix myStiff = stiffness(cs, kel, flag);
 
- return new SpringCorotator( cs, nn, prop->A, prop->E, prop->nu,
-                  myStiff);
+  return new SpringCorotator(cs, nn, prop->A, prop->E, prop->nu,
+                             myStiff);
 }
 

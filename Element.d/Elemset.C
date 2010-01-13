@@ -3,7 +3,6 @@
 #include <set>
 #include <queue>
 #include <Utils.d/Connectivity.h>
-#include <Element.d/Rigid.d/RBE2Mpc.h>
 // Last returns the true last defined element
 int Elemset::last() const
 {
@@ -23,7 +22,7 @@ void Elemset::list()
       if(elem[i])
 	{
 	  std::cerr << i <<": ";
-	  int num = elem[i]->totNumNodes();
+	  int num = elem[i]->numNodes();
 	  int* nodes = elem[i]->nodes();
 	  std::cerr << " nodes : ";
 	  for(int j=0;j<num;++j)
@@ -87,6 +86,7 @@ Elemset::elemadd(int num, Element *el)
   elem[num] = el;
 }
 
+/*
 template<>
 class SetAccess<std::pair<Elemset, DofSet> > {
 	Elemset &els;
@@ -185,6 +185,7 @@ Elemset::collapseRigid6()
 	elem = newSet;
 	emax = iEl;
 }
+*/
 #ifdef SALINAS
 #include <Element.d/CtcVirtualElt.d/CtcVirtualElt.h>
 void

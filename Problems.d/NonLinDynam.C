@@ -570,7 +570,6 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
   }
 }
 
-#include <Element.d/MpcElement.d/RigidMpcElement.h>
 void
 NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, 
                                 double midtime, double localDelta)

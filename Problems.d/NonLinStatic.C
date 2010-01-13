@@ -132,17 +132,11 @@ NonLinStatic::createGeomState()
 int
 NonLinStatic::reBuild(int iteration, int step, GeomState&)
 {
-
- // NOTE: rebuild also includes factoring
-
  times->rebuild -= getTime();
-  
+
  int rebuildFlag = 0;
 
- // KHP: MODIFICATION
- if( iteration % domain->solInfo().getNLInfo().updateK == 0 )  {
-   //cerr << "REBUILDING SOLVER\n";
-   //solver->reBuild(kelArray);
+ if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
    //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
    spm->zeroAll();
    AllOps<double> ops;
@@ -155,6 +149,7 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
    if(prec) prec->factor();
    rebuildFlag = 1;
  }
+
  times->rebuild += getTime();
 
  return rebuildFlag;

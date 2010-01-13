@@ -25,6 +25,52 @@ private:
   HalfSliceRank ref_;
 }*/
 
+class ZeroReducedCorrection : public NamedTask {
+public:
+  EXPORT_PTRINTERFACE_TYPES(ZeroReducedCorrection);
+
+  void iterationIs(IterationRank i) {
+    ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Impl Zero Reduced State");
+    zeroCorrection->targetIs(target_.ptr());
+    zeroCorrection->stateSizeIs(assembler_->reducedBasisSize());
+
+    zeroCorrection->iterationIs(i);
+  }
+
+  explicit ZeroReducedCorrection(ReducedSeed * target, const UpdatedSeedAssembler * assembler) :
+    NamedTask(String("Zero Reduced Correction ") + target->name()),
+    target_(target),
+    assembler_(assembler)
+  {}
+
+private:
+  ReducedSeed::Ptr target_;
+  UpdatedSeedAssembler::PtrConst assembler_;
+};
+
+class ZeroCorrection : public NamedTask {
+public:
+  EXPORT_PTRINTERFACE_TYPES(ZeroCorrection);
+
+  void iterationIs(IterationRank i) {
+    ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Impl Zero State");
+    zeroCorrection->targetIs(target_.ptr());
+    zeroCorrection->stateSizeIs(assembler_->vectorSize());
+
+    zeroCorrection->iterationIs(i);
+  }
+
+  explicit ZeroCorrection(Seed * target, const UpdatedSeedAssembler * assembler) :
+    NamedTask(String("Zero Correction ") + target->name()),
+    target_(target),
+    assembler_(assembler)
+  {}
+
+private:
+  Seed::Ptr target_;
+  UpdatedSeedAssembler::PtrConst assembler_;
+};
+
 LocalNetwork::LocalNetwork(SliceMapping * mapping,
                            CpuRank localCpu,
                            HalfTimeSlice::Manager * sliceMgr,
@@ -32,7 +78,8 @@ LocalNetwork::LocalNetwork(SliceMapping * mapping,
                            ReducedFullTimeSlice::Manager * ftsMgr,
                            UpdatedSeedAssembler::Manager * usaMgr,
                            CorrectionTimeSlice::Manager * ctsMgr,
-                           RemoteState::Manager * commMgr) :
+                           RemoteState::Manager * commMgr,
+                           SeedErrorEvaluator::Manager * jumpErrorMgr) :
   mapping_(mapping),
   localCpu_(localCpu),
   sliceMgr_(sliceMgr),
@@ -42,7 +89,8 @@ LocalNetwork::LocalNetwork(SliceMapping * mapping,
   ctsMgr_(ctsMgr),
   commMgr_(commMgr),
   seedMgr_(Seed::Manager::New()),
-  reducedSeedMgr_(ReducedSeed::Manager::New())
+  reducedSeedMgr_(ReducedSeed::Manager::New()),
+  jumpErrorMgr_(jumpErrorMgr)
 {
   init();
 }
@@ -80,9 +128,15 @@ LocalNetwork::init() {
     jumpProjector->predictedSeedIs(getSeed(SeedId(RIGHT_SEED, sliceRank)));
     Seed::Ptr leftPropagatedSeed = getSeed(SeedId(LEFT_SEED, sliceRank));
     jumpProjector->actualSeedIs(leftPropagatedSeed.ptr());
-    jumpProjector->seedJumpIs(getSeed(SeedId(SEED_JUMP, sliceRank)));
+    Seed::Ptr fullJump = getSeed(SeedId(SEED_JUMP, sliceRank));
+    jumpProjector->seedJumpIs(fullJump.ptr());
     jumpProjector->reducedSeedJumpIs(getReducedSeed(SeedId(SEED_JUMP, sliceRank)));
     jumpProjector_.insert(jumpProjector_.end(), std::make_pair(sliceRank, jumpProjector));
+
+    if (jumpErrorMgr_) {
+      SeedErrorEvaluator::Ptr jumpErrorEvaluator = jumpErrorMgr_->instanceNew(fullJump.ptr());
+      jumpErrorEvaluator->referenceSeedIs(leftPropagatedSeed.ptr());
+    }
 
     // FullTimeSlices
     TaskMap & fullTimeSlice = ((sliceRank.value()) % 2 == 0) ? evenFullTimeSlice_ : oddFullTimeSlice_;
@@ -410,17 +464,13 @@ LocalNetwork::activeFullTimeSlices() const {
   CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice() - HalfSliceCount(1));
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
-    ZeroSharedState<Vector>::Ptr zeroCorrection = ZeroSharedState<Vector>::New("Zero Correction");
     ReducedSeed::Ptr firstActiveCorrection = reducedSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
-   
     assert(firstActiveCorrection);
     
-    zeroCorrection->targetIs(firstActiveCorrection.ptr());
     UpdatedSeedAssembler::Ptr firstActiveAssembler = usaMgr_->instance(toString(firstActiveSlice()));
-    
     assert(firstActiveAssembler);
     
-    zeroCorrection->stateSizeIs(firstActiveAssembler->reducedBasisSize());
+    ZeroReducedCorrection::Ptr zeroCorrection = new ZeroReducedCorrection(firstActiveCorrection.ptr(), firstActiveAssembler.ptr());
     result.push_back(zeroCorrection);
   }
 
@@ -469,10 +519,13 @@ LocalNetwork::activeCoarseTimeSlices() const {
   CpuRank lastConvergedCpu = mapping_->hostCpu(mapping_->firstActiveSlice() - HalfSliceCount(1));
 
   if (localCpu() == firstActiveCpu || localCpu() == lastConvergedCpu) {
-    ZeroSharedState<DynamState>::Ptr zeroCorrection = ZeroSharedState<DynamState>::New("Zero Coarse Correction");
     Seed::Ptr firstActiveCorrection = seedMgr_->instance(toString(SeedId(SEED_CORRECTION, firstActiveSlice())));
-    zeroCorrection->targetIs(firstActiveCorrection.ptr());
-    zeroCorrection->stateSizeIs(seedMgr_->instance(toString(SeedId(LEFT_SEED, firstActiveSlice())))->state().vectorSize());
+    assert(firstActiveCorrection);
+    
+    UpdatedSeedAssembler::Ptr firstActiveAssembler = usaMgr_->instance(toString(firstActiveSlice()));
+    assert(firstActiveAssembler);
+
+    ZeroCorrection::Ptr zeroCorrection = new ZeroCorrection(firstActiveCorrection.ptr(), firstActiveAssembler.ptr());
     result.push_back(zeroCorrection);
   }
 

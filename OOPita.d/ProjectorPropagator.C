@@ -1,5 +1,7 @@
 #include "ProjectorPropagator.h"
-#include <Math.d/SparseMatrix.h>
+
+#include "DynamStateOps.h"
+
 #include <cmath>
 
 namespace Pita {
@@ -25,8 +27,7 @@ ProjectorPropagator::initialStateIs(const DynamState & initialState) {
   for (size_t i = 0; i < states; ++i) {
     double coef = orthoBasis_->state(i) * initialState;
     log() << coef << " ";
-    finalState.displacement().linAdd(coef, propagatedBasis_->state(i).displacement());
-    finalState.velocity().linAdd(coef, propagatedBasis_->state(i).velocity());
+    finalState.linAdd(coef, propagatedBasis_->state(i));
   }
   log() << "\n";
 
@@ -72,13 +73,10 @@ ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
       size_t statesInBasis = orthoBasis_->stateCount();
       for (size_t j = 0; j < statesInBasis; ++j) {
         double coef = -(currentState * orthoBasis_->state(j));
-        currentState.displacement().linAdd(coef, projectionBasis_->state(j).displacement());
-        currentState.velocity().linAdd(coef, projectionBasis_->state(j).velocity());
+        currentState.linAdd(coef, projectionBasis_->state(j));
       }
 
-      DynamState orthoState(currentState.vectorSize());
-      const_cast<SparseMatrix*>(dynamOps_->stiffnessMatrix())->mult(currentState.displacement(), orthoState.displacement());
-      const_cast<SparseMatrix*>(dynamOps_->massMatrix())->mult(currentState.velocity(), orthoState.velocity());
+      DynamState orthoState = mult(dynamOps_.ptr(), currentState);
 
       double norm_i = std::sqrt(currentState * orthoState);
       if (norm_i < tolerance_)

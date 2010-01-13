@@ -13,6 +13,7 @@ public:
   class Manager;
 
   virtual size_t reducedBasisSize() const { return correctionBasis()->stateCount(); }
+  virtual size_t vectorSize() const { return correctionBasis()->vectorSize(); }
 
   using UpdatedSeedAssembler::updatedSeed;
   Seed * updatedSeed() { return const_cast<Seed *>(const_cast<const UpdatedSeedAssemblerImpl *>(this)->updatedSeed()); }

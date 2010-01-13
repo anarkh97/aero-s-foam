@@ -14,6 +14,7 @@ public:
   typedef Fwk::GenManagerInterface<UpdatedSeedAssembler *, String> Manager;
 
   virtual size_t reducedBasisSize() const = 0;
+  virtual size_t vectorSize() const = 0;
 
   /* Targets */
   Seed * correction() const { return correction_.ptr(); }

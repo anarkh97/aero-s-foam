@@ -34,15 +34,15 @@ operator-(const CpuRank & a, const CpuCount & d) {
   return CpuRank(a.value() - d.value());
 }
 
-class IterationRank : public Fwk::Ordinal<IterationRank, Fwk::S32> {
+class IterationRank : public Fwk::Ordinal<IterationRank, int> {
 public:
-  explicit IterationRank(Fwk::U32 rank = 0) : Fwk::Ordinal<IterationRank, Fwk::S32>(rank) {}
+  explicit IterationRank(int rank = 0) : Fwk::Ordinal<IterationRank, int>(rank) {}
   IterationRank next() const { return IterationRank(value() + 1); }
 };
 
-class PhaseRank : public Fwk::Ordinal<PhaseRank, S32> {
+class PhaseRank : public Fwk::Ordinal<PhaseRank, int> {
 public:
-  explicit PhaseRank(U32 rank = 0) : Fwk::Ordinal<PhaseRank, S32>(rank) {}
+  explicit PhaseRank(int rank = 0) : Fwk::Ordinal<PhaseRank, int>(rank) {}
 
   static PhaseRank none() { return PhaseRank(0); }
   static PhaseRank correction() { return PhaseRank(1); }

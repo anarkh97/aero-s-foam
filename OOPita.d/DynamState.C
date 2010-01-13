@@ -36,6 +36,12 @@ DynamState::Desc::operator-=(const DynamState::Desc & dsd) {
   return *this;
 }
 
+void
+DynamState::Desc::linAdd(double coef, const DynamState::Desc & dsd) {
+  disp_.linAdd(coef, dsd.disp_);
+  vel_.linAdd(coef, dsd.vel_);
+}
+
 //--------------------
   
 DynamState::DynamState(size_t vectorSize) :
@@ -99,6 +105,12 @@ DynamState::operator-=(const DynamState & ds) {
   unshareDesc();
   *desc_ -= *(ds.desc_);
   return *this;
+}
+
+void
+DynamState::linAdd(double coef, const DynamState & ds) {
+  unshareDesc();
+  desc_->linAdd(coef, *ds.desc_);
 }
 
 const DynamState

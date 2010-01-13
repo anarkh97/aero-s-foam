@@ -4,6 +4,9 @@
 #include "ReducedLinearDriverImpl.h"
 
 #include "../DynamState.h"
+#include "../LinearDynamOps.h"
+#include "../DynamStateOps.h"
+
 #include <Problems.d/DynamDescr.h>
 
 #include "../LinearGenAlphaIntegrator.h"
@@ -47,7 +50,11 @@
 
 #include <Driver.d/Domain.h>
 
+#include "HomogeneousTaskManager.h"
+#include "NonHomogeneousTaskManager.h"
 #include "LocalNetwork.h"
+
+#include "../SeedErrorEvaluator.h"
 
 namespace Pita { namespace Hts {
 
@@ -93,7 +100,7 @@ ReducedLinearDriverImpl::solve() {
   }
   
   double toc = getTime();
-  log() << "\n" << "Total Time = " << (toc - tic) / 1000.0 << " s\n";
+  log() << "\n" << "Total time = " << (toc - tic) / 1000.0 << " s\n";
   log() << "\n" << "End Reversible Linear Pita\n";
 }
 
@@ -136,7 +143,7 @@ ReducedLinearDriverImpl::preprocess() {
  
   double toc = getTime();
   log() << "\n";
-  log() << "Total Preprocessing Time = " << (toc - tic) / 1000.0 << " s\n";
+  log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
 
@@ -145,6 +152,8 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   log() << "\n";
   log() << "Parallel solver initialization\n";
 
+  double tic = getTime();
+  
   /* Local process identity */
   CpuRank myCpu(timeComm->myID());
 
@@ -184,6 +193,9 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Coarse time-integration */ 
   CorrectionTimeSlice::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
 
+  /* Jump error */
+  SeedErrorEvaluator::Manager::Ptr jumpErrorMgr = SeedErrorEvaluator::Manager::New(dynamOps.ptr());
+
   /* Local tasks */
   LocalNetwork::Ptr network = new LocalNetwork(
       mapping_.ptr(),
@@ -193,197 +205,63 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       fsMgr.ptr(),
       usaMgr.ptr(),
       ctsMgr.ptr(),
-      commMgr.ptr());
+      commMgr.ptr(),
+      jumpErrorMgr.ptr());
 
-  /* Initial seeds */
-  IterationRank iteration;
- 
+  double toc = getTime();
+  log() << "\n";
+  log() << "Total initialization time = " << (toc - tic) / 1000.0 << " s\n";
+  tic = toc;
+  
+  IterationRank initialIteration;
+  LinearTaskManager::Ptr taskManager;
+
   if (noForce_) {
     SeedInitializer::Ptr seedInitializer = buildSeedInitializer(!remoteCoarse_, coarseComm); 
-    iteration = IterationRank(0);
-    
-    LocalNetwork::MainSeedMap mainSeeds = network->activeMainSeeds();
-    for (LocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
-        it != mainSeeds.end();
-        ++it) {
-      log() << "Initial Seed " << it->first << " " << it->second->name() << "\n";
-      DynamState initSeed = seedInitializer->initialSeed(it->first);
-      Seed::Ptr seed = it->second;
-      seed->stateIs(initSeed);
-      seed->iterationIs(iteration);
-      seed->statusIs(it->first == SliceRank(0) ? Seed::CONVERGED : Seed::ACTIVE);
-    }
 
-    /* Begin iterations */
-    log() << "\nIteration " << iteration << "\n";
+    taskManager = new HomogeneousTaskManager(
+        network.ptr(),
+        seedInitializer.ptr(),
+        correctionMgr.ptr(),
+        commMgr.ptr());
 
+    initialIteration = IterationRank(0);
   } else {
-    iteration = IterationRank(-1);
+    taskManager = new NonHomogeneousTaskManager(
+        network.ptr(),
+        correctionMgr.ptr(),
+        commMgr.ptr(),
+        initialSeed());
 
-    LocalNetwork::SeedMap mainSeeds = network->mainSeeds();
-    for (LocalNetwork::SeedMap::iterator it = mainSeeds.begin();
-        it != mainSeeds.end();
-        ++it) {
-      log() << "Zero initial Seed " << it->first << " " << it->second->name() << "\n";
-      Seed::Ptr seed = it->second;
-      seed->stateIs(seed->name() == "M0" ? initialSeed() : DynamState(vectorSize_, 0.0));
-      seed->iterationIs(iteration);
-      Seed::Status status = (it->first == HalfSliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
-      if (it->first.value() % 2 != 0) {
-        status = Seed::SPECIAL;
-      }
-      seed->statusIs(status);
-    }
-   
-    log() << "\nAffine term precomputation\n";
-    LocalNetwork::TaskList halfSlices = network->halfTimeSlices();
-    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
-        it != halfSlices.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
-    if (iteration < lastIteration_) {
-
-      network->convergedSlicesInc();
-
-      iteration = iteration.next(); 
-      log() << "\nIteration " << iteration << "\n";
-      // Propagated Seed Synchronization 
-      LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
-      for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
-          it != leftSeedSyncs.end();
-          ++it) {
-        NamedTask::Ptr task = *it;
-        log() << "Task: " << task->name() << "\n";
-        task->iterationIs(iteration);
-      }
-
-      // Coarse propagation
-      LocalNetwork::TaskList coarseCorr = network->activeCoarseTimeSlices();
-      for (LocalNetwork::TaskList::iterator it = coarseCorr.begin();
-          it != coarseCorr.end();
-          ++it) {
-        NamedTask::Ptr task = *it;
-        log() << "Task: " << task->name() << "\n";
-        task->iterationIs(iteration);
-      }
-
-      // Correction Synchronization 
-      LocalNetwork::TaskList synchronizationTasks = network->activeFullCorrectionSyncs();
-      for (LocalNetwork::TaskList::iterator it = synchronizationTasks.begin();
-          it != synchronizationTasks.end();
-          ++it) {
-        NamedTask::Ptr task = *it;
-        log() << "Task: " << task->name() << "\n";
-        task->iterationIs(iteration);
-      }
-
-      // Update Seeds
-      LocalNetwork::TaskList assemblyTasks = network->activeSeedAssemblers();
-      for (LocalNetwork::TaskList::iterator it = assemblyTasks.begin();
-          it != assemblyTasks.end();
-          ++it) {
-        NamedTask::Ptr task = *it;
-        log() << "Task: " << task->name() << "\n";
-        task->iterationIs(iteration);
-      }
-    }
-  }
-  
-  // Local Fine Propagation
-  if (iteration < lastIteration_) {
-    LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
-    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
-        it != halfSlices.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
+    initialIteration = IterationRank(-1);
   }
 
   // Iteration loop
-  for (iteration = IterationRank(1); iteration < lastIteration_; iteration = iteration.next()) {
+  for (IterationRank iteration = initialIteration; iteration < lastIteration_; iteration = iteration.next()) {
+    assert(iteration == taskManager->iteration());
+    log() << "-> Iteration: " << iteration << "\n";
 
-    log() << "\nIteration " << iteration << "\n";
-
-    // Projection Basis
-    correctionMgr->buildProjection();
-    size_t reducedBasisSize = correctionMgr->reducedBasisSize();
-    log() << "ReducedBasisSize = " << reducedBasisSize << "\n";
-    commMgr->reducedStateSizeIs(reducedBasisSize);
-
-    // Next iteration 
-    network->convergedSlicesInc();
-
-    // Propagated Seed Synchronization 
-    LocalNetwork::TaskList leftSeedSyncs = network->activeLeftSeedSyncs();
-    for (LocalNetwork::TaskList::iterator it = leftSeedSyncs.begin();
-        it != leftSeedSyncs.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
+    for (TaskManager::PhaseIterator phase_it = taskManager->phase(); phase_it; ++phase_it) {
+      TaskManager::Phase::Ptr currentPhase = *phase_it;
+      log() << "  -> Phase: " << currentPhase->name() << "\n";
+      for (TaskManager::Phase::TaskIterator task_it = currentPhase->task(); task_it; ++task_it) {
+        NamedTask::Ptr currentTask = *task_it;
+        log() << "    -> Task: " << currentTask->name() << "\n";
+        currentTask->iterationIs(iteration);
+      } 
     }
 
-    // Jumps
-    LocalNetwork::TaskList jumpProjectors = network->activeJumpProjectors();
-    for (LocalNetwork::TaskList::iterator it = jumpProjectors.begin();
-        it != jumpProjectors.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
-    // Correction
-    LocalNetwork::TaskList fullSliceTasks = network->activeFullTimeSlices();
-    for (LocalNetwork::TaskList::iterator it = fullSliceTasks.begin();
-        it != fullSliceTasks.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
-    // Correction Synchronization 
-    LocalNetwork::TaskList synchronizationTasks = network->activeCorrectionSyncs();
-    for (LocalNetwork::TaskList::iterator it = synchronizationTasks.begin();
-        it != synchronizationTasks.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
-    // Update Seeds
-    LocalNetwork::TaskList assemblyTasks = network->activeSeedAssemblers();
-    for (LocalNetwork::TaskList::iterator it = assemblyTasks.begin();
-        it != assemblyTasks.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
-    // Local Fine Propagation
-    LocalNetwork::TaskList halfSlices = network->activeHalfTimeSlices();
-    for (LocalNetwork::TaskList::iterator it = halfSlices.begin();
-        it != halfSlices.end();
-        ++it) {
-      NamedTask::Ptr task = *it;
-      log() << "Task: " << task->name() << "\n";
-      task->iterationIs(iteration);
-    }
-
+    taskManager->iterationInc();
   }
+  
+  toc = getTime();
+  log() << "\n";
+  log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
 void
 ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
+  double tic = getTime();
   RemoteCoarseServer::Ptr coarseServer;
 
   if (noForce_) {
@@ -398,13 +276,20 @@ ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
     RemoteDynamPropagatorServer::Ptr propagatorServer = new RemoteDynamPropagatorServer(coarsePropagator.ptr(), timeComm);
     coarseServer = RemoteCoarseCorrectionServer::New(propagatorServer.ptr(), mapping_.ptr());
 
-    mapping_->convergedSlicesInc(); // Since the coarse correction occurs at the second iteration (iteration 0 is after after iteration -1)
+    mapping_->convergedSlicesInc(); // Since the coarse correction occurs at the second iteration (iteration 0 after iteration -1)
     
     log() << "\n";
     log() << "Remote coarse propagation\n";
   }
+  double toc = getTime();
+  log() << "\n";
+  log() << "Total initialization time = " << (toc - tic) / 1000.0 << " s\n";
 
+  tic = getTime();
   coarseServer->statusIs(RemoteCoarseServer::BUSY);
+  toc = getTime();
+  log() << "\n";
+  log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
 DynamState
@@ -508,4 +393,3 @@ Pita::LinearDriver::Ptr
 linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
   return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, domain, &domain->solInfo(), structCom);
 }
-

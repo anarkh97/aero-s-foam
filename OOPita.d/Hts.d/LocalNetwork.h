@@ -15,6 +15,8 @@
 #include "../UpdatedSeedAssembler.h"
 #include "CorrectionTimeSlice.h"
 
+#include "../SeedErrorEvaluator.h"
+
 #include <map>
 #include <deque>
 
@@ -67,7 +69,8 @@ public:
                ReducedFullTimeSlice::Manager * ftsMgr,
                UpdatedSeedAssembler::Manager * usaMgr,
                CorrectionTimeSlice::Manager * ctsMgr, // Can be NULL
-               RemoteState::Manager * commMgr);
+               RemoteState::Manager * commMgr,
+               SeedErrorEvaluator::Manager * jumpErrorMgr);
 
 protected:
   void init();
@@ -103,6 +106,8 @@ private:
   TaskMap fullCorrectionSync_;
   
   SeedMap mainSeed_; 
+
+  SeedErrorEvaluator::Manager::Ptr jumpErrorMgr_;
 
   DISALLOW_COPY_AND_ASSIGN(LocalNetwork);
 };

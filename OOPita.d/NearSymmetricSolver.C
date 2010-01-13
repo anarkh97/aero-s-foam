@@ -67,15 +67,15 @@ NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
   switch (equed) {
     case 'N':
       rescalingStatus_ = NO_RESCALING;
-      log() << "No rescaling\n";
+      log() << "*** No rescaling\n";
       break;
     case 'R':
       rescalingStatus_ = ROW_RESCALING;
-      log() << "Row rescaling\n";
+      log() << "*** Row rescaling\n";
       break;
     case 'B':
       rescalingStatus_ = SYMMETRIC_RESCALING;
-      log() << "Symmetric rescaling\n";
+      log() << "*** Symmetric rescaling\n";
       break;
     default:
       throw Fwk::InternalException("NearSymmetricSolver::statusIs - Invalid rescaling status");

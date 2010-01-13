@@ -31,7 +31,9 @@ public:
   virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
   virtual const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
   virtual const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
-  
+ 
+  const DynamOps * metric() const { return metric_.ptr(); }
+
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
                  const SliceMapping * mapping,
                  BasisCollectorImpl * collector,
@@ -110,6 +112,7 @@ public:
   };
 
   // HACK
+  void prepareProjection();
   void buildProjection();
 
 protected:

@@ -132,8 +132,8 @@
 *
 *     Get unit roundoff
 *
-*     U = DLAMCH( 'E' )
-      U = EPSILON(ONE)
+      U = DLAMCH( 'E' )
+*     U = EPSILON(ONE)
 *
 *     Compute stopping value
 *

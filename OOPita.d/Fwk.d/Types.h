@@ -16,9 +16,6 @@ typedef std::istringstream IStringStream;
 typedef std::stringstream StringStream;
 typedef std::string String;
 
-typedef unsigned int U32;
-typedef signed int S32;
-
 template <typename T>
 inline
 String toString(const T & v) {

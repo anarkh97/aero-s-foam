@@ -3,10 +3,53 @@
 
 #include "NamedInterface.h"
 #include "Exception.h"
-#include "Notifiee.h"
+#include "Macros.h"
 #include <map>
 
 namespace Fwk {
+
+/* Generic Manager Interface
+** PtrT => Managed pointer type
+** K => Key */
+template <typename PtrT, typename K>
+class GenManagerInterface : public Fwk::PtrInterface<GenManagerInterface<PtrT, K> > {
+public:
+  EXPORT_PTRINTERFACE_TYPES(GenManagerInterface);
+
+  // Read accessors
+  virtual PtrT instance(const K & key) const = 0;
+  virtual size_t instanceCount() const = 0;
+
+  // Mutators
+  virtual PtrT instanceNew(const K & key) = 0;
+  virtual void instanceDel(const K & key) = 0;
+
+  // Notification support
+  /*class NotifieeConst : public BaseNotifiee<const GenManagerInterface, NotifieeConst> {
+  public:
+    typedef Fwk::Ptr<NotifieeConst> Ptr;
+    typedef Fwk::Ptr<const NotifieeConst> PtrConst;
+
+    virtual void onInstanceNew(const K & key) {}
+    virtual void onInstanceDel(const K & key) {}
+
+  protected:
+    explicit NotifieeConst(const GenManagerInterface<PtrT, K> * notifier) :
+      BaseNotifiee<const GenManagerInterface<PtrT, K> >(notifier)
+    {}
+  };
+
+  NotifieeConst * lastNotifiee() const { return notifiee_; }
+  virtual void lastNotifieeIs(NotifieeConst * n) { setNotifiee(n); }
+
+protected:
+  GenManagerInterface() : notifiee_() {}
+
+  void setNotifiee(NotifieeConst * n) { notifiee_ = n; }
+
+private:
+  NotifieeConst * notifiee_;*/
+};
 
 /* Generic Manager Implementation
 ** T => Managed type
@@ -73,6 +116,31 @@ GenManagerImpl<T, K>::instanceNew(const K & key) {
   return newInstance.ptr();
 }
 
+/* Template Manager */
+template <typename T, typename K>
+class GenManager : public PtrInterface<GenManager<T, K> >, private GenManagerImpl<T, K> {
+public:
+  EXPORT_PTRINTERFACE_TYPES(GenManager);
+ 
+  typedef typename GenManagerImpl<T, K>::InstanceCount InstanceCount;
+
+  T * instance(const K & key) const { return GenManagerImpl<T, K>::instance(key); } 
+  InstanceCount instanceCount() const { return GenManagerImpl<T, K>::instanceCount(); }
+  
+  T * instanceNew(const K & key) { return GenManagerImpl<T, K>::instanceNew(key); }
+  void instanceDel(const K & key) { GenManagerImpl<T, K>::instanceDel(key); }
+
+protected:
+  GenManager() {}
+ 
+  typedef K KeyType;
+
+  virtual T * createNewInstance(const K & key) = 0;
+
+  DISALLOW_COPY_AND_ASSIGN(GenManager);
+};
+
+/* Specialized Manager for NamedInterface */
 typedef GenManagerImpl<NamedInterface, String> NamedInterfaceManagerImpl;
 
 template <typename T>
@@ -98,48 +166,6 @@ protected:
 };
 
 typedef GenNamedInterfaceManager<NamedInterface> NamedInterfaceManager;
-
-/* Generic Manager Interface */
-template <typename PtrT, typename K>
-class GenManagerInterface : public Fwk::PtrInterface<GenManagerInterface<PtrT, K> > {
-public:
-  typedef Fwk::Ptr<GenManagerInterface<PtrT, K> > Ptr;
-  typedef Fwk::Ptr<const GenManagerInterface<PtrT, K> > PtrConst;
-
-  // Read accessors
-  virtual PtrT instance(const K & key) const = 0;
-  virtual size_t instanceCount() const = 0;
-
-  // Mutators
-  virtual PtrT instanceNew(const K & key) = 0;
-  virtual void instanceDel(const K & key) = 0;
-
-  // Notification support
-  /*class NotifieeConst : public BaseNotifiee<const GenManagerInterface, NotifieeConst> {
-  public:
-    typedef Fwk::Ptr<NotifieeConst> Ptr;
-    typedef Fwk::Ptr<const NotifieeConst> PtrConst;
-
-    virtual void onInstanceNew(const K & key) {}
-    virtual void onInstanceDel(const K & key) {}
-
-  protected:
-    explicit NotifieeConst(const GenManagerInterface<PtrT, K> * notifier) :
-      BaseNotifiee<const GenManagerInterface<PtrT, K> >(notifier)
-    {}
-  };
-
-  NotifieeConst * lastNotifiee() const { return notifiee_; }
-  virtual void lastNotifieeIs(NotifieeConst * n) { setNotifiee(n); }
-
-protected:
-  GenManagerInterface() : notifiee_() {}
-
-  void setNotifiee(NotifieeConst * n) { notifiee_ = n; }
-
-private:
-  NotifieeConst * notifiee_;*/
-};
 
 } // end namespace Fwk
 

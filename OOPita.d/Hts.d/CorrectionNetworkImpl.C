@@ -2,7 +2,7 @@
 
 #include "../DynamStateBasisWrapper.h"
 
-#include <Math.d/SparseMatrix.h>
+#include "../DynamStateOps.h"
 #include <Comm.d/Communicator.h>
 
 #include <stdexcept>
@@ -39,16 +39,15 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   globalExchangeNumbering_()
 {}
 
+void
+CorrectionNetworkImpl::prepareProjection() {
+  GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
+  globalExchangeNumbering_.push_back(numbering);
+}
 
 void
 CorrectionNetworkImpl::buildProjection() {
-  
-  // TODO: Remove HACK
-  GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
-  globalExchangeNumbering_.push_back(numbering);
-  
-  double tic, toc;
-  tic = getTime();
+  double tic = getTime(), toc;
 
   int previousMatrixSize = normalMatrix_.dim();
 
@@ -60,7 +59,7 @@ CorrectionNetworkImpl::buildProjection() {
   }
 
   toc = getTime();
-  log() << "-> Build buffer: " << toc - tic << " ms\n";
+  log() << "      -> Build buffer: " << toc - tic << " ms\n";
   tic = toc;
   
   // Collect data from time-slices
@@ -87,8 +86,7 @@ CorrectionNetworkImpl::buildProjection() {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       if (metric_) {
         // Pre-multiply initial local states by the metric first
-        const_cast<SparseMatrix*>(metric_->stiffnessMatrix())->mult(cs.second.displacement(), targetBuffer);
-        const_cast<SparseMatrix*>(metric_->massMatrix())->mult(cs.second.velocity(), targetBuffer + vectorSize_);
+        mult(metric_.ptr(), cs.second, targetBuffer);
       } else {
         log() << "Warning, no metric found !\n";
         bufferStateCopy(cs.second, targetBuffer); 
@@ -102,7 +100,7 @@ CorrectionNetworkImpl::buildProjection() {
   }
 
   toc = getTime();
-  log() << "-> Collect data from local time-slices: " << toc - tic << " ms\n";
+  log() << "      -> Collect data from local time-slices: " << toc - tic << " ms\n";
   tic = toc;
   
   // Setup parameters for global MPI communication
@@ -127,7 +125,7 @@ CorrectionNetworkImpl::buildProjection() {
   //log() << " complete !\n";
   
   toc = getTime();
-  log() << "-> Allgather: " << toc - tic << " ms\n";
+  log() << "      -> Allgather: " << toc - tic << " ms\n";
   tic = toc;
 
   // Add new states to projection bases
@@ -154,14 +152,14 @@ CorrectionNetworkImpl::buildProjection() {
   }*/
 
   toc = getTime();
-  log() << "-> Add new states: " << toc - tic << " ms\n";
+  log() << "      -> Add new states: " << toc - tic << " ms\n";
   tic = toc;
  
   // Assemble normal and reprojection matrices in parallel (local rows)
   int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(HalfTimeSlice::BACKWARD);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
  
-  log() << "Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
+  log() << "*** Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
   
   size_t matrixBufferSize = (2 * newMatrixSize) * newMatrixSize; // For normalMatrix and reprojectionMatrix data
   if (mBuffer_.size() < matrixBufferSize) {
@@ -191,14 +189,14 @@ CorrectionNetworkImpl::buildProjection() {
   }
   
   toc = getTime();
-  log() << "-> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
+  log() << "      -> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
   tic = toc;
 
   // Exchange normal/reprojection matrix data  
   timeCommunicator_->allGatherv(mBuffer_.array() + displacements[myCpu], recv_counts[myCpu], mBuffer_.array(), recv_counts, displacements);
   
   toc = getTime();
-  log() << "-> Exchange normal matrix: " << toc - tic << " ms\n";
+  log() << "      -> Exchange normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
   /*log() << "Buffer is\n";
@@ -273,7 +271,7 @@ CorrectionNetworkImpl::buildProjection() {
   } */
 
   toc = getTime();
-  log() << "-> Assemble normal matrix: " << toc - tic << " ms\n";
+  log() << "      -> Assemble normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
   //log() << "Check symmetry\n";
@@ -399,12 +397,12 @@ CorrectionNetworkImpl::buildProjection() {
   }*/
   
   toc = getTime();
-  log() << "-> Factor: " << toc - tic << " ms\n";
+  log() << "      -> Factor: " << toc - tic << " ms\n";
   tic = toc;
 
   // Debug
   //log() << "Debug\n";
-  log() << "Projector rank = " << solver_->factorRank() << "\n";
+  log() << "*** Projector rank = " << solver_->factorRank() << "\n";
   /*log() << "Permutation =";
   for (int i = 0; i < solver_->factorRank(); ++i) {
     log() << " " << solver_->factorPermutation(i);

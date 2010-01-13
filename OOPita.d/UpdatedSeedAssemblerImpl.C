@@ -48,8 +48,7 @@ UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
     //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
     for (int i = 0; i < rbs; ++i) {
       if (components[i] != 0.0) {
-        result.displacement().linAdd(components[i], correctionBasis()->state(i).displacement());
-        result.velocity().linAdd(components[i], correctionBasis()->state(i).velocity());
+        result.linAdd(components[i], correctionBasis()->state(i));
       }
     }
 

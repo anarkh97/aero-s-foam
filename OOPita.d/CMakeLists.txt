@@ -6,6 +6,7 @@ CommManagerImpl.C
 CommSplitter.C
 DynamStateBasisWrapper.C
 DynamState.C
+DynamStateOps.C
 DynamStatePlainBasis.C
 DynamStateReconstructorImpl.C
 DynamStateReductorImpl.C
@@ -43,6 +44,7 @@ RemoteSeedWriter.C
 RemoteStateMpiImpl.C
 RemoteStateTask.C
 RemoteTimeSlice.C
+SeedErrorEvaluator.C
 SimpleSeedInitializer.C
 TimeSlice.C
 TimeSliceImpl.C
@@ -58,8 +60,11 @@ Hts.d/LocalCorrectionTimeSlice.C
 Hts.d/FineIntegratorManager.C
 Hts.d/HalfTimeSlice.C
 Hts.d/HalfTimeSliceImpl.C
+Hts.d/HomogeneousTaskManager.C
+Hts.d/LinearTaskManager.C
 Hts.d/LocalNetwork.C
 Hts.d/NonHomogeneousBasisCollectorImpl.C
+Hts.d/NonHomogeneousTaskManager.C
 Hts.d/PropagatorManager.C
 Hts.d/ReducedFullTimeSliceImpl.C
 Hts.d/ReducedLinearDriverImpl.C

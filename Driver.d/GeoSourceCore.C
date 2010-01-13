@@ -3612,8 +3612,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  int iEle, iSub;
   for(iEle = 0; iEle < maxEle; ++iEle)
    if(elemSet[iEle]) {
-     if(elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false
-        && elemSet[iEle]->isRigidElement() == false)  // PJSA 7-21-05  these are converted to LMPCs for feti solver
+     if(elemSet[iEle]->isSpring() == false && elemSet[iEle]->isMass() == false)
+       // not any more && elemSet[iEle]->isRigidElement() == false)  // PJSA 7-21-05  these are converted to LMPCs for feti solver
        baseSet.elemadd(iEle, elemSet[iEle]);
      else {
        if(elemSet[iEle]->isSpring()) {

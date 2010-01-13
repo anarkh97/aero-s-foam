@@ -85,8 +85,8 @@ class GenDecDomain
   GenFetiSolver<Scalar> *getDynamicFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0, bool make_feti = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
-  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double);
-  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double);
+  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0);
+  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**);
   int getNumSub() { return numSub; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
   virtual void preProcess();

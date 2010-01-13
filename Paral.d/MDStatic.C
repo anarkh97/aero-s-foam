@@ -95,9 +95,6 @@ GenMultiDomainStatic<Scalar>::preProcess()
    for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
    decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
    solver = (GenFetiSolver<Scalar> *) allOps.sysSolver;
-//   K = allOps.K;
-//   M = allOps.M;
-//   C_deriv = 0; // damping not supported yet
  }
  else {
   allOps.sysSolver = solver = decDomain->getFetiSolver();

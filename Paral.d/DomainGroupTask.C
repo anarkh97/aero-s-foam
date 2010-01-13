@@ -228,7 +228,7 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
       dynMats[isub] = spm;
       spMats[isub] = spm;
     } break;
-#ifndef DISTRIBUTED // XXXX currently not supported
+//#ifndef DISTRIBUTED // XXXX currently not supported
    case 9:
     {
       GenMumpsSolver<Scalar> *msmat;
@@ -237,7 +237,7 @@ GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int>
       spMats[isub] = msmat;
     }
     break;
-#endif
+//#endif
    case 8:
     {
       GenSpoolesSolver<Scalar> *ssmat;

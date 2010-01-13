@@ -528,14 +528,12 @@ void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&),
  threadManager->execParal(n, &fe);
 }
 
-/*
 template <class TA, class TB, class TC, class TD, class TE, class TG>
-void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG), TB &b, TC &c, TD &d, TE &e, TG g)
+void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC, TD, TE, TG**), TB &b, TC c, TD d, TE e, TG **g)
 {
- FiveArgExecuter<TA,TB&,TC&,TD&,TE&,TG> fe(target,f,b,c,d,e,g);
+ FiveArgExecuter<TA,TB&,TC,TD,TE,TG**> fe(target,f,b,c,d,e,g);
  threadManager->execParal(n, &fe);
 }
-*/
 
 template <class TA, class TB, class TC, class TD, class TE, class TG>
 void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC*, TD&, TE&, TG*), TB &b, TC *c, TD &d, TE &e, TG *g)

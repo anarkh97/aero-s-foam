@@ -1491,7 +1491,7 @@ Domain::getStressStrain( Vector &sol, double *bcx, int fileNumber,
     if(printFlag != 2) {
 
       // Don't do anything if element is a phantom or constraint
-      if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;//getProperty()
+      if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
 
       // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
       if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||

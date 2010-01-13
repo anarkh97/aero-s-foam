@@ -215,6 +215,7 @@ MDNLStatic::updatePrescribedDisp(int isub, DistrGeomState& geomState)
 int
 MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState )
 {
+/*
  times->rebuild -= getTime();
 
  int rebuildFlag = 0;
@@ -241,16 +242,29 @@ MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState )
 // we found rebuilding the preconditioner is benefitial in cpu time so we
 // decided to always rebuild the preconditioner if the tangent stiffness
 // matrix was being rebuilt.
-
-/*
- } else {
-   fprintf(stderr,"===> REBUILDING ERROR ESTIMATOR\n");
-   solver->reBuildErrorEstimator(kelArray);
- }
-*/
+// } else {
+//   fprintf(stderr,"===> REBUILDING ERROR ESTIMATOR\n");
+//   solver->reBuildErrorEstimator(kelArray);
+// }
  times->rebuild += getTime();
  
  return rebuildFlag;
+*/
+ times->rebuild -= getTime();
+
+ int rebuildFlag = 0;
+
+ if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
+   GenMDDynamMat<double> allOps;
+   allOps.sysSolver = solver;
+   decDomain->rebuildOps(allOps, 0.0, 0.0, 1.0, kelArray);
+   rebuildFlag = 1;
+ }
+
+ times->rebuild += getTime();
+
+ return rebuildFlag;
+
 }
 
 void
@@ -301,11 +315,28 @@ MDNLStatic::preProcess()
 
  // Construct FETI Solver, build GtG, subdomain matrices, etc.
  times->getFetiSolverTime -= getTime();
- solver = decDomain->getFetiSolver();
+ //solver = decDomain->getFetiSolver();
+ GenMDDynamMat<double> allOps;
+
+ double Kcoef = 1.0;
+ double Mcoef = 0.0;
+ double Ccoef = 0.0;
+
+ filePrint(stderr," ... Building Solver                ...\n");
+/*
+ Rbm *rigidBodyModes = 0;
+ if(domain->solInfo().rbmflg) rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
+                                                                       // but only use them when it is appropriate to do so. In nonlinear statics it is not
+                                                                       // since the nullity of the tangent stiffness matrix may be less than the nullity
+                                                                       // of the number of rigid body modes
+*/
+ decDomain->buildOps(allOps, Mcoef, Ccoef, Kcoef, (Rbm **) 0);
+ solver = (GenFetiSolver<double> *) allOps.sysSolver;
  times->getFetiSolverTime += getTime();
 #ifdef PRINT_NLTIMERS
  filePrint(stderr," ... Time to Construct FETI Solver %28e\n", times->getFetiSolverTime/1000.0);
 #endif
+
  // Make subdomain's array of stiffness matrices
  times->memoryPreProcess -= threadManager->memoryUsed();
  times->kelArrayTime -= getTime();

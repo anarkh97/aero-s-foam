@@ -3410,18 +3410,18 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK)
+GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, FullSquareMatrix **kelArray)
 {
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- execParal4R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK);
+ execParal5R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray);
 
  res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
 }
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK)
+GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, FullSquareMatrix **kelArray)
 {
   AllOps<Scalar> allOps;
 
@@ -3439,7 +3439,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                  subDomain[iSub]->Kib, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
   allMats.zeroAll();
 
-  subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, &allMats);
+  subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, &allMats, kelArray[iSub]);
 }
 
 template<class Scalar>
@@ -3450,32 +3450,6 @@ GenDecDomain<Scalar>::getWError(int iSub, GenDistrVector<Scalar> *u,
  // subDomain[iSub]->wError( (BaseSub *) subDomain[iSub], l2err+iSub, h1err+iSub,
  //                         l2+iSub, h1+iSub, u->subData(iSub));
 }
-
-/*
-template<>
-void
-GenDecDomain<DComplex>::buildOps(MDDynamMat& res, double coeM, double coeC, double coeK, Rbm **rbm, FullSquareMatrix **kelArray, bool make_feti);
-
-template<>
-void
-GenDecDomain<double>::buildOps(MDDynamMat &res, double coeM, double coeC, double coeK, Rbm **rbm, FullSquareMatrix **kelArray, bool make_feti);
-
-template<>
-void
-GenDecDomain<DComplex>::rebuildOps(MDDynamMat& res, double coeM, double coeC, double coeK);
-
-template<>
-void
-GenDecDomain<double>::rebuildOps(MDDynamMat &res, double coeM, double coeC, double coeK);
-
-template<>
-void
-GenDecDomain<DComplex>::subRebuildOps(int iSub, MDDynamMat& res, double coeM, double coeC, double coeK);
-
-template<>
-void
-GenDecDomain<double>::subRebuildOps(int iSub, MDDynamMat &res, double coeM, double coeC, double coeK);
-*/
 
 template<>
 void

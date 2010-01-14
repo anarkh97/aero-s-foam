@@ -101,15 +101,24 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
 {
   // PJSA 10-4-2007 copied from NonLinDynamic
   times->correctorTime -= getTime();
-  // rhs = delta^2 * residual - M * (inc_displacement - delta * velocity) - C * delta * inc_displacement
-  localTemp->linC(inc_displacement, -localDelta, velocity);
-  M->mult(*localTemp, rhs);
-  rhs.linC(localDelta * localDelta, residual, -1.0, rhs);
-  if(C) { // DAMPING
-    C->mult(inc_displacement, *localTemp);
-    rhs.linAdd(-localDelta, *localTemp);
+  if(domain->solInfo().order == 1) {
+    M->mult(inc_displacement, rhs);
+    rhs.linC(localDelta, residual, -1.0, rhs);
   }
-
+  else {
+    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+    getNewmarkParameters(beta, gamma, alphaf, alpham);
+    // rhs = dt*dt*beta*residual - ((1-alpham)/(1-alphaf)*M+dt*gamma*C)*inc_displacement
+    //       + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
+    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
+    localTemp->linC(-(1-alpham)/(1-alphaf), inc_displacement, dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
+    M->mult(*localTemp, rhs);
+    if(C) {
+      localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
+      C->multAdd(*localTemp, rhs);
+    }
+    rhs.linAdd(dt*dt*beta, residual);
+  }
   addMpcForces(rhs); // XXXX
 
   double resN = sqrt(solver->getFNormSq(rhs));
@@ -153,11 +162,21 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
     }
   }
 
-  // rhs = M*velocity
-  M->mult(velocity, rhs);
-
-  // rhs = delta*M*velocity + delta^2*residual
-  rhs.linC(localDelta, rhs, localDelta * localDelta, residual);
+  if(domain->solInfo().order == 1)
+    rhs.linC(residual, localDelta);
+  else {
+    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+    getNewmarkParameters(beta, gamma, alphaf, alpham);
+    // rhs = dt*dt*beta*residual + (dt*(1-alpham)*M - dt*dt*(beta-(1-alphaf)*gamma)*C)*velocity
+    //       + (dt*dt*((1-alpham)/2-beta)*M - dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2*C)*acceleration
+    localTemp->linC(dt*(1-alpham), velocity, dt*dt*((1-alpham)/2-beta), acceleration);
+    M->mult(*localTemp, rhs);
+    if(C) {
+      localTemp->linC(-dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
+      C->multAdd(*localTemp, rhs);
+    }
+    rhs.linAdd(dt*dt*beta, residual);
+  }
 
   updateMpcRhs(geomState); // XXXX
 
@@ -349,34 +368,21 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
 {
  times->rebuild -= getTime();
 
- if(iteration % domain->solInfo().getNLInfo().updateK == 0) { // XXXX
-   //filePrint(stderr,"===> REBUILDING TANGENT STIFFNESS MATRIX\n");
+ if(iteration % domain->solInfo().getNLInfo().updateK == 0) {
    times->norms[numSystems].rebuildTang = 1;
-   execParal(decDomain->getNumSub(), this, &MDNLDynamic::rebuildKelArray, localDelta);
-   solver->reBuild(kelArray, geomState, iteration); 
+   GenMDDynamMat<double> ops;
+   ops.sysSolver = solver;
+   ops.Kuc = Kuc;
+   double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+   getNewmarkParameters(beta, gamma, alphaf, alpham);
+   double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
+   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
+   double Mcoef = (1-alpham)/(1-alphaf);
+   decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray);
  } else
    times->norms[numSystems].rebuildTang = 0;
 
  times->rebuild += getTime();
-}
-
-void
-MDNLDynamic::rebuildKelArray(int isub, double localDelta)
-{
-  SubDomain *sd = decDomain->getSubDomain(isub);
-  Connectivity *allDofs = sd->getAllDOFs();
-  double delta2 = localDelta * localDelta;
-  SparseMatrix *kuc = (Kuc) ? (*Kuc)[isub] : 0;
-  if(kuc) kuc->zeroAll();
-  for(int iele = 0; iele < sd->numElements(); ++iele) {
-    int dim = kelArray[isub][iele].dim();
-    if(kuc) kuc->add(kelArray[isub][iele], (*allDofs)[iele]);
-    for(int i = 0; i < dim; ++i)
-      for(int j = 0; j < dim; ++j) {
-        if(C) kelArray[isub][iele][i][j] = delta2 * kelArray[isub][iele][i][j] + localDelta * celArray[isub][iele][i][j] + melArray[isub][iele][i][j];
-        else kelArray[isub][iele][i][j] = delta2 * kelArray[isub][iele][i][j] + melArray[isub][iele][i][j];
-      }
-  }
 }
 
 void
@@ -416,7 +422,7 @@ MDNLDynamic::preProcess()
   double Kcoef = 0.0;
   double Mcoef = 1.0;
   double Ccoef = 0.0;
-  decDomain->buildOps(*allOps, Kcoef, Mcoef, Ccoef);
+  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef);
   solver = (FetiSolver *) allOps->dynMat;
   M = allOps->M;
   C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
@@ -729,14 +735,12 @@ void
 MDNLDynamic::getNewmarkParameters(double &beta, double &gamma,
                                   double &alphaf, double &alpham)
 {
-/*
   beta  = domain->solInfo().newmarkBeta;
   gamma = domain->solInfo().newmarkGamma;
   alphaf = domain->solInfo().newmarkAlphaF;
   alpham = domain->solInfo().newmarkAlphaM;
-*/
-  cerr << "WARNING: Generalized Alpha not implemented for MDNLDynamic\n";
-  beta = 0.25; gamma = 0.5; alphaf = 0.5; alpham = 0.5;
+  //cerr << "WARNING: Generalized Alpha not implemented for MDNLDynamic\n";
+  //beta = 0.25; gamma = 0.5; alphaf = 0.5; alpham = 0.5;
 }
 
 int
@@ -818,5 +822,14 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
                               int aeroAlg) 
 {  
    if(aeroAlg >= 0) cerr << "MDNLDynamic::dynamCommToFluid is not implemented\n";
+}
+
+void 
+MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
+                             DistrVector &v_p, DistrGeomState &geomState)
+{
+  ControlInfo *cinfo = geoSource->getCheckFileInfo();
+  if(cinfo->lastRestartFile)
+    cerr << "MDNLDynamic::readRestartFile(...) is not implemented \n"; 
 }
 

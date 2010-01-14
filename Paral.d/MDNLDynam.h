@@ -78,8 +78,7 @@ class MDNLDynamic
     MultiDomainPostProcessor *getPostProcessor();
     void getInitialTime(int &initTimeIndex, double &initTime);
     void readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
-                         DistrVector &v_p, DistrGeomState &geomState) { cerr << "MDNLDynamic::readRestartFile(...) is not implemented \n"; }
-
+                         DistrVector &v_p, DistrGeomState &geomState); 
 
     int getInitState(DistrVector &d, DistrVector& v, DistrVector &a, DistrVector &v_p);
     void updatePrescribedDisplacement(DistrGeomState *geomState);
@@ -158,7 +157,6 @@ class MDNLDynamic
     void makeSubDofs(int isub);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
-    void rebuildKelArray(int isub, double localDelta);
     void subGetExternalForce(int isub, DistrVector& f, DistrVector& gravityForce,
                              DistrGeomState& geomState, int tIndex, double time);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,

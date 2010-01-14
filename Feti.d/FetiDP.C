@@ -97,7 +97,11 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
                   Rbm **, int sandiaFlag, bool _computeRbms)
  : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
- filePrint(stderr," ... Create FETI-DP(H) solver");
+ if(geoSource->isShifted())
+   filePrint(stderr, " ... FETI-DPH Solver is Selected    ...\n");
+ else
+   filePrint(stderr, " ... FETI-DP Solver is Selected     ...\n");
+
  initialize();
 
  // Compute memory used by FETI Solver
@@ -222,10 +226,9 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  else
    this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
  this->times.memoryOSet += memoryUsed();
- filePrint(stderr,"       ... \n");
 
  if(sysMatrices == 0) {
-   filePrint(stderr," ... Build Edge Augmentation (Q)");
+   if(verboseFlag) filePrint(stderr," ... Build Edge Augmentation (Q)");
    computeLocalWaveNumbers();
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // build augmentation matrix
    if(this->fetiInfo->augment == FetiInfo::Gs) {
@@ -234,19 +237,19 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
      this->sPat->exchange();
      paralApply(this->nsub, this->sd, &BaseSub::recvNumNeighbGrbm, this->sPat);
    }
-   filePrint(stderr,"    ... \n");
+   if(verboseFlag) filePrint(stderr,"    ... \n");
 
-   filePrint(stderr," ... Construct Subdomain Matrices");
+   if(verboseFlag) filePrint(stderr," ... Construct Subdomain Matrices");
    startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
    timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::constructMatrices);
    stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-   filePrint(stderr,"   ... \n");
+   if(verboseFlag) filePrint(stderr,"   ... \n");
 
-   filePrint(stderr," ... Assemble Subdomain Matrices");
+   if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices");
    startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
    timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::assembleMatrices);
    stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-   filePrint(stderr,"    ... \n");
+   if(verboseFlag) filePrint(stderr,"    ... \n");
  }
  else {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -302,7 +305,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  }
 
  // Factor matrices: K and Kii (if dirichlet preconditioner))
- filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
+ if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
  startTimerMemory(this->times.factor, this->times.memoryFactor);
  if(this->fetiInfo->solvertype != FetiInfo::spooles)
    timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
@@ -438,10 +441,11 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *localCornerNodes = this->sd[iSub]->getLocalCornerNodes();
    int *glN = this->sd[iSub]->getGlNodes();
    int iCorner;
-   for(iCorner=0; iCorner<numCorner; ++iCorner)
+   for(iCorner=0; iCorner<numCorner; ++iCorner) {
 // RT
 //     glCornerNodes[pointer[this->sd[iSub]->subNum()]+iCorner] = cornerNodes[iCorner];
      glCornerNodes[pointer[this->sd[iSub]->subNum()]+iCorner] = glN[localCornerNodes[iCorner]];
+   }
  }
 
  this->fetiCom->globalSum(total, glCornerNodes);
@@ -3629,7 +3633,7 @@ GenFetiDPSolver<Scalar>::refactor()
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
  
   // 5. factor local matrices
-  filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
+  if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
   startTimerMemory(this->times.factor, this->times.memoryFactor);
   if(this->fetiInfo->solvertype != FetiInfo::spooles)
     timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
@@ -3639,7 +3643,7 @@ GenFetiDPSolver<Scalar>::refactor()
 
   // 6. zero and rebuild and refactor Kcc 
   if(this->fetiInfo->isEdgeAugmentationOn() && this->fetiInfo->numdir > 0) {
-    filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
+    if(verboseFlag) filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
     delete KccSparse; KccSparse = 0; KccSolver = 0;
     makeKcc();
 
@@ -3657,7 +3661,7 @@ GenFetiDPSolver<Scalar>::refactor()
     internalC.len = tLocalCLen;
   }
   else {
-    filePrint(stderr, " ... Re-assemble Kcc solver         ... \n");
+    if(verboseFlag) filePrint(stderr, " ... Re-assemble Kcc solver         ... \n");
     startTimerMemory(this->times.coarse1, this->times.memoryGtG);
     if(KccSolver) KccSolver->zeroAll();
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc);
@@ -3667,7 +3671,7 @@ GenFetiDPSolver<Scalar>::refactor()
       if(KccSparse) KccSparse->add(*kel, dofs);
     }
     stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
-    filePrint(stderr, " ... Factorize Kcc solver           ... \n");
+    if(verboseFlag) filePrint(stderr, " ... Factorize Kcc solver           ... \n");
     startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 #ifdef DISTRIBUTED
     if(KccSolver) KccSolver->unify(this->fetiCom);

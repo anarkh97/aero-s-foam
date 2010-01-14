@@ -19,7 +19,7 @@ CoordSet::CoordSet(const CoordSet &cs, int n, int *ndn)
  nmax  = n;
  if(nmax > 0) {
    nodes = new NodeP[nmax];
-   for(int i = 0; i < nmax ; ++i) nodes[i] = cs.nodes[ndn[i]];
+   for(int i = 0; i < nmax ; ++i) nodes[i] = cs[ndn[i]]; //cs.nodes[ndn[i]];
  }
  else nodes = 0;
 }

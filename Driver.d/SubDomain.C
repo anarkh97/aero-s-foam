@@ -3090,6 +3090,7 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
  // Current configuration to get the displacement
  int i;
  for(i = 0; i < numnodes; ++i) {
+   if(!nodes[i]) continue;
    xyz[glNums[i]][0] = ((*u)[i].x - nodes[i]->x);
    xyz[glNums[i]][1] = ((*u)[i].y - nodes[i]->y);
    xyz[glNums[i]][2] = ((*u)[i].z - nodes[i]->z);

@@ -2936,7 +2936,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
   if(f == 0) { // Trivial map
 
      numCPU = structCom->numCPUs();
-     filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
+     if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
      int *cx  = new int[numCPU+1];
      subToCPU = new int[totSub];
 
@@ -3657,7 +3657,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  else
    optDec = mf.decompose(numSubdomains);
 
- filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains and %d Springs ...\n",
+ if(verboseFlag) filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains and %d Springs ...\n",
            optDec->pele[optDec->nsub], optDec->nsub, nSpring);
 
  nSpring += nMass;
@@ -3775,7 +3775,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  }
 
  // Open optimized decomposition file
- filePrint(stderr," ... Saving Decomposition File      ...\n");
+ if(verboseFlag) filePrint(stderr," ... Saving Decomposition File      ...\n");
  t1 = getTime();
  FILE *optFilePtr = domain->openFile(cinfo->checkfile, ".optDec");
 

@@ -445,9 +445,10 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
  if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 
-   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
+   //PJSA 11/5/09: new way to rebuild solver (including preconditioner) and Kuc, now works for any solver
    spm->zeroAll();
    AllOps<double> ops;
+   ops.Kuc = kuc;
    if(spp) {
      spp->zeroAll();
      ops.spp = spp;
@@ -618,11 +619,6 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
       C->multAdd(localTemp, rhs);
     }
     rhs.linAdd(dt*dt*beta, residual);
-/* old version
-    // rhs = delta*M*velocity + delta^2*residual
-    M->mult(velocity, rhs);
-    rhs.linC(localDelta, rhs, localDelta * localDelta, residual);
-*/
   }
 
   times->predictorTime += getTime();

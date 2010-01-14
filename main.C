@@ -563,6 +563,10 @@ int main(int argc, char** argv)
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
+ if(!geoSource->binaryInput) {
+   domain->setUpData();
+ }
+
  if(callDec) {
 //   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
      Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
@@ -587,9 +591,9 @@ int main(int argc, char** argv)
  }
  useFull = true; // or TenNodeTetraHedral will crush ! (bad design not from me !)
 
- if(!geoSource->binaryInput) {
-   domain->setUpData();
- }
+// if(!geoSource->binaryInput) {
+//   domain->setUpData();
+// }
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");

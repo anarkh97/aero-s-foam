@@ -634,6 +634,13 @@ void execParal6R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD, TE, TF&, 
  threadManager->execParal(n, &fe);
 }
 
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH>
+void execParal6R(int n, TA *target, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**), TB &b, TC c, TD d, TE e, TG **g, TH **h)
+{
+ SixArgExecuter<TA,TB&,TC,TD,TE,TG**,TH**> fe(target,f,b,c,d,e,g,h);
+ threadManager->execParal(n, &fe);
+}
+
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG> 
 void timedParal6R(DistTimer &timer, int n, TA *target, void (TA::*ff)(int, TB&, TC&, TD&, TE&, TF&, TG*), TB &b, TC &c, TD &d, TE &e, TF &f, TG *g)
 {

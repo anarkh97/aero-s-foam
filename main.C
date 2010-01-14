@@ -680,9 +680,9 @@ int main(int argc, char** argv)
           //cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;*/
           filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
         } else {
-          MultiDomainDynam<double> dynamProb(domain);
+          MultiDomainDynam dynamProb(domain);
           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-       		MultiDomainDynam<double>, double > dynamSolver(&dynamProb);
+       		MultiDomainDynam, double > dynamSolver(&dynamProb);
           dynamSolver.solve();
           fflush(stderr);
         }
@@ -825,9 +825,9 @@ int main(int argc, char** argv)
      case SolverInfo::NonLinDynam: {
        //filePrint(stderr,"*** WARNING: MultiDomain Non-Linear Dynamic Analysis has not been validated. \n");
        if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-         MultiDomainDynam<double> dynamProb(domain);
+         MultiDomainDynam dynamProb(domain);
          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-               MultiDomainDynam<double>, double > dynamSolver(&dynamProb);
+               MultiDomainDynam, double > dynamSolver(&dynamProb);
          dynamSolver.solve();
        }
        else {
@@ -994,14 +994,14 @@ int main(int argc, char** argv)
              double solver=getTime();
              if (domain->solInfo().newPitaImplementation) {
                  fprintf(stderr," ... Linear PITA - New implementation ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
+                 SingleDomainDynamic dynamProb(domain);
                  Pita::LinearDriver::Ptr driver = linearPitaDriverNew(&dynamProb);
                  driver->solve();
              } else {
                  fprintf(stderr," ... Linear PITA - Old implementation ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
+                 SingleDomainDynamic dynamProb(domain);
                  SDDistrTimeDecompSolver<PitaDynamMat,Vector,SDDynamPostProcessor,
-                     SingleDomainDynamic<double>,SingleInfo> distrTimedec(&dynamProb);
+                     SingleDomainDynamic,SingleInfo> distrTimedec(&dynamProb);
                  distrTimedec.solve_PITA_linearDynam();
                  cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;
              }
@@ -1010,16 +1010,16 @@ int main(int argc, char** argv)
 #endif
 	  } else {
             if (domain->solInfo().ATDARBFlag>=1.5) {
-/*              SingleDomainDynamic<double> dynamProb(domain);
+/*              SingleDomainDynamic dynamProb(domain);
               DynamicSolver <GenDynamMat<DComplex>, Vector,
                     SDDynamPostProcessor, SingleDomainDynamic, DComplex>
                 dynaSolver(&dynamProb);
               dynaSolver.solve();
 */            }
             else {
-              SingleDomainDynamic<double> dynamProb(domain);
+              SingleDomainDynamic dynamProb(domain);
               DynamicSolver <GenDynamMat<double>, Vector,
-                    SDDynamPostProcessor, SingleDomainDynamic<double>, double>
+                    SDDynamPostProcessor, SingleDomainDynamic, double>
                 dynaSolver(&dynamProb);
               dynaSolver.solve();
             }
@@ -1111,9 +1111,9 @@ int main(int argc, char** argv)
          }
          else {
            if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-             SingleDomainDynamic<double> dynamProb(domain);
+             SingleDomainDynamic dynamProb(domain);
              DynamicSolver <GenDynamMat<double>, Vector,
-                   SDDynamPostProcessor, SingleDomainDynamic<double>, double>
+                   SDDynamPostProcessor, SingleDomainDynamic, double>
                dynaSolver(&dynamProb);
              dynaSolver.solve();
            }

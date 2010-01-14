@@ -90,7 +90,6 @@ class MultiDomDynPostProcessor
     double getKineticEnergy(DistrVector & vel, SubDOp * gMass) { return 0.0; }
 };
 
-template <class Scalar>
 class MultiDomainDynam 
 {
     DecDomain *decDomain;
@@ -208,9 +207,5 @@ class MultiDomainDynam
     void modeDecomp(double t, int tIndex, DistrVector& d_n) {}
     int getModeDecompFlag() { return 0; }
 };
-#ifdef _TEMPLATE_FIX_
-  #include <Paral.d/MDDynamTem.C>
-//  #include <Paral.d/MDDynam.C>
-#endif
 
 #endif

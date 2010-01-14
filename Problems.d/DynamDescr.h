@@ -58,8 +58,8 @@ class SDDynamPostProcessor {
 
 // Single Domain Dynamic Problem Description
 
-template <class Scalar>
-class SingleDomainDynamic {
+class SingleDomainDynamic 
+{
     Domain *domain;
     int    *bc;
     double *bcx;	// displacement bc values
@@ -138,9 +138,7 @@ class SingleDomainDynamic {
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
     void preProcess();
     void processLastOutput();
-    // template <class Scalar> 
-    GenDynamMat<Scalar> * buildOps(double coeM, double coeC, double coeK);
-    // DynamMat buildDynamicOps(double Mcoef, double Ccoef, double Kcoef);
+    DynamMat * buildOps(double coeM, double coeC, double coeK);
     PitaDynamMat *buildPitaOps(double cM, double cC, double cK, double cM_Dt, double cC_Dt, double cK_Dt, bool coarse);
     Solver *getSolver();
     SDDynamPostProcessor *getPostProcessor();
@@ -186,13 +184,5 @@ class SingleDomainDynamic {
     int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
 
 };
-
-
-#ifdef _TEMPLATE_FIX_
-  #include <Problems.d/DynamDescrTem.C>
-//  #include <Problems.d/DynamDescr.C>
-#endif
-
-
 
 #endif

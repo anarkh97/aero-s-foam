@@ -24,6 +24,7 @@
 #include <Math.d/FullMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Driver.d/GeoSource.h>
+#include <Element.d/State.h>
 
 typedef FSFullMatrix FullMatrix;
 

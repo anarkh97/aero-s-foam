@@ -20,6 +20,7 @@
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/GenMS.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
+#include <Paral.d/DomainGroupTask.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
@@ -3442,7 +3443,8 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                  subDomain[iSub]->Kib, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
   allMats.zeroAll();
 
-  subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, &allMats, kelArray[iSub], melArray[iSub]);
+  subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, &allMats, (kelArray) ? kelArray[iSub] : 0, 
+                                                  (melArray) ? melArray[iSub] : 0);
 }
 
 template<class Scalar>

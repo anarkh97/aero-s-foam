@@ -46,6 +46,7 @@ class MDNLStatic
     double getDeltaLambda0();
     double getMaxLambda();
     void getRHS(DistrVector &, DistrGeomState *gs=0);
+    void addExternalForce(DistrVector &, DistrGeomState *gs, double lambda) { }
     FetiSolver *getSolver();
 
     void printTimers();

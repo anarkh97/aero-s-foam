@@ -254,6 +254,8 @@ class Domain : public HData {
     Elemset elems_copy; // Needed for SFEM
     Elemset elems_fullcopy; // copy of the full elementset, needed for SFEM
 
+    double loadFactor;
+
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
@@ -488,6 +490,9 @@ class Domain : public HData {
                          GenSparseMatrix<Scalar> **cuc_deriv,
                          double omega, double delta_omega,
                          GeomState *gs=0);
+
+     template<class Scalar>
+       void addExternalForce(GenVector<Scalar> &force, GeomState *gs, double lambda);
 
      double * getNodalTemperatures();
 

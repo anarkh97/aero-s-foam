@@ -506,3 +506,4 @@ TwoNodeTruss::buildBarFrame(CoordSet& cs, double xg[3][3], double xl[3][3])
         normalize( xl[2] );
 
 }
+

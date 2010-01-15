@@ -3,8 +3,8 @@
 
 #include <Element.d/Element.h>
 
-class TwoNodeTruss : public virtual Element {
-
+class TwoNodeTruss : public virtual Element 
+{
         int nn[2];
 public:
 	TwoNodeTruss(int*);
@@ -33,13 +33,10 @@ public:
         void setPreLoad(double load, int &flg);
 	bool isSafe() { return false; }
 	bool isStart() {return false; }
-
-private:
-
-        void buildBarFrame(CoordSet&, double xg[3][3], double xl[3][3]);
-
 #ifndef SALINAS
-	PrioInfo examine(int sub, MultiFront *);
+        PrioInfo examine(int sub, MultiFront *);
 #endif
+private:
+        void buildBarFrame(CoordSet&, double xg[3][3], double xl[3][3]);
 };
 #endif

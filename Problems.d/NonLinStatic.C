@@ -188,9 +188,18 @@ NonLinStatic::getMaxLambda()
 void
 NonLinStatic::getRHS(Vector& rhs, GeomState *gs)
 {
- // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
+ // ... BUILD THE RHS FORCE (force + gravity + pressure + thermal)
  times->formRhs -= getTime();
  domain->buildRHSForce<double>(rhs, 0, gs);
+ times->formRhs += getTime();
+}
+
+void
+NonLinStatic::addExternalForce(Vector& rhs, GeomState *gs, double lambda)
+{
+ // ... BUILD THE RHS FORCE (force + gravity + pressure + thermal)
+ times->formRhs -= getTime();
+ domain->addExternalForce<double>(rhs, gs, lambda);
  times->formRhs += getTime();
 }
 

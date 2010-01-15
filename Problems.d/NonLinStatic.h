@@ -39,6 +39,7 @@ class NonLinStatic {
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
     void getRHS(Vector &rhs, GeomState *gs=0); 
+    void addExternalForce(Vector &rhs, GeomState *gs, double lambda);
     void preProcess();
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();

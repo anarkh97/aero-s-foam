@@ -83,6 +83,7 @@ public:
    void updatePrescribedDisplacement(NLState *, double = 1.0);
    void updatePrescribedDisplacement(NLState *, double, double);
    void getRHS(Vector &, NLState * = 0);
+   void addExternalForce(Vector &, NLState *, double) { }
    double getStiffAndForce(NLState &, Vector &, Vector &intrnForce,
 		   Vector &glRes);
    Solver *getSolver();

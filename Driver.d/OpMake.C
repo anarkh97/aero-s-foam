@@ -1515,6 +1515,9 @@ Domain::buildGravityForce(GenVector<Scalar> &force, GeomState *gs)
     Vector ElementGravityForce(maxNumDOFs, 0.0);
     int gravflg;
 
+    double gravityAccelerationX[3]; // XPJSA
+    for(int i=0; i<3; ++i) gravityAccelerationX[i] = gravityAcceleration[i]*loadFactor; //XPJSA
+
     for(int iele = 0; iele < numele; ++iele) {
       if(packedEset[iele]->getProperty() != NULL) {
        
@@ -1523,7 +1526,7 @@ Domain::buildGravityForce(GenVector<Scalar> &force, GeomState *gs)
         else gravflg = geoSource->fixedEndM;   // 1: lumped with fixed-end moments
                                                // 0: lumped without fixed-end moments
 
-        packedEset[iele]->getGravityForce(nodes, gravityAcceleration, ElementGravityForce, gravflg, gs);
+        packedEset[iele]->getGravityForce(nodes, gravityAccelerationX, ElementGravityForce, gravflg, gs); // XPJSA
 
         for(int i = 0; i < allDOFs->num(iele); ++i) {
           int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
@@ -1539,11 +1542,11 @@ Domain::buildGravityForce(GenVector<Scalar> &force, GeomState *gs)
       int thisDof = c_dsa->locate(current->node, (1 << current->dof));
       if(thisDof >= 0 ) {
         if(current->dof == 0)
-          force[thisDof] += (current->diMass)*gravityAcceleration[0];
+          force[thisDof] += (current->diMass)*gravityAccelerationX[0]; // XPJSA
         if(current->dof == 1)
-          force[thisDof] += (current->diMass)*gravityAcceleration[1];
+          force[thisDof] += (current->diMass)*gravityAccelerationX[1]; // XPJSA
         if(current->dof == 2)
-          force[thisDof] += (current->diMass)*gravityAcceleration[2];
+          force[thisDof] += (current->diMass)*gravityAccelerationX[2]; // XPJSA
       }
       current = current->next;
     }
@@ -1562,6 +1565,9 @@ Domain::buildPressureForce(GenVector<Scalar> &force, GeomState *gs)
     // If there is a zero pressure defined, skip it.
     if( packedEset[iele]->getPressure() == 0.0 ) continue;
 
+    double p_copy = packedEset[iele]->getPressure(); // XPJSA
+    packedEset[iele]->setPressure(p_copy*loadFactor); // XPJSA
+
     // Otherwise, compute element pressure force
     packedEset[iele]->computePressureForce(nodes, ElementPressureForce, gs, cflg);
 
@@ -1574,6 +1580,7 @@ Domain::buildPressureForce(GenVector<Scalar> &force, GeomState *gs)
         }
       }
     }
+    packedEset[iele]->setPressure(p_copy); // XPJSA
   }
 }
 
@@ -1624,6 +1631,7 @@ template<class Scalar>
 void
 Domain::buildThermalForce(double *nodalTemperatures, GenVector<Scalar> &force, GeomState *gs)
 {
+  for(int i=0; i<numnodes; ++i) nodalTemperatures[i] *= loadFactor; // XPJSA
   // allocate integer array to store node numbers
   int *nodeNumber = new int[maxNumNodes];
   double defaultTemp = -10000000.0;
@@ -2075,6 +2083,31 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
 }
 
 
+template<class Scalar>
+void
+Domain::addExternalForce(GenVector<Scalar> &force, GeomState *gs, double lambda)
+{
+  loadFactor = lambda;
+  // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
+  int i;
+  for(i=0; i < numNeuman; ++i) {
+    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+    if(dof < 0) continue;
+    ScalarTypes::addScalar(force[dof], loadFactor*nbc[i].val);
+  }
+
+  // ... ADD GRAVITY FORCES
+  if(domain->gravityFlag()) buildGravityForce<Scalar>(force, gs);
+
+  // ... ADD PRESSURE LOAD
+  if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
+
+  // ... CONSTRUCT THERMAL FORCES
+  if(sinfo.thermalLoadFlag) {
+    double *nodalTemperatures = getNodalTemperatures();
+    buildThermalForce(nodalTemperatures, force, gs);
+  }
+}
 
 template<class Scalar>
 void

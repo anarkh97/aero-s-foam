@@ -1,12 +1,12 @@
 #ifndef _EULERBEAM_H_
 #define _EULERBEAM_H_
 
-#include        <Element.d/Element.h>
+#include <Element.d/Element.h>
 
 class GeomState;
 
-class EulerBeam : public Element {
-
+class EulerBeam : public Element 
+{
         EFrame *elemframe;
         int nn[3];
 	double *offset;
@@ -58,7 +58,7 @@ public:
 	bool hasRot() { return true; }
    
         int getMassType() { return 2; } // both consistent and lumped
-	
+
 private:
 
        void    getLength(CoordSet&, double &length);

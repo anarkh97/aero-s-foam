@@ -14,7 +14,6 @@ template < class OpSolver,
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >::solve()
 {
-
  // Set up nonlinear Problem 
  probDesc->preProcess();
 
@@ -353,17 +352,22 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   int iter, converged;
   for(iter = 0; iter < maxit; ++iter) {
 
+/* XPJSA
     probDesc->getRHS(force, geomState);
 
     // residual = lambda*force;
     residual.linC(force, lambda);
+*/  residual.zero(); // XPJSA now we will add scaled external force to residual AFTER updating geomState
  
-    // Compute current tangent stiffness and residual force
+    // Update geomState then compute current tangent stiffness and residual force
     timeStiff -= getTime();
     double residualNorm = StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
                                                  residual, elementInternalForce, totalRes);
 //    double residualNorm = probDesc->getStiffAndForce(*geomState, residual, elementInternalForce, totalRes);
     timeStiff += getTime();
+
+    probDesc->addExternalForce(residual, geomState, lambda); // XPJSA
+    residualNorm = residual.norm(); // XPJSA
 
 /*
     if(verboseFlag) {

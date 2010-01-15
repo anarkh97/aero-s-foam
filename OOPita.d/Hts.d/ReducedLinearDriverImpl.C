@@ -50,7 +50,7 @@
 
 namespace Pita { namespace Hts {
 
-ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
+ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic * pbDesc,
                                                  Domain * domain,
                                                  SolverInfo * solverInfo,
                                                  Communicator * baseComm) :
@@ -504,7 +504,7 @@ extern Domain * domain;
 
 /* Entrypoint */
 Pita::LinearDriver::Ptr
-linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
+linearPitaDriverNew(SingleDomainDynamic * pbDesc) {
   return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, domain, &domain->solInfo(), structCom);
 }
 

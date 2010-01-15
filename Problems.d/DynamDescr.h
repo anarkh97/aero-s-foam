@@ -1,9 +1,6 @@
 #ifndef _DYNAM_DESCR_H_
 #define _DYNAM_DESCR_H_
 
-#include <Driver.d/DynamProbType.h>
-#include <Driver.d/Dynam.h>
-#include <Hetero.d/FlExchange.h>
 
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
@@ -20,6 +17,10 @@ typedef GenFullSquareMatrix<double> FullSquareMatrix;
 template <class Scalar> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
 class PrevFrc;
+class FlExchanger;
+template <typename T> class SysState;
+class Domain;
+class ControlLawInfo;
 
 // Single Domain Dynamic Post Processor Class
 
@@ -70,7 +71,6 @@ class SingleDomainDynamic
     SparseMatrix *kuc;
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
-//    Solver *solver;
 
     // members for nonlinear eigen problem
     FullSquareMatrix *kelArray;
@@ -91,6 +91,8 @@ class SingleDomainDynamic
 
     Vector *dprev; // PJSA 4-1-08 explicit nonlinear dynamics
 
+    FlExchanger *flExchanger;
+
  protected:
     // extract gets an acceleration, velocity and disp vector according to the claw sensors
     void extractControlData(SysState<Vector> &, double *, double *, double*);
@@ -101,7 +103,7 @@ class SingleDomainDynamic
     void setBC(double *userDefineDisp, double *userDefineVel);
  public:
     SingleDomainDynamic(Domain *d); 
-    ~SingleDomainDynamic() { if(dprev) delete dprev; }
+    ~SingleDomainDynamic();
 
     int* boundary() { return bc;}
     double* boundaryValue() { return bcx;}
@@ -110,7 +112,6 @@ class SingleDomainDynamic
     void trProject(Vector &f);
     void project(Vector &v);
     void projector_prep(Rbm *R, SparseMatrix *M);
-    void projector_prep(Rbm *rbms, GenSparseMatrix<DComplex> *M);
 
     int solVecInfo();
     int bcInfo();
@@ -150,38 +151,32 @@ class SingleDomainDynamic
     double alphaDamp() const; 
     void setDamping( double betaDamp, double alphaDamp );
 	
-    SparseMatrix * getpK(DynamMat * dynOps) { return dynOps->K; }
-    SparseMatrix * getpM(DynamMat * dynOps) { return dynOps->M; }
-    SparseMatrix * getpC(DynamMat * dynOps) { return dynOps->C; }
+    SparseMatrix * getpK(DynamMat * dynOps);
+    SparseMatrix * getpM(DynamMat * dynOps);
+    SparseMatrix * getpC(DynamMat * dynOps);
 
     // Central Difference only related subroutines
-    void makeInvDiagMass(SparseMatrix *M, Vector &mdiag);
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();
     void modeDecompPreProcess(SparseMatrix*M);
-    void modeDecompPreProcess(GenSparseMatrix<DComplex> *M);
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
     void getInternalForce(Vector&, Vector&, double t);
 
     // Aeroelastic problems related subroutines
-    FlExchanger *flExchanger; 
- 
     void computeTimeInfo();
     int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
-    int cmdCom(int cmdFlag) {return flExchanger->cmdCom(cmdFlag);}
- 
-    void a5TimeLoopCheck(int& parity, double& t, double dt);
-    void a5StatusRevise(int parity,
-         SysState<Vector>& curState, SysState<Vector>& bkState);
-    int getAeroAlg() { return domain->solInfo().aeroFlag; }
+    int cmdCom(int cmdFlag);
+    int getAeroAlg();
     void aeroSend(double time, Vector& d, Vector& v, Vector& a, Vector& v_p);
+    void a5TimeLoopCheck(int& parity, double& t, double dt);
+    void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);
 
     // Thermoelastic problems related subroutines
     void thermoePreProcess(Vector& d_n, Vector& v_n, Vector& v_p);
-    int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+    int getThermoeFlag();
 
 };
 

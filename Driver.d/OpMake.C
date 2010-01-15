@@ -1,21 +1,15 @@
 #include <typeinfo>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
-//#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
-//#include <Math.d/NonLinBLKSparseMatrix.h>
 #include <Math.d/SGISparseMatrix.h>
-//#include <Math.d/NonLinSGISparseMatrix.h>
 #include <Math.d/Skyline.d/BlockSky.h>
-//#include <Math.d/Skyline.d/NonLinBlockSky.h>
 #include <Math.d/Skyline.d/SGISky.h>
-//#include <Math.d/Skyline.d/NonLinSGISky.h>
 #include <Solvers.d/PCGSolver.h>
-//#include <Solvers.d/NonLinPCGSolver.h>
 #include <Solvers.d/UFront.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
@@ -25,8 +19,6 @@
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
-//#include <Solvers.d/NonLinSpooles.h>
-//#include <Solvers.d/NonLinMumps.h>
 #include <Solvers.d/MappedAssembledSolver.h>
 #include <Driver.d/Dynam.h>
 #include <Sfem.d/Sfem.h>
@@ -703,46 +695,28 @@ template<class Scalar>
 GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
- if(DSA==0) DSA=c_dsa;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-     return new GenNonLinSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs, rbm);
- else
-*/
-   if(!geoSource->getDirectMPC())
+  if(DSA==0) DSA=c_dsa;
+  if(!geoSource->getDirectMPC())
     return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, rbm);
-   else {
-     DOFMap *baseMap = new DOFMap[dsa->size()];
-     DOFMap *eqMap = new DOFMap[DSA->size()];
-     // TODO Examine when DSA can be different from c_dsa
-     ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-     typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNode, MpcDSA, sinfo.trbm, rbm);
-     int nMappedEq = DSA->size();
-     return
-       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-           nMappedEq, eqMap);
-   }
+  else {
+    DOFMap *baseMap = new DOFMap[dsa->size()];
+    DOFMap *eqMap = new DOFMap[DSA->size()];
+    // TODO Examine when DSA can be different from c_dsa
+    ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNode, MpcDSA, sinfo.trbm, rbm);
+    int nMappedEq = DSA->size();
+    return
+      new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
+          nMappedEq, eqMap);
+  }
 }
 
 template<class Scalar>
 GenBlockSky<Scalar> *
 Domain::constructBlockSky(DofSetArray *DSA)
 {
- if(DSA==0) DSA=c_dsa;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs);
- else
-*/
-   return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
+  if(DSA==0) DSA=c_dsa;
+  return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
 }
 
 template<class Scalar>
@@ -775,150 +749,76 @@ template<class Scalar>
 GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
- if(DSA==0) DSA=c_dsa;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, numele,
-	                                       allDOFs, sinfo.trbm, sinfo.sparse_renum, rbm);
- else 
-*/
-   //axess the newmark parameters for acoustic time domain - JFD
-   if (sinfo.newmarkBeta==0.0 && sinfo.acoustic) {
-     if (sinfo.ATDARBFlag>-1.0) {
-       return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-     }
-     else {
-       int numN=numNodes();
-       // import a diagonal connectivity for the mass matrix
-       Connectivity *connForMas = 0;
-       connForMas = new Connectivity(numN);
-       //connForMass->print();
-       connForMas = connForMas->modify();
-       GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-       delete connForMas;
-       return retur;
-     }
-   }
-   else
-     if(!geoSource->getDirectMPC())
-       return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-     else {
-       DOFMap *baseMap = new DOFMap[dsa->size()];
-       DOFMap *eqMap = new DOFMap[DSA->size()];
-       // TODO Examine when DSA can be different from c_dsa
-       ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-       typename WrapSparseMat<Scalar>::CtorData
-         baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-       int nMappedEq = DSA->size();
-       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
-     }
- 
+  if(DSA == 0) DSA = c_dsa;
+  if(sinfo.newmarkBeta == 0.0 && sinfo.acoustic) {
+    if(sinfo.ATDARBFlag >- 1.0) {
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+    }
+    else {
+      int numN=numNodes();
+      // import a diagonal connectivity for the mass matrix
+      Connectivity *connForMas = 0;
+      connForMas = new Connectivity(numN);
+      //connForMass->print();
+      connForMas = connForMas->modify();
+      GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      delete connForMas;
+      return retur;
+    }
+  }
+  else {
+    if(!geoSource->getDirectMPC())
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+    else {
+      DOFMap *baseMap = new DOFMap[dsa->size()];
+      DOFMap *eqMap = new DOFMap[DSA->size()];
+      // TODO Examine when DSA can be different from c_dsa
+      ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+      typename WrapSparseMat<Scalar>::CtorData
+        baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      int nMappedEq = DSA->size();
+      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
+    }
+  }
 }
 
 template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(Rbm *rbm)
 {
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
-                                               allDOFs, rbm);
- else
-*/
-   return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm);
+  return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm);
 }
 
 template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(int subNumber, Rbm *rbm)
 {
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
-                                               allDOFs, rbm);
- else
-*/
-   return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm, subNumber);
+  return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm, subNumber);
 }
 
 template<class Scalar>
 GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *
 Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
 {
- GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *pcgSolver;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength    ||
-     solInfo().structoptFlag == 1  )
- {
-   pcgSolver = new GenNonLinPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                                     (K, sinfo.precond, sinfo.maxit, sinfo.tol, numele,
-                                     allDOFs, sinfo.getNLInfo().kryflg, sinfo.getNLInfo().initflg,
-                                     sinfo.getNLInfo().reorthoflg, sinfo.getNLInfo().maxVec, rbm);
- }
- else 
-*/
-    pcgSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
+  return new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
                                 (K, sinfo.precond, sinfo.maxit, sinfo.tol, sinfo.maxvecsize, rbm);
- 
-
- return pcgSolver;
 }
 
 template<class Scalar>
 GenSpoolesSolver<Scalar> *
 Domain::constructSpooles(ConstrainedDSA *CDSA, Rbm *rbm)
 {
- if(CDSA==0) CDSA=c_dsa;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
-                                             allDOFs, rbm);
- else
-*/
-   return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
+  if(CDSA == 0) CDSA = c_dsa;
+  return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
 }
 
 template<class Scalar>
 GenMumpsSolver<Scalar> *
 Domain::constructMumps(ConstrainedDSA *CDSA, Rbm *rbm, FSCommunicator *com)
 {
- if(CDSA==0) CDSA=c_dsa;
-/* PJSA 11/5/09
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength    ||
-     solInfo().structoptFlag == 1  )
-   return new GenNonLinMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
-                                           allDOFs, rbm);
- else
-*/
-   return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
+  if(CDSA == 0) CDSA = c_dsa;
+  return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
 }
-
-
-
 
 template<class Scalar>
 void
@@ -3345,10 +3245,10 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
 template <class Scalar>
 void
 Domain::computeExtForce4(PrevFrc &prevFrc,
-                        GenVector<Scalar> &f, GenVector<Scalar> &gf,
-                        int tIndex, double t, GenSparseMatrix<Scalar> *kuc,
-                        Scalar *userDefineDisp, int *userMap, Vector *af,
-                        double gamma, double alphaf)
+                         GenVector<Scalar> &f, GenVector<Scalar> &gf,
+                         int tIndex, double t, GenSparseMatrix<Scalar> *kuc,
+                         Scalar *userDefineDisp, int *userMap, Vector *af,
+                         double gamma, double alphaf)
 {
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -3390,7 +3290,6 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
     kuc->multSubtract(Vc, f);
   }
 
-
   // ... COMPUTE TIME DEPENDENT FORCE COEFFICIENT (MFTT) if present
   double mfttFactor = (mftval) ? mftval->getVal(t) : 1.0;
 
@@ -3403,7 +3302,6 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
 
   // COMPUTE EXTERNAL FORCE FROM REAL DISTRIBUTED NEUMAN BC
   if(sinfo.ATDDNBVal != 0.0) {
-    //checkSommerTypeBC(this);//set the normals be oriented toward the exterior of the domain
     Vector elementNeumanScatterForce(this->maxNumDOFs,0.0);
     for(int iele = 0; iele < numNeum; ++iele) {
       int *dofs = neum[iele]->dofs(*this->c_dsa);
@@ -3416,8 +3314,7 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
   }
 
   // COMPUTE EXTERNAL FORCE FOR ROBIN BC
-  if (sinfo.ATDROBalpha != 0.0) {
-    //checkSommerTypeBC(this);//set the normals be oriented toward the exterior of the domain
+  if(sinfo.ATDROBalpha != 0.0) {
     double temp = sinfo.ATDROBVal/sinfo.ATDROBalpha;
     Vector elementRobinScatterForce(this->maxNumDOFs,0.0);
     for(int iele = 0; iele < numScatter; ++iele) {
@@ -3425,14 +3322,15 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
       scatter[iele]->neumVector(this->nodes,elementRobinScatterForce);
       elementRobinScatterForce *= temp;
       for(i = 0; i < scatter[iele]->numDofs(); i++) {
-        f[dofs[i]] += mfttFactor*elementRobinScatterForce[i];//*sin(omega*t);
+        f[dofs[i]] += mfttFactor*elementRobinScatterForce[i];
       }
     }
   }
 
-  // ... ADD GRAVITY FORCE AND (if non-follower) PRESSURE FORCE
+  // ... ADD CONSTANT FORCE
   f += gf;
 
+/* relocated elsewhere
   // ... COMPUTE AEROELASTIC FORCE
   // This section of AEROELASTIC is done only if the aeroFlag is set
   // and the solver is non-feti (i.e. solver type is not 2)
@@ -3466,17 +3364,22 @@ Domain::computeExtForce4(PrevFrc &prevFrc,
     delete [] tmpFmem;
     getTimers().receiveFluidTime += getTime();
   }
+*/
 
+/* relocated elsewhere
   // ... CONSTRUCT THERMAL FORCES
   // ... Using specified temperatures
   if(sinfo.thermalLoadFlag) {
     double *nodalTemperatures = getNodalTemperatures();
     buildThermalForce(nodalTemperatures, f);
   }
+*/
+/* relocated
   // ... Get thermal force from thermal code
   if(sinfo.thermoeFlag >=0) {
     flExchanger->getStrucTemp(temprcvd) ;
     //if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
     buildThermalForce(temprcvd, f);
   }
+*/
 }

@@ -93,7 +93,7 @@ public:
   void setBufferLength(int size)  { bufferLen = size; }
  
 
-  //int cmdCom(int);
+  int cmdCom(int);
 
   void initSndParity(int pinit) { sndParity = pinit; }
   void initRcvParity(int pinit) { rcvParity = pinit; }

@@ -236,11 +236,8 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx
 {
   // Send u + IDISP6 to fluid code.
   // IDISP6 is used to compute pre-stress effects.
-  if(sinfo.aeroFlag < 0) return;
-
   getTimers().sendFluidTime -= getTime();
   Vector d_n_aero(d_n);
-  double * bcx_aero = bcx;
 
   if(sinfo.gepsFlg == 1) {
 
@@ -251,12 +248,52 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx
     }
   }
 
-  State state(c_dsa, dsa, bcx_aero, vcx, d_n_aero, v_n, a_n, v_p);
+  State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
   flExchanger->sendDisplacements(nodes, state);
   if(verboseFlag) fprintf(stderr, " ... [E] Sent displacements ...\n");
 
   getTimers().sendFluidTime += getTime();
+}
+
+void
+Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf)
+{
+  // ... COMPUTE AEROELASTIC FORCE 
+  getTimers().receiveFluidTime -= getTime();
+
+  // ... Temporary variable for inter(extra)polated force
+  double *tmpFmem = new double[numUncon()];
+  StackVector tmpF(tmpFmem, numUncon());
+  tmpF.zero();
+
+  int iscollocated;
+  double tFluid = flExchanger->getFluidLoad(nodes, tmpF, tIndex, t,
+                                            alphaf, iscollocated);
+  if(verboseFlag) fprintf(stderr," ... [E] Received fluid load ...\n");
+  if(iscollocated == 0) {
+    if(prevFrc.lastTIndex >= 0) {
+      tmpF *= (1/gamma);
+      tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
+    }
+  }
+
+  double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
+  f.linAdd(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  prevFrc.lastFluidLoad = tmpF;
+  prevFrc.lastFluidTime = tFluid;
+  prevFrc.lastTIndex = tIndex;
+
+  delete [] tmpFmem;
+  getTimers().receiveFluidTime += getTime();
+}
+
+void
+Domain::buildThermoelasticForce(Vector& f, GeomState *geomState)
+{
+  flExchanger->getStrucTemp(temprcvd);
+  if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
+  buildThermalForce(temprcvd, f, geomState);
 }
 
 void

@@ -2,23 +2,14 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/DynamProbType.h>
 #include <Paral.d/MDDynam.h>
-#include <Threads.d/Paral.h>
 #include <Driver.d/Dynam.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Paral.d/MDOp.h>
 #include <Timers.d/StaticTimers.h>
 #include <Math.d/Vector.h>
-#include <Math.d/SparseMatrix.h>
 #include <Math.d/CuCSparse.h>
-#include <Math.d/NBSparseMatrix.h>
-#include <Math.d/DBSparseMatrix.h>
-#include <Math.d/SGISparseMatrix.h>
-#include <Math.d/BLKSparseMatrix.h>
-#include <Math.d/Skyline.d/SGISky.h>
 #include <Timers.d/GetTime.h>
 #include <Control.d/ControlInterface.h>
 #include <Threads.d/PHelper.h>
-#include <Paral.d/GenMS.h>
 #include <Paral.d/SubDOp.h>
 #ifdef DISTRIBUTED
 #include <Utils.d/DistHelper.h>
@@ -26,12 +17,8 @@
 #endif
 #include <Driver.d/DecDomain.h>
 #include <Hetero.d/DistFlExchange.h>
-#include <Comm.d/Communicator.h>
 #include <Utils.d/SolverInfo.h>
 #include <Feti.d/Feti.h>
-#include <Driver.d/StructProp.h>
-#include <Comm.d/Communicator.h>
-#include <Utils.d/SolverInfo.h>
 
 class IntFullM;
 
@@ -184,13 +171,39 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
     delete [] userDefineDisp; delete [] userDefineVel;
   }
 
+  // Send to fluid code (except C0)
+  SolverInfo& sinfo = domain->solInfo();
+  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20) {
+    // Send u + IDISP6 to fluid code.
+    // IDISP6 is used to compute pre-stress effects.
+    DistrVector d_n_aero(distState.getDisp());
+
+    if(domain->solInfo().gepsFlg == 1) {
+
+      for(int i = 0; i < decDomain->getNumSub(); ++i) {
+        SubDomain *sd = decDomain->getSubDomain(i);
+        BCond* iDis6 = sd->getInitDisp6();
+        for(int j = 0; j < sd->numInitDisp6(); ++j) {
+          int dof = sd->getCDSA()->locate(iDis6[j].nnum, 1 << iDis6[j].dofnum);
+          if(dof >= 0)
+            d_n_aero.subData(i)[dof] += iDis6[j].val;
+        }
+      }
+    }
+
+    SysState<DistrVector> state(d_n_aero, distState.getVeloc(), distState.getAccel(), distState.getPrevVeloc());
+
+    distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements ...\n");
+  }
+
   decDomain->postProcessing(distState.getDisp(), distForce, 0.0, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
 
-  SolverInfo& sinfo = domain->solInfo();
-  if(sinfo.aeroFlag >= 0)
-    if(tIndex != sinfo.initialTimeIndex)
-      distFlExchanger->sendDisplacements(distState, usrDefDisps, usrDefVels);
+//  SolverInfo& sinfo = domain->solInfo();
+//  if(sinfo.aeroFlag >= 0)
+//    if(tIndex != sinfo.initialTimeIndex)
+//      distFlExchanger->sendDisplacements(distState, usrDefDisps, usrDefVels);
 }
 
 MultiDomainDynam::~MultiDomainDynam() 
@@ -398,6 +411,26 @@ int
 MultiDomainDynam::getFilterFlag()
 {
   return domain->solInfo().filterFlags;
+}
+
+int*
+MultiDomainDynam::boundary()
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: boundary not implemented here\n");
+  return 0;
+}
+
+double*
+MultiDomainDynam::boundaryValue()
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: boundaryValue not implemented here\n");
+  return 0;
+}
+
+Domain*
+MultiDomainDynam::getDomain()
+{
+  return domain;
 }
                                                                                                  
 void
@@ -683,17 +716,53 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
 }
 
 void
+MultiDomainDynam::trProject(DistrVector &)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: trProject not implemented here\n");
+}
+
+void
+MultiDomainDynam::project(DistrVector &)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: project not implemented here\n");
+}
+
+void
+MultiDomainDynam::getRayleighCoef(double& alpha)
+{
+  alpha = domain->solInfo().alphaDamp;
+}
+
+void
 MultiDomainDynam::addPrescContrib(SubDOp*, SubDOp*, DistrVector&,
                                   DistrVector&, DistrVector&, DistrVector&,
                                   double time)
 {
-  filePrint(stderr,"Paral.d/MDDynamTem.C: addPrescContrib not implemented here");
+  filePrint(stderr, "Paral.d/MDDynam.C: addPrescContrib not implemented here\n");
+}
+
+SubDOp*
+MultiDomainDynam::getpK(MDDynamMat* dynOps)
+{
+  return dynOps->K;
+}
+
+SubDOp*
+MultiDomainDynam::getpM(MDDynamMat* dynOps)
+{
+  return dynOps->M;
+}
+
+SubDOp*
+MultiDomainDynam::getpC(MDDynamMat* dynOps)
+{
+  return dynOps->C;
 }
 
 void
 MultiDomainDynam::computeStabilityTimeStep(double dt, MDDynamMat &dMat)
 {
-  double dt_c;//time step computed from the matrix K
+  double dt_c; //time step computed from the matrix K
   dt_c = decDomain->computeStabilityTimeStep(dMat);
 
   filePrint(stderr," **************************************\n");
@@ -714,6 +783,24 @@ MultiDomainDynam::computeStabilityTimeStep(double dt, MDDynamMat &dMat)
     filePrint(stderr," Specified time step is selected\n");
   filePrint(stderr," **************************************\n");
   fflush(stderr);
+}
+
+int
+MultiDomainDynam::getModeDecompFlag()
+{
+  return domain->solInfo().modeDecompFlag;
+}
+
+void
+MultiDomainDynam::modeDecompPreProcess(SparseMatrix* M)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: modeDecompPreProcess not implemented here\n");
+}
+
+void
+MultiDomainDynam::modeDecomp(double t, int tIndex, DistrVector& d_n)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: modeDecomp not implemented here\n");
 }
 
 void 
@@ -765,8 +852,29 @@ MultiDomainDynam::subGetKtimesU(int isub, DistrVector &d, DistrVector &f)
   sd->getKtimesU(subd, (double *) 0, subf, 1.0, (kelArray) ? kelArray[isub] : (FullSquareMatrix *) 0);
 }
 
-int MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
-                                     DistrVector &accel, DistrVector &lastVel)  
+void
+MultiDomainDynam::computeTimeInfo()
+{
+  // Time integration information
+
+  // Get total time and time step size and store them
+  double totalTime = domain->solInfo().tmax;
+  double dt        = domain->solInfo().dt;
+
+  // Compute maximum number of steps
+  int maxStep = (int) ( (totalTime+0.49*dt)/dt );
+
+  // Compute time remainder
+  double remainder = totalTime - maxStep*dt;
+  if(std::abs(remainder)>0.01*dt){
+    domain->solInfo().tmax = maxStep*dt;
+    fprintf(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
+  }
+}
+
+int
+MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
+                                 DistrVector &accel, DistrVector &lastVel)  
 {
   // get solver info
   SolverInfo& sinfo = domain->solInfo();
@@ -836,14 +944,12 @@ int MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // negotiate with the fluid code
   distFlExchanger->negotiate();
 
-  //int restartinc = (solInfo().nRestart >= 0) ? (solInfo().nRestart) : 0;
-  // TODO
-  int restartinc = 10;
+  int restartinc = (sinfo.nRestart >= 0) ? (sinfo.nRestart) : 0;
 
   //fprintf(stderr,"struct cpu %d Sending Parameters to Fluid Code\n", structCom->myID());
 
   distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.dt, sinfo.tmax, restartinc,
-                          sinfo.isCollocated, sinfo.alphas);
+                             sinfo.isCollocated, sinfo.alphas);
 
   // initialize the Parity
   if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
@@ -860,14 +966,67 @@ int MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // send initial displacements
   distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
 
-  return 0;
+  return sinfo.aeroFlag;
 }
 
 int 
 MultiDomainDynam::cmdCom(int cmdFlag) 
 {
-  // return distFlExchanger->cmdCom(cmdFlag);
-  fprintf(stderr, "ERROR: Optimization is not available for Feti\n");
-  return -1;
+  return distFlExchanger->cmdCom(cmdFlag);
 }
 
+int
+MultiDomainDynam::getAeroAlg()
+{
+  return domain->solInfo().aeroFlag;
+}
+
+void
+MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, DistrVector& a_n, DistrVector& v_p)
+{
+  // Send u + IDISP6 to fluid code.
+  // IDISP6 is used to compute pre-stress effects.
+  DistrVector d_n_aero(d_n);
+
+  if(domain->solInfo().gepsFlg == 1) {
+
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      BCond* iDis6 = sd->getInitDisp6();
+      for(int j = 0; j < sd->numInitDisp6(); ++j) {
+        int dof = sd->getCDSA()->locate(iDis6[j].nnum, 1 << iDis6[j].dofnum);
+        if(dof >= 0)
+          d_n_aero.subData(i)[dof] += iDis6[j].val;
+      }
+    }
+  }
+
+  SysState<DistrVector> state(d_n_aero, v_n, a_n, v_p);
+
+  distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+  if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements ...\n");
+}
+
+void
+MultiDomainDynam::a5TimeLoopCheck(int&, double&, double)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: a5TimeLoopCheck not implemented here\n");
+}
+
+void
+MultiDomainDynam::a5StatusRevise(int, SysState<DistrVector>&, SysState<DistrVector>&)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: a5StatusRevise not implemented here\n");
+}
+
+void
+MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
+{
+  filePrint(stderr, "Paral.d/MDDynam.C: thermoePreProcess not implemented here\n");
+}
+
+int
+MultiDomainDynam::getThermoeFlag()
+{
+  return domain->solInfo().thermoeFlag;
+}

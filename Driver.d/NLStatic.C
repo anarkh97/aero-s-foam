@@ -17,11 +17,6 @@
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/mathUtility.h>
-#include <Math.d/SparseMatrix.h>
-#include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
 #include <Math.d/matrix.h>
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
@@ -96,13 +91,6 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
             residual[dofNum] -= elementInternalForce[idof];
       }
    }
-}
-
-template<class Scalar>
-GenNonLinSkyMatrix<Scalar> *
-Domain::constructNonLinSkyMatrix(Rbm *rbm)
-{
- return new GenNonLinSkyMatrix<Scalar>(nodeToNode,c_dsa,sinfo.trbm,numele,allDOFs,rbm);
 }
 
 // used in nonlinear statics

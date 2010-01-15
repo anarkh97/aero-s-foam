@@ -449,41 +449,29 @@ double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex,
 }
 
 //---------------------------------------------------------------------
-/*
-int DistFlExchanger::cmdCom( int commandFlag )
+
+int DistFlExchanger::cmdCom(int commandFlag)
 {
   int returnFlag = 0;
-  int zero   = 0;
   int FldNd  = 0;
-
-  int rsize;
   int tag;
-
-  int thisNode;
-  _FORTRAN(getnod)(thisNode);
-
-  double buffer[1];
-  buffer[0] = (double) commandFlag;
+  int thisNode = structCom->myID();
+  double buffer[1] = { double(commandFlag) };
   int msglen = 1;
- 
-  toFluid=1;
 
   if(thisNode == 0) {
-
-    // fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);
-
+    // fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);   
     // fflush(stderr);
     tag = STCMDMSG;
-   _FORTRAN(nsedoc)(zero, tag, buffer,msglen,FldNd, toFluid);
-
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
     tag =  FLCMDMSG;
-   _FORTRAN(nrecoc)(zero, tag, buffer,msglen,rsize, FldNd, toFluid);
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
     returnFlag = (int) buffer[0];
-    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);
+    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);   
     // fflush(stderr);
   }
 
   return returnFlag;
 }
 
-*/
+

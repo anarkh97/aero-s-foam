@@ -1,6 +1,8 @@
 #include "LinearizedPropagator.h"
 #include "NlDynamTimeIntegrator.h" 
 #include "PitaNonLinDynam.h"
+#include <Solvers.d/Solver.h>
+#include <Math.d/SparseMatrix.h>
 
 namespace Pita {
 

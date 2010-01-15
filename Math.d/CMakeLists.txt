@@ -6,7 +6,6 @@ ADD_LIBRARY(Math spsmvp.f
        matrixFull.C BigMatrixCore.C BLKSparseMatrixCore.C 
        CuCSparseCore.C DBSparseMatrixCore.C 
        FullRectMatrix.C NBSparseMatrixCore.C TTensor.C
-Skyline.d/NonLinSGISky.C
 Skyline.d/forbackr7.f
 Skyline.d/BlockSkyCore.C  Skyline.d/forbackr7ns.f
 Skyline.d/forbackr8.f

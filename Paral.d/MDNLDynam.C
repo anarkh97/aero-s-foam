@@ -37,11 +37,9 @@ MDNLDynamic::getConstForce(DistrVector &v)
   times->formRhs += getTime();
 }
 
-
 int
 MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, DistrVector &v_p)
 {
-  // AERO not supported
   MultiDomainOp mdop(&MultiDomainOp::getInitState, decDomain->getAllSubDomains(),
                      &d_n, &v_n, &a_n, &v_p);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
@@ -63,7 +61,16 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
     delete [] ctrdisp; delete [] ctrvel; delete [] ctracc;
   }
 
-  return domain->solInfo().aeroFlag;
+  int aeroAlg = domain->solInfo().aeroFlag;
+  // call aeroPreProcess if a restart file does not exist
+  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0)
+    filePrint(stderr, "Paral.d/MDNLDynam.C: getInitState not implemented here for aeroAlg = %d\n", aeroAlg);
+
+  if(domain->solInfo().thermoeFlag >= 0)
+    filePrint(stderr, "Paral.d/MDNLDynam.C: getInitState not implemented here for thermoeFlag = %d\n", 
+              domain->solInfo().thermoeFlag);
+
+  return aeroAlg;
 }
 
 void
@@ -821,7 +828,8 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
                               DistrVector& vp, DistrVector& bkVp, int step, int parity,
                               int aeroAlg) 
 {  
-   if(aeroAlg >= 0) cerr << "MDNLDynamic::dynamCommToFluid is not implemented\n";
+  if(aeroAlg >= 0)
+    filePrint(stderr, "Paral.d/MDNLDynam.C: dynamCommToFluid not implemented here\n");
 }
 
 void 
@@ -830,6 +838,17 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
 {
   ControlInfo *cinfo = geoSource->getCheckFileInfo();
   if(cinfo->lastRestartFile)
-    cerr << "MDNLDynamic::readRestartFile(...) is not implemented \n"; 
+    filePrint(stderr, "Paral.d/MDNLDynam.C: readRestartFile not implemented here\n");
 }
 
+int
+MDNLDynamic::getAeroAlg()
+{
+  return domain->solInfo().aeroFlag;
+}
+
+int
+MDNLDynamic::getThermoeFlag()
+{
+  return domain->solInfo().thermoeFlag;
+}

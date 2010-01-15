@@ -66,8 +66,6 @@ template <class Scalar> class GenSpoolesSolver;
 typedef GenSpoolesSolver<double> SpoolesSolver;
 template <class Scalar> class GenMumpsSolver; 	//Axel
 typedef GenMumpsSolver<double> MumpsSolver;   	//Axel
-template <class Scalar> class GenNonLinSkyMatrix;
-typedef GenNonLinSkyMatrix<double> NonLinSkyMatrix;
 class GeomState;
 class DistrGeomState;
 class IntFullM;
@@ -431,9 +429,6 @@ class Domain : public HData {
        GenSkyMatrix<Scalar> *constructSkyMatrix(DofSetArray*, Rbm *rbm = 0);
 
      template<class Scalar>
-       GenNonLinSkyMatrix<Scalar> *constructNonLinSkyMatrix(Rbm *rbm=0);
-
-     template<class Scalar>
        GenBlockSky<Scalar> *constructBlockSky(DofSetArray *DSA);
 
      template<class Scalar>
@@ -559,6 +554,8 @@ class Domain : public HData {
              double *xdata, int *dofx, double *ydata=0, int *dofy=0, double *zdata=0, int *dofz=0);
      void addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x, double &y, double &z);
      void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx, double* vcx);
+     void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf);
+     void buildThermoelasticForce(Vector& f, GeomState *geomState = 0);
      void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,
                           double* vcx, int sliceRank, double time);
@@ -712,6 +709,8 @@ class Domain : public HData {
 
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
+
+     int  thermalFlag() { return sinfo.thermalLoadFlag; }
 
      // returns the maximum number of dofs per element
      int  maxNumDOF() { return maxNumDOFs; }

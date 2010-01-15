@@ -28,6 +28,9 @@
 #include <Utils.d/linkfc.h>
 #include <Driver.d/GeoSource.h>
 
+#include <Hetero.d/FlExchange.h>
+#include<Driver.d/SysState.h>
+
 typedef FSFullMatrix FullMatrix;
 
 // ALL COMMENTED FUNCTIONS ARE IN THE FILE DYNAMDESCRTEM.C - JF
@@ -197,37 +200,6 @@ SDDynamPostProcessor::fillBcxVcx(int tIndex) {
     }
   }
 } 
-/*
-#include <stdlib.h>
-#include <stdio.h>
-#include <Utils.d/dbg_alloca.h>
-
-#include <Driver.d/Domain.h>
-#include <Driver.d/Dynam.h>
-
-#include <Problems.d/DynamDescr.h>
-
-#include <Math.d/FullMatrix.h>
-#include <Math.d/SparseMatrix.h>
-#include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
-#include <Math.d/CuCSparse.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-
-#include <Utils.d/dofset.h>
-#include <Solvers.d/Solver.h>
-#include <Element.d/State.h>
-#include <Timers.d/StaticTimers.h>
-#include <Timers.d/GetTime.h>
-#include <Corotational.d/GeomState.h>
-
-#include <Control.d/ControlInterface.h>
-#include <Solvers.d/Rbm.h>
-#include <Utils.d/BinFileHandler.h>
-
-#include <Utils.d/linkfc.h>
-#include <Driver.d/GeoSource.h>
-*/
 
 typedef FSFullMatrix FullMatrix;
 
@@ -241,6 +213,11 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   dprev = 0;
 
   flExchanger = domain->getFileExchanger();
+}
+
+SingleDomainDynamic::~SingleDomainDynamic()
+{
+  if(dprev) delete dprev;
 }
 
 //#define DEBUG_RBM_FILTER
@@ -287,14 +264,6 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
  X = new FullMatrix(ndof,numR); 
  MRt.mult(RtMRinverse,(*X));
 
-}
-
-void
-SingleDomainDynamic::projector_prep(Rbm *rbms, GenSparseMatrix<DComplex> *M)
-{
- numR = rbms->numRBM();
- if (!numR) return;
- fprintf(stderr," DynamDescr.C:projector_prep not implemented for complexM\n");
 }
 
 void
@@ -431,14 +400,6 @@ SingleDomainDynamic::getSteadyStateParam(int &steadyFlag, int &steadyMin,
  steadyMin   = domain->solInfo().steadyMin;
  steadyMax   = domain->solInfo().steadyMax;
  steadyTol   = domain->solInfo().steadyTol;
-}
-
-void
-SingleDomainDynamic::makeInvDiagMass(SparseMatrix *M, Vector& mdiag)
-{
- int i;
- for(i=0; i<M->dim(); ++i)
-   mdiag[i] = 1.0 / M->diag(i);
 }
 
 void
@@ -600,13 +561,17 @@ SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
 void
 SingleDomainDynamic::getConstForce(Vector &cnst_f)
 {
-  cnst_f.zero(); // constant force i.e. gravity + non-follower pressure
+  // compute constant force i.e. gravity + pressure + thermal (by convention linear dynamics only)
+  cnst_f.zero();
 
-  // gravity force computation
-  if(domain->gravityFlag()) domain->buildGravityForce(cnst_f);
-
-  // pressure force is also constant with respect to time for linear analysis (by convention)
-  if(domain->pressureFlag() && !domain->solInfo().isNonLin()) domain->buildPressureForce(cnst_f);
+  if(!domain->solInfo().isNonLin()) {
+    if(domain->gravityFlag()) domain->buildGravityForce(cnst_f);
+    if(domain->pressureFlag()) domain->buildPressureForce(cnst_f);
+    if(domain->thermalFlag()) { 
+      double *nodalTemperatures = domain->getNodalTemperatures();
+      domain->buildThermalForce(nodalTemperatures, cnst_f);
+    }
+  }
 }
 
 void
@@ -671,16 +636,20 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     geomState->setVelocity(state.getVeloc()); 
   }
 
-  // add FORCE (including MFTT), HDNB, ROBIN, GRAVITY and AEROELASTIC forces
-  // for linear problems also add PRESSURE and non-homogeneous DISP/TEMP and USDD forces
-  //int *nomap = 0;
+  // add FORCE (including MFTT), HDNB, ROBIN to cnst_f
+  // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
   domain->computeExtForce4(*prevFrc, ext_f, cnst_f, tIndex, t, 
                            kuc, userDefineDisp, (int *) 0, aero_f, gamma, alphaf);
   if(userDefineDisp) delete [] userDefineDisp;
 
-  // for nonlinear problems add PRESSURE forces
-  if(domain->solInfo().isNonLin() && domain->pressureFlag()) { 
-    domain->buildPressureForce(ext_f, geomState);
+  // for nonlinear problems add GRAVITY, PRESSURE and THERMAL forces
+  if(domain->solInfo().isNonLin()) { 
+    if(domain->gravityFlag()) domain->buildGravityForce(ext_f, geomState);
+    if(domain->pressureFlag()) domain->buildPressureForce(ext_f, geomState);
+    if(domain->thermalFlag()) {
+      double *nodalTemperatures = domain->getNodalTemperatures();
+      domain->buildThermalForce(nodalTemperatures, ext_f, geomState);
+    }
   }
 
   // add USDF forces
@@ -706,6 +675,16 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
       addCtrl(ext_f, ctrfrc);
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
+  }
+
+  // add aeroelastic forces from fluid dynamics code
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+    domain->buildAeroelasticForce(ext_f, *prevFrc, tIndex, t, gamma, alphaf);
+  }
+
+  // add thermoelastic forces from thermo dynamics code
+  if(domain->solInfo().thermoeFlag >= 0) {
+    domain->buildThermoelasticForce(ext_f, geomState);
   }
  
   // KHP: apply projector here
@@ -1160,12 +1139,6 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
 }
 
 void
-SingleDomainDynamic::modeDecompPreProcess(GenSparseMatrix<DComplex> *M)
-{
-  fprintf(stderr,"DynamDesc.C::modeDecompPreProcess not implemented for complexM\n");
-}
-
-void
 SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 {
 // Compute Alpha and error only if their output file is specified,
@@ -1265,6 +1238,23 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 
 }
 
+SparseMatrix* 
+SingleDomainDynamic::getpK(DynamMat* dynOps)
+{
+  return dynOps->K;
+}
+
+SparseMatrix* 
+SingleDomainDynamic::getpM(DynamMat* dynOps)
+{
+  return dynOps->M;
+}
+
+SparseMatrix* getpC(DynamMat* dynOps)
+{
+  return dynOps->C;
+}
+
 void
 SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vector& v_p)
 {
@@ -1272,3 +1262,20 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
   domain->aeroSend(d, v, a, v_p, bcx, vcx);
 }
 
+int 
+SingleDomainDynamic::cmdCom(int cmdFlag) 
+{
+  return flExchanger->cmdCom(cmdFlag);
+}
+
+int 
+SingleDomainDynamic::getAeroAlg()
+{ 
+  return domain->solInfo().aeroFlag;
+}
+
+int
+SingleDomainDynamic::getThermoeFlag()
+{
+  return domain->solInfo().thermoeFlag;
+} 

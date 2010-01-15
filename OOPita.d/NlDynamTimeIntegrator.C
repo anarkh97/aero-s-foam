@@ -1,9 +1,12 @@
 #include "NlDynamTimeIntegrator.h"
 #include "PitaNonLinDynam.h"
 #include <Corotational.d/GeomState.h>
+#include <Solvers.d/Solver.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+
+extern int verboseFlag;
 
 using std::fprintf;
 using std::exit;

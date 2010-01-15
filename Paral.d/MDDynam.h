@@ -1,9 +1,6 @@
 #ifndef _MD_DYNAM_DESCR_H_
 #define _MD_DYNAM_DESCR_H_
 
-#include <Driver.d/DynamProbType.h>
-#include <Solvers.d/ParallelSolver.h>
-
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class Scalar> class GenSparseMatrix;
@@ -25,7 +22,8 @@ typedef GenSubDOp<double> SubDOp;
 class Domain;
 class Rbm;
 
-//template <class VecType> class SysState;
+template <typename T> class SysState;
+template <typename T> class GenParallelSolver;
 
 template<class Scalar>
 class GenMDDynamMat {
@@ -96,7 +94,6 @@ class MultiDomainDynam
     Domain *domain;
     CuCSparse **cucs;
     FetiSolver *solver;
-    //MDDynamMat dynMat;
     StaticTimers *times;
 
     // control law data
@@ -107,6 +104,21 @@ class MultiDomainDynam
     Corotator ***allCorot;
     DistrGeomState *geomState;
     DistrVector *dprev;
+
+    DistFlExchanger *distFlExchanger;
+    MultiDomDynPostProcessor *mddPostPro;
+
+    // user defined displacements and velocities
+    double **usrDefDisps;
+    double **usrDefVels;
+
+    // Previous Force
+    DistrVector *prevFrc;
+    int prevIndex;
+    double prevTime;
+
+    // Aero Force
+    DistrVector *aeroForce;
 
   public:
     MultiDomainDynam(Domain *d);
@@ -119,11 +131,9 @@ class MultiDomainDynam
 
     int getTimeIntegration();
     int getFilterFlag();
-    int *boundary() { return 0; }
-
-    double * boundaryValue() { return 0; }
-	
-    Domain *getDomain() { return domain; }
+    int* boundary();
+    double* boundaryValue();
+    Domain* getDomain();
     void getTimes(double &dt, double &t);
     void getNewMarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
@@ -145,67 +155,48 @@ class MultiDomainDynam
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 
-    void trProject(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: trProject not implemented here"); }
-    void project(DistrVector &) { fprintf(stderr,"Paral.d/MDDynam.h: project not implemented here"); }
-    void computeStabilityTimeStep(double, MDDynamMat &);
-    void getRayleighCoef(double &alpha) { alpha = domain->solInfo().alphaDamp; }
+    void trProject(DistrVector &);
+    void project(DistrVector &);
+    void getRayleighCoef(double& alpha);
 
     void addPrescContrib(SubDOp*, SubDOp*, DistrVector&, DistrVector&, 
-                         DistrVector&, DistrVector&, double t );
+                         DistrVector&, DistrVector&, double t);
 
-    SubDOp * getpK(MDDynamMat * dynOps) { return dynOps->K; }
-    SubDOp * getpM(MDDynamMat * dynOps) { return dynOps->M; }
-    SubDOp * getpC(MDDynamMat * dynOps) { return dynOps->C; }
+    SubDOp* getpK(MDDynamMat* dynOps);
+    SubDOp* getpM(MDDynamMat* dynOps);
+    SubDOp* getpC(MDDynamMat* dynOps);
+
+    // Central Difference only related subroutines
+    void computeStabilityTimeStep(double, MDDynamMat&);
+
+    // Mode Decomposition parameters and subroutines
+    int getModeDecompFlag();
+    void modeDecompPreProcess(SparseMatrix* M);
+    void modeDecomp(double t, int tIndex, DistrVector& d_n);
 
     void getInternalForce(DistrVector &d, DistrVector &f, double t);
-    // these can be private
+
+    // Aeroelastic problems related subroutines
+    void computeTimeInfo();
+    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, 
+		       DistrVector &); 
+    int cmdCom(int cmdFlag);
+    int getAeroAlg();
+    void aeroSend(double time, DistrVector& d, DistrVector& v, DistrVector& a, DistrVector& v_p);
+    void a5TimeLoopCheck(int&, double&, double);
+    void a5StatusRevise(int, SysState<DistrVector>&, SysState<DistrVector>&);
+
+    // Thermoelastic problems related subroutines
+    void thermoePreProcess(DistrVector &, DistrVector &, DistrVector &);
+    int getThermoeFlag();
+   
+  private:
     void subGetInternalForce(int isub, DistrVector &res);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void initSubPrescribedDisplacement(int isub);
     void subUpdateGeomStateUSDD(int isub, double *userDefineDisp);
-
-    // Aeroelastic problems related subroutines
-    // these are not defined yet. AEROELASTIC is not defined to be used
-    // with FETI solver yet.
-  private:
-    DistFlExchanger *distFlExchanger; 
-    MultiDomDynPostProcessor *mddPostPro;
-    
-    // user defined displacements and velocities
-    double **usrDefDisps;
-    double **usrDefVels;
-
-    // Previous Force
-    DistrVector *prevFrc;
-    int prevIndex;
-    double prevTime;
-
-    // Aero Force
-    DistrVector *aeroForce;
- 
-  public:
-    void computeTimeInfo() { cerr << "MultiDomainDynam::computeTimeInfo() is not implemented\n"; };
-    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, 
-		       DistrVector &); 
-    void a5TimeLoopCheck(int &, double &, double) { cerr << "MultiDomainDynam::a5TimeLoopCheck is not implemented\n"; };
-    void a5StatusRevise(int, SysState<DistrVector> &, SysState<DistrVector> &) { cerr << "MultiDomainDynam::a5StatusRevise is not implemented\n"; };
-    int getAeroAlg() { return domain->solInfo().aeroFlag; }
-    int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
-    void aeroSend(double time, DistrVector& d, DistrVector& v, DistrVector& a, DistrVector& v_p) 
-        { cerr << "MultiDomainDynam::aeroSend() is not implemented\n"; };
-
-    int cmdCom(int cmdFlag); 
-   
-    // data member access functions
-    double **getUserDefDisps()  { return usrDefDisps; }
-    double **getUserDefVels()   { return usrDefVels; }
-
-    void thermoePreProcess(DistrVector &, DistrVector &, DistrVector &) {}
-    void modeDecompPreProcess(SparseMatrix *M) {}
-    void modeDecomp(double t, int tIndex, DistrVector& d_n) {}
-    int getModeDecompFlag() { return 0; }
 };
 
 #endif

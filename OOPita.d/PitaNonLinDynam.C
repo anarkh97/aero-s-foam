@@ -2,6 +2,8 @@
 #include <OOPita.d/DynamStateBasis.h>
 #include <Control.d/ControlInterface.h>
 #include <Comm.d/Communicator.h>
+#include <Driver.d/Domain.h>
+#include <Timers.d/StaticTimers.h>
 #include <iostream>
 #include <algorithm>
 

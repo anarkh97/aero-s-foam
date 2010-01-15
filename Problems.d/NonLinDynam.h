@@ -1,11 +1,7 @@
 #ifndef _NON_LIN_DYNAM_H_
 #define _NON_LIN_DYNAM_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <Driver.d/Domain.h>
-#include <Driver.d/DynamProbType.h>
+#include <Math.d/Vector.h>
 
 class Domain;
 class Rbm;
@@ -22,8 +18,12 @@ class ControlInterface;
 class SDDynamPostProcessor;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
-
-#include <Problems.d/StaticDescr.h>
+template <typename T> class SysState;
+class PrevFrc;
+template <typename T> struct AllOps;
+class ControlLawInfo;
+template <typename T> class GenFSFullMatrix;
+typedef GenFSFullMatrix<double> FSFullMatrix;
 
 class NLDynamPostProcessor
 {
@@ -117,11 +117,11 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void updateUserSuppliedFunction(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p, double initialTime);
     void updatePrescribedDisplacement(GeomState *geomState);
 
-    int  solVecInfo() { return domain->numUncon(); } // number of unconstrained dof
-    int  sysVecInfo() { return domain->numdof(); }
+    int  solVecInfo();
+    int  sysVecInfo();
     int  elemVecInfo();
 
-    double getTolerance(){ return (tolerance*firstRes); }
+    double getTolerance() { return (tolerance*firstRes); }
 
     void trProject(Vector &f);
     void projector_prep(Rbm *R, SparseMatrix *M);
@@ -185,11 +185,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration) const;
     void initNewton() { /* do nothing */ }
 
-    int  aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& vp);
-    void a5TimeLoopCheck(int& parity, double& t, double dt);
-    void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);
-    int getAeroAlg() { return domain->solInfo().aeroFlag; }
-    int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+    int getAeroAlg();
+    int getThermoeFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 

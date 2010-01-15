@@ -177,7 +177,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, prev_int_force);
      }
 
-     double midtime = time + delta;
+     double midtime = time + dt - alphaf;
 
      time += dt;
 
@@ -190,7 +190,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
      StateUpdate::zeroInc(stateIncr);
 
      //residual = external_force - prev_int_force; // PJSA 10-8-2007 this doesn't work for distributed vector
-     residual.linC(1.0,external_force,-1.0,prev_int_force);
+     residual.linC(1.0, external_force, -1.0, prev_int_force);
 
      // rhs = delta*M*velocity_n + delta^2*residual
      StateUpdate::formRHSpredictor(probDesc, velocity_n, acceleration, residual,
@@ -223,6 +223,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
        // Iteration loop
        for(int iter=0; iter < maxit; ++iter) {
+         // XXXX there is a fundamental problem here. the external force may be a function of the position but it is only computed once at the beginning of each timestep
+         // even if were recomputed here inside the newton loop, as in NLStaticProbType.C I think it should be done after the geomState has been updated
+         // which is currently inside StateUpdate::integrate
+         // also I don't think it makes sense to just multiply the external force by lambda since it is a nonlinear function of lambda. Better to multiply the gravity acceleration
+         // or the pressure by lambda then compute the external force.
+         // finally the predictor doesn't seem to be used except for a convergence check which is then ignored.
 
          // Set residual = lambda*external force 
          residual.linC(external_force, lambda);
@@ -233,7 +239,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                 acceleration, midtime);
 
          // Set  prev_int_force = lambda*external_force - residual
-         prev_int_force.linC(lambda,external_force,-1.0,residual);
+         prev_int_force.linC(lambda, external_force, -1.0, residual);
 
          // Assemble global tangent stiffness
          probDesc->reBuild(*geomState, iter+1);

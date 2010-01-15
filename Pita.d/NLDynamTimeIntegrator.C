@@ -1,10 +1,13 @@
 #include <Pita.d/NLDynamTimeIntegrator.h>
 #include <Problems.d/NonLinDynam.h>
+#include <Solvers.d/Solver.h>
 #include <cstdio>
 #include <cstdlib>
 
 using std::fprintf;
 using std::exit;
+
+extern int verboseFlag;
 
 // Constructor & destructor
 // ------------------------

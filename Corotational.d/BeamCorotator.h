@@ -12,10 +12,11 @@ class BeamCorotator : public Corotator {
    double zVec[3];		// element normal vector
    double origK[12][12];	// element stiffness matrix
    int fitAlg;			// fit algorithm
+   double pressure;
  public:
    // Constructor
    BeamCorotator(int node1, int node2, double [3], FullSquareMatrix &kel, 
-                 int fitAlgBeam);
+                 int fitAlgBeam, double p);
 
    double * getOriginalStiffness() { return (double*)origK; }
 

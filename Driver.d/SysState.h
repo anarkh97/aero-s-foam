@@ -1,0 +1,28 @@
+#ifndef _SYSSTATE_H_
+#define _SYSSTATE_H_
+
+template <class VecType>
+class SysState {
+   VecType &d_n, &v_n, &a_n, &v_n_m;
+ public:
+
+   SysState(VecType &v): d_n(v), v_n(v), a_n(v), v_n_m(v) { }
+
+   SysState(VecType &d, VecType &v, VecType &a, VecType &vm):
+     d_n(d), v_n(v), a_n(a), v_n_m(vm) { }
+
+   SysState &operator=(const SysState &sys);
+
+   VecType &getDisp()      { return d_n; }
+   VecType &getVeloc()     { return v_n; }
+   VecType &getPrevVeloc() { return v_n_m; }
+   VecType &getAccel()     { return a_n; }
+
+   VecType &getDispConst()      const { return d_n; }
+   VecType &getVelocConst()     const { return v_n; }
+   VecType &getPrevVelocConst() const { return v_n_m; }
+   VecType &getAccelConst()     const { return a_n; }
+
+};
+
+#endif

@@ -21,7 +21,7 @@ extern "C" {
 
 BeamCorotator::BeamCorotator(int _n1, int _n2, double z[3], 
                              FullSquareMatrix &_origK,
-                             int fitAlgBeam)
+                             int fitAlgBeam, double p)
 {
  // Set Node Numbers
  n1 = _n1;
@@ -41,6 +41,7 @@ BeamCorotator::BeamCorotator(int _n1, int _n2, double z[3],
  // Set the fit algorithm
  fitAlg  = fitAlgBeam;
 
+ pressure = p;
 }
 
 void
@@ -144,6 +145,31 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  //cerr << "here in BeamCorotator::getStiffAndForce\n";
  //elK.print();
+/*
+ // PJSA 1/15/2010 subtract load stiffness due to pressure
+ double dx = ns2.x - ns1.x;
+ double dy = ns2.y - ns1.y;
+ double dz = ns2.z - ns1.z;
+ double length = sqrt(dx*dx + dy*dy + dz*dz);
+
+ double p = pressure/2, q = pressure*length/12; 
+ elK[0][1] -= p;
+ elK[0][2] -= q; 
+ elK[0][4] += p;
+ elK[0][5] += q;
+ elK[1][0] += p;
+ elK[1][3] -= p;
+ elK[2][0] -= q;
+ elK[2][3] += q;
+ elK[3][1] -= p;
+ elK[3][2] += q;
+ elK[3][4] += p;
+ elK[3][5] -= q;
+ elK[4][0] += p;
+ elK[4][3] -= p;
+ elK[5][0] += q;
+ elK[5][3] -= q;
+*/
 }
 
 void

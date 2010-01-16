@@ -437,8 +437,8 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
 {
  // note: localDelta = deltat/2
  times->rebuild -= getTime();
- 
-  // Rebuild every updateK iterations
+
+ // Rebuild every updateK iterations
  if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 

@@ -377,7 +377,7 @@ TimoshenkoBeam::getCorotator(CoordSet &cs, double *kel, int , int fitAlgBeam)
 {
  int flag = 0;
  FullSquareMatrix myStiff = stiffness( cs, kel, flag);
- return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
+ return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam, pressure);
 }
 
 int
@@ -390,86 +390,69 @@ void
 TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                      GeomState *geomState, int cflg)
 {
-  double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
   double normal[3],normal2[3];
-  
   double px = 0.0;
   double py = 0.0;
   double pz = 0.0;
-  
   double length;
 
-  if (geomState) {
-
+  if(geomState) {
+    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
     updTransMatrix(cs, geomState, t0n, length);
-
-    #ifdef FOLLOWER_FORCE
-        normal[0] = t0n[1][0];
-        normal[1] = t0n[1][1];
-        normal[2] = t0n[1][2];
-        normal2[0] = t0n[2][0];
-        normal2[1] = t0n[2][1];
-        normal2[2] = t0n[2][2];
-    #else
-        normal[0] = (*elemframe)[1][0];
-        normal[1] = (*elemframe)[1][1];
-        normal[2] = (*elemframe)[1][2];
-        normal2[0] = (*elemframe)[2][0];
-        normal2[1] = (*elemframe)[2][1];
-        normal2[2] = (*elemframe)[2][2];
-    #endif
-
+    normal[0] = t0n[1][0];
+    normal[1] = t0n[1][1];
+    normal[2] = t0n[1][2];
+    normal2[0] = t0n[2][0];
+    normal2[1] = t0n[2][1];
+    normal2[2] = t0n[2][2];
   } 
-
   else {
-
     // Obtain normal to beam (second vector in element frame)
-     normal[0] = (*elemframe)[1][0];
-     normal[1] = (*elemframe)[1][1];
-     normal[2] = (*elemframe)[1][2];
-     normal2[0] = (*elemframe)[2][0];
-     normal2[1] = (*elemframe)[2][1];
-     normal2[2] = (*elemframe)[2][2]; 
+    normal[0] = (*elemframe)[1][0];
+    normal[1] = (*elemframe)[1][1];
+    normal[2] = (*elemframe)[1][2];
+    normal2[0] = (*elemframe)[2][0];
+    normal2[1] = (*elemframe)[2][1];
+    normal2[2] = (*elemframe)[2][2]; 
 
-     // Get length of Beam
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-	     
-     double x[2], y[2], z[2];
-	     
-     x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	     
-     double dx = x[1] - x[0];
-     double dy = y[1] - y[0];
-     double dz = z[1] - z[0];
-	     
-     length = sqrt(dx*dx + dy*dy + dz*dz);
+    // Get length of Beam
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
 
+    double x[2], y[2], z[2];
+ 
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+ 
+    double dx = x[1] - x[0];
+    double dy = y[1] - y[0];
+    double dz = z[1] - z[0];
+
+    length = sqrt(dx*dx + dy*dy + dz*dz);
   } 
+
   double pressureForce = 0.5*pressure*length;
   px = pressureForce*normal[0];
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 
   
-    // Consistent
-    
-    double localMz = pressureForce*length/6.0;
-    double mx = localMz*normal2[0];
-    double my = localMz*normal2[1];
-    double mz = localMz*normal2[2]; 
-    elPressureForce[0]  = px;
-    elPressureForce[1]  = py;
-    elPressureForce[2]  = pz;
-    elPressureForce[3]  = mx;
-    elPressureForce[4]  = my;
-    elPressureForce[5]  = mz;
-    elPressureForce[6]  = px;
-    elPressureForce[7]  = py;
-    elPressureForce[8]  = pz;
-    elPressureForce[9]  = -mx;
-    elPressureForce[10] = -my;
-    elPressureForce[11] = -mz;
+  // Consistent
+  double localMz = pressureForce*length/6.0;
+  double mx = localMz*normal2[0];
+  double my = localMz*normal2[1];
+  double mz = localMz*normal2[2]; 
+  elPressureForce[0]  = px;
+  elPressureForce[1]  = py;
+  elPressureForce[2]  = pz;
+  elPressureForce[3]  = mx;
+  elPressureForce[4]  = my;
+  elPressureForce[5]  = mz;
+  elPressureForce[6]  = px;
+  elPressureForce[7]  = py;
+  elPressureForce[8]  = pz;
+  elPressureForce[9]  = -mx;
+  elPressureForce[10] = -my;
+  elPressureForce[11] = -mz;
 }
  
 void

@@ -12,7 +12,6 @@
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <iostream>
-#define FOLLOWER_FORCE
 
 // Define FORTRAN routines as external function
 extern "C" {
@@ -377,9 +376,9 @@ EulerBeam::markDofs(DofSetArray &dsa)
 Corotator *
 EulerBeam::getCorotator(CoordSet &cs, double *kel, int , int fitAlgBeam)
 {
- int flag = 0; 
- FullSquareMatrix myStiff = stiffness(cs, kel, flag);
- return new BeamCorotator( nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
+  int flag = 0; 
+  FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+  return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam, pressure);
 }
 
 int
@@ -392,47 +391,30 @@ void
 EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                 GeomState *geomState, int cflg)
 {
-  double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
   double normal[3], normal2[3];
-  
   double px = 0.0;
   double py = 0.0;
   double pz = 0.0;
-  
   double length;
   
-  if (geomState) {
-
+  if(geomState) {
+    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
     updTransMatrix(cs, geomState, t0n, length);
-
-    #ifdef FOLLOWER_FORCE
-        normal[0] = t0n[1][0];
-        normal[1] = t0n[1][1];
-        normal[2] = t0n[1][2];
-        normal2[0] = t0n[2][0];
-        normal2[1] = t0n[2][1];
-        normal2[2] = t0n[2][2];
-    #else
-        normal[0] = (*elemframe)[1][0];
-        normal[1] = (*elemframe)[1][1];
-        normal[2] = (*elemframe)[1][2];
-        normal2[0] = (*elemframe)[2][0];
-        normal2[1] = (*elemframe)[2][1];
-        normal2[2] = (*elemframe)[2][2];
-    #endif
-
+    normal[0] = t0n[1][0];
+    normal[1] = t0n[1][1];
+    normal[2] = t0n[1][2];
+    normal2[0] = t0n[2][0];
+    normal2[1] = t0n[2][1];
+    normal2[2] = t0n[2][2];
   } 
-
   else {
-
-    // Obtain normal to beam (second vector in element frame)
+     // Obtain normal to beam (second vector in element frame)
      normal[0] = (*elemframe)[1][0];
      normal[1] = (*elemframe)[1][1];
      normal[2] = (*elemframe)[1][2];
      normal2[0] = (*elemframe)[2][0];
      normal2[1] = (*elemframe)[2][1];
      normal2[2] = (*elemframe)[2][2]; 
-
      getLength(cs, length);
   } 
   double pressureForce = 0.5*pressure*length;
@@ -440,24 +422,23 @@ EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 
   
-    // Consistent
-
-    double localMz = pressureForce*length/6.0;
-    double mx = localMz*normal2[0];
-    double my = localMz*normal2[1];
-    double mz = localMz*normal2[2]; 
-    elPressureForce[0]  = px;
-    elPressureForce[1]  = py;
-    elPressureForce[2]  = pz;
-    elPressureForce[3]  = mx;
-    elPressureForce[4]  = my;
-    elPressureForce[5]  = mz;
-    elPressureForce[6]  = px;
-    elPressureForce[7]  = py;
-    elPressureForce[8]  = pz;
-    elPressureForce[9]  = -mx;
-    elPressureForce[10] = -my;
-    elPressureForce[11] = -mz;
+  // Consistent
+  double localMz = pressureForce*length/6.0;
+  double mx = localMz*normal2[0];
+  double my = localMz*normal2[1];
+  double mz = localMz*normal2[2]; 
+  elPressureForce[0]  = px;
+  elPressureForce[1]  = py;
+  elPressureForce[2]  = pz;
+  elPressureForce[3]  = mx;
+  elPressureForce[4]  = my;
+  elPressureForce[5]  = mz;
+  elPressureForce[6]  = px;
+  elPressureForce[7]  = py;
+  elPressureForce[8]  = pz;
+  elPressureForce[9]  = -mx;
+  elPressureForce[10] = -my;
+  elPressureForce[11] = -mz;
 }
 
 void
@@ -1136,3 +1117,32 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
 }
 
+/*
+void
+EulerBeam::subtractLoadStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &elK)
+{
+   // PJSA 1/15/2010 subtract load stiffness due to pressure
+ double dx = ns2.x - ns1.x;
+ double dy = ns2.y - ns1.y;
+ double dz = ns2.z - ns1.z;
+ double length = sqrt(dx*dx + dy*dy + dz*dz);
+ 
+ double p = pressure/2, q = pressure*length/12;
+ elK[0][1] -= p;
+ elK[0][2] -= q; 
+ elK[0][4] += p;
+ elK[0][5] += q;
+ elK[1][0] += p;
+ elK[1][3] -= p;
+ elK[2][0] -= q;
+ elK[2][3] += q;
+ elK[3][1] -= p;
+ elK[3][2] += q;
+ elK[3][4] += p;
+ elK[3][5] -= q;
+ elK[4][0] += p;
+ elK[4][3] -= p;
+ elK[5][0] += q;
+ elK[5][3] -= q;
+}
+*/

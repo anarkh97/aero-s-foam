@@ -658,19 +658,6 @@ GenSubDomain<Scalar>::splitData(int *cornerWeight)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::makeLoad(Scalar *d, GeomState *gs) // this makes a weighted load
-{                                                        // HB: add GeomState for following load
- int numUncon = c_dsa->size();
- GenStackVector<Scalar> force(numUncon, d);
- force.zero();
-
- // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
- buildRHSForce<Scalar>(force, Kuc, gs);
-}
-
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double deltaomega, GeomState *gs) // this makes a weighted load
 {                                                        // HB: add GeomState for following load
  int numUncon = c_dsa->size();
@@ -682,8 +669,6 @@ GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double delt
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
  buildRHSForce<Scalar>(force, vtmp, Kuc, Muc, Cuc_deriv, omega, deltaomega,  gs);
 }
-
-
 
 template<class Scalar>
 void

@@ -378,7 +378,7 @@ EulerBeam::getCorotator(CoordSet &cs, double *kel, int , int fitAlgBeam)
 {
   int flag = 0; 
   FullSquareMatrix myStiff = stiffness(cs, kel, flag);
-  return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam, pressure);
+  return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
 }
 
 int
@@ -1117,7 +1117,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
 }
 
-/*
+/* this is for a 2D beam!!!
 void
 EulerBeam::subtractLoadStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &elK)
 {

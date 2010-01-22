@@ -457,6 +457,12 @@ NLMatProbDesc::getMaxLambda()
  return domain.solInfo().getNLInfo().maxLambda;
 }
 
+bool
+NLMatProbDesc::linesearch()
+{
+ return domain.solInfo().getNLInfo().linesearch;
+}
+
 NLState::NLState(NLMatProbDesc*pdesc,int nInt,int nfree,int npresc) :
 		probDesc(pdesc),
                 internalStates(nInt), disp(nfree), prescDisp(npresc)
@@ -575,7 +581,7 @@ NLMatProbDesc::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double& t,
    // domain.buildPressureForce( pressureForce, geomState);
    gf += pressureForce;
  }
- domain.computeExtForce4(*prevFrc, rhs, gf,tIndex, t,kuc);
+ domain.computeExtForce4(rhs, gf, t, kuc);
 
 /* XXXXX XML Work on this for user-supplied functions
  // Compute any user defined forces

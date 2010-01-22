@@ -38,8 +38,7 @@ class NonLinStatic {
     double getScaleFactor();  // only nlstatic
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
-    void getRHS(Vector &rhs, GeomState *gs=0); 
-    void addExternalForce(Vector &rhs, GeomState *gs, double lambda);
+    void getRHS(Vector &rhs); 
     void preProcess();
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();
@@ -51,14 +50,15 @@ class NonLinStatic {
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, Vector &);
+                          Vector& elementInternalForce, Vector &, double lambda = 1);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
 
     void printTimers();
 
-    double getTolerance(){return tolerance*firstRes;}
+    double getTolerance() { return tolerance*firstRes; }
 
+    bool linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 };
 

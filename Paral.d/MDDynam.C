@@ -34,17 +34,14 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector*_v2, 
-                  double c, double *_userDefDisps, DistrGeomState *_geomState)
+                  DistrVector *_v1, DistrVector*_v2, double c, double *_userDefDisps)
 {
  v1 = _v1;
  v2 = _v2;
  f  = _f;
  c1 = c;
  sd = _sd;
-
  userDefDisps = _userDefDisps;
- geomState = _geomState;
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
@@ -93,32 +90,35 @@ void
 MultiDomainOp::computeExtForce(int isub)
 {
   // Get the pointer to the part of the vector f corresponding to subdomain isub
-  StackVector localF(v1->subData(isub),v1->subLen(isub));
+  StackVector localf(v1->subData(isub),v1->subLen(isub));
 
   // Get the pointer to the part of the vector cnst_f corresponding to subdomain isub
-  StackVector cnst_f(v2->subData(isub),v2->subLen(isub));
+  StackVector localg(v2->subData(isub),v2->subLen(isub));
 
-  // IF YOUR CODE CRASHES WITHIN THIS CALL, IT MEANS MultiDomainOp MUST BE UPDATED FOR PrevFrc
   int *userDataMap = sd[isub]->getUserDispDataMap();
-  PrevFrc dummy(0);
-  sd[isub]->computeExtForce4(dummy, localF, cnst_f, 0, c1, sd[isub]->getKuc(), userDefDisps, userDataMap);
- 
-  // build pressure forces (by convention pressure forces are follower for nonlinear dynamics)
-  if(sd[isub]->pressureFlag() && domain->solInfo().isNonLin()) sd[isub]->buildPressureForce<double>(localF, (*geomState)[isub]);
+  sd[isub]->computeExtForce4(localf, localg, c1, sd[isub]->getKuc(), userDefDisps, userDataMap);
 }
 
 void
 MultiDomainOp::getConstForce(int isub)
 {
- // Get the pointer to the part of the vector f correspoding to subdomain sNum
- StackVector f(v1->subData(isub),v1->subLen(isub));
- f.zero();
+  // Get the pointer to the part of the vector f correspoding to subdomain sNum
+  StackVector f(v1->subData(isub),v1->subLen(isub));
+  f.zero();
 
- // build gravity forces
- if(sd[isub]->gravityFlag()) sd[isub]->buildGravityForce<double>(f);
+  if(!domain->solInfo().isNonLin()) { // by convention these forces are non-follower for linear dynamics
+    // build gravity forces
+    if(sd[isub]->gravityFlag()) sd[isub]->buildGravityForce<double>(f);
 
- // build pressure forces (by convention pressure forces are non-follower for linear dynamics)
- if(sd[isub]->pressureFlag() && !domain->solInfo().isNonLin()) sd[isub]->buildPressureForce<double>(f);
+    // build pressure forces
+    if(sd[isub]->pressureFlag()) sd[isub]->buildPressureForce<double>(f);
+
+    // build thermal forces
+    if(sd[isub]->thermalFlag()) {
+      double *nodalTemperatures = sd[isub]->getNodalTemperatures();
+      sd[isub]->buildThermalForce(nodalTemperatures, f);
+    }
+  }
 }
 
 void
@@ -525,7 +525,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   // add FORCE (including MFTT), HDNB, ROBIN, GRAVITY and PRESSURE forces
   // for linear problems also add non-homogeneous DISP/TEMP and USDD forces
   MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
-                     decDomain->getAllSubDomains(), &f, &cnst_f, t, userDefineDisp, geomState);
+                     decDomain->getAllSubDomains(), &f, &cnst_f, t, userDefineDisp);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   if(userDefineDisp) delete [] userDefineDisp;
 
@@ -564,7 +564,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     }
   }
 
-  // this is done in OpMake computeExtForce4 for single domain 
+  // AERO
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0) {
 
@@ -589,7 +589,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
       aero_f->linAdd(alpha, *aeroForce, (1.0-alpha), *prevFrc);
     }
 
-    *prevFrc= *aeroForce;
+    *prevFrc = *aeroForce;
     prevTime = tFluid;
     prevIndex = tIndex;
   }

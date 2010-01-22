@@ -197,7 +197,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     void constructMatrices(int isub);
     void sendScale(int isub);
     void collectScale(int isub);
-    void makeSubdomainStaticLoad(int isub,GenDistrVector<Scalar>& f,DistrGeomState *gs=0);//HB: add DistrGeomState
     void makeSubdomainStaticLoadGalPr(int isub,GenDistrVector<Scalar>& f, GenDistrVector<Scalar>& tmp, double *, DistrGeomState *gs=0);//HB: add DistrGeomState
                                                                                           //follower load (pressure)
     void getErrorEstimator(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &es);
@@ -280,8 +279,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     DistrInfo &interfInfo() { return interface; }
     DistrInfo &localInfo()  { return internalDI; }
     GenDistrVector<Scalar> & getLambda() { return wksp->ret_lambda(); }
-    void makeStaticLoad(GenDistrVector<Scalar> &, DistrGeomState *gs=0); //HB: add DistrGeomState for 
-                                                                         //follower forces (i.e. pressure)
     void makeStaticLoad(GenDistrVector<Scalar> &, double, double, DistrGeomState *gs=0); //HB: add DistrGeomState for 
     int neq() { return internalDI.len; }
 

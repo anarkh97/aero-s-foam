@@ -96,7 +96,6 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
  int L =  sfem->getL();
-// int n = domain->numUncon();
  int P = sfem->getP();
  int ndim = sfem->getndim();
  int output_order = sfem->getoutput_order();
@@ -108,7 +107,6 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
  for(int i=0; i<P; ++i) info.blockinfo[i] = decDomain->solVecInfo();
  sfbm = new DistrSfemBlockMatrix<Scalar>(L,P,ndim,output_order,info); 
 
-// for(int i=0; i<L; ++i) {
  for(int i=0; i< ndim+1; ++i) {
    startTimerMemory(times->sfemBuildOps, times->memorySfemBuildOps);
    decDomain->setNewProperties(i);
@@ -122,7 +120,8 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
      sfbm->setMeanSolver(feti_solver);
      times->formRhs -= getTime();
      rhs_inpc = new GenDistrVector<Scalar>(info.blockinfo[0]);
-     feti_solver->makeStaticLoad(*rhs_inpc);
+     //feti_solver->makeStaticLoad(*rhs_inpc);
+     execParal2R(decDomain->getNumSub(), this, &GenMultiDomainInpcStatic<Scalar>::subGetRHS, *rhs_inpc, mdMat.Kuc);
      mdMat.K->getAssembler()->assemble(*rhs_inpc);
      times->formRhs += getTime();
    }
@@ -131,6 +130,14 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
                                                                                             domain->solInfo().tol, domain->solInfo().maxvecsize);
 }
 
+template<class Scalar>
+void
+GenMultiDomainInpcStatic<Scalar>::subGetRHS(int isub, GenDistrVector<Scalar>& rhs, GenSubDOp<Scalar> *Kuc)
+{
+ GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
+ GenStackVector<Scalar> subrhs(rhs.subData(isub), rhs.subLen(isub));
+ sd->buildRHSForce(subrhs, (*Kuc)[isub]);
+}
 
 template<class Scalar>
 void

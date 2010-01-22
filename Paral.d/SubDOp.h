@@ -22,6 +22,7 @@ class GenSubDOp {
        GenSubDOp(int _numSub, GenSparseMatrix<Scalar> **_sops, GenAssembler<Scalar> *_assembler = 0) {
           numSub = _numSub; sops =_sops; assembler =_assembler;
        }
+       GenSubDOp(int _numSub) { numSub = _numSub; sops = new GenSparseMatrix<Scalar> * [numSub]; assembler = 0; }
 // RT
        GenSubDOp(int _numSub, GenSparseMatrix<Scalar> ***_sops, int i, GenAssembler<Scalar> *_assembler = 0) {
           numSub = _numSub;
@@ -45,6 +46,7 @@ class GenSubDOp {
        void partialClean() { if(sops) delete [] sops; }
        void zeroAll();
        GenSparseMatrix<Scalar> * operator[](int i) const { return sops[i]; }
+       GenSparseMatrix<Scalar> *& operator[](int i) { return sops[i]; }
        int getNumSub() { return numSub; }
 };
 

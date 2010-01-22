@@ -550,6 +550,7 @@ SuperElement::isConstraintElement()
   // return true if one of the sub elements is a rigid mpc element
   for(int i=0; i<nSubElems; ++i)
     if(subElems[i]->isConstraintElement()) return true;
+  return false;
 }
 
 /*

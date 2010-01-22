@@ -796,7 +796,7 @@ void GeoSource::setUpData()
       phantomFlag = 1;
       ele->setProp(0);
     }
-    else  {
+    else {
       SPropContainer::iterator it = sProps.find(attrib[i].attr);
       if(it == sProps.end()) {
         fprintf(stderr, " *** ERROR: The material for element %d does not exist\n",

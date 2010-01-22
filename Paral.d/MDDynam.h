@@ -105,19 +105,17 @@ class MultiDomainDynam
     DistrGeomState *geomState;
     DistrVector *dprev;
 
-    DistFlExchanger *distFlExchanger;
     MultiDomDynPostProcessor *mddPostPro;
 
     // user defined displacements and velocities
     double **usrDefDisps;
     double **usrDefVels;
 
-    // Previous Force
+    // aero data
+    DistFlExchanger *distFlExchanger;
     DistrVector *prevFrc;
     int prevIndex;
     double prevTime;
-
-    // Aero Force
     DistrVector *aeroForce;
 
   public:

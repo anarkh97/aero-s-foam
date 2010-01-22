@@ -37,7 +37,7 @@ ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(d.nodes, nnodes, nnums)), lmpc(0), fsi(0), ymtt(0), ctett(0),
-    SurfEntities(0), MortarConds(0), loadFactor(1.0)
+    SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -65,7 +65,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), SurfEntities(0), MortarConds(0), loadFactor(1.0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -92,7 +92,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize), loadFactor(1.0)
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
 

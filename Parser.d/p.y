@@ -3138,52 +3138,6 @@ DEMInfo:
         }
         ;
 NLInfo:
-/*
-        NL NewLine MAXITR Integer NewLine NLTOL Float NewLine
-	{ if(domain->solInfo().probType == SolverInfo::Dynamic)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-          domain->solInfo().setNLInfo($4,$7,1,1.0,1.0);
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL Integer NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-        { if($2 == 1)
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-          else if($2 == 2)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else if($2 == 3)
-            domain->solInfo().setProbType(SolverInfo::ArcLength);
-          domain->solInfo().setNLInfo($5,$8,$11,$14,$17);
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL NewLine ARCLENGTH NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-	{ domain->solInfo().setProbType(SolverInfo::ArcLength);
-	  domain->solInfo().setNLInfo($6,$9,$12,$15,$18); 
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-	{
-	  if(domain->solInfo().probType == SolverInfo::Dynamic)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-	  domain->solInfo().setNLInfo($4,$7,$10,$13,$16); }
-        | NLInfo TimeInfo
-	| DLAMBDA Float Float NewLine
-	{ domain->solInfo().getNLInfo().dlambda   = $2; 
-          domain->solInfo().getNLInfo().maxLambda = $3; 
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;}
-	| NLInfo NLMAT NewLine
-        { 
-         if(domain->solInfo().probType == SolverInfo::Dynamic ||
-            domain->solInfo().probType == SolverInfo::NonLinDynam)
-           domain->solInfo().setProbType(SolverInfo::MatNonLinDynam,
-                                         SolverInfo::Newmark);
-         else
-           domain->solInfo().setProbType(SolverInfo::MatNonLinStatic); }
-	;
-*/
         NL NewLine
         { 
           if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
@@ -3226,6 +3180,8 @@ NLInfo:
         { domain->solInfo().getNLInfo().unsymmetric = true; }
         | NLInfo LFACTOR Float NewLine
         { domain->solInfo().getNLInfo().lfactor = $3; }
+        | NLInfo LINESEARCH NewLine
+        { domain->solInfo().getNLInfo().linesearch = true; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -3261,19 +3217,6 @@ NewtonInfo:
           domain->solInfo().fetiInfo.nPrec = rebuildPrec;
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
 	}
-/* moved to NLInfo
-        | DLAMBDA Float Float NewLine
-        { domain->solInfo().getNLInfo().dlambda = $3; 
-          domain->solInfo().getNLInfo().maxLambda = $4; }
-	| FITALG Integer NewLine
-	{ domain->solInfo().getNLInfo().fitAlgShell = $2; 
-          domain->solInfo().getNLInfo().fitAlgBeam  = 2; }
-	| FITALG Integer Integer NewLine
-	{ domain->solInfo().getNLInfo().fitAlgShell = $2; 
-          domain->solInfo().getNLInfo().fitAlgBeam  = $3; }
-	| NLTOL Float NewLine
-	{ domain->solInfo().getNLInfo().tolRes = $2; }
-*/
 	;
 OrthoInfo:
 	REORTHO NewLine

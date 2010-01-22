@@ -27,7 +27,7 @@
 void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
 		         Corotator **corotators, FullSquareMatrix *kel,
-                         Vector &residual)
+                         Vector &residual, double lambda)
 /*******************************************************************
  *
  * Purpose :
@@ -50,47 +50,40 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
  *****************************************************************/
 
 {
+  for(int iele = 0; iele < numele; ++iele) {
 
-   // Get updated stiffness and internal force vector
- //int size = sizeof(double)*maxNumDOFs*maxNumDOFs; // XXXX
- //double *karray = (double *) dbg_alloca(size); // XXXX
+    elementInternalForce.zero();
 
-
-   int iele, idof;
-
-   for(iele = 0; iele < numele; ++iele) {
-
-      elementInternalForce.zero();
-
-      // Get updated tangent stiffness matrix and element internal force
-      if(corotators[iele]) { // XXXX
+    // Get updated tangent stiffness matrix and element internal force
+    if(corotators[iele]) {
       corotators[iele]->getStiffAndForce(geomState, nodes, kel[iele],
-                                        elementInternalForce.data());
-        if(!solInfo().getNLInfo().unsymmetric) kel[iele].symmetrize();
+                                         elementInternalForce.data());
+      if(!solInfo().getNLInfo().unsymmetric) kel[iele].symmetrize();
+    }
+    // compute k and internal force for an element with x translation (or temperature) dofs
+    else if(solInfo().soltyp == 2) {
+      kel[iele].zero();
+      Vector temp(packedEset[iele]->numNodes());
+      for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
+        temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
       }
-// compute k and internal force for an element with x translation (or temperature) dofs
-      else if(solInfo().soltyp == 2) {
-        kel[iele].zero();
-        Vector temp(packedEset[iele]->numNodes());
-        for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-          temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
-        }
-        kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data()); /*cerr << "iele = " << iele << endl; kel[iele].print(); */
-        kel[iele].multiply(temp, elementInternalForce, 1.0); // elementInternalForce = kel*temp
-        //cerr << "iele = " << iele << ", temp = "; print_debug(temp); cerr << ", internal force = "; print_debug(elementInternalForce); cerr << endl;
-      }
+      kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
+      kel[iele].multiply(temp, elementInternalForce, 1.0); // elementInternalForce = kel*temp
+    }
 
-     // if(elementInternalForce.norm() != 0.0)
-     //   fprintf(stderr,"eIF %e\n",elementInternalForce.norm());
+    // assemble element internal force into residual force vector
+    for(int idof = 0; idof <  kel[iele].dim(); ++idof) {
+      int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(dofNum >= 0)
+        residual[dofNum] -= elementInternalForce[idof];
+    }
+  }
 
-      // assemble element internal force into residual force vector
-      for(idof = 0; idof <  kel[iele].dim(); ++idof) {
-         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-         //cerr << " iele = " << iele <<", dofNum = " << dofNum << endl;
-         if(dofNum >= 0)
-            residual[dofNum] -= elementInternalForce[idof];
-      }
-   }
+  // XXXX currently the contribution of follower forces is not included in the tangent stiffness
+  if(gravityFlag()) buildGravityForce(residual, &geomState, lambda);
+  if(pressureFlag()) buildPressureForce(residual, &geomState, lambda);
+  if(thermalFlag()) buildThermalForce(getNodalTemperatures(), residual, &geomState, lambda);
+
 }
 
 // used in nonlinear statics

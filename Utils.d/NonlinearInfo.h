@@ -23,12 +23,14 @@ struct NonlinearInfo {
    double lfactor;      // scaling factor to determine step size in the load
 
    bool unsymmetric;
+   bool linesearch;
 
    NonlinearInfo() { updateK     = 1; kryflg     =   0; initflg =   0; 
                      reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
                      fitAlgShell = 3; fitAlgBeam =   3; 
                      tolRes = 1.0E-6; dlambda    = 1.0;
-                     maxLambda = 1.0; lfactor    = 1.0; unsymmetric = false; }
+                     maxLambda = 1.0; lfactor    = 1.0; unsymmetric = false;
+                     linesearch = false; }
 
 };
 

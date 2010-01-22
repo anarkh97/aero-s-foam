@@ -445,11 +445,11 @@ class GenSubDomain : public BaseSub
 
  protected:
   Scalar *scaling;
-  GenCuCSparse<Scalar> *Kuc;    // constrained to unconstrained part of K
   void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
   GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
  public:
+  GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
   GenSparseSet<Scalar>      *Src;
   GenSparseSet<Scalar>      *Qrc;
   GenSolver<Scalar>         *Krr;
@@ -540,8 +540,6 @@ class GenSubDomain : public BaseSub
   void subtractKGap(Scalar *refRHS);
   void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
-  void makeLoad(Scalar *, GeomState *gs = 0); //HB: add GeomState for computing 
-                                              //    follower load (i.e. pressure)
   void makeLoad(Scalar *, Scalar *, double, double, GeomState *gs = 0); //HB: add GeomState for computing 
                                               //    follower load (i.e. pressure)
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);

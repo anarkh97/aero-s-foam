@@ -17,11 +17,9 @@
 #include <Dist.d/DistDom.h>
 #endif
 
-//#define PRINT_NLTIMERS
-
 void
 MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState, 
-                                DistrVector &res, DistrVector &elemIntForce)
+                                DistrVector &res, DistrVector &elemIntForce, double lambda)
 {
  SubDomain *sd = decDomain->getSubDomain(isub);
 
@@ -31,7 +29,7 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
  StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
 
  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
-                      residual);
+                      residual, lambda);
 
  // PJSA: start LMPC code
  // filePrint(stderr, " ... Processing LMPCs for non-linear FETI ...\n");
@@ -163,31 +161,24 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 double
 MDNLStatic::getStiffAndForce(DistrGeomState& geomState, 
                              DistrVector& residual, DistrVector& elementInternalForce,
-                             DistrVector&)
+                             DistrVector&, double lambda)
 {
  times->buildStiffAndForce -= getTime();
 
- execParal3R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
-             residual, elementInternalForce);
+ execParal4R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
+             residual, elementInternalForce, lambda);
 
  times->buildStiffAndForce += getTime();
  
  return sqrt(solver->getFNormSq(residual));
 }
 
-
 DistrGeomState*
 MDNLStatic::createGeomState()
 {
  times->timeGeom -= getTime();
- 
  DistrGeomState* geomState = new DistrGeomState(decDomain);
- 
  times->timeGeom += getTime();
-#ifdef PRINT_NLTIMERS 
- filePrint(stderr," ... Time to Make Subdomains Geometry States %18e\n",
-           times->timeGeom/1000.0);
-#endif
  return geomState;
 }
 
@@ -195,28 +186,21 @@ void
 MDNLStatic::updatePrescribedDisplacement(DistrGeomState *geomState, double)
 {
  times->timePresc -= getTime();
-
  execParal1R(decDomain->getNumSub(),this,&MDNLStatic::updatePrescribedDisp,*geomState);
-
  times->timePresc += getTime();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Update Prescribed Displacements %18e\n",
-           times->timePresc/1000.0);
-#endif
 }
 
 void
 MDNLStatic::updatePrescribedDisp(int isub, DistrGeomState& geomState)
 {
- SubDomain *sd = decDomain->getSubDomain(isub);
- sd->updatePrescribedDisp(geomState[isub], deltaLambda);
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  sd->updatePrescribedDisp(geomState[isub], deltaLambda);
 } 
 
 int
 MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
 {
  times->rebuild -= getTime();
-
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
@@ -227,9 +211,7 @@ MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
  }
 
  times->rebuild += getTime();
-
  return rebuildFlag;
-
 }
 
 void
@@ -259,19 +241,12 @@ MDNLStatic::preProcess()
  times->makeDOFs -= getTime();
  execParal(numSub, this, &MDNLStatic::makeSubDofs);
  times->makeDOFs += getTime();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Make Subdomain Dofs %30e\n",
-         times->makeDOFs/1000.0);
-#endif 
+ 
  // Make subdomain's corotators
  times->corotatorTime -= getTime();
  allCorot = new Corotator**[numSub]; 
  execParal(numSub, this, &MDNLStatic::makeSubCorotators);
  times->corotatorTime += getTime();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Make Subdomain Corotators %24e\n", 
-         times->corotatorTime/1000.0);
-#endif
 
  times->memoryPreProcess += threadManager->memoryUsed();
 
@@ -284,9 +259,6 @@ MDNLStatic::preProcess()
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
  solver = (GenFetiSolver<double> *) allOps.sysSolver;
  times->getFetiSolverTime += getTime();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Construct FETI Solver %28e\n", times->getFetiSolverTime/1000.0);
-#endif
 
  // Make subdomain's array of stiffness matrices
  times->memoryPreProcess -= threadManager->memoryUsed();
@@ -295,52 +267,57 @@ MDNLStatic::preProcess()
  execParal(numSub, this, &MDNLStatic::makeSubKelArrays);
  times->kelArrayTime += getTime();
  times->memoryPreProcess += threadManager->memoryUsed();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Make Subdomain Stiffness Arrays %18e\n", 
-        times->kelArrayTime/1000.0);
-#endif
+
  tolerance = domain->solInfo().getNLInfo().tolRes;
 }
 
 int
 MDNLStatic::getMaxit()
 {
- return domain->solInfo().getNLInfo().maxiter;
+  return domain->solInfo().getNLInfo().maxiter;
 }
 
 // Just for defining a minimum and maximum delta Lambda
 double
 MDNLStatic::getScaleFactor()
 {
- return domain->solInfo().getNLInfo().lfactor;
+  return domain->solInfo().getNLInfo().lfactor;
 }
 
 double
 MDNLStatic::getDeltaLambda0()
 {
- deltaLambda = domain->solInfo().getNLInfo().dlambda;
- return deltaLambda;
+  deltaLambda = domain->solInfo().getNLInfo().dlambda;
+  return deltaLambda;
 }
 
 double
 MDNLStatic::getMaxLambda()
 {
- return domain->solInfo().getNLInfo().maxLambda;
+  return domain->solInfo().getNLInfo().maxLambda;
+}
+
+bool
+MDNLStatic::linesearch()
+{
+  return domain->solInfo().getNLInfo().linesearch;
 }
 
 void
-MDNLStatic::getRHS(DistrVector& rhs, DistrGeomState *gs)
+MDNLStatic::getRHS(DistrVector& rhs)
 {
- // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
- times->formRhs -= getTime();
+  // ... BUILD THE RHS FORCE (not including follower forces and internal force)
+  times->formRhs -= getTime();
+  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subGetRHS, rhs);
+  times->formRhs += getTime(); 
+}
 
- solver->makeStaticLoad(rhs,gs); //HB: add DistrGeomState for computing 
-                                 //    follower forces (i.e. pressure)
- times->formRhs += getTime(); 
-#ifdef PRINT_NLTIMERS 
- filePrint(stderr," ... Time to Assemble External Forces %25e\n",
-           times->formRhs/1000.0);
-#endif
+void
+MDNLStatic::subGetRHS(int isub, DistrVector& rhs)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subrhs(rhs.subData(isub), rhs.subLen(isub));
+  sd->buildRHSForce<double>(subrhs);
 }
 
 FetiSolver *
@@ -352,21 +329,16 @@ MDNLStatic::getSolver()
 MultiDomainPostProcessor *
 MDNLStatic::getPostProcessor()
 {
- return new MultiDomainPostProcessor(decDomain, solver, times);
+  return new MultiDomainPostProcessor(decDomain, solver, times);
 }
 
 void
 MDNLStatic::staticOutput(DistrGeomState *geomState, double lambda,
                          DistrVector &Force, DistrVector &)
 {
- startTimerMemory(times->output, times->memoryOutput);
-
- decDomain->postProcessing(geomState, allCorot, lambda);
-
- stopTimerMemory(times->output, times->memoryOutput);
-#ifdef PRINT_NLTIMERS 
- filePrint(stderr," ... Time to Postprocess %35e\n", times->output/1000.0);
-#endif
+  startTimerMemory(times->output, times->memoryOutput);
+  decDomain->postProcessing(geomState, allCorot, lambda);
+  stopTimerMemory(times->output, times->memoryOutput);
 }
 
 void
@@ -400,7 +372,6 @@ MDNLStatic::printTimers()
   fetiTimers.kMem.addOverAll(totMemK, 0.0);
 
 #ifdef DISTRIBUTED
-
   double mem1 = (double) totMemPrec;
   if(structCom) mem1 = structCom->globalSum(mem1);
   totMemPrec = (long) mem1;
@@ -408,7 +379,6 @@ MDNLStatic::printTimers()
   mem1 = (double) totMemK;
   if(structCom) mem1 = structCom->globalSum(mem1);
   totMemK = (long) mem1;
-
 #endif
 
   times->memoryK = totMemK;
@@ -422,21 +392,5 @@ MDNLStatic::printTimers()
                      solver->getSolutionTime());
 		    
   times->timeTimers += getTime();
-#ifdef PRINT_NLTIMERS 
-  filePrint(stderr," ... Time to Print Timers %e\n", times->timeTimers/1000.0);
-#endif
 }
 
-/*
-template<class Scalar>
-void
-GenMultiDomainPostProcessor<Scalar>::staticOutput(DistrGeomState *geomState, double lambda)
-{
- times->output -= getTime();
- //decDomain->postProcessing(geomState, deformations, lambda);
- times->output += getTime();
-#ifdef PRINT_NLTIMERS
- filePrint(stderr," ... Time to Postprocess %e\n", times->output/1000.0);
-#endif
-}
-*/

@@ -135,18 +135,17 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int    getMaxit();
     double getDeltaLambda();
 
-    void getConstForce(Vector & gravityForce);
-    void getExternalForce(Vector & externalForce, 
-                          Vector & gravityForce, int tIndex, double time,
-                          GeomState* geomState, Vector& elementInternalForce, 
-                          Vector &aeroF);
+    void getConstForce(Vector& constantForce);
 
-    double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
+    void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
+                          GeomState* geomState, Vector& elementInternalForce, Vector& aeroF);
+
+    double formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs);
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs, double localDelta);
 
-    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid = 0.0);
+    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid);
     void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 
     void formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs);
@@ -169,7 +168,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     // getStiffAndForce forms element stiffness matrices and
     // returns the residual force = external - internal forces
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, double midtime=-1);
+                            Vector& elementInternalForce, double midtime=-1);
 
 
     // reBuild assembles new dynamic stiffness matrix

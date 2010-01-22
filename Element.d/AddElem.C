@@ -88,7 +88,7 @@
 extern map<int,double > weightList;
 
 #include <Element.d/Rigid.d/RigidBeam.h>
-//#include <Element.d/Rigid.d/RigidSpring.h>
+#include <Element.d/Rigid.d/RigidSpring.h>
 #include <Element.d/Rigid.d/RigidTransSprlink.h>
 #include <Element.d/Rigid.d/RigidRotnSprlink.h>
 #include <Element.d/Rigid.d/RigidEightNodeBrick.h>
@@ -323,8 +323,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) RigidBeam(n);
        break;
      case 67:
-       //ele = new (ba) RigidSpring(n);
-       cerr  << "Error: Element type 67 is not supported\n"; exit(-1);
+       ele = new (ba) RigidSpring(n);
        break;
      case 68:
        ele = new (ba) RigidTransSprlink(n);

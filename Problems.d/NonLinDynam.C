@@ -241,8 +241,6 @@ void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
   constantForce.zero();
-  //PJSA 11/11/09if(domain->gravityFlag()) domain->buildGravityForce<double>(constantForce);
-  //if(domain->pressureFlag()) domain->buildPressureForce<double>(constantForce);
 }
 
 void
@@ -272,34 +270,52 @@ NonLinDynamic::computeTimeInfo()
 
 double
 NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
-                                Vector& elementInternalForce, double midtime)
+                                Vector& elementInternalForce, double t)
 {
- times->buildStiffAndForce -= getTime();
+  times->buildStiffAndForce -= getTime();
 
- if(midtime != -1.0 && claw && userSupFunc) {
-   if(claw->numUserDisp > 0) {
+  // update the geomState according to the USDD prescribed displacements
+  if(claw && userSupFunc) {
+    if(claw->numUserDisp > 0) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
 
-     double *userDefineDisp = new double[claw->numUserDisp];
-     double *userDefineVel  = new double[claw->numUserDisp];
-     userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel);
+      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel); // XXXX should we do something with the userDefineVel?
 
-     // KENDALL: pass coordinate set to update Prescribed displacements
-     // this way the control file can be uniformized with the linear one!
-     geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
 
-     setBC(userDefineDisp, userDefineVel);
-     delete [] userDefineDisp; delete [] userDefineVel;
-   }
- }
+      setBC(userDefineDisp, userDefineVel);
+      delete [] userDefineDisp; delete [] userDefineVel;
+    }
+  }
 
- elementInternalForce.zero();
- domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
 
- times->buildStiffAndForce +=  getTime();
+  // add the ACTUATOR forces
+  if(claw && userSupFunc) {
+    if(claw->numActuator > 0) {
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel  = new double[claw->numSensor];
+      double *ctracc  = new double[claw->numSensor];
+      double *ctrfrc  = new double[claw->numActuator];
+
+      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // XXXX f(v,a) currently not supported
+
+      // KHP: we need the state of the control sensors to pass to
+      //      the user supplied control function
+      extractControlDisp(&geomState, ctrdisp);
+
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
+      addCtrl(residual, ctrfrc);
+
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
+    }
+  }
+
+  times->buildStiffAndForce +=  getTime();
  
- // return residual force norm
- return residual.norm();
-
+  // return residual force norm
+  return residual.norm();
 }
 
 int
@@ -495,31 +511,15 @@ NonLinDynamic::getDeltaLambda()
 }
 
 void
-NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t, 
+NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, double t, 
                                 GeomState* geomState, Vector& elemNonConForce, 
                                 Vector &aeroForce)
 {
-  // ... BUILD THE RHS FORCE at t_{n+1-alphaf} using the geomState at the current newton iteration
+  // ... BUILD THE EXTERNAL FORCE at t_{n+1-alphaf}
   times->formRhs -= getTime();
 
-  domain->computeExtForce4(*prevFrc, rhs, gf, tIndex, t, (SparseMatrix *) 0, (double *) 0, (int *) 0, &aeroForce);
+  domain->computeExtForce4(rhs, constantForce, t);
 
-  // add the GRAVITY forces
-  if(domain->gravityFlag()) {
-    domain->buildGravityForce(rhs, geomState);
-  }
-
-  // add the PRESSURE forces
-  if(domain->pressureFlag()) { 
-    domain->buildPressureForce(rhs, geomState);
-  }
-
-  // add the THERMAL forces
-  if(domain->thermalFlag()) {
-    double *nodalTemperatures = domain->getNodalTemperatures();
-    domain->buildThermalForce(nodalTemperatures, rhs, geomState);
-  }
- 
   // add the USDF forces
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
@@ -527,27 +527,6 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t,
       userSupFunc->usd_forc(t, userDefinedForce);
       addUserForce(rhs, userDefinedForce);
       delete [] userDefinedForce;
-    }
-  }
-
-  // add the ACTUATOR forces at t = time^{n} (current geomState)
-  if(claw && userSupFunc) {
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel  = new double[claw->numSensor];
-      double *ctracc  = new double[claw->numSensor];
-      double *ctrfrc  = new double[claw->numActuator];
-
-      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // currently not supported
-
-      // KHP: we need the state of the control sensors to pass to
-      //      the user supplied control function
-      extractControlDisp(geomState, ctrdisp);
-
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      addCtrl(rhs, ctrfrc);
-
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 
@@ -560,7 +539,7 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double t,
 
   // add thermoelastic forces from thermo dynamics code
   if(domain->solInfo().thermoeFlag >= 0) {
-    domain->buildThermoelasticForce(rhs, geomState);
+    domain->buildThermoelasticForce(rhs);
   }
 
  //  HAI: apply projector here

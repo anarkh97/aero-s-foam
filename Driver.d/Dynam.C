@@ -232,7 +232,7 @@ Domain::addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x,
 //------------------------------------------------------------------------------------------------
 
 void
-Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx, double* vcx)
+Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState)
 {
   // Send u + IDISP6 to fluid code.
   // IDISP6 is used to compute pre-stress effects.
@@ -250,14 +250,14 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx
 
   State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
-  flExchanger->sendDisplacements(nodes, state);
+  flExchanger->sendDisplacements(nodes, state, -1, geomState);
   if(verboseFlag) fprintf(stderr, " ... [E] Sent displacements ...\n");
 
   getTimers().sendFluidTime += getTime();
 }
 
 void
-Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf)
+Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
 {
   // ... COMPUTE AEROELASTIC FORCE 
   getTimers().receiveFluidTime -= getTime();
@@ -269,7 +269,7 @@ Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t,
 
   int iscollocated;
   double tFluid = flExchanger->getFluidLoad(nodes, tmpF, tIndex, t,
-                                            alphaf, iscollocated);
+                                            alphaf, iscollocated, geomState);
   if(verboseFlag) fprintf(stderr," ... [E] Received fluid load ...\n");
   if(iscollocated == 0) {
     if(prevFrc.lastTIndex >= 0) {

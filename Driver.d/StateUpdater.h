@@ -16,16 +16,16 @@ public:
   static void zeroInc(StateIncr *du)  { du->zero(); }
   static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &gRes) {
+		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
     geomState->update(*du);
-    return (pbd) ? pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes) : 0.0;
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda);
   }
   static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime) {
     geomState->update(*du);
-    return (pbd) ? pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime) : 0.0;
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime);
   }
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, GeomType *refState, 

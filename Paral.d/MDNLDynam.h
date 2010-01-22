@@ -24,6 +24,7 @@ typedef GenSubDOp<double> SubDOp;
 template <class Scalar> class GenMDDynamMat;
 typedef GenMDDynamMat<double> MDDynamMat;
 class DistrInfo;
+class DistFlExchanger;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
@@ -69,6 +70,17 @@ class MDNLDynamic
 
     StaticTimers *times;	 // timing information
 
+    // user defined displacements and velocities
+    double **usrDefDisps;
+    double **usrDefVels;
+
+    // aero data
+    DistFlExchanger *distFlExchanger;
+    DistrVector *prevFrc;
+    int prevIndex;
+    double prevTime;
+    DistrVector *aeroForce;
+
  public:
 
     // Constructor
@@ -100,7 +112,7 @@ class MDNLDynamic
     double getDeltaLambda();
 
     void getConstForce(DistrVector &gravityForce);
-    void getExternalForce(DistrVector &externalForce, DistrVector &gravityForce,
+    void getExternalForce(DistrVector &externalForce, DistrVector &constantForce,
                           int tIndex, double time, DistrGeomState *geomState, 
                           DistrVector &elementInternalForce, DistrVector &aeroF);
 
@@ -157,8 +169,7 @@ class MDNLDynamic
     void makeSubDofs(int isub);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
-    void subGetExternalForce(int isub, DistrVector& f, DistrVector& gravityForce,
-                             DistrGeomState& geomState, int tIndex, double time);
+    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
@@ -168,6 +179,10 @@ class MDNLDynamic
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
     void subExtractControlDisp(int isub, DistrGeomState &geomState, double *ctrdsp);
+    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &);
+    void thermoePreProcess();
+    void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
+                             DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
 };
 
 inline double

@@ -12,6 +12,8 @@
 
 #include <Driver.d/GeoSource.h>
 
+#include <Corotational.d/GeomState.h>
+
 // double dummyVariable[10];
 
 const char *RECEIVE_LIST_KW = "RCVF";
@@ -27,15 +29,13 @@ FlExchanger::FlExchanger(Elemset& _eset, DofSetArray *_dsa,
  dsa      = _dsa;
  oinfo    = _oinfo;
  tmpDisp  = 0;
-
 }
 
 
 double
-FlExchanger::getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
-                          double alphaf, int &iscollocated)
+FlExchanger::getFluidLoad(CoordSet& cs, Vector& force, int tIndex, double time,
+                          double alphaf, int& iscollocated, GeomState* geomState)
 {
-
  aforce[0] = aforce[1] = aforce[2]=0.0;
  int i,j,iDof;
 
@@ -48,7 +48,7 @@ FlExchanger::getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
      int origin = consOrigin[fromNd];
      for(j=0; j<nbSendTo[origin]; ++j) {
         Element *thisElement = eset[sndTable[origin][j].elemNum];
-        thisElement->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF);
+        thisElement->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF, geomState);
         int nDof = thisElement->numDofs();
         int *dof = sndTable[origin][j].dofs;
         for(iDof=0; iDof<nDof; ++iDof)
@@ -63,7 +63,6 @@ FlExchanger::getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
  
  flipRcvParity();
 
-
  // KHP
  if(oinfo) {
    if (tIndex % oinfo->interval == 0) {
@@ -72,7 +71,6 @@ FlExchanger::getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
      fflush(oinfo->filptr);
    }
  }
-
 
  // ML & KP For 'corrected' aeroelastic force
  iscollocated = (isCollocated) ? 1 : 0;
@@ -87,8 +85,8 @@ FlExchanger::getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
 extern int mflag;
 
 void
-FlExchanger::sendDisplacements( CoordSet & cs, State &state, int tag)  {
-
+FlExchanger::sendDisplacements(CoordSet& cs, State& state, int tag, GeomState* geomState)
+{
  if(tmpDisp == 0)
  tmpDisp = new Vector(state.getDisp());
 
@@ -109,7 +107,7 @@ FlExchanger::sendDisplacements( CoordSet & cs, State &state, int tag)  {
    for(j=0; j < nbSendTo[i]; ++j) {
      Element *thisElement = eset[sndTable[i][j].elemNum];
 
-     thisElement->computeDisp(cs, newState, sndTable[i][j], buffer+pos);
+     thisElement->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState);
 
      pos += 6;
 
@@ -131,12 +129,11 @@ FlExchanger::sendDisplacements( CoordSet & cs, State &state, int tag)  {
  if (verboseFlag)
    fprintf(stderr, "Sending %e to %d CPUs\n",xxx, nbrReceivingFromMe);
  flipSndParity();
-
 }
 
 void
 FlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
-               CoordSet &cs, State &st, double ampFactor)
+                            CoordSet &cs, State &st, double ampFactor)
 {
   int iMode;
   for(iMode = 0; iMode < numModes; ++iMode) {

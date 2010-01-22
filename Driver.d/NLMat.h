@@ -83,7 +83,6 @@ public:
    void updatePrescribedDisplacement(NLState *, double = 1.0);
    void updatePrescribedDisplacement(NLState *, double, double);
    void getRHS(Vector &, NLState * = 0);
-   void addExternalForce(Vector &, NLState *, double) { }
    double getStiffAndForce(NLState &, Vector &, Vector &intrnForce,
 		   Vector &glRes);
    Solver *getSolver();
@@ -136,6 +135,7 @@ public:
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }
    void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &) { cerr << "NLMatProbDesc::formRHSinitializer is not implemented\n"; }
+   bool linesearch();
    double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; }
    void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham) { cerr << "NLModalDescr::getNewmarkParameters is not implemented\n"; }
 };

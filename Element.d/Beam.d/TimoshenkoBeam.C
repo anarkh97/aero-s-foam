@@ -377,7 +377,7 @@ TimoshenkoBeam::getCorotator(CoordSet &cs, double *kel, int , int fitAlgBeam)
 {
  int flag = 0;
  FullSquareMatrix myStiff = stiffness( cs, kel, flag);
- return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam, pressure);
+ return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
 }
 
 int

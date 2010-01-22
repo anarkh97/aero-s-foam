@@ -17,29 +17,28 @@ extern int verboseFlag;
 int
 NonLinStatic::solVecInfo()
 {
- return domain->numUncon();
+  return domain->numUncon();
 }
 
 int
 NonLinStatic::sysVecInfo()
 {
- return 0;
+  return 0;
 }
 
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, 
-                         Vector& residual,Vector& elementInternalForce, 
-                         Vector &)
+                         Vector& residual, Vector& elementInternalForce, 
+                         Vector &, double lambda)
 {
- times->buildStiffAndForce -= getTime();
+  times->buildStiffAndForce -= getTime();
 
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
+                           kelArray, residual, lambda);
 
- domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                          kelArray, residual);
+  times->buildStiffAndForce += getTime();
 
- times->buildStiffAndForce += getTime();
-
- return sqrt(residual*residual);
+  return sqrt(residual*residual);
 }
 
 void
@@ -58,7 +57,6 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
  geomState->updatePrescribedDisplacement(dbc, numDirichlet, delta);
 
  times->timePresc += getTime();
-
 }
 
 int
@@ -123,9 +121,6 @@ NonLinStatic::createGeomState()
 
  times->timeGeom += getTime();
 
- //fprintf(stderr," ... Time to build GeomState %e\n",times->timeGeom/1000.0);
- //fflush(stderr);
-
  return geomState;
 }
 
@@ -185,21 +180,18 @@ NonLinStatic::getMaxLambda()
  return domain->solInfo().getNLInfo().maxLambda;
 }
 
-void
-NonLinStatic::getRHS(Vector& rhs, GeomState *gs)
+bool
+NonLinStatic::linesearch()
 {
- // ... BUILD THE RHS FORCE (force + gravity + pressure + thermal)
- times->formRhs -= getTime();
- domain->buildRHSForce<double>(rhs, 0, gs);
- times->formRhs += getTime();
+ return domain->solInfo().getNLInfo().linesearch;
 }
 
 void
-NonLinStatic::addExternalForce(Vector& rhs, GeomState *gs, double lambda)
+NonLinStatic::getRHS(Vector& rhs)
 {
- // ... BUILD THE RHS FORCE (force + gravity + pressure + thermal)
+ // ... BUILD THE RHS FORCE (not including follower or internal forces)
  times->formRhs -= getTime();
- domain->addExternalForce<double>(rhs, gs, lambda);
+ domain->buildRHSForce<double>(rhs);
  times->formRhs += getTime();
 }
 
@@ -209,27 +201,15 @@ NonLinStatic::preProcess()
  // Allocate space for the Static Timers
  times = new StaticTimers;
 
- //times->preProcess -= getTime();
  startTimerMemory(times->preProcess, times->memoryPreProcess);
-
- // Makes renumbering, connectivities and dofsets
- fprintf(stderr," ... Constructing Connectivities    ...\n");
- fflush(stderr);
 
  times->timePre -= getTime();
  domain->preProcessing();
  times->timePre += getTime();
 
- //fprintf(stderr," ... Time to construct Renumbering & Connectivities %e\n", times->timePre/1000.0);
- //fflush(stderr);
-
  int numdof = domain->numdof();
 
- fprintf(stderr," ... Making Boundary Conditions     ...\n");
- fflush(stderr);
-
  times->makeBCs -= getTime();
-
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
  bcx = new double[numdof];
 
@@ -238,33 +218,17 @@ NonLinStatic::preProcess()
 
  times->makeBCs += getTime();
 
- //fprintf(stderr," ... Time to make Boundary Conditions %e\n", times->makeBCs/1000.0);
- //fflush(stderr);
-
  // Now, call make_constrainedDSA(bc) to 
  // built c_dsa that will incorporate all 
  // the boundary conditions info
-
- fprintf(stderr," ... Making Degrees of Freedom      ...\n");
- fflush(stderr);
 
  times->makeDOFs -= getTime();
  domain->make_constrainedDSA(bc);
  domain->makeAllDOFs();
  times->makeDOFs += getTime();
 
- //fprintf(stderr," ... Time to make Degrees of Freedom %e\n", times->makeDOFs/1000.0);
- //fflush(stderr);
-
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
  AllOps<double> allOps;
-
- double Kcoef = 1.0;
- double Mcoef = 0.0;
- double Ccoef = 0.0;
-
- fprintf(stderr," ... Building Solver                ...\n");
- fflush(stderr);
 
  long buildMem = -memoryUsed();
  times->timeBuild -= getTime();
@@ -275,21 +239,14 @@ NonLinStatic::preProcess()
                                                                        // since the nullity of the tangent stiffness matrix may be less than the nullity
                                                                        // of the number of rigid body modes
  
- domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) 0);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
-
- //fprintf(stderr," ... Time to build solver %e\n",times->timeBuild/1000.0);
- //fprintf(stderr," ... Memory to build solver %12.4f Mb\n", (double)buildMem/(1024*1024));
- //fflush(stderr);
 
  solver = allOps.sysSolver;
  spm = allOps.spm;
  prec = allOps.prec;
  spp = allOps.spp;
-
- fprintf(stderr," ... Creating Element Corotators    ...\n");
- fflush(stderr);
 
  // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
  startTimerMemory(times->preProcess, times->memoryPreProcess);
@@ -300,25 +257,14 @@ NonLinStatic::preProcess()
  domain->createCorotators(allCorot);
  times->corotatorTime += getTime();
 
- //fprintf(stderr," ... Time to create Element Corotators %e\n", times->corotatorTime/1000.0);
- fflush(stderr);
-
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
- fprintf(stderr," ... Creating Elem. Stiff. Array    ...\n");
- fflush(stderr);
-
  times->kelArrayTime -= getTime();
  domain->createKelArray(kelArray);
  times->kelArrayTime += getTime();
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- //fprintf(stderr," ... Time to create Element Stiffness Array %e\n", times->kelArrayTime/1000.0);
- //fflush(stderr);
-
  // Set the nonlinear tolerance used for convergence
  tolerance = domain->solInfo().getNLInfo().tolRes;
-
- //times->preProcess += getTime();
 }
 
 Solver *
@@ -330,7 +276,7 @@ NonLinStatic::getSolver()
 SingleDomainPostProcessor<double, Vector, Solver> *
 NonLinStatic::getPostProcessor()
 {
- return new SingleDomainPostProcessor<double,Vector,Solver>(domain,bcx,times,solver);
+  return new SingleDomainPostProcessor<double,Vector,Solver>(domain,bcx,times,solver);
 }
 
 void
@@ -344,15 +290,12 @@ NonLinStatic::printTimers()
  times->printStaticTimers(solveTime, memoryUsed, domain);
 
  times->timeTimers += getTime();
-
-
 }
 
 void
 NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
-                Vector &)
+                           Vector &)
 {
-
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
   domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot);
@@ -388,16 +331,17 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
       sol[zrot]  = rot[2];
   }
 
-  // compute external energy
-  double Wext = lambda*force*sol;
+  // compute external energy not including follower forces
+  double Wext = -lambda*force*sol;
 
-  // compute internal energy (this is done at the element level)
+  // compute internal energy and external energy due to follower forces
+  // XXXX note: need to include pressure, gravity and thermal forces in getElementEnergy for this to work
   double Wela = 0.0;
   for(int i = 0; i < domain->numElements(); ++i)
      Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
-  cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
+  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
 
   // Total Energy = Wext + Wela
-  return -Wext + Wela;
+  return Wext + Wela;
 }
 

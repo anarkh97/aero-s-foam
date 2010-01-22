@@ -217,7 +217,10 @@ void ModalDescr<Scalar>::computeExtForce2(SysState<Vector>& state, Vector &extF,
 /*PRE:
  POST: return in extF, the modalized external force
 */
-  domain->template computeExtForce4<double>(*prevFrc, fullTmpF, fullTmpGrav, tIndex, time, 0);
+  domain->template computeExtForce4<double>(fullTmpF, fullTmpGrav, time, 0);
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+    domain->buildAeroelasticForce(fullTmpF, *prevFrc, tIndex, time, gamma, alphaf);
+  }
   projectForce(fullTmpF, extF);
 }
 

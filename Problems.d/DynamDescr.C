@@ -638,19 +638,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // add FORCE (including MFTT), HDNB, ROBIN to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
-  domain->computeExtForce4(*prevFrc, ext_f, cnst_f, tIndex, t, 
-                           kuc, userDefineDisp, (int *) 0, aero_f, gamma, alphaf);
+  domain->computeExtForce4(ext_f, cnst_f, t, kuc, userDefineDisp);
   if(userDefineDisp) delete [] userDefineDisp;
-
-  // for nonlinear problems add GRAVITY, PRESSURE and THERMAL forces
-  if(domain->solInfo().isNonLin()) { 
-    if(domain->gravityFlag()) domain->buildGravityForce(ext_f, geomState);
-    if(domain->pressureFlag()) domain->buildPressureForce(ext_f, geomState);
-    if(domain->thermalFlag()) {
-      double *nodalTemperatures = domain->getNodalTemperatures();
-      domain->buildThermalForce(nodalTemperatures, ext_f, geomState);
-    }
-  }
 
   // add USDF forces
   if(claw && userSupFunc) {

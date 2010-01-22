@@ -254,8 +254,6 @@ class Domain : public HData {
     Elemset elems_copy; // Needed for SFEM
     Elemset elems_fullcopy; // copy of the full elementset, needed for SFEM
 
-    double loadFactor;
-
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
@@ -306,7 +304,7 @@ class Domain : public HData {
                           int fileNumber, int stressIndex, double time);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
 			   Corotator **allCorot, FullSquareMatrix *kel,
-                           Vector &residual);
+                           Vector &residual, double lambda = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
@@ -462,21 +460,22 @@ class Domain : public HData {
      Rbm              *constructSlzem(bool printFlag = true);
 
      template<class Scalar>
-       void buildGravityForce(GenVector<Scalar> &force, GeomState *gs=0);
+       void buildGravityForce(GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
 
      template<class Scalar>
-       void buildPressureForce(GenVector<Scalar> &force, GeomState *gs=0);
+       void buildPressureForce(GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
+
      template<class Scalar>
        void buildPressureForce(GenVector<Scalar> &force, NLState *nls);
 
      template<class Scalar>
-       void buildThermalForce(double *nodalTemps, GenVector<Scalar> &force, GeomState *gs=0);
+       void buildThermalForce(double* nodalTemps, GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
 
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 
      template<class Scalar>
-       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc=0, GeomState *gs=0);
+       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc = 0);
      template<class Scalar>
        void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NLState *gs);
 
@@ -490,9 +489,6 @@ class Domain : public HData {
                          GenSparseMatrix<Scalar> **cuc_deriv,
                          double omega, double delta_omega,
                          GeomState *gs=0);
-
-     template<class Scalar>
-       void addExternalForce(GenVector<Scalar> &force, GeomState *gs, double lambda);
 
      double * getNodalTemperatures();
 
@@ -531,12 +527,9 @@ class Domain : public HData {
                            int hgIndex, double time=0);
      void getTrussHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
        { cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
-     template <class Scalar> void computeExtForce4(PrevFrc &,
-                          GenVector<Scalar> &force, GenVector<Scalar> &gf,
-                          int tIndex, double t, GenSparseMatrix<Scalar> *kuc = 0,
-                          Scalar *userDefineDisp = 0,
-			  int *userMap = 0, Vector *af = 0,
-                          double gamma = 0.5, double alphaf = 0.5);
+     template <class Scalar> 
+       void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
+                             GenSparseMatrix<Scalar> *kuc = 0, Scalar *userDefineDisp = 0, int *userMap = 0);
      void computeExtForce(Vector &f, double t, int tIndex,
                           SparseMatrix *kuc, Vector &prev_f);
 
@@ -558,8 +551,8 @@ class Domain : public HData {
      void getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode,
              double *xdata, int *dofx, double *ydata=0, int *dofy=0, double *zdata=0, int *dofz=0);
      void addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x, double &y, double &z);
-     void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx, double* vcx);
-     void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf);
+     void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildThermoelasticForce(Vector& f, GeomState *geomState = 0);
      void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,

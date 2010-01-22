@@ -1100,26 +1100,6 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
  times.reOrtho += getTime();
 }
 
-//HB: add DistrGeomState as input to compute follower load (i.e. pressure)
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, DistrGeomState *gs)
-{
-  filePrint(stderr," ... Building the Force             ...\n");
-  f.zero();
-  timedParal2R(times.buildRhs,nsub,this,&GenFetiSolver<Scalar>::makeSubdomainStaticLoad, f, gs);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeSubdomainStaticLoad(int iSub, GenDistrVector<Scalar> &f, DistrGeomState *gs)
-{
-  GeomState *subgs = 0;
-  if(gs) subgs = (*gs)[iSub];
-  sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),subgs);
-}
-
-
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, double omega, double deltaomega,  DistrGeomState *gs)
@@ -1141,10 +1121,7 @@ GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Sca
   if(gs) subgs = (*gs)[iSub];
 
   sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),tmp.subData(sd[iSub]->localSubNum()),o[0],o[1],subgs);
-
 }
-
-
 
 template<class Scalar>
 void

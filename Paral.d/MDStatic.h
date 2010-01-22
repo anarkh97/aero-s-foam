@@ -72,10 +72,10 @@ class GenMultiDomainStatic
     GenFetiSolver<Scalar> *getSolver();
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
-    void project(GenDistrVector<Scalar> &); // { fprintf(stderr,"Paral.d/MDStatic.h: project not implemented here"); }
+    void project(GenDistrVector<Scalar> &);
  private:
     void eigmode_projector_prep();
-
+    void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);
 };
 
 typedef GenMultiDomainStatic<double> MultiDomainStatic;

@@ -17,6 +17,7 @@ typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class VecType> class SysState;
+class DistrGeomState;
 
 #define FL_NEGOT 10000
 
@@ -85,10 +86,9 @@ public:
 		DofSetArray **, OutputInfo *oinfo = 0);
   MatchMap getMatchData();
   void negotiate();
-  void sendDisplacements(SysState<DistrVector> &, double **, double **, int = -1);
+  void sendDisplacements(SysState<DistrVector>&, double**, double**, int = -1, DistrGeomState* = 0);
   void sendParam(int, double, double, int, int, double a[2]);
-  double getFluidLoad(DistrVector &, int, double,
-                      double alphaf, int& iscollocated);
+  double getFluidLoad(DistrVector&, int, double, double, int&, DistrGeomState* = 0);
 
   void setBufferLength(int size)  { bufferLen = size; }
  

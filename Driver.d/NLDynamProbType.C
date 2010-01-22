@@ -4,7 +4,7 @@ extern int verboseFlag;
 /****************************************************************
  *
  *  Purpose: Implicit Nonlinear Dynamic Algorithm based on 
- *           mid-point rule (template version, to be used in 
+ *           generalized-alpha method (template version, to be used in 
  *           single and multiple domain FEM problems) 
  *
  *  Input: Solver type, Vector Type, Post Processor type, 
@@ -17,7 +17,7 @@ extern int verboseFlag;
  *
  *  Date: March 1998
  *
- * Single Domain Template arguements:
+ * Single Domain Template arguments:
  *   OpSolver          = Solver 
  *   VecType           = Vector
  *   PostProcessor     = SDPostProcessor
@@ -51,7 +51,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   if(domain->solInfo().order == 1)
     filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
   else
-    filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",beta, gamma, alphaf, alpham);
+    filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n", beta, gamma, alphaf, alpham);
 
   // Allocate Vectors to store external force, residual velocity 
   // and mid-point force
@@ -87,8 +87,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   VecType inc_displac(probDesc->solVecInfo());
   inc_displac.zero();
 
-  VecType gravityForce(probDesc->solVecInfo());
-  probDesc->getConstForce(gravityForce);
+  VecType constantForce(probDesc->solVecInfo());
+  probDesc->getConstForce(constantForce);
 
   VecType displacement(probDesc->solVecInfo()); displacement.zero(); 
   VecType velocity_n(probDesc->solVecInfo()); velocity_n.zero();   // velocity at time t_n
@@ -132,28 +132,32 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   // Evaluate external force at initial time
   // send init. step as -1 so that comm. w/fluid code is avoided
-  probDesc->getExternalForce(external_force, gravityForce, -1, time, geomState, elementInternalForce, aeroForce);
+  probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce);
+  //XXXX try to do it like this
+  //residual = external_force;
+  //StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
+  //                       elementInternalForce, totalRes, velocity_n, acceleration, time);
 
-  // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - C*v^0 - K*u^0)
-  if(domain->solInfo().iacc_switch) {
-    if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+  // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
+  //if(domain->solInfo().iacc_switch) {
+  //  if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
     probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration);
     solver->reSolve(acceleration);
-  }
+  //}
 
   // Output initial geometry state of problem and open output files
   probDesc->dynamOutput(geomState, velocity_n, v_p, time, -1, external_force, aeroForce, acceleration);
 
   // Get maximum number of iterations
   int maxStep = probDesc->getMaxStep();
-
+/*
   // Initialize Previous Force
   residual = external_force;
   StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                          elementInternalForce, totalRes, velocity_n, acceleration, time);
 
   //probDesc->reBuild(*geomState, 0); // XXXX should this be inside the loop ???
-
+*/
   // Begin time marching
   double timeLoop =- getTime();
   double currentRes;
@@ -173,6 +177,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     }
 
     double midtime = time + dt - alphaf;
+    probDesc->getExternalForce(external_force, constantForce, step, midtime, geomState, elementInternalForce, aeroForce);
 
     time += dt;
 
@@ -183,20 +188,20 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     // Iteration loop
     for(int iter = 0; iter < maxit; ++iter) {
 
-      residual.zero();
+      residual = external_force;
          
-      // And stateIncr to geomState and compute element tangent stiffness and -f_int (in residual)
+      // And stateIncr to geomState and compute element tangent stiffness and internal/follower forces
       StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
-
+/*
       // get the external force at t_{n+1-alphaf}. NOTE: this could be optimized by splitting into two parts,
       // (a) constant+f_ext(t) just compute once outside newton loop
       // (b) f_ext(d_k) recompute at every newton iteration
-      probDesc->getExternalForce(external_force, gravityForce, step, midtime,
+      probDesc->getExternalForce(external_force, constantForce, step, midtime,
                                  geomState, elementInternalForce, aeroForce);
       residual += external_force;
-
+*/
       // Assemble global tangent stiffness
       probDesc->reBuild(*geomState, iter);
 

@@ -15,6 +15,8 @@
 #include <Comm.d/Communicator.h>
 #include <Driver.d/SysState.h>
 
+#include <Corotational.d/DistrGeomState.h>
+
 //--------------------------------------------------------------------
 
 // global variables
@@ -265,9 +267,11 @@ void DistFlExchanger::negotiate()  {
 
 //---------------------------------------------------------------------
 
-void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState, 
-		double **usrDefDisps, double **usrDefVels,  int tag)  {
-
+void
+DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState, 
+                                   double** usrDefDisps, double** usrDefVels, int tag,
+                                   DistrGeomState *distrGeomState)
+{
   Connectivity *cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
@@ -333,8 +337,9 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
       State localState(cdsa[iSub], dsa[iSub], usrDefDisps[iSub],
                         usrDefVels[iSub], dsp[iSub], vel[iSub],
                         acc[iSub], pVel[iSub]);
+      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[iSub] : 0;
       thisElement->computeDisp(*cs[locSub], localState,
-			       sndTable[mpiNum][iData], buffer+pos);
+			       sndTable[mpiNum][iData], buffer+pos, geomState);
       pos += 6;
 
     }
@@ -390,9 +395,11 @@ void DistFlExchanger::sendParam(int algnum, double step, double totaltime,
 
 //---------------------------------------------------------------------
 
-double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex, 
-			double time, double alphaf, int &iscollocated)  {
-
+double
+DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex, 
+                              double time, double alphaf, int& iscollocated,
+                              DistrGeomState* distrGeomState)
+{
   aforce[0] = 0.0;
   aforce[1] = 0.0;
   aforce[2] = 0.0;
@@ -416,9 +423,10 @@ double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex,
       int locSub = sndTable[mpiNum][iData].subNumber;  
       int locElem = sndTable[mpiNum][iData].elemNum;
       Element *thisElement = (*eset[locSub])[locElem];
+      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[locSub] : 0;
       
       thisElement->getFlLoad(*(cs[locSub]), sndTable[mpiNum][iData], 
-			     buffer+3*iData, localF);
+			     buffer+3*iData, localF, geomState);
 
       int nDof = thisElement->numDofs();
       int *dof = sndTable[mpiNum][iData].dofs;

@@ -618,7 +618,7 @@ void NLModalDescr::getExternalForce(Vector &extF, Vector &gravF, int tIndex,
  TODO: write filter force member function and use it in this memeber function
 */
   initIterState(*mgs);
-  domain->computeExtForce4<double>(*prevFrc, fullTmpF, fullTmpGrav, tIndex, time, 0);
+  domain->computeExtForce4<double>(fullTmpF, fullTmpGrav, time);
 
   if(MPsi && invPsiTMPsi){ filterForce(fullTmpF); }
   projectForceNL(fullTmpF, extF, mgs);

@@ -6,6 +6,7 @@
 
 class CoordSet;
 class State;
+class GeomState;
 
 // This is an inerpolation point. The element elemNum uses x and y to
 // compute the interpolated displacements/velocities
@@ -67,13 +68,12 @@ class FlExchanger {
      void negotiate();
      void thermoread(int &buffLen);
 
-     void sendDisplacements(CoordSet & cs,
- 			    State &state, int = -1);
+     void sendDisplacements(CoordSet& cs, State& state, int tag = -1, GeomState* geomState = 0);
      void sendTemperature(CoordSet & cs,
                             State &state);
      void waitOnSend();
-     double getFluidLoad(CoordSet &cs, Vector &force, int tIndex, double time,
-                         double alphaf, int& iscollocated);
+     double getFluidLoad(CoordSet& cs, Vector& force, int tIndex, double time,
+                         double alphaf, int& iscollocated, GeomState* geomState = 0);
 
      double getFluidFlux(Vector &flux, double time, double &fl);
      void sendStrucTemp(Vector &tempsent);

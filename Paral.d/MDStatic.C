@@ -21,6 +21,7 @@ template<class Scalar>
 GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 {
  domain = d;
+/*
  switch(domain->solInfo().fetiInfo.version) {
   default:
   case FetiInfo::feti1:
@@ -36,6 +37,7 @@ GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
       filePrint(stderr," ... FETI-DPH is Selected           ...\n");
     break;
   }
+*/
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<Scalar>(domain);
 #else

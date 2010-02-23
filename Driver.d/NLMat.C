@@ -498,7 +498,7 @@ void NLMatProbDesc::computeTimeInfo()
  
   // Get total time and time step size and store them
   totalTime = domain.solInfo().tmax;
-  dt        = domain.solInfo().dt;
+  dt        = domain.solInfo().getTimeStep();
   delta     = 0.5*dt;
  
   // Compute maximum number of steps

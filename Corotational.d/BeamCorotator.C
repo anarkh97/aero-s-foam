@@ -137,6 +137,9 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  _FORTRAN(dgemm)('T','T',12,12,12,1.0,(double*)scrstiff,12,
                  (double*)pmat,12,1.0,elK.data(),12);
 
+// _FORTRAN(dgemm)('N','N',12,12,12,1.0,(double*)pmat,12,
+//                 (double*)scrstiff,12,1.0,elK.data(),12);
+
  // Transform internal force and stiffness matrix to global coordinate system 
 
  tran_fsl(f,elK,t0n,2);

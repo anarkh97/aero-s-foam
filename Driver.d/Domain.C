@@ -195,44 +195,6 @@ Domain::make_bc(int *bc, double *bcx)
    }
  }
 
- // Set the convective boundary conditions
- for(i=0; i<numConvBC; ++i) {
-  int dof  = dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-   if(dof < 0) {
-     //filePrint(stderr,"*** WARNING: Found FORCE on non-existent dof: node %d dof %d\n",
-     //          cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     continue;
-   }
-   if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     bcx[dof] += cvbc[i].val;
-   }
-   else {
-     bc[dof] = BCLOAD;
-     bcx[dof] = cvbc[i].val;
-   }
- }
-
-// Set the radiative boundary conditions
- for(i=0; i<numRadBC; ++i) {
-  int dof  = dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-   if(dof < 0) {
-     //filePrint(stderr,"*** WARNING: Found FORCE on non-existent dof: node %d dof %d\n",
-     //          cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     continue;
-   }
-   if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",rdbc[i].nnum+1,rdbc[i].dofnum+1);
-     bcx[dof] += rdbc[i].val;
-   }
-   else {
-     bc[dof] = BCLOAD;
-     bcx[dof] = rdbc[i].val;
-   }
- }
-
  // Set the real part of the Complex Neumann boundary conditions
  for(i=0; i<numComplexNeuman; ++i) {
    int dof  = dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
@@ -826,20 +788,6 @@ int Domain::setNeuman(int _numNeuman, BCond *_nbc)
  return 0;
 }
 
-int Domain::setConvBC(int _numConvBC, BCond *_cvbc)
-{
- numConvBC = _numConvBC;
- cvbc      = _cvbc;
- return 0;
-}
-
-int Domain::setRadBC(int _numRadBC, BCond *_rdbc)
-{
- numRadBC = _numRadBC;
- rdbc      = _rdbc;
- return 0;
-}
-
 int
 Domain::setMFTT(MFTTData *_mftval)
 {
@@ -956,13 +904,6 @@ int Domain::setIAcc(int , BCond *)
  return 0;
 }
 
-int Domain::setITemp(int _numITemp, BCond *_iTemp)
-{
- numITemp = _numITemp;
-    iTemp = _iTemp;
- return 0;
-}
-
 void
 Domain::setGravity(double ax, double ay, double az)
 {
@@ -1035,14 +976,6 @@ Domain::setUpData()
   numBC = geoSource->getNeumanBC(bc);
   setNeuman(numBC, bc);
 
-  // set convective bc
-  numBC = geoSource->getConvBC(bc);
-  setConvBC(numBC, bc);
-
-  // set radiative bc
-  numBC = geoSource->getRadBC(bc);
-  setRadBC(numBC, bc);
-
   // set initial displacements
   numBC = geoSource->getIDis(bc);
   setIDis(numBC, bc);
@@ -1054,10 +987,6 @@ Domain::setUpData()
   // set initial velocities
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
-
-  // set initial temps
-  numBC = geoSource->getITemp(bc);
-  setITemp(numBC, bc);
 
   // set Control Law
   claw = geoSource->getControlLaw();
@@ -2910,12 +2839,12 @@ Domain::initialize()
 {
  numdofs = 0; numDispDirichlet = 0; numContactPairs = 0;
  numIDis = 0; numIVel = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
- numComplexDirichlet = 0; numComplexNeuman = 0; numConvBC = 0; numRadBC = 0;
- firstDiMass = 0; numITemp = 0; numIDis6 = 0; gravityAcceleration = 0;
+ numComplexDirichlet = 0; numComplexNeuman = 0; 
+ firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
  numLMPC = 0; numYMTT = 0; numCTETT = 0; MidPoint = 0; temprcvd = 0;
- heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; cvbc = 0;
- iDis = 0; iVel = 0; iTemp = 0;  iDis6 = 0; elemToNode = 0; nodeToElem = 0;
+ heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; 
+ iDis = 0; iVel = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
@@ -2959,10 +2888,9 @@ Domain::~Domain()
  if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
  if(dbc) { delete [] dbc; dbc = 0; }
  if(nbc) { delete [] nbc; nbc = 0; }
- if(cvbc) { delete [] cvbc; cvbc = 0; }
+ //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
  if(iVel) { delete [] iVel; iVel = 0; }
- if(iTemp) { delete [] iTemp; iTemp = 0; }
  if(iDis6) { delete [] iDis6; iDis6 = 0; }
  if(cdbc) { delete [] cdbc; cdbc = 0; }
  if(cnbc) { delete [] cnbc; cnbc = 0; }
@@ -3424,7 +3352,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; }
+        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; bc[k].type = surface_dbc[i].type; }
         int numDirichlet_copy = geoSource->getNumDirichlet();
         geoSource->setDirichlet(nNodes, bc);
         if(numDirichlet_copy != 0) delete [] bc;
@@ -3441,7 +3369,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; }
+        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;

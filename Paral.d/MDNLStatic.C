@@ -62,6 +62,7 @@ MDNLStatic::makeSubCorotators(int isub)
 MDNLStatic::MDNLStatic(Domain *d)
 {
  domain = d;
+/*
  switch(domain->solInfo().fetiInfo.version) {
   default:
   case FetiInfo::feti1:
@@ -77,6 +78,7 @@ MDNLStatic::MDNLStatic(Domain *d)
       filePrint(stderr," ... FETI-DPH is Selected           ...\n");
     break;
   }
+*/
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<double>(domain);
 #else

@@ -122,7 +122,7 @@ bool useFull=false;
 int verboseFlag = 0;
 int salinasFlag = 0;
 
-SysCom *syscom;
+SysCom *syscom = 0;
 Communicator *structCom = 0;
 Communicator *heatStructCom;
 Communicator *fluidCom;
@@ -535,7 +535,7 @@ int main(int argc, char** argv)
      if(!callSower) {
        domain->ProcessSurfaceBCs();
        domain->SetMortarPairing();
-       if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+       if(domain->solInfo().newmarkBeta != 0) { // not for explicit dynamics
          domain->ComputeMortarLMPC();
          domain->computeMatchingWetInterfaceLMPC();
          domain->CreateMortarToMPC();
@@ -557,7 +557,7 @@ int main(int argc, char** argv)
 
  if(geoSource->getDirectMPC())
    geoSource->makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
- else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0.0) // don't use lmpc elements for explicit
+ else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0) // don't use lmpc elements for explicit
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
@@ -630,7 +630,7 @@ int main(int argc, char** argv)
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
- if(domain->solInfo().newmarkBeta == 0.0) {
+ if(domain->solInfo().newmarkBeta == 0) {
    domain->solInfo().subtype = 10;
    if(parallel_proc) domain->solInfo().type = 3;
    geoSource->setMRatio(0.0);
@@ -640,13 +640,13 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   fprintf(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   fprintf(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   fprintf(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   fprintf(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
@@ -669,7 +669,9 @@ int main(int argc, char** argv)
    }
 
    switch(domain->probType()) {
-     case SolverInfo::Dynamic: {
+     case SolverInfo::Dynamic: 
+     case SolverInfo::TempDynamic:
+       {
         if(domain->solInfo().mdPita) { // Not implemented yet
           //double solver=getTime();
           //fprintf(stderr," ... Distr Time And Space Parall Method  ...\n");
@@ -823,8 +825,7 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::NonLinDynam: {
-       //filePrint(stderr,"*** WARNING: MultiDomain Non-Linear Dynamic Analysis has not been validated. \n");
-       if(domain->solInfo().newmarkBeta == 0.0) { // explicit
+       if(domain->solInfo().newmarkBeta == 0) { // explicit
          MultiDomainDynam dynamProb(domain);
          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
                MultiDomainDynam, double > dynamSolver(&dynamProb);
@@ -838,7 +839,7 @@ int main(int argc, char** argv)
        }
      } break;
      default:
-       fprintf(stderr,"*** WARNING: The Solver %d is not supported \n",  domain->probType());
+       filePrint(stderr,"*** ERROR: Problem type %d is not supported multi-domain mode\n", domain->probType());
    }
 
    totalMemoryUsed = double(memoryUsed())/oneMegaByte;//CBM
@@ -980,6 +981,7 @@ int main(int argc, char** argv)
        break;
 
      case SolverInfo::Dynamic:
+     case SolverInfo::TempDynamic:
        {
         if(domain->solInfo().modal) {
 	  fprintf(stderr," ... Modal Method  ...\n");
@@ -1027,6 +1029,7 @@ int main(int argc, char** argv)
 	}
       }
       break;
+/*
      case SolverInfo::TempDynamic:
        {
          SingleDomainTemp tempProb(domain);
@@ -1035,6 +1038,7 @@ int main(int argc, char** argv)
          dynaSolver.solve();
        }
        break;
+*/
      case SolverInfo::Modal:
        { //CBM
  	 SingleDomainEigen eigenProb(domain);
@@ -1110,7 +1114,7 @@ int main(int argc, char** argv)
 #endif
          }
          else {
-           if(domain->solInfo().newmarkBeta == 0.0) { // explicit
+           if(domain->solInfo().newmarkBeta == 0) { // explicit
              SingleDomainDynamic dynamProb(domain);
              DynamicSolver <GenDynamMat<double>, Vector,
                    SDDynamPostProcessor, SingleDomainDynamic, double>

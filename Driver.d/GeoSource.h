@@ -105,6 +105,11 @@ class GeoSource {
 
   bool decJustCalled; // if true, no need for an external DECOMPOSITION FILE
   bool exitAfterDec; // if true no need to save Subdomain info for FEM in memory
+
+  // input file names
+  char *conName;
+  char *geoName;
+  char *decName;
   char *mapName;
   char *matchName;
 
@@ -206,12 +211,6 @@ class GeoSource {
   int numNeuman;              // number of Neuman bc
   BCond *nbc;   // set of Neuman bc
 
-  int numConvBC;              // number of convective bc
-  BCond *cvbc;  // set of convective bc
-
-  int numRadBC;              // number of radiative bc
-  BCond *rdbc;  // set of radiative bc
-
   int numIDis;                // number of Initial displacements
   BCond *iDis;  // set of those initial displacements
 
@@ -230,9 +229,6 @@ class GeoSource {
 
   int numIVel;                // number of initial velocities
   BCond *iVel;  // set of those initial velocities
-
-  int numITemp;               // number of initial temperatures
-  BCond *iTemp; // set of those intitial temperatures
 
   int numComplexDirichlet;
   ComplexBCond *cdbc;
@@ -296,8 +292,11 @@ public:
   template<class Scalar>
     void distributeOutputNodesX(GenSubDomain<Scalar> *, Connectivity *nodeToSub);
 
-  void setCpuMap(char *file) { mapName = file; }
+  void setGeo(char *file) { geoName = file; }
+  void setDecomp(char *file) { decName = file; }
   void setMatch(char *file) { matchName = file; }
+  void setCpuMap(char *file) { mapName = file; }
+  void setGlob(char *file) { conName = file; }
   void setExitAfterDec(bool exit);
   void setNumLocSub(int);
   void setMatchArrays(int);
@@ -337,11 +336,8 @@ public:
   void convertHEVDirToHelmDir(); // added to use HEFRS and Helmholtz per Charbel's request
   int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
   int  setNeuman(int, BCond *);
-  int  setConvBC(int, BCond *);
-  int  setRadBC(int, BCond *);
   int  setIDis(int, BCond *);
   int  setIDis6(int, BCond *);
-  int  setITemp(int, BCond *);
   int  setIVel(int, BCond *);
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
@@ -437,8 +433,6 @@ public:
   int getTextDirichletBC(BCond *&);
   int getNeumanBC(BCond *&);
   int getTextNeumanBC(BCond *&);
-  int getConvBC(BCond *&);
-  int getRadBC(BCond *&);
   int getIDis(BCond *&);
   int getIDis6(BCond *&);
   int getIVel(BCond *&);

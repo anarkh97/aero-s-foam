@@ -59,14 +59,6 @@ void GeoSource::distributeBCs(GenSubDomain<Scalar> *&tmpSub, int *cl2LocNodeMap,
   if (numLocNeuman > 0)
     tmpSub->setNeuman(numLocNeuman, subBC);
 
-  int numLocConvBC = getBC(cvbc, numConvBC, cl2LocNodeMap, subBC);
-  if (numLocConvBC > 0)
-    tmpSub->setConvBC(numLocConvBC, subBC);
- 
-  int numLocRadBC = getBC(rdbc, numRadBC, cl2LocNodeMap, subBC);
-  if (numLocRadBC > 0)
-    tmpSub->setRadBC(numLocRadBC, subBC);
-
   int numLocIDis = getBC(iDis, numIDis, cl2LocNodeMap, subBC);
   if (numLocIDis > 0)
     tmpSub->setIDis(numLocIDis, subBC);
@@ -78,10 +70,6 @@ void GeoSource::distributeBCs(GenSubDomain<Scalar> *&tmpSub, int *cl2LocNodeMap,
   int numLocIVel = getBC(iVel, numIVel, cl2LocNodeMap, subBC);
   if (numLocIVel > 0)
     tmpSub->setIVel(numLocIVel, subBC);
-
-  int numLocITemp = getBC(iTemp, numITemp, cl2LocNodeMap, subBC);
-  if (numLocITemp > 0)
-    tmpSub->setITemp(numLocITemp, subBC);
 
   //fprintf(stderr,"There are %d dbc's in sub %d \n", numLocDirichlet, tmpSub->subNum());
 
@@ -371,36 +359,6 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
   }
 #endif
 
-  // convection
-#ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Convection" << endl;
-#endif
-  list<BCond *> *clist = sower.template read<BCDataIO<CONV_TYPE> >(*f, subNum, glNums);
-  if(clist) subd->setConvection(clist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(clist) {
-    for(list<BCond *>::iterator it = clist->begin(); it != clist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
-    }
-  }
-#endif
-
-  // radiation
-#ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Radiation" << endl;
-#endif
-  list<BCond *> *rlist = sower.template read<BCDataIO<RAD_TYPE> >(*f, subNum, glNums);
-  if(rlist) subd->setRadiation(rlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(clist) {
-    for(list<BCond *>::iterator it = rlist->begin(); it != rlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
-    }
-  }
-#endif
-
   // initial displacements
 #ifdef SOWER_DEBUG
   cerr << endl << "--Reading Initial Displacement" << endl;
@@ -441,21 +399,6 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #ifdef SOWER_DEBUG
   if(ivlist) {
     for(list<BCond *>::iterator it = ivlist->begin(); it != ivlist->end(); ++it) {
-      std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
-    }
-  }
-#endif
-
-  // initial temperatures
-#ifdef SOWER_DEBUG
-  cerr << endl << "--Reading Initial Temperature" << endl;
-#endif
-  list<BCond *> *itlist = sower.template read<BCDataIO<ITEMP_TYPE> >(*f, subNum, glNums);
-  if(itlist) subd->setInitialTemperature(itlist);
-  if(glNums) { delete [] glNums; glNums = 0; } // not used
-#ifdef SOWER_DEBUG
-  if(itlist) {
-    for(list<BCond *>::iterator it = itlist->begin(); it != itlist->end(); ++it) {
       std::cerr << (*it)->nnum << " : " << (*it)->dofnum << "," << (*it)->val << endl;
     }
   }

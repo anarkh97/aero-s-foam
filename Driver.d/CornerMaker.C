@@ -93,7 +93,7 @@ SubCornerHandler::SubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
   dims[0] = (dofs.contains(DofSet::Xdisp)) ? 1 : 0;
   dims[1] = (dofs.contains(DofSet::Ydisp)) ? 1 : 0;
   dims[2] = (dofs.contains(DofSet::Zdisp)) ? 1 : 0;
-  dims[3] = (dofs.contains(DofSet::Helm)) ? 1 : 0;
+  dims[3] = (dofs.contains(DofSet::Helm) || dofs.contains(DofSet::Temp)) ? 1 : 0;
   int sdim = dims[0]+dims[1]+dims[2]; // structure 
   int fdim = dims[3]; // fluid
   mixed = (fdim && sdim);
@@ -107,7 +107,7 @@ SubCornerHandler::SubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
   cdims[0] = (cdofs.contains(DofSet::Xdisp)) ? 1 : 0;
   cdims[1] = (cdofs.contains(DofSet::Ydisp)) ? 1 : 0;
   cdims[2] = (cdofs.contains(DofSet::Zdisp)) ? 1 : 0;
-  cdims[3] = (cdofs.contains(DofSet::Helm)) ? 1 : 0;
+  cdims[3] = (cdofs.contains(DofSet::Helm) || cdofs.contains(DofSet::Temp)) ? 1 : 0;
   int cdim = cdims[0]+cdims[1]+cdims[2]+cdims[3];
   allSafe = ((cdim == 1) || !domain->solInfo().getFetiInfo().pick_unsafe_corners);  // if there is only one active dimension then all elements are safe
   // can ignore unsafe corners by setting pick_unsafe_corners to false (maybe ok if using pivoting local solver like spooles or mumps)
@@ -286,7 +286,7 @@ SubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
       int node = sharedNodes[iNeighb][iNode];
       if(isRotMidSideNode[node]) continue;  // PJSA: fix for 6 node tri shell 
       //  include end points of all subdomain edges as corner nodes for the 2D-case XXXX not general enough
-      if(dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm)) {
+      if(dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp)) {
 	for(int i = 0; i < nToN.num(node); ++i)
           if((deg[nToN[node][i]] == iNeighb) && !isRotMidSideNode[nToN[node][i]]) count++; // fix for 6 node tri shell
         if(count < 3) {
@@ -841,7 +841,7 @@ SubCornerHandler::recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn)
   for(iNode = 0; iNode < nnodes; ++iNode)
     //  GR: include end points of all subdomain edges as corner nodes for the 2D-case
     if(deg[iNode] >= 0 && isCorner[iNode] &&
-      (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm)))
+      (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp)))
 	numRotCrn[glSubNum]++;
 }
 
@@ -904,7 +904,7 @@ SubCornerHandler::listRotCorners(int *fN, int *crnNum)
   for(iNode = 0; iNode < nnodes; ++iNode)
     // GR: include end points of all subdomain edges as corner nodes for the 2D-case
     if(deg[iNode] >= 0 && isCorner[iNode] &&
-       (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm))) {
+       (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp))) {
       myNum[iCrn++] = deg[iNode];
     }
 }

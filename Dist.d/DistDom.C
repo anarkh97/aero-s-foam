@@ -177,7 +177,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     time = eigV;
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
-  else time = x*domain->solInfo().dt;
+  else time = x*domain->solInfo().getTimeStep();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();

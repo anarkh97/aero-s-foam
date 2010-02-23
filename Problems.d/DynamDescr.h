@@ -177,6 +177,12 @@ class SingleDomainDynamic
     // Thermoelastic problems related subroutines
     void thermoePreProcess(Vector& d_n, Vector& v_n, Vector& v_p);
     int getThermoeFlag();
+    void thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p);
+    int getThermohFlag();
+
+    // Aeroheat
+    void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p);
+    int getAeroheatFlag();
 
 };
 

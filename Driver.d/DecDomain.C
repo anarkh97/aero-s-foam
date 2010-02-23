@@ -79,6 +79,7 @@ GenDecDomain<Scalar>::initialize()
   cornerWeight = 0;
   firstOutput = true;
   soweredInput = false;
+  nodeVecInfo = 0;
 } 
 
 template<class Scalar>
@@ -112,6 +113,7 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   if(subToElem) { delete subToElem; subToElem = 0; }
+  if(nodeVecInfo) delete nodeVecInfo;
 }
 
 template<class Scalar>
@@ -745,7 +747,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     time = eigV;
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
-  else time = x*domain->solInfo().dt;
+  else time = x*domain->solInfo().getTimeStep();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -1871,7 +1873,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   int inode;
   OutputInfo *oinfo = geoSource->getOutputInfo();
   for(i = 0; i < numOutInfo; i++) {
-   int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().dt+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
+   int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
    //cerr << "i = " << i << ", x = " << x << ", step = " << step << ", interval = " << oinfo[i].interval << endl;
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
     // int dof = -1;
@@ -1894,6 +1896,9 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        break;
      case OutputInfo::Accel6:
        if(distState) getPrimalVector(i, mergedAcc, numNodes, 6, x);
+       break;
+     case OutputInfo::Temperature:
+       getPrimalScalar(i, xyz, numNodes, 0, x);
        break;
      case OutputInfo::TemperatureFirstTimeDerivative:
        if(distState) getPrimalScalar(i, mergedVel, numNodes, 6, x);
@@ -2145,6 +2150,26 @@ GenDecDomain<Scalar>::makeNodeInfo()
 }
 
 template<class Scalar>
+DistrInfo&
+GenDecDomain<Scalar>::ndVecInfo()
+{
+ // Create nodal Distributed information
+ if(!nodeVecInfo) {
+   nodeVecInfo = new DistrInfo();
+   nodeVecInfo->domLen = new int[numSub];
+   nodeVecInfo->numDom = numSub;
+   int totLenNode = 0;
+   for(int iSub = 0; iSub < numSub; ++iSub) {
+     nodeVecInfo->domLen[iSub] = subDomain[iSub]->numNodes(); // this is used for nodal stress output
+     totLenNode += nodeVecInfo->domLen[iSub];
+   }
+   nodeVecInfo->len = totLenNode;
+   nodeVecInfo->setMasterFlag();
+ }
+ return *nodeVecInfo;
+}
+
+template<class Scalar>
 void
 GenDecDomain<Scalar>::constructSubDomains(int iSub)
 {
@@ -2251,11 +2276,9 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   int *nDirichletPerSub = new int[numSub];
   int *nNeumannPerSub   = new int[numSub];
-  int *nConvPerSub	= new int[numSub];
   int *nIDisPerSub      = new int[numSub];
   int *nIDis6PerSub     = new int[numSub];
   int *nIVelPerSub      = new int[numSub];
-  int *nITempPerSub	= new int[numSub];
 
   // zero all bc counters
   for(iSub = 0; iSub < numSub; ++iSub)  {
@@ -2264,8 +2287,6 @@ void GenDecDomain<Scalar>::distributeBCs()
     nIVelPerSub[iSub] = 0;
     nDirichletPerSub[iSub] = 0;
     nNeumannPerSub[iSub] = 0;
-    nConvPerSub[iSub] = 0;
-    nITempPerSub[iSub] = 0;
   }
  
   // get bc's from geoSource
@@ -2275,15 +2296,12 @@ void GenDecDomain<Scalar>::distributeBCs()
   BCond* iDis = 0;
   BCond* iDis6 = 0;
   BCond* iVel = 0;
-  BCond* iTemp = 0;
 
   int numDirichlet = geoSource->getDirichletBC(dbc);
   int numNeuman    = geoSource->getNeumanBC(nbc);
-  int numConvBC    = geoSource->getConvBC(cvbc);
   int numIDis      = geoSource->getIDis(iDis);
   int numIDis6     = geoSource->getIDis6(iDis6);
   int numIVel      = geoSource->getIVel(iVel);
-  int numITemp     = geoSource->getITemp(iTemp);
 
   // Count the number of boundary conditions per subdomain
   int numDispDirichlet = 0; // number of displacement dirichlet BCs
@@ -2323,20 +2341,6 @@ void GenDecDomain<Scalar>::distributeBCs()
     for(iSub = 0; iSub < nodeToSub->num(node); ++iSub)
       if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1)
         nIVelPerSub[subI]++;
-  }
-
-  for(i = 0; i < numConvBC; ++i) {
-    int node = cvbc[i].nnum;
-    for(iSub = 0; iSub < nodeToSub->num(node); ++iSub)
-      if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1)
-        nConvPerSub[subI]++;
-  }
-
-  for(i = 0; i < numITemp; ++i) {
-    int node = iTemp[i].nnum;
-    for(iSub = 0; iSub < nodeToSub->num(node); ++iSub)
-      if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1)
-        nITempPerSub[subI]++;
   }
 
   // Set BC's for all subdomains
@@ -2387,21 +2391,6 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   for(iSub = 0; iSub < numSub; ++iSub) {
     subDomain[iSub]->setIDis(nIDisPerSub[iSub], subBC[iSub]);
-    subBC[iSub] = new BCond[nConvPerSub[iSub]];
-    nITempPerSub[iSub] = 0;
-  }
-  for(i = 0; i < numITemp; ++i)  {
-    int node = iTemp[i].nnum;
-    for(iSub = 0; iSub < nodeToSub->num(node); ++iSub) {
-      if((subI = glSubToLocal[(*nodeToSub)[node][iSub]]) > -1) {
-        subBC[subI][nITempPerSub[subI]] = iTemp[i];
-        nITempPerSub[subI]++;
-      }
-    }
-  }
-
-  for(iSub = 0; iSub < numSub; ++iSub) {
-    subDomain[iSub]->setITemp(nITempPerSub[iSub], subBC[iSub]);
     subBC[iSub] = new BCond[nIVelPerSub[iSub]];
     nIVelPerSub[iSub] = 0;
   }
@@ -2436,11 +2425,9 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   delete [] nDirichletPerSub;
   delete [] nNeumannPerSub;
-  delete [] nConvPerSub;
   delete [] nIDisPerSub;
   delete [] nIDis6PerSub;
   delete [] nIVelPerSub;
-  delete [] nITempPerSub;
   delete [] subBC;
 
   if(domain->numSSN() > 0) {
@@ -3508,7 +3495,7 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
   for(int i=0; i<numNodes; ++i) weights[i] = props[i] = 0.0;
 
   // ... WRITE THE TIME VALUE
-  //filePrint(oinfo[fileNumber].filptr,"%20.10e\n",domain->solInfo().dt);
+  //filePrint(oinfo[fileNumber].filptr,"%20.10e\n",domain->solInfo().getTimeStep());
   // ... OUTPUT precision
   //int p = oinfo[fileNumber].precision;
 

@@ -26,9 +26,9 @@ void mat_to_vec(double rten[3][3] ,double rvec[3] )
 
       double cthh = q[0];
 
-      if ( sthh < 0.7 ) 
+      if ( sthh < 0.707106781 )
         th = 2.0*asin( sthh );
-      else              
+      else
         th = 2.0*acos( cthh );
 
       if ( sthh < epsilon )

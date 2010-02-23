@@ -326,10 +326,12 @@ HelmAxiQuad::examine(int sub, MultiFront *mf)
   return examineQuad4(sub, mf, nn);
 }
 
+/*
 PrioInfo Therm4NoShell::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
 }
+*/
 
 PrioInfo
 Therm3DQuad::examine(int sub, MultiFront *mf)
@@ -472,11 +474,13 @@ HelmTri3Gls::examine(int sub, MultiFront *mf)
   return examineTri3(sub, mf, nn);
 }
 
+/*
 PrioInfo
 Therm3NoShell::examine(int sub, MultiFront *mf)
 {
   return examineTri3(sub, mf, nn);
 }
+*/
 
 PrioInfo
 HelmAxiTri::examine(int sub, MultiFront *mf)
@@ -775,6 +779,14 @@ Compo3NodeShell::examine(int sub, MultiFront *mf)
   return examineTri3Shell(sub, mf, nn);
 }
 
+
+PrioInfo
+Therm3NoShell::examine(int sub, MultiFront *mf)
+{
+  return examineTri3Shell(sub, mf, nn);
+}
+
+
 PrioInfo
 examineQuad4Shell(int sub, MultiFront *mf, int *nn)
 {
@@ -827,6 +839,11 @@ FourNodeShell::examine(int sub, MultiFront *mf)
 
 PrioInfo
 Compo4NodeShell::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4Shell(sub, mf, nn);
+}
+
+PrioInfo Therm4NoShell::examine(int sub, MultiFront *mf)
 {
   return examineQuad4Shell(sub, mf, nn);
 }

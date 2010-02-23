@@ -105,13 +105,10 @@ Domain::printStatistics()
    filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
            numDirichlet+numComplexDirichlet);
    filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
-   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",numNeuman);
+   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
+           numNeuman+numComplexNeuman);
    if(gravityFlag())
      filePrint(stderr,"\n ... Gravity Load is Applied        ...");
-   if(numConvBC > 0)
-     filePrint(stderr,"\n ... # Convective BCs     = %7d ...",numConvBC);
-   if(numRadBC > 0)
-     filePrint(stderr,"\n ... # Radiative BCs     = %7d ...",numRadBC);
    filePrint(stderr,"\n ... # Output Files       = %7d ...",geoSource->getNumOutInfo());
    filePrint(stderr,"\n --------------------------------------\n");
 }
@@ -1089,6 +1086,7 @@ Domain::makeTopFile(int topFlag)
            nodeTable[dbc[i].nnum],dbc[i].dofnum+1,dbc[i].val);
  }
 
+/*
  // ... ADD CONVECTIVE FLUXES
  // KHP: get the correct header for the TOPDOMDEC file!
  if(numConvBC > 0)
@@ -1098,6 +1096,7 @@ Domain::makeTopFile(int topFlag)
   fprintf(cinfo->checkfileptr,"%d\t%d\t%f\n",
            nodeTable[cvbc[i].nnum], cvbc[i].dofnum+1,cvbc[i].val);
   }
+*/
 
 
  // also print complex dirichlet boundary conditions, for Helmholtz problem
@@ -1233,20 +1232,7 @@ Domain::makeTopFile(int topFlag)
      fprintf(matList,"%d\t%d\t%f\n",
              nodeTable[dbc[i].nnum],dbc[i].dofnum+1,dbc[i].val);
    }
-   if(numConvBC > 0)
-     fprintf(matList,"SDTemperature %s using %s\n",
-             cinfo->bcondSetName,cinfo->nodeSetName);
-   for(i=0; i<numConvBC; ++i) {
-     fprintf(matList,"%d\t%d\t%f\n",
-             nodeTable[cvbc[i].nnum], cvbc[i].dofnum+1,cvbc[i].val);
-   }
-   if(numRadBC > 0)
-     fprintf(matList,"SDTemperature %s using %s\n",
-             cinfo->bcondSetName,cinfo->nodeSetName);
-   for(i=0; i<numRadBC; ++i) {
-     fprintf(matList,"%d\t%d\t%f\n",
-             nodeTable[rdbc[i].nnum], rdbc[i].dofnum+1,rdbc[i].val);
-   }
+
    for(i=0; i<numComplexDirichlet; ++i) {
      fprintf(matList,"%d\t%d\t%f\n",
              nodeTable[cdbc[i].nnum],cdbc[i].dofnum+1,cdbc[i].reval);

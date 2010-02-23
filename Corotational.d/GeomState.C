@@ -1050,8 +1050,10 @@ TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroR
 }
 
 void
-TemperatureState::midpoint_step_update(Vector &vel_n, double delta, GeomState &ss)
+TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double delta, GeomState &ss,
+                                       double beta, double gamma, double alphaf, double alpham)
 {
+ // XXXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
  // Update incremental temperatures at end of step:
  double coef = 2.0/delta;
 

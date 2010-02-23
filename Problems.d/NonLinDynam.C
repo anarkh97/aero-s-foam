@@ -138,9 +138,16 @@ NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
   int aeroAlg = domain->solInfo().aeroFlag; // by default, non-aeroelastic computation
   // call aeroPreProcess if a restart file does not exist
   if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0) 
-    domain->aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
+    domain->aeroPreProcess(d_n, v_n, a_n, v_p, bcx, vcx);
 
-  if(domain->solInfo().thermoeFlag >= 0) domain->thermoePreProcess();
+  if(domain->solInfo().aeroheatFlag >= 0)
+    domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx);
+
+  if(domain->solInfo().thermoeFlag >= 0)
+    domain->thermoePreProcess();
+
+  if(domain->solInfo().thermohFlag >= 0)
+    domain->thermohPreProcess(d_n, v_n, v_p, bcx);
 
   return aeroAlg;
 }
@@ -250,7 +257,7 @@ NonLinDynamic::computeTimeInfo()
 
   // Get total time and time step size and store them 
   totalTime = domain->solInfo().tmax;
-  dt        = domain->solInfo().dt;
+  dt        = domain->solInfo().getTimeStep();
   delta     = 0.5*dt;
 
   // Compute maximum number of steps
@@ -468,9 +475,9 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    }
    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
    getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
-   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
-   double Mcoef = (1-alpham)/(1-alphaf);
+   double Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
+   double Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
+   double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
    domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
    if(!verboseFlag) solver->setPrintNullity(false);
    solver->factor();
@@ -537,13 +544,17 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
     domain->buildAeroelasticForce(rhs, *prevFrc, tIndex, t, gamma, alphaf);
   }
 
+  // add aerothermal fluxes from fluid dynamics code
+  if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
+    domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
+
   // add thermoelastic forces from thermo dynamics code
-  if(domain->solInfo().thermoeFlag >= 0) {
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->buildThermoelasticForce(rhs);
   }
 
  //  HAI: apply projector here
- if(domain->solInfo().filterFlags)
+ if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
    trProject(rhs);
 
  times->formRhs += getTime();
@@ -724,21 +735,32 @@ NonLinDynamic::preProcess()
  double Ccoef = 0.0;
 
  // HAI
- int useProjector=domain->solInfo().filterFlags;
- Rbm *rigidBodyModes = (useProjector || domain->solInfo().rbmflg == 1) ? domain->constructRbm() : 0; // PJSA 9-18-2006
+ //int useProjector=domain->solInfo().filterFlags;
+ //Rbm *rigidBodyModes = (useProjector || domain->solInfo().rbmflg == 1) ? domain->constructRbm() : 0; // PJSA 9-18-2006
 
- buildOps(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // PJSA 8-9-2009 don't use Rbm's to factor in dynamics
+ Rbm *rigidBodyModes = 0;
 
- if(useProjector) {
+ int useRbmFilter = domain->solInfo().filterFlags;
+ int useGrbm = domain->solInfo().rbmflg;
+ int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useHzem   = domain->solInfo().hzemFlag;
 
-   if(useProjector == 1)
-     fprintf(stderr," ... Rbmfilter Level 1 Requested\n");
+ if (useGrbm || useRbmFilter)
+   rigidBodyModes = domain->constructRbm();
+ else if(useHzem || useHzemFilter)
+   rigidBodyModes = domain->constructHzem();
 
-   if(useProjector == 2)
-     fprintf(stderr," ... Rbmfilter Level 2 Requested\n");
+ buildOps(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // don't use Rbm's to factor in dynamics
 
+ if(useRbmFilter == 1)
+    fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
+ if(useRbmFilter == 2)
+    fprintf(stderr," ... RBM filter Level 2 Requested    ...\n");
+ if(useHzemFilter)
+    fprintf(stderr," ... HZEM filter Requested    ...\n");
+
+ if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);
- }
 
  // TDL Change
  kuc = allOps.Kuc;
@@ -822,6 +844,19 @@ NonLinDynamic::getThermoeFlag()
   return domain->solInfo().thermoeFlag;
 }
 
+int
+NonLinDynamic::getThermohFlag()
+{
+  return domain->solInfo().thermohFlag;
+}
+
+int
+NonLinDynamic::getAeroheatFlag()
+{
+  return domain->solInfo().aeroheatFlag;
+}
+
+
 void 
 NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                                 Vector& velocity, Vector& bkVelocity,
@@ -898,12 +933,59 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
 
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
-    if (verboseFlag)
-      fprintf(stderr," ... Send displacements to Fluid at step %d\n",(step+1));
-    domain->getFileExchanger()->sendDisplacements(domain->getNodes(),state);
+    domain->getFileExchanger()->sendDisplacements(state);
+    if(verboseFlag) fprintf(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
 
     domain->getTimers().sendFluidTime += getTime();
   }
+
+  if(domain->solInfo().aeroheatFlag >= 0) {
+    domain->getTimers().sendFluidTime -= getTime();
+
+    // Make d_n_aero from geomState
+    ConstrainedDSA *c_dsa = domain->getCDSA();
+    DofSetArray *dsa = domain->getDSA();
+
+    // Note that d_n and a_n are vectors being allocated and de-allocated at
+    // each time-step being executed.
+
+    Vector d_n( domain->numUncon(), 0.0 );
+    Vector d_n2( domain->numUncon(), 0.0 );
+
+    CoordSet &nodes = domain->getNodes();
+
+    for(int i=0; i<domain->numNodes(); ++i) {
+
+      int tloc  = c_dsa->locate(i, DofSet::Temp );
+      int tloc1 =   dsa->locate(i, DofSet::Temp );
+
+      if(tloc >= 0)
+        d_n[tloc]  = (*geomState)[i].x;
+      else if (tloc1 >= 0)
+        bcx[tloc1] = (*geomState)[i].x;
+    }
+
+    State tempState(c_dsa, dsa, bcx, d_n, velocity, vp);
+    domain->getFileExchanger()->sendTemperature(tempState);
+    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+
+    domain->getTimers().sendFluidTime += getTime();
+  }
+
+  if(domain->solInfo().thermohFlag >= 0) {
+    /* we have to send the vector of temperatures in NODAL order, not
+       in DOF order (in which is d_n)! */
+
+    Vector tempsent(domain->numNodes());
+
+    for(int iNode=0; iNode<domain->numNodes(); ++iNode)
+      tempsent[iNode] = (*geomState)[iNode].x;
+
+    domain->getFileExchanger()->sendStrucTemp(tempsent);
+    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+  }
+
+  
 
   times->output += getTime();
 

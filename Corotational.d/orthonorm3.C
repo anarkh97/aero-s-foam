@@ -20,5 +20,5 @@ void orthonorm3( double rten[3][3] )
    mat_to_quat( rten, q );
 
    quat_to_mat( q, rten );
-    
+   
 }

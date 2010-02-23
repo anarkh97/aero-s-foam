@@ -62,7 +62,7 @@
 %token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CGALPARAM CGALPREC
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
 %token CONSTRAINTQUALIFICATION CQTYPE CONSTRAINKCC COMPLEXOUTTYPE
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DMPC DEBUGCNTL DEBUGICNTL 
+%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EXPANSION
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
@@ -86,12 +86,12 @@
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE SOWER
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
-%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CPUMAP
+%token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
@@ -238,13 +238,13 @@ Component:
         | TempNeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | TempConvection
-        { if(geoSource->setConvBC($1->n,$1->d) < 0) return -1; }
+        { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
 	| HEVDirichletBC
 	{ if(geoSource->setDirichletFluid($1->n,$1->d) < 0) return -1; }
 	| HEVFRSBC
 	{ if(geoSource->setDirichletFluid($1->n,$1->d) < 0) return -1; }
 	| TempRadiation
-        { if(geoSource->setRadBC($1->n,$1->d) < 0) return -1; }
+        { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | TopInfo
         | OldHelmInfo
         | DEMInfo
@@ -273,6 +273,7 @@ Component:
         | AxiNumSlices
         | AxiHSommer
         | AxiMPC
+        | Sower
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -476,15 +477,27 @@ ReconsInfo:
           }
         }
         ;
-BinarySpec:
-	BINARY NewLine
+Sower:
+	SOWER NewLine
           { geoSource->binaryInput = true; geoSource->binaryOutput = true; }
         | BINARYINPUT SWITCH NewLine 
           { geoSource->binaryInput = bool($2); }
         | BINARYOUTPUT SWITCH NewLine
           { geoSource->binaryOutput = bool($2); }
         ;
-
+BinarySpec:
+        BINARY NewLine
+        | BinarySpec GEOMETRY FNAME NewLine
+          { geoSource->setGeo($3); }
+        | BinarySpec DECOMPOSITION FNAME NewLine
+          { geoSource->setDecomp($3); }
+        | BinarySpec GLOBAL   FNAME NewLine
+          { geoSource->setGlob($3); }
+        | BinarySpec MATCHER  FNAME NewLine
+          { geoSource->setMatch($3); }
+        | BinarySpec CPUMAP  FNAME NewLine
+          { geoSource->setCpuMap($3); }
+        ;
 AnalysisInfo:
         ANALYSIS Integer NewLine
         { 
@@ -647,20 +660,24 @@ UseCInfo:
 	;
 SensorLocations:
         SENSORS NewLine BCDataList
-        { if(geoSource->setSensorLocations($3->n,$3->d) < 0) return -1;   }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Sensors;
+          if(geoSource->setSensorLocations($3->n,$3->d) < 0) return -1; }
 	;
 ActuatorLocations:
         ACTUATORS NewLine BCDataList
-        { if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Actuators;
+          if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; }
 	;
 UsdfLocations:
 	USERDEFINEFORCE NewLine BCDataList
         { geoSource->binaryInputControlLeft = true;
+          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdf;
           if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;   }
 	;
 UsddLocations:
 	USERDEFINEDISP NewLine BCDataList
 	{ geoSource->binaryInputControlLeft = true;
+          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
           if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;   
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
@@ -1106,8 +1123,8 @@ AeroInfo:
         }
 	| AeroInfo COLLOCATEDTYPE NewLine
 	{ domain->solInfo().isCollocated = $2; }
-        | Matcher FNAME NewLine
-        { geoSource->setMatch($2); }
+        | AeroInfo MATCHER FNAME NewLine
+        { geoSource->setMatch($3); }
 	;
 AeroHeatInfo:
         AEROH NewLine AEROTYPE Float Float NewLine
@@ -1284,15 +1301,15 @@ IComplexNeumannBC:
         ;
 DirichletBC:
         DISP NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
 	;
 SurfaceDirichletBC:
         SDISP NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Pdir; $$ = $3; }
 	;
 HEVDBCDataList:
 	HEVDBC_Data
@@ -1343,6 +1360,8 @@ HEVFRSBC:  // Added for HEV problem, EC, 20080512
           for (int ii=0; ii<numHEVFSNodes; ii++)
             $$->add(allHEVFSNodes[ii],10,0.0); 
           delete [] allHEVFSNodes;
+
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Hefrs;
         }
         ;
 HEVFRSBCList:
@@ -1368,28 +1387,28 @@ TempDirichletBC:
         { $$ = new BCList; domain->solInfo().thermalLoadFlag = 1;}
         | TempDirichletBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }
 	;
 TempNeumanBC:
         FLUX NewLine
         { $$ = new BCList; }
         | TempNeumanBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
 	;
 TempConvection:
         CONVECTION NewLine
         { $$ = new BCList; }
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3*$4*$5; $$->add(bc); }
+          bc.val = $3*$4*$5; bc.type = BCond::Convection; $$->add(bc); }
 	;
 TempRadiation:
         RADIATION NewLine
         { $$ = new BCList; }
         | TempRadiation Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; $$->add(bc); }
+          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; $$->add(bc); }
         ;
 HelmHoltzBC:
         HSOMMERFELD NewLine SommerfeldBCDataList
@@ -1489,11 +1508,11 @@ PBCDataList:
 	;
 AtdDirScatterer:
         ATDDIR NewLine PBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atddir; $$ = $3; }
         ;
 AtdNeuScatterer:
         ATDNEU NewLine PBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atdneu; $$ = $3; }
         ;
 AtdArbScatterer:
 	ATDARB Float NewLine
@@ -1601,11 +1620,13 @@ Mode:
 	;
 IDisp:
 	IDIS NewLine BCDataList
-	{ if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	| IDIS ZERO NewLine
 	{ domain->solInfo().zeroInitialDisp = 1; }
 	| IDIS NewLine MODAL NewLine ModalValList
 	{ domain->solInfo().modalIDisp = true;
+          for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDis($5->n, $5->d) < 0) return -1; }
 	;
 IDisp6:
@@ -1621,6 +1642,7 @@ IDisp6:
                           bc.dofnum = 3; bc.val = amplitude*$6; $$->add(bc);
                           bc.dofnum = 4; bc.val = amplitude*$7; $$->add(bc);
                           bc.dofnum = 5; bc.val = amplitude*$8; $$->add(bc);
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
         | IDisp6 Integer Float Float Float NewLine
@@ -1631,6 +1653,7 @@ IDisp6:
                           bc.dofnum = 3; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 4; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 5; bc.val = 0.0         ; $$->add(bc);
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
 	| GEPS NewLine
@@ -1671,19 +1694,21 @@ IVel6Pita:
         ;
 IVel:
         IVEL NewLine BCDataList
-        { if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
-        { if(geoSource->setITemp($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
+          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
 NeumanBC:
 	FORCE NewLine BCDataList
-	{ $$ = $3; }
+	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
 	;
 SurfaceNeumanBC:
         SFORCE NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
         ;
 BCDataList:
 	BC_Data

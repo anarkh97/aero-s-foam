@@ -151,6 +151,7 @@ Domain::getTrussHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
     fflush(oinfo[fileNumber].filptr);
 } 
 
+/*
 void
 Domain::initTempVector(Vector& d_n, Vector& v_n, Vector& v_p)
 {
@@ -162,11 +163,10 @@ Domain::initTempVector(Vector& d_n, Vector& v_n, Vector& v_p)
  d_n = v_n = v_p = 0.0;
 
 // ... INITIALIZE TEMPERATURE
- for(i = 0; i < numITemp; ++i) {
-   int dof = c_dsa->locate(iTemp[i].nnum, 1 << iTemp[i].dofnum);
-//   fprintf(stderr, " INIT TEMP : %d%d\n", iTemp[i].nnum, iTemp[i].dofnum);
+ for(i = 0; i < numIDis; ++i) {
+   int dof = c_dsa->locate(iDis[i].nnum, 1 << iDis[i].dofnum);
    if(dof >= 0)
-     d_n[dof] = iTemp[i].val;
+     d_n[dof] = iDis[i].val;
  }
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
@@ -232,11 +232,11 @@ void
 Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
         Vector& ext_f, Vector& d_n, Vector& v_n, Vector&v_p)
 {
-/* The condition below (tIndex != 0) has to be maintained, because
-in TempProbType.C, we already sent the initial temperature during
-the pre-process. As this function is called after the latter for the
-sole purpose of initializing the printing output, the mentioned
-condition is neede. */ 
+// The condition below (tIndex != 0) has to be maintained, because
+//in TempProbType.C, we already sent the initial temperature during
+//the pre-process. As this function is called after the latter for the
+//sole purpose of initializing the printing output, the mentioned
+//condition is neede.  
 
   int i;
 
@@ -255,16 +255,15 @@ condition is neede. */
 
   if(sinfo.aeroheatFlag >= 0)
     if (tIndex != 0 ) {
-      flExchanger->sendTemperature(nodes, tempState);
+      flExchanger->sendTemperature(tempState);
       //if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
     }
 
-/* we have to send the vector of temperatures in NODAL order, not
-int DOF order (in which is d_n)!
-print(), zero() can be put behind VECTORS!
-numUncon() is a function and sets the vector in its correspond. size.
-d_n.print("comment"); 
-*/
+// we have to send the vector of temperatures in NODAL order, not
+//int DOF order (in which is d_n)!
+//print(), zero() can be put behind VECTORS!
+//numUncon() is a function and sets the vector in its correspond. size.
+//d_n.print("comment"); 
 
   if(sinfo.thermohFlag >=0) 
     if (tIndex !=0) {
@@ -303,13 +302,13 @@ d_n.print("comment");
     switch(oinfo[i].type) {
        case OutputInfo::Temperature:
          if(oinfo[i].nodeNumber == -1) {
-           fprintf(oinfo[i].filptr," % *.*e\n",w,p,time);
+           fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
            for(iNode=0; iNode<numnodes; ++iNode) {
               int tloc  = c_dsa->locate(iNode, DofSet::Temp);
               int tloc1 =   dsa->locate(iNode, DofSet::Temp);
               double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
               if(tloc1 < 0) temp = 0.0;
-              fprintf(oinfo[i].filptr,"% *.*E\t\n",w,p,temp);
+              fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,temp);
             }
          } else {
            // if only one node is requested as output
@@ -318,19 +317,19 @@ d_n.print("comment");
            int tloc1 =   dsa->locate(iNode, DofSet::Temp);
            double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
            if(tloc1 < 0) temp = 0.0;
-           fprintf(oinfo[i].filptr,"%e % *.*E\n", time, w, p, temp);
+           fprintf(oinfo[i].filptr,"  %e % *.*E\n", time, w, p, temp);
            }
          fflush(oinfo[i].filptr);
          break;
        case OutputInfo::TemperatureFirstTimeDerivative: // this is the first time derivative of the temperature
          if(oinfo[i].nodeNumber == -1) {
-           fprintf(oinfo[i].filptr," % *.*e\n",w,p,time);
+           fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
            for(iNode=0; iNode<numnodes; ++iNode) {
              int tloc  = c_dsa->locate(iNode, DofSet::Temp);
              int tloc1 =   dsa->locate(iNode, DofSet::Temp);
              double val  = (tloc >= 0) ? v_n[tloc] : 0.0;
              if(tloc1 < 0) val = 0.0;
-             fprintf(oinfo[i].filptr,"% *.*E\t\n",w,p,val);
+             fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,val);
            }
          } else {
            // if only one node is requested as output
@@ -339,7 +338,7 @@ d_n.print("comment");
            int tloc1 =   dsa->locate(iNode, DofSet::Temp);
            double val  = (tloc >= 0) ? v_n[tloc] : 0.0;
            if(tloc1 < 0) val = 0.0;
-           fprintf(oinfo[i].filptr,"%e % *.*E\n", time, w, p, val);
+           fprintf(oinfo[i].filptr," %e % *.*E\n", time, w, p, val);
          }
          fflush(oinfo[i].filptr);
          break;
@@ -380,6 +379,7 @@ d_n.print("comment");
     }
   }
 }
+
 
 void
 Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vector &prev_f)
@@ -440,9 +440,9 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
     double sflux = 0;
     double bfl ;
 
-/*  linAdd is in Maths.d/Vector.C , f.linAdd(a,g,b,h) 
-    means f = f+a*g+b*h 
-    f.linAdd(a,g)= f+a*g  */
+//  linAdd is in Maths.d/Vector.C , f.linAdd(a,g,b,h) 
+//  means f = f+a*g+b*h 
+//  f.linAdd(a,g)= f+a*g
  
     tmpF.zero();
     flExchanger->getFluidFlux(tmpF, t, bfl);
@@ -451,7 +451,7 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
 
     int vectlen = tmpF.size();
 
-/*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
+//  Compute fluid flux at n+1/2, since we use midpoint rule in thermal
 
     int useProjector = domain->solInfo().filterFlags;
 
@@ -465,8 +465,8 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
 
     prev_f = tmpF; 
 
-/*  Print out sum of fluxes received at n+1 and at n+1/2 in a file
-    specified by raerotfl in entry */
+//  Print out sum of fluxes received at n+1 and at n+1/2 in a file
+//  specified by raerotfl in entry
 
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -483,13 +483,14 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
             fprintf(oinfo[i].filptr,"%e\n",sflux); 
             fflush(oinfo[i].filptr);
           break;
-          default: /* do nothing */
+          default: // do nothing
           break;
         }
       }
     }
   }
 }
+*/
 
 void
 Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
@@ -514,13 +515,13 @@ Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
    }
 
    if(flag)
-     flExchanger = new FlExchanger(packedEset, c_dsa, oinfo+iInfo);
+     flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
    else
-     flExchanger = new FlExchanger(packedEset, c_dsa );
+     flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
 
    char *matchFile = geoSource->getMatchFileName();
    if (matchFile == 0)
-     matchFile = "MATCHER";
+     matchFile = (char*) "MATCHER";
 
    flExchanger->read(0, matchFile);
 
@@ -528,12 +529,12 @@ Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
 
    int restartinc = (solInfo().nRestart >= 0) ? (solInfo().nRestart) : 0;
 
-   flExchanger->sendTempParam(sinfo.aeroheatFlag, sinfo.dtemp, 
+   flExchanger->sendTempParam(sinfo.aeroheatFlag, sinfo.getTimeStep(), 
                               sinfo.tmax, restartinc, sinfo.alphat);
 
    if(verboseFlag) fprintf(stderr," ... [T] Sent temperature parameters ...\n");
 
-   flExchanger->sendTemperature(nodes, tempState);
+   flExchanger->sendTemperature(tempState);
    if(verboseFlag) fprintf(stderr," ... [T] Sent initial temperatures ...\n");
 
  }
@@ -547,7 +548,7 @@ Domain::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
      int tempbuffLen = numnodes;
 
      if (sinfo.aeroheatFlag < 0)
-     flExchanger = new FlExchanger(packedEset, c_dsa );
+     flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
 
      flExchanger->thermoread(tempbuffLen);
 
@@ -565,7 +566,7 @@ Domain::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
      }
 
      flExchanger->sendStrucTemp(tempsent);
-     //if(verboseFlag) fprintf(stderr," ... [T] Sent initial temperatures ...\n");
+     if(verboseFlag) fprintf(stderr," ... [T] Sent initial temperatures ...\n");
 
   }
 }

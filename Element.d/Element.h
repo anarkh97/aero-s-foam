@@ -34,6 +34,10 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
+  enum { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
+         Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
+         Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
+         Sensors } type;
   void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; };
 };
 
@@ -314,9 +318,9 @@ class Element {
         virtual Element *clone() { return 0; }
         virtual void renum(int *)=0;
 
-        static Element *build(int,int,int*);
+//NOT USED static Element *build(int,int,int*);
 
-        virtual void buildCorotator(CoordSet &)  {};
+//NOT USED virtual void buildCorotator(CoordSet &)  {};
 
         virtual void setProp(StructProp *p, bool _myProp = false) {
           if(myProp && prop)  {
@@ -425,14 +429,11 @@ class Element {
                                           double *gs=0, int cflg = 0);
 	virtual double * getMidPoint(CoordSet &)  { return 0; }
 	/* toxa: use this midPoint instead */
-	virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }
+	//virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }
         virtual double * getCompositeData(int )   { return 0; }
         virtual double * getCompositeFrame()      { return 0; }
 
         virtual int      getCompositeLayer()      { return 0; }
-
-	virtual double   getMoment(Vector&, CoordSet&, int, int)
-	                 { return 0.0; }
 
         virtual int     dim() { return 3; }
 

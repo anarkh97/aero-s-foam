@@ -98,6 +98,8 @@ TRAIL [a-zA-Z]*
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
+"SOWE"[a-zA-Z]*|"sowe"|"topology"  { return SOWER; }
+
 "BINARY"|"binary"                  { return BINARY; }
 
 "BINARYINPUT"|"binaryinput"        { return BINARYINPUT; }
@@ -111,7 +113,7 @@ TRAIL [a-zA-Z]*
 "TRUE"|"true"|"True"               { yylval.ival = 1; return SWITCH; }
 "FALSE"|"false"|"False"            { yylval.ival = 0; return SWITCH; }
 
-"DECOMP"[a-zA-Z]*|"decomp"[a-zA-Z]*   { return DECOMPOSE; }
+"DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 
 "nsubs"|"NSUBS"                    { return NSUBS; }
 
@@ -129,11 +131,11 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
+
 "global"|"GLOBAL"                  { return GLOBAL; }
 
-"matcher"|"MATCHER"                { return MATCHER; }
-
-"Matcher"	                   { return Matcher; }
+"matcher"|"MATCHER"|"Matcher"      { return MATCHER; }
 
 "geometry"|"GEOMETRY"              { return GEOMETRY; }
 

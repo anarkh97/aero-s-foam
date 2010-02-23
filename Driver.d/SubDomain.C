@@ -26,6 +26,7 @@
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Math.d/MpcSparse.h>
+#include <Corotational.d/TemperatureState.h>
 
 //#define DEBUG_MPC
 
@@ -2722,9 +2723,6 @@ GenSubDomain<Scalar>::renumberBCsEtc()
  for(i = 0; i < numIVel; ++i)
    iVel[i].nnum = glToLocalNode[iVel[i].nnum];
 
- for(i = 0; i < numITemp; ++i)
-   iTemp[i].nnum = glToLocalNode[iTemp[i].nnum];
-
  for(i = 0; i < numComplexDirichlet; ++i)
    cdbc[i].nnum = glToLocalNode[cdbc[i].nnum];
 
@@ -3076,6 +3074,7 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
  int i;
  for(i = 0; i < numnodes; ++i) {
    if(!nodes[i]) continue;
+   if(dynamic_cast<TemperatureState*>(u)) { xyz[glNums[i]][0] = (*u)[i].x; continue; }
    xyz[glNums[i]][0] = ((*u)[i].x - nodes[i]->x);
    xyz[glNums[i]][1] = ((*u)[i].y - nodes[i]->y);
    xyz[glNums[i]][2] = ((*u)[i].z - nodes[i]->z);

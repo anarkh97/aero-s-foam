@@ -579,7 +579,7 @@ void NLModalDescr::computeTimeInfo(){
  POST:
 */
   tFinal = domain->solInfo().tmax;
-  dt     = domain->solInfo().dt;
+  dt     = domain->solInfo().getTimeStep();
   delta  = 0.5 * dt;
 
   mcoef = 1.0;

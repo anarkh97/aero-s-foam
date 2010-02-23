@@ -83,6 +83,11 @@ public:
 
   void thermoePreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->thermoePreProcess(); }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+  void thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->thermohPreProcess(d_n, v_n, v_p, bcx); }
+  int getThermohFlag() { return domain->solInfo().thermohFlag; }
+
+  void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
+  int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
 };
 #ifdef _TEMPLATE_FIX_

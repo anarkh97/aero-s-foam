@@ -33,7 +33,6 @@ class SuperElement : public Element
         double getPressure() { return subElems[0]->getPressure(); }
 
         void renum(int *table);
-        void buildCorotator(CoordSet &cs);
 
         void setProp(StructProp *p, bool _myProp = false); 
         void setPreLoad(double load, int &flg);
@@ -81,7 +80,6 @@ class SuperElement : public Element
         double* getCompositeData(int nl);
         double* getCompositeFrame();
         int getCompositeLayer();
-        double getMoment(Vector &force, CoordSet &cs, int node, int idir);
         int dim();
         void addFaces(PolygonSet *pset);
         int numInternalNodes();

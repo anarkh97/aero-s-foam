@@ -612,11 +612,3 @@ Brick32::getCorotator(CoordSet &cs, double *kel, int , int )
  return((Corotator*)0); 
 }
 
-void Brick32::buildCorotator(CoordSet &cs)  
-{
-  fprintf(stderr," *** ERROR: Brick32::buildCorotator: NOT implemented. Abort.\n");
-  exit(-1);
-  //if (!brickCorotator)
-  //  brickCorotator = new BrickCorotator(nn, prop->E, prop->nu, cs);
-}
-

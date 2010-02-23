@@ -23,8 +23,8 @@ const char *SEND_LIST_KW = "SNDF";
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 
-FlExchanger::FlExchanger(Elemset& _eset, DofSetArray *_dsa, 
-                         OutputInfo *_oinfo) : eset(_eset)
+FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, DofSetArray *_dsa, 
+                         OutputInfo *_oinfo) : cs(_cs), eset(_eset)
 {
  dsa      = _dsa;
  oinfo    = _oinfo;
@@ -33,7 +33,7 @@ FlExchanger::FlExchanger(Elemset& _eset, DofSetArray *_dsa,
 
 
 double
-FlExchanger::getFluidLoad(CoordSet& cs, Vector& force, int tIndex, double time,
+FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
                           double alphaf, int& iscollocated, GeomState* geomState)
 {
  aforce[0] = aforce[1] = aforce[2]=0.0;
@@ -85,7 +85,7 @@ FlExchanger::getFluidLoad(CoordSet& cs, Vector& force, int tIndex, double time,
 extern int mflag;
 
 void
-FlExchanger::sendDisplacements(CoordSet& cs, State& state, int tag, GeomState* geomState)
+FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
 {
  if(tmpDisp == 0)
  tmpDisp = new Vector(state.getDisp());
@@ -94,11 +94,11 @@ FlExchanger::sendDisplacements(CoordSet& cs, State& state, int tag, GeomState* g
  //fprintf(stderr, "Now %e\n", *tmpDisp * *tmpDisp);
  tmpDisp->linAdd(dt*alpha[0], state.getVeloc(), dt*alpha[1], state.getPrevVeloc());
  State newState(state, *tmpDisp);
- if (verboseFlag)
-   fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
+ //if(verboseFlag)
+ //  fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
 
  int i,j;
- double xxx = 0;
+ double xxx = 0, yyy = 0;
  int pos = 0;
  for(i=0; i < nbrReceivingFromMe; i++) {
 
@@ -117,23 +117,26 @@ FlExchanger::sendDisplacements(CoordSet& cs, State& state, int tag, GeomState* g
    if(tag < 0) tag = STTOFLMT+( (sndParity > 0) ? 1 : 0);
    int fluidNode  = idSendTo[i];
 
-   for(int ip = origPos; ip < pos; ip += 6)
-     xxx += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
+   for(int ip = origPos; ip < pos; ip += 6) {
+     xxx += buffer[ip+0]*buffer[ip+0] + buffer[ip+1]*buffer[ip+1] +
+            buffer[ip+2]*buffer[ip+2];
+     yyy += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
             buffer[ip+5]*buffer[ip+5];
+   }
 
    //_FORTRAN(nsedoc)(zero, tag, buffer, pos, fluidNode, toFluid);
    fluidCom->sendTo(fluidNode, tag, buffer+origPos, pos-origPos);
 
  }
  fluidCom->waitForAllReq();
- if (verboseFlag)
-   fprintf(stderr, "Sending %e to %d CPUs\n",xxx, nbrReceivingFromMe);
+ //if (verboseFlag)
+ //  fprintf(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, nbrReceivingFromMe);
  flipSndParity();
 }
 
 void
 FlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
-                            CoordSet &cs, State &st, double ampFactor)
+                            State &st, double ampFactor)
 {
   int iMode;
   for(iMode = 0; iMode < numModes; ++iMode) {
@@ -155,10 +158,11 @@ FlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
        dof = dsa->locate(iNode, DofSet::Zrot);
        if(dof >= 0) d[dof] = v[iMode][iNode][5]*ampFactor;
      }
-     fprintf(stderr, "Total mode disp %e\n", d*d);
-     sendDisplacements(cs, st, 1201+iMode);
+     //fprintf(stderr, "Total mode disp %e\n", d*d);
+     sendDisplacements(st, 1201+iMode);
   }
 }
+
 void
 FlExchanger::waitOnSend()
 {
@@ -187,7 +191,7 @@ FlExchanger::sendParam(int algnum, double step, double totaltime,
   int msglen = 5;
   int tag = 3000;
 
-  fprintf(stderr, " ... Sending algorithm %d\n", algnum);
+  //fprintf(stderr, " ... Sending algorithm %d\n", algnum);
 
   if(thisNode == 0) {
      // _FORTRAN(nsedoc)(zero, tag, buffer, msglen,
@@ -199,8 +203,12 @@ FlExchanger::sendParam(int algnum, double step, double totaltime,
 
   isCollocated = _isCollocated;
   dt = step;
-  alpha[0] = _a[0];
-  alpha[1] = _a[1];
+  if (algnum > 4)
+    alpha[0] = alpha[1] = 0;
+  else  {
+    alpha[0] = _a[0];
+    alpha[1] = _a[1];
+  }
 }
 
 void
@@ -555,8 +563,7 @@ FlExchanger::read(int myNode, char* inputFileName)
 // Temperature routines
 
 void
-FlExchanger::sendTemperature( CoordSet & cs,
-                                State &state )
+FlExchanger::sendTemperature(State& state)
 {
 /*  nbrReceivingFromMe = number of fluid subdomains to which a structural
                          subdomain has to send values to.
@@ -625,7 +632,7 @@ FlExchanger::sendStrucTemp(Vector &tempsent)
 
    for(i=0; i<pos; i++) {
      buff[i]=tempsent[i];
-    }
+   }
 
 //    if (thisNode==0){
     //fprintf(stderr,"++++ Sending TempLoad \n");
@@ -656,7 +663,8 @@ FlExchanger::getStrucTemp(double *temprcvd)
     //fprintf(stderr,"++++ Finished Receiving TempLoad \n");
 
     int i;
-    for (i=0; i<rsize; i++) { temprcvd[i]=buff[i] ;
+    for (i=0; i<rsize; i++) { 
+      temprcvd[i]=buff[i] ;
       //fprintf(stderr,"**** received  = %f %d %d \n",buff[i], buffLen, rsize);
     }
 }
@@ -779,6 +787,7 @@ FlExchanger::cmdCom( int commandFlag )
   return returnFlag;
 }
 
+/*
 int
 FlExchanger::cmdComHeat( int commandFlag )
 {
@@ -815,7 +824,7 @@ FlExchanger::cmdComHeat( int commandFlag )
 
   return returnFlag;
 }
-
+*/
 
 
 

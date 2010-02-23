@@ -45,6 +45,8 @@ public:
 	//double trueWeight() { return 3; }
 
         int  getMassType() { return 0; } // lumped only
+
+        Corotator* getCorotator(CoordSet &cs, double *kel, int fitAlg, int);
 };
 #endif
 

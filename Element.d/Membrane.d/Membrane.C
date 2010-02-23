@@ -8,9 +8,10 @@
 #include <Corotational.d/utilities.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Corotational.d/Shell3Corotator.h>
 
 extern "C"      {
-void _FORTRAN(trimem)(double* ,double* ,double* ,double& , double& ,
+void _FORTRAN(trimem)(int&, double* ,double* ,double* ,double& , double& ,
                       double* ,double* );
 void _FORTRAN(sands19)(double*,double*,double*,double&,double&,double*,double*,
         double*, const int&, const int&, const int&, const int&, const int&);
@@ -314,9 +315,11 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
           fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
-        _FORTRAN(trimem)(x, y, z, prop->E, prop->nu, h, (double *)d);
+        _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
 
-        FullSquareMatrix ret(9,d);
+        FullSquareMatrix ret(18,d);
+
+        //cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
 }
@@ -340,23 +343,23 @@ Membrane::nodes(int *p)
 int
 Membrane::numDofs()
 {
- 	return 9;
+ 	return 18;
 }
 
 int*
 Membrane::dofs(DofSetArray &dsa, int *p)
 {
- 	if(p == 0) p = new int[9];
-        dsa.number(nn[0], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p  );
-        dsa.number(nn[1], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p+3);
-        dsa.number(nn[2], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p+6);
+ 	if(p == 0) p = new int[18];
+        dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p  );
+        dsa.number(nn[1], DofSet::XYZdisp | DofSet::XYZrot, p+6);
+        dsa.number(nn[2], DofSet::XYZdisp | DofSet::XYZrot, p+12);
 	return p;
 }
 
 void
 Membrane::markDofs(DofSetArray &dsa)
 {
-        dsa.mark(nn, 3, DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot );
+        dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot );
 }
 
 int
@@ -364,3 +367,12 @@ Membrane::getTopNumber()
 {
   return 119;//4;
 }
+
+Corotator *
+Membrane::getCorotator(CoordSet &cs, double *kel, int fitAlg, int)
+{
+ int flag = 0; // signals stiffness routine to keep local matrix 
+ FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+ return new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlg);
+}
+

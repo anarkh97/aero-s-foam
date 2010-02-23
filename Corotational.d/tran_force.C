@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 
-void tran_force( double force[18], double tmat[3][3], int num_nodes )
+void tran_force( double* force, double tmat[3][3], int num_nodes, int num_dofs_per_node )
 /*****************************************************************
  *
  *  Purpose:
@@ -26,7 +26,7 @@ void tran_force( double force[18], double tmat[3][3], int num_nodes )
 
 // Tranform groups of 3 degrees of freedom
 
-   numdofs = num_nodes*6;
+   numdofs = num_nodes*num_dofs_per_node;
 
    for( dof=0; dof<(numdofs-2); dof +=3 ) {
       tf0 = tmat[0][0]*force[dof  ]

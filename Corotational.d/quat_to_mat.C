@@ -18,7 +18,7 @@ void quat_to_mat( double q[4], double rten[3][3] )
  *  Coded by Bjorn Haugen
  *****************************************************************/
 {
-/*
+
    // Compute norm of q
    double norm = sqrt( q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3] );
 
@@ -39,7 +39,8 @@ void quat_to_mat( double q[4], double rten[3][3] )
    rten[1][0] = 2.0*(q[2]*q[1] + q[3]*q[0]);
    rten[2][0] = 2.0*(q[3]*q[1] - q[2]*q[0]);
    rten[2][1] = 2.0*(q[3]*q[2] + q[1]*q[0]);
-*/
+
+/*
    rten[0][0] = q[1]*q[1] - q[2]*q[2] - q[3]*q[3] + q[0]*q[0];
    rten[1][0] = 2.0*(q[1]*q[2] + q[3]*q[0]);
    rten[2][0] = 2.0*(q[1]*q[3] - q[2]*q[0]);
@@ -49,4 +50,5 @@ void quat_to_mat( double q[4], double rten[3][3] )
    rten[0][2] = 2.0*(q[1]*q[3] + q[2]*q[0]);
    rten[1][2] = 2.0*(q[2]*q[3] - q[1]*q[0]);
    rten[2][2] = -q[1]*q[1] - q[2]*q[2] + q[3]*q[3] + q[0]*q[0];
+*/
 }

@@ -342,8 +342,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
     if(rebuildFlag) {
       filePrint(stderr," ... Newton : Iter #%d --- Rebuild Tangent Stiffness (res = %e)\n", iter+1, residualNorm); // HB
-      
     }
+    else filePrint(stderr," ... Newton : Iter #%d (res = %e)\n", iter+1, residualNorm);
 
     // Solve current system Kt*u = residual, overwrite residual with u
     timeSolve -= getTime();

@@ -395,7 +395,7 @@ SparseData::SparseData(EqNumberer *_dsa, Connectivity *cn, int* rCN, int expand,
 
 // used by 2nd Mumps constructor (with make_colu = 1) and 2nd Spooles constructor
 SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
-                       Connectivity *cn, int expand, int make_colu)
+                       Connectivity *cn, int expand, int make_colu, bool unsym)
 {
   initialize();
   int i, j, k, thisNode;
@@ -431,11 +431,17 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
     for(j=0; j<cn->num(thisNode); ++j) {
       int jnode = (*cn)[thisNode][j];
       int fjdof = c_dsa->firstdof(jnode);
-      if(fjdof < 0 || fjdof > k) continue;
-      if(c_dsa->weight(jnode) + fjdof <= k)
+      if(unsym) {
+        if(fjdof < 0) continue;
         xunonz[k+1] += c_dsa->weight(jnode);
-      else
-        xunonz[k+1] += k - fjdof + 1;
+      }
+      else {
+        if(fjdof < 0 || fjdof > k) continue;
+        if(c_dsa->weight(jnode) + fjdof <= k)
+          xunonz[k+1] += c_dsa->weight(jnode);
+        else
+          xunonz[k+1] += k - fjdof + 1;
+      }
     }
   }
 
@@ -451,11 +457,18 @@ SparseData::SparseData(DofSetArray *_dsa, DofSetArray *c_dsa,
     for(j=0; j<cn->num(thisNode); ++j) {
       int jnode = (*cn)[thisNode][j];
       int fjdof = c_dsa->firstdof(jnode);
-      if(fjdof < 0 || fjdof > m) continue;
-      for(k=0; k<c_dsa->weight(jnode); ++k)
-        if(fjdof + k < m) rowu[xunonz[m]-1+numFound++] = fjdof + k + 1;
+      if(unsym) {
+        if(fjdof < 0) continue;
+        for(k=0; k<c_dsa->weight(jnode); ++k)
+          rowu[xunonz[m]-1+numFound++] = fjdof + k + 1;
+      }
+      else {
+        if(fjdof < 0 || fjdof > m) continue;
+        for(k=0; k<c_dsa->weight(jnode); ++k)
+          if(fjdof + k < m) rowu[xunonz[m]-1+numFound++] = fjdof + k + 1;
+      }
     }
-    rowu[xunonz[m]-1+numFound++] = m + 1; // This is for the diagonal terms.
+    if(!unsym) rowu[xunonz[m]-1+numFound++] = m + 1; // This is for the diagonal terms.
   }
   
   if(dofToN) delete [] dofToN; //HB

@@ -11,6 +11,7 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Element.d/Shell.d/FourNodeShell.h>
+#include <Element.d/Shell.d/ExpFourNodeShell.h>
 #include <Element.d/Shell.d/Therm3NoShell.h>
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
@@ -20,6 +21,7 @@
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Membrane.d/Membrane.h>
+#include <Element.d/Membrane.d/FourNodeMembrane.h>
 #include <Element.d/Spring.d/TorSpring.h>
 #include <Element.d/Spring.d/TransSprlink.h>
 #include <Element.d/Spring.d/RotnSprlink.h>
@@ -371,6 +373,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 86:
        ele = new (ba) PentaBulk(n);  // 3D Bulk Fluid Element
        break;
+     case 87:
+       ele = new (ba) FourNodeMembrane(n);
+       break;
      case 88:
        {
          // PJSA: first count number of unique nodes & if there are only 3 make a tri
@@ -396,6 +401,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
            ele = new (ba) FourNodeShell(n); // superelement comprising two ThreeNodeShells
          }
        }
+       break;
+     case 89:
+       ele = new (ba) ExpFourNodeShell(n);
        break;
      case 90:
        ele = new (ba) HelmPenta(n); 

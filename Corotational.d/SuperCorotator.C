@@ -49,6 +49,9 @@ SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
     delete [] subf;
   }
+  //cerr << "here in SuperCorotator::getStiffAndForce\n";
+  //cerr << "elK = \n"; elK.print();
+  //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
 }
 
 void 

@@ -15,7 +15,7 @@ ADD_LIBRARY(Corrotational  Corotator.C
        tran_stiff.C SpringCorotator.C 
        TetCorotator.C 
        BrickCorotator.C 
-       SuperCorotator.C 
+       SuperCorotator.C Tria3Corotator.C
        PentaCorotator.C BarFCorotator.C
        QuadThermalCorotator.C TriangleThermalCorotator.C)
 

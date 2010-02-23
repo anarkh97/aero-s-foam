@@ -34,7 +34,7 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
-  void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; };
+  void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; }
 };
 
 // Complex Boundary Condition Structure
@@ -43,7 +43,7 @@ struct ComplexBCond {
   int    dofnum; // dof number
   double reval;  // real value of bc
   double imval;  // imaginary value of bc
-  void setData(int _nnum, int _dofnum, double _reval, double _imval) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; };
+  void setData(int _nnum, int _dofnum, double _reval, double _imval) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; }
 };
 
 

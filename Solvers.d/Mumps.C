@@ -36,7 +36,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int
 
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1)
+ : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym())
 {
   neq = numUncon;
   myMem = 0; 
@@ -55,6 +55,7 @@ GenMumpsSolver<Scalar>::init()
 #ifdef USE_MUMPS
   mumpsId.id.par = 1; // 1: working host model
   mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
+  if(domain->solInfo().unsym()) mumpsId.id.sym = 0;
 #ifdef USE_MPI
   //mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
@@ -127,7 +128,7 @@ GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
+      if(!domain->solInfo().unsym() && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m = mstart; m < mstop; ++m) {

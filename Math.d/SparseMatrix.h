@@ -115,7 +115,7 @@ class SparseData {
     // Constructors for data structures of type DBSparseMatrix 
     // and ComplexDBSparseMatrix and Spooles/Mumps
     SparseData(DofSetArray *dsa, DofSetArray *c_dsa, Connectivity *con,
-       	       int expand = 0, int make_colu = 0);
+       	       int expand = 0, int make_colu = 0, bool unsym = false);
     SparseData(EqNumberer *dsa, Connectivity *con, int* rcn, int expand = 0, int make_colu = 0);
 
     SparseData(DofSetArray *_dsa, int *glInternalMap,

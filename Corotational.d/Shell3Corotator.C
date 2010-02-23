@@ -47,16 +47,15 @@ void
 Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
                                   FullSquareMatrix &elK, double *f)
 {
-
  // Get Nodes original coordinates (C0 configuration)
- Node &node1 = cs.getNode( n1 );
- Node &node2 = cs.getNode( n2 );
- Node &node3 = cs.getNode( n3 );
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ Node &node3 = cs.getNode(n3);
 
  // Get Nodes current coordinates (C0n configuration)
- NodeState &ns1 = geomState[ n1 ];
- NodeState &ns2 = geomState[ n2 ];
- NodeState &ns3 = geomState[ n3 ];
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+ NodeState &ns3 = geomState[n3];
   
  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
 
@@ -72,20 +71,20 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  
  // Extract deformational displacement from C0 to C0n configurations
 
- extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+ extractDefDisp(node1, node2, node3, ns1, ns2, ns3, xl0, xln, t0, t0n, vld);
 
  int i, j;
 
  // Form unprojected internal forces and initialize stiffness matrix
 
- for(i=0; i<18; ++i) {
+ for(i = 0; i < 18; ++i) {
   locF[i] = 0.0;
-  for(j=0; j<18; ++j)
+  for(j = 0; j < 18; ++j)
     elK[i][j] = origK[i][j];
  }
 
  // compute locF (local Force) as origK*vld
- _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
+ _FORTRAN(dgemv)('N', 18, 18, 1.0, (double *)origK, 18, vld, 1, 0.0, locF, 1);
 
  // Compute gradients of the nodal deformational pseudorotations
  // Correct element stiffness and internal force
@@ -93,16 +92,16 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  double rotvar[3][3][3];
 
  int inode;
- for(inode=0; inode<3; ++inode)
-   pseudorot_var( vld+inode*6+3, rotvar[inode] );
+ for(inode = 0; inode < 3; ++inode)
+   pseudorot_var(vld+inode*6+3, rotvar[inode]);
 
-  leftmult_rotvar( 3, 1, rotvar, elK);
- rightmult_rotvar( 3, 0, rotvar, elK);
+ leftmult_rotvar(3, 1, rotvar, elK);
+ rightmult_rotvar(3, 0, rotvar, elK);
 
  double fe[18];
 
- for(inode=0; inode<3; ++inode)
-   for(i=0; i<3; ++i) {
+ for(inode = 0; inode < 3; ++inode)
+   for(i = 0; i < 3; ++i) {
      fe[6*inode+i]   = locF[6*inode+i];
      fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
                        rotvar[inode][1][i]*locF[6*inode+4] +
@@ -114,8 +113,8 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  for(inode = 0; inode<3; ++inode) {
    pseudorot_2var(vld+inode*6+3, locF+inode*6+3, rotvar[inode]);
-   for(i=0; i<3; ++i)
-     for(j=0; j<3; ++j)
+   for(i = 0; i < 3; ++i)
+     for(j = 0; j < 3; ++j)
        elK[i+inode*6+3][j+inode*6+3] += rotvar[inode][i][j];
  }
 
@@ -131,12 +130,12 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  // Form: [K] = [P'][K]
 
- _FORTRAN(dgemm)('N','T',18,18,18,1.0,elK.data(),18,
-                   (double*)pmat,18,0.0,(double*)scrstiff,18);
+ _FORTRAN(dgemm)('N', 'T', 18, 18, 18, 1.0, elK.data(), 18,
+                 (double*)pmat, 18, 0.0, (double*)scrstiff, 18);
 
  // Form: {f} = [P']{fe}
 
-  _FORTRAN(dgemv)('N',18,18,1.0,(double *)pmat,18,fe,1,0.0,f,1);
+  _FORTRAN(dgemv)('N', 18, 18, 1.0, (double *)pmat, 18, fe, 1, 0.0, f, 1);
 
  // Form geometric stiffness from internal force and material stiffness
 
@@ -145,26 +144,26 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  //
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
  //
- formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2);
+ formGeometricStiffness(xl0, xln, pmat, gmat, f, stiffGeo1, stiffGeo2);
 
  // Assemble element tangent Stiffness Matrix K = Kg1 + Kg2 + P'KP
 
  // Sum geometric stiffness contributions into elK first
 
- for(i=0; i<18; ++i)
-   for(j=0; j<18; ++j)
+ for(i = 0; i < 18; ++i)
+   for(j = 0; j < 18; ++j)
      elK[i][j] = stiffGeo1[i][j] + stiffGeo2[i][j];
 
  //
  // Now multiply scrstiff by pmat on the right and sum into elK
  //
 
- _FORTRAN(dgemm)('N','N',18,18,18,1.0,(double*)pmat,18,
-                 (double*)scrstiff,18,1.0,elK.data(),18);
+ _FORTRAN(dgemm)('N', 'N', 18, 18, 18, 1.0, (double*)pmat, 18,
+                 (double*)scrstiff, 18, 1.0, elK.data(), 18);
 
  // transform stiffness matrix from local to global coordinates
 
-  _FORTRAN(trirotation)( elK.data(), (double*)t0n );
+ _FORTRAN(trirotation)(elK.data(), (double*)t0n);
 
  // transform internal force vector from local to global coordinates
 

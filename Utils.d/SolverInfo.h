@@ -408,6 +408,8 @@ struct SolverInfo {
    void initNLInfo() { if(NLInfo == 0) NLInfo = new NonlinearInfo; }
    NonlinearInfo & getNLInfo() { return *NLInfo; }
 
+   bool unsym() { return NLInfo ? NLInfo->unsymmetric : false; }
+
    int gepsFlg;         // Geometric pre-stress flag
    int buckling;        // Buckling analysis flag
    void setGEPS() { if(NLInfo == 0) NLInfo = new NonlinearInfo; gepsFlg  = 1; }

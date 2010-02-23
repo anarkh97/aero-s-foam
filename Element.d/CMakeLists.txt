@@ -167,6 +167,8 @@ Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f
 Membrane.d/trimem.f
+Membrane.d/trirotationx.f
+Membrane.d/FourNodeMembrane.C
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
 NonLinearity.d/2DMat.C
@@ -223,6 +225,7 @@ Shear.d/vec.f
 Shell.d/basico.f
 Shell.d/ConnectedTri.C
 Shell.d/FourNodeShell.C
+Shell.d/ExpFourNodeShell.C
 Shell.d/g_basico.f
 Shell.d/g_dummy.f
 Shell.d/g_mass8.f

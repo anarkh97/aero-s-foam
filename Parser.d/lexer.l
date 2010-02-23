@@ -191,6 +191,10 @@ TRAIL [a-zA-Z]*
 
 "DISP"[a-zA-Z]*|"disp"[a-zA-Z]*    { return DISP; }
 
+"THRU"[a-zA-Z]*|"thru"[a-zA-Z]*    { return THRU; }
+
+"STEP"[a-zA-Z]*|"step"[a-zA-Z]*    { return STEP; }
+
 "LMPC"[a-zA-Z]*|"lmpc"[a-zA-Z]*    { return LMPC; }
 
 "HLMPC"[a-zA-Z]*|"hlmpc"[a-zA-Z]*  { return HLMPC; }

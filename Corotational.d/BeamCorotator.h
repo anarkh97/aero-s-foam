@@ -36,17 +36,17 @@ class BeamCorotator : public Corotator {
 
    void corotStiffGeo(double zVecL[2][3],
                       double xln[2][3], double pmat[12][12], double f[12],
-                      double stiffGeo1[12][12], double stiffGeo2[12][12]);
+                      double stiffGeo1[12][12], double stiffGeo2[12][12], double zn[3]);
 
    void spinAxialAndMoment (double f[], double fnm[][3]);
 
    void spinAxial(double f[], double fn[][3]);
     
    void gradLocRot(double len, double zVecL[2][3], 
-                   double gmat[3][12]);
+                   double gmat[3][12], double zn[3]);
 
    void gradDefDisp(double zVecL[][3],double xln[][3],
-                    double pmat[12][12]);
+                    double pmat[12][12], double zn[3]);
 
    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                             int &nlflag);

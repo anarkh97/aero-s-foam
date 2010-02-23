@@ -352,12 +352,9 @@ class BaseSub : virtual public Domain
 
   void setDirichletBC(list<BCond *> *_list);
   void setNeumanBC(list<BCond *> *_list);
-  void setConvection(list<BCond *> *_list);
-  void setRadiation(list<BCond *> *_list);
   void setInitialDisplacement(list<BCond *> *_list);
   void setInitialDisplacement6(list<BCond *> *_list);
   void setInitialVelocity(list<BCond *> *_list);
-  void setInitialTemperature(list<BCond *> *_list);
   void setSensor(list<BCond *> *_list);
   void setActuator(list<BCond *> *_list);
   void setUsdd(list<BCond *> *_list);

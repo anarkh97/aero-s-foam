@@ -166,18 +166,12 @@ class Domain : public HData {
      int numCTC;                // total number of contact constraints
      int numNeuman;		// number of Neuman bc
      BCond* nbc;		// set of Neuman bc
-     int numConvBC;             // number of convective bc
-     BCond* cvbc;               // set of convective bc
-     int numRadBC;              // number of radiative bc
-     BCond* rdbc;               // set of radiative bc
      int numIDis;		// number of Initial displacements
      BCond *iDis;		// set of those initial displacements
      int numIDis6;		// number of Initial displacements (6 column)
      BCond* iDis6;              // set of those intitial displacements
      int numIVel;		// number of initial velocities
      BCond *iVel;		// set of those initial velocities
-     int numITemp;		// number of initial temperatures
-     BCond *iTemp;		// set of those intitial temperatures
 
      DofSetArray *dsa;		// Dof set array
      DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
@@ -338,13 +332,10 @@ class Domain : public HData {
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
      virtual int  setNeuman(int,BCond *);
-     int  setConvBC(int,BCond *);
-     int  setRadBC(int,BCond *);
      int  setIDis6(int, BCond *);
      int  setIDis(int, BCond *);
      int  setIVel(int, BCond *);
      int  setIAcc(int, BCond *);
-     int  setITemp(int, BCond *);
      int  setMFTT(MFTTData *);
      int  setMPTT(MFTTData *);
      int  setHFTT(MFTTData *);
@@ -552,7 +543,10 @@ class Domain : public HData {
              double *xdata, int *dofx, double *ydata=0, int *dofy=0, double *zdata=0, int *dofz=0);
      void addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x, double &y, double &z);
      void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
+     void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void buildThermoelasticForce(Vector& f, GeomState *geomState = 0);
      void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,

@@ -80,6 +80,7 @@ class MDNLDynamic
     int prevIndex;
     double prevTime;
     DistrVector *aeroForce;
+    DistrVector *nodalTemps;
 
  public:
 
@@ -162,6 +163,8 @@ class MDNLDynamic
     void updateMpcRhs(DistrGeomState &geomState);
     int getAeroAlg();
     int getThermoeFlag();
+    int getThermohFlag();
+    int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
@@ -181,8 +184,12 @@ class MDNLDynamic
     void subExtractControlDisp(int isub, DistrGeomState &geomState, double *ctrdsp);
     int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &);
     void thermoePreProcess();
+    void thermohPreProcess(DistrVector &);
+    void aeroheatPreProcess(DistrVector &, DistrVector &, DistrVector &);
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
+    void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
+    void subAddThermoeForce(int isub, DistrVector* v1, DistrVector* v2);
 };
 
 inline double

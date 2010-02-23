@@ -19,8 +19,9 @@
 #include <Hetero.d/DistFlExchange.h>
 #include <Utils.d/SolverInfo.h>
 #include <Feti.d/Feti.h>
+#include <Utils.d/ModeData.h>
 
-class IntFullM;
+extern ModeData modeData;
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
                DistrVector *_v1, DistrVector*_v2, double c, CuCSparse **_Kuc)
@@ -79,6 +80,15 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
  sd = _sd;
 }
 
+MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
+                  DistrVector *_v1, DistrVector *_v2)
+{
+ v1 = _v1;
+ v2 = _v2;
+ f  = _f;
+ sd = _sd;
+}
+
 
 void
 MultiDomainOp::runFor(int isub)
@@ -122,6 +132,17 @@ MultiDomainOp::getConstForce(int isub)
 }
 
 void
+MultiDomainOp::addThermoeForce(int isub)
+{
+  // Get the pointer to the part of the vector f correspoding to subdomain sNum
+  StackVector f(v1->subData(isub),v1->subLen(isub));
+
+  double *nodalTemperatures = v2->subData(isub);
+  sd[isub]->buildThermalForce(nodalTemperatures, f);
+}
+
+
+void
 MultiDomainOp::makeAllDOFs(int isub)
 {
   sd[isub]->makeAllDOFs();
@@ -152,6 +173,12 @@ MultiDomDynPostProcessor::setUserDefs(double **disps, double **vels)
 }
 
 void
+MultiDomDynPostProcessor::setNodalTemps(DistrVector* _nodalTemps)
+{
+  nodalTemps = _nodalTemps;
+}
+
+void
 MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVector &distForce, 
                                       DistrVector *distAeroF, SysState<DistrVector>& distState)
 {
@@ -162,7 +189,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
-    double t = double(tIndex)*domain->solInfo().dt;
+    double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
     //cerr << "getting usdd at time " << t << " for dynamOutput\n";
@@ -171,7 +198,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
     delete [] userDefineDisp; delete [] userDefineVel;
   }
 
-  // Send to fluid code (except C0)
+  // Send displacements to fluid code (except C0)
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20) {
     // Send u + IDISP6 to fluid code.
@@ -195,6 +222,30 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements ...\n");
+  }
+
+  if(sinfo.aeroheatFlag >= 0 && tIndex != 0) {
+    SysState<DistrVector> tempState(distState.getDisp(), distState.getVeloc(), distState.getPrevVeloc());
+
+    distFlExchanger->sendTemperature(tempState);
+    if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures (%e) ...\n", distState.getDisp().sqNorm());
+  }
+
+  if(sinfo.thermohFlag >= 0 && tIndex != 0) {
+
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      for(int j = 0; j < sd->numNodes(); ++j) {
+        int tloc  = sd->getCDSA()->locate(j, DofSet::Temp);
+        int tloc1 = sd->getDSA()->locate(j, DofSet::Temp);
+        double temp  = (tloc >= 0) ? distState.getDisp().subData(i)[tloc] : sd->getBcx()[tloc1];
+        if(tloc1 < 0) temp = 0.0;
+        nodalTemps->subData(i)[j] = temp;
+      }
+    }
+
+    distFlExchanger->sendStrucTemp(*nodalTemps);
+    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
   decDomain->postProcessing(distState.getDisp(), distForce, 0.0, distAeroF, tIndex, &dynOps, &distState); 
@@ -238,7 +289,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
 MultiDomainDynam::MultiDomainDynam(Domain *d)
 {
  domain = d;
-
+/*
  switch(domain->solInfo().type) {
    default:
    case 2: // FETI
@@ -262,6 +313,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
      filePrint(stderr, " ... Diag Parallel is Selected      ...\n");
      break;
   }
+*/
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<double>(domain);
 #else
@@ -384,7 +436,7 @@ MultiDomainDynam::initSubPrescribedDisplacement(int isub)
 void
 MultiDomainDynam::getTimes(double &dt, double &tmax)
 {
-  dt   = domain->solInfo().dt;
+  dt   = domain->solInfo().getTimeStep();
   tmax = domain->solInfo().tmax;
 }
 
@@ -406,11 +458,12 @@ MultiDomainDynam::getTimeIntegration()
 {
   return domain->solInfo().timeIntegration;
 }
-                                                                                                 
+
+#include <algorithm>
 int
 MultiDomainDynam::getFilterFlag()
 {
-  return domain->solInfo().filterFlags;
+  return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int*
@@ -480,11 +533,11 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     times->updateSurfsTime += getTime();
 
     times->contactSearchTime -= getTime();
-    domain->PerformDynamicContactSearch(domain->solInfo().dt);
+    domain->PerformDynamicContactSearch(domain->solInfo().getTimeStep());
     times->contactSearchTime += getTime();
 
     times->contactForcesTime -= getTime();
-    domain->AddContactForces(domain->solInfo().dt, ctc_f);
+    domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
     times->contactForcesTime += getTime();
 
     (*dprev) = d;
@@ -564,14 +617,15 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     }
   }
 
-  // AERO
+  // add aeroelastic forces from fluid dynamics code
   SolverInfo& sinfo = domain->solInfo();
-  if(sinfo.aeroFlag >= 0) {
+  if(sinfo.aeroFlag >= 0 && tIndex >= 0) {
 
     aeroForce->zero();
     int iscollocated;
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
                                                   alphaf, iscollocated);
+    if(verboseFlag) filePrint(stderr," ... [E] Received fluid forces ...\n");
 
     if (iscollocated == 0) {
       if(prevIndex >= 0) {
@@ -594,9 +648,39 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     prevIndex = tIndex;
   }
 
+  // add aerothermal fluxes from fluid dynamics code
+  if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) {
+
+    aeroForce->zero();
+    double tFluid = distFlExchanger->getFluidFlux(*aeroForce, tIndex, t);
+    if(verboseFlag) filePrint(stderr," ... [T] Received fluid fluxes (%e) ...\n", aeroForce->sqNorm());
+
+    /*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
+
+    int useProjector = domain->solInfo().filterFlags;
+
+    if(tIndex == 0)
+      f += *aeroForce;
+    else {
+      if(useProjector) f = *aeroForce;
+      else
+        f.linAdd(0.5, *aeroForce, 0.5, *prevFrc);
+    }
+
+    *prevFrc = *aeroForce;
+  }
+
+  // add thermoelastic forces from thermo dynamics code
+  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
+    distFlExchanger->getStrucTemp(nodalTemps->data());
+    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
+    MultiDomainOp mdop(&MultiDomainOp::addThermoeForce, decDomain->getAllSubDomains(), &f, nodalTemps);
+    threadManager->execParal(decDomain->getNumSub(), &mdop);
+  }
+
   // KHP: apply projector here
-  int useProjector = domain->solInfo().filterFlags;
-  if(useProjector) trProject(f);
+  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+    trProject(f);
 
   if(tIndex == 1)
     domain->solInfo().initExtForceNorm = f.norm();
@@ -812,8 +896,9 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t)
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
   }
-  int useProjector = domain->solInfo().filterFlags;
-  if(useProjector) trProject(f);
+
+  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+    trProject(f);
 }
 
 void
@@ -859,7 +944,7 @@ MultiDomainDynam::computeTimeInfo()
 
   // Get total time and time step size and store them
   double totalTime = domain->solInfo().tmax;
-  double dt        = domain->solInfo().dt;
+  double dt        = domain->solInfo().getTimeStep();
 
   // Compute maximum number of steps
   int maxStep = (int) ( (totalTime+0.49*dt)/dt );
@@ -882,6 +967,7 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrcBackup = new DistrVector(solVecInfo());
   prevIndex = -1;
   prevTime = 0;
 
@@ -926,7 +1012,7 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     dsa[iSub] = subdomain[iSub]->getDSA();
 
     // allocate and initialize for the user defined disps and vels
-    int numDofs = dsa[iSub]->numNodes();
+    int numDofs = dsa[iSub]->size();
     usrDefDisps[iSub] = new double[numDofs];
     usrDefVels[iSub] = new double[numDofs];
 
@@ -936,8 +1022,26 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     }
   }
 
+  int numOutInfo = geoSource->getNumOutInfo();
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  int flag = 0;
+
+  // Check if aero forces are requested for output
+  int iInfo;
+  for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+    if(oinfo[iInfo].type == OutputInfo::AeroForce) {
+      flag = 1;
+      break;
+    }
+  }
+
   // create distributed fluid exchanger
-  distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+  if(flag)
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo+iInfo);
+  else
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+
   mddPostPro->setPostProcessor(distFlExchanger);
   mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
 
@@ -946,25 +1050,59 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
 
   int restartinc = (sinfo.nRestart >= 0) ? (sinfo.nRestart) : 0;
 
-  //fprintf(stderr,"struct cpu %d Sending Parameters to Fluid Code\n", structCom->myID());
+  DistrVector dispAero(disp); 
 
-  distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.dt, sinfo.tmax, restartinc,
-                             sinfo.isCollocated, sinfo.alphas);
+  if(sinfo.gepsFlg == 1) {
+    // If we are in the first time step, and we initialized with
+    // IDISP6, do not send IDISP6
+    if(domain->numInitDisp() == 0 && sinfo.zeroInitialDisp != 1) {
+      filePrint(stderr," ... DO NOT SEND IDISP6 0\n"); //HB
+    } else {
+      filePrint(stderr," ... SENDING IDISP6 0\n"); //HB
+      for(iSub = 0; iSub < numLocSub; iSub++) {
+        BCond* iDis6 = subdomain[iSub]->getInitDisp6();
+        for(int i = 0; i < subdomain[iSub]->numInitDisp6(); ++i) {
+          int dof = cdsa[iSub]->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
+          if(dof >= 0)
+            dispAero[dof] += iDis6[i].val;
+        }
+      }
+    }
+  }
 
-  // initialize the Parity
-  if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
-     distFlExchanger->initRcvParity(1);
-     distFlExchanger->initSndParity(1);
-   } else {
-     distFlExchanger->initRcvParity(-1);
-     distFlExchanger->initSndParity(-1);
-   }
+  SysState<DistrVector> state(dispAero, vel, accel, lastVel);
 
-  // create distributed state vector
-  SysState<DistrVector> state(disp, vel, accel, lastVel);
+  if(sinfo.aeroFlag == 8) {
+    distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
+                               restartinc, sinfo.isCollocated, sinfo.alphas);
+    distFlExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
+    if(verboseFlag) filePrint(stderr,"... [E] Sent parameters and mode frequencies ...\n");
+    distFlExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
+                                    modeData.modes, state, sinfo.mppFactor);
+    if(verboseFlag) filePrint(stderr,"... [E] Sent mode shapes ...\n");
+  }
+  else {
+    distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
+                               sinfo.isCollocated, sinfo.alphas);
+    if(verboseFlag) filePrint(stderr,"... [E] Sent parameters ...\n");
 
-  // send initial displacements
-  distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+    // initialize the Parity
+    if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
+       distFlExchanger->initRcvParity(1);
+       distFlExchanger->initSndParity(1);
+     } else {
+       distFlExchanger->initRcvParity(-1);
+       distFlExchanger->initSndParity(-1);
+     }
+
+    // send initial displacements
+    distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+    if(verboseFlag) filePrint(stderr,"... [E] Sent initial displacements ...\n");
+
+    if(sinfo.aeroFlag == 1) { // Ping pong only
+      filePrint(stderr, "Ping Pong Only requested. Structure code exiting\n");
+    }
+  }
 
   return sinfo.aeroFlag;
 }
@@ -1008,21 +1146,173 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
 }
 
 void
-MultiDomainDynam::a5TimeLoopCheck(int&, double&, double)
+MultiDomainDynam::a5TimeLoopCheck(int& parity, double& t, double dt)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: a5TimeLoopCheck not implemented here\n");
+  if(domain->solInfo().aeroFlag == 5) {
+     if(!parity) t -= dt;
+     parity = ( parity ? 0 : 1 );
+  }
 }
 
 void
-MultiDomainDynam::a5StatusRevise(int, SysState<DistrVector>&, SysState<DistrVector>&)
+MultiDomainDynam::a5StatusRevise(int parity, SysState<DistrVector>& curState, SysState<DistrVector>& bkState)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: a5StatusRevise not implemented here\n");
+  if(domain->solInfo().aeroFlag == 5) {
+    if(parity) { // restore
+      *prevFrc = *prevFrcBackup;
+      prevIndex = prevIndexBackup;
+      prevTime = prevTimeBackup;
+      curState.getDisp()      = bkState.getDisp();
+      curState.getVeloc()     = bkState.getVeloc();
+      curState.getAccel()     = bkState.getAccel();
+      curState.getPrevVeloc() = bkState.getPrevVeloc();
+    }
+    else { // backup
+      *prevFrcBackup = *prevFrc;
+      prevIndexBackup = prevIndex;
+      prevTimeBackup = prevTime;
+      bkState.getDisp()      = curState.getDisp();
+      bkState.getVeloc()     = curState.getVeloc();
+      bkState.getAccel()     = curState.getAccel();
+      bkState.getPrevVeloc() = curState.getPrevVeloc();
+    }
+  }
 }
 
 void
 MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: thermoePreProcess not implemented here\n");
+  if(domain->solInfo().thermoeFlag >=0) {
+
+    Connectivity *cpuToSub = geoSource->getCpuToSub();
+    int myId = structCom->myID();
+    int numLocSub = cpuToSub->num(myId);
+    SubDomain **subdomain = decDomain->getAllSubDomains();
+
+    // if sinfo.aeroFlag >= 0, flExchanger has already been initialize before,
+    // thus, only when sinfo.aeroFlag < 0 is necessary.
+    if(domain->solInfo().aeroFlag < 0) {
+
+      // allocate for pointer arrays
+      CoordSet **cs = new CoordSet *[numLocSub];
+      Elemset **elemSet = new Elemset *[numLocSub];
+      DofSetArray **cdsa = new DofSetArray *[numLocSub];
+      DofSetArray **dsa = new DofSetArray *[numLocSub];
+      usrDefDisps = new double *[numLocSub];
+      usrDefVels = new double *[numLocSub];
+
+      int iSub;
+      for(iSub = 0; iSub < numLocSub; iSub++)  {
+
+        // assemble coordsets in this mpi
+        cs[iSub] = &subdomain[iSub]->getNodes();
+
+        // assemble element sets in this mpi
+        elemSet[iSub] = &subdomain[iSub]->getElementSet();
+
+        // assemble constrained and unconstrained dofset arrays in this mpi
+        cdsa[iSub] = subdomain[iSub]->getCDSA();
+        dsa[iSub] = subdomain[iSub]->getDSA();
+
+        // allocate and initialize for the user defined disps and vels
+        int numDofs = dsa[iSub]->size();
+        usrDefDisps[iSub] = new double[numDofs];
+        usrDefVels[iSub] = new double[numDofs];
+
+        for(int iDof = 0; iDof < numDofs; iDof++)  {
+          usrDefDisps[iSub][iDof] = 0.0;
+          usrDefVels[iSub][iDof] = 0.0;
+        }
+      }
+
+      distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+      mddPostPro->setPostProcessor(distFlExchanger);
+      mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
+    }
+
+    nodalTemps = new DistrVector(decDomain->ndVecInfo());
+    int buffLen = nodalTemps->size();
+   
+    distFlExchanger->thermoread(buffLen);
+
+    distFlExchanger->getStrucTemp(nodalTemps->data()) ;
+    if(verboseFlag) filePrint(stderr," ... [E] Received initial temperatures ...\n");
+  }
+
+}
+
+void
+MultiDomainDynam::thermohPreProcess(DistrVector& d, DistrVector&, DistrVector&)
+{
+  if(domain->solInfo().thermohFlag >=0) {
+
+    Connectivity *cpuToSub = geoSource->getCpuToSub();
+    int myId = structCom->myID();
+    int numLocSub = cpuToSub->num(myId);
+    SubDomain **subdomain = decDomain->getAllSubDomains();
+
+    // if sinfo.aeroheatFlag >= 0, flExchanger has already been initialize before,
+    // thus, only when sinfo.aeroheatFlag < 0 is necessary.
+    if(domain->solInfo().aeroheatFlag < 0) {
+
+      // allocate for pointer arrays
+      CoordSet **cs = new CoordSet *[numLocSub];
+      Elemset **elemSet = new Elemset *[numLocSub];
+      DofSetArray **cdsa = new DofSetArray *[numLocSub];
+      DofSetArray **dsa = new DofSetArray *[numLocSub];
+      usrDefDisps = new double *[numLocSub];
+      usrDefVels = new double *[numLocSub];
+
+      int iSub;
+      for(iSub = 0; iSub < numLocSub; iSub++)  {
+
+        // assemble coordsets in this mpi
+        cs[iSub] = &subdomain[iSub]->getNodes();
+
+        // assemble element sets in this mpi
+        elemSet[iSub] = &subdomain[iSub]->getElementSet();
+
+        // assemble constrained and unconstrained dofset arrays in this mpi
+        cdsa[iSub] = subdomain[iSub]->getCDSA();
+        dsa[iSub] = subdomain[iSub]->getDSA();
+
+        // allocate and initialize for the user defined disps and vels
+        int numDofs = dsa[iSub]->size();
+        usrDefDisps[iSub] = new double[numDofs];
+        usrDefVels[iSub] = new double[numDofs];
+
+        for(int iDof = 0; iDof < numDofs; iDof++)  {
+          usrDefDisps[iSub][iDof] = 0.0;
+          usrDefVels[iSub][iDof] = 0.0;
+        }
+      }
+
+      distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+      mddPostPro->setPostProcessor(distFlExchanger);
+      mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
+    }
+
+    nodalTemps = new DistrVector(decDomain->ndVecInfo());
+    int buffLen = nodalTemps->size();
+    mddPostPro->setNodalTemps(nodalTemps);
+
+    distFlExchanger->thermoread(buffLen);
+
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      for(int j = 0; j < sd->numNodes(); ++j) {
+        int tloc  = sd->getCDSA()->locate(j, DofSet::Temp);
+        int tloc1 = sd->getDSA()->locate(j, DofSet::Temp);
+        double temp  = (tloc >= 0) ? d.subData(i)[tloc] : sd->getBcx()[tloc1];
+        if(tloc1 < 0) temp = 0.0;
+        nodalTemps->subData(i)[j] = temp;
+      }
+    }
+
+    distFlExchanger->sendStrucTemp(*nodalTemps);
+    if(verboseFlag) filePrint(stderr," ... [T] Sent initial temperatures ...\n");
+  }
+
 }
 
 int
@@ -1030,3 +1320,117 @@ MultiDomainDynam::getThermoeFlag()
 {
   return domain->solInfo().thermoeFlag;
 }
+
+int
+MultiDomainDynam::getThermohFlag()
+{
+  return domain->solInfo().thermohFlag;
+}
+
+void
+MultiDomainDynam::aeroHeatPreProcess(DistrVector& disp, DistrVector& vel, DistrVector& lastVel)
+{
+  // get solver info
+  SolverInfo& sinfo = domain->solInfo();
+
+  // Initialize previous force data
+  // Reexamine for the case of restart
+  prevFrc = new DistrVector(solVecInfo());
+  prevFrcBackup = new DistrVector(solVecInfo());
+  prevIndex = -1;
+  prevTime = 0;
+
+  // Initialize the aeroforce vector
+  aeroForce = new DistrVector(solVecInfo());
+
+  if(sinfo.aeroheatFlag < 0)
+    return;
+
+  Connectivity *cpuToSub = geoSource->getCpuToSub();
+
+  // get cpu id
+#ifdef USE_MPI
+  int myId = structCom->myID();
+#else
+  int myId = 0;
+#endif
+
+  int numLocSub = cpuToSub->num(myId);
+
+  SubDomain **subdomain = decDomain->getAllSubDomains();
+
+  // allocate for pointer arrays
+  CoordSet **cs = new CoordSet *[numLocSub];
+  Elemset **elemSet = new Elemset *[numLocSub];
+  DofSetArray **cdsa = new DofSetArray *[numLocSub];
+  DofSetArray **dsa = new DofSetArray *[numLocSub];
+  usrDefDisps = new double *[numLocSub];
+  usrDefVels = new double *[numLocSub];
+
+  int iSub;
+  for(iSub = 0; iSub < numLocSub; iSub++)  {
+
+    // assemble coordsets in this mpi
+    cs[iSub] = &subdomain[iSub]->getNodes();
+
+    // assemble element sets in this mpi
+    elemSet[iSub] = &subdomain[iSub]->getElementSet();
+
+    // assemble constrained and unconstrained dofset arrays in this mpi
+    cdsa[iSub] = subdomain[iSub]->getCDSA();
+    dsa[iSub] = subdomain[iSub]->getDSA();
+
+    // allocate and initialize for the user defined disps 
+    int numDofs = dsa[iSub]->size();
+    usrDefDisps[iSub] = new double[numDofs];
+
+    for(int iDof = 0; iDof < numDofs; iDof++)  {
+      usrDefDisps[iSub][iDof] = 0.0;
+    }
+  }
+
+  int numOutInfo = geoSource->getNumOutInfo();
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  int flag = 0;
+
+  // Check if aero fluxes are requested for output
+  int iInfo;
+  for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+    if(oinfo[iInfo].type == OutputInfo::AeroForce) {
+      flag = 1;
+      break;
+    }
+  }
+
+  // create distributed fluid exchanger
+  if(flag)
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo+iInfo);
+  else
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+
+  mddPostPro->setPostProcessor(distFlExchanger);
+  mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
+
+  // negotiate with the fluid code
+  distFlExchanger->negotiate();
+
+  int restartinc = (sinfo.nRestart >= 0) ? (sinfo.nRestart) : 0;
+
+  SysState<DistrVector> state(disp, vel, lastVel);
+
+  distFlExchanger->sendTempParam(sinfo.aeroheatFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
+                                 sinfo.alphat);
+  if(verboseFlag) filePrint(stderr,"... [T] Sent parameters ...\n");
+
+  // send initial displacements
+  distFlExchanger->sendTemperature(state);
+  if(verboseFlag) filePrint(stderr,"... [T] Sent initial temperatures ...\n");
+}
+
+int
+MultiDomainDynam::getAeroheatFlag()
+{
+  return domain->solInfo().aeroheatFlag;
+}
+

@@ -5,7 +5,7 @@
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/DecDomain.h>
 #include <Threads.d/PHelper.h>
-
+#include <Corotational.d/TemperatureState.h>
 
 DistrGeomState::DistrGeomState(DecDomain* domain)
 {
@@ -24,7 +24,10 @@ void
 DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
 {
  SubDomain *sd = domain->getSubDomain(isub);
- gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+ if(sd->solInfo().soltyp == 2)
+   gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+ else
+   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)
@@ -37,7 +40,9 @@ DistrGeomState::DistrGeomState(const DistrGeomState &g2)
 void
 DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
 {
-  gs[isub] = new GeomState(*(g2[isub]));
+  TemperatureState* ts;
+  if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
+  else gs[isub] = new GeomState(*(g2[isub]));
 }
 
 // Subdomain update

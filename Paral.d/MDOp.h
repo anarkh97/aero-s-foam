@@ -18,23 +18,27 @@ class MultiDomainOp : public TaskDescr {
     DistrVector *v1, *v2, *v3, *v4;
     double c1;    // obviously c1 refers to the time, duh
     double *userDefDisps;
+    double **temprcvd;
 
     void  (MultiDomainOp::*f)(int);
  public:
     MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector*_v2, double c, CuCSparse **Kuc);
+                  DistrVector* _v1, DistrVector* _v2, double c, CuCSparse **Kuc);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
-                  DistrVector *, DistrVector*, double, double *userDefDisps = 0);
+                  DistrVector*, DistrVector*, double, double *userDefDisps = 0);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
-                  DistrVector *, DistrVector*, DistrVector*, DistrVector*);
+                  DistrVector*, DistrVector*, DistrVector*, DistrVector*);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
-                  DistrVector *, DistrVector*, DistrVector*);
+                  DistrVector*, DistrVector*, DistrVector*);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
-                  DistrVector *);
+                  DistrVector*);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **);
+    MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
+                  DistrVector*, DistrVector*);
 
     void computeExtForce(int);
     void getConstForce(int);
+    void addThermoeForce(int);
     void getInitState(int);
     void runFor(int);
     void makeAllDOFs(int);

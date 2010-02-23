@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <map>
+#include <algorithm>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -18,6 +19,11 @@ using namespace std;
 
 struct SolverInfo {
 
+ private:
+   double dt;           // time step value
+   double dtemp;        // thermal time step value
+
+ public:
    // Problem Type parameters
    enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam, 
 	  ArcLength, ConditionNumber, TempDynamic, Top,
@@ -93,8 +99,10 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
-   double dt;           // structural time step value
+/* these are now private, use getTimeStep and setTimeStep functions to access
+   double dt;           // time step value
    double dtemp;        // thermal time step value
+*/
    double alphaDamp;    // Rayleigh Mass damping coefficient 
    double betaDamp;     // Rayleigh Stiffness damping coefficient
    double alphaTemp;
@@ -529,7 +537,8 @@ struct SolverInfo {
    {
      timeIntegration = Newmark;
      order = 1;
-     alphaTemp = epsiln;
+     newmarkGamma = alphaTemp = epsiln;
+     if(newmarkGamma == 0) newmarkBeta = 0; // this is used to flag explicit scheme
      //if(alphaTemp < 0.5){
      //   fprintf(stderr," ... WARNING: UNSTABLE EXPLICIT SCHEME ...\n");
      // }
@@ -557,6 +566,18 @@ struct SolverInfo {
        qsMaxvel = 1.0;
        fprintf(stderr, " ... Setting Max Quasi-Static Velocity Parameter to 1.0\n");
      }
+   }
+
+   double getTimeStep() 
+   {
+     if(thermoeFlag || thermohFlag) return std::min(dt, dtemp);
+     else return (order == 1) ? dtemp : dt;
+   }
+
+   void setTimeStep(double _dt)
+   {
+     if(order == 1) dtemp = _dt;
+     else dt = _dt;
    }
  
    // set parameters for eigen problem  

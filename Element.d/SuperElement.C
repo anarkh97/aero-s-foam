@@ -12,17 +12,6 @@ SuperElement::renum(int *table)
   for(i=0; i<nSubElems; ++i) subElems[i]->renum(table);
 }
 
-void
-SuperElement::buildCorotator(CoordSet &cs) 
-{
-  if(!superCorotator) {
-    superCorotator = new SuperCorotator(this);
-    int i;
-    for(i=0; i<nSubElems; ++i) 
-      subElems[i]->buildCorotator(cs);
-  }
-}
-
 void 
 SuperElement::setProp(StructProp *p, bool _myProp) 
 {
@@ -445,13 +434,6 @@ int
 SuperElement::getCompositeLayer()
 {
   return subElems[0]->getCompositeLayer(); // all sub-elements should have same composite layer
-}
-
-double 
-SuperElement::getMoment(Vector& force, CoordSet& cs, int node, int idir)
-{
-  cerr << " *** WARNING: SuperElement::getMoment(...) is not implemented \n";
-  return 0.0;
 }
 
 int

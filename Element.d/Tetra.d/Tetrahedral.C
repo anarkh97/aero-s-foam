@@ -628,14 +628,8 @@ Tetrahedral::markDofs(DofSetArray &dsa)
 Corotator *
 Tetrahedral::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- return(new TetCorotator(nn, prop->E, prop->nu, cs));
-}
-
-void Tetrahedral::buildCorotator(CoordSet &cs)  
-{ 
-  if(!tetCorotator)
-    tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs); 
-
+ if(!tetCorotator) tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs);
+ return tetCorotator;
 }
 
 //---------------------------------------------------------------------------------

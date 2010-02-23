@@ -54,7 +54,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   else
   {
     domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().dt * domain->solInfo().Jratio * sliceRank;
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
     GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
     GenVector<double> dummy_vp(this->solVecInfo(), 0.0);
     updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);

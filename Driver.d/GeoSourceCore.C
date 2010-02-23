@@ -76,7 +76,10 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numProps = 0;
 
   // set file names to NULL
-  mapName = (char *) "CPUMAP";  // default cpu map
+  conName = NULL;
+  geoName = NULL;
+  decName = NULL;
+  mapName = (char*) "CPUMAP";  // default cpu map
   matchName = NULL;
 
   // initialize bc's
@@ -85,12 +88,9 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numDirichlet = 0;
   numDirichletFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
   numNeuman = 0;
-  numConvBC = 0;
-  numRadBC = 0;
   numIDis = 0;
   numIDis6 = 0;
   numIVel = 0;
-  numITemp = 0;
   numDampedModes = 0;
   numComplexDirichlet = 0;
   numComplexNeuman = 0;
@@ -129,7 +129,8 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   dbc = 0;
   dbcFluid = 0;
   nbc = 0;
-  textDBC = dbc = textNBC = nbc = cvbc = iDis = iDis6 = iVel = iTemp = modalDamping = 0;
+  textDBC = dbc = textNBC = nbc = iDis = iDis6 = iVel = modalDamping = 0;
+  //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
   surface_dbc = surface_nbc = surface_pres = 0;
 
@@ -1225,18 +1226,6 @@ int GeoSource::getNeumanBC(BCond *&bc)
   return numNeuman;
 }
 
-int GeoSource::getConvBC(BCond *&bc)
-{
-  bc = cvbc;
-  return numConvBC;
-}
-
-int GeoSource::getRadBC(BCond *&bc)
-{
-  bc = rdbc;
-  return numRadBC;
-}
-
 int GeoSource::getIDis(BCond *&bc)
 {
   bc = iDis;
@@ -1253,12 +1242,6 @@ int GeoSource::getIVel(BCond *&bc)
 {
   bc = iVel;
   return numIVel;
-}
-
-int GeoSource::getITemp(BCond *&bc)
-{
-  bc = iTemp;
-  return numITemp;
 }
 
 int GeoSource::getModalDamping(BCond *&damping)
@@ -1603,11 +1586,6 @@ void GeoSource::cleanAuxData()  {
     nbc = 0;
   }
 
-  if (cvbc)  {
-    delete [] cvbc;
-    cvbc = 0;
-  }
-
   if (iDis)  {
     delete [] iDis;
     iDis = 0;
@@ -1618,10 +1596,6 @@ void GeoSource::cleanAuxData()  {
     iVel = 0;
   }
 
-  if (iTemp)  {
-    delete [] iTemp;
-    iTemp = 0;
-  }
 }
 
 //--------------------------------------------------------------
@@ -2501,76 +2475,6 @@ int GeoSource::setNeuman(int _numNeuman, BCond *_nbc)
 
 //-------------------------------------------------------------------
 
-int GeoSource::setConvBC(int _numConvBC, BCond *_cvbc)
-{
-  if (cvbc) {
-
-    // Allocate memory for correct number of cvbc
-    BCond *nd = new BCond[numConvBC+_numConvBC];
-
-    // copy old cvbc
-    int i;
-    for (i = 0; i < numConvBC; ++i)
-      nd[i] = cvbc[i];
-
-    // copy new cvbc
-    for (i = 0; i < _numConvBC; ++i)
-      nd[i+numConvBC] = _cvbc[i];
-
-    // set correct number of cvbc
-    numConvBC += _numConvBC;
-
-    // delete old array of cvbc
-    delete [] cvbc;
-
-    // set new pointer to correct number of cvbc
-    cvbc = nd;
-
-  }
-  else  {
-    numConvBC = _numConvBC;
-    cvbc       = _cvbc;
-  }
-  return 0;
-}
-
-//-------------------------------------------------------------------
-
-int GeoSource::setRadBC(int _numRadBC, BCond *_rdbc)
-{
-  if (rdbc) {
-
-    // Allocate memory for correct number of rdbc
-    BCond *nd = new BCond[numRadBC+_numRadBC];
-
-    // copy old rdbc
-    int i;
-    for (i = 0; i < numRadBC; ++i)
-      nd[i] = rdbc[i];
-
-    // copy new rdbc
-    for (i = 0; i < _numRadBC; ++i)
-      nd[i+numRadBC] = _rdbc[i];
-
-    // set correct number of rdbc
-    numRadBC += _numRadBC;
-
-    // delete old array of rdbc
-    delete [] rdbc;
-
-    // set new pointer to correct number of rdbc
-    rdbc = nd;
-
-  }
-  else  {
-    numRadBC = _numRadBC;
-    rdbc       = _rdbc;
-  }
-  return 0;
-}
-
-//-------------------------------------------------------------------
-
 int GeoSource::setIDis6(int _numIDis6, BCond *_iDis6)
 {
 /*
@@ -2703,7 +2607,7 @@ int GeoSource::setIVel(int _numIVel, BCond *_iVel)
 }
 
 //-------------------------------------------------------------------
-
+/*
 int GeoSource::setITemp(int _numITemp, BCond *_iTemp)
 {
   if (iTemp) {
@@ -2736,7 +2640,7 @@ int GeoSource::setITemp(int _numITemp, BCond *_iTemp)
   }
   return 0;
 }
-
+*/
 //----------------------------------------------------------------
 
 int GeoSource::setModalDamping(int _numDampedModes, BCond *_modalDamping)
@@ -2883,8 +2787,8 @@ int GeoSource::addSurfacePressure(int _numSurfacePressure, BCond *_surface_pres)
 
 void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 	int (*matchRanges)[2], int numMatchRanges, int subNum,
-	int *clusToLocElem)  {
-
+	int *clusToLocElem) 
+{
   // get TOC
   BinFileHandler::OffType tocLoc;
   matchFile.read(&tocLoc, 1);
@@ -3018,7 +2922,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
   }
 #endif
 
-  if(domain->solInfo().aeroFlag >= 0) {
+  if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
     int numLocSub = 0;
 #ifdef USE_MPI
     int myID = structCom->myID();
@@ -3033,6 +2937,88 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
     matchData = new MatchData *[numLocSub];
     numGapVecs = new int[numLocSub];
     gapVec = new gVec[numLocSub];
+
+    // PJSA 02-04-2010
+    if(matchName != NULL) {
+      for(int locSub = 0; locSub < numLocSub; ++locSub) {
+        char fullDecName[32];
+        sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
+        BinFileHandler decFile(fullDecName, "rb");
+
+        // read some stuff from decFile which can now be discarded
+        int numClusSub;
+        decFile.read(&numClusSub, 1);
+        BinFileHandler::OffType curLoc = decFile.tell();
+        int glSub = (*cpuToSub)[myID][locSub];
+        int clusSub = numSub-1-glSub; // only one cluster currently supported
+        decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
+        BinFileHandler::OffType infoLoc;
+        decFile.read(&infoLoc, 1);
+        decFile.seek(infoLoc);
+        int (*nodeRanges)[2];
+        int numNodeRanges;
+        int numLocNodes = readRanges(decFile, numNodeRanges, nodeRanges);
+        int (*elemRanges)[2];
+        int numElemRanges;
+        int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
+
+        int minElemNum = elemRanges[0][0];
+        int maxElemNum = 0;
+        for(int iR = 0; iR < numElemRanges; iR++)  {
+          if(elemRanges[iR][0] < minElemNum)
+            minElemNum = elemRanges[iR][0];
+          if(elemRanges[iR][1] > maxElemNum)
+            maxElemNum = elemRanges[iR][1];
+        }
+        maxElemNum++;  // for easy allocation
+        int iElem;
+        int *cl2LocElem = new int[maxElemNum];
+        for(iElem = 0; iElem < maxElemNum; iElem++)
+          cl2LocElem[iElem] = -1;
+        iElem = 0;
+        for(int iR = 0; iR < numElemRanges; ++iR)
+          //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem)
+          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem)
+            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain
+
+        int nConnects;
+        decFile.read(&nConnects, 1);
+        if(nConnects > 0) {
+          int *connectedDomain = new int[nConnects];
+          decFile.read(connectedDomain, nConnects);
+          int size, numtarget;
+          decFile.read(&size, 1);
+          decFile.read(&numtarget, 1);
+          int *pointer = new int[size+1];
+          decFile.read(pointer, size+1);
+          if(numtarget > 0) {
+            int *target = new int[numtarget];
+            decFile.read(target, numtarget);
+            delete [] target;
+          }
+          delete [] pointer;
+          delete [] connectedDomain;
+        }
+
+        // now we are at the right place in decFile to read matcher stuff
+        int numMatchRanges;
+        int (*matchRanges)[2];
+        numMatchData[locSub] = readRanges(decFile, numMatchRanges, matchRanges);
+        matchData[locSub] = new MatchData[numMatchData[locSub]];
+        gapVec[locSub] = new double[numMatchData[locSub]][3];
+        if(numMatchRanges) {
+          char fullMatchName[32];
+          sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
+          BinFileHandler matchFile(fullMatchName, "rb");
+          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem);
+        }
+        delete [] cl2LocElem;
+      }
+    }
+    else {
+      fprintf(stderr,"*** ERROR: Binary Match File not specified\n");
+      exit (-1);
+    }
   }
 
   return numCPU;
@@ -3920,18 +3906,6 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
       sower.addChildToParentData<DMassIO>(DIMASS_TYPE, NODES_TYPE, 0, &dmv, massToNode);
     }
 
-  // CONVECTION
-  BCPair convPair = std::make_pair(numConvBC, cvbc);
-  implicitBC *convToNodes = new implicitBC(&convPair);
-  sower.addChildToParentData<BCDataIO<CONV_TYPE> >(CONV_TYPE, NODES_TYPE, 0, &convPair, convToNodes);
-  delete convToNodes;
-
-  // RADIATION
-  BCPair radPair = std::make_pair(numRadBC, rdbc);
-  implicitBC *radToNodes = new implicitBC(&radPair);
-  sower.addChildToParentData<BCDataIO<RAD_TYPE> >(RAD_TYPE, NODES_TYPE, 0, &radPair, radToNodes);
-  delete radToNodes;
-
   // INITIAL DISPLACEMENTS
   BCPair idispPair = std::make_pair(numIDis, iDis);
   implicitBC *idispToNodes = new implicitBC(&idispPair);
@@ -3949,13 +3923,13 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   implicitBC *ivelToNodes = new implicitBC(&ivelPair);
   sower.addChildToParentData<BCDataIO<IVEL_TYPE> >(IVEL_TYPE, NODES_TYPE, 0, &ivelPair, ivelToNodes);
   delete ivelToNodes;
-
+/*
   // INITIAL TEMPERATURES
   BCPair itempPair = std::make_pair(numITemp, iTemp);
   implicitBC *itempToNodes = new implicitBC(&itempPair);
   sower.addChildToParentData<BCDataIO<ITEMP_TYPE> >(ITEMP_TYPE, NODES_TYPE, 0, &itempPair, itempToNodes);
   delete itempToNodes;
-
+*/
   // COMPLEX DIRICHLET
   typedef std::pair<int, ComplexBCond*> ComplexBCPair;
   typedef ImplicitConnectivity<ComplexBCPair*, ComplexBCDataAccessor> implicitComplexBC;

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <Timers.d/GetTime.h>
 
+#define DEBUG_NEWTON // use this to output at every newton iteration
+
 extern int verboseFlag;
 
 template < class OpSolver, 
@@ -82,7 +84,9 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
      filePrint(stderr," ... Newton : Step #%d diverged after %d iterations\n",step,
                    numIter);
      filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
+#ifndef DEBUG_NEWTON
      probDesc->staticOutput( geomState, time, force, totalRes);
+#endif
      break;
    } 
 
@@ -96,9 +100,10 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
    filePrint(stderr," --------------------------------------\n");
    fflush(stderr);
-
+#ifndef DEBUG_NEWTON
    // Output current load step results
    probDesc->staticOutput(geomState, time, force, totalRes);
+#endif
 
    // increment load parameter
    lambda += deltaLambda;
@@ -378,6 +383,10 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
     // Check convergence using residual norm & incremental displacement norm
     converged = probDesc->checkConvergence(iter, normDv, residualNorm);
+
+#ifdef DEBUG_NEWTON
+    probDesc->staticOutput( geomState, double(iter), force, totalRes);
+#endif
 
     // If converged, break out of loop
     if(converged == 1) break; // PJSA_DEBUG don't test for divergence

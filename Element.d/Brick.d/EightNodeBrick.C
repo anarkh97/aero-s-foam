@@ -522,13 +522,6 @@ EightNodeBrick::getCorotator(CoordSet &cs, double *kel, int , int )
   return(new BrickCorotator(nn, prop->E, prop->nu, cs));
 }
 
-void EightNodeBrick::buildCorotator(CoordSet &cs)  
-{
-  if (!brickCorotator)
-    brickCorotator = new BrickCorotator(nn, prop->E, prop->nu, cs);
-}
-
-
 //  HB (09-23-03): implement thermal force 
 void
 EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,

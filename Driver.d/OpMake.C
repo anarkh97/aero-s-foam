@@ -880,18 +880,18 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    switch(sinfo.iterType) {
      default:
      case 0 : {
-       fprintf(stderr," ... CG Solver is Selected           ...\n");
+       filePrint(stderr," ... CG Solver is Selected           ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
      }
      case 4: {
-       fprintf(stderr," ... Bi-CG Solver is Selected       ...\n");
+       filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
        allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
      case 5: {
-       fprintf(stderr," ... CR Solver is Selected          ...\n");
+       filePrint(stderr," ... CR Solver is Selected          ...\n");
        allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
@@ -1362,25 +1362,25 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
   switch(sinfo.subtype) {
     default:
     case 0:
-      fprintf(stderr," ... Skyline Solver is Selected     ...\n");
+      filePrint(stderr," ... Skyline Solver is Selected     ...\n");
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 5:
-      fprintf(stderr," ... Frontal Solver is Selected     ...\n");
+      filePrint(stderr," ... Frontal Solver is Selected     ...\n");
       makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm, kelArray);
       systemSolver = allOps.sysSolver;
       break;
     case 1:
-      fprintf(stderr," ... Sparse Solver is Selected      ...\n");
+      filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
       spm->zeroAll(); // PJSA
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
-      fprintf(stderr," ... SGI Sparse Solver is Selected  ...\n");
+      filePrint(stderr," ... SGI Sparse Solver is Selected  ...\n");
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
@@ -1388,7 +1388,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
-      fprintf(stderr," ... SGI Skyline Solver is Selected ...\n");
+      filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
       makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -1399,7 +1399,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #ifdef USE_SPOOLES
     case 8:
-      fprintf(stderr," ... Spooles Solver is Selected     ...\n");
+      filePrint(stderr," ... Spooles Solver is Selected     ...\n");
       spm = constructSpooles<Scalar>(c_dsa, rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
@@ -1419,7 +1419,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
     case 10:
-      fprintf(stderr," ... Diagonal Solver is Selected    ...\n");
+      filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
       //fprintf(stderr,"Warning, RBMs are not taken into account\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -1436,18 +1436,18 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 {
   switch(sinfo.subtype) {
     case 2:
-      fprintf(stderr," ... Node Based Sparse Matrix       ...\n");
+      filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
       spm = constructNBSparseMatrix<Scalar>();
       break;
     default:
     case 3:
-      fprintf(stderr," ... Dof Based Sparse Matrix        ...\n");
+      filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
       spm = constructDBSparseMatrix<Scalar>();
       break;
   }
   switch(sinfo.precond) {
     case 1:
-      fprintf(stderr," ... Diagonal Preconditioner        ...\n");
+      filePrint(stderr," ... Diagonal Preconditioner        ...\n");
       GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(c_dsa);
       allOps.prec = (GenSolver<Scalar> *) diag;
       allOps.spp = (GenSparseMatrix<Scalar> *) diag;
@@ -1459,7 +1459,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
   switch(sinfo.iterType) {
     default:
     case 0: {
-      fprintf(stderr," ... CG Solver is Selected          ...\n");
+      filePrint(stderr," ... CG Solver is Selected          ...\n");
       if (sinfo.precond==3) {
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
         prec_solver->zeroAll();
@@ -1475,21 +1475,21 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       break;
     }
     case 4: {
-      fprintf(stderr," ... Bi-CG Solver is Selected       ...\n");
+      filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
       GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
         *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = bcgSolver;
       break;
     }
     case 5: {
-      fprintf(stderr," ... CR Solver is Selected          ...\n");
+      filePrint(stderr," ... CR Solver is Selected          ...\n");
       GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
         *crSolver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = crSolver;
       break;
     }
     case 1 : {
-      fprintf(stderr," ... GMRES Solver is Selected       ...\n");
+      filePrint(stderr," ... GMRES Solver is Selected       ...\n");
       GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
         *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
          (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, allOps.prec, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
@@ -1813,20 +1813,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
   }
 
-   // ... ADD BOUNDARY CONVECTIVE FLUXES
-  for(i=0; i<numConvBC; ++i) {
-    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], cvbc[i].val);
-  }
-
-  // ... ADD BOUNDARY RADIATIVE FLUXES
-  for(i=0; i<numRadBC; ++i) {
-    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], rdbc[i].val);
-  }
-
   if (implicitFlag) {
     int i, iele;
     double *direction = getWaveDirection();
@@ -2063,21 +2049,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   if(sinfo.thermalLoadFlag) {
     double *nodalTemperatures = getNodalTemperatures();
     buildThermalForce(nodalTemperatures, force, gs);
-  }
-
-  // ... ADD BOUNDARY CONVECTIVE FLUXES
-  for(i=0; i<numConvBC; ++i) {
-    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], cvbc[i].val);
-  }
-
-  // ... ADD BOUNDARY RADIATIVE FLUXES
-  for(i=0; i<numRadBC; ++i) {
-    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-    fprintf(stderr,"i=%d, rdbc[i].nnum = %d, rdbc[i].val=%f\n",i,rdbc[i].nnum,rdbc[i].val);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], rdbc[i].val);
   }
 
   // scale RHS force for coupled domains
@@ -3146,14 +3117,21 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
     kuc->multSubtract(Vc, f);
   }
 
-  // ... COMPUTE TIME DEPENDENT FORCE COEFFICIENT (MFTT) if present
+  // COMPUTE TIME DEPENDENT FORCE COEFFICIENT (MFTT) if present
   double mfttFactor = (mftval) ? mftval->getVal(t) : 1.0;
+
+  // COMPUTE TIME DEPENDENT HEAT FLUX COEFFICIENT (HFTT) if present
+  double hfttFactor = (hftval) ? hftval->getVal(t) : 1.0;
 
   // ... COMPUTE EXTERNAL FORCE FROM DISCRETE NEUMAN
   for(i = 0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    f[dof] += mfttFactor*nbc[i].val;
+    switch(nbc[i].type) {
+      case(BCond::Forces) : f[dof] += mfttFactor*nbc[i].val; break;
+      case(BCond::Temperatures) : f[dof] += hfttFactor*nbc[i].val; break;
+      default : f[dof] += nbc[i].val;
+    }
   }
 
   // COMPUTE EXTERNAL FORCE FROM REAL DISTRIBUTED NEUMAN BC
@@ -3185,49 +3163,4 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
 
   // ... ADD CONSTANT FORCE (for linear dynamics, this is pressure, gravity and thermal loads and for nonlinear it is zero)
   f += constantForce;
-
-/* relocated elsewhere
-  // ... COMPUTE AEROELASTIC FORCE
-  // This section of AEROELASTIC is done only if the aeroFlag is set
-  // and the solver is non-feti (i.e. solver type is not 2)
-  if(sinfo.aeroFlag >= 0 && sinfo.type != 2 && tIndex >= 0) {
-    getTimers().receiveFluidTime -= getTime();
-
-    // ... Temporary variable for inter(extra)polated force
-    double *tmpFmem = new double[numUncon()];
-    StackVector tmpF(tmpFmem, numUncon());
-    tmpF.zero();
-
-    int iscollocated;
-    double tFluid = flExchanger->getFluidLoad(nodes, tmpF, tIndex, t,
-                                              alphaf, iscollocated);
-    if(verboseFlag) fprintf(stderr," ... [E] Received fluid load ...\n");
-    if(iscollocated == 0) {
-      if(prevFrc.lastTIndex >= 0) {
-        tmpF *= (1/gamma);
-        tmpF.linAdd(((gamma-1.0)/gamma),prevFrc.lastFluidLoad);
-      }
-    }
-
-    double alpha = 1.0-alphaf;
-    if(prevFrc.lastTIndex < 0) alpha = 1.0;
-    f.linAdd(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
-    if(af) (*af) = alpha*tmpF + (1.0-alpha)*prevFrc.lastFluidLoad;
-    prevFrc.lastFluidLoad = tmpF;
-    prevFrc.lastFluidTime = tFluid;
-    prevFrc.lastTIndex = tIndex;
-
-    delete [] tmpFmem;
-    getTimers().receiveFluidTime += getTime();
-  }
-*/
-
-/* relocated
-  // ... Get thermal force from thermal code
-  if(sinfo.thermoeFlag >=0) {
-    flExchanger->getStrucTemp(temprcvd) ;
-    //if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
-    buildThermalForce(temprcvd, f);
-  }
-*/
 }

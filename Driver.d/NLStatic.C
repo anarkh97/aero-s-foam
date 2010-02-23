@@ -70,7 +70,6 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
       kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
       kel[iele].multiply(temp, elementInternalForce, 1.0); // elementInternalForce = kel*temp
     }
-
     // assemble element internal force into residual force vector
     for(int idof = 0; idof <  kel[iele].dim(); ++idof) {
       int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1357,7 +1356,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.dt)){
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())){
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
 

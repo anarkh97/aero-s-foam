@@ -46,8 +46,6 @@ public:
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs, int cflg);
 				  
-	double getMoment(Vector& force, CoordSet& cs, int node, int idir);
-	
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
 	                     int glfag, GeomState *gs=0);
 	                                        

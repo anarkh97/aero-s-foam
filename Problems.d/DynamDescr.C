@@ -185,7 +185,7 @@ SDDynamPostProcessor::fillBcxVcx(int tIndex) {
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
-    double t = double(tIndex)*domain->solInfo().dt;
+    double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
     double *userDefineVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
     //cerr << "getting usdd at time " << t << " for dynamOutput\n";
@@ -229,9 +229,9 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  if (!numR) return;
 
- fprintf(stderr," ... Building the RBM Projector     ...\n");
+ fprintf(stderr," ... Building the RBM/HZEM Projector     ...\n");
 
- fprintf(stderr," ... Number of RBM(s)     =   %d     ...\n",numR);
+ fprintf(stderr," ... Number of RBM/HZEM(s)     =   %d     ...\n",numR);
 
  // KHP: store this pointer to the RBMs to use in the actual
  //      projection step within the time loop.
@@ -316,10 +316,11 @@ SingleDomainDynamic::project(Vector &v)
  (*X).trMult(v,y);
 }
 
+#include <algorithm>
 int
 SingleDomainDynamic::getFilterFlag()
 {
- return domain->solInfo().filterFlags;
+ return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int
@@ -349,8 +350,8 @@ SingleDomainDynamic::getTimeIntegration()
 void
 SingleDomainDynamic::getTimes(double &dt, double &tmax)
 {
- dt   = domain->solInfo().dt;	// time step size
- tmax = domain->solInfo().tmax;	// total time
+ dt   = domain->solInfo().getTimeStep(); // time step size
+ tmax = domain->solInfo().tmax; // total time
  if(userSupFunc)
    userSupFunc->setDt(dt);
 }
@@ -427,16 +428,16 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
  fprintf(stderr," **************************************\n");
  fflush(stderr);
 
- domain->solInfo().setTimes(domain->solInfo().tmax, dt, domain->solInfo().dtemp);
+ domain->solInfo().setTimeStep(dt);
 }
 
 void
 SingleDomainDynamic::getInitState(SysState<Vector> &inState)
 {
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
-  if(domain->solInfo().order == 1)
-    domain->initTempVector(inState.getDisp(), inState.getVeloc(), inState.getPrevVeloc());
-  else
+  //if(domain->solInfo().order == 1)
+  //  domain->initTempVector(inState.getDisp(), inState.getVeloc(), inState.getPrevVeloc());
+  //else
     domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                           inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
 
@@ -482,7 +483,7 @@ SingleDomainDynamic::getPitaState(SysState<Vector> &inState, int sliceRank)
     // initial displacement and velocity
     if (userSupFunc)
     {
-      double sliceTime = domain->solInfo().dt * domain->solInfo().Jratio * sliceRank;
+      double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
       double *ctrdisp = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
       double *ctrvel  = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
       double *ctracc  = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
@@ -592,11 +593,11 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     times->updateSurfsTime += getTime();
 
     times->contactSearchTime -= getTime();
-    domain->PerformDynamicContactSearch(domain->solInfo().dt);
+    domain->PerformDynamicContactSearch(domain->solInfo().getTimeStep());
     times->contactSearchTime += getTime();
 
     times->contactForcesTime -= getTime();
-    domain->AddContactForces(domain->solInfo().dt, ctc_f);
+    domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
     times->contactForcesTime += getTime();
 
     (*dprev) = d;
@@ -667,18 +668,20 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   }
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0)
     domain->buildAeroelasticForce(ext_f, *prevFrc, tIndex, t, gamma, alphaf);
-  }
+
+  // add aerothermal fluxes from fluid dynamics code
+  if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
+    domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
   // add thermoelastic forces from thermo dynamics code
-  if(domain->solInfo().thermoeFlag >= 0) {
-    domain->buildThermoelasticForce(ext_f, geomState);
-  }
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+    domain->buildThermoelasticForce(ext_f);
  
   // KHP: apply projector here
-  int useProjector = domain->solInfo().filterFlags;
-  if(useProjector) trProject(ext_f); 
+  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+    trProject(ext_f); 
 
   if(tIndex == 1)
     domain->solInfo().initExtForceNorm = ext_f.norm();
@@ -797,24 +800,29 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  Rbm *rigidBodyModes = 0;
 
- int useProjector = domain->solInfo().filterFlags;
+ int useRbmFilter = domain->solInfo().filterFlags;
  int useGrbm = domain->solInfo().rbmflg; 
+ int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useHzem   = domain->solInfo().hzemFlag;
 
- if (useGrbm || useProjector) 
+ if (useGrbm || useRbmFilter) 
    rigidBodyModes = domain->constructRbm();
-   
- if (!useGrbm || (getTimeIntegration() != 1) ) // only use for quasistatics
-   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray);
+ else if(useHzem || useHzemFilter)
+   rigidBodyModes = domain->constructHzem();
+
+ if((getTimeIntegration() == 1) && (useGrbm || useHzem)) // only use for quasistatics
+   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray);
  else
-   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray); 
+   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray);
+   
+ if(useRbmFilter == 1)
+    fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
+ if(useRbmFilter == 2)
+    fprintf(stderr," ... RBM filter Level 2 Requested    ...\n");
+ if(useHzemFilter)
+    fprintf(stderr," ... HZEM filter Requested    ...\n");
 
- // Filter RBM
- if(useProjector == 1)
-    fprintf(stderr," ... RBMfilter Level 1 Requested    ...\n");
- if(useProjector == 2)
-    fprintf(stderr," ... RBMfilter Level 2 Requested    ...\n");
-
- if(useProjector)
+ if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);
  
  // Modal decomposition preprocessing
@@ -853,8 +861,9 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t)
     f.zero();
     domain->getKtimesU(d, bcx, f, 1.0, kelArray);  // note: although passed as an argument, the bcx contribution is not computed in this function
   }
-  int useProjector = domain->solInfo().filterFlags;
-  if(useProjector) trProject(f);
+
+  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+    trProject(f);
 }
 
 void
@@ -864,7 +873,7 @@ SingleDomainDynamic::computeTimeInfo()
 
   // Get total time and time step size and store them
   double totalTime = domain->solInfo().tmax;
-  double dt        = domain->solInfo().dt;
+  double dt        = domain->solInfo().getTimeStep();
 
   // Compute maximum number of steps
   int maxStep = (int) ( (totalTime+0.49*dt)/dt );
@@ -925,6 +934,17 @@ SingleDomainDynamic::thermoePreProcess(Vector&, Vector&, Vector&)
   domain->thermoePreProcess();
 }
 
+void
+SingleDomainDynamic::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
+{
+  domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx);
+}
+
+void
+SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
+{
+  domain->thermohPreProcess(d_n, v_n, v_p, bcx);
+}
 
 // Single Domain Post Processor Functions
 
@@ -958,7 +978,7 @@ SingleDomainDynamic::addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc,
                                      Vector& result, double t, double *pt_dt)
 {
 
- double dt    = domain->solInfo().dt;
+ double dt    = domain->solInfo().getTimeStep();
  double beta  = domain->solInfo().newmarkBeta;
  double gamma = domain->solInfo().newmarkGamma;
 
@@ -1268,3 +1288,15 @@ SingleDomainDynamic::getThermoeFlag()
 {
   return domain->solInfo().thermoeFlag;
 } 
+
+int
+SingleDomainDynamic::getAeroheatFlag()
+{
+ return domain->solInfo().aeroheatFlag;
+}
+
+int
+SingleDomainDynamic::getThermohFlag()
+{
+ return domain->solInfo().thermohFlag;
+}

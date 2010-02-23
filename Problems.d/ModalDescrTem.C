@@ -63,7 +63,7 @@ void ModalDescr<Scalar>::preProcess(){
 template <class Scalar>
 void ModalDescr<Scalar>::getTimes(double &dt, double &tmax){
 
-  dt   = domain->solInfo().dt;
+  dt   = domain->solInfo().getTimeStep();
   tmax = domain->solInfo().tmax;
 }
 

@@ -139,11 +139,18 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   //                       elementInternalForce, totalRes, velocity_n, acceleration, time);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  //if(domain->solInfo().iacc_switch) {
-  //  if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
-    probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration);
-    solver->reSolve(acceleration);
-  //}
+  if(domain->solInfo().iacc_switch) {
+    if(domain->solInfo().order == 1) {
+      if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
+      probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
+      solver->reSolve(velocity_n);
+    }
+    else {
+      if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+      probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration);
+      solver->reSolve(acceleration);
+    }
+  }
 
   // Output initial geometry state of problem and open output files
   probDesc->dynamOutput(geomState, velocity_n, v_p, time, -1, external_force, aeroForce, acceleration);
@@ -243,11 +250,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                    elementInternalForce, totalRes, acceleration);
 
     // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
-    acceleration.linC(-(1-gamma)/gamma, acceleration, -1/(2*delta*gamma), v_p, 1/(2*delta*gamma), velocity_n);
+    if(domain->solInfo().order != 1)
+      acceleration.linC(-(1-gamma)/gamma, acceleration, -1/(2*delta*gamma), v_p, 1/(2*delta*gamma), velocity_n);
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();
-    if(aeroAlg >= 0 || probDesc->getThermoeFlag() >= 0) {
+    if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
       probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg);
     }
     probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration);
@@ -260,7 +268,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       parity = ( parity ? 0 : 1 );
     }
   }
-  filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", time);
+  if(!aeroAlg)
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", time);
 
   timeLoop += getTime();
 #ifdef PRINT_TIMERS

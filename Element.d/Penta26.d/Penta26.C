@@ -590,9 +590,3 @@ Penta26::getCorotator(CoordSet &cs, double *kel, int , int )
  return((Corotator*)0); 
 }
 
-void Penta26::buildCorotator(CoordSet &cs)  
-{
-  fprintf(stderr," *** WARNING: Penta26::buildCorotator: NOT implemented. Abort.\n");
-  exit(-1);
-}
-

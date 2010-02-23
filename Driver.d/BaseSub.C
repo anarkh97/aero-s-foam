@@ -1127,9 +1127,6 @@ int BaseSub::renumberBC(int *map)
   for(i = 0; i < numIVel; ++i)
     iVel[i].nnum = map[iVel[i].nnum];
 
-  for(i = 0; i < numITemp; ++i)
-    iTemp[i].nnum = map[iTemp[i].nnum];
-
   return 0;
 }
 
@@ -1273,20 +1270,18 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
   // get bc's from geoSource
   BCond *dbc = 0;
   BCond *nbc = 0;
-  BCond *cvbc = 0;
+  //BCond *cvbc = 0;
   BCond *iDis = 0;
   BCond *iDis6 = 0;
   BCond *iVel = 0;
-  BCond *iTemp = 0;
 
   int numDirichlet = geoSource->getDirichletBC(dbc);
   int numNeuman    = geoSource->getNeumanBC(nbc);
-  int numConvBC    = geoSource->getConvBC(cvbc);
-  int numRadBC    = geoSource->getRadBC(cvbc);
+  //int numConvBC    = geoSource->getConvBC(cvbc);
+  //int numRadBC    = geoSource->getRadBC(cvbc);
   int numIDis      = geoSource->getIDis(iDis);
   int numIDis6     = geoSource->getIDis6(iDis6);
   int numIVel      = geoSource->getIVel(iVel);
-  int numITemp     = geoSource->getITemp(iTemp);
 
   // get bc's for this subdomain
   BCond *subBC;
@@ -1296,13 +1291,13 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
 
   int numLocNeuman = getBC(nbc, numNeuman, cl2LocNodeMap, subBC);
   this->setNeuman(numLocNeuman, subBC); 
-
+/*
   int numLocConvBC = getBC(cvbc, numConvBC, cl2LocNodeMap, subBC);
   this->setConvBC(numLocConvBC, subBC);
 
   int numLocRadBC = getBC(cvbc, numRadBC, cl2LocNodeMap, subBC);
   this->setRadBC(numLocRadBC, subBC);
-
+*/
   int numLocIDis = getBC(iDis, numIDis, cl2LocNodeMap, subBC);
   this->setIDis(numLocIDis, subBC);
 
@@ -1311,9 +1306,6 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
 
   int numLocIVel = getBC(iVel, numIVel, cl2LocNodeMap, subBC);
   this->setIVel(numLocIVel, subBC);
-
-  int numLocITemp = getBC(iTemp, numITemp, cl2LocNodeMap, subBC);
-  this->setITemp(numLocITemp, subBC);
 
 }
 
@@ -3026,26 +3018,6 @@ BaseSub::setNeumanBC(list<BCond *> *_list)
 }
 
 void
-BaseSub::setConvection(list<BCond *> *_list)
-{
-  numConvBC = 0;
-  cvbc = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    cvbc[numConvBC++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
-BaseSub::setRadiation(list<BCond *> *_list)
-{
-  numRadBC = 0;
-  cvbc = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    cvbc[numRadBC++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
 BaseSub::setInitialDisplacement(list<BCond *> *_list)
 {
   numIDis = 0;
@@ -3072,16 +3044,6 @@ BaseSub::setInitialVelocity(list<BCond *> *_list)
   iVel = new BCond[_list->size()];
   for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
     iVel[numIVel++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
-BaseSub::setInitialTemperature(list<BCond *> *_list)
-{
-  numITemp = 0;
-  iTemp = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    iTemp[numITemp++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
   }
 }
 

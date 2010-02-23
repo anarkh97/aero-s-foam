@@ -728,55 +728,6 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      elPressureForce[17] = mz[2];
 }
 
-double
-ThreeNodeShell::getMoment(Vector& force, CoordSet& cs, int node, int idir)
-{
-        if (prop == NULL) return 0.0;
-
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-
-        Node &nod = cs.getNode(node);
-
-        double arm[3], ff[3], fm[3], mom[3];
-
-        arm[0] = (nd1.x + nd2.x + nd3.x) / 3.0 - nod.x;
-        arm[1] = (nd1.y + nd2.y + nd3.y) / 3.0 - nod.y;
-	arm[2] = (nd1.z + nd2.z + nd3.z) / 3.0 - nod.z;
-	
-	ff[0] = (force[0] + force[6]  + force[12])/3.0;
-	ff[1] = (force[1] + force[7]  + force[13])/3.0;
-	ff[2] = (force[2] + force[8]  + force[14])/3.0;
-	
-	fm[0] = (force[3] + force[9]  + force[15])/3.0;
-	fm[1] = (force[4] + force[10] + force[16])/3.0;
-	fm[2] = (force[5] + force[11] + force[17])/3.0;
-	
-
-        crossprod(arm, ff, mom);
-
-        double moment;
-	
-	switch (idir) {
-	
-	  case 3:
-	    moment = mom[0] + fm[0];
-	    break;
-	  case 4:
-	    moment = mom[1] + fm[1];
-	    break;
-	  case 5:
-	    moment = mom[2] + fm[2];
-	    break;
-	  default:
-	    moment = 0.0;
-	}
-        return moment;
-}
-
-
-
 /*/ dec
 int
 ThreeNodeShell::facelist(PolygonSet &pgs, int *flist)

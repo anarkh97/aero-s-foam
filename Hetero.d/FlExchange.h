@@ -48,8 +48,9 @@ class FlExchanger {
      int *nbGaussPoints;
 
      int numWetElements;
-     Elemset &eset;
-     DofSetArray *dsa;
+     CoordSet& cs;
+     Elemset& eset;
+     DofSetArray* dsa;
 
      double *localF;
      double aforce[4];
@@ -63,16 +64,15 @@ class FlExchanger {
      double dtemp;
      Vector *tmpDisp;
    public:
-     FlExchanger(Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
+     FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
      void read(int mynode, char *filename);
      void negotiate();
      void thermoread(int &buffLen);
 
-     void sendDisplacements(CoordSet& cs, State& state, int tag = -1, GeomState* geomState = 0);
-     void sendTemperature(CoordSet & cs,
-                            State &state);
+     void sendDisplacements(State& state, int tag = -1, GeomState* geomState = 0);
+     void sendTemperature(State &state);
      void waitOnSend();
-     double getFluidLoad(CoordSet& cs, Vector& force, int tIndex, double time,
+     double getFluidLoad(Vector& force, int tIndex, double time,
                          double alphaf, int& iscollocated, GeomState* geomState = 0);
 
      double getFluidFlux(Vector &flux, double time, double &fl);
@@ -87,7 +87,7 @@ class FlExchanger {
                         int rstinc, double alphat[2]);
 
      void sendModeFreq(double *modFrq, int numFrq);
-     void sendModeShapes(int numFrq, int nNodes, double (**)[6], CoordSet & cs,
+     void sendModeShapes(int numFrq, int nNodes, double (**)[6],
                          State &st, double factor = 1.0);
      void printreceiving();
 /*
@@ -107,8 +107,7 @@ class FlExchanger {
 
       int cmdCom(int);
       int cmdComHeat(int);
-} ;
-
+};
 
 #define FLTOSTMT 1000
 #define STTOFLMT 2000

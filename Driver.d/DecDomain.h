@@ -42,6 +42,7 @@ class GenDecDomain
   GenSubDomain<Scalar> **subDomain;
   DistrInfo internalInfo, internalInfo2;
   DistrInfo nodeInfo;
+  DistrInfo *nodeVecInfo;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 
@@ -98,6 +99,7 @@ class GenDecDomain
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs
+  DistrInfo &ndVecInfo(); // all nodes
   // user defined control functions
   void extractControlData(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
                           GenDistrVector<Scalar> &,

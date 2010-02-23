@@ -669,17 +669,11 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
 }
 
 //---------------------------------------------------------------------------------
-//HB (11/18/04)                                                                                             
-void Pentahedral::buildCorotator(CoordSet &cs)  
-{
-  if (!pentaCorotator)
-    pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
-}
-                                                                                                                
 Corotator*
 Pentahedral::getCorotator(CoordSet &cs, double *kel, int , int )
 {
-  return new PentaCorotator(nn, prop->E, prop->nu, cs);
+  if(!pentaCorotator) pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
+  return pentaCorotator;
 }
 
 //---------------------------------------------------------------------------------

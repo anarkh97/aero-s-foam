@@ -46,7 +46,6 @@ public:
 	int getTopNumber();
         Corotator *getCorotator(CoordSet &cs, double *kel = 0, int d1 = 2, int d2 = 2);
 
-        void buildCorotator(CoordSet &cs); 
 	// DEC
 	PrioInfo examine(int sub, MultiFront *);
 

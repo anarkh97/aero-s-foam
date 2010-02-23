@@ -564,8 +564,3 @@ Penta15::getCorotator(CoordSet &cs, double *kel, int , int )
  return((Corotator*)0); 
 }
 
-void Penta15::buildCorotator(CoordSet &cs)  
-{
-  fprintf(stderr," *** WARNING: Penta15::buildCorotator: NOT implemented. Abort.\n");
-  exit(-1);
-}

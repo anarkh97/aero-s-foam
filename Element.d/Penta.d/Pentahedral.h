@@ -60,7 +60,6 @@ public:
 
        //HB: add "corotator" methods
        Corotator *getCorotator(CoordSet &cs, double *kel, int , int );
-       void buildCorotator(CoordSet &); 
        
       //HB 05-26-0 
       void getVonMisesAniso(Vector &stress, Vector &weight,CoordSet &cs,

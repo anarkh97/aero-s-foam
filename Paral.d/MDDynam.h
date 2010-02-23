@@ -70,6 +70,7 @@ class MultiDomDynPostProcessor
     double **usrDefVels;
     GenDecDomain<double> *decDomain;
     StaticTimers *times;
+    DistrVector *nodalTemps;
 
   public:
     MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times = 0) {
@@ -84,6 +85,7 @@ class MultiDomDynPostProcessor
     }
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
+    void setNodalTemps(DistrVector*);
     void dynamOutput(int, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
     double getKineticEnergy(DistrVector & vel, SubDOp * gMass) { return 0.0; }
 };
@@ -113,10 +115,16 @@ class MultiDomainDynam
 
     // aero data
     DistFlExchanger *distFlExchanger;
+    DistrVector *aeroForce;
     DistrVector *prevFrc;
     int prevIndex;
     double prevTime;
-    DistrVector *aeroForce;
+    DistrVector *prevFrcBackup;
+    int prevIndexBackup;
+    double prevTimeBackup;
+
+    // thermoe/thermoh data
+    DistrVector* nodalTemps;
 
   public:
     MultiDomainDynam(Domain *d);
@@ -185,8 +193,14 @@ class MultiDomainDynam
     void a5StatusRevise(int, SysState<DistrVector>&, SysState<DistrVector>&);
 
     // Thermoelastic problems related subroutines
-    void thermoePreProcess(DistrVector &, DistrVector &, DistrVector &);
+    void thermoePreProcess(DistrVector&, DistrVector&, DistrVector&);
     int getThermoeFlag();
+    void thermohPreProcess(DistrVector&, DistrVector&, DistrVector&);
+    int getThermohFlag();
+
+    // Aeroheat
+    void aeroHeatPreProcess(DistrVector&, DistrVector&, DistrVector&);
+    int getAeroheatFlag();
    
   private:
     void subGetInternalForce(int isub, DistrVector &res);

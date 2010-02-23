@@ -186,6 +186,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     int getAeroAlg();
     int getThermoeFlag();
+    int getThermohFlag();
+    int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 

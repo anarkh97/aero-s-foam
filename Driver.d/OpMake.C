@@ -1864,16 +1864,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     }
   }
 
-  if(!sinfo.isNonLin()) {
-    // ... ADD GRAVITY FORCES
-    if(gravityFlag()) buildGravityForce<Scalar>(force);
+  // ... ADD GRAVITY FORCES
+  if(gravityFlag()) buildGravityForce<Scalar>(force);
 
-    // ... ADD PRESSURE LOAD
+  // ... ADD THERMAL FORCES
+  if(thermalFlag()) buildThermalForce(getNodalTemperatures(), force);
+
+  // ... ADD PRESSURE LOAD
+  if(!sinfo.isNonLin())
     if(pressureFlag()) buildPressureForce<Scalar>(force);
-
-    // ... ADD THERMAL FORCES
-    if(thermalFlag()) buildThermalForce(getNodalTemperatures(), force);
-  }
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {

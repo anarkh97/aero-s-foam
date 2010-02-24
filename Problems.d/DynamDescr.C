@@ -562,17 +562,13 @@ SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
 void
 SingleDomainDynamic::getConstForce(Vector &cnst_f)
 {
-  // compute constant force i.e. gravity + pressure + thermal (by convention linear dynamics only)
+  // compute constant force i.e. gravity + thermal + pressure
+  // (pressure is by convention constant for linear dynamics and follower for nonlinear dynamics)
   cnst_f.zero();
-
-  if(!domain->solInfo().isNonLin()) {
-    if(domain->gravityFlag()) domain->buildGravityForce(cnst_f);
+  if(domain->gravityFlag()) domain->buildGravityForce(cnst_f);
+  if(domain->thermalFlag()) domain->buildThermalForce(domain->getNodalTemperatures(), cnst_f);
+  if(!domain->solInfo().isNonLin())
     if(domain->pressureFlag()) domain->buildPressureForce(cnst_f);
-    if(domain->thermalFlag()) { 
-      double *nodalTemperatures = domain->getNodalTemperatures();
-      domain->buildThermalForce(nodalTemperatures, cnst_f);
-    }
-  }
 }
 
 void

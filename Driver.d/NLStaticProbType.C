@@ -329,7 +329,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     timeStiff -= getTime();
     double residualNorm = StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
                                                  residual, elementInternalForce, totalRes, lambda);
-    e_k = probDesc->getEnergy(lambda, force, geomState);
+    if(probDesc->linesearch()) e_k = probDesc->getEnergy(lambda, force, geomState);
     timeStiff += getTime();
 #ifdef PRINT_TIMERS
     filePrint(stderr,"  Rebuild Element Stiffness & Internal Force time = %13.4f s\n", 

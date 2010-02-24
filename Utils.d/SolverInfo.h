@@ -570,7 +570,7 @@ struct SolverInfo {
 
    double getTimeStep() 
    {
-     if(thermoeFlag || thermohFlag) return std::min(dt, dtemp);
+     if(thermoeFlag > -1 || thermohFlag > -1) return std::min(dt, dtemp);
      else return (order == 1) ? dtemp : dt;
    }
 

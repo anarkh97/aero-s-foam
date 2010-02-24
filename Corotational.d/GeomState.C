@@ -409,7 +409,6 @@ void
 GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 {
   // Update incremental translational displacements and rotations
-
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 

@@ -116,19 +116,15 @@ MultiDomainOp::getConstForce(int isub)
   StackVector f(v1->subData(isub),v1->subLen(isub));
   f.zero();
 
-  if(!domain->solInfo().isNonLin()) { // by convention these forces are non-follower for linear dynamics
-    // build gravity forces
-    if(sd[isub]->gravityFlag()) sd[isub]->buildGravityForce<double>(f);
+  // build gravity forces
+  if(sd[isub]->gravityFlag()) sd[isub]->buildGravityForce<double>(f);
 
-    // build pressure forces
+  // build thermal forces
+  if(sd[isub]->thermalFlag()) sd[isub]->buildThermalForce(sd[isub]->getNodalTemperatures(), f);
+
+  // build pressure forces ( by convention these forces are non-follower for linear dynamics)
+  if(!domain->solInfo().isNonLin())
     if(sd[isub]->pressureFlag()) sd[isub]->buildPressureForce<double>(f);
-
-    // build thermal forces
-    if(sd[isub]->thermalFlag()) {
-      double *nodalTemperatures = sd[isub]->getNodalTemperatures();
-      sd[isub]->buildThermalForce(nodalTemperatures, f);
-    }
-  }
 }
 
 void

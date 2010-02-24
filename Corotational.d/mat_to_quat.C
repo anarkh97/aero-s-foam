@@ -97,5 +97,5 @@ void mat_to_quat( double rten[3][3], double q[4] )
 
       // always return the positive quaternion
       //if(q[0] < 0.0) for(int l=0; l<4; ++l) q[l] = -q[l];
-
+      //std::cerr << "q = " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << std::endl;
 }

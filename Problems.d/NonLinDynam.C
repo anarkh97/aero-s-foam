@@ -248,6 +248,8 @@ void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
   constantForce.zero();
+  if(domain->gravityFlag()) domain->buildGravityForce(constantForce);
+  if(domain->thermalFlag()) domain->buildThermalForce(domain->getNodalTemperatures(), constantForce);
 }
 
 void

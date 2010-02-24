@@ -56,6 +56,7 @@ GenMumpsSolver<Scalar>::init()
   mumpsId.id.par = 1; // 1: working host model
   mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
   if(domain->solInfo().unsym()) mumpsId.id.sym = 0;
+  //cerr << "in GenMumpsSolver<Scalar>::init(), mumpsId.id.sym = " << mumpsId.id.sym << endl;
 #ifdef USE_MPI
   //mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());

@@ -101,9 +101,6 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
        elK[6*inode+3+i][6*inode+3+j] += rotvar[inode][i][j];
  }
 
- //cerr << "here in BeamCorotator::getStiffAndForce @1\n";
- //cerr << "elK = \n"; elK.print();
-
  // Compute nonlinear projector matrix relative to deformed element
  // and correct stiffness and force
  // pmat = projector matrix
@@ -139,19 +136,10 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  _FORTRAN(dgemm)('T','T',12,12,12,1.0,(double*)scrstiff,12,
                  (double*)pmat,12,1.0,elK.data(),12);
 
-// _FORTRAN(dgemm)('N','N',12,12,12,1.0,(double*)pmat,12,
-//                 (double*)scrstiff,12,1.0,elK.data(),12);
-
- //cerr << "here in BeamCorotator::getStiffAndForce @4\n";
- //cerr << "elK = \n"; elK.print();
-
  // Transform internal force and stiffness matrix to global coordinate system 
 
  tran_fsl(f,elK,t0n,2);
 
- //cerr << "here in BeamCorotator::getStiffAndForce @5\n";
- //cerr << "elK = \n"; elK.print();
- //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
 }
 
 void
@@ -250,7 +238,6 @@ BeamCorotator::extractDefDisp(Node &nd1, Node &nd2, NodeState &ns1,
  *  Coded by: Bjorn Haugen; Adjusted for C++ by Teymour Manzouri
  *****************************************************************/
 {
- int i, j, inode;
  double x0[2][3], xn[2][3];
  double (* rot[2])[3][3];
 
@@ -289,21 +276,20 @@ BeamCorotator::extractDefDisp(Node &nd1, Node &nd2, NodeState &ns1,
  // Create rotation part of the deformation vector
  double rot0[3][3], dr[3][3];
 
- for(inode = 0; inode < 2; ++inode) {
-    for(i = 0; i < 3; ++i)
-       for(j = 0; j < 3; ++j)
+ for(int inode = 0; inode < 2; ++inode) {
+    for(int i = 0; i < 3; ++i)
+       for(int j = 0; j < 3; ++j)
          rot0[i][j] = (*rot[inode])[i][0]*t0[j][0]
                      +(*rot[inode])[i][1]*t0[j][1]
                      +(*rot[inode])[i][2]*t0[j][2];
 
-    for(i = 0; i < 3; ++i)
-       for(j = 0; j < 3; ++j)
+    for(int i = 0; i < 3; ++i)
+       for(int j = 0; j < 3; ++j)
          dr[i][j] = t0n[i][0]*rot0[0][j]
                    +t0n[i][1]*rot0[1][j]
                    +t0n[i][2]*rot0[2][j];
     mat_to_vec(dr, vld + inode*6 + 3);
  }
- //cerr << "vld = "; for(int i=0; i<12; ++i) cerr << vld[i] << " "; cerr << endl;
 
 }
 	
@@ -508,16 +494,7 @@ BeamCorotator::gradLocRot(double len, double zVecL[2][3], double gmat[3][12], do
    }
 // Fitalg == 3: slerp
    else {
-      for( i=0; i<3; i++ ) {
-         gmat[0][i]   =   gmat[2][i]*zn[0]/zn[2];
-         gmat[0][6+i] = gmat[2][6+i]*zn[0]/zn[2];
-      }
-      gmat[0][3]  =  zVecL[0][2]/zn[2]/2;            /* theta_x node 1 */
-      gmat[0][4]  =  0.0;                            /* theta_y node 1 */
-      gmat[0][5]  = -zVecL[0][0]/zn[2]/2;            /* theta_z node 1 */
-      gmat[0][9]  =  zVecL[1][2]/zn[2]/2;            /* theta_x node 2 */
-      gmat[0][10] =  0.0;                            /* theta_y node 2 */
-      gmat[0][11] = -zVecL[1][0]/zn[2]/2;            /* theta_z node 2 */
+     cerr << "gmat not implemented for beam fitalg 3\n"; exit(-1);
    }
 
 }
@@ -700,12 +677,7 @@ BeamCorotator::localCoord(double zvec0[3], double zvecl[2][3],
 // Local Z-axis for the C0 configuration as cross product of x-axis and y-axis
    crossprod( t0[0], t0[1], t0[2] );
    normalize( t0[2] );
-
-/*
-   for(int i=0; i<3; ++i) {
-     cerr << "t0[" << i << "] = "; for(int j=0; j<3; ++j) cerr << t0[i][j] << " "; cerr << endl;
-   }
-*/
+ 
 // Compute nodal rotated Z-axis in global coordinate system
 
    int i,nod;
@@ -716,9 +688,6 @@ BeamCorotator::localCoord(double zvec0[3], double zvecl[2][3],
                         +(*rot[nod])[i][2]*t0[2][2];
       }
    }
-//   for(int i=0; i<2; ++i) {
-//     cerr << "zvecl[" << i << "] = "; for(int j=0; j<3; ++j) cerr << zvecl[i][j] << " "; cerr << endl;
-//   }
 
 /* Fitalg 1: Z-axis from node 1 */
    if (fitAlg == 1) {
@@ -767,10 +736,6 @@ BeamCorotator::localCoord(double zvec0[3], double zvecl[2][3],
 /* Z-axis as cross product between x and y */
    crossprod( t0n[0], t0n[1], t0n[2]);
    normalize( t0n[2] );
-
-   //for(int i=0; i<3; ++i) {
-   //  cerr << "t0n[" << i << "] = "; for(int j=0; j<3; ++j) cerr << t0n[i][j] << " "; cerr << endl;
-   //}
 
 /* Compute nodal rotated Z-axis in local coordinate system */
 

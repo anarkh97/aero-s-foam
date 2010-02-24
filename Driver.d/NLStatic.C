@@ -79,10 +79,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
   }
 
   // XXXX currently the contribution of follower forces is not included in the tangent stiffness
-  if(gravityFlag()) buildGravityForce(residual, &geomState, lambda);
   if(pressureFlag()) buildPressureForce(residual, &geomState, lambda);
-  if(thermalFlag()) buildThermalForce(getNodalTemperatures(), residual, &geomState, lambda);
-
 }
 
 // used in nonlinear statics

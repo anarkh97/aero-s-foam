@@ -27,7 +27,7 @@ struct NonlinearInfo {
 
    NonlinearInfo() { updateK     = 1; kryflg     =   0; initflg =   0; 
                      reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
-                     fitAlgShell = 3; fitAlgBeam =   2; 
+                     fitAlgShell = 2; fitAlgBeam =   2; 
                      tolRes = 1.0E-6; dlambda    = 1.0;
                      maxLambda = 1.0; lfactor    = 1.0; unsymmetric = false;
                      linesearch = false; }

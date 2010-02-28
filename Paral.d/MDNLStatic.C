@@ -319,7 +319,7 @@ MDNLStatic::subGetRHS(int isub, DistrVector& rhs)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector subrhs(rhs.subData(isub), rhs.subLen(isub));
-  sd->buildRHSForce<double>(subrhs);
+  sd->computeConstantForce<double>(subrhs);
 }
 
 FetiSolver *

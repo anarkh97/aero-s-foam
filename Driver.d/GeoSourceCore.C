@@ -4201,9 +4201,11 @@ ControlLawInfo::ControlLawInfo()
 ControlLawInfo::~ControlLawInfo()
 {
   if(sensor) delete [] sensor;
+/*
   if(actuator) delete [] actuator;
   if(userDisp) delete [] userDisp;
   if(userForce) delete [] userForce;
+*/
 }
 
 void ControlLawInfo::print()

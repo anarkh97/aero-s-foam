@@ -598,11 +598,14 @@ void NLModalDescr::getConstForce(Vector &constF){
  POST: populate constF with zeros; leave for now
  NOTE: constF has size numConstr longer than fullTmpGrav 
 */
+  domain->computeConstantForce(constF);
+/*
   fullTmpGrav.zero();
   constF.zero();
 
   if( domain->gravityFlag()  ) domain->buildGravityForce<double>(fullTmpGrav);
   if( domain->pressureFlag() ) domain->buildPressureForce<double>(fullTmpGrav);
+*/
 
 //  projectForceNL(fullTmpGrav, constF);
 }

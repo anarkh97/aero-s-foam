@@ -952,6 +952,7 @@ Domain::setUpData()
   if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
   else numnodes = geoSource->totalNumNodes();
   numele = geoSource->getElems(packedEset);
+  numele = packedEset.last(); // XXXX
 
   // set boundary conditions
   int numBC;
@@ -993,6 +994,8 @@ Domain::setUpData()
 
   // PJSA: compute temperature dependent material properties
   computeTDProps();
+
+  initNodalTemperatures();
 
 /*
   -- Include here checks on LMPC --
@@ -2284,7 +2287,7 @@ void Domain::computeTDProps()
 {
   if((numYMTT > 0) || (numCTETT > 0)) {
     // PJDS: used to calculate temperature dependent material properties
-    double defaultTemp = -10000000.0;
+    //double defaultTemp = -10000000.0;
 
     // compute maximum number of nodes per element
     // note this is also done in Domain::makeAllDOFs()

@@ -17,7 +17,15 @@ class Corotator {
   public:
     // DEFINITE
     virtual void getStiffAndForce(GeomState &, CoordSet &, 
-                                  FullSquareMatrix &, double *) = 0; 
+                                  FullSquareMatrix &, double *)=0; 
+
+    virtual void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
+                                     FullSquareMatrix &elK, double *locF){}
+
+    virtual void getInternalForce(GeomState &, CoordSet &,
+                                  FullSquareMatrix &, double *) {}
+
+    virtual void getExternalForce(GeomState &, CoordSet &,  double *) {}
 
     // ONLY FOR BUCKLING (EIGEN)
     // ONLY NONLINEAR TERM OF K
@@ -32,6 +40,8 @@ class Corotator {
     virtual void extractDeformations(GeomState &geomState, CoordSet &cs,
                                      DComplex *vld, int &nlflag);
 
+    virtual void getGlobalDisp(GeomState& , CoordSet&, Vector& ){}
+
     virtual void getNLVonMises(Vector&, Vector& weight,
                                GeomState &, CoordSet &, int);
     virtual void getNLVonMises(ComplexVector&, Vector& weight,
@@ -45,6 +55,8 @@ class Corotator {
     // NOT USED
     virtual void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                         double *vlr);
+
+    virtual void reBuildorigK(FullSquareMatrix&) {}
 
     virtual ~Corotator() {/*TODO*/}
 };

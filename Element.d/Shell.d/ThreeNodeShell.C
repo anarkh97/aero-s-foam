@@ -511,146 +511,43 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
        mz[i]=0.0;
      }
 
-     if (geomState) {
+     // Compute area of shell
+     Node &nd1 = cs.getNode(nn[0]);
+     Node &nd2 = cs.getNode(nn[1]);
+     Node &nd3 = cs.getNode(nn[2]);
 
-       // Get Nodes current coordinates
-       NodeState &ns1 = (*geomState)[nn[0]];
-       NodeState &ns2 = (*geomState)[nn[1]];
-       NodeState &ns3 = (*geomState)[nn[2]];
+     double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
 
-       double  t0[3][3];
-       double  xn[3][3];
+     r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+     r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+     r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
 
-       xn[0][0]  = ns1.x; // x coordinate of node state 1
-       xn[0][1]  = ns1.y; // y coordinate of node state 1
-       xn[0][2]  = ns1.z; // z coordinate of node state 1
+     v1[0] = r3[0] - r1[0];
+     v1[1] = r3[1] - r1[1];
+     v1[2] = r3[2] - r1[2];
 
-       xn[1][0]  = ns2.x; // x coordinate of node state 2
-       xn[1][1]  = ns2.y; // y coordinate of node state 2
-       xn[1][2]  = ns2.z; // z coordinate of node state 2
-      
-       xn[2][0]  = ns3.x; // x coordinate of node state 3
-       xn[2][1]  = ns3.y; // y coordinate of node state 3
-       xn[2][2]  = ns3.z; // z coordinate of node state 3
+     v2[0] = r2[0] - r1[0];
+     v2[1] = r2[1] - r1[1];
+     v2[2] = r2[2] - r1[2];
 
-       // Determine the area of the triangle
-       //TM there is a problem here
-       double xij[3][3];
-       double yij[3][3];
-       double zij[3][3];
+     // Compute normal to shell using vector cross product rule
+     crossprod(v2, v1, normal);
 
-       // Compute nodal delta coordinates
-       int inod, jnod;
-       for(inod=0; inod<3; inod++ ) {
-         for(jnod=0; jnod<3; jnod++ ) {
-           xij[inod][jnod] = xn[inod][0] - xn[jnod][0];
-           yij[inod][jnod] = xn[inod][1] - xn[jnod][1];
-           zij[inod][jnod] = xn[inod][2] - xn[jnod][2];
-         }
+     double magnitude = sqrt(normal[0]*normal[0] + normal[1]*normal[1] 
+                                                  + normal[2]*normal[2]);
+     double area = 0.5*magnitude;
+
+     // compute pressure force per node
+     double pressureForce = pressure * area / 3.0;
+
+     double xn[3][3];
+       for(i=0; i<3; ++i) {
+         xn[0][i] = r1[i];
+         xn[1][i] = r2[i];
+         xn[2][i] = r3[i];
        }
 
-       /* TRIANGLE IN SPACE : WE COMPUTE THE LENGTH
-        *.... OF ONE SIDE AND THE DISTANCE OF THE
-        *.... OPPOSING NODE TO THAT SIDE TO COMPUTE THE AREA*/
-
-       double rlr = sqrt( xij[1][0]*xij[1][0]+yij[1][0]*yij[1][0]+zij[1][0]*zij[1][0] );
-       double rlb = sqrt( xij[2][1]*xij[2][1]+yij[2][1]*yij[2][1]+zij[2][1]*zij[2][1] );
-       double bpr = sqrt((xij[1][0]*xij[2][1]+yij[1][0]*yij[2][1]+zij[1][0]*zij[2][1] ) 
-                         *(xij[1][0]*xij[2][1]+yij[1][0]*yij[2][1]+zij[1][0]*zij[2][1] ))/rlr;
-
-       double area= rlr*(sqrt(rlb*rlb-bpr*bpr))/2.0;
-
-       // determine the normal to the plane of the element
-       /* Compute t0 transformation matrix with x axis along side 1-2 */
-       int i;
-       for(i=0; i<3; i++ ) t0[0][i] = xn[1][i] - xn[0][i];
-       normalize( t0[0] );
-
-       // local z axis
-       for( i=0; i<3; i++ ) t0[1][i] = xn[2][i] - xn[0][i];
-       crossprod( t0[0], t0[1], t0[2] );
-       normalize( t0[2] );
-
-       double normal[3];
-
-       normal[0] = t0[2][0];
-       normal[1] = t0[2][1];
-       normal[2] = t0[2][2];
- 
-       // compute pressure force per node
-       double pressureForce = pressure * area / 3.0;
-
-       px = pressureForce*normal[0];
-       py = pressureForce*normal[1];
-       pz = pressureForce*normal[2];
-
-       if (cflg == 1) {
-
-         int beam, beamnode[3][2];
-         beamnode[0][0] = 0;
-         beamnode[0][1] = 1;
-         beamnode[1][0] = 0;
-         beamnode[1][1] = 2;
-         beamnode[2][0] = 1;
-         beamnode[2][1] = 2;
-
-         for(beam=0; beam<3; ++beam) {
-           double length, dx, dy, dz;
-           int n1, n2;
-           n1 = beamnode[beam][0];
-           n2 = beamnode[beam][1];
-           dx = xn[n2][0] - xn[n1][0];
-           dy = xn[n2][1] - xn[n1][1];
-           dz = xn[n2][2] - xn[n1][2];
-           length = sqrt(dx*dx + dy*dy + dz*dz);
-           // Local X-axis from Node 1->2
-           for(i=0; i<3; i++ ) t0[0][i] = xn[n2][i] - xn[n1][i];
-           normalize( t0[0] );
-           // Local Y-axis as cross between Z and X
-           crossprod( t0[2], t0[0], t0[1] );
-           normalize( t0[1] );
- 
-           double lmy = -pressureForce*length/12.0;
-           mx[n1] += (t0[1][0]*lmy);
-           my[n1] += (t0[1][1]*lmy);
-           mz[n1] += (t0[1][2]*lmy);
-           mx[n2] -= (t0[1][0]*lmy);
-           my[n2] -= (t0[1][1]*lmy);
-           mz[n2] -= (t0[1][2]*lmy);
-         }
-       }
-
-     }
-     else {
-
-       // Compute area of shell
-       Node &nd1 = cs.getNode(nn[0]);
-       Node &nd2 = cs.getNode(nn[1]);
-       Node &nd3 = cs.getNode(nn[2]);
-
-       double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
-
-       r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
-       r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
-       r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
-
-       v1[0] = r3[0] - r1[0];
-       v1[1] = r3[1] - r1[1];
-       v1[2] = r3[2] - r1[2];
-
-       v2[0] = r2[0] - r1[0];
-       v2[1] = r2[1] - r1[1];
-       v2[2] = r2[2] - r1[2];
-
-       // Compute normal to shell using vector cross product rule
-       crossprod(v2, v1, normal);
-
-       double magnitude = sqrt(normal[0]*normal[0] + normal[1]*normal[1] 
-                                                    + normal[2]*normal[2]);
-       double area = 0.5*magnitude;
-
-       // compute pressure force per node
-       double pressureForce = pressure * area / 3.0;
+     if(!geomState) {
 
        // compute unit normal to shell surface
 
@@ -671,13 +568,6 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
          beamnode[1][1] = 2;
          beamnode[2][0] = 1;
          beamnode[2][1] = 2;
-
-         double xn[3][3];
-         for(i=0; i<3; ++i) {
-           xn[0][i] = r1[i];
-           xn[1][i] = r2[i];
-           xn[2][i] = r3[i];
-         }
 
          for(beam=0; beam<3; ++beam) {
            double length, dx, dy, dz;
@@ -704,28 +594,90 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            mz[n2] -= (v2[2]*lmy);
          }
        }
+
+       elPressureForce[0]  = px;
+       elPressureForce[1]  = py;
+       elPressureForce[2]  = pz;
+       elPressureForce[3]  = mx[0];
+       elPressureForce[4]  = my[0];
+       elPressureForce[5]  = mz[0];
+
+       elPressureForce[6]  = px;
+       elPressureForce[7]  = py;
+       elPressureForce[8]  = pz;
+       elPressureForce[9]  = mx[1];
+       elPressureForce[10] = my[1];
+       elPressureForce[11] = mz[1];
+
+       elPressureForce[12] = px;
+       elPressureForce[13] = py;
+       elPressureForce[14] = pz;
+       elPressureForce[15] = mx[2];
+       elPressureForce[16] = my[2];
+       elPressureForce[17] = mz[2];
      }
 
-     elPressureForce[0]  = px;
-     elPressureForce[1]  = py;
-     elPressureForce[2]  = pz;
-     elPressureForce[3]  = mx[0];
-     elPressureForce[4]  = my[0];
-     elPressureForce[5]  = mz[0];
+     //if local coordinates are needed for nonlinear analysis
+     if (geomState) {
 
-     elPressureForce[6]  = px;
-     elPressureForce[7]  = py;
-     elPressureForce[8]  = pz;
-     elPressureForce[9]  = mx[1];
-     elPressureForce[10] = my[1];
-     elPressureForce[11] = mz[1];
+        //compute centroid
+        double xc0[3];
+        double t0[3][3],xl0[3][3];
+        int nod;
+        for (i=0;i<3;i++)
+        xc0[i] = ( xn[0][i] + xn[1][i] + xn[2][i] )/3.0;
 
-     elPressureForce[12] = px;
-     elPressureForce[13] = py;
-     elPressureForce[14] = pz;
-     elPressureForce[15] = mx[2];
-     elPressureForce[16] = my[2];
-     elPressureForce[17] = mz[2];
+        // Compute t0 transformation matrix with x axis along side 1-2 
+        for( i=0; i<3; i++ ) t0[0][i] = xn[1][i] - xn[0][i];
+        normalize( t0[0] );
+
+        // local y axis
+        for( i=0; i<3; i++ ) t0[1][i] = xn[2][i] - xn[0][i];
+        crossprod( t0[0], t0[1], t0[2] );
+        normalize( t0[2] );
+
+        // local z axis
+        crossprod( t0[2], t0[0], t0[1] );
+        normalize( t0[1] );
+
+        // Compute local coordinates of undeformed element
+        for( nod=0; nod<3; nod++) {
+             for( i=0; i<3; i++ ) {
+                 xl0[nod][i] = t0[i][0]*(xn[nod][0] - xc0[0])
+                              +t0[i][1]*(xn[nod][1] - xc0[1])
+                              +t0[i][2]*(xn[nod][2] - xc0[2]);
+                }
+             }
+
+        elPressureForce[0]  = 0;
+        elPressureForce[1]  = 0;
+        elPressureForce[2]  = pressureForce;
+        elPressureForce[3]  = cflg*pressureForce*( xl0[2][1] - xl0[0][1]
+                                                  +xl0[1][1] - xl0[0][1])/12;
+        elPressureForce[4]  = cflg*pressureForce*( xl0[0][0] - xl0[2][0]
+                                                  +xl0[0][0] - xl0[1][0])/12;
+        elPressureForce[5]  = 0;
+
+        elPressureForce[6]  = 0;
+        elPressureForce[7]  = 0;
+        elPressureForce[8]  = pressureForce;
+        elPressureForce[9]  = cflg*pressureForce*( xl0[0][1] - xl0[1][1]
+                                                  +xl0[2][1] - xl0[1][1])/12;
+        elPressureForce[10] = cflg*pressureForce*( xl0[1][0] - xl0[0][0]
+                                                  +xl0[1][0] - xl0[2][0])/12;
+        elPressureForce[11] = 0;
+
+        elPressureForce[12] = 0;
+        elPressureForce[13] = 0;
+        elPressureForce[14] = pressureForce;
+        elPressureForce[15] = cflg*pressureForce*( xl0[1][1] - xl0[2][1]
+                                                  +xl0[0][1] - xl0[2][1])/12;
+        elPressureForce[16] = cflg*pressureForce*( xl0[2][0] - xl0[1][0]
+                                                  +xl0[2][0] - xl0[0][0])/12;
+        elPressureForce[17] = 0;
+
+     }
+
 }
 
 /*/ dec
@@ -752,7 +704,6 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 				Vector &elThermalForce,int glflag, 
 				GeomState *geomState)
  {
-    
    int i;
    
    double Tref = prop->Ta;

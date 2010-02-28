@@ -189,7 +189,6 @@ class MDNLDynamic
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
-    void subAddThermoeForce(int isub, DistrVector* v1, DistrVector* v2);
 };
 
 inline double

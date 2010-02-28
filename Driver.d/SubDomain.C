@@ -2803,8 +2803,6 @@ GenSubDomain<Scalar>::renumberMPCs()
   }
 }
 
-const double defaultTemp = -10000000.0;
-
 template<class Scalar>
 void
 GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *elemForce)

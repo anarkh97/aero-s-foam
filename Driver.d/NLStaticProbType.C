@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <Timers.d/GetTime.h>
 
-#define DEBUG_NEWTON // use this to output at every newton iteration
+//#define DEBUG_NEWTON // use this to output at every newton iteration
 
 extern int verboseFlag;
 
@@ -362,15 +362,16 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     if(probDesc->linesearch()) { // experimental
       double alpha, alpha_opt = std::numeric_limits<double>::epsilon();
       VecType tmp(probDesc->solVecInfo());
-      for(alpha = 1.0e3; alpha > 0.001; alpha *= 0.9) {
+      for(alpha = 2.0; alpha > std::numeric_limits<double>::epsilon(); alpha *= 0.9) {
         GeomType *tmpState = new GeomType(*geomState);
         tmp.linC(residual,alpha);
         StateUpdate::updateIncr(stateIncr, tmp);
         StateUpdate::integrate(probDesc, refState, tmpState, stateIncr, tmp, elementInternalForce, totalRes);
         double e = probDesc->getEnergy(lambda, force, tmpState);
-        cerr << "alpha = " << alpha << ", e = " << e << endl;
+        //cerr << "alpha = " << alpha << ", e = " << e << endl;
         delete tmpState;
         if(e < e_k) { e_k = e; alpha_opt = alpha; }
+        else if (alpha < alpha_opt) break;
       }
       cerr << "alpha_opt = " << alpha_opt << endl;
       residual *= alpha_opt;

@@ -386,11 +386,11 @@ Domain::buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t)
 }
 
 void
-Domain::buildThermoelasticForce(Vector& f, GeomState *geomState)
+Domain::thermoeComm()
 {
   flExchanger->getStrucTemp(temprcvd);
   if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
-  buildThermalForce(temprcvd, f, geomState);
+  //buildThermalForce(temprcvd, f, geomState);
 }
 
 void
@@ -1336,3 +1336,48 @@ double Domain::getDampingEnergy( Vector& vel, SparseMatrix * gDamp )
   
   return energy;
 }
+
+void
+Domain::updateUsddInDbc(double* userDefineDisp, int* map)
+{
+  int j = 0;
+  for(int i = 0; i < numDirichlet; ++i)
+    if(dbc[i].type == BCond::Usdd) {
+      int k = (map) ? map[j] : j;
+      dbc[i].val = userDefineDisp[k];
+      j++;
+    }
+}
+
+void
+Domain::updateUsdfInNbc(double* userDefineForce, int* map, double* weight)
+{
+  int j = 0;
+  for(int i = 0; i < numNeuman; ++i) 
+    if(nbc[i].type == BCond::Usdf) {
+      int k = (map) ? map[j] : j;
+      nbc[i].val = userDefineForce[k];
+      if(weight) {
+        int dof = c_dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
+        nbc[i].val *= weight[dof];
+      }
+      j++;
+    }
+}
+
+void
+Domain::updateActuatorsInNbc(double* actuatorsForce, int* map, double* weight)
+{
+  int j = 0;
+  for(int i = 0; i < numNeuman; ++i)   
+    if(nbc[i].type == BCond::Actuators) {
+      int k = (map) ? map[j] : j;
+      nbc[i].val = actuatorsForce[k];
+      if(weight) {
+        int dof = c_dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
+        nbc[i].val *= weight[dof];
+      }
+      j++;
+    }
+}
+

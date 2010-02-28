@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+#include <alloca.h>
 
 #include <Corotational.d/Shell3Corotator.h>
 #include <Corotational.d/GeomState.h>
@@ -21,9 +23,12 @@ extern "C" {
                 double *, const int &, const double &, double *, const int &);
 
   void _FORTRAN(trirotation)(double *, double *);
-                              
+  
+  void _FORTRAN(gxtrirotation)(double *, double *, double *, double *);                            
                              
 }
+
+//---------------------------------------------------------------------------
 
 Shell3Corotator::Shell3Corotator(int _n1, int _n2, int _n3, 
                                  FullSquareMatrix &_origK, int fitAlgShell)
@@ -43,19 +48,22 @@ Shell3Corotator::Shell3Corotator(int _n1, int _n2, int _n3,
  fitAlg = fitAlgShell;
 }
 
+//---------------------------------------------------------------------------
+
 void
 Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
                                   FullSquareMatrix &elK, double *f)
 {
+
  // Get Nodes original coordinates (C0 configuration)
- Node &node1 = cs.getNode(n1);
- Node &node2 = cs.getNode(n2);
- Node &node3 = cs.getNode(n3);
+ Node &node1 = cs.getNode( n1 );
+ Node &node2 = cs.getNode( n2 );
+ Node &node3 = cs.getNode( n3 );
 
  // Get Nodes current coordinates (C0n configuration)
- NodeState &ns1 = geomState[n1];
- NodeState &ns2 = geomState[n2];
- NodeState &ns3 = geomState[n3];
+ NodeState &ns1 = geomState[ n1 ];
+ NodeState &ns2 = geomState[ n2 ];
+ NodeState &ns3 = geomState[ n3 ];
   
  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
 
@@ -71,20 +79,19 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  
  // Extract deformational displacement from C0 to C0n configurations
 
- extractDefDisp(node1, node2, node3, ns1, ns2, ns3, xl0, xln, t0, t0n, vld);
-
+ extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+ 
  int i, j;
-
+ 
  // Form unprojected internal forces and initialize stiffness matrix
 
- for(i = 0; i < 18; ++i) {
+ for(i=0; i<18; ++i) {
   locF[i] = 0.0;
-  for(j = 0; j < 18; ++j)
-    elK[i][j] = origK[i][j];
+  for(j=0; j<18; ++j) elK[i][j] = origK[i][j];
  }
 
  // compute locF (local Force) as origK*vld
- _FORTRAN(dgemv)('N', 18, 18, 1.0, (double *)origK, 18, vld, 1, 0.0, locF, 1);
+ _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
 
  // Compute gradients of the nodal deformational pseudorotations
  // Correct element stiffness and internal force
@@ -92,32 +99,38 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  double rotvar[3][3][3];
 
  int inode;
- for(inode = 0; inode < 3; ++inode)
-   pseudorot_var(vld+inode*6+3, rotvar[inode]);
+ for(inode=0; inode<3; ++inode)
+   pseudorot_var( vld+inode*6+3, rotvar[inode] );
 
- leftmult_rotvar(3, 1, rotvar, elK);
- rightmult_rotvar(3, 0, rotvar, elK);
-
+  leftmult_rotvar( 3, 1, rotvar, elK);
+  rightmult_rotvar( 3, 0, rotvar, elK); 
+ 
  double fe[18];
 
- for(inode = 0; inode < 3; ++inode)
-   for(i = 0; i < 3; ++i) {
+ for(inode=0; inode<3; ++inode)
+   for(i=0; i<3; ++i) {
      fe[6*inode+i]   = locF[6*inode+i];
      fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
                        rotvar[inode][1][i]*locF[6*inode+4] +
                        rotvar[inode][2][i]*locF[6*inode+5];
    }
+ 
+ //make copy of rotvar for later
+ double rotvarCopy[3][3][3];
+ for (inode=0;inode<3;inode++)
+   for (j=0;j<3;j++)
+     for (i=0;i<3;i++)
+       rotvarCopy[inode][j][i] = rotvar[inode][j][i];
 
  // Add second variation of pseudorotations contracted with the
  // nodal moment to the diagonal blocks of the stiffness
 
  for(inode = 0; inode<3; ++inode) {
-   pseudorot_2var(vld+inode*6+3, locF+inode*6+3, rotvar[inode]);
-   for(i = 0; i < 3; ++i)
-     for(j = 0; j < 3; ++j)
+   pseudorot_2var(vld+inode*6+3, locF+inode*6+3, rotvar[inode]);  
+   for(i=0; i<3; ++i)
+     for(j=0; j<3; ++j)
        elK[i+inode*6+3][j+inode*6+3] += rotvar[inode][i][j];
  }
-
 
  // Compute nonlinear projector matrix relative to deformed element
  // and correct stiffness and force
@@ -128,42 +141,126 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  double scrstiff[18][18];
 
- // Form: [K] = [P'][K]
+ // Form: [K*] = [P'][K]
 
- _FORTRAN(dgemm)('N', 'T', 18, 18, 18, 1.0, elK.data(), 18,
-                 (double*)pmat, 18, 0.0, (double*)scrstiff, 18);
+ _FORTRAN(dgemm)('N','T',18,18,18,1.0,elK.data(),18,
+                   (double*)pmat,18,0.0,(double*)scrstiff,18);
+
+ // Form:  [K] = [K*][P]
+
+ _FORTRAN(dgemm)('N','N',18,18,18,1.0,(double*)pmat,18,
+                   (double*)scrstiff,18,0.0,elK.data(),18);
 
  // Form: {f} = [P']{fe}
 
-  _FORTRAN(dgemv)('N', 18, 18, 1.0, (double *)pmat, 18, fe, 1, 0.0, f, 1);
+  _FORTRAN(dgemv)('N',18,18,1.0,(double *)pmat,18,fe,1,0.0,f,1);
 
  // Form geometric stiffness from internal force and material stiffness
 
  double stiffGeo1[18][18], stiffGeo2[18][18];
 
- //
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
- //
- formGeometricStiffness(xl0, xln, pmat, gmat, f, stiffGeo1, stiffGeo2);
 
- // Assemble element tangent Stiffness Matrix K = Kg1 + Kg2 + P'KP
+ //formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
+ // build correct geometric stiffness matrix
 
- // Sum geometric stiffness contributions into elK first
+ formCorrectGeometricStiffness(rotvarCopy,xln,pmat,gmat,f,
+                               stiffGeo1,stiffGeo2,fe,t0n);
 
- for(i = 0; i < 18; ++i)
-   for(j = 0; j < 18; ++j)
-     elK[i][j] = stiffGeo1[i][j] + stiffGeo2[i][j];
+ // Assemble element tangent Stiffness Matrix K = K + Kg1 + Kg2 
 
- //
- // Now multiply scrstiff by pmat on the right and sum into elK
- //
+ for(i=0; i<18; ++i)
+   for(j=0; j<18; ++j)
+     elK[i][j] += stiffGeo1[i][j] + stiffGeo2[i][j];
+  
+  _FORTRAN(trirotation)( elK.data(), (double*)t0n );
 
- _FORTRAN(dgemm)('N', 'N', 18, 18, 18, 1.0, (double*)pmat, 18,
-                 (double*)scrstiff, 18, 1.0, elK.data(), 18);
+ // transform internal force vector from local to global coordinates
+  
+ tran_force(f, t0n, 3);
 
- // transform stiffness matrix from local to global coordinates
+ //cerr << "elK = \n"; elK.print();
+ //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
 
- _FORTRAN(trirotation)(elK.data(), (double*)t0n);
+}
+
+//--------------------------------------------------------------------------
+
+void
+Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+                                  FullSquareMatrix &elK, double *f)
+{
+
+ // Get Nodes original coordinates (C0 configuration)
+ Node &node1 = cs.getNode( n1 );
+ Node &node2 = cs.getNode( n2 );
+ Node &node3 = cs.getNode( n3 );
+
+ // Get Nodes current coordinates (C0n configuration)
+ NodeState &ns1 = geomState[ n1 ];
+ NodeState &ns2 = geomState[ n2 ];
+ NodeState &ns3 = geomState[ n3 ];
+  
+ double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
+
+ // C0    = initial configuration
+ // C0n   = nth configuration
+ // xl0   = C0 local coordinates
+ // xln   = C0n local coordinates
+ // t0n   = transformation matrix between C0n and C0
+ // vld   = local deformation vector
+ // locF  = local unprojected internal force
+ // origK = original stiffness matrix
+
+ // f = T' P' H' K v
+ 
+ // Extract deformational displacement from C0 to C0n configurations
+
+ extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+
+ // Form unprojected internal forces and initialize stiffness matrix
+
+ int i,j;
+ for(i=0; i<18; ++i) locF[i] = 0.0;
+
+ for(i=0; i<18; ++i) {
+  locF[i] = 0.0;
+  for(j=0; j<18; ++j)
+    elK[i][j] = origK[i][j];
+ }
+ // compute locF (local Force) as origK*vld 
+
+ _FORTRAN(dgemv)('N',18,18,1.0,(double *)elK.data(),18,vld,1,0.0,locF,1);
+
+ // Compute gradients of the nodal deformational pseudorotations
+ // Correct element stiffness and internal force
+
+ double rotvar[3][3][3];
+
+ int inode;
+ for(inode=0; inode<3; ++inode)
+   pseudorot_var( vld+inode*6+3, rotvar[inode] );
+
+ double fe[18];
+
+ for(inode=0; inode<3; ++inode)
+   for(i=0; i<3; ++i) {
+     fe[6*inode+i]   = locF[6*inode+i];
+     fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
+                       rotvar[inode][1][i]*locF[6*inode+4] +
+                       rotvar[inode][2][i]*locF[6*inode+5];
+   }
+
+ // Compute nonlinear projector matrix relative to deformed element
+ // and correct stiffness and force
+ 
+ double pmat[18][18], gmat[3][18];
+
+ gradDefDisp(xl0, xln, pmat, gmat);
+
+ // Form: {f} = [P']{fe}
+
+  _FORTRAN(dgemv)('N',18,18,1.0,(double *)pmat,18,fe,1,0.0,f,1);
 
  // transform internal force vector from local to global coordinates
 
@@ -171,9 +268,57 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
 }
 
+//---------------------------------------------------------------------------
+
+void
+Shell3Corotator::getExternalForce(GeomState &geomState, CoordSet &cs, double *f)
+{
+
+ int i;
+ // Get Nodes original coordinates (C0 configuration)
+ Node &node1 = cs.getNode( n1 );
+ Node &node2 = cs.getNode( n2 );
+ Node &node3 = cs.getNode( n3 );
+
+ // Get Nodes current coordinates (C0n configuration)
+ NodeState &ns1 = geomState[ n1 ];
+ NodeState &ns2 = geomState[ n2 ];
+ NodeState &ns3 = geomState[ n3 ];
+  
+ double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
+
+ extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+ 
+ 
+ //compute H
+ double rotvar[3][3][3];
+ int inode;
+ for(inode=0; inode<3; ++inode)
+   pseudorot_var( vld+inode*6+3, rotvar[inode] );
+ 
+ //left multiply by H'
+ double fe[18];
+ for(inode=0; inode<3; ++inode)
+   for(i=0; i<3; ++i) {
+     fe[6*inode+i]   = f[6*inode+i];
+     fe[6*inode+i+3] = rotvar[inode][0][i]*f[6*inode+3] +
+                       rotvar[inode][1][i]*f[6*inode+4] +
+                       rotvar[inode][2][i]*f[6*inode+5];
+   }
+
+ // transform external force vector from local to global coordinates
+ // ie left multiply by T'
+ tran_force(fe, t0n, 3);
+
+ for (i=0;i<18;i++)
+    f[i] = fe[i];
+}
+
+//----------------------------------------------------------------------------
+
 void
 Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
-                                  FullSquareMatrix &elK, double *f)
+                                        FullSquareMatrix &elK, double *f)
 {
 
  // Get Nodes original coordinates (C0 configuration)
@@ -238,7 +383,7 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
  //
 
- formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2);
+ formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
 
  int j;
  for(i=0; i<18; ++i)
@@ -250,6 +395,8 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
   _FORTRAN(trirotation)(elK.data(),(double*)t0n);
 
 }
+
+//---------------------------------------------------------------------------
 
 void
 Shell3Corotator::extractDefDisp(Node &nd1, Node &nd2, Node &nd3,NodeState &ns1,
@@ -317,7 +464,7 @@ Shell3Corotator::extractDefDisp(Node &nd1, Node &nd2, Node &nd3,NodeState &ns1,
  rot[0]   = &(ns1.R); // rotation tensor of node state 1
  rot[1]   = &(ns2.R); // rotation tensor of node state 2
  rot[2]   = &(ns3.R); // rotation tensor of node state 3
- 
+
  // Compute local coordinates
  localCoord( x0, xn, t0, t0n, xl0, xln );
 
@@ -340,34 +487,65 @@ Shell3Corotator::extractDefDisp(Node &nd1, Node &nd2, Node &nd3,NodeState &ns1,
 
  // Create rotation part of the deformation vector
  double rot0[3][3], dr[3][3];
-
  for(inode = 0; inode < 3; ++inode) {
-
+ 
     for(i=0; i<3; ++i)
-      for(j=0; j<3; ++j)
+      for(j=0; j<3; ++j){
         rot0[i][j] = (*rot[inode])[i][0]*t0[j][0]
                     +(*rot[inode])[i][1]*t0[j][1]
-                    +(*rot[inode])[i][2]*t0[j][2];
+                    +(*rot[inode])[i][2]*t0[j][2];	    
+		    }
 
     for(i=0; i<3; ++i)
-      for(j=0; j<3; ++j)
+      for(j=0; j<3; ++j){
         dr[i][j] = t0n[i][0]*rot0[0][j]
                   +t0n[i][1]*rot0[1][j]
-                  +t0n[i][2]*rot0[2][j];
-
+                  +t0n[i][2]*rot0[2][j];	  
+		  }
+		          
+	
     mat_to_vec(dr, vld + inode*6 + 3);
 
  }
 
 }
+
+//----------------------------------------------------------------------
+
+void 
+Shell3Corotator::getGlobalDisp(GeomState& geomState, CoordSet &cs, Vector& disp)
+{
+
+// Get Nodes original coordinates (C0 configuration)
+ Node &node1 = cs.getNode( n1 );
+ Node &node2 = cs.getNode( n2 );
+ Node &node3 = cs.getNode( n3 );
+
+ // Get Nodes current coordinates (C0n configuration)
+ NodeState &ns1 = geomState[ n1 ];
+ NodeState &ns2 = geomState[ n2 ];
+ NodeState &ns3 = geomState[ n3 ];
+  
+ double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18];
+
+ extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0, xln, t0, t0n, vld );
+ 
+ // transform local displacement vector from local to global coordinates
+
+ tran_force(vld, t0n, 3);
+
+ disp.copy(vld);
+
+}
 	
+//-----------------------------------------------------------------------
 
 void
 Shell3Corotator::formGeometricStiffness(double [3][3], 
                             double [3][3], double pmat[18][18], 
                             double gmat[3][18], double f[18], 
                             double stiffGeo1[18][18], 
-                            double stiffGeo2[18][18])
+                            double stiffGeo2[18][18],double fe[18])
 /****************************************************************
  *
  *  Purpose:
@@ -395,6 +573,8 @@ Shell3Corotator::formGeometricStiffness(double [3][3],
 {
    int i, j, k;
    double fspin[18][3], fproj[18][3];
+
+   //fprintf(stderr,"\nWATCH: incorrect geometric stiffness routines called\n");
 
 // Fspin with both axial and moment contributions
    spinAxialAndMoment( f, fspin );
@@ -432,6 +612,8 @@ Shell3Corotator::formGeometricStiffness(double [3][3],
                              +gmat[2][i]*fproj[j][2] );
 
 }
+
+//---------------------------------------------------------------------------
 
 void 
 Shell3Corotator::spinAxialAndMoment ( double f[], double fnm[][3])
@@ -481,6 +663,7 @@ Shell3Corotator::spinAxialAndMoment ( double f[], double fnm[][3])
 
 }
 
+//----------------------------------------------------------------------
 
 void
 Shell3Corotator::formRotationGradientMatrix(double x[3][3], double y[3][3], 
@@ -625,6 +808,7 @@ Shell3Corotator::formRotationGradientMatrix(double x[3][3], double y[3][3],
 
 }
 
+//---------------------------------------------------------------------------
 
 void
 Shell3Corotator::spinAxial( double f[], double fn[][3] )
@@ -673,6 +857,8 @@ Shell3Corotator::spinAxial( double f[], double fn[][3] )
    }
 
 } 
+
+//------------------------------------------------------------------
 
 void
 Shell3Corotator::gradDefDisp(double [][3], double xln[][3], 
@@ -759,7 +945,7 @@ Shell3Corotator::gradDefDisp(double [][3], double xln[][3],
 
 }
 
-
+//---------------------------------------------------------------------------
 
 void
 Shell3Corotator::localCoord(double x0[3][3], double xn[3][3], 
@@ -864,6 +1050,7 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
 
    else if ( fitAlg == 2 ) {  /*********** fitalg == 2 ************/
    /* Compute angle between side 2-3 for deformed and undeformed */
+      double innerVal;
       for( i=0; i<2; i++ ) {
          s0[i] = xl0[2][i] - xl0[1][i];
          sn[i] = xln[2][i] - xln[1][i];
@@ -874,7 +1061,12 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
          s0[i] /= l0;
          sn[i] /= ln;
       }
-      alpha = asin( sn[0]*s0[1] - s0[0]*sn[1] );
+      innerVal = s0[0]*sn[0] + s0[1]*sn[1];
+      if (innerVal < 0.0){
+         //fprintf(stderr,"\nWARNING OBTUSE ANGLE 2-3 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
+         alpha = 3.14159 - asin(sn[0]*s0[1] - s0[0]*sn[1] );
+      }
+      else  alpha = asin( sn[0]*s0[1] - s0[0]*sn[1] );
 
    /* Compute angle between side 3-1 for deformed and undeformed */
       for( i=0; i<2; i++ ) {
@@ -887,7 +1079,12 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
          s0[i] /= l0;
          sn[i] /= ln;
       }
-      alpha += asin( sn[0]*s0[1] - s0[0]*sn[1] );
+      innerVal = s0[0]*sn[0] + s0[1]*sn[1];
+      if (innerVal < 0.0){
+          //fprintf(stderr,"\nWARNING OBTUSE ANGLE 3-1 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
+          alpha += 3.14159 - asin( sn[0]*s0[1] - s0[0]*sn[1] );
+      }
+      else alpha += asin( sn[0]*s0[1] - s0[0]*sn[1] );
       alpha = -alpha/3.0;
    }
 
@@ -929,6 +1126,8 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
 
 }
 
+//---------------------------------------------------------------------------
+
 void
 Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs, 
                  double *vld, int &nlflag)
@@ -945,12 +1144,7 @@ Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs,
  NodeState &ns1 = geomState[n1];
  NodeState &ns2 = geomState[n2];
  NodeState &ns3 = geomState[n3];
-/*
- cerr << "n1 = " << n1 << ", n2 = " << n2 << ", n3 = " << n3 << endl;
- cerr << "geomState = " << ns1.x << "," << ns1.y << "," << ns1.z << "  " 
-      << ns2.x << "," << ns2.y << "," << ns2.z << "  "
-      << ns3.x << "," << ns3.y << "," << ns3.z << endl;
-*/ 
+ 
  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3];
 
  // C0    = initial configuration
@@ -969,17 +1163,17 @@ Shell3Corotator::extractDeformations( GeomState &geomState, CoordSet &cs,
 
  // transform element displacement vector from local to global coordinates
 
- tran_force( vld, t0, 3 );
+ tran_force( vld, t0n, 3 );
 
-// cerr << "vld = "; for(int i=0; i<18; ++i) cerr << vld[i] << " "; cerr << endl;
 }
+
+//---------------------------------------------------------------------------
 
 void
 Shell3Corotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                  double *vlr)
 {
- cerr << "WARNING: Shell3Corotator::extractRigidBodyMotion(...) is not implemented\n";
-/*
+
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode(n1);
  Node &node2 = cs.getNode(n2);
@@ -989,8 +1183,11 @@ Shell3Corotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
  NodeState &ns1 = geomState[n1];
  NodeState &ns2 = geomState[n2];
  NodeState &ns3 = geomState[n3];
-*/
+
 }
+
+//---------------------------------------------------------------------------
+
 void
 Shell3Corotator::getNLVonMises(Vector& stress,Vector& weight,
                                GeomState &geomState, CoordSet &cs,
@@ -999,6 +1196,8 @@ Shell3Corotator::getNLVonMises(Vector& stress,Vector& weight,
  stress.zero();
  weight.zero();
 }
+
+//---------------------------------------------------------------------------
 
 void
 Shell3Corotator::getNLAllStress(FullM& stress,Vector& weight,
@@ -1009,6 +1208,7 @@ Shell3Corotator::getNLAllStress(FullM& stress,Vector& weight,
  weight.zero();
 }
 
+//---------------------------------------------------------------------------
 
 double
 Shell3Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
@@ -1042,9 +1242,6 @@ Shell3Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 
  extractDefDisp(node1,node2,node3,ns1,ns2,ns3,xl0,xln,t0,t0n,vld);
 
- // transform element displacement vector from local to global coordinates
- tran_force( vld, t0, 3 );
-
  // Multiply by the original stiffness matrix
  int i,j;
  for(i=0; i<18; ++i) {
@@ -1062,3 +1259,318 @@ Shell3Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
  Energy *= 0.5;
  return Energy;
 }
+
+//-------------------------------------------------------------------------
+
+void
+Shell3Corotator::formCorrectGeometricStiffness(double rotvar[3][3][3], 
+                            double xln[3][3], double pmat[18][18], 
+                            double gmat[3][18], double f[18], 
+                            double stiffGeo1[18][18], 
+                            double stiffGeo2[18][18],double fe[18],double
+			    t0n[3][3])
+{
+    if ( fitAlg != 2 ) {
+      fprintf(stderr,"Error: Three Node Shell element works correctly only for FitAlg =2\n");
+      exit(-1);
+    }
+
+     int i, j, k, inod;
+     static int p[5]={0,1,2,0,1};
+     double fspin[18][3], fproj[18][3];
+     //zero stiffness matricies
+     for (i=0;i<18;i++) 
+         for (j=0;j<18;j++){
+              if (j <= 2) {
+                fspin[i][j] = 0.0;
+                fproj[i][j] = 0.0;
+                }
+	      stiffGeo1[i][j]=0.0;
+	      stiffGeo2[i][j]=0.0;
+	 }
+         
+	 
+    //First Compute Kgeo1-- Rotational Geometric Stiffness
+    
+       // Fspin with both axial and moment contributions
+          spinAxialAndMoment( f, fspin );
+
+
+       // Geometric stiffness contribution Kgeo1 = -Fspin*Gmat ,Fspin(H'f)
+
+          for( i=0; i<18; ++i ) {
+              for( j=0; j<18; ++j ) {
+                   stiffGeo1[i][j] = -(  fspin[i][0]*gmat[0][j]
+                                        +fspin[i][1]*gmat[1][j]
+                                        +fspin[i][2]*gmat[2][j] );
+               }
+           }
+
+    // Geometric stiffness contribution Kgeo2 -- Equilibrium Projection
+       // 
+       // Fspin with only axial contributions
+          spinAxial( fe, fspin );
+
+       // Compute Fproj' = Fspin'*Pmat
+
+         for( i=0; i<3; ++i ) {
+            for( j=0; j<18; ++j ) {
+                fproj[j][i] = 0.0;
+                for( k=0; k<18; ++k )
+                    fproj[j][i] += fspin[k][i]*pmat[k][j];
+                } 
+             }
+   
+      for( i=0; i<18; ++i )
+         for( j=0; j<18; ++j )
+             stiffGeo2[i][j] = -( gmat[0][i]*fproj[j][0]
+			         +gmat[1][i]*fproj[j][1]
+                                 +gmat[2][i]*fproj[j][2] );
+
+ 
+              //compute part from variation of G'
+
+	      double xnij[3][3],  vxnij[3][3], ynij[3][3], vynij[3][3];
+	      double length[3], vlength[3], svx[3], vsvx[3], svy[3], vsvy[3];
+	      double A, vA;
+	      double Gvar[3][18];
+	      for (i=0;i<3;i++)
+	          for (j=0;j<18;j++)
+		      Gvar[i][j] = 0.0;
+	      //Vector temp(18,0.0);
+           
+	      double temp[18],temp2[18];
+	      // Compute nodal delta coordinates
+                 for( i=0; i<3; i++ ) 
+                    for( j=0; j<3; j++ ) {
+                       xnij[i][j] = xln[i][0] - xln[j][0];
+		       ynij[i][j] = xln[i][1] - xln[j][1];
+                    }
+	      // Compute side lengths, heights and side unit vectors for each node
+	       for(inod=0; inod<3; ++inod) {
+                   j = p[inod+1];
+                   k = p[inod+2];
+                   length[inod] = sqrt(xnij[k][j]*xnij[k][j]+ynij[k][j]*ynij[k][j]);
+                   svx[inod]    = xnij[k][j]/length[inod];
+                   svy[inod]    = ynij[k][j]/length[inod];
+                   }   
+		 
+		
+	      //Compute Area
+	      A = 0.5*(xnij[1][0]*ynij[2][0]-xnij[2][0]*ynij[1][0]);    
+	     
+	     
+	      //Loop over each variation--Fitalg ==2
+	      for (i=0;i<18;++i){
+		 
+		 // vld = HPTv  
+		 
+		 //temp.zero(); // this was the old way that segmented
+                 for (j=0;j<18;j++) temp[j] = 0.0;
+		 temp[i]=1.0;
+		 
+		 for (j=0;j<18;j++){
+		         temp2[j] =0.0;    
+		     for (k=0;k<18;k++)
+		         temp2[j] += pmat[j][k]*temp[k];	 
+		         }
+                 for(inod=0; inod<3; ++inod)
+                     for(j=0; j<3; ++j) {
+                         temp[6*inod+j]   = temp2[6*inod+j];
+                         temp[6*inod+j+3] = rotvar[inod][j][0]*temp2[6*inod+3] +
+                                            rotvar[inod][j][1]*temp2[6*inod+4] +
+                                            rotvar[inod][j][2]*temp2[6*inod+5];
+   }
+		 
+		 for( k=0; k<3; k++ ) 
+                    for( j=0; j<3; j++ ) {
+                       vxnij[k][j] = temp[k*6    ] - temp[j*6    ];
+		       vynij[k][j] = temp[k*6 + 1] - temp[j*6 + 1];
+                       }
+		 
+		 
+                   for(inod=0; inod<3; ++inod) {
+                       j = p[inod+1];
+                       k = p[inod+2];
+                       vlength[inod] = (vxnij[k][j]*xnij[k][j]+
+		                            vynij[k][j]*ynij[k][j])/length[inod];
+                       vsvx[inod]    =vxnij[k][j]/length[inod]-
+                                      xnij[k][j]*vlength[inod]/
+				      (length[inod]*length[inod]);
+                       vsvy[inod]    = vynij[k][j]/length[inod]-
+		                       ynij[k][j]*vlength[inod]/
+				      (length[inod]*length[inod]);;
+                       } 	   	   
+
+		       
+		 vA = 0.5*( vxnij[1][0]*ynij[2][0] + xnij[1][0]*vynij[2][0]
+		           -vxnij[2][0]*ynij[1][0] - xnij[2][0]*vynij[1][0]);
+		
+	
+		 //create Gvar	   
+		 for (inod=0;inod<3;inod++){
+		    j = p[inod+1];
+                    k = p[inod+2];
+		    Gvar[0][inod*6+2] = 0.5*(vxnij[k][j]/A -xnij[k][j]*vA/A/A);
+		    Gvar[1][inod*6+2] = 0.5*(vynij[k][j]/A -ynij[k][j]*vA/A/A);
+		    Gvar[2][inod*6  ] = ((-vsvy[j]*length[j]+svy[j]*vlength[j])/(length[j]*length[j])		    
+                                       +( vsvy[k]*length[k]-svy[k]*vlength[k])/(length[k]*length[k]))/3.0;
+		    Gvar[2][inod*6+1] = (( vsvx[j]*length[j]-svx[j]*vlength[j])/(length[j]*length[j])
+                                       +(-vsvx[k]*length[k]+svx[k]*vlength[k])/(length[k]*length[k]))/3.0;
+		     }   
+
+		    //create partial derivative of P wrt G
+		    int nod,dof;
+		    double PvarPartG[18][18];
+		    for( nod=0; nod<3; nod++ ) {
+                    for( dof=0; dof<18; dof++ ) {
+
+                     // Translation part
+                     PvarPartG[nod*6  ][dof] = -xln[nod][2]*Gvar[1][dof]
+					       +xln[nod][1]*Gvar[2][dof];
+                     PvarPartG[nod*6+1][dof] =  xln[nod][2]*Gvar[0][dof]
+                                               -xln[nod][0]*Gvar[2][dof];
+                     PvarPartG[nod*6+2][dof] = -xln[nod][1]*Gvar[0][dof]
+                                               +xln[nod][0]*Gvar[1][dof];
+                     // Rotation part
+                        PvarPartG[nod*6+3][dof] = -Gvar[0][dof];
+                        PvarPartG[nod*6+4][dof] = -Gvar[1][dof];
+                        PvarPartG[nod*6+5][dof] = -Gvar[2][dof];
+                        }
+
+                     }
+		
+		_FORTRAN(dgemv)('N',18,18,1.0,(double*)PvarPartG,18,fe,1,0.0,temp2,1);
+		for (j=0;j<18;j++) stiffGeo2[j][i] += temp2[j];
+		
+               }
+	 
+}
+
+//-------------------------------------------------------------------------
+
+void
+Shell3Corotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
+                                     FullSquareMatrix &elK, double *locF)
+{
+/*
+    This routine calculates the tangent stiffness contribution from an external
+force (if applicable).  There is no contribution from a linear stiffness term
+here because of the corotational framework.
+        Inputs:
+                geomState - description of the current deformed configuration
+                cs        - description of the undeformed configuration
+                elk       - existing tangent stiffness from internal forces
+                locF      - linear external force in local coordinates
+        Outputs:
+                elk       - final tangent stiffness from internal and external 
+                            forces 
+                            
+        Coded by Joe Pajot 3-31-03
+*/
+
+  int i, j;
+  double localKele[18][18], f[18], fe[18];
+
+  for (i=0;i<18;i++) {
+     f[i]  = 0.0;
+     fe[i] = 0.0;
+     for (j=0;j<18;j++)
+        localKele[i][j]=0.0;
+  }
+
+  // Get Nodes original coordinates (C0 configuration)
+     Node &node1 = cs.getNode( n1 );
+     Node &node2 = cs.getNode( n2 );
+     Node &node3 = cs.getNode( n3 );
+
+  // Get Nodes current coordinates (C0n configuration)
+     NodeState &ns1 = geomState[ n1 ];
+     NodeState &ns2 = geomState[ n2 ];
+     NodeState &ns3 = geomState[ n3 ];
+
+  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18];
+
+  // Extract deformational displacement from C0 to C0n configurations
+
+  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+
+  // Compute gradients of the nodal deformational pseudorotations
+  // Correct element stiffness and internal force
+
+  //create H matrix rotvar
+  double rotvar[3][3][3];
+  int inode;
+  for(inode=0; inode<3; ++inode)
+      pseudorot_var( vld+inode*6+3, rotvar[inode] );
+
+  //make copy of rotvar for later
+  double rotvarCopy[3][3][3];
+  for (inode=0;inode<3;inode++)
+       for (j=0;j<3;j++)
+            for (i=0;i<3;i++)
+                 rotvarCopy[inode][j][i] = rotvar[inode][j][i];
+
+  for(inode=0; inode<3; ++inode)
+    for(i=0; i<3; ++i) {
+      fe[6*inode+i]   = locF[6*inode+i];
+      fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
+                        rotvar[inode][1][i]*locF[6*inode+4] +
+                        rotvar[inode][2][i]*locF[6*inode+5];
+   }
+
+
+  // Add second variation of pseudorotations contracted with the
+  // nodal moment to the diagonal blocks of the stiffness  
+  for(inode = 0; inode<3; ++inode) {
+      pseudorot_2var(vld+inode*6+3, locF+inode*6+3, rotvar[inode]);
+      for(i=0; i<3; ++i)
+          for(j=0; j<3; ++j){
+              localKele[i+inode*6+3][j+inode*6+3] += rotvar[inode][i][j];
+              }
+   }
+
+
+  // Compute nonlinear projector matrix relative to deformed element
+  // and correct stiffness and force  
+
+  double pmat[18][18], gmat[3][18];
+
+  gradDefDisp(xl0, xln, pmat, gmat);
+
+  double scrstiff[18][18];
+
+
+   _FORTRAN(dgemm)('N','N',18,18,18,1.0,(double*)pmat,18,
+                   (double*)localKele,18,0.0,(double*)scrstiff,18);
+
+
+   double stiffGeo1[18][18], stiffGeo2[18][18];
+
+   // WATCH: should be fe and then f when there is no P projection 
+   formCorrectGeometricStiffness(rotvarCopy,xln,pmat,gmat,fe,
+                                 stiffGeo1,stiffGeo2,f,t0n);
+
+    for(i=0; i<18; ++i)
+        for(j=0; j<18; ++j)
+          scrstiff[i][j] += stiffGeo1[i][j] ;
+
+   _FORTRAN(trirotation)( (double*)scrstiff, (double*)t0n );
+
+     for(i=0; i<18; ++i)
+       for(j=0; j<18; ++j)
+         elK[i][j] -= scrstiff[i][j];
+
+}
+
+
+void
+Shell3Corotator::reBuildorigK(FullSquareMatrix &_origK)
+{
+ // Copy Element's stiffness matrix to origK (original stiffness matrix)
+ int i, j;
+ for(i=0; i<18; ++i)
+   for(j=0; j<18; ++j)
+     origK[i][j] = _origK[i][j];
+}
+

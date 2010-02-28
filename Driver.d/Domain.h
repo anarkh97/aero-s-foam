@@ -17,7 +17,6 @@ class MortarHandler;
 class MFTTData;
 class ControlInterface;
 class ControlInfo;
-class NLState;
 class DofSetArray;
 class ConstrainedDSA;
 class DOFMap;
@@ -85,6 +84,8 @@ class FSCommunicator;
 class SurfaceEntity;
 
 extern Sfem *sfem;
+
+const double defaultTemp = -10000000.0;
 
 // ... Structure used to store problem Operators buildSkyOps
 // ... i.e. Only a Solver is needed for a static problem
@@ -451,24 +452,25 @@ class Domain : public HData {
      Rbm              *constructSlzem(bool printFlag = true);
 
      template<class Scalar>
-       void buildGravityForce(GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
+       void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void buildPressureForce(GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
+       void addPressureForce(GenVector<Scalar>& force, double lambda = 1.0);
 
      template<class Scalar>
-       void buildPressureForce(GenVector<Scalar> &force, NLState *nls);
+       void addAtddnbForce(GenVector<Scalar>& force, double lambda = 1.0);
 
      template<class Scalar>
-       void buildThermalForce(double* nodalTemps, GenVector<Scalar>& force, GeomState* gs = 0, double lambda = 1.0);
+       void addAtdrobForce(GenVector<Scalar>& force, double lambda = 1.0);
+
+     template<class Scalar>
+       void addThermalForce(GenVector<Scalar>& force);
 
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 
      template<class Scalar>
        void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc = 0);
-     template<class Scalar>
-       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NLState *gs);
 
      template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
@@ -481,6 +483,7 @@ class Domain : public HData {
                          double omega, double delta_omega,
                          GeomState *gs=0);
 
+     void initNodalTemperatures();
      double * getNodalTemperatures();
 
      // Main program control functions.
@@ -518,11 +521,13 @@ class Domain : public HData {
                            int hgIndex, double time=0);
      void getTrussHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
        { cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
+     template <class Scalar>
+       void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
        void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
-                             GenSparseMatrix<Scalar> *kuc = 0, Scalar *userDefineDisp = 0, int *userMap = 0);
-     void computeExtForce(Vector &f, double t, int tIndex,
-                          SparseMatrix *kuc, Vector &prev_f);
+                             GenSparseMatrix<Scalar> *kuc = 0);
+     //void computeExtForce(Vector &f, double t, int tIndex,
+     //                     SparseMatrix *kuc, Vector &prev_f);
 
 
      int  probType() { return sinfo.probType; }
@@ -547,7 +552,7 @@ class Domain : public HData {
      void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
-     void buildThermoelasticForce(Vector& f, GeomState *geomState = 0);
+     void thermoeComm();
      void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,
                           double* vcx, int sliceRank, double time);
@@ -702,7 +707,7 @@ class Domain : public HData {
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
-     int  thermalFlag() { return sinfo.thermalLoadFlag; }
+     int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
 
      // returns the maximum number of dofs per element
      int  maxNumDOF() { return maxNumDOFs; }
@@ -875,6 +880,11 @@ class Domain : public HData {
 
      /** Replaces all 6-DOF rigid elements that share a node by a single element */
      void collapseRigid6();
+
+     // new controls
+     void updateUsddInDbc(double* userDefineDisp, int* map = 0);
+     void updateUsdfInNbc(double* userDefineForce, int* map = 0, double* weight = 0);
+     void updateActuatorsInNbc(double* actuatorsForce, int* map = 0, double* weight = 0);
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -61,20 +61,26 @@ Domain::buildPrescDisp(Vector &pDisp, double t, double)
 double *
 Domain::getNodalTemperatures()
 {
-  double *nodalTemperatures = new double[numnodes];
+  return temprcvd;
+}
 
-  // initialize nodal temperatures
-  int i;
-  for(i=0; i<numnodes; ++i)
-    nodalTemperatures[i] = defaultTemp;
+void
+Domain::initNodalTemperatures()
+{
+  if(sinfo.thermalLoadFlag && sinfo.thermoeFlag == -1) {
 
-  for(i=0; i<numDirichlet; ++i)
-   if(( 1 << dbc[i].dofnum) == DofSet::Temp) {
-    nodalTemperatures[dbc[i].nnum] = dbc[i].val;
-    // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
-   }
+    temprcvd = new double[numnodes];
 
-  return nodalTemperatures;
+    int i;
+    for(i = 0; i < numnodes; ++i)
+      temprcvd[i] = defaultTemp;
+
+    for(i = 0; i < numDirichlet; ++i)
+      if((1 << dbc[i].dofnum) == DofSet::Temp) {
+        temprcvd[dbc[i].nnum] = dbc[i].val;
+        // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
+      }
+  }
 }
 
 FILE *

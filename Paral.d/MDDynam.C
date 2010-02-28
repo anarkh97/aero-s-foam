@@ -23,6 +23,7 @@
 
 extern ModeData modeData;
 
+/*
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
                DistrVector *_v1, DistrVector*_v2, double c, CuCSparse **_Kuc)
 {
@@ -33,9 +34,11 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
  sd  = _sd;
  Kuc = _Kuc;
 }
+*/
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector*_v2, double c, double *_userDefDisps)
+                             DistrVector *_v1, DistrVector*_v2, double c,
+                             double *_userDefDisps, SubDOp* _Kuc)
 {
  v1 = _v1;
  v2 = _v2;
@@ -43,14 +46,16 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
  c1 = c;
  sd = _sd;
  userDefDisps = _userDefDisps;
+ Kuc = _Kuc;
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1)
+                             DistrVector *_v1, SubDOp* _Kuc)
 {
  v1 = _v1;
  f  = _f;
  sd = _sd;
+ Kuc = _Kuc;
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd)
@@ -60,7 +65,7 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd)
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector*_v2, DistrVector *_v3)
+                             DistrVector *_v1, DistrVector*_v2, DistrVector *_v3)
 {
  v1 = _v1;
  v2 = _v2;
@@ -70,7 +75,7 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector*_v2, DistrVector *_v3,  DistrVector *_v4)
+                             DistrVector *_v1, DistrVector*_v2, DistrVector *_v3,  DistrVector *_v4)
 {
  v1 = _v1;
  v2 = _v2;
@@ -81,7 +86,7 @@ MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                  DistrVector *_v1, DistrVector *_v2)
+                             DistrVector *_v1, DistrVector *_v2)
 {
  v1 = _v1;
  v2 = _v2;
@@ -106,7 +111,7 @@ MultiDomainOp::computeExtForce(int isub)
   StackVector localg(v2->subData(isub),v2->subLen(isub));
 
   int *userDataMap = sd[isub]->getUserDispDataMap();
-  sd[isub]->computeExtForce4(localf, localg, c1, sd[isub]->getKuc(), userDefDisps, userDataMap);
+  sd[isub]->computeExtForce4(localf, localg, c1, (*Kuc)[isub]/*, userDefDisps, userDataMap*/); //XXXX broken
 }
 
 void
@@ -114,29 +119,8 @@ MultiDomainOp::getConstForce(int isub)
 {
   // Get the pointer to the part of the vector f correspoding to subdomain sNum
   StackVector f(v1->subData(isub),v1->subLen(isub));
-  f.zero();
-
-  // build gravity forces
-  if(sd[isub]->gravityFlag()) sd[isub]->buildGravityForce<double>(f);
-
-  // build thermal forces
-  if(sd[isub]->thermalFlag()) sd[isub]->buildThermalForce(sd[isub]->getNodalTemperatures(), f);
-
-  // build pressure forces ( by convention these forces are non-follower for linear dynamics)
-  if(!domain->solInfo().isNonLin())
-    if(sd[isub]->pressureFlag()) sd[isub]->buildPressureForce<double>(f);
+  sd[isub]->computeConstantForce(f, (*Kuc)[isub]);
 }
-
-void
-MultiDomainOp::addThermoeForce(int isub)
-{
-  // Get the pointer to the part of the vector f correspoding to subdomain sNum
-  StackVector f(v1->subData(isub),v1->subLen(isub));
-
-  double *nodalTemperatures = v2->subData(isub);
-  sd[isub]->buildThermalForce(nodalTemperatures, f);
-}
-
 
 void
 MultiDomainOp::makeAllDOFs(int isub)
@@ -269,7 +253,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
 {
  // Have each subdomain create their operators, then put the
  // dynamic matrices in the Feti Solver
- MDDynamMat *dynMat = new MDDynamMat;
+ dynMat = new MDDynamMat;
 
  times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
@@ -550,6 +534,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   times->formRhs -= getTime();
 
   // compute USDD prescribed displacements
+  // I think we should call the control functions on the rank zero mpi process then send to all others
   double *userDefineDisp = 0;
   if(claw && userSupFunc) {
     if(claw->numUserDisp) {
@@ -571,10 +556,16 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *dprev = distState.getDisp();
   }
 
-  // add FORCE (including MFTT), HDNB, ROBIN, GRAVITY and PRESSURE forces
-  // for linear problems also add non-homogeneous DISP/TEMP and USDD forces
+  // update nodal temperatures for thermoe problem
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+    distFlExchanger->getStrucTemp(nodalTemps->data());
+    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
+  }
+
+
+  // add f(t) to cnst_f
   MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
-                     decDomain->getAllSubDomains(), &f, &cnst_f, t, userDefineDisp);
+                     decDomain->getAllSubDomains(), &f, &cnst_f, t, userDefineDisp, dynMat->Kuc);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   if(userDefineDisp) delete [] userDefineDisp;
 
@@ -666,14 +657,6 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *prevFrc = *aeroForce;
   }
 
-  // add thermoelastic forces from thermo dynamics code
-  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
-    distFlExchanger->getStrucTemp(nodalTemps->data());
-    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
-    MultiDomainOp mdop(&MultiDomainOp::addThermoeForce, decDomain->getAllSubDomains(), &f, nodalTemps);
-    threadManager->execParal(decDomain->getNumSub(), &mdop);
-  }
-
   // KHP: apply projector here
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
@@ -688,7 +671,7 @@ void
 MultiDomainDynam::getConstForce(DistrVector& v)
 {
   times->formRhs -= getTime();
-  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v);
+  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, dynMat->Kuc);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   times->formRhs += getTime();
 }
@@ -1227,6 +1210,7 @@ MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
+    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub); // XXXX
     int buffLen = nodalTemps->size();
    
     distFlExchanger->thermoread(buffLen);

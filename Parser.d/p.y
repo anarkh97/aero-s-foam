@@ -666,19 +666,21 @@ SensorLocations:
 ActuatorLocations:
         ACTUATORS NewLine BCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Actuators;
-          if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; }
+          if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; 
+          if(geoSource->setNeuman($3->n,$3->d) < 0)            return -1; }
 	;
 UsdfLocations:
 	USERDEFINEFORCE NewLine BCDataList
         { geoSource->binaryInputControlLeft = true;
           for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdf;
-          if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;   }
+          if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;
+          if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
 UsddLocations:
 	USERDEFINEDISP NewLine BCDataList
 	{ geoSource->binaryInputControlLeft = true;
           for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
-          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;   
+          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
 OutInfo:
@@ -1384,7 +1386,7 @@ HEVFRSBCElem: // Added for HEV problem, EC, 20080512
         ;
 TempDirichletBC:
         TEMP NewLine
-        { $$ = new BCList; domain->solInfo().thermalLoadFlag = 1;}
+        { $$ = new BCList; if(domain->solInfo().soltyp != 2) domain->solInfo().thermalLoadFlag = 1;}
         | TempDirichletBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }

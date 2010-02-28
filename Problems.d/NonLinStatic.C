@@ -191,7 +191,7 @@ NonLinStatic::getRHS(Vector& rhs)
 {
  // ... BUILD THE RHS FORCE (not including follower or internal forces)
  times->formRhs -= getTime();
- domain->buildRHSForce<double>(rhs);
+ domain->computeConstantForce<double>(rhs);
  times->formRhs += getTime();
 }
 

@@ -488,16 +488,16 @@ class Element {
         virtual int getNumMPCs() { return 0; }
         virtual LMPCons** getMPCs() { return 0; }
 
-        virtual double helmCoef() { return prop->kappaHelm * prop->kappaHelm; }
-        virtual complex<double> helmCoefC() { return
+        virtual double helmCoef() { return prop ? prop->kappaHelm * prop->kappaHelm : 0; }
+        virtual complex<double> helmCoefC() { return prop ?
            complex<double>(prop->kappaHelm,prop->kappaHelmImag)*
-           complex<double>(prop->kappaHelm,prop->kappaHelmImag);
+           complex<double>(prop->kappaHelm,prop->kappaHelmImag) : 0;
         }
         virtual double helmCoef(double omega) {
-           return omega*omega*real(prop->soundSpeed)*real(prop->soundSpeed);
+           return prop ? omega*omega*real(prop->soundSpeed)*real(prop->soundSpeed) : 0;
         }
         virtual complex<double> helmCoefC(double omega) {
-           return (omega*omega)*prop->soundSpeed*prop->soundSpeed;
+           return prop ? (omega*omega)*prop->soundSpeed*prop->soundSpeed : 0;
         }
 
         virtual bool isShell() { return false; }

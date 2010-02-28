@@ -515,11 +515,14 @@ void NLMatProbDesc::computeTimeInfo()
 void
 NLMatProbDesc::getConstForce(Vector& constantForce)
 {
+ domain.computeConstantForce(constantForce);
+/*
  constantForce.zero();
  
  if( domain.gravityFlag()  ) domain.buildGravityForce<double>(constantForce);
  
  // if( domain.pressureFlag() ) domain.buildPressureForce(constantForce);
+*/
 }
 
 int

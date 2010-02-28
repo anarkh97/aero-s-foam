@@ -14,6 +14,14 @@ class Shell3Corotator : public Corotator {
    Shell3Corotator(int _n1,int _n2,int _n3,FullSquareMatrix &,int fitAlgShell);
 
    void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
+
+   void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
+                                     FullSquareMatrix &elK, double *locF);
+
+   void getInternalForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
+
+   void getExternalForce(GeomState &,CoordSet &, double*);
+   
    void formGeometricStiffness(GeomState &, CoordSet &, 
                                FullSquareMatrix &, double *);
 
@@ -24,19 +32,30 @@ class Shell3Corotator : public Corotator {
                        NodeState &ns2, NodeState &ns3,
                        double xl0[3][3], double xln[3][3],
                        double t0[3][3], double t0n[3][3], double vld[18]);
+  
+   void getGlobalDisp(GeomState& , CoordSet&, Vector& );
 
-   // checked with Haugen's code
+   // checked with Haugen's code - but still incorrect
    void formGeometricStiffness(double xl0[3][3],
                           double xln[3][3], double pmat[18][18], 
                           double gmat[3][18], double f[18],
-                          double stiffGeo1[18][18], double stiffGeo2[18][18]);
+                          double stiffGeo1[18][18], 
+                          double stiffGeo2[18][18], double fe[18]);
 
+   // thanks to Joe Pajot
+   void formCorrectGeometricStiffness(double rotvar[3][3][3],
+                          double xln[3][3], double pmat[18][18], 
+                          double gmat[3][18], double f[18],
+                          double stiffGeo1[18][18], 
+                          double stiffGeo2[18][18], double fe[18],
+			  double t0n[3][3]);
+   
    // checked SpinAxialAndMoment with Haugen's code
    void spinAxialAndMoment(double f[], double fnm[][3]);
 
    // checked SpinAxial with Haugen's code
    void spinAxial(double f[], double fn[][3]);
-    
+     
    // checked with Haugen's code
    void formRotationGradientMatrix(double xdij[3][3], 
         double ydij[3][3], double xln[3][3], double gmat[3][18]); 
@@ -63,6 +82,8 @@ class Shell3Corotator : public Corotator {
                        GeomState &, CoordSet &, int);
 
    double getElementEnergy(GeomState &, CoordSet &);
+   
+   void reBuildorigK(FullSquareMatrix &);
 
 };
 

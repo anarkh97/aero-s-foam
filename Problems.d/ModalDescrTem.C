@@ -93,11 +93,13 @@ void ModalDescr<Scalar>::getInitState(SysState<Vector> &state){
 template <class Scalar>
 void ModalDescr<Scalar>::getConstForce(Vector &constF){
 
+  domain->computeConstantForce(constF); // XXXX should also pass Kuc ?
+/*
   fullTmpGrav.zero();
 
   if( domain->gravityFlag()  ) domain->buildGravityForce(fullTmpGrav);
   if( domain->pressureFlag() ) domain->buildPressureForce(fullTmpGrav);
-
+*/
   projectForce(fullTmpGrav, constF);
 }
 

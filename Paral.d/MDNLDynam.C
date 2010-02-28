@@ -35,7 +35,7 @@ MDNLDynamic::getConstForce(DistrVector &v)
 {
   times->formRhs -= getTime();
 
-  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v);
+  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, Kuc);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
 
   times->formRhs += getTime();
@@ -546,6 +546,12 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 {
   times->formRhs -= getTime();
 
+  // update nodal temperature for thermoe
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+    distFlExchanger->getStrucTemp(nodalTemps->data());
+    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
+  }
+
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
               f, constantForce, t);
 
@@ -612,25 +618,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     *prevFrc = *aeroForce;
   }
 
-  // add thermoelastic forces from thermo dynamics code
-  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
-    distFlExchanger->getStrucTemp(nodalTemps->data());
-    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
-    execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subAddThermoeForce, &f, nodalTemps);
-  }
-
   times->formRhs += getTime();
-}
-
-void
-MDNLDynamic::subAddThermoeForce(int isub, DistrVector* v1, DistrVector* v2)
-{
-  // Get the pointer to the part of the vector f correspoding to subdomain sNum
-  StackVector f(v1->subData(isub),v1->subLen(isub));
-  double *nodalTemperatures = v2->subData(isub);
-  SubDomain *sd = decDomain->getSubDomain(isub);
-
-  sd->buildThermalForce(nodalTemperatures, f);
 }
 
 void
@@ -1198,6 +1186,7 @@ MDNLDynamic::thermoePreProcess()
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
+    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub); // XXXX
     int buffLen = nodalTemps->size();
 
     distFlExchanger->thermoread(buffLen);

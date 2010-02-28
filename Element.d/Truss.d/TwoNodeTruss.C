@@ -264,7 +264,7 @@ TwoNodeTruss::markDofs( DofSetArray &dsa )
 Corotator *
 TwoNodeTruss::getCorotator(CoordSet &cs, double *kel, int, int)
 {
- return new BarCorotator(nn[0], nn[1], prop->E, prop->A, preload, cs);
+ return new BarCorotator(nn[0], nn[1], prop, preload, cs);
 }
 
 int

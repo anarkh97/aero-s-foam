@@ -224,6 +224,7 @@ NonLinDynamic::extractControlDisp(GeomState *geomState, double *ctrdsp)
   }
 }
 
+/*
 void
 NonLinDynamic::addCtrl(Vector& f, double *ctrfrc)
 {
@@ -243,13 +244,12 @@ NonLinDynamic::addUserForce(Vector& f, double *userDefinedForce)
     if(dof >= 0) f[dof] += userDefinedForce[i];
   }
 }
+*/
 
 void
 NonLinDynamic::getConstForce(Vector& constantForce)
 {
-  constantForce.zero();
-  if(domain->gravityFlag()) domain->buildGravityForce(constantForce);
-  if(domain->thermalFlag()) domain->buildThermalForce(domain->getNodalTemperatures(), constantForce);
+  domain->computeConstantForce(constantForce);
 }
 
 void
@@ -296,12 +296,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       setBC(userDefineDisp, userDefineVel);
       delete [] userDefineDisp; delete [] userDefineVel;
     }
-  }
 
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
-
-  // add the ACTUATOR forces
-  if(claw && userSupFunc) {
     if(claw->numActuator > 0) {
       double *ctrdisp = new double[claw->numSensor];
       double *ctrvel  = new double[claw->numSensor];
@@ -315,11 +310,13 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       extractControlDisp(&geomState, ctrdisp);
 
       userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      addCtrl(residual, ctrfrc);
+      domain->updateActuatorsInNbc(ctrfrc);
 
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
+
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
 
   times->buildStiffAndForce +=  getTime();
  
@@ -527,17 +524,22 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   // ... BUILD THE EXTERNAL FORCE at t_{n+1-alphaf}
   times->formRhs -= getTime();
 
-  domain->computeExtForce4(rhs, constantForce, t);
-
-  // add the USDF forces
+  // update USDF
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
-      double *userDefinedForce = new double[claw->numUserForce];   
+      double *userDefinedForce = new double[claw->numUserForce];
       userSupFunc->usd_forc(t, userDefinedForce);
-      addUserForce(rhs, userDefinedForce);
+      domain->updateUsdfInNbc(userDefinedForce);
       delete [] userDefinedForce;
     }
   }
+
+  // update THERMOE 
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+    domain->thermoeComm();
+
+  // add f(t) to constantForce (not including follower forces)
+  domain->computeExtForce4(rhs, constantForce, t);
 
   // add aeroelastic forces from fluid dynamics code
   double beta, gamma, alphaf, alpham;
@@ -549,11 +551,6 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   // add aerothermal fluxes from fluid dynamics code
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
     domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
-
-  // add thermoelastic forces from thermo dynamics code
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
-    domain->buildThermoelasticForce(rhs);
-  }
 
  //  HAI: apply projector here
  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)

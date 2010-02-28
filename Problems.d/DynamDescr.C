@@ -523,6 +523,7 @@ SingleDomainDynamic::extractControlData(SysState<Vector> &state, double *ctrdsp,
   }
 }
 
+/*
 void
 SingleDomainDynamic::addCtrl(Vector &f, double *ctrfrc)
 {
@@ -544,6 +545,7 @@ SingleDomainDynamic::addUserForce(Vector&f, double *userDefineForce)
     if(dof >= 0) f[dof] += userDefineForce[i];
   }
 }
+*/
 
 void
 SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
@@ -562,13 +564,7 @@ SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
 void
 SingleDomainDynamic::getConstForce(Vector &cnst_f)
 {
-  // compute constant force i.e. gravity + thermal + pressure
-  // (pressure is by convention constant for linear dynamics and follower for nonlinear dynamics)
-  cnst_f.zero();
-  if(domain->gravityFlag()) domain->buildGravityForce(cnst_f);
-  if(domain->thermalFlag()) domain->buildThermalForce(domain->getNodalTemperatures(), cnst_f);
-  if(!domain->solInfo().isNonLin())
-    if(domain->pressureFlag()) domain->buildPressureForce(cnst_f);
+  domain->computeConstantForce(cnst_f, kuc);
 }
 
 void
@@ -610,15 +606,32 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   ext_f.zero();
 
-  // compute USDD prescribed displacements
   double *userDefineDisp = 0;
   if(claw && userSupFunc) {
-    if(claw->numUserDisp) {
-      userDefineDisp = new double[claw->numUserDisp];
+    if(claw->numUserDisp) { // USDD
+      double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
       setBC(userDefineDisp, userDefineVel); // update bcx, vcx
+      domain->updateUsddInDbc(userDefineDisp);
       delete [] userDefineVel;
+    }
+    if(claw->numUserForce) { // USDF
+      double *userDefineForce = new double[claw->numUserForce];
+      userSupFunc->usd_forc(t, userDefineForce);
+      domain->updateUsdfInNbc(userDefineForce);
+      delete [] userDefineForce;
+    }
+    if(claw->numActuator > 0) { // SENSORS+ACTUATORS
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel = new double[claw->numSensor];
+      double *ctracc = new double[claw->numSensor];
+      double *ctrfrc = new double[claw->numActuator];
+
+      extractControlData(state, ctrdisp, ctrvel, ctracc);
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t, &state, &ext_f);
+      domain->updateActuatorsInNbc(ctrfrc);
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 
@@ -633,11 +646,15 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     geomState->setVelocity(state.getVeloc()); 
   }
 
-  // add FORCE (including MFTT), HDNB, ROBIN to cnst_f
-  // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
-  domain->computeExtForce4(ext_f, cnst_f, t, kuc, userDefineDisp);
-  if(userDefineDisp) delete [] userDefineDisp;
+  // THERMOE update nodal temperatures
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+    domain->thermoeComm();
 
+  // add f(t) to cnst_f
+  // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
+  domain->computeExtForce4(ext_f, cnst_f, t, kuc);
+  if(userDefineDisp) delete [] userDefineDisp;
+/*
   // add USDF forces
   if(claw && userSupFunc) {
     if(claw->numUserForce) {
@@ -662,6 +679,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
+*/
 
   // add aeroelastic forces from fluid dynamics code
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0)
@@ -671,10 +689,6 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
     domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
-  // add thermoelastic forces from thermo dynamics code
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
-    domain->buildThermoelasticForce(ext_f);
- 
   // KHP: apply projector here
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(ext_f); 

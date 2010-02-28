@@ -107,6 +107,7 @@ class MultiDomainDynam
     DistrGeomState *geomState;
     DistrVector *dprev;
 
+    MDDynamMat *dynMat;
     MultiDomDynPostProcessor *mddPostPro;
 
     // user defined displacements and velocities

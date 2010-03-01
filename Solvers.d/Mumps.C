@@ -59,6 +59,7 @@ GenMumpsSolver<Scalar>::init()
   //cerr << "in GenMumpsSolver<Scalar>::init(), mumpsId.id.sym = " << mumpsId.id.sym << endl;
 #ifdef USE_MPI
   //mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
+  //if(mpicomm && mpicomm->size() > 1 && mpicomm->cpuNum() == 0) cerr << "using parallel mumps with " << mpicomm->size() << " cpus\n";
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
   else mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
 #else

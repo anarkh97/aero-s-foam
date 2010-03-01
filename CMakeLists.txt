@@ -237,9 +237,9 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 
 SET(AllTargets femexecutable)
-IF(USE_MPI AND NOT APPLE)
-  SET(AllTargets ${AllTargets} femlib)
-ENDIF(USE_MPI AND NOT APPLE)
+#IF(USE_MPI AND NOT APPLE)
+#  SET(AllTargets ${AllTargets} femlib)
+#ENDIF(USE_MPI AND NOT APPLE)
 
 INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin

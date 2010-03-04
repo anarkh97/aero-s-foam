@@ -63,7 +63,7 @@ DotConstraintType2::buildFrame(CoordSet& cs)
   }
 
   // fill in the coefficients and rhs (same as update but with initial configuration ie zero rotation at each node)
-  double d[3] = { cs[nn[0]]->x - cs[nn[1]]->x, cs[nn[0]]->y - cs[nn[1]]->y, cs[nn[0]]->z - cs[nn[1]]->z };
+  double d[3] = { cs[nn[1]]->x - cs[nn[0]]->x, cs[nn[1]]->y - cs[nn[0]]->y, cs[nn[1]]->z - cs[nn[0]]->z };
   double r[3] = { 0.0, 0.0, 0.0 };
 
   // partial derivatives of constraint functions wrt x, y, z 
@@ -82,18 +82,6 @@ DotConstraintType2::buildFrame(CoordSet& cs)
   }
 
   rhs.r_value = c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2];
- 
-/*
-  addterm(new LMPCTerm(nn[0], 0, c0[axis][0]));
-  addterm(new LMPCTerm(nn[0], 1, c0[axis][1]));
-  addterm(new LMPCTerm(nn[0], 2, c0[axis][2]));
-  addterm(new LMPCTerm(nn[0], 3, -c0[axis][1] * dz + c0[axis][2] * dy));
-  addterm(new LMPCTerm(nn[0], 4, c0[axis][0] * dz - c0[axis][2] * dx));
-  addterm(new LMPCTerm(nn[0], 5, -c0[axis][0] * dy + c0[axis][1] * dx));
-  addterm(new LMPCTerm(nn[1], 0, -c0[axis][0]));
-  addterm(new LMPCTerm(nn[1], 1, -c0[axis][1]));
-  addterm(new LMPCTerm(nn[1], 2, -c0[axis][2]));
-*/
 }
 
 int 

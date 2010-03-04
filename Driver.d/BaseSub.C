@@ -1626,7 +1626,7 @@ void BaseSub::addRstar_gT(double *u, Vector &beta)
 
 void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 {
-  for(int i=0; i<numnodes; ++i) {
+  for(int i=0; i<nodes.last(); ++i) { // XXXX
     Node &nd = nodes.getNode(i);
     nNodes[group] += 1.0;
     centroid[3*group] += nd.x;

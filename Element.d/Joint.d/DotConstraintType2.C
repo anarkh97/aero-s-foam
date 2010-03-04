@@ -19,7 +19,7 @@ void
 DotConstraintType2::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
-  if(elemframe) {
+  if(false /*elemframe*/) {
     for(int i = 0; i < 3; ++i)
       for(int j = 0; j < 3; ++j)
         c0[i][j] = (*elemframe)[i][j];
@@ -82,18 +82,6 @@ DotConstraintType2::buildFrame(CoordSet& cs)
   }
 
   rhs.r_value = c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2];
- 
-/*
-  addterm(new LMPCTerm(nn[0], 0, c0[axis][0]));
-  addterm(new LMPCTerm(nn[0], 1, c0[axis][1]));
-  addterm(new LMPCTerm(nn[0], 2, c0[axis][2]));
-  addterm(new LMPCTerm(nn[0], 3, -c0[axis][1] * dz + c0[axis][2] * dy));
-  addterm(new LMPCTerm(nn[0], 4, c0[axis][0] * dz - c0[axis][2] * dx));
-  addterm(new LMPCTerm(nn[0], 5, -c0[axis][0] * dy + c0[axis][1] * dx));
-  addterm(new LMPCTerm(nn[1], 0, -c0[axis][0]));
-  addterm(new LMPCTerm(nn[1], 1, -c0[axis][1]));
-  addterm(new LMPCTerm(nn[1], 2, -c0[axis][2]));
-*/
 }
 
 int 

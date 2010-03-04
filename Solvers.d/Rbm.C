@@ -291,7 +291,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
 
   // build R matrix containing geometric rbms (includes constrained but not inactive dofs)
   // and Z = E^t * R
-  for(i=0; i<dsa->numNodes(); ++i) {
+  for(i=0; i<cs.last(); ++i) { // XXXX
     Node &nd = cs.getNode(i);
     double x = (nd.x - centroid[0]); 
     double y = (nd.y - centroid[1]); 

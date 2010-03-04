@@ -29,6 +29,7 @@ using std::list;
 extern int verboseFlag;
 extern GeoSource *geoSource;
 extern Domain *domain;
+
 //------------------------------------------------------------------------------
 
 // build eigensolver

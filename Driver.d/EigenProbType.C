@@ -1091,7 +1091,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     else { // one eigen calculation
       sconv = true;
       if(strcmp("",domain->solInfo().which) == 0) {
-        if(geoSource->shiftVal() == 0.0) {
+        if(geoSource->shiftVal() <= 0.0) {
           sprintf(which,"LA");
           //cerr << "which is undefined, setting to LA\n";
         }

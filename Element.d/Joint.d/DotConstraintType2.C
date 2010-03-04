@@ -19,7 +19,7 @@ void
 DotConstraintType2::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
-  if(elemframe) {
+  if(false /*elemframe*/) {
     for(int i = 0; i < 3; ++i)
       for(int j = 0; j < 3; ++j)
         c0[i][j] = (*elemframe)[i][j];

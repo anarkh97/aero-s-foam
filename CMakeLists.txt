@@ -137,7 +137,7 @@ IF(UNIX)
            add_definitions(-DUSE_MUMPS)
            SET(INC_DIR ${INC_DIR} ${MUMPSDIR}/include)
            SET(EXTRALIBRARIES ${EXTRALIBRARIES} -L${MUMPSDIR}/lib/PAR -ldmumps
--lzmumps -lmumps_common -lpord -lmetis -L${SCALAPACKDIR} -lscalapack ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacsF77init_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a)
+-lzmumps -lmumps_common -lpord -L${SCALAPACKDIR} -lscalapack ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacsF77init_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a)
          endif (BLACSDIR AND SCALAPACKDIR)
        endif (NOT USE_MPI)
      ENDIF(MUMPSDIR)

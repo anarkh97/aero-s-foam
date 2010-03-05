@@ -64,7 +64,7 @@ class NonLinStatic {
     void updateMpcRhs(GeomState &geomState) { }
     void updateContactConditions(GeomState* geomState) { }
     void addMpcForces(Vector &vec) { }
-    double norm(Vector &vec) { }
+    double norm(Vector &vec) { return vec.norm(); }
 };
 
 #endif

@@ -25,6 +25,7 @@
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
 #endif
+extern Connectivity *procMpcToMpc;
 
 #include <Driver.d/SubDomainFactory.h>
 
@@ -76,7 +77,6 @@ GenDecDomain<Scalar>::initialize()
   mpcToCpu = 0;
   numPrimalMpc = 0;
   numDualMpc = 0;
-  cornerWeight = 0;
   firstOutput = true;
   soweredInput = false;
   nodeVecInfo = 0;
@@ -418,6 +418,28 @@ GenDecDomain<Scalar>::preProcessMPCs()
 
 template<class Scalar>
 void
+GenDecDomain<Scalar>::deleteMPCs()
+{
+  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::deleteMPCs);
+  if(mpcToSub_dual) delete mpcToSub_dual; mpcToSub_dual = 0;
+  if(mpcToMpc) delete mpcToMpc; mpcToMpc = 0;
+  if(mpcToCpu) delete mpcToCpu; mpcToCpu = 0;
+  numDualMpc = 0;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::reProcessMPCs()
+{
+  deleteMPCs();
+  preProcessMPCs();
+  getSharedMPCs();
+  paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
+  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applyMpcSplitting);
+}
+
+template<class Scalar>
+void
 GenDecDomain<Scalar>::extractSubDomainMPCs(int iSub)
 {
   if(numDualMpc) subDomain[iSub]->extractMPCs(domain->numLMPC, domain->lmpc);
@@ -542,7 +564,7 @@ GenDecDomain<Scalar>::getFetiSolver()
    GenSolver<Scalar> **sysMatrices = 0;
    GenSparseMatrix<Scalar> **sysMat = 0;
    Rbm **rbms = 0;
-   bool computeRbms = domain->solInfo().isStatic() && !geoSource->isShifted();
+   bool computeRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted();
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo,
                                       communicator, glSubToLocal, mpcToSub_dual, mpcToSub_primal,
                                       mpcToMpc, mpcToCpu, cpuToSub, grToSub, sysMatrices, sysMat, rbms, 0, computeRbms);
@@ -557,7 +579,7 @@ GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getDynamicFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
- bool computeRbms = (domain->probType() == SolverInfo::Modal && !geoSource->isShifted()); 
+ bool computeRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted(); 
  if(finfo->version == FetiInfo::fetidp) {
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
@@ -653,9 +675,8 @@ GenDecDomain<Scalar>::preProcess()
  getSharedMPCs();
 
  paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
- paralApply(numSub, subDomain, &GenSubDomain<Scalar>::splitData, cornerWeight);
- if(cornerWeight) { delete [] cornerWeight; cornerWeight = 0; }
- paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
+ paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
+ //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
  makeInternalInfo2();
@@ -670,7 +691,7 @@ GenDecDomain<Scalar>::preProcess()
 #endif
 
  // free up some memory
- delete nodeToSub; nodeToSub = 0;
+ //delete nodeToSub; nodeToSub = 0;
  delete elemToSub; elemToSub = 0;
  if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
 }
@@ -2241,15 +2262,6 @@ GenDecDomain<Scalar>::makeCorners()
   execParal(numSub, this, &GenDecDomain<Scalar>::setLocalCorners, cornerHandler);
   
   paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
-
-  // count subdomains attached to corner dofs
-  int totalDofs = domain->numNode()*9;//DofSet::max_known_nonL_dof
-  cornerWeight = new int[totalDofs];
-  for(int i=0; i<totalDofs; ++i) cornerWeight[i]=0;
-  for(int i=0; i<numSub; ++i) subDomain[i]->countCornerDofs(cornerWeight);
-#ifdef DISTRIBUTED
-  communicator->globalSum(totalDofs, cornerWeight);
-#endif
 }
 
 
@@ -3011,7 +3023,7 @@ GenDecDomain<Scalar>::makeMpcToMpc()
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
+GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 {
 // This function constructs the global mpcToMpc connectivity which will be used
 // to assemble the matrix CC^T for the generalized preconditioner (rixen/dual method)
@@ -3021,8 +3033,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
   int *numtarget = new int[numCPU];
   for(i=0; i<numCPU; ++i) {
     if(i == pid) {
-      size[i] = procMpcToMpc->csize();
-      numtarget[i] = procMpcToMpc->numConnect();
+      size[i] = _procMpcToMpc->csize();
+      numtarget[i] = _procMpcToMpc->numConnect();
     }
     else {
       size[i] = 0;
@@ -3033,14 +3045,14 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
   communicator->globalSum(numCPU, size);
   communicator->globalSum(numCPU, numtarget);
 #endif
-                                                                                                              
+
   int totSize = 0;
   int totNumtarget = 0;
   for(i=0; i<numCPU; ++i) {
     totSize += size[i];
     totNumtarget += numtarget[i];
   }
-                                                                                                              
+
   int *pointer = new int[totSize+numCPU];
   int *target = new int[totNumtarget];
   int startp = 0;
@@ -3052,16 +3064,16 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
   for(i=0; i<totSize+numCPU; ++i) pointer[i] = 0;
   for(i=0; i<totNumtarget; ++i) target[i] = 0;
   for(i=0; i<size[pid]; ++i)
-    pointer[startp + i] = procMpcToMpc->offset(i);
-  pointer[startp + size[pid]] = procMpcToMpc->numConnect();
+    pointer[startp + i] = _procMpcToMpc->offset(i);
+  pointer[startp + size[pid]] = _procMpcToMpc->numConnect();
   for(i=0; i<numtarget[pid]; ++i)
-    target[startt + i] = procMpcToMpc->getTargetValue(i);
+    target[startt + i] = _procMpcToMpc->getTargetValue(i);
 #ifdef DISTRIBUTED
   communicator->globalSum(totSize+numCPU, pointer);
   communicator->globalSum(totNumtarget, target);
 #endif
-                                                                                                              
-  // now all the procMpcToMpc connectivity data is stored in size, pointer and target
+
+  // now all the _procMpcToMpc connectivity data is stored in size, pointer and target
   Connectivity **tmpMpcToMpc = new Connectivity * [numCPU];
   for(i=0; i<numCPU; ++i) {
     startp = 0; startt = 0;
@@ -3071,7 +3083,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
     }
     tmpMpcToMpc[i] = new Connectivity(size[i], pointer+startp, target+startt);
   }
-  // now each processor has the procMpcToMpc connectivities for all other processors
+  // now each processor has the _procMpcToMpc connectivities for all other processors
   Connectivity *subToCpu = cpuToSub->reverse();
   mpcToCpu = mpcToSub_dual->transcon(subToCpu);
   delete subToCpu; subToCpu = 0;
@@ -3095,7 +3107,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
     }
   }
   np[csize] = cp;
-                                                                                                              
+
   // Now allocate and fill the new target
   for(i=0; i<csize; ++i) flags[i] = -1;
   int *ntg = new int[cp];
@@ -3114,15 +3126,19 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *procMpcToMpc)
       }
     }
   }
-                                                                                                              
+
   delete [] size;
   delete [] numtarget;
   delete [] flags;
   delete [] pointer;
   delete [] target;
   delete [] tmpMpcToMpc;
-                                                                                                              
-  delete procMpcToMpc;
+#ifdef USE_MUMPS
+  if(domain->solInfo().fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) {
+    procMpcToMpc = _procMpcToMpc;
+  } else
+#endif
+  delete _procMpcToMpc;
   mpcToMpc = new Connectivity(csize, np, ntg);
 }
 
@@ -3341,19 +3357,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                 solvertype, isCtcOrDualMpc);
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
- if(isFeti && (finfo->version == FetiInfo::fetidp) && (finfo->augment == FetiInfo::Gs)) {
-   // this is for sending and receiving the number of coarse grid modes
-   FSCommPattern<int> *sPat = new FSCommPattern<int>(communicator, cpuToSub, 0, FSCommPattern<int>::CopyOnSend);
-   for(int i=0; i<numSub; ++i) subDomain[i]->setCommSize(sPat,1);
-   sPat->finalize();
-   execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor1, make_feti, sPat);
-   sPat->exchange();
-   execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor2, make_feti, sPat);
-   delete sPat;
- }
- else {
-   execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
- }
+ execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  if(domain->solInfo().inpc) {
    FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend);
@@ -3517,4 +3521,39 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
       assert(0);
     }
   return;
+}
+
+template<class Scalar>
+void GenDecDomain<Scalar>::setContactGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
+{
+  if(numDualMpc) {
+    GenDistrVector<Scalar> *cx = new GenDistrVector<Scalar>(fetiSolver->interfInfo());
+    GenDistrVector<Scalar> *x = new GenDistrVector<Scalar>(fetiSolver->localInfo());
+    execParal2R(numSub, this, &GenDecDomain<Scalar>::extractPosition, *geomState, *x);
+    ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(*x, *cx); // cx = C*x
+    (*cx) *= -1.0;
+    execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, *cx);
+    delete cx; delete x;
+  }
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x)
+{
+  geomState[iSub]->extract(x.subData(subDomain[iSub]->localSubNum()));
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::setMpcRhs(int iSub, GenDistrVector<Scalar> &cu)
+{
+  subDomain[iSub]->setMpcRhs(cu.subData(subDomain[iSub]->localSubNum()));
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::printLMPC()
+{
+  for(int i=0; i<numSub; ++i) subDomain[i]->printLMPC();
 }

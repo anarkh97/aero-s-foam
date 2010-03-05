@@ -185,8 +185,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",nbc[i].nnum+1,nbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
+     //          ", dof %d\n",nbc[i].nnum+1,nbc[i].dofnum+1);
      bcx[dof] += nbc[i].val;
    }
    else {
@@ -204,8 +204,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",cnbc[i].nnum+1,cnbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
+     //          ", dof %d\n",cnbc[i].nnum+1,cnbc[i].dofnum+1);
      bcx[dof] += cnbc[i].reval;
    }
    else {
@@ -223,8 +223,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCFIXED) {
-     filePrint(stderr," *** WARNING: check input, found repeated DISP"
-                    " (node %d, dof %d)\n",dbc[i].nnum+1,dbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, found repeated DISP"
+     //               " (node %d, dof %d)\n",dbc[i].nnum+1,dbc[i].dofnum+1);
    }
 
    bc[dof] = BCFIXED;
@@ -240,8 +240,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCFIXED) {
-     filePrint(stderr," *** WARNING: check input, found repeated Complex DISP"
-                    " (node %d, dof %d)\n",cdbc[i].nnum+1,cdbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, found repeated Complex DISP"
+     //               " (node %d, dof %d)\n",cdbc[i].nnum+1,cdbc[i].dofnum+1);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = cdbc[i].reval;
@@ -2566,18 +2566,18 @@ void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_typ
 
 void Domain::UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd) // config_type = 1 for current, 2 for predicted
 {
-#ifndef DIST_ACME_2
-  for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
-    SurfEntities[iSurf]->UpdateNodeData(geomState, sd);
+  if(solInfo().dist_acme != 2) {
+    for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
+      SurfEntities[iSurf]->UpdateNodeData(geomState, sd);
+    }
   }
-#endif
 
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-#ifdef DIST_ACME_2
-    CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
-    CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
-#endif
+    if(solInfo().dist_acme == 2) {
+      CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
+    }
     CurrentMortarCond->set_node_configuration(config_type, geomState->getNumSub(), sd);
   }
 }
@@ -2637,6 +2637,43 @@ void Domain::MakeNodalMass(SubDOp *M, SubDomain **sd)
   }
 }
 // **********************************************************************************************************************
+
+// These functions use ACME's static 1-configuation search algorithm and face-face interaction, and Henri's mortar LMPCs for statics and implicit dynamics
+void Domain::InitializeStaticContactSearch(int numSub, SubDomain **sd)
+{
+  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+/*
+    CurrentMortarCond->build_search(numSub, sd);
+    CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
+    CurrentMortarCond->set_search_options();
+    if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+    else CurrentMortarCond->set_node_constraints(numSub, sd);
+*/
+    CurrentMortarCond->make_share(numSub, sd);
+  }
+}
+
+void Domain::PerformStaticContactSearch()
+{
+  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    int search_algorithm = 1; // static 1-configuration
+    CurrentMortarCond->perform_search(search_algorithm);
+    int interaction_type = 4;
+    CurrentMortarCond->get_interactions(interaction_type);
+  }
+}
+
+void Domain::ExpComputeMortarLMPC(int nDofs, int *dofs)
+{
+  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    CurrentMortarCond->CreateFFIPolygon();
+    CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
+    nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
+  }
+}
 
 // HB: compute & add to the standard LMPC array (lmpc) the Mortar LMPCs:
 void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
@@ -2756,7 +2793,7 @@ Domain::CreateMortarToMPC()
   if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
 
   if(nMortarCond>0){
-    filePrint(stderr," ... Create (Tied) Mortar To LMPCs connectivity ...\n");
+    if(verboseFlag) filePrint(stderr," ... Create (Tied) Mortar To LMPCs connectivity ...\n");
 
     // 1) Set the map pointer array & count number of
     //    targets = total number of (Tied) Mortar LMPCs

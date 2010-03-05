@@ -2953,7 +2953,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   cnst_f.zero();
 
   // ... COMPUTE FORCE FROM GRAVITY
-  if(gravityFlag()) domain->addGravityForce(cnst_f);
+  if(gravityFlag()) addGravityForce(cnst_f);
 
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
@@ -2962,8 +2962,8 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
-      case(BCond::Forces) : if(!mftval) cnst_f[dof] += nbc[i].val; break;
-      case(BCond::Flux) :   if(!hftval) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Forces) : if(!domain->mftval) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Flux) :   if(!domain->hftval) cnst_f[dof] += nbc[i].val; break;
       case(BCond::Actuators) : case(BCond::Usdf) : break;  // these are never constant
       default : cnst_f[dof] += nbc[i].val;
     }
@@ -2971,21 +2971,21 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
 
   // ... COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
   // note #1: when MFTT is present this term is not constant (see computeExtForce4)
-  if(sinfo.ATDDNBVal != 0.0 && !mftval) addAtddnbForce(cnst_f);
+  if(sinfo.ATDDNBVal != 0.0 && !domain->mftval) addAtddnbForce(cnst_f);
 
   // ... COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
   //  note #1: when MFTT is present this term is not constant (see computeExtForce4)
-  if(sinfo.ATDROBalpha != 0.0 && !mftval) addAtdrobForce(cnst_f);
+  if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
 
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT is present this term is not constant (see computeExtForce4)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(pressureFlag() && !mftval && !sinfo.isNonLin()) domain->addPressureForce(cnst_f);
+  if(pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) domain->addThermalForce(cnst_f);
+  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce4)
@@ -3018,15 +3018,15 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
   // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
-  double mfttFactor = (mftval) ? mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
-  double hfttFactor = (hftval) ? hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
-  if(numNeuman && (mftval || hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
+  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
+  double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
+  if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {
-        case(BCond::Forces) : if(mftval) f[dof] += mfttFactor*nbc[i].val; break;
-        case(BCond::Flux)   : if(hftval) f[dof] += hfttFactor*nbc[i].val; break;
+        case(BCond::Forces) : if(domain->mftval) f[dof] += mfttFactor*nbc[i].val; break;
+        case(BCond::Flux)   : if(domain->hftval) f[dof] += hfttFactor*nbc[i].val; break;
         case(BCond::Actuators) : case(BCond::Usdf) : f[dof] += nbc[i].val; break;
         default : /* all other cases are constant */ ;
       }
@@ -3035,20 +3035,20 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
 
   // COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
-  if(sinfo.ATDDNBVal != 0.0 && mftval) addAtddnbForce(f, mfttFactor);
+  if(sinfo.ATDDNBVal != 0.0 && domain->mftval) addAtddnbForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
-  if(sinfo.ATDROBalpha != 0.0 && mftval) addAtdrobForce(f, mfttFactor);
+  if(sinfo.ATDROBalpha != 0.0 && domain->mftval) addAtdrobForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(pressureFlag() && mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+  if(pressureFlag() && domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM THERMOE
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) domain->addThermalForce(f);
+  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)

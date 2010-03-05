@@ -60,6 +60,8 @@ class GeomState {
      void setPositions(double *positions);
      void setRotations(double *rotations);
 
+     void extract(double *p);
+
      virtual void update(const Vector &);
      virtual void setVelocity(const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 

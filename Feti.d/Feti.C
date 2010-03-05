@@ -1699,7 +1699,7 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   // FETI-DP
   zeroPointers();
   r       = new GenDistrVector<Scalar>(interface);
-  lambda  = new GenDistrVector<Scalar>(interface);
+  lambda  = new GenDistrVector<Scalar>(interface); lambda->zero();
   z       = new GenDistrVector<Scalar>(interface);
   p       = new GenDistrVector<Scalar>(interface);
   Fp      = new GenDistrVector<Scalar>(interface);
@@ -1709,6 +1709,7 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   if(contact) {
     deltaL  = new GenDistrVector<Scalar>(interface);
     q       = new GenDistrVector<Scalar>(interface);
+    wc      = new GenDistrVector<Scalar>(interface);
   }
 
   fr      = new GenDistrVector<Scalar>(local);
@@ -1740,6 +1741,7 @@ GenFetiWorkSpace<Scalar>::save()
   if(!Fp_copy) Fp_copy = new GenDistrVector<Scalar>(*Fp); else *Fp_copy = *Fp;
   if(!du_copy) du_copy = new GenDistrVector<Scalar>(*du); else *du_copy = *du;
   if(!duc_copy) duc_copy = new GenVector<Scalar>(*duc); else *duc_copy = *duc;
+  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
 }
 
 template<class Scalar>
@@ -1758,6 +1760,13 @@ GenFetiWorkSpace<Scalar>::save_p()
 
 template<class Scalar>
 void
+GenFetiWorkSpace<Scalar>::save_w()
+{
+  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
+}
+
+template<class Scalar>
+void
 GenFetiWorkSpace<Scalar>::restore(bool flag)
 {
   *lambda = *lambda_copy; 
@@ -1768,6 +1777,7 @@ GenFetiWorkSpace<Scalar>::restore(bool flag)
     *du = *du_copy; 
     *duc = *duc_copy;
   }
+  *w = *w_copy;
 }
 
 template<class Scalar>
@@ -1797,7 +1807,7 @@ GenFetiWorkSpace<Scalar>::zeroPointers()
   gamma = 0; working = 0;
   fc = 0; uc = 0;
   duc = 0; 
-  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; ur_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0;
+  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; ur_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0; w_copy = 0;
   fw = 0; e = 0;
   r0 = 0; lambda0 = 0; gamma0 = 0;
   deltaL = 0;
@@ -3905,6 +3915,13 @@ GenFetiSolver<Scalar>::newSolver(int type, Connectivity *con, EqNumberer *nums, 
 #ifdef USE_SPOOLES
     case FetiInfo::spooles: {
       GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums);
+      solver = (GenSolver<Scalar> *) s;
+      sparse = (GenSparseMatrix<Scalar> *) s;
+    } break;
+#endif
+#ifdef USE_MUMPS
+    case FetiInfo::mumps: {
+      GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, (int *) 0, fetiCom);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;

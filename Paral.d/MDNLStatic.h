@@ -72,6 +72,11 @@ class MDNLStatic
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; }
 
+    void updateMpcRhs(DistrGeomState &geomState);
+    void updateContactConditions(DistrGeomState* geomState);
+    void addMpcForces(DistrVector &vec);
+    double norm(DistrVector &vec);
+
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double lambda);
@@ -81,7 +86,7 @@ class MDNLStatic
     void makeSubDofs(int isub);
     void updatePrescribedDisp(int isub, DistrGeomState& geomState);
     void subGetRHS(int isub, DistrVector& rhs);
-
+    void subAddMpcForces(int isub, DistrVector &vec);
 };
 
 #endif

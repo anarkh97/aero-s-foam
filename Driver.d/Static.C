@@ -13,6 +13,7 @@
 #include <Utils.d/pstress.h>
 #include <Timers.d/GetTime.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
+#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 
 #include <Driver.d/GeoSource.h>
 #include <list>

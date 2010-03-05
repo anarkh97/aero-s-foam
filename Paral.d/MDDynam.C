@@ -376,6 +376,8 @@ MultiDomainDynam::preProcess()
   // Initialization for contact
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+  else
+    domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
 }
 
 void

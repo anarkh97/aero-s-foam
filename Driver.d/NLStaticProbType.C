@@ -336,6 +336,14 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
               timeStiff/1000.0);
 #endif    
 
+    // START DEBUG CONTACT
+    VecType g(residual); // gradient of the lagrangian: K*u-f+C^T*lambda
+    probDesc->addMpcForces(g);
+    residualNorm = probDesc->norm(g);
+    /*if(!(step == 1 && iter == 0))*/ probDesc->updateContactConditions(geomState); // now we are doing this every iteration
+    probDesc->updateMpcRhs(*geomState);
+    // END DEBUG CONTACT
+
     // Rebuild tangent stiffness matrix when necessary
     timeRebuild -= getTime();
     int rebuildFlag = probDesc->reBuild(iter, step, *geomState);

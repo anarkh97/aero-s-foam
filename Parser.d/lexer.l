@@ -448,15 +448,17 @@ TRAIL [a-zA-Z]*
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
+"stop"[a-zA-Z]*|"STOP"[a-zA-Z]     { return STOPPING; }
+
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }
+
+"stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*    { return STAGTOL; }
 
 "global_rbm_tol"|"GLOBAL_RBM_TOL"  { return GLOBALTOL; }
 
 "global_cor_rbm_tol"|"GLOBAL_COR_RBM_TOL" { return GLOBALCRBMTOL; }
 
 "cct_tol"|"CCT_TOL"                { return CCTTOL; }
-
-"stagnation_tol"|"STAGNATION_TOL"  { return STAGTOL; }
 
 "maxor"[a-zA-Z]*|"MAXOR"[a-zA-Z]*  { return MAXORTHO; }
 
@@ -469,6 +471,8 @@ TRAIL [a-zA-Z]*
 "printMat"[a-zA-Z]*|printmat[a-zA-Z]*|PRINTMAT[a-zA-Z]* { return PRINTMATLAB; }
 
 "u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
+
+"nulls"[a-zA-Z]*|"NULLS"[a-zA-Z]*  { return NULLSPACE; }
 
 "mpc_type"|"MPC_TYPE"              { return MPCTYPE; }
 
@@ -573,6 +577,7 @@ TRAIL [a-zA-Z]*
 "debug_icntl" { return DEBUGICNTL; }
 "debug_cntl"  { return DEBUGCNTL; }
 "max_rho"     { return MAXRHO; }
+"ptol" { return PTOL; }
 
 "nsbs"[a-zA-Z]*|"NSBS"[a-zA-Z]*    { return NSBSPV; }
 
@@ -1096,6 +1101,8 @@ TRAIL [a-zA-Z]*
 
 "NODALCONTACT"|"nodalcontact"      { return NODALCONTACT; }
 
+"use_krr_nullspace"                { return USEKRRNULLSPACE; }
+"parallel_grbm"                    { return PARALLELGRBM; }
 "constrain_kcc"                    { return CONSTRAINKCC; }
 "totalfeti"                        { return TOTALFETI; }
 "BMPC"|"bmpc"                      { return BMPC; }
@@ -1131,6 +1138,7 @@ TRAIL [a-zA-Z]*
 "SDISP"[a-zA-Z]*|"sdisp"[a-zA-Z]*  { return SDISP; }
 "SFORC"[a-zA-Z]*|"sforc"[a-zA-Z]*  { return SFORCE; }
 "SPRES"[a-zA-Z]*|"spres"[a-zA-Z]*  { return SPRESSURE; }
+"ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
 
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }

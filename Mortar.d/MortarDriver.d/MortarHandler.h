@@ -135,18 +135,10 @@ template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
-template <class Scalar> class GenSubDOp;
-typedef GenSubDOp<double> SubDOp;
-
-#ifdef DISTRIBUTED
-//#define DIST_ACME_1  // parallel search with centralized input on cpu #0
-#define DIST_ACME_2  // parallel search with distributed input by subdomain
-#endif
-
-#ifdef DIST_ACME_2
 class FSCommunicator;
 template <class Scalar> class FSCommPattern;
-#endif
+template <class Scalar> class GenSubDOp;
+typedef GenSubDOp<double> SubDOp;
 
 class MortarHandler {
 
@@ -155,6 +147,8 @@ class MortarHandler {
 	int SlaveEntityId ;
         int TDEnfNumIter;
         int FrictionModel; // TD_FRICTIONLESS=1, TD_CONSTANT_FRICTION=2, TD_TIED=3, TD_SPOT_WELD=4, TD_PRESSURE_DEPENDENT=5, TD_VELOCITY_DEPENDENT=6, 
+        int DIST_ACME; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
+                       // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics)
 
         double NormalSearchTol;
         double TangSearchTol;
@@ -193,7 +187,6 @@ class MortarHandler {
         int* Slave_face_index_in_block;
         int* Master_face_block_id;
         int* Master_face_index_in_block;
-        int* Master_face_procs;
         int* Slave_face_procs;
         int* ACMEFFI_index;
         double* ACMEFFI_data;
@@ -367,5 +360,6 @@ class MortarHandler {
         int get_num_nodes() { return nMasterNodes + nSlaveNodes; }
         int * get_node_global_ids() { return node_global_ids; }
         void remove_gap(Vector &d);
+        void make_share(int numSub, SubDomain **sd);
 };
 #endif

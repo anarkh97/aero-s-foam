@@ -75,6 +75,7 @@ class SComm
   // function to set any one individual type-specific list
   // if this function is used to set the individual types then mergeTypeSpecificLists() must be called
   void setTypeSpecificList(DofType type, int *_subNums, Connectivity *_sharedDOFs);
+  void deleteTypeSpecificList(DofType type);
   int* mergeTypeSpecificLists();
   void setTypeMap(DofType t, int *map);
 

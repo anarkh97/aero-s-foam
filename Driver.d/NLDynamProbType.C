@@ -133,10 +133,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Evaluate external force at initial time
   // send init. step as -1 so that comm. w/fluid code is avoided
   probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce);
-  //XXXX try to do it like this
-  //residual = external_force;
-  //StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
-  //                       elementInternalForce, totalRes, velocity_n, acceleration, time);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(domain->solInfo().iacc_switch) {
@@ -157,14 +153,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   // Get maximum number of iterations
   int maxStep = probDesc->getMaxStep();
-/*
-  // Initialize Previous Force
-  residual = external_force;
-  StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
-                         elementInternalForce, totalRes, velocity_n, acceleration, time);
 
-  //probDesc->reBuild(*geomState, 0); // XXXX should this be inside the loop ???
-*/
   // Begin time marching
   double timeLoop =- getTime();
   double currentRes;
@@ -183,7 +172,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                             refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce);
     }
 
-    double midtime = time + dt - alphaf;
+    double midtime = time + dt*(1 - alphaf);
     probDesc->getExternalForce(external_force, constantForce, step, midtime, geomState, elementInternalForce, aeroForce);
 
     time += dt;
@@ -201,14 +190,11 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
-/*
-      // get the external force at t_{n+1-alphaf}. NOTE: this could be optimized by splitting into two parts,
-      // (a) constant+f_ext(t) just compute once outside newton loop
-      // (b) f_ext(d_k) recompute at every newton iteration
-      probDesc->getExternalForce(external_force, constantForce, step, midtime,
-                                 geomState, elementInternalForce, aeroForce);
-      residual += external_force;
-*/
+
+      VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY g = C^T*lambda
+      probDesc->updateContactConditions(geomState);
+      probDesc->updateMpcRhs(*geomState); // YYYY
+
       // Assemble global tangent stiffness
       probDesc->reBuild(*geomState, iter);
 
@@ -219,6 +205,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
 
+      //VecType g(rhs); probDesc->addMpcForces(g); resN = probDesc->norm(g); // YYYY resN = ||rhs + C^T*lambda||
+      g += rhs; resN = probDesc->norm(g); // resN = ||rhs + C^T*lambda||
       //if(verboseFlag) filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
 
       currentRes = resN;

@@ -154,12 +154,12 @@ class FetiInfo {
     int    maxouterit;
     int    maxinnerit;
     double tol;
-    double absolute_tol; // if stagnation is detected then terminate analysis if the absolute norm of the primal error is greater than absolute_tol
-                         // otherwise continue and print warning
+    double absolute_tol;
+    double stagnation_tol;
+    double absolute_stagnation_tol;
     double grbm_tol;
     double crbm_tol;
     double cct_tol; // used to factorize CC^t in rixen mpc method
-    double stagnation_tol, dual_stagnation_tol;
     int    uproj;
     int    maxortho;
     int    noCoarse;
@@ -199,6 +199,8 @@ class FetiInfo {
     enum RbmType { translation, rotation, all,
                    averageTran, averageRot, averageAll, None,
                    pressure, temperature } rbmType;
+    enum NullSpace { grbm, trbm } nullSpace;
+    double nullSpaceFilterTol;
 
     // FETI-H
     double tolcgm;
@@ -232,6 +234,7 @@ class FetiInfo {
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
     bool constrain_kcc; double constrain_kcc_tol;
+    bool parallel_grbm, use_krr_nullspace;
     int expansion; // 1: 1-step, 2: 2-step (dostal)
     double alphabar_cntl, gamma, expansion_tol; // contact parameters (2-step expansion steplength control parameter and tolerance)
     bool bmpc, dmpc, cmpc;
@@ -248,6 +251,7 @@ class FetiInfo {
     double equi_tol, iequ_tol;
     bool c_normalize;
     double dual_tol; // don't compute primal error until dual error is less than this tolerance for GMRES and CGAL solvers
+    double dual_stagnation_tol;
     double cq_tol;
     enum ConstraintQualificationType { nocq = 0, crcq } cq_type; // nocq = no constraint qualification
                                                                  // crcq = constant rank constraint qualification
@@ -264,6 +268,9 @@ class FetiInfo {
     int fsi_corner;
     int initial_lambda;
     bool complex_hermitian;
+    int stop1; // first stopping criteria...  0: none, 1: estimated primal, 2: dual
+    int stop2; // second stopping criteria... 0: none, 1: estimated primal, 2: dual
+    double dual_proj_tol, primal_proj_tol;
 };
 
 inline
@@ -273,7 +280,9 @@ FetiInfo::FetiInfo()
   maxouterit = 10;
   maxinnerit = 1000;
   tol        = 1.0E-6;     // default global tolerance
-  absolute_tol = 1.0e-12; 
+  absolute_tol = 0.0; 
+  stagnation_tol = 1.0e-6;
+  absolute_stagnation_tol = 0.0;
   grbm_tol = 1.0E-06;      // default global rigid body mode rel. tolerance
   crbm_tol = 1.0E-06;      // default global corner rigid body mode tolerance
   maxortho   = maxit;      // default max number of reortho vectors
@@ -328,11 +337,11 @@ FetiInfo::FetiInfo()
   // DPC information
   uproj        = 1;   	   // default project the displacements wrt global RBMs
   contactPrintFlag = 0;
-  stagnation_tol = 1.0e-6; dual_stagnation_tol = 0.0;
+  dual_stagnation_tol = 0.0;
   expansion = 1; alphabar_cntl = 2.0; expansion_tol = 1.0e-10;
   gamma = 1.0;
-  wolfe_c1 = 0.0; wolfe_c2 = 0.9;
-  linesearch = 0; linesearch_tau = 0.8; linesearch_maxit = 100;
+  wolfe_c1 = 1.0e-4; wolfe_c2 = 0.9;
+  linesearch = 1; linesearch_tau = 0.5; linesearch_maxit = 100;
   cmpc = bmpc = dmpc = false;
   cq_type = crcq; cq_tol = 1.0e-14;
   max_power_iter = 100; power_iter_tol = 1e-3;
@@ -356,7 +365,8 @@ FetiInfo::FetiInfo()
   cct_tol      = 1.0e-16;
   cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  constrain_kcc = false; constrain_kcc_tol = 1.0e-4;
+  constrain_kcc = true; constrain_kcc_tol = 1.0e-4;
+  parallel_grbm = true; use_krr_nullspace = false;
   rebuildcct   = 0; 
   project_g    = true;
   rebuildSbb   = 0; 
@@ -375,6 +385,11 @@ FetiInfo::FetiInfo()
   pick_unsafe_corners = true;
   fsi_corner = 2;
   complex_hermitian = false;
+  stop1 = 1;
+  stop2 = 1;
+  nullSpace = grbm;
+  nullSpaceFilterTol = 0.0;
+  dual_proj_tol = primal_proj_tol = 1.0e-16;
 }
 
 

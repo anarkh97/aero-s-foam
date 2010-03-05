@@ -161,6 +161,12 @@ class MDNLDynamic
     void initNewton();
     void addMpcForces(DistrVector& vec);
     void updateMpcRhs(DistrGeomState &geomState);
+    void updateContactConditions(DistrGeomState* geomState);
+    void zeroMpcForces();
+    double norm(DistrVector &vec);
+    void deleteContactConditions();
+    void updateSurfaces(DistrGeomState* geomState, int config_type);
+
     int getAeroAlg();
     int getThermoeFlag();
     int getThermohFlag();

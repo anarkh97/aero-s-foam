@@ -60,6 +60,11 @@ class NonLinStatic {
 
     bool linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
+
+    void updateMpcRhs(GeomState &geomState) { }
+    void updateContactConditions(GeomState* geomState) { }
+    void addMpcForces(Vector &vec) { }
+    double norm(Vector &vec) { }
 };
 
 #endif

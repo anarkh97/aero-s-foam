@@ -162,6 +162,26 @@ GeomState::operator=(const GeomState &g2)
   return *this;
 }
 
+void
+GeomState::extract(double *p)
+{
+  int i;
+  for(i=0; i<numnodes; ++i) {
+
+     // Set incremental translational displacements
+     if(loc[i][0] >= 0) p[loc[i][0]] = ns[i].x;
+     if(loc[i][1] >= 0) p[loc[i][1]] = ns[i].y;
+     if(loc[i][2] >= 0) p[loc[i][2]] = ns[i].z;
+
+     double rot[3];
+     mat_to_vec(ns[i].R,rot);
+
+     if(loc[i][3] >= 0) p[loc[i][3]] = rot[0];
+     if(loc[i][4] >= 0) p[loc[i][4]] = rot[1];
+     if(loc[i][5] >= 0) p[loc[i][5]] = rot[2];
+  }
+}
+
 GeomState::GeomState(const GeomState &g2) : X0(g2.X0)
 {
   // Copy number of nodes

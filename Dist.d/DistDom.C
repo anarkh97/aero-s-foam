@@ -119,7 +119,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing                 ...\n");
+    filePrint(stderr," ... Postprocessing #1              ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
@@ -1132,82 +1132,114 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
 template<class Scalar>
 void
-GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time)
+GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
-  if(numOutInfo && x == 0)
-    filePrint(stderr," ... Postprocessing                 ...\n");
+
+  int outLimit = geoSource->getOutLimit();
+  if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
+    filePrint(stderr," ... Postprocessing #2              ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
 
-  // create distributed vector of all local mpi displacements
-  DistSVec<Scalar, 11> disps(this->nodeInfo);//DofSet::max_known_nonL_dof
-
-  // initialize disps to zero
+  // initialize and merge displacements from subdomains into cpu array
+  DistSVec<Scalar, 11> disps(this->nodeInfo);
+  DistSVec<Scalar, 11> masterDisps(masterInfo);
   disps = 0;
-
-  // merge all data
-  Connectivity *subToClus = geoSource->getSubToClus();
   for(iSub = 0; iSub < this->numSub; ++iSub) {
-    int glSub = this->subDomain[iSub]->subNum();
     Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);//DofSet::max_known_nonL_dof
     this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub]);
   }
-  // reduce the size of the disps
-  DistSVec<Scalar, 11> masterDisps(masterInfo);//DofSet::max_known_nonL_dof
+  if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
 
-  if(!nodePat) makeNodePat();
+  // initialize and merge velocities & accelerations
+  DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
+  DistSVec<Scalar, 11> masterVels(masterInfo), masterAccs(masterInfo);
+  if(distState) {
+    GenDistrVector<Scalar> *v_n = &distState->getVeloc();
+    GenDistrVector<Scalar> *a_n = &distState->getAccel();
+    vels = 0; accs = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedVel)[11] = (Scalar (*)[11]) vels.subData(iSub);
+      Scalar (*mergedAcc)[11] = (Scalar (*)[11]) accs.subData(iSub);
+      double *vcx = this->subDomain[iSub]->getVcx();
+      Scalar *vcx_scalar = (Scalar *) dbg_alloca(this->subDomain[iSub]->numdof()*sizeof(Scalar));
+      for(int i=0; i<this->subDomain[iSub]->numdof(); ++i) vcx_scalar[i] = vcx[i];
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedVel, v_n->subData(iSub), vcx_scalar);
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedAcc, a_n->subData(iSub));
+    }
+    vels.reduce(masterVels, masterFlag, numFlags);
+    accs.reduce(masterAccs, masterFlag, numFlags);
+  }
 
+  // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
-  int iCPU=0;
+
+// RT - serialize the OUTPUT
 #ifdef DISTRIBUTED
-for(iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
+for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
  this->communicator->sync();
  if(this->communicator->cpuNum() == iCPU) {
 #endif
 
   // open binary output files
-  if(x == 0)  {
+  if(x==0) {
+    if(!numRes) numRes = new int[numOutInfo];
+    for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
+  }
 
-    // initialize number of results
-    numRes = new int[numOutInfo];
+  if((x==0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+#ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if((oinfo[iInfo].nodeNumber == -1) && (iCPU == 0))
-        geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+      if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
+        if(iCPU == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        else geoSource->setHeaderLen(iInfo);
+      }
     }
 
+
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      numRes[iInfo] = 0;
-      if(oinfo[iInfo].nodeNumber == -1)  {
+      if(oinfo[iInfo].nodeNumber == -1) {
+        numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
           if(oinfo[iInfo].dataType == 1) {
             geoSource->outputRange(iInfo, masterFlag[iSub],
-                                   this->subDomain[iSub]->numNode(), glSub, nodeOffsets[iSub]);
+                       this->subDomain[iSub]->numNode(), glSub, nodeOffsets[iSub], x);
           }
           else {
             geoSource->outputRange(iInfo, this->subDomain[iSub]->getGlElems(),
-                                   this->subDomain[iSub]->numElements(), glSub, elemOffsets[iSub]);
+                       this->subDomain[iSub]->numElements(), glSub,
+                       elemOffsets[iSub], x);
           }
         }
       }
     }
 
-    for (iSub = 0; iSub < this->numSub; iSub++)  {
-      int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
-      if(nOutNodes) {  geoSource->openOutputFiles(this->subDomain[iSub]->getOutputNodes(), 
-                                   this->subDomain[iSub]->getOutIndex(), nOutNodes);
+
+    if(x==0) { // always put single node output in one file regardless of outLimit
+      for(iSub = 0; iSub < this->numSub; iSub++)  {
+        int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+        if(nOutNodes) {
+          if(this->firstOutput) geoSource->openOutputFiles(this->subDomain[iSub]->getOutputNodes(),
+                   this->subDomain[iSub]->getOutIndex(), nOutNodes);
+        }
       }
     }
+
+#else
+    if(x == 0 && this->firstOutput) geoSource->openOutputFiles();  // opens all output files
+#endif
   }
-  
+
+  if (!nodePat) makeNodePat();
+
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
 
-    // int dof = -1;
     if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0)
       continue;
 
@@ -1220,8 +1252,26 @@ for(iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Displacement:
         getPrimal(disps, masterDisps, time, x, iOut, 3, 0);
         break;
+      case OutputInfo::Velocity:
+        if(distState) getPrimal(vels, masterVels, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::Acceleration:
+        if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
+        break;
       case OutputInfo::Disp6DOF:
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::Velocity6:
+        if(distState) getPrimal(vels, masterVels, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::Accel6:
+        if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::Temperature:
+        getPrimal(disps, masterDisps, time, x, iOut, 1, 6);
+        break;
+      case OutputInfo::TemperatureFirstTimeDerivative:
+        if(distState) getPrimal(vels, masterVels, time, x, iOut, 1, 6);
         break;
       case OutputInfo::StressXX:
         getStressStrain(geomState, allCorot, time, x, iOut, SXX);

@@ -71,17 +71,9 @@ GenDomainGroupTask<Scalar>::~GenDomainGroupTask()
   // don't delete K,Kuc,C,Cuc,M,Muc
 }
 
-template<class Scalar>
-void
-GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
-{
-  runFor1(isub, make_feti);
-  runFor2(isub, make_feti);
-}
-
 template<class Scalar> 
 void
-GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int> *sPat) 
+GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti) 
 {
  DofSetArray     *dsa = sd[isub]->getDSA();
  ConstrainedDSA *cdsa = sd[isub]->getCDSA();
@@ -187,32 +179,32 @@ GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int>
 
  // builds the datastructures for Kii, Kib, Kbb
  if(domain->solInfo().type == 2 && make_feti) { // FETI
-   if(isCtcOrDualMpc)
+   if(sd[isub]->numMPCs() > 0)
      sd[isub]->makeKbbMpc();  
    else {
      sd[isub]->makeKbb(sd[isub]->getCCDSA());
    }
+/* PJSA this is always done int the FETI-DP constructor now
    if(sd[isub]->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
      domain->solInfo().getFetiInfo().waveMethod = sd[isub]->solInfo().getFetiInfo().waveMethod = FetiInfo::uniform; // XXXX need to add support for other methods
-     /*if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::uniform)*/ sd[isub]->computeWaveNumbers();
+     //if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::uniform)
+       sd[isub]->computeWaveNumbers();
      sd[isub]->makeQ();
      if(sd[isub]->solInfo().getFetiInfo().augment == FetiInfo::Gs) {
        sd[isub]->sendNumNeighbGrbm(sPat);
      }
    }
+*/
  }
-}
 
-template<class Scalar>
-void
-GenDomainGroupTask<Scalar>::runFor2(int isub, bool make_feti, FSCommPattern<int> *sPat)
-{
  GenMultiSparse<Scalar> *allMats;
  if(make_feti) {
+/* PJSA this is always done in the FETI-DP constructor now
  if(domain->solInfo().type == 2 && (sd[isub]->solInfo().getFetiInfo().version == FetiInfo::fetidp) &&
     (sd[isub]->solInfo().getFetiInfo().augment == FetiInfo::Gs)) {
    sd[isub]->recvNumNeighbGrbm(sPat);
  }
+*/
 
   //if(sd[isub]->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
   //  sd[isub]->constructKcc();

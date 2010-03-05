@@ -57,7 +57,7 @@
 
 %token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES 
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER 
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CGALPARAM CGALPREC
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
@@ -78,18 +78,18 @@
 %token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MAXRHO MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
-%token NSBSPV NLTOL NUMCGM NOSECONDARY
+%token NSBSPV NLTOL NUMCGM NOSECONDARY NULLSPACE
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE PARALLELGRBM PTOL
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER STOPPING
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH THRU
-%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
+%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USEKRRNULLSPACE
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
@@ -311,6 +311,7 @@ Component:
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
+        | AcmeControls
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -2163,6 +2164,9 @@ ContactSurfaces:
           domain->AddMortarCond($$);
         }
         ;
+AcmeControls:
+        ACMECNTL Integer NewLine
+        { domain->solInfo().dist_acme = $2; }
 NodeSet:
 	NODES NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }
@@ -2533,7 +2537,15 @@ Solver:
             fprintf(stderr," *** WARNING: Incorrect Preconditioner Type selected, using nonshifted\n");
           }
           domain->solInfo().fetiInfo.prectype = (FetiInfo::PreconditionerType) $2;
-        }	
+        }
+        | STOPPING Integer NewLine
+        { domain->solInfo().fetiInfo.stop1 = $2;
+          domain->solInfo().fetiInfo.stop2 = $2;
+        }
+        | STOPPING Integer Integer NewLine
+        { domain->solInfo().fetiInfo.stop1 = $2;
+          domain->solInfo().fetiInfo.stop2 = $3;
+        }
         | TOLFETI Float NewLine
   	{ domain->solInfo().fetiInfo.tol = $2; 
           domain->solInfo().fetiInfo.dual_tol = $2;
@@ -2550,6 +2562,16 @@ Solver:
           domain->solInfo().fetiInfo.equi_tol = $4; 
           domain->solInfo().fetiInfo.iequ_tol = $5;
         }
+        | STAGTOL Float NewLine
+        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $2; }
+        | STAGTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $2;
+          domain->solInfo().fetiInfo.absolute_stagnation_tol = $3;
+        }
+        | PTOL Float NewLine
+        { domain->solInfo().fetiInfo.dual_proj_tol = $2; domain->solInfo().fetiInfo.primal_proj_tol = $2; }
+        | PTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.dual_proj_tol = $2; domain->solInfo().fetiInfo.primal_proj_tol = $3; }
 	| Solver MAXORTHO Integer NewLine
 	{ domain->solInfo().fetiInfo.maxortho = $3; }
 	| NOCOARSE NewLine
@@ -2692,12 +2714,15 @@ Solver:
         { domain->solInfo().fetiInfo.cct_tol = $2; }
         | REBUILDCCT SWITCH NewLine
         { domain->solInfo().fetiInfo.rebuildcct = int($2); }
+        | NULLSPACE GRBM NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::grbm; }
+        | NULLSPACE TRBM NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm; }
+        | NULLSPACE TRBM Float NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm;
+          domain->solInfo().fetiInfo.nullSpaceFilterTol = $3; }
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
-        | STAGTOL Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; }
-        | STAGTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $3; }
 	| PRINTMATLAB NewLine
 	{ domain->solInfo().fetiInfo.printMatLab = 1; }
 	| LOCALSOLVER SOLVERTYPE NewLine
@@ -2931,11 +2956,11 @@ Solver:
         | EXPANSION Integer NewLine
         { domain->solInfo().fetiInfo.expansion = $2; }
         | EXPANSION Integer Float NewLine
-        { domain->solInfo().fetiInfo.expansion = $2; 
+        { domain->solInfo().fetiInfo.expansion = $2;
           domain->solInfo().fetiInfo.alphabar_cntl = $3; }
         | EXPANSION Integer Float Float NewLine
         { domain->solInfo().fetiInfo.expansion = $2;
-          domain->solInfo().fetiInfo.alphabar_cntl = $3; 
+          domain->solInfo().fetiInfo.alphabar_cntl = $3;
           domain->solInfo().fetiInfo.expansion_tol = $4; }
         | WOLFE Float Float NewLine
         { domain->solInfo().fetiInfo.wolfe_c1 = $2;
@@ -2954,10 +2979,10 @@ Solver:
         | CONSTRAINTQUALIFICATION CQTYPE NewLine
         { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2; }
         | CONSTRAINTQUALIFICATION CQTYPE Float NewLine
-        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2; 
+        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2;
           domain->solInfo().fetiInfo.cq_tol = $3; }
         | TOTALFETI SWITCH NewLine
-        { domain->solInfo().fetiInfo.bmpc = bool($2); 
+        { domain->solInfo().fetiInfo.bmpc = bool($2);
           domain->solInfo().fetiInfo.dmpc = bool($2); }
         | BMPC SWITCH NewLine
         { domain->solInfo().fetiInfo.bmpc = bool($2); }
@@ -2973,6 +2998,10 @@ Solver:
         { domain->solInfo().fetiInfo.constrain_kcc = bool($2); }
         | CONSTRAINKCC SWITCH Float NewLine
         { domain->solInfo().fetiInfo.constrain_kcc = bool($2); domain->solInfo().fetiInfo.constrain_kcc_tol = $3; }
+        | PARALLELGRBM SWITCH NewLine
+        { domain->solInfo().fetiInfo.parallel_grbm = bool($2); }
+        | USEKRRNULLSPACE SWITCH NewLine
+        { domain->solInfo().fetiInfo.use_krr_nullspace = bool($2); }
 	;
 OldHelmInfo:
         FACOUSTICS NewLine FAcousticData

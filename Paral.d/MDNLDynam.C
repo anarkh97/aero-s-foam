@@ -135,7 +135,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
     }
     rhs.linAdd(dt*dt*beta, residual);
   }
-  addMpcForces(rhs); // XXXX
+  //addMpcForces(rhs); // XXXX
 
   double resN = sqrt(solver->getFNormSq(rhs));
   times->correctorTime += getTime();
@@ -194,7 +194,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
     rhs.linAdd(dt*dt*beta, residual);
   }
 
-  updateMpcRhs(geomState); // XXXX
+  //updateMpcRhs(geomState); // XXXX
 
   times->predictorTime += getTime();
 }
@@ -496,6 +496,8 @@ MDNLDynamic::preProcess()
 
   localTemp = new DistrVector(decDomain->solVecInfo());
 
+  domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+
   times->memoryPreProcess -= threadManager->memoryUsed();
 }
 
@@ -740,13 +742,8 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
     delete [] userDefineDisp; delete [] userDefineVel;
   }
-#ifdef DISTRIBUTED
-  // DistDom output doesn't support veloc & acc 
-  decDomain->postProcessing(geomState, allCorot, time);
-#else
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
   decDomain->postProcessing(geomState, allCorot, time, &distState);
-#endif
 }
 
 void
@@ -816,6 +813,12 @@ MDNLDynamic::initNewton()
   solver->initNewton();
 }
 
+double
+MDNLDynamic::norm(DistrVector &vec)
+{
+ return sqrt(solver->getFNormSq(vec));
+}
+
 void
 MDNLDynamic::addMpcForces(DistrVector& vec)
 {
@@ -828,7 +831,7 @@ MDNLDynamic::subAddMpcForces(int isub, DistrVector& vec)
   SubDomain *sd = decDomain->getSubDomain(isub);
   double *mpcForces = new double[sd->numMPCs()];      // don't delete  
   solver->getLocalMpcForces(isub, mpcForces);         // mpcForces set to incremental mpc lagrange multipliers
-  sd->addMpcForceIncrement(mpcForces);                // mpcForces set to total mpc lagrange multipliers
+  //sd->addMpcForceIncrement(mpcForces);                // mpcForces set to total mpc lagrange multipliers
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->constraintProductTmp(mpcForces, localvec);      // C^T*lambda added to vec
 }
@@ -836,7 +839,8 @@ MDNLDynamic::subAddMpcForces(int isub, DistrVector& vec)
 void
 MDNLDynamic::updateMpcRhs(DistrGeomState &geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMpcRhs, geomState);
+  decDomain->setContactGap(&geomState, solver);
+  //execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMpcRhs, geomState);
 }
 
 void
@@ -844,6 +848,41 @@ MDNLDynamic::subUpdateMpcRhs(int isub, DistrGeomState &geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   sd->updateMpcRhs(*geomState[isub], decDomain->getMpcToSub());
+}
+
+void
+MDNLDynamic::zeroMpcForces()
+{
+  paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::zeroMpcForces);
+}
+
+void
+MDNLDynamic::updateContactConditions(DistrGeomState* geomState)
+{
+  // YYYY
+  domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
+  domain->PerformStaticContactSearch();
+  //domain->PerformDynamicContactSearch(domain->solInfo().dt);  XXXX this is not supported by acme 2.5e for face-face interactions
+  domain->deleteLMPCs();
+  domain->ExpComputeMortarLMPC();
+//domain->printLMPC();
+  domain->CreateMortarToMPC();
+  decDomain->reProcessMPCs();
+  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+}
+
+void
+MDNLDynamic::deleteContactConditions()
+{
+  domain->deleteLMPCs();
+  decDomain->reProcessMPCs();
+  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+}
+
+void
+MDNLDynamic::updateSurfaces(DistrGeomState* geomState, int config_type)
+{
+  domain->UpdateSurfaces(geomState, config_type, decDomain->getAllSubDomains());
 }
 
 void 

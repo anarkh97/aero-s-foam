@@ -106,6 +106,8 @@ std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomain
 
 Sfem *sfem = new Sfem();
 
+Connectivity *procMpcToMpc;
+
 long totMemSky       = 0;
 long totMemSparse    = 0;
 
@@ -632,7 +634,8 @@ int main(int argc, char** argv)
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0) {
    domain->solInfo().subtype = 10;
-   if(parallel_proc) domain->solInfo().type = 3;
+   domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
+   if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
    geoSource->setMRatio(0.0);
    geoSource->setConsistentQFlag(false);
    geoSource->setConsistentPFlag(false);

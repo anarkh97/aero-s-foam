@@ -33,13 +33,38 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
 
  // PJSA: start LMPC code
  // filePrint(stderr, " ... Processing LMPCs for non-linear FETI ...\n");
- sd->updateMpcRhs(*geomState[isub], decDomain->getMpcToSub());
+ //YYYY sd->updateMpcRhs(*geomState[isub], decDomain->getMpcToSub());
+/*
  double *mpcForces = new double[sd->numMPCs()]; // don't delete  
  solver->getLocalMpcForces(isub, mpcForces);  // mpcForces set to incremental mpc lagrange multipliers
  sd->addMpcForceIncrement(mpcForces);  // mpcForces set to total mpc lagrange multipliers
  // cerr << "mpcForces = "; for(int i=0; i<sd->numMPCs(); ++i) cerr << mpcForces[i] << " "; cerr << endl;
  sd->constraintProductTmp(mpcForces, residual); // C^T*lambda added to force residual
+*/
  // PJSA: end LMPC code
+}
+
+double
+MDNLStatic::norm(DistrVector &vec)
+{
+ return sqrt(solver->getFNormSq(vec));
+}
+
+void
+MDNLStatic::addMpcForces(DistrVector &vec)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subAddMpcForces, vec);
+}
+
+void
+MDNLStatic::subAddMpcForces(int isub, DistrVector &vec)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  double *mpcForces = new double[sd->numMPCs()]; // don't delete  
+  solver->getLocalMpcForces(isub, mpcForces);  // mpcForces set to incremental mpc lagrange multipliers
+  //sd->addMpcForceIncrement(mpcForces);  // mpcForces set to total mpc lagrange multipliers
+  StackVector localvec(vec.subData(isub), vec.subLen(isub));
+  sd->constraintProductTmp(mpcForces, localvec); // C^T*lambda added to force residual
 }
 
 void
@@ -171,8 +196,8 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
              residual, elementInternalForce, lambda);
 
  times->buildStiffAndForce += getTime();
- 
- return sqrt(solver->getFNormSq(residual));
+
+ return sqrt(solver->getFNormSq(residual)); // XXXX this should include the active constraint functions' values
 }
 
 DistrGeomState*
@@ -202,6 +227,7 @@ MDNLStatic::updatePrescribedDisp(int isub, DistrGeomState& geomState)
 int
 MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
 {
+ if(step == 1 && iteration == 0) return 0; // XXXX
  times->rebuild -= getTime();
  int rebuildFlag = 0;
 
@@ -271,6 +297,8 @@ MDNLStatic::preProcess()
  times->memoryPreProcess += threadManager->memoryUsed();
 
  tolerance = domain->solInfo().getNLInfo().tolRes;
+
+ domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
 }
 
 int
@@ -394,5 +422,26 @@ MDNLStatic::printTimers()
                      solver->getSolutionTime());
 		    
   times->timeTimers += getTime();
+}
+
+void
+MDNLStatic::updateMpcRhs(DistrGeomState &geomState)
+{
+  decDomain->setContactGap(&geomState, solver);
+}
+
+void
+MDNLStatic::updateContactConditions(DistrGeomState* geomState)
+{
+  // YYYY
+  domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
+  domain->PerformStaticContactSearch();
+  domain->deleteLMPCs();
+  domain->ExpComputeMortarLMPC();
+  //domain->printLMPC();
+  domain->CreateMortarToMPC();
+  decDomain->reProcessMPCs();
+  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  //solver = decDomain->getFetiSolver();
 }
 

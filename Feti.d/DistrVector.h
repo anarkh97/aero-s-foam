@@ -34,6 +34,7 @@ struct DistrInfo {
    void computeOffsets();
    int totLen() { return len; }
    int *getMasterFlag(int i) { return 0; }
+   void recomputeOffsets();
  private:
    void initialize();
 };

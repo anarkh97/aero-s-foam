@@ -222,6 +222,11 @@ struct SolverInfo {
                      // heat: true --> compute consistent initial first time derivative ie, v^0 = M^{-1}(fext^0 - fint^0) for a first order differential equation (ie heat)
                      //       false --> v^0 = 0
 
+   int dist_acme; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
+                  // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
+                  //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
+   bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   NLInfo = 0; 
@@ -385,6 +390,9 @@ struct SolverInfo {
                   maxvecsize = 0; 
 
                   iacc_switch = true;
+
+                  dist_acme = 0;
+                  allproc_acme = true;
                  }
 
    // Set RbmFilter level

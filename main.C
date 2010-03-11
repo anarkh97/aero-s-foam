@@ -488,9 +488,9 @@ int main(int argc, char** argv)
       }
 
  if(optind < argc - 1) {
-   filePrint(stderr," *************************************************\n");
-   filePrint(stderr," *** ERROR: Options must come before file name ***\n");
-   filePrint(stderr," *************************************************\n");
+   filePrint(stderr," ******************************************************\n");
+   filePrint(stderr," *** ERROR: Command line contained errors. Aborting ***\n");
+   filePrint(stderr," ******************************************************\n");
    exit(-1);
  }
 
@@ -547,10 +547,11 @@ int main(int argc, char** argv)
      useFull = true;
    }
    if(!nosa) nosa = decInit->nosa; // PJSA
-   if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0) {
-     geoSource->getCheckFileInfo()->checkfile = decInit->file;
+   if(topFlag < 0) {
+     callDec=true;
+     if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0)
+       geoSource->getCheckFileInfo()->checkfile = decInit->file;
    }
-   if(topFlag < 0) callDec=true;
  }
 
  //SysCom theCom(argc,argv);

@@ -76,15 +76,15 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
 
  if(verboseFlag)
   {
-    fprintf(stderr,"----------------------------------------------------\n");
-    fprintf(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
+    filePrint(stderr,"----------------------------------------------------\n");
+    filePrint(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
                    "first dv     = % e\n \t\t\trelative dv  = % e\n",
                     iter+1, normDv, firstDv, relativeDv);
-    fprintf(stderr,"                \tcurrent Res  = % e\n \t\t\t"
+    filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
                    "first Res    = % e\n \t\t\trelative Res = % e\n",
                     normRes, firstRes, relativeRes);
 
-    fprintf(stderr,"----------------------------------------------------\n");
+    filePrint(stderr,"----------------------------------------------------\n");
   }
 
  int converged = 0;

@@ -320,7 +320,7 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 }
 
 //PJSA warning THREADS defined causes bug for nonlinear
-//#define THREADS
+#define THREADS
 
 template<class Scalar>
 Scalar
@@ -770,6 +770,7 @@ GenSpoolesSolver<Scalar>::zeroAll()
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
+  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
 }
 

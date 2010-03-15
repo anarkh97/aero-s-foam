@@ -1035,8 +1035,7 @@ Connectivity::combineAll(int addSize, int* cmap)
 {
   int i,j,k;
   int count;
-  int addCount;
-  bool found;
+  bool foundi, foundj;
   //count = 0;
   //for(i = 0; i < size; ++i)
     //if(num(i) == 0) count++;
@@ -1044,7 +1043,6 @@ Connectivity::combineAll(int addSize, int* cmap)
   int *nptr = new int[size+1];
 
   count = 0;
-  addCount = 0;
   for(i = 0; i < size; ++i) {
     nptr[i] = count;
     //if(num(i) == 0) ntrg[count++] = i;
@@ -1054,19 +1052,21 @@ Connectivity::combineAll(int addSize, int* cmap)
     //}
     int oldNumI = num(i);
     //fprintf(stderr, " ... i = %d, cmap[addCount] = %d ...\n", i,cmap[addCount]);
-    if (i==cmap[addCount]) {
-      addCount++;
+    foundi = false;
+    for(k = 0; k < addSize; ++k)
+      if(cmap[k] == i) { foundi = true; break; }
+    if(foundi) {
       for(k = 0; k < addSize; ++k) {
-        found = false;
+        foundj = false;
         for(j = 0; j < oldNumI; ++j) {
           //fprintf(stderr, " ... i = %d, j = %d, k = %d, cmap[k] = %d, (*this)[i][j] = %d ...\n", i,j,k,cmap[k],(*this)[i][j]);
           if (cmap[k] == (*this)[i][j]) {
-            found = true;
+            foundj = true;
             //fprintf(stderr, " ... found!!! : i = %d, j = %d, k = %d ...\n", i,j,k);
             break;
           }
-        } 
-        if (!found) {
+        }
+        if (!foundj) {
             //fprintf(stderr, " ... NOT found!!! : i = %d, j = %d, k = %d ...\n", i,j,k);
           ntrg[count++] = cmap[k];
         }

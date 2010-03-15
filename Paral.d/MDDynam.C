@@ -847,7 +847,8 @@ MultiDomainDynam::computeStabilityTimeStep(double dt, MDDynamMat &dMat)
   } else
     filePrint(stderr," Specified time step is selected\n");
   filePrint(stderr," **************************************\n");
-  fflush(stderr);
+
+  domain->solInfo().setTimeStep(dt);
 }
 
 int

@@ -33,6 +33,8 @@
 
 typedef FSFullMatrix FullMatrix;
 
+extern int verboseFlag;
+
 // ALL COMMENTED FUNCTIONS ARE IN THE FILE DYNAMDESCRTEM.C - JF
 
 //-------------------------------------------------------------------------------------------------------------
@@ -409,24 +411,23 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
  // ... Compute Stability Time Step
  double sts = domain->computeStabilityTimeStep(dMat);
 
- fprintf(stderr," **************************************\n");
+ filePrint(stderr," **************************************\n");
  if (domain->solInfo().modifiedWaveEquation) {
    sts = 1.73205*sts;
-   fprintf(stderr," CONDITIONALLY STABLE MODIFIED WAVE EQUATION\n");
+   filePrint(stderr," CONDITIONALLY STABLE MODIFIED WAVE EQUATION\n");
  }
  else
-   fprintf(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM\n");
- fprintf(stderr," --------------------------------------\n");
- fprintf(stderr," Specified time step      = %10.4e\n",dt);
- fprintf(stderr," Stability max. time step = %10.4e\n",sts);
- fprintf(stderr," **************************************\n");
+   filePrint(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM\n");
+ filePrint(stderr," --------------------------------------\n");
+ filePrint(stderr," Specified time step      = %10.4e\n",dt);
+ filePrint(stderr," Stability max. time step = %10.4e\n",sts);
+ filePrint(stderr," **************************************\n");
  if( sts < dt ) {
    dt = sts;
-   fprintf(stderr," Stability max. time step is selected\n");
+   filePrint(stderr," Stability max. time step is selected\n");
  } else
-   fprintf(stderr," Specified time step is selected\n");
- fprintf(stderr," **************************************\n");
- fflush(stderr);
+   filePrint(stderr," Specified time step is selected\n");
+ filePrint(stderr," **************************************\n");
 
  domain->solInfo().setTimeStep(dt);
 }

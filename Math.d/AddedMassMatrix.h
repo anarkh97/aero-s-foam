@@ -2,33 +2,40 @@
 #define __ADDEDMASSMATRIX_H__
 
 #include <Math.d/DBSparseMatrix.h>
-#include <Solvers.d/Solver.h>
+#include <Math.d/BLKSparseMatrix.h>
 
 template<class Scalar, class ConstraintOperator>
 class AddedMassMatrix : public GenDBSparseMatrix<Scalar>
 {
   private: 
-    GenSolver<Scalar> *fluidMassSolver;
+    GenBLKSparseMatrix<Scalar> *fluidSolver;
     ConstraintOperator *op;
-    void (ConstraintOperator::*mult)(GenVector<Scalar> &, GenVector<Scalar> &);
-    void (ConstraintOperator::*trMult)(GenVector<Scalar> &, GenVector<Scalar> &);
-    GenVector<Scalar> &tmp;
+    void (ConstraintOperator::*multC)(const GenVector<Scalar> &, GenVector<Scalar> &);
+    void (ConstraintOperator::*trMultC)(const GenVector<Scalar> &, GenVector<Scalar> &);
 
   public:
     // Constructor
-    AddedMassMatrix(Connectivity* con, DofSetArray* dsa, ConstrainedDSA* c_dsa, GenSolver<Scalar>* sol,
-                    ConstraintOperator *_op, void (ConstraintOperator::*_mult)(GenVector<Scalar> &, GenVector<Scalar> &),
-                    void (ConstraintOperator::*_trMult)(GenVector<Scalar> &, GenVector<Scalar> &)) 
-     : fluidMassSolver(sol), op(_op), mult(_mult), trMult(_trMult), tmp(sol->neqs()), GenDBSparseMatrix<Scalar>(con, dsa, c_dsa) {}
+    AddedMassMatrix(Connectivity* con, DofSetArray* dsa, ConstrainedDSA* c_dsa, ConstraintOperator *_op,
+                    void (ConstraintOperator::*_multC)(const GenVector<Scalar> &, GenVector<Scalar> &),
+                    void (ConstraintOperator::*_trMultC)(const GenVector<Scalar> &, GenVector<Scalar> &)) 
+     : op(_op), multC(_multC), trMultC(_trMultC), GenDBSparseMatrix<Scalar>(con, dsa, c_dsa) {}
 
     // Destructor
     ~AddedMassMatrix() { }
 
+    void setFluidSolver(GenBLKSparseMatrix<Scalar> *_fluidSolver) { fluidSolver = _fluidSolver; }
+
     void mult(const GenVector<Scalar> &x, GenVector<Scalar> &y) { 
-      (op->*trMult)(x,tmp);
-      fluidMassSolver->reSolve(tmp);
-      (op->*mult)(tmp,y);
-      GenDBSparseMatrix<Scalar>::multAdd(y,y);
+      GenVector<Scalar> tmp(fluidSolver->neqs());
+      GenVector<Scalar> y_added(y);
+
+      GenDBSparseMatrix<Scalar>::mult(x, y); // y = M*x
+
+      (op->*trMultC)(x, tmp);               // tmp = C^T*x
+      fluidSolver->reSolve(tmp);            // tmp = F^{-1}*C^T*x
+      (op->*multC)(tmp, y_added);           // y_added = C*F^{-1}*C^T*x            
+
+      y += y_added;                         // y = (M + C*F^{-1}*C^T)*x
     }
 };
 

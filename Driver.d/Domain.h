@@ -274,6 +274,7 @@ class Domain : public HData {
      int** pmap;                // mapping for coupling matrix, ADDED FOR HEV PROBLEM, EC, 20070820
      int   nuNonZero;            // ADDED FOR HEV PROBLEM, EC, 20070820
      int*  npNonZero;            // ADDED FOR HEV PROBLEM, EC, 20070820
+     double ** C_condensed;
 
      // functions for controlling printing to screen
      void setVerbose() { outFile = stderr; }
@@ -866,6 +867,8 @@ class Domain : public HData {
      void getInterestingDofs(DofSet &ret, int glNode);
 
      double** getCMatrix(); //ADDED FOR HEV PROBLEM, EC, 20070820
+     void multC(const Vector&, Vector&);
+     void trMultC(const Vector&, Vector&);
 
      ControlLawInfo* getClaw() { return  claw;}
 

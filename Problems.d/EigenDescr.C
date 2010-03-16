@@ -107,8 +107,8 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 {
  AllOps<double> allOps;
 
- if(domain->solInfo.addedMass == 2) allOps.M = new AddedMassMatrix<double>(domain->getDSA(), domain->getCDSA(), domain->nodeToNode,
-                                                                           domain->Mff, domain, Domain::multC, Domain::trMultC);
+ if(domain->solInfo().addedMass == 2) allOps.M = new AddedMassMatrix<double, Domain>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
+                                                                                     domain, &Domain::multC, &Domain::trMultC);
  else 
    allOps.M = domain->constructDBSparseMatrix<double>();
  // Used for printing out K during debugging.
@@ -136,6 +136,8 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, rigidBodyModes, kelArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
+
+ if(domain->solInfo().addedMass == 2) ((AddedMassMatrix<double, Domain>*)allOps.M)->setFluidSolver(domain->Mff);
 
  if(domain->solInfo().explicitK)
    dMat.refK    = allOps.K;

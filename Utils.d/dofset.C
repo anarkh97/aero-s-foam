@@ -236,7 +236,9 @@ DofSetArray::makeOffset()
      node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ? 
                                            remapedoffset[jnode] : -1;
     }
+#ifndef DEBUG_OPENMP
    delete [] remapedoffset;
+#endif
  } else 
    node_offset = remapedoffset;
  node_offset[numnodes] = offset;

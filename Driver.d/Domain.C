@@ -2730,7 +2730,7 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   }
 
   time00 += getTime();
-  filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions\n", nMortarLMPCs+numFSI);
+  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
 #ifdef MORTAR_TIMINGS
   filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
 #endif

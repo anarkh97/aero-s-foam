@@ -345,7 +345,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       elemSet.mpcelemadd(nEle, lmpc[i]);
       nEle++;
     }
-    cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
+    //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
 }

@@ -2497,7 +2497,7 @@ Domain::SetMortarPairing()
 // HB: to setup internal data & renumber surfaces
 void Domain::SetUpSurfaces(CoordSet* cs)
 {
-#ifdef MORTAR_LOCALNUMBERING
+#if defined(MORTAR_LOCALNUMBERING) && defined(MORTAR_DEBUG)
   // if we want to work with local numbering of the surface entities (Salinas)
   if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
 #endif
@@ -2682,13 +2682,13 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   double time00=-getTime();
   for(int iMortar=0; iMortar<nMortarCond; iMortar++){
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    filePrint(stderr," ... Treat Mortar condition Id %d\n",CurrentMortarCond->ID());
 #ifdef MORTAR_TIMINGS
     double time0= -getTime();
     double time = -getTime();
 #endif
 #ifdef MORTAR_DEBUG
-   CurrentMortarCond->Print();
+    filePrint(stderr," ... Treat Mortar condition Id %d\n",CurrentMortarCond->ID());
+    CurrentMortarCond->Print();
 #endif
     switch(int(CurrentMortarCond->GetGeomType())){
      case MortarHandler::EQUIVALENCED:
@@ -2730,9 +2730,10 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   }
 
   time00 += getTime();
-  filePrint(stderr," ... Build %d Mortar (tied/ctc) LMPCs\n",nMortarLMPCs);
-  if(numFSI) filePrint(stderr," ... Build %d wet FSI interactions\n",numFSI);
-  filePrint(stderr," ... CPU time for building Mortar LMPCs/ wet FSI: %e s\n",time00/1000);
+  filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions\n", nMortarLMPCs+numFSI);
+#ifdef MORTAR_TIMINGS
+  filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
+#endif
   //if(numFSI){
   //  printFSI();
   //  long memFSI = 0;
@@ -2793,7 +2794,9 @@ Domain::CreateMortarToMPC()
   if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
 
   if(nMortarCond>0){
-    if(verboseFlag) filePrint(stderr," ... Create (Tied) Mortar To LMPCs connectivity ...\n");
+#ifdef MORTAR_DEBUG
+    filePrint(stderr," ... Create (Tied) Mortar To LMPCs connectivity ...\n");
+#endif
 
     // 1) Set the map pointer array & count number of
     //    targets = total number of (Tied) Mortar LMPCs

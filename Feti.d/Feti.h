@@ -345,12 +345,10 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     int glNumCorners;
     Connectivity *cornerToSub;
     DofSetArray *cornerEqs;
-    ConstrainedDSA *c_cornerEqs;
     int mpcOffset, augOffset; // mpc equation offset for coarse grid
     void initialize();
     bool computeRbms;
     enum StepType { CG, PROPORTIONING, EXPANSION };
-    double delta_lag, delta_alphabar, alphabar_prev, alphabar_lower, alphabar_upper, delta_lag_max, alphabar_max;
     bool proportional;
 
  public:
@@ -419,17 +417,7 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void init_iter();
     void init_linesearch();
     void orthoAdd(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp);
-    Scalar lagrangian(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &d);
     double preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, bool errorFlag = true);
-    // augmented Lagrangian
-    void solveCG_augLag(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u);
-    void localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &ur, GenVector<Scalar> &fc,
-                           GenVector<Scalar> &uc, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &fw, double rho, GenVector<Scalar> &mu);
-    Scalar localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &dur, GenVector<Scalar> &duc,
-                             GenDistrVector<Scalar> &Fp, double rho);
-    Scalar lagrangian(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &r, double rho, GenVector<Scalar> &mu);
-    double preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Pv, double rho, bool errorFlag = false);
-    double primalError();
     double dualError(GenDistrVector<Scalar> &r, bool &proportional);
 
     // note: these functions could belong to a FetiInterfaceVector class (GenDistrVector sub-class with pointer to **sub)
@@ -438,7 +426,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     int Equal(GenDistrVector<Scalar> &v, Scalar val, int flag);
     void subEqual(int iSub, GenDistrVector<Scalar> &v, Scalar val, int *ipartial, int flag);
 
-    void subtractKGap( int iSub, GenDistrVector<Scalar> &referenceRHS);
     void subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1);
     bool updateActiveSet(GenDistrVector<Scalar> &v, int flag, double tol = 0.0);
     bool updateActiveSet_one(GenDistrVector<Scalar> &v, Scalar tol, int flag);
@@ -455,15 +442,12 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void chop(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_c, double tol, int chop_flag);
     void getn_u(int iSub, GenDistrVector<Scalar> &n_u, int mpcid);
     void update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp,
-                GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur, GenVector<Scalar> &uc, GenVector<Scalar> &duc, int l, double alphabar, double rho = 0.0);
-    Scalar alpha_f();
-    void expansionStep(GenDistrVector<Scalar> &lambda, Scalar nu, GenDistrVector<Scalar> &p, double alphabar);
-    bool linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &l, double &alphabar);
+                GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur, GenVector<Scalar> &uc, GenVector<Scalar> &duc, int l);
+    void expansionStep(GenDistrVector<Scalar> &lambda, Scalar nu, GenDistrVector<Scalar> &p);
+    bool linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &l);
     bool checkWolfe(Scalar nu, GenDistrVector<Scalar> &p, int which, bool &wolfe1, bool &wolfe2);
     void saveStep();
     void restoreStep();
-    void quotient(GenDistrVector<Scalar> &q, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p);
-    void subQuotient(int iSub, GenDistrVector<Scalar> &q, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p);
 
   private:
     bool globalFlagCtc;
@@ -494,12 +478,10 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     int numSubsWithMpcs;
     int *mpcSubMap;
     void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
-    double spectralNorm(FullM &A);
     FSCommPattern<int> *mpcPat;
     FSCommPattern<Scalar> *mpcSPat;
     Scalar alpha_l, beta_l; // bisection linesearch parameters
     GenVector<Scalar> e_copy;
-    //double ee;
     int newton_iter;
 
     // Contact functions
@@ -514,8 +496,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void assembleGtG(int iGroup, int flag = 1);
     void rebuildGtGtilda();  
     void computeL0(GenDistrVector<Scalar> &lambda0, GenDistrVector<Scalar> &f);
-    void computeL00(int iSub, GenDistrVector<Scalar> &lambda00, GenDistrVector<Scalar> &fr);
-    void initRand(GenDistrVector<Scalar> &p);
     void normalizeC();
     void subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
     void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
@@ -528,14 +508,12 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, int flag);
     void reSolveGtG(GenVector<Scalar> &x, int flag = 0);
     bool redundant(bool print_flag = false); 
-    bool inconsistent(GenVector<Scalar> &e, bool print_warning = true);
     bool feasible(GenDistrVector<Scalar> &lambda, bool check_eq = true, bool check_ieq = true, 
                   bool print_warning_eq = true, bool print_warning_ieq = true, int chop_flag = 1);
     void addRalpha(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &alpha);
     void computeProjectedDisplacement(GenDistrVector<Scalar> &u);
     void addRstar_gT(int iGroup, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta);
     void subtractRstar_g(int iSub, GenDistrVector<Scalar> &u, GenVector<Scalar> &beta);
-    void dykstra(GenDistrVector<Scalar> &b, GenDistrVector<Scalar> &Pb);
     int  checkStoppingCrit(int iter, double error, double lastError, double fnorm,
                            double wnorm, double lastwnorm, double w0norm, double wcnorm);
     void projectAlpha(GenVector<Scalar> &alpha, bool flag);
@@ -613,18 +591,12 @@ class GenFetiWorkSpace
    GenDistrVector<Scalar> *p_copy;
    GenDistrVector<Scalar> *r_copy;
    GenDistrVector<Scalar> *Fp_copy;
-   GenDistrVector<Scalar> *ur_copy;
    GenDistrVector<Scalar> *du_copy;
    GenDistrVector<Scalar> *w_copy;
    GenVector<Scalar> *uc_copy;
    GenVector<Scalar> *duc_copy;
    // chopped gradient for contact
    GenDistrVector<Scalar> *wc;
-
-   // initial state for augmented lagrangian
-   GenDistrVector<Scalar> *r0;
-   GenDistrVector<Scalar> *lambda0;
-   GenVector<Scalar> *gamma0;
 
 public:
    GenFetiWorkSpace(DistrInfo& interface, DistrInfo& local, int isNonlinear,
@@ -651,10 +623,6 @@ public:
    GenDistrVector<Scalar>& ret_fr2()     { return *fr2; }
    GenDistrVector<Scalar>& ret_ur()      { return *ur;  }
    GenDistrVector<Scalar>& ret_fw()      { return *fw;  }
-   GenDistrVector<Scalar>& ret_r0()      { return *r0;  }
-   GenDistrVector<Scalar>& ret_lambda0() { return *lambda0; }
-   GenDistrVector<Scalar>& ret_deltaL()  { return *deltaL; }
-   GenDistrVector<Scalar>& ret_q()       { return *q; }
    GenDistrVector<Scalar>& ret_zz()      { return *zz; }
    GenDistrVector<Scalar>& ret_rCompare(){ return *rCompare; }
    GenDistrVector<Scalar>& ret_uu()      { return *uu; }
@@ -671,14 +639,13 @@ public:
    GenVector<Scalar>& ret_uc()           { return *uc; }
    GenVector<Scalar>& ret_duc()          { return *duc; }
    GenVector<Scalar>& ret_e()            { return *e; }
-   GenVector<Scalar>& ret_gamma0()       { return *gamma0; }
-
    // extra functions for contact 
    void save();
    void restore(bool flag = true);
-   void save_initial();
    void save_lambda();
+/*
    void save_p();
+*/
    void save_w();
 
    void clean_up();

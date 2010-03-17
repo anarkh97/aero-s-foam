@@ -11,26 +11,24 @@ GenSubDomain<Scalar>::makeZstarAndR(double *centroid)
 
 template<> 
 inline void
-GenSubDomain<double>::makeLocalRstar(FullM **Qtranspose, bool cflag) 
+GenSubDomain<double>::makeLocalRstar(FullM **Qtranspose) 
 {
   FullM &R = rigidBodyModesG->R;
   FullM *Rc = rigidBodyModesG->Rc;
   if(numMPC_primal > 0) {
     FullM Qbody(Qtranspose[group]->transpose(), R.numCol(), bodyRBMoffset, Qtranspose[group]->numRow(), 0);
     Rstar = R * Qbody;
-    if(cflag) Rcstar = *Rc * Qbody;
   }
   else {
     Rstar = R % *(Qtranspose[group]);
-    if(cflag) Rcstar = *Rc % *(Qtranspose[group]);
   }
 }
 
 template<>
 inline void
-GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose, bool cflag)
+GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose)
 {
-  cerr << "GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose, bool cflag) is not implemented\n";
+  cerr << "GenSubDomain<DComplex>::makeLocalRstar(FullM **Qtranspose) is not implemented\n";
 }
 
 template<class Scalar>
@@ -53,47 +51,6 @@ GenSubDomain<Scalar>::useKrrNullspace()
     }
     delete [] rbmv;
   }
-}
-
-template<>
-inline void
-GenSubDomain<double>::assembleGlobalRcstar(DofSetArray *cornerEqs, GenFullM<double> &globalRcstar, int *ngrbmGr)
-{
-  // actually this is not global, just for the groups allocated to this mpi process for fem.dist
-  if(ngrbmGr[group] == 0) return;
-  int tmpGroupRBMoffset = 0; for(int i=0; i<group; ++i) tmpGroupRBMoffset += ngrbmGr[i];
-  int numC = numCoarseDofs();
-  int *tmpCornerEqNums = new int[numC];
-  // This loop numbers the corners
-  int i,j,k;
-  int offset=0;
-  for(i=0; i<numCRN; ++i) {
-    cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(),
-                      tmpCornerEqNums+offset);
-    offset += cornerDofs[i].count();
-  }
-
-  offset=0;
-  for(i=0; i<numCRN; ++i) {
-    int lDof[6];
-    dsa->number(cornerNodes[i], cornerDofs[i].list(), lDof);
-    for( k = 0; k < cornerDofs[i].count(); ++k)
-      for(j = 0; j < ngrbmGr[group]; ++j) {
-        if(lDof[k] >= 0) 
-          globalRcstar[tmpCornerEqNums[offset+k]][j+tmpGroupRBMoffset] = Rcstar[offset+k][j];
-      }
-    offset += cornerDofs[i].count();
-  }
-
-  delete [] tmpCornerEqNums;
-  Rcstar.clean_up();
-}
-
-template<>
-inline void
-GenSubDomain<DComplex>::assembleGlobalRcstar(DofSetArray *cornerEqs, GenFullM<double> &globalRcstar, int *ngrbmGr)
-{
-  cerr << "GenSubDomain<DComplex>::assembleGlobalRcstar(DofSetArray *cornerEqs, GenFullM<DComplex> &globalRcstar, int *ngrbmGr) is not implemented\n";
 }
 
 template<class Scalar>

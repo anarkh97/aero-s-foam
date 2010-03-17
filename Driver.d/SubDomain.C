@@ -1650,60 +1650,6 @@ GenSubDomain<Scalar>::expandRBM(Scalar *localR, VectorSet &globalR)
    }
 }
 
-// compute f - K * gap
-template<class Scalar>
-void
-GenSubDomain<Scalar>::subtractKGap(Scalar *refRHS)
-{
-  if(numMPC == 0) return;
-  // bgap = the interface gap vector
-  Scalar *bGap = (boundLen > 0) ? new Scalar[boundLen] : 0;
-  // initialize bGap to zero
-  for(int i = 0; i < boundLen; i++) bGap[i] = 0.0;
-
-  // insert the tied mpc rhs and negative contact gaps (overlaps, penetrations) in bGap
-  int count = 0;
-  for(int i = 0; i < scomm->lenT(SComm::mpc); i++) {
-    int locMpcNb = scomm->mpcNb(i);
-    SubLMPCons<Scalar> *m = mpc[locMpcNb];
-    Scalar gap = m->rhs;
-    if((gap == 0.0) || ((m->type == 1) && (ScalarTypes::Real(gap) > 0.0))) continue;
-    for(int k=0; k<m->nterms; k++) {
-      int cdof = (m->terms)[k].cdof;
-      if(cdof > -1) {
-        bGap[invBoundMap[cdof]] += gap/double(m->gsize)*(m->terms)[k].coef;
-        count++;
-      }
-    }
-  }
-
-  if(count > 0) {
-    // iResult = Kib * gap
-    Scalar *bResult = (boundLen > 0) ? new Scalar[boundLen] : 0;
-    // bResult = kbb * gap
-    Scalar *iResult = ((internalLen > 0) && Kib) ? new Scalar[internalLen] : 0;
-
-    // compute Kib * gap
-    if((internalLen > 0) && Kib) {
-      for(int i = 0; i < internalLen; i++) iResult[i] = 0.0;
-      Kib->transposeMultAdd(bGap, iResult); // note: Kib is stored as Kbi
-    }
-
-    // compute Kbb * gap
-    if(boundLen > 0) Kbb->mult(bGap, bResult);
-
-    // compute: refRHS = f - K * gap
-    if(Kib) {
-      for(int i = 0; i < internalLen; i++) refRHS[internalMap[i]] -= iResult[i];
-    }
-    for(int i = 0; i < boundLen; i++) refRHS[boundMap[i]] -= bResult[i];
-
-    if(iResult) delete [] iResult;
-    if(bResult) delete [] bResult;
-  }
-  if(bGap) delete [] bGap;
-}
-
 template<>
 void
 GenSubDomain<DComplex>::getSRMult(DComplex *lvec, DComplex *interfvec, int nRBM,
@@ -4140,7 +4086,7 @@ void GenSubDomain<Scalar>::initUserDefBC()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::makeKccDofs(ConstrainedDSA *cornerEqs, int augOffset,
+GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset)
 {
   int numC = numCoarseDofs();
@@ -4215,6 +4161,7 @@ GenSubDomain<Scalar>::deleteKcc()
   delete Kcc; Kcc = 0;
 }
 
+/*
 template<class Scalar>
 void GenSubDomain<Scalar>::makeGlCrnDofGroup(DofSetArray *cornerEqs, int *glCrnDofGroup)
 {
@@ -4241,6 +4188,7 @@ void GenSubDomain<Scalar>::makeGlCrnDofGroup(DofSetArray *cornerEqs, int *glCrnD
  }
  delete [] tmpCornerEqNums;
 }
+*/
 
 template<class Scalar>
 void

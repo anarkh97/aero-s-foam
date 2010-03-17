@@ -794,8 +794,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(i=0; i<nGroups; ++i) delete globalZstar[i];
    delete [] globalZstar;
  
-   // make local Rstar (and Rcstar if necessary)
-   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeLocalRstar, Qtranspose, this->fetiInfo->constrain_kcc);
+   // make local Rstar
+   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeLocalRstar, Qtranspose);
    for(i=0; i<nGroups1; ++i) delete Qtranspose[groups[i]];
    delete [] Qtranspose;
  }
@@ -816,112 +816,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
  }
  
- if(c_cornerEqs) delete c_cornerEqs; // PJSA
- if(ngrbms && this->fetiInfo->constrain_kcc) {
-  // assemble global Rc (restriction of block RBMs to corners) using new parallel algorithm &
-  // create condensed cornerEqs DofSetArray so Kcc will always be non-singular
-  int numCRNdof = cornerEqs->size();
-  FullM globalRcstar(numCRNdof, ngrbm);
-  globalRcstar.zero();
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::assembleGlobalRcstar, cornerEqs, &globalRcstar, ngrbmGr);
-
-  // locate singularities (not necessary for dynamic analysis)
-  int *sing = new int[ngrbm];
-  for(i=0; i<ngrbm; ++i) sing[i] = -1;
-  int svdcount = 0;
-  int totRank = 0;
-  double trbm2 = 0.0; // previously was domain->solInfo().trbm
-  if(ngrbm > 0) {
-    // assemble glCrnDofGroup array
-    int *glCrnDofGroup = new int[numCRNdof];
-    for(i=0;i<numCRNdof;++i) glCrnDofGroup[i] = -2;
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeGlCrnDofGroup, cornerEqs, glCrnDofGroup);
-    if(verboseFlag) filePrint(stderr, " ... Locate singularities in Kcc    ...\n");
-    int *rank = new int[nGroups];
-    int *rows = new int[numCRNdof*nGroups]; // temp fix
-    int *rowsptr = new int[nGroups];
-    int *nrow = new int[nGroups];
-    int *ncol = new int[nGroups];
-    int *startcol = new int[nGroups];
-    for(i=0;i<nGroups;++i) {
-      rank[i] = 0;
-      nrow[i] = 0;
-      ncol[i] = ngrbmGr[i];
-      startcol[i] = 0;
-      for(int j=0;j<i;++j) startcol[i] += ngrbmGr[j];
-      rowsptr[i] = i*numCRNdof;  // temp fix
-    }
-    for(i=(numCRNdof-1); i>=0; --i) {
-      int group = glCrnDofGroup[i];  // = -2 for augmented dof, -1 for one body only,
-                                     // >= 0 if one or more groups is a floating body
-      if(group >= -1) {  // dof is not from augmentation
-#ifdef DISTRIBUTED
-       if(groupProc[group] == this->myCPU) {
-#endif
-        if(group == -1) group = 0;     // this means there is only one body
-        if(rank[group] < ngrbmGr[group]) {  // if true, then haven't found all singularities for this group yet
-          double maxval = 0;
-          for(int j=0;j<ngrbmGr[group];++j) 
-            maxval = myMax(maxval,fabs(globalRcstar[i][startcol[group]+j])); 
-          if(maxval > trbm2) {  // ignore zero rows
-            rows[rowsptr[group]+nrow[group]] = i;
-            nrow[group]++;
-            FullM rcsub(globalRcstar, nrow[group], rows+rowsptr[group], ncol[group], startcol[group]);
-            FullM Utmp(ncol[group], ncol[group]);
-            Utmp.zero();
-            int subrank = 0;
-            singularValueDecomposition(rcsub,Utmp,ncol[group],nrow[group],subrank,this->fetiInfo->constrain_kcc_tol);
-            svdcount++;
-            if(subrank == (rank[group]+1)) { // check for singularity
-              rank[group]++;
-              sing[totRank++] = i;
-              if(totRank>=ngrbm) i = -1;  // found all singularities, terminate search
-            }
-          }
-        }
-#ifdef DISTRIBUTED
-       }
-#endif
-     }
-    }
-    delete [] rank;
-    delete [] rows;
-    delete [] rowsptr;
-    delete [] nrow;
-    delete [] ncol;
-    delete [] startcol;
-    delete [] glCrnDofGroup;
-  }
-
-#ifdef DISTRIBUTED
-  int *sings = new int[ngrbms];
-  int *counts = new int[this->numCPUs];
-  int *displacements = new int[this->numCPUs];
-  this->fetiCom->allGather(&ngrbm, 1, counts, 1);
-  if(displacements) displacements[0] = 0;
-  for(i=1; i<this->numCPUs; ++i) 
-    displacements[i] = counts[i-1] + displacements[i-1];
-  this->fetiCom->allGatherv(sing, ngrbm, sings, counts, displacements);
-  svdcount = this->fetiCom->globalSum(svdcount);
-  totRank = this->fetiCom->globalSum(totRank);
-  delete [] sing; sing = sings;
-  delete [] counts;
-  delete [] displacements;
-#endif
-  if(verboseFlag) {
-    filePrint(stderr, " ... Found %4d singularities       ...\n", totRank);
-    filePrint(stderr, " ... Number of SVDs required = %4d ...\n", svdcount);
-    filePrint(stderr, " ... Eliminate singularities        ...\n");
-  }
-  if((totRank < ngrbms) && (cornerEqs->size() > 0)) { cerr << "error: didn't find enough singularities, try reducing FetiInfo::constrain_kcc_tol\n"; exit(-1); }
-  // condense singular dofs from cornerEqs dsa
-  c_cornerEqs = new ConstrainedDSA(*cornerEqs, ngrbms, sing);
-  delete [] sing; 
- }
- else {
-  c_cornerEqs = new ConstrainedDSA(*cornerEqs, 0);
- }
-
  if(ngrbms) { // need to do this global sum after constrain_kcc
 #ifdef DISTRIBUTED
    delete [] groupProc;
@@ -935,7 +829,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
  KccSparse = 0;
 
- if(c_cornerEqs->size() > 0) {  // replaced cornerEqs with c_cornerEqs
+ if(cornerEqs->size() > 0) {
 
    double tolerance = this->fetiInfo->crbm_tol;  // this is set in input file using global_cor_rbm_tol
    GenBLKSparseMatrix<Scalar> *BLKMatrix = 0;
@@ -943,7 +837,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    GenSkyMatrix<Scalar> *sky = 0;
 #ifdef DISTRIBUTED
    int firstAlpha,nRowAlpha;  
-   int neq       = c_cornerEqs->size(); 
+   int neq       = cornerEqs->size(); 
    int neqPerCPU = neq/this->numCPUs;
    if(this->subToSub->csize() == this->numCPUs) {
      int remainder = neq%this->numCPUs;
@@ -961,12 +855,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
        if(this->subToSub->csize() == this->numCPUs && 
           this->fetiInfo->type != FetiInfo::nonlinear &&
           !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) { // 1 subdomain per procesor
-         sky = new GenDistSky<Scalar>(coarseConnectivity, c_cornerEqs, tolerance, 
+         sky = new GenDistSky<Scalar>(coarseConnectivity, cornerEqs, tolerance, 
                                       firstAlpha, nRowAlpha);     
          this->times.memoryGtGDelete = 8*sky->size();
        } else
 #endif 
-       sky = new GenSkyMatrix<Scalar>(coarseConnectivity, c_cornerEqs, tolerance, domain->solInfo().coarseScaled); 
+       sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, domain->solInfo().coarseScaled); 
        KccSparse = sky;
        KccSolver = sky;
      }
@@ -977,12 +871,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
        if(this->subToSub->csize() == this->numCPUs && 
           this->fetiInfo->type != FetiInfo::nonlinear && 
           !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) {
-         blockSky = new GenDistBlockSky<Scalar>(coarseConnectivity, c_cornerEqs, tolerance,
+         blockSky = new GenDistBlockSky<Scalar>(coarseConnectivity, cornerEqs, tolerance,
                                                 firstAlpha, nRowAlpha);   
          this->times.memoryGtGDelete = 8*blockSky->size();
        } else
 #endif
-       blockSky = new GenBlockSky<Scalar>(coarseConnectivity, c_cornerEqs, tolerance);  
+       blockSky = new GenBlockSky<Scalar>(coarseConnectivity, cornerEqs, tolerance);  
        blockSky->zeroAll();
        KccSparse = blockSky;
        KccSolver = blockSky;
@@ -993,12 +887,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
        if(this->subToSub->csize() == this->numCPUs && 
           this->fetiInfo->type != FetiInfo::nonlinear && 
           !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) {
-         BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnectivity, c_cornerEqs, 
+         BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnectivity, cornerEqs, 
                                                   tolerance, firstAlpha, nRowAlpha);   
          this->times.memoryGtGDelete = 8*BLKMatrix->size();
        } else
 #endif
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, c_cornerEqs, 
+       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs, 
                                                   tolerance, domain->solInfo().sparse_renum); 
        BLKMatrix->zeroAll();
        KccSparse = BLKMatrix;
@@ -1007,7 +901,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      break;
 #ifdef USE_SPOOLES
      case FetiInfo::spooles: {
-       GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, c_cornerEqs);
+       GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs);
        KccSparse = spsolver;
        KccSolver = spsolver;
      }
@@ -1015,7 +909,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 #ifdef USE_MUMPS
      case FetiInfo::mumps: {
-       GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, c_cornerEqs, (int *)0, this->fetiCom);
+       GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, cornerEqs, (int *)0, this->fetiCom);
        KccSparse = mumpsolver;
        KccSolver = mumpsolver;
      }
@@ -1031,7 +925,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    t5 += getTime();
 
    t0 -= getTime();
-   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, c_cornerEqs, augOffset, this->subToEdge, mpcOffset);
+   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
    if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
    t0 += getTime();
 
@@ -1048,9 +942,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
    if(computeRbms && this->myCPU == 0) {
-     if(!this->fetiInfo->constrain_kcc && KccSolver->numRBM() != ngrbms && domain->probType() != SolverInfo::Modal) {
+     if(KccSolver->numRBM() != ngrbms) {
        cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ") does not match the number of Geometric RBMs of the decomposed domain \n";
-       cerr << " *** try adjusting global_cor_rbm_tol or set constrain_kcc on \n";
+       cerr << " *** try adjusting global_cor_rbm_tol\n";
      }
    } 
  
@@ -1266,67 +1160,39 @@ void
 GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p, 
                                 GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &Fp, 
                                 GenDistrVector<Scalar> &ur, GenDistrVector<Scalar> &dur, 
-                                GenVector<Scalar> &uc, GenVector<Scalar> &duc, int l, double alphabar, double rho)
+                                GenVector<Scalar> &uc, GenVector<Scalar> &duc, int l)
 {
   // update dual (lambda)
-  if(globalFlagCtc) expansionStep(lambda, nu, p, alphabar); // p = p_r, lambda += nu*p_r, Fp = F*p_r 
+  if(globalFlagCtc) expansionStep(lambda, nu, p); // p = p_r, lambda += nu*p_r, Fp = F*p_r 
   else lambda.linAdd(nu,p);
 
   // Update residual (r)
   if(dualStatusChange) { // compute Fp ... p has changed!
-    localSolveAndJump(p, dur, duc, Fp, rho); 
+    localSolveAndJump(p, dur, duc, Fp); 
     nExtraFp++; 
   }
   
   r.linAdd(nu,Fp); // note: r += nu*Fp is not thread-safe
 
   // check wolfe conditions, adjust step length and re-update if lagrangian is not sufficiently reduced
-  if(dualStatusChange && this->fetiInfo->linesearch && linesearch(nu, p, l, alphabar)) 
-    update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l, alphabar, rho); // recursive 
+  if(dualStatusChange && this->fetiInfo->linesearch && linesearch(nu, p, l)) 
+    update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l); // recursive 
 
   // Update primal (ur, uc)
   else { ur.linAdd(nu,dur); uc += nu*duc; }
 }
 
 template<class Scalar>
-Scalar
-GenFetiDPSolver<Scalar>::alpha_f()
-{
-  // returns the maximum feasible step length in direction p
-  GenDistrVector<Scalar> &q = this->wksp->ret_q(), &lambda = this->wksp->ret_lambda(), &p = this->wksp->ret_p();
-  quotient(q, lambda, p);
-  return Max(q, 0);
-}
-
-template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::expansionStep(GenDistrVector<Scalar> &lambda, Scalar nu, GenDistrVector<Scalar> &p, double alphabar)
+GenFetiDPSolver<Scalar>::expansionStep(GenDistrVector<Scalar> &lambda, Scalar nu, GenDistrVector<Scalar> &p)
 {
   // step(nu,p_r): lambda^(k+1) = lambda^(k) + nu*p_r ... p_r is the reduced search direction which is also computed
   // notes: if step(nu,p) is feasible then p_r = p and dualStatusChange = false
   //        nu should always be negative since CG search direction p is a descent direction (hence r^T*p < 0) and F is positive (hence  p^T*Fp > 0)
   if(!this->fetiInfo->linesearch) this->wksp->save_lambda();
-  Scalar nu1, nu2 = nu;
 
-  // first 1/2 step
-  bool expansion = false;
-  if(this->fetiInfo->expansion == 2) { 
-    Scalar alphaf = alpha_f(); 
-    nu1 = (ScalarTypes::Real(alphaf) == 0.0) ? -this->fetiInfo->expansion_tol : alpha_f()*(1.0+this->fetiInfo->expansion_tol);
-    if(ScalarTypes::greaterThan(nu1, nu)) {
-      lambda.linAdd(nu1,p); 
-      project(lambda, lambda, -1, true); 
-      GenDistrVector<Scalar> &r = this->wksp->ret_r(), &Fp = this->wksp->ret_Fp();
-      p.linC(1.0,r,nu1,Fp);
-      nu2 = -alphabar;
-      expansion = true;
-    }
-  }
-
-  // second 1/2 step
-  lambda.linAdd(nu2,p); 
+  lambda.linAdd(nu,p); 
   project(lambda, lambda, -1, true);
-  if(expansion && !dualStatusChange) { dualStatusChange = true; if(this->myCPU == 0) cerr << "WARNING: no status change in expansion step! this shouldn't happen. Try increasing expansion_tol\n"; }
 
   // compute the reduced search direction: p_r = (lambda^(k+1) - lambda^(k))/nu and F*p_r
   if(dualStatusChange) {
@@ -1337,13 +1203,12 @@ GenFetiDPSolver<Scalar>::expansionStep(GenDistrVector<Scalar> &lambda, Scalar nu
 
 template<class Scalar>
 bool
-GenFetiDPSolver<Scalar>::linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &l, double &alphabar)
+GenFetiDPSolver<Scalar>::linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &l)
 {
   // one linesearch iteration to find a better step length nu
   bool wolfe1, wolfe2;
   if(!checkWolfe(nu, p, this->fetiInfo->linesearch, wolfe1, wolfe2) && l++ < this->fetiInfo->linesearch_maxit) {
     restoreStep();
-    Scalar nu_cg; if(this->fetiInfo->expansion == 2) { nu_cg = nu; nu = -alphabar; } // do linesearch on alphabar for 2-step expansion
     switch(this->fetiInfo->linesearch) {
       case 1 : { // backtracking linesearch iteration (armijo-goldstein)
         if(!wolfe1) nu *= this->fetiInfo->linesearch_tau; // default is 0.8
@@ -1360,8 +1225,7 @@ GenFetiDPSolver<Scalar>::linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &
     if(this->fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
       cerr << " linesearch (type " << this->fetiInfo->linesearch << "): l = " << l << ", nu = " << nu << endl;
     nLinesearchIter++;
-    stepLengthChange = true; // always need to reset orthoset if nu != nu_cg
-    if(this->fetiInfo->expansion == 2) { alphabar = -ScalarTypes::Real(nu); nu = nu_cg; }
+    stepLengthChange = true;
     return true;
   }
   else {
@@ -1431,13 +1295,6 @@ GenFetiDPSolver<Scalar>::restoreStep()
 }
 
 template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::quotient(GenDistrVector<Scalar> &q, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &p)
-{
-  execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::subQuotient, q, lambda, p);
-}
-
-template<class Scalar>
 bool
 GenFetiDPSolver<Scalar>::feasible(GenDistrVector<Scalar> &lambda, bool check_eq, bool check_ieq, bool print_warning_eq, bool print_warning_ieq, int chop_flag)
 {
@@ -1456,8 +1313,7 @@ GenFetiDPSolver<Scalar>::feasible(GenDistrVector<Scalar> &lambda, bool check_eq,
     // check G^T*lambda+e = 0
     GenVector<Scalar> &e = this->wksp->ret_e();
     GenVector<Scalar> &gamma = this->wksp->ret_gamma();
-    int flag = (this->fetiInfo->outerloop == FetiInfo::CGAL) ? -1 : 0;
-    trMultG(lambda, gamma, 1.0, 0.0, flag); // gamma = G^T*lambda
+    trMultG(lambda, gamma, 1.0, 0.0, 0); // gamma = G^T*lambda
     gamma += e;
     eq = ((eq_error = sqrt(gamma.sqNorm())) <= this->fetiInfo->equi_tol);
   }
@@ -1512,13 +1368,6 @@ GenFetiDPSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar>
          filePrint (stderr, "----------------------------------------------\n");
        }
        solveGCR(f, u);
-       break;
-   case 3:
-       filePrint (stderr, " ... CG Augmented Lagrangian solver selected ...\n\n");
-       filePrint (stderr, "----------------------------------------------\n");
-       filePrint (stderr, "          Iterations loop monitoring          \n");
-       filePrint (stderr, "----------------------------------------------\n");
-       solveCG_augLag(f,u);
        break;
  }
  if(this->fetiInfo->type == FetiInfo::nonlinear) { // PJSA 9-18-2007
@@ -1581,7 +1430,6 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  GenDistrVector<Scalar> &p       = this->wksp->ret_p();           // search direction
  GenDistrVector<Scalar> &Fp      = this->wksp->ret_Fp(); 
  GenDistrVector<Scalar> &deltaU  = this->wksp->ret_deltaU(); 
- //GenDistrVector<Scalar> &deltaF  = this->wksp->ret_deltaF(); 
  GenDistrVector<Scalar> &fw      = this->wksp->ret_fw(); 
  GenVector<Scalar> &fc           = this->wksp->ret_fc(); 
  GenVector<Scalar> &uc           = this->wksp->ret_uc();  
@@ -1594,15 +1442,13 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  double wnorm, w0norm, fnorm, wcnorm;
 
  int iter = 0, l = 0;
- double lastError = 0.0, error, dual_error, alphabar, lastwnorm; 
+ double lastError = 0.0, error, dual_error, lastwnorm; 
  Scalar pFp, nu;
  if(this->glNumMpc == 0) this->fetiInfo->project_g = false;
 
  // extract fr, fc and fw from f
  ff = extractForceVectors(f, fr, fc, fw);
  fnorm = sqrt(ff);
-
- if(globalFlagCtc && this->fetiInfo->expansion == 2) alphabar = this->fetiInfo->alphabar_cntl/computeFNorm();
  
  // Compute initial lagrange multipliers: lambda^0 = P * lambda^00 - G*(G^T*G)^-1 * e, where e = R^T*f ... also gamma = G^T*lambda+e
  // also for feti-dpc: expand active set and re-compute initial lagrange multipliers if lambda^0 is not feasible
@@ -1672,7 +1518,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
    // also for feti-dpc: reduce step and expand active set if lambda is not feasible (dual planing)
    if(globalFlagCtc) dualStatusChange = primalStatusChange = stepLengthChange = false;
    if(globalFlagCtc && this->fetiInfo->linesearch) { l = 0; init_linesearch(); }
-   update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l, alphabar);
+   update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l);
 
    // Project: w = P^T * r 
    // also for feti-dpc: contract active set if w is not proportional (primal planing)
@@ -1696,195 +1542,6 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  this->times.solve += getTime(); t7 += getTime();
  this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
  printSummary(iter);
-}
-
-template<class Scalar> 
-void
-GenFetiDPSolver<Scalar>::solveCG_augLag(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &u)
-{
-  t7 = -getTime(); this->times.solve -= getTime();
-  if(this->oSetCG->numDir() > 0) this->oSetCG->reset(); // multiple rhs is not supported
-
-  GenDistrVector<Scalar> &fr      = this->wksp->ret_fr();  
-  GenDistrVector<Scalar> &ur      = this->wksp->ret_ur(); 
-  GenDistrVector<Scalar> &dur     = this->wksp->ret_du(); 
-  GenDistrVector<Scalar> &lambda  = this->wksp->ret_lambda();      // Lagrange multipliers
-  GenDistrVector<Scalar> &r       = this->wksp->ret_r();           // residual
-  GenDistrVector<Scalar> &w       = this->wksp->ret_w();           // projected residual
-  GenDistrVector<Scalar> &y       = this->wksp->ret_y();           // re-projected residual
-  GenDistrVector<Scalar> &z       = this->wksp->ret_z();           // preconditioned residual
-  GenDistrVector<Scalar> &p       = this->wksp->ret_p();           // search direction
-  GenDistrVector<Scalar> &Fp      = this->wksp->ret_Fp();
-  GenDistrVector<Scalar> &deltaU  = this->wksp->ret_deltaU(); 
-  //GenDistrVector<Scalar> &deltaF  = this->wksp->ret_deltaF();
-  GenDistrVector<Scalar> &fw      = this->wksp->ret_fw();
-  GenVector<Scalar> &fc           = this->wksp->ret_fc();
-  GenVector<Scalar> &uc           = this->wksp->ret_uc(); 
-  GenVector<Scalar> &duc          = this->wksp->ret_duc(); 
-  GenVector<Scalar> &gamma        = this->wksp->ret_gamma(); 
-
-  int i, iter = 0, l = 0;
-  double dd, ff, gg, lastError = 0, error, dualLastError = 0, dual_error;
-  Scalar pFp, lag = 0, nu;
-  GenVector<Scalar> mu(ngrbms, 0.0);
-  this->fetiInfo->project_g = false;
-
-  // initialize rho, alphabar and M
-  double Fnorm = computeFNorm();
-  double rho = this->fetiInfo->rho_cntl*Fnorm; // rho = rho_cntl*||F|| 
-  double alphabar = this->fetiInfo->alphabar_cntl/MAX(Fnorm,rho); // alphabar = alphabar_cntl/MAX(||F||,rho) 
-                                                                  // if 0 <= alphabar_cntl <= 2 then innerloop convergence is semi-monotonic for 2-step expansion
-  double M = this->fetiInfo->M;
-
-  // extract fr, fc and fw from f
-  ff = extractForceVectors(f, fr, fc, fw); if(ff == 0.0) { u.zero(); return; }
-
-  // Compute initial lagrange multipliers: lambda^0 = -G*(G^T*G)^-1 * e, where e = R^T*f
-  // also for feti-dpc: expand active set and re-compute initial lagrange multipliers if lambda^0 is not feasible wrt inequality constraints
-  computeL0(lambda, f);
-  this->fetiInfo->cq_type = FetiInfo::nocq;
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::unmarkRedundant);
-
-  // Compute initial residual r^0 =  F'*lambda^0 + d'
-  localSolveAndJump(fr, lambda, ur, fc, uc, r, fw, rho, mu);
-
-  // Compute initial projected residual w^0 = P^T * r^0
-  tProject(r, w, dual_error);
-
-  // Save and print initial errors
-  dd = dual_error; gg = (ngrbms) ? gamma.sqNorm() : 0.0; double ww0 = w.sqNorm();
-  if(verboseFlag) filePrint(stderr," ... Initial residual norm = %e\n", sqrt(dd));
-
-  // Save initial state (used to compute lagrangian and update penalty parameter)
-  if(ngrbms) this->wksp->save_initial();
-
-  if(verboseFlag) filePrint(stderr," Iteration  Relative Primal Error  Relative Dual Error\n");
-
-  for(int outerIter = 0; outerIter < this->fetiInfo->maxouterit; ++outerIter, ++iter, ++iterTotal) { // outer iteration on mu
-
-    for(int innerIter = 0; innerIter < this->fetiInfo->maxinnerit; ++innerIter, ++iter, ++iterTotal) { // inner iteration on lambdabar
-
-      init_iter();
-
-      // Precondition and estimate primal error: z = M^-1 * w 
-      bool error_flag = ((ngrbms == 0 && this->fetiInfo->cgal_prec) || 
-                         ((sqrt(gg) <= this->fetiInfo->equi_tol) && (sqrt(dual_error) < this->fetiInfo->dual_tol*sqrt(dd))));
-      error = preCondition(w, z, rho, error_flag); 
-
-      // Print error/s and test for convergence and stagnation of primal error (iff outerloop and dual error converged)
-      bool print_errors = ((this->fetiInfo->numPrint() > 0) && (innerIter % this->fetiInfo->numPrint() == 0) && verboseFlag);
-      if(error_flag) { // outerloop converged and inner loop converged wrt dual error, print & check primal error
-        if(print_errors) filePrint(stderr," %4d %23.6e %21.6e\n", iter, sqrt(error/ff), sqrt(dual_error/dd));
-        if(sqrt(error) < this->fetiInfo->tol*sqrt(ff)) break;  // converged
-        if((lastError != 0.0) && (DABS(error-lastError)/lastError < this->fetiInfo->stagnation_tol)) break; // stagnated (primal)
-        lastError = error;
-      }
-      else {
-        if(print_errors) filePrint(stderr," %4d %45.6e\n", iter, sqrt(dual_error/dd));
-      }
-
-      // Adaptive precision control (iff outerloop not converged)
-      if(innerIter > 0 && ngrbms && (sqrt(gg) > this->fetiInfo->equi_tol) && (sqrt(w.sqNorm()) < MIN(M*sqrt(gg), this->fetiInfo->eta*sqrt(ww0)))) break;
-
-      // Test for stagnation of inner loop using dual error
-      if((dualLastError != 0.0) && (DABS(dual_error-dualLastError)/dualLastError < this->fetiInfo->dual_stagnation_tol)) break; 
-      dualLastError = dual_error;
-
-      // Test for maximum number of iterations
-      if((innerIter == this->fetiInfo->maxinnerit) || (iter == this->maxiter)) break;
-
-      // Krylov acceleration
-      if(this->fetiInfo->nlPrecFlg) nlPreCondition(w, z);
-
-      // Re-project: y = P * z
-      project(z, y); 
-
-      // Search direction
-      orthogonalize(y, p);
-   
-      // Step length
-      pFp = localSolveAndJump(p, dur, duc, Fp, rho);
-      nu = -((w*p) / pFp);
-
-      // Update solution: lambda += nu*p, r += nu*Fp, ur += nu*dur, uc += nu*duc
-      // includes optional linesearch to adjust step length nu if wolfe-armijo conditions are not satisfied
-      // also for feti-dpc: reduce step and expand active set if not feasible wrt inequality constraints (dual planing)
-      if(globalFlagCtc) dualStatusChange = primalStatusChange = stepLengthChange = false;
-      if(globalFlagCtc && this->fetiInfo->linesearch) { l = 0; init_linesearch(); }
-      update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l, alphabar, rho);
-
-      // Project: w = P^T * r
-      // also for feti-dpc: contract active set if not proportional (primal planing)
-      tProject(r, w, dual_error);
-
-      // add search direction to orthoset or reset if necessary
-      orthoAdd(p, Fp, pFp);
-
-      // Compute feasibility error wrt equality constraints: gamma = G^T*lambda+e
-      feasible(lambda, true, false, false); gg = (ngrbms) ? gamma.sqNorm() : 0.0;
-
-    }
-
-    // Check for maximum number of iterations
-    if((outerIter == this->fetiInfo->maxouterit) || (iter == this->maxiter)) 
-      { if(this->myCPU==0) cerr << " ... Failed to converge within maximum specified number of iterations \n"; break; }
-
-    if(ngrbms) {
-      // Check for convergence
-      if(ngrbms && this->myCPU==0) cerr << " ... Outer iteration " << outerIter+1 << ": self-equil. error = " << sqrt(gg) << endl;
-      if((sqrt(gg) <= this->fetiInfo->equi_tol) && (sqrt(error) < this->fetiInfo->tol*sqrt(ff))) break; // converged
-
-      // Compute lagrangian: L = 0.5*lambda^T*(r+d)+c 
-      double lag_prev = ScalarTypes::Real(lag);
-      lag = lagrangian(lambda, r, rho, mu); //cerr << "lag = " << setw(24) << setprecision(16) << lag << endl;
-
-      // Update rho or M if necessary
-      double rho_prev = rho;
-      if((outerIter > 0) && (this->fetiInfo->beta != 1.0) && (ScalarTypes::Real(lag) < lag_prev+0.5*rho*gg)) {
-        if(this->fetiInfo->cgal_adapt_icntl == 0) { // update penalty rho
-          rho = MIN(this->fetiInfo->beta*rho, this->fetiInfo->maxrho);
-          if(this->myCPU == 0 && rho != rho_prev) cerr << " ... Updating penalty parameter, rho = " << rho << endl;
-          alphabar = this->fetiInfo->alphabar_cntl/MAX(Fnorm,rho);
-        } else { // update precision M
-          double M_prev = M;
-          M = MAX(M/this->fetiInfo->beta, this->fetiInfo->minM);
-          if(this->myCPU == 0 && M != M_prev) cerr << " ... Updating precision, M = " << M << endl;
-        }
-      }
-
-      // Update mu: mu^(k+1) = mu^k + rho^k*(G^T*lambda+e)
-      mu.linAdd(rho_prev,gamma);
-
-      // Update r due to change in rho and/or mu: r += rho*G*(G^T*lambda+e)
-      multG(gamma, r, rho, 1.0,-1); 
-
-      // Update r0 due to change in mu and rho (used for lagrangian): r0 += G*(rho_prev*gamma + (rho-rho_prev)*gamma0)
-      GenDistrVector<Scalar> &r0 = this->wksp->ret_r0(); GenVector<Scalar> &gamma0 = this->wksp->ret_gamma0();
-      GenVector<Scalar> v(ngrbms); v.linC(rho_prev, gamma, rho-rho_prev, gamma0);
-      multG(v, r0, 1.0, 1.0,-1);
-
-      // Reset orthoset
-      this->resetOrthoSet();
-
-      // Update w: w = P^T*r
-      if(globalFlagCtc) dualStatusChange = primalStatusChange = false;
-      tProject(r, w, dual_error);
-
-      lastError = dualLastError = 0.0;
-    }
-    else break;  // only need 1 outer iteration when ngrbms = 0
-  } // end of outer iteration loop
-
-  // Assemble and store primal solution u
-  ur += deltaU; // make solution compatible ur += deltaU
-  mergeSolution(ur, uc, u, lambda);
-
-  // Store number of iterations, errors, timings, and memory used
-  this->setAndStoreInfo(iter+1, (error/ff), sqrt(dual_error/dd));
-  if(this->numSystems == 1) this->times.memoryFETI += memoryUsed();
-  this->times.solve += getTime(); t7 += getTime();
-  this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
-  printSummary(iter);
 }
 
 template<class Scalar> 
@@ -2058,7 +1715,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
  double wnorm, w0norm, fnorm, wcnorm;
 
  int iter = 0, l = 0;
- double lastError = 0.0, error, dual_error, alphabar, lastwnorm;
+ double lastError = 0.0, error, dual_error, lastwnorm;
  if(this->glNumMpc == 0) this->fetiInfo->project_g = false;
 
  // extract fr, fc and fw from f
@@ -2129,7 +1786,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
    // also for feti-dpc: reduce step and expand active set if lambda is not feasible (dual planing)
    if(globalFlagCtc) dualStatusChange = primalStatusChange = stepLengthChange = false;
    if(globalFlagCtc && this->fetiInfo->linesearch) { l = 0; init_linesearch(); }
-   update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l, alphabar);
+   update(nu, lambda, p, r, Fp, ur, dur, uc, duc, l);
 
    // Project:  w = Pstar^t r
    if(this->fetiInfo->stop2 == 2) { lastwnorm = wnorm; this->wksp->save_w(); } // to check for stagnation
@@ -2227,11 +1884,9 @@ GenFetiDPSolver<Scalar>::printSummary(int iter)
       filePrint(stderr," ---------------------------------------------------------------\n");
       filePrint(stderr," number of main iter.                                = %5d ...\n", iter);
       filePrint(stderr," number of iter. with expansion (dual planing)       = %5d ...\n", nStatChDual); 
-      if(this->fetiInfo->outerloop != FetiInfo::CGAL)
-        filePrint(stderr," number of dual planing sub-iter.                    = %5d ...\n", nSubIterDual);
+      filePrint(stderr," number of dual planing sub-iter.                    = %5d ...\n", nSubIterDual);
       filePrint(stderr," number of iter. with proportioning (primal planing) = %5d ...\n", nStatChPrimal);
-      if(this->fetiInfo->outerloop != FetiInfo::CGAL)
-        filePrint(stderr," number of primal planing sub-iter.                  = %5d ...\n", nSubIterPrimal);
+      filePrint(stderr," number of primal planing sub-iter.                  = %5d ...\n", nSubIterPrimal);
       if(globalFlagCtc && this->fetiInfo->linesearch)
         filePrint(stderr," number of linesearch sub-iter.                      = %5d ...\n", nLinesearchIter);
       filePrint(stderr," total number of matrix-vector (Fp) operations       = %5d ...\n", iter+1+nExtraFp); 
@@ -2263,30 +1918,6 @@ GenFetiDPSolver<Scalar>::orthoAdd(GenDistrVector<Scalar> &p, GenDistrVector<Scal
 {
   if(dualStatusChange || primalStatusChange || stepLengthChange) this->resetOrthoSet(); 
   else GenFetiSolver<Scalar>::orthoAdd(p, Fp, pFp);
-}
-
-template<class Scalar>
-double
-GenFetiDPSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Mv, double rho, bool errorFlag)
-{
-  // top-level precondition function for CG with augmented lagrangian
-  // compute Mv = (P^T*M^-1*P + 1/rho*G*G^T)*v
-  if(this->fetiInfo->cgal_prec) {
-    if(ngrbms == 0) return preCondition(v, Mv, errorFlag);
-    else {
-      project(v, Mv, 2);
-      preCondition(Mv, Mv, false);
-      project(Mv, Mv, 2);
-      if(rho != 0.0) {
-        GenVector<Scalar> beta(ngrbms);
-        trMultG(v, beta, 1.0, 0.0,-1); // beta = G^T*v
-        double r = 1.0/rho*this->fetiInfo->cgal_prec_cntl;
-        multG(beta, Mv, r, 1.0,-1);  // Mv += 1/rho*G*beta
-      }
-    }
-  }
-  else Mv = v;
-  return (errorFlag) ? primalError() : numeric_limits<double>::max();
 }
 
 template<class Scalar>
@@ -2457,7 +2088,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
  Scalar ret = p*Fp;
 #ifdef DEBUG_FETI
  Scalar pHFp = ScalarTypes::conj(ret); // note: p*Fp = (Fp)^H p therefore p^H Fp = conj(p*Fp)
- if(this->myCPU == 0 && (this->fetiInfo->outerloop == FetiInfo::CG || this->fetiInfo->outerloop == FetiInfo::CGAL)
+ if(this->myCPU == 0 && (this->fetiInfo->outerloop == FetiInfo::CG)
     && (ScalarTypes::Real(pHFp) < 0.0 || fabs(ScalarTypes::Imag(pHFp)) > 1.0e-10))
    cerr << " *** WARNING: x^H F x = " << pHFp << ", must be positive and real for any x when F is Hermitian and positive definite. CG may not work \n";
 #endif
@@ -2811,15 +2442,6 @@ GenFetiDPSolver<Scalar>::subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1)
 
 template<class Scalar> 
 void
-GenFetiDPSolver<Scalar>::subtractKGap(int iSub, GenDistrVector<Scalar> &referenceRHS)
-{
-  // GR: compute f - K * contactGap
-  Scalar *refRHS = referenceRHS.subData(this->sd[iSub]->localSubNum());
-  this->sd[iSub]->subtractKGap(refRHS);
-}
-
-template<class Scalar> 
-void
 GenFetiDPSolver<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V)
 {
   int info = 0;
@@ -3074,7 +2696,6 @@ GenFetiDPSolver<Scalar>::~GenFetiDPSolver()
   if(KccSparse) { delete KccSparse; KccSolver = 0; KccSparse = 0; }
   if(cornerToSub) { delete cornerToSub; cornerToSub = 0; }
   if(cornerEqs) { delete cornerEqs; cornerEqs = 0; }
-  if(c_cornerEqs) { delete c_cornerEqs; c_cornerEqs = 0; }
   if(coarseConnectGtG) { delete coarseConnectGtG; coarseConnectGtG = 0; }
   if(eqNumsGtG) { delete eqNumsGtG; eqNumsGtG = 0; }
   
@@ -3093,14 +2714,14 @@ GenFetiDPSolver<Scalar>::getLocalMpcForces(int iSub, double *mpcLambda)
 {
   // mpcLambda is the local MPC forces for subdomain iSub (required for salinas)
   GenVector<Scalar> &uc = this->wksp->ret_uc();
-  this->sd[iSub]->getLocalMpcForces(mpcLambda, c_cornerEqs, mpcOffset, uc);
+  this->sd[iSub]->getLocalMpcForces(mpcLambda, cornerEqs, mpcOffset, uc);
 }
 
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::addMpcRHS(int iMPC, Scalar *fcstar)
 {
- int dof = c_cornerEqs->firstdof(mpcOffset+iMPC);
+ int dof = cornerEqs->firstdof(mpcOffset+iMPC);
  int myNum = this->glSubToLoc[(*this->mpcToSub_primal)[iMPC][0]];
  if(myNum >= 0)
    fcstar[dof] += this->sd[myNum]->getMpcRhs_primal(iMPC);
@@ -3119,7 +2740,7 @@ void
 GenFetiDPSolver<Scalar>::initialize()
 {
   KccSolver = 0; KccSparse = 0; glNumCorners = 0;
-  cornerToSub = 0; cornerEqs = 0; c_cornerEqs = 0;
+  cornerToSub = 0; cornerEqs = 0;
   mpcOffset = 0; ngrbm = 0;
   ngrbmGr = 0; nGroups = 0; nGroups1 = 0; groups = 0;
   groupToSub = 0; bodyToSub = 0; subToBody = 0; subToGroup = 0;
@@ -3301,83 +2922,6 @@ GenFetiDPSolver<Scalar>::refactor()
 }
 
 template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrVector<Scalar> &lambda,
-                                           GenDistrVector<Scalar> &ur, GenVector<Scalar> &fc,
-                                           GenVector<Scalar> &uc, GenDistrVector<Scalar> &r,
-                                           GenDistrVector<Scalar> &fw, double rho, GenVector<Scalar> &mu)
-{
-  // augmented lagrangian matrix vector multiply plus rhs
-  // F'*lambda + d' = (P^T*F*P + rho*G*G^T)*(lambda-lambda^e) + P^T*(d+F*lambda^e) + G*mu = P^T*(F*(P*lambda-G*(G^T*G)^-1*e)+d) + G*(mu+rho*gamma)
-  if(this->fetiInfo->outerloop == FetiInfo::CGAL && ngrbms) {
-    GenDistrVector<Scalar> Plambda(this->interface);
-    project(lambda, Plambda, 2, true); // Plambda = P*lambda - G(G^T*G)^-1 * e
-    localSolveAndJump(fr, Plambda, ur, fc, uc, r, fw); // r = F*Plambda+d
-    project(r, r, 2); // r = P^T*r (note: P^T = P)
-    GenVector<Scalar> beta(mu);
-    GtG->forward(beta);
-    if(rho != 0.0) {
-      GenVector<Scalar> &gamma = this->wksp->ret_gamma(); // gamma = G^T*lambda+e (already computed)
-      beta.linAdd(rho,gamma); // beta = mu + rho*gamma
-    }
-    multG(beta, r, 1.0, 1.0,-1); // r += G*beta
-  }
-  else {
-    localSolveAndJump(fr, lambda, ur, fc, uc, r, fw); // r = F*lambda+d
-  }
-}
-
-template<class Scalar>
-Scalar
-GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &dur, GenVector<Scalar> &duc,
-                                           GenDistrVector<Scalar> &Fp, double rho)
-{
-  // augmented lagrangian matrix vector multiply: 
-  // F'p = (P^T*F*P + rho*G*G^T)*p
-  Scalar pFp;
-  if(this->fetiInfo->outerloop == FetiInfo::CGAL && ngrbms) {
-    GenDistrVector<Scalar> Pp(this->interface);
-    project(p, Pp, 2); // Pp = P*p
-    localSolveAndJump(Pp, dur, duc, Fp); // Fp = F*P*p
-    project(Fp, Fp, 2); // Fp = P^T*F*P*p (note: P^T = P)
-    if(rho != 0.0) {
-      GenVector<Scalar> beta(ngrbms);
-      trMultG(p, beta, rho, 0.0,-1); // beta = rho*G^T*p
-      multG(beta, Fp, 1.0, 1.0,-1);  // Fp += G*beta
-    }
-    pFp = p*Fp;
-  }
-  else {
-    pFp = localSolveAndJump(p, dur, duc, Fp); // p = F*p
-  }
-  return pFp;
-}
-
-template<class Scalar>
-Scalar
-GenFetiDPSolver<Scalar>::lagrangian(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &d)
-{
-  // L(lambda) = 0.5*lambda^T*(r+d)
-  GenDistrVector<Scalar> x(r); x += d;
-  return 0.5*(lambda*x);
-}
-
-template<class Scalar>
-Scalar
-GenFetiDPSolver<Scalar>::lagrangian(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &r, double rho, GenVector<Scalar> &mu)
-{
-  GenDistrVector<Scalar> &lambda0  = this->wksp->ret_lambda0(); 
-  GenDistrVector<Scalar> &r0 = this->wksp->ret_r0();
-  GenVector<Scalar> &gamma0 = this->wksp->ret_gamma0();
-
-  // L(lambda,mu,rho) = 0.5*(lambda-lambda0)^T*(r+r0) + gamma0^T(mu+0.5*rho*gamma0);
-  GenDistrVector<Scalar> l(this->interface);  l.linC(1.0, lambda, -1.0, lambda0);
-  GenDistrVector<Scalar> x(this->interface);  x.linC(1.0, r, 1.0, r0);
-  GenVector<Scalar> b(ngrbms);                b.linC(1.0, mu, 0.5*rho, gamma0);
-  return 0.5*(l*x)+gamma0*b;
-}
-
-template<class Scalar>
 bool
 GenFetiDPSolver<Scalar>::redundant(bool print_flag) 
 {
@@ -3386,29 +2930,6 @@ GenFetiDPSolver<Scalar>::redundant(bool print_flag)
   if(nr > 0 && print_flag && this->myCPU == 0) 
     cerr << "warning: redundant constraints in active set (number = " << nr << ", grbm_tol = " << this->fetiInfo->grbm_tol << ")\n";
   return (nr > 0);
-}
-
-template<class Scalar>
-double
-GenFetiDPSolver<Scalar>::primalError()
-{
-  GenDistrVector<Scalar> &fr      = this->wksp->ret_fr();
-  GenDistrVector<Scalar> &ur      = this->wksp->ret_ur();
-  GenDistrVector<Scalar> &lambda  = this->wksp->ret_lambda(); 
-  GenDistrVector<Scalar> &fw      = this->wksp->ret_fw();
-  GenVector<Scalar> &fc           = this->wksp->ret_fc();
-  GenVector<Scalar> &uc           = this->wksp->ret_uc();
-  GenVector<Scalar> &alpha        = this->wksp->ret_alpha(); alpha.zero();
-
-  GenDistrVector<Scalar> v(this->interface); double vv;
-  localSolveAndJump(fr, lambda, ur, fc, uc, v, fw); // v = d + F*lambda
-  nExtraFp++;
-  if(ngrbms > 0) { 
-    if((nStatChDual > nStatChDual_gtg) || (nStatChPrimal > nStatChPrimal_gtg)) rebuildGtGtilda(); // status change has occurred since last GtG rebuild
-    tProject(v, v, vv, 3, false); // now v is the jump
-  }
-  double error = preCondition(v,v); // v = M^-1 * v and error is usual estimate of Ku-f
-  return error; 
 }
 
 template<class Scalar>
@@ -3447,6 +2968,7 @@ GenFetiDPSolver<Scalar>::subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &
   this->sd[iSub]->projectActiveIneq(v.subData(this->sd[iSub]->localSubNum()));
 }
 
+/*
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::projectFreeIneq(GenDistrVector<Scalar> &v)
@@ -3460,6 +2982,7 @@ GenFetiDPSolver<Scalar>::subProjectFreeIneq(int iSub, GenDistrVector<Scalar> &v)
 {
   this->sd[iSub]->projectFreeIneq(v.subData(this->sd[iSub]->localSubNum()));
 }
+*/
 
 template<class Scalar>
 bool
@@ -3489,10 +3012,8 @@ GenFetiDPSolver<Scalar>::multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, 
 {
   // flag = 0:  y = alpha*G*x + beta*y
   // flag = 1:  y = alpha*Gtilda*x + beta*y (default)
-  // flag = -1: y = alpha*G*L*x + beta*y
   if(beta == 0) y.zero(); else y *= beta;
   GenVector<Scalar> v(x);
-  if(flag == -1) GtG->backward(v);
   execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultG, v, y, alpha, int(flag==1)); // y += alpha*G*v
 }
 
@@ -3509,14 +3030,12 @@ GenFetiDPSolver<Scalar>::trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y
 {
   // flag = 0:  y = alpha*G^T*x + beta*y
   // flag = 1:  y = alpha*Gtilda^T*x + beta*y (default)
-  // flag = -1: y = alpha*L^T*G^T*x + beta*y
   if(beta == 0) y.zero(); else y *= beta;
   GenVector<Scalar> v(ngrbms, 0.0);
   execParal4R(nGroups1, this, &GenFetiDPSolver<Scalar>::subTrMultG, x, v, alpha, int(flag==1)); // v += alpha*G^T*x
 #ifdef DISTRIBUTED
   this->fetiCom->globalSum(ngrbms, v.data());
 #endif
-  if(flag == -1) GtG->forward(v);
   y += v;
 }
 
@@ -3666,45 +3185,6 @@ GenFetiDPSolver<Scalar>::computeL0(GenDistrVector<Scalar> &lambda, GenDistrVecto
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::computeL00(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &fr)
-{ 
-  this->sd[iSub]->computeL00(lambda.subData(this->sd[iSub]->localSubNum()), fr.subData(this->sd[iSub]->localSubNum()));
-  this->sd[iSub]->sendInterf(lambda.subData(this->sd[iSub]->localSubNum()), this->vPat);
-} 
-
-
-template<class Scalar>
-double
-GenFetiDPSolver<Scalar>::computeFNorm()
-{
-  int i;
-  double Fnorm = 1.0, Fnorm_prev = 1.0;
-  GenDistrVector<Scalar> &p = this->wksp->ret_p(), &Fp = this->wksp->ret_Fp(), &dur = this->wksp->ret_du();
-  GenVector<Scalar> &duc = this->wksp->ret_duc();
-  for(i=0; i<this->fetiInfo->max_power_iter; ++i) {
-    if(i==0) initRand(p); else p = Fp;
-    Scalar pp = p*p;
-    Scalar pFp = localSolveAndJump(p, dur, duc, Fp, 0.0); nExtraFp++;
-    Fnorm = ScalarTypes::Real(pFp/pp);
-    if(i>0 && (Fnorm-Fnorm_prev)/Fnorm < this->fetiInfo->power_iter_tol) break; else Fnorm_prev = Fnorm;
-  }
-  if(verboseFlag && this->myCPU == 0) cerr << "||F|| estimate = " << Fnorm << " after power iteration = " << i+1 
-                                           << " of " << this->fetiInfo->max_power_iter << endl;
-  return Fnorm;
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::initRand(GenDistrVector<Scalar> &p)
-{
-  p.initRand(); 
-  execParal1R(this->nsub, this, &GenFetiSolver<Scalar>::interfSend, p); 
-  this->vPat->exchange(); 
-  execParal1R(this->nsub, this, &GenFetiSolver<Scalar>::interfaceDiff, p);
-}
-
-template<class Scalar>
-void
 GenFetiDPSolver<Scalar>::normalizeC()
 {
   GenVector<Scalar> cnorm(this->glNumMpc, 0.0);
@@ -3751,7 +3231,6 @@ GenFetiDPSolver<Scalar>::subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrV
 {
   this->sd[iSub]->multC(u.subData(this->sd[iSub]->localSubNum()), cu.subData(this->sd[iSub]->localSubNum()));
 }
-
 
 template<class Scalar>
 void

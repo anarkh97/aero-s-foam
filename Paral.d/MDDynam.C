@@ -23,19 +23,6 @@
 
 extern ModeData modeData;
 
-/*
-MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-               DistrVector *_v1, DistrVector*_v2, double c, CuCSparse **_Kuc)
-{
- v1  = _v1;
- v2  = _v2;
- f   = _f;
- c1  = c;
- sd  = _sd;
- Kuc = _Kuc;
-}
-*/
-
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
                              DistrVector *_v1, DistrVector*_v2, double c,
                              double *_userDefDisps, SubDOp* _Kuc)

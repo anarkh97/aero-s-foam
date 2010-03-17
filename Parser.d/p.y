@@ -59,36 +59,36 @@
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CGALPARAM CGALPREC
+%token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
-%token CONSTRAINTQUALIFICATION CQTYPE CONSTRAINKCC COMPLEXOUTTYPE
+%token CONSTRAINTQUALIFICATION CQTYPE COMPLEXOUTTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EXPANSION
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FEASTOL
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INITIALLAMBDA
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
 %token JACOBI KRYLOVTYPE
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE LUMPED
 %token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MAXRHO MECH MODEFILTER
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NULLSPACE
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE PARALLELGRBM PTOL
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PARALLELGRBM PTOL
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER STOPPING
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH THRU
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USEKRRNULLSPACE
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -2481,34 +2481,6 @@ Solver:
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
-        | Solver MAXITR Integer Integer Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = $3; 
-          domain->solInfo().fetiInfo.maxouterit = $4; 
-          domain->solInfo().fetiInfo.maxinnerit = $5; }
-        | Solver MAXITR Integer Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = domain->solInfo().fetiInfo.maxinnerit = $3;
-          domain->solInfo().fetiInfo.maxouterit = $4; }
-        | TOLEQUI Float NewLine
-        { domain->solInfo().fetiInfo.equi_tol = $2; }
-        | CGALPARAM Float Float Float Float NewLine
-        { domain->solInfo().fetiInfo.rho_cntl = $2; domain->solInfo().fetiInfo.beta = $3; 
-          domain->solInfo().fetiInfo.M = $4; domain->solInfo().fetiInfo.eta = $5; }
-        | CGALPARAM Float Float Float Float Integer NewLine
-        { domain->solInfo().fetiInfo.rho_cntl = $2; domain->solInfo().fetiInfo.beta = $3;
-          domain->solInfo().fetiInfo.M = $4; domain->solInfo().fetiInfo.eta = $5; 
-          domain->solInfo().fetiInfo.cgal_adapt_icntl = $6; }
-        | POWERITE Integer Float NewLine
-        { domain->solInfo().fetiInfo.max_power_iter = $2; domain->solInfo().fetiInfo.power_iter_tol = $3; }
-        | CGALPREC SWITCH NewLine
-        { domain->solInfo().fetiInfo.cgal_prec = bool($2); }
-        | CGALPREC SWITCH Float NewLine
-        { domain->solInfo().fetiInfo.cgal_prec = bool($2); domain->solInfo().fetiInfo.cgal_prec_cntl = $3; }
-        | MAXRHO Float NewLine
-        { domain->solInfo().fetiInfo.maxrho = $2; }
-        | DEBUGICNTL Integer Integer NewLine
-        { domain->solInfo().debug_icntl[$2] = $3; }
-        | DEBUGCNTL Integer Float NewLine
-        { domain->solInfo().debug_cntl[$2] = $3; }
 /* potential conflict/confusion with LUMPED for mass matrix etc.
         | FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $1; }
@@ -2540,38 +2512,26 @@ Solver:
         }
         | STOPPING Integer NewLine
         { domain->solInfo().fetiInfo.stop1 = $2;
-          domain->solInfo().fetiInfo.stop2 = $2;
-        }
+          domain->solInfo().fetiInfo.stop2 = $2; }
         | STOPPING Integer Integer NewLine
         { domain->solInfo().fetiInfo.stop1 = $2;
-          domain->solInfo().fetiInfo.stop2 = $3;
-        }
+          domain->solInfo().fetiInfo.stop2 = $3; }
         | TOLFETI Float NewLine
-  	{ domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $2;
-          domain->solInfo().fetiInfo.equi_tol = $2;
-          domain->solInfo().fetiInfo.iequ_tol = $2;
-        }
+  	{ domain->solInfo().fetiInfo.tol = $2; }
         | TOLFETI Float Float NewLine
         { domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $3; 
-        }
-        | TOLFETI Float Float Float Float NewLine
-        { domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $3; 
-          domain->solInfo().fetiInfo.equi_tol = $4; 
-          domain->solInfo().fetiInfo.iequ_tol = $5;
-        }
+          domain->solInfo().fetiInfo.absolute_tol = $3; }
         | STAGTOL Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $2; }
+        { domain->solInfo().fetiInfo.stagnation_tol = $2; }
         | STAGTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $2;
-          domain->solInfo().fetiInfo.absolute_stagnation_tol = $3;
-        }
-        | PTOL Float NewLine
-        { domain->solInfo().fetiInfo.dual_proj_tol = $2; domain->solInfo().fetiInfo.primal_proj_tol = $2; }
+        { domain->solInfo().fetiInfo.stagnation_tol = $2;
+          domain->solInfo().fetiInfo.absolute_stagnation_tol = $3; }
+        | FEASTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.equi_tol = $2; 
+          domain->solInfo().fetiInfo.iequ_tol = $3; }
         | PTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.dual_proj_tol = $2; domain->solInfo().fetiInfo.primal_proj_tol = $3; }
+        { domain->solInfo().fetiInfo.dual_proj_tol = $2;
+          domain->solInfo().fetiInfo.primal_proj_tol = $3; }
 	| Solver MAXORTHO Integer NewLine
 	{ domain->solInfo().fetiInfo.maxortho = $3; }
 	| NOCOARSE NewLine
@@ -2635,7 +2595,6 @@ Solver:
             domain->solInfo().fetiInfo.pickAnyCorner = 0; 
             domain->solInfo().fetiInfo.bmpc = true;
             domain->solInfo().fetiInfo.pick_unsafe_corners = false;
-            domain->solInfo().fetiInfo.constrain_kcc = false;
           }
         }
         | AUGMENT AUGMENTTYPE NewLine
@@ -2793,10 +2752,6 @@ Solver:
         { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
         | PICKANYCORNER Integer NewLine
         { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
-/*
-        | ITERTYPE NewLine
-	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::pcg; }
-*/
         | FRONTAL NewLine
 	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
         | NLPREC NewLine
@@ -2919,8 +2874,6 @@ Solver:
         | OUTERLOOP ITERTYPE HERMITIAN NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2;
           domain->solInfo().fetiInfo.complex_hermitian = true; }
-        | INITIALLAMBDA Integer NewLine
-        { domain->solInfo().fetiInfo.initial_lambda = $2; }
         | MPCTYPE Integer NewLine
         { domain->solInfo().fetiInfo.mpcflag = $2; }
         | MPCTYPE MPCTYPEID NewLine
@@ -2953,15 +2906,6 @@ Solver:
         { if($2 < 1) domain->solInfo().fetiInfo.useMRHS = false; }
         | PROPORTIONING Float NewLine
         { domain->solInfo().fetiInfo.gamma = $2; }
-        | EXPANSION Integer NewLine
-        { domain->solInfo().fetiInfo.expansion = $2; }
-        | EXPANSION Integer Float NewLine
-        { domain->solInfo().fetiInfo.expansion = $2;
-          domain->solInfo().fetiInfo.alphabar_cntl = $3; }
-        | EXPANSION Integer Float Float NewLine
-        { domain->solInfo().fetiInfo.expansion = $2;
-          domain->solInfo().fetiInfo.alphabar_cntl = $3;
-          domain->solInfo().fetiInfo.expansion_tol = $4; }
         | WOLFE Float Float NewLine
         { domain->solInfo().fetiInfo.wolfe_c1 = $2;
           domain->solInfo().fetiInfo.wolfe_c2 = $3; }
@@ -2981,9 +2925,6 @@ Solver:
         | CONSTRAINTQUALIFICATION CQTYPE Float NewLine
         { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2;
           domain->solInfo().fetiInfo.cq_tol = $3; }
-        | TOTALFETI SWITCH NewLine
-        { domain->solInfo().fetiInfo.bmpc = bool($2);
-          domain->solInfo().fetiInfo.dmpc = bool($2); }
         | BMPC SWITCH NewLine
         { domain->solInfo().fetiInfo.bmpc = bool($2); }
         | DMPC SWITCH NewLine
@@ -2994,10 +2935,6 @@ Solver:
         { domain->solInfo().fetiInfo.c_normalize = bool($2); }
         | MPCCHECK Integer NewLine
         { domain->solInfo().dbccheck = bool($2); }
-        | CONSTRAINKCC SWITCH NewLine
-        { domain->solInfo().fetiInfo.constrain_kcc = bool($2); }
-        | CONSTRAINKCC SWITCH Float NewLine
-        { domain->solInfo().fetiInfo.constrain_kcc = bool($2); domain->solInfo().fetiInfo.constrain_kcc_tol = $3; }
         | PARALLELGRBM SWITCH NewLine
         { domain->solInfo().fetiInfo.parallel_grbm = bool($2); }
         | USEKRRNULLSPACE SWITCH NewLine

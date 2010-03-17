@@ -82,6 +82,7 @@ GenFetiDPSolver<Scalar>::projectAlpha(GenVector<Scalar> &alpha, bool flag)
   }  
 }
 
+/*
 template<class Scalar>
 bool
 GenFetiDPSolver<Scalar>::inconsistent(GenVector<Scalar> &e, bool print_warning)
@@ -99,6 +100,7 @@ GenFetiDPSolver<Scalar>::inconsistent(GenVector<Scalar> &e, bool print_warning)
   if(inc && print_warning && this->myCPU == 0) cerr << "warning: inconsistent constraints in dual-active set (error = " << inc_err << ", equi_tol = " << this->fetiInfo->equi_tol << ")\n";
   return inc;
 }
+*/
 
 template<class Scalar> 
 void
@@ -352,6 +354,7 @@ GenFetiDPSolver<double>::chop(int iSub, GenDistrVector<double> &v, GenDistrVecto
   this->sd[iSub]->chop(v.subData(this->sd[iSub]->localSubNum()), v_c.subData(this->sd[iSub]->localSubNum()), tol, chop_flag);
 }
 
+/*
 template<>
 inline void
 GenFetiDPSolver<DComplex>::subQuotient(int iSub, GenDistrVector<DComplex> &q, GenDistrVector<DComplex> &lambda, GenDistrVector<DComplex> &p)
@@ -365,4 +368,5 @@ GenFetiDPSolver<double>::subQuotient(int iSub, GenDistrVector<double> &q, GenDis
 {
   this->sd[iSub]->quotient(q.subData(this->sd[iSub]->localSubNum()), lambda.subData(this->sd[iSub]->localSubNum()), p.subData(this->sd[iSub]->localSubNum()));
 }
+*/
 

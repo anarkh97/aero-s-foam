@@ -465,7 +465,6 @@ class GenSubDomain : public BaseSub
 
   // templated RBMs
   GenFullM<Scalar> Rstar;
-  GenFullM<Scalar> Rcstar;
   GenFullM<Scalar> Rstar_g;
   GenFullM<Scalar> *sharedRstar_g;
   GenFullM<Scalar> *tmpRstar_g;
@@ -523,7 +522,6 @@ class GenSubDomain : public BaseSub
 
   void expandRBM(Scalar *localR, VectorSet &globalR);
   void getSRMult(Scalar *lvec, Scalar *lbvec, int nRBM, double *locRBMs, Scalar *alpha);
-  void subtractKGap(Scalar *refRHS);
   void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void makeLoad(Scalar *, Scalar *, double, double, GeomState *gs = 0); //HB: add GeomState for computing 
@@ -583,9 +581,8 @@ class GenSubDomain : public BaseSub
   void initMpcScaling();
   void initUserDefBC();
   void makeZstarAndR(double *centroid);  // makes Zstar and R
-  void makeKccDofs(ConstrainedDSA *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
+  void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
   void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
-  void makeGlCrnDofGroup(DofSetArray *cornerEqs, int* glCrnDofGroup);
   void deleteKcc();
   void multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
   void computeL00(Scalar *lambda00, Scalar *fr);
@@ -804,9 +801,8 @@ class GenSubDomain : public BaseSub
   // note #5: the GRBMs/HZEMs are always real
 
   // R matrix construction and access
-  void makeLocalRstar(FullM **Qtranspose, bool cflag = true); // this is used by decomposed domain GRBM algorithm
+  void makeLocalRstar(FullM **Qtranspose); // this is used by decomposed domain GRBM algorithm
   void useKrrNullspace();
-  void assembleGlobalRcstar(DofSetArray *cornerEqs, FullM &globalRcstar, int *ngrbmGr); // this is used when constrain_kcc is used
   // R matrix-vector multiplication
   void addRalpha(Scalar *u, GenVector<Scalar> &alpha);  // u += R_g*alpha
   void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur); // u += R_g*alpha

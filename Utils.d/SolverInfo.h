@@ -378,8 +378,6 @@ struct SolverInfo {
                   //mumps_cntl[1] = 0.01; // relative threshold for numerical pivoting (larger value may increase fill in but lead to more accurate factorization)
 
                   for(int i=0; i<20; ++i) { debug_icntl[i] = 0; debug_cntl[i] = 0.0; }
-                  // some temporary defaults for FETI contact
-                  debug_icntl[0] = 0; debug_icntl[1] = 0; debug_icntl[3] = 0;
 
                   // iterative solver defaults
                   precond = 0; 

@@ -189,7 +189,11 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
         long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
         outfile.seekp(relativeOffset, ios_base::cur);
       }
-      for(int j=0; j<numComponents; ++j) { outfile.width(2+oinfo[fileNumber].width); outfile << data[i*numComponents+j]; }
+      for(int j=0; j<numComponents; ++j) { 
+        outfile.width(2+oinfo[fileNumber].width); 
+        //outfile << data[i*numComponents+j];
+        outfile << ((std::fabs(data[i*numComponents+j]) < std::numeric_limits<float>::epsilon()) ? 0.0 : data[i*numComponents+j]);
+      }
       //outfile.close(); exit(-1);
       outfile << "\n";
       glNode_prev = glNode;

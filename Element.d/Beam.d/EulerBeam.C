@@ -77,6 +77,33 @@ EulerBeam::buildFrame(CoordSet& cs)
       normalize(theFrame[2]);
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
+    else {
+      fprintf(stderr," *** WARNING: No element frame exists for beam (nodes %d %d). Constructing default frame.\n",
+              nn[0]+1,nn[1]+1);
+      c0[0][0] = nd2.x-nd1.x;
+      c0[0][1] = nd2.y-nd1.y;
+      c0[0][2] = nd2.z-nd1.z;
+      normalize(c0[0]);
+      double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
+      double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
+
+      if (N1 > N2) {
+        c0[1][0] = -c0[0][1]/N1;
+        c0[1][1] = c0[0][0]/N1;
+        c0[1][2] = 0.0;
+      }
+      else {
+        c0[1][0] = c0[0][2]/N2;
+        c0[1][1] = 0.0;
+        c0[1][2] = -c0[0][0]/N2;
+      }
+
+      c0[2][0] = c0[0][1] * c0[1][2] - c0[0][2] * c0[1][1];
+      c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
+      c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
+
+      elemframe = &c0;
+    }
     return;
   }
   if(cs.exist(nn[2])) {

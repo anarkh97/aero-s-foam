@@ -2321,7 +2321,7 @@ void Domain::computeTDProps()
     for(iele = 0; iele < numele; ++iele) {
       // note: packedEset[iele]->numNodes() > 2 is temp fix to avoid springs
       // this means that until fixed, beams can't have temp-dependent material props
-      if((packedEset[iele]->numNodes() > 2) && (packedEset[iele]->isPhantomElement()==0)) {//getProperty()))
+      if((packedEset[iele]->numNodes() > 2) && !packedEset[iele]->isPhantomElement()) {
         if((packedEset[iele]->getProperty()->E < 0) ||
            (packedEset[iele]->getProperty()->W < 0)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();

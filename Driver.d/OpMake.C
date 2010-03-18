@@ -46,7 +46,6 @@ Domain::assembleSparseOps(OpList &ops) {
   Scalar *marray = (Scalar *) dbg_alloca(size);
   for(int iele=0; iele < numele; ++iele) {
     // Skip all irrelevant elements
-    //if(packedEset[iele]->isPhantomElement()) continue;
     if(packedEset[iele]->isSommerElement()) continue;
 
     if(ops.needStiff()) {
@@ -131,7 +130,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  int iele;
 
  for(iele=0; iele < numele; ++iele) {
-   StructProp *prop = packedEset[iele]->getProperty(); //if(packedEset[iele]->isPhantomElement()) continue;
+   StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
@@ -313,7 +312,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    {
      // we assume they have no damping
      for(iele=0; iele < numele; ++iele) {
-       StructProp *prop = packedEset[iele]->getProperty(); //if(packedEset[iele]->isPhantomElement()) continue;
+       StructProp *prop = packedEset[iele]->getProperty();
        if(packedEset[iele]->isSommerElement()) continue;
        if(!packedEset[iele]->isComplex()) continue;
 
@@ -384,7 +383,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
   //FullSquareMatrixC kel2(1,0);
 
   for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   //if(packedEset[iele]->isPhantomElement()) continue;
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
    //add massMatrix
    mel.zero();
@@ -431,7 +429,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
  else
  for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   //if(packedEset[iele]->isPhantomElement()) continue;
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
    //add massMatrix
    mel.zero();
@@ -1050,8 +1047,6 @@ void Domain::makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc,
 
   int iele;
   for(iele=0; iele < numele; ++iele) {
-    //if(packedEset[iele]->isPhantomElement()) continue;
-
     // Form element stiffness and mass matrices
     if(matrixTimers) matrixTimers->formTime -= getTime();
     if(kelArray) kel = kelArray[iele];

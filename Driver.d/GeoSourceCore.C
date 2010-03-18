@@ -24,6 +24,7 @@ using std::map;
 #include <list>
 #include <vector>
 #include <queue>
+#include <limits>
 #include <Sfem.d/Sfem.h>
 
 EFrameData null_eframe;
@@ -1807,9 +1808,17 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[11],
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
               w,p,glv[i][0], w,p,glv[i][1], w,p,glv[i][2]);
+/*
     else
       filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
                 w,p,glv[i][0], w,p,glv[i][1], w,p,glv[i][2]);
+*/
+    else {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+                w, p, (std::fabs(glv[i][0]) < std::numeric_limits<float>::epsilon()) ? 0.0 : glv[i][0],
+                w, p, (std::fabs(glv[i][1]) < std::numeric_limits<float>::epsilon()) ? 0.0 : glv[i][1],
+                w, p, (std::fabs(glv[i][2]) < std::numeric_limits<float>::epsilon()) ? 0.0 : glv[i][2]);
+    }
   }
   fflush(oinfo[fileNum].filptr);
 }

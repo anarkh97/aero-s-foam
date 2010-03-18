@@ -2110,11 +2110,11 @@ GenSubDomain<Scalar>::assemble(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *
 
  int iele;
  for(iele=0; iele < numele; ++iele) {
-   if(packedEset[iele]->isPhantomElement()) continue;
+   StructProp *prop = packedEset[iele]->getProperty();
    bool isFluidEle = packedEset[iele]->isFluidElement();
    bool isFsiEle   = packedEset[iele]->isFsiElement();
    bool isStructEle = !(isFluidEle || isFsiEle);
-   bool isComplexF = (packedEset[iele]->getProperty())->fp.PMLtype!=0;
+   bool isComplexF = (prop && prop->fp.PMLtype != 0);
 
    // compute element stiffness matrix
    if (isComplexF) {
@@ -2356,7 +2356,7 @@ void GenSubDomain<Scalar>::assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas,
 
   for(int iele=0; iele < numele; ++iele)
     {
-      if(packedEset[iele]->isPhantomElement() || !packedEset[iele]->isComplex()) { continue; }
+      if(!packedEset[iele]->isComplex()) { continue; }
       bool isFluidEle = isFluid(iele);
       // compute element stiffness matrix
       FullSquareMatrixC kel = packedEset[iele]->complexStiffness(nodes,v);
@@ -2717,7 +2717,7 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
         (*elDisp)[k] = 0.0;
     }
 
-    if(packedEset[iele]->getProperty())  {//isPhantomElement()
+    if(packedEset[iele]->getProperty()) {
       for(int iNode=0; iNode<packedEset[iele]->numNodes(); ++iNode) {
         if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -2767,7 +2767,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   for(iele=0; iele<numele; ++iele) {
 
     // Don't do anything if element is a phantom
-    if (packedEset[iele]->isPhantomElement()) continue;//getProperty())  continue;
+    if (packedEset[iele]->isPhantomElement()) continue;
 
     // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
     if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||
@@ -2792,7 +2792,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
       }
 
       int iNode;
-      if(packedEset[iele]->getProperty())  {//isPhantomElement()
+      if(packedEset[iele]->getProperty()) {
         for(iNode=0; iNode<NodesPerElement; ++iNode) {
           if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
             elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;

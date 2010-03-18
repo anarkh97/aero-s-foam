@@ -135,7 +135,7 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
  for(iele=0; iele < nele; ++iele) {
    Element *c_ele = eles[iele];
    if(c_ele)
-     if(!c_ele->isPhantomElement())
+     //PJSA this is a bad idea if(!c_ele->isPhantomElement())
        c_ele->markDofs(*this);
  }
  renummap = renumtable;

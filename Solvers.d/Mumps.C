@@ -106,7 +106,6 @@ GenMumpsSolver<Scalar>::init()
   if(domain->solInfo().pivot) { // matrix is not assumed to be positive definite, may be singularities 
     mumpsId.id.ICNTL(24) = 1; // 1: enable null pivot row detection
     mumpsId.id.ICNTL(13) = 1; // 1: ScaLAPACK will not be used for the root frontal matrix (recommended for null pivot row detection)
-    mumpsId.id.CNTL(3) = domain->solInfo().trbm; // tolerance used to detect zero pivots during factorization (not used for SPD matrix)
   }
 #endif
 }

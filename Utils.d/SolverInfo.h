@@ -606,12 +606,12 @@ struct SolverInfo {
     }
 
    void setTrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 0; }
+    { trbm = _tolzpv; rbmflg = 0; mumps_cntl[3] = trbm; }
 
    void setGrbm(double _tolsvd, double _tolzpv)
-    { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
+    { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; mumps_cntl[3] = trbm; }
    void setGrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 1; }
+    { trbm = _tolzpv; rbmflg = 1; mumps_cntl[3] = trbm; }
 
    bool isAcousticHelm() {
      return ((probType == Helmholtz) || (probType == HelmholtzDirSweep)

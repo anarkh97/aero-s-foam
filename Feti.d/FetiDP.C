@@ -943,7 +943,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
    if(computeRbms && this->myCPU == 0) {
      if(KccSolver->numRBM() != ngrbms) {
-       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ") does not match the number of Geometric RBMs of the decomposed domain \n";
+       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ") does not match the number of Geometric RBMs of the decomposed domain (" << ngrbms << ")\n";
        cerr << " *** try adjusting global_cor_rbm_tol\n";
      }
    } 

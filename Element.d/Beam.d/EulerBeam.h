@@ -10,6 +10,7 @@ class EulerBeam : public Element
         EFrame *elemframe;
         int nn[3];
 	double *offset;
+        double c0[3][3];
 public:
 
 	EulerBeam(int*);

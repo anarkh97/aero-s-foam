@@ -158,7 +158,7 @@ SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
   for(int iNode = 0; iNode < nnodes; ++iNode) glSafe[iNode] = false;
   // mark the safe nodes by setting glSafe to true if node is touched by at least one safe element
   for(int iEle = 0; iEle < numEle; ++iEle) {
-    if(eles[iEle]->isSafe() || allSafe) { 
+    if((eles[iEle]->isSafe() && !eles[iEle]->isPhantomElement()) || allSafe) { 
       int nnd = eles[iEle]->numNodes();
       int *nodes = new int[nnd];
       eles[iEle]->nodes(nodes);

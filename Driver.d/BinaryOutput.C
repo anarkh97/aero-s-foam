@@ -183,6 +183,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     for(int i=0; i<numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
       int glNode = glNodeNums[k]; k++;
+      if(glNode >= nodes.size()) continue; // XXXX don't print "internal" nodes eg for rigid beams
       if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
         //long totalOffset = timeOffset + glNode*(numComponents*(2+oinfo[fileNumber].width) + 1);
         //outfile.seekp(totalOffset);

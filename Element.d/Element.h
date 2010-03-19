@@ -244,9 +244,7 @@ public:
         CoordSet & operator = (const CoordSet & other);
 
 	// Member functions
-        //int size() { return nmax ; }
-        //int last();
-        int size() { return last; }
+        int size();
         void  nodeadd(int n, double*xyz);
         void  nodeadd(int n, Node &node);
 	Node &getNode(int n);

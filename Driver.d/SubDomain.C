@@ -2982,6 +2982,8 @@ GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//D
  // Current configuration to get the displacement
  int i;
  for(i = 0; i < numnodes; ++i) {
+   if(!nodes[i]) continue;
+   if(dynamic_cast<TemperatureState*>(u)) { xyz[i][0] = (*u)[i].x; continue; }
    xyz[i][0] = ((*u)[i].x - nodes[i]->x);
    xyz[i][1] = ((*u)[i].y - nodes[i]->y);
    xyz[i][2] = ((*u)[i].z - nodes[i]->z);

@@ -116,6 +116,11 @@ GenMumpsSolver<Scalar>::zeroAll()
 {
   if(!unonz) unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
+#ifdef USE_MUMPS
+  mumpsId.id.job = -2; // destroy instance of the mumps package
+  Tmumps_c(mumpsId.id);
+#endif
+  init();
 }
 
 template<class Scalar>

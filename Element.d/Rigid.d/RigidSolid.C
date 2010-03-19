@@ -20,7 +20,8 @@ RigidSolid::buildFrame(CoordSet& cs)
 
   // Finding 3 nodes that make the largest triangle
   double LargestArea = 0.0;
-  int x[3], y[3], z[3], best[4];
+  double x[3], y[3], z[3];
+  int best[4];
 
   for (int i = 0; i < nnodes; ++i) {
     Node &Nd1 = cs.getNode(nn[i]);

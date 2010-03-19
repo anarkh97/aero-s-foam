@@ -29,7 +29,8 @@ class NonLinStatic {
     StaticTimers *times;
  public:
     // Constructor
-    NonLinStatic(Domain *d) { domain = d; }
+    NonLinStatic(Domain *d) { domain = d; kelArray = 0; allCorot = 0;  bcx = 0;}
+    ~NonLinStatic() { if(kelArray) delete [] kelArray; if(allCorot) delete [] allCorot; if(bcx) delete [] bcx; }
 
     int  solVecInfo();
     int  sysVecInfo();

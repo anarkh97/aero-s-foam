@@ -911,6 +911,8 @@ Domain::createCorotators(Corotator **allCorot)
    allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
                                       sinfo.getNLInfo().fitAlgShell,
                                       sinfo.getNLInfo().fitAlgBeam);
+
+ delete [] kmatrix;
 }
 
 void

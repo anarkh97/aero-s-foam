@@ -546,18 +546,16 @@ SuperElement::computeMPCs(CoordSet &cs)
 
 SuperElement::~SuperElement()
 {
-/*
   int i;
   for(i=0; i<nSubElems; ++i) { 
     if(subElems[i]) delete subElems[i];
     if(subElemNodes[i]) delete [] subElemNodes;
-   if(subElemDofs[i]) delete [] subElemDofs;
+    if(subElemDofs[i]) delete [] subElemDofs;
   }
   if(subElems) delete [] subElems;
   if(subElemNodes) delete [] subElemNodes;
   if(subElemDofs) delete [] subElemDofs;
   if(nn) delete [] nn;
-*/
 }
 
 int

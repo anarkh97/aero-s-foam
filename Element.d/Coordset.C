@@ -17,12 +17,7 @@ CoordSet::CoordSet(int initialSize) : ba(4096, initialSize)
 
 CoordSet::~CoordSet() 
 { 
-  if (nodes) 
-    { 
-      for (int i=0; i<nmax; ++i) 
-         if (nodes[i]) delete nodes[i]; 
-       delete [] nodes; 
-    } 
+  if (nodes) delete [] nodes;
 }
 
 CoordSet &
@@ -108,14 +103,8 @@ CoordSet::getCoordinates(int *nn, int numNodes,
  }
 }
 
-/*
-// Last returns the true last defined node
-int CoordSet::last()
+int
+CoordSet::size()
 {
- int last = nmax;
- while(--last >= 0)
-    if(nodes[last] != 0) break;
-
- return last+1;
+  return last;
 }
-*/

@@ -356,7 +356,7 @@ SubCornerHandler::pickAnyCorners()
   Node &nd1 = *nodes[n1];
   int n2 = n1;
   int n;
-  for(n = n1+1; n < nodes.last(); ++n) { // XXXX
+  for(n = n1+1; n < nodes.size(); ++n) { // XXXX
     Node &nd2 = *nodes[n];
     dist = nd2.distance(nd1);
     if(glSafe[n] && dist > maxDist) { maxDist = dist; n2 = n; }
@@ -381,7 +381,7 @@ SubCornerHandler::pickAnyCorners()
   // finally, find the node that maximizes the area with nodes 1 & 2
   double maxArea=0.0, area;
   int n3 = n1;
-  for(n=0; n<nodes.last(); ++n) { // XXXX
+  for(n=0; n<nodes.size(); ++n) { // XXXX
       Node &nd3 = *nodes[n];
       double dx2= nd3.x - nd1.x;
       double dy2= nd3.y - nd1.y;

@@ -50,20 +50,6 @@ EulerBeam::EulerBeam(int* nodenums)
 void
 EulerBeam::buildFrame(CoordSet& cs)
 {
-  if(cs.exist(nn[0]) == 0) {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[0]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
-  if(cs.exist(nn[1]) == 0)  {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[1]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
   if(nn[2] < 0) {
@@ -78,7 +64,7 @@ EulerBeam::buildFrame(CoordSet& cs)
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
     else {
-      fprintf(stderr," *** WARNING: No element frame exists for beam (nodes %d %d). Constructing default frame.\n",
+      fprintf(stderr," *** WARNING: No element frame exists for beam. Constructing default frame.\n",
               nn[0]+1,nn[1]+1);
       c0[0][0] = nd2.x-nd1.x;
       c0[0][1] = nd2.y-nd1.y;
@@ -106,7 +92,7 @@ EulerBeam::buildFrame(CoordSet& cs)
     }
     return;
   }
-  if(cs.exist(nn[2])) {
+  else {
     Node &nd3 = cs.getNode(nn[2]);
 
     elemframe = new EFrame[1];
@@ -120,8 +106,6 @@ EulerBeam::buildFrame(CoordSet& cs)
     crossprod(xz,theFrame[0],theFrame[1]);
     normalize(theFrame[1]);
     crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    return;
-  } else {
     return;
   }
 }

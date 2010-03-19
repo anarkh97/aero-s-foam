@@ -52,20 +52,6 @@ TimoshenkoBeam::renum(int *table)
 void
 TimoshenkoBeam::buildFrame(CoordSet& cs)
 {
- if(cs.exist(nn[0]) == 0) {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[0]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
-  if(cs.exist(nn[1]) == 0)  {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[1]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }  
-
   // store initial orientation of beam
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -99,7 +85,7 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
     }
     return;
   }
-  if(cs.exist(nn[2])) {
+  else {
     Node &nd3 = cs.getNode(nn[2]);
 
     elemframe = new EFrame[1];
@@ -113,8 +99,6 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
     crossprod(xz,theFrame[0],theFrame[1]);
     normalize(theFrame[1]);
     crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    return;
-  } else {
     return;
   }
 }

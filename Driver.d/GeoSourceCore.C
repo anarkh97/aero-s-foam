@@ -155,15 +155,12 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 }
 
 //----------------------------------------------------------------------
-
 void GeoSource::cleanUp()
 {
-  nodes.deleteNodes();
   elemSet.deleteElems();
   nElem = 0;
   nElemFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
 }
-
 //----------------------------------------------------------------------
 
 GeoSource::~GeoSource()
@@ -722,7 +719,7 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
 void GeoSource::setUpData()
 {
   // Set up the internal nodes
-  int lastNode = numNodes = nodes.last();
+  int lastNode = numNodes = nodes.size();
   int nMaxEle = elemSet.size();
   for (int iElem = 0; iElem < nMaxEle; ++iElem) {
     Element *ele = elemSet[iElem];
@@ -911,7 +908,7 @@ void GeoSource::setUpData()
 
 int GeoSource::getNodes(CoordSet &nds)  {
 
-  nds.nodeCopy(nodes.last(), nodes);
+  nds = nodes;
 
   // the routines calling this expect to know the total number of nodes
   // including internally created ones.
@@ -3694,9 +3691,10 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    optDec->eln  = nDecTarget;
 
    // fprintf(stderr, "Going to make a check on springs, max = %d\n", maxSprNodes);
-   bool *ndIsUsed = new bool[nodes.size()];
+   int lastNode = nodes.size();
+   bool *ndIsUsed = new bool[lastNode];
    int iNode;
-   for(iNode = 0; iNode < nodes.size(); ++iNode)
+   for(iNode = 0; iNode < lastNode; ++iNode)
      ndIsUsed[iNode] = false;
    for(iSub = 0; iSub < optDec->nsub; ++iSub) {
      for(iEle = 0; iEle < optDec->num(iSub); ++iEle) {

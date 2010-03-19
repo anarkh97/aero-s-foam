@@ -247,7 +247,7 @@ Domain::computeStructureMass()
   while(current != 0) {
     int n = current->node;
     // check if the node is in the model
-    if(nodes.exist(n)) {
+    //if(nodes.exist(n)) {
       Node &node = nodes.getNode(n);
       switch(current->dof) {
         case 0: {
@@ -290,7 +290,7 @@ Domain::computeStructureMass()
           else if(current->jdof == 4) Iyz += current->diMass;
         } break;
       }
-    }
+    //}
     current = current->next;
   }
 

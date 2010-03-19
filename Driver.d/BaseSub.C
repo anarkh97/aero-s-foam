@@ -71,7 +71,7 @@ BaseSub::BaseSub(Domain &dom, int sn, CoordSet* _nodes, Elemset* _elems, int *gl
   initialize();
   initHelm(dom);
 
-  glNumNodes = _nodes->last();
+  glNumNodes = _nodes->size();
   glNums = glNodeNums;
   glElems = glElemNums;
   makeGlobalToLocalNodeMap(); 
@@ -1458,7 +1458,7 @@ void BaseSub::getNumGroupRBM(int *ngrbmGr)
 
 void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 {
-  for(int i=0; i<nodes.last(); ++i) { // XXXX
+  for(int i=0; i<nodes.size(); ++i) {
     Node &nd = nodes.getNode(i);
     nNodes[group] += 1.0;
     centroid[3*group] += nd.x;

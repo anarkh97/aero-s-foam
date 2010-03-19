@@ -400,7 +400,7 @@ public:
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }
   int  totalNumNodes() { return numNodes + numInternalNodes; }
-  int  getPhantomFlag()  { return phantomFlag; }
+  //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i);
   Connectivity *getClusToSub()  { return clusToSub; }

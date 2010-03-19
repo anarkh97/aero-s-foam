@@ -228,44 +228,33 @@ class Node {
 
 class CoordSet {
         int nmax;
+        int last;
 	Node **nodes;
         BlockAlloc ba;
+        
 public:
         // Constructors
         CoordSet(int = 256);
-	CoordSet(const CoordSet&, int n, int *nd);
-        ~CoordSet() { deleteNodes(); }
+        CoordSet(const CoordSet&);
 
-	CoordSet* copy();
+        // Destructor
+        ~CoordSet();
+
+        // Assignment operator
+        CoordSet & operator = (const CoordSet & other);
 
 	// Member functions
-        int size() { return nmax ; }
-        int last();
-	void list(void)
-	  {
-	    std::cerr << "Size: " << nmax << std::endl;
-	    for(int i = 0;i<nmax-1;i++)
-	      if(nodes[i])
-		std::cout << i << " : " << nodes[i]->x << "," << nodes[i]->y << "," << nodes[i]->z << std::endl;
-	      else
-		std::cerr << "warning no assignation for node #" << i <<std::endl;
-	  }
-        int exist(int numNodes);
+        //int size() { return nmax ; }
+        //int last();
+        int size() { return last; }
         void  nodeadd(int n, double*xyz);
         void  nodeadd(int n, Node &node);
-        void  nodeCopy(int n, CoordSet &nd);
 	Node &getNode(int n);
         void getCoordinates(int *nn, int numNodes,
                             double *xx, double *yy, double *zz);
 
-        Node *operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
-        Node *operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
-
-        void deleteNodes()
-	  { if(nodes) {
-	      delete [] nodes; nodes = 0; nmax = 0;
-	    }
-	  }
+        Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
+        Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
 };
 
 

@@ -36,18 +36,20 @@ extern GeoSource *geoSource;
 ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(d.nodes, nnodes, nnums)), lmpc(0), fsi(0), ymtt(0), ctett(0),
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0),
     SurfEntities(0), MortarConds(0)
 {
  initialize();
 
  int iele;
  numele = nele;        // number of elements
- for(iele=0; iele < numele; ++iele)
-   //if(eles[iele] < d.packedEset.size()) // PJSA
-     packedEset.elemadd(iele, d.packedEset[eles[iele]]);
+ for(int i=0; i < numele; ++i)
+   packedEset.elemadd(i, d.packedEset[eles[i]]);
 
  numnodes = nnodes; // number of nodes
+ for(int i=0; i < numnodes; ++i)
+   if(d.nodes[nnums[i]] != NULL)
+     nodes.nodeadd(i, *d.nodes[nnums[i]]);
 
  if(d.gravityFlag() ) {
    gravityAcceleration = new double [3];
@@ -74,7 +76,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  for(iele=0; iele < numele; ++iele)
    packedEset.elemadd(iele, (*_elems)[iele]);
 
- numnodes = _nodes->last();
+ numnodes = _nodes->size();
 
  if(d.gravityFlag() ) {
    gravityAcceleration = new double [3];

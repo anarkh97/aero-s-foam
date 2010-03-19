@@ -291,7 +291,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
 
   // build R matrix containing geometric rbms (includes constrained but not inactive dofs)
   // and Z = E^t * R
-  for(i=0; i<cs.last(); ++i) { // XXXX
+  for(i=0; i<cs.size(); ++i) { // XXXX
     Node &nd = cs.getNode(i);
     double x = (nd.x - centroid[0]); 
     double y = (nd.y - centroid[1]); 
@@ -407,7 +407,7 @@ Rbm::computeRbms(CoordSet& cs)
 
      if(dsa->firstdof(inode) == -1) continue;
 
-     if(cs.exist(inode) == 0) continue;
+     if(cs[inode] == 0) continue;
 
      Node &nd = cs.getNode(inode);
 
@@ -695,7 +695,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
    for(i = comp->xcomp[n]; i<comp->xcomp[n+1]; ++i) {
      inode = comp->order[i];
      if(dsa->firstdof(inode) == -1) continue;
-     if(cs.exist(inode) == 0) continue;
+     if(cs[inode] == 0) continue;
 
      Node &nd = cs.getNode(inode);
      

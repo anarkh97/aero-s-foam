@@ -577,15 +577,15 @@ class Domain : public HData {
      void getStressStrain(Vector &sol, double *bcx, int fileNumber,
                           int strInd, double time = 0, int printFlag =0);
      void getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                          int strInd, double time = 0, int printFlag =0) { cerr << "whoops!\n"; }
+                          int strInd, double time = 0, int printFlag =0) { cerr << "Domain::getStressStrain is not implemented for complex\n"; }
      void getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                              int strInd, double time = 0);
      void getPrincipalStress(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                             int strInd, double time = 0) { cerr << "whoops!\n"; }
+                             int strInd, double time = 0) { cerr << "Domain::getPrincipalStress is not implemented for complex\n"; }
      void getElementForces(Vector &sol, double *bcx, int fileNumber,
                            int forceIndex, double time = 0);
      void getElementForces(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                           int forceIndex, double time = 0) { cerr << "whoops!\n"; }
+                           int forceIndex, double time = 0) { cerr << "Domain::getElementForces is not implemented for complex\n"; }
      void getElementAttr(int fileNumber, int typ, double time=0.0);
      void getElasticForces(Vector &dsp, double *bcx, Vector &ext_f, double eta,
                            FullSquareMatrix *kelArray=0);

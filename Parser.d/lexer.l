@@ -620,6 +620,8 @@ TRAIL [a-zA-Z]*
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
 
+"addedmass"                        { return ADDEDMASS; }
+
 "SLOS"[a-zA-Z]*|"slos"[a-zA-Z]*    { return SLOSH; }
 
 "SLGR"[a-zA-Z]*|"slgr"[a-zA-Z]*    { return SLGRAV; }

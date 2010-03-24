@@ -628,6 +628,7 @@ double ** Domain::getCMatrix()
 //returns the coupling matrix for hydroelastic vibration problems
 //ADDED FOR HEV PROBLEM, EC, 20070820
 {
+  if(C_condensed) return C_condensed;
   int np = c_dsaFluid->size();
   int nu = c_dsa->size();
   nuNonZero = 0;
@@ -648,14 +649,11 @@ double ** Domain::getCMatrix()
     }
   }
 
-  //int ebcWarningFlag = 0;
   for(int iFSI=0; iFSI<numFSI; ++iFSI) {
 
     int pindex = c_dsaFluid->locate(fsi[iFSI]->fluid_node, DofSet::Potential);
 
-    if (pindex < 0)  {
-      //fprintf(stderr, " ... Warning: HEV Problem: Found non-existence Fluid DoF at node %d ...\n", (fsi[iFSI]->fluid_node)+1);
-      //ebcWarningFlag = 1;
+    if (pindex < 0) {
       continue;
     }
 
@@ -667,7 +665,7 @@ double ** Domain::getCMatrix()
       }
 
       double C_up = fsi[iFSI]->terms[j].coef.r_value;
-      if (C_up != 0.)  {
+      if (C_up != 0.) {
         if(C[uindex] == 0) {
           C[uindex] = new double[np];
           for (int jp=0; jp<np; ++jp)
@@ -675,25 +673,17 @@ double ** Domain::getCMatrix()
           umap_inv[uindex] = nuNonZero;
           umap_add_temp[nuNonZero++] = dsa->locate(fsi[iFSI]->terms[j].nnum, 1 << fsi[iFSI]->terms[j].dofnum);
         }
-        else  {
-        }
         C[uindex][pindex] = C_up;
-
-        if (C[uindex][pindex] != 0.) {
         pmap_inv[uindex][pindex] = (npNonZero_full[uindex])++;
-        }
       }
     }
   }
-  //if (ebcWarningFlag == 1)  {
-    //fprintf(stderr, " ...          Please check input file for essential BC ...\n");
-  //}
 
   umap = new int[nuNonZero];
   umap_add = new int[nuNonZero];
   pmap = new int*[nuNonZero];
   npNonZero = new int[nuNonZero];
-  double ** C_condensed = new double * [nuNonZero];
+  C_condensed = new double * [nuNonZero];
 
   for(int i=0; i<nuNonZero; ++i)  {
     C_condensed[i] = 0;
@@ -718,7 +708,6 @@ double ** Domain::getCMatrix()
     }
   }
 
-
   for(int i=0; i<nuNonZero; ++i)  {
     umap_add[i] = umap_add_temp[i];
     C_condensed[i] = C[umap[i]];
@@ -726,6 +715,71 @@ double ** Domain::getCMatrix()
   }
   delete [] C;
   return C_condensed;
+}
+
+void
+Domain::trMultC(const Vector& x, Vector& y)
+{
+/*
+  // computes y = C^T*x
+  double** C_NZrows = getCMatrix();
+
+  int nnp = domain->numUnconFluid();
+  double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
+  int *unconstrNum = c_dsa->getUnconstrNum();
+
+  y.zero();
+  for(int i=0; i < domain->nuNonZero; ++i) {
+    for(int jp=0; jp < nnp; ++jp) {
+      y[jp] += rhoFluid*C_NZrows[i][jp]*x[unconstrNum[umap_add[i]]];
+    }
+  }
+*/
+  double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
+  y.zero();
+  for(int i=0; i<numFSI; ++i) {
+    int pindex = c_dsaFluid->locate(fsi[i]->fluid_node, DofSet::Potential);
+    if (pindex < 0) continue;
+    for(int j=0; j<fsi[i]->nterms; j++) {
+      int uindex = c_dsa->locate(fsi[i]->terms[j].nnum, 1 << fsi[i]->terms[j].dofnum);
+      if (uindex < 0) continue;
+      double coef = fsi[i]->terms[j].coef.r_value;
+      y[pindex] += rhoFluid*coef*x[uindex];
+    }
+  }
+}
+
+void
+Domain::multC(const Vector& x, Vector& y)
+{
+/*
+  // computes y = C*x
+  double** C_NZrows = getCMatrix();
+
+  int nnp = domain->numUnconFluid();
+  double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
+  int *unconstrNum = c_dsa->getUnconstrNum();
+
+  y.zero();
+  for(int i=0; i<domain->nuNonZero; ++i) {
+    for(int k=0; k<domain->npNonZero[i]; ++k) {
+      int K = domain->pmap[i][k];
+      y[unconstrNum[umap_add[i]]] += rhoFluid*C_NZrows[i][K]*x[K];
+    }
+  }
+*/
+  double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
+  y.zero();
+  for(int i=0; i<numFSI; ++i) {
+    int pindex = c_dsaFluid->locate(fsi[i]->fluid_node, DofSet::Potential);
+    if (pindex < 0) continue;
+    for(int j=0; j<fsi[i]->nterms; j++) {
+      int uindex = c_dsa->locate(fsi[i]->terms[j].nnum, 1 << fsi[i]->terms[j].dofnum);
+      if (uindex < 0) continue;
+      double coef = fsi[i]->terms[j].coef.r_value;
+      y[uindex] += rhoFluid*coef*x[pindex];
+    }
+  }
 }
 
 // set dirichlet boundary conditions
@@ -1622,7 +1676,7 @@ Domain::getRenumbering()
 
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
- if(solInfo().HEV == 1) {
+ if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
    int numWetNodes = 0;
    int *wetIFNodes = getAllWetInterfaceNodes(numWetNodes);
    Connectivity* nodeToNodeTemp = nodeToNode->combineAll(numWetNodes,wetIFNodes);
@@ -3029,6 +3083,7 @@ Domain::initialize()
  nodeToFsi = 0; //HB
  numCTC=0;
  output_match_in_top = false;//TG
+ C_condensed = 0;
 }
 
 Domain::~Domain()

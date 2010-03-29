@@ -90,6 +90,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    int numRBM() { return nrbm; }
    void getRBMs(VectorSet& rbms) { Scalar *nsp = new Scalar[nrbm*neq]; getNullSpace(nsp); 
                                    for(int i=0; i<nrbm; ++i) for(int j=0; j<neq; ++j) rbms[i][j] = ScalarTypes::Real(nsp[i*neq+j]); delete [] nsp; }
+   int* getPivnull_list();
 
    void print();
    Scalar  diag(int dof) const;

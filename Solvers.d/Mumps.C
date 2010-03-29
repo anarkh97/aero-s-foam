@@ -325,11 +325,23 @@ GenMumpsSolver<Scalar>::factor()
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
-  if(this->print_nullity && host && nrbm > 0) 
+  if(this->print_nullity && host && nrbm > 0) {
     cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
-
+    //cerr << "PIVNUL_LIST = "; for(int i=0; i<nrbm; ++i) cerr << mumpsId.id.pivnul_list[i] << " "; cerr << endl;
+  }
 #endif
 }
+
+template<class Scalar>
+int*
+GenMumpsSolver<Scalar>::getPivnull_list()
+{
+#ifdef USE_MUMPS
+  return mumpsId.id.pivnul_list;
+#else
+  return NULL;
+#endif
+} 
 
 template<class Scalar>
 void

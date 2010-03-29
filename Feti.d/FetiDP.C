@@ -1093,6 +1093,7 @@ GenFetiDPSolver<Scalar>::selectOne(GenDistrVector<Scalar> &v, Scalar tol, int fl
     execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::getn_u, n_u, mpcid);
     project(n_u,n_u);
     if(n_u.sqNorm() <= this->fetiInfo->cq_tol) {
+      //cerr << "mpcid " << mpcid << " is redundant\n";
       paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::markRedundant, mpcid); // flag mpcid so it cannot be added to active set until after next primal status change
       return selectOne(v, tol, flag); // pick another mpc (recursive)
     }
@@ -1276,7 +1277,7 @@ void
 GenFetiDPSolver<Scalar>::saveStep()
 {
   this->wksp->save();
-  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
 }
 
 template<class Scalar>
@@ -2492,6 +2493,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 #endif
   startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
   GtGtilda->parallelFactor();
+  //int* pivnull_list = ((GenMumpsSolver<Scalar>*) GtGtilda)->getPivnull_list();
   stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
   stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
@@ -3023,7 +3025,6 @@ GenFetiDPSolver<Scalar>::reSolveGtG(GenVector<Scalar> &x, int flag)
   if(flag == 0) GtG->reSolve(x);
   else if(flag == 1) GtGtilda->reSolve(x);
 }
-
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag)

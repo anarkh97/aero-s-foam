@@ -164,7 +164,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
     if(this->myCPU == 0) cerr << " *** WARNING: selected aux_coarse_sover type not supported for outerloop CGAL, switching to skyline\n";
   }
   GtG = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-  //GtG->setPrintNumTrbm(false);
+  GtG->setPrintNullity(true);
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 0);
 #ifdef DISTRIBUTED
   GtG->unify(this->fetiCom);

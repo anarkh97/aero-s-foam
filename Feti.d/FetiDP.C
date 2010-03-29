@@ -1037,7 +1037,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
     //      : redundant inequality constraints still need to be enforced and this is not done unless equality constraints are projected (project_g == true)
     if(this->fetiInfo->cq_type == FetiInfo::crcq && flag == 0 && ngrbms && this->fetiInfo->project_g) {
       if(redundant()) { // eliminate redunant constraints by restoring active set and GtG to previous state then check/update one by one
-        cerr << "enforcing crcq\n";
+        //cerr << "enforcing crcq\n";
         paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::restoreMpcStatus2);
         rebuildGtGtilda();
         status_change = false;
@@ -1095,6 +1095,7 @@ GenFetiDPSolver<Scalar>::selectOne(GenDistrVector<Scalar> &v, Scalar tol, int fl
     execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::getn_u, n_u, mpcid);
     project(n_u,n_u,3);
     if(n_u.sqNorm() <= this->fetiInfo->cq_tol) {
+      //cerr << "mpcid " << mpcid << " is redundant\n";
       paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::markRedundant, mpcid); // flag mpcid so it cannot be added to active set until after next primal status change
       return selectOne(v, tol, flag); // pick another mpc (recursive)
     }
@@ -1278,7 +1279,7 @@ void
 GenFetiDPSolver<Scalar>::saveStep()
 {
   this->wksp->save();
-  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
 }
 
 template<class Scalar>
@@ -1287,7 +1288,7 @@ GenFetiDPSolver<Scalar>::restoreStep()
 {
   if(dualStatusChange) { 
     this->wksp->restore(true);
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::restoreMpcStatus);
+    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::restoreMpcStatus1);
     if(ngrbms && this->fetiInfo->project_g) rebuildGtGtilda();
     dualStatusChange = false;
   }
@@ -1389,7 +1390,7 @@ GenFetiDPSolver<Scalar>::init_solve()
   dualStatusChange = primalStatusChange = stepLengthChange = false;
   nExtraFp = nRebuildGtG = nRebuildCCt = nLinesearchIter = nSubIterDual = nSubIterPrimal = nStatChDual = nStatChPrimal = 0;
   if(globalFlagCtc && this->numSystems > 0) this->resetOrthoSet();
-  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  //if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
   proportional = true;
 }
 
@@ -2495,6 +2496,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 #endif
   startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
   GtGtilda->parallelFactor();
+  //int* pivnull_list = ((GenMumpsSolver<Scalar>*) GtGtilda)->getPivnull_list();
   stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
   stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
@@ -3066,7 +3068,6 @@ GenFetiDPSolver<Scalar>::reSolveGtG(GenVector<Scalar> &x, int flag)
   if(flag == 0) GtG->reSolve(x);
   else if(flag == 1) GtGtilda->reSolve(x);
 }
-
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int project_level, int eflag)
@@ -3082,6 +3083,9 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   // note: P_i depends on active set which is a function of y(ie lambda) hence dual planing subiterations required for feasible projection
    
   double resnorm = 0.0;
+  double tol = -1.0e-14; //-std::numeric_limits<double>::epsilon();
+
+  if(globalFlagCtc && eflag == 1) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus); // XXXX
 
   // 0. y = z
   if(&y != &z) y = z;
@@ -3090,7 +3094,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     // 1. alpha = e-G^T*P_i*z
     GenVector<Scalar> alpha(ngrbms);
     trMultG(y, alpha, -1.0, 0.0, int(iproj)); // alpha = -G^T*P_i*z
-    if(eflag) { alpha -= e_copy; resnorm = alpha.sqNorm(); if(eflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual residual norm = " << resnorm << endl; }
+    if(eflag) { alpha -= e_copy; resnorm = alpha.norm(); if(eflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual residual norm = " << resnorm << endl; }
 
     if(!(eflag > 1 && (resnorm < this->fetiInfo->dual_proj_tol || eflag > 100))) {
       // 2. alpha = (G^T*P_i*G)^(-1)*alpha
@@ -3101,16 +3105,20 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
 
       // 4. dual planing: if y (lambda) is not feasible then expand active set and re-project (recursive)
       if(iproj && eflag) { // && resnorm > 1.0e-16) {
-        updateActiveSet(y, -1);
-        updateActiveSet(y, 0);
+        updateActiveSet(y, -1, tol);
+        updateActiveSet(y, 0, tol);
         { stopTimerMemory(this->times.project, this->times.memoryProject1); project(y, y, project_level, ++eflag); nSubIterDual++; return; }
       }
     }
   }
-  else if(iproj && eflag) { updateActiveSet(y, -1); updateActiveSet(y, 0); } // NEED TO CLEAN UP
+  else if(iproj && eflag) { updateActiveSet(y, -1, tol); updateActiveSet(y, 0, tol); } // NEED TO CLEAN UP
 
   // 5. y = P_i*y
   if(iproj) projectActiveIneq(y);
+  if(eflag) {
+    cerr << "y = "; print_debug(y);
+    cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
+  }
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
 }
@@ -3130,6 +3138,9 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   // note: P_i depends on active set which is a function of r+G*alpha, hence primal planing subiterations required if not proportional
   // this function also saves alpha in the feti workspace
   double resnorm = 0.0;
+  double tol = 0.0; //-std::numeric_limits<double>::epsilon();
+
+  if(globalFlagCtc && pflag == 1) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus); // XXXX
 
   // 0. w = r
   if(&w != &r) w = r;
@@ -3140,7 +3151,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     if(pflag <= 1) alpha.zero();
     GenVector<Scalar> delta(ngrbms);
     trMultG(w, delta, -1.0, 0.0, int(iproj));
-    if(pflag) { resnorm = delta.sqNorm(); if(pflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal residual norm = " << resnorm << endl; }
+    if(pflag) { resnorm = delta.norm(); if(pflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal residual norm = " << resnorm << endl; }
 
     if(!(pflag > 1 && (resnorm < this->fetiInfo->primal_proj_tol || pflag > 100))) {
       // 2. alpha = (Gtilda^T*Gtilda)^(-1)*alpha
@@ -3153,20 +3164,24 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
       // 4. primal planing: if not r+G*alpha is not proportional then contract active set and re-project (recursive)
       if(pflag && iproj) { 
         if(proportional) { dual_error = dualError(w, proportional); }
-        if(!proportional) { updateActiveSet(w,-2); updateActiveSet(w,1); }
+        if(!proportional) { updateActiveSet(w,-2,tol); updateActiveSet(w,1,tol); }
         { stopTimerMemory(this->times.project, this->times.memoryProject1); tProject(w, w, dual_error, project_level, ++pflag); nSubIterPrimal++; return; }
       }
     }
   }
   else if(pflag && iproj) { // NEED TO CLEAN UP
     if(proportional) { dual_error = dualError(w, proportional); }
-    if(!proportional) { updateActiveSet(w,-2); updateActiveSet(w,1); }
+    if(!proportional) { updateActiveSet(w,-2,tol); updateActiveSet(w,1,tol); }
   }
 
   // 5. w = P_i*w
   if(iproj) projectActiveIneq(w);
 
   if(!proportional) dual_error = dualError(w, proportional);
+
+  cerr << "pflag = " << pflag << ", resnorm = " << resnorm << endl;
+  cerr << "w = "; print_debug(w);
+  cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
 }

@@ -4738,28 +4738,51 @@ GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag)
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::printMpcStatus()
+{
+  for(int i = 0; i < numMPC; ++i) {
+    //if(mpc[i]->redundant_flag) mpc[i]->isFree = false; // XXXX
+    if(mpc[i]->redundant_flag) cerr << "*"; else 
+    cerr << (mpc[i]->isFree ? 'x' : 'o');
+  }
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::saveMpcStatus()
 {
- // this saves the status before first update iteration so it can be reset if nonmonotic
- // also save redundant flag
- if(!mpcStatus) mpcStatus = new int[numMPC];
+ // this saves the status before projection
+ if(!mpcStatus) mpcStatus = new bool[numMPC];
  for(int i = 0; i < numMPC; ++i) {
-   mpcStatus[i] = int(mpc[i]->isFree);
-   if(mpc[i]->redundant_flag) mpcStatus[i] = -1;
+   mpcStatus[i] = mpc[i]->isFree;
+   //if(mpc[i]->redundant_flag) mpcStatus[i] = -1;
+   if(mpc[i]->redundant_flag) mpcStatus[i] = 0;
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::restoreMpcStatus()
+GenSubDomain<Scalar>::saveMpcStatus1()
+{
+ // this saves the status before first linesearch so it can be reset if nonmonotic
+ if(!mpcStatus1) mpcStatus1 = new bool[numMPC];
+ for(int i = 0; i < numMPC; ++i) {
+   mpcStatus1[i] = mpc[i]->isFree;
+   //if(mpc[i]->redundant_flag) mpcStatus1[i] = -1;
+ }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::restoreMpcStatus1()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(mpc[i]->isFree && !mpcStatus[i]) cerr << "-";
-     else if(!mpc[i]->isFree && mpcStatus[i]) cerr << "+";
+     if(mpc[i]->isFree && !mpcStatus1[i]) cerr << "-";
+     else if(!mpc[i]->isFree && mpcStatus1[i]) cerr << "+";
    }
-   mpc[i]->isFree = bool(mpcStatus[i]);
-   mpc[i]->redundant_flag = (mpcStatus[i] == -1);
+   mpc[i]->isFree = mpcStatus1[i];
+   //mpc[i]->redundant_flag = (mpcStatus1[i] == -1);
  }
 }
 
@@ -4767,6 +4790,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::saveMpcStatus2()
 {
+ // save the status before expanding the active set so it can be reset if constraint qualification is violated
  if(!mpcStatus2) mpcStatus2 = new bool[numMPC];
  for(int i = 0; i < numMPC; ++i) { mpcStatus2[i] = mpc[i]->isFree; }
 }
@@ -5035,7 +5059,7 @@ GenSubDomain<Scalar>::initialize()
   precNodeToNode = 0;
 #endif
   weightPlus = 0;
-  mpcStatus = 0; mpcStatus2 = 0;
+  mpcStatus = 0; mpcStatus1 = 0; mpcStatus2 = 0;
   G = 0; neighbG = 0;
   sharedRstar_g = 0; tmpRstar_g = 0;
 }
@@ -5110,6 +5134,7 @@ GenSubDomain<Scalar>::~GenSubDomain()
 #endif
   if(weightPlus) { delete [] weightPlus; weightPlus = 0; }
   if(mpcStatus) { delete [] mpcStatus; mpcStatus = 0; }
+  if(mpcStatus1) { delete [] mpcStatus1; mpcStatus1 = 0; }
   if(mpcStatus2) { delete [] mpcStatus2; mpcStatus2 = 0; }
 
   if(sharedRstar_g) { delete sharedRstar_g; sharedRstar_g = 0; }
@@ -6977,7 +7002,7 @@ GenSubDomain<Scalar>::projectActiveIneq(Scalar *v)
 {
   for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 && !mpc[locMpcNb]->isFree)
+    if(mpc[locMpcNb]->type == 1 && (!mpc[locMpcNb]->isFree || mpc[i]->redundant_flag))
       v[scomm->mapT(SComm::mpc, i)] = 0.0;
   }
 }

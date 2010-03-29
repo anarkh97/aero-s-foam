@@ -103,7 +103,6 @@ class GenDecDomain
   void extractControlData(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
                           GenDistrVector<Scalar> &,
                           Scalar *, Scalar *, Scalar *);
-  void initUserDefBC();
   void addUserForce(GenDistrVector<Scalar> &, Scalar*);
   void addCtrl(GenDistrVector<Scalar> &, Scalar*);
   // Non linear functions

@@ -82,7 +82,7 @@
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PARALLELGRBM PTOL
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PARALLELGRBM PTOL PLANTOL
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
@@ -2481,6 +2481,10 @@ Solver:
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
+        | DEBUGICNTL Integer Integer NewLine
+        { domain->solInfo().debug_icntl[$2] = $3; }
+        | DEBUGCNTL Integer Float NewLine
+        { domain->solInfo().debug_cntl[$2] = $3; }
 /* potential conflict/confusion with LUMPED for mass matrix etc.
         | FETIPREC NewLine
         { domain->solInfo().fetiInfo.precno = (FetiInfo::Preconditioner) $1; }
@@ -2532,6 +2536,9 @@ Solver:
         | PTOL Float Float NewLine
         { domain->solInfo().fetiInfo.dual_proj_tol = $2;
           domain->solInfo().fetiInfo.primal_proj_tol = $3; }
+        | PLANTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.dual_plan_tol = $2;
+          domain->solInfo().fetiInfo.primal_plan_tol = $3; }
 	| Solver MAXORTHO Integer NewLine
 	{ domain->solInfo().fetiInfo.maxortho = $3; }
 	| NOCOARSE NewLine

@@ -1583,10 +1583,3 @@ GenSandiaDomain<Scalar>::setMpcRhs(int iSub, GenDistrVector<Scalar> &cu)
   SubDomain(iSub)->setMpcRhs(cu.subData(SubDomain(iSub)->localSubNum()));
 }
 
-template<class Scalar>
-void
-GenSandiaDomain<Scalar>::zeroMpcRhs(int iSub)
-{
-  SubDomain(iSub)->zeroMpcRhs();
-}
-

@@ -30,18 +30,6 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
 
  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
                       residual, lambda);
-
- // PJSA: start LMPC code
- // filePrint(stderr, " ... Processing LMPCs for non-linear FETI ...\n");
- //YYYY sd->updateMpcRhs(*geomState[isub], decDomain->getMpcToSub());
-/*
- double *mpcForces = new double[sd->numMPCs()]; // don't delete  
- solver->getLocalMpcForces(isub, mpcForces);  // mpcForces set to incremental mpc lagrange multipliers
- sd->addMpcForceIncrement(mpcForces);  // mpcForces set to total mpc lagrange multipliers
- // cerr << "mpcForces = "; for(int i=0; i<sd->numMPCs(); ++i) cerr << mpcForces[i] << " "; cerr << endl;
- sd->constraintProductTmp(mpcForces, residual); // C^T*lambda added to force residual
-*/
- // PJSA: end LMPC code
 }
 
 double
@@ -62,7 +50,6 @@ MDNLStatic::subAddMpcForces(int isub, DistrVector &vec)
   SubDomain *sd = decDomain->getSubDomain(isub);
   double *mpcForces = new double[sd->numMPCs()]; // don't delete  
   solver->getLocalMpcForces(isub, mpcForces);  // mpcForces set to incremental mpc lagrange multipliers
-  //sd->addMpcForceIncrement(mpcForces);  // mpcForces set to total mpc lagrange multipliers
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->constraintProductTmp(mpcForces, localvec); // C^T*lambda added to force residual
 }
@@ -440,6 +427,7 @@ MDNLStatic::updateContactConditions(DistrGeomState* geomState)
   domain->ExpComputeMortarLMPC();
   //domain->printLMPC();
   domain->CreateMortarToMPC();
+  ((GenFetiDPSolver<double> *) solver)->deleteG();
   decDomain->reProcessMPCs();
   ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   //solver = decDomain->getFetiSolver();

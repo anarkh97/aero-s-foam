@@ -436,8 +436,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v);
     void projectFreeIneq(GenDistrVector<Scalar> &v);
     void subProjectFreeIneq(int iSub, GenDistrVector<Scalar> &v);
-    bool checkInequalities(GenDistrVector<Scalar> &v, int flag = 1);
-    void subCheckInequalities(int iSub, GenDistrVector<Scalar> &v, bool &ret, int flag);
     void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c, GenDistrVector<Scalar> &v_p);
     void chop(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_c, double tol, int chop_flag);
     void getn_u(int iSub, GenDistrVector<Scalar> &n_u, int mpcid);
@@ -481,8 +479,8 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     FSCommPattern<int> *mpcPat;
     FSCommPattern<Scalar> *mpcSPat;
     Scalar alpha_l, beta_l; // bisection linesearch parameters
-    GenVector<Scalar> e_copy;
     int newton_iter;
+    double resnorm;
 
     // Contact functions
   public:
@@ -500,8 +498,8 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void subTrMultC(int iSub, GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
     void subMultC(int iSub, GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
     double computeFNorm();
-    void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int project_level = 1, int eflag = 0);
-    void tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, double &dual_error, int project_level = 1, int pflag = 1);
+    void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0);
+    void tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, double &dual_error, int pflag = 1);
     void multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta, int flag = 0);
     void subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, int flag);
     void trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta, int flag = 0);

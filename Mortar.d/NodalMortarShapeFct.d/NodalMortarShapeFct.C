@@ -282,7 +282,7 @@ NodalMortarShapeFct::print(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
      fprintf(stderr,"-> node %d = %d, coeff = %e\n",i+1,node,GetNodalCoeff(i));
    }
    if(!LinkedSlaveNodes.empty()) {
-     fprintf(stderr,"-> linked salve nodes: \n");
+     fprintf(stderr,"-> linked slave nodes: \n");
      for(int i=0; i<int(LinkedSlaveNodes.size()); i++) {
        node = (SlaveLlToGlNodeMap) ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
        cerr << node << ' ';

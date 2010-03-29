@@ -831,7 +831,6 @@ MDNLDynamic::subAddMpcForces(int isub, DistrVector& vec)
   SubDomain *sd = decDomain->getSubDomain(isub);
   double *mpcForces = new double[sd->numMPCs()];      // don't delete  
   solver->getLocalMpcForces(isub, mpcForces);         // mpcForces set to incremental mpc lagrange multipliers
-  //sd->addMpcForceIncrement(mpcForces);                // mpcForces set to total mpc lagrange multipliers
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->constraintProductTmp(mpcForces, localvec);      // C^T*lambda added to vec
 }

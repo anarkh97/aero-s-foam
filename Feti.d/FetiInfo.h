@@ -227,7 +227,6 @@ class FetiInfo {
     int contactPrintFlag;
     bool cctScaled;
     int rebuildcct;
-    bool project_g; // true if we intent to satisfy grbm (equality constraints: G^T*lambda+e = 0) using projected CG
     int rebuildSbb;
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
@@ -258,6 +257,7 @@ class FetiInfo {
     int stop1; // first stopping criteria...  0: none, 1: estimated primal, 2: dual
     int stop2; // second stopping criteria... 0: none, 1: estimated primal, 2: dual
     double dual_proj_tol, primal_proj_tol;
+    double dual_plan_tol, primal_plan_tol;
 };
 
 inline
@@ -326,14 +326,14 @@ FetiInfo::FetiInfo()
   wolfe_c1 = 1.0e-4; wolfe_c2 = 0.9;
   linesearch = 1; linesearch_tau = 0.5; linesearch_maxit = 100;
   cmpc = bmpc = dmpc = false;
-  cq_type = crcq; cq_tol = 1.0e-14;
+  cq_type = nocq; cq_tol = 1.0e-14;
 
   equi_tol = 1.0e-6; 
   iequ_tol = 1.0e-6;
   c_normalize = false;
   
   // MPC information
-  mpc_precno   = autoSelectCCt;  // default mpc preconditioner for Rixen method
+  mpc_precno   = globalCCt;  // default mpc preconditioner for Rixen method
   mpc_block    = topoBlock;
   mpcflag      = 1;
   cct_tol      = 1.0e-16;
@@ -341,7 +341,6 @@ FetiInfo::FetiInfo()
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
   parallel_grbm = true; use_krr_nullspace = false;
   rebuildcct   = 0; 
-  project_g    = true;
   rebuildSbb   = 0; 
   geometric_gap = false;
 
@@ -363,6 +362,7 @@ FetiInfo::FetiInfo()
   nullSpace = grbm;
   nullSpaceFilterTol = 0.0;
   dual_proj_tol = primal_proj_tol = 1.0e-16;
+  dual_plan_tol = primal_plan_tol = 0.0;
 }
 
 

@@ -461,7 +461,7 @@ class GenSubDomain : public BaseSub
   int *CCtrow, *CCtcol;
   Scalar* CCtval;
   Scalar *bcx_scalar;
-  int *mpcStatus; bool *mpcStatus2;
+  int *mpcStatus; bool *mpcStatus1, *mpcStatus2;
 
   // templated RBMs
   GenFullM<Scalar> Rstar;
@@ -579,13 +579,11 @@ class GenSubDomain : public BaseSub
   void firstAssemble(GenSparseMatrix<Scalar> *K);
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
   void initMpcScaling();
-  void initUserDefBC();
   void makeZstarAndR(double *centroid);  // makes Zstar and R
   void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
   void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
   void deleteKcc();
   void multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
-  void computeL00(Scalar *lambda00, Scalar *fr);
   void normalizeCstep1(Scalar *cnorm);
   void normalizeCstep2(Scalar *cnorm);
   void getQtKQ(GenSolver<Scalar> *s);
@@ -647,18 +645,14 @@ class GenSubDomain : public BaseSub
   void deleteMPCs();
 
   void projectActiveIneq(Scalar *v);
-  void projectFreeIneq(Scalar *v);
-  void checkInequalities(Scalar *v, bool &ret, int flag, bool print_flag = false);
   void getn_u(Scalar *n_u, int mpcid);
   void split(Scalar *v, Scalar *v_f, Scalar *v_c, Scalar *v_p, double tol = 0.0);
   void chop(Scalar *v, Scalar *v_c, double tol, int chop_flag);
   void bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
   void Max(Scalar *v, Scalar &max, int flag);
   void Equal(Scalar *v, Scalar val, int &mpcid, int flag);
-  void quotient(Scalar *q, Scalar *lambda, Scalar *p);
   void markRedundant(int mpcid);
   void unmarkRedundant();
-  void initContactStatus();
   void updateActiveSet_one(int mpcid, int flag);
   void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
   void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
@@ -692,24 +686,22 @@ class GenSubDomain : public BaseSub
   void setMpcCommSize(FSCommPattern<int> *mpcPat);
   void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
   void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag);
+  void printMpcStatus();
   void saveMpcStatus();
   void restoreMpcStatus();
+  void saveMpcStatus1();
   void saveMpcStatus2();
   void restoreMpcStatus2();
-  void assembleP_i(GenVector<Scalar> *P_i);
-
+  void cleanMpcData();
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
-  void getLocalContactForces(double* ctcForces);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void updateMpcRhs(GeomState &geomState, Connectivity *mpcToSub);
   void updateMpcRhs(GeomState &geomState, GeomState &refState, Connectivity *mpcToSub);
   void setMpcRhs(Scalar *interfvec);
   void updateMpcRhs(Scalar *interfvec);
-  void zeroMpcRhs();
-  void addMpcForceIncrement(double *&deltaMpcForces);
   void zeroMpcForces();
 
   // Helmholtz fluid functions

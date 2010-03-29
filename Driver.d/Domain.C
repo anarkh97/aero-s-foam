@@ -2573,7 +2573,6 @@ void Domain::UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomai
       SurfEntities[iSurf]->UpdateNodeData(geomState, sd);
     }
   }
-
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(solInfo().dist_acme == 2) {

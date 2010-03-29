@@ -568,6 +568,8 @@ TRAIL [a-zA-Z]*
 
 "ptol"[a-zA-Z]*|"PTOL"[a-zA-Z]*    { return PTOL; }
 
+"plan"[a-zA-Z]*|"PLAN"[a-zA-Z]*  { return PLANTOL; }
+
 "feas"[a-zA-Z]*|"FEAS"[a-zA-Z]*    { return FEASTOL; }
 
 "nsbs"[a-zA-Z]*|"NSBS"[a-zA-Z]*    { return NSBSPV; }

@@ -82,26 +82,6 @@ GenFetiDPSolver<Scalar>::projectAlpha(GenVector<Scalar> &alpha, bool flag)
   }  
 }
 
-/*
-template<class Scalar>
-bool
-GenFetiDPSolver<Scalar>::inconsistent(GenVector<Scalar> &e, bool print_warning)
-{
-  // check X^t * e = 0, where X is the null space of Gtilda^T*Gtilda
-  if(GtGtilda->numRBM() == 0) return false;
-
-  Scalar *zem = new Scalar[GtGtilda->numRBM()*ngrbms];
-  GtGtilda->getNullSpace(zem);
-  GenFullM<Scalar> X(zem, ngrbms, GtGtilda->numRBM(), 1);
-
-  GenVector<Scalar> q = X ^ e;
-  double inc_err = 0.0;
-  bool inc = ((inc_err = q.norm()) >= this->fetiInfo->equi_tol);
-  if(inc && print_warning && this->myCPU == 0) cerr << "warning: inconsistent constraints in dual-active set (error = " << inc_err << ", equi_tol = " << this->fetiInfo->equi_tol << ")\n";
-  return inc;
-}
-*/
-
 template<class Scalar> 
 void
 GenFetiDPSolver<Scalar>::makeGtG()
@@ -159,10 +139,6 @@ GenFetiDPSolver<Scalar>::makeGtG()
   eqNumsGtG->makeOffset();
 
   // 4. create, assemble and factorize GtG
-  if(this->fetiInfo->outerloop == FetiInfo::CGAL && this->fetiInfo->auxCoarseSolver != FetiInfo::skyline) {
-    this->fetiInfo->auxCoarseSolver = FetiInfo::skyline;
-    if(this->myCPU == 0) cerr << " *** WARNING: selected aux_coarse_sover type not supported for outerloop CGAL, switching to skyline\n";
-  }
   GtG = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
   //GtG->setPrintNumTrbm(false);
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 0);
@@ -207,11 +183,6 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
     this->fetiCom->globalSum(ngrbms, e.data());
 #endif
   }
-  e_copy = e; // keep a copy of the original rhs, used in project(...)
-  if(this->fetiInfo->outerloop == FetiInfo::CGAL) GtG->forward(e); 
-  //ee = e*e;
-  //if(ee != 0.0) this->fetiInfo->equi_tol *= sqrt(ee); // convert equi_tol to absolute tolerance
-  //else ee = 1.0;
 }
 
 template<class Scalar>
@@ -353,20 +324,3 @@ GenFetiDPSolver<double>::chop(int iSub, GenDistrVector<double> &v, GenDistrVecto
 {
   this->sd[iSub]->chop(v.subData(this->sd[iSub]->localSubNum()), v_c.subData(this->sd[iSub]->localSubNum()), tol, chop_flag);
 }
-
-/*
-template<>
-inline void
-GenFetiDPSolver<DComplex>::subQuotient(int iSub, GenDistrVector<DComplex> &q, GenDistrVector<DComplex> &lambda, GenDistrVector<DComplex> &p)
-{
-  filePrint(stderr, " *** WARNING: GenFetiDPSolver<DComplex>::subQuotient(...) is not implemented \n");
-}
-
-template<>
-inline void
-GenFetiDPSolver<double>::subQuotient(int iSub, GenDistrVector<double> &q, GenDistrVector<double> &lambda, GenDistrVector<double> &p)
-{
-  this->sd[iSub]->quotient(q.subData(this->sd[iSub]->localSubNum()), lambda.subData(this->sd[iSub]->localSubNum()), p.subData(this->sd[iSub]->localSubNum()));
-}
-*/
-

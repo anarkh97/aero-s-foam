@@ -3038,8 +3038,8 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   // note: P_i depends on active set which is a function of y(ie lambda) hence dual planing subiterations required for feasible projection
    
   resnorm = 0.0;
-  double tol = -this->fetiInfo->dual_plan_tol; //-std::numeric_limits<double>::epsilon();
-  if(eflag == 1) for(int i=0; i<this->nsub; ++i) this->sd[i]->saveMpcStatus1();
+  double tol = -this->fetiInfo->dual_plan_tol;
+  if(eflag == 1) paralApply(this->nsub; this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
 
   // 0. y = z
   if(&y != &z) y = z;
@@ -3077,7 +3077,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   if(iproj) projectActiveIneq(y);
 
   if(eflag) {
-    cerr << "eflag = " << eflag << ", resnorm = " << resnorm << endl;
+    //cerr << "eflag = " << eflag << ", resnorm = " << resnorm << endl;
     //cerr << "lambda = "; print_debug(y);
     //cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   }
@@ -3102,7 +3102,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   resnorm = 0.0;
   double tol = -this->fetiInfo->primal_plan_tol; //-std::numeric_limits<double>::epsilon();
 
-  if(pflag == 1) for(int i=0; i<this->nsub; ++i) this->sd[i]->saveMpcStatus1();
+  if(pflag == 1) paralApply(this->nsub; this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
 
   // 0. w = r
   if(&w != &r) w = r;
@@ -3148,7 +3148,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   if(!proportional) dual_error = dualError(w, proportional);
 
   if(pflag) {
-    cerr << "pflag = " << pflag << ", resnorm = " << resnorm << endl;
+    //cerr << "pflag = " << pflag << ", resnorm = " << resnorm << endl;
     //cerr << "w = "; print_debug(w);
     //cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   }

@@ -3040,7 +3040,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
    
   resnorm = 0.0;
   double tol = -this->fetiInfo->dual_plan_tol;
-  if(eflag == 1) paralApply(this->nsub; this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
+  if(eflag == 1) paralApply(this->nsub, this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
 
   // 0. y = z
   if(&y != &z) y = z;
@@ -3103,7 +3103,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   resnorm = 0.0;
   double tol = -this->fetiInfo->primal_plan_tol; //-std::numeric_limits<double>::epsilon();
 
-  if(pflag == 1) paralApply(this->nsub; this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
+  if(pflag == 1) paralApply(this->nsub, this->sd, GenSubDomain<Scalar>::saveMpcStatus1);
 
   // 0. w = r
   if(&w != &r) w = r;

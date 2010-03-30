@@ -1783,7 +1783,7 @@ GenSubDomain<Scalar>::makeKbbMpc()
 
   for(int i = 0; i < numMPC; i++) {
     SubLMPCons<Scalar> *m = mpc[i];
-    if(!mpc[i]->isFree) continue;
+    if(mpc[i]->active) continue;
     for(int k=0; k<m->nterms; k++) {
       int cdof = (m->terms)[k].cdof;
       if(cdof >= 0) weight_mpc[cdof] = 2; // > 1 hence will be in boundary (see makeBmaps and makeImaps)
@@ -4185,7 +4185,6 @@ GenSubDomain<Scalar>::updateMpcRhs(Scalar *interfvec)
     int locMpcNb = scomm->mpcNb(i);
     if(mpcFlag[locMpcNb] == true) {
       mpc[locMpcNb]->rhs =  mpc[locMpcNb]->original_rhs + interfvec[scomm->mapT(SComm::mpc,i)];
-      //if(subNumber == 0) cerr << int(mpc[locMpcNb]->isFree) << ":" << mpc[locMpcNb]->rhs << endl;
       mpcFlag[locMpcNb] = false;
     }
   }
@@ -4339,8 +4338,8 @@ GenSubDomain<Scalar>::sendMpcStatus(FSCommPattern<int> *mpcPat, int flag)
       FSSubRecInfo<int> sInfo = mpcPat->getSendBuffer(subNumber, neighb);
       for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
         int locMpcNb = scomm->mpcNb(i,j);
-        if(flag == -1) sInfo.data[j] = (mpcMaster[locMpcNb]) ? int(mpc[locMpcNb]->isFree) : -1; else // XXXX
-        sInfo.data[j] = int(mpc[locMpcNb]->isFree);
+        if(flag == -1) sInfo.data[j] = (mpcMaster[locMpcNb]) ? int(!mpc[locMpcNb]->active) : -1; else
+        sInfo.data[j] = int(!mpc[locMpcNb]->active);
       }
     }
   }
@@ -4358,7 +4357,7 @@ GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag)
  // note: could use SComm::ieq list
  int i,j;
  bool *tmpStatus = (bool *) alloca(sizeof(bool)*numMPC);
- for(int i=0; i<numMPC; ++i) tmpStatus[i] = mpc[i]->isFree;
+ for(int i=0; i<numMPC; ++i) tmpStatus[i] = !mpc[i]->active;
  for(i = 0; i < scomm->numT(SComm::mpc); ++i) {
    int neighb = scomm->neighbT(SComm::mpc, i);
    if(subNumber != neighb) {
@@ -4374,10 +4373,10 @@ GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag)
  bool print_debug = false;
  for(i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(mpc[i]->isFree && !tmpStatus[i]) { cerr << "-"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
-     else if(!mpc[i]->isFree && tmpStatus[i]) { cerr << "+"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
+     if(!mpc[i]->active && !tmpStatus[i]) { cerr << "-"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
+     else if(mpc[i]->active && tmpStatus[i]) { cerr << "+"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
    }
-   mpc[i]->isFree = tmpStatus[i];
+   mpc[i]->active = !tmpStatus[i];
  }
 }
 
@@ -4387,7 +4386,7 @@ GenSubDomain<Scalar>::printMpcStatus()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(mpc[i]->redundant_flag) cerr << "*"; else
-   cerr<< (mpc[i]->isFree ? 'x' : 'o');
+   cerr<< (mpc[i]->active ? 'o' : 'x');
  }
 }
 
@@ -4400,7 +4399,7 @@ GenSubDomain<Scalar>::saveMpcStatus()
  // also save redundant flag
  if(!mpcStatus) mpcStatus = new int[numMPC];
  for(int i = 0; i < numMPC; ++i) {
-   mpcStatus[i] = int(mpc[i]->isFree);
+   mpcStatus[i] = int(!mpc[i]->active);
    if(mpc[i]->redundant_flag) mpcStatus[i] = -1;
  }
 }
@@ -4411,10 +4410,10 @@ GenSubDomain<Scalar>::restoreMpcStatus()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(mpc[i]->isFree && !mpcStatus[i]) cerr << "-";
-     else if(!mpc[i]->isFree && mpcStatus[i]) cerr << "+";
+     if(!mpc[i]->active && !mpcStatus[i]) cerr << "-";
+     else if(mpc[i]->active && mpcStatus[i]) cerr << "+";
    }
-   mpc[i]->isFree = bool(mpcStatus[i]);
+   mpc[i]->active = bool(!mpcStatus[i]);
    mpc[i]->redundant_flag = (mpcStatus[i] == -1);
  }
 }
@@ -4424,7 +4423,7 @@ void
 GenSubDomain<Scalar>::saveMpcStatus1()
 {
   if(!mpcStatus1) mpcStatus1 = new bool[numMPC];
-  for(int i = 0; i < numMPC; ++i) mpcStatus1[i] = mpc[i]->isFree;
+  for(int i = 0; i < numMPC; ++i) mpcStatus1[i] = !mpc[i]->active;
 }
 
 template<class Scalar>
@@ -4432,7 +4431,7 @@ void
 GenSubDomain<Scalar>::saveMpcStatus2()
 {
   if(!mpcStatus2) mpcStatus2 = new bool[numMPC];
-  for(int i = 0; i < numMPC; ++i) mpcStatus2[i] = mpc[i]->isFree;
+  for(int i = 0; i < numMPC; ++i) mpcStatus2[i] = !mpc[i]->active;
 }
 
 template<class Scalar>
@@ -4441,10 +4440,10 @@ GenSubDomain<Scalar>::restoreMpcStatus2()
 {
  for(int i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
-     if(mpc[i]->isFree && !mpcStatus2[i]) cerr << "-";
-     else if(!mpc[i]->isFree && mpcStatus2[i]) cerr << "+";
+     if(!mpc[i]->active && !mpcStatus2[i]) cerr << "-";
+     else if(mpc[i]->active && mpcStatus2[i]) cerr << "+";
    }
-   mpc[i]->isFree = mpcStatus2[i];
+   mpc[i]->active = !mpcStatus2[i];
  }
 }
 
@@ -4480,7 +4479,7 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
         int locMpcNb = -1-allBoundDofs[iDof];
         if(mpcFlag[locMpcNb]) {
           SubLMPCons<Scalar> *m = mpc[locMpcNb];
-          if(mpc[locMpcNb]->isFree) {
+          if(!mpc[locMpcNb]->active) {
             for(k=0; k<m->nterms; k++) {
               int cdof = (m->terms)[k].cdof;
               if(cdof >= 0) { // mpc dof that exists
@@ -4521,7 +4520,7 @@ GenSubDomain<Scalar>::applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw)
         SubLMPCons<Scalar> *m = mpc[locMpcNb];
         Pu[iDof] = 0.0;
         if(mpcFlag[locMpcNb]) deltaFmpc[locMpcNb] = 0.0;
-        if(mpc[locMpcNb]->isFree) {
+        if(!mpc[locMpcNb]->active) {
           for(k=0; k<m->nterms; k++) {
             int cdof = (m->terms)[k].cdof;
             if(cdof > -1) { // mpc dof that exists
@@ -4561,7 +4560,7 @@ GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWei
 {
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 /*&& mpc[locMpcNb]->isFree*/) { // inequality constraint
+    if(mpc[locMpcNb]->type == 1) { // inequality constraint
       for(int j=0; j<mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
         int glNode = glNums[node];
@@ -5795,11 +5794,10 @@ GenSubDomain<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, Simp
 {
   int i, j, k, l;
   for(i=0; i<numMPC; ++i) {
-    //if(!mpc[i]->isFree) continue;
     Scalar dotii = 0.0;
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
-    if(!mpc[i]->isFree) { CCtsolver->addone(1.0, renum_gi, renum_gi); continue; } // trick to prevent singularities in CCt when rebuit for contact
+    if(mpc[i]->active) { CCtsolver->addone(1.0, renum_gi, renum_gi); continue; } // trick to prevent singularities in CCt when rebuit for contact
     for(k=0; k < mpc[i]->nterms; ++k) {
       int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
@@ -5809,7 +5807,7 @@ GenSubDomain<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, Simp
     for(j=0; j < localMpcToMpc->num(i); ++j) {
       Scalar dotij = 0.0;
       int lj = (*localMpcToMpc)[i][j];
-      if(!mpc[lj]->isFree) continue;
+      if(mpc[lj]->active) continue;
       int gj = localToGlobalMPC[lj];
       int renum_gj = mpcEqNums->firstdof(gj);
       if(renum_gj > renum_gi) {  // work with upper symmetric half
@@ -5848,13 +5846,13 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
 
   // this is the exact required array size
   for(i=0; i<numMPC; ++i){
-    if(!mpc[i]->isFree) continue;
+    if(mpc[i]->active) continue;
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
     lengthCCtData++; //diagonal term
     for(j=0; j < localMpcToMpc->num(i); ++j) {
       int lj = (*localMpcToMpc)[i][j];
-      if(!mpc[lj]->isFree) continue;
+      if(mpc[lj]->active) continue;
       int gj = localToGlobalMPC[lj];
       int renum_gj = mpcEqNums->firstdof(gj);
       if(renum_gj > renum_gi)   // work with upper symmetric half
@@ -5868,7 +5866,7 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
   // Step 2. Fill the array
   lengthCCtData = 0; // use it as counter (at the end, it should be the exact number of contributions)
   for(i=0; i<numMPC; ++i) {
-    if(!mpc[i]->isFree) continue;
+    if(mpc[i]->active) continue;
     Scalar dotii = 0.0;
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
@@ -5884,7 +5882,7 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
     for(j=0; j < localMpcToMpc->num(i); ++j) {
       Scalar dotij = 0.0;
       int lj = (*localMpcToMpc)[i][j];
-      if(!mpc[lj]->isFree) continue;
+      if(mpc[lj]->active) continue;
       int gj = localToGlobalMPC[lj];
       int renum_gj = mpcEqNums->firstdof(gj);
       if(renum_gj > renum_gi) {  // work with upper symmetric half
@@ -5953,7 +5951,7 @@ GenSubDomain<Scalar>::assembleLocalCCtsolver()
   // Step 2. add local mpc CC^t terms to solver
   int i, j, k, l;
   for(i=0; i<numMPC; ++i) {
-    if(!mpc[i]->isFree) continue;
+    if(mpc[i]->active) continue;
     Scalar dotii = 0.0;
     for(k=0; k < mpc[i]->nterms; ++k) {
       int dof =(mpc[i]->terms)[k].cdof;
@@ -5964,7 +5962,7 @@ GenSubDomain<Scalar>::assembleLocalCCtsolver()
     for(j=0; j < localMpcToMpc->num(i); ++j) {
       Scalar dotij = 0.0;
       int lj = (*localMpcToMpc)[i][j];
-      if(!mpc[lj]->isFree) continue;
+      if(mpc[lj]->active) continue;
       if(lj > i) { // work with upper symmetric half only
         // now find matching dof/s
         for(k=0; k < mpc[i]->nterms; ++k) {
@@ -6078,7 +6076,7 @@ GenSubDomain<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCts
   int i, j, k, l,p;
   for(p=0; p<blockToLocalMpc->num(iBlock); ++p) {
     i = (*blockToLocalMpc)[iBlock][p];
-    if(!mpc[i]->isFree) continue;
+    if(mpc[i]->active) continue;
     int bi = (*blockToBlockMpc)[iBlock][p];
     int renum_bi = blockMpcEqNums->firstdof(bi);
     Scalar dotii = 0.0;
@@ -6090,7 +6088,7 @@ GenSubDomain<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCts
     CCtsolver->addone(dotii, renum_bi, renum_bi);
     for(j=0; j < localMpcToMpc->num(i); ++j) {
       int lj = (*localMpcToMpc)[i][j];
-       if(!mpc[lj]->isFree) continue;
+       if(mpc[lj]->active) continue;
       int jb = localMpcToBlock->cOffset(lj, iBlock);
       if(jb > -1) {
         int bj = (*localMpcToBlockMpc)[lj][jb];
@@ -6474,7 +6472,7 @@ GenSubDomain<Scalar>::Max(Scalar *v, Scalar &max, int flag)
   max = -numeric_limits<double>::max();
   for(int i=0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if((mpc[locMpcNb]->type == 1) && (flag != int(mpc[locMpcNb]->isFree)) && !(flag == 0 && mpc[locMpcNb]->redundant_flag)) {
+    if((mpc[locMpcNb]->type == 1) && (flag != int(!mpc[locMpcNb]->active)) && !(flag == 0 && mpc[locMpcNb]->redundant_flag)) {
       Scalar v_i = v[scomm->mapT(SComm::mpc,i)];
       if(ScalarTypes::greaterThan(v_i,max)) max = v_i;
     }
@@ -6490,7 +6488,7 @@ GenSubDomain<Scalar>::Equal(Scalar *v, Scalar val, int &mpcid, int flag)
   mpcid = -1;
   for(int i=0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if((mpc[locMpcNb]->type == 1) && (flag != int(mpc[locMpcNb]->isFree)) && !(flag == 0 && mpc[locMpcNb]->redundant_flag)) {
+    if((mpc[locMpcNb]->type == 1) && (flag != int(!mpc[locMpcNb]->active)) && !(flag == 0 && mpc[locMpcNb]->redundant_flag)) {
       Scalar v_i = v[scomm->mapT(SComm::mpc,i)];
       int glMpcNb = localToGlobalMPC[locMpcNb];
       if((v_i == val) && (glMpcNb > mpcid)) mpcid = glMpcNb;
@@ -6506,7 +6504,7 @@ GenSubDomain<Scalar>::updateActiveSet_one(int mpcid, int flag)
   // flag = 1 : remove mpcid from active set
   int locMpcNb = globalToLocalMPC[mpcid];
   if((locMpcNb > -1) && !(mpc[locMpcNb]->redundant_flag && flag == 0)) {
-    mpc[locMpcNb]->isFree = bool(flag);
+    mpc[locMpcNb]->active = !bool(flag);
     if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[locMpcNb]) { if(flag == 0) cerr << "-"; else cerr << "+"; }
   }
 }
@@ -6526,17 +6524,21 @@ GenSubDomain<Scalar>::updateActiveSet(Scalar *v, double tol, int flag, bool &sta
     int locMpcNb = scomm->mpcNb(i);
     if(mpc[locMpcNb]->type == 1) { // inequality constraint requiring planing
       if(flag == 0 && mpc[locMpcNb]->redundant_flag) continue;
-      if(flag == 0 && flag != int(mpc[locMpcNb]->isFree) && ScalarTypes::greaterThanEq(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = flag;
-      else if(flag == 1 && flag != int(mpc[locMpcNb]->isFree) && ScalarTypes::greaterThan(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = flag;
-      else if(flag == -1 && !mpc[locMpcNb]->isFree && mpcStatus1[locMpcNb] == 1 && ScalarTypes::lessThan(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 1;
-      else if(flag == -2 && mpc[locMpcNb]->isFree && mpcStatus1[locMpcNb] == 0 && ScalarTypes::lessThanEq(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 0;
+
+      if(flag == 0 && !mpc[locMpcNb]->active && ScalarTypes::greaterThanEq(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 0;
+
+      else if(flag == 1 && mpc[locMpcNb]->active && ScalarTypes::greaterThan(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 1;
+
+      else if(flag == -1 && mpc[locMpcNb]->active && mpcStatus1[locMpcNb] == 1 && ScalarTypes::lessThan(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 1;
+
+      else if(flag == -2 && !mpc[locMpcNb]->active && mpcStatus1[locMpcNb] == 0 && ScalarTypes::lessThanEq(v[scomm->mapT(SComm::mpc, i)],tol)) chgstatus[locMpcNb] = 0;
     }
   }
 
   for(int i = 0; i < numMPC; ++i) {
     if(chgstatus[i] > -1) {
       statusChange = true;
-      mpc[i]->isFree = bool(chgstatus[i]);
+      mpc[i]->active = !bool(chgstatus[i]);
       if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) { if(flag == 0 || flag == -2) cerr << "-"; else cerr << "+"; }
     }
   }
@@ -6563,10 +6565,24 @@ GenSubDomain<Scalar>::projectActiveIneq(Scalar *v)
 {
   for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 && (!mpc[locMpcNb]->isFree || mpc[i]->redundant_flag))
+    if(mpc[locMpcNb]->type == 1 && (mpc[locMpcNb]->active || mpc[locMpcNb]->redundant_flag))
       v[scomm->mapT(SComm::mpc, i)] = 0.0;
   }
 }
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::projectIneqExp(Scalar *v)
+{
+  for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
+    int locMpcNb = scomm->mpcNb(i);
+    if(mpc[locMpcNb]->type == 1) {
+      if(mpcStatus1[locMpcNb] == 0) v[scomm->mapT(SComm::mpc, i)] = 0.0;
+      else v[scomm->mapT(SComm::mpc, i)] = MIN(0.0, v[scomm->mapT(SComm::mpc, i)]);
+    }
+  }
+}
+
 
 template<class Scalar>
 void
@@ -6576,7 +6592,7 @@ GenSubDomain<Scalar>::split(Scalar *v, Scalar *v_f, Scalar *v_c, Scalar *v_p, do
   for(int i = 0; i<totalInterfSize; ++i) { v_p[i] = v_f[i] = v[i]; v_c[i] = 0.0; }
   for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 && !mpc[locMpcNb]->isFree) {
+    if(mpc[locMpcNb]->type == 1 && mpc[locMpcNb]->active) {
       int iDof = scomm->mapT(SComm::mpc, i);
       if(v[iDof] > tol) v_c[iDof] = v[iDof];
       else v_p[iDof] = 0;
@@ -6596,11 +6612,11 @@ GenSubDomain<Scalar>::chop(Scalar *v, Scalar *v_c, double tol, int chop_flag)
   for(int i = 0; i<totalInterfSize; ++i) { v_c[i] = 0.0; }
   for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 && ((!mpc[locMpcNb]->isFree && chop_flag == 0) || chop_flag == 1 || (mpc[locMpcNb]->isFree && chop_flag == 2))) {
+    if(mpc[locMpcNb]->type == 1 && ((mpc[locMpcNb]->active && chop_flag == 0) || chop_flag == 1 || (!mpc[locMpcNb]->active && chop_flag == 2))) {
       int iDof = scomm->mapT(SComm::mpc, i);
       if(v[iDof] > tol) v_c[iDof] = v[iDof];
     }
-    else if(mpc[locMpcNb]->type == 1 && !mpc[locMpcNb]->isFree && chop_flag == -1) {
+    else if(mpc[locMpcNb]->type == 1 && mpc[locMpcNb]->active && chop_flag == -1) {
       int iDof = scomm->mapT(SComm::mpc, i);
       if(v[iDof] > tol || v[iDof] < -tol) v_c[iDof] = v[iDof];
     }

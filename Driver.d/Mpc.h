@@ -148,8 +148,8 @@ class SubLMPCons
   int nterms; 
   int type;                       // 0: equality constraint
                                   // 1: inequality constraint (contact)
-  bool isFree;                    // defines free set (and it's complement the active set), used for contact
-                                  // active means than the lagrange multiplier associated with the mpc is constrained to be zero
+  bool active;                    // defines active set, used for contact
+                                  // in FETI-DP active means than the lagrange multiplier associated with the mpc is constrained to be zero (ie the dual constraint is active)
   bool redundant_flag;            // mpc is redundant wrt to active set so do not add it
 
   ResizeArray<int> gi;      // index of mpc term before it is distributed to subd
@@ -168,7 +168,7 @@ class SubLMPCons
     gi[0] = _gi; 
     ScalarTypes::initScalar(k[0], 1.0); 
     type = 0;
-    isFree = true;
+    active = false;
     redundant_flag = false;
   }
 
@@ -233,7 +233,6 @@ class SubLMPCons
                 << terms[i].dofnum << "  coef " << terms[i].coef << endl;
   }
 
-  bool isActive() { return !isFree; }
 };
 
 inline void LMPCons::removeNullTerms() {

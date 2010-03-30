@@ -140,7 +140,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
 
   // 4. create, assemble and factorize GtG
   GtG = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-  GtG->setPrintNullity(true);
+  //GtG->setPrintNullity(false);
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 0);
 #ifdef DISTRIBUTED
   GtG->unify(this->fetiCom);

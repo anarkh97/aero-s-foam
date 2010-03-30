@@ -314,17 +314,15 @@ void GenSubDomain<Scalar>::deleteG()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha, int flag)
+GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha)
 {
-  // flag = 0: y += alpha * G * x
-  //        1: y += alpha * Gtilda * x
+  // y += alpha * G * x
   Scalar *mpcvec = (Scalar *) alloca(sizeof(Scalar)*numMPC);
   for(int i=0; i<numMPC; ++i) mpcvec[i] = 0.0;
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     int neighb = scomm->neighbT(SComm::mpc, i);
     for(int j = 0; j < scomm->lenT(SComm::mpc, i); ++j) {
       int locMpcNb = scomm->mpcNb(i,j);
-      if(flag == 1 && !mpc[locMpcNb]->isFree) continue;
       if(mpcvec[locMpcNb] == 0.0)
         for(int k = 0; k < numGroupRBM; ++k)
           mpcvec[locMpcNb] += (*G[i])[j][k] * x[k + groupRBMoffset];
@@ -339,16 +337,14 @@ GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha, int f
 
 template<class Scalar>
 void 
-GenSubDomain<Scalar>::trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha, int flag)
+GenSubDomain<Scalar>::trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha)
 {
-  // flag = 0: compute y += alpha * G^t * x
-  //        1: compute y += alpha * Gtilda^t * x 
+  // compute y += alpha * G^t * x
   bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
       int locMpcNb = scomm->mpcNb(i,j);
-      if(flag == 1 && !mpc[locMpcNb]->isFree) continue;
       int iDof = scomm->mapT(SComm::mpc,i,j);
       if(mpcFlag[locMpcNb]) {
         for(int k = 0; k < numGroupRBM; ++k)
@@ -374,7 +370,7 @@ GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int 
     GenVector<Scalar> d(scomm->lenT(SComm::mpc,i));
     for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
       int locMpcNb = scomm->mpcNb(i,j);
-      d[j] = ((flag == 0) || mpc[locMpcNb]->isFree) ? 1.0 : 0.0;
+      d[j] = ((flag == 0) || !mpc[locMpcNb]->active) ? 1.0 : 0.0;
     }
     if((numGroupRBM2 > 0) && (subNumber != scomm->neighbT(SComm::mpc,i))) {
       GenFullM<Scalar> tmp2(numGroupRBM, numGroupRBM2);  // coupling term

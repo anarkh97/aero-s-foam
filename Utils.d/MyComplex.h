@@ -91,6 +91,13 @@ namespace ScalarTypes
 
 }
 
+#ifndef MIN
+#define MIN(X,Y) (ScalarTypes::lessThan(X,Y) ? X : Y)
+#endif
+#ifndef MAX
+#define MAX(X,Y) (ScalarTypes::greaterThan(X,Y) ? X : Y)
+#endif
+
 #include <Utils.d/linkfc.h>
 
 extern "C"      {

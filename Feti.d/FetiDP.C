@@ -34,12 +34,14 @@
 #include <Math.d/FullMatrix.h>
 #include <Utils.d/print_debug.h>
 
+/*
 #ifndef MIN
-#define MIN(X,Y) ((X < Y) ? X : Y)
+#define MIN(X,Y) (ScalarTypes::lessThan(X,Y)) ? X : Y)
 #endif
 #ifndef MAX
 #define MAX(X,Y) (ScalarTypes::greaterThan(X,Y) ? X : Y)
 #endif
+*/
 
 #include <limits>
 
@@ -1312,7 +1314,7 @@ GenFetiDPSolver<Scalar>::feasible(GenDistrVector<Scalar> &lambda, bool check_eq,
     // check G^T*lambda+e = 0
     GenVector<Scalar> &e = this->wksp->ret_e();
     GenVector<Scalar> &gamma = this->wksp->ret_gamma();
-    trMultG(lambda, gamma, 1.0, 0.0, 0); // gamma = G^T*lambda
+    trMultG(lambda, gamma, 1.0, 0.0); // gamma = G^T*lambda
     gamma += e;
     eq = ((eq_error = sqrt(gamma.sqNorm())) <= this->fetiInfo->equi_tol);
   }
@@ -2483,10 +2485,9 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == GtG) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    GtGtilda->setPrintNullity(false);
+    //GtGtilda->setPrintNullity(false);
   } else
   GtGtilda->zeroAll();
-  //for(int i=0; i<GtGtilda->neqs(); ++i) GtGsparse->add(i, i, resnorm); // XXXX
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 1);
 #ifdef DISTRIBUTED
   GtGtilda->unify(this->fetiCom);
@@ -2994,31 +2995,43 @@ GenFetiDPSolver<Scalar>::subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta, int flag)
+GenFetiDPSolver<Scalar>::projectIneqExp(GenDistrVector<Scalar> &v)
 {
-  // flag = 0:  y = alpha*G*x + beta*y
-  // flag = 1:  y = alpha*Gtilda*x + beta*y (default)
+  execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::subProjectIneqExp, v);
+}
+
+template<class Scalar>
+void
+GenFetiDPSolver<Scalar>::subProjectIneqExp(int iSub, GenDistrVector<Scalar> &v)
+{
+  this->sd[iSub]->projectIneqExp(v.subData(this->sd[iSub]->localSubNum()));
+}
+
+
+template<class Scalar>
+void
+GenFetiDPSolver<Scalar>::multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta)
+{
+  // y = alpha*G*x + beta*y
   if(beta == 0) y.zero(); else y *= beta;
-  GenVector<Scalar> v(x);
-  execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultG, v, y, alpha, int(flag==1)); // y += alpha*G*v
+  execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::subMultG, x, y, alpha); // y += alpha*G*x
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, int flag)
+GenFetiDPSolver<Scalar>::subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha)
 {
-  this->sd[iSub]->multG(x, y.subData(this->sd[iSub]->localSubNum()), alpha, flag); 
+  this->sd[iSub]->multG(x, y.subData(this->sd[iSub]->localSubNum()), alpha); 
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta, int flag)
+GenFetiDPSolver<Scalar>::trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta)
 {
-  // flag = 0:  y = alpha*G^T*x + beta*y
-  // flag = 1:  y = alpha*Gtilda^T*x + beta*y (default)
+  // y = alpha*G^T*x + beta*y
   if(beta == 0) y.zero(); else y *= beta;
   GenVector<Scalar> v(ngrbms, 0.0);
-  execParal4R(nGroups1, this, &GenFetiDPSolver<Scalar>::subTrMultG, x, v, alpha, int(flag==1)); // v += alpha*G^T*x
+  execParal3R(nGroups1, this, &GenFetiDPSolver<Scalar>::subTrMultG, x, v, alpha); // v += alpha*G^T*x
 #ifdef DISTRIBUTED
   this->fetiCom->globalSum(ngrbms, v.data());
 #endif
@@ -3027,30 +3040,28 @@ GenFetiDPSolver<Scalar>::trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, int flag)
+GenFetiDPSolver<Scalar>::subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha)
 {
 #ifdef DISTRIBUTED
   for(int i=0; i<this->nsub; ++i) {
     if(this->sd[i]->group == groups[iGroup])
-      this->sd[i]->trMultG(x.subData(this->sd[i]->localSubNum()), y, alpha, flag); 
+      this->sd[i]->trMultG(x.subData(this->sd[i]->localSubNum()), y, alpha); 
   }
 #else
   int *grsubs = (*groupToSub)[iGroup];
   for(int i = 0; i < groupToSub->num(iGroup); ++i) {
     int iSub = grsubs[i];
-    this->sd[iSub]->trMultG(x.subData(this->sd[iSub]->localSubNum()), y, alpha, flag); 
+    this->sd[iSub]->trMultG(x.subData(this->sd[iSub]->localSubNum()), y, alpha); 
   }
 #endif
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::reSolveGtG(GenVector<Scalar> &x, int flag)
+GenFetiDPSolver<Scalar>::reSolveGtG(GenVector<Scalar> &x)
 {
-  // flag = 0:  x = (G^T*G)^-1 * x
-  // flag = 1:  x = (Gtilda^T*Gtilda)^-1 * x
-  if(flag == 0) GtG->reSolve(x);
-  else if(flag == 1) GtGtilda->reSolve(x);
+  // x = (Gtilda^T*Gtilda)^-1 * x
+  GtGtilda->reSolve(x);
 }
 template<class Scalar>
 void
@@ -3065,7 +3076,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   // iproj && !gproj:  P = P_i, y0 = 0
   // note: P_i depends on active set which is a function of y(ie lambda) hence dual planing subiterations required for feasible projection
    
-  resnorm = 0.0;
+  double resnorm = 0.0;
   double tol = -this->fetiInfo->dual_plan_tol;
   if(eflag == 1) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
 
@@ -3073,9 +3084,13 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   if(&y != &z) y = z;
 
   if(gproj) {
-    // 1. alpha = e-G^T*P_i*z
+    // 0. x = P_i*z
+    GenDistrVector<Scalar> x(z);
+    /*if(eflag > 1) projectIneqExp(x); else */ projectActiveIneq(x);
+
+    // 1. alpha = e-G^T*x
     GenVector<Scalar> alpha(ngrbms);
-    trMultG(y, alpha, -1.0, 0.0, int(iproj)); // alpha = -G^T*P_i*z
+    trMultG(x, alpha, -1.0, 0.0); // alpha = -G^T*x
     if(eflag) { 
       GenVector<Scalar> &e = this->wksp->ret_e();
       alpha -= e; resnorm = alpha.norm(); if(eflag >= 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual residual norm = " << resnorm << endl;
@@ -3083,7 +3098,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
 
     if(!(eflag > 1 && (resnorm < this->fetiInfo->dual_proj_tol || eflag > 20))) {
       // 2. alpha = (G^T*P_i*G)^(-1)*alpha
-      reSolveGtG(alpha, int(iproj));
+      reSolveGtG(alpha);
 
       // 3. y = z + G*alpha
       multG(alpha, y, 1.0, 1.0);
@@ -3102,7 +3117,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   } // NEED TO CLEAN UP
 
   // 5. y = P_i*y
-  if(iproj) projectActiveIneq(y);
+  if(iproj) /*projectIneqExp(y);*/ projectActiveIneq(y);
 
   if(eflag) {
     //cerr << "eflag = " << eflag << ", resnorm = " << resnorm << endl;
@@ -3127,7 +3142,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   // note: P_i depends on active set which is a function of r+G*alpha, hence primal planing subiterations required if not proportional
   // this function also saves alpha in the feti workspace
 
-  resnorm = 0.0;
+  double resnorm = 0.0;
   double tol = -this->fetiInfo->primal_plan_tol;
 
   if(pflag == 1) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus1);
@@ -3136,16 +3151,20 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   if(&w != &r) w = r;
 
   if(gproj) {
-    // 1. alpha = -Gtilda^t*r
+    // 0. x = P_i*r
+    GenDistrVector<Scalar> x(r);
+    if(iproj) projectActiveIneq(x);
+
+    // 1. alpha = -G^t*x
     GenVector<Scalar> &alpha = this->wksp->ret_alpha();
     if(pflag <= 1) alpha.zero();
     GenVector<Scalar> delta(ngrbms);
-    trMultG(w, delta, -1.0, 0.0, int(iproj));
+    trMultG(x, delta, -1.0, 0.0);
     if(pflag) { resnorm = delta.norm(); if(pflag >= 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal residual norm = " << resnorm << endl; }
 
     if(!(pflag > 1 && (resnorm < this->fetiInfo->primal_proj_tol || pflag > 20))) {
       // 2. alpha = (Gtilda^T*Gtilda)^(-1)*alpha
-      reSolveGtG(delta, int(iproj));
+      reSolveGtG(delta);
       alpha += delta;
 
       // 3. w = r + G*alpha

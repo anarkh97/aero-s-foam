@@ -645,6 +645,7 @@ class GenSubDomain : public BaseSub
   void deleteMPCs();
 
   void projectActiveIneq(Scalar *v);
+  void projectIneqExp(Scalar *v);
   void getn_u(Scalar *n_u, int mpcid);
   void split(Scalar *v, Scalar *v_f, Scalar *v_c, Scalar *v_p, double tol = 0.0);
   void chop(Scalar *v, Scalar *v_c, double tol, int chop_flag);
@@ -811,8 +812,8 @@ class GenSubDomain : public BaseSub
   void zeroG();
   void deleteG();
   // G matrix-vector multiplication
-  void multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha, int flag);  // y = alpha*G*x
-  void trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha, int flag); // y = alpha*G^T*x
+  void multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha);  // y = alpha*G*x
+  void trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha); // y = alpha*G^T*x
   // (G^T*G) matrix assembly
   void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int flag);
 

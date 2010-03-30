@@ -434,6 +434,8 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
 
     void projectActiveIneq(GenDistrVector<Scalar> &v);
     void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v);
+    void projectIneqExp(GenDistrVector<Scalar> &v);
+    void subProjectIneqExp(int iSub, GenDistrVector<Scalar> &v);
     void projectFreeIneq(GenDistrVector<Scalar> &v);
     void subProjectFreeIneq(int iSub, GenDistrVector<Scalar> &v);
     void split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c, GenDistrVector<Scalar> &v_p);
@@ -480,7 +482,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     FSCommPattern<Scalar> *mpcSPat;
     Scalar alpha_l, beta_l; // bisection linesearch parameters
     int newton_iter;
-    double resnorm;
 
     // Contact functions
   public:
@@ -500,11 +501,11 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     double computeFNorm();
     void project(GenDistrVector<Scalar> &z, GenDistrVector<Scalar> &y, int eflag = 0);
     void tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scalar> &w, double &dual_error, int pflag = 1);
-    void multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta, int flag = 0);
-    void subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, int flag);
-    void trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta, int flag = 0);
-    void subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, int flag);
-    void reSolveGtG(GenVector<Scalar> &x, int flag = 0);
+    void multG(GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha, double beta);
+    void subMultG(int iSub, GenVector<Scalar> &x, GenDistrVector<Scalar> &y, double alpha);
+    void trMultG(GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha, double beta);
+    void subTrMultG(int iGroup, GenDistrVector<Scalar> &x, GenVector<Scalar> &y, double alpha);
+    void reSolveGtG(GenVector<Scalar> &x);
     bool redundant(bool print_flag = false); 
     bool feasible(GenDistrVector<Scalar> &lambda, bool check_eq = true, bool check_ieq = true, 
                   bool print_warning_eq = true, bool print_warning_ieq = true, int chop_flag = 1);

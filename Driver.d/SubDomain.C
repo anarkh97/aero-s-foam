@@ -1783,7 +1783,7 @@ GenSubDomain<Scalar>::makeKbbMpc()
 
   for(int i = 0; i < numMPC; i++) {
     SubLMPCons<Scalar> *m = mpc[i];
-    if(mpc[i]->active) continue;
+    //XXXX if(mpc[i]->active) continue;
     for(int k=0; k<m->nterms; k++) {
       int cdof = (m->terms)[k].cdof;
       if(cdof >= 0) weight_mpc[cdof] = 2; // > 1 hence will be in boundary (see makeBmaps and makeImaps)
@@ -3913,8 +3913,10 @@ GenSubDomain<Scalar>::multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *
 
   applyBtransposeAndScaling(u, v, deltaU, localw);
 
+  //Scalar norm = 0; for(i=0; i<boundLen; ++i) norm += v[i]*v[i]; cerr << "1. norm = " << sqrt(norm) << endl;
   if((solInfo().getFetiInfo().precno == FetiInfo::lumped) ||
      (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) Kbb->mult(v, res);  // res = Kbb * v
+  //norm = 0; for(i=0; i<boundLen; ++i) norm += res[i]*res[i]; cerr << "2. norm = " << sqrt(norm) << endl;
 
   if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || errorFlag) {
     Scalar *iDisp = new Scalar[internalLen];
@@ -3923,7 +3925,9 @@ GenSubDomain<Scalar>::multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *
     if(Kib) Kib->transposeMultAdd(v, iDisp); // iDisp += Kib^T * v
 
     if(solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
+      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; cerr << "3. norm = " << sqrt(norm) << endl;
       if(KiiSolver) KiiSolver->reSolve(iDisp);
+      //norm = 0; for(i=0; i<internalLen; ++i) norm += iDisp[i]*iDisp[i]; cerr << "4. norm = " << sqrt(norm) << endl;
       for(i=0; i<numWIdof; ++i) localw[i] = iDisp[wiInternalMap[i]]; // coupled_dph
       if(Kib) Kib->multSub(iDisp, res); // res -= Kib*iDisp
     }
@@ -4390,6 +4394,15 @@ GenSubDomain<Scalar>::printMpcStatus()
  }
 }
 
+template<class Scalar>
+void
+GenSubDomain<Scalar>::initMpcStatus()
+{
+ for(int i = 0; i < numMPC; ++i) {
+   mpc[i]->redundant_flag = false;
+   mpc[i]->active = false;
+ }
+}
 
 template<class Scalar>
 void
@@ -4467,6 +4480,7 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
   for(iDof = 0; iDof < totalInterfSize; ++iDof) {
     switch(boundDofFlag[iDof]) {
       case 0:
+        //cerr << "scaling[iDof] = " << scaling[iDof] << ", u[iDof] = " << u[iDof] << ", dualToBoundary[iDof] = " << dualToBoundary[iDof] << endl;
         v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
         if(deltaU) deltaU[allBoundDofs[iDof]] = -v[dualToBoundary[iDof]];
         break;
@@ -4484,6 +4498,9 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
               int cdof = (m->terms)[k].cdof;
               if(cdof >= 0) { // mpc dof that exists
                 Scalar coef = (m->terms)[k].coef / m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
+                //cerr << "locMpcNb = " << locMpcNb << ", scaling[iDof] = " << scaling[iDof] << ", coef = " << coef << ", u[iDof] = " << u[iDof] << ", cdof = " << cdof
+                //     << ", invBoundMap[cdof] = " << invBoundMap[cdof] << endl;
+                if(invBoundMap[cdof] < 0) cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
                 v[invBoundMap[cdof]] += u[iDof] * coef * scaling[iDof];
               }
             }

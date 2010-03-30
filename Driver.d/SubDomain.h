@@ -688,6 +688,7 @@ class GenSubDomain : public BaseSub
   void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
   void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag);
   void printMpcStatus();
+  void initMpcStatus();
   void saveMpcStatus();
   void restoreMpcStatus();
   void saveMpcStatus1();

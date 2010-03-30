@@ -337,6 +337,8 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
  this->times.memoryDV += memoryUsed();
 
+ paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
+
  t6 += getTime();
 }
 
@@ -1391,6 +1393,7 @@ GenFetiDPSolver<Scalar>::init_solve()
   nExtraFp = nRebuildGtG = nRebuildCCt = nLinesearchIter = nSubIterDual = nSubIterPrimal = nStatChDual = nStatChPrimal = 0;
   if(globalFlagCtc && this->numSystems > 0) { cerr << "resetting the orthoset\n"; this->resetOrthoSet(); }
   if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   proportional = true;
 }
 
@@ -2851,7 +2854,38 @@ GenFetiDPSolver<Scalar>::refactor()
 
   if(this->fetiInfo->augment == FetiInfo::WeightedEdges)
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
- 
+
+ // MPCs 
+ mpcPrecon = false;
+ if(this->glNumMpc > 0) {
+   if(this->fetiInfo->mpc_scaling == FetiInfo::kscaling) { // MPC stiffness scaling
+     FSCommPattern<Scalar> *mpcDiagPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
+                                                                   FSCommPattern<Scalar>::CopyOnSend);
+     for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setMpcDiagCommSize(mpcDiagPat);
+     mpcDiagPat->finalize();
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcDiag, mpcDiagPat);
+     mpcDiagPat->exchange();
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcDiag, mpcDiagPat);
+     delete mpcDiagPat;
+   }
+
+   if(this->fetiInfo->c_normalize) normalizeC();
+
+   if(this->fetiInfo->mpc_precno == FetiInfo::diagCCt) {
+     // use W scaling for preconditioning mpcs, don't need to build & invert CC^t
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcScaling, this->vPat);
+     this->vPat->exchange();  // neighboring subs mpc weights
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::collectMpcScaling, this->vPat);
+   }
+   else if(this->fetiInfo->mpc_precno != FetiInfo::noMpcPrec) {
+     // used generalized proconditioner for mpcs, need to build and invert CC^t
+     mpcPrecon = true;
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+     deleteCCt();
+     buildCCt();
+   }
+ }
+
   // 5. factor local matrices
   if(verboseFlag) filePrint(stderr," ... Factor Subdomain Matrices      ... \n");
   startTimerMemory(this->times.factor, this->times.memoryFactor);
@@ -2944,6 +2978,7 @@ GenFetiDPSolver<Scalar>::refactor()
   }
   internalC.len = tLocalCLen;
 
+  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcStatus);
 }
 
 template<class Scalar>
@@ -3209,6 +3244,7 @@ void
 GenFetiDPSolver<Scalar>::computeL0(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f)
 {
   if(newton_iter == 0) lambda.zero();
+  cerr << "newton_iter = " << newton_iter << ", lambda norm = " << lambda.norm() << endl;
   if(this->glNumMpc) {
     if(ngrbms > 0) makeE(f); // compute e = R^T*f
     project(lambda, lambda, true); 

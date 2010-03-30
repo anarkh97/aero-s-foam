@@ -219,9 +219,16 @@ MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
+
    GenMDDynamMat<double> allOps;
    allOps.sysSolver = solver;
    decDomain->rebuildOps(allOps, 0.0, 0.0, 1.0, kelArray);
+
+/*
+   GenMDDynamMat<double> allOps;
+   decDomain->buildOps(allOps, 0.0, 0.0, 1.0, (Rbm **)0, kelArray);
+   solver = (GenFetiSolver<double> *) allOps.sysSolver;
+*/
    rebuildFlag = 1;
  }
 
@@ -420,7 +427,7 @@ MDNLStatic::updateMpcRhs(DistrGeomState &geomState)
 void
 MDNLStatic::updateContactConditions(DistrGeomState* geomState)
 {
-  // YYYY
+
   domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
   domain->PerformStaticContactSearch();
   domain->deleteLMPCs();
@@ -431,5 +438,6 @@ MDNLStatic::updateContactConditions(DistrGeomState* geomState)
   decDomain->reProcessMPCs();
   ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   //solver = decDomain->getFetiSolver();
+
 }
 

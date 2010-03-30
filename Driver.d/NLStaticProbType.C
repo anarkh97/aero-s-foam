@@ -361,7 +361,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
     // Solve current system Kt*u = residual, overwrite residual with u
     timeSolve -= getTime();
-    solver->reSolve(residual);
+    probDesc->getSolver()->reSolve(residual);
     timeSolve += getTime();
 #ifdef PRINT_TIMERS
     filePrint(stderr,"  Solve Incremental Displacement %13.4f s\n",

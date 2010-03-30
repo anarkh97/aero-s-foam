@@ -340,7 +340,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     VecType g(residual); // gradient of the lagrangian: K*u-f+C^T*lambda
     probDesc->addMpcForces(g);
     residualNorm = probDesc->norm(g);
-    //if(!(step == 1 && iter == 0)) 
+    if(!(step == 1 && iter == 0)) 
       probDesc->updateContactConditions(geomState); // now we are doing this every iteration
     probDesc->updateMpcRhs(*geomState);
     // END DEBUG CONTACT

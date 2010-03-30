@@ -6563,7 +6563,7 @@ GenSubDomain<Scalar>::projectActiveIneq(Scalar *v)
 {
   for(int i = 0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type == 1 && (!mpc[locMpcNb]->isFree || mpc[i]->redundant_flag))
+    if(mpc[locMpcNb]->type == 1 && (!mpc[locMpcNb]->isFree || mpc[locMpcNb]->redundant_flag))
       v[scomm->mapT(SComm::mpc, i)] = 0.0;
   }
 }

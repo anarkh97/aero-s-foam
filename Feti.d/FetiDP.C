@@ -2860,6 +2860,7 @@ GenFetiDPSolver<Scalar>::refactor()
     for(int iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
   stopTimerMemory(this->times.factor, this->times.memoryFactor);
 
+/*
   // 6. zero and rebuild and refactor Kcc 
   if(this->fetiInfo->isEdgeAugmentationOn() && this->fetiInfo->numdir > 0) {
     if(verboseFlag) filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
@@ -2880,41 +2881,67 @@ GenFetiDPSolver<Scalar>::refactor()
     internalC.len = tLocalCLen;
   }
   else {
-    if(verboseFlag) filePrint(stderr, " ... Re-assemble Kcc solver         ... \n");
-    startTimerMemory(this->times.coarse1, this->times.memoryGtG);
-    if(KccSolver) KccSolver->zeroAll();
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc);
-    if(KccSparse) for(int iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
-    stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
-    if(verboseFlag) filePrint(stderr, " ... Factorize Kcc solver           ... \n");
-    startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+    if(cornerEqs->size() > 0) {
+      if(verboseFlag) filePrint(stderr, " ... Re-assemble Kcc solver         ... \n");
+      startTimerMemory(this->times.coarse1, this->times.memoryGtG);
+      if(KccSolver) KccSolver->zeroAll();
+      paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc);
+      if(KccSparse) for(int iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
+      stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
+      if(verboseFlag) filePrint(stderr, " ... Factorize Kcc solver           ... \n");
+      startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 #ifdef DISTRIBUTED
-    if(KccSolver) KccSolver->unify(this->fetiCom);
+      if(KccSolver) KccSolver->unify(this->fetiCom);
 #endif
-    if(KccSolver) KccSolver->parallelFactor();
+      if(KccSolver) KccSolver->parallelFactor();
 
-    if(this->fetiInfo->nullSpace == FetiInfo::trbm) {
-      if(kccrbms) delete [] kccrbms; kccrbms = 0;
-      ngrbms = KccSolver->numRBM();
-      if(KccSolver->numRBM() > 0) { // TRBM
-        kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
-        KccSolver->getNullSpace(kccrbms);
-        //cerr << "kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
-        if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
-          for(int i= 0; i<KccSolver->numRBM(); ++i)
-            for(int j=0; j<KccSolver->neqs(); ++j)
-              if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < this->fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
-          //cerr << "filtered kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
+      if(this->fetiInfo->nullSpace == FetiInfo::trbm) {
+        if(kccrbms) delete [] kccrbms; kccrbms = 0;
+        ngrbms = KccSolver->numRBM();
+        if(KccSolver->numRBM() > 0) { // TRBM
+          kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
+          KccSolver->getNullSpace(kccrbms);
+          //cerr << "kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
+          if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
+            for(int i= 0; i<KccSolver->numRBM(); ++i)
+              for(int j=0; j<KccSolver->neqs(); ++j)
+                if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < this->fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
+            //cerr << "filtered kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
+          }
         }
       }
-      GenVector<Scalar> &e = this->wksp->ret_e(); e.reset(ngrbms);
-      GenVector<Scalar> &alpha = this->wksp->ret_alpha(); alpha.reset(ngrbms);
-      GenVector<Scalar> &gamma = this->wksp->ret_gamma(); gamma.reset(ngrbms);
-      if(ngrbms) makeGtG();
-      else { deleteG(); if(GtG) { delete GtG; GtG = 0; GtGsparse = 0; } if(GtGtilda) { delete GtGtilda; GtGtilda = 0; } }
     }
+    cerr << "here in GenFetiDPSolver<Scalar>::refactor(), ngrbms = " << ngrbms << endl;
+    GenVector<Scalar> &e = this->wksp->ret_e(); e.reset(ngrbms);
+    GenVector<Scalar> &alpha = this->wksp->ret_alpha(); alpha.reset(ngrbms);
+    GenVector<Scalar> &gamma = this->wksp->ret_gamma(); gamma.reset(ngrbms);
+    if(ngrbms) makeGtG();
+    else { deleteG(); if(GtG) { delete GtG; GtG = 0; GtGsparse = 0; } if(GtGtilda) { delete GtGtilda; GtGtilda = 0; } }
+    
     stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
   }
+*/
+
+  if(verboseFlag) filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
+  delete KccSparse; KccSparse = 0; KccSolver = 0;
+  makeKcc();
+
+  cerr << "here in GenFetiDPSolver<Scalar>::refactor(), ngrbms = " << ngrbms << endl;
+  if(GtGtilda && GtGtilda != GtG) { delete GtGtilda; GtGtilda = 0; } if(GtG) { delete GtG; GtG = 0; GtGsparse = 0; } 
+  if(ngrbms) makeGtG();
+
+  delete this->wksp;
+  this->times.memoryDV -= memoryUsed();
+  int numC = (KccSolver) ? KccSolver->neqs() : 0;
+  this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
+  this->times.memoryDV += memoryUsed();
+
+  int tLocalCLen = 0;
+  for(int iSub = 0; iSub < this->nsub; ++iSub) {
+    internalC.domLen[iSub] = this->sd[iSub]->numCoarseDofs();
+    tLocalCLen += internalC.domLen[iSub];
+  }
+  internalC.len = tLocalCLen;
 
 }
 
@@ -3051,7 +3078,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     trMultG(y, alpha, -1.0, 0.0, int(iproj)); // alpha = -G^T*P_i*z
     if(eflag) { 
       GenVector<Scalar> &e = this->wksp->ret_e();
-      alpha -= e; resnorm = alpha.norm(); if(eflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual residual norm = " << resnorm << endl;
+      alpha -= e; resnorm = alpha.norm(); if(eflag >= 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual residual norm = " << resnorm << endl;
     }
 
     if(!(eflag > 1 && (resnorm < this->fetiInfo->dual_proj_tol || eflag > 20))) {
@@ -3114,7 +3141,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     if(pflag <= 1) alpha.zero();
     GenVector<Scalar> delta(ngrbms);
     trMultG(w, delta, -1.0, 0.0, int(iproj));
-    if(pflag) { resnorm = delta.norm(); if(pflag > 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal residual norm = " << resnorm << endl; }
+    if(pflag) { resnorm = delta.norm(); if(pflag >= 1 && this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal residual norm = " << resnorm << endl; }
 
     if(!(pflag > 1 && (resnorm < this->fetiInfo->primal_proj_tol || pflag > 20))) {
       // 2. alpha = (Gtilda^T*Gtilda)^(-1)*alpha
@@ -3163,9 +3190,8 @@ void
 GenFetiDPSolver<Scalar>::computeL0(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f)
 {
   if(newton_iter == 0) lambda.zero();
-  cerr << "lambda0 norm = " << lambda.norm() << endl;
   if(this->glNumMpc) {
-    if(ngrbms > 0) makeE(f); // compute e = R^T*f (first time only for nonlinear)
+    if(ngrbms > 0) makeE(f); // compute e = R^T*f
     project(lambda, lambda, true); 
     feasible(lambda); // check if lambda is feasible
   }
@@ -3280,7 +3306,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 
  // Allocate space for reorthogonalization set
  this->times.memoryOSet -= memoryUsed();
- if((this->fetiInfo->outerloop == 0) || (this->fetiInfo->outerloop == 3)) {
+ if(this->fetiInfo->outerloop == 0) {
    delete this->oSetCG;
    this->oSetCG = (this->fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom) : 0;
  }
@@ -3333,9 +3359,13 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
    }
  }
 
- paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reMultKcc);
-
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
+
+/*
+ if(cornerEqs->size() > 0) 
+   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reMultKcc);
+
+ //paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
 
  if(ngrbms) makeGtG();  // currently G = C^T*R (ie restriction of R to mpc interface)
 
@@ -3344,6 +3374,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  int numC = (KccSolver) ? KccSolver->neqs() : 0;
  this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
  this->times.memoryDV += memoryUsed();
+*/
 }
 
 template<class Scalar>

@@ -4168,21 +4168,18 @@ GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec)
   // set the rhs of inequality mpcs to the geometric gap and reset the rhs of the equality mpcs to the original rhs
   // (used in nonlinear analysis)
   // idea: initalize to dual-active if gap is open (+ve) // XXXX
-  //if(subNumber == 0) cerr << "setMpcRhs: ";
   for(int i=0; i<scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpc[locMpcNb]->type != 1) mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs; else
     mpc[locMpcNb]->original_rhs = mpc[locMpcNb]->rhs = interfvec[scomm->mapT(SComm::mpc,i)];
-    //if(subNumber == 0) cerr << mpc[locMpcNb]->rhs << " ";
+    //cerr << "type = " << mpc[locMpcNb]->type << ", rhs = " << mpc[locMpcNb]->rhs << endl;
   }
-  //if(subNumber == 0) cerr << endl;
 }
 
 template<class Scalar>
 void
 GenSubDomain<Scalar>::updateMpcRhs(Scalar *interfvec)
 {
-  //if(subNumber == 0) cerr << "updateMpcRhs: ";
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
   for(int i=0; i<scomm->lenT(SComm::mpc); ++i) {
@@ -4192,7 +4189,6 @@ GenSubDomain<Scalar>::updateMpcRhs(Scalar *interfvec)
       mpcFlag[locMpcNb] = false;
     }
   }
-  //if(subNumber == 0) cerr << endl;
 }
 
 template<class Scalar>
@@ -4389,8 +4385,10 @@ void
 GenSubDomain<Scalar>::printMpcStatus()
 {
  for(int i = 0; i < numMPC; ++i) {
-   if(mpc[i]->redundant_flag) cerr << "*"; else
-   cerr<< (mpc[i]->active ? 'o' : 'x');
+   if(mpc[i]->type == 1) {
+     if(mpc[i]->redundant_flag) cerr << "*"; else
+     cerr<< (mpc[i]->active ? 'o' : 'x');
+   }
  }
 }
 

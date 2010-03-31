@@ -324,7 +324,7 @@ FetiInfo::FetiInfo()
   contactPrintFlag = 0;
   gamma = 1.0;
   wolfe_c1 = 1.0e-4; wolfe_c2 = 0.9;
-  linesearch = 1; linesearch_tau = 0.5; linesearch_maxit = 100;
+  linesearch = 1; linesearch_tau = 0.5; linesearch_maxit = 20;
   cmpc = bmpc = dmpc = false;
   cq_type = nocq; cq_tol = 1.0e-14;
 

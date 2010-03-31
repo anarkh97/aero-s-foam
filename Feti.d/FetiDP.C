@@ -1232,7 +1232,7 @@ GenFetiDPSolver<Scalar>::linesearch(Scalar &nu, GenDistrVector<Scalar> &p, int &
     return true;
   }
   else {
-    if(l >= this->fetiInfo->linesearch_maxit && this->myCPU == 0) cerr << "linesearch did not converge in " << this->fetiInfo->linesearch_maxit << " iterations\n";
+    if(l >= this->fetiInfo->linesearch_maxit && this->myCPU == 0 && verboseFlag) cerr << "linesearch did not converge in " << this->fetiInfo->linesearch_maxit << " iterations\n";
     return false;
   }
 }
@@ -1391,9 +1391,9 @@ GenFetiDPSolver<Scalar>::init_solve()
   alpha.zero();
   dualStatusChange = primalStatusChange = stepLengthChange = false;
   nExtraFp = nRebuildGtG = nRebuildCCt = nLinesearchIter = nSubIterDual = nSubIterPrimal = nStatChDual = nStatChPrimal = 0;
-  if(globalFlagCtc && this->numSystems > 0) { cerr << "resetting the orthoset\n"; this->resetOrthoSet(); }
-  if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
-  for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
+  if(globalFlagCtc && this->numSystems > 0) this->resetOrthoSet();
+  //if(globalFlagCtc) paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus);
+  //for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   proportional = true;
 }
 
@@ -1483,6 +1483,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
 
    // Precondition: z = M^-1 * w
    if(this->fetiInfo->stop2 == 1) lastError = error; // to check for stagnation
+   if(this->fetiInfo->precno == FetiInfo::noPrec) { error = ww*ff/ww0; z = w; } else
    error = preCondition(w, z);
    
    // Check stopping criteria
@@ -1503,7 +1504,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
 
    // Search direction
    orthogonalize(y, p);
-   if(globalFlagCtc && p*p == 0.0) p = wc; // XXXX 
+   if(globalFlagCtc && p*p == 0.0) { cerr << "check this out\n"; p = wc; }// XXXX 
    
    // Matrix vector product
    localSolveAndJump(p, dur, duc, Fp);
@@ -1538,7 +1539,8 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  } 
 
  mergeSolution(ur, uc, u, lambda);
- cerr << "u norm = " << u.norm() << ", lambda norm = " << lambda.norm() << endl;
+ //cerr << "u norm = " << u.norm() << ", lambda norm = " << lambda.norm() << endl;
+ //for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
 
  // Store number of iterations, errors, timings and memory used
  this->setAndStoreInfo(iter+1, (ff == 0.0) ? error : (error/ff), (ww0 == 0.0) ? ww : (ww/ww0));
@@ -2961,7 +2963,6 @@ GenFetiDPSolver<Scalar>::refactor()
   delete KccSparse; KccSparse = 0; KccSolver = 0;
   makeKcc();
 
-  cerr << "here in GenFetiDPSolver<Scalar>::refactor(), ngrbms = " << ngrbms << endl;
   if(GtGtilda && GtGtilda != GtG) { delete GtGtilda; GtGtilda = 0; } if(GtG) { delete GtG; GtG = 0; GtGsparse = 0; } 
   if(ngrbms) makeGtG();
 
@@ -3003,9 +3004,12 @@ GenFetiDPSolver<Scalar>::dualError(GenDistrVector<Scalar> &w, bool &proportional
     execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::split, w, w_f, w_c, w_p); // w_f = free gradient, w_c = chopped gradient, w_p = w_f+w_c
     proportional = (w_c.sqNorm() <= this->fetiInfo->gamma*this->fetiInfo->gamma*w_f.sqNorm());
     //if(dualStatusChange) proportional = true; // XXXX don't do proportioning immidiately after expansion step
+/*
     if(domain->solInfo().debug_icntl[9] == 1) proportional = false; // XXXX
     if(domain->solInfo().debug_icntl[9] == -1) proportional = true; // XXXX
     domain->solInfo().debug_cntl[9] = sqrt(w_c.sqNorm()); domain->solInfo().debug_icntl[9] = 0; // XXXX
+*/
+    //cerr << w.norm() << " " << w_f.norm() << " " << w_c.norm() << " " << w_p.norm() << " " << int(proportional) << endl;
     return w_p.sqNorm();
   }
   else {
@@ -3153,13 +3157,13 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
 
   // 5. y = P_i*y
   if(iproj) /*projectIneqExp(y);*/ projectActiveIneq(y);
-
+/*
   if(eflag) {
-    //cerr << "eflag = " << eflag << ", resnorm = " << resnorm << endl;
-    //cerr << "lambda = "; print_debug(y);
-    //cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
+    cerr << "eflag = " << eflag << ", resnorm = " << resnorm << endl;
+    cerr << "lambda norm = " << y.norm() << endl;
+    cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   }
-
+*/
   stopTimerMemory(this->times.project, this->times.memoryProject1);
 }
 
@@ -3199,7 +3203,9 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
 
     if(!(pflag > 1 && (resnorm < this->fetiInfo->primal_proj_tol || pflag > 20))) {
       // 2. alpha = (Gtilda^T*Gtilda)^(-1)*alpha
+      //cerr << "1. delta = "; print_debug(delta);
       reSolveGtG(delta);
+      //cerr << "2. delta = "; print_debug(delta);
       alpha += delta;
 
       // 3. w = r + G*alpha
@@ -3228,13 +3234,13 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   if(iproj) projectActiveIneq(w);
 
   if(!proportional) dual_error = dualError(w, proportional);
-
+/*
   if(pflag) {
-    //cerr << "pflag = " << pflag << ", resnorm = " << resnorm << endl;
-    //cerr << "w = "; print_debug(w);
-    //cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
+    cerr << "pflag = " << pflag << ", resnorm = " << resnorm << endl;
+    cerr << "w norm = " << w.norm() << endl;
+    cerr << "status = "; for(int i=0; i<this->nsub; ++i) this->sd[i]->printMpcStatus(); cerr << endl;
   }
-
+*/
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
 }
@@ -3244,7 +3250,6 @@ void
 GenFetiDPSolver<Scalar>::computeL0(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f)
 {
   if(newton_iter == 0) lambda.zero();
-  cerr << "newton_iter = " << newton_iter << ", lambda norm = " << lambda.norm() << endl;
   if(this->glNumMpc) {
     if(ngrbms > 0) makeE(f); // compute e = R^T*f
     project(lambda, lambda, true); 

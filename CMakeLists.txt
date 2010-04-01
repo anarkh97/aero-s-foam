@@ -230,7 +230,8 @@ ENDIF(USE_MPI AND NOT APPLE)
 
 INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib)
+	LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
 
 MESSAGE("")
 MESSAGE("=================================================")

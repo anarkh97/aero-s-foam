@@ -275,17 +275,17 @@ FetiInfo::FetiInfo()
   tol        = 1.0E-6;     // default global tolerance
   absolute_tol = 1.0e-12; 
   grbm_tol = 1.0E-06;      // default global rigid body mode rel. tolerance
-  crbm_tol = 1.0E-06;      // default global corner rigid body mode tolerance
+  crbm_tol = 1.0E-12;      // default global corner rigid body mode tolerance
   maxortho   = maxit;      // default max number of reortho vectors
                            // if it finds zero, set maxortho = maxit
   primalFlag  = 0;         // default do not output primal residual
   noCoarse    = 0;         // default use coarse problem
   precno      = dirichlet;    // default use lumped preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-  solvertype  = skyline;   // default use skyline subdomain solver
-  gtgSolver   = skyline;   // default use skyline GtG solver
-  auxCoarseSolver   = skyline;
-  cctSolver   = skyline;   // default use sparse CCt solver
+  solvertype  = sparse;   // default use skyline subdomain solver
+  gtgSolver   = sparse;   // default use skyline GtG solver
+  auxCoarseSolver   = sparse;
+  cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
   scaling     = tscaling;  // default use k scaling
@@ -296,10 +296,10 @@ FetiInfo::FetiInfo()
   feti2version= sparseCoarse;  // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
-  augment    = none;       // default no Kcc augmentation
-  nGs        = 0;
-  rbmType    = None;
-  gmresResidual= false;     // to force computing the "primal residual" at each GMRES iteration
+  augment    = Edges;       // default no Kcc augmentation
+  nGs        = 6;
+  rbmType    = all;
+  gmresResidual = false;     // to force computing the "primal residual" at each GMRES iteration
   pickAnyCorner = 1;
 
   // Nonlinear information

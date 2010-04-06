@@ -16,7 +16,9 @@ extern Domain *domain;
 /*************************************************************************************/
 #ifdef USE_SPOOLES
 
-#include <MT/spoolesMT.h>
+extern "C" {
+ #include <MT/spoolesMT.h>
+}
 
 inline double DVTrace( DV &d )
 {
@@ -320,7 +322,7 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 }
 
 //PJSA warning THREADS defined causes bug for nonlinear
-//#define THREADS
+#define THREADS
 
 template<class Scalar>
 Scalar

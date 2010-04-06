@@ -582,9 +582,9 @@ int main(int argc, char** argv)
  if(threadManager->numThr() != numThreads) { //HB: for checking purpose
    filePrint(stderr," *** WARNING: number of threads requested: %d\n",numThreads);
    filePrint(stderr,"              number of threads created  : %d\n",threadManager->numThr());
-   filePrint(stderr," -> tip: if you are running on a Linux plateform\n");
+   filePrint(stderr," -> tip: if you are running on a Linux platform\n");
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
-   filePrint(stderr,"         compiler (for instance, the Intel C/C++ compiler) (see the Makefile)\n");
+   filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
 
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX

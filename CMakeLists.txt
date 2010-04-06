@@ -297,5 +297,7 @@ MESSAGE("Extra libraries:          " ${EXTRALIB})
 MESSAGE("=================================================")
 MESSAGE("")
 
+if(AERO)
 MESSAGE("If CMake initially finds a different MPI than was intended, and you want to use the MPI compiler auto-detection for a different MPI implementation, set MPI_COMPILER to the MPI compiler driver you want to use (e.g., mpicxx) and then set MPI_LIBRARY to the string MPI_LIBRARY-NOTFOUND. When you re-configure, auto-detection of MPI will run again with the newly-specified MPI_COMPILER.")
+endif(AERO)
 

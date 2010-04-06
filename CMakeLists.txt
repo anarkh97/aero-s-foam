@@ -42,6 +42,7 @@ IF(UNIX)
     FIND_LIBRARY(ARPACK_arpack_LIBRARY NAMES arpack arpack_Linux arpack_Linux64 
                  PATHS . /usr/lib /usr/local/lib)
     IF(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(FORCE ARPACK_parpack_LIBRARY)
       IF(ARPACK_arpack_LIBRARY)
         MESSAGE("-- A library with ARPACK API found.")
         SET(ARPACK_FOUND TRUE)
@@ -49,6 +50,7 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${ARPACK_arpack_LIBRARY} ${EXTRALIBRARIES})
       ENDIF(ARPACK_arpack_LIBRARY)
     ELSE(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(CLEAR ARPACK_parpack_LIBRARY)
       FIND_LIBRARY(ARPACK_parpack_LIBRARY NAMES parpack parpack_Linux parpack_Linux64
                    PATHS  . /usr/lib /usr/local/lib)
       IF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
@@ -85,6 +87,11 @@ IF(UNIX)
     FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
               PATHS /usr/include usr/local/include)
     if (NOT MPI_FOUND)
+      MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
+                       MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
+                       MUMPS_mpiseq_LIBRARY)
+      MARK_AS_ADVANCED(FORCE MUMPS_dmumps_LIBRARY MUMPS_zmumps_LIBRARY
+                       MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
       FIND_LIBRARY(MUMPS_dmumps_seq_LIBRARY NAMES dmumps_seq 
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq           
@@ -106,6 +113,11 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES})
       endif(MUMPS_FOUND)
     else(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(FORCE MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
+                       MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
+                       MUMPS_mpiseq_LIBRARY)
+      MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_LIBRARY MUMPS_zmumps_LIBRARY
+                       MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
       FIND_LIBRARY(MUMPS_dmumps_LIBRARY NAMES dmumps
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_zmumps_LIBRARY NAMES zmumps        

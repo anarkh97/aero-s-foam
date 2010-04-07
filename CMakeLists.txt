@@ -1,13 +1,19 @@
 PROJECT (FEM)
 
+#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
+
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
+if(AERO)
+   MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
+   MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
+   FIND_PACKAGE(MPI REQUIRED)
+endif(AERO)
+
 SITE_NAME(HOSTNAME)
 FIND_PACKAGE(LOCAL NAMES ${HOSTNAME} PATHS . QUIET)
-
-MARK_AS_ADVANCED(FORCE BISON_EXECUTABLE FLEX_EXECUTABLE MERCURIAL_EXECUTABLE CMAKE_INSTALL_PREFIX)
-MARK_AS_ADVANCED(CLEAR CMAKE_CXX_COMPILER CMAKE_Fortran_COMPILER) 
+MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
 
 FIND_PACKAGE(OpenMP)
 if(OpenMP_FLAG_DETECTED)
@@ -15,14 +21,15 @@ if(OpenMP_FLAG_DETECTED)
   add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 
-SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
-
 FIND_PACKAGE(LAPACK)
+MESSAGE("BLAS_LIBRARIES = " ${BLAS_LIBRARIES})
+MESSAGE("LAPACK_LIBRARIES = " ${LAPACK_LIBRARIES})
 MARK_AS_ADVANCED(CLEAR BLAS_LIBRARIES)
 MARK_AS_ADVANCED(CLEAR LAPACK_LIBRARIES)
 
 SET(INC_DIR .)
 SET(BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
 
 if(AERO)
    MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
@@ -33,6 +40,8 @@ endif(AERO)
 IF(UNIX)
   IF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
     add_definitions(-D__LINUX)
+
+    SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
 
 # acme
     FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
@@ -110,6 +119,14 @@ IF(UNIX)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
 
+# metis
+    FIND_LIBRARY(METIS_LIBRARY NAMES metis
+                 PATHS /usr/lib /usr/local/lib)
+    IF(METIS_LIBRARY)
+      add_definitions(-DUSE_METIS)
+      SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
+    ENDIF(METIS_LIBRARY)
+
 # mumps
     FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
               PATHS /usr/include usr/local/include)
@@ -119,9 +136,9 @@ IF(UNIX)
                        MUMPS_mpiseq_LIBRARY)
       MARK_AS_ADVANCED(FORCE MUMPS_dmumps_LIBRARY MUMPS_zmumps_LIBRARY
                        MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
-      FIND_LIBRARY(MUMPS_dmumps_seq_LIBRARY NAMES dmumps_seq 
+      FIND_LIBRARY(MUMPS_dmumps_seq_LIBRARY NAMES dmumps_seq SEQ/libdmumps.a
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq           
+      FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_common_seq_LIBRARY NAMES mumps_common_seq
                    PATHS /usr/lib /usr/local/lib)
@@ -331,6 +348,11 @@ IF(ACME_FOUND)
 ELSE(ACME_FOUND)
   MESSAGE("Acme:                     NO ")
 ENDIF(ACME_FOUND)
+IF(METIS_LIBRARY)
+  MESSAGE("Metis:                    YES")
+ELSE(METIS_LIBRARY)
+  MESSAGE("Metis:                    NO ")
+ENDIF(METIS_LIBRARY)
 if(OpenMP_FLAG_DETECTED)
   MESSAGE("OpenMPI:                  YES")
 else(OpenMP_FLAG_DETECTED)
@@ -341,7 +363,6 @@ MESSAGE("Extra libraries:          " ${EXTRALIB})
 MESSAGE("=================================================")
 MESSAGE("")
 
-if(AERO)
-MESSAGE("If CMake initially finds a different MPI than was intended, and you want to use the MPI compiler auto-detection for a different MPI implementation, set MPI_COMPILER to the MPI compiler driver you want to use (e.g., mpicxx) and then set MPI_LIBRARY to the string MPI_LIBRARY-NOTFOUND. When you re-configure, auto-detection of MPI will run again with the newly-specified MPI_COMPILER.")
-endif(AERO)
+MARK_AS_ADVANCED(FORCE BISON_EXECUTABLE FLEX_EXECUTABLE MERCURIAL_EXECUTABLE CMAKE_INSTALL_PREFIX)
+MARK_AS_ADVANCED(CLEAR CMAKE_CXX_COMPILER CMAKE_Fortran_COMPILER)
 

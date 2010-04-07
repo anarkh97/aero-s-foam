@@ -473,12 +473,14 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::printStatistics()
 {
+#ifdef USE_MUMPS
   if(host) {
     cerr << "RINFOG(4,...,11) = " << "("
          << mumpsId.id.RINFOG(4) << ", " << mumpsId.id.RINFOG(5) << ", "  << mumpsId.id.RINFOG(6) << ", "
          << mumpsId.id.RINFOG(7) << ", " << mumpsId.id.RINFOG(8) << ", "  << mumpsId.id.RINFOG(9) << ", "
          << mumpsId.id.RINFOG(10) << ", " << mumpsId.id.RINFOG(11) << ")" << endl;
   }
+#endif
 }
 
 template<class Scalar>

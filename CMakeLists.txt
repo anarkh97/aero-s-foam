@@ -138,7 +138,7 @@ IF(UNIX)
                    PATHS . /usr/lib /usr/local/lib)
       if(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
         MESSAGE("-- A library with BLACS API found.")
-        SET(BLACS_LIBRARIES ${BLACS_blacs_LIBRARY} ${BLACS_f77init_LIBRARY})  
+        SET(BLACS_LIBRARIES ${BLACS_blacs_LIBRARY} ${BLACS_f77init_LIBRARY} ${BLACS_blacs_LIBRARY})  
         SET(BLACS_FOUND TRUE)
       endif(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
       # scalapack is required for parallel mumps
@@ -249,6 +249,7 @@ SET_TARGET_PROPERTIES(femexecutable
 		      )
 
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
+MESSAGE("EXTRALIBRARIES set to " ${EXTRALIBRARIES})
 
 target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})

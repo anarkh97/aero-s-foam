@@ -520,7 +520,7 @@ Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
 
    char *matchFile = geoSource->getMatchFileName();
    if (matchFile == 0)
-     matchFile = "MATCHER";
+     matchFile = (char *) "MATCHER";
 
    flExchanger->read(0, matchFile);
 

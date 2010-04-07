@@ -1580,7 +1580,7 @@ Domain::resProcessing(Vector &totRes, int index, double t)
   for (i = 0; i < numOutInfo; ++i)  {
 
     if (oinfo[i].interval == 1) {
-      fprintf(stderr,OutputMessage[oinfo[i].type]);
+      fprintf(stderr,"%s",OutputMessage[oinfo[i].type]);
       switch(oinfo[i].type)  {
 
         default:

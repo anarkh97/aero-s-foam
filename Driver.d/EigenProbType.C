@@ -1099,7 +1099,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
           //cerr << "which is undefined, setting to BE\n";
         }
       } else
-      sprintf(which,domain->solInfo().which); // specifies which of the Ritz values of
+      sprintf(which,"%s",domain->solInfo().which); // specifies which of the Ritz values of
                                               // OP to compute (see Arpack manual)
      // ... adjust subSpaceSize
      if(subSpaceSize < this->totalEig) subSpaceSize = myMin(2*(this->totalEig-this->nrmod),this->totalEig-this->nrmod+8)+this->nrmod; // PJSA

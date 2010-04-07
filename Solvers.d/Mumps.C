@@ -416,7 +416,7 @@ GenMumpsSolver<Scalar>::print()
  if(host && mumpsId.id.ICNTL(18) == 0) { // centralized matrix on host
    cerr << endl;
    for(int i=0; i < nNonZero; ++i)
-     fprintf(stderr,"K(%d,%d) = % e \n",mumpsId.id.irn[i],mumpsId.id.jcn[i],mumpsId.id.a[i]);
+     cerr << "K(" << mumpsId.id.irn[i] << "," << mumpsId.id.jcn[i] << ") = " << unonz[i] << endl;
  }
  else if(host && mumpsId.id.ICNTL(18) == 3) cerr << "GenMumpsSolver<Scalar>::print() is not implemented for ICNTL(18) = 3\n";
 #endif

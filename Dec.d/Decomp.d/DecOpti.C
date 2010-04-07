@@ -184,7 +184,7 @@ improveDec(Elemset *es, Connectivity *eton, Connectivity *ntoe,
   Decomposition *newDec = dopt.minInterface();
   newDec = dopt.faceComponents(es);
   newDec->esname = dec->esname;
-  newDec->setName("OptDec");
+  newDec->setName((char*)"OptDec");
   return newDec;
 }
 

@@ -13,8 +13,7 @@ SET(CMAKE_LIBRARY_PATH /lustre/home/avery/code/arpack
 SET(EXTRALIB /opt/intel/fce/10.1.015/lib/libifcore.so 
              /opt/intel/fce/10.1.015/lib/libsvml.so
              CACHE STRING "Extra link parameters")
-if(MPI_FOUND)
- SET(EXTRALIB ${EXTRALIB} /usr/mpi/gcc/openmpi-1.2.6/lib64/libmpi_f77.so)
-endif(MPI_FOUND)
+SET(EXTRALIB_MPI /usr/mpi/gcc/openmpi-1.2.6/lib64/libmpi_f77.so
+                 CACHE STRING "Extra MPI link parameters")
 
 #SET(BLA_VENDOR Intel10_64lp)

@@ -478,7 +478,7 @@ TRAIL [a-zA-Z]*
 
 "primal"|"PRIMAL"                  { yylval.ival = 2; return MPCTYPEID; }
 
-"mpc_precn"o[a-zA-Z]*|"MPC__PRECN"O[a-zA-Z]* { return MPCPRECNO; }
+"mpc_precn"[a-zA-Z]*|"MPC__PRECN"[a-zA-Z]* { return MPCPRECNO; }
 
 "diag"[a-zA-Z]*|"DIAG"[a-zA-Z]*    { yylval.ival = 1; return MPCPRECNOID; }
 

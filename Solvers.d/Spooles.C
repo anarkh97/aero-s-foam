@@ -15,8 +15,9 @@ extern Domain *domain;
 /*************************************************************************************/
 /*************************************************************************************/
 #ifdef USE_SPOOLES
-
-#include <MT/spoolesMT.h>
+extern "C" {
+  #include <MT/spoolesMT.h>
+}
 
 inline double DVTrace( DV &d )
 {

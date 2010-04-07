@@ -48,5 +48,6 @@ class MpcElement : public Element, public Corotator, public LMPCons
     virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
 
     PrioInfo examine(int sub, MultiFront *mf);
+    bool isSafe() { return false; }
 };
 #endif

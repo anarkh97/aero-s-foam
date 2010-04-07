@@ -3170,7 +3170,7 @@ void GeoSource::outputHeader(int fileNumber)
   int headerSize = 200;
   char *headDescrip = new char[headerSize];   // description of data
   getHeaderDescription(headDescrip, fileNumber);
-  fprintf(oinfo[fileNumber].filptr, headDescrip);
+  fprintf(oinfo[fileNumber].filptr, "%s", headDescrip);
 
   delete [] headDescrip;
 }

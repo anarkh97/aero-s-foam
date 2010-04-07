@@ -13,6 +13,7 @@
 #include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
+#include <Math.d/AddedMassMatrix.h>
 
 #include <Solvers.d/Solver.h>
 #include <Solvers.d/Rbm.h>
@@ -106,9 +107,10 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 {
  AllOps<double> allOps;
 
- //if(addedMass) allOps.M = domain->constructDBSparseMatrix<double>((DofSetArray *)0, nodeToNode_added);
- //else 
- allOps.M = domain->constructDBSparseMatrix<double>();
+ if(domain->solInfo().addedMass == 2) allOps.M = new AddedMassMatrix<double, Domain>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
+                                                                                     domain, &Domain::multC, &Domain::trMultC);
+ else 
+   allOps.M = domain->constructDBSparseMatrix<double>();
  // Used for printing out K during debugging.
  allOps.K = domain->constructDBSparseMatrix<double>();
 
@@ -134,6 +136,8 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
+
+ if(domain->solInfo().addedMass == 2) ((AddedMassMatrix<double, Domain>*)allOps.M)->setFluidSolver(domain->Mff);
 
  if(domain->solInfo().explicitK)
    dMat.refK    = allOps.K;

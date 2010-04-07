@@ -201,6 +201,7 @@ struct SolverInfo {
    double pade_poles_sigmaL, pade_poles_sigmaU;
    int modeFilterFlag;
    bool test_ulrich;
+   int addedMass;
    bool isCoupled;
    double coupled_scale;
    bool isMatching;  // true if only one wet interface is given, otherwise false (default) 
@@ -339,6 +340,7 @@ struct SolverInfo {
                   pade_poles_sigmaL = 0.0; pade_poles_sigmaU = numeric_limits<double>::max();
                   modeFilterFlag = 0;
                   test_ulrich = false;
+                  addedMass = 1;
                   isCoupled = false;
                   coupled_scale = 1.0;
                   isMatching = false; 

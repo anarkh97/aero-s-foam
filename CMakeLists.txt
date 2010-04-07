@@ -1,146 +1,205 @@
 PROJECT (FEM)
 
+#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
+
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
-IF(NOT EXTRALIB)
-SET(EXTRALIB "")
-ENDIF(NOT EXTRALIB)
-
-SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
-
-FIND_PACKAGE(BLAS)
-FIND_PACKAGE(LAPACK)
-FIND_PACKAGE(MPI)
-
-IF(BLAS_FOUND)
-MESSAGE("Found Blas library at " ${BLAS_LIBRARIES})
-ELSE(BLAS_FOUND)
- SET(BLAS_LIBRARIES ${BLAS_LIBRARIES} CACHE STRING "Location of the BLAS library")
- SET(BLAS_FOUND TRUE)
-ENDIF(BLAS_FOUND)
-SET(EXTRALIBRARIES ${BLAS_LIBRARIES})
-
-IF(LAPACK_FOUND)
-MESSAGE("Found Lapack library at " ${LAPACK_LIBRARIES})
-ELSE(LAPACK_FOUND)
- SET(LAPACK_LIBRARIES ${LAPACK_LIBRARIES} CACHE STRING "Location of the LAPACK library")
- SET(LAPACK_FOUND TRUE)
-ENDIF(LAPACK_FOUND)
-
-SET(INC_DIR . ${CMAKE_CURRENT_BINARY_DIR})
-SET(BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-
 if(AERO)
-   set(USE_MPI 1)
-   add_definitions(-DAEROELASTIC)
+   MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
+   MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
+   FIND_PACKAGE(MPI REQUIRED)
 endif(AERO)
 
-IF(NOT SPOOLESDIR)
-  SET(SPOOLESDIR "")
-ENDIF(NOT SPOOLESDIR)
+SITE_NAME(HOSTNAME)
+FIND_PACKAGE(LOCAL NAMES ${HOSTNAME} PATHS . QUIET)
+MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
 
-SET(SPOOLESDIR ${SPOOLESDIR} CACHE STRING "Location of the SPOOLES library and includes")
+FIND_PACKAGE(OpenMP)
+if(OpenMP_FLAG_DETECTED)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
+  add_definitions(-DUSE_OPENMP)
+endif(OpenMP_FLAG_DETECTED)
 
-IF(NOT ACMEDIR)
-  SET(ACMEDIR "")
-ENDIF(NOT ACMEDIR)
-SET(ACMEDIR ${ACMEDIR} CACHE STRING "Location of the ACME library and includes")
+FIND_PACKAGE(LAPACK)
+#MESSAGE("BLAS_LIBRARIES = " ${BLAS_LIBRARIES})
+#MESSAGE("LAPACK_LIBRARIES = " ${LAPACK_LIBRARIES})
+MARK_AS_ADVANCED(CLEAR BLAS_LIBRARIES)
+MARK_AS_ADVANCED(CLEAR LAPACK_LIBRARIES)
 
-IF(ACMEDIR AND USE_MPI)
-  IF(NOT ZOLTANDIR)
-    SET(ZOLTANDIR "")
-  ENDIF(NOT ZOLTANDIR)
-  SET(ZOLTANDIR ${ZOLTANDIR} CACHE STRING "Location of the ZOLTAN library and includes")
-endif(ACMEDIR AND USE_MPI)
+SET(INC_DIR .)
+SET(BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
 
-IF(NOT MUMPSDIR)
-  SET(MUMPSDIR "")
-ENDIF(NOT MUMPSDIR)
-SET(MUMPSDIR ${MUMPSDIR} CACHE STRING "Location of the MUMPS library and includes")
-
-IF(MUMPSDIR AND USE_MPI)
-  IF(NOT BLACSDIR)
-    SET(BLACSDIR "")
-  ENDIF(NOT BLACSDIR)
-  SET(BLACSDIR ${BLACSDIR} CACHE STRING "Location of the BLACS library and includes")
-  IF(NOT SCALAPACKDIR)
-    SET(SCALAPACKDIR "")
-  ENDIF(NOT SCALAPACKDIR)
-  SET(SCALAPACKDIR ${SCALAPACKDIR} CACHE STRING "Location of the SCALAPACK library and includes")
-endif(MUMPSDIR AND USE_MPI)
+if(AERO)
+   MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
+   MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
+   FIND_PACKAGE(MPI REQUIRED)
+endif(AERO)
 
 IF(UNIX)
-    MESSAGE(${CMAKE_SYSTEM_NAME})
   IF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
-# arpack
-    FIND_LIBRARY(ARPACKLIB NAMES arpack arpack_Linux64
-    PATHS  . /usr/lib /usr/local/lib)
-    MESSAGE("Found ARPACK in " ${ARPACKLIB})
-    if (NOT USE_MPI)
-      IF(ARPACKLIB AND LAPACK_FOUND)
-        add_definitions(-DUSE_ARPACK)
-        SET(EXTRALIBRARIES ${ARPACKLIB} ${EXTRALIBRARIES})
-      ENDIF(ARPACKLIB AND LAPACK_FOUND)
-    else (NOT USE_MPI)
-      FIND_LIBRARY(PARPACKLIB NAMES parpack parpack_Linux64
-      PATHS  . /usr/lib /usr/local/lib)
-      MESSAGE("Found PARPACK in " ${PARPACKLIB})
-      IF(PARPACKLIB AND ARPACKLIB AND LAPACK_FOUND)
-        add_definitions(-DUSE_ARPACK)
-        SET(EXTRALIBRARIES ${PARPACKLIB} ${ARPACKLIB} ${EXTRALIBRARIES})
-      ENDIF(PARPACKLIB AND ARPACKLIB AND LAPACK_FOUND)
-    endif (NOT USE_MPI)
-# spooles
+    add_definitions(-D__LINUX)
+
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
-    FIND_LIBRARY(SPOOLESLIB NAMES spooles
-                 PATHS  . /usr/lib /usr/local/lib /home/hg/lib/SPOOLES ${SPOOLESDIR})
-    FIND_LIBRARY(SPOOLESMTLIB NAMES spoolesMT
-                 PATHS  . /usr/lib /usr/local/lib /home/hg/lib/SPOOLES/MT/src
-                       ${SPOOLESDIR}/MT/src)
-    MESSAGE("Found SPOOLES in " ${SPOOLESLIB})
-    MESSAGE("Found SPOOLESMT in " ${SPOOLESMTLIB})
-    FIND_PATH(SPOOLESINC FrontMtx.h 
-              PATHS . /usr/lib /usr/local/lib /home/hg/lib/SPOOLES ${SPOOLESDIR})
-    MESSAGE("SPOOLES PATH in " ${SPOOLESINC})
-    FIND_LIBRARY(PTHREAD pthread)
-    MESSAGE("Found pthread in " ${PTHREAD})
-    IF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
+
+# acme
+    FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
+              PATHS /usr/include /usr/local/include)
+    FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
+              PATHS /usr/include /usr/local/include)
+    IF(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
+      MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
+      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT acmeSharedDBG
+                   PATHS /usr/lib /usr/local/lib)
+      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
+        MESSAGE("-- A library with ACME API found.")
+        SET(ACME_FOUND TRUE)
+        add_definitions(-DUSE_ACME -DACME_2_9 -DCONTACT_NO_MPI)
+        SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
+        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
+      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
+    ELSE(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
+      MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
+      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acme acmeDistOPT acmeDistDBG
+                   PATHS /usr/lib /usr/local/lib)
+      IF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
+        MESSAGE("-- A library with ACME API found.")
+        SET(ACME_FOUND TRUE)
+        add_definitions(-DUSE_ACME -DACME_2_9)
+        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${METIS_LIBRARY} ${EXTRALIBRARIES})
+        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
+      ENDIF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
+    ENDIF(NOT MPI_FOUND)
+
+# arpack
+    FIND_LIBRARY(ARPACK_arpack_LIBRARY NAMES arpack arpack_Linux arpack_Linux64 
+                 PATHS /usr/lib /usr/local/lib)
+    IF(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(FORCE ARPACK_parpack_LIBRARY)
+      IF(ARPACK_arpack_LIBRARY)
+        MESSAGE("-- A library with ARPACK API found.")
+        SET(ARPACK_FOUND TRUE)
+        add_definitions(-DUSE_ARPACK)
+        SET(EXTRALIBRARIES ${ARPACK_arpack_LIBRARY} ${EXTRALIBRARIES})
+      ENDIF(ARPACK_arpack_LIBRARY)
+    ELSE(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(CLEAR ARPACK_parpack_LIBRARY)
+      FIND_LIBRARY(ARPACK_parpack_LIBRARY NAMES parpack parpack_Linux parpack_Linux64
+                   PATHS /usr/lib /usr/local/lib)
+      IF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
+        MESSAGE("-- A library with ARPACK API found.")
+        SET(ARPACK_FOUND TRUE)
+        add_definitions(-DUSE_ARPACK)
+        SET(EXTRALIBRARIES ${ARPACK_parpack_LIBRARY} ${ARPACK_arpack_LIBRARY} ${EXTRALIBRARIES})
+      ENDIF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
+    ENDIF(NOT MPI_FOUND)
+
+# spooles
+    FIND_PATH(SPOOLES_INCLUDE_PATH FrontMtx.h
+              PATHS /usr/include /usr/local/include /usr/include/spooles)
+    #SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
+    FIND_LIBRARY(SPOOLES_spooles_LIBRARY NAMES spooles
+                 PATHS /usr/lib /usr/local/lib)
+    FIND_LIBRARY(SPOOLES_spoolesMT_LIBRARY NAMES spoolesMT
+                 PATHS /usr/lib /usr/local/lib)
+    if(SPOOLES_INCLUDE_PATH AND SPOOLES_spooles_LIBRARY)
+      MESSAGE("-- A library with SPOOLES API found.")
+      SET(SPOOLES_FOUND TRUE)
+    endif(SPOOLES_INCLUDE_PATH AND SPOOLES_spooles_LIBRARY)
+    IF(SPOOLES_FOUND)
       add_definitions(-DUSE_SPOOLES)
-      SET(EXTRALIBRARIES ${SPOOLESLIB} ${SPOOLESMTLIB} ${EXTRALIBRARIES} ${PTHREAD})
-      SET(INC_DIR ${INC_DIR} ${SPOOLESINC})
-    ENDIF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
+      if(SPOOLES_spoolesMT_LIBRARY)
+        SET(EXTRALIBRARIES ${SPOOLES_spooles_LIBRARY} ${SPOOLES_spoolesMT_LIBRARY} ${EXTRALIBRARIES})
+      else(SPOOLES_spoolesMT_LIBRARY)
+        SET(EXTRALIBRARIES ${SPOOLES_spooles_LIBRARY} ${EXTRALIBRARIES})
+      endif(SPOOLES_spoolesMT_LIBRARY)
+      SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
+    ENDIF(SPOOLES_FOUND)
 
-     IF(ACMEDIR)
-       if (NOT USE_MPI)
-         add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI)
-         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${ACMEDIR}/lib/libacmeSharedOPT.a)
-         SET(INC_DIR ${INC_DIR} ${ACMEDIR}/search ${ACMEDIR}/enforcement ${ACMEDIR}/drivers)
-       else (NOT USE_MPI)
-         if(ZOLTANDIR)
-           add_definitions(-DUSE_ACME -DACME_2_5)
-           SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${ACMEDIR}/lib/libacmeSharedOPT.a ${ZOLTANDIR}/lib/libzoltan.a)
-           SET(INC_DIR ${INC_DIR} ${ACMEDIR}/search ${ACMEDIR}/enforcement ${ZOLTANDIR}/include ${ACMEDIR}/drivers)
-         endif(ZOLTANDIR)
-       endif (NOT USE_MPI)
-     ENDIF(ACMEDIR)
+# metis
+    FIND_LIBRARY(METIS_LIBRARY NAMES metis
+                 PATHS /usr/lib /usr/local/lib)
+    IF(METIS_LIBRARY)
+      MESSAGE("-- A library with METIS API found.")
+      add_definitions(-DUSE_METIS)
+      SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
+    ENDIF(METIS_LIBRARY)
 
-     IF(MUMPSDIR)
-       add_definitions(-DUSE_MUMPS)
-       SET(INC_DIR ${INC_DIR} ${MUMPSDIR}/include)
-       if (NOT USE_MPI)
-         add_definitions(-DUSE_MUMPS)
-         SET(INC_DIR ${INC_DIR} ${MUMPSDIR}/include)
-         SET(EXTRALIBRARIES ${EXTRALIBRARIES} -L${MUMPSDIR}/lib/SEQ -ldmumps -lzmumps -lmumps_common -lpord -lmetis -lmpiseq)
-       else (NOT USE_MPI)
-         if (BLACSDIR AND SCALAPACKDIR)
-           add_definitions(-DUSE_MUMPS)
-           SET(INC_DIR ${INC_DIR} ${MUMPSDIR}/include)
-           SET(EXTRALIBRARIES ${EXTRALIBRARIES} -L${MUMPSDIR}/lib/PAR -ldmumps
--lzmumps -lmumps_common -lpord -lmetis -L${SCALAPACKDIR} -lscalapack ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacsF77init_MPI-LINUX-0.a ${BLACSDIR}/LIB/blacs_MPI-LINUX-0.a)
-         endif (BLACSDIR AND SCALAPACKDIR)
-       endif (NOT USE_MPI)
-     ENDIF(MUMPSDIR)
+# mumps
+    FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
+              PATHS /usr/include usr/local/include)
+    if (NOT MPI_FOUND)
+      MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
+                       MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
+                       MUMPS_mpiseq_LIBRARY)
+      MARK_AS_ADVANCED(FORCE MUMPS_dmumps_LIBRARY MUMPS_zmumps_LIBRARY
+                       MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
+      FIND_LIBRARY(MUMPS_dmumps_seq_LIBRARY NAMES dmumps_seq SEQ/libdmumps.a
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_common_seq_LIBRARY NAMES mumps_common_seq
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq
+                   PATHS /usr/lib /usr/local/lib)
+      if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
+        MESSAGE("-- A library with MUMPS API found.")
+        SET(MUMPS_LIBRARIES ${MUMPS_dmumps_seq_LIBRARY} ${MUMPS_zmumps_seq_LIBRARY} ${MUMPS_common_seq_LIBRARY} ${MUMPS_pord_seq_LIBRARY} ${MUMPS_mpiseq_LIBRARY})
+        SET(MUMPS_FOUND TRUE)
+      endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
+      if(MUMPS_FOUND)
+        add_definitions(-DUSE_MUMPS)
+        SET(INC_DIR ${INC_DIR} ${MUMPS_INCLUDE_PATH})
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES})
+      endif(MUMPS_FOUND)
+    else(NOT MPI_FOUND)
+      MARK_AS_ADVANCED(FORCE MUMPS_dmumps_seq_LIBRARY MUMPS_zmumps_seq_LIBRARY
+                       MUMPS_common_seq_LIBRARY MUMPS_pord_seq_LIBRARY
+                       MUMPS_mpiseq_LIBRARY)
+      MARK_AS_ADVANCED(CLEAR MUMPS_dmumps_LIBRARY MUMPS_zmumps_LIBRARY
+                       MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
+      FIND_LIBRARY(MUMPS_dmumps_LIBRARY NAMES dmumps
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_zmumps_LIBRARY NAMES zmumps        
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_common_LIBRARY NAMES mumps_common
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(MUMPS_pord_LIBRARY NAMES pord
+                   PATHS /usr/lib /usr/local/lib)
+      if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
+        SET(MUMPS_LIBRARIES ${MUMPS_dmumps_LIBRARY} ${MUMPS_zmumps_LIBRARY} ${MUMPS_common_LIBRARY} ${MUMPS_pord_LIBRARY})
+        MESSAGE("-- A library with MUMPS API found.")
+        SET(MUMPS_FOUND TRUE)
+      endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
+      # blacs is required for parallel mumps
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0
+                   PATHS /usr/lib /usr/local/lib)
+      if(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
+        MESSAGE("-- A library with BLACS API found.")
+        SET(BLACS_LIBRARIES ${BLACS_blacs_LIBRARY} ${BLACS_f77init_LIBRARY} ${BLACS_blacs_LIBRARY})  
+        SET(BLACS_FOUND TRUE)
+      endif(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
+      # scalapack is required for parallel mumps
+      FIND_LIBRARY(SCALAPACK_LIBRARY NAMES scalapack scalapack-openmpi
+                   PATHS /usr/lib /usr/local/lib)
+      if(SCALAPACK_LIBRARY)
+        MESSAGE("-- A library with SCALAPACK API found.")
+        SET(SCALAPACK_FOUND TRUE)
+      endif(SCALAPACK_LIBRARY)
+
+      if(MUMPS_FOUND AND BLACS_FOUND AND SCALAPACK_FOUND)
+        add_definitions(-DUSE_MUMPS)
+        SET(INC_DIR ${INC_DIR} ${MUMPS_INCLUDE_PATH})
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MUMPS_LIBRARIES} ${SCALAPACK_LIBRARY} ${BLACS_LIBRARIES})
+      endif(MUMPS_FOUND AND BLACS_FOUND AND SCALAPACK_FOUND)
+    endif(NOT MPI_FOUND)
 
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
@@ -149,15 +208,12 @@ IF(APPLE)
   add_definitions(-DNO_MALLOC_DOT_H)
 ENDIF(APPLE)
 
-if(USE_MPI)
-   MESSAGE("Will build using MPI")
-   add_definitions(-DUSE_MPI -DDISTRIBUTED -DMPICH_IGNORE_CXX_SEEK)
+if(MPI_FOUND)
+   add_definitions(-DUSE_MPI -DDISTRIBUTED -DAEROELASTIC -DMPICH_IGNORE_CXX_SEEK)
    SET(EXTRALIBDYN ${EXTRALIBRARIES})
-#   SET(EXTRALIBRARIES ${MPI_LIBRARIES} ${EXTRALIBRARIES})
    SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MPI_LIBRARIES})
    SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
    IF(NOT APPLE)
-#     ADD_LIBRARY(femlib SHARED main.C HgIdentity.C)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
@@ -171,29 +227,27 @@ if(USE_MPI)
 			PREFIX ""
 		     )
    ENDIF(NOT APPLE)
-endif(USE_MPI)
+endif(MPI_FOUND)
 
 FIND_PROGRAM(MERCURIAL_EXECUTABLE hg2xx)
 
-MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
-
 IF(MERCURIAL_EXECUTABLE)
-  MESSAGE("Rule 1")
-  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
+  #MESSAGE("Rule 1")
+  MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
+  add_custom_command(OUTPUT HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ELSE (MERCURIAL_EXECUTABLE)
-  MESSAGE("Rule 2")
-  add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/HgIdentity.C 
+  #MESSAGE("Rule 2")
+  add_custom_command(OUTPUT HgIdentity.C 
                    COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
                  DEPENDS main.C
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ENDIF (MERCURIAL_EXECUTABLE)
 
-add_definitions(-D_TEMPLATE_FIX_ -D__LINUX -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS -DMAP_MIN_MEMORY)
+add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS  -DMAP_MIN_MEMORY)
 
-MESSAGE ("INC_DIR is" ${INC_DIR} )
 INCLUDE_DIRECTORIES( ${INC_DIR} )
 
 add_subdirectory(Element.d)
@@ -221,11 +275,11 @@ SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
      Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt)
 
-IF(USE_MPI)
+IF(MPI_FOUND)
   add_subdirectory(Pita.d)
   add_subdirectory(OOPita.d)
   SET(ALLLIBS pita ${ALLLIBS} pitadriver )
-ENDIF(USE_MPI)
+ENDIF(MPI_FOUND)
 
 SET_TARGET_PROPERTIES(${ALLLIBS}
                 PROPERTIES COMPILE_FLAGS -fPIC)
@@ -239,10 +293,10 @@ SET_TARGET_PROPERTIES(femexecutable
 			 DEBUG_OUTPUT_NAME aeros.debug
 		      )
 
-#MESSAGE( "lapack is " ${LAPACK_LIBRARIES} )
-
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
-MESSAGE( "extralibraries is " ${EXTRALIBRARIES})
+if(MPI_FOUND)
+  SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB_MPI})
+endif(MPI_FOUND)
 
 target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
@@ -253,49 +307,66 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 
 
 SET(AllTargets femexecutable)
-#IF(USE_MPI AND NOT APPLE)
-#  SET(AllTargets ${AllTargets} femlib)
-#ENDIF(USE_MPI AND NOT APPLE)
+IF(MPI_FOUND AND NOT APPLE)
+  SET(AllTargets ${AllTargets} femlib)
+ENDIF(MPI_FOUND AND NOT APPLE)
 
 INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib)
+	LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
 
 MESSAGE("")
 MESSAGE("=================================================")
 MESSAGE("           Summary of build options")
 MESSAGE("-------------------------------------------------")
-IF(USE_MPI)
- MESSAGE("Distributed FETI:         YES")
- MESSAGE("Aeroelastic:              YES")
-ELSE(USE_MPI)
- MESSAGE("Distributed FETI:         NO *******")
- MESSAGE("Aeroelastic:              NO *******")
-ENDIF(USE_MPI)
-IF(ARPACKLIB AND LAPACK_FOUND)
- MESSAGE("Arpack:                   YES")
-ELSE(ARPACKLIB AND LAPACK_FOUND)
- MESSAGE("Arpack:                   NO *******")
-ENDIF(ARPACKLIB AND LAPACK_FOUND)
-IF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
- MESSAGE("Spooles:                  YES")
-ELSE(SPOOLESLIB AND SPOOLESMTLIB)
- MESSAGE("Spooles:                  NO *******")
-ENDIF(SPOOLESLIB AND SPOOLESMTLIB AND SPOOLESINC AND PTHREAD)
-IF(ACMEDIR)
- MESSAGE("Acme:                     YES")
-ELSE(ACMEDIR)
- MESSAGE("Acme:                     NO *******")
-ENDIF(ACMEDIR)
-IF(MUMPSDIR)
- MESSAGE("Mumps:                    YES")
-ELSE(MUMPSDIR)
- MESSAGE("Mumps:                    NO *******")
-ENDIF(MUMPSDIR)
+IF(MPI_FOUND)
+  MESSAGE("Distributed FETI:         YES")
+  MESSAGE("Aeroelastic:              YES")
+  IF(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
+    MESSAGE("Mumps:                    YES")
+  ELSE(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
+    MESSAGE("Mumps:                    NO ")
+  ENDIF(MUMPS_FOUND AND SCALAPACK_FOUND AND BLACS_FOUND)
+ELSE(MPI_FOUND)
+  MESSAGE("Distributed FETI:         NO ")
+  MESSAGE("Aeroelastic:              NO ")
+  IF(MUMPS_FOUND)
+    MESSAGE("Mumps:                    YES")
+  ELSE(MUMPS_FOUND)
+    MESSAGE("Mumps:                    NO ") 
+  ENDIF(MUMPS_FOUND)
+ENDIF(MPI_FOUND)
+IF(ARPACK_FOUND)
+  MESSAGE("Arpack:                   YES")
+ELSE(ARPACK_FOUND)
+  MESSAGE("Arpack:                   NO ")
+ENDIF(ARPACK_FOUND)
+IF(SPOOLES_FOUND)
+  MESSAGE("Spooles:                  YES")
+ELSE(SPOOLES_FOUND)
+  MESSAGE("Spooles:                  NO ")
+ENDIF(SPOOLES_FOUND)
+IF(ACME_FOUND)
+  MESSAGE("Acme:                     YES")
+ELSE(ACME_FOUND)
+  MESSAGE("Acme:                     NO ")
+ENDIF(ACME_FOUND)
+IF(METIS_LIBRARY)
+  MESSAGE("Metis:                    YES")
+ELSE(METIS_LIBRARY)
+  MESSAGE("Metis:                    NO ")
+ENDIF(METIS_LIBRARY)
+if(OpenMP_FLAG_DETECTED)
+  MESSAGE("OpenMPI:                  YES")
+else(OpenMP_FLAG_DETECTED)
+  MESSAGE("OpenMPI:                  NO ")
+endif(OpenMP_FLAG_DETECTED)
 MESSAGE("Build type:               " ${CMAKE_BUILD_TYPE})
 MESSAGE("Extra libraries:          " ${EXTRALIB})
 MESSAGE("=================================================")
 MESSAGE("")
 
-
+MARK_AS_ADVANCED(FORCE BISON_EXECUTABLE FLEX_EXECUTABLE MERCURIAL_EXECUTABLE CMAKE_INSTALL_PREFIX)
+MARK_AS_ADVANCED(CLEAR CMAKE_CXX_COMPILER CMAKE_Fortran_COMPILER)
 

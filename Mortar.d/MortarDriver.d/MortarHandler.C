@@ -250,9 +250,10 @@ MortarHandler::~MortarHandler()
   nMortarLMPCs = 0;
   gIdFirstLMPC = 0;
   gIdLastLMPC  = 0;
-
+#ifdef USE_ACME
   if(search_obj) delete search_obj;
   if(contact_obj) delete contact_obj;
+#endif
   if(mass) delete [] mass;
   if(dofmap) delete [] dofmap;
   if(node_global_ids) delete [] node_global_ids;

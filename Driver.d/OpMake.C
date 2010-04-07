@@ -538,7 +538,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
- if ((sinfo.HEV) && (probType() ==SolverInfo::Modal))  {
+ if ((sinfo.HEV) && (probType() == SolverInfo::Modal))  {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.trbm, sinfo.sparse_renum, 0);
    Mff->zeroAll();
 
@@ -554,57 +554,60 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    //sinfo.setTrbm(trbmtemp);
    fprintf(stderr," ... Fluid Mass Matrix Factored...\n");
 
-   //get fluid density from first element since HOMOGENEOUS fluid is assumed
-   double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
+   if(sinfo.addedMass == 1) {
 
-   double** C_NZrows = getCMatrix();
-   double** FCtinv_NZcol = new double* [domain->nuNonZero];
+     //get fluid density from first element since HOMOGENEOUS fluid is assumed
+     double rhoFluid = ( *(geoSource->getPackedEsetFluid()) )[0]->getProperty()->rho;
 
-   int nnp = domain->numUnconFluid();
+     double** C_NZrows = getCMatrix();
+     double** FCtinv_NZcol = new double* [domain->nuNonZero];
 
-   for (int i=0; i < domain->nuNonZero; ++i)  {
-     FCtinv_NZcol[i] = new double[nnp];
-     for (int jp=0; jp < nnp; ++jp)  {
-        C_NZrows[i][jp] = rhoFluid * C_NZrows[i][jp];
-        FCtinv_NZcol[i][jp] = C_NZrows[i][jp];
-     }
-   }
+     int nnp = domain->numUnconFluid();
 
-   //obtain non zero parts of F^-1C^T
-   Mff->reSolve(domain->nuNonZero,FCtinv_NZcol);
-
-   //initialize the added mass operator (Ma_NZ only contains the non-zero parts)
-   FullSquareMatrix Ma_NZ(domain->nuNonZero,0);
-   Ma_NZ.zero();
-
-   //obtain the added mass operator
-   for (int i=0; i<domain->nuNonZero; ++i)  {
-     for (int j=i; j<domain->nuNonZero; ++j)  {
-       for (int k=0; k<domain->npNonZero[i]; ++k)  {
-         int K = domain->pmap[i][k];
-           Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
+     for (int i=0; i < domain->nuNonZero; ++i)  {
+       FCtinv_NZcol[i] = new double[nnp];
+       for (int jp=0; jp < nnp; ++jp)  {
+          C_NZrows[i][jp] = rhoFluid * C_NZrows[i][jp];
+          FCtinv_NZcol[i][jp] = C_NZrows[i][jp];
        }
      }
-   }
-   for (int i=0; i<domain->nuNonZero; ++i)  {
-     for (int j=i; j<domain->nuNonZero; ++j)  {
-           Ma_NZ[j][i] = Ma_NZ[i][j];
+
+     //obtain non zero parts of F^-1C^T
+     Mff->reSolve(domain->nuNonZero,FCtinv_NZcol);
+
+     //initialize the added mass operator (Ma_NZ only contains the non-zero parts)
+     FullSquareMatrix Ma_NZ(domain->nuNonZero,0);
+     Ma_NZ.zero();
+
+     //obtain the added mass operator
+     for (int i=0; i<domain->nuNonZero; ++i)  {
+       for (int j=i; j<domain->nuNonZero; ++j)  {
+         for (int k=0; k<domain->npNonZero[i]; ++k)  {
+           int K = domain->pmap[i][k];
+             Ma_NZ[i][j] += C_NZrows[i][K]*FCtinv_NZcol[j][K];
+         }
+       }
      }
-   }
+     for (int i=0; i<domain->nuNonZero; ++i)  {
+       for (int j=i; j<domain->nuNonZero; ++j)  {
+         Ma_NZ[j][i] = Ma_NZ[i][j];
+       }
+     }
 
-   fprintf(stderr," ... HEV Problem: Added mass obtained ...\n");
+     fprintf(stderr," ... HEV Problem: Added mass obtained ...\n");
 
-   //add added mass to structural mass for EVP!
-   ops.M->add(Ma_NZ,domain->umap_add);
-   fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
+     //add added mass to structural mass for EVP!
+     ops.M->add(Ma_NZ,domain->umap_add);
+     fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
 
-   if (isShifted)  {
-     omega2 = geoSource->shiftVal();
-     Ma_NZ *= (-omega2*Kcoef);
-     if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
-     if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     if (isShifted)  {
+       omega2 = geoSource->shiftVal();
+       Ma_NZ *= (-omega2*Kcoef);
+       if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
+       if (mat)   mat->add(Ma_NZ,domain->umap_add);
      if (ops.spp)   ops.spp->add(Ma_NZ,domain->umap_add);
-     fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
+       fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
+     }
    }
 
  }

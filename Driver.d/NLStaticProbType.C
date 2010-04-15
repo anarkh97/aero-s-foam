@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <Timers.d/GetTime.h>
 
-#define DEBUG_NEWTON // use this to output at every newton iteration
+//#define DEBUG_NEWTON // use this to output at every newton iteration
 
 extern int verboseFlag;
 

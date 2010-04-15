@@ -655,6 +655,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
   domain->computeExtForce4(ext_f, cnst_f, t, kuc);
   if(userDefineDisp) delete [] userDefineDisp;
+
+
 /*
   // add USDF forces
   if(claw && userSupFunc) {

@@ -606,11 +606,11 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   times->formRhs -= getTime();
 
   ext_f.zero();
-
   double *userDefineDisp = 0;
+
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
-      double *userDefineDisp = new double[claw->numUserDisp];
+      userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
       setBC(userDefineDisp, userDefineVel); // update bcx, vcx
@@ -648,14 +648,14 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   }
 
   // THERMOE update nodal temperatures
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+  }
 
   // add f(t) to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
   domain->computeExtForce4(ext_f, cnst_f, t, kuc);
   if(userDefineDisp) delete [] userDefineDisp;
-
 
 /*
   // add USDF forces

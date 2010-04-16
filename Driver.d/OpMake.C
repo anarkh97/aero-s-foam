@@ -3060,22 +3060,22 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
       int dof2 = c_dsa->invRCN(dof);
       if(dof2 >= 0) Vc[dof2] = dbc[i].val;
     }
-/* see Domain::updateUsddInDbc
-    if(userDefineDisp) {
-      int numDisp = claw->numUserDisp;
-      for(int i = 0; i < numDisp; ++i) {
-        int dof = dsa->locate(claw->userDisp[i].nnum, (1 << claw->userDisp[i].dofnum));
-        if(dof < 0) continue;
-        int dof2 = c_dsa->invRCN(dof);
-        if(dof2 >= 0)
-          if(userMap) {
-            Vc[dof2] += userDefineDisp[userMap[i]];
-          }
-          else
-            Vc[dof2] += userDefineDisp[i];
-      }
-    }
-*/
+// see Domain::updateUsddInDbc
+//    if(userDefineDisp) {
+//      int numDisp = claw->numUserDisp;
+//      for(int i = 0; i < numDisp; ++i) {
+//        int dof = dsa->locate(claw->userDisp[i].nnum, (1 << claw->userDisp[i].dofnum));
+//        if(dof < 0) continue;
+//        int dof2 = c_dsa->invRCN(dof);
+//        if(dof2 >= 0)
+//          if(userMap) {
+//            Vc[dof2] += userDefineDisp[userMap[i]];
+//          }
+//          else
+//            Vc[dof2] += userDefineDisp[i];
+//      }
+//    }
+
     // compute the non-homogeneous force
     kuc->multSubtract(Vc, f);
   }

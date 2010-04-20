@@ -685,8 +685,10 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 */
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0)
-    domain->buildAeroelasticForce(ext_f, *prevFrc, tIndex, t, gamma, alphaf);
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+    domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+    ext_f += *aero_f;
+  }
 
   // add aerothermal fluxes from fluid dynamics code
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 

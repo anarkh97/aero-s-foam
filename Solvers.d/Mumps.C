@@ -11,6 +11,7 @@ inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
 
 #include <Driver.d/Domain.h>
 extern Domain * domain;
+extern long totMemMumps;
 
 #define	USE_COMM_WORLD	-987654 
 // MUMPS coded in Fortran -> watch out for index to match documentation
@@ -311,6 +312,8 @@ GenMumpsSolver<Scalar>::factor()
   if(this->print_nullity && host && nrbm > 0) 
     cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
 
+  totMemMumps += mumpsId.id.INFOG(19)*1024; // INFOG(19) is the size in millions of bytes of all mumps internal data 
+                                            // allocated during factorization: sum over all processors
 #endif
 }
 
@@ -427,13 +430,11 @@ long int
 GenMumpsSolver<Scalar>::size()
 {
 #ifdef USE_MUMPS
-#ifdef DISTRIBUTED
-  if(mumpsId.id.ICNTL(18) == 3) 
-    return mpicomm->globalSum(nNonZero);
-  else 
+  if(mumpsId.id.INFOG(3) < 0) return -1e6*mumpsId.id.INFOG(3);
+  else return mumpsId.id.INFOG(3);
+#else
+  return 0;
 #endif
-#endif
-  return nNonZero;
 }
 
 template<class Scalar>

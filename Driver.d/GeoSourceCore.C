@@ -422,9 +422,11 @@ findGroups(Connectivity *nToN, Connectivity &nToE) {
     }
 }
 
+#ifdef USE_EIGEN2
 #include <Math.d/rref.h>
 #include <eigen2/Eigen/Core>
 using namespace Eigen;
+#endif
 
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
 void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
@@ -572,7 +574,9 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
 
     if(use_rref) {
-
+#ifndef USE_EIGEN2
+      cerr << "here in Driver.d/GeoSourceCore.C, use_rref is disabled\n";
+#else
       vector<int> *term2col = new vector<int>[numLMPC];
       vector<pair<int,int> > col2pair(dofToLMPC->csize());
       for(int i = 0; i < numLMPC; ++i) {
@@ -621,6 +625,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 
       //setDirectMPC(false); geoSource->addMpcElements(numLMPC, lmpc); // for debugging
       //for(int i=0; i<numLMPC; ++i) { cerr << "i = " << i << endl; lmpc[i]->print(); }
+#endif
     }
 
   }

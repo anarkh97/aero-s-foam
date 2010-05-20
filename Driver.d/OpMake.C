@@ -900,6 +900,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 {
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
+ if(allOps.sysSolver) delete allOps.sysSolver;
  GenSolver<Scalar> *systemSolver = 0;
  //GenSparseMatrix<Scalar> *spm = 0;
  allOps.spm = 0;

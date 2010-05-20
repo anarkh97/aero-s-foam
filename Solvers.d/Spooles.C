@@ -788,10 +788,10 @@ GenSpoolesSolver<Scalar>::cleanUp()
   if(ownersIV) { IV_free(ownersIV); ownersIV = 0; }
   if(mtxB) { DenseMtx_free(mtxB); mtxB = 0; }
   if(mtxX) { DenseMtx_free(mtxX); mtxX = 0; }
-  if(symbfacIVL) IVL_free(symbfacIVL); // PJSA
-  if(frontETree) ETree_free(frontETree); // PJSA
-  if(cumopsDV) DV_free(cumopsDV); // PJSA
-  if(graph) Graph_free(graph); // PJSA
+  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; } // PJSA
+  if(frontETree) { ETree_free(frontETree); frontETree = 0; } // PJSA
+  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; } // PJSA
+  if(graph) { Graph_free(graph); graph = 0; } // PJSA
 #endif
 }
 

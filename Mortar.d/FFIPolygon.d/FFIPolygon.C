@@ -143,8 +143,8 @@ FFIPolygon::PrintMasterVertices(FILE* file, CoordSet& cs, int& firstVertId)
 {
   double XYZ[3];
   for(int iVert=0; iVert<nVertices; iVert++){
-    double m[2] = {VertexLlCoordOnMFaceEl[iVert][0],VertexLlCoordOnSFaceEl[iVert][1]};
-    SlaveFace->LocalToGlobalCoord(XYZ,m,cs);
+    double m[2] = {VertexLlCoordOnMFaceEl[iVert][0],VertexLlCoordOnMFaceEl[iVert][1]};
+    MasterFace->LocalToGlobalCoord(XYZ,m,cs);
     fprintf(file," %6d  %6e  %6e  %6e\n",firstVertId,XYZ[0],XYZ[1],XYZ[2]);
     firstVertId++;
   }
@@ -154,12 +154,24 @@ void
 FFIPolygon::PrintFFIPolygonTopo(FILE* file, int& EdgeOffset, int& VertOffset, int elCode)
 {
    int firstVertId = VertOffset;
-   for(int iVert=0; iVert<nVertices-1; iVert++){
-     fprintf(file," %6d  %3d  %6d  %6d\n",EdgeOffset,elCode,VertOffset,VertOffset+1);
-     VertOffset++; EdgeOffset++;
+   switch(nVertices) {
+     case 4 : { 
+       fprintf(file," %6d  %3d  %6d  %6d  %6d  %6d\n",EdgeOffset,188,VertOffset,VertOffset+1,VertOffset+2,VertOffset+3);
+       VertOffset+=4; EdgeOffset++;
+     } break;
+     case 3 : {
+       fprintf(file," %6d  %3d  %6d  %6d  %6d\n",EdgeOffset,108,VertOffset,VertOffset+1,VertOffset+2);
+       VertOffset+=3; EdgeOffset++;
+     } break;
+     default : {
+       for(int iVert=0; iVert<nVertices-1; iVert++){
+         fprintf(file," %6d  %3d  %6d  %6d\n",EdgeOffset,elCode,VertOffset,VertOffset+1);
+         VertOffset++; EdgeOffset++;
+       }
+       fprintf(file," %6d  %3d  %6d  %6d\n",EdgeOffset,elCode,VertOffset,firstVertId);
+       VertOffset++; EdgeOffset++;
+     } break;
    }
-   fprintf(file," %6d  %3d  %6d  %6d\n",EdgeOffset,elCode,VertOffset,firstVertId);
-   VertOffset++; EdgeOffset++;
 }
 #endif
 
@@ -195,10 +207,11 @@ FFIPolygon::CreateTriangularization(double* ACME_FFI_LocalCoordData)
      //fprintf(stderr," ACME_FFI_LocalCoordData[%2d] = %e\n",offset+2,ACME_FFI_LocalCoordData[offset+2]);
      //fprintf(stderr," ACME_FFI_LocalCoordData[%2d] = %e\n",offset+3,ACME_FFI_LocalCoordData[offset+3]);
 #ifdef HB_ACME_FFI_DEBUG
-     VertexLlCoordOnSFaceEl[iVert][0] = ACME_FFI_LocalCoordData[offset  ];
-     VertexLlCoordOnSFaceEl[iVert][1] = ACME_FFI_LocalCoordData[offset+1];
-     VertexLlCoordOnMFaceEl[iVert][0] = ACME_FFI_LocalCoordData[offset+2];
-     VertexLlCoordOnMFaceEl[iVert][1] = ACME_FFI_LocalCoordData[offset+3];
+     // PJSA swap master and slave (ACME Master <=> our Slave, ...)
+     VertexLlCoordOnMFaceEl[iVert][0] = ACME_FFI_LocalCoordData[offset  ];
+     VertexLlCoordOnMFaceEl[iVert][1] = ACME_FFI_LocalCoordData[offset+1];
+     VertexLlCoordOnSFaceEl[iVert][0] = ACME_FFI_LocalCoordData[offset+2];
+     VertexLlCoordOnSFaceEl[iVert][1] = ACME_FFI_LocalCoordData[offset+3];
 #endif 
      //SlaveCentroid[0]  += ACME_FFI_LocalCoordData[offset  ]; 
      //SlaveCentroid[1]  += ACME_FFI_LocalCoordData[offset+1]; 
@@ -478,9 +491,87 @@ FFIPolygon::ComputeNormalN(MortarElement* MortarEl, CoordSet &cs, int ngp)
   N = IntegrateOnSlave_MasterNormalShapeFctProduct(MortarEl, cs, ngp);
 }
 
+FullM
+FFIPolygon::IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+// *****************************************************************************************************
+// Integrate on the SLAVE SIDE the product of the shape functions defined by the given
+// MortarElement and the shape functions of the MASTER face element
+// NOTE:
+//     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
+//         element of THIS FFIPolygon object
+//     (2) the rows & colums ordering of the shape fcts product matrix is ASSOCIATED with the ordering
+//         of the MORTAR & MASTER face element node ordering
+// *****************************************************************************************************
+{
+   int nMortarShapeFct = MortarEl->nNodes();
+   int nMasterShapeFct = MasterFace->nNodes();
+
+   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
+   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
+   //cerr << " -> ngp             = " << ngp << endl;
+
+   FullM MatShapeFctProd(nMortarShapeFct,3*nMasterShapeFct);
+   MatShapeFctProd.zero();
+
+   // Loop over triangularization
+   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateGradNormalShapeFctProduct(MortarEl, MasterFacet(Facets, i), SlaveCoords,
+                                                                                 MasterCoords, MasterFacet(Facets, i), MasterCoords, ngp);
+   }
+
+   return MatShapeFctProd;
+}
+
+FullM
+FFIPolygon::IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+// *****************************************************************************************************
+// Integrate on the SLAVE SIDE the product of the shape functions defined by the given
+// MortarElement and the shape functions of the MASTER face element
+// NOTE:
+//     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
+//         element of THIS FFIPolygon object
+//     (2) the rows & colums ordering of the shape fcts product matrix is ASSOCIATED with the ordering
+//         of the MORTAR & MASTER face element node ordering
+// *****************************************************************************************************
+{
+   int nMortarShapeFct = MortarEl->nNodes();
+   int nSlaveShapeFct  = SlaveFace->nNodes();
+
+   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
+   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
+   //cerr << " -> ngp             = " << ngp << endl;
+
+   FullM MatShapeFctProd(nMortarShapeFct,3*nSlaveShapeFct);
+   MatShapeFctProd.zero();
+
+   // Loop over triangularization
+   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateGradNormalShapeFctProduct(MortarEl, SlaveFacet(Facets, i), SlaveCoords,
+                                                                                 SlaveCoords, MasterFacet(Facets, i), MasterCoords, ngp);
+   }
+
+   return MatShapeFctProd;
+}
+
+void
+FFIPolygon::ComputeGradNormalM(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+{
+  M = IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarEl, SlaveCoords, MasterCoords, ngp);
+}
+
+void
+FFIPolygon::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+{
+  N = IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarEl, SlaveCoords, MasterCoords, ngp);
+}
+
+
+
 #ifdef HB_NORMAL_GEOM_GAP
 void
-FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
 {
    int nMortarShapeFct = MortarEl->nNodes();
 
@@ -488,11 +579,12 @@ FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp)
 
    // Loop over triangularization
    for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     NormalGeoGaps  = SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, MasterFacet(Facets, i), 
-                                                                          cs, ngp);
-     NormalGeoGaps -= SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), 
-                                                                          cs, ngp);
+     NormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), SlaveCoords,
+                                                                                    SlaveCoords, ngp);
+     NormalGeoGaps -= SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, MasterFacet(Facets, i), SlaveCoords,
+                                                                                    MasterCoords, ngp);
    }
+   //NormalGeoGaps.print(" NormalGeoGaps[FFIPolygon]");
 }
 #endif
 
@@ -500,7 +592,7 @@ FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp)
 // EXPERIMENTAL
 // Alternative implementation that do not store the (triangular) facets but
 // construct them on-the-fly when performing the integrations
-// This may save memory as the nodes of the facets are no more dupplicated and stored
+// This may save memory as the nodes of the facets are no more duplicated and stored
 // Also the FFIPolygon object may only references the ACME_FFI_Data array instead of
 // extracting and storing its revelant data; in which case the ACME_FFI_Data may
 // must NOT be destroyed before the FFIPolygon objects are used. This approach should

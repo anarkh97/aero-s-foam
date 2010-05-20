@@ -114,6 +114,9 @@ class FaceElement {
         virtual void IntegrateShapeFcts(double*, CoordSet&, double rho, int ngp)=0;
 
         virtual double* ViewRefCoords();
+#ifdef EXP_MORTAR_CONTACT
+        virtual void GetdNormal(double dNormal[][3], double* m, CoordSet& cs) { }
+#endif
 
 	// Print, display ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~

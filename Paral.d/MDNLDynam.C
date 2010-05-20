@@ -255,6 +255,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   secondRes = 0.0;
   claw = 0; 
   userSupFunc = 0;
+  mpcForcesExp = 0;
 }
 
 int
@@ -326,7 +327,7 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce);
 
-  updateMpcRhs(geomState);
+  //updateMpcRhs(geomState);
 
   // add the ACTUATOR forces
   if(claw && userSupFunc) {
@@ -497,6 +498,7 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+  mpcForcesExp = new std::map<int,double>[decDomain->getNumSub()];
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 }
@@ -828,17 +830,33 @@ MDNLDynamic::addMpcForces(DistrVector& vec)
 void
 MDNLDynamic::subAddMpcForces(int isub, DistrVector& vec)
 {
+  // I need to treat the contact forces from CONTACTSURFACES separately due to search,
+  // the ith lagrange multiplier at iteration n may not correspond to the ith constraint
+  // after updating the contact surfaces
   SubDomain *sd = decDomain->getSubDomain(isub);
+/*
   double *mpcForces = new double[sd->numMPCs()];      // don't delete  
   solver->getLocalMpcForces(isub, mpcForces);         // mpcForces set to incremental mpc lagrange multipliers
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->constraintProductTmp(mpcForces, localvec);      // C^T*lambda added to vec
+*/
+  StackVector localvec(vec.subData(isub), vec.subLen(isub));
+  sd->constraintProductExp(mpcForcesExp[isub], localvec);      // C^T*lambda added to vec
+}
+
+void
+MDNLDynamic::subGetMpcForces(int isub)
+{
+  mpcForcesExp[isub].clear();
+  solver->getLocalMpcForcesExp(isub, mpcForcesExp[isub]);
 }
 
 void
 MDNLDynamic::updateMpcRhs(DistrGeomState &geomState)
 {
+// XXXX for now we use a small normal tolerance for acme, so the contact gap is zero
   decDomain->setContactGap(&geomState, solver);
+
   //execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMpcRhs, geomState);
 }
 
@@ -858,6 +876,7 @@ MDNLDynamic::zeroMpcForces()
 void
 MDNLDynamic::updateContactConditions(DistrGeomState* geomState)
 {
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subGetMpcForces);
   // YYYY
   domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
   domain->PerformStaticContactSearch();

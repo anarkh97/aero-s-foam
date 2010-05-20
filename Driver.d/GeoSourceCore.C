@@ -418,7 +418,7 @@ findGroups(Connectivity *nToN, Connectivity &nToE) {
     		  elementGroup.insert(nToE[j][el]);
       }
       // We now have the group of nodes that form a complete rigid body.
-      fprintf(stderr, "in GeoSource::findGroups, Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
+      cerr << "in GeoSource::findGroups, Number of nodes: " << nodeGroup.size() << " number of MPCs: " << elementGroup.size() << endl;
     }
 }
 

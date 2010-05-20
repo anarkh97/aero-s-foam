@@ -89,7 +89,9 @@ class FFIPolygon {
         FullM* GetPtrM() { return &M; }
 
         FullM* GetPtrN() { return &N; }
-        
+#ifdef HB_NORMAL_GEOM_GAP
+        Vector* GetPtrNormalGeoGaps() { return &NormalGeoGaps; }
+#endif
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         void Print(); 
@@ -115,13 +117,20 @@ class FFIPolygon {
 	FullM IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* , CoordSet &, int ngp=6);
         FullM IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
 
+        FullM IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+        FullM IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+
         void ComputeM(MortarElement*, CoordSet&, int ngp=6);
         void ComputeN(MortarElement*, CoordSet&, int ngp=6);
 
         void ComputeNormalM(MortarElement*, CoordSet&, int ngp=6);
         void ComputeNormalN(MortarElement*, CoordSet&, int ngp=6);
+
+        void ComputeGradNormalM(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+        void ComputeGradNormalN(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+
 #ifdef HB_NORMAL_GEOM_GAP
-	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
+	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet&, CoordSet&, int ngp=6);
 #endif
         // Space/memory allocation/desallocation methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

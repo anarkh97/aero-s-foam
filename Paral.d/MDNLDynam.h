@@ -82,6 +82,8 @@ class MDNLDynamic
     DistrVector *aeroForce;
     DistrVector *nodalTemps;
 
+    std::map<int, double> *mpcForcesExp;
+
  public:
 
     // Constructor
@@ -183,6 +185,7 @@ class MDNLDynamic
                              DistrVector &res, DistrVector &elemIntForce);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void subAddMpcForces(int isub, DistrVector& rhs);
+    void subGetMpcForces(int isub);
     void subUpdateMpcRhs(int isub, DistrGeomState &geomState);
     void subUpdateGeomStateUSDD(int isub, DistrGeomState &geomState, double *userDefineDisp);
     void makeSubClawDofs(int isub);

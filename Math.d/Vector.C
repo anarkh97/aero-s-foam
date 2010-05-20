@@ -505,6 +505,7 @@ template<class Scalar>
 void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
+ if(msg) cerr << msg << " ";
  for(int i=0; i<len; ++i) cerr << d[i] << " ";
  cerr << endl;
 /*

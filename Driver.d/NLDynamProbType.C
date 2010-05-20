@@ -1,5 +1,6 @@
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
+extern int totalNewtonIter;
 
 /****************************************************************
  *
@@ -161,7 +162,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   for( ; step < maxStep; ++step) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time+dt, int(double(step+1)/double(maxStep)*100.0));
+    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time, int(double(step+1)/double(maxStep)*100.0));
 
     if(aeroAlg == 5) {
       if(parity==0) //copy current state to backup state
@@ -180,9 +181,11 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     double resN, initialRes;
     int converged;
     probDesc->initNewton(); // PJSA 10-9-2007
+    stateIncr->zero(); // PJSA 4/16/2010
+    //stateIncr->linC((1.0-alphaf)*dt, velocity_n, ((1.0-alphaf)*(0.5-beta)-(1-alphaf)/(1-alpham)*beta*alpham)*dt*dt, acceleration); // PJSA 4/16/2010
 
     // Iteration loop
-    for(int iter = 0; iter < maxit; ++iter) {
+    for(int iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
 
       residual = external_force;
          
@@ -191,9 +194,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
 
-      VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY g = C^T*lambda
+      //VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY g = C^T*lambda  this is wrong, we should use the updated C^T make sure the lambda is correctly mapped
       probDesc->updateContactConditions(geomState);
-      probDesc->updateMpcRhs(*geomState); // YYYY
+      VecType g(rhs); g.zero(); if(iter>0) probDesc->addMpcForces(g);
+      //now I am doing this in in NodalMortarShapeFct::CreateMortarCtcLMPCons probDesc->updateMpcRhs(*geomState); // YYYY
 
       // Assemble global tangent stiffness
       probDesc->reBuild(*geomState, iter);
@@ -205,20 +209,27 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
 
-      //VecType g(rhs); probDesc->addMpcForces(g); resN = probDesc->norm(g); // YYYY resN = ||rhs + C^T*lambda||
+      //VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY resN = ||rhs + C^T*lambda||
+      double ggtmp = g*g;
       g += rhs; resN = probDesc->norm(g); // resN = ||rhs + C^T*lambda||
-      //if(verboseFlag) filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
+      // XXXX at very least need to include primal feas error for contact
+      // ie resN = sqrt( (rhs+c^T*lambda)**2 + pos_part(c*u-g)**2 )
+      //filePrint(stderr,"2 NORMS: fext*fext %e fctc*fctc %e residual*residual %e\n", external_force*external_force, ggtmp, resN*resN);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+      //cerr << "rhs*rhs = " << rhs*rhs << endl;
       solver->reSolve(rhs);
+      //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
+      // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing
+      // YYYY shouldn't we also check for primal & dual feasibility and complimentary slackness??
       converged = probDesc->checkConvergence(iter, resN, residual, rhs, time);
-      StateUpdate::updateIncr(stateIncr, rhs);
+      StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
 
       if(converged == 1)
         break;
@@ -235,7 +246,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
-                                   elementInternalForce, totalRes, acceleration);
+                                   elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
 
     // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
     if(domain->solInfo().order != 1)

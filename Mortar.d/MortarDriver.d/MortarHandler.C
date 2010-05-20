@@ -129,6 +129,8 @@ extern Domain *domain;
 
 using namespace std;
 
+//#define SELF_CONTACT
+
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS
 // -----------------------------------------------------------------------------------------------------
@@ -677,12 +679,13 @@ void
 MortarHandler::PrintFFIPolyVertices(FILE* file, int& firstVertId)
 {
   CoordSet& cs = PtrSlaveEntity->GetNodeSet();
-  for(int i=0; i<CtcPolygons.size(); i++)
+  for(int i=0; i<CtcPolygons.size(); i++) {
     CtcPolygons[i].PrintSlaveVertices(file, cs, firstVertId);
+  }
 
-  cs = PtrMasterEntity->GetNodeSet();
+  CoordSet& cs2 = PtrMasterEntity->GetNodeSet();
   for(int i=0; i<CtcPolygons.size(); i++)
-    CtcPolygons[i].PrintMasterVertices(file, cs, firstVertId);
+    CtcPolygons[i].PrintMasterVertices(file, cs2, firstVertId);
 }
 
 void
@@ -708,8 +711,12 @@ MortarHandler::ComputeOneFFIMandN(int iFFI, CoordSet &cs)
     CtcPolygons[iFFI].ComputeNormalN(MortarEl, cs);
   } 
   else if(InteractionType==MortarHandler::CTC) {
-    CtcPolygons[iFFI].ComputeNormalM(MortarEl, cs);
-    CtcPolygons[iFFI].ComputeNormalN(MortarEl, cs);
+    CoordSet& csm = PtrMasterEntity->GetNodeSet();
+    CtcPolygons[iFFI].ComputeGradNormalM(MortarEl, cs, csm);
+    CtcPolygons[iFFI].ComputeGradNormalN(MortarEl, cs, csm);
+#ifdef HB_NORMAL_GEOM_GAP
+    CtcPolygons[iFFI].ComputeNormalGeoGap(MortarEl, cs, csm); // PJSA need the master nodes also
+#endif
   }
   else { // TIED
     CtcPolygons[iFFI].ComputeM(MortarEl, cs);
@@ -721,14 +728,14 @@ void
 MortarHandler::MakeOneNodalMortarLMPC(int i, bool Dual)
 {
   NodalMortars[i].SetRefData(ActiveSlaveNodes[i], 1.0);
-  NodalMortars[i].MakeSlaveLink(ActiveSlaveNodeToElem,&ActiveSlaveElemSet, Dual);
-  NodalMortars[i].MakeMasterLink( ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
+  NodalMortars[i].MakeSlaveLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, Dual);
+  NodalMortars[i].MakeMasterLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
   if(InteractionType==MortarHandler::FSI)
-    NodalMortars[i].BuildWetFSICoupling(ActiveSlaveNodeToElem,&ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
+    NodalMortars[i].BuildWetFSICoupling(ActiveSlaveNodeToElem, &ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
   else if(InteractionType==MortarHandler::CTC)
-    NodalMortars[i].BuildMortarCtcLMPC(ActiveSlaveNodeToElem,&ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
+    NodalMortars[i].BuildMortarCtcLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
   else // TIED
-    NodalMortars[i].BuildMortarLMPC(ActiveSlaveNodeToElem,&ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
+    NodalMortars[i].BuildMortarLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -771,7 +778,7 @@ MortarHandler::PerformACMEFFISearch()
   set_search_options();
   perform_search(1); // search_algorithm = 1 (static 1-configuration search)
   get_interactions(4); // interaction_type = 4 (FaceFace)
-  set_node_constraints(domain->nDirichlet(), domain->getDBC()); // YYYY
+  //set_node_constraints(domain->nDirichlet(), domain->getDBC()); // YYYY
 }
 #else
 // !!! DUMMY METHOD: SHOULD NOT BE CALLED !!!
@@ -827,9 +834,13 @@ MortarHandler::CreateFFIPolygon()
   std::vector<int> IndexActiveMasterFaces; IndexActiveMasterFaces.reserve(512);
   for(int iFFI=0; iFFI<nFFI; iFFI++){
     int SlaveBlkId  = Slave_face_block_id[iFFI]-1;
+    if(Slave_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI
+                                                  << ", Slave_face_index_in_block[iFFI] = " << Slave_face_index_in_block[iFFI] << endl;
     int slave_face  = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
  
     int MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
+    if(Master_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
+                                                  << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << endl;
     int master_face = (*MasterACMEBlocksMap)[MasterBlkId][Master_face_index_in_block[iFFI]-1];
 
     int FFIDataOffset = ACMEFFI_index[iFFI];
@@ -1051,9 +1062,9 @@ MortarHandler::CreateACMEFFIData()
   int offset = 0;
   for(int iFFI=0; iFFI<nFFI; iFFI++){ // one FFI = one face el.
     ACMEFFI_index[iFFI]             = offset;
-    Slave_face_index_in_block[iFFI] = iFFI;
-    Master_face_block_id[iFFI]      = 0;
-    Master_face_index_in_block[iFFI]= iFFI;
+    //Slave_face_index_in_block[iFFI] = iFFI;
+    //Master_face_block_id[iFFI]      = 0;
+    //Master_face_index_in_block[iFFI]= iFFI;
     int N = (*FaceElSet)[iFFI]->nVertices(); // Underlying linear geometry
     ACMEFFI_data[offset++] = N; // number of edges/vertices of the FFI polygon
     for(int i=0; i<N; i++){  
@@ -1909,10 +1920,17 @@ MortarHandler::set_search_data(int interaction_type)
 //#endif
   }
   for(int i=0; i<4; i++) {
+#ifdef SELF_CONTACT
+    Search_Data[step_size*( 0+i)] = Interaction_Typ;
+    Search_Data[step_size*( 8+i)] = Interaction_Typ;
+    Search_Data[step_size*(16+i)] = Interaction_Typ;
+    Search_Data[step_size*(24+i)] = Interaction_Typ;
+#else
     Search_Data[step_size*( 4+i)] = Interaction_Typ;
     Search_Data[step_size*(12+i)] = Interaction_Typ;
     Search_Data[step_size*(20+i)] = Interaction_Typ;
     Search_Data[step_size*(28+i)] = Interaction_Typ;
+#endif
   }
 
 #ifdef MORTAR_DEBUG
@@ -2082,6 +2100,7 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
     exit(error);
   }
 
+  //cerr << "positions = "; for(int i=0; i<3*num_nodes; ++i) cerr << positions[i] << " "; cerr << endl;
   if(positions != 0) delete [] positions;
 #endif
 }
@@ -2247,6 +2266,7 @@ MortarHandler::set_search_options()
   ContactSearch::ContactErrorCode error;
   double data[3];
   
+#ifndef ACME_1_3
   // Deactivate Secondary Decomposition
   if(NoSecondary) {
     error = search_obj->Set_Search_Option(ContactSearch::NO_SECONDARY,
@@ -2259,6 +2279,7 @@ MortarHandler::set_search_options()
       exit(error);
     }
   }
+#endif
   
   // Activate multiple interations
   data[0] = 30.;
@@ -2295,6 +2316,7 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
   switch(search_algorithm) {
     default:
     case 1:
+      search_obj->Delete_All_Interactions(); // PJSA 4/14/2009
       error = search_obj->Static_Search_1_Configuration();
       break;
     case 2:
@@ -2310,7 +2332,7 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       break;
     case 4:
 #ifdef ACME_1_3
-      error = search_obj->Dynamic_Search_Augmented_2_Configuration(dt_old, dt);
+      error = search_obj->Dynamic_Search_Augmented_2_Configuration(mass, dt_old, dt);
 #else
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
 #endif
@@ -2377,12 +2399,12 @@ MortarHandler::get_interactions(int interaction_type)
         // !!! HERE ACME MASTER <=> OUR SLAVE !!! 
         //          ACME SLAVE  <=> OUR MASTER  
 	search_obj->Get_FaceFace_Interactions(Master_face_block_id,
-					     Master_face_index_in_block,
-					     Slave_face_block_id,
-					     Slave_face_index_in_block,
-					     Slave_face_procs,
-					     ACMEFFI_index,
-					     ACMEFFI_data);
+                                              Master_face_index_in_block,
+                                              Slave_face_block_id,
+                                              Slave_face_index_in_block,
+                                              Slave_face_procs,
+                                              ACMEFFI_index,
+                                              ACMEFFI_data);
       } else {
 #ifdef MORTAR_DEBUG
         filePrint(stderr," *** WARNING: no Face-Face interaction found between master surf %2d & slave surf %2d\n",
@@ -2411,22 +2433,33 @@ MortarHandler::build_td_enforcement()
   // a kinematic partition factor between 0 and 1 speciﬁes a ﬁxed kinematic partitioning, 
   // 2 tells acme to compute this for each interaction pair based on the physical data (density, wavespeed)
   // (see acme manual section 1.7)
+
   for(int i=0; i<num_entity_keys*num_entity_keys; ++i) {
+#ifdef SELF_CONTACT
+    Enforcement_Data[2*i+0] = 0.5;
+#else
     Enforcement_Data[2*i+0] = 0.0;
+#endif
     Enforcement_Data[2*i+1] = 1.0;
   } 
 
+#ifndef SELF_CONTACT
   double fixed_kpf = 1.0; // kinematic partitioning factor: this can be varied 0 < fixed_kpf <= 1.0
   for(int f_key=0; f_key<4; ++f_key) {
     for(int n_key = 4; n_key < 8; ++n_key) {
      Enforcement_Data[(f_key*num_entity_keys+n_key)*2 + 0] = (MortarType == STD) ? fixed_kpf : 2.0;
     }
   }
+#endif
 
   bool get_cvars = true;
   bool calc_plot_force = false;
   ContactSearch::ContactErrorCode error;
+#ifdef ACME_1_3
+  contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error);
+#else
   contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+#endif
   if(error) { 
     std::cerr << "Error in ACME ContactTDEnforcement::ContactTDEnforcement: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
@@ -2464,7 +2497,9 @@ MortarHandler::build_td_enforcement()
   } 
   
   double tol = TDEnfConvTol;
+#ifndef ACME_1_3
   contact_obj->Set_Convergence_Tolerance(tol);
+#endif
   if(error) {
     std::cerr << "Error in ACME ContactTDEnforcement::Set_Convergence_Tolerance: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
@@ -2503,6 +2538,7 @@ MortarHandler::remove_gap(Vector &d)
   set_node_configuration(1);
   perform_search(1);
 
+#ifndef ACME_1_3
   int num_nodes = PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices();
   int max_iterations = 100;
   double trivial_gap = 1.0e-10;
@@ -2518,6 +2554,7 @@ MortarHandler::remove_gap(Vector &d)
   for(int i=0; i<3*num_nodes; ++i) if(dofmap[i] > -1) d[dofmap[i]] += displ_cor[i];
   delete [] displ_cor;
   delete gap_removal_obj;
+#endif
 #endif
 }
 
@@ -2999,6 +3036,7 @@ void
 MortarHandler::get_global_variable(int var, double &value)
 {
 #ifdef USE_ACME
+#ifndef ACME_1_3
   ContactSearch::ContactErrorCode error = contact_obj->Get_Global_Variable((ContactTDEnforcement::Contact_TDEnf_Global_Vars) var, value);
   if(error) {
     std::cerr << "Error in ACME ContactTDEnforcement::Get_Global_Variable: error code = " << error << std::endl;
@@ -3006,6 +3044,7 @@ MortarHandler::get_global_variable(int var, double &value)
       std::cerr << contact_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+#endif
 #endif
 }
 

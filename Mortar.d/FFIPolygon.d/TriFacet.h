@@ -65,13 +65,13 @@ class TriFacet {
         // Integration methods
         // ~~~~~~~~~~~~~~~~~~~ 
         FullM IntegrateShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, int ngp=6);
-
-        FullM IntegrateNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet& , int ngp=6);
+        FullM IntegrateNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, int ngp=6);
+        FullM IntegrateGradNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, CoordSet&, TriFacet&, CoordSet&, int ngp=6);
 
 #ifdef HB_NORMAL_GEOM_GAP
         // Compute normal "geometrical" gap
         // EXPERIMENTAL
-        Vector IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendTriFacet, CoordSet &cs, int ngp=6);
+        Vector IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendTriFacet, CoordSet& cs, CoordSet& cs1, int ngp=6);
 #endif
 };
 #endif

@@ -123,6 +123,7 @@ bool useFull=false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
+int totalNewtonIter = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -1226,6 +1227,8 @@ int main(int argc, char** argv)
  filePrint(stderr," ... Total Time           = %.2e s\n",
          (getTime() - initTime)/1000.0);
  filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
+ if(domain->solInfo().isNonLin())
+   filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
  filePrint(stderr," --------------------------------------\n");
 
  if(geoSource) { delete geoSource; geoSource = 0; }

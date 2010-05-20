@@ -4,6 +4,7 @@
 //#define DEBUG_NEWTON // use this to output at every newton iteration
 
 extern int verboseFlag;
+extern int totalNewtonIter;
 
 template < class OpSolver, 
            class VecType, 
@@ -320,7 +321,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // Main Newton Iteration Loop
   double e_k;
   int iter, converged;
-  for(iter = 0; iter < maxit; ++iter) {
+  for(iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
 
     // residual = lambda*force;
     residual.linC(force, lambda);

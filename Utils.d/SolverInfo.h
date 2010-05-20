@@ -227,6 +227,7 @@ struct SolverInfo {
                   // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
                   //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
+   bool ffi_debug;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -393,6 +394,7 @@ struct SolverInfo {
 
                   dist_acme = 0;
                   allproc_acme = true;
+                  ffi_debug = false;
                  }
 
    // Set RbmFilter level

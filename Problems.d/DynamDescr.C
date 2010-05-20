@@ -606,11 +606,11 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   times->formRhs -= getTime();
 
   ext_f.zero();
-
   double *userDefineDisp = 0;
+
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
-      double *userDefineDisp = new double[claw->numUserDisp];
+      userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
       setBC(userDefineDisp, userDefineVel); // update bcx, vcx
@@ -648,13 +648,15 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   }
 
   // THERMOE update nodal temperatures
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+  }
 
   // add f(t) to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
   domain->computeExtForce4(ext_f, cnst_f, t, kuc);
   if(userDefineDisp) delete [] userDefineDisp;
+
 /*
   // add USDF forces
   if(claw && userSupFunc) {
@@ -683,8 +685,10 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 */
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0)
-    domain->buildAeroelasticForce(ext_f, *prevFrc, tIndex, t, gamma, alphaf);
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+    domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+    ext_f += *aero_f;
+  }
 
   // add aerothermal fluxes from fluid dynamics code
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
@@ -802,7 +806,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  }
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
- if(domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch) { // not required for explicit
+ if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)) { // not required for explicit
    GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
    m->zeroAll();
    allOps.Msolver = m;

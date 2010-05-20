@@ -271,6 +271,9 @@ struct SolverInfo {
                   steadyMin = 1;
                   steadyMax = 10;
                   steadyTol = 1.0e-3; 
+                  qsMaxvel = 1.0;
+                  qsBeta = 1.0;
+                  delta = 0.0;
                   no_secondary = false;
 
                   trbm = 1.0E-16;   // default zero pivot tolerance

@@ -446,10 +446,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // command communication with fluid
       if(tIndex == steadyMax && !iSteady) { 
         probDesc->processLastOutput();
-        postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
-        if(aeroFlg != 10)
+        if(aeroFlg != 10) {
+          postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
           probDesc->cmdCom(1); 
-        break;
+          break;
+        }
       }
       else
         iSteady = probDesc->cmdCom(iSteady);
@@ -487,7 +488,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
   }
 
-  if (!iSteady) {
+  if (!iSteady && aeroAlg != 10) {
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
     filePrint(stderr," --------------------------------------\n");

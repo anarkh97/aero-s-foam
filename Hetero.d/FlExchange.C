@@ -60,7 +60,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
         aforce[2] += buffer[3*j+2];
      }
  }
- 
+
  flipRcvParity();
 
  // KHP

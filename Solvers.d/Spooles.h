@@ -44,6 +44,7 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    Scalar *scale;       // vector to store the matrix scaling
    int msglvl;
    FILE *msgfile;
+   long _size;
 
 #ifdef USE_SPOOLES
    InpMtx   *inpMtx;	 // input Matrix

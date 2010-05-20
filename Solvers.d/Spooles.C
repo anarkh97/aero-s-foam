@@ -8,6 +8,7 @@ extern double getTime();
 
 #include<Driver.d/Domain.h>
 extern Domain *domain;
+extern long totMemSpooles;
 
 #define DEBUG_SPOOLES 0  // 1 = print debug stats for factorization, 2 = print for solve also
 
@@ -610,6 +611,8 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
        << "     time to post-process matrix = " << cpus[9] << endl
        << "     total factor time = " << cpus[10] << endl;
 #endif
+  _size = stats[3]+stats[4]+stats[5];
+  totMemSpooles += sizeof(Scalar)*_size/1024;
 #endif
 }
 
@@ -748,7 +751,7 @@ template<class Scalar>
 long
 GenSpoolesSolver<Scalar>::size() 
 { 
-  return neq;
+  return _size;
 }
 
 template<class Scalar>
@@ -830,6 +833,7 @@ GenSpoolesSolver<Scalar>::init()
   msgfile = (msglvl > 0) ? fopen("spooles_msgfile","w") : NULL;
   nrbm = 0;
   rbm = 0;
+  _size = 0;
 }
 
 

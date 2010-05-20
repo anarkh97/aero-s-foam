@@ -857,7 +857,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
 
     CoordSet &nodes = domain->getNodes();
 
-    for(int i=0; i<domain->numNodes(); ++i) {
+    for(int i=0; i<geoSource->numNode(); ++i) {
 
       int xloc  = c_dsa->locate(i, DofSet::Xdisp );
       int xloc1 =   dsa->locate(i, DofSet::Xdisp );
@@ -885,7 +885,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     }
 
     if(!parity && aeroAlg==5){ 
-      for(int i=0; i<domain->numNodes(); ++i) {
+      for(int i=0; i<geoSource->numNode(); ++i) {
 
         int xloc  = c_dsa->locate(i, DofSet::Xdisp );
         if(xloc >= 0)

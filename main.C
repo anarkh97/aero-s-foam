@@ -113,6 +113,8 @@ Sfem *sfem = new Sfem();
 
 long totMemSky       = 0;
 long totMemSparse    = 0;
+long totMemSpooles   = 0;
+long totMemMumps     = 0;
 
 ThreadManager *threadManager = 0;
 
@@ -898,7 +900,7 @@ int main(int argc, char** argv)
        fprintf(stderr,"*** WARNING: The Solver %d is not supported \n",  domain->probType());
    }
 
-   totalMemoryUsed = double(memoryUsed())/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
    delete threadManager;
 
  }
@@ -1260,7 +1262,7 @@ int main(int argc, char** argv)
        }
        break;
    }
-   totalMemoryUsed = double(memoryUsed())/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
  }
 
 #ifdef DISTRIBUTED

@@ -581,9 +581,11 @@ FlExchanger::sendTemperature( CoordSet & cs,
 
  int i,j;
 
+ int pos = 0;
+ 
  for(i=0; i < nbrReceivingFromMe; i++) {
 
-   int pos = 0;
+   int origPos = pos;
 
    for(j=0; j < nbSendTo[i]; ++j) {
 //    fprintf(stderr,"I = %d and nbSendTo[I] = %d\n", j, nbSendTo[i]);
@@ -603,7 +605,7 @@ FlExchanger::sendTemperature( CoordSet & cs,
 //      printf("Sending %4d = %14.7e\n",xyz,buffer[xyz]);
 
    //_FORTRAN(nsedoc)(zero, tag, buffer, pos, fluidNode, toFluid);
-  fluidCom->sendTo(fluidNode, tag, buffer, pos);
+  fluidCom->sendTo(fluidNode, tag, buffer+origPos, pos-origPos);
 
 //  fprintf(stderr," STRUCT : Done sending to Node %4d, Buffer %d\n", tag,pos);
 //  fflush(stderr);

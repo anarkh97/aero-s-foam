@@ -628,6 +628,8 @@ TRAIL [a-zA-Z]*
 
 "HEFS"[a-zA-Z]*|"hefs"[a-zA-Z]*    { return HEFSB; }
 
+"HEIN"[a-zA-Z]*|"hein"[a-zA-Z]*    { return HEINTERFACE; }
+
 "subs"[a-zA-Z]*|"subs"[a-zA-Z]*    { return SUBSPACE;  }
 
 "NONL"[a-zA-Z]*|"nonl"[a-zA-Z]*    { return NL; }

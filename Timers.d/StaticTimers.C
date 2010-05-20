@@ -14,6 +14,7 @@
 
 extern long totMemSparse;
 extern long totMemSky;
+extern long totMemSpooles;
 
 const char* yesno[] = {" no","yes"};
 // problem Type solved
@@ -194,6 +195,8 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  double totalSolver = times.factor + solveTime + times.constructTime +
                       rebuild + buildStiffAndForce + timeFreqSweep;
 
+ times.memorySolve += (totMemSpooles+totMemMumps); // PJSA
+
  if(timeLoop==0.0) {
    if (mesNum == 2)
      filePrint(f,"5. Total Solver                        time: %14.5f s        N/A\n", totalSolver/1000.0);
@@ -275,13 +278,15 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  if(sInfo.subtype == 4) {
    totMemUsed += 8*memUsed;
    coef = 12.0;
- } else
+ } else {
+   totMemUsed += (totMemSpooles+totMemMumps);
    memUsed = times.memorySolve;
+ }
 
  if(sInfo.subtype == 3 || sInfo.subtype == 7) coef = 1.0;
 
  filePrint(f,"1. Total Amount of Requested Memory        = %14.3f Mb\n\n",
-            memoryUsed()*byteToMb);
+           totMemUsed*byteToMb);
 
  filePrint(f,"2. Solver Amount of Requested Memory       = %14.3f Mb\n\n",
            coef*memUsed*byteToMb);

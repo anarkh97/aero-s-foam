@@ -293,6 +293,13 @@ EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 FullSquareMatrix
 EulerBeam::stiffness(CoordSet &cs, double *d, int flg)
 {
+        // Check for phantom element, which has no stiffness
+        if (prop == NULL) {
+           FullSquareMatrix ret(12,d);
+           ret.zero();
+           return ret;
+        }
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 

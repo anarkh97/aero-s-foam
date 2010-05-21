@@ -796,7 +796,7 @@ void GeoSource::setUpData()
                       " non existent element %d \n",attrib[i].nele+1);
       continue;
     }
-
+    if(ele->isRigidElement()) continue;
     if(attrib[i].attr < -1) { // phantom elements
       phantomFlag = 1;
       ele->setProp(0);

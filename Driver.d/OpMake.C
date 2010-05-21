@@ -3081,5 +3081,6 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   }
 
   // ADD CONSTANT FORCE
-  f += constantForce;
+  //XXXXf += constantForce;
+  f.linAdd(mfttFactor, constantForce);
 }

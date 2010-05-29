@@ -42,6 +42,7 @@ class GenMultiDomainInpcPostProcessor
     int getsizeSfemStress() { return decDomain->getsizeSfemStress(); }
     double* getSfemStress(int fileNumber) { return decDomain->getSfemStress(fileNumber);}
     void updateSfemStress(double* str, int fileNumber) { decDomain->updateSfemStress(str, fileNumber);}
+    void setSolver(GenSolver<Scalar> *s) { solver = s; }
 };
 
 

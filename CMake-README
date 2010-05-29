@@ -24,3 +24,5 @@ On regelation, make sure /share/apps/intel/fce/9.1.039/bin/ is in your path and 
 ~michel/cmake-2.6.2-Linux-i386/bin/cmake -DEXTRALIB="-L/share/apps/intel/fce/9.1.039/lib/ -lifcore -limf -lirc" -DMPI_INCLUDE_PATH=/opt/mpich/myrinet/gnu/include .
 
 Note: Both directories given above can be in your path. Only one of them will contain a fortran compiler and cmake will pick it.
+
+If CMake initially finds a different MPI than was intended, and you want to use the MPI compiler auto-detection for a different MPI implementation, set MPI_COMPILER to the MPI compiler driver you want to use (e.g., mpicxx) and then set MPI_LIBRARY to the string MPI_LIBRARY-NOTFOUND. When you re-configure, auto-detection of MPI will run again with the newly-specified MPI_COMPILER.

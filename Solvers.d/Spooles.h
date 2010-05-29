@@ -3,9 +3,11 @@
 
 // Spooles include files
 #ifdef USE_SPOOLES
-#include <misc.h>
-#include <FrontMtx.h>
-#include <SymbFac.h>
+extern "C" {
+  #include <misc.h>
+  #include <FrontMtx.h>
+  #include <SymbFac.h>
+}
 #endif
 
 #include <Solvers.d/Solver.h>
@@ -42,6 +44,7 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    Scalar *scale;       // vector to store the matrix scaling
    int msglvl;
    FILE *msgfile;
+   long _size;
 
 #ifdef USE_SPOOLES
    InpMtx   *inpMtx;	 // input Matrix

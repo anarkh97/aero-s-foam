@@ -113,6 +113,8 @@ Sfem *sfem = new Sfem();
 
 long totMemSky       = 0;
 long totMemSparse    = 0;
+long totMemSpooles   = 0;
+long totMemMumps     = 0;
 
 ThreadManager *threadManager = 0;
 
@@ -488,9 +490,9 @@ int main(int argc, char** argv)
       }
 
  if(optind < argc - 1) {
-   filePrint(stderr," *************************************************\n");
-   filePrint(stderr," *** ERROR: Options must come before file name ***\n");
-   filePrint(stderr," *************************************************\n");
+   filePrint(stderr," ******************************************************\n");
+   filePrint(stderr," *** ERROR: Command line contained errors. Aborting ***\n");
+   filePrint(stderr," ******************************************************\n");
    exit(-1);
  }
 
@@ -547,10 +549,11 @@ int main(int argc, char** argv)
      useFull = true;
    }
    if(!nosa) nosa = decInit->nosa; // PJSA
-   if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0) {
-     geoSource->getCheckFileInfo()->checkfile = decInit->file;
+   if(topFlag < 0) {
+     callDec=true;
+     if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0)
+       geoSource->getCheckFileInfo()->checkfile = decInit->file;
    }
-   if(topFlag < 0) callDec=true;
  }
 
  //SysCom theCom(argc,argv);
@@ -581,9 +584,9 @@ int main(int argc, char** argv)
  if(threadManager->numThr() != numThreads) { //HB: for checking purpose
    filePrint(stderr," *** WARNING: number of threads requested: %d\n",numThreads);
    filePrint(stderr,"              number of threads created  : %d\n",threadManager->numThr());
-   filePrint(stderr," -> tip: if you are running on a Linux plateform\n");
+   filePrint(stderr," -> tip: if you are running on a Linux platform\n");
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
-   filePrint(stderr,"         compiler (for instance, the Intel C/C++ compiler) (see the Makefile)\n");
+   filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
 
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
@@ -897,7 +900,7 @@ int main(int argc, char** argv)
        fprintf(stderr,"*** WARNING: The Solver %d is not supported \n",  domain->probType());
    }
 
-   totalMemoryUsed = double(memoryUsed())/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
    delete threadManager;
 
  }
@@ -1258,7 +1261,7 @@ int main(int argc, char** argv)
        }
        break;
    }
-   totalMemoryUsed = double(memoryUsed())/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
  }
 
 #ifdef DISTRIBUTED

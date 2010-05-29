@@ -131,9 +131,7 @@ TRAIL [a-zA-Z]*
 
 "global"|"GLOBAL"                  { return GLOBAL; }
 
-"matcher"|"MATCHER"                { return MATCHER; }
-
-"Matcher"	                   { return Matcher; }
+"matcher"|"MATCHER"|"Matcher"      { return MATCHER; }
 
 "geometry"|"GEOMETRY"              { return GEOMETRY; }
 
@@ -622,11 +620,15 @@ TRAIL [a-zA-Z]*
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
 
+"addedmass"                        { return ADDEDMASS; }
+
 "SLOS"[a-zA-Z]*|"slos"[a-zA-Z]*    { return SLOSH; }
 
 "SLGR"[a-zA-Z]*|"slgr"[a-zA-Z]*    { return SLGRAV; }
 
 "HEFS"[a-zA-Z]*|"hefs"[a-zA-Z]*    { return HEFSB; }
+
+"HEIN"[a-zA-Z]*|"hein"[a-zA-Z]*    { return HEINTERFACE; }
 
 "subs"[a-zA-Z]*|"subs"[a-zA-Z]*    { return SUBSPACE;  }
 
@@ -963,6 +965,8 @@ TRAIL [a-zA-Z]*
 
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
+"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
 "ghelmhol"|"gacoustd"|"pressure"|"gacoupre"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
@@ -984,6 +988,10 @@ TRAIL [a-zA-Z]*
 "gvelocit"|"GVELOCIT"              { yylval.ival = OutputInfo::Velocity;     return STRESSID; }
 
 "gacceler"|"GACCELER"              { yylval.ival = OutputInfo::Acceleration; return STRESSID; }
+
+"gvel6dof"|"GVEL6DOF"              { yylval.ival = OutputInfo::Velocity6;     return STRESSID; }
+
+"gacc6dof"|"GACC6DOF"              { yylval.ival = OutputInfo::Accel6; return STRESSID; }
 
 "gtempvel"|"GTEMPVEL"              { yylval.ival = OutputInfo::TemperatureFirstTimeDerivative; return STRESSID; }
 

@@ -6,7 +6,7 @@
 
 int main() {
 
- char *filename="out";
+ char *filename=(char*)"out";
  char buf[256];
  double k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13,k14,k15,k16;
  scanf("%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",&k1,&k2,&k3,&k4,&k5,&k6,&k7,&k8,&k9,&k10,&k11,&k12,&k13,&k14,&k15,&k16);

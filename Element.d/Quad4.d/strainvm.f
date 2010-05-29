@@ -50,7 +50,7 @@ C
 C
 C.... LOOP OVER ALL NODES
 C
-        do 10 n = 1, nno
+        do 10 n = 1, numnod
 C
           exx = strain(1,1,n)
           eyy = strain(1,2,n)

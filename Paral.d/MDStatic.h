@@ -32,6 +32,7 @@ class GenMultiDomainPostProcessor
     void updateSfemStress(Scalar* str, int fileNumber) { cerr << "GenMultiDomainPostProcessor::updateSfemStress() not implemented" << endl;}
     void getMemoryK(int iSub, long *memory);
     void getMemoryPrec(int iSub, long *memory);
+    void setSolver(GenParallelSolver<Scalar> *s) { solver = (GenFetiSolver<Scalar> *) s; }
 };
 
 template<class Scalar>

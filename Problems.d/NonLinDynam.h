@@ -45,6 +45,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double *bcx;	// displacement prescribed values
     double *vcx;        // velocity prescribed values
     Solver *solver;
+    SparseMatrix *spm;
     FILE   *res;        // file to store residuals
     int     totIter;     // counter of iterations
     /*int    *dofTypeArray; */ 

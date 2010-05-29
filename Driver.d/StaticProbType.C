@@ -532,6 +532,7 @@ StaticSolver< Scalar, OpSolver, VecType,
     filePrint(stderr,"\n ... Rebuilding LHS with frequency = %f ... \n", w1/(2.0*PI));
   }
   probDesc->rebuildSolver();
+  postProcessor->setSolver(allOps->sysSolver);
   //solver = probDesc->getSolver();
 
   if(a) {

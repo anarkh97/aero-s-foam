@@ -11,6 +11,7 @@ inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
 
 #include <Driver.d/Domain.h>
 extern Domain * domain;
+extern long totMemMumps;
 
 #define	USE_COMM_WORLD	-987654 
 // MUMPS coded in Fortran -> watch out for index to match documentation
@@ -112,6 +113,11 @@ GenMumpsSolver<Scalar>::zeroAll()
 {
   if(!unonz) unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
+#ifdef USE_MUMPS
+  mumpsId.id.job = -2; // destroy instance of the mumps package
+  Tmumps_c(mumpsId.id);
+#endif
+  init();
 }
 
 template<class Scalar>
@@ -311,6 +317,8 @@ GenMumpsSolver<Scalar>::factor()
   if(this->print_nullity && host && nrbm > 0) 
     cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
 
+  totMemMumps += mumpsId.id.INFOG(19)*1024; // INFOG(19) is the size in millions of bytes of all mumps internal data 
+                                            // allocated during factorization: sum over all processors
 #endif
 }
 
@@ -416,7 +424,7 @@ GenMumpsSolver<Scalar>::print()
  if(host && mumpsId.id.ICNTL(18) == 0) { // centralized matrix on host
    cerr << endl;
    for(int i=0; i < nNonZero; ++i)
-     fprintf(stderr,"K(%d,%d) = % e \n",mumpsId.id.irn[i],mumpsId.id.jcn[i],mumpsId.id.a[i]);
+     cerr << "K(" << mumpsId.id.irn[i] << "," << mumpsId.id.jcn[i] << ") = " << unonz[i] << endl;
  }
  else if(host && mumpsId.id.ICNTL(18) == 3) cerr << "GenMumpsSolver<Scalar>::print() is not implemented for ICNTL(18) = 3\n";
 #endif
@@ -427,13 +435,11 @@ long int
 GenMumpsSolver<Scalar>::size()
 {
 #ifdef USE_MUMPS
-#ifdef DISTRIBUTED
-  if(mumpsId.id.ICNTL(18) == 3) 
-    return mpicomm->globalSum(nNonZero);
-  else 
+  if(mumpsId.id.INFOG(3) < 0) return -1e6*mumpsId.id.INFOG(3);
+  else return mumpsId.id.INFOG(3);
+#else
+  return 0;
 #endif
-#endif
-  return nNonZero;
 }
 
 template<class Scalar>

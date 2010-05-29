@@ -445,8 +445,8 @@ static int ludcmp(double *A, int n, int *indx)// LU decomposition
   return 0;
 }
 
-static void lubksb (double *A, int n, int *indx,double *b)//LU factorisation
-//form "Numerical recipes in C", cambridge
+static void lubksb (double *A, int n, int *indx, double *b)//LU factorisation
+//from "Numerical recipes in C", cambridge
 {
   int i,ii=0,ip,j;
   double sum;
@@ -959,21 +959,24 @@ HData::getCurvatures3Daccurate( Domain *dom )
                 delta[iSomNode] = newCoords[iSomNode][0];
               int i,j,k;
               //double **A = (double **)new double[unknown*unknown];
-              double **A = new double * [unknown];
-              for(int i=0;i<unknown;i++) A[i] = new double[unknown];
+              //PJSA double **A = new double * [unknown];
+              //PJSA for(int i=0;i<unknown;i++) A[i] = new double[unknown];
+              double *A = new double[unknown*unknown]; // PJSA
               double *f = new double[unknown];
               int *vectemp = new int[unknown];
               // A = AN'*AN
               for(i=0;i<unknown;i++) {
                 for(j=0;j<unknown;j++)
-                  A[i][j] = 0.0;
+                  //PJSA A[i][j] = 0.0;
+                  A[i*unknown+j] = 0.0; // PJSA
                 f[i]=0.0;
                 vectemp[i]=0;
               }
               for(i=0;i<unknown;i++)
                 for(j=0;j<unknown;j++)
                   for(k=0;k<numNeighbours-1;k++)
-                    A[i][j] += AN[k][i]*AN[k][j];
+                    //PJSA A[i][j] += AN[k][i]*AN[k][j];
+                    A[i*unknown+j] += AN[k][i]*AN[k][j]; // PJSA
               for(i=0;i<unknown;i++)// f = AN'*delta
                 for(j=0;j<numNeighbours-1;j++)
                   f[i] += AN[j][i]*delta[j];
@@ -997,7 +1000,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
                 newCoords[iSomNode][1] = tau1[0]*x1 + tau1[1]*y1 + tau1[2]*z1;
                 newCoords[iSomNode][2] = tau2[0]*x1 + tau2[1]*y1 + tau2[2]*z1;
               }
-              for(int i=0;i<unknown;i++) delete [] A[i];
+              //PJSA for(int i=0;i<unknown;i++) delete [] A[i];
               delete [] A;
               delete [] f;
               delete [] vectemp;
@@ -1063,21 +1066,24 @@ HData::getCurvatures3Daccurate( Domain *dom )
               delta2[iSomNode] = -2*newCoords[iSomNode][0];
             int i,j,k;
             //double **A2 = (double **)new double[unknown*unknown];
-            double **A2 = new double * [unknown];
-            for(int i=0;i<unknown;i++) A2[i] = new double[unknown];
+            //PJSA double **A2 = new double * [unknown];
+            //PJSA for(int i=0;i<unknown;i++) A2[i] = new double[unknown];
+            double *A2 = new double[unknown*unknown]; // PJSA
             double *f2 = new double[unknown];
             int *vectemp2 = new int[unknown];
             // A = AN'*AN
             for(i=0;i<unknown;i++) {
               for(j=0;j<unknown;j++)
-                A2[i][j] = 0.0;
+                //PJSA A2[i][j] = 0.0;
+                A2[i*unknown+j] = 0.0; // PJSA
               f2[i]=0.0;
               vectemp2[i] = 0;
             }
             for(i=0;i<unknown;i++)
               for(j=0;j<unknown;j++)
                 for(k=0;k<numNeighbours-1;k++)
-                  A2[i][j] += AN2[k][i]*AN2[k][j];
+                  //PJSA A2[i][j] += AN2[k][i]*AN2[k][j];
+                  A2[i*unknown+j] += AN2[k][i]*AN2[k][j]; // PJSA
             for(i=0;i<unknown;i++)// f = AN'*delta
               for(j=0;j<numNeighbours-1;j++)
                 f2[i] += AN2[j][i]*delta2[j];
@@ -1122,7 +1128,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
             curvatures_normal[iCurvNode-1][2] = normal[2];
             
             delete [] newCoords; 
-            for(int i=0;i<unknown;i++) delete [] A2[i];
+            //PJSA for(int i=0;i<unknown;i++) delete [] A2[i];
             delete [] A2; 
             delete [] f2;
             delete [] vectemp2;
@@ -1333,16 +1339,20 @@ HData::getCurvatures3Daccurate( Domain *dom )
           for (iSomNode=0; iSomNode<numNeighbours-1; iSomNode++)//fill delta
             delta[iSomNode] = newCoords[iSomNode][0];
           int i,j,k;
-          double **A = new double*[unknown];
-          for(i=0; i<unknown; i++)         
-            A[i] = new double[unknown]; 
-          double *z = new double[unknown];
-          double *h = new double[unknown];
+          //PJSA double **A = new double*[unknown];
+          //PJSA for(i=0; i<unknown; i++)
+          //PJSA   A[i] = new double[unknown];
+          double *A = new double[unknown*unknown]; // PJSA
+          //PJSA double *z = new double[unknown];
+          double *z = new double[9]; // PJSA
+          //PJSA double *h = new double[unknown];
+          double *h = new double[9]; // PJSA
           int *vectemp = new int[unknown];
           // A = AN'*AN
           for(i=0;i<unknown;i++) {
             for(j=0;j<unknown;j++)
-              A[i][j] = 0.0;
+              //PJSA A[i][j] = 0.0;
+              A[i*unknown+j] = 0.0;
             z[i]=0.0;
             h[i]=0.0;
             vectemp[i]=0;
@@ -1350,14 +1360,15 @@ HData::getCurvatures3Daccurate( Domain *dom )
           for(i=0;i<unknown;i++)
             for(j=0;j<unknown;j++)
               for(k=0;k<numNeighbours-1;k++)
-                A[i][j] += AN[k][i]*AN[k][j];
+                //PJSA A[i][j] += AN[k][i]*AN[k][j];
+                A[i*unknown+j] += AN[k][i]*AN[k][j]; // PJSA
           for(i=0;i<unknown;i++)// f = AN'*delta
             for(j=0;j<numNeighbours-1;j++) {
               z[i] += AN[j][i]*delta[j];
               h[i] += AN[j][i]*delta2[j];
             }
           // Solve the system
-          int fl = ludcmp((double*)A, unknown,vectemp); // LU decomposition
+          int fl = ludcmp((double*)A, unknown, vectemp); // LU decomposition
           if (fl==0) {
             lubksb((double*)A, unknown, vectemp, z); // LU backsubstitution
             lubksb((double*)A, unknown, vectemp, h);
@@ -1367,6 +1378,7 @@ HData::getCurvatures3Daccurate( Domain *dom )
               z[i] = 0.0;
               h[i] = 0.0;
             }
+          for(int i=unknown; i<9; ++i) z[i] = h[i] = 0.0; // PJSA
           //compute the lagrangian in (0,0)
           if (unknown==3)
             curvaturesLapH[nn3]=-((4*z[2]*z[0]+2*z[3]*z[1])*((1+z[1]*z[1])*h[0]-z[0]*z[1]*h[1]) +
@@ -1391,9 +1403,9 @@ HData::getCurvatures3Daccurate( Domain *dom )
              (1+z[0]*z[0]+z[1]*z[1]);
           }
           delete [] newCoords; 
-          delete [] delta2; 
-          for(i=0; i<unknown; i++)
-            delete [] A[i];
+          //PJSA delete [] delta2; 
+          //PJSA for(i=0; i<unknown; i++)
+          //PJSA   delete [] A[i];
           delete [] A; 
           delete [] z;
           delete [] h;
@@ -1431,18 +1443,18 @@ HData::getCurvatures3Daccurate( Domain *dom )
             LapH /= compt;
             int nn3 = dom->nodeToSommerNodeMap[iNode];
             curvaturesLapH[nn3]=LapH;
+          }
         }
       }
-    }
 
-    if (curvatureFlag == 1) {
-      fprintf(stderr,"  HData.C: curvatureFlag should not be 1");
-/*
-      double k1 =  curvatureConst1;
-      double k2 =  curvatureConst1;
-      for(iNode=0; iNode<numNodesSommer; iNode++) {
-        curvaturesH[iNode] = 0.5*(k1+k2);
-        curvaturesK[iNode] = k1*k2;*/
+      if (curvatureFlag == 1) {
+        fprintf(stderr,"  HData.C: curvatureFlag should not be 1");
+        /*double k1 =  curvatureConst1;
+        double k2 =  curvatureConst1;
+        for(iNode=0; iNode<numNodesSommer; iNode++) {
+          curvaturesH[iNode] = 0.5*(k1+k2);
+          curvaturesK[iNode] = k1*k2;
+        }*/
       }
     }
     if (numNodesSommer!=iCurvNode) fprintf(stderr,"Something is wrong here.\n");
@@ -1734,10 +1746,12 @@ HData::addSommerElem(int num, int etype, double sommerConst, int nnodes, int*n)
        ele = new TriangleSommerBC(n[0], n[1], n[2]);
        addSommer(ele);
        break;
-     case 4:
+     case 4: {
+       //(use for debugging) int ntmp[4] = { n[0], n[1], n[3], n[2] };
+       //(use for debugging) ele = new IsoParamQuadSommer(nnodes,ntmp);
        ele = new QuadSommerBC(n[0], n[1], n[2], n[3]);
        addSommer(ele);
-       break;
+       } break;
      case 6:
        ele = new Triangle6SommerBC(n[0], n[1], n[2], n[3], n[4], n[5]);
        addSommer(ele);

@@ -53,11 +53,12 @@
  MortarHandler* MortarCondObj;
  LMPCTerm* mpcterm;
  GeoSource::Rprop rprop;
+ OutputInfo oinfo;
 }
 
 %token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES 
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER 
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ADDEDMASS
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CGALPARAM CGALPREC
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
@@ -91,7 +92,7 @@
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
 %token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
-%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER Matcher CPUMAP
+%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP OUTERLOOPTYPE EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
@@ -99,7 +100,7 @@
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
-%token PDIR HEFSB HEFRS  // Added for HEV Problem, EC, 20080512
+%token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -143,6 +144,7 @@
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
 %type <ival>     ISOLVERTYPE RECONSALG
 %type <ival>     PRECTYPEID SWITCH
+%type <oinfo>    OutInfo
 %%
 FinalizedData:
 	All END
@@ -197,7 +199,7 @@ Component:
 	| SloshInfo 
 	| HEVibInfo 
         | QstaticInfo
-	| OutInfo
+	| Output
         | NLInfo
 	| DiscrMasses
 	| Composites
@@ -306,6 +308,8 @@ Component:
         | WetInterface
         {}
         | FSInterface
+        {}
+        | HEInterface
         {}
         | ContactSurfaces
         {}
@@ -665,7 +669,7 @@ UsddLocations:
           if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;   
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
-OutInfo:
+Output:
 	OUTPUT NewLine
         { numColumns = 3; } // set number of output columns to 3 
 	| OUTPUT6 NewLine
@@ -674,276 +678,43 @@ OutInfo:
         { numColumns = 3; geoSource->setOutLimit($2); }
         | OUTPUT6 Integer NewLine
         { numColumns = 6; geoSource->setOutLimit($2); }
-	| OutInfo STRESSID FNAME Integer DOFTYPE NewLine
-        { OutputInfo oInfo($3, $4, 1, (OutputInfo::Type) $5, 10, 4);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer Integer DOFTYPE NewLine
-        { OutputInfo oInfo($3, $4, 1, (OutputInfo::Type) $6, 10, 4, 1, $5-1);
-          geoSource->addOutput(oInfo); } // NEW
-        | OutInfo STRESSID Integer Integer FNAME Integer DOFTYPE NewLine
-        { OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) $7, $3, $4);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer DOFTYPE NewLine
-        { OutputInfo oInfo($4, $5, 1, (OutputInfo::Type) $6, 10, 4);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer DOFTYPE NewLine
-        { OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) $7, 10, 4);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer NewLine
-        { int type = $2; 
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($3, $4, 1, (OutputInfo::Type) type, 10, 4);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer NewLine
-        { OutputInfo oInfo($4, $5, 1, (OutputInfo::Type) $2, 10, 4);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6); 
-          geoSource->addOutput(oInfo);}
-	| OutInfo STRESSID Integer Integer FNAME Integer NewLine
-        { int type = $2; 
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) type, $3, $4);
-          geoSource->addOutput(oInfo); }
- 	| OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer NewLine
-        { OutputInfo oInfo($6, $7, 1, (OutputInfo::Type) $2, $4, $5);
-          geoSource->addOutput(oInfo); 
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);    
-          geoSource->addOutput(oInfo);}
-       | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($4, $5, 1, (OutputInfo::Type) type, 10, 4);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) type, 10, 4);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($3, $4, 1, (OutputInfo::Type) type, 10, 4, 1, $5-1);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer Integer NewLine
-        { OutputInfo oInfo($4, $5, 1, (OutputInfo::Type) $2, 10, 4, 2, $7-1);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6); 
-          geoSource->addOutput(oInfo);}
-        | OutInfo STRESSID Integer Integer FNAME Integer Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) type, $3, $4, 1, $7-1);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer Integer NewLine
-        { OutputInfo oInfo($6, $7, 1, (OutputInfo::Type) $2, $4, $5, 1, $9-1);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($4, $5, 1, (OutputInfo::Type) type, 10, 4, 1, $6-1);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer Integer NewLine
-        { int type = $2;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($5, $6, 1, (OutputInfo::Type) type, 10, 4, 1, $7-1);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer AVERAGED NewLine
-        { int aflg = $5;
-          int type = $2;
-          if (((type==0)||(type==35))||((type==45)||(type==46))) aflg = 1;
-          if(numColumns == 6 && (type == 0 || type == 35)) type = 38;
-          if(numColumns == 6 && (type == 45)) type = 69;
-          if(numColumns == 6 && (type == 46)) type = 70;
-          OutputInfo oInfo($3, $4, aflg, (OutputInfo::Type) type, 10, 4);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer AVERAGED NewLine
-        { int aflg = $7;
-          int type = $2;
-          OutputInfo oInfo($4, $5, aflg, (OutputInfo::Type) type, 10, 4);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($3, $4, $5, (OutputInfo::Type) $2, 10, 4, $6); 
-          geoSource->addOutput(oInfo); } 
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($4, $5, $7, (OutputInfo::Type) $2, 10, 4, $8); 
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); } 
-	| OutInfo STRESSID FNAME Integer SURFACE NewLine
-        { OutputInfo oInfo($3, $4,  1, (OutputInfo::Type) $2, 10, 4, $5); 
-          geoSource->addOutput(oInfo); }
-	| OutInfo STRESSID NDTYPE FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, $7);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); }
-	| OutInfo STRESSID FNAME Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($3, $4, $5, (OutputInfo::Type) $2, 10, 4, 2, -1, $6, $7); 
-          geoSource->addOutput(oInfo); }
-	| OutInfo STRESSID NDTYPE FNAME Integer Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($4, $5, $7, (OutputInfo::Type) $2, 10, 4, 2, -1, $8, $9);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID Integer Integer FNAME Integer AVERAGED NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, $3, $4);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer AVERAGED NewLine
-        { OutputInfo oInfo($6, $7, $9, (OutputInfo::Type) $2, $4, $5);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer AVERAGED NewLine
-        { OutputInfo oInfo($4, $5, $6, (OutputInfo::Type) $2, 10, 4);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer AVERAGED NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, 10, 4);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID Integer Integer FNAME Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, $3, $4, $8);
-          geoSource->addOutput(oInfo); } 
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($6, $7, $9, (OutputInfo::Type) $2, $4, $5, $10);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); } 
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($4, $5, $6, (OutputInfo::Type) $2, 10, 4, $7);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer AVERAGED SURFACE NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, 10, 4, $8);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID Integer Integer FNAME Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, $3, $4, 2, -1, $8, $9);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($6, $7, $9, (OutputInfo::Type) $2, $4, $5, 2, -1, $10, $11);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($4, $5, $6, (OutputInfo::Type) $2, 10, 4, 2, -1, $7, $8);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer AVERAGED Float Float NewLine
-        { OutputInfo oInfo($5, $6, $7, (OutputInfo::Type) $2, 10, 4, 2, -1, $8, $9);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID Integer Integer FNAME Integer SURFACE NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, $3, $4, $7);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($6, $7,  1, (OutputInfo::Type) $2, $4, $5, $9);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer SURFACE NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, $6);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer SURFACE NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, 10, 4, $7);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($3, $4,  1, (OutputInfo::Type) $2, 10, 4, $6, $5-1);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, $8, $7-1);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID FNAME Integer Integer Float Float NewLine
-        { OutputInfo oInfo($3, $4,  1, (OutputInfo::Type) $2, 10, 4, 2, $5-1, $6, $7);
-          geoSource->addOutput(oInfo); }	  
-        | OutInfo STRESSID NDTYPE FNAME Integer Integer Integer Float Float NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, 2, $7-1, $8, $9);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($6);
-          geoSource->addOutput(oInfo); }	  
-        | OutInfo STRESSID Integer Integer FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, $3, $4, $8, $7-1);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($6, $7,  1, (OutputInfo::Type) $2, $4, $5, $10, $9-1);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, $7, $6-1);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer Integer SURFACE NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, 10, 4, $8, $7-1);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-	| OutInfo STRESSID Integer Integer FNAME Integer Integer Float Float NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, $3, $4, 2, $7-1, $8, $9);
-          geoSource->addOutput(oInfo); }
-	| OutInfo STRESSID NDTYPE Integer Integer FNAME Integer Integer Integer Float Float NewLine
-        { OutputInfo oInfo($6, $7,  1, (OutputInfo::Type) $2, $4, $5, 2, $9-1, $10, $11);
-          oInfo.ndtype = $3;
-          sfem->setnsamp_out($8);
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE FNAME Integer Integer Float Float NewLine
-        { OutputInfo oInfo($4, $5,  1, (OutputInfo::Type) $2, 10, 4, 2, $6-1, $7, $8);
-          oInfo.complexouttype = $3;
-          geoSource->addOutput(oInfo); }
-        | OutInfo STRESSID COMPLEXOUTTYPE Integer FNAME Integer Integer Float Float NewLine
-        { OutputInfo oInfo($5, $6,  1, (OutputInfo::Type) $2, 10, 4, 2, $7-1, $8, $9);
-          oInfo.complexouttype = $3;
-          oInfo.ncomplexout = $4;
-          geoSource->addOutput(oInfo); }
-       | OutInfo TDENFORC FNAME Integer NewLine
-        { OutputInfo::Type type = OutputInfo::TDEnforcement;
-          OutputInfo oInfo($3, $4, 1, type, 10, 4);
-          oInfo.tdenforc_var = $2;
-          geoSource->addOutput(oInfo); }
-        | OutInfo TDENFORC FNAME Integer Integer NewLine
-        { OutputInfo::Type type = OutputInfo::TDEnforcement;
-          OutputInfo oInfo($3, $4, 1, type, 10, 4, 1, $5-1); 
-          oInfo.tdenforc_var = $2;
-          geoSource->addOutput(oInfo); }
-	;
+        | Output OutInfo NewLine
+        { $2.finalize(numColumns); geoSource->addOutput($2); }
+        ;
+OutInfo:
+        STRESSID FNAME Integer // unformatted output for all nodes
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; }
+        | STRESSID Integer Integer FNAME Integer // formatted output for all nodes
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
+        | STRESSID FNAME Integer Integer // unformatted output for one node
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4; }
+        | STRESSID Integer Integer FNAME Integer Integer // formatted output for one node
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6; }
+        | TDENFORC FNAME Integer // unformatted output for all nodes (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; }
+        | TDENFORC Integer Integer FNAME Integer // formatted output for all nodes (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
+        | TDENFORC FNAME Integer Integer // unformatted output for one node (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4; }
+        | TDENFORC Integer Integer FNAME Integer Integer // formatted output for one node (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6; }
+        | OutInfo DOFTYPE
+        { $$.type = (OutputInfo::Type) $2; }
+        | OutInfo SURFACE
+        { $$.surface = $2; }
+        | OutInfo Float Float
+        { $$.ylayer = $2; $$.zlayer = $3; }
+        | OutInfo AVERAGED
+        { $$.averageFlg = $2; }
+        | OutInfo COMPLEXOUTTYPE
+        { $$.complexouttype = $2; }
+        | OutInfo COMPLEXOUTTYPE Integer
+        { $$.complexouttype = $2; $$.ncomplexout = $3; }
+        | OutInfo NDTYPE
+        { $$.ndtype = $2; }
+        | OutInfo NDTYPE Integer
+        { $$.ndtype = $2; sfem->setnsamp_out($3); }
+        ;
 DynInfo:
         DynamInfo
 	| EIGEN NewLine
@@ -990,6 +761,8 @@ DynInfo:
         { domain->solInfo().maxitEig = $3; }
         | TESTULRICH NewLine
           { domain->solInfo().test_ulrich = true; }
+        | ADDEDMASS Integer NewLine
+        { domain->solInfo().addedMass = $2; }
 	;
 SloshInfo:
         SLOSH NewLine
@@ -1107,7 +880,7 @@ AeroInfo:
         }
 	| AeroInfo COLLOCATEDTYPE NewLine
 	{ domain->solInfo().isCollocated = $2; }
-        | Matcher FNAME NewLine
+        | MATCHER FNAME NewLine
         { geoSource->setMatch($2); }
 	;
 AeroHeatInfo:
@@ -2059,6 +1832,22 @@ HEVInterfaceElement:
         { domain->addWetElem($1-1, $2, 1.0, $3.num, $3.nd);
           domain->solInfo().HEV = 1;
           domain->solInfo().isMatching = true; }
+        ;
+HEInterface:
+        HEINTERFACE NewLine
+        { }
+        | HEInterface Integer Integer Integer NewLine
+        { /* alternative format preferred by charbel. $2 is an id which will later be associated
+           with an attribute and properties */
+          domain->addWetInterface($3, $4); domain->solInfo().HEV = 1;
+          if($3 == $4) domain->solInfo().isMatching = true;
+        }
+        | HEInterface Integer Integer Integer Float Float NewLine
+        { /* alternative format preferred by charbel. $2 is an id which will later be associated
+           with an attribute and properties */
+          domain->addWetInterface($3, $4, $5, $6); domain->solInfo().HEV = 1;
+          if($3 == $4) domain->solInfo().isMatching = true;
+        }
         ;
 ContactSurfaces:
         // $2 = pair id, $3 = master surface, $4 = slave surface, $5 = mortar type, $6 = normal search tolerace, $7 = tangential search tolerance

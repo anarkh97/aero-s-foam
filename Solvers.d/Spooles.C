@@ -8,6 +8,7 @@ extern double getTime();
 
 #include<Driver.d/Domain.h>
 extern Domain *domain;
+extern long totMemSpooles;
 
 #define DEBUG_SPOOLES 0  // 1 = print debug stats for factorization, 2 = print for solve also
 
@@ -16,7 +17,9 @@ extern Domain *domain;
 /*************************************************************************************/
 #ifdef USE_SPOOLES
 
-#include <MT/spoolesMT.h>
+extern "C" {
+ #include <MT/spoolesMT.h>
+}
 
 inline double DVTrace( DV &d )
 {
@@ -320,7 +323,7 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 }
 
 //PJSA warning THREADS defined causes bug for nonlinear
-//#define THREADS
+#define THREADS
 
 template<class Scalar>
 Scalar
@@ -608,6 +611,8 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
        << "     time to post-process matrix = " << cpus[9] << endl
        << "     total factor time = " << cpus[10] << endl;
 #endif
+  _size = stats[3]+stats[4]+stats[5];
+  totMemSpooles += sizeof(Scalar)*_size/1024;
 #endif
 }
 
@@ -746,7 +751,7 @@ template<class Scalar>
 long
 GenSpoolesSolver<Scalar>::size() 
 { 
-  return neq;
+  return _size;
 }
 
 template<class Scalar>
@@ -786,10 +791,10 @@ GenSpoolesSolver<Scalar>::cleanUp()
   if(ownersIV) { IV_free(ownersIV); ownersIV = 0; }
   if(mtxB) { DenseMtx_free(mtxB); mtxB = 0; }
   if(mtxX) { DenseMtx_free(mtxX); mtxX = 0; }
-  if(symbfacIVL) IVL_free(symbfacIVL); // PJSA
-  if(frontETree) ETree_free(frontETree); // PJSA
-  if(cumopsDV) DV_free(cumopsDV); // PJSA
-  if(graph) Graph_free(graph); // PJSA
+  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; } // PJSA
+  if(frontETree) { ETree_free(frontETree); frontETree = 0; } // PJSA
+  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; } // PJSA
+  if(graph) { Graph_free(graph); graph = 0; } // PJSA
 #endif
 }
 
@@ -828,6 +833,7 @@ GenSpoolesSolver<Scalar>::init()
   msgfile = (msglvl > 0) ? fopen("spooles_msgfile","w") : NULL;
   nrbm = 0;
   rbm = 0;
+  _size = 0;
 }
 
 

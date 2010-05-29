@@ -9,9 +9,9 @@ CommSplitter::CommSplitter(Communicator * originComm, CpuCount specializedCpus) 
   interComm_(NULL)
 {
   // Determine local context
-  CpuRank firstSpecializedCpu(0);
-  CpuRank firstStandardCpu = firstSpecializedCpu + specializedCpus; 
-  if (CpuRank(originComm->myID()) < firstStandardCpu) {
+  CpuRank firstStandardCpu(0); 
+  CpuRank firstSpecializedCpu = CpuRank(originComm_->numCPUs()) - specializedCpus;
+  if (CpuRank(originComm_->myID()) >= firstSpecializedCpu) {
     localGroup_ = SPECIALIZED;
   }
 

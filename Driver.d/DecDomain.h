@@ -109,6 +109,7 @@ class GenDecDomain
   DistrInfo* elementVectorInfo();
   DistrInfo* pbcVectorInfo();
   void scaleDisp(GenDistrVector<Scalar> &u);
+  void scaleInvDisp(GenDistrVector<Scalar> &u);
   void setNewProperties(int);
   void assignRandMat();
   void retrieveElemset();
@@ -183,6 +184,8 @@ class GenDecDomain
   void getAeroForceScalar(int fileNumber, Scalar (*mergedAeroF)[6],
                           int numNodes, int dof, double time);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
+  void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
+
   // Helmholtz Fluid functions
   void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,
      int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],

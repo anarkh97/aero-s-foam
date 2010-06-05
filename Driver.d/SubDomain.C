@@ -1540,7 +1540,7 @@ GenSubDomain<Scalar>::constructKww()
   cscale_factor  = domain->cscale_factor;
   cscale_factor2 = domain->cscale_factor2;
 
-  if(!neighbKww)
+  if(!neighbKww && numWIdof)
     neighbKww = new GenFsiSparse<Scalar>(domain->getFSI(), domain->getNumFSI(), glToLocalWImap);
 
 #ifdef HB_COUPLED_PRECOND
@@ -1577,10 +1577,11 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::scaleAndSplitKww()
 {
+ if (neighbKww!=0)
+   neighbKww->scale(cscale_factor);
 
-  neighbKww->scale(cscale_factor);
-
-  neighbKww->split(glToLocalWImap, wweight);
+ if (neighbKww!=0)
+   neighbKww->split(glToLocalWImap, wweight);
 
 #ifdef HB_COUPLED_PRECOND
  if(solInfo().isCoupled & isMixedSub & neighbKww!=0 & KiiSparse!=0) {
@@ -1607,10 +1608,13 @@ GenSubDomain<Scalar>::reScaleAndReSplitKww()
   cscale_factor2 = domain->cscale_factor2;
 
   double rescale_factor =  cscale_factor/prev_cscale_factor;
-  neighbKww->scale(rescale_factor);
 
-  if(solInfo().getFetiInfo().fsi_scaling == FetiInfo::kscaling)
-    neighbKww->split(glToLocalWImap, wweight);
+  if (neighbKww!=0)
+    neighbKww->scale(rescale_factor);
+
+  if (neighbKww!=0)
+    if(solInfo().getFetiInfo().fsi_scaling == FetiInfo::kscaling)
+      neighbKww->split(glToLocalWImap, wweight);
 
 #ifdef HB_COUPLED_PRECOND
  if(solInfo().isCoupled & isMixedSub & neighbKww!=0) {
@@ -2213,9 +2217,11 @@ GenSubDomain<Scalar>::assemble(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *
  double mratio = geoSource->getMRatio();
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
- double alpha = -sinfo.alphaDamp;
- double beta = -sinfo.betaDamp;
- bool isDamped = (alpha != 0.0) || (beta != 0.0);
+ double alphaDamp = -sinfo.alphaDamp, alpha;
+ double  betaDamp = -sinfo.betaDamp, beta;
+ bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
+
+
  double *z = (isShifted /*&&*/|| isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
 
  bool precm = (solInfo().getFetiInfo().prectype==FetiInfo::shifted) ? true : false; //HB
@@ -2239,6 +2245,9 @@ GenSubDomain<Scalar>::assemble(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *
    bool isFsiEle   = packedEset[iele]->isFsiElement();
    bool isStructEle = !(isFluidEle || isFsiEle);
    bool isComplexF = (packedEset[iele]->getProperty())->fp.PMLtype!=0;
+   alpha = (packedEset[iele]->isDamped()) ? -packedEset[iele]->getProperty()->alphaDamp : alphaDamp;
+   beta = (packedEset[iele]->isDamped()) ? -packedEset[iele]->getProperty()->betaDamp : betaDamp;
+
 
    // compute element stiffness matrix
    if (isComplexF) {
@@ -6694,6 +6703,12 @@ GenSubDomain<Scalar>::multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k)
 
   // assemble localvec for MatVec product
   Scalar *localvec = (Scalar *) dbg_alloca(sizeof(Scalar)*c_dsa->size());
+  if (u==0) {
+    for(int i=0; i<c_dsa->size(); ++i)
+      localrhs[i] = 0.0;
+    makeFreqSweepLoad(localrhs, k, omega);
+    return;
+  }
   for(int i=0; i<c_dsa->size(); ++i) {
     localvec[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
   }

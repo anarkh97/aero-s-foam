@@ -37,8 +37,8 @@ public:
  virtual bool dgmFlag() { return true; }
  virtual bool condensedFlag() {
    for(int i=0;i<nFaces();i++) if (bc[i]==3) return false;
-//   return true;
-   return false;
+   return true;
+//   return false;
  }
  virtual bool storeMatricesFlag() { return true; }
  virtual int nPolynomialDofs() { return 0; }

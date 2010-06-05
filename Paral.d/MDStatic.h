@@ -63,6 +63,8 @@ class GenMultiDomainStatic
     void retrieveElemset() {cerr << "GenMultiDomainStatic::retrieveElemset() not implemented" << endl ; }
     void rebuildSolver();
     void scaleDisp(GenDistrVector<Scalar> &);
+    void scaleInvDisp(GenDistrVector<Scalar> &);
+
     void clean();
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **sol_prev, int iRHS);

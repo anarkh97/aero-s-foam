@@ -1,7 +1,7 @@
 #include <Element.d/Helm.d/GaussRules.h>
 #include <Element.d/Helm.d/IntegFunction.h>
 
-#define GSUBDIV 1
+#define GSUBDIV 2
 
 #ifdef WINDOWS
 #include <alloca.h>

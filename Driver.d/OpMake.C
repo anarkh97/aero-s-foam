@@ -131,7 +131,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  if(sinfo.isCoupled) computeCoupledScaleFactors();
 
- if (sinfo.ATDARBFlag>=0.0||sinfo.ATDROBalpha!=0.0)  checkSommerTypeBC(this);
+ if (! dynamic_cast<GenSubDomain<Scalar>*> (this)) 
+   if (sinfo.ATDARBFlag>=0.0||sinfo.ATDROBalpha!=0.0)  checkSommerTypeBC(this);
 
  if(sinfo.farfield) { addSBoundNodes(); makeKss(this); } // PJSA 3-15-2007 for Farfield output, direct solver (check with Radek)
 
@@ -901,6 +902,12 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
  GenSolver<Scalar> *systemSolver = 0;
+// RT: 032010 based on Phil's input
+// if(!sinfo.inpc) {
+//   if (allOps.sysSolver) delete allOps.sysSolver;
+//   allOps.sysSolver = 0;
+// }
+
  //GenSparseMatrix<Scalar> *spm = 0;
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
@@ -1393,7 +1400,9 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  if(sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) {
    //---- UH ----
    if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos ||
-      sinfo.freqSweepMethod == SolverInfo::GalProjection) {
+      sinfo.freqSweepMethod == SolverInfo::GalProjection ||
+      sinfo.freqSweepMethod == SolverInfo::KrylovGalProjection ||
+      sinfo.freqSweepMethod == SolverInfo::QRGalProjection) {
      if (allOps.K)
        delete allOps.K;
      allOps.K = constructDBSparseMatrix<Scalar>();
@@ -1724,6 +1733,20 @@ Domain::scaleDisp(Scalar *u)
     c_dsa->number(inode, DofSet::XYZdisp | DofSet::XYZrot, cdofs);
     for(int jdof = 0; jdof<6; ++jdof)
       if(cdofs[jdof] >= 0) u[cdofs[jdof]] *= coupledScaling;
+  }
+}
+
+
+template<class Scalar>
+void
+Domain::scaleInvDisp(Scalar *u)
+{
+  // RT: 9-10-09 this is for multi-point projection with coupled fluid-structure
+  for(int inode = 0; inode < numnodes; ++inode) {
+    int cdofs[6];
+    c_dsa->number(inode, DofSet::XYZdisp | DofSet::XYZrot, cdofs);
+    for(int jdof = 0; jdof<6; ++jdof)
+      if(cdofs[jdof] >= 0) u[cdofs[jdof]] /= coupledScaling;
   }
 }
 

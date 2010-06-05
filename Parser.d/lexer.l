@@ -273,6 +273,10 @@ TRAIL [a-zA-Z]*
 
 "GalProjection"|"galprojection"|"GALPROJECTION" { yylval.ival = 5; return RECONSALG; }
 
+"KrylovGalProjection"|"krylovgalprojection"|"KRYLOVGALPROJECTION" { yylval.ival= 6; return RECONSALG; }
+
+"QRGalProjection"|"qrgalprojection"|"QRGALPROJECTION" { yylval.ival = 7; return RECONSALG; }
+
 "padepoles"|"PADEPOLES"            { return PADEPOLES; }
 
 "modefilter"|"MODEFILTER"          { return MODEFILTER; }
@@ -314,6 +318,8 @@ TRAIL [a-zA-Z]*
 "incidence"|"INCIDENCE"            { return INCIDENCE; }
 
 "pointsource"|"POINTSOURCE"        { return POINTSOURCE; }
+
+"planewave"|"PLANEWAVE"            { return PLANEWAVE; }
 
 "ksweep"|"KSWEEP"                  { return HELMSWEEP; }
 

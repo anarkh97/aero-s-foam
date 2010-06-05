@@ -201,7 +201,7 @@ int GeoSource::addMat(int nmat, StructProp &p)
   if (numProps < nmat+1) // attempt to get numProps right -- Julien & Thomas
     numProps = nmat+1;
 
-  p.soundSpeed = omega()/complex<double>(p.kappaHelm, p.kappaHelmImag); // PJSA 1-15-08
+//  p.soundSpeed = omega()/complex<double>(p.kappaHelm, p.kappaHelmImag); // PJSA 1-15-08
 
   sProps[nmat] = p;
 
@@ -708,6 +708,15 @@ void GeoSource::setUpData()
       ele->setMaterial(matIter->second);
     uIter++;
   }
+
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    if(p->soundSpeed == 1.0)
+      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
+    it++;
+  }
+
 }
 
 //----------------------------------------------------------------

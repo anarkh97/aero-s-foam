@@ -69,11 +69,19 @@ class StaticSolver
      void solve();
      void rebuildSolver(double frequency);
      void scaleDisp(VecType &u);
+     void scaleInvDisp(VecType &u);
      void pade1(VecType *sol, VecType **sol_prev, double x);
      void pade(VecType *sol, VecType **u, double *h, double x);
-     void galProjection(bool,int,VecType *sol, VecType **u,
+     void galProjection(bool,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
-                        double *h, double w, double deltaw);
+                        double w, double deltaw);
+     void krylovGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
+                        Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                        double w, double deltaw);
+     void qrGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
+                        Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                        double w, double deltaw);
+
      void fourier(VecType *sol, VecType **u, double *h, double x);
      void stochStress(VecType *sol);
  

@@ -16,7 +16,7 @@ public:
   double sidelen(double x, double y, double z);
 
   virtual int getorderc();
-  virtual int getordersq();
+  virtual int getordersq(int faceindex=0);
 
   template<class Scalar> void zeroOut(int n,Scalar *v);
   template<class Scalar> void symmetrize(int n, Scalar *v);
@@ -31,6 +31,8 @@ public:
   double detj(double (*J)[3]);
   void invj(double (*J)[3], double det, double (*j)[3]);
   virtual void crossj(double (*J)[3], int axis, double *cross);
+  virtual void crossj(double (*J)[3], int axis, double *cross, 
+                      double *tau1, double *tau2);
 
   virtual void getSurfDer(double *N, double *N2, double *xyz,
                        int axis, double (*sd)[3], double (*surfgrad)[2]);
@@ -39,6 +41,7 @@ public:
                double *nf, IntegFunctionL3d &f, int gorder = 7);
 
   virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f, int gorder = 7);
+  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f, int gorder = 7);
   virtual void surfGInt3d(double *xyz, int faceindex, IntegFunctionAG3d &f, int gorder = 7);
   virtual void surfSurfInt3d(double *xyz, IntegFunctionA3d &f, int gorder =7);
   virtual void spectralSurfSurfInt3d(double *xyz, IntegFunctionA3d &f);
@@ -66,12 +69,11 @@ public:
   IsoParamUtilsTetra(int _o): IsoParamUtils(_o) { ; }
 
   virtual int getorderc();
-  virtual int getordersq();
+  virtual int getordersq(int faceindex=0);
 
   virtual void lagGalShapeFunction(int mo, int ng, double *xi,
                               double *N, int secondDerivsFlag = 0);
 
-  virtual void jmatrix(double *N, double *xyz, double (*J)[3]);
   virtual void crossj(double (*J)[3], int faceindex, double *cross);
 
   virtual void getSurfDer(double *N, double *N2, double *xyz,
@@ -89,6 +91,89 @@ public:
   virtual void sidecenter(double *xyz, int faceindex, double *scxyz);
   virtual void faceindeces(int faceindex, int *fi);
   virtual void facemap(int &faceindex, int *fn, int *n, int *map);
+};
+
+
+class IsoParamUtilsPrism: public IsoParamUtils {
+public:
+  IsoParamUtilsPrism(int _o): IsoParamUtils(_o) { ; }
+
+  virtual int getorderc();
+  virtual int getordersq(int faceindex=0);
+
+  virtual void lagGalShapeFunctionTr(int mo, int ng, double *xi,
+                              double *N, int secondDerivsFlag = 0);
+
+  virtual void crossj(double (*J)[3], int faceindex, double *cross);
+
+  virtual void getSurfDer(double *N, double *N2, double *xyz,
+                       int faceindex, double (*sd)[3], double (*surfgrad)[2]) {
+    fprintf(stderr,"IsoParamUtilsPrism::getSurfDer is not implemented.\n");
+  }
+  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f, int gorder = 7);
+  virtual void surfGInt3d(double *xyz, int faceindex, IntegFunctionAG3d &f,
+                          int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPrism::surfGInt3d is not implemented.\n");
+  }
+  virtual void surfSurfInt3d(double *xyz, IntegFunctionA3d &f,
+                             int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPrism::surfSurfInt3d is not implemented.\n");
+  }
+  virtual void surfCurvInt3d(double *xyz, int faceindex, IntegFunctionAC3d &f,
+                             int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPrism::surfCurvInt3d is not implemented.\n");
+  }
+
+  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f, int gorder = 7);
+
+  virtual void elementcenter(double *xyz, double *cxyz);
+  virtual void cornerindeces(int faceindex, int *ci);
+  virtual void sidecenter(double *xyz, int faceindex, double *scxyz);
+  virtual void faceindeces(int faceindex, int *fi);
+  virtual void facemap(int &faceindex, int *fn, int *n, int *map) {
+    fprintf(stderr,"IsoParamUtilsPrism::facemap is not implemented.\n");
+  }
+};
+
+
+class IsoParamUtilsPyramid: public IsoParamUtilsPrism {
+public:
+  IsoParamUtilsPyramid(int _o): IsoParamUtilsPrism(_o) { ; }
+
+  virtual int getorderc() { return 5; }
+  virtual int getordersq(int faceindex=0) { return (faceindex<=1)?4:3; }
+
+  virtual void crossj(double (*J)[3], int faceindex, double *cross) {
+    fprintf(stderr,"IsoParamUtilsPyramid::crossj is not implemented.\n");
+  }
+
+  virtual void getSurfDer(double *N, double *N2, double *xyz,
+                       int faceindex, double (*sd)[3], double (*surfgrad)[2]) {
+    fprintf(stderr,"IsoParamUtilsPyramid::getSurfDer is not implemented.\n");
+  }
+  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f, int gorder = 7);
+  virtual void surfGInt3d(double *xyz, int faceindex, IntegFunctionAG3d &f,
+                          int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPyramid::surfGInt3d is not implemented.\n");
+  }
+  virtual void surfSurfInt3d(double *xyz, IntegFunctionA3d &f,
+                             int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPyramid::surfSurfInt3d is not implemented.\n");
+  }
+  virtual void surfCurvInt3d(double *xyz, int faceindex, IntegFunctionAC3d &f,
+                             int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPyramid::surfCurvInt3d is not implemented.\n");
+  }
+  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f, int gorder = 7) {
+    fprintf(stderr,"IsoParamUtilsPyramid::volumeInt3d is not implemented.\n");
+  }
+  virtual void elementcenter(double *xyz, double *cxyz);
+  virtual void cornerindeces(int faceindex, int *ci);
+  virtual void sidecenter(double *xyz, int faceindex, double *scxyz);
+  virtual void faceindeces(int faceindex, int *fi);
+  virtual void facemap(int &faceindex, int *fn, int *n, int *map) {
+    fprintf(stderr,"IsoParamUtilsPyramid::facemap is not implemented.\n");
+  }
 };
 
 
@@ -460,9 +545,10 @@ if (x[2]>0.0) {
    else 
     hat_ = 0.0; 
    double hat = hat_;
-     K[3*i+0] += hat*w*cross[0]*N[i];
-     K[3*i+1] += hat*w*cross[1]*N[i];
-     K[3*i+2] += hat*w*cross[2]*N[i];
+//     K[3*i+0] += hat*w*cross[0]*N[i];
+//     K[3*i+1] += hat*w*cross[1]*N[i];
+//     K[3*i+2] += hat*w*cross[2]*N[i];
+     K[3*i+0] += w*cross[0]*N[i];
 
    }
  }

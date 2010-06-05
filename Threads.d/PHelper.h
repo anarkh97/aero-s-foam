@@ -60,6 +60,10 @@ void execParal2R(int n, TA *, void (TB::*f)(int, TC&, TD), TC&, TD);
 template <class TA, class TB, class TC, class TD>
 void execParal2R(int n, TA *, void (TB::*f)(int, TC&, TD&), TC&, TD&);
 
+// two pointer arguments execute in parallel
+template <class TA, class TB, class TC, class TD>
+void execParal2R(int n, TA *, void (TB::*f)(int, TC*, TD*), TC*, TD*);
+
 // two reference arguments timed execute in parallel
 template <class TA, class TB, class TC, class TD>
 void timedParal2R(DistTimer &,int n,TA *,void (TB::*f)(int, TC&, TD&),TC&,TD&);

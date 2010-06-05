@@ -6,13 +6,14 @@
 #ifndef SANDIA
 #include <Element.d/DEM.d/DEMHelm3d.h>
 #include <Element.d/Helm.d/IsoParamUtils.h>
+#include <Element.d/Helm.d/PML.h>
 #else
 #include "DEMHelm3d.h"
 #include "IsoParamUtils.h"
 #endif
 
 class HelmDGMEMatricesFunction3d : public IntegFunctionA3d {
- int o;
+ int oc;
  double kappa;
  int ndir;
  complex<double> *dirs;
@@ -29,22 +30,20 @@ class HelmDGMEMatricesFunction3d : public IntegFunctionA3d {
  double *xsc;
  double *xc;
 public:
- HelmDGMEMatricesFunction3d(int _o, double _kappa,
+ HelmDGMEMatricesFunction3d(int _oc, double _kappa,
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs,
                       double *_xsc, double *_xc, int _arbflag, int _fi,
                       complex<double> *_K, complex<double> *_L,
                       complex<double> *_PL,complex<double> *_PP,
                       complex<double> *_PE) {
-   o = _o; kappa = _kappa; ndir = _ndir; dirs = _dirs; nldir = _nldir; 
+   oc = _oc; kappa = _kappa; ndir = _ndir; dirs = _dirs; nldir = _nldir; 
    ldirs = _ldirs; K = _K; L = _L; PL = _PL; PP = _PP; PE =_PE;
    arbflag = _arbflag; fi = _fi;
    xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
 
-   int oc = o*o*o;
-  
    complex<double> *e = new complex<double>[ndir];
    for(int i=0;i<ndir;i++) e[i] = exp(dirs[i*3+0]*(x[0]-xc[0]) +
                                       dirs[i*3+1]*(x[1]-xc[1]) +
@@ -189,23 +188,17 @@ public:
 };
 
 
-void HelmDGMEMatrices3d(int order, double *xyz,
+void DGMHelm3d::HelmDGMEMatrices3d(double *xyz,
                     int ndir, complex<double> *dirs,
                     int *nldirs, complex<double> *ldirs,
                     double kappa, int *sflags, double *xsc,
                     double *xc,
                     complex<double> *K, complex<double> *L) {
 
-
- IsoParamUtils *ipu = (order>0)? new IsoParamUtils(order):new IsoParamUtilsTetra(-order);
- int gorder = (order>0)?7:13;
-
- int nldir = nldirs[0] + nldirs[1] + nldirs[2] + nldirs[3];
- int nf = 4;
- if (order>0) {
-   nldir += nldirs[4] + nldirs[5];
-   nf = 6;
- }
+ 
+ int nldir = 0;
+ int nf = nFaces();
+ for(int i=0;i<nf;i++) nldir += nldirs[i];
  for(int i=0;i<nldir*ndir;i++) L[i] = 0.0;
  for(int i=0;i<ndir*ndir;i++) K[i] = 0.0;
 
@@ -221,11 +214,11 @@ void HelmDGMEMatrices3d(int order, double *xyz,
 //       fxyz[i*3+1] = xyz[fi[i]*3+1];
 //       fxyz[i*3+2] = xyz[fi[i]*3+2];
 //     }
-     HelmDGMEMatricesFunction3d f(order,kappa,ndir,dirs,
+     HelmDGMEMatricesFunction3d f(nGeomNodes(),kappa,ndir,dirs,
                   nldirs[faceindex-1],ldirs+c*3,
                   xsc + (faceindex-1)*3, xc, sflags[faceindex-1], faceindex,
                   K,L+c*ndir,0,0,0);
-     ipu->surfInt3d(xyz, faceindex, f,gorder);
+     surfInt3d(xyz, faceindex, f);
      c += nldirs[faceindex-1];
      
 /*
@@ -253,106 +246,548 @@ void HelmDGMEMatrices3d(int order, double *xyz,
  }
 // delete[] fxyz;
 // delete[] fi;
- delete ipu;
 }
 
+class HelmDGMPMLEEMatrixFunction3d : public IntegFunctionV3d {
+ double *pmldata;
+ double *cxy;
+ int ndir;
+ complex<double> *dirs;
+ complex<double> *K;
+public:
+ HelmDGMPMLEEMatrixFunction3d(double *_pmldata,
+                      int _ndir, complex<double> *_dirs,
+                            double *_cxy, complex<double> *_K) {
+   pmldata = _pmldata;
+   ndir = _ndir; dirs = _dirs;
+   cxy = _cxy;
+   K = _K;
+ }
+ void evaluate(double *x, double *N, double (*dNdx)[3], double w, double det) {
 
-int *DGMHelm3d::faceCorners(int fi) {
- if (o>0) {
-   int *fc = new int[4];
-   int osq = o*o;
-   int oc = osq*o;
-   if (fi==1) {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[osq-o+1 - 1];
-     fc[2] = nn[osq - 1];
-     fc[3] = nn[o - 1];
-   } else if (fi==2) {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[o - 1];
-     fc[2] = nn[osq*(o-1)+o - 1];
-     fc[3] = nn[osq*(o-1)+1 - 1];
-   } else if (fi==3) {
-     fc[0] = nn[o - 1];
-     fc[1] = nn[osq - 1];
-     fc[2] = nn[oc - 1];
-     fc[3] = nn[osq*(o-1)+o - 1];
-   } else if (fi==4) {
-     fc[0] = nn[osq-o+1 - 1];
-     fc[1] = nn[oc-o+1 - 1];
-     fc[2] = nn[oc - 1];
-     fc[3] = nn[osq - 1];
-   } else if (fi==5) {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[osq*(o-1)+1 - 1];
-     fc[2] = nn[oc-o+1 - 1];
-     fc[3] = nn[osq-o+1 - 1];
-   } else {
-     fc[0] = nn[osq*(o-1)+1 - 1];
-     fc[1] = nn[osq*(o-1)+o - 1];
-     fc[2] = nn[oc - 1];
-     fc[3] = nn[oc-o+1 - 1];
-   }
-   return fc;
- } else {
-   int *fc = new int[3];
-   int osq = ((-o)*(-o+1))/2;
-   int oc = ((-o)*(-o+1)*(-o+2))/6;
-   if (fi==1) {
-     fc[0] = nn[-o - 1];
-     fc[1] = nn[osq - 1];
-     fc[2] = nn[oc - 1];
-   } else if (fi==2) {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[oc - 1];
-     fc[2] = nn[osq - 1];
-   } else if (fi==3) {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[-o - 1];
-     fc[2] = nn[oc - 1];
-   } else {
-     fc[0] = nn[1 - 1];
-     fc[1] = nn[osq - 1];
-     fc[2] = nn[-o - 1];
-   }
-   return fc;
+   double kappa = pmldata[0];
+   double a = pmldata[1];
+   double b = pmldata[2];
+   double gamma = pmldata[3];
+
+   PMLFunction fp(a,b,gamma);
+   PMLFunction fm(-a,-b,gamma);
+   PMLFunction *fx = &fp;
+   PMLFunction *fy = &fp;
+   PMLFunction *fz = &fp;
+   if (x[0]<0.0) fx = &fm;
+   if (x[1]<0.0) fy = &fm;
+   if (x[2]<0.0) fz = &fm;
+   complex<double> wdetb = w*det*fx->beta(x[0])*fy->beta(x[1])*fz->beta(x[2]);
+
+   complex<double> xt[3];
+   xt[0] = x[0]*fx->alpha(x[0]);
+   xt[1] = x[1]*fy->alpha(x[1]);
+   xt[2] = x[2]*fz->alpha(x[2]);
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++)
+     e[i] = exp(dirs[i*3+0]*xt[0] + dirs[i*3+1]*xt[1]+
+                dirs[i*3+2]*xt[2]);
+
+   for(int j=0;j<ndir;j++)
+     for(int i=j;i<ndir;i++)
+       K[j*ndir+i] += wdetb*
+         (dirs[i*3+0]*dirs[j*3+0] + dirs[i*3+1]*dirs[j*3+1] +
+          dirs[i*3+2]*dirs[j*3+2]-
+                         complex<double>(kappa*kappa,0.0) ) * e[i] * e[j];
+   delete[] e;
+ }
+};
+
+
+class HelmDGMPMLELMatrixFunction3d_ : public IntegFunctionAt3d {
+ double *pmldata;
+ int ndir;
+ complex<double> *dirs;
+ int nldir;
+ complex<double> *ldirs;
+ complex<double> *L;
+ int fi;
+ double *xsc;
+ double *xc;
+public:
+ HelmDGMPMLELMatrixFunction3d_(double *_pmldata,
+                      int _ndir, complex<double> *_dirs,
+                      int _nldir, complex<double> *_ldirs,
+                      double *_xsc, double *_xc,
+                      complex<double> *_L, int _fi) {
+   pmldata = _pmldata;
+   ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
+   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+ }
+ void evaluate(double *x, double *N, double *tau1, double *tau2,
+               double nsign, double w) {
+
+   double kappa = pmldata[0];
+   double a = pmldata[1];
+   double b = pmldata[2];
+   double gamma = pmldata[3];
+
+   PMLFunction fp(a,b,gamma);
+   PMLFunction fm(-a,-b,gamma);
+   PMLFunction *fx = &fp;
+   PMLFunction *fy = &fp;
+   PMLFunction *fz = &fp;
+   if (x[0]<0.0) fx = &fm;
+   if (x[1]<0.0) fy = &fm;
+   if (x[2]<0.0) fz = &fm;
+   complex<double> cross[3] = {0,0,0};
+   cross[0] = fy->beta(x[1])*fz->beta(x[2])*(tau1[1]*tau2[2] - tau1[2]*tau2[1]);
+   cross[1] = fz->beta(x[2])*fx->beta(x[0])*(tau1[2]*tau2[0] - tau1[0]*tau2[2]);
+   cross[2] = fx->beta(x[0])*fy->beta(x[1])*(tau1[0]*tau2[1] - tau1[1]*tau2[0]);
+   complex<double> wcb = w  * sqrt(
+                            cross[0]*conj(cross[0])+
+                            cross[1]*conj(cross[1]) + cross[2]*conj(cross[2]));
+
+   complex<double> xt[3];
+   xt[0] = x[0]*fx->alpha(x[0]);
+   xt[1] = x[1]*fy->alpha(x[1]);
+   xt[2] = x[2]*fz->alpha(x[2]);
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++)
+     e[i] = exp(dirs[i*3+0]*xt[0] + dirs[i*3+1]*xt[1]+
+                dirs[i*3+2]*xt[2]);
+
+   for(int j=0;j<nldir;j++)
+     for(int i=0;i<ndir;i++) {
+       complex<double> t = wcb*e[i]*
+                           exp(ldirs[j*3+0]*(xt[0]) +
+                               ldirs[j*3+1]*(xt[1]) +
+                               ldirs[j*3+2]*(xt[2]) );
+
+       L[j*ndir+i] += t;
+     }
+   delete[] e;
+ }
+};
+
+
+class HelmDGMPMLELMatrixFunction3d : public IntegFunctionA3d {
+ double *pmldata;
+ int ndir;
+ complex<double> *dirs;
+ int nldir;
+ complex<double> *ldirs;
+ complex<double> *L;
+ int fi;
+ double *xsc;
+ double *xc;
+public:
+ HelmDGMPMLELMatrixFunction3d(double *_pmldata,
+                      int _ndir, complex<double> *_dirs,
+                      int _nldir, complex<double> *_ldirs,
+                      double *_xsc, double *_xc,
+                      complex<double> *_L, int _fi) {
+   pmldata = _pmldata;
+   ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
+   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+ }
+ void evaluate(double *x, double *N, double *cross,
+               double nsign, double w) {
+
+   double kappa = pmldata[0];
+   double a = pmldata[1];
+   double b = pmldata[2];
+   double gamma = pmldata[3];
+
+   PMLFunction fp(a,b,gamma);
+   PMLFunction fm(-a,-b,gamma);
+   PMLFunction *fx = &fp;
+   PMLFunction *fy = &fp;
+   PMLFunction *fz = &fp;
+   if (x[0]<0.0) fx = &fm;
+   if (x[1]<0.0) fy = &fm;
+   if (x[2]<0.0) fz = &fm;
+   complex<double> cr[3] = {0,0,0};
+   cr[0] = fy->beta(x[1])*fz->beta(x[2])*cross[0];
+   cr[1] = fz->beta(x[2])*fx->beta(x[0])*cross[1];
+   cr[2] = fx->beta(x[0])*fy->beta(x[1])*cross[2];
+   complex<double> wcb = w  * sqrt(
+                            cr[0]*conj(cr[0])+
+                            cr[1]*conj(cr[1]) + cr[2]*conj(cr[2]));
+
+   complex<double> xt[3];
+   xt[0] = x[0]*fx->alpha(x[0]);
+   xt[1] = x[1]*fy->alpha(x[1]);
+   xt[2] = x[2]*fz->alpha(x[2]);
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++)
+     e[i] = exp(dirs[i*3+0]*xt[0] + dirs[i*3+1]*xt[1]+
+                dirs[i*3+2]*xt[2]);
+
+   for(int j=0;j<nldir;j++)
+     for(int i=0;i<ndir;i++) {
+       complex<double> t = wcb*e[i]*
+                           exp(ldirs[j*3+0]*(xt[0]) +
+                               ldirs[j*3+1]*(xt[1]) +
+                               ldirs[j*3+2]*(xt[2]) );
+
+       L[j*ndir+i] += t;
+     }
+   delete[] e;
+ }
+};
+
+
+void DGMHelm3d::HelmDGMPMLEMatrices3d(double *xyz,
+                    int ndir, complex<double> *dirs,
+                    int *nldirs, complex<double> *ldirs,
+                    double kappa, int *sflags, double *xsc,
+                    double *xc, PMLProps *pml,
+                    complex<double> *K, complex<double> *L) {
+
+ int nldir = 0;
+ int nf = nFaces();
+ for(int i=0;i<nf;i++) nldir += nldirs[i];
+ for(int i=0;i<nldir*ndir;i++) L[i] = 0.0;
+ for(int i=0;i<ndir*ndir;i++) K[i] = 0.0;
+
+ double pmldata[4] = { kappa, pml->Rx,pml->Sx,pml->gamma};
+ HelmDGMPMLEEMatrixFunction3d f(pmldata,ndir,dirs,xc,K);
+ volumeInt3d(xyz, f);
+
+ int c = 0;
+ for(int faceindex=1;faceindex<=nf;faceindex++) {
+/*
+     HelmDGMPMLELMatrixFunction3d_ f(pmldata,ndir,dirs,
+                nldirs[faceindex-1],ldirs+c*3, xsc + (faceindex-1)*3, xc,
+                L+c*ndir,faceindex);
+     ipu->surftInt3d(xyz, faceindex, f,gorder);
+*/
+     HelmDGMPMLELMatrixFunction3d f(pmldata,ndir,dirs,
+                nldirs[faceindex-1],ldirs+c*3, xsc + (faceindex-1)*3, xc,
+                L+c*ndir,faceindex);
+     surfInt3d(xyz, faceindex, f);
+     c += nldirs[faceindex-1];
+ }
+ for(int j=0;j<ndir;j++) {
+   for(int i=0;i<j;i++)
+     K[j*ndir+i] = K[i*ndir+j];
  }
 }
 
 
+HexDGMElement3d::HexDGMElement3d(int _n, int* nodenums) {
+ o = int(pow(double(_n),1.0/3.0)+0.5);
+ init(_n,nodenums);
+}
+
+int *HexDGMElement3d::faceCornerI(int fi) {
+ int *fc = new int[4];
+ int osq = o*o;
+ int oc = osq*o;
+ if (fi==1) {
+   fc[0] = 1 - 1;
+   fc[1] = osq-o+1 - 1;
+   fc[2] = osq - 1;
+   fc[3] = o - 1;
+ } else if (fi==2) {
+   fc[0] = 1 - 1;
+   fc[1] = o - 1;
+   fc[2] = osq*(o-1)+o - 1;
+   fc[3] = osq*(o-1)+1 - 1;
+ } else if (fi==3) {
+   fc[0] = o - 1;
+   fc[1] = osq - 1;
+   fc[2] = oc - 1;
+   fc[3] = osq*(o-1)+o - 1;
+ } else if (fi==4) {
+   fc[0] = osq-o+1 - 1;
+   fc[1] = oc-o+1 - 1;
+   fc[2] = oc - 1;
+   fc[3] = osq - 1;
+ } else if (fi==5) {
+   fc[0] = 1 - 1;
+   fc[1] = osq*(o-1)+1 - 1;
+   fc[2] = oc-o+1 - 1;
+   fc[3] = osq-o+1 - 1;
+ } else {
+   fc[0] = osq*(o-1)+1 - 1;
+   fc[1] = osq*(o-1)+o - 1;
+   fc[2] = oc - 1;
+   fc[3] = oc-o+1 - 1;
+ }
+ return fc;
+}
+
+void HexDGMElement3d::externalNormal(double *xyz, int faceindex, double *n) {
+ double xc[3];
+ IsoParamUtils ipu(o);
+ ipu.sidecenter(xyz,faceindex,n);
+ ipu.elementcenter(xyz,xc);
+ n[0] -= xc[0];
+ n[1] -= xc[1];
+ n[2] -= xc[2];
+}
+
+void HexDGMElement3d::volumeInt3d(double *xyz, IntegFunctionV3d &f) {
+ IsoParamUtils ipu(o);
+ ipu.volumeInt3d(xyz, f);
+}
+
+void HexDGMElement3d::surfInt3d(double *xyz, int faceindex,
+                        IntegFunctionA3d &f) {
+ IsoParamUtils ipu(o);
+ int gorder = 7;
+ ipu.surfInt3d(xyz, faceindex, f, gorder);
+}
+void HexDGMElement3d::surftInt3d(double *xyz, int faceindex,
+                        IntegFunctionAt3d &f) {
+ IsoParamUtils ipu(o);
+ int gorder = 7;
+ ipu.surftInt3d(xyz, faceindex, f, gorder);
+}
+
+
+TetraDGMElement3d::TetraDGMElement3d(int _n, int* nodenums) {
+ init(_n,nodenums);
+ if (_n==4) o = 2;
+ else if (_n==10) o = 3;
+ else if (_n==20) o = 4;
+ else if (_n==35) o = 5;
+ else if (_n==56) o = 6;
+ else {
+   fprintf(stderr,"TetraDGMElement3d::TetraDGMElement3d: order too high\n");
+   exit(-1);
+ }
+}
+
+int *TetraDGMElement3d::faceCornerI(int fi) {
+ int *fc = new int[3];
+ int osq = ((o)*(o+1))/2;
+ int oc = ((o)*(o+1)*(o+2))/6;
+ if (fi==1) {
+   fc[0] = o - 1;
+   fc[1] = osq - 1;
+   fc[2] = oc - 1;
+ } else if (fi==2) {
+   fc[0] = 1 - 1;
+   fc[1] = oc - 1;
+   fc[2] = osq - 1;
+ } else if (fi==3) {
+   fc[0] = 1 - 1;
+   fc[1] = o - 1;
+   fc[2] = oc - 1;
+ } else {
+   fc[0] = 1 - 1;
+   fc[1] = osq - 1;
+   fc[2] = o - 1;
+ }
+ return fc;
+}
+
+void TetraDGMElement3d::externalNormal(double *xyz, int faceindex, double *n) {
+ double xc[3];
+ IsoParamUtilsTetra ipu(o);
+ ipu.sidecenter(xyz,faceindex,n);
+ ipu.elementcenter(xyz,xc);
+ n[0] -= xc[0];
+ n[1] -= xc[1];
+ n[2] -= xc[2];
+}
+void TetraDGMElement3d::volumeInt3d(double *xyz, IntegFunctionV3d &f) {
+ IsoParamUtilsTetra ipu(o);
+ int gorder = 13;
+ ipu.volumeInt3d(xyz, f);
+}
+
+void TetraDGMElement3d::surfInt3d(double *xyz, int faceindex,
+                        IntegFunctionA3d &f) {
+ IsoParamUtilsTetra ipu(o);
+ int gorder = 13;
+ ipu.surfInt3d(xyz, faceindex, f, gorder);
+}
+void TetraDGMElement3d::surftInt3d(double *xyz, int faceindex,
+                        IntegFunctionAt3d &f) {
+ fprintf(stderr,"TetraDGMElement3d::surftInt3d is not implemented.\n");
+}
+
+
+PrismDGMElement3d::PrismDGMElement3d(int _n, int* nodenums) {
+ init(_n,nodenums);
+ if (_n==6) o = 2;
+ else if (_n==18) o = 3;
+ else if (_n==40) o = 4;
+ else if (_n==75) o = 5;
+}
+
+int *PrismDGMElement3d::faceCornerI(int fi) {
+ int *fc = new int[nFaceCorners(fi)];
+ int osq = ((o)*(o+1))/2;
+ if (fi==1) {
+   fc[0] = 1 - 1;
+   fc[1] = osq - 1;
+   fc[2] = o - 1;
+ } else if (fi==2) {
+   fc[0] = (o-1)*osq + 1 - 1;
+   fc[1] = (o-1)*osq + o - 1;
+   fc[2] = (o-1)*osq + osq - 1;
+ } else if (fi==3) {
+   fc[0] = o - 1;
+   fc[1] = osq - 1;
+   fc[2] = (o-1)*osq + osq - 1;
+   fc[3] = (o-1)*osq + o - 1;
+ } else if (fi==4) {
+   fc[0] = osq - 1;
+   fc[1] = 1 - 1;
+   fc[2] = (o-1)*osq + 1 - 1;
+   fc[3] = (o-1)*osq + osq - 1;
+ } else {
+   fc[0] = 1 - 1;
+   fc[1] = o - 1;
+   fc[2] = (o-1)*osq + o - 1;
+   fc[3] = (o-1)*osq + 1 - 1;
+ }
+ return fc;
+}
+
+void PrismDGMElement3d::externalNormal(double *xyz, int faceindex, double *n) {
+ double xc[3];
+ IsoParamUtilsPrism ipu(o);
+ ipu.sidecenter(xyz,faceindex,n);
+ ipu.elementcenter(xyz,xc);
+ n[0] -= xc[0];
+ n[1] -= xc[1];
+ n[2] -= xc[2];
+}
+
+void PrismDGMElement3d::volumeInt3d(double *xyz, IntegFunctionV3d &f) {
+ IsoParamUtilsPrism ipu(o);
+ int gorder = 7;
+ ipu.volumeInt3d(xyz, f, gorder);
+}
+
+void PrismDGMElement3d::surfInt3d(double *xyz, int faceindex,
+                        IntegFunctionA3d &f) {
+ IsoParamUtilsPrism ipu(o);
+ int gorder = 7;
+ ipu.surfInt3d(xyz, faceindex, f, gorder);
+}
+void PrismDGMElement3d::surftInt3d(double *xyz, int faceindex,
+                        IntegFunctionAt3d &f) {
+ fprintf(stderr,"PrismDGMElement3d::surftInt3d is not implemented.\n");
+}
+
+
+PyramidDGMElement3d::PyramidDGMElement3d(int _n, int* nodenums) {
+ o = 2;
+ init(_n,nodenums);
+}
+
+int *PyramidDGMElement3d::faceCornerI(int fi) {
+ int *fc = new int[nFaceCorners(fi)];
+ if (fi==1)  {
+   fc[0] = 0; fc[1] = 1; fc[2] = 3; fc[3] = 2;
+ } else if (fi==2) {
+   fc[0] = 0; fc[1] = 1; fc[2] = 4;
+ } else if (fi==3) {
+   fc[0] = 1; fc[1] = 3; fc[2] = 4;
+ } else if (fi==4) {
+   fc[0] = 3; fc[1] = 2; fc[2] = 4;
+ } else {
+   fc[0] = 2; fc[1] = 0; fc[2] = 4;
+ }
+ return fc;
+}
+
+void PyramidDGMElement3d::externalNormal(double *xyz, int faceindex, double *n) {
+ double xc[3];
+ IsoParamUtilsPyramid ipu(o);
+ ipu.sidecenter(xyz,faceindex,n);
+ ipu.elementcenter(xyz,xc);
+ n[0] -= xc[0];
+ n[1] -= xc[1];
+ n[2] -= xc[2];
+}
+
+
+void PyramidDGMElement3d::volumeInt3d(double *xyz, IntegFunctionV3d &f) {
+ fprintf(stderr,"PyramidDGMElement3d::volumeInt3dis not implemented.\n");
+}
+
+void PyramidDGMElement3d::surfInt3d(double *xyz, int faceindex,
+                        IntegFunctionA3d &f) {
+ IsoParamUtilsPyramid ipu(o);
+ int gorder = 7;
+ ipu.surfInt3d(xyz, faceindex, f, gorder);
+}
+
+void PyramidDGMElement3d::surftInt3d(double *xyz, int faceindex,
+                        IntegFunctionAt3d &f) {
+ fprintf(stderr,"PyramidDGMElement3d::surftInt3d is not implemented.\n");
+}
+
+
 DGMHelm3d_6::DGMHelm3d_6(int _nnodes, int* nodenums) :
-  DGMHelm3d(_nnodes,nodenums) {
+  HexDGMElement3d(_nnodes,nodenums) {
  ndir = 6;
 }
 
 DGMHelm3d_6t::DGMHelm3d_6t(int _nnodes, int* nodenums) :
-  DGMHelm3d(-_nnodes,nodenums) {
+  TetraDGMElement3d(_nnodes,nodenums) {
  ndir = 6;
 }
 
+DGMHelm3d_6p::DGMHelm3d_6p(int _nnodes, int* nodenums) :
+  PrismDGMElement3d(_nnodes,nodenums) {
+ ndir = 6;
+}
+
+DGMHelm3d_6pd::DGMHelm3d_6pd(int _nnodes, int* nodenums) :
+  PyramidDGMElement3d(_nnodes,nodenums) {
+ ndir = 6;
+}
 
 DGMHelm3d_26::DGMHelm3d_26(int _nnodes, int* nodenums) :
-  DGMHelm3d(_nnodes,nodenums) {
+  HexDGMElement3d(_nnodes,nodenums) {
  ndir = 26;
 }
 
 DGMHelm3d_26t::DGMHelm3d_26t(int _nnodes, int* nodenums) :
-  DGMHelm3d(-_nnodes,nodenums) {
+  TetraDGMElement3d(_nnodes,nodenums) {
+ ndir = 26;
+}
+
+DGMHelm3d_26p::DGMHelm3d_26p(int _nnodes, int* nodenums) :
+  PrismDGMElement3d(_nnodes,nodenums) {
+ ndir = 26;
+}
+
+DGMHelm3d_26pd::DGMHelm3d_26pd(int _nnodes, int* nodenums) :
+  PyramidDGMElement3d(_nnodes,nodenums) {
  ndir = 26;
 }
 
 DGMHelm3d_56::DGMHelm3d_56(int _nnodes, int* nodenums) :
-  DGMHelm3d(_nnodes,nodenums) {
+  HexDGMElement3d(_nnodes,nodenums) {
  ndir = 56;
 }
 
 DGMHelm3d_56t::DGMHelm3d_56t(int _nnodes, int* nodenums) :
-  DGMHelm3d(-_nnodes,nodenums) {
+  TetraDGMElement3d(_nnodes,nodenums) {
+ ndir = 56;
+}
+
+DGMHelm3d_56p::DGMHelm3d_56p(int _nnodes, int* nodenums) :
+  PrismDGMElement3d(_nnodes,nodenums) {
+ ndir = 56;
+}
+
+DGMHelm3d_56pd::DGMHelm3d_56pd(int _nnodes, int* nodenums) :
+  PyramidDGMElement3d(_nnodes,nodenums) {
  ndir = 56;
 }
 
 DGMHelm3d_98::DGMHelm3d_98(int _nnodes, int* nodenums) :
-  DGMHelm3d(_nnodes,nodenums) {
+  HexDGMElement3d(_nnodes,nodenums) {
  ndir = 98;
 }
 
@@ -386,6 +821,35 @@ void DGMHelm3d_6t::dir(int n, complex<double> *d) {
  d[2] = complex<double>(0.0,kappa*a[n][2]);
 }
 
+void DGMHelm3d_6p::dir(int n, complex<double> *d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double a[][3] =  {
+                    {1,0,0},
+                    {-1,0,0},
+                    {0,1,0},
+                    {0,-1,0},
+                    {0,0,1},
+                    {0,0,-1} 
+                  };
+ d[0] = complex<double>(0.0,kappa*a[n][0]);
+ d[1] = complex<double>(0.0,kappa*a[n][1]);
+ d[2] = complex<double>(0.0,kappa*a[n][2]);
+}
+
+void DGMHelm3d_6pd::dir(int n, complex<double> *d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double a[][3] =  {
+                    {1,0,0},
+                    {-1,0,0},
+                    {0,1,0},
+                    {0,-1,0},
+                    {0,0,1},
+                    {0,0,-1} 
+                  };
+ d[0] = complex<double>(0.0,kappa*a[n][0]);
+ d[1] = complex<double>(0.0,kappa*a[n][1]);
+ d[2] = complex<double>(0.0,kappa*a[n][2]);
+}
 
 double* DGMHelm3d::getCubeDir(int n) {
  static double *a[3] = {0,0,0}; 
@@ -433,6 +897,22 @@ void DGMHelm3d_26t::dir(int n, complex<double>* d) {
  d[2] = complex<double>(0.0,kappa*a[n*3+2]);
 }
 
+void DGMHelm3d_26p::dir(int n, complex<double>* d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double *a = getCubeDir(2);
+ d[0] = complex<double>(0.0,kappa*a[n*3+0]);
+ d[1] = complex<double>(0.0,kappa*a[n*3+1]);
+ d[2] = complex<double>(0.0,kappa*a[n*3+2]);
+}
+
+void DGMHelm3d_26pd::dir(int n, complex<double>* d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double *a = getCubeDir(2);
+ d[0] = complex<double>(0.0,kappa*a[n*3+0]);
+ d[1] = complex<double>(0.0,kappa*a[n*3+1]);
+ d[2] = complex<double>(0.0,kappa*a[n*3+2]);
+}
+
 void DGMHelm3d_56::dir(int n, complex<double>* d) {
  double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(3);
@@ -442,6 +922,22 @@ void DGMHelm3d_56::dir(int n, complex<double>* d) {
 }
 
 void DGMHelm3d_56t::dir(int n, complex<double>* d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double *a = getCubeDir(3);
+ d[0] = complex<double>(0.0,kappa*a[n*3+0]);
+ d[1] = complex<double>(0.0,kappa*a[n*3+1]);
+ d[2] = complex<double>(0.0,kappa*a[n*3+2]);
+}
+
+void DGMHelm3d_56p::dir(int n, complex<double>* d) {
+ double kappa = getOmega()/getSpeedOfSound();
+ double *a = getCubeDir(3);
+ d[0] = complex<double>(0.0,kappa*a[n*3+0]);
+ d[1] = complex<double>(0.0,kappa*a[n*3+1]);
+ d[2] = complex<double>(0.0,kappa*a[n*3+2]);
+}
+
+void DGMHelm3d_56pd::dir(int n, complex<double>* d) {
  double kappa = getOmega()/getSpeedOfSound();
  double *a = getCubeDir(3);
  d[0] = complex<double>(0.0,kappa*a[n*3+0]);
@@ -521,20 +1017,9 @@ void DGMHelm3d_12_LM::ldir(int n,double *tau1, double *tau2, complex<double>* d)
 }
 
 
-DGMHelm3d::DGMHelm3d(int _nnodes, int* nodenums) {
+void DGMHelm3d::init(int _nnodes, int* nodenums) {
  if (_nnodes<0) {
    _nnodes=-_nnodes;
-   if (_nnodes==4) o = -2;
-   else if (_nnodes==10) o = -3;
-   else if (_nnodes==20) o = -4;
-   else if (_nnodes==35) o = -5;
-   else if (_nnodes==56) o = -6;
-   else {
-     fprintf(stderr,"DGMHelm3d::DGMHelm3d: order too high\n"); exit(-1);
-   }
- }
- else {
-   o = int(pow(double(_nnodes),1.0/3.0));
  }
  nn = new int[_nnodes]; 
  for(int i=0;i<_nnodes;i++) nn[i] = nodenums[i];
@@ -549,6 +1034,7 @@ DGMHelm3d::DGMHelm3d(int _nnodes, int* nodenums) {
 
 
 void DGMHelm3d::getRef(double *xyz,double *cxyz) {
+/*
  if (o>0) {
    IsoParamUtils ipu(o);
    ipu.elementcenter(xyz,cxyz);  
@@ -556,14 +1042,15 @@ void DGMHelm3d::getRef(double *xyz,double *cxyz) {
    IsoParamUtilsTetra ipu(-o);
    ipu.elementcenter(xyz,cxyz);  
  }
+*/
  cxyz[0] = cxyz[1] = cxyz[2] = 0.0;
 }
 
 void DGMHelm3d::createM(complex<double>*M) {
 
- IsoParamUtils *ipu = (o>0)? new IsoParamUtils(o):new IsoParamUtilsTetra(-o);
- int os = ipu->getordersq();
- int oc = ipu->getorderc();
+// IsoParamUtils *ipu = (o>0)? new IsoParamUtils(o):new IsoParamUtilsTetra(-o);
+// int os = ipu->getordersq();
+ int oc = nGeomNodes();
  double *xyz= new double[3*oc];
  getNodalCoord(oc,nn,xyz);
 
@@ -577,10 +1064,8 @@ void DGMHelm3d::createM(complex<double>*M) {
  for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
 
  int nldir[6] = {0,0,0,0,0,0};
- int nf,nv;
+ int nf = nFaces();
  int tnldir = 0;
- if (o>0) { nf=6; nv = 4; }
- else { nf = 4; nv = 3; }
  for(int fi=0;fi<nf;fi++) if (lm[fi]!=0) {
    nldir[fi] = lm[fi]->nDofs();
    tnldir += nldir[fi];
@@ -603,6 +1088,7 @@ void DGMHelm3d::createM(complex<double>*M) {
  complex<double>* kel = new complex<double>[ndir*tnldir];
 
  complex<double>* cldir = new complex<double>[3*tnldir];
+/*
  int corner[6] = { 1-1, o-1, os-1, os-o+1-1, 1-1, o-1};
  if (o<0) {
    corner[1] = -o-1;
@@ -615,7 +1101,8 @@ void DGMHelm3d::createM(complex<double>*M) {
  for(int i=0;i<nf;i++) {
    ipu->faceindeces(i+1,fi);
    int cmin = 1;
-   for(int j=2;j<=nv;j++) if ( nn[fi[corner[j]]]<nn[fi[corner[cmin]]]) cmin = j;
+   for(int j=2;j<=nFaceCorners(i+1);j++)
+     if ( nn[fi[corner[j]]]<nn[fi[corner[cmin]]]) cmin = j;
    double tau1[3], tau2[3];
    if (nn[fi[corner[cmin-1]]] < nn[fi[corner[cmin+1]]]) {
      tau1[0] = xyz[0*oc+fi[corner[cmin-1]]]-xyz[0*oc+fi[corner[cmin]]];
@@ -665,12 +1152,82 @@ void DGMHelm3d::createM(complex<double>*M) {
    }
  }
  delete[] fi;
+*/
+ int corner[6];
+ int cc = 0;
+ double sign[6] = { 1,1,1,1,1,1};
+ for(int i=0;i<nf;i++) {
+   int *fc = faceCornerI(i+1);
+   for(int j=0;j<nFaceCorners(i+1);j++) corner[j] = fc[j];
+   corner[nFaceCorners(i+1)] = corner[0];
+   corner[nFaceCorners(i+1)+1] = corner[1];
+   delete[] fc;
+   int cmin = 1;
+   for(int j=2;j<=nFaceCorners(i+1);j++)
+     if ( nn[corner[j]]<nn[corner[cmin]]) cmin = j;
+   double tau1[3], tau2[3];
+   if (nn[corner[cmin-1]] < nn[corner[cmin+1]]) {
+     tau1[0] = xyz[0*oc+corner[cmin-1]]-xyz[0*oc+corner[cmin]];
+     tau1[1] = xyz[1*oc+corner[cmin-1]]-xyz[1*oc+corner[cmin]];
+     tau1[2] = xyz[2*oc+corner[cmin-1]]-xyz[2*oc+corner[cmin]];
+     tau2[0] = xyz[0*oc+corner[cmin+1]]-xyz[0*oc+corner[cmin]];
+     tau2[1] = xyz[1*oc+corner[cmin+1]]-xyz[1*oc+corner[cmin]];
+     tau2[2] = xyz[2*oc+corner[cmin+1]]-xyz[2*oc+corner[cmin]];
+   } else {
+     tau2[0] = xyz[0*oc+corner[cmin-1]]-xyz[0*oc+corner[cmin]];
+     tau2[1] = xyz[1*oc+corner[cmin-1]]-xyz[1*oc+corner[cmin]];
+     tau2[2] = xyz[2*oc+corner[cmin-1]]-xyz[2*oc+corner[cmin]];
+     tau1[0] = xyz[0*oc+corner[cmin+1]]-xyz[0*oc+corner[cmin]];
+     tau1[1] = xyz[1*oc+corner[cmin+1]]-xyz[1*oc+corner[cmin]];
+     tau1[2] = xyz[2*oc+corner[cmin+1]]-xyz[2*oc+corner[cmin]];
+   }
+   double xsc[3];
+//   double xc[3];
+//   ipu->sidecenter(xyz,i+1,xsc);
+//   ipu->elementcenter(xyz,xc);
+   externalNormal(xyz,i+1,xsc);
+   double cross[3] = {
+        tau1[1]*tau2[2]-tau1[2]*tau2[1],
+        tau1[2]*tau2[0]-tau1[0]*tau2[2],
+        tau1[0]*tau2[1]-tau1[1]*tau2[0]};
+   if (cross[0]*xsc[0]+cross[1]*xsc[1]+cross[2]*xsc[2]>0.0) sign[i] = -1.0;
+   double l = sqrt(tau1[0]*tau1[0]+tau1[1]*tau1[1]+tau1[2]*tau1[2]);
+   tau1[0] /= l;
+   tau1[1] /= l;
+   tau1[2] /= l;
+   double p = tau1[0]*tau2[0]+tau1[1]*tau2[1]+tau1[2]*tau2[2];
+   tau2[0] -= p*tau1[0];
+   tau2[1] -= p*tau1[1];
+   tau2[2] -= p*tau1[2];
+   l = sqrt(tau2[0]*tau2[0]+tau2[1]*tau2[1]+tau2[2]*tau2[2]);
+   tau2[0] /= l;
+   tau2[1] /= l;
+   tau2[2] /= l;
+   if (nldir[i]>0) {
+     DGMHelm3d_LM *l = dynamic_cast<DGMHelm3d_LM*>(lm[i]);
+/*
+fprintf(stderr,"kuku %f %f %f  %f %f %f  %f\n",
+tau1[0], tau1[1], tau1[2],
+tau2[0], tau2[1], tau2[2], sign[i]);
+*/
+     for(int j=0;j<lm[i]->nDofs();j++) {
+       l->ldir(j,tau1,tau2,cldir+3*cc);
+       cc++;
+     }
+   }
+ }
 
  int arbFlag[6] = { 0,0,0,0,0,0};
  for(int i=0;i<nf;i++) if (bc[i]==1) arbFlag[i] = 1;
 
- HelmDGMEMatrices3d(o, xyz, ndir, cdir, nldir, cldir,
+
+ PMLProps* pml = getPMLProps();
+ if (pml->PMLtype==0)
+   HelmDGMEMatrices3d(xyz, ndir, cdir, nldir, cldir,
                     kappa, arbFlag, xlref,  xref, kee, kel); 
+ else
+   HelmDGMPMLEMatrices3d(xyz, ndir, cdir, nldir, cldir,
+                    kappa, arbFlag, xlref,  xref, pml, kee, kel); 
 
  cc = 0;
  for(int i=0;i<nf;i++) {
@@ -678,8 +1235,10 @@ void DGMHelm3d::createM(complex<double>*M) {
     kel[j*ndir+k] *= sign[i];
   cc += nldir[i];
  }
-// for(int i=0;i<ndir*ndir;i++) fprintf(stderr,"K %d %d: %e %e\n",i/ndir,i%ndir,real(kee[i]),imag(kee[i]));
-// for(int i=0;i<tnldir*ndir;i++) fprintf(stderr,"L %d %d: %e %e\n",i/ndir,i%ndir,real(kel[i]),imag(kel[i]));
+/*
+ for(int i=0;i<ndir*ndir;i++) fprintf(stderr,"K %d %d: %e %e\n",i/ndir,i%ndir,real(kee[i]),imag(kee[i]));
+ for(int i=0;i<tnldir*ndir;i++) fprintf(stderr,"L %d %d: %e %e\n",i/ndir,i%ndir,real(kel[i]),imag(kel[i]));
+*/
 
  for(int i=0;i<ndir;i++) for(int j=0;j<ndir;j++)
    M[(tnldir+j)*(ndir+tnldir)+(tnldir+i)] = kee[j*ndir+i]/rho;
@@ -695,7 +1254,7 @@ void DGMHelm3d::createM(complex<double>*M) {
  delete[] xyz;
  delete[] cldir;
  delete[] cdir;
- delete ipu;
+// delete ipu;
 }
 
 
@@ -784,8 +1343,7 @@ public:
 void DGMHelm3d::interfMatrix(int fi, DEMElement* deme2,
                               complex<double> *K) {
 
- IsoParamUtils *ipu = (o>0)? new IsoParamUtils(o):new IsoParamUtilsTetra(-o);
- int oc = ipu->getorderc();
+ int oc = nGeomNodes();
  double *xyz= new double[3*oc];
  getNodalCoord(oc,nn,xyz);
 
@@ -801,8 +1359,7 @@ void DGMHelm3d::interfMatrix(int fi, DEMElement* deme2,
  for(int i=0;i<ndofs*ndofs;i++) K[i] = 0.0;
 
  HelmDGMWetEMatrixFunction3d f(omega,ndir,cdir,xref,deme2,K);
- int gorder = (o>0)?7:13;
- ipu->surfInt3d(xyz, fi, f, gorder);
+ surfInt3d(xyz, fi, f);
 
  delete[] cdir;
 }
@@ -841,30 +1398,14 @@ public:
 };
 
 
-void HelmDGMENeumV(int order, double *xyz,
+void DGMHelm3d::HelmDGMENeumV(double *xyz,
                      int ndir, complex<double> *dirs,
                      double kappa, complex<double> *incdir, int faceindex,
                      double *xc,
                      complex<double>* v) {
- IsoParamUtils *ipu = (order>0)? new IsoParamUtils(order):new IsoParamUtilsTetra(-order);
- int gorder = (order>0)?7:13;
-// int os = ipu->getordersq();
-// double *fxyz = new double[os*3];
-// int *fi = new int[os];
 
-// ipu.faceindeces(faceindex,fi);
-// for(int i=0;i<os;i++) {
-//   fxyz[i*3+0] = xyz[fi[i]*3+0];
-//   fxyz[i*3+1] = xyz[fi[i]*3+1];
-//   fxyz[i*3+2] = xyz[fi[i]*3+2];
-// }
  HelmDGMENeumVFunction3d f(ndir,dirs,incdir,xc,v);
-// ipu.surfSurfInt3d(fxyz, f);
- ipu->surfInt3d(xyz,faceindex, f,gorder);
-
-// delete[] fxyz;
-// delete[] fi;
- delete ipu;
+ surfInt3d(xyz,faceindex, f);
 }
 
 class HelmDGMNeumFVFunction3d : public IntegFunctionA3d {
@@ -964,14 +1505,7 @@ void HelmDGMERobV(int order, double *xyz,
 
 
 void DGMHelm3d::createRHS(complex<double>*v) {
- int oc;
- if (o>0) {
-   IsoParamUtils ipu(o);
-   oc = ipu.getorderc();
- } else {
-   IsoParamUtilsTetra ipu(-o);
-   oc = ipu.getorderc();
- }
+ int oc = nGeomNodes();
  double *xyz= new double[3*oc];
  getNodalCoord(oc,nn,xyz);
 
@@ -984,8 +1518,6 @@ void DGMHelm3d::createRHS(complex<double>*v) {
  complex<double>* cdir = new complex<double>[ndir*3];
  for(int i=0;i<ndir;i++) dir(i,cdir+i*3);
 
-
-
  complex<double> *vv = new complex<double>[ndir];
  for(int i=0;i<ndir;i++) vv[i] = 0.0;
 
@@ -995,7 +1527,7 @@ void DGMHelm3d::createRHS(complex<double>*v) {
      complex<double> incdir[3] = {complex<double>(0.0,kappa*dir[0]),
                                   complex<double>(0.0,kappa*dir[1]),
                                   complex<double>(0.0,kappa*dir[2])};
-     HelmDGMENeumV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
+     HelmDGMENeumV(xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
    } else if (bc[i]==4) {
      complex<double> *f = getField();
      HelmDGMNeumFV(o, xyz, ndir, cdir, f, i+1, xref, vv);
@@ -1003,6 +1535,10 @@ void DGMHelm3d::createRHS(complex<double>*v) {
 //   else if (bc[i]==1)
 //     HelmDGMERobV(o, xyz, ndir, cdir, kappa, incdir, i+1 , xref, vv);
  }
+
+// for(int i=0;i<ndir;i++) 
+//   fprintf(stderr,"rhs %d %e %e\n",i,real(vv[i]),imag(vv[i]));
+
 
  delete[] cdir;
  delete[] xyz;
@@ -1027,7 +1563,8 @@ void DGMHelm3d::createSol(double *xyz,
 }
 
 
-DEMHelm3d::DEMHelm3d(int _nnodes, int* nodenums) : DGMHelm3d(_nnodes, nodenums) {}
+DEMHelm3d::DEMHelm3d(int _nnodes, int* nodenums) :
+  HexDGMElement3d(_nnodes, nodenums) {}
 
 
 DEMHelm3d_6::DEMHelm3d_6(int _nnodes, int* nodenums) :

@@ -62,8 +62,14 @@ StaticSolver< Scalar, OpSolver, VecType,
    } // if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos)
    //--- UH --- Data for Pade Lanczos
    Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
-   VecType **GP_solprev = 0;
-   if ( domain->solInfo().freqSweepMethod == SolverInfo::GalProjection) {
+   VecType **GP_solprev = 0, **GP_orth_sol_prev = 0;
+    
+   if ( domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
+        domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
+        domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+     GP_orth_sol_prev = new VecType * [nRHS*padeN];
+     for(int i = 0; i < nRHS*padeN; ++i)
+       GP_orth_sol_prev[i] = new VecType(probDesc->solVecInfo());
      //--- Allocate new set of pointers to have them without any gap
      GP_solprev = new VecType * [nRHS*padeN];
      for (int ii = 0; ii < padeN; ++ii)
@@ -94,10 +100,17 @@ StaticSolver< Scalar, OpSolver, VecType,
        /*probDesc->*/ PadeLanczos_BuildSubspace(nRHS, PadeLanczos_solprev + count * nRHS, 
                                            PadeLanczos_solprev, count * nRHS);
 
-     }
-     else {
+     } else  if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection) {
+          krylovGalProjection(nRHS,count*nRHS,sol,
+                                 GP_solprev, GP_orth_sol_prev,
+                                 VhKV, VhMV, VhCV, wc, 0.0);
+     } else if (domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection)  {
+             qrGalProjection(nRHS,count*nRHS,sol,
+                                 GP_solprev, GP_orth_sol_prev,
+                                 VhKV, VhMV, VhCV, wc, 0.0);
+     } else {
        for(int iRHS = 0; iRHS < nRHS; iRHS++) {
-         filePrint(stderr,"\n ... Solving RHS #%3d               ... \n",iRHS);
+         filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",iRHS);
          if(iRHS > 0) { 
            // PJSA: modified 5-29-04 now passing u and all derivatives to getFreqSweepRHS (needed for higher order sommerfeld)
            // note: sol_prev[0] = 0, sol_prev[1] = u, sol_prev[2] = u^(1), etc.
@@ -113,7 +126,9 @@ StaticSolver< Scalar, OpSolver, VecType,
      }
      //----- UH ------
      // PJSA 9-22-06: fix for coupled multi point pade
-     if(domain->solInfo().isCoupled) for(int i=1; i<(nRHS+1); ++i) scaleDisp(*sol_prev[offset+i]);
+     if(domain->solInfo().isCoupled)
+       if (domain->solInfo().freqSweepMethod != SolverInfo::KrylovGalProjection && domain->solInfo().freqSweepMethod != SolverInfo::QRGalProjection) 
+         for(int i=1; i<(nRHS+1); ++i) scaleDisp(*sol_prev[offset+i]);
      bool printTimers = ((domain->coarse_frequencies->size()+domain->frequencies->size()) > 1) ? false : true;
      
      //----- UH ------
@@ -142,8 +157,9 @@ StaticSolver< Scalar, OpSolver, VecType,
          PadeLanczos_Vtb = 0;
        } // if (count + 1 < padeN)
 */
-     }
-     else {
+     } else if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection || domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+       postProcessor->staticOutput(*sol, *rhs, printTimers);
+     } else {
        postProcessor->staticOutput(*sol_prev[offset+1], *rhs, printTimers);
      }
      //----- UH ------
@@ -155,7 +171,7 @@ StaticSolver< Scalar, OpSolver, VecType,
      }
      count++;
 
-     if(!(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos && count == padeN && domain->coarse_frequencies->size() > 1)) // PJSA 10-09-08 temporary fix to get sweep working
+//     if(!(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos && count == padeN && domain->coarse_frequencies->size() > 1)) // PJSA 10-09-08 temporary fix to get sweep working
        domain->coarse_frequencies->pop_front();
 
      if(count == padeN) {  // this means there are enough coarse solves to solve for pade polynomial coefs & reconstruct
@@ -218,9 +234,17 @@ StaticSolver< Scalar, OpSolver, VecType,
              break;
            //--- UH ---
            case SolverInfo::GalProjection:
-             galProjection(gpReorthoFlag,nRHS*padeN,sol,
-                           GP_solprev, VhKV, VhMV, VhCV, h, w, w-wc);
+             galProjection(gpReorthoFlag,nRHS*padeN,sol,GP_orth_sol_prev,
+                           GP_solprev, VhKV, VhMV, VhCV, w, w-wc);
              gpReorthoFlag = false;
+             break;
+           case SolverInfo::KrylovGalProjection:
+             krylovGalProjection(0,nRHS*padeN,sol,GP_solprev, GP_orth_sol_prev,
+                                 VhKV, VhMV, VhCV, w, w-wc);
+             break;
+           case SolverInfo::QRGalProjection:
+             qrGalProjection(0,nRHS*padeN,sol,GP_solprev, GP_orth_sol_prev,
+                                 VhKV, VhMV, VhCV, w, w-wc);
              break;
            case SolverInfo::Fourier :
              fourier(sol, sol_prev, h, deltaw);
@@ -236,13 +260,16 @@ StaticSolver< Scalar, OpSolver, VecType,
 
        if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
                                                                           // not optimal, can we reuse part of the basis? 
-         first_time = true; // so the solver isn't rebuild
+//         first_time = true; // so the solver isn't rebuild
        }
        else {
          if((padeN > 1) && (ncoarse > 0)) {
            count = (padeN-ncoarse > 1) ? padeN-ncoarse : 1;
            int coffset = (padeN-count)*(nRHS+1);
            for(int i = 0; i < (nRHS+1)*count; ++i) *sol_prev[i] = *sol_prev[coffset+i];
+           if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection || domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection)
+             for(int i = 0; i < nRHS*count; ++i)
+               *GP_orth_sol_prev[i] = *GP_orth_sol_prev[(padeN-count)*nRHS+i];
            double deltah = h[padeN-count];
            w0 += deltah;
            for(int i=0; i<count; ++i) h[i] = h[padeN-count+i] - deltah;
@@ -255,6 +282,11 @@ StaticSolver< Scalar, OpSolver, VecType,
    for(int i = 0; i < (nRHS+1)*padeN; ++i)
      delete sol_prev[i];
    delete [] sol_prev;
+   if (domain->solInfo().freqSweepMethod  == SolverInfo::GalProjection) {
+     for(int i = 0; i < nRHS*padeN; ++i)
+       delete GP_orth_sol_prev[i];
+     delete [] GP_orth_sol_prev;
+   }
    delete [] h;
    //--- UH --- Data for Pade Lanczos
    if (PadeLanczos_VtKV)
@@ -574,6 +606,21 @@ StaticSolver< Scalar, OpSolver, VecType,
   ::scaleDisp(VecType &u)
 {
   probDesc->scaleDisp(u);
+}
+
+
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::scaleInvDisp(VecType &u)
+{
+  probDesc->scaleInvDisp(u);
 }
 
 

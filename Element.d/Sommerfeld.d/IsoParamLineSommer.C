@@ -86,6 +86,43 @@ void IsoParamLineSommer::neumVector(CoordSet& cs, ComplexVector& cv,
 }
 
 
+void IsoParamLineSommer::neumVectorDeriv(CoordSet& cs, ComplexVector& cv,
+    double kappa, double dx, double dy, double dz, int dero, int pflag) {
+
+ if (el==0) { 
+   fprintf(stderr,"IsoParamLineSommer::neumVector: adjacent element not defined.\n");
+   exit(-1);
+ }
+
+ IsoParamUtils2d ipu(order);
+ HelmIsoParamQuad *e = (HelmIsoParamQuad*)el;
+ int ordersq = ipu.getordersq();
+ int *nds =(int*)alloca(sizeof(int)*ordersq);
+ e->nodes(nds);
+
+ int faceindex;
+ int *map = (int*)alloca(sizeof(int)*order);
+ ipu.facemap(faceindex,nn,nds,map);
+
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nds,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double incdir[3] = {dx,dy,dz};
+ complex<double>* v = (complex<double>*)alloca(sizeof(complex<double>)*ordersq);
+
+ NeumannBCGalFunction2d f(ordersq,kappa,incdir,v,dero);
+ ipu.zeroOut<complex<double> > (f.nrows()*f.ncolumns(),v);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+ ipu.lineInt2d(xyz, faceindex, f, gorder);
+
+ int i;
+ for(i=0;i<order;i++) {
+   cv[i] = v[map[i]]/e->getProperty()->rho;
+ }
+}
+
+
 void IsoParamLineSommer::wetInterfaceVector(CoordSet& cs, ComplexVector& cv,
                   double kappa, double dx, double dy, double dz,
                   int dero, int pflag) {

@@ -3846,11 +3846,15 @@ void
 GenFetiSolver<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
 {
   int subI = sd[iSub]->localSubNum();
-  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
-  for(int i=0; i<=k; ++i)
-    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-  sd[iSub]->multM(rhs->subData(subI), sub_u, k);
-  delete [] sub_u;
+  if (u==0) sd[iSub]->multM(rhs->subData(subI), 0, k);
+  else {
+    GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
+    for(int i=0; i<=k; ++i)
+      sub_u[i]=
+         new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
+    sd[iSub]->multM(rhs->subData(subI), sub_u, k);
+    delete [] sub_u;
+  }
 }
 
 template<class Scalar>

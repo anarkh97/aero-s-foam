@@ -83,7 +83,7 @@
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE PLANEWAVE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
@@ -441,6 +441,16 @@ ReconsInfo:
               m = 1;
               domain->solInfo().nFreqSweepRHS = l+1;
               break;
+            case SolverInfo::KrylovGalProjection:
+              n = $3;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
+            case SolverInfo::QRGalProjection:
+              n = $3;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
           }
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
@@ -471,6 +481,18 @@ ReconsInfo:
               domain->solInfo().nFreqSweepRHS = m/n;
               break;
             case SolverInfo::GalProjection:
+              n = $3;
+              l = $4;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
+            case SolverInfo::KrylovGalProjection:
+              n = $3;
+              l = $4;
+              m = 1;
+              domain->solInfo().nFreqSweepRHS = l+1;
+              break;
+            case SolverInfo::QRGalProjection:
               n = $3;
               l = $4;
               m = 1;
@@ -2761,13 +2783,20 @@ HelmInfo:
           domain->curvatureConst2 = $4;
           domain->curvatureFlag = 2;
         }
-        | POINTSOURCE NewLine
+        | POINTSOURCE Integer NewLine IncidenceList
         {
           domain->pointSourceFlag = 1;
+          domain->implicitFlag = 1;
+        }
+        | PLANEWAVE Integer NewLine IncidenceList
+        {
+           domain->implicitFlag = 1;
+           domain->pointSourceFlag = 0;
         }
         | INCIDENCE Integer NewLine IncidenceList
         {
            domain->implicitFlag = 1;
+           domain->pointSourceFlag = 0;
         }
         | HELMHOLTZ NewLine HELMSWEEP1 Float Float Integer NewLine
         { 

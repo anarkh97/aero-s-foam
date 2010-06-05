@@ -23,14 +23,89 @@ int IsoParamUtilsTetra::getorderc() {
 }
 
 
-int IsoParamUtils::getordersq() {
+int IsoParamUtilsPrism::getorderc() {
+ return order*(order*(order+1))/2;
+}
+
+
+int IsoParamUtils::getordersq(int faceindex) {
  return order*order;
 }
 
 
-int IsoParamUtilsTetra::getordersq() {
+int IsoParamUtilsTetra::getordersq(int faceindex) {
  return (order*(order+1))/2;
 }
+
+
+int IsoParamUtilsPrism::getordersq(int faceindex) {
+ if (faceindex==0) return 0;
+ else if (faceindex<=2) return (order*(order+1))/2;
+ else return order*order;
+}
+
+void IsoParamUtilsPrism::lagGalShapeFunctionTr(int mo, int ng, double *xi,
+                              double *N, int secondDerivsFlag) {
+ int i,j;
+ long double *x = (long double*)alloca(sizeof(long double)*order);
+ long double *xx = (long double*)alloca(sizeof(long double)*order);
+ long double *xix = (long double*)alloca(sizeof(long double)*order);
+
+ for(i=0;i<order;i++) {
+   x[i] = (long double)(i)/(order-1);
+ }
+
+ for(i=0;i<mo;i++)
+   xx[i] = x[mo-1]-x[i];
+
+ for(j=0;j<ng;j++) {
+
+   if (mo==1) {
+      N[j] = 1.0;
+      N[j+ng] = 0.0;
+      if (secondDerivsFlag)  N[j+2*ng] = 0.0;
+      continue;
+   }
+
+   int xizero = -1;
+   for(i=0;i<mo;i++) {
+     xix[i] = xi[j]-x[i];
+     if (fabsl(xix[i])<1e-6) xizero = i;
+   }
+
+   long double tmpx = 1.0;
+   int m;
+   for(m=0;m<mo-1;m++)  tmpx *= xix[m]/xx[m];
+
+   long double tmpxx = 0.0;
+   if ((xizero==-1) || (xizero==mo-1)) {
+     for(m=0;m<mo-1;m++)  tmpxx += tmpx/xix[m];
+   } else {
+       tmpxx = 1.0;
+       for(m=0;m<mo-1;m++) if (m!=xizero) tmpxx *= xix[m];
+       for(m=0;m<mo-1;m++) tmpxx /= xx[m];
+   }
+   N[j] = tmpx;
+   N[j+ng] = tmpxx;
+
+   if (secondDerivsFlag) {
+     long double tmpxxx = 0.0;
+     int q;
+     for(q=0;q<mo-1;q++)  {
+       int p;
+       for(p=0;p<mo-1;p++) if ((p!=q)) {
+         long double t = 1.0;
+         long double s = 1.0;
+         for(m=0;m<mo-1;m++) if ((m!=p) && (m!=q)) t *= xix[m];
+         for(m=0;m<mo-1;m++) s *= xx[m];
+         tmpxxx += (t/s);
+       }
+     }
+     N[j+2*ng] = tmpxxx;
+   }
+ }
+}
+
 
 
 void IsoParamUtilsTetra::lagGalShapeFunction(int mo, int ng, double *xi,
@@ -234,8 +309,7 @@ void IsoParamUtils::jmatrix(double *N, double *xyz, double (*J)[3]) {
  J[2][2] = 0.0;
 
  int orderc = getorderc();
- int m;
- for(m=0;m<orderc;m++) {
+ for(int m=0;m<orderc;m++) {
    J[0][0] += N[orderc+m]*xyz[m];
    J[0][1] += N[orderc+m]*xyz[m+orderc];
    J[0][2] += N[orderc+m]*xyz[m+2*orderc];
@@ -247,35 +321,6 @@ void IsoParamUtils::jmatrix(double *N, double *xyz, double (*J)[3]) {
    J[2][2] += N[3*orderc+m]*xyz[m+2*orderc];
  }
 }
-
-
-void IsoParamUtilsTetra::jmatrix(double *N, double *xyz, double (*J)[3]) {
-
- J[0][0] = 0.0;
- J[0][1] = 0.0;
- J[0][2] = 0.0;
- J[1][0] = 0.0;
- J[1][1] = 0.0;
- J[1][2] = 0.0;
- J[2][0] = 0.0;
- J[2][1] = 0.0;
- J[2][2] = 0.0;
-
- int orderc = getorderc();
- int m;
- for(m=0;m<orderc;m++) {
-   J[0][0] += N[orderc+m]*xyz[m];
-   J[0][1] += N[orderc+m]*xyz[m+orderc];
-   J[0][2] += N[orderc+m]*xyz[m+2*orderc];
-   J[1][0] += N[2*orderc+m]*xyz[m];
-   J[1][1] += N[2*orderc+m]*xyz[m+orderc];
-   J[1][2] += N[2*orderc+m]*xyz[m+2*orderc];
-   J[2][0] += N[3*orderc+m]*xyz[m];
-   J[2][1] += N[3*orderc+m]*xyz[m+orderc];
-   J[2][2] += N[3*orderc+m]*xyz[m+2*orderc];
- }
-}
-
 
 double IsoParamUtils::detj(double (*J)[3]) {
 
@@ -317,6 +362,31 @@ void IsoParamUtils::crossj(double (*J)[3], int axis, double *cross) {
 }
 
 
+void IsoParamUtils::crossj(double (*J)[3], int axis, double *cross,
+                           double *tau1, double *tau2) {
+
+ if (axis==1) {
+   cross[0] = J[1][1]*J[2][2]-J[1][2]*J[2][1]; 
+   cross[1] = J[1][2]*J[2][0]-J[1][0]*J[2][2]; 
+   cross[2] = J[1][0]*J[2][1]-J[1][1]*J[2][0];
+   tau1[0] = J[1][0]; tau1[1] = J[1][1]; tau1[2] = J[1][2]; 
+   tau2[0] = J[2][0]; tau2[1] = J[2][1]; tau2[2] = J[2][2]; 
+ } else if (axis==2) {
+   cross[0] = J[0][1]*J[2][2]-J[0][2]*J[2][1]; 
+   cross[1] = J[0][2]*J[2][0]-J[0][0]*J[2][2]; 
+   cross[2] = J[0][0]*J[2][1]-J[0][1]*J[2][0]; 
+   tau1[0] = J[0][0]; tau1[1] = J[0][1]; tau1[2] = J[0][2]; 
+   tau2[0] = J[2][0]; tau2[1] = J[2][1]; tau2[2] = J[2][2]; 
+ } else {
+   cross[0] = J[1][1]*J[0][2]-J[1][2]*J[0][1]; 
+   cross[1] = J[1][2]*J[0][0]-J[1][0]*J[0][2]; 
+   cross[2] = J[1][0]*J[0][1]-J[1][1]*J[0][0]; 
+   tau1[0] = J[1][0]; tau1[1] = J[1][1]; tau1[2] = J[1][2]; 
+   tau2[0] = J[0][0]; tau2[1] = J[0][1]; tau2[2] = J[0][2]; 
+ }
+}
+
+
 void IsoParamUtilsTetra::crossj(double (*J)[3], int faceindex, double *cross) {
  
  if (faceindex==1) {
@@ -335,6 +405,32 @@ void IsoParamUtilsTetra::crossj(double (*J)[3], int faceindex, double *cross) {
    cross[0] = J[1][1]*J[0][2]-J[1][2]*J[0][1]; 
    cross[1] = J[1][2]*J[0][0]-J[1][0]*J[0][2]; 
    cross[2] = J[1][0]*J[0][1]-J[1][1]*J[0][0]; 
+ }
+}
+
+
+void IsoParamUtilsPrism::crossj(double (*J)[3], int faceindex, double *cross) {
+ 
+ if (faceindex==1) {
+   cross[0] = J[1][1]*J[0][2]-J[1][2]*J[0][1]; 
+   cross[1] = J[1][2]*J[0][0]-J[1][0]*J[0][2]; 
+   cross[2] = J[1][0]*J[0][1]-J[1][1]*J[0][0]; 
+ } else if (faceindex==2) {
+   cross[0] = -J[1][1]*J[0][2]+J[1][2]*J[0][1]; 
+   cross[1] = -J[1][2]*J[0][0]+J[1][0]*J[0][2]; 
+   cross[2] = -J[1][0]*J[0][1]+J[1][1]*J[0][0]; 
+ } else if (faceindex==3) {
+   cross[0] = (J[0][1]-J[1][1])*(J[2][2])-(J[0][2]-J[1][2])*(J[2][1]); 
+   cross[1] = (J[0][2]-J[1][2])*(J[2][0])-(J[0][0]-J[1][0])*(J[2][2]); 
+   cross[2] = (J[0][0]-J[1][0])*(J[2][1])-(J[0][1]-J[1][1])*(J[2][0]); 
+ } else if (faceindex==4) {
+   cross[0] = -(J[1][1]*J[2][2]-J[1][2]*J[2][1]); 
+   cross[1] = -(J[1][2]*J[2][0]-J[1][0]*J[2][2]); 
+   cross[2] = -(J[1][0]*J[2][1]-J[1][1]*J[2][0]); 
+ } else if (faceindex==5) {
+   cross[0] = J[0][1]*J[2][2]-J[0][2]*J[2][1]; 
+   cross[1] = J[0][2]*J[2][0]-J[0][0]*J[2][2]; 
+   cross[2] = J[0][0]*J[2][1]-J[0][1]*J[2][0]; 
  }
 }
 
@@ -552,6 +648,38 @@ void IsoParamUtilsTetra::elementcenter(double *xyz, double *cxyz) {
 }
 
 
+void IsoParamUtilsPrism::elementcenter(double *xyz, double *cxyz) {
+ int corner[6] = { 1-1 , order-1 , (order*(order+1))/2-1 ,
+                   (order*(order+1))/2 * (order-1) + 1-1 ,
+                   (order*(order+1))/2 * (order-1) + order-1 ,
+                   (order*(order+1))/2 * (order-1) + (order*(order+1))/2-1 };
+ int orderc = getorderc();
+ cxyz[0] = cxyz[1] = cxyz[2] = 0.0;
+ for(int i=0;i<6;i++) {
+   cxyz[0] += xyz[0*orderc+corner[i]];
+   cxyz[1] += xyz[1*orderc+corner[i]];
+   cxyz[2] += xyz[2*orderc+corner[i]];
+ }
+ cxyz[0] /= 6.0;
+ cxyz[1] /= 6.0; 
+ cxyz[2] /= 6.0; 
+}
+
+
+void IsoParamUtilsPyramid::elementcenter(double *xyz, double *cxyz) {
+ int orderc = 5;
+ cxyz[0] = cxyz[1] = cxyz[2] = 0.0;
+ for(int i=0;i<5;i++) {
+   cxyz[0] += xyz[0*orderc+i];
+   cxyz[1] += xyz[1*orderc+i];
+   cxyz[2] += xyz[2*orderc+i];
+ }
+ cxyz[0] /= 5.0;
+ cxyz[1] /= 5.0; 
+ cxyz[2] /= 5.0; 
+}
+
+
 void IsoParamUtils::cornerindeces(int faceindex, int *ci) {
  int ordersq = order*order;
  int orderc = ordersq*order;
@@ -611,6 +739,62 @@ void IsoParamUtilsTetra::cornerindeces(int faceindex, int *ci) {
 }
 
 
+void IsoParamUtilsPrism::cornerindeces(int faceindex, int *ci) {
+ int o = order;
+ int osq = (order*(order+1))/2;
+ if (faceindex==1) {
+   ci[0] = 1 - 1;
+   ci[1] = osq - 1;
+   ci[2] = o - 1;
+ } else if (faceindex==2) {
+   ci[0] = (o-1)*osq + 1 - 1;
+   ci[1] = (o-1)*osq + o - 1;
+   ci[2] = (o-1)*osq + osq - 1;
+ } else if (faceindex==3) {
+   ci[0] = o - 1;
+   ci[1] = osq - 1;
+   ci[2] = (o-1)*osq + osq - 1;
+   ci[3] = (o-1)*osq + o - 1;
+ } else if (faceindex==4) {
+   ci[0] = osq - 1;
+   ci[1] = 1 - 1;
+   ci[2] = (o-1)*osq + 1 - 1;
+   ci[3] = (o-1)*osq + osq - 1;
+ } else {
+   ci[0] = 1 - 1;
+   ci[1] = o - 1;
+   ci[2] = (o-1)*osq + o - 1;
+   ci[3] = (o-1)*osq + 1 - 1;
+ }
+}
+
+
+void IsoParamUtilsPyramid::cornerindeces(int faceindex, int *ci) {
+ if (faceindex==1) {
+   ci[0] = 0;
+   ci[1] = 1;
+   ci[2] = 3;
+   ci[3] = 2;
+ } else if (faceindex==2) {
+   ci[0] = 0;
+   ci[1] = 1;
+   ci[2] = 4;
+ } else if (faceindex==3) {
+   ci[0] = 1;
+   ci[1] = 3;
+   ci[2] = 4;
+ } else if (faceindex==4) {
+   ci[0] = 3;
+   ci[1] = 2;
+   ci[2] = 4;
+ } else {
+   ci[0] = 2;
+   ci[1] = 0;
+   ci[2] = 4;
+ }
+}
+
+
 void IsoParamUtils::sidecenter(double *xyz, int faceindex, double *scxyz) {
  int orderc = getorderc();
  
@@ -646,6 +830,46 @@ void IsoParamUtilsTetra::sidecenter(double *xyz, int faceindex, double *scxyz) {
  scxyz[0] /= 3.0;
  scxyz[1] /= 3.0;
  scxyz[2] /= 3.0;
+}
+
+
+void IsoParamUtilsPrism::sidecenter(double *xyz, int faceindex, double *scxyz) {
+ int orderc = getorderc();
+ 
+ int corner[4];
+ cornerindeces(faceindex,corner);
+ int nc = (faceindex<=2)?3:4;
+  
+ int i;
+ scxyz[0] = scxyz[1] = scxyz[2] = 0.0;
+ for(i=0;i<nc;i++) {
+   scxyz[0] += xyz[0*orderc+corner[i]];
+   scxyz[1] += xyz[1*orderc+corner[i]];
+   scxyz[2] += xyz[2*orderc+corner[i]];
+ }
+ scxyz[0] /= nc;
+ scxyz[1] /= nc;
+ scxyz[2] /= nc;
+}
+
+
+void IsoParamUtilsPyramid::sidecenter(double *xyz, int faceindex, double *scxyz) {
+ int orderc = 5;
+
+ int corner[4];
+ cornerindeces(faceindex,corner);
+ int nc = (faceindex<=1)?4:3;
+  
+ int i;
+ scxyz[0] = scxyz[1] = scxyz[2] = 0.0;
+ for(i=0;i<nc;i++) {
+   scxyz[0] += xyz[0*orderc+corner[i]];
+   scxyz[1] += xyz[1*orderc+corner[i]];
+   scxyz[2] += xyz[2*orderc+corner[i]];
+ }
+ scxyz[0] /= nc;
+ scxyz[1] /= nc;
+ scxyz[2] /= nc;
 }
 
 
@@ -707,6 +931,53 @@ void IsoParamUtilsTetra::faceindeces(int faceindex, int *fi) {
      }
    }
  }
+}
+
+
+void IsoParamUtilsPrism::faceindeces(int faceindex, int *fi) {
+ //int orderc = getorderc();
+ //int ordersq = getordersq();
+ int osq = (order*(order+1))/2;
+ int c=0,fc=0;
+ if (faceindex==1) 
+   for(int i=0;i<osq;i++) fi[i] = i;
+ else if (faceindex==2)
+   for(int i=0;i<osq;i++) fi[i] = (order-1)*osq+i;
+ else if (faceindex>=3) {
+   for(int u=0;u<order;u++) {
+     for(int s=0;s<order;s++) {
+       for( int r=0;r<order-s;r++) {
+         int t = order - 1 - r - s;
+         if (faceindex==3 && t==0) {
+           fi[fc] = c + u*osq;
+           fc++;
+         } else if (faceindex==4 && s==0) {
+           fi[fc] = c + u*osq;
+           fc++;
+         } else if (faceindex==5 && r==0) {
+           fi[fc] = c + u*osq;
+           fc++;
+         }
+         c++;
+       }
+     }
+   }
+ } 
+}
+
+
+void IsoParamUtilsPyramid::faceindeces(int faceindex, int *fi) {
+ if (faceindex==1)  {
+   for(int i=0;i<4;i++) fi[i] = i;
+ } else if (faceindex==2) {
+   fi[0] = 0; fi[1] = 1; fi[2] = 4;
+ } else if (faceindex==3) {
+   fi[0] = 1; fi[1] = 3; fi[2] = 4;
+ } else if (faceindex==4) {
+   fi[0] = 3; fi[1] = 2; fi[2] = 4;
+ } else {
+   fi[0] = 2; fi[1] = 0; fi[2] = 4;
+ } 
 }
 
 
@@ -1158,6 +1429,118 @@ void IsoParamUtils::surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f,
      }
    
      f.evaluate(x,N,cross,nsign,w);
+   }
+ }
+}
+
+
+void IsoParamUtils::surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f,
+                              int gorder) {
+ //int ordersq = order*order;
+ int orderc = order*order*order;
+
+ int i;
+
+ GaussRuleLine gr(gorder,GSUBDIV);
+ gr.pool = (double*)dbg_alloca(sizeof(double)*2*gr.ngauss);
+ gr.init();
+
+ double *NN = (double*)dbg_alloca(sizeof(double)*2*gr.ngauss*order);
+ lagGalShapeFunction(gr.ngauss,gr.xigauss,NN);
+ double p;
+ double *sNN = (double*)dbg_alloca(sizeof(double)*2*order);
+ double *N = (double*) dbg_alloca(sizeof(double)*4*orderc);
+
+ int axis = 0;
+ if (faceindex==1) {
+   p = -1.0;
+   axis = 3;
+ } else if (faceindex==2) {
+   p = -1.0;
+   axis = 2;
+ } else if (faceindex==3) {
+   p = 1.0;
+   axis = 1;
+ } else if (faceindex==4) {
+   p = 1.0;
+   axis = 2;
+ } else if (faceindex==5) {
+   p = -1.0;
+   axis = 1;
+ } else {
+   p = 1.0;
+   axis = 3;
+ }
+ lagGalShapeFunction(1,&p,sNN);
+
+ double cxyz[3];
+ elementcenter(xyz,cxyz);
+ double scxyz[3];
+ sidecenter(xyz,faceindex,scxyz);
+
+ int ng = gr.ngauss;
+ for(i=0;i<ng;i++) {
+   int j;
+   for(j=0;j<ng;j++) {
+     int ii,jj,kk;
+     int ng1,ng2,ng3;
+     double *NN1, *NN2, *NN3;
+     NN1 = NN2 = NN3 = NN;
+     if (axis==1) {
+       ii = 0; jj = i; kk = j;
+       ng1 = 1; ng2 = ng; ng3 = ng;
+       NN1 = sNN;
+     } else if (axis==2) {
+       ii = i; jj = 0; kk = j;
+       ng1 = ng; ng2 = 1; ng3 = ng;
+       NN2 = sNN;
+     } else {
+       ii = i; jj = j; kk = 0;
+       ng1 = ng; ng2 = ng; ng3 = 1;
+       NN3 = sNN;
+     }
+
+     int mx,my,mz;
+     for(mx=0;mx<order;mx++) {
+       for(my=0;my<order;my++) {
+          for(mz=0;mz<order;mz++) {
+            N[mz*order*order+my*order+mx] =
+              NN1[ii*order+mx]*NN2[jj*order+my]*NN3[kk*order+mz];
+            N[orderc+mz*order*order+my*order+mx] =
+              NN1[ng1*order+ii*order+mx]*NN2[jj*order+my]*NN3[kk*order+mz];
+            N[2*orderc+mz*order*order+my*order+mx] =
+              NN1[ii*order+mx]*NN2[ng2*order+jj*order+my]*NN3[kk*order+mz];
+            N[3*orderc+mz*order*order+my*order+mx] =
+              NN1[ii*order+mx]*NN2[jj*order+my]*NN3[ng3*order+kk*order+mz];
+          }
+        }
+      }
+           
+     double w = gr.wgauss[i]*gr.wgauss[j];
+
+     double J[3][3];
+     jmatrix(N,xyz,J);
+
+     double cross[3];
+     double tau1[3];
+     double tau2[3];
+     crossj(J,axis,cross,tau1,tau2);
+    
+     double nsign;
+     if (cross[0]*(scxyz[0]-cxyz[0])+
+         cross[1]*(scxyz[1]-cxyz[1])+
+         cross[2]*(scxyz[2]-cxyz[2])>0.0) nsign = 1;
+     else nsign = -1;
+
+     double x[3] = {0.0,0.0,0.0};
+     int m;
+     for(m=0;m<orderc;m++) {
+       x[0] += N[m]*xyz[m];
+       x[1] += N[m]*xyz[m+orderc];
+       x[2] += N[m]*xyz[m+2*orderc];
+     }
+   
+     f.evaluate(x,N,tau1,tau2,nsign,w);
    }
  }
 }
@@ -2118,6 +2501,406 @@ void IsoParamUtilsTetra::volumeInt3d(double *xyz, IntegFunctionV3d &f,
  }
 }
 
+
+
+void IsoParamUtilsPrism::surfInt3d(double *xyz, int faceindex,
+                                   IntegFunctionA3d &f, int gorder ) {
+
+ double cxyz[3];
+ elementcenter(xyz,cxyz);
+ double scxyz[3];
+ sidecenter(xyz,faceindex,scxyz);
+
+ if (faceindex<=2) {
+
+ GaussRuleTriangle gr(13);
+ gr.pool = (double*)alloca(sizeof(double)*4*gr.ngauss);
+ gr.init(0);
+
+ double *NN = (double*)alloca(sizeof(double)*2*3*gr.ngauss*order);
+ for(int i=1;i<=order;i++)
+   lagGalShapeFunctionTr(i,3*gr.ngauss,gr.xigauss,NN+(i-1)*2*3*gr.ngauss);
+
+ double *NN2 = (double*)dbg_alloca(sizeof(double)*2*1*order);
+ double p = (faceindex==1)?-1.0:1.0;
+ lagGalShapeFunction(1,&p,NN2);
+
+ int orderc= getorderc();
+ double *N = (double*) dbg_alloca(sizeof(double)*4*orderc);
+
+ for(int i=0;i<1;i++) {
+   for(int j=0;j<gr.ngauss;j++) {
+
+     int c=0;
+     for(int u=0;u<order;u++) {
+       for(int s=0;s<order;s++) {
+         for(int r=0;r<order-s;r++) {
+           int t = order - 1 - r - s;
+           int rr = r*2*3*gr.ngauss+0*gr.ngauss+j;
+           int ss = s*2*3*gr.ngauss+1*gr.ngauss+j;
+           int tt = t*2*3*gr.ngauss+2*gr.ngauss+j;
+           int rrd = rr+3*gr.ngauss;
+           int ssd = ss+3*gr.ngauss;
+           int ttd = tt+3*gr.ngauss;
+           N[c] = NN[rr]*NN[ss]*NN[tt]*NN2[i*order+u];
+           N[1*orderc+c] = (NN[rrd]*NN[ss]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[2*orderc+c] = (NN[rr]*NN[ssd]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[3*orderc+c] = NN[rr]*NN[ss]*NN[tt]*NN2[1*order+i*order+u];
+           c++;
+         }
+       }
+     }
+
+     double w = gr.wgauss[j];
+
+     double J[3][3];
+     jmatrix(N,xyz,J);
+
+    double det = detj(J); 
+   if (det<0.0) fprintf(stderr,"Negative vol Jacobian %d\n",faceindex);
+
+     double cross[3];
+     crossj(J,faceindex,cross);
+  
+     double nsign;
+     if (cross[0]*(scxyz[0]-cxyz[0])+
+         cross[1]*(scxyz[1]-cxyz[1])+
+         cross[2]*(scxyz[2]-cxyz[2])>0.0) nsign = 1;
+     else nsign = -1;
+
+     double x[3] = {0.0,0.0,0.0};
+     for(int m=0;m<orderc;m++) {
+       x[0] += N[m]*xyz[m];
+       x[1] += N[m]*xyz[m+orderc];
+       x[2] += N[m]*xyz[m+2*orderc];
+     }
+
+     f.evaluate(x,N,cross,nsign,w); 
+   }
+ }
+
+ } else {
+
+ GaussRuleLine gr2(gorder,GSUBDIV);
+ gr2.pool = (double*)dbg_alloca(sizeof(double)*2*gr2.ngauss);
+ gr2.init();
+
+ double *NN2 = (double*)dbg_alloca(sizeof(double)*2*gr2.ngauss*order);
+ lagGalShapeFunction(gr2.ngauss,gr2.xigauss,NN2);
+
+ int ng = gr2.ngauss;
+ double *xig = new double[3*ng];
+ double *wg = new double[ng];
+ for(int i=0;i<3*ng;i++) xig[i] = 0.0;
+ if (faceindex==3) {
+   for(int i=0;i<ng;i++) wg[i] = gr2.wgauss[i]/(2.0);
+   for(int i=0;i<ng;i++) xig[0*ng+i] = (gr2.xigauss[i]+1.0)/2.0;
+   for(int i=0;i<ng;i++) xig[1*ng+i] = 1.0-xig[0*ng+i];
+   for(int i=0;i<ng;i++) xig[2*ng+i] = 1.0 - xig[0*ng+i] - xig[1*ng+i];
+ } else if (faceindex==4) {
+   for(int i=0;i<ng;i++) wg[i] = gr2.wgauss[i]/2.0;
+   for(int i=0;i<ng;i++) xig[1*ng+i] = (gr2.xigauss[i]+1.0)/2.0;
+   for(int i=0;i<ng;i++) xig[2*ng+i] = 1.0 - xig[1*ng+i];
+ } else {
+   for(int i=0;i<ng;i++) wg[i] = gr2.wgauss[i]/2.0;
+   for(int i=0;i<ng;i++) xig[0*ng+i] = (gr2.xigauss[i]+1.0)/2.0;
+   for(int i=0;i<ng;i++) xig[2*ng+i] = 1.0 - xig[0*ng+i];
+ }
+
+ double *NN = (double*)alloca(sizeof(double)*2*3*ng*order);
+ int i;
+ for(i=1;i<=order;i++)
+   lagGalShapeFunctionTr(i,3*ng,xig,NN+(i-1)*2*3*ng);
+
+ int orderc= getorderc();
+ double *N = (double*) dbg_alloca(sizeof(double)*4*orderc);
+
+ for(int i=0;i<gr2.ngauss;i++) {
+   for(int j=0;j<ng;j++) {
+
+     int c=0;
+     for(int u=0;u<order;u++) {
+       for(int s=0;s<order;s++) {
+         for(int r=0;r<order-s;r++) {
+           int t = order - 1 - r - s;
+           int rr = r*2*3*ng+0*ng+j;
+           int ss = s*2*3*ng+1*ng+j;
+           int tt = t*2*3*ng+2*ng+j;
+           int rrd = rr+3*ng;
+           int ssd = ss+3*ng;
+           int ttd = tt+3*ng;
+           N[c] = NN[rr]*NN[ss]*NN[tt]*NN2[i*order+u];
+           N[1*orderc+c] = (NN[rrd]*NN[ss]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[2*orderc+c] = (NN[rr]*NN[ssd]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[3*orderc+c] = NN[rr]*NN[ss]*NN[tt]*NN2[gr2.ngauss*order+i*order+u];
+           c++;
+         }
+       }
+     }
+
+     double w = gr2.wgauss[i]*wg[j];
+
+     double J[3][3];
+     jmatrix(N,xyz,J);
+    double det = detj(J); 
+   if (det<0.0) fprintf(stderr,"Negative vol Jacobian %d\n",faceindex);
+
+     double cross[3];
+     crossj(J,faceindex,cross);
+  
+     double nsign;
+     if (cross[0]*(scxyz[0]-cxyz[0])+
+         cross[1]*(scxyz[1]-cxyz[1])+
+         cross[2]*(scxyz[2]-cxyz[2])>0.0) nsign = 1;
+     else nsign = -1;
+
+     double x[3] = {0.0,0.0,0.0};
+     for(int m=0;m<orderc;m++) {
+       x[0] += N[m]*xyz[m];
+       x[1] += N[m]*xyz[m+orderc];
+       x[2] += N[m]*xyz[m+2*orderc];
+     }
+
+     f.evaluate(x,N,cross,nsign,w); 
+   }
+ }
+ delete[] xig;
+ delete[] wg;
+ }
+}
+
+void IsoParamUtilsPrism::volumeInt3d(double *xyz, IntegFunctionV3d &f, 
+                                     int gorder ) {
+
+ GaussRuleTriangle gr(13);
+ gr.pool = (double*)alloca(sizeof(double)*4*gr.ngauss);
+ gr.init(0);
+
+ double *NN = (double*)alloca(sizeof(double)*2*3*gr.ngauss*order);
+ int i;
+ for(i=1;i<=order;i++)
+   lagGalShapeFunctionTr(i,3*gr.ngauss,gr.xigauss,NN+(i-1)*2*3*gr.ngauss);
+
+ GaussRuleLine gr2(gorder,GSUBDIV);
+ gr2.pool = (double*)dbg_alloca(sizeof(double)*2*gr2.ngauss);
+ gr2.init();
+
+ double *NN2 = (double*)dbg_alloca(sizeof(double)*2*gr2.ngauss*order);
+ lagGalShapeFunction(gr2.ngauss,gr2.xigauss,NN2);
+
+ int orderc= getorderc();
+ double *N = (double*) dbg_alloca(sizeof(double)*4*orderc);
+ double (*dNdx)[3] = (double(*)[3])dbg_alloca(sizeof(double)*orderc*3);
+
+ for(int i=0;i<gr2.ngauss;i++) {
+   for(int j=0;j<gr.ngauss;j++) {
+
+     int c=0;
+     for(int u=0;u<order;u++) {
+       for(int s=0;s<order;s++) {
+         for(int r=0;r<order-s;r++) {
+           int t = order - 1 - r - s;
+           int rr = r*2*3*gr.ngauss+0*gr.ngauss+i;
+           int ss = s*2*3*gr.ngauss+1*gr.ngauss+i;
+           int tt = t*2*3*gr.ngauss+2*gr.ngauss+i;
+           int rrd = rr+3*gr.ngauss;
+           int ssd = ss+3*gr.ngauss;
+           int ttd = tt+3*gr.ngauss;
+           N[c] = NN[rr]*NN[ss]*NN[tt]*NN2[i*order+u];
+           N[1*orderc+c] = (NN[rrd]*NN[ss]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[2*orderc+c] = (NN[rr]*NN[ssd]*NN[tt]-
+                           NN[rr]*NN[ss]*NN[ttd])*NN2[i*order+u];
+           N[3*orderc+c] = NN[rr]*NN[ss]*NN[tt]*NN2[gr2.ngauss*order+i*order+u];
+           c++;
+         }
+       }
+     }
+
+     double w = gr2.wgauss[i]*gr.wgauss[j];
+
+     double J[3][3];
+     jmatrix(N,xyz,J);
+     double det = detj(J);
+     if (det<0.0) fprintf(stderr,"Negative Jacobian: %f %f %f %f\n",
+                          det,xyz[0],xyz[orderc+0],xyz[2*orderc+0]);
+
+     double j[3][3];
+     invj(J,det,j);
+
+     for(int m=0;m<orderc;m++) {
+       dNdx[m][0] = 
+        j[0][0]*N[orderc+m]+j[0][1]*N[2*orderc+m]+j[0][2]*N[3*orderc+m];
+       dNdx[m][1] = 
+        j[1][0]*N[orderc+m]+j[1][1]*N[2*orderc+m]+j[1][2]*N[3*orderc+m];
+       dNdx[m][2] = 
+        j[2][0]*N[orderc+m]+j[2][1]*N[2*orderc+m]+j[2][2]*N[3*orderc+m];
+     }
+  
+     double x[3] = {0.0,0.0,0.0};
+     for(int m=0;m<orderc;m++) {
+       x[0] += N[m]*xyz[m];
+       x[1] += N[m]*xyz[m+orderc];
+       x[2] += N[m]*xyz[m+2*orderc];
+     }
+     f.evaluate(x,N,dNdx,w,det);
+   }
+ }
+}
+
+
+void IsoParamUtilsPyramid::surfInt3d(double *xyz, int faceindex,
+                                   IntegFunctionA3d &f, int gorder ) {
+
+ double cxyz[3];
+ elementcenter(xyz,cxyz);
+ double scxyz[3];
+ sidecenter(xyz,faceindex,scxyz);
+ int ordersq = getordersq(faceindex);
+ int orderc = getorderc();
+ int *fi = new int[ordersq];
+ faceindeces(faceindex,fi);
+
+ if (faceindex>1) {
+ 
+// Adapted from Tetra:surfSurf 
+   GaussRuleTriangle gr(13);
+   gr.pool = (double*)alloca(sizeof(double)*4*gr.ngauss);
+   gr.init(0);
+  
+   double *NN = (double*)alloca(sizeof(double)*2*3*gr.ngauss*order);
+   for(int i=1;i<=order;i++)
+     lagGalShapeFunctionTr(i,3*gr.ngauss,gr.xigauss,NN+(i-1)*2*3*gr.ngauss);
+  
+   double *N = (double*) alloca(sizeof(double)*3*orderc);
+   int ng = gr.ngauss;
+   for(int i=0;i<ng;i++) {
+  
+     for(int j=0;j<3*orderc;j++) N[j] = 0.0;
+     int c=0;
+     for(int s=0;s<order;s++) {
+       for(int r=0;r<order-s;r++) {
+         int u = order - 1 - r - s;
+         int rr = r*2*3*gr.ngauss+0*gr.ngauss+i;
+         int ss = s*2*3*gr.ngauss+1*gr.ngauss+i;
+         int uu = u*2*3*gr.ngauss+2*gr.ngauss+i;
+         int rrd = rr+3*gr.ngauss;
+         int ssd = ss+3*gr.ngauss;
+         int uud = uu+3*gr.ngauss;
+         N[fi[c]] = NN[rr]*NN[ss]*NN[uu];
+         N[1*orderc+fi[c]] = (NN[rrd]*NN[ss]*NN[uu]-
+                         NN[rr]*NN[ss]*NN[uud]);
+         N[2*orderc+fi[c]] = (NN[rr]*NN[ssd]*NN[uu]-
+                         NN[rr]*NN[ss]*NN[uud]);
+         c++;
+       }
+     }
+  
+     double w = gr.wgauss[i];
+  
+     double J[2][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0}};
+     for(int m=0;m<ordersq;m++) {
+       int mm = fi[m];
+       J[0][0] += N[orderc+mm]*xyz[mm];
+       J[0][1] += N[orderc+mm]*xyz[mm+orderc];
+       J[0][2] += N[orderc+mm]*xyz[mm+2*orderc];
+       J[1][0] += N[2*orderc+mm]*xyz[mm];
+       J[1][1] += N[2*orderc+mm]*xyz[mm+orderc];
+       J[1][2] += N[2*orderc+mm]*xyz[mm+2*orderc];
+     }
+  
+     double cross[3];
+     cross[0] = J[0][1]*J[1][2]-J[0][2]*J[1][1];
+     cross[1] = J[0][2]*J[1][0]-J[0][0]*J[1][2];
+     cross[2] = J[0][0]*J[1][1]-J[0][1]*J[1][0];
+    
+     double x[3] = {0.0,0.0,0.0};
+     for(int m=0;m<ordersq;m++) {
+       int mm = fi[m];
+       x[0] += N[mm]*xyz[mm];
+       x[1] += N[mm]*xyz[mm+orderc];
+       x[2] += N[mm]*xyz[mm+2*orderc];
+     }
+
+     double nsign;
+     if (cross[0]*(scxyz[0]-cxyz[0])+
+         cross[1]*(scxyz[1]-cxyz[1])+
+         cross[2]*(scxyz[2]-cxyz[2])>0.0) nsign = 1;
+     else nsign = -1;
+
+     f.evaluate(x,N,cross,nsign,w); 
+   }
+
+ } else {
+// Adapted from Hexa:surfSurf 
+  
+   GaussRuleLine gr(gorder,GSUBDIV);
+   gr.pool = (double*)alloca(sizeof(double)*2*gr.ngauss);
+   gr.init();
+  
+   double *NN = (double*)alloca(sizeof(double)*2*gr.ngauss*order);
+   lagGalShapeFunction(gr.ngauss,gr.xigauss,NN);
+  
+   double *N = (double*) alloca(sizeof(double)*3*orderc);
+   int ng = gr.ngauss;
+   for(int i=0;i<ng;i++) {
+     for(int j=0;j<ng;j++) {
+
+       for(int k=0;k<3*orderc;k++) N[k] = 0.0;
+       for(int mx=0;mx<order;mx++) {
+         for(int my=0;my<order;my++) {
+              N[fi[my*order+mx]] =
+                NN[i*order+mx]*NN[j*order+my];
+              N[orderc+fi[my*order+mx]] =
+                NN[ng*order+i*order+mx]*NN[j*order+my];
+              N[2*orderc+fi[my*order+mx]] =
+                NN[i*order+mx]*NN[ng*order+j*order+my];
+         }
+       }
+             
+       double w = gr.wgauss[i]*gr.wgauss[j];
+  
+       double J[2][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0}};
+       for(int m=0;m<ordersq;m++) {
+         int mm = fi[m];
+         J[0][0] += N[orderc+mm]*xyz[mm];
+         J[0][1] += N[orderc+mm]*xyz[mm+orderc];
+         J[0][2] += N[orderc+mm]*xyz[mm+2*orderc];
+         J[1][0] += N[2*orderc+mm]*xyz[mm];
+         J[1][1] += N[2*orderc+mm]*xyz[mm+orderc];
+         J[1][2] += N[2*orderc+mm]*xyz[mm+2*orderc];
+       }
+  
+       double cross[3];
+       cross[0] = J[0][1]*J[1][2]-J[0][2]*J[1][1];
+       cross[1] = J[0][2]*J[1][0]-J[0][0]*J[1][2];
+       cross[2] = J[0][0]*J[1][1]-J[0][1]*J[1][0];
+  
+       double x[3] = {0.0,0.0,0.0};
+       for(int m=0;m<ordersq;m++) {
+         int mm = fi[m];
+         x[0] += N[mm]*xyz[mm];
+         x[1] += N[mm]*xyz[mm+orderc];
+         x[2] += N[mm]*xyz[mm+2*orderc];
+       }
+     
+       double nsign;
+       if (cross[0]*(scxyz[0]-cxyz[0])+
+           cross[1]*(scxyz[1]-cxyz[1])+
+           cross[2]*(scxyz[2]-cxyz[2])>0.0) nsign = 1;
+       else nsign = -1;
+
+       f.evaluate(x,N,cross,nsign,w);
+     }
+   }
+
+ }
+ delete[] fi;
+}
 
 #ifndef _TEMPLATE_FIX_
 #include <Element.d/Helm.d/IsoParamUtilsT.C>

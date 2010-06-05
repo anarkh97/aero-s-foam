@@ -29,6 +29,13 @@ public:
                        double nsign, double w)=0;
 };
 
+
+class IntegFunctionAt3d {
+public:
+ virtual void evaluate(double *x, double *N, double *tau1, double *tau2,
+                       double nsign, double w)=0;
+};
+
 class IntegFunctionAG3d {
 public:
  virtual void evaluate(double *x, double *N, double (*dNdx)[3], double *cross,

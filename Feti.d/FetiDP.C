@@ -2607,8 +2607,12 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   
   if(domain->solInfo().inpc) f = (*f_copy);
 
-  if(ff == 0.0) filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
-  return (ff == 0.0) ? 1.0 : ff;
+// RT 05/08/2010: bug in the g++ compiler
+  if(ff == 0.0) {
+     filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
+     return 1.0;
+  }
+  else return ff;
 }
 
 template<class Scalar>

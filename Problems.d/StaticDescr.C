@@ -306,6 +306,14 @@ SingleDomainStatic<T, VectorType, SolverType>::scaleDisp(VectorType &sol)
 }
 
 template<class T, class VectorType, class SolverType>
+void
+SingleDomainStatic<T, VectorType, SolverType>::scaleInvDisp(VectorType &sol)
+{
+  domain->scaleInvDisp(sol.data());
+}
+
+
+template<class T, class VectorType, class SolverType>
 SolverType *
 SingleDomainStatic<T, VectorType, SolverType>::getSolver()
 {
@@ -396,16 +404,21 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
 
   VectorType *vec = new VectorType(solVecInfo());
 
-  for(int i=0; i<vec->size(); ++i)
-    (*vec)[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
-  allOps.M->mult(vec->data(), rhs->data());
+  if (u==0) {
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = 0;
+  } else {
+    for(int i=0; i<vec->size(); ++i)
+      (*vec)[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
+    allOps.M->mult(vec->data(), rhs->data());
 
-  if(allOps.C_deriv) {
-    for(int j=0; j<=k-1; ++j) {
-      if(allOps.C_deriv[k-j-1]) {
-        double ckj = DCombination(k,j);
-        for(int i=0; i<vec->size(); ++i) (*vec)[i] = -ckj*(*u[j+1])[i];
-        allOps.C_deriv[k-j-1]->multAdd(vec->data(), rhs->data());
+    if(allOps.C_deriv) {
+      for(int j=0; j<=k-1; ++j) {
+        if(allOps.C_deriv[k-j-1]) {
+          double ckj = DCombination(k,j);
+          for(int i=0; i<vec->size(); ++i) (*vec)[i] = -ckj*(*u[j+1])[i];
+          allOps.C_deriv[k-j-1]->multAdd(vec->data(), rhs->data());
+        }
       }
     }
   }

@@ -76,12 +76,14 @@ void
 GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 {
   runFor1(isub, make_feti);
+  runFor15(isub, make_feti);
   runFor2(isub, make_feti);
 }
 
 template<class Scalar> 
 void
-GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int> *sPat) 
+GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<double> *matPat)
+
 {
  DofSetArray     *dsa = sd[isub]->getDSA();
  ConstrainedDSA *cdsa = sd[isub]->getCDSA();
@@ -110,8 +112,12 @@ GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int>
      else
        // if only spectral elements are used, the mass matrix is purely diagonal for implicit and explicit
        M[isub] = new GenDiagMatrix<Scalar>(sd[isub]->getCDSA());
-   else
-     M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+   else {
+     if (domain->solInfo().isCoupled)
+       M[isub] = sd[isub]->template constructNBSparseMatrix<Scalar>();
+     else
+       M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+   }
  }
 
  if (solvertype != 10)
@@ -188,13 +194,34 @@ GenDomainGroupTask<Scalar>::runFor1(int isub, bool make_feti, FSCommPattern<int>
  // builds the datastructures for Kii, Kib, Kbb
  if(domain->solInfo().type == 2 && make_feti) { // FETI
    if(isCtcOrDualMpc)
-     sd[isub]->makeKbbMpc();  
+     sd[isub]->makeKbbMpc();
    else {
      sd[isub]->makeKbb(sd[isub]->getCCDSA());
    }
    if(sd[isub]->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-     domain->solInfo().getFetiInfo().waveMethod = sd[isub]->solInfo().getFetiInfo().waveMethod = FetiInfo::uniform; // XXXX need to add support for other methods
-     /*if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::uniform)*/ sd[isub]->computeWaveNumbers();
+//     domain->solInfo().getFetiInfo().waveMethod = sd[isub]->solInfo().getFetiInfo().waveMethod = FetiInfo::uniform; // XXXX need to add support for other methods
+     if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::uniform)
+        sd[isub]->computeWaveNumbers();
+     else if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::averageMat) {
+       sd[isub]->averageMatProps();
+       sd[isub]->sendMatProps(matPat);
+     }
+   }
+ }
+}
+
+
+template<class Scalar>
+void
+GenDomainGroupTask<Scalar>::runFor15(int isub, bool make_feti, FSCommPattern<double> *matPat,  FSCommPattern<int> *sPat)
+{
+ if(domain->solInfo().type == 2 && make_feti) { // FETI
+   if(sd[isub]->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
+
+     if(sd[isub]->solInfo().getFetiInfo().waveMethod == FetiInfo::averageMat) {
+      sd[isub]->collectMatProps(matPat);
+     }
+
      sd[isub]->makeQ();
      if(sd[isub]->solInfo().getFetiInfo().augment == FetiInfo::Gs) {
        sd[isub]->sendNumNeighbGrbm(sPat);

@@ -73,7 +73,7 @@ void IsoParamQuadSommer::flipNormal() {
 //#define PRTEST
 #ifdef PRTEST
 void IsoParamQuadSommer::neumVector(CoordSet& cs, ComplexVector& cv,
-    double omega, double dx, double dy, double dz) {
+    double omega, double dx, double dy, double dz,int pflag) {
 
  if (el==0) {
    fprintf(stderr,"IsoParamQuadSommer::neumVector : adjacent element not defined.\n");

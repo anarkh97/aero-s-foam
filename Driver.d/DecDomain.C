@@ -701,6 +701,23 @@ GenDecDomain<Scalar>::scaleSubDisp(int iSub, GenDistrVector<Scalar> &u)
   subDomain[iSub]->scaleDisp(u.subData(iSub));
 }
 
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::scaleInvDisp(GenDistrVector<Scalar> &u)
+{
+  execParal(numSub, this, &GenDecDomain<Scalar>::scaleInvSubDisp, u);
+}
+
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u)
+{
+  subDomain[iSub]->scaleInvDisp(u.subData(iSub));
+}
+
+
 template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f,
@@ -3367,12 +3384,23 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                 solvertype, isCtcOrDualMpc);
 
  filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
- if(isFeti && (finfo->version == FetiInfo::fetidp) && (finfo->augment == FetiInfo::Gs)) {
+ if(isFeti && (finfo->version == FetiInfo::fetidp) &&
+    (finfo->augment == FetiInfo::Gs || finfo->waveMethod == FetiInfo::averageMat)) {
+
    // this is for sending and receiving the number of coarse grid modes
    FSCommPattern<int> *sPat = new FSCommPattern<int>(communicator, cpuToSub, 0, FSCommPattern<int>::CopyOnSend);
    for(int i=0; i<numSub; ++i) subDomain[i]->setCommSize(sPat,1);
    sPat->finalize();
-   execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor1, make_feti, sPat);
+
+   FSCommPattern<double> *matPat = new FSCommPattern<double>(communicator, cpuToSub, myCPU,
+                                                       FSCommPattern<double>::CopyOnSend);
+   for(int iSub=0; iSub<numSub; ++iSub) subDomain[iSub]->setCommSize(matPat, 5);
+   matPat->finalize();
+
+   execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor1, make_feti, matPat);
+   matPat->exchange();
+   execParal3R(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor15, make_feti, matPat,sPat);
+   delete matPat;
    sPat->exchange();
    execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor2, make_feti, sPat);
    delete sPat;

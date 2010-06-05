@@ -92,6 +92,7 @@ class SingleDomainStatic
     void rebuildSolver()
       { clean(); preProcess(); }
     void scaleDisp(VectorType &);
+    void scaleInvDisp(VectorType &);
     void clean();
     SolverType *getSolver();
     AllOps<T> *getAllOps() { return &allOps; }

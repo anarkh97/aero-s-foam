@@ -609,6 +609,8 @@ class Domain : public HData {
 
      template<class Scalar>
        void scaleDisp(Scalar *u);
+     template<class Scalar>
+       void scaleInvDisp(Scalar *u);
 
      template<class Scalar>
        int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof

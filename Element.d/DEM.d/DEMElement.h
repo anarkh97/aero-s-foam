@@ -132,6 +132,12 @@ public:
 };
 
 
+struct PMLProps {
+ int PMLtype;
+ double gamma, Rx, Ry, Rz, Sx, Sy, Sz;
+};
+
+
 class DEMElement: public DEMCoreElement {
  hex8dem *sinterf;
 public:
@@ -151,6 +157,7 @@ public:
    return sinterf->c0; }
  virtual double getE() { return 1.0; }
  virtual double getNu() { return 0.3; }
+ virtual PMLProps* getPMLProps() { return 0; }
 };
 
 #else
@@ -194,6 +201,7 @@ public:
    return geoSource->omega()/prop->kappaHelm; }
  virtual double getE() { return prop->E; }
  virtual double getNu() { return prop->nu; }
+ virtual PMLProps* getPMLProps() { return &prop->fp; }
 };
 #endif
 

@@ -26,6 +26,8 @@ public:
 
         void neumVector(CoordSet&,ComplexVector&,
                                 double,double,double,double,int pflag=0);
+        void neumVectorDeriv(CoordSet&,ComplexVector&,
+                                double,double,double,double, int, int pflag=0);
         void wetInterfaceVector(CoordSet&,ComplexVector&,
                                 double,double,double,double,int,int);
 

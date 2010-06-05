@@ -2,6 +2,7 @@
 
 #include <Element.d/DEM.d/DEMHelm2d.h>
 #include <Element.d/Helm.d/IsoParamUtils2d.h>
+#include <Element.d/Helm.d/PML.h>
 
 class HelmDGMELMatrixFunction : public IntegFunctionL2d {
  double kappa;
@@ -222,6 +223,167 @@ void HelmDGMEMatrices2d(int order, double *xy,
  delete[] e;
  delete[] ipu;
  delete[] dn;
+}
+
+
+class HelmDGMPMLEEMatrixFunction : public IntegFunctionA2d {
+ double *pmldata;
+ double *cxy;
+ int ndir;
+ complex<double> *dirs;
+ complex<double> *K;
+public:
+ HelmDGMPMLEEMatrixFunction(double *_pmldata, 
+                      int _ndir, complex<double> *_dirs,
+                            double *_cxy, complex<double> *_K) {
+   pmldata = _pmldata; 
+   ndir = _ndir; dirs = _dirs;
+   cxy = _cxy;
+   K = _K;
+ }
+ void evaluate(double *x, double *N, double (*dNdx)[2], double w, double det) {
+
+   double kappa = pmldata[0];
+   double a = pmldata[1];
+   double b = pmldata[2];
+   double gamma = pmldata[3];
+
+   PMLFunction fp(a,b,gamma);
+   PMLFunction fm(-a,-b,gamma);
+   PMLFunction *fx = &fp;
+   PMLFunction *fy = &fp;
+   if (x[0]<0.0) fx = &fm;
+   if (x[1]<0.0) fy = &fm;
+   complex<double> wdetb = w*det*fx->beta(x[0])*fy->beta(x[1]);
+
+   complex<double> xt[2];
+   xt[0] = x[0]*fx->alpha(x[0]);
+   xt[1] = x[1]*fy->alpha(x[1]);
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) e[i] = exp(dirs[i*2+0]*xt[0] + dirs[i*2+1]*xt[1]);
+
+   for(int j=0;j<ndir;j++)
+     for(int i=0;i<ndir;i++)
+       K[j*ndir+i] += wdetb*
+                        (dirs[i*2+0]*dirs[j*2+0] + dirs[i*2+1]*dirs[j*2+1]-
+                         complex<double>(kappa*kappa,0.0) ) * e[i] * e[j];
+   delete[] e;
+ }
+};
+
+
+class HelmDGMPMLELMatrixFunction : public IntegFunctionL2d {
+ double *pmldata;
+ int ndir;
+ complex<double> *dirs;
+ int nldir;
+ int *nldirs;
+ complex<double> *ldirs;
+ complex<double> *L;
+ int fi;
+ double *xsc;
+ double *xc;
+public:
+ HelmDGMPMLELMatrixFunction(double *_pmldata,
+                      int _ndir, complex<double> *_dirs,
+                      int _nldir, complex<double> *_ldirs,
+                      double *_xsc, double *_xc,
+                      complex<double> *_L, int _fi) {
+   pmldata = _pmldata;
+   ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
+   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+ }
+ void evaluate(double *x, double *N, double *cross, double nsign, double w) {
+
+   double kappa = pmldata[0];
+   double a = pmldata[1];
+   double b = pmldata[2];
+   double gamma = pmldata[3];
+
+
+   PMLFunction fp(a,b,gamma);
+   PMLFunction fm(-a,-b,gamma);
+   PMLFunction *fx = &fp;
+   PMLFunction *fy = &fp;
+   if (x[0]<0.0) fx = &fm;
+   if (x[1]<0.0) fy = &fm;
+   complex<double> wcb = w* sqrt(
+                         cross[0]*cross[0]*fx->beta(x[1])*conj(fx->beta(x[1]))+
+                         cross[1]*cross[1]*fx->beta(x[0])*conj(fx->beta(x[0])));
+//RT: mess
+/*   complex<double> wcb = w* sqrt(cross[0]*cross[0]+cross[1]*cross[1]);
+   double ll = sqrt(cross[0]*cross[0]+ cross[1]*cross[1]);
+   double tau[2] = { nsign*cross[1]/ll,-nsign*cross[0]/ll };
+   if (fabs(x[0])>=a || fabs(x[1])>=a) {
+      if (fabs(tau[0])>fabs(tau[1]))
+          wcb *= fx->beta(x[0]);
+      else
+          wcb *= fy->beta(x[1]);
+//                   wcb *= tau[0]*fx->beta(x[0])+tau[1]*fy->beta(x[1]);
+   }*/
+
+   complex<double> xt[2];
+   xt[0] = x[0]*fx->alpha(x[0]);
+   xt[1] = x[1]*fy->alpha(x[1]);
+
+   complex<double> *e = new complex<double>[ndir];
+   for(int i=0;i<ndir;i++) e[i] = exp(dirs[i*2+0]*xt[0] + dirs[i*2+1]*xt[1]);
+
+   for(int j=0;j<nldir;j++)
+     for(int i=0;i<ndir;i++) {
+       complex<double> t = wcb*e[i]*
+                           exp(ldirs[j*2+0]*(xt[0]) +
+                               ldirs[j*2+1]*(xt[1]));
+
+       L[j*ndir+i] += t;
+     }
+   delete[] e;
+ }
+};
+
+
+
+void HelmDGMPMLEMatrices2d(int order, double *xy,
+                    int ndir, complex<double> *dirs,
+                    int *nldirs, complex<double> *ldirs,
+                    double kappa, int *sflags, double *xsc,
+                    double *xc, PMLProps *pml,
+                    complex<double> *K, complex<double> *L) {
+
+
+ IsoParamUtils2d *ipu =
+     (order>0)?new IsoParamUtils2d(order):new IsoParamUtils2dTri(-order);
+
+ int nldir = nldirs[0] + nldirs[1] + nldirs[2];
+ if (order>0) nldir += nldirs[3];
+ for(int i=0;i<nldir*ndir;i++) L[i] = 0.0;
+ for(int i=0;i<ndir*ndir;i++) K[i] = 0.0;
+
+ int nf = 4;
+ if (order<0) {
+  nf = 3;
+ }
+ 
+ int ordersq = ipu->getordersq();
+
+ double pmldata[4] = { kappa, pml->Rx,pml->Sx,pml->gamma};
+ HelmDGMPMLEEMatrixFunction f(pmldata,ndir,dirs,xc,K);
+ ipu->areaInt2d(xy, f);
+
+ int faceindex;
+ int c = 0;
+
+ for(faceindex=1;faceindex<=nf;faceindex++) {
+   if (nldirs[faceindex-1]!=0) {
+     HelmDGMPMLELMatrixFunction f(pmldata,ndir,dirs,
+                nldirs[faceindex-1],ldirs+c*2, xsc + (faceindex-1)*2, xc,
+                L+c*ndir,faceindex);
+     ipu->lineInt2d(xy, faceindex, f);
+     c += nldirs[faceindex-1];
+   }
+ }
+ delete[] ipu;
 }
 
 
@@ -507,7 +669,7 @@ DGMHelm2d::DGMHelm2d(int _nnodes, int* nodenums) {
    o = - int(-1.0+sqrt(1.0+8.0*double(_nnodes)))/2;
  }
  else {
-   o = int(sqrt(double(_nnodes)));
+   o = int(sqrt(double(_nnodes))+0.5);
  }
  nn = new int[_nnodes]; 
  for(int i=0;i<_nnodes;i++) nn[i] = nodenums[i];
@@ -615,8 +777,13 @@ void DGMHelm2d::createM(complex<double>*M) {
  int arbFlag[4] = { 0,0,0,0};
  for(int i=0;i<nf;i++) if (bc[i]==1) arbFlag[i] = 1;
 
- HelmDGMEMatrices2d(o, xyz, ndir, cdir, nldir, cldir,
+ PMLProps* pml = getPMLProps();
+ if (pml->PMLtype==0)
+   HelmDGMEMatrices2d(o, xyz, ndir, cdir, nldir, cldir,
                     kappa, arbFlag, xlref,  xref, kee, kel); 
+ else 
+   HelmDGMPMLEMatrices2d(o, xyz, ndir, cdir, nldir, cldir,
+                    kappa, arbFlag, xlref,  xref, pml, kee, kel); 
 
  cc = 0;
  for(int i=0;i<nf;i++) {
@@ -624,6 +791,8 @@ void DGMHelm2d::createM(complex<double>*M) {
     kel[j*ndir+k] *= sign[i];
   cc += nldir[i];
  }
+// for(int i=0;i<ndir;i++) for(int j=0;j<tnldir;j++)
+//fprintf(stderr,"zzz %d %d %e %e\n",i+1,j+1,real(kel[j*ndir+i]),imag(kel[j*ndir+i]));
 
  for(int i=0;i<ndir;i++) for(int j=0;j<ndir;j++)
    M[(tnldir+j)*(ndir+tnldir)+(tnldir+i)] = kee[j*ndir+i]/rho;

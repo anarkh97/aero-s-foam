@@ -183,7 +183,7 @@ struct SolverInfo {
    int nFreqSweepRHS;
    bool doFreqSweep,doEigSweep;
    //--- UH --- 05/21/08
-   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection };
+   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
    //--- UH --- 05/21/08
    int freqSweepMethod;
    int padeL, padeM, padeN;

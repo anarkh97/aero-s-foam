@@ -94,22 +94,28 @@ SommerElement::findAndSetBothEle (CoordSet& cs, Elemset &eset,
 
   if (ie[0]==-1) {
     fprintf(stderr,"SommerElement::findAndSetBothEle could not find the"
-                   " corresponding element.\n");
+                   " corresponding element 1.\n");
     return 0;
   }
   el = eset[ie[0]];
   if (ie[1]==-1) {
     fprintf(stderr,"SommerElement::findAndSetBothEle did not find the"
-                   " corresponding element.\n");
+                   " corresponding element 2.\n");
   }
   if (ie[1]!=-1) el2 = eset[ie[1]];
 
   HelmElement *he = dynamic_cast<HelmElement *>(el);
   int isFluid = 1;
   if (he==0) isFluid = 0;
+//  fprintf(stderr,"SommerElement::findAndSetBothEle he %d\n",isFluid);
 
-  soundSpeed = (he) ?
-    el->getProperty()->soundSpeed:el2->getProperty()->soundSpeed;
+  if (he) soundSpeed = el->getProperty()->soundSpeed;
+  else if (ie[1]!=-1) soundSpeed = el2->getProperty()->soundSpeed;
+  else {
+    fprintf(stderr,"SommerElement::findAndSetBothEle could not set ss.\n");
+    return 0;
+  }
+
 
   int *nodes = (int*)alloca(sizeof(int)*el->numNodes());
   el->nodes(nodes);

@@ -90,8 +90,10 @@ GenMultiDomainStatic<Scalar>::preProcess()
  // Construct FETI solver and any other matrices required
  times->getFetiSolverTime -= getTime();
 
- if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos || 
-    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection) {
+ if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
+    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
+    domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
+    domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
    for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
    decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
    solver = (GenFetiSolver<Scalar> *) allOps.sysSolver;
@@ -118,11 +120,16 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
 {
   times->getFetiSolverTime -= getTime(); // PJSA 3-30-06
   if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
-     domain->solInfo().freqSweepMethod == SolverInfo::GalProjection) {
+     domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
+     domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
+     domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+
     GenMDDynamMat<Scalar> ops;
     ops.sysSolver = allOps.sysSolver;
     ops.K = allOps.K;
     ops.Kuc = allOps.Kuc;
+    ops.M = allOps.M;
+    ops.Muc = allOps.Muc;
     decDomain->rebuildOps(ops, 0.0, 0.0, 1.0); // just rebuild solver and K
   }
   else {
@@ -138,6 +145,15 @@ GenMultiDomainStatic<Scalar>::scaleDisp(GenDistrVector<Scalar> &u)
 {
  decDomain->scaleDisp(u);
 }
+
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::scaleInvDisp(GenDistrVector<Scalar> &u)
+{
+ decDomain->scaleInvDisp(u);
+}
+
 
 template<class Scalar>
 void
@@ -270,8 +286,11 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
 //                                            GenDistrVector<Scalar> *sol_prev, int iRHS)
 {
 // RT: should only be done for the projection method
- if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos || 
-    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection) {
+ if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
+    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
+    domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
+    domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+
    for(int i=0;i<decDomain->getNumSub();i++) {
      decDomain->getSubDomain(i)->M = (*allOps.M)[i];
      decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];

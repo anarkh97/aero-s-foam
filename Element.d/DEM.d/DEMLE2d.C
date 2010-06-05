@@ -399,8 +399,10 @@ void DGMLE2d_4::dir(int n, complex<double> *d) {
  double kp = omega*sqrt(rho/(lambda+2*mu));
  double ks = omega*sqrt(rho/mu);
 
- double a[][2] = { {1,0},{-1,0},{0,1},{0,-1} };
- double b[][2] = { {0,1},{0,1},{-1,0},{1,0} };
+// double a[][2] = { {1,0},{-1,0},{0,1},{0,-1} };
+// double b[][2] = { {0,1},{0,1},{-1,0},{1,0} };
+ double a[][2] = { {1,0},{0,1},{-1,0},{0,-1} };
+ double b[][2] = { {0,-1},{1,0},{0,1},{-1,0} };
  if (n<4) {
    d[0] = complex<double>(0.0,kp*a[n][0]);
    d[1] = complex<double>(0.0,kp*a[n][1]);
@@ -602,7 +604,9 @@ void DGMLE2d::createRHS(complex<double>*v) {
                               complex<double>(0.0,0.0)};
 // complex<double> cidir[2] = {complex<double>(0.0,1.218403954095460e-11),
 //                              complex<double>(0.0,0.0)};
- complex<double> cidir[2] = {complex<double>(0.0,-0.93621651068154e-11),
+// complex<double> cidir[2] = {complex<double>(0.0,-0.93621651068154e-11),
+//                              complex<double>(0.0,0.0)};
+ complex<double> cidir[2] = {complex<double>(1.0,0.0),
                               complex<double>(0.0,0.0)};
 
  for(int i=0;i<nFaces();i++) {
@@ -1077,7 +1081,9 @@ void DEMLE2d::createRHS(complex<double>*v) {
                               complex<double>(0.0,0.0)};
 // complex<double> cidir[2] = {complex<double>(0.0,1.218403954095460e-11),
 //                              complex<double>(0.0,0.0)};
- complex<double> cidir[2] = {complex<double>(0.0,-0.93621651068154e-11),
+// complex<double> cidir[2] = {complex<double>(0.0,-0.93621651068154e-11),
+//                              complex<double>(0.0,0.0)};
+ complex<double> cidir[2] = {complex<double>(0.0,1.0),
                               complex<double>(0.0,0.0)};
 
  complex<double> *vv = new complex<double>[nPolynomialDofs()+ndir];

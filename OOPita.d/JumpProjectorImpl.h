@@ -3,7 +3,6 @@
 
 #include "JumpProjector.h"
 
-#include "JumpBuilder.h"
 #include "DynamStateBasis.h"
 
 namespace Pita {
@@ -13,25 +12,20 @@ public:
   EXPORT_PTRINTERFACE_TYPES(JumpProjectorImpl);
   class Manager;
 
+  virtual void iterationIs(IterationRank ir);
+
   virtual size_t reducedBasisSize() const;
 
-  virtual void predictedSeedIs(const Seed * ps);
-  virtual void actualSeedIs(const Seed * as);
-  virtual void seedJumpIs(Seed * j);
-  virtual void iterationIs(IterationRank i);
-
-  /* Reduced basis and operators */
+  /* Reduced basis */
   const DynamStateBasis * reducedBasis() const;
-  const JumpBuilder * jumpBuilder() const { return jumpBuilder_.ptr(); }
 
 protected:
-  JumpProjectorImpl(const String & name, const Manager * manager, JumpBuilder * jumpBuilder);
+  JumpProjectorImpl(const String & name, const Manager * manager);
 
   friend class Manager;
 
 private:
   const Manager * manager_;
-  JumpBuilder::Ptr jumpBuilder_;
 };
 
 /* JumpProjectorImpl::Manager definition */
@@ -43,7 +37,7 @@ public:
   // Overriden members
   virtual JumpProjectorImpl * instance(const String & key) const { return Impl::instance(key); }
   virtual size_t instanceCount() const { return Impl::instanceCount(); }
-  virtual JumpProjectorImpl * instanceNew(const String & key) { return Impl::instanceNew(key); } 
+  virtual JumpProjectorImpl * instanceNew(const String & key) { return Impl::instanceNew(key); }
   virtual void instanceDel(const String & key) { Impl::instanceDel(key); }
 
   // Added members

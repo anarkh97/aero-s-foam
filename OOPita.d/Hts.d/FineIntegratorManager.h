@@ -7,28 +7,74 @@
 
 namespace Pita { namespace Hts {
 
-class FineIntegratorManager : public Fwk::PtrInterface<FineIntegratorManager> {
+/*class FineIntegratorManager : Fwk::PtrInterface<FineIntegratorManager> {
 public:
   EXPORT_PTRINTERFACE_TYPES(FineIntegratorManager);
   
-  typedef DynamTimeIntegrator IntegratorType;
+  Seconds fineTimeStepSize() const { return fineTimeStepSize_; }
+  IntegratorType * fineIntegrator(HalfTimeSlice::Direction direction) const;
 
+private:
+  Seconds fineTimeStepSize_;
+  
+  DISALLOW_COPY_AND_ASSIGN(FineIntegratorManager);
+};*/
+
+template <typename IntegratorType>
+class GenFineIntegratorManager : public Fwk::PtrInterface<GenFineIntegratorManager<IntegratorType> > {
+public:
+  EXPORT_PTRINTERFACE_TYPES(GenFineIntegratorManager);
+  
   Seconds fineTimeStepSize() const { return fineTimeStepSize_; }
   IntegratorType * fineIntegrator(HalfTimeSlice::Direction direction) const;
 
 protected:
-  explicit FineIntegratorManager(Seconds fineTimeStep);
+  explicit GenFineIntegratorManager(Seconds fineTimeStep);
 
   virtual IntegratorType * createFineIntegrator(HalfTimeSlice::Direction direction) const = 0;
 
 private:
-  DISALLOW_COPY_AND_ASSIGN(FineIntegratorManager);
-
   Seconds fineTimeStepSize_;
 
-  mutable IntegratorType::Ptr forwardFineIntegrator_;
-  mutable IntegratorType::Ptr backwardFineIntegrator_;
+  mutable Fwk::Ptr<IntegratorType> forwardFineIntegrator_;
+  mutable Fwk::Ptr<IntegratorType> backwardFineIntegrator_;
+  
+  DISALLOW_COPY_AND_ASSIGN(GenFineIntegratorManager);
 };
+
+template <typename IntegratorType>
+GenFineIntegratorManager<IntegratorType>::GenFineIntegratorManager(Seconds fineTimeStepSize) :
+  fineTimeStepSize_(fineTimeStepSize),
+  forwardFineIntegrator_(NULL),
+  backwardFineIntegrator_(NULL)
+{}
+
+template <typename IntegratorType>
+IntegratorType *
+GenFineIntegratorManager<IntegratorType>::fineIntegrator(HalfTimeSlice::Direction direction) const {
+  IntegratorType * result;
+  
+  switch (direction) {
+    case HalfTimeSlice::FORWARD:
+      if (!forwardFineIntegrator_) {
+        forwardFineIntegrator_ = createFineIntegrator(direction);
+      }
+      result = forwardFineIntegrator_.ptr();
+      break;
+
+    case HalfTimeSlice::BACKWARD:
+      if (!backwardFineIntegrator_) {
+        backwardFineIntegrator_ = createFineIntegrator(direction);
+      }
+      result = backwardFineIntegrator_.ptr();
+      break;
+
+    default:
+      result = NULL;
+  }
+
+  return result;
+}
 
 } /* end namespace Hts */ } /* end namespace Hts */
 

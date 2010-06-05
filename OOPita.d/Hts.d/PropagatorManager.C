@@ -1,12 +1,16 @@
 #include "PropagatorManager.h"
 
+#include "../AffineIntegratorPropagator.h"
+
+#include <cassert>
+
 namespace Pita { namespace Hts {
 
 PropagatorManager::PropagatorManager(BasisCollector * collector,
-                                                       FineIntegratorManager * integratorMgr,
-                                                       PostProcessing::Manager * postProcessingMgr,
-                                                       TimeStepCount halfSliceRatio,
-                                                       Seconds initialTime) :
+                                     GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
+                                     PostProcessing::Manager * postProcessingMgr,
+                                     TimeStepCount halfSliceRatio,
+                                     Seconds initialTime) :
   collector_(collector),
   integratorMgr_(integratorMgr),
   postProcessingMgr_(postProcessingMgr),
@@ -15,9 +19,16 @@ PropagatorManager::PropagatorManager(BasisCollector * collector,
   initialTime_(initialTime)
 {}
 
-IntegratorPropagator *
+AffineDynamPropagator *
 PropagatorManager::instance(const HalfSliceId & id) const {
-  return collector_->source(id);
+  DynamPropagator * original = const_cast<DynamPropagator *>(collector_->source(id));
+  if (original) {
+    AffineDynamPropagator * downcasted = dynamic_cast<AffineDynamPropagator *>(original);
+    assert(downcasted);
+    return downcasted;
+  }
+
+  return NULL;
 }
 
 size_t
@@ -25,18 +36,11 @@ PropagatorManager::instanceCount() const {
   return collector_->sourceCount();
 }
 
-IntegratorPropagator *
+AffineDynamPropagator *
 PropagatorManager::instanceNew(const HalfSliceId & id) {
-  // Set up integrator
-  DynamTimeIntegrator * integrator = integratorMgr_->fineIntegrator(id.direction());
- 
-  // Retrieve propagator 
-  IntegratorPropagator * newPropagator = collector_->sourceNew(id, integrator);
- 
-  // Attach PostProcessor
-  if (postProcessingMgr_) {
-    this->postProcessingMgr_->outputFileSetIs(newPropagator, PostProcessor::FileSetId(id.rank().value()));
-  }
+  // Create propagator 
+  AffineGenAlphaIntegrator::Ptr integrator = integratorMgr_->fineIntegrator(id.direction());
+  AffineIntegratorPropagator::Ptr newPropagator = AffineIntegratorPropagator::New(integrator.ptr());
 
   // Set up propagator
   Seconds halfCoarseTimeStep = fineTimeStep_ * halfSliceRatio_.value();
@@ -45,13 +49,21 @@ PropagatorManager::instanceNew(const HalfSliceId & id) {
 
   newPropagator->initialTimeIs(sliceInitialTime);
   newPropagator->timeStepCountIs(halfSliceRatio_);
+  
+  // Attach BasisCollector Reactor 
+  collector_->sourceIs(id, newPropagator.ptr());
+ 
+  // Attach PostProcessing Reactor
+  if (postProcessingMgr_) {
+    this->postProcessingMgr_->outputFileSetIs(newPropagator.ptr(), PostProcessor::FileSetId(id.rank().value()));
+  }
 
-  return newPropagator;
+  return newPropagator.ptr();
 }
 
 void
 PropagatorManager::instanceDel(const HalfSliceId & id) {
-  collector_->sourceDel(id);
+  collector_->sourceIs(id, NULL);
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */

@@ -10,13 +10,12 @@ namespace Pita {
 
 class AlternatingIntegratorPropagator : public IntegratorPropagator {
 public:
-  typedef Fwk::Ptr<AlternatingIntegratorPropagator> Ptr;
-  typedef Fwk::Ptr<const AlternatingIntegratorPropagator> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(AlternatingIntegratorPropagator);
 
   virtual void initialStateIs(const DynamState & initialState);
 
   // New members
-  ProjectorPropagator::PtrConst secondaryPropagator() const { return secondaryPropagator_; }
+  const ProjectorPropagator * secondaryPropagator() const { return secondaryPropagator_.ptr(); }
   void secondaryPropagatorIs(ProjectorPropagator::Ptr secondary) { secondaryPropagator_ = secondary; }
   
   static AlternatingIntegratorPropagator::Ptr New(DynamTimeIntegrator * integrator) {

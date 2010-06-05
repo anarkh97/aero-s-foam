@@ -54,6 +54,8 @@ class SingleDomainPostProcessor {
     int getsizeSfemStress() { return domain->getsizeSfemStress(); }
     T* getSfemStress(int fileNumber) { T* ds = 0; return domain->getSfemStress(fileNumber, ds); } // Actually it scould be T* ds, ok for the time being
     void updateSfemStress(T* str, int fileNumber) { domain->updateSfemStress(str, fileNumber); }
+
+    void setSolver(SolverType *s) { solver = s; }
 };
 
 

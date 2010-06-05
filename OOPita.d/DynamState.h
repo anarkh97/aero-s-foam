@@ -36,6 +36,8 @@ public:
   DynamState & operator+=(const DynamState & ds); 
   DynamState & operator-=(const DynamState & ds);
 
+  void linAdd(double coef, const DynamState & ds);
+
 protected:
   class Desc : public PtrInterface<Desc> {
   public:
@@ -57,6 +59,8 @@ protected:
 
     Desc & operator+=(const Desc & dsd);
     Desc & operator-=(const Desc & dsd);
+
+    void linAdd(double coef, const Desc & dsd);
 
   private:
     VectorType disp_;

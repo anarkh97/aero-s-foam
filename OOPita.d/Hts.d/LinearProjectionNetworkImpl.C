@@ -1,8 +1,8 @@
-#include "CorrectionNetworkImpl.h"
+#include "LinearProjectionNetworkImpl.h"
 
 #include "../DynamStateBasisWrapper.h"
 
-#include <Math.d/SparseMatrix.h>
+#include "../DynamStateOps.h"
 #include <Comm.d/Communicator.h>
 
 #include <stdexcept>
@@ -11,7 +11,7 @@
 
 namespace Pita { namespace Hts {
 
-CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
+LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
                                              Communicator * timeComm,
                                              CpuRank myCpu,
                                              const SliceMapping * mapping,
@@ -29,23 +29,25 @@ CorrectionNetworkImpl::CorrectionNetworkImpl(size_t vSize,
   localBasis_(),
   metricBasis_(DynamStatePlainBasis::New(vectorSize_)),
   finalBasis_(DynamStatePlainBasis::New(vectorSize_)),
+  originalMetricBasis_(DynamStatePlainBasis::New(vectorSize_)),
+  originalFinalBasis_(DynamStatePlainBasis::New(vectorSize_)),
   normalMatrix_(),
+  transmissionMatrix_(),
   reprojectionMatrix_(),
   solver_(solver),
   collector_(collector),
   globalExchangeNumbering_()
 {}
 
-
 void
-CorrectionNetworkImpl::buildProjection() {
-  
-  // TODO: Remove HACK
+LinearProjectionNetworkImpl::prepareProjection() {
   GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
   globalExchangeNumbering_.push_back(numbering);
-  
-  double tic, toc;
-  tic = getTime();
+}
+
+void
+LinearProjectionNetworkImpl::buildProjection() {
+  double tic = getTime(), toc;
 
   int previousMatrixSize = normalMatrix_.dim();
 
@@ -57,7 +59,7 @@ CorrectionNetworkImpl::buildProjection() {
   }
 
   toc = getTime();
-  log() << "-> Build buffer: " << toc - tic << " ms\n";
+  log() << "      -> Build buffer: " << toc - tic << " ms\n";
   tic = toc;
   
   // Collect data from time-slices
@@ -84,8 +86,7 @@ CorrectionNetworkImpl::buildProjection() {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       if (metric_) {
         // Pre-multiply initial local states by the metric first
-        const_cast<SparseMatrix*>(metric_->stiffnessMatrix())->mult(cs.second.displacement(), targetBuffer);
-        const_cast<SparseMatrix*>(metric_->massMatrix())->mult(cs.second.velocity(), targetBuffer + vectorSize_);
+        mult(metric_.ptr(), cs.second, targetBuffer);
       } else {
         log() << "Warning, no metric found !\n";
         bufferStateCopy(cs.second, targetBuffer); 
@@ -99,7 +100,7 @@ CorrectionNetworkImpl::buildProjection() {
   }
 
   toc = getTime();
-  log() << "-> Collect data from local time-slices: " << toc - tic << " ms\n";
+  log() << "      -> Collect data from local time-slices: " << toc - tic << " ms\n";
   tic = toc;
   
   // Setup parameters for global MPI communication
@@ -124,7 +125,7 @@ CorrectionNetworkImpl::buildProjection() {
   //log() << " complete !\n";
   
   toc = getTime();
-  log() << "-> Allgather: " << toc - tic << " ms\n";
+  log() << "      -> Allgather: " << toc - tic << " ms\n";
   tic = toc;
 
   // Add new states to projection bases
@@ -137,8 +138,8 @@ CorrectionNetworkImpl::buildProjection() {
   for (GlobalExchangeNumbering::IteratorConst it = globalExchangeNumbering_.back()->globalIndex(); it; ++it) {
     std::pair<HalfTimeSlice::Direction, int> p = *it;
     DynamStatePlainBasis * targetBasis = (p.first == HalfTimeSlice::BACKWARD) ?
-                                        metricBasis_.ptr() : // Initial state (premultiplied)
-                                        finalBasis_.ptr();   // Final state
+                                        originalMetricBasis_.ptr() : // Initial state (premultiplied)
+                                        originalFinalBasis_.ptr();   // Final state
     targetBasis->lastStateIs(receivedBasis->state(p.second));
   }
  
@@ -151,14 +152,14 @@ CorrectionNetworkImpl::buildProjection() {
   }*/
 
   toc = getTime();
-  log() << "-> Add new states: " << toc - tic << " ms\n";
+  log() << "      -> Add new states: " << toc - tic << " ms\n";
   tic = toc;
  
   // Assemble normal and reprojection matrices in parallel (local rows)
   int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(HalfTimeSlice::BACKWARD);
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
  
-  log() << "Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
+  log() << "*** Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
   
   size_t matrixBufferSize = (2 * newMatrixSize) * newMatrixSize; // For normalMatrix and reprojectionMatrix data
   if (mBuffer_.size() < matrixBufferSize) {
@@ -182,20 +183,20 @@ CorrectionNetworkImpl::buildProjection() {
   for (LocalBasis::const_iterator it = localBasis_.begin();
       it != localBasis_.end(); ++it) {
     for (int i = 0; i < newMatrixSize; ++i) {
-      rowBuffer[i] = metricBasis_->state(i) * it->second;
+      rowBuffer[i] = originalMetricBasis_->state(i) * it->second;
     }
     rowBuffer += newMatrixSize;
   }
   
   toc = getTime();
-  log() << "-> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
+  log() << "      -> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
   tic = toc;
 
   // Exchange normal/reprojection matrix data  
   timeCommunicator_->allGatherv(mBuffer_.array() + displacements[myCpu], recv_counts[myCpu], mBuffer_.array(), recv_counts, displacements);
   
   toc = getTime();
-  log() << "-> Exchange normal matrix: " << toc - tic << " ms\n";
+  log() << "      -> Exchange normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
   /*log() << "Buffer is\n";
@@ -207,7 +208,7 @@ CorrectionNetworkImpl::buildProjection() {
 
   // Assemble updated normal & reprojection matrices
   normalMatrix_.reSize(newMatrixSize);
-  reprojectionMatrix_.reSize(newMatrixSize);
+  transmissionMatrix_.reSize(newMatrixSize);
 
   // Loop on iterations
   int originRowIndex = 0; // Target matrix base row index for current iteration 
@@ -242,7 +243,7 @@ CorrectionNetworkImpl::buildProjection() {
         //log() << "Reprojection matrix row # = " << rowIndex << "\n";
         //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
         //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize) << "\n";
-        std::copy(originBufferBegin, originBufferBegin + newMatrixSize, reprojectionMatrix_[rowIndex]);
+        std::copy(originBufferBegin, originBufferBegin + newMatrixSize, transmissionMatrix_[rowIndex]);
         originBufferBegin += newMatrixSize;
         ++jt_f;
       }
@@ -270,7 +271,7 @@ CorrectionNetworkImpl::buildProjection() {
   } */
 
   toc = getTime();
-  log() << "-> Assemble normal matrix: " << toc - tic << " ms\n";
+  log() << "      -> Assemble normal matrix: " << toc - tic << " ms\n";
   tic = toc;
 
   //log() << "Check symmetry\n";
@@ -313,7 +314,66 @@ CorrectionNetworkImpl::buildProjection() {
   log() << " x^T (K y) / y^T (K x) = " << x_dTKy_d << " / " << y_dTKx_d << "\n";*/
 
   solver_->transposedMatrixIs(normalMatrix_);
+
+  /*reprojectionMatrix_.copy(transmissionMatrix_);
+  metricBasis_->stateBasisDel();
+  finalBasis_->stateBasisDel();
+  metricBasis_->lastStateBasisIs(originalMetricBasis_.ptr());
+  finalBasis_->lastStateBasisIs(originalFinalBasis_.ptr());*/
+
+  reprojectionMatrix_.reSize(solver_->factorRank());
+  metricBasis_->stateBasisDel();
+  finalBasis_->stateBasisDel();
+
+  for (int compactIndex = 0; compactIndex < solver_->factorRank(); ++compactIndex) {
+    int originalIndex = solver_->factorPermutation(compactIndex);
+
+    for (int j = 0; j < solver_->factorRank(); ++j) {
+      reprojectionMatrix_[compactIndex][j] = transmissionMatrix_[originalIndex][solver_->factorPermutation(j)];
+    }
+
+    metricBasis_->lastStateIs(originalMetricBasis_->state(originalIndex));
+    finalBasis_->lastStateIs(originalFinalBasis_->state(originalIndex));
+  }
+
+  /*log() << "TransmissionMatrix (size = " << transmissionMatrix_.dim() << "):\n";
+  for (int i = 0; i < transmissionMatrix_.dim(); ++i) {
+    for (int j = 0; j < transmissionMatrix_.dim(); ++j) {
+      log() << transmissionMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  } 
+
+  log() << "ReprojectionMatrix (size = " << reprojectionMatrix_.dim() << "):\n";
+  for (int i = 0; i < reprojectionMatrix_.dim(); ++i) {
+    for (int j = 0; j < reprojectionMatrix_.dim(); ++j) {
+      log() << reprojectionMatrix_[i][j] << " ";
+    }
+    log() << "\n";
+  }
   
+  log() << "Permutation =";
+  for (int i = 0; i < solver_->factorRank(); ++i) {
+    log() << " " << solver_->factorPermutation(i);
+  }
+  log() << "\n";
+
+  log() << "check\n";
+  for (int i = 0; i < reprojectionMatrix_.dim(); ++i) {
+    for (int j = 0; j < reprojectionMatrix_.dim(); ++j) {
+      log() << reprojectionMatrix_[i][j] - transmissionMatrix_[solver_->factorPermutation(i)][solver_->factorPermutation(j)] << " ";
+    }
+    log() << "\n";
+  }*/
+  
+  solver_->orderingIs(RankDeficientSolver::COMPACT);
+
+  /*log() << "Compact permutation =";
+  for (int i = 0; i < solver_->factorRank(); ++i) {
+    log() << " " << solver_->factorPermutation(i);
+  }
+  log() << "\n";*/
+
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Matrix\n";
     for (int i = 0; i < solver_->matrixSize(); ++i) {
@@ -324,7 +384,7 @@ CorrectionNetworkImpl::buildProjection() {
     }
   }*/
   
-  solver_->statusIs(RankDeficientSolver::FACTORIZED);
+  //solver_->statusIs(RankDeficientSolver::FACTORIZED);
   
   /*if (timeCommunicator_->myID() == 0) {
     log() << "Factor\n";
@@ -337,12 +397,12 @@ CorrectionNetworkImpl::buildProjection() {
   }*/
   
   toc = getTime();
-  log() << "-> Factor: " << toc - tic << " ms\n";
+  log() << "      -> Factor: " << toc - tic << " ms\n";
   tic = toc;
 
   // Debug
   //log() << "Debug\n";
-  log() << "Projector rank = " << solver_->factorRank() << "\n";
+  log() << "*** Projector rank = " << solver_->factorRank() << "\n";
   /*log() << "Permutation =";
   for (int i = 0; i < solver_->factorRank(); ++i) {
     log() << " " << solver_->factorPermutation(i);
@@ -351,15 +411,15 @@ CorrectionNetworkImpl::buildProjection() {
   
 }
   
-// CorrectionNetworkImpl::GlobalExchangeNumbering
+// LinearProjectionNetworkImpl::GlobalExchangeNumbering
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
 {
   this->initialize(mapping);
 }
 
 void
-CorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
   // Count only full timeslices
   int fullSliceCount = std::max(0, (mapping->activeSlices().value() - 1) / 2);
   int numCpus = mapping->availableCpus().value();
@@ -432,12 +492,12 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * 
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
   return stateId_.size();
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direction d) const {
   switch (d) {
     case HalfTimeSlice::NO_DIRECTION:
       return 0;
@@ -446,11 +506,11 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(HalfTimeSlice::Direct
     case HalfTimeSlice::BACKWARD:
       return initialStateId_.size();
   }
-  throw Fwk::InternalException("in CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+  throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
   try {
     return stateCount_.at(c.value());
   } catch (std::out_of_range & e) {
@@ -460,7 +520,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
 }
 
 size_t
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSlice::Direction d) const {
   try {
     switch (d) {
       case HalfTimeSlice::NO_DIRECTION:
@@ -470,7 +530,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSl
       case HalfTimeSlice::BACKWARD:
         return initialStateCount_.at(c.value());
       default:
-        throw Fwk::InternalException("in CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+        throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
     }
   } catch (std::out_of_range & e) {
     // Do nothing
@@ -479,18 +539,18 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, HalfTimeSl
 }
 
 int
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
   IndexMap::const_iterator it = globalIndex_.find(id);
   return (it != globalIndex_.end()) ? static_cast<int>(it->second) : -1; 
 }
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalIndex() const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex() const {
   return IteratorConst(this->globalIndex_.begin(), this->globalIndex_.end());
 }
 
 int
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
   int result = -1;
   
   IndexMap::const_iterator it;
@@ -511,8 +571,8 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceI
   return result;
 }
 
-CorrectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::Direction d) const {
   switch (d) {
     case HalfTimeSlice::NO_DIRECTION:
       break;
@@ -525,7 +585,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(HalfTimeSlice::D
 }
 
 HalfSliceId
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
   try {
     return stateId_.at(gfi);
   } catch (std::out_of_range & e) {
@@ -535,7 +595,7 @@ CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
 }
 
 HalfSliceId
-CorrectionNetworkImpl::GlobalExchangeNumbering::stateId(int ghi, HalfTimeSlice::Direction d) const {
+LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int ghi, HalfTimeSlice::Direction d) const {
   try {
     switch (d) {
       case HalfTimeSlice::NO_DIRECTION:

@@ -100,7 +100,7 @@
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
-%token PDIR HEFSB HEFRS  // Added for HEV Problem, EC, 20080512
+%token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -308,6 +308,8 @@ Component:
         | WetInterface
         {}
         | FSInterface
+        {}
+        | HEInterface
         {}
         | ContactSurfaces
         {}
@@ -1852,6 +1854,22 @@ HEVInterfaceElement:
         { domain->addWetElem($1-1, $2, 1.0, $3.num, $3.nd);
           domain->solInfo().HEV = 1;
           domain->solInfo().isMatching = true; }
+        ;
+HEInterface:
+        HEINTERFACE NewLine
+        { }
+        | HEInterface Integer Integer Integer NewLine
+        { /* alternative format preferred by charbel. $2 is an id which will later be associated
+           with an attribute and properties */
+          domain->addWetInterface($3, $4); domain->solInfo().HEV = 1;
+          if($3 == $4) domain->solInfo().isMatching = true;
+        }
+        | HEInterface Integer Integer Integer Float Float NewLine
+        { /* alternative format preferred by charbel. $2 is an id which will later be associated
+           with an attribute and properties */
+          domain->addWetInterface($3, $4, $5, $6); domain->solInfo().HEV = 1;
+          if($3 == $4) domain->solInfo().isMatching = true;
+        }
         ;
 ContactSurfaces:
         // $2 = pair id, $3 = master surface, $4 = slave surface, $5 = mortar type, $6 = normal search tolerace, $7 = tangential search tolerance

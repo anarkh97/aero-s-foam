@@ -5,7 +5,7 @@ namespace Pita {
 HomogeneousGenAlphaIntegrator::HomogeneousGenAlphaIntegrator(
     LinearDynamOps::Manager * dOpsMgr,
     const GeneralizedAlphaParameter & param) :
-  LinearGenAlphaIntegrator(dOpsMgr, param)
+  LinearGenAlphaIntegrator(dOpsMgr, param, HOMOGENEOUS)
 {}
 
 void
@@ -18,21 +18,20 @@ HomogeneousGenAlphaIntegrator::computeExternalForce(
 AffineGenAlphaIntegrator::AffineGenAlphaIntegrator(
     LinearDynamOps::Manager * dOpsMgr,
     const GeneralizedAlphaParameter & param) :
-  LinearGenAlphaIntegrator(dOpsMgr, param),
-  externalForceFlag_(true)
+  LinearGenAlphaIntegrator(dOpsMgr, param, NONHOMOGENEOUS)
 {}
 
 void
-AffineGenAlphaIntegrator::externalForceFlagIs(bool eff) {
-  externalForceFlag_ = eff;
+AffineGenAlphaIntegrator::externalForceStatusIs(AffineGenAlphaIntegrator::ExternalForceStatus efs) {
   zeroExternalForce();
+  setExternalForceStatus(efs);
 }
 
 void
 AffineGenAlphaIntegrator::computeExternalForce(
     Seconds forceEvalTime,
     SysState<VectorType> & currentState) { 
-  if (externalForceFlag()) {
+  if (externalForceStatus() == NONHOMOGENEOUS) {
     LinearGenAlphaIntegrator::computeExternalForce(forceEvalTime, currentState);
   }
 }

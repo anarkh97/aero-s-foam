@@ -10,7 +10,7 @@ DynamStatePlainBasis::lastStateIs(const DynamState & ds) {
 }
 
 void
-DynamStatePlainBasis::lastStateBasisIs(const DynamStateBasis::PtrConst & dsb) {
+DynamStatePlainBasis::lastStateBasisIs(const DynamStateBasis * dsb) {
   if (dsb->vectorSize() != this->vectorSize())
     throw Fwk::RangeException();
   size_t statesToAdd = dsb->stateCount();
@@ -19,7 +19,7 @@ DynamStatePlainBasis::lastStateBasisIs(const DynamStateBasis::PtrConst & dsb) {
 }
 
 void
-DynamStatePlainBasis::lastStateBasisIs(const DynamStatePlainBasis::PtrConst & dsb) {
+DynamStatePlainBasis::lastStateBasisIs(const DynamStatePlainBasis * dsb) {
   if (dsb->vectorSize() != this->vectorSize())
     throw Fwk::RangeException();
   addStateBasis(dsb);

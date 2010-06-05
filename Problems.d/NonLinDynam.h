@@ -150,7 +150,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     void formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs);
 
-    void preProcess();
+    virtual void preProcess();
 
     virtual void openResidualFile();
 

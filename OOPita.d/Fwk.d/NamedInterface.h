@@ -8,7 +8,7 @@ namespace Fwk {
 
 class NamedInterface : public PtrInterface<NamedInterface> {
 public:
-  String name() const { return name_; }
+  const String & name() const { return name_; }
 protected:
 	explicit NamedInterface(const String & name) : name_(name) { }
 private:

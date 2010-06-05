@@ -20,13 +20,13 @@ NonHomogeneousBasisCollectorImpl::nonHomogeneousState(const HalfSliceId & sliceI
 
 BasisCollectorImpl::PropagationReactor *
 NonHomogeneousBasisCollectorImpl::propagationReactorNew(
-    IntegratorPropagator * notifier,
+    const DynamPropagator * notifier,
     const HalfSliceId & id) {
   return new PropagationReactor(notifier, id, this);
 }
 
 NonHomogeneousBasisCollectorImpl::PropagationReactor::PropagationReactor(
-    IntegratorPropagator * notifier,
+    const DynamPropagator * notifier,
     const HalfSliceId & id,
     NonHomogeneousBasisCollectorImpl * parent) :
   BasisCollectorImpl::PropagationReactor(notifier, id, parent),

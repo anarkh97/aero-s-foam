@@ -7,12 +7,10 @@ BasisCollectorImpl::BasisCollectorImpl() :
   propagationReactor_()
 {}
 
-IntegratorPropagator *
+const DynamPropagator *
 BasisCollectorImpl::source(const HalfSliceId & sliceId) const {
   PropagationReactorContainer::const_iterator it = propagationReactor_.find(sliceId);
-  return (it != propagationReactor_.end()) ?
-    static_cast<IntegratorPropagator *>(const_cast<DynamPropagator *>(it->second->notifier())) :
-    NULL;
+  return (it != propagationReactor_.end()) ? it->second->notifier() : NULL;
 }
 
 size_t
@@ -20,25 +18,22 @@ BasisCollectorImpl::sourceCount() const {
   return propagationReactor_.size();
 }
 
-IntegratorPropagator *
-BasisCollectorImpl::sourceNew(const HalfSliceId & sliceId, DynamTimeIntegrator * baseIntegrator) {
+void
+BasisCollectorImpl::sourceIs(const HalfSliceId & sliceId, const DynamPropagator * source) {
+  if (source == NULL) {
+    propagationReactor_.erase(sliceId); // Remove current
+    return;
+  }
+
+  PropagationReactor::Ptr newReactor = propagationReactorNew(source, sliceId);
+  
   // Find insertion point
   PropagationReactorContainer::iterator it = propagationReactor_.lower_bound(sliceId);
-  if (it != propagationReactor_.end() && it->first == sliceId)
-    throw NameInUseException();
- 
-  // Build propagator and add new reactor
-  IntegratorPropagator::Ptr newPropagator = IntegratorPropagator::New(baseIntegrator);
-  PropagationReactor::Ptr newReactor = propagationReactorNew(newPropagator.ptr(), sliceId);
-
-  propagationReactor_.insert(it, std::make_pair(sliceId, newReactor));
-    
-  return newPropagator.ptr();
-}
-
-void
-BasisCollectorImpl::sourceDel(const HalfSliceId & sliceId) {
-  propagationReactor_.erase(sliceId);
+  if (it != propagationReactor_.end() && it->first == sliceId) {
+    it->second = newReactor; // Replace previous
+  } else {
+    propagationReactor_.insert(it, std::make_pair(sliceId, newReactor)); // Insert new
+  }
 }
 
 BasisCollectorImpl::CollectedState
@@ -69,14 +64,14 @@ BasisCollectorImpl::finalStateIs(const HalfSliceId & sliceId, const DynamState &
 }
 
 BasisCollectorImpl::PropagationReactor *
-BasisCollectorImpl::propagationReactorNew(IntegratorPropagator * notifier,
-                                                   const HalfSliceId & id) {
+BasisCollectorImpl::propagationReactorNew(const DynamPropagator * notifier,
+                                          const HalfSliceId & id) {
   return new PropagationReactor(notifier, id, this);
 }
 
-BasisCollectorImpl::PropagationReactor::PropagationReactor(DynamPropagator * notifier,
-                                                                    const HalfSliceId & id,
-                                                                    BasisCollectorImpl * parent) :
+BasisCollectorImpl::PropagationReactor::PropagationReactor(const DynamPropagator * notifier,
+                                                           const HalfSliceId & id,
+                                                           BasisCollectorImpl * parent) :
   DynamPropagator::Notifiee(notifier),
   sliceId_(id),
   parent_(parent)

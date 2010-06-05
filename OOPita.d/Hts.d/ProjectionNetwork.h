@@ -1,5 +1,5 @@
-#ifndef PITA_HTS_CORRECTIONNETWORK_H
-#define PITA_HTS_CORRECTIONNETWORK_H
+#ifndef PITA_HTS_PROJECTIONNETWORK_H
+#define PITA_HTS_PROJECTIONNETWORK_H
 
 #include "Fwk.h"
 #include "Types.h"
@@ -11,7 +11,7 @@
 
 namespace Pita { namespace Hts {
 
-class CorrectionNetwork : public Fwk::PtrInterface<CorrectionNetwork> {
+class ProjectionNetwork : public Fwk::PtrInterface<ProjectionNetwork> {
 public:
   virtual size_t reducedBasisSize() const = 0;
 
@@ -22,15 +22,15 @@ public:
   virtual const RankDeficientSolver * normalMatrixSolver() const = 0;
   virtual const FullSquareMatrix * reprojectionMatrix() const = 0;
 
-  EXPORT_PTRINTERFACE_TYPES(CorrectionNetwork);
+  EXPORT_PTRINTERFACE_TYPES(ProjectionNetwork);
 
 protected:
-  CorrectionNetwork() {}
+  ProjectionNetwork() {}
 
 private:
-  DISALLOW_COPY_AND_ASSIGN(CorrectionNetwork);
+  DISALLOW_COPY_AND_ASSIGN(ProjectionNetwork);
 };
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HTS_CORRECTIONNETWORK_H */
+#endif /* PITA_HTS_PROJECTIONNETWORK_H */

@@ -19,8 +19,8 @@ public:
   const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; }
   
   virtual void transposedMatrixIs(const FullSquareMatrix & transposedMatrix); // The matrix is copied
-  virtual void statusIs(Status s);
   virtual void toleranceIs(double tol);
+  virtual void orderingIs(Ordering o); // COMPACT reordering not implemented
 
   // In place solution, argument rhs is modified
   virtual const Vector & solution(Vector & rhs) const;

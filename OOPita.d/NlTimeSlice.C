@@ -21,8 +21,8 @@ NlTimeSlice::NlTimeSlice(SliceRank rank, Seconds initialTime, Seconds finalTime,
 void
 NlTimeSlice::initialProjectionBasisInc(DynamStateBasis::PtrConst basis) {
   if (status() == TimeSlice::inactive || status() == active) {
-    seedUpdatePropagator()->projectionBasisInc(basis);
-    setInitialProjectionBasis(seedUpdatePropagator()->projectionBasis().ptr());
+    seedUpdatePropagator()->projectionBasisInc(basis.ptr());
+    setInitialProjectionBasis(seedUpdatePropagator()->projectionBasis());
   }
 }
 
@@ -35,7 +35,8 @@ NlTimeSlice::activateSlice() {
 
 void
 NlTimeSlice::optimizeLastIteration() {
-  seedUpdatePropagator()->projectionBasisIs(DynamStatePlainBasis::New(seedUpdatePropagator()->projectionBasis()->vectorSize()));
+  DynamStateBasis::Ptr basis = DynamStatePlainBasis::New(seedUpdatePropagator()->projectionBasis()->vectorSize());
+  seedUpdatePropagator()->projectionBasisIs(basis.ptr());
 }
 
 //

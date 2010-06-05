@@ -1,5 +1,7 @@
 #include "ProjectorPropagator.h"
-#include <Math.d/SparseMatrix.h>
+
+#include "DynamStateOps.h"
+
 #include <cmath>
 
 namespace Pita {
@@ -25,8 +27,7 @@ ProjectorPropagator::initialStateIs(const DynamState & initialState) {
   for (size_t i = 0; i < states; ++i) {
     double coef = orthoBasis_->state(i) * initialState;
     log() << coef << " ";
-    finalState.displacement().linAdd(coef, propagatedBasis_->state(i).displacement());
-    finalState.velocity().linAdd(coef, propagatedBasis_->state(i).velocity());
+    finalState.linAdd(coef, propagatedBasis_->state(i));
   }
   log() << "\n";
 
@@ -38,7 +39,7 @@ ProjectorPropagator::initialStateIs(const DynamState & initialState) {
 }
 
 void
-ProjectorPropagator::projectionBasisIs(DynamStateBasis::PtrConst basis) {
+ProjectorPropagator::projectionBasisIs(const DynamStateBasis * basis) {
   orthoBasis_->stateBasisDel();
   propagatedBasis_->stateBasisDel();
   projectionBasis_->stateBasisDel();
@@ -54,12 +55,12 @@ ProjectorPropagator::referenceDisplacementIs(const GenVector<double> & disp, Sec
     projectionBasis_ = DynamStatePlainBasis::New(tempBasis->vectorSize());
     orthoBasis_->stateBasisDel();
     propagatedBasis_->stateBasisDel();
-    projectionBasisInc(tempBasis);
+    projectionBasisInc(tempBasis.ptr());
   }
 }
 
 void
-ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
+ProjectorPropagator::projectionBasisInc(const DynamStateBasis * lastBasis) {
   log() << "ProjectorPropagator::projectionBasisInc - Current = " << projectionBasis_->stateCount() << " - Adding = " << lastBasis->stateCount();
   if (lastBasis->stateCount() != 0) {
 
@@ -72,13 +73,10 @@ ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
       size_t statesInBasis = orthoBasis_->stateCount();
       for (size_t j = 0; j < statesInBasis; ++j) {
         double coef = -(currentState * orthoBasis_->state(j));
-        currentState.displacement().linAdd(coef, projectionBasis_->state(j).displacement());
-        currentState.velocity().linAdd(coef, projectionBasis_->state(j).velocity());
+        currentState.linAdd(coef, projectionBasis_->state(j));
       }
 
-      DynamState orthoState(currentState.vectorSize());
-      const_cast<SparseMatrix*>(dynamOps_->stiffnessMatrix())->mult(currentState.displacement(), orthoState.displacement());
-      const_cast<SparseMatrix*>(dynamOps_->massMatrix())->mult(currentState.velocity(), orthoState.velocity());
+      DynamState orthoState = mult(dynamOps_.ptr(), currentState);
 
       double norm_i = std::sqrt(currentState * orthoState);
       if (norm_i < tolerance_)
@@ -94,7 +92,7 @@ ProjectorPropagator::projectionBasisInc(DynamStateBasis::PtrConst lastBasis) {
   }
   log() << " - Final = " << projectionBasis_->stateCount() << "\n";
   propagatedBasis_->stateBasisDel();
-  propagatedBasis_->lastStateBasisIs(ptr_cast<const DynamStatePlainBasis>(projectionBasis_));
+  propagatedBasis_->lastStateBasisIs(projectionBasis_.ptr());
   /*for (int i = 0; i < orthoBasis_->stateCount(); ++i) {
     for (int j = 0; j < propagatedBasis_->stateCount(); ++j) {
        log() << orthoBasis_->state(i) * propagatedBasis_->state(j) << " ";

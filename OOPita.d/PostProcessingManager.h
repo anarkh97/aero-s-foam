@@ -3,8 +3,8 @@
 
 #include "Fwk.h"
 #include "PostProcessor.h"
-#include "IntegratorPropagator.h"
-#include "LinearGenAlphaIntegrator.h"
+#include "DynamPropagator.h"
+#include "DynamTimeIntegrator.h"
 
 #include <map>
 
@@ -49,7 +49,7 @@ private:
 
 // class PropagatorReactor
 
-class PropagatorReactor : public IntegratorPropagator::Notifiee {
+class PropagatorReactor : public DynamPropagator::Notifiee {
 public:
   EXPORT_PTRINTERFACE_TYPES(PropagatorReactor);
 
@@ -59,8 +59,8 @@ public:
     
     const IntegratorReactor::Builder * reactorBuilder() const { return reactorBuilder_.ptr(); }
 
-    PostProcessor::FileSetId outputFileSet(const IntegratorPropagator * observedPropagator) const;
-    void outputFileSetIs(const IntegratorPropagator * observedPropagator, PostProcessor::FileSetId fileSet);
+    PostProcessor::FileSetId outputFileSet(const DynamPropagator * observedPropagator) const;
+    void outputFileSetIs(const DynamPropagator * observedPropagator, PostProcessor::FileSetId fileSet);
 
     static Ptr New(IntegratorReactor::Builder * reactorBuilder) { 
       return new Manager(reactorBuilder);
@@ -74,7 +74,7 @@ public:
   private:
     IntegratorReactor::Builder::Ptr reactorBuilder_;
 
-    typedef std::map<const IntegratorPropagator *, PropagatorReactor::Ptr> PropagatorReactorContainer;
+    typedef std::map<const DynamPropagator *, PropagatorReactor::Ptr> PropagatorReactorContainer;
     PropagatorReactorContainer propagatorReactor_;
 
     DISALLOW_COPY_AND_ASSIGN(Manager);
@@ -87,14 +87,14 @@ public:
   void fileSetIs(PostProcessor::FileSetId fs) { fileSet_ = fs; }
 
 protected:
-  PropagatorReactor(const IntegratorPropagator * notifier,
+  PropagatorReactor(const DynamPropagator * notifier,
       Manager * parent,
       PostProcessor::FileSetId fileSet);
   
   friend class Manager;
 
 private:
-  const IntegratorPropagator * notifier_; // Need a specialized DynamPropagator
+  const DynamPropagator * notifier_; // Need a specialized DynamPropagator
   Manager * parent_;
   PostProcessor::FileSetId fileSet_;
 

@@ -4,8 +4,9 @@
 #include "Fwk.h"
 #include "Types.h"
 
+#include "../DynamPropagator.h"
+
 #include "HalfTimeSlice.h"
-#include "../IntegratorPropagator.h"
 
 namespace Pita { namespace Hts {
 
@@ -13,10 +14,9 @@ class BasisCollector : public Fwk::PtrInterface<BasisCollector> {
 public:
   EXPORT_PTRINTERFACE_TYPES(BasisCollector);
   
-  virtual IntegratorPropagator * source(const HalfSliceId &) const = 0;
+  virtual const DynamPropagator * source(const HalfSliceId & id) const = 0;
   virtual size_t sourceCount() const = 0;
-  virtual IntegratorPropagator * sourceNew(const HalfSliceId &, DynamTimeIntegrator *) = 0;
-  virtual void sourceDel(const HalfSliceId &) = 0;
+  virtual void sourceIs(const HalfSliceId & id, const DynamPropagator * source) = 0;
 
 protected:
   BasisCollector() {}

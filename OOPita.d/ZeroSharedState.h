@@ -20,7 +20,7 @@ public:
   // overriden
   virtual void iterationIs(IterationRank i) {
     target_->stateIs(S(stateSize(), 0.0));
-    target_->statusIs(Seed::CONVERGED);
+    target_->statusIs(Seed::INACTIVE);
     target_->iterationIs(i);
   }
 

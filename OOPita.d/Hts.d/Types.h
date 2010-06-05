@@ -16,6 +16,9 @@ class HalfSliceRank : public Fwk::Interval<HalfTimeSlice, int, HalfSliceCount> {
 public:
   explicit HalfSliceRank(int v = 0) : Fwk::Interval<HalfTimeSlice, int, HalfSliceCount>(v) {}
 
+  HalfSliceRank next() const { return HalfSliceRank(value() + 1); }
+  HalfSliceRank previous() const { return HalfSliceRank(value() - 1); }
+
   PrimalSliceRank primalRank() const;
   DualSliceRank dualRank() const;
 };
@@ -47,8 +50,8 @@ enum ReductionFlag {
 };
 
 inline
-OStream &
-operator<<(OStream & out, SeedType t) {
+Fwk::OStream &
+operator<<(Fwk::OStream & out, SeedType t) {
   char c;
   switch (t) {
     case UNDEFINED_SEED:          c = 'U'; break;
@@ -90,8 +93,8 @@ private:
 typedef GenId<SeedType> SeedId;
 
 inline
-OStream &
-operator<<(OStream & out, const SeedId & id) {
+Fwk::OStream &
+operator<<(Fwk::OStream & out, const SeedId & id) {
   out << id.type() << id.rank();
   return out;
 }
@@ -122,8 +125,8 @@ operator<(const CommId & a, const CommId & b) {
 }
 
 inline
-OStream &
-operator<<(OStream & out, const CommId & c) {
+Fwk::OStream &
+operator<<(Fwk::OStream & out, const CommId & c) {
   out << c.seed().type() << c.seed().rank() << "->" << c.cpu();
   return out;
 }

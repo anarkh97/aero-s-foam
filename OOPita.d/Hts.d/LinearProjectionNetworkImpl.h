@@ -1,10 +1,10 @@
-#ifndef PITA_HTS_CORRECTIONNETWORKIMPL_H
-#define PITA_HTS_CORRECTIONNETWORKIMPL_H
+#ifndef PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
+#define PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
 
 #include "Fwk.h"
 #include "Types.h"
 
-#include "CorrectionNetwork.h"
+#include "ProjectionNetwork.h"
 
 #include "SliceMapping.h"
 #include "../DynamOps.h"
@@ -19,9 +19,9 @@ class Communicator;
 
 namespace Pita { namespace Hts {
 
-class CorrectionNetworkImpl : public CorrectionNetwork {
+class LinearProjectionNetworkImpl : public ProjectionNetwork {
 public:
-  EXPORT_PTRINTERFACE_TYPES(CorrectionNetworkImpl);
+  EXPORT_PTRINTERFACE_TYPES(LinearProjectionNetworkImpl);
 
   virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
 
@@ -31,13 +31,15 @@ public:
   virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
   virtual const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
   virtual const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
-  
+ 
+  const DynamOps * metric() const { return metric_.ptr(); }
+
   static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
                  const SliceMapping * mapping,
                  BasisCollectorImpl * collector,
                  const DynamOps * metric,
                  RankDeficientSolver * solver) {
-    return new CorrectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, solver);
+    return new LinearProjectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, solver);
   }
 
 
@@ -110,10 +112,11 @@ public:
   };
 
   // HACK
+  void prepareProjection();
   void buildProjection();
 
 protected:
-  CorrectionNetworkImpl(size_t vSize,
+  LinearProjectionNetworkImpl(size_t vSize,
                         Communicator * timeComm,
                         CpuRank myCpu,
                         const SliceMapping * mapping,
@@ -140,7 +143,12 @@ private:
   
   DynamStatePlainBasis::Ptr metricBasis_;
   DynamStatePlainBasis::Ptr finalBasis_;
+  
+  DynamStatePlainBasis::Ptr originalMetricBasis_;
+  DynamStatePlainBasis::Ptr originalFinalBasis_;
+  
   FullSquareMatrix normalMatrix_;
+  FullSquareMatrix transmissionMatrix_;
   FullSquareMatrix reprojectionMatrix_;
   RankDeficientSolver::Ptr solver_;
   
@@ -152,4 +160,4 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HTS_CORRECTIONNETWORK_H */
+#endif /* PITA_HTS_LINEARPROJECTIONNETWORK_H */

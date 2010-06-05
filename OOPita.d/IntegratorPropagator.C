@@ -6,8 +6,9 @@ namespace Pita {
 IntegratorPropagator::IntegratorPropagator(DynamTimeIntegrator * integrator) :
   DynamPropagator(integrator ? integrator->vectorSize() : 0),
   integrator_(integrator),
-  initialTime_(Seconds(0.0)),
-  timeStepCount_(TimeStepCount(1))
+  initialTime_(integrator ? integrator->initialTime() : Seconds(0.0)),
+  timeStepCount_(TimeStepCount(1)),
+  timeStepSize_(integrator ? integrator->timeStepSize() : Seconds(0.0))
 {}
 
 void
@@ -16,9 +17,10 @@ IntegratorPropagator::initialStateIs(const DynamState & initialState) {
   initialStateNotify();
 
   if (integrator()) {
-    integrator()->currentSliceIs(this->sliceRank());
+    integrator()->currentSliceIs(sliceRank()); // HACK
+    integrator()->timeStepSizeIs(timeStepSize());
     integrator()->initialConditionIs(initialState, initialTime());
-    integrator()->timeStepCountInc(this->timeStepCount());
+    integrator()->timeStepCountInc(timeStepCount());
     setFinalState(integrator()->currentState());
   } else {
     setFinalState(initialState);

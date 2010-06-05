@@ -21,7 +21,7 @@ public:
 
   virtual void toleranceIs(double tol);
   virtual void transposedMatrixIs(const FullSquareMatrix & tm); 
-  virtual void statusIs(Status s);
+  virtual void orderingIs(Ordering o);
 
   virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 

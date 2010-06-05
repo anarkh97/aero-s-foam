@@ -12,10 +12,10 @@ public:
 
   DiffType operator-(const Interval<UnitType, RepType, DiffType> & v) const { return DiffType(this->value() - v.value()); }
 
-  operator DiffType() const {
+  /*operator DiffType() const {
     Interval<UnitType, RepType, DiffType> zero;
     return this->value() - zero.value();
-  }
+  }*/
 
 };
 

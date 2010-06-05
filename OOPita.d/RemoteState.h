@@ -9,6 +9,8 @@
 
 namespace Pita { namespace RemoteState {
 
+const CpuRank nullCpu(-1);
+
 enum Status {
   INACTIVE = 0,
   READY,
@@ -26,7 +28,9 @@ protected:
   Activity() : status_(INACTIVE) {}
 
   void setStatus(Status s) { status_ = s; }
- 
+
+  virtual bool isReady() const = 0;
+
 private:
   Status status_;
 
@@ -114,15 +118,27 @@ class Manager : public Fwk::PtrInterface<Manager> {
 public:
   EXPORT_PTRINTERFACE_TYPES(Manager);
 
-  virtual Reader<DynamState> * readerNew(const SharedState<DynamState> * origin, CpuRank targetCpu) = 0;
-  virtual Reader<Vector> * readerNew(const SharedState<Vector> * origin, CpuRank targetCpu) = 0;
-  // virtual IteratorConst<...> reader(const SharedState<DynamState> * origin) = 0;
-  // virtual IteratorConst<...> reader(const SharedState<Vector> * origin) = 0;
+  virtual CpuRank localCpu() const = 0;
 
+  // Seed
+  virtual Reader<DynamState> * reader(const SharedState<DynamState> * origin, CpuRank targetCpu) const = 0;
+  virtual Writer<DynamState> * writer(SharedState<DynamState> * target, CpuRank originCpu) const = 0;
+
+  virtual Reader<DynamState> * readerNew(const SharedState<DynamState> * origin, CpuRank targetCpu) = 0;
   virtual Writer<DynamState> * writerNew(SharedState<DynamState> * target, CpuRank originCpu) = 0;
+  
+  virtual void readerDel(const SharedState<DynamState> * origin, CpuRank targetCpu) = 0;
+  virtual void writerDel(SharedState<DynamState> * target, CpuRank originCpu) = 0;
+
+  // ReducedSeed
+  virtual Reader<Vector> * reader(const SharedState<Vector> * origin, CpuRank targetCpu) const = 0;
+  virtual Writer<Vector> * writer(SharedState<Vector> * target, CpuRank originCpu) const = 0;
+  
+  virtual Reader<Vector> * readerNew(const SharedState<Vector> * origin, CpuRank targetCpu) = 0;
   virtual Writer<Vector> * writerNew(SharedState<Vector> * target, CpuRank originCpu) = 0;
-  // virtual IteratorConst<...> writer(const SharedState<DynamState> * origin) = 0;
-  // virtual IteratorConst<...> writer(const SharedState<Vector> * origin) = 0;
+
+  virtual void readerDel(const SharedState<Vector> * origin, CpuRank targetCpu) = 0;
+  virtual void writerDel(SharedState<Vector> * target, CpuRank originCpu) = 0;
 
 protected:
   Manager() {}

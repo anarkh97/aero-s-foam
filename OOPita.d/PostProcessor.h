@@ -62,7 +62,7 @@ private:
 
 // class GenPostProcessor<IntegratorType>
 //
-// Provides an generic interface used to perform the output
+// Provides a generic interface used to perform the output
 
 template <typename IntegratorType>
 class GenPostProcessor : public PostProcessorRoot {

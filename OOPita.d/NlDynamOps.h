@@ -13,8 +13,7 @@ class PitaNonLinDynamic;
   
 class NlDynamOps : public DynamOps {
 public:
-  typedef Fwk::Ptr<NlDynamOps> Ptr;
-  typedef Fwk::Ptr<const NlDynamOps> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(NlDynamOps);
 
   virtual const GenSparseMatrix<double> * massMatrix() const;
   virtual const GenSparseMatrix<double> * stiffnessMatrix() const;

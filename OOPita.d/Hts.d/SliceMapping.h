@@ -42,7 +42,7 @@ protected:
   friend class SliceIterator;
 
 private:
-  LoadBalancer::Ptr taskManager_;
+  LoadBalancer::Ptr loadBalancer_;
 
   DISALLOW_COPY_AND_ASSIGN(SliceMapping);
 };

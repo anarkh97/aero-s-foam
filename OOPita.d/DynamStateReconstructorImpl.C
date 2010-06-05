@@ -17,8 +17,7 @@ DynamStateReconstructorImpl::reducedBasisComponentsIs(const Vector & c) {
   DynamState result(this->vectorSize(), 0.0);
   for (int i = 0; i < rbs; ++i) {
     if (c[i] != 0.0) {
-      result.displacement().linAdd(c[i], reconstructionBasis_->state(i).displacement());
-      result.velocity().linAdd(c[i], reconstructionBasis_->state(i).velocity());
+      result.linAdd(c[i], reconstructionBasis_->state(i));
     }
   }
   setFinalState(result);

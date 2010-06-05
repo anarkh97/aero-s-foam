@@ -161,7 +161,6 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 void
 Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, FullSquareMatrix *&cArray)
 {
-
  // Allocate array of pointers to FullSquareMatrix to store
  // the element stiffness matrices, element damping matrices and element mass matrices
  kArray = new FullSquareMatrix[numele];
@@ -1390,7 +1389,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
       if(int(writeSize) != int(v_n.size()*sizeof(double)))
         fprintf(stderr," *** ERROR: Writing restart file velocity\n");
 
-     double *positions = (double *) dbg_alloca(sizeof(double)*9*numnodes);
+     double *positions = (double *) dbg_alloca(sizeof(double)*3*numnodes);
      geomState->getPositions(positions);
      writeSize = write(fn, positions,numnodes*3*sizeof(double));
      if(int(writeSize) != int(numnodes*3*sizeof(double)))

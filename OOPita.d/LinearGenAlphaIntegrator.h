@@ -1,31 +1,28 @@
 #ifndef PITA_LINEARGENALPHAINTEGRATOR_H
 #define PITA_LINEARGENALPHAINTEGRATOR_H
 
-#include "DynamTimeIntegrator.h"
+#include "AffineDynamTimeIntegrator.h"
 #include "LinearDynamOps.h"
 template <typename Scalar> class SingleDomainDynamic;
 template <typename VectorType> class SysState;
 
 namespace Pita {
 
-class LinearGenAlphaIntegrator : public DynamTimeIntegrator {
+class LinearGenAlphaIntegrator : public AffineDynamTimeIntegrator {
 public:
-  typedef Fwk::Ptr<LinearGenAlphaIntegrator> Ptr;
-  typedef Fwk::Ptr<const LinearGenAlphaIntegrator> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(LinearGenAlphaIntegrator);
 
   // Type aliases for (future) templating
   typedef double Scalar;
   typedef ::GenVector<Scalar> VectorType;
   typedef SingleDomainDynamic<Scalar> ProblemDescriptor;
-  //typedef PitaDynamMat DynOps;
-
-  class Manager;
 
   // Overriden methods
   virtual void timeStepSizeIs(Seconds dt);
   virtual void initialConditionIs(const DynamState & initialState, Seconds initialTime = Seconds(0.0));
   virtual void currentTimeInc(Seconds timeIncrement);
   virtual void timeStepCountInc(TimeStepCount steps = TimeStepCount(1));
+  virtual void externalForceStatusIs(ExternalForceStatus efs);
   
   // Additional methods
   double rhoInfinity() const { return rhoInfinity_; }
@@ -38,11 +35,13 @@ public:
   const VectorType & previousVelocity() const { return previousVelocity_; }
   const VectorType & aeroForce() const { return aeroForce_; } 
 
-  // Temporarily public, signature subject to change
-  LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
-  // static LinearGenAlphaIntegrator::Ptr New(...)
+  static LinearGenAlphaIntegrator::Ptr New(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param) {
+    return new LinearGenAlphaIntegrator(dOpsMgr, param, NONHOMOGENEOUS);
+  }
 
 protected:
+  LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param, ExternalForceStatus efs);
+  
   const ProblemDescriptor * probDesc() const { return probDesc_; }
   ProblemDescriptor * probDesc() { return probDesc_; }
 

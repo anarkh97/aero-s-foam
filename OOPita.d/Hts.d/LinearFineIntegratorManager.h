@@ -8,7 +8,7 @@
 namespace Pita { namespace Hts {
 
 template <typename GenAlphaIntegratorType>
-class LinearFineIntegratorManager : public FineIntegratorManager {
+class LinearFineIntegratorManager : public GenFineIntegratorManager<GenAlphaIntegratorType> {
 public:
   EXPORT_PTRINTERFACE_TYPES(LinearFineIntegratorManager);
 
@@ -32,7 +32,7 @@ private:
 
 template <typename GenAlphaIntegratorType>
 LinearFineIntegratorManager<GenAlphaIntegratorType>::LinearFineIntegratorManager(LinearDynamOps::Manager * dom, const GeneralizedAlphaParameter & fp) :
-  FineIntegratorManager(fp.timeStepSize()),
+  GenFineIntegratorManager<GenAlphaIntegratorType>(fp.timeStepSize()),
   dynamOpsManager_(dom),
   forwardParameter_(fp),
   backwardParameter_(GeneralizedAlphaParameter(-fp.timeStepSize(), fp.rhoInfinity()))

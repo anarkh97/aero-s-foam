@@ -9,8 +9,7 @@ class PitaNonLinDynamic;
   
 class NlDriver : public Fwk::PtrInterface<NlDriver> {
 public:
-  typedef Fwk::Ptr<NlDriver> Ptr;
-  typedef Fwk::Ptr<const NlDriver> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(NlDriver);
 
   PitaNonLinDynamic * probDesc() const { return probDesc_; }
 
@@ -23,6 +22,8 @@ protected:
 
 private:
   PitaNonLinDynamic * probDesc_;
+
+  DISALLOW_COPY_AND_ASSIGN(NlDriver);
 };
   
 } // end namespace Pita

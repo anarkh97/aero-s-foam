@@ -16,7 +16,6 @@ namespace Pita {
 
 class LinearGenAlphaIntegrator;
 
-// TODO: Rename as IncrementalPostProcessor
 class IncrementalPostProcessor : public GenPostProcessor<LinearGenAlphaIntegrator> {
 public:
   EXPORT_PTRINTERFACE_TYPES(IncrementalPostProcessor);

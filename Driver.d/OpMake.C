@@ -901,6 +901,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 {
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
+ if(allOps.sysSolver) delete allOps.sysSolver;
  GenSolver<Scalar> *systemSolver = 0;
 // RT: 032010 based on Phil's input
 // if(!sinfo.inpc) {

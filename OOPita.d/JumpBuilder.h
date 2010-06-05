@@ -3,48 +3,73 @@
 
 #include "Fwk.h"
 #include "Seed.h"
+#include "NamedTask.h"
 
 namespace Pita {
 
-class JumpBuilder : public Fwk::PtrInterface<JumpBuilder> {
+class JumpBuilder : public NamedTask {
 public:
   EXPORT_PTRINTERFACE_TYPES(JumpBuilder);
+  typedef Fwk::GenManagerInterface<JumpBuilder *, String> Manager;
+  class ManagerImpl;
+
+  /* Overriden */
+  void iterationIs(IterationRank ir);
+
+  /* Sources */
+  const Seed * predictedSeed() const { return predictedSeed_.ptr(); }
+  const Seed * actualSeed() const { return actualSeed_.ptr(); }
+
+  virtual void predictedSeedIs(const Seed * ps) { setPredictedSeed(ps); }
+  virtual void actualSeedIs(const Seed * as) { setActualSeed(as); }
+
+  /* Results */
+  const Seed * seedJump() const { return seedJump_.ptr(); }
+  Seed * seedJump() { return seedJump_.ptr(); }
+
+  virtual void seedJumpIs(Seed * sj) { setSeedJump(sj); }
+
+protected:
+  explicit JumpBuilder(const String & name) :
+    NamedTask(name)
+  {}
+ 
+  void updateJump();
+
+  void setPredictedSeed(const Seed * ps) { predictedSeed_ = ps; }
+  void setActualSeed(const Seed * as) { actualSeed_ = as; }
+  void setSeedJump(Seed * sj) { seedJump_ = sj; }
+
+private:
+  Seed::PtrConst predictedSeed_;
+  Seed::PtrConst actualSeed_;
+  Seed::Ptr seedJump_;
   
-  enum SeedId {
-    LEFT = 0,
-    RIGHT = 1
-  };
+  DISALLOW_COPY_AND_ASSIGN(JumpBuilder);
+};
 
-  enum SeedStatus {
-    MISSING = 0,
-    CURRENT,
-    UPDATED
-  };
+class JumpBuilder::ManagerImpl : public Fwk::GenManagerInterface<JumpBuilder *, String>, private Fwk::GenManagerImpl<JumpBuilder, String> {
+public:
+  EXPORT_PTRINTERFACE_TYPES(ManagerImpl);
+
+  // Overriden members
+  virtual JumpBuilder * instance(const String & key) const { return Impl::instance(key); }
+  virtual size_t instanceCount() const { return Impl::instanceCount(); }
+  virtual JumpBuilder * instanceNew(const String & key) { return Impl::instanceNew(key); }
+  virtual void instanceDel(const String & key) { Impl::instanceDel(key); }
   
-  const Seed * seed(SeedId id) const;
-  void seedIs(SeedId id, const Seed * s);
-
-  SeedStatus seedStatus(SeedId id) const;
-  void seedStatusIs(SeedId id, SeedStatus status);
-
-  const Seed * jumpSeed() const { return jumpSeed_.ptr(); }
-  Seed * jumpSeed() { return jumpSeed_.ptr(); }
-  void jumpSeedIs(Seed * j);
-
   static Ptr New() {
-    return new JumpBuilder();
+    return new ManagerImpl();
   }
 
 protected:
-  class SeedReactor;
+  ManagerImpl() {}
 
-  JumpBuilder();
+  virtual JumpBuilder * createNewInstance(const String & key);
 
 private:
-  SeedStatus seedStatus_[2];
-  Fwk::Ptr<SeedReactor> seedReactor_[2];
-  Seed::Ptr jumpSeed_;
-};
+  typedef Fwk::GenManagerImpl<JumpBuilder, String> Impl;
+}; 
 
 } /* end namespace Pita */
 

@@ -95,7 +95,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
+%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -3078,9 +3078,18 @@ MatSpec:
 	 }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
-           fprintf(stderr, "Creating a plain stess element\n");
-             geoSource->addMaterial($2-1,
-               new ElaLinIsoMat2D($4, $5, $6, $7));
+           geoSource->addMaterial($2-1,
+             new ElaLinIsoMat2D($4, $5, $6, $7));
+         }
+        | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new NeoHookeanMat($4, $5, $6));
+         }
+        | MatSpec Integer SIMPLE Integer Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new SimpleMat($4, $5, $6, $7));
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

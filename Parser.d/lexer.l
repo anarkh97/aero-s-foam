@@ -1098,6 +1098,10 @@ TRAIL [a-zA-Z]*
 
 "linear"|"LINEAR"                  { return LINEAR; }
 
+"neohookean"|"NEOHOOKEAN"          { return NEOHOOKEAN; }
+
+"simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]* { return SIMPLE; }
+
 "read"|"READ"                      { return READ; }
 
 "NODALCONTACT"|"nodalcontact"      { return NODALCONTACT; }

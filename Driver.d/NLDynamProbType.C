@@ -162,6 +162,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   for( ; step < maxStep; ++step) {
 
     filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time+dt, int(double(step+1)/double(maxStep)*100.0));
+    if(verboseFlag) cerr << endl;
 
     if(aeroAlg == 5) {
       if(parity==0) //copy current state to backup state
@@ -180,6 +181,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     double resN, initialRes;
     int converged;
     probDesc->initNewton(); // PJSA 10-9-2007
+
+    // Initialize states
+    StateUpdate::copyState(geomState, refState);
+    StateUpdate::zeroInc(stateIncr); 
 
     // Iteration loop
     for(int iter = 0; iter < maxit; ++iter) {
@@ -207,14 +212,16 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       //VecType g(rhs); probDesc->addMpcForces(g); resN = probDesc->norm(g); // YYYY resN = ||rhs + C^T*lambda||
       g += rhs; resN = probDesc->norm(g); // resN = ||rhs + C^T*lambda||
-      //if(verboseFlag) filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
+      if(verboseFlag) filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+      //cerr << "rhs*rhs = " << rhs*rhs << endl;
       solver->reSolve(rhs);
+      //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
       converged = probDesc->checkConvergence(iter, resN, residual, rhs, time);

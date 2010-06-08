@@ -1084,7 +1084,7 @@ int main(int argc, char** argv)
        {
          NLMatProbDesc nlstatic(domain);
          NLStaticSolver<Solver, Vector, NLMatProbDesc, NLMatProbDesc,
-                        NLState, TotalUpdater<NLMatProbDesc,Vector, NLState> >
+                        NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
            nlsolver(&nlstatic);
          nlsolver.solve();
        }
@@ -1137,7 +1137,7 @@ int main(int argc, char** argv)
      case SolverInfo::MatNonLinDynam: {
          NLMatProbDesc nldynamic(domain);
          NLDynamSolver < Solver, Vector, NLMatProbDesc,
-             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc,Vector, NLState> >
+             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
                  nldynamicSolver(&nldynamic);
          nldynamicSolver.solve();
        }

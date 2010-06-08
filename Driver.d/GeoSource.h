@@ -20,7 +20,7 @@ class BinFileHandler;
 class MatrixTimer;
 class LMPCons;
 class Decomposition;
-class Material;
+class NLMaterial;
 class ControlInfo;
 class CoordSet;
 class OutputInfo;
@@ -77,7 +77,7 @@ struct ControlLawInfo
   void makeGlobalClaw(ControlLawInfo *subClaw);
 };
 
-typedef Material *(*MatLoader)(int n, double *params);
+typedef NLMaterial *(*MatLoader)(int n, double *params);
 
 struct DoubleList {
    int nval;
@@ -159,7 +159,7 @@ class GeoSource {
   ResizeArray<LayMat *> layMat;
 
   std::map<const char *, MatLoader, ltstr> userDefMat;
-  std::map<int, Material *> materials;
+  std::map<int, NLMaterial *> materials;
   std::map<int, int> matUsage;
 
   int numProps;
@@ -354,7 +354,7 @@ public:
   int setModalDamping(int, BCond *);
 
   // Parser support Functions - "New" Material Specifications
-  void addMaterial(int i, Material *m) { materials[i] = m; }
+  void addMaterial(int i, NLMaterial *m) { materials[i] = m; }
   void addMaterial(int i, const char *, DoubleList &d);
   void loadMaterial(const char *, const char *);
   void setMatUsage(int i, int t) { matUsage[i] = t; }

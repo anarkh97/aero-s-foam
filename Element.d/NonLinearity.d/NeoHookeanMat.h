@@ -1,23 +1,23 @@
-#ifndef _ELALINISOMAT_H_
-#define _ELALINISOMAT_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
+#ifndef _NEOHOOKEANMAT_H_
+#define _NEOHOOKEANMAT_H_
 #include <Element.d/Element.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Utils.d/NodeSpaceArray.h>
+#include <vector>
 
 class StructProp;
-class SimpleMaterial;
 
-//Declaration of the material properties
-class ElaLinIsoMat : public NLMaterial
+// This class is based on Material.d/NeoHookean.cpp (from Adrian Lew)
+// modified to take the green-lagrange strain as input and
+// output the PK2 stress tensor and the material elasticity tensor
+class NeoHookeanMat : public NLMaterial
 {
   protected:
-    double rho, E, nu;
-    SimpleMaterial *mat;
+    double rho, lambda, mu;
 
   public:
-    ElaLinIsoMat(StructProp *p);
-    ElaLinIsoMat(double _rho, double _E, double _nu);
+    NeoHookeanMat(StructProp *p);
+    NeoHookeanMat(double _rho, double _E, double _nu);
 
     int getNumStates() { return 0; }
 
@@ -37,6 +37,11 @@ class ElaLinIsoMat : public NLMaterial
     void initStates(double *){};
 
     double getDensity() { return rho; } // PJSA
+
+  private:
+    bool GetConstitutiveResponse(const std::vector<double> * strain,
+                                       std::vector<double> * stress,
+                                       std::vector<double> * tangents) const;
 };
 
 #endif

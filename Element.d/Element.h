@@ -19,7 +19,7 @@ class Corotator;
 class State;
 class PolygonSet;
 class InterpPoint;
-class Material;
+class NLMaterial;
 class LMPCons;
 class GeomState;  // PJSA: for sgi intel
 template <class Scalar> class GenVector; // PJSA: for sgi intel
@@ -426,7 +426,7 @@ class Element {
 
         virtual void addFaces(PolygonSet *pset);
 
-        virtual void setMaterial(Material *);
+        virtual void setMaterial(NLMaterial *);
 
 	virtual int numInternalNodes() { return 0; }
 

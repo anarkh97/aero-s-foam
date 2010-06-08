@@ -8,31 +8,31 @@
 class StructProp;
 
 //Declaration of the material properties
-class ElaLinIsoMat2D : public Material {
-   
+class ElaLinIsoMat2D : public NLMaterial
+{
    protected:
-
      double rho, E, nu, t;
 
    public:
      ElaLinIsoMat2D(StructProp *p);
      ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t);
 
-     int getNumStates(){return 0;}
+     int getNumStates() { return 0; }
 
-     void getStress(Tensor *stress,Tensor &strain,double*);
+     void getStress(Tensor *stress, Tensor &strain, double*);
 
-     void getTangentMaterial(Tensor *tm,Tensor &strain,double*);
+     void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
 
-     void getElasticity(Tensor *tm){};
+     void getElasticity(Tensor *tm) {};
 
-     void updateStates(Tensor en,Tensor enp,double *state){};
+     void updateStates(Tensor en, Tensor enp, double *state) {};
 
-     void getStressAndTangentMaterial(Tensor *stress,Tensor *tm,Tensor &strain,double*);
+     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*);
      
      void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                      double *staten, double *statenp, double);
-     void initStates(double *){};
+                    double *staten, double *statenp, double);
+
+     void initStates(double *) {};
 };
 
 #endif

@@ -216,7 +216,7 @@ if(MPI_FOUND)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                         PROPERTIES 
@@ -269,10 +269,11 @@ add_subdirectory(Paral.d)
 add_subdirectory(Problems.d)
 add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
+add_subdirectory(Material.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)

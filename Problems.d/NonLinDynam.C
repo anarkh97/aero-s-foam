@@ -341,11 +341,10 @@ int
 NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector& dv, 
                                 double time)
 {
-     //ConstrainedDSA *cdsa = domain->getCDSA();
-
      /*if(dofTypeArray == 0)
        dofTypeArray = cdsa->makeDofTypeArray();*/
 #ifdef PRINT_FORCENORMS
+     ConstrainedDSA *cdsa = domain->getCDSA();
      double momenNorm = 0.0;
      double forceNorm = 0.0;
      int i;
@@ -398,9 +397,8 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
 
      double relRes = normRes/firstRes;
      double relDv  = normDv /firstDv;
-#ifdef PRINT_RESIDUALS
      double relEng = normEnergy/firstEng;
-#endif
+
      int converged = 0;
 
      if(normRes <= tolerance*firstRes) 
@@ -410,7 +408,7 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
      if(normRes >= 1.0e10 * firstRes && normRes > secondRes) {
        converged = -1;
      }
-#ifdef PRINT_RESIDUALS
+
      if(verboseFlag) {
        fprintf(stderr," Iteration # %d\n",iteration);
        fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
@@ -418,7 +416,7 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
                         normRes,normDv,normEnergy,
                         relRes,relDv,relEng);
      }
-#endif
+
      totIter++;
      fprintf(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
      fflush(res);

@@ -435,6 +435,7 @@ EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
     exit(-1);
   }
 
+  //cerr << "M = "; M.print();
   return(M);
 }
 

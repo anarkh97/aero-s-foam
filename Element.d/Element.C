@@ -198,7 +198,7 @@ Element::addFaces(PolygonSet *)
 }
 
 void
-Element::setMaterial(Material *)
+Element::setMaterial(NLMaterial *)
 {
   fprintf(stderr, "WARNING: Trying to use Material on unsupported element!\n");
 }

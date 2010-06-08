@@ -895,7 +895,7 @@ void GeoSource::setUpData()
       uIter++; // go to the next mapping
       continue;
     }
-    map<int, Material *>::iterator matIter = materials.find(matNum);
+    map<int, NLMaterial *>::iterator matIter = materials.find(matNum);
     if(matIter == materials.end()) {
          fprintf(stderr," *** WARNING: Non Existent material (%d)"
                         " was assigned to element %d \n", matNum+1, elemNum+1);

@@ -178,8 +178,9 @@ NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
 NonLinearity.d/NLMembrane.C
-NonLinearity.d/NodeSpaceArray.C
 NonLinearity.d/StrainDispEvaluator.C
+NonLinearity.d/NeoHookeanMat.C
+NonLinearity.d/SimpleMat.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C

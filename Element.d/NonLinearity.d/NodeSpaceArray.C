@@ -1,7 +1,7 @@
 #include <Element.d/NonLinearity.d/NodeSpaceArray.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <iostream>
 
 
 Contraction
@@ -144,7 +144,9 @@ const Tensor_d0s2 *tens = dynamic_cast<const Tensor_d0s2 *>(&b);
 }
 
 void
-Tensor_d0s2::getDeterminant(double &det)  {               det=v[0]*v[4]*v[8]+v[3]*v[7]*v[2]+v[1]*v[5]*v[6]-(v[6]*v[4]*v[2]+v[3]*v[1]*v[8]+v[0]*v[7]*v[5]);
+Tensor_d0s2::getDeterminant(double &det)  { 
+  std::cerr << "here in Tensor_d0s2::getDeterminant\n";
+  det=v[0]*v[4]*v[8]+v[3]*v[7]*v[2]+v[1]*v[5]*v[6]-(v[6]*v[4]*v[2]+v[3]*v[1]*v[8]+v[0]*v[7]*v[5]);
 }
 
 

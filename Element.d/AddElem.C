@@ -475,10 +475,13 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PrismaticJoint(n);
        break;
      case 201:
-       ele = new (ba) NLHexahedral(n,true); // linear kinematics
+       ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure
        break;
      case 202:
-       ele = new (ba) NLHexahedral(n,false); // non-linear kinematics
+       ele = new (ba) NLHexahedral(n, 1); // green-lagrange strain measure
+       break;
+     case 205:
+       ele = new (ba) NLHexahedral(n, 2); // deformation gradient strain measure
        break;
      case 203:
        ele = new (ba) NLMembrane(n,false);

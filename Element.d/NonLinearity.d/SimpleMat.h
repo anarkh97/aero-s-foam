@@ -1,23 +1,20 @@
-#ifndef _ELALINISOMAT_H_
-#define _ELALINISOMAT_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
+#ifndef _SIMPLEMAT_H_
+#define _SIMPLEMAT_H_
 #include <Element.d/Element.h>
 #include <Utils.d/NodeSpaceArray.h>
+#include <Material.d/Material.h>
 
 class StructProp;
 class SimpleMaterial;
 
-//Declaration of the material properties
-class ElaLinIsoMat : public NLMaterial
+// This is a wrapper class to interface Adrian Lew's SimpleMaterial class with FEM
+class SimpleMat : public NLMaterial
 {
   protected:
-    double rho, E, nu;
     SimpleMaterial *mat;
 
   public:
-    ElaLinIsoMat(StructProp *p);
-    ElaLinIsoMat(double _rho, double _E, double _nu);
+    SimpleMat(int type, double rho, double E, double nu);
 
     int getNumStates() { return 0; }
 
@@ -25,18 +22,18 @@ class ElaLinIsoMat : public NLMaterial
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
 
-    void getElasticity(Tensor *tm) {};
+    void getElasticity(Tensor *tm) {}
 
-    void updateStates(Tensor en,Tensor enp,double *state) {};
+    void updateStates(Tensor en, Tensor enp, double *state) {}
 
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double);
 
-    void initStates(double *){};
+    void initStates(double *) {}
 
-    double getDensity() { return rho; } // PJSA
+    double getDensity();
 };
 
 #endif

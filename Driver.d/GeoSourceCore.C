@@ -465,6 +465,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   //fprintf(stderr," New number of MPCs: %d\n", numLMPC);
 */
 
+  cerr << "here in GeoSource::makeDirectMPCs, numLMPC = " << numLMPC << endl;
   if(numLMPC) {
     bool use_rref = false; // this is set to true if we cannot find a slave for each mpc, or if an mpc cannot be written independently
     using std::map;

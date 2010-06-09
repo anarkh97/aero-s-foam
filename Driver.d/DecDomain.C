@@ -3535,6 +3535,7 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
 template<class Scalar>
 void GenDecDomain<Scalar>::setContactGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
 {
+  // XXXX this should only be done for linear mpcs
   if(numDualMpc) {
     GenDistrVector<Scalar> *cx = new GenDistrVector<Scalar>(fetiSolver->interfInfo());
     GenDistrVector<Scalar> *x = new GenDistrVector<Scalar>(fetiSolver->localInfo());

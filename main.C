@@ -125,6 +125,8 @@ bool useFull=false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
+int totalNewtonIter = 0;
+int iterTotal = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -987,7 +989,7 @@ int main(int argc, char** argv)
        break;
 
      case SolverInfo::Dynamic:
-     case SolverInfo::TempDynamic:
+     //case SolverInfo::TempDynamic:
        {
         if(domain->solInfo().modal) {
 	  fprintf(stderr," ... Modal Method  ...\n");
@@ -1035,7 +1037,6 @@ int main(int argc, char** argv)
 	}
       }
       break;
-/*
      case SolverInfo::TempDynamic:
        {
          SingleDomainTemp tempProb(domain);
@@ -1044,7 +1045,6 @@ int main(int argc, char** argv)
          dynaSolver.solve();
        }
        break;
-*/
      case SolverInfo::Modal:
        { //CBM
  	 SingleDomainEigen eigenProb(domain);
@@ -1227,6 +1227,10 @@ int main(int argc, char** argv)
  filePrint(stderr," ... Total Time           = %.2e s\n",
          (getTime() - initTime)/1000.0);
  filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
+ if(domain->solInfo().isNonLin())
+   filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
+ if(iterTotal > 0)
+   filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);
  filePrint(stderr," --------------------------------------\n");
 
  if(geoSource) { delete geoSource; geoSource = 0; }

@@ -214,7 +214,7 @@ void
 NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon* ContactPolygons)
 // ***************************************************************************************
 // Build the mortar LMPC coefficients by "assembling" the contributions of all the FFIs
-// belongins to the support of the nodal mortar shape fct 
+// belonging to the support of the nodal mortar shape fct 
 // -> compute the row of M and N associated with the current nodal mortar shape fct
 // -> SlaveNodeToFaces: global slave nodes numbering to indices of connected face elements 
 //                      in the (ACTIVE) slave face element set (FaceSet)
@@ -225,7 +225,8 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
 // ***************************************************************************************
 {
   SlaveMPCCoeffs.assign(3*LinkedSlaveNodes.size(), 0.0);
-  MasterMPCCoeffs.assign(3*LinkedMasterNodes.size(), 0.0);
+  MasterMPCCoeffs.assign(3*LinkedMasterNodes.size(), 0.0); 
+  MPCRhs = 0.0;
 
   for(int inode=0; inode<GetnNodes(); inode++){
     int cnode = GetNodeId(inode);
@@ -261,6 +262,10 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
           MasterMPCCoeffs[3*k+1] += Aq*(*N)[i][3*j+1];
           MasterMPCCoeffs[3*k+2] += Aq*(*N)[i][3*j+2];
         }
+#ifdef HB_NORMAL_GEOM_GAP
+        Vector* g = FFI->GetPtrNormalGeoGaps();
+        MPCRhs -= Aq*(*g)[i];
+#endif
       }
     }
   }
@@ -375,6 +380,10 @@ LMPCons*
 NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, double rhs,
                                             int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 {
+#ifdef HB_NORMAL_GEOM_GAP
+  rhs = MPCRhs;
+#endif
+  lmpcnum = -(SlaveLlToGlNodeMap[GetNodeId(0)]+1); // XXXX global id of the slave node. Note this is a temporary fix, since it is only unique within a single contact surface pair
   LMPCTerm SlaveTerm;
                                                                                                                                              
   LMPCons* MortarLMPC = 0;; // = new LMPCons(lmpcnum, rhs);
@@ -403,7 +412,7 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, double rhs,
      if(MasterMPCCoeffs[3*i+idof]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term)
        MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
        MasterTerm.dofnum = dofs[idof];
-       MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof]; 
+       MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof];
        if(!created){
          MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
          created = true;

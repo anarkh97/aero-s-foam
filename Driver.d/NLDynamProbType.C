@@ -1,5 +1,6 @@
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
+extern int totalNewtonIter;
 
 /****************************************************************
  *
@@ -180,25 +181,21 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
     double resN, initialRes;
     int converged;
-    probDesc->initNewton(); // PJSA 10-9-2007
 
     // Initialize states
     StateUpdate::copyState(geomState, refState);
-    StateUpdate::zeroInc(stateIncr); 
+    StateUpdate::zeroInc(stateIncr);
 
     // Iteration loop
-    for(int iter = 0; iter < maxit; ++iter) {
+    for(int iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
 
       residual = external_force;
          
       // And stateIncr to geomState and compute element tangent stiffness and internal/follower forces
+      // also update the constraints (updateContactConditions called)
       StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
-
-      VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY g = C^T*lambda
-      probDesc->updateContactConditions(geomState);
-      probDesc->updateMpcRhs(*geomState); // YYYY
 
       // Assemble global tangent stiffness
       probDesc->reBuild(*geomState, iter);
@@ -209,10 +206,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
+      resN = probDesc->getResidualNorm(rhs); // addMpcForces called
 
-      //VecType g(rhs); probDesc->addMpcForces(g); resN = probDesc->norm(g); // YYYY resN = ||rhs + C^T*lambda||
-      g += rhs; resN = probDesc->norm(g); // resN = ||rhs + C^T*lambda||
-      if(verboseFlag) filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
+      //filePrint(stderr,"2 NORMS: fext*fext %e %e residual*residual %e\n", external_force*external_force, resN*resN);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
@@ -224,8 +220,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
+      // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing
       converged = probDesc->checkConvergence(iter, resN, residual, rhs, time);
-      StateUpdate::updateIncr(stateIncr, rhs);
+      StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
 
       if(converged == 1)
         break;
@@ -242,7 +239,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
-                                   elementInternalForce, totalRes, acceleration);
+                                   elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
 
     // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
     if(domain->solInfo().order != 1)

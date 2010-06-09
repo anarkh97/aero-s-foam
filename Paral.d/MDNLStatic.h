@@ -33,9 +33,14 @@ class MDNLStatic
     StaticTimers *times;
     int numSystems;
     double deltaLambda;
+
+    std::map<int, double> *mu; // lagrange multipliers for the inequality constraints
+    std::vector<double> *lambda; // lagrange multipliers for the equality constraints
+
  public:
     // Constructor
     MDNLStatic(Domain *d);
+    virtual ~MDNLStatic();
 
     DistrInfo& solVecInfo();
     DistrInfo& sysVecInfo();
@@ -72,10 +77,7 @@ class MDNLStatic
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; }
 
-    void updateMpcRhs(DistrGeomState &geomState);
-    void updateContactConditions(DistrGeomState* geomState);
-    void addMpcForces(DistrVector &vec);
-    double norm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec);
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
@@ -86,7 +88,10 @@ class MDNLStatic
     void makeSubDofs(int isub);
     void updatePrescribedDisp(int isub, DistrGeomState& geomState);
     void subGetRHS(int isub, DistrVector& rhs);
-    void subAddMpcForces(int isub, DistrVector &vec);
+    void addConstraintForces(int isub, DistrVector &vec);
+    void getConstraintMultipliers(int isub);
+    void updateMpcRhs(DistrGeomState &geomState);
+    void updateConstraintTerms(DistrGeomState* geomState);
 };
 
 #endif

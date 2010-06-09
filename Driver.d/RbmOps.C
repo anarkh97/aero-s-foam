@@ -357,10 +357,8 @@ GenSubDomain<Scalar>::trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int flag)
+GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver)
 {
-  // flag = 0: assemble G^T * G
-  //        1: assemble Gtilda^T * Gtilda
   if(numGroupRBM == 0) return;
   bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
   for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
@@ -370,7 +368,7 @@ GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int 
     GenVector<Scalar> d(scomm->lenT(SComm::mpc,i));
     for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
       int locMpcNb = scomm->mpcNb(i,j);
-      d[j] = ((flag == 0) || !mpc[locMpcNb]->active) ? 1.0 : 0.0;
+      d[j] = (mpc[locMpcNb]->active) ? 0.0 : 1.0;
     }
     if((numGroupRBM2 > 0) && (subNumber != scomm->neighbT(SComm::mpc,i))) {
       GenFullM<Scalar> tmp2(numGroupRBM, numGroupRBM2);  // coupling term

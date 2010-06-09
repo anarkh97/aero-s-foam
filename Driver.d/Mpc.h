@@ -150,7 +150,6 @@ class SubLMPCons
                                   // 1: inequality constraint (contact)
   bool active;                    // defines active set, used for contact
                                   // in FETI-DP active means than the lagrange multiplier associated with the mpc is constrained to be zero (ie the dual constraint is active)
-  bool redundant_flag;            // mpc is redundant wrt to active set so do not add it
 
   ResizeArray<int> gi;      // index of mpc term before it is distributed to subd
   int gsize;                // number of terms in mpc before distributing to subds
@@ -169,7 +168,6 @@ class SubLMPCons
     ScalarTypes::initScalar(k[0], 1.0); 
     type = 0;
     active = false;
-    redundant_flag = false;
   }
 
   virtual ~SubLMPCons() { if(ksum) delete [] ksum; }
@@ -197,32 +195,6 @@ class SubLMPCons
   { 
     ksum = new Scalar[nterms]; 
     for(int i=0; i<nterms; i++) ScalarTypes::initScalar(ksum[i], 1.0);  
-  }
-
-  Scalar computeError(GeomState &gState, CoordSet &cs, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting; 
-    for(int i = 0; i < nterms; i++) {
-      int nnum = terms[i].nnum;
-      Node &node1 = cs.getNode(nnum);
-      NodeState ns1 = gState[nnum];
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * ns1.diff(node1, dofnum);
-    }
-    return error;
-  }
-
-  Scalar computeError(GeomState &gState, GeomState &refState, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting;
-    for(int i = 0; i < nterms; i++) {
-      Vector v(6, 0.0);
-      int nnum = terms[i].nnum;
-      gState.diff1(refState, v, nnum);
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * v[dofnum];
-    }
-    return error;
   }
 
   void print()

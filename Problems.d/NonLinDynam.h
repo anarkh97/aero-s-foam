@@ -182,14 +182,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
                           int aeroAlg);
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration) const;
-    void initNewton() { /* do nothing */ }
-    void updateMpcRhs(GeomState&) { /* not implemented */ }
-    void updateContactConditions(GeomState*) { /* not implemented */ }
-    void zeroMpcForces() { /* not implemented */ }
-    void addMpcForces(Vector &) { /* not implemented */ }
-    double norm(Vector &v) { return sqrt(v*v); }
-    void deleteContactConditions() { /* not implemented */ }
-    void updateSurfaces(GeomState*,int) { /* not implemented */ }
+    double getResidualNorm(Vector &rhs) { return rhs.norm(); }
 
     int getAeroAlg();
     int getThermoeFlag();

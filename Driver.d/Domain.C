@@ -31,6 +31,7 @@ using std::map;
 extern int verboseFlag;
 extern Sfem *sfem;
 extern GeoSource *geoSource;
+extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
@@ -2491,6 +2492,8 @@ Domain::AddMortarCond(MortarHandler* _MortarCond)
   // Count number of MortarCond
   nMortarCond++;
 
+  if(_MortarCond->GetInteractionType() == MortarHandler::CTC) nContactSurfacePairs++;
+
   return 0;
 }
 
@@ -2722,12 +2725,24 @@ void Domain::PerformStaticContactSearch()
 
 void Domain::ExpComputeMortarLMPC(int nDofs, int *dofs)
 {
+  int num_interactions = 0;
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     CurrentMortarCond->CreateFFIPolygon();
     CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
     nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
+    num_interactions += CurrentMortarCond->GetnFFI();
   }
+#ifdef HB_ACME_FFI_DEBUG
+  if(sinfo.ffi_debug && num_interactions > 0) {
+    char fname[16];
+    sprintf(fname,"FFI.top.%d",totalNewtonIter);
+    filePrint(stderr," -> Write FFI top file: %s for %d interactions\n", fname, num_interactions);
+    FILE* FFITopFile = fopen(fname,"w");
+    WriteFFITopFile(FFITopFile);
+    fclose(FFITopFile);
+  }
+#endif
 }
 
 // HB: compute & add to the standard LMPC array (lmpc) the Mortar LMPCs:
@@ -2816,13 +2831,13 @@ void Domain::WriteFFITopFile(FILE* file)
       MortarCond->PrintFFIPolyVertices(file, firstNodeId);
     }
     firstNodeId = 1;
-    int firstEdgeId = 1;
+    int firstElemId = 1;
     for(int iMortar=0; iMortar<nMortarCond; iMortar++){
       MortarHandler* MortarCond = MortarConds[iMortar];
-      fprintf(file,"Elements SlaveFFI_%d\n",MortarCond->GetSlaveEntityId());
-      MortarCond->PrintFFIPolyTopo(file, firstEdgeId, firstNodeId);
-      fprintf(file,"Elements MasterFFI_%d\n",MortarCond->GetMasterEntityId());
-      MortarCond->PrintFFIPolyTopo(file, firstEdgeId, firstNodeId);
+      fprintf(file,"Elements SlaveFFI_%d using FFINodes\n",MortarCond->GetSlaveEntityId());
+      MortarCond->PrintFFIPolyTopo(file, firstElemId, firstNodeId);
+      fprintf(file,"Elements MasterFFI_%d using FFINodes\n",MortarCond->GetMasterEntityId());
+      MortarCond->PrintFFIPolyTopo(file, firstElemId, firstNodeId);
     }
   }
 }
@@ -2960,6 +2975,7 @@ Domain::initialize()
  numCTC=0;
  output_match_in_top = false;//TG
  C_condensed = 0;
+ nContactSurfacePairs = 0;
 }
 
 Domain::~Domain()
@@ -3346,7 +3362,8 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
       }
     }
     if(domain->solInfo().dbccheck) {
-      //filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+      if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+      bool xxx;
       for(int i=0; i < numLMPC; ++i) {
         for(int j=0; j < lmpc[i]->nterms; ++j) {
           int mpc_node = lmpc[i]->terms[j].nnum;
@@ -3356,10 +3373,12 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
             int dbc_dof = dbc[k].dofnum;
             if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
               if(!lmpc[i]->isComplex) {
+                //cerr << "warning: found an mpc with constrained term\n"; // XXXX seems to cause problem in feti-dpc
                 lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
               }
-              else
+              else {
                 lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
+              }
             }
           }
           for(int k=0; k<numComplexDirichlet; ++k) {

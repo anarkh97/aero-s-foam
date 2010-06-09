@@ -132,14 +132,7 @@ public:
    double getTolerance()  { return tolerance*firstRes; }
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
-   void initNewton() { /* do nothing */ }
-   void updateMpcRhs(NLState&) { /* not implemented */ }
-   void updateContactConditions(NLState*) { /* not implemented */ }
-   void zeroMpcForces() { /* not implemented */ }
-   void addMpcForces(Vector &) { /* not implemented */ }
-   double norm(Vector &v) { return sqrt(v*v); }
-   void deleteContactConditions() { /* not implemented */ }
-   void updateSurfaces(NLState*,int) { /* not implemented */ }
+   double getResidualNorm(Vector &rhs) { return rhs.norm(); }
 
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }

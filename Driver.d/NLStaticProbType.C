@@ -4,6 +4,7 @@
 //#define DEBUG_NEWTON // use this to output at every newton iteration
 
 extern int verboseFlag;
+extern int totalNewtonIter;
 
 template < class OpSolver, 
            class VecType, 
@@ -320,30 +321,22 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // Main Newton Iteration Loop
   double e_k;
   int iter, converged;
-  for(iter = 0; iter < maxit; ++iter) {
+  for(iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
 
     // residual = lambda*force;
     residual.linC(force, lambda);
  
     // Update geomState then compute current tangent stiffness and residual force (including follower force contributions)
     timeStiff -= getTime();
-    double residualNorm = StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
-                                                 residual, elementInternalForce, totalRes, lambda);
-    if(probDesc->linesearch()) e_k = probDesc->getEnergy(lambda, force, geomState);
+    StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
+                           residual, elementInternalForce, totalRes, lambda);
+    double residualNorm = probDesc->getResidualNorm(residual);
+    if(probDesc->linesearch()) e_k = probDesc->getEnergy(lambda, force, geomState); // experimental
     timeStiff += getTime();
 #ifdef PRINT_TIMERS
     filePrint(stderr,"  Rebuild Element Stiffness & Internal Force time = %13.4f s\n", 
               timeStiff/1000.0);
 #endif    
-
-    // START DEBUG CONTACT
-    VecType g(residual); // gradient of the lagrangian: K*u-f+C^T*lambda
-    probDesc->addMpcForces(g);
-    residualNorm = probDesc->norm(g);
-    if(!(step == 1 && iter == 0)) 
-      probDesc->updateContactConditions(geomState); // now we are doing this every iteration
-    probDesc->updateMpcRhs(*geomState);
-    // END DEBUG CONTACT
 
     // Rebuild tangent stiffness matrix when necessary
     timeRebuild -= getTime();

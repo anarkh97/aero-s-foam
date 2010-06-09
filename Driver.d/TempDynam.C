@@ -151,7 +151,6 @@ Domain::getTrussHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
     fflush(oinfo[fileNumber].filptr);
 } 
 
-/*
 void
 Domain::initTempVector(Vector& d_n, Vector& v_n, Vector& v_p)
 {
@@ -242,7 +241,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
 
   enum {HFLX=0, HFLY=1, HFLZ=2, GRTX=3, GRTY=4, GRTZ=5};
 
-  double time = tIndex*sinfo.dtemp;
+  double time = tIndex*sinfo.getTimeStep();
 
   if (sinfo.nRestart > 0 && !sinfo.modal) {
     cerr << "writing restart file\n";
@@ -373,7 +372,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
      }
 
 
-   if (tIndex*sinfo.dtemp >= sinfo.tmax) {
+   if (tIndex*sinfo.getTimeStep() >= sinfo.tmax) {
       for (i=0; i<numOutInfo; i++)
           if (oinfo[i].interval != 0) fclose(oinfo[i].filptr);
     }
@@ -412,14 +411,16 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
   if(hftval)
     hfttFactor = hftval->getVal(t);
 
-  // ... COMPUTE TIME DEPENDENT EXTERNAL FORCE
+  // ... COMPUTE TIME DEPENDENT EXTERNAL FORCE (and CONVECTIVE AND RADIATIVE FLUXES
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    f[dof] += hfttFactor*nbc[i].val;
-    // fprintf(stderr,"external forces%f\n",f[dof]);
+    switch(nbc[i].type) {
+      case(BCond::Flux) : f[dof] += hfttFactor*nbc[i].val;
+      default : f[dof] += nbc[i].val; 
+    }
   }
-
+/*  PJSA these are now included in nbc
   // ... ADD CONVECTIVE FLUXES
   for(i=0; i<numConvBC; ++i) {
     int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
@@ -433,7 +434,7 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
     if(dof < 0) continue;
     f[dof] += rdbc[i].val;
   }
-
+*/
   // ... ADD FLUID FLUX
   if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) {
     int j;
@@ -490,7 +491,6 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
     }
   }
 }
-*/
 
 void
 Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)

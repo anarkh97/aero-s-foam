@@ -233,15 +233,9 @@ class FetiInfo {
     bool parallel_grbm, use_krr_nullspace;
     double gamma;
     bool bmpc, dmpc, cmpc;
-    double wolfe_c1, wolfe_c2;
-    int linesearch; // 0 = none, 1 = backtracking (armijo-goldstein), 2 = bisection, 3 = more-thuente
     double linesearch_tau;
     int linesearch_maxit;
-    double equi_tol, iequ_tol;
     bool c_normalize;
-    double cq_tol;
-    enum ConstraintQualificationType { nocq = 0, crcq } cq_type; // nocq = no constraint qualification
-                                                                 // crcq = constant rank constraint qualification
 
     bool useMRHS;
     bool gmresResidual; //HB: to force computing the "primal residual" at each GMRES iteration;
@@ -254,10 +248,9 @@ class FetiInfo {
     bool fsi_element, mpc_element; // true means add to element set & decompose
     int fsi_corner;
     bool complex_hermitian;
-    int stop1; // first stopping criteria...  0: none, 1: estimated primal, 2: dual
-    int stop2; // second stopping criteria... 0: none, 1: estimated primal, 2: dual
     double dual_proj_tol, primal_proj_tol;
     double dual_plan_tol, primal_plan_tol;
+    int dual_plan_maxit, primal_plan_maxit;
 };
 
 inline
@@ -323,13 +316,10 @@ FetiInfo::FetiInfo()
   uproj        = 1;   	   // default project the displacements wrt global RBMs
   contactPrintFlag = 0;
   gamma = 1.0;
-  wolfe_c1 = 1.0e-4; wolfe_c2 = 0.9;
-  linesearch = 1; linesearch_tau = 0.5; linesearch_maxit = 20;
+  linesearch_tau = 0.6667; 
+  linesearch_maxit = 20;
   cmpc = bmpc = dmpc = false;
-  cq_type = nocq; cq_tol = 1.0e-14;
 
-  equi_tol = 1.0e-6; 
-  iequ_tol = 1.0e-6;
   c_normalize = false;
   
   // MPC information
@@ -357,12 +347,11 @@ FetiInfo::FetiInfo()
   pick_unsafe_corners = true;
   fsi_corner = 2;
   complex_hermitian = false;
-  stop1 = 1;
-  stop2 = 1;
   nullSpace = grbm;
   nullSpaceFilterTol = 0.0;
   dual_proj_tol = primal_proj_tol = 1.0e-16;
   dual_plan_tol = primal_plan_tol = 0.0;
+  dual_plan_maxit = primal_plan_maxit = 20;
 }
 
 

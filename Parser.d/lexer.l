@@ -452,8 +452,6 @@ TRAIL [a-zA-Z]*
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
-"stop"[a-zA-Z]*|"STOP"[a-zA-Z]     { return STOPPING; }
-
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }
 
 "stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*    { return STAGTOL; }
@@ -554,19 +552,7 @@ TRAIL [a-zA-Z]*
 
 "propo"[a-zA-Z]*|"PROPO"[a-zA-Z]*  { return PROPORTIONING; }
 
-"wolfe"|"WOLFE"                    { return WOLFE; }
-
 "lines"[a-zA-Z]*|"LINES"[a-zA-Z]*  { return LINESEARCH; }
-
-"backt"[a-zA-Z]*|"BACKT"[a-zA-Z]*  { yylval.ival = 1; return LINESEARCHTYPE; } 
-
-"bisec"[a-zA-Z]*|"BISEC"[a-zA-Z]*  { yylval.ival = 2; return LINESEARCHTYPE; }
-
-"cq_type"|"CQ_TYPE"|"cqtype"|"CQTYPE" { return CONSTRAINTQUALIFICATION; }
-
-"nocq"|"NOCQ"                      { yylval.ival = 0; return CQTYPE; }
-
-"crcq"|"CRCQ"                      { yylval.ival = 1; return CQTYPE; }
 
 "debug_icntl"                      { return DEBUGICNTL; }
 
@@ -574,9 +560,9 @@ TRAIL [a-zA-Z]*
 
 "ptol"[a-zA-Z]*|"PTOL"[a-zA-Z]*    { return PTOL; }
 
-"plan"[a-zA-Z]*|"PLAN"[a-zA-Z]*  { return PLANTOL; }
+"pmax"[a-zA-Z]*|"PMAX"[a-zA-Z]*    { return PMAXIT; }
 
-"feas"[a-zA-Z]*|"FEAS"[a-zA-Z]*    { return FEASTOL; }
+"plan"[a-zA-Z]*|"PLAN"[a-zA-Z]*    { return PLANTOL; }
 
 "nsbs"[a-zA-Z]*|"NSBS"[a-zA-Z]*    { return NSBSPV; }
 
@@ -1150,6 +1136,7 @@ TRAIL [a-zA-Z]*
 "SFORC"[a-zA-Z]*|"sforc"[a-zA-Z]*  { return SFORCE; }
 "SPRES"[a-zA-Z]*|"spres"[a-zA-Z]*  { return SPRESSURE; }
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
+"ffi_debug"                        { return FFIDEBUG; }
 
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }

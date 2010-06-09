@@ -752,25 +752,6 @@ GenFetiSolver<Scalar>::makeGtG()
 
 template<class Scalar>
 void
-GenFetiSolver<Scalar>::orthoAdd(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp)
-{
-  switch(fetiInfo->outerloop) {
-   default:
-   case 0:
-   case 3:
-     orthoAddCG(p,Fp,pFp);
-     break;
-   case 1:
-     orthoAddGMRES(p,Fp);
-     break;
-   case 2:
-     orthoAddGCR(p,Fp,pFp);
-     break;
-  }
-}
-
-template<class Scalar>
-void
 GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scalar> &Fp, Scalar pFp)
 {
  if(fetiInfo->maxortho <= 0) return;
@@ -1398,9 +1379,9 @@ GenFetiSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &
    // Add search direction to Orthogonalization set
    if(fetiInfo->nlPrecFlg ) {
      tProject(Fp,beta,pr);
-     orthoAdd(p, pr, pFp);
+     orthoAddCG(p, pr, pFp);
    } else
-     orthoAdd(p, Fp, pFp);
+     orthoAddCG(p, Fp, pFp);
 
    // Project: w = P^t r
    tProject(r, alpha, w);
@@ -1665,7 +1646,6 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   p       = new GenDistrVector<Scalar>(interface);
   pr      = new GenDistrVector<Scalar>(interface);
   Fp      = new GenDistrVector<Scalar>(interface);
-  Fr      = new GenDistrVector<Scalar>(interface);
   du      = new GenDistrVector<Scalar>(local);
   uzero   = new GenDistrVector<Scalar>(local);
 
@@ -1674,7 +1654,6 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
 
   deltaU  = new GenDistrVector<Scalar>(local);
   deltaF  = new GenDistrVector<Scalar>(local);
-
 
   alpha   = new GenVector<Scalar>(numrbms);
   beta    = new GenVector<Scalar>(numrbms);
@@ -1703,20 +1682,18 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   z       = new GenDistrVector<Scalar>(interface);
   p       = new GenDistrVector<Scalar>(interface);
   Fp      = new GenDistrVector<Scalar>(interface);
-  Fr      = new GenDistrVector<Scalar>(interface);
   w       = new GenDistrVector<Scalar>(interface);
   y       = new GenDistrVector<Scalar>(interface);
   if(contact) {
-    deltaL  = new GenDistrVector<Scalar>(interface);
-    q       = new GenDistrVector<Scalar>(interface);
-    wc      = new GenDistrVector<Scalar>(interface);
+    gc      = new GenDistrVector<Scalar>(interface);
+    gf      = new GenDistrVector<Scalar>(interface);
+    lambda_copy = new GenDistrVector<Scalar>(interface); lambda_copy->zero();
   }
 
   fr      = new GenDistrVector<Scalar>(local);
   fr2     = new GenDistrVector<Scalar>(local);
   ur      = new GenDistrVector<Scalar>(local);
   du      = new GenDistrVector<Scalar>(local);
-  uzero   = new GenDistrVector<Scalar>(local);
   deltaU  = new GenDistrVector<Scalar>(local);
   deltaF  = new GenDistrVector<Scalar>(local);
 
@@ -1741,36 +1718,18 @@ GenFetiWorkSpace<Scalar>::save()
   if(!Fp_copy) Fp_copy = new GenDistrVector<Scalar>(*Fp); else *Fp_copy = *Fp;
   if(!du_copy) du_copy = new GenDistrVector<Scalar>(*du); else *du_copy = *du;
   if(!duc_copy) duc_copy = new GenVector<Scalar>(*duc); else *duc_copy = *duc;
-  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
 }
 
 template<class Scalar>
 void
-GenFetiWorkSpace<Scalar>::save_lambda() 
-{
-  if(!lambda_copy) lambda_copy = new GenDistrVector<Scalar>(*lambda); else *lambda_copy = *lambda;
-}
-
-template<class Scalar>
-void
-GenFetiWorkSpace<Scalar>::save_w()
-{
-  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
-}
-
-template<class Scalar>
-void
-GenFetiWorkSpace<Scalar>::restore(bool flag)
+GenFetiWorkSpace<Scalar>::restore()
 {
   *lambda = *lambda_copy; 
   *r = *r_copy;
-  if(flag) {
-    *p = *p_copy; 
-    *Fp = *Fp_copy; 
-    *du = *du_copy; 
-    *duc = *duc_copy;
-  }
-  *w = *w_copy;
+  *p = *p_copy; 
+  *Fp = *Fp_copy; 
+  *du = *du_copy; 
+  *duc = *duc_copy;
 }
 
 template<class Scalar>
@@ -1780,7 +1739,7 @@ GenFetiWorkSpace<Scalar>::zeroPointers()
   r = 0; lambda = 0;
   w = 0; y = 0;
   z = 0; p = 0;
-  pr = 0; Fp = 0; Fr = 0;
+  pr = 0; Fp = 0; 
   du = 0; uzero = 0;
   fr = 0; fr2 = 0; 
   ur = 0; wrk1 = 0;
@@ -1791,8 +1750,9 @@ GenFetiWorkSpace<Scalar>::zeroPointers()
   gamma = 0; working = 0;
   fc = 0; uc = 0;
   duc = 0; 
-  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0; w_copy = 0;
+  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0;
   fw = 0; e = 0;
+  gc = 0; gf = 0;
 }
 
 template<class Scalar>
@@ -1807,7 +1767,6 @@ GenFetiWorkSpace<Scalar>::clean_up()
   if(p) p->clean_up();
   if(pr) pr->clean_up();
   if(Fp) Fp->clean_up();
-  if(Fr) Fr->clean_up();
   if(du) du->clean_up();
   if(uzero) uzero->clean_up();
   if(fr) fr->clean_up();
@@ -1836,6 +1795,8 @@ GenFetiWorkSpace<Scalar>::clean_up()
   if(duc_copy) duc_copy->clean_up();
   if(fw) fw->clean_up();
   if(e) e->clean_up();
+  if(gc) gc->clean_up();
+  if(gf) gf->clean_up();
 }
 
 template<class Scalar>
@@ -1849,7 +1810,6 @@ GenFetiWorkSpace<Scalar>::~GenFetiWorkSpace()
   if(p) delete p;
   if(pr) delete pr; 
   if(Fp) delete Fp;
-  if(Fr) delete Fr;
   if(du) delete du;
   if(uzero) delete uzero;
   if(fr) delete fr;
@@ -1878,6 +1838,8 @@ GenFetiWorkSpace<Scalar>::~GenFetiWorkSpace()
   if(duc_copy) delete duc_copy;
   if(fw) delete fw;
   if(e) delete e;
+  if(gc) delete gc;
+  if(gf) delete gf;
 }
 
 template<class Scalar>
@@ -3277,7 +3239,7 @@ GenFetiSolver<Scalar>::singleCoarseSolve(GenDistrVector<Scalar> &f, GenDistrVect
    doubleUpdate(nu,u,du,w,y);
 
    // Add search direction to Orthogonalization set
-   orthoAdd(r, y, pFp);
+   orthoAddCG(r, y, pFp);
 
    alpha *= nu;
    beta  += alpha;

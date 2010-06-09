@@ -176,14 +176,7 @@ public:
   void test2(ModalGeomState* = 0);
   void test(ModalGeomState* = 0);
   void printCoefs();
-  void initNewton() { /* do nothing */ }
-  void updateMpcRhs(ModalGeomState&) { /* not implemented */ }
-  void updateContactConditions(ModalGeomState*) { /* not implemented */ }
-  void zeroMpcForces() { /* not implemented */ }
-  void addMpcForces(Vector&) { /* not implemented */ }
-  double norm(Vector &v) { return sqrt(v*v); }
-  void deleteContactConditions() { /* not implemented */ }
-  void updateSurfaces(ModalGeomState*,int) { /* not implemented */ }
+  double getResidualNorm(Vector &rhs) { return rhs.norm(); }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }

@@ -62,12 +62,12 @@
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
-%token CONSTRAINTQUALIFICATION CQTYPE COMPLEXOUTTYPE
+%token COMPLEXOUTTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FEASTOL
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
@@ -75,7 +75,7 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
 %token JACOBI KRYLOVTYPE
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
@@ -83,15 +83,15 @@
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PARALLELGRBM PTOL PLANTOL
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PARALLELGRBM PTOL PLANTOL PMAXIT
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER STOPPING
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USEKRRNULLSPACE
-%token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
+%token VERSION WAVENUMBER WETCORNERS YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -120,7 +120,7 @@
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
 %type <ival>     DOFTYPE
 %type <ival>     FETIPREC FETI2TYPE 
-%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LINESEARCHTYPE CQTYPE
+%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
@@ -960,6 +960,9 @@ ToleranceInfo:
          filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
         | GRBM NewLine Float NewLine
         { domain->solInfo().setGrbm($3); 
+         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+        | GRBM NewLine 
+        { domain->solInfo().setGrbm();
          filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
 	;
 ModeFilterInfo:
@@ -1978,6 +1981,8 @@ ContactSurfaces:
 AcmeControls:
         ACMECNTL Integer NewLine
         { domain->solInfo().dist_acme = $2; }
+        | FFIDEBUG Integer NewLine
+        { domain->solInfo().ffi_debug = bool($2); }
 NodeSet:
 	NODES NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }
@@ -2325,12 +2330,6 @@ Solver:
           }
           domain->solInfo().fetiInfo.prectype = (FetiInfo::PreconditionerType) $2;
         }
-        | STOPPING Integer NewLine
-        { domain->solInfo().fetiInfo.stop1 = $2;
-          domain->solInfo().fetiInfo.stop2 = $2; }
-        | STOPPING Integer Integer NewLine
-        { domain->solInfo().fetiInfo.stop1 = $2;
-          domain->solInfo().fetiInfo.stop2 = $3; }
         | TOLFETI Float NewLine
   	{ domain->solInfo().fetiInfo.tol = $2; }
         | TOLFETI Float Float NewLine
@@ -2341,15 +2340,15 @@ Solver:
         | STAGTOL Float Float NewLine
         { domain->solInfo().fetiInfo.stagnation_tol = $2;
           domain->solInfo().fetiInfo.absolute_stagnation_tol = $3; }
-        | FEASTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.equi_tol = $2; 
-          domain->solInfo().fetiInfo.iequ_tol = $3; }
         | PTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.dual_proj_tol = $2;
-          domain->solInfo().fetiInfo.primal_proj_tol = $3; }
+        { domain->solInfo().fetiInfo.primal_proj_tol = $2;
+          domain->solInfo().fetiInfo.dual_proj_tol = $3; }
+        | PMAXIT Float Float NewLine
+        { domain->solInfo().fetiInfo.primal_plan_maxit = $2;
+          domain->solInfo().fetiInfo.dual_plan_maxit = $3; }
         | PLANTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.dual_plan_tol = $2;
-          domain->solInfo().fetiInfo.primal_plan_tol = $3; }
+        { domain->solInfo().fetiInfo.primal_plan_tol = $2;
+          domain->solInfo().fetiInfo.dual_plan_tol = $3; }
 	| Solver MAXORTHO Integer NewLine
 	{ domain->solInfo().fetiInfo.maxortho = $3; }
 	| NOCOARSE NewLine
@@ -2413,6 +2412,7 @@ Solver:
             domain->solInfo().fetiInfo.pickAnyCorner = 0; 
             domain->solInfo().fetiInfo.bmpc = true;
             domain->solInfo().fetiInfo.pick_unsafe_corners = false;
+            domain->solInfo().fetiInfo.augment = FetiInfo::none;
           }
         }
         | AUGMENT AUGMENTTYPE NewLine
@@ -2724,25 +2724,9 @@ Solver:
         { if($2 < 1) domain->solInfo().fetiInfo.useMRHS = false; }
         | PROPORTIONING Float NewLine
         { domain->solInfo().fetiInfo.gamma = $2; }
-        | WOLFE Float Float NewLine
-        { domain->solInfo().fetiInfo.wolfe_c1 = $2;
-          domain->solInfo().fetiInfo.wolfe_c2 = $3; }
-        | LINESEARCH SWITCH NewLine
-        { domain->solInfo().fetiInfo.linesearch = int($2); }
-        | LINESEARCH LINESEARCHTYPE NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2; }
-        | LINESEARCH LINESEARCHTYPE Integer NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2;
-          domain->solInfo().fetiInfo.linesearch_maxit = $3; }
-        | LINESEARCH LINESEARCHTYPE Integer Float NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2;
-          domain->solInfo().fetiInfo.linesearch_maxit = $3;
-          domain->solInfo().fetiInfo.linesearch_tau = $4; }
-        | CONSTRAINTQUALIFICATION CQTYPE NewLine
-        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2; }
-        | CONSTRAINTQUALIFICATION CQTYPE Float NewLine
-        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2;
-          domain->solInfo().fetiInfo.cq_tol = $3; }
+        | LINESEARCH Integer Float NewLine
+        { domain->solInfo().fetiInfo.linesearch_maxit = $2;
+          domain->solInfo().fetiInfo.linesearch_tau = $3; }
         | BMPC SWITCH NewLine
         { domain->solInfo().fetiInfo.bmpc = bool($2); }
         | DMPC SWITCH NewLine

@@ -877,6 +877,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     Vector d_n2( domain->numUncon(), 0.0 );
 
     CoordSet &nodes = domain->getNodes();
+    int numNodes = nodes.size();
 
     for(int i=0; i<geoSource->numNode(); ++i) {
 

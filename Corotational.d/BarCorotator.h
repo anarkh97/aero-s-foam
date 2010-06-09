@@ -6,23 +6,26 @@
 class BarCorotator : public Corotator {
      int n1; 			// node number 1
      int n2; 			// node number 2
-     double em;                 // elastic modulus
-     double a0;                 // initial cross-sectional area
-     double l0;			// initial length
      double preload;		// preload
+     StructProp *prop;
    public:
 
      // Constructor
-     BarCorotator(int node1, int node2, double em,
-                  double area, double preload, CoordSet &cs);
+     BarCorotator(int node1, int node2, StructProp *_prop, double preload, CoordSet &cs);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f);
-
+     void   getInternalForce(GeomState &geomState, CoordSet &cs, 
+                                  FullSquareMatrix &elK, double *f);
+     void   getExternalForce(GeomState &geomState, CoordSet &cs, double *f);
+     
      void   formInternalForce(double t[3], double p, double *f);
-
-     void   formTangentStiffness(double t[3], double p, double ld, 
+     
+     void   getDExternalForceDu(GeomState &geomState, CoordSet &cs, 
+    				     FullSquareMatrix &elK, double *locF);
+     
+     void   formTangentStiffness(double t[3], double p, double ld, double l0, 
                                  double kt[6][6]);
 
      void   formGeometricStiffness(GeomState &gs, CoordSet &cs, 
@@ -41,6 +44,8 @@ class BarCorotator : public Corotator {
                          GeomState &, CoordSet &, int);
 
      double getElementEnergy(GeomState &gs, CoordSet &cs);
+     void   getLocalDisp(GeomState& , CoordSet &, Vector&);	
+     void   getGlobalDisp(GeomState& , CoordSet &, Vector&);	
 
 };
 

@@ -40,6 +40,8 @@ public:
 	PrioInfo examine(int sub, MultiFront *);
 	int getTopNumber();
 	bool hasRot() {return true;}
+
+        int getMassType() { return 0; } // lumped only
 };
 #endif
 

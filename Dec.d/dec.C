@@ -14,11 +14,10 @@ class ThreadManager;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool useFull;
+extern int verboseFlag;
 
 namespace Dec
 {
-
-extern int verboseFlag;
 
 // ThreadManager *threadManager;
 
@@ -33,7 +32,7 @@ int dec(int numProcessors,               // aka -p <number of processors>
 	)
 {
 
- filePrint(stderr, " ... Decomposing mesh with %d processors, %d threads, asking for %d subdomains ...\n",
+ if(verboseFlag) filePrint(stderr, " ... Decomposing mesh with %d processors, %d threads, asking for %d subdomains ...\n",
            numProcessors,numThreads,numSubdomains);
 
  // threadManager = new ThreadManager(numThreads);
@@ -59,7 +58,7 @@ int dec(int numProcessors,               // aka -p <number of processors>
 
  long totalMemory = /*readMemory + setUpDataMemory*/ + decomposeMemory;
 
- filePrint(stderr," ... Total Elapsed Time and Memory for the decomposer is %14.5f sec and %14.3f Mb ...\n",
+ if(verboseFlag) filePrint(stderr," ... Total Elapsed Time and Memory for the decomposer is %14.5f sec and %14.3f Mb ...\n",
            (getTime() - tTotal)/1000.0, totalMemory/(1024.0*1024.0));
 
  // delete threadManager;

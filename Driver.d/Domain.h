@@ -17,7 +17,6 @@ class MortarHandler;
 class MFTTData;
 class ControlInterface;
 class ControlInfo;
-class NLState;
 class DofSetArray;
 class ConstrainedDSA;
 class DOFMap;
@@ -66,8 +65,6 @@ template <class Scalar> class GenSpoolesSolver;
 typedef GenSpoolesSolver<double> SpoolesSolver;
 template <class Scalar> class GenMumpsSolver; 	//Axel
 typedef GenMumpsSolver<double> MumpsSolver;   	//Axel
-template <class Scalar> class GenNonLinSkyMatrix;
-typedef GenNonLinSkyMatrix<double> NonLinSkyMatrix;
 class GeomState;
 class DistrGeomState;
 class IntFullM;
@@ -88,14 +85,18 @@ class SurfaceEntity;
 
 extern Sfem *sfem;
 
+const double defaultTemp = -10000000.0;
+
 // ... Structure used to store problem Operators buildSkyOps
 // ... i.e. Only a Solver is needed for a static problem
 template<class Scalar>
 struct AllOps
 {
   GenSolver<Scalar> *sysSolver;  // system solver: to solve (coeM*M+coeC*C+coeK*K)x = b
-  GenSparseMatrix<Scalar> *spm; // note: system solver is a subclass of both GenSolver and GenSparseMatrix
-
+  GenSparseMatrix<Scalar> *spm;
+  GenSolver<Scalar> *prec;       // preconditioner
+  GenSparseMatrix<Scalar> *spp;
+  
   GenSparseMatrix<Scalar> *Msolver;  // for assembling mass solver: to solve Mx = b
   GenSparseMatrix<Scalar> *K;    // stiffness matrix
   GenSparseMatrix<Scalar> *M;    // mass matrix
@@ -109,7 +110,7 @@ struct AllOps
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -139,6 +140,9 @@ struct PrevFrc {
    PrevFrc(int neq) : lastFluidLoad(neq, 0.0) { lastTIndex = -1; }
 };
 
+/** Class representing a structure and containing all auxiliary data-structures
+ *
+ */
 class Domain : public HData {
   protected:
      MatrixTimers *matrixTimers;// timers to time factoring and assembly
@@ -163,18 +167,12 @@ class Domain : public HData {
      int numCTC;                // total number of contact constraints
      int numNeuman;		// number of Neuman bc
      BCond* nbc;		// set of Neuman bc
-     int numConvBC;             // number of convective bc
-     BCond* cvbc;               // set of convective bc
-     int numRadBC;              // number of radiative bc
-     BCond* rdbc;               // set of radiative bc
      int numIDis;		// number of Initial displacements
      BCond *iDis;		// set of those initial displacements
      int numIDis6;		// number of Initial displacements (6 column)
      BCond* iDis6;              // set of those intitial displacements
      int numIVel;		// number of initial velocities
      BCond *iVel;		// set of those initial velocities
-     int numITemp;		// number of initial temperatures
-     BCond *iTemp;		// set of those intitial temperatures
 
      DofSetArray *dsa;		// Dof set array
      DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
@@ -302,7 +300,7 @@ class Domain : public HData {
                           int fileNumber, int stressIndex, double time);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
 			   Corotator **allCorot, FullSquareMatrix *kel,
-                           Vector &residual);
+                           Vector &residual, double lambda = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
@@ -336,13 +334,10 @@ class Domain : public HData {
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
      virtual int  setNeuman(int,BCond *);
-     int  setConvBC(int,BCond *);
-     int  setRadBC(int,BCond *);
      int  setIDis6(int, BCond *);
      int  setIDis(int, BCond *);
      int  setIVel(int, BCond *);
      int  setIAcc(int, BCond *);
-     int  setITemp(int, BCond *);
      int  setMFTT(MFTTData *);
      int  setMPTT(MFTTData *);
      int  setHFTT(MFTTData *);
@@ -373,9 +368,10 @@ class Domain : public HData {
       */
      template<class Scalar, class OpList>
      void assembleSparseOps(OpList &ops);
-// ... General build functions to replace the specialized build
-// ... functions and allow us to reuse the code in each problem
-// ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
+/** ... General build functions to replace the specialized build
+  * ... functions and allow us to reuse the code in each problem
+  * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
+  */
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
@@ -406,7 +402,7 @@ class Domain : public HData {
      template<class Scalar>
        void makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
-                          FullSquareMatrix *kelArray=0);
+                          FullSquareMatrix *kelArray=0, FullSquareMatrix *melArray=0);
 
      template<class Scalar>
        void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -424,9 +420,6 @@ class Domain : public HData {
 
      template<class Scalar>
        GenSkyMatrix<Scalar> *constructSkyMatrix(DofSetArray*, Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenNonLinSkyMatrix<Scalar> *constructNonLinSkyMatrix(Rbm *rbm=0);
 
      template<class Scalar>
        GenBlockSky<Scalar> *constructBlockSky(DofSetArray *DSA);
@@ -456,29 +449,29 @@ class Domain : public HData {
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
      Rbm              *constructRbm(bool printFlag = true);
-     //Rbm              *constructRbm(IntFullM *);
-     //Rbm              *constructAllRbm();
      Rbm              *constructHzem(bool printFlag = true);
      Rbm              *constructSlzem(bool printFlag = true);
 
      template<class Scalar>
-       void buildGravityForce(GenVector<Scalar> &force);
+       void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void buildPressureForce(GenVector<Scalar> &force, GeomState *gs=0);
-     template<class Scalar>
-       void buildPressureForce(GenVector<Scalar> &force, NLState *nls);
+       void addPressureForce(GenVector<Scalar>& force, double lambda = 1.0);
 
      template<class Scalar>
-       void buildThermalForce(double *nodalTemps, GenVector<Scalar> &force, GeomState *gs=0);
+       void addAtddnbForce(GenVector<Scalar>& force, double lambda = 1.0);
+
+     template<class Scalar>
+       void addAtdrobForce(GenVector<Scalar>& force, double lambda = 1.0);
+
+     template<class Scalar>
+       void addThermalForce(GenVector<Scalar>& force);
 
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 
      template<class Scalar>
-       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc=0, GeomState *gs=0);
-     template<class Scalar>
-       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NLState *gs);
+       void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc = 0);
 
      template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
@@ -491,6 +484,7 @@ class Domain : public HData {
                          double omega, double delta_omega,
                          GeomState *gs=0);
 
+     void initNodalTemperatures();
      double * getNodalTemperatures();
 
      // Main program control functions.
@@ -528,14 +522,13 @@ class Domain : public HData {
                            int hgIndex, double time=0);
      void getTrussHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
        { cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
-     template <class Scalar> void computeExtForce4(PrevFrc &,
-                          GenVector<Scalar> &force, GenVector<Scalar> &gf,
-                          int tIndex, double t, GenSparseMatrix<Scalar> *kuc = 0,
-                          Scalar *userDefineDisp = 0,
-			  int *userMap = 0, Vector *af = 0,
-                          double gamma = 0.5, double alphaf = 0.5);
-     void computeExtForce(Vector &f, double t, int tIndex,
-                          SparseMatrix *kuc, Vector &prev_f);
+     template <class Scalar>
+       void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
+     template <class Scalar> 
+       void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
+                             GenSparseMatrix<Scalar> *kuc = 0);
+     //void computeExtForce(Vector &f, double t, int tIndex,
+     //                     SparseMatrix *kuc, Vector &prev_f);
 
 
      int  probType() { return sinfo.probType; }
@@ -555,7 +548,12 @@ class Domain : public HData {
      void getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode,
              double *xdata, int *dofx, double *ydata=0, int *dofy=0, double *zdata=0, int *dofz=0);
      void addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x, double &y, double &z);
-     void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx, double* vcx);
+     void aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
+     void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
+     void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
+     void thermoeComm();
      void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,
                           double* vcx, int sliceRank, double time);
@@ -646,8 +644,7 @@ class Domain : public HData {
 
      // returns the number of unconstrained dof
      int numUncon() {
-       return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0; // YYY DG
-//       return c_dsa ? c_dsa->size() : dsa->size();
+       return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
      }
 
      // returns the number of unconstrained Fluid dof
@@ -712,6 +709,8 @@ class Domain : public HData {
 
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
+
+     int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
 
      // returns the maximum number of dofs per element
      int  maxNumDOF() { return maxNumDOFs; }
@@ -782,6 +781,7 @@ class Domain : public HData {
      int getNumCTC() { return numCTC; }
      void addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype);
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
+     void deleteLMPCs() { lmpc.deleteArray(); lmpc.restartArray(); numLMPC = 0; nMortarLMPCs = 0; numCTC = 0; if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; } } // YYYY
 
      // HB: mortar stuff (EXPERIMENTAL)
   protected:
@@ -813,6 +813,10 @@ class Domain : public HData {
      void PerformDynamicContactSearch(double dt);
      void AddContactForces(double dt, Vector &f);
      void AddContactForces(double dt, DistrVector &f);
+
+     void InitializeStaticContactSearch(int numSub = 0, SubDomain **sd = 0);
+     void PerformStaticContactSearch();
+     void ExpComputeMortarLMPC(int nDofs=0, int* Dofs=0);
 
      void ComputeMortarLMPC(int nDofs=0, int* Dofs=0);
      void computeMatchingWetInterfaceLMPC();
@@ -883,6 +887,14 @@ class Domain : public HData {
      void initSfem();
 
      ConstrainedDSA *makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap *eqMap);
+
+     /** Replaces all 6-DOF rigid elements that share a node by a single element */
+     void collapseRigid6();
+
+     // new controls
+     void updateUsddInDbc(double* userDefineDisp, int* map = 0);
+     void updateUsdfInNbc(double* userDefineForce, int* map = 0, double* weight = 0);
+     void updateActuatorsInNbc(double* actuatorsForce, int* map = 0, double* weight = 0);
 };
 
 #ifdef _TEMPLATE_FIX_

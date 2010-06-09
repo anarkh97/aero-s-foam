@@ -45,7 +45,7 @@ class MDNLStatic
     double getScaleFactor();
     double getDeltaLambda0();
     double getMaxLambda();
-    void getRHS(DistrVector &, DistrGeomState *gs=0);
+    void getRHS(DistrVector &);
     FetiSolver *getSolver();
 
     void printTimers();
@@ -64,18 +64,29 @@ class MDNLStatic
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
-                            DistrVector& elementInternalForce, DistrVector&gRes);
+                            DistrVector& elementInternalForce, DistrVector&gRes, double lambda = 1.0);
 
-    void getSubStiffAndForce(int isub, DistrGeomState &geomState, 
-                             DistrVector &res, DistrVector &elemIntForce);
+    double getTolerance() { return tolerance*firstRes; }
+
+    bool linesearch();
+    double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
+      { cerr << "MDNLStatic::getEnergy is not implemented\n"; }
+
+    void updateMpcRhs(DistrGeomState &geomState);
+    void updateContactConditions(DistrGeomState* geomState);
+    void addMpcForces(DistrVector &vec);
+    double norm(DistrVector &vec);
+
+  private:
+    void getSubStiffAndForce(int isub, DistrGeomState &geomState,
+                             DistrVector &res, DistrVector &elemIntForce, double lambda);
 
     void makeSubCorotators(int isub);
     void makeSubKelArrays(int isub);
     void makeSubDofs(int isub);
     void updatePrescribedDisp(int isub, DistrGeomState& geomState);
-
-    double getTolerance() {return tolerance*firstRes;}
-
+    void subGetRHS(int isub, DistrVector& rhs);
+    void subAddMpcForces(int isub, DistrVector &vec);
 };
 
 #endif

@@ -1,5 +1,7 @@
 #include <math.h>
 #include <Corotational.d/utilities.h>
+#include <cmath>
+#include <iostream>
 
 const double epsilon = 1.0e-15;
 
@@ -24,9 +26,9 @@ void mat_to_vec(double rten[3][3] ,double rvec[3] )
 
       double cthh = q[0];
 
-      if ( sthh < 0.7 ) 
+      if ( sthh < 0.707106781 )
         th = 2.0*asin( sthh );
-      else              
+      else
         th = 2.0*acos( cthh );
 
       if ( sthh < epsilon )
@@ -39,4 +41,5 @@ void mat_to_vec(double rten[3][3] ,double rvec[3] )
       rvec[0] = coef*q[1];
       rvec[1] = coef*q[2];
       rvec[2] = coef*q[3];
+
 }

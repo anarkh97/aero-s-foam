@@ -2,7 +2,6 @@ ADD_LIBRARY(Feti
 CoarseSetCore.C
 DistrVectorCore.C
 FetiCore.C
-FetiDPCore.C
 FetiOpCore.C
 NLFetiCore.C)
 

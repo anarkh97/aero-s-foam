@@ -11,8 +11,11 @@
 #include "IntegratorPropagator.h"
 #include "Activity.h"
 #include "Log.h"
+#include <Driver.d/GeoSource.h>
+#include <vector>
 
 extern Communicator * structCom;
+extern GeoSource * geoSource;
 
 /*Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
   return new Pita::NlDriverImpl(problemDescriptor) ;

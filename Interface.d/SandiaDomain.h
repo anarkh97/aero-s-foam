@@ -148,7 +148,6 @@ class GenSandiaDomain: public GenDecDomain<Scalar>
   void findNumGlobNodes();
   void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu);
   void updateMpcRhs(int iSub, GenDistrVector<Scalar> &cu);
-  void zeroMpcRhs(int iSub);
   bool setNodeToNodeInteractions(int itype, int numNeighb, int *neighb, int *neighbPtr,
                                  enum face_type *faceEl_type, int *faceEl_ptr, int *faceEl_conn,
                                  double (*faceEl_normal)[3], double (*gap_vector)[3]);

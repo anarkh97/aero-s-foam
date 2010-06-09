@@ -58,7 +58,7 @@ using namespace std;
   #include <OOPita.d/NlDriver.h>
   #include <OOPita.d/LinearDriver.h>
 #endif
-
+#include <Comm.d/Communicator.h>
 
 
 // .... for different problems and hardware
@@ -67,10 +67,6 @@ void writeOptionsToScreen();
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
-//#ifdef USE_MPI
-#include <Comm.d/Communicator.h>
-//#endif
 
 #ifdef STRUCTOPT
 #include <Structopt.d/Structopt_base.h>
@@ -85,7 +81,6 @@ void writeOptionsToScreen();
 DecInit * decInit=0;
 
 #ifdef TFLOP
-
 extern map<int,double> weightList;
 
 extern int optind;
@@ -111,6 +106,8 @@ std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomain
 
 Sfem *sfem = new Sfem();
 
+Connectivity *procMpcToMpc;
+
 long totMemSky       = 0;
 long totMemSparse    = 0;
 long totMemSpooles   = 0;
@@ -121,22 +118,18 @@ ThreadManager *threadManager = 0;
 extern int yyparse(void);
 extern FILE* yyin;
 
-
-// dec
 bool estFlag=false;
 bool weightOutFlag=false;
-bool nosa=false;   // no simulated anealing
+bool nosa=false;
 bool useFull=false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
 
-//#ifdef USE_MPI
-SysCom *syscom;
+SysCom *syscom = 0;
 Communicator *structCom = 0;
 Communicator *heatStructCom;
 Communicator *fluidCom;
-//#endif
 
 // ... main program
 
@@ -151,12 +144,10 @@ int main(int argc, char** argv)
 //  std::set_new_handler(&print_trace_handler);
 #endif
  double initTime = getTime();
-// long totalMemoryUsed = 0;
- double totalMemoryUsed = 0.0;//CBM
+ double totalMemoryUsed = 0.0;
 
  int c;
  extern char *optarg;
-// char *displacementFile;
 
  /**** DEFAULT ELEMENT WEIGHT VALUES  ***/
  /**** IF DIFFERENT FROM 1.0 add the weight of your object below
@@ -199,7 +190,7 @@ int main(int argc, char** argv)
  weightList[104]= 4.0;  // 3d 18 node Lagrange wedge
  weightList[201] = 3.0; // 3d 8 node brick
  weightList[202] = 3.0; // green lagrange
- weightList[102] = 3.0;  // 3d LEIsoParamHexa
+ weightList[102] = 3.0; // 3d LEIsoParamHexa
  weightList[301] = 1.0; // 2d 4-node sloshing (fluid) quadrilateral
  weightList[302] = 1.0; // 2d 2-node free-surface (fluid)
  weightList[311] = 3.0; // 3d 4-node sloshing (fluid) tetrahedron
@@ -207,48 +198,11 @@ int main(int argc, char** argv)
  weightList[321] = 2.0; // 2d 4-node hydroelastic vibration (fluid) quadrilateral
  weightList[331] = 3.0; // 3d 4-node hydroelastic vibration (fluid) tetrahedral
 
- /*
- // PJSA: for debugging decomposer, the following are default weights in decomp
- weightList[17] = 3.0;  // EightNodeBrick
- weightList[24] = 2.0;  // Pentahedral
- weightList[25] = 3.0;  // TenNodeTetrahedral
- weightList[8] = 3.0;   // ThreeNodeShell
-*/
-
 #if defined(USE_MPI)
  SysCom theCom(argc,argv);
  syscom = &theCom;
  structCom = syscom;
 #endif
-
-/*
-#if defined(USE_MPI)
- SysCom theCom(argc,argv);
- syscom = &theCom;
-
-#define MAX_CODES 4
-#define FLUID_ID 0
-#define STRUC_ID 1
-#define HEAT_ID  2
-
-  // We do a split
-  Communicator* allCom[MAX_CODES];
-  if(domain->solInfo().aeroheatFlag >= 0 || domain->solInfo().thermohFlag >= 0) {
-    syscom->split(HEAT_ID, MAX_CODES, allCom);
-    structCom = allCom[HEAT_ID];
-    heatStructCom = allCom[STRUC_ID]; // comunicator between the thermal and
-                                      // mechanical structure codes
-  }
-  else {
-    syscom->split(STRUC_ID, MAX_CODES, allCom);
-    structCom = allCom[STRUC_ID];
-    heatStructCom = allCom[HEAT_ID]; // comunicator between the thermal and
-                                     // mechanical structure codes
-  }
-  fluidCom = allCom[FLUID_ID];
-
-#endif
-*/
 
  // Default number of threads equal to one
  int numThreads =  1;
@@ -321,7 +275,6 @@ int main(int argc, char** argv)
    {"verbose", 1, 0, 'v'},
    {"with-sower",0,0, 1010},
    {"sower",0,0, 1010},
-   //{"deter", 0, 0, 1011}, // TG - charbel
    {"nclus", 1, 0, 1012},
    {0, 0, 0, 0}
  };
@@ -349,7 +302,7 @@ int main(int argc, char** argv)
 	break;
       case 1004 :
 	weightFile = fopen(optarg, "r");
-	double w; // tw; HB: commented to avoid compiler warning
+	double w;
 	int k;
 	if(weightFile)
 	  {
@@ -395,14 +348,10 @@ int main(int argc, char** argv)
       case 1005 :
 	nosa=true;
 	break;
-      case 1010 : // fem sower
+      case 1010 :
 	callSower = true;
 	domain->setSowering(true);
 	break;
-      case 1011 :
-        // deter
-
-        break;
       case 1012 :
         numClusters = atoi(optarg);
         if(numClusters <= 0) numClusters = 1;
@@ -417,13 +366,12 @@ int main(int argc, char** argv)
       case 'n':
         numThreads = atoi(optarg);
         if(numThreads <= 0) numThreads = 1;
-        #ifdef USE_OPENMP
+#ifdef USE_OPENMP
         omp_set_dynamic(0);
         omp_set_num_threads(numThreads);
-        #endif
+#endif
         break;
-      case 'd':
-        {
+      case 'd': {
           geoSource->getCheckFileInfo()->decomposition = optarg;
           FILE *f;
           if((f=fopen(optarg,"r"))==(FILE *) NULL ) {
@@ -475,10 +423,6 @@ int main(int argc, char** argv)
         break;
       case 'c':
         domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
-        //verboseFlag = 1;
-        //domain->setVerbose();
-        //domain->solInfo().fetiInfo.printNumber = atoi(optarg);
-        //filePrint(stderr," ... Setting Output Mode: Verbose with Contact Status ... \n");
         break;
       case '?':
         {
@@ -556,9 +500,6 @@ int main(int argc, char** argv)
    }
  }
 
- //SysCom theCom(argc,argv);
- //syscom = &theCom;
-
 #define MAX_CODES 4
 #define FLUID_ID 0
 #define STRUC_ID 1
@@ -599,7 +540,7 @@ int main(int argc, char** argv)
      if(!callSower) {
        domain->ProcessSurfaceBCs();
        domain->SetMortarPairing();
-       if(domain->solInfo().newmarkBeta != 0.0) { // not for explicit dynamics
+       if(domain->solInfo().newmarkBeta != 0) { // not for explicit dynamics
          domain->ComputeMortarLMPC();
          domain->computeMatchingWetInterfaceLMPC();
          domain->CreateMortarToMPC();
@@ -616,15 +557,20 @@ int main(int argc, char** argv)
  }
 #endif
 
- //if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && !(domain->solInfo().HEV))
+ bool flag = (geoSource->getDirectMPC() || domain->solInfo().type == 2);
+ geoSource->setUpRigidElements(flag);
+
  if(geoSource->getDirectMPC())
    geoSource->makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
- else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0.0) // don't use lmpc elements for explicit
+ else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0) // don't use lmpc elements for explicit
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
-// if(domain->solInfo().type != 2 || domain->solInfo().fetiInfo.fsi_element)
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
+
+ if(!geoSource->binaryInput) {
+   domain->setUpData();
+ }
 
  if(callDec) {
 //   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
@@ -650,9 +596,9 @@ int main(int argc, char** argv)
  }
  useFull = true; // or TenNodeTetraHedral will crush ! (bad design not from me !)
 
- if(!geoSource->binaryInput) {
-   domain->setUpData();
- }
+// if(!geoSource->binaryInput) {
+//   domain->setUpData();
+// }
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");
@@ -689,9 +635,10 @@ int main(int argc, char** argv)
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
- if(domain->solInfo().newmarkBeta == 0.0) {
+ if(domain->solInfo().newmarkBeta == 0) {
    domain->solInfo().subtype = 10;
-   if(parallel_proc) domain->solInfo().type = 3;
+   domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
+   if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
    geoSource->setMRatio(0.0);
    geoSource->setConsistentQFlag(false);
    geoSource->setConsistentPFlag(false);
@@ -699,13 +646,13 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   fprintf(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   fprintf(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   fprintf(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   fprintf(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
@@ -728,7 +675,9 @@ int main(int argc, char** argv)
    }
 
    switch(domain->probType()) {
-     case SolverInfo::Dynamic: {
+     case SolverInfo::Dynamic: 
+     case SolverInfo::TempDynamic:
+       {
         if(domain->solInfo().mdPita) { // Not implemented yet
           //double solver=getTime();
           //fprintf(stderr," ... Distr Time And Space Parall Method  ...\n");
@@ -739,9 +688,9 @@ int main(int argc, char** argv)
           //cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;*/
           filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
         } else {
-          MultiDomainDynam<double> dynamProb(domain);
+          MultiDomainDynam dynamProb(domain);
           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-       		MultiDomainDynam<double>, double > dynamSolver(&dynamProb);
+       		MultiDomainDynam, double > dynamSolver(&dynamProb);
           dynamSolver.solve();
           fflush(stderr);
         }
@@ -882,11 +831,10 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::NonLinDynam: {
-       //filePrint(stderr,"*** WARNING: MultiDomain Non-Linear Dynamic Analysis has not been validated. \n");
-       if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-         MultiDomainDynam<double> dynamProb(domain);
+       if(domain->solInfo().newmarkBeta == 0) { // explicit
+         MultiDomainDynam dynamProb(domain);
          DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-               MultiDomainDynam<double>, double > dynamSolver(&dynamProb);
+               MultiDomainDynam, double > dynamSolver(&dynamProb);
          dynamSolver.solve();
        }
        else {
@@ -897,7 +845,7 @@ int main(int argc, char** argv)
        }
      } break;
      default:
-       fprintf(stderr,"*** WARNING: The Solver %d is not supported \n",  domain->probType());
+       filePrint(stderr,"*** ERROR: Problem type %d is not supported multi-domain mode\n", domain->probType());
    }
 
    totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
@@ -1039,6 +987,7 @@ int main(int argc, char** argv)
        break;
 
      case SolverInfo::Dynamic:
+     case SolverInfo::TempDynamic:
        {
         if(domain->solInfo().modal) {
 	  fprintf(stderr," ... Modal Method  ...\n");
@@ -1053,14 +1002,14 @@ int main(int argc, char** argv)
              double solver=getTime();
              if (domain->solInfo().newPitaImplementation) {
                  fprintf(stderr," ... Time-reversible linear PITA ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
+                 SingleDomainDynamic dynamProb(domain);
                  Pita::LinearDriver::Ptr driver = linearPitaDriverNew(&dynamProb);
                  driver->solve();
              } else {
                  fprintf(stderr," ... Linear PITA ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
+                 SingleDomainDynamic dynamProb(domain);
                  SDDistrTimeDecompSolver<PitaDynamMat,Vector,SDDynamPostProcessor,
-                     SingleDomainDynamic<double>,SingleInfo> distrTimedec(&dynamProb);
+                     SingleDomainDynamic,SingleInfo> distrTimedec(&dynamProb);
                  distrTimedec.solve_PITA_linearDynam();
                  cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;
              }
@@ -1069,16 +1018,16 @@ int main(int argc, char** argv)
 #endif
 	  } else {
             if (domain->solInfo().ATDARBFlag>=1.5) {
-/*              SingleDomainDynamic<double> dynamProb(domain);
+/*              SingleDomainDynamic dynamProb(domain);
               DynamicSolver <GenDynamMat<DComplex>, Vector,
                     SDDynamPostProcessor, SingleDomainDynamic, DComplex>
                 dynaSolver(&dynamProb);
               dynaSolver.solve();
 */            }
             else {
-              SingleDomainDynamic<double> dynamProb(domain);
+              SingleDomainDynamic dynamProb(domain);
               DynamicSolver <GenDynamMat<double>, Vector,
-                    SDDynamPostProcessor, SingleDomainDynamic<double>, double>
+                    SDDynamPostProcessor, SingleDomainDynamic, double>
                 dynaSolver(&dynamProb);
               dynaSolver.solve();
             }
@@ -1086,6 +1035,7 @@ int main(int argc, char** argv)
 	}
       }
       break;
+/*
      case SolverInfo::TempDynamic:
        {
          SingleDomainTemp tempProb(domain);
@@ -1094,6 +1044,7 @@ int main(int argc, char** argv)
          dynaSolver.solve();
        }
        break;
+*/
      case SolverInfo::Modal:
        { //CBM
  	 SingleDomainEigen eigenProb(domain);
@@ -1135,7 +1086,7 @@ int main(int argc, char** argv)
        {
          NLMatProbDesc nlstatic(domain);
          NLStaticSolver<Solver, Vector, NLMatProbDesc, NLMatProbDesc,
-                        NLState, TotalUpdater<NLMatProbDesc,Vector, NLState> >
+                        NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
            nlsolver(&nlstatic);
          nlsolver.solve();
        }
@@ -1168,10 +1119,10 @@ int main(int argc, char** argv)
 #endif
          }
          else {
-           if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-             SingleDomainDynamic<double> dynamProb(domain);
+           if(domain->solInfo().newmarkBeta == 0) { // explicit
+             SingleDomainDynamic dynamProb(domain);
              DynamicSolver <GenDynamMat<double>, Vector,
-                   SDDynamPostProcessor, SingleDomainDynamic<double>, double>
+                   SDDynamPostProcessor, SingleDomainDynamic, double>
                dynaSolver(&dynamProb);
              dynaSolver.solve();
            }
@@ -1187,7 +1138,7 @@ int main(int argc, char** argv)
      case SolverInfo::MatNonLinDynam: {
          NLMatProbDesc nldynamic(domain);
          NLDynamSolver < Solver, Vector, NLMatProbDesc,
-             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc,Vector, NLState> >
+             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
                  nldynamicSolver(&nldynamic);
          nldynamicSolver.solve();
        }

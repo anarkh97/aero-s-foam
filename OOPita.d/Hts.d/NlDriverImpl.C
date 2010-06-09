@@ -89,7 +89,7 @@ NlDriverImpl::preprocess() {
   vectorSize_ = probDesc()->solVecInfo();
 
   /* Time-domain */
-  fineTimeStep_ = Seconds(solverInfo()->dt);
+  fineTimeStep_ = Seconds(solverInfo()->getTimeStep());
   halfSliceRatio_ = TimeStepCount(solverInfo()->Jratio / 2);
   sliceRatio_ = TimeStepCount(halfSliceRatio_.value() * 2);
   coarseTimeStep_ = fineTimeStep_ * sliceRatio_.value(); 

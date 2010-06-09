@@ -8,6 +8,7 @@
 #include "TimeSliceNetwork.h"
 #include "SeedInitializer.h"
 #include "NlDynamPostProcessor.h"
+#include <Comm.d/Communicator.h>
 
 Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
 

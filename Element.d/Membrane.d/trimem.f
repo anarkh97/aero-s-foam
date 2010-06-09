@@ -1,4 +1,4 @@
-        subroutine trimem(xl,yl,zl,e,nu,h,sm)
+        subroutine trimem(flag, xl,yl,zl,e,nu,h,rk)
 C
 C THIS SUBROUTINE EVALUATES THE STIFFNES MATRIX 
 C FOR THE SPACIAL 9 D.O.F TREE NODE TRIANGLE MEMBRANE   
@@ -24,7 +24,7 @@ C
         integer le(9)
         integer ptr(9)
 C
-        integer i,j
+        integer i,j,flag
         character*10 status
         data le/1,2,7,8,13,14,6,12,18/
         data ptr/1,2,6,7,8,12,13,14,18/
@@ -137,25 +137,35 @@ C.... forming local higher order stiffness for membrane
 C
         call sm3mhe(xlp,ylp,dm,0.32d+00,le,rk,18,status)
 C
+C rotate stiffness matrix from local coordinate system to global
+C coordinate system in the case of linear FEM. In the case of
+C nonlinear FEM with corotational method, do not perform this 
+C transformation as the corotational routines expect a stiffness
+C matrix in local coordinates.
+C
+        if(flag .eq. 1) then
+C
 C.... computing nodal rotation matrices
 C
         call rotation(xp,yp,zp,v1n,v2n,v3n,r1)
 C
 C.... rotate membrane stiffness
 C
-        call trirotation (rk,r1)
+        call trirotation(rk,r1)
 
-        do 60 i=1,9
-          sm(i,1) = rk(ptr(i), 1)
-          sm(i,2) = rk(ptr(i), 2)
-          sm(i,3) = rk(ptr(i), 6)
-          sm(i,4) = rk(ptr(i), 7)
-          sm(i,5) = rk(ptr(i), 8)
-          sm(i,6) = rk(ptr(i),12)
-          sm(i,7) = rk(ptr(i),13)
-          sm(i,8) = rk(ptr(i),14)
-          sm(i,9) = rk(ptr(i),18)
-60      continue
+        endif
+C
+C        do 60 i=1,9
+C          sm(i,1) = rk(ptr(i), 1)
+C          sm(i,2) = rk(ptr(i), 2)
+C          sm(i,3) = rk(ptr(i), 6)
+C          sm(i,4) = rk(ptr(i), 7)
+C          sm(i,5) = rk(ptr(i), 8)
+C          sm(i,6) = rk(ptr(i),12)
+C          sm(i,7) = rk(ptr(i),13)
+C          sm(i,8) = rk(ptr(i),14)
+C          sm(i,9) = rk(ptr(i),18)
+C60      continue
 
         return
         end

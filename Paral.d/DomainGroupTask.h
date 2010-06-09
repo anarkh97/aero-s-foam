@@ -37,10 +37,6 @@ class GenDomainGroupTask : public TaskDescr {
                       double, double, int, int, int solvertype = 0, int isCtcOrDualMpc = 0);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
-   void runFor1(int isub, bool make_feti, FSCommPattern<double> *matPat = 0);
-   void runFor15(int isub, bool make_feti, FSCommPattern<double> *matPat = 0,
-                 FSCommPattern<int> *sPat = 0);
-   void runFor2(int isub, bool make_feti, FSCommPattern<int> *sPat = 0);
 };
 
 typedef GenDomainGroupTask<double> DomainGroupTask;

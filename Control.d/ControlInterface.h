@@ -3,7 +3,7 @@
 
 #include "Math.d/Vector.h"
 template <class Vector> class SysState;
-template <class Scalar> class SingleDomainDynamic;
+class SingleDomainDynamic;
 
 class ControlInterface {
 
@@ -17,7 +17,7 @@ class ControlInterface {
 
     // Control force initialization routine
     virtual void init(double *displacement, double *velocity, double *acc,
-                      SingleDomainDynamic<double> * probDesc=0) = 0;
+                      SingleDomainDynamic * probDesc=0) = 0;
 
     // Control force routine
     virtual void ctrl(double *dis, double *vel, double *acc, double *f,

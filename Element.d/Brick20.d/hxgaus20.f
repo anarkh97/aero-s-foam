@@ -1,5 +1,5 @@
 C--------------------------------------------------------------------
-C     HEXAGAUSSQ returns the hexahedron coordinates of
+C     HXGAUS20 returns the hexahedron coordinates of
 C     sample points and weights for a Gauss-product integration
 C     rule over an isoparametric hexahedron.
 C

@@ -16,7 +16,7 @@
 #include "../CorrectionPropagator.h"
 #include "../SeedInitializer.h"
 
-template <typename Scalar> class SingleDomainDynamic;
+class SingleDomainDynamic;
 class GeoSource;
 class Domain;
 class SolverInfo;
@@ -31,14 +31,14 @@ public:
 
   virtual void solve();
 
-  SingleDomainDynamic<double> * probDesc() const { return probDesc_; }
+  SingleDomainDynamic * probDesc() const { return probDesc_; }
   GeoSource * geoSource() const { return geoSource_; }
   Domain * domain() const { return domain_; }
   SolverInfo * solverInfo() const { return solverInfo_; }
   Communicator * baseComm() const { return baseComm_; }
 
   // Independent from global state
-  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
+  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic * pbDesc,
                                           GeoSource * geoSource,
                                           Domain * domain,
                                           SolverInfo * solverInfo,
@@ -47,7 +47,7 @@ public:
   }
 
 protected:
-  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, GeoSource *, Domain *, SolverInfo *, Communicator *);
+  ReducedLinearDriverImpl(SingleDomainDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
@@ -69,7 +69,7 @@ protected:
 
 private:
   /* Primary sources */
-  SingleDomainDynamic<double> * probDesc_;
+  SingleDomainDynamic * probDesc_;
   GeoSource * geoSource_;
   Domain * domain_;
   SolverInfo * solverInfo_;
@@ -102,6 +102,6 @@ private:
 
 } /* namespace Hts */ } /* end namespace Pita */
 
-Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
+Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic * pbDesc);
 
 #endif /* PITA_HTS_REDUCEDLINEARDRIVERIMPL_H */

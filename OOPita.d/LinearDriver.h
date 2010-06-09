@@ -2,7 +2,7 @@
 #define PITA_LINEARDRIVER_H
 
 #include "Fwk.h"
-template <typename Scalar> class SingleDomainDynamic;
+class SingleDomainDynamic;
 
 namespace Pita {
 
@@ -22,6 +22,6 @@ private:
 
 } // end namespace Pita
 
-extern Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
+extern Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic * pbDesc);
 
 #endif /* PITA_LINEARDRIVER_H */

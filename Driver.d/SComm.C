@@ -18,6 +18,15 @@ SComm::~SComm()
   if(sharedDOFsPlus) delete sharedDOFsPlus;
 }
 
+void 
+SComm::deleteTypeSpecificList(DofType type)
+{
+  if(SubNums && SubNums[type]) { delete [] SubNums[type]; SubNums[type] = 0; }
+  if(TypeMap && TypeMap[type]) { delete [] TypeMap[type]; TypeMap[type] = 0; }
+  if(SharedDOFs && SharedDOFs[type]) { delete SharedDOFs[type]; SharedDOFs[type] = new Connectivity(); }
+  NumNeighb[type] = 0;
+}
+
 void
 SComm::setEdgeNeighb(int _numEdgeNeighb, bool *_isEdgeNeighb)
 {

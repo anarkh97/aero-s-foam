@@ -436,6 +436,15 @@ GenVector<Scalar>::linC(Scalar c1, const GenVector<Scalar> &v1, Scalar c2, const
 
 template<class Scalar>
 void
+GenVector<Scalar>::linC(Scalar c1, const GenVector<Scalar> &v1, Scalar c2, const GenVector<Scalar> &v2,
+                        Scalar c3, const GenVector<Scalar> &v3)
+{
+  for(int i = 0; i < len; ++i)
+    d[i] = c1*v1.d[i] + c2*v2.d[i] + c3*v3.d[i];
+}
+
+template<class Scalar>
+void
 GenVector<Scalar>::swap(GenVector<Scalar> &v1)
 {
  int     lentmp;
@@ -496,6 +505,9 @@ template<class Scalar>
 void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
+ for(int i=0; i<len; ++i) cerr << d[i] << " ";
+ cerr << endl;
+/*
  if(*msg) fprintf(stderr,"%s\n",msg);
  if(d) {
    int i;
@@ -505,6 +517,7 @@ GenVector<Scalar>::print(const char *msg, const char* msg2)
  }
  else
    fprintf(stderr,"--- This GenVector<Scalar> is Null ---\n");
+*/
 }
 
 template<class Scalar>

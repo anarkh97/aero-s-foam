@@ -177,9 +177,20 @@ public:
   void test(ModalGeomState* = 0);
   void printCoefs();
   void initNewton() { /* do nothing */ }
+  void updateMpcRhs(ModalGeomState&) { /* not implemented */ }
+  void updateContactConditions(ModalGeomState*) { /* not implemented */ }
+  void zeroMpcForces() { /* not implemented */ }
+  void addMpcForces(Vector&) { /* not implemented */ }
+  double norm(Vector &v) { return sqrt(v*v); }
+  void deleteContactConditions() { /* not implemented */ }
+  void updateSurfaces(ModalGeomState*,int) { /* not implemented */ }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+  int getThermohFlag() { return domain->solInfo().thermohFlag; }
+  int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
+
+  void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham) { cerr << "NLModalDescr::getNewmarkParameters is not implemented\n"; }
 };
 
 #endif

@@ -163,11 +163,11 @@ void FourierStatic::constructK() {
 //      makeComplexK(mode, SpM);
 //      switch(sinfo.iterType) {
 //          default:
-//          case 2:
+//          case 4:
 //            fprintf(stderr," ... Using Bi-Conjugate Gradient    ...\n");
 //            solver = new ComplexBCGSolver(sinfo.maxit, sinfo.tol, SpM);
 //            break;
-//          case 3:
+//          case 5:
 //            fprintf(stderr," ... Using Conjugate Residual       ...\n");
 //            solver = new ComplexCRSolver(sinfo.maxit, sinfo.tol, SpM);
 //            break;

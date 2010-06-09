@@ -5,7 +5,7 @@
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/DecDomain.h>
 #include <Threads.d/PHelper.h>
-
+#include <Corotational.d/TemperatureState.h>
 
 DistrGeomState::DistrGeomState(DecDomain* domain)
 {
@@ -24,7 +24,10 @@ void
 DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
 {
  SubDomain *sd = domain->getSubDomain(isub);
- gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+ if(sd->solInfo().soltyp == 2)
+   gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+ else
+   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)
@@ -37,7 +40,9 @@ DistrGeomState::DistrGeomState(const DistrGeomState &g2)
 void
 DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
 {
-  gs[isub] = new GeomState(*(g2[isub]));
+  TemperatureState* ts;
+  if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
+  else gs[isub] = new GeomState(*(g2[isub]));
 }
 
 // Subdomain update
@@ -49,19 +54,22 @@ DistrGeomState::subUpdate(int isub, DistrVector &v)
 }
 
 void
-DistrGeomState::subStep_update(int isub, DistrVector &v_n, double &delta, 
-                               DistrGeomState &ss)
+DistrGeomState::subStep_update(int isub, DistrVector &v_n, DistrVector &a_n, 
+                               double &delta, DistrGeomState &ss,
+                               double beta, double gamma, double alphaf, double alpham)
 {
  StackVector vel(v_n.subData(isub),v_n.subLen(isub));
+ StackVector acc(a_n.subData(isub),a_n.subLen(isub));
  GeomState &step = *ss[isub];
- gs[isub]->midpoint_step_update(vel,delta,step);
+ gs[isub]->midpoint_step_update(vel,acc,delta,step,beta,gamma,alphaf,alpham);
 }
 
 void
-DistrGeomState::midpoint_step_update(DistrVector &veloc_n, double &delta, 
-                                     DistrGeomState &ss)
+DistrGeomState::midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n,
+                                     double &delta, DistrGeomState &ss,
+                                     double beta, double gamma, double alphaf, double alpham)
 {
- execParal3R(numSub,this,&DistrGeomState::subStep_update,veloc_n,delta,ss);
+ execParal8R(numSub,this,&DistrGeomState::subStep_update,veloc_n,accel_n,delta,ss,beta,gamma,alphaf,alpham);
 }
 
 void

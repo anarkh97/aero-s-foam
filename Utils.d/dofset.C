@@ -2,8 +2,6 @@
 #include <iostream>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
-#include<Element.d/Shell.d/ThreeNodeShell.h>
-#include <Element.d/MpcElement.d/MpcElement.h>
 
 // PJSA: note changed lagrange dofs to start at 1 (instead of 6) for rigid element corotators
 
@@ -26,33 +24,9 @@ int
       DofSet::IntPress = 1 << 8,
       DofSet::Contact = 1 << 9,
       DofSet::Potential = 1 << 10,
- 
-      DofSet::Lagrange1 = 1 << 0,
-      DofSet::Lagrange2 = 1 << 1,
-      DofSet::Lagrange3 = 1 << 2,
-      DofSet::Lagrange4 = 1 << 3,
-      DofSet::Lagrange5 = 1 << 4,
-      DofSet::Lagrange6 = 1 << 5,
-      DofSet::Lagrange7 = 1 << 6,
-      DofSet::Lagrange8 = 1 << 7,
-      DofSet::Lagrange9 = 1 << 8,
-      DofSet::Lagrange10 = 1 << 9, 
-      DofSet::Lagrange11 = 1 << 10,
-      DofSet::Lagrange12 = 1 << 11,
-      DofSet::Lagrange13 = 1 << 12,
-      DofSet::Lagrange14 = 1 << 13,
-      DofSet::Lagrange15 = 1 << 14,
-      DofSet::Lagrange16 = 1 << 15,
-      DofSet::Lagrange17 = 1 << 16,
-      DofSet::Lagrange18 = 1 << 17 
-     ;
-int DofSet::AllLagrange[18] = {
-   DofSet::Lagrange1,DofSet::Lagrange2,DofSet::Lagrange3,DofSet::Lagrange4,
-   DofSet::Lagrange5,DofSet::Lagrange6,DofSet::Lagrange7,DofSet::Lagrange8,
-   DofSet::Lagrange9,DofSet::Lagrange10,DofSet::Lagrange11,DofSet::Lagrange12,
-   DofSet::Lagrange13,DofSet::Lagrange14,DofSet::Lagrange15,DofSet::Lagrange16,
-   DofSet::Lagrange17,DofSet::Lagrange18 };
+      DofSet::Lagrange = 1 << 0;
     
+DofSet DofSet::nullDofset(-1);
 
 void
 DofSet::print(char* msg)
@@ -127,7 +101,7 @@ DofSet::number(DofSet r, int *list)
 //for DEC
 DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 {
- initialize(); //HB
+ initialize();
  numnodes = nnode;
  dofs = new DofSet[numnodes];
  myDofs = true;
@@ -149,7 +123,7 @@ DofSetArray::DofSetArray(int nnode, int *dofsPerNode, int *renumtable)
 
 DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
 {
- initialize(); //HB
+ initialize();
  rowcolnum=invrowcol=dofType=0;
  myMap = _myMap;
  numnodes = nnode;
@@ -161,13 +135,8 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
  for(iele=0; iele < nele; ++iele) {
    Element *c_ele = eles[iele];
    if(c_ele)
-     if(!c_ele->isPhantomElement())//getProperty())
+     //PJSA this is a bad idea if(!c_ele->isPhantomElement())
        c_ele->markDofs(*this);
-/*  PJSA: any element can now be a phantom, not just a ThreeNodeShell
-     else 
-       if(dynamic_cast<ThreeNodeShell *> (c_ele) == 0) 
-         fprintf(stderr, " *** Non Shell Phantom Element ele %d, type %d\n", iele, c_ele->getElementType());
-*/
  }
  renummap = renumtable;
  makeOffset();
@@ -267,7 +236,9 @@ DofSetArray::makeOffset()
      node_offset[inode] = (jnode >=0 && node_num_dofs[inode] > 0) ? 
                                            remapedoffset[jnode] : -1;
     }
+#ifndef DEBUG_OPENMP
    delete [] remapedoffset;
+#endif
  } else 
    node_offset = remapedoffset;
  node_offset[numnodes] = offset;

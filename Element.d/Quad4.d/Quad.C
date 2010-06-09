@@ -103,24 +103,6 @@ Quad::getMass(CoordSet& cs)
         return mass;
 }
 
-void
-Quad::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
-                              Vector& gravityForce, int gravflg, GeomState *geomState)
-{
-	double coefficient = 1.0/((double) numnod);
-        double massPerNode = coefficient*getMass(cs);
-
-        double fx = massPerNode*gravityAcceleration[0];
-        double fy = massPerNode*gravityAcceleration[1];
-
-	int i;
-	for(i=0; i<numnod; ++i) {
-          gravityForce[2*i]   = fx;
-          gravityForce[2*i+1] = fy;
-	}
-
-}
-
 FullSquareMatrix
 Quad::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {

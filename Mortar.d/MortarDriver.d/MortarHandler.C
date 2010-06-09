@@ -127,8 +127,6 @@ extern Communicator *structCom;
 
 extern Domain *domain;
 
-extern GeoSource *geoSource;
-
 using namespace std;
 
 // -----------------------------------------------------------------------------------------------------
@@ -230,7 +228,6 @@ MortarHandler::~MortarHandler()
   if(Slave_face_index_in_block)  { delete [] Slave_face_index_in_block ; Slave_face_index_in_block = 0; }
   if(Master_face_block_id)       { delete [] Master_face_block_id      ; Master_face_block_id      = 0; }
   if(Master_face_index_in_block) { delete [] Master_face_index_in_block; Master_face_index_in_block= 0; }
-  if(Master_face_procs)          { delete [] Master_face_procs         ; Master_face_procs         = 0; }
   if(Slave_face_procs)           { delete [] Slave_face_procs          ; Slave_face_procs          = 0; }
   if(ACMEFFI_index)              { delete [] ACMEFFI_index             ; ACMEFFI_index             = 0; }
   if(ACMEFFI_data)               { delete [] ACMEFFI_data              ; ACMEFFI_data              = 0; }
@@ -267,9 +264,11 @@ MortarHandler::~MortarHandler()
   if(comm_proc_id) delete [] comm_proc_id;
   if(number_nodes_to_partner) delete [] number_nodes_to_partner;
   if(comm_node) delete [] comm_node; 
-#ifdef DIST_ACME_2
-  delete PtrMasterEntity;
-  delete PtrSlaveEntity;
+#ifdef DISTRIBUTED
+  if(DIST_ACME == 2) {
+    delete PtrMasterEntity;
+    delete PtrSlaveEntity;
+  }
 #endif
 }
 
@@ -310,7 +309,6 @@ MortarHandler::Initialize()
   Slave_face_index_in_block = 0;
   Master_face_block_id      = 0;
   Master_face_index_in_block= 0;
-  Master_face_procs         = 0;
   Slave_face_procs          = 0;
   ACMEFFI_index             = 0;
   ACMEFFI_data              = 0;
@@ -342,6 +340,7 @@ MortarHandler::Initialize()
   wavespeed = 0;
 
   NoSecondary = false;
+  DIST_ACME = domain->solInfo().dist_acme;
 }
 
 /*
@@ -362,7 +361,6 @@ MortarHandler::DeleteFFIData()
   if(Slave_face_index_in_block)  { delete [] Slave_face_index_in_block ; Slave_face_index_in_block = 0; }
   if(Master_face_block_id)       { delete [] Master_face_block_id      ; Master_face_block_id      = 0; }
   if(Master_face_index_in_block) { delete [] Master_face_index_in_block; Master_face_index_in_block= 0; }
-  if(Master_face_procs)          { delete [] Master_face_procs         ; Master_face_procs         = 0; }
   if(Slave_face_procs)           { delete [] Slave_face_procs          ; Slave_face_procs          = 0; }
   if(ACMEFFI_index)              { delete [] ACMEFFI_index             ; ACMEFFI_index             = 0; }
   if(ACMEFFI_data)               { delete [] ACMEFFI_data              ; ACMEFFI_data              = 0; }
@@ -773,6 +771,7 @@ MortarHandler::PerformACMEFFISearch()
   set_search_options();
   perform_search(1); // search_algorithm = 1 (static 1-configuration search)
   get_interactions(4); // interaction_type = 4 (FaceFace)
+  set_node_constraints(domain->nDirichlet(), domain->getDBC()); // YYYY
 }
 #else
 // !!! DUMMY METHOD: SHOULD NOT BE CALLED !!!
@@ -790,6 +789,18 @@ MortarHandler::PerformACMEFFISearch()
 void
 MortarHandler::CreateFFIPolygon()
 {
+  // clear data from previous call to this function
+  CtcPolygons.clear(); 
+  MortarEls.clear();
+  NodalMortars.clear();
+  ActiveSlaveNodes.clear();
+  ActiveSlaveElemSet.deleteElems();
+  ActiveMasterElemSet.deleteElems();
+  if(ActiveSlaveNodeToElem) { delete ActiveSlaveNodeToElem; ActiveSlaveNodeToElem = 0; }
+  if(ActiveMasterNodeToElem) { delete ActiveMasterNodeToElem; ActiveMasterNodeToElem = 0; }
+  if(SlaveFaceToFFIConnect) { delete SlaveFaceToFFIConnect; SlaveFaceToFFIConnect = 0; }
+  ActiveSlaveFacesToMortarEl.clear();
+
   // BRUTE FORCE TEST
   CoordSet& cs = PtrSlaveEntity->GetNodeSet();
 
@@ -944,8 +955,10 @@ MortarHandler::CreateFFIPolygon()
   // Create Mortar element
   bool Dual = false;
   if(MortarType==MortarHandler::DUAL) { Dual = true; }
+#ifdef MORTAR_DEBUG
   if(Dual) filePrint(stderr,"   * Create Dual Mortar elements \n");
   else     filePrint(stderr,"   * Create Std Mortar elements \n"); 
+#endif
   MortarEls.assign(nActiveSlaveFaces, (MortarElement*) 0);
 
   for(int i=0; i<nActiveSlaveFaces; ++i) {
@@ -1029,7 +1042,6 @@ MortarHandler::CreateACMEFFIData()
   Slave_face_index_in_block = new int[nFFI];
   Master_face_block_id      = new int[nFFI];
   Master_face_index_in_block= new int[nFFI];
-  //Master_face_procs         = new int[nFFI];
   //Slave_face_procs          = new int[nFFI];
   ACMEFFI_index             = new int[nFFI];
   ACMEFFI_data              = new double[FFI_data_size];
@@ -1259,22 +1271,17 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   comm_proc_id              = 0;
   number_nodes_to_partner   = 0;
   comm_node                 = 0;
-#if defined(DIST_ACME_1) || defined(DIST_ACME_2)
-  //MPI_Comm mpi_Comm = MPI_COMM_WORLD;
-
-  MPI_Comm &mpi_Comm = *(structCom->getCommunicator());
-/* XXXX perhaps we should use only cpus which have local surface nodes
+#ifdef DISTRIBUTED
+  MPI_Comm mpi_Comm = (DIST_ACME == 0) ? MPI_COMM_SELF : *(structCom->getCommunicator());
+  /* perhaps we should use only cpus which have local surface nodes
   Communicator* allCom[2];
   int color = (PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices() > 0) ? 0 : 1;
   structCom->split(color, 2, allCom);
-  MPI_Comm &mpi_Comm = *(allCom[0]->getCommunicator());
-*/
-#else
-  #ifdef USE_MPI
-    MPI_Comm mpi_Comm = MPI_COMM_SELF;
-  #else 
-    int mpi_Comm = 0;
-  #endif
+  MPI_Comm &mpi_Comm = *(allCom[0]->getCommunicator()); */
+#elif defined(USE_MPI)
+  MPI_Comm mpi_Comm = MPI_COMM_SELF;
+#else 
+  int mpi_Comm = 0;
 #endif
 
   // !! Assume all the face elements in a FaceElemSet are of 2 types: Tri3/Tri6 & Quad4/Quad8 !!
@@ -1322,235 +1329,241 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
 #endif
  
   // -> !!! UNDERLAYING LINEAR FACE ELEMENT NODES !!!
-#ifdef DIST_ACME_1
-  int nMasterFaceElem = (structCom->myID() == 0) ? MasterFaceElemSet->nElems() : 0;
-  int nSlaveFaceElem  = (structCom->myID() == 0) ? SlaveFaceElemSet->nElems() : 0;
-  nMasterNodes    = (structCom->myID() == 0) ? PtrMasterEntity->GetnVertices() : 0; 
-  nSlaveNodes     = (structCom->myID() == 0) ? PtrSlaveEntity->GetnVertices() : 0; 
-#elif defined(DIST_ACME_2)
-  Connectivity *masterFaceElemToNode = new Connectivity(MasterFaceElemSet);
-  SurfaceEntity *PtrLocalMasterEntity = new SurfaceEntity(-1);
-  int num = 0;
-  for(int i=0; i<masterFaceElemToNode->csize(); ++i) { 
-    bool localEle = true;
-    int *glNodes = new int[masterFaceElemToNode->num(i)];
-    for(int j=0; j<masterFaceElemToNode->num(i); ++j) {
-      glNodes[j] = PtrMasterEntity->GetGlNodeId((*masterFaceElemToNode)[i][j]);
-      bool localNode = false;
-      for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true;
-      if(!localNode) localEle = false; 
-    }
-    if(localEle) PtrLocalMasterEntity->AddFaceElement(num++, (*MasterFaceElemSet)[i]->GetACMEFaceElemType(), masterFaceElemToNode->csize(), glNodes);
-    delete [] glNodes;
+  int nMasterFaceElem, nSlaveFaceElem;
+#ifdef DISTRIBUTED
+  Connectivity *nodeToCpu = 0;
+  if(DIST_ACME == 1) {
+    nMasterFaceElem = (structCom->myID() == 0) ? MasterFaceElemSet->nElems() : 0;
+    nSlaveFaceElem  = (structCom->myID() == 0) ? SlaveFaceElemSet->nElems() : 0;
+    nMasterNodes    = (structCom->myID() == 0) ? PtrMasterEntity->GetnVertices() : 0; 
+    nSlaveNodes     = (structCom->myID() == 0) ? PtrSlaveEntity->GetnVertices() : 0; 
   }
-  delete masterFaceElemToNode;
-  PtrLocalMasterEntity->SetUpData(&domain->getNodes());
-  PtrLocalMasterEntity->Renumber();
-  int nMasterFaceElem = PtrLocalMasterEntity->GetPtrFaceElemSet()->nElems();
-  nMasterNodes = PtrLocalMasterEntity->GetnVertices();
-
-  Connectivity *slaveFaceElemToNode = new Connectivity(SlaveFaceElemSet);
-  SurfaceEntity *PtrLocalSlaveEntity = new SurfaceEntity(-2);
-  num = 0;
-  for(int i=0; i<slaveFaceElemToNode->csize(); ++i) {
-    bool localEle = true;
-    int *glNodes = new int[slaveFaceElemToNode->num(i)];
-    for(int j=0; j<slaveFaceElemToNode->num(i); ++j) {
-      glNodes[j] = PtrSlaveEntity->GetGlNodeId((*slaveFaceElemToNode)[i][j]);
-      bool localNode = false;
-      for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true; 
-      if(!localNode) localEle = false;
-    }
-    if(localEle) PtrLocalSlaveEntity->AddFaceElement(num++, (*SlaveFaceElemSet)[i]->GetACMEFaceElemType(), slaveFaceElemToNode->csize(), glNodes);
-    delete [] glNodes;
-  }
-  delete slaveFaceElemToNode;
-  PtrLocalSlaveEntity->SetUpData(&domain->getNodes());
-  PtrLocalSlaveEntity->Renumber();
-  int nSlaveFaceElem = PtrLocalSlaveEntity->GetPtrFaceElemSet()->nElems();
-  nSlaveNodes = PtrLocalSlaveEntity->GetnVertices();
-
-  PtrMasterEntity = PtrLocalMasterEntity;
-  PtrSlaveEntity = PtrLocalSlaveEntity;
-
-  // make cpuToNode
-  int *nn_perCPU = new int[structCom->numCPUs()];
-  for(int i=0; i<structCom->numCPUs(); ++i) nn_perCPU[i] = 0;
-  nn_perCPU[structCom->myID()] = nMasterNodes+nSlaveNodes;
-  structCom->globalSum(structCom->numCPUs(), nn_perCPU);
-  int *ptr =  new int[structCom->numCPUs()+1];
-  ptr[0] = 0;
-  for(int i=0; i<structCom->numCPUs(); ++i) ptr[i+1] = ptr[i] + nn_perCPU[i];
-  delete [] nn_perCPU;
-  int *tgt = new int[ptr[structCom->numCPUs()]];
-  for(int i=0; i<ptr[structCom->numCPUs()]; ++i) tgt[i] = 0;
-  for(int i=0; i<nMasterNodes; ++i) 
-    tgt[ptr[structCom->myID()]+i] = PtrLocalMasterEntity->GetGlVertexId(i); 
-  for(int i=0; i<nSlaveNodes; ++i) 
-    tgt[ptr[structCom->myID()]+nMasterNodes+i] = PtrLocalSlaveEntity->GetGlVertexId(i);
-  structCom->globalSum(ptr[structCom->numCPUs()],tgt);
-  Connectivity *cpuToNode = new Connectivity(structCom->numCPUs(), ptr, tgt);
-  Connectivity *nodeToCpu = cpuToNode->reverse();
-  Connectivity *cpuToCpu = cpuToNode->transcon(nodeToCpu);
-
-  // now make the interface lists
-  int iCpu, jCpu, cpuJ, iNode;
-  int totConnect;
-  int *nConnect = new int[cpuToNode->csize()];
-  int *flag = new int[cpuToNode->csize()];
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
-     flag[iCpu] = -1;
-     nConnect[iCpu] = 0;
-  }
-
-  // Count connectivity
-  totConnect = 0;
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
-    for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) { // loop over the nodes
-      int thisNode = (*cpuToNode)[iCpu][iNode];
-      for(jCpu = 0; jCpu < nodeToCpu->num(thisNode); ++jCpu) {
-        // loop over the subdomains connected to this node
-        cpuJ = (*nodeToCpu)[thisNode][jCpu];
-        if(cpuJ > iCpu) {
-          // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
-          if(flag[cpuJ] != iCpu) {
-            flag[cpuJ] = iCpu;
-            nConnect[iCpu]++;
-            nConnect[cpuJ]++;
-            totConnect += 2;
-          }
-        }
+  else if(DIST_ACME == 2) {
+    Connectivity *masterFaceElemToNode = new Connectivity(MasterFaceElemSet);
+    SurfaceEntity *PtrLocalMasterEntity = new SurfaceEntity(-1);
+    int num = 0;
+    for(int i=0; i<masterFaceElemToNode->csize(); ++i) { 
+      bool localEle = true;
+      int *glNodes = new int[masterFaceElemToNode->num(i)];
+      for(int j=0; j<masterFaceElemToNode->num(i); ++j) {
+        glNodes[j] = PtrMasterEntity->GetGlNodeId((*masterFaceElemToNode)[i][j]);
+        bool localNode = false;
+        for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true;
+        if(!localNode) localEle = false; 
       }
+      if(localEle) PtrLocalMasterEntity->AddFaceElement(num++, (*MasterFaceElemSet)[i]->GetACMEFaceElemType(), masterFaceElemToNode->csize(), glNodes);
+      delete [] glNodes;
     }
-  }
+    delete masterFaceElemToNode;
+    PtrLocalMasterEntity->SetUpData(&domain->getNodes());
+    PtrLocalMasterEntity->Renumber();
+    nMasterFaceElem = PtrLocalMasterEntity->GetPtrFaceElemSet()->nElems();
+    nMasterNodes = PtrLocalMasterEntity->GetnVertices();
 
-  int **nodeCount = new int*[cpuToNode->csize()];
-  int **connectedDomain = new int*[cpuToNode->csize()];
-  int **remoteID = new int*[cpuToNode->csize()];
-
-  // Allocate memory for list of connected subdomains
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
-    int size = nConnect[iCpu];
-    connectedDomain[iCpu] = new int[size];
-    remoteID[iCpu] = new int[size];
-    nodeCount[iCpu] = new int[size];
-    flag[iCpu] = -1;
-    nConnect[iCpu] = 0;
-  }
-
-  int *whichLocal  = new int[cpuToNode->csize()];
-  int *whichRemote = new int[cpuToNode->csize()];
-
-  for(iCpu=0; iCpu < cpuToNode->csize(); ++iCpu) {
-    for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) {
-      int nd = (*cpuToNode)[iCpu][iNode];
-      for(jCpu = 0; jCpu < nodeToCpu->num(nd); ++jCpu) {
-        cpuJ = (*nodeToCpu)[nd][jCpu];
-        if(cpuJ > iCpu) {
-          if(flag[cpuJ] != iCpu) { // attribute location for this sub
-            flag[cpuJ] = iCpu;
-            connectedDomain[cpuJ][nConnect[cpuJ]] = iCpu;
-            connectedDomain[iCpu][nConnect[iCpu]] = cpuJ;
-            remoteID[cpuJ][nConnect[cpuJ]] = nConnect[iCpu];
-            remoteID[iCpu][nConnect[iCpu]] = nConnect[cpuJ];
-            whichLocal[cpuJ] = nConnect[iCpu]++;
-            whichRemote[cpuJ] = nConnect[cpuJ]++;
-            nodeCount[iCpu][whichLocal[cpuJ]] = 1;
-            nodeCount[cpuJ][whichRemote[cpuJ]] = 1;
-          }
-          else {
-            nodeCount[iCpu][whichLocal[cpuJ]]++;
-            nodeCount[cpuJ][whichRemote[cpuJ]]++;
-          }
-        }
+    Connectivity *slaveFaceElemToNode = new Connectivity(SlaveFaceElemSet);
+    SurfaceEntity *PtrLocalSlaveEntity = new SurfaceEntity(-2);
+    num = 0;
+    for(int i=0; i<slaveFaceElemToNode->csize(); ++i) {
+      bool localEle = true;
+      int *glNodes = new int[slaveFaceElemToNode->num(i)];
+      for(int j=0; j<slaveFaceElemToNode->num(i); ++j) {
+        glNodes[j] = PtrSlaveEntity->GetGlNodeId((*slaveFaceElemToNode)[i][j]);
+        bool localNode = false;
+        for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true; 
+        if(!localNode) localEle = false;
       }
+      if(localEle) PtrLocalSlaveEntity->AddFaceElement(num++, (*SlaveFaceElemSet)[i]->GetACMEFaceElemType(), slaveFaceElemToNode->csize(), glNodes);
+      delete [] glNodes;
     }
-  }
-
-  // allocate memory for interface node lists
-  Connectivity **interfNode = new Connectivity *[cpuToNode->csize()];
-  for(iCpu=0; iCpu < cpuToNode->csize(); ++iCpu)
-    interfNode[iCpu] = new Connectivity(nConnect[iCpu], nodeCount[iCpu]);
-
-  // fill the lists
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
-     flag[iCpu]     = -1;
-     nConnect[iCpu] =  0;
-  }
-
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
-    for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) {
-      int nd = (*cpuToNode)[iCpu][iNode];
-      for(jCpu = 0; jCpu < nodeToCpu->num(nd); ++jCpu) {
-        cpuJ = (*nodeToCpu)[nd][jCpu];
-        if(cpuJ > iCpu) {
-          if(flag[cpuJ] != iCpu) { // attribute location for this sub
-            flag[cpuJ] = iCpu;
-            whichLocal[cpuJ] = nConnect[iCpu]++;
-            whichRemote[cpuJ] = nConnect[cpuJ]++;
-            (*interfNode[iCpu])[whichLocal[cpuJ]][0] = nd;
-            (*interfNode[cpuJ])[whichRemote[cpuJ]][0] = nd;
-            nodeCount[iCpu][whichLocal[cpuJ]]=1;
-            nodeCount[cpuJ][whichRemote[cpuJ]]=1;
-          }
-          else {
-            int il = nodeCount[iCpu][whichLocal[cpuJ]]++;
-            (*interfNode[iCpu])[whichLocal[cpuJ]][il] = nd;
-            int jl = nodeCount[cpuJ][whichRemote[cpuJ]]++;
-            (*interfNode[cpuJ])[whichRemote[cpuJ]][jl] = nd;
-          }
-        }
-      }
-    }
-  }
-
-  num_comm_partners = nConnect[structCom->myID()];
-  comm_proc_id = new int[num_comm_partners]; for(int i=0; i<num_comm_partners; ++i) comm_proc_id[i] = connectedDomain[structCom->myID()][i];
-  number_nodes_to_partner = new int[num_comm_partners]; for(int i=0; i<num_comm_partners; ++i) number_nodes_to_partner[i] = interfNode[structCom->myID()]->num(i);
-  comm_node = new int[interfNode[structCom->myID()]->numConnect()];
+    delete slaveFaceElemToNode;
+    PtrLocalSlaveEntity->SetUpData(&domain->getNodes());
+    PtrLocalSlaveEntity->Renumber();
+    nSlaveFaceElem = PtrLocalSlaveEntity->GetPtrFaceElemSet()->nElems();
+    nSlaveNodes = PtrLocalSlaveEntity->GetnVertices();
   
-  std::map<int, int> *slave_entity = PtrLocalSlaveEntity->GetPtrGlToLlVertexMap();
-  std::map<int, int> *master_entity = PtrLocalMasterEntity->GetPtrGlToLlVertexMap();
-  std::map<int, int>::iterator it;
-  for(int i=0; i<interfNode[structCom->myID()]->numConnect(); ++i) {
-    int glnode = interfNode[structCom->myID()]->getTarget()[i];
-    int locnode = -1;
-    if((it = slave_entity->find(glnode)) == slave_entity->end()) {
-      if((it = master_entity->find(glnode)) == master_entity->end()) {
-        cerr<<glnode<<" is not in the slave or master entity!"<<endl;
-      }
-      else { locnode = it->second + nSlaveNodes + 1; }
-    }
-    else { locnode = it->second + 1; }
-    comm_node[i] = locnode;
-  }
-
-  delete [] flag; delete [] whichLocal; delete [] whichRemote;
-  for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) { delete [] nodeCount[iCpu]; delete [] remoteID[iCpu]; delete [] connectedDomain[iCpu]; delete interfNode[iCpu]; }
-  delete [] nodeCount; delete [] remoteID; delete [] connectedDomain; delete [] nConnect;  delete [] interfNode;
-  delete cpuToNode; delete cpuToCpu;
+    PtrMasterEntity = PtrLocalMasterEntity;
+    PtrSlaveEntity = PtrLocalSlaveEntity;
   
+    // make cpuToNode
+    int *nn_perCPU = new int[structCom->numCPUs()];
+    for(int i=0; i<structCom->numCPUs(); ++i) nn_perCPU[i] = 0;
+    nn_perCPU[structCom->myID()] = nMasterNodes+nSlaveNodes;
+    structCom->globalSum(structCom->numCPUs(), nn_perCPU);
+    int *ptr =  new int[structCom->numCPUs()+1];
+    ptr[0] = 0;
+    for(int i=0; i<structCom->numCPUs(); ++i) ptr[i+1] = ptr[i] + nn_perCPU[i];
+    delete [] nn_perCPU;
+    int *tgt = new int[ptr[structCom->numCPUs()]];
+    for(int i=0; i<ptr[structCom->numCPUs()]; ++i) tgt[i] = 0;
+    for(int i=0; i<nMasterNodes; ++i) 
+      tgt[ptr[structCom->myID()]+i] = PtrLocalMasterEntity->GetGlVertexId(i); 
+    for(int i=0; i<nSlaveNodes; ++i) 
+      tgt[ptr[structCom->myID()]+nMasterNodes+i] = PtrLocalSlaveEntity->GetGlVertexId(i);
+    structCom->globalSum(ptr[structCom->numCPUs()],tgt);
+    Connectivity *cpuToNode = new Connectivity(structCom->numCPUs(), ptr, tgt);
+    nodeToCpu = cpuToNode->reverse();
+    Connectivity *cpuToCpu = cpuToNode->transcon(nodeToCpu);
+  
+    // now make the interface lists
+    int iCpu, jCpu, cpuJ, iNode;
+    int totConnect;
+    int *nConnect = new int[cpuToNode->csize()];
+    int *flag = new int[cpuToNode->csize()];
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
+       flag[iCpu] = -1;
+       nConnect[iCpu] = 0;
+    }
+  
+    // Count connectivity
+    totConnect = 0;
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
+      for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) { // loop over the nodes
+        int thisNode = (*cpuToNode)[iCpu][iNode];
+        for(jCpu = 0; jCpu < nodeToCpu->num(thisNode); ++jCpu) {
+          // loop over the subdomains connected to this node
+          cpuJ = (*nodeToCpu)[thisNode][jCpu];
+          if(cpuJ > iCpu) {
+            // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
+            if(flag[cpuJ] != iCpu) {
+              flag[cpuJ] = iCpu;
+              nConnect[iCpu]++;
+              nConnect[cpuJ]++;
+              totConnect += 2;
+            }
+          }
+        }
+      }
+    }
+  
+    int **nodeCount = new int*[cpuToNode->csize()];
+    int **connectedDomain = new int*[cpuToNode->csize()];
+    int **remoteID = new int*[cpuToNode->csize()];
+  
+    // Allocate memory for list of connected subdomains
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
+      int size = nConnect[iCpu];
+      connectedDomain[iCpu] = new int[size];
+      remoteID[iCpu] = new int[size];
+      nodeCount[iCpu] = new int[size];
+      flag[iCpu] = -1;
+      nConnect[iCpu] = 0;
+    }
+  
+    int *whichLocal  = new int[cpuToNode->csize()];
+    int *whichRemote = new int[cpuToNode->csize()];
+  
+    for(iCpu=0; iCpu < cpuToNode->csize(); ++iCpu) {
+      for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) {
+        int nd = (*cpuToNode)[iCpu][iNode];
+        for(jCpu = 0; jCpu < nodeToCpu->num(nd); ++jCpu) {
+          cpuJ = (*nodeToCpu)[nd][jCpu];
+          if(cpuJ > iCpu) {
+            if(flag[cpuJ] != iCpu) { // attribute location for this sub
+              flag[cpuJ] = iCpu;
+              connectedDomain[cpuJ][nConnect[cpuJ]] = iCpu;
+              connectedDomain[iCpu][nConnect[iCpu]] = cpuJ;
+              remoteID[cpuJ][nConnect[cpuJ]] = nConnect[iCpu];
+              remoteID[iCpu][nConnect[iCpu]] = nConnect[cpuJ];
+              whichLocal[cpuJ] = nConnect[iCpu]++;
+              whichRemote[cpuJ] = nConnect[cpuJ]++;
+              nodeCount[iCpu][whichLocal[cpuJ]] = 1;
+              nodeCount[cpuJ][whichRemote[cpuJ]] = 1;
+            }
+            else {
+              nodeCount[iCpu][whichLocal[cpuJ]]++;
+              nodeCount[cpuJ][whichRemote[cpuJ]]++;
+            }
+          }
+        }
+      }
+    }
+  
+    // allocate memory for interface node lists
+    Connectivity **interfNode = new Connectivity *[cpuToNode->csize()];
+    for(iCpu=0; iCpu < cpuToNode->csize(); ++iCpu)
+      interfNode[iCpu] = new Connectivity(nConnect[iCpu], nodeCount[iCpu]);
+  
+    // fill the lists
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
+       flag[iCpu]     = -1;
+       nConnect[iCpu] =  0;
+    }
+  
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) {
+      for(iNode = 0; iNode < cpuToNode->num(iCpu); ++iNode) {
+        int nd = (*cpuToNode)[iCpu][iNode];
+        for(jCpu = 0; jCpu < nodeToCpu->num(nd); ++jCpu) {
+          cpuJ = (*nodeToCpu)[nd][jCpu];
+          if(cpuJ > iCpu) {
+            if(flag[cpuJ] != iCpu) { // attribute location for this sub
+              flag[cpuJ] = iCpu;
+              whichLocal[cpuJ] = nConnect[iCpu]++;
+              whichRemote[cpuJ] = nConnect[cpuJ]++;
+              (*interfNode[iCpu])[whichLocal[cpuJ]][0] = nd;
+              (*interfNode[cpuJ])[whichRemote[cpuJ]][0] = nd;
+              nodeCount[iCpu][whichLocal[cpuJ]]=1;
+              nodeCount[cpuJ][whichRemote[cpuJ]]=1;
+            }
+            else {
+              int il = nodeCount[iCpu][whichLocal[cpuJ]]++;
+              (*interfNode[iCpu])[whichLocal[cpuJ]][il] = nd;
+              int jl = nodeCount[cpuJ][whichRemote[cpuJ]]++;
+              (*interfNode[cpuJ])[whichRemote[cpuJ]][jl] = nd;
+            }
+          }
+        }
+      }
+    }
+  
+    num_comm_partners = nConnect[structCom->myID()];
+    comm_proc_id = new int[num_comm_partners]; for(int i=0; i<num_comm_partners; ++i) comm_proc_id[i] = connectedDomain[structCom->myID()][i];
+    number_nodes_to_partner = new int[num_comm_partners]; for(int i=0; i<num_comm_partners; ++i) number_nodes_to_partner[i] = interfNode[structCom->myID()]->num(i);
+    comm_node = new int[interfNode[structCom->myID()]->numConnect()];
+    
+    std::map<int, int> *slave_entity = PtrLocalSlaveEntity->GetPtrGlToLlVertexMap();
+    std::map<int, int> *master_entity = PtrLocalMasterEntity->GetPtrGlToLlVertexMap();
+    std::map<int, int>::iterator it;
+    for(int i=0; i<interfNode[structCom->myID()]->numConnect(); ++i) {
+      int glnode = interfNode[structCom->myID()]->getTarget()[i];
+      int locnode = -1;
+      if((it = slave_entity->find(glnode)) == slave_entity->end()) {
+        if((it = master_entity->find(glnode)) == master_entity->end()) {
+          cerr<<glnode<<" is not in the slave or master entity!"<<endl;
+        }
+        else { locnode = it->second + nSlaveNodes + 1; }
+      }
+      else { locnode = it->second + 1; }
+      comm_node[i] = locnode;
+    }
+  
+    delete [] flag; delete [] whichLocal; delete [] whichRemote;
+    for(iCpu = 0; iCpu < cpuToNode->csize(); ++iCpu) { delete [] nodeCount[iCpu]; delete [] remoteID[iCpu]; delete [] connectedDomain[iCpu]; delete interfNode[iCpu]; }
+    delete [] nodeCount; delete [] remoteID; delete [] connectedDomain; delete [] nConnect;  delete [] interfNode;
+    delete cpuToNode; delete cpuToCpu;
+    
 #ifdef MORTAR_DEBUG
-  for(int i=0; i<structCom->numCPUs(); ++i) {
-    if(i == structCom->myID()) {
-      cerr << "cpu#" << i << ", num_comm_partners = " << num_comm_partners << ", comm_proc_id = ";
-      for(int j=0; j<num_comm_partners; ++j) cerr << comm_proc_id[j] << " "; cerr << endl;
-      cerr << "number_nodes_to_partner = "; 
-      for(int j=0; j<num_comm_partners; ++j) cerr << number_nodes_to_partner[j] << " "; cerr << endl;
-      cerr << "comm_node = ";
-      for(int j=0; j<interfNode[i]->numConnect(); ++j) cerr << comm_node[j] << " "; cerr << endl;
-      cerr << "interfNode = \n"; interfNode[structCom->myID()]->print();
-    } 
-    structCom->sync();
+    for(int i=0; i<structCom->numCPUs(); ++i) {
+      if(i == structCom->myID()) {
+        cerr << "cpu#" << i << ", num_comm_partners = " << num_comm_partners << ", comm_proc_id = ";
+        for(int j=0; j<num_comm_partners; ++j) cerr << comm_proc_id[j] << " "; cerr << endl;
+        cerr << "number_nodes_to_partner = "; 
+        for(int j=0; j<num_comm_partners; ++j) cerr << number_nodes_to_partner[j] << " "; cerr << endl;
+        cerr << "comm_node = ";
+        for(int j=0; j<interfNode[i]->numConnect(); ++j) cerr << comm_node[j] << " "; cerr << endl;
+        cerr << "interfNode = \n"; interfNode[structCom->myID()]->print();
+      } 
+      structCom->sync();
+    }
+#endif
+  } else 
+#endif
+  {
+    nMasterFaceElem = MasterFaceElemSet->nElems();
+    nSlaveFaceElem  = SlaveFaceElemSet->nElems();
+    nMasterNodes    = PtrMasterEntity->GetnVertices();
+    nSlaveNodes     = PtrSlaveEntity->GetnVertices();
   }
-#endif
 
-#else
-  int nMasterFaceElem = MasterFaceElemSet->nElems();
-  int nSlaveFaceElem  = SlaveFaceElemSet->nElems();
-  nMasterNodes    = PtrMasterEntity->GetnVertices();
-  nSlaveNodes     = PtrSlaveEntity->GetnVertices();
-#endif
 #ifdef MORTAR_DEBUG
   filePrint(stderr,"   * nMasterFaces/nSlaveFaces       = %6d / %6d\n",nMasterFaceElem,nSlaveFaceElem);
   filePrint(stderr,"   * nMasterVertices/nSlaveVertices = %6d / %6d\n",nMasterNodes,nSlaveNodes);
@@ -1579,13 +1592,14 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
     ACMENodesCoord[3*inode+2] = node.z;
     int glnode = PtrSlaveEntity->GetGlVertexId(ivertex);
     node_exodus_ids[inode]    = glnode + 1;
-#ifdef DIST_ACME_2 
-    int mastercpu = (*nodeToCpu)[glnode][0];
-    for(int i=1; i<nodeToCpu->num(glnode); ++i) if((*nodeToCpu)[glnode][i] < mastercpu) mastercpu = (*nodeToCpu)[glnode][i];
-    node_global_ids[2*inode]  = mastercpu;
-#else
-    node_global_ids[2*inode]  = 0; 
+#ifdef DISTRIBUTED
+    if(DIST_ACME == 2) {
+      int mastercpu = (*nodeToCpu)[glnode][0];
+      for(int i=1; i<nodeToCpu->num(glnode); ++i) if((*nodeToCpu)[glnode][i] < mastercpu) mastercpu = (*nodeToCpu)[glnode][i];
+      node_global_ids[2*inode]  = mastercpu;
+    } else
 #endif
+    node_global_ids[2*inode]  = 0; 
     node_global_ids[2*inode+1]= glnode + 1;
     lnodeId = PtrSlaveEntity->GetLlVertexInLlNode(ivertex);
     SlaveNdIdsToACMENdIds[lnodeId]= inode+1; // ACME uses Fortran ordering
@@ -1597,13 +1611,15 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
     ACMENodesCoord[3*inode+2] = node.z;
     int glnode = PtrMasterEntity->GetGlVertexId(ivertex);
     node_exodus_ids[inode]    = glnode + 1;
-#ifdef DIST_ACME_2
-    int mastercpu = (*nodeToCpu)[glnode][0];
-    for(int i=1; i<nodeToCpu->num(glnode); ++i) if((*nodeToCpu)[glnode][i] < mastercpu) mastercpu = (*nodeToCpu)[glnode][i];
-    node_global_ids[2*inode]  = mastercpu;
-#else
-    node_global_ids[2*inode]  = 0;
+#ifdef DISTRIBUTED
+    if(DIST_ACME == 2) {
+      int mastercpu = (*nodeToCpu)[glnode][0];
+      for(int i=1; i<nodeToCpu->num(glnode); ++i) if((*nodeToCpu)[glnode][i] < mastercpu) mastercpu = (*nodeToCpu)[glnode][i];
+      node_global_ids[2*inode]  = mastercpu;
+    }
+    else 
 #endif
+    node_global_ids[2*inode]  = 0;
     node_global_ids[2*inode+1]= glnode + 1;
     lnodeId = PtrMasterEntity->GetLlVertexInLlNode(ivertex);
     MasterNdIdsToACMENdIds[lnodeId]= inode+1; // ACME uses Fortran ordering
@@ -1619,27 +1635,31 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   Connectivity* SlaveACMEBlocksMap = PtrSlaveEntity->GetPtrACMEBlocksMap();
   Connectivity* MasterACMEBlocksMap= PtrMasterEntity->GetPtrACMEBlocksMap();
 
-#ifdef DIST_ACME_1
-  number_faces_per_block[0] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(0) : 0; // number of slave Quad4 face els 
-  number_faces_per_block[1] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(1) : 0; // number of slave Quad8 face els 
-  number_faces_per_block[2] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(2) : 0; // number of slave Tri3 face els 
-  number_faces_per_block[3] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(3) : 0; // number of slave Tri6 face els 
+#ifdef DISTRIBUTED
+  if(DIST_ACME == 1) {
+    number_faces_per_block[0] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(0) : 0; // number of slave Quad4 face els 
+    number_faces_per_block[1] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(1) : 0; // number of slave Quad8 face els 
+    number_faces_per_block[2] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(2) : 0; // number of slave Tri3 face els 
+    number_faces_per_block[3] = (structCom->myID() == 0) ? SlaveACMEBlocksMap->num(3) : 0; // number of slave Tri6 face els 
 
-  number_faces_per_block[4] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(0) : 0; // number of master Quad4 face els 
-  number_faces_per_block[5] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(1) : 0; // number of master Quad8 face els 
-  number_faces_per_block[6] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(2) : 0; // number of master Tri3 face els 
-  number_faces_per_block[7] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(3) : 0; // number of master Tri6 face els 
-#else
-  number_faces_per_block[0] = SlaveACMEBlocksMap->num(0); // number of slave Quad4 face els 
-  number_faces_per_block[1] = SlaveACMEBlocksMap->num(1); // number of slave Quad8 face els 
-  number_faces_per_block[2] = SlaveACMEBlocksMap->num(2); // number of slave Tri3 face els 
-  number_faces_per_block[3] = SlaveACMEBlocksMap->num(3); // number of slave Tri6 face els 
-
-  number_faces_per_block[4] = MasterACMEBlocksMap->num(0); // number of master Quad4 face els 
-  number_faces_per_block[5] = MasterACMEBlocksMap->num(1); // number of master Quad8 face els 
-  number_faces_per_block[6] = MasterACMEBlocksMap->num(2); // number of master Tri3 face els 
-  number_faces_per_block[7] = MasterACMEBlocksMap->num(3); // number of master Tri6 face els 
+    number_faces_per_block[4] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(0) : 0; // number of master Quad4 face els 
+    number_faces_per_block[5] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(1) : 0; // number of master Quad8 face els 
+    number_faces_per_block[6] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(2) : 0; // number of master Tri3 face els 
+    number_faces_per_block[7] = (structCom->myID() == 0) ? MasterACMEBlocksMap->num(3) : 0; // number of master Tri6 face els 
+  }
+  else 
 #endif
+  {
+    number_faces_per_block[0] = SlaveACMEBlocksMap->num(0); // number of slave Quad4 face els 
+    number_faces_per_block[1] = SlaveACMEBlocksMap->num(1); // number of slave Quad8 face els 
+    number_faces_per_block[2] = SlaveACMEBlocksMap->num(2); // number of slave Tri3 face els 
+    number_faces_per_block[3] = SlaveACMEBlocksMap->num(3); // number of slave Tri6 face els 
+
+    number_faces_per_block[4] = MasterACMEBlocksMap->num(0); // number of master Quad4 face els 
+    number_faces_per_block[5] = MasterACMEBlocksMap->num(1); // number of master Quad8 face els 
+    number_faces_per_block[6] = MasterACMEBlocksMap->num(2); // number of master Tri3 face els 
+    number_faces_per_block[7] = MasterACMEBlocksMap->num(3); // number of master Tri6 face els 
+  }
  
   int  size_face_connectivity = 4*(number_faces_per_block[0] + number_faces_per_block[1])
                               + 3*(number_faces_per_block[2] + number_faces_per_block[3])  
@@ -1653,15 +1673,18 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
 #endif
   int* face_connectivity = new int[size_face_connectivity];
 
-#ifdef DIST_ACME_1
-  int offset = (structCom->myID() == 0) ? PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true) : 0;
-  offset += ((structCom->myID() == 0) ? PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true) : 0);
-#else
-  // first: the slave face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
-  int offset = PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true);
-  // second: the master face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
-  offset += PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true);
+#ifdef DISTRIBUTED
+  if(DIST_ACME == 1) {
+    int offset = (structCom->myID() == 0) ? PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true) : 0;
+    offset += ((structCom->myID() == 0) ? PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true) : 0);
+  } else
 #endif
+  {
+    // first: the slave face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
+    int offset = PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true);
+    // second: the master face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
+    offset += PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true);
+  }
  
   // map ACME topology to ACME node numbering
 #ifdef MORTAR_DEBUG
@@ -1711,11 +1734,12 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
  
   int* face_global_ids = new int[2*(nSlaveFaceElem+nMasterFaceElem)];
   for(int i=0; i<nSlaveFaceElem+nMasterFaceElem; i++) {
-#ifdef DIST_ACME_2
-    face_global_ids[2*i  ] = structCom->myID();
-#else
-    face_global_ids[2*i  ] =  0 ;
+#ifdef DISTRIBUTED
+    if(DIST_ACME == 2) {
+      face_global_ids[2*i] = structCom->myID();
+    } else 
 #endif
+    face_global_ids[2*i] = 0;
     face_global_ids[2*i+1] = i+1;
   } 
 
@@ -1888,7 +1912,7 @@ MortarHandler::set_search_data(int interaction_type)
     Search_Data[step_size*( 4+i)] = Interaction_Typ;
     Search_Data[step_size*(12+i)] = Interaction_Typ;
     Search_Data[step_size*(20+i)] = Interaction_Typ;
-    Search_Data[step_size*(28+i)] = Interaction_Typ; 
+    Search_Data[step_size*(28+i)] = Interaction_Typ;
   }
 
 #ifdef MORTAR_DEBUG
@@ -1989,15 +2013,18 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
         Node &node = PtrSlaveEntity->GetVertex(ivertex);
-#ifdef DIST_ACME_2
-        positions[3*inode+0] = node.x;
-        positions[3*inode+1] = node.y;
-        positions[3*inode+2] = node.z;
-#else
-        positions[3*inode+0] += (node.x/double(share[3*inode+0]));
-        positions[3*inode+1] += (node.y/double(share[3*inode+1]));
-        positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+#ifdef DISTRIBUTED
+        if(DIST_ACME != 2) {
+          positions[3*inode+0] += (node.x/double(share[3*inode+0]));
+          positions[3*inode+1] += (node.y/double(share[3*inode+1]));
+          positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+        } else 
 #endif
+        {
+          positions[3*inode+0] = node.x;
+          positions[3*inode+1] = node.y;
+          positions[3*inode+2] = node.z;
+        }
       }
     }
     for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
@@ -2005,27 +2032,42 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
         Node &node = PtrMasterEntity->GetVertex(ivertex);
-#ifdef DIST_ACME_2
-        positions[3*inode+0] = node.x;
-        positions[3*inode+1] = node.y;
-        positions[3*inode+2] = node.z;
-#else
-        positions[3*inode+0] += (node.x/double(share[3*inode+0]));
-        positions[3*inode+1] += (node.y/double(share[3*inode+1]));
-        positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+#ifdef DISTRIBUTED
+        if(DIST_ACME != 2) {
+          positions[3*inode+0] += (node.x/double(share[3*inode+0]));
+          positions[3*inode+1] += (node.y/double(share[3*inode+1]));
+          positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+        } else
 #endif
+        {
+          positions[3*inode+0] = node.x;
+          positions[3*inode+1] = node.y;
+          positions[3*inode+2] = node.z;
+        }
       }
     }
   }
 #ifdef DISTRIBUTED
-#ifdef DIST_ACME_1
-  structCom->reduce(3*num_nodes, positions, 0);
-  if(structCom->myID() != 0) { delete [] positions; positions = 0; num_nodes = 0; }
-#elif defined(DIST_ACME_2)
-  /* do nothing */
-#else
-  structCom->globalSum(3*num_nodes, positions);
-#endif
+  if(DIST_ACME == 0) {
+    structCom->globalSum(3*num_nodes, positions);
+    int inode = 0;
+    for(int ivertex=0; ivertex< PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
+      Node &node = PtrSlaveEntity->GetVertex(ivertex);
+      node.x = positions[3*inode+0];
+      node.y = positions[3*inode+1];
+      node.z = positions[3*inode+2];
+    }
+    for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
+      Node &node = PtrMasterEntity->GetVertex(ivertex);
+      node.x = positions[3*inode+0];
+      node.y = positions[3*inode+1];
+      node.z = positions[3*inode+2];
+    }
+  }
+  else if(DIST_ACME == 1) {
+    structCom->reduce(3*num_nodes, positions, 0);
+    if(structCom->myID() != 0) { delete [] positions; positions = 0; num_nodes = 0; }
+  }
 #endif
 
   ContactSearch::ContactNode_Configuration config = (config_type == 1) ? ContactSearch::CURRENT_CONFIG : ContactSearch::PREDICTED_CONFIG;
@@ -2172,15 +2214,14 @@ MortarHandler::set_node_constraints(int numSub, SubDomain **sd)
     }
   }
 #ifdef DISTRIBUTED
-#if defined(DIST_ACME_1)
-  structCom->reduce(num_nodes, constraints_per_node, 0, MPI_MAX);
-  structCom->reduce(3*num_nodes, constraint_vector, 0, MPI_MAX);
-#elif defined(DIST_ACME_2)
-  /* do nothing */
-#else
-  structCom->globalMax(num_nodes, constraints_per_node);
-  structCom->globalMax(3*num_nodes, constraint_vector);
-#endif
+  if(DIST_ACME == 0) {
+    structCom->globalMax(num_nodes, constraints_per_node);
+    structCom->globalMax(3*num_nodes, constraint_vector);
+  }
+  else if(DIST_ACME == 1) {
+    structCom->reduce(num_nodes, constraints_per_node, 0, MPI_MAX);
+    structCom->reduce(3*num_nodes, constraint_vector, 0, MPI_MAX);
+  }
 #endif
 
   int node_block_id = 1;
@@ -2305,6 +2346,14 @@ MortarHandler::get_interactions(int interaction_type)
     default:
     case 4 : // FaceFace_Interactions
     {
+      if(Slave_face_block_id) { delete [] Slave_face_block_id; Slave_face_block_id = 0; }
+      if(Slave_face_index_in_block) { delete [] Slave_face_index_in_block; Slave_face_index_in_block = 0; }
+      if(Master_face_block_id) { delete [] Master_face_block_id; Master_face_block_id = 0; }
+      if(Master_face_index_in_block) { delete [] Master_face_index_in_block; Master_face_index_in_block = 0; }
+      if(Slave_face_procs) { delete [] Slave_face_procs; Slave_face_procs = 0; }
+      if(ACMEFFI_index) { delete [] ACMEFFI_index; ACMEFFI_index = 0; }
+      if(ACMEFFI_data) { delete [] ACMEFFI_data; ACMEFFI_data = 0; }
+
       int num_FFI = 0;
       int FFI_data_size = 0; 
       search_obj->Size_FaceFace_Interactions(num_FFI,FFI_data_size);
@@ -2321,7 +2370,6 @@ MortarHandler::get_interactions(int interaction_type)
 	Slave_face_index_in_block = new int[num_FFI];
 	Master_face_block_id      = new int[num_FFI];
 	Master_face_index_in_block= new int[num_FFI];
-	Master_face_procs         = new int[num_FFI];
 	Slave_face_procs          = new int[num_FFI];
 	ACMEFFI_index             = new int[num_FFI];
 	ACMEFFI_data              = new double[FFI_data_size];
@@ -2336,8 +2384,10 @@ MortarHandler::get_interactions(int interaction_type)
 					     ACMEFFI_index,
 					     ACMEFFI_data);
       } else {
+#ifdef MORTAR_DEBUG
         filePrint(stderr," *** WARNING: no Face-Face interaction found between master surf %2d & slave surf %2d\n",
                   MasterEntityId, SlaveEntityId);
+#endif
       } 
     } break;
 
@@ -2522,7 +2572,7 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
   share = new int[3*num_nodes];
   for(int i=0; i<3*num_nodes; ++i) share[i] = 0;
 
-  int dofs[3]; int count; double m;
+  int k = 0; int dofs[3]; int count; double m;
   for(int s = 0; s < numSub; ++s) {
     ConstrainedDSA *c_dsa = sd[s]->getCDSA();
     int inode = 0;
@@ -2564,72 +2614,155 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
     }
   }
 #ifdef DISTRIBUTED
-#ifdef DIST_ACME_1
-  structCom->reduce(num_nodes, mass, 0);
-  structCom->reduce(3*num_nodes, share, 0);
-  if(structCom->myID() != 0) { delete [] mass; mass = 0; }
-#elif defined(DIST_ACME_2)
-  FSCommunicator *communicator = new FSCommunicator(structCom);
-  int myCPU = communicator->cpuNum();
-  int numCPUs = communicator->size();
-  int *_ptr = new int[numCPUs+1]; for(int i=0;i<numCPUs+1;++i) _ptr[i] = i;
-  int *_tgt = new int[numCPUs]; for(int i=0;i<numCPUs;++i) _tgt[i] = i;
-  Connectivity *cpuToSelf = new Connectivity(numCPUs,_ptr,_tgt);
-  // comm pattern for shared nodal mass
-  FSCommPattern<double> *pat1 = new FSCommPattern<double>(communicator, cpuToSelf, myCPU, FSCommPattern<double>::CopyOnSend);
-  for(int i = 0; i < num_comm_partners; ++i) pat1->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]);
-  pat1->finalize();
-  // comm pattern for shared dof weighting
-  FSCommPattern<int> *pat2 = new FSCommPattern<int>(communicator, cpuToSelf, myCPU, FSCommPattern<int>::CopyOnSend);
-  for(int i = 0; i < num_comm_partners; ++i) pat2->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]*3);
-  pat2->finalize();
+  if(DIST_ACME == 0) {
+    structCom->globalSum(num_nodes, mass);
+    structCom->globalSum(3*num_nodes, share);
+  }
+  else if(DIST_ACME == 1) {
+    structCom->reduce(num_nodes, mass, 0);
+    structCom->globalSum(3*num_nodes, share);
+    if(structCom->myID() != 0) { delete [] mass; mass = 0; }
+  }
+  else if(DIST_ACME == 2) {
+    FSCommunicator *communicator = new FSCommunicator(structCom);
+    int myCPU = communicator->cpuNum();
+    int numCPUs = communicator->size();
+    int *_ptr = new int[numCPUs+1]; for(int i=0;i<numCPUs+1;++i) _ptr[i] = i;
+    int *_tgt = new int[numCPUs]; for(int i=0;i<numCPUs;++i) _tgt[i] = i;
+    Connectivity *cpuToSelf = new Connectivity(numCPUs,_ptr,_tgt);
+    // comm pattern for shared nodal mass
+    FSCommPattern<double> *pat1 = new FSCommPattern<double>(communicator, cpuToSelf, myCPU, FSCommPattern<double>::CopyOnSend);
+    for(int i = 0; i < num_comm_partners; ++i) pat1->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]);
+    pat1->finalize();
+    // comm pattern for shared dof weighting
+    FSCommPattern<int> *pat2 = new FSCommPattern<int>(communicator, cpuToSelf, myCPU, FSCommPattern<int>::CopyOnSend);
+    for(int i = 0; i < num_comm_partners; ++i) pat2->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]*3);
+    pat2->finalize();
 
-  // send and receive the shared nodal mass
-  int k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<double> info = pat1->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      info.data[j] = mass[comm_node[k]-1];
+    // send and receive the shared nodal mass
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<double> info = pat1->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        info.data[j] = mass[comm_node[k]-1];
+      }
     }
-  }
-  pat1->exchange();
-  k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<double> info = pat1->recData(comm_proc_id[i],communicator->cpuNum());
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      mass[comm_node[k]-1] += info.data[j];
+    pat1->exchange();
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<double> info = pat1->recData(comm_proc_id[i],communicator->cpuNum());
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        mass[comm_node[k]-1] += info.data[j];
+      }
     }
+
+    // send and receive the shared dof weighting
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<int> info = pat2->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        info.data[3*j+0] = share[3*(comm_node[k]-1)+0];
+        info.data[3*j+1] = share[3*(comm_node[k]-1)+1];
+        info.data[3*j+2] = share[3*(comm_node[k]-1)+2];
+      }
+    }
+    pat2->exchange();
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<int> info = pat2->recData(comm_proc_id[i],communicator->cpuNum());
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        share[3*(comm_node[k]-1)+0] += info.data[3*j+0];
+        share[3*(comm_node[k]-1)+1] += info.data[3*j+1];
+        share[3*(comm_node[k]-1)+2] += info.data[3*j+2];
+      }
+    }
+    
+    delete cpuToSelf; delete pat1; delete pat2;
   }
 
-  // send and receive the shared dof weighting
-  k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<int> info = pat2->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      info.data[3*j+0] = share[3*(comm_node[k]-1)+0];
-      info.data[3*j+1] = share[3*(comm_node[k]-1)+1];
-      info.data[3*j+2] = share[3*(comm_node[k]-1)+2];
-    }
-  }
-  pat2->exchange();
-  k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<int> info = pat2->recData(comm_proc_id[i],communicator->cpuNum());
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      share[3*(comm_node[k]-1)+0] += info.data[3*j+0];
-      share[3*(comm_node[k]-1)+1] += info.data[3*j+1];
-      share[3*(comm_node[k]-1)+2] += info.data[3*j+2];
-    }
-  }
-  
-  delete cpuToSelf; delete pat1; delete pat2;
-#else
-  structCom->globalSum(num_nodes, mass);
-  structCom->globalSum(3*num_nodes, share);
+  if(!(DIST_ACME == 1 && structCom->myID() != 0))
 #endif
-#endif
-
   for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // XXXX dummy value for constrained nodes
+  for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
+}
+
+void
+MortarHandler::make_share(int numSub, SubDomain **sd)
+{
+  // multiple domain version
+  int num_nodes = PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices();
+  share = new int[3*num_nodes];
+  for(int i=0; i<3*num_nodes; ++i) share[i] = 0;
+
+  int k = 0; int dofs[3]; int count; double m;
+  for(int s = 0; s < numSub; ++s) {
+    ConstrainedDSA *c_dsa = sd[s]->getCDSA();
+    int inode = 0;
+    for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {
+      int glNode = PtrSlaveEntity->GetGlVertexId(i);
+      int locNode = sd[s]->globalToLocal(glNode);
+      if(locNode > -1) {
+        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        for(int j=0; j<3; ++j) {
+          if(dofs[j] > -1) {
+            share[3*inode+j] += 1;
+          }
+        }
+      }
+    }
+    for(int i = 0; i<PtrMasterEntity->GetnVertices(); ++i, ++inode) {
+      int glNode = PtrMasterEntity->GetGlVertexId(i);
+      int locNode = sd[s]->globalToLocal(glNode);
+      if(locNode > -1) {
+        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        for(int j=0; j<3; ++j) {
+          if(dofs[j] > -1) {
+            share[3*inode+j] += 1;
+          }
+        }
+      }
+    }
+  }
+#ifdef DISTRIBUTED
+  if(DIST_ACME != 2) {
+    structCom->globalSum(3*num_nodes, share);
+  }
+  else {
+    FSCommunicator *communicator = new FSCommunicator(structCom);
+    int myCPU = communicator->cpuNum();
+    int numCPUs = communicator->size();
+    int *_ptr = new int[numCPUs+1]; for(int i=0;i<numCPUs+1;++i) _ptr[i] = i;
+    int *_tgt = new int[numCPUs]; for(int i=0;i<numCPUs;++i) _tgt[i] = i;
+    Connectivity *cpuToSelf = new Connectivity(numCPUs,_ptr,_tgt);
+    // comm pattern for shared dof weighting
+    FSCommPattern<int> *pat2 = new FSCommPattern<int>(communicator, cpuToSelf, myCPU, FSCommPattern<int>::CopyOnSend);
+    for(int i = 0; i < num_comm_partners; ++i) pat2->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]*3);
+    pat2->finalize();
+
+    // send and receive the shared dof weighting
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<int> info = pat2->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        info.data[3*j+0] = share[3*(comm_node[k]-1)+0];
+        info.data[3*j+1] = share[3*(comm_node[k]-1)+1];
+        info.data[3*j+2] = share[3*(comm_node[k]-1)+2];
+      }
+    }
+    pat2->exchange();
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<int> info = pat2->recData(comm_proc_id[i],communicator->cpuNum());
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        share[3*(comm_node[k]-1)+0] += info.data[3*j+0];
+        share[3*(comm_node[k]-1)+1] += info.data[3*j+1];
+        share[3*(comm_node[k]-1)+2] += info.data[3*j+2];
+      }
+    }
+
+    delete cpuToSelf; delete pat2;
+  }
+#endif
   for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
 }
 
@@ -2714,51 +2847,54 @@ MortarHandler::make_kinematic_partitioning(int numSub, SubDomain **sd)
   }
 
 #ifdef DISTRIBUTED
-#ifdef DIST_ACME_1
-  structCom->reduce(num_nodes, density, 0);
-  structCom->reduce(num_nodes, wavespeed, 0);
-  structCom->reduce(num_nodes, count, 0);
-  if(structCom->myID() != 0) { delete [] density; density = 0; delete [] wavespeed; wavespeed = 0; }
-#elif defined(DIST_ACME_2)
-  FSCommunicator *communicator = new FSCommunicator(structCom);
-  int myCPU = communicator->cpuNum();
-  int numCPUs = communicator->size();
-  int *_ptr = new int[numCPUs+1]; for(int i=0;i<numCPUs+1;++i) _ptr[i] = i;
-  int *_tgt = new int[numCPUs]; for(int i=0;i<numCPUs;++i) _tgt[i] = i;
-  Connectivity *cpuToSelf = new Connectivity(numCPUs,_ptr,_tgt);
+  if(DIST_ACME == 0) {
+    structCom->globalSum(num_nodes, density);
+    structCom->globalSum(num_nodes, wavespeed);
+    structCom->globalSum(num_nodes, count);
+  }
+  else if(DIST_ACME == 1) {
+    structCom->reduce(num_nodes, density, 0);
+    structCom->reduce(num_nodes, wavespeed, 0);
+    structCom->reduce(num_nodes, count, 0);
+    if(structCom->myID() != 0) { delete [] density; density = 0; delete [] wavespeed; wavespeed = 0; }
+  }
+  else if(DIST_ACME == 2) {
+    FSCommunicator *communicator = new FSCommunicator(structCom);
+    int myCPU = communicator->cpuNum();
+    int numCPUs = communicator->size();
+    int *_ptr = new int[numCPUs+1]; for(int i=0;i<numCPUs+1;++i) _ptr[i] = i;
+    int *_tgt = new int[numCPUs]; for(int i=0;i<numCPUs;++i) _tgt[i] = i;
+    Connectivity *cpuToSelf = new Connectivity(numCPUs,_ptr,_tgt);
     // comm pattern for shared interface force
-  FSCommPattern<double> *pat3 = new FSCommPattern<double>(communicator, cpuToSelf, myCPU, FSCommPattern<double>::CopyOnSend);
-  for(int i = 0; i < num_comm_partners; ++i) pat3->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]*3);
-  pat3->finalize();
+    FSCommPattern<double> *pat3 = new FSCommPattern<double>(communicator, cpuToSelf, myCPU, FSCommPattern<double>::CopyOnSend);
+    for(int i = 0; i < num_comm_partners; ++i) pat3->setLen(myCPU, comm_proc_id[i], number_nodes_to_partner[i]*3);
+    pat3->finalize();
 
-  int k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<double> info = pat3->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      info.data[3*j+0] = density[comm_node[k]-1];
-      info.data[3*j+1] = wavespeed[comm_node[k]-1];
-      info.data[3*j+2] = double(count[comm_node[k]-1]);
+    int k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<double> info = pat3->getSendBuffer(communicator->cpuNum(), comm_proc_id[i]);
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        info.data[3*j+0] = density[comm_node[k]-1];
+        info.data[3*j+1] = wavespeed[comm_node[k]-1];
+        info.data[3*j+2] = double(count[comm_node[k]-1]);
+      }
     }
-  }
-  pat3->exchange();
-  k = 0;
-  for(int i = 0; i < num_comm_partners; ++i) {
-    FSSubRecInfo<double> info = pat3->recData(comm_proc_id[i],communicator->cpuNum());
-    for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
-      density[comm_node[k]-1] += info.data[3*j+0];
-      wavespeed[comm_node[k]-1] += info.data[3*j+1];
-      count[comm_node[k]-1] += int(info.data[3*j+2]);
+    pat3->exchange();
+    k = 0;
+    for(int i = 0; i < num_comm_partners; ++i) {
+      FSSubRecInfo<double> info = pat3->recData(comm_proc_id[i],communicator->cpuNum());
+      for(int j = 0; j < number_nodes_to_partner[i]; ++j,++k) {
+        density[comm_node[k]-1] += info.data[3*j+0];
+        wavespeed[comm_node[k]-1] += info.data[3*j+1];
+        count[comm_node[k]-1] += int(info.data[3*j+2]);
+      }
     }
-  }
   
-  delete cpuToSelf; delete pat3;
-#else
-  structCom->globalSum(num_nodes, density);
-  structCom->globalSum(num_nodes, wavespeed);
-  structCom->globalSum(num_nodes, count);
-#endif
-#endif
+    delete cpuToSelf; delete pat3;
+  }
 
+  if(!(DIST_ACME == 1 && structCom->myID() != 0))
+#endif
   for(int i=0; i<num_nodes; ++i) { density[i] /= double(count[i]); wavespeed[i] /= double(count[i]); }
   delete [] count;
 }
@@ -2798,12 +2934,14 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
       std::cerr << contact_obj->Error_Message(i) << std::endl;
     exit(error);
   }
-#ifdef DIST_ACME_1
-  if(structCom->myID() != 0) {
-    nACMENodes = PtrMasterEntity->GetnVertices() + PtrSlaveEntity->GetnVertices();
-    force = new double[nACMENodes*3];
+#ifdef DISTRIBUTED
+  if(DIST_ACME == 1) {
+    if(structCom->myID() != 0) {
+      nACMENodes = PtrMasterEntity->GetnVertices() + PtrSlaveEntity->GetnVertices();
+      force = new double[nACMENodes*3];
+    }
+    structCom->broadcast(3*nACMENodes, force, 0);
   }
-  structCom->broadcast(3*nACMENodes, force, 0);
 #endif
 
   // assemble contact force

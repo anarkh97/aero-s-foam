@@ -1100,26 +1100,6 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
  times.reOrtho += getTime();
 }
 
-//HB: add DistrGeomState as input to compute follower load (i.e. pressure)
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, DistrGeomState *gs)
-{
-  filePrint(stderr," ... Building the Force             ...\n");
-  f.zero();
-  timedParal2R(times.buildRhs,nsub,this,&GenFetiSolver<Scalar>::makeSubdomainStaticLoad, f, gs);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeSubdomainStaticLoad(int iSub, GenDistrVector<Scalar> &f, DistrGeomState *gs)
-{
-  GeomState *subgs = 0;
-  if(gs) subgs = (*gs)[iSub];
-  sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),subgs);
-}
-
-
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, double omega, double deltaomega,  DistrGeomState *gs)
@@ -1141,10 +1121,7 @@ GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Sca
   if(gs) subgs = (*gs)[iSub];
 
   sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),tmp.subData(sd[iSub]->localSubNum()),o[0],o[1],subgs);
-
 }
-
-
 
 template<class Scalar>
 void
@@ -1722,7 +1699,7 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   // FETI-DP
   zeroPointers();
   r       = new GenDistrVector<Scalar>(interface);
-  lambda  = new GenDistrVector<Scalar>(interface);
+  lambda  = new GenDistrVector<Scalar>(interface); lambda->zero();
   z       = new GenDistrVector<Scalar>(interface);
   p       = new GenDistrVector<Scalar>(interface);
   Fp      = new GenDistrVector<Scalar>(interface);
@@ -1732,6 +1709,7 @@ GenFetiWorkSpace<Scalar>::GenFetiWorkSpace(DistrInfo& interface, DistrInfo& loca
   if(contact) {
     deltaL  = new GenDistrVector<Scalar>(interface);
     q       = new GenDistrVector<Scalar>(interface);
+    wc      = new GenDistrVector<Scalar>(interface);
   }
 
   fr      = new GenDistrVector<Scalar>(local);
@@ -1763,6 +1741,7 @@ GenFetiWorkSpace<Scalar>::save()
   if(!Fp_copy) Fp_copy = new GenDistrVector<Scalar>(*Fp); else *Fp_copy = *Fp;
   if(!du_copy) du_copy = new GenDistrVector<Scalar>(*du); else *du_copy = *du;
   if(!duc_copy) duc_copy = new GenVector<Scalar>(*duc); else *duc_copy = *duc;
+  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
 }
 
 template<class Scalar>
@@ -1774,9 +1753,9 @@ GenFetiWorkSpace<Scalar>::save_lambda()
 
 template<class Scalar>
 void
-GenFetiWorkSpace<Scalar>::save_p()
+GenFetiWorkSpace<Scalar>::save_w()
 {
-  if(!p_copy) p_copy = new GenDistrVector<Scalar>(*p); else *p_copy = *p;
+  if(!w_copy) w_copy = new GenDistrVector<Scalar>(*w); else *w_copy = *w;
 }
 
 template<class Scalar>
@@ -1791,15 +1770,7 @@ GenFetiWorkSpace<Scalar>::restore(bool flag)
     *du = *du_copy; 
     *duc = *duc_copy;
   }
-}
-
-template<class Scalar>
-void
-GenFetiWorkSpace<Scalar>::save_initial()
-{
-  if(!r0) r0 = new GenDistrVector<Scalar>(*r); else *r0 = *r;
-  if(!lambda0) lambda0 = new GenDistrVector<Scalar>(*lambda); else *lambda0 = *lambda;
-  if(!gamma0) gamma0 = new GenVector<Scalar>(*gamma); else *gamma0 = *gamma;
+  *w = *w_copy;
 }
 
 template<class Scalar>
@@ -1820,11 +1791,8 @@ GenFetiWorkSpace<Scalar>::zeroPointers()
   gamma = 0; working = 0;
   fc = 0; uc = 0;
   duc = 0; 
-  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; ur_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0;
+  lambda_copy = 0; p_copy = 0; r_copy = 0; Fp_copy = 0; du_copy = 0; uc_copy = 0; duc_copy = 0; w_copy = 0;
   fw = 0; e = 0;
-  r0 = 0; lambda0 = 0; gamma0 = 0;
-  deltaL = 0;
-  q = 0;
 }
 
 template<class Scalar>
@@ -1863,17 +1831,11 @@ GenFetiWorkSpace<Scalar>::clean_up()
   if(p_copy) p_copy->clean_up();
   if(r_copy) r_copy->clean_up();
   if(Fp_copy) Fp->clean_up();
-  if(ur_copy) ur_copy->clean_up();
   if(du_copy) du_copy->clean_up();
   if(uc_copy) uc_copy->clean_up();
   if(duc_copy) duc_copy->clean_up();
   if(fw) fw->clean_up();
   if(e) e->clean_up();
-  if(r0) r->clean_up();
-  if(lambda0) lambda->clean_up();
-  if(gamma0) gamma0->clean_up();
-  if(deltaL) deltaL->clean_up();
-  if(q) q->clean_up();
 }
 
 template<class Scalar>
@@ -1911,17 +1873,11 @@ GenFetiWorkSpace<Scalar>::~GenFetiWorkSpace()
   if(p_copy) delete p_copy;
   if(r_copy) delete r_copy;
   if(Fp_copy) delete Fp_copy;
-  if(ur_copy) delete ur_copy;
   if(du_copy) delete du_copy;
   if(uc_copy) delete uc_copy;
   if(duc_copy) delete duc_copy;
   if(fw) delete fw;
   if(e) delete e;
-  if(r0) delete r0;
-  if(lambda0) delete lambda0;
-  if(gamma0) delete gamma0;
-  if(deltaL) delete deltaL;
-  if(q) delete q;
 }
 
 template<class Scalar>
@@ -3932,6 +3888,13 @@ GenFetiSolver<Scalar>::newSolver(int type, Connectivity *con, EqNumberer *nums, 
 #ifdef USE_SPOOLES
     case FetiInfo::spooles: {
       GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums);
+      solver = (GenSolver<Scalar> *) s;
+      sparse = (GenSparseMatrix<Scalar> *) s;
+    } break;
+#endif
+#ifdef USE_MUMPS
+    case FetiInfo::mumps: {
+      GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, (int *) 0, fetiCom);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;

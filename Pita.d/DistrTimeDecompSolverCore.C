@@ -24,7 +24,7 @@ DistrTimeDecompSolver<DynOps,VecType,PostProcessor,ProblemDescriptor,InfoSize>
   // TS management
   Domain *ptDom = probDesc->getDomain();
 
-  dt       = ptDom->solInfo().dt;
+  dt       = ptDom->solInfo().getTimeStep();
   Tinitial = ptDom->solInfo().initialTime;
   Tfinal   = ptDom->solInfo().tmax;
   Jratio   = ptDom->solInfo().Jratio;

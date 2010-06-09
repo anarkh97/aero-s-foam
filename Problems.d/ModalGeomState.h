@@ -36,7 +36,7 @@ public:
 //  void populate_np1();
 
   void update(Vector &dsp, double dton2);
-  void get_inc_displacement(Vector &incDsp, ModalGeomState &stepState)
+  void get_inc_displacement(Vector &incDsp, ModalGeomState &stepState, bool=true)
     { /* NLModalDescr does not use incremental displacement so
            this function does nothing */
     }

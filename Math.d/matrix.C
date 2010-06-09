@@ -256,7 +256,9 @@ GenFullM<Scalar>::GenFullM(Scalar *data, int nr, int nc, int flag)
 template<class Scalar> 
 GenFullM<Scalar>::~GenFullM()
 {
+#if !defined(DEBUG_OPENMP)
  if(v) { delete [] v; v=0; }
+#endif
  if(iprow) { delete [] iprow; iprow = 0; }
  if(ipcol) { delete [] ipcol; ipcol = 0; }
 }

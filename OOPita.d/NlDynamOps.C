@@ -1,5 +1,6 @@
 #include "NlDynamOps.h"
 #include "PitaNonLinDynam.h"
+#include <Corotational.d/GeomState.h>
 
 namespace Pita {
 

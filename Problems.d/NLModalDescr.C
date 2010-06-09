@@ -579,7 +579,7 @@ void NLModalDescr::computeTimeInfo(){
  POST:
 */
   tFinal = domain->solInfo().tmax;
-  dt     = domain->solInfo().dt;
+  dt     = domain->solInfo().getTimeStep();
   delta  = 0.5 * dt;
 
   mcoef = 1.0;
@@ -598,11 +598,14 @@ void NLModalDescr::getConstForce(Vector &constF){
  POST: populate constF with zeros; leave for now
  NOTE: constF has size numConstr longer than fullTmpGrav 
 */
+  domain->computeConstantForce(constF);
+/*
   fullTmpGrav.zero();
   constF.zero();
 
   if( domain->gravityFlag()  ) domain->buildGravityForce<double>(fullTmpGrav);
   if( domain->pressureFlag() ) domain->buildPressureForce<double>(fullTmpGrav);
+*/
 
 //  projectForceNL(fullTmpGrav, constF);
 }
@@ -618,7 +621,7 @@ void NLModalDescr::getExternalForce(Vector &extF, Vector &gravF, int tIndex,
  TODO: write filter force member function and use it in this memeber function
 */
   initIterState(*mgs);
-  domain->computeExtForce4<double>(*prevFrc, fullTmpF, fullTmpGrav, tIndex, time, 0);
+  domain->computeExtForce4<double>(fullTmpF, fullTmpGrav, time);
 
   if(MPsi && invPsiTMPsi){ filterForce(fullTmpF); }
   projectForceNL(fullTmpF, extF, mgs);

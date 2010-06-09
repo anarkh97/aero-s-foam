@@ -18,6 +18,9 @@ class NonLinStatic {
     Domain *domain;
     double *bcx;
     Solver *solver;
+    SparseMatrix *spm;
+    Solver *prec;
+    SparseMatrix *spp;
     FullSquareMatrix *kelArray;
     Corotator **allCorot;
     double firstRes;
@@ -26,7 +29,8 @@ class NonLinStatic {
     StaticTimers *times;
  public:
     // Constructor
-    NonLinStatic(Domain *d) { domain = d; }
+    NonLinStatic(Domain *d) { domain = d; kelArray = 0; allCorot = 0;  bcx = 0;}
+    ~NonLinStatic() { if(kelArray) delete [] kelArray; if(allCorot) delete [] allCorot; if(bcx) delete [] bcx; }
 
     int  solVecInfo();
     int  sysVecInfo();
@@ -35,7 +39,7 @@ class NonLinStatic {
     double getScaleFactor();  // only nlstatic
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
-    void getRHS(Vector &rhs, GeomState *gs=0); 
+    void getRHS(Vector &rhs); 
     void preProcess();
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();
@@ -47,13 +51,21 @@ class NonLinStatic {
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, Vector &);
+                          Vector& elementInternalForce, Vector &, double lambda = 1);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
 
     void printTimers();
 
-    double getTolerance(){return tolerance*firstRes;}
+    double getTolerance() { return tolerance*firstRes; }
+
+    bool linesearch(); 
+    double getEnergy(double lambda, Vector& force, GeomState* geomState);
+
+    void updateMpcRhs(GeomState &geomState) { }
+    void updateContactConditions(GeomState* geomState) { }
+    void addMpcForces(Vector &vec) { }
+    double norm(Vector &vec) { return vec.norm(); }
 };
 
 #endif

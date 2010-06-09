@@ -93,7 +93,7 @@ SubCornerHandler::SubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
   dims[0] = (dofs.contains(DofSet::Xdisp)) ? 1 : 0;
   dims[1] = (dofs.contains(DofSet::Ydisp)) ? 1 : 0;
   dims[2] = (dofs.contains(DofSet::Zdisp)) ? 1 : 0;
-  dims[3] = (dofs.contains(DofSet::Helm)) ? 1 : 0;
+  dims[3] = (dofs.contains(DofSet::Helm) || dofs.contains(DofSet::Temp)) ? 1 : 0;
   int sdim = dims[0]+dims[1]+dims[2]; // structure 
   int fdim = dims[3]; // fluid
   mixed = (fdim && sdim);
@@ -107,7 +107,7 @@ SubCornerHandler::SubCornerHandler(int _glSubNum, int _nnodes, CoordSet &_nodes,
   cdims[0] = (cdofs.contains(DofSet::Xdisp)) ? 1 : 0;
   cdims[1] = (cdofs.contains(DofSet::Ydisp)) ? 1 : 0;
   cdims[2] = (cdofs.contains(DofSet::Zdisp)) ? 1 : 0;
-  cdims[3] = (cdofs.contains(DofSet::Helm)) ? 1 : 0;
+  cdims[3] = (cdofs.contains(DofSet::Helm) || cdofs.contains(DofSet::Temp)) ? 1 : 0;
   int cdim = cdims[0]+cdims[1]+cdims[2]+cdims[3];
   allSafe = ((cdim == 1) || !domain->solInfo().getFetiInfo().pick_unsafe_corners);  // if there is only one active dimension then all elements are safe
   // can ignore unsafe corners by setting pick_unsafe_corners to false (maybe ok if using pivoting local solver like spooles or mumps)
@@ -158,7 +158,7 @@ SubCornerHandler::dispatchSafeNodes(FSCommPattern<int> *cpat)
   for(int iNode = 0; iNode < nnodes; ++iNode) glSafe[iNode] = false;
   // mark the safe nodes by setting glSafe to true if node is touched by at least one safe element
   for(int iEle = 0; iEle < numEle; ++iEle) {
-    if(eles[iEle]->isSafe() || allSafe) { 
+    if((eles[iEle]->isSafe() && !eles[iEle]->isPhantomElement()) || allSafe) { 
       int nnd = eles[iEle]->numNodes();
       int *nodes = new int[nnd];
       eles[iEle]->nodes(nodes);
@@ -286,7 +286,7 @@ SubCornerHandler::dispatchRotCorners(FSCommPattern<int> *cpat)
       int node = sharedNodes[iNeighb][iNode];
       if(isRotMidSideNode[node]) continue;  // PJSA: fix for 6 node tri shell 
       //  include end points of all subdomain edges as corner nodes for the 2D-case XXXX not general enough
-      if(dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm)) {
+      if(dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp)) {
 	for(int i = 0; i < nToN.num(node); ++i)
           if((deg[nToN[node][i]] == iNeighb) && !isRotMidSideNode[nToN[node][i]]) count++; // fix for 6 node tri shell
         if(count < 3) {
@@ -356,7 +356,7 @@ SubCornerHandler::pickAnyCorners()
   Node &nd1 = *nodes[n1];
   int n2 = n1;
   int n;
-  for(n = n1+1; n < nnodes; ++n) {
+  for(n = n1+1; n < nodes.size(); ++n) { // XXXX
     Node &nd2 = *nodes[n];
     dist = nd2.distance(nd1);
     if(glSafe[n] && dist > maxDist) { maxDist = dist; n2 = n; }
@@ -381,7 +381,7 @@ SubCornerHandler::pickAnyCorners()
   // finally, find the node that maximizes the area with nodes 1 & 2
   double maxArea=0.0, area;
   int n3 = n1;
-  for(n=0; n<nnodes; ++n) {
+  for(n=0; n<nodes.size(); ++n) { // XXXX
       Node &nd3 = *nodes[n];
       double dx2= nd3.x - nd1.x;
       double dy2= nd3.y - nd1.y;
@@ -841,7 +841,7 @@ SubCornerHandler::recInitialNumbering(FSCommPattern<int> *pat, int *numRotCrn)
   for(iNode = 0; iNode < nnodes; ++iNode)
     //  GR: include end points of all subdomain edges as corner nodes for the 2D-case
     if(deg[iNode] >= 0 && isCorner[iNode] &&
-      (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm)))
+      (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp)))
 	numRotCrn[glSubNum]++;
 }
 
@@ -904,7 +904,7 @@ SubCornerHandler::listRotCorners(int *fN, int *crnNum)
   for(iNode = 0; iNode < nnodes; ++iNode)
     // GR: include end points of all subdomain edges as corner nodes for the 2D-case
     if(deg[iNode] >= 0 && isCorner[iNode] &&
-       (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm))) {
+       (dsa[iNode].contains(DofSet::XYZrot) || (dsa[iNode] == XYDofs) || (dsa[iNode] == DofSet::Helm) || (dsa[iNode] == DofSet::Temp))) {
       myNum[iCrn++] = deg[iNode];
     }
 }

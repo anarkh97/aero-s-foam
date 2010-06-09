@@ -9,18 +9,21 @@ class ControlLawInfo;
 class BCond;
 class Node;
 
+
 class NodeState {
+//  private:
+//    DirectionCosineMatrix* dRdr;        // vector of the partial derivatives of R wrt thetax, thetay and thetaz
+//    DirectionCosineMatrix* d2Rdr2;      // vector of the second parital derivatives of R wrt thetax, thetay and thetaz
   public:
     double x,   y,  z;			// x,y,z coordinates
     double vx, vy, vz;			// x,y,z velocities
-    double R[3][3]; 			// Rotation Tensor
+    double R[3][3];      	        // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
 };
 
 
 class GeomState {
-//   private:
   public:
      NodeState *ns;     // node state (x,y,z position and rotation tensor)
   protected:
@@ -57,6 +60,8 @@ class GeomState {
      void setPositions(double *positions);
      void setRotations(double *rotations);
 
+     void extract(double *p);
+
      virtual void update(const Vector &);
      virtual void setVelocity(const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
@@ -64,7 +69,8 @@ class GeomState {
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
                                        CoordSet &cs );
-     virtual void midpoint_step_update(Vector &veloc_n, double delta, GeomState &ss);
+     virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
+                                       double beta, double gamma, double alphaf, double alpham);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
@@ -76,6 +82,7 @@ class GeomState {
      void print();
      void printNode(int nodeNumber);
 
+     // these functions are used by the spring corotator
      void computeGlobalRotation();
      void getGlobalRot(double R[3][3]);
      void computeCG(double cg[3]);
@@ -84,6 +91,7 @@ class GeomState {
      void computeRotGradAndJac(double cg [3], 
 			       double  grad[3], double jac[3][3]);
      void rotate(double mat[3][3], double vec[3]);
+     void setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf);
 };
 
 #endif

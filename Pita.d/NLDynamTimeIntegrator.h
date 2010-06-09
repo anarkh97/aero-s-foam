@@ -63,6 +63,7 @@ private:
   int numStages;
   int maxNumIter;
   double dlambda;
+  double beta, gamma, alphaf, alpham;
 };
 
 inline void

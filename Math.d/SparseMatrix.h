@@ -62,6 +62,7 @@ class GenSparseMatrix {
         virtual void multAdd(const Scalar *rhs, Scalar *result);
         virtual void multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
         virtual void multSubtract(const Scalar *rhs, Scalar *result);
+        virtual void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
         virtual void transposeMult(const Scalar *, Scalar *);
         virtual void transposeMultAdd(const Scalar *, Scalar *);
         virtual void transposeMultSubtract(const Scalar *, Scalar *);
@@ -85,6 +86,8 @@ class GenSparseMatrix {
         virtual void print();
 
         void mult(DistrBlockVector<double>&, DistrBlockVector<double>&) { }; // hack to get code to compile
+
+        virtual void matvec(GenVector<Scalar> &rhs, GenVector<Scalar> &result) { mult(rhs, result); }
 };
 
 
@@ -112,7 +115,7 @@ class SparseData {
     // Constructors for data structures of type DBSparseMatrix 
     // and ComplexDBSparseMatrix and Spooles/Mumps
     SparseData(DofSetArray *dsa, DofSetArray *c_dsa, Connectivity *con,
-       	       int expand = 0, int make_colu = 0);
+       	       int expand = 0, int make_colu = 0, bool unsym = false);
     SparseData(EqNumberer *dsa, Connectivity *con, int* rcn, int expand = 0, int make_colu = 0);
 
     SparseData(DofSetArray *_dsa, int *glInternalMap,

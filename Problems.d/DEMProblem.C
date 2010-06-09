@@ -61,7 +61,7 @@ DEMLM* DEM::createLM(int type) {
 
 void DEM::run(Domain *d, GeoSource *g) {
  
- int gNodeOffset = d->getNodes().last();
+ int gNodeOffset = d->getNodes().size();
  int nodeOffset = gNodeOffset;
 
 // Find LM faces and artificial boundary faces and Neumann/Robin boundary faces

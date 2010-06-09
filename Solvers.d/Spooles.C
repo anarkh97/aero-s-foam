@@ -18,7 +18,7 @@ extern long totMemSpooles;
 #ifdef USE_SPOOLES
 
 extern "C" {
- #include <MT/spoolesMT.h>
+  #include <MT/spoolesMT.h>
 }
 
 inline double DVTrace( DV &d )
@@ -775,6 +775,7 @@ GenSpoolesSolver<Scalar>::zeroAll()
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
+  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
 }
 

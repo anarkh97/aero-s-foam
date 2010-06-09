@@ -22,66 +22,6 @@ extern int verboseFlag;
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::reBuild(FullSquareMatrix **kel, DistrGeomState &geomState, 
-                                 int iter, int step)
-{
- //fprintf(stderr," GenFetiDPSolver<Scalar>::reBuild, iter = %d, step = %d\n",iter, step);
- if(iter == 0) {
-   newton_iter = 0; // PJSA 9-18-2007
-   this->fetiInfo->numLoadSteps++;
-   if(step == 1 && !domain->solInfo().isDynam()) return; // PJSA nonlinear dynamics needs to rebuild even for first time
-   if(verboseFlag) filePrint(stderr," Load step %d\n",this->fetiInfo->numLoadSteps);
- }
-
- // Rebuild FETI Solver (reassembles subdomain K and factors K)
- this->times.factor -= getTime();
- execParal(this->nsub, this, &GenFetiDPSolver<Scalar>::subdomainReBuild, kel, &geomState);
- this->times.factor += getTime();
-
- //fprintf(stderr," ... Time to Rebuild Subdomain Matrices and Factor %e\n",
-  //       this->times.factor/1000.0);
-
- this->times.reBuildPrec -= getTime();
- execParal(this->nsub, (GenFetiSolver<Scalar>*)this, &GenFetiSolver<Scalar>::reBuildMatrices, kel);
- this->times.reBuildPrec += getTime();
-
- //fprintf(stderr," ... Time to Rebuild Preconditioner and factor %16e %d %d\n",
-  //              this->times.reBuildPrec/1000.0,step,iter);
-
- // Store information on when tangent stiffness and preconditioner were rebuilt
- this->times.iterations[this->numSystems].rebuildPrec = 1;
-
- // Rebuild GtG from the new rigid body modes
- this->times.reBuildGtG -= getTime();
- if(KccSolver) reBuildKcc();
- this->times.reBuildGtG += getTime();
- //fprintf(stderr," ... Time to Rebuild Kcc    (1st level coarse) %16e %d\n",
-  //       this->times.reBuildGtG/1000.0, numrbms);
- // Begin new ortho set for new linear system
- this->oSetCG->newOrthoSet();
-
- // NOTE: If we do not need to store previous orthoset,
- // we overwrite the orthosets to save memory space. We only need
- // previous krylov spaces when we are using krylov preconditioner
-
- this->times.iterations[this->numSystems].rebuildKrylov = 0;
- if(this->fetiInfo->nlPrecFlg == 0) {
-   if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet          ... \n");
-   this->times.iterations[this->numSystems].rebuildKrylov = 1;
-   this->oSetCG->reset();
- }
-
- // KHP: THIS IS FOR RESETTING KRYLOV AT EACH LOAD STEP
- if(this->fetiInfo->nlPrecFlg == 2 && (iter == 0) && (this->numSystems != 0) ) {
-   if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet at load step %d ... \n",
-           this->fetiInfo->numLoadSteps);
-   this->times.iterations[this->numSystems].rebuildKrylov = 1;
-   this->oSetCG->reset();
- }
-}
-
-template<class Scalar>
-void
 GenFetiSolver<Scalar>::reBuild(FullSquareMatrix **kel, DistrGeomState &geomState, int iter,
                                int step)
 {
@@ -142,59 +82,44 @@ GenFetiSolver<Scalar>::reBuild(FullSquareMatrix **kel, DistrGeomState &geomState
  }
 
  // Begin new ortho set for new linear system
- oSetCG->newOrthoSet();
+ if(fetiInfo->outerloop == 0) { // CG only
+   oSetCG->newOrthoSet();
 
- // NOTE: If we do not need to store previous orthoset,
- // we overwrite the orthosets to save memory space. We only need
- // previous krylov spaces when we are using krylov preconditioner
+   // NOTE: If we do not need to store previous orthoset,
+   // we overwrite the orthosets to save memory space. We only need
+   // previous krylov spaces when we are using krylov preconditioner
 
- this->times.iterations[numSystems].rebuildKrylov = 0;
- if(this->fetiInfo->nlPrecFlg == 0) {
-   if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet         ... \n");
-   this->times.iterations[numSystems].rebuildKrylov = 1;
-   oSetCG->reset();
- }
+   this->times.iterations[numSystems].rebuildKrylov = 0;
+   if(this->fetiInfo->nlPrecFlg == 0) {
+     if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet         ... \n");
+     this->times.iterations[numSystems].rebuildKrylov = 1;
+     oSetCG->reset();
+   }
 
- // KHP: THIS IS FOR RESETTING KRYLOV AT EACH LOAD STEP
- if(this->fetiInfo->nlPrecFlg == 2 && (iter == 0) && (numSystems != 0) ) {
-   if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet at load step %d ... \n",
+   // KHP: THIS IS FOR RESETTING KRYLOV AT EACH LOAD STEP
+   if(this->fetiInfo->nlPrecFlg == 2 && (iter == 0) && (numSystems != 0) ) {
+     if(verboseFlag) filePrint(stderr," ... Resetting OrthoSet at load step %d ... \n",
+             this->fetiInfo->numLoadSteps);
+     this->times.iterations[numSystems].rebuildKrylov = 1;
+     oSetCG->reset();
+   }
+
+   // KHP: THIS IS FOR RESETTING KRYLOV IF THE LAST STEP STAGNATED.
+   // if((iter == 0) && ( this->fetiInfo->numLoadSteps % 2 == 0 )) {
+   // if(this->times.iterations[numSystems - 1].stagnated == 1) {
+   /*
+   if( numSystems % 8 == 0  && (numSystems != 0) ) {
+     fprintf(stderr,"\n===> RESETTING ORTHO SET at load step %d\n\n",
            this->fetiInfo->numLoadSteps);
-   this->times.iterations[numSystems].rebuildKrylov = 1;
-   oSetCG->reset();
+     this->times.iterations[numSystems].rebuildKrylov = 1;
+     oSetCG->reset();
+   }
+   */
  }
-
- // KHP: THIS IS FOR RESETTING KRYLOV IF THE LAST STEP STAGNATED.
- // if((iter == 0) && ( this->fetiInfo->numLoadSteps % 2 == 0 )) {
- // if(this->times.iterations[numSystems - 1].stagnated == 1) {
- /*
- if( numSystems % 8 == 0  && (numSystems != 0) ) {
-   fprintf(stderr,"\n===> RESETTING ORTHO SET at load step %d\n\n",
-           this->fetiInfo->numLoadSteps);
-   this->times.iterations[numSystems].rebuildKrylov = 1;
-   oSetCG->reset();
- }
- */
+ else this->resetOrthoSet();
 
 }
 
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::subdomainReBuild(int iSub, FullSquareMatrix **kel,
-                                          DistrGeomState *gs)
-{
-  // Rebuild Subdomain stiffness matrices
-  GenSolver<Scalar> *Krr = this->sd[iSub]->Krr;
-
-  if(Krr) {
-    // zero, assemble, and factor Krr
-    Krr->reBuild(kel[iSub]);
-
-    // This shouldn't print if Krr is properly formed.
-    if(Krr->numRBM())
-      filePrint(stderr," ... Subdomain %3d found %3d ZEMs   ...\n",
-           this->sd[iSub]->subNum()+1, Krr->numRBM());
-  }
-}
 
 template<class Scalar>
 void
@@ -481,38 +406,5 @@ GenFetiSolver<Scalar>::reComputeFiBC(int iSub)
        thisSet.locFBCs[i*len+j] = thisSet.locFBCs[nc*len+j];
    }
  }
-}
-
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::reBuildKcc()
-{
- this->times.coarse1 -= getTime();
-
-   // zero the coarse grid matrix
-   KccSolver->zeroAll();  // PJSA
-
-   // construct the "super-elements"
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc);
-
-   // assemble new coarse grid matrix: Kcc -> Kcc - Krc^T Krr^-1 Krc
-   int iSub;
-   for(iSub = 0; iSub < this->nsub; ++iSub) {
-     GenAssembledFullM<Scalar> *kel = this->sd[iSub]->getKcc();
-     // int *dofs = this->sd[iSub]->getKccDofs(cornerEqs,glNumCorners,*subToEdge);
-     int *dofs = this->sd[iSub]->getKccDofs(c_cornerEqs, glNumCorners, *this->subToEdge, mpcOffset);  // PJSA
-     if(KccSparse) KccSparse->add(*kel,dofs);
-   }
-
-   this->times.pfactor -= getTime();
-
-   // factor coarse grid matrix
-#ifdef DISTRIBUTED
-   KccSolver->unify(this->fetiCom); // PJSA
-#endif
-   KccSolver->parallelFactor(); // PJSA
-
-   this->times.pfactor += getTime();
-   this->times.coarse1 += getTime();
 }
 

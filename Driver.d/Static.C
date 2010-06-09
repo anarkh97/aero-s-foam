@@ -13,6 +13,7 @@
 #include <Utils.d/pstress.h>
 #include <Timers.d/GetTime.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
+#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 
 #include <Driver.d/GeoSource.h>
 #include <list>
@@ -61,20 +62,26 @@ Domain::buildPrescDisp(Vector &pDisp, double t, double)
 double *
 Domain::getNodalTemperatures()
 {
-  double *nodalTemperatures = new double[numnodes];
+  return temprcvd;
+}
 
-  // initialize nodal temperatures
-  int i;
-  for(i=0; i<numnodes; ++i)
-    nodalTemperatures[i] = defaultTemp;
+void
+Domain::initNodalTemperatures()
+{
+  if(sinfo.thermalLoadFlag && sinfo.thermoeFlag == -1) {
 
-  for(i=0; i<numDirichlet; ++i)
-   if(( 1 << dbc[i].dofnum) == DofSet::Temp) {
-    nodalTemperatures[dbc[i].nnum] = dbc[i].val;
-    // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
-   }
+    temprcvd = new double[numnodes];
 
-  return nodalTemperatures;
+    int i;
+    for(i = 0; i < numnodes; ++i)
+      temprcvd[i] = defaultTemp;
+
+    for(i = 0; i < numDirichlet; ++i)
+      if((1 << dbc[i].dofnum) == DofSet::Temp) {
+        temprcvd[dbc[i].nnum] = dbc[i].val;
+        // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
+      }
+  }
 }
 
 FILE *
@@ -105,13 +112,10 @@ Domain::printStatistics()
    filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
            numDirichlet+numComplexDirichlet);
    filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
-   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",numNeuman);
+   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
+           numNeuman+numComplexNeuman);
    if(gravityFlag())
      filePrint(stderr,"\n ... Gravity Load is Applied        ...");
-   if(numConvBC > 0)
-     filePrint(stderr,"\n ... # Convective BCs     = %7d ...",numConvBC);
-   if(numRadBC > 0)
-     filePrint(stderr,"\n ... # Radiative BCs     = %7d ...",numRadBC);
    filePrint(stderr,"\n ... # Output Files       = %7d ...",geoSource->getNumOutInfo());
    filePrint(stderr,"\n --------------------------------------\n");
 }
@@ -243,7 +247,7 @@ Domain::computeStructureMass()
   while(current != 0) {
     int n = current->node;
     // check if the node is in the model
-    if(nodes.exist(n)) {
+    //if(nodes.exist(n)) {
       Node &node = nodes.getNode(n);
       switch(current->dof) {
         case 0: {
@@ -286,7 +290,7 @@ Domain::computeStructureMass()
           else if(current->jdof == 4) Iyz += current->diMass;
         } break;
       }
-    }
+    //}
     current = current->next;
   }
 
@@ -767,7 +771,6 @@ Domain::preProcessing()
   dof_file.close();
   exit(1);
 */
-
 }
 
 void
@@ -904,8 +907,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
    }
 
  // output phantom elements in a separate elementset if there are any
- if( (packedEset.numPhantoms()>0) && phantoms.size()>0)
-   {
+ if (phantoms.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_phantom using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
      int m_phantoms = phantoms.size();
@@ -929,8 +931,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
    }
 
  // output constraint elements in a separate elementset if there are any
- if( constraints.size()>0)
-   {
+ if (constraints.size() > 0) {
      fprintf(cinfo->checkfileptr,"Elements %s_constraints using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);
      int m_constraints = constraints.size();
@@ -1092,6 +1093,7 @@ Domain::makeTopFile(int topFlag)
            nodeTable[dbc[i].nnum],dbc[i].dofnum+1,dbc[i].val);
  }
 
+/*
  // ... ADD CONVECTIVE FLUXES
  // KHP: get the correct header for the TOPDOMDEC file!
  if(numConvBC > 0)
@@ -1101,6 +1103,7 @@ Domain::makeTopFile(int topFlag)
   fprintf(cinfo->checkfileptr,"%d\t%d\t%f\n",
            nodeTable[cvbc[i].nnum], cvbc[i].dofnum+1,cvbc[i].val);
   }
+*/
 
 
  // also print complex dirichlet boundary conditions, for Helmholtz problem
@@ -1236,20 +1239,7 @@ Domain::makeTopFile(int topFlag)
      fprintf(matList,"%d\t%d\t%f\n",
              nodeTable[dbc[i].nnum],dbc[i].dofnum+1,dbc[i].val);
    }
-   if(numConvBC > 0)
-     fprintf(matList,"SDTemperature %s using %s\n",
-             cinfo->bcondSetName,cinfo->nodeSetName);
-   for(i=0; i<numConvBC; ++i) {
-     fprintf(matList,"%d\t%d\t%f\n",
-             nodeTable[cvbc[i].nnum], cvbc[i].dofnum+1,cvbc[i].val);
-   }
-   if(numRadBC > 0)
-     fprintf(matList,"SDTemperature %s using %s\n",
-             cinfo->bcondSetName,cinfo->nodeSetName);
-   for(i=0; i<numRadBC; ++i) {
-     fprintf(matList,"%d\t%d\t%f\n",
-             nodeTable[rdbc[i].nnum], rdbc[i].dofnum+1,rdbc[i].val);
-   }
+
    for(i=0; i<numComplexDirichlet; ++i) {
      fprintf(matList,"%d\t%d\t%f\n",
              nodeTable[cdbc[i].nnum],cdbc[i].dofnum+1,cdbc[i].reval);
@@ -1494,7 +1484,7 @@ Domain::getStressStrain( Vector &sol, double *bcx, int fileNumber,
     if(printFlag != 2) {
 
       // Don't do anything if element is a phantom or constraint
-      if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;//getProperty()
+      if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
 
       // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
       if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||

@@ -20,7 +20,7 @@ class BinFileHandler;
 class MatrixTimer;
 class LMPCons;
 class Decomposition;
-class Material;
+class NLMaterial;
 class ControlInfo;
 class CoordSet;
 class OutputInfo;
@@ -77,7 +77,7 @@ struct ControlLawInfo
   void makeGlobalClaw(ControlLawInfo *subClaw);
 };
 
-typedef Material *(*MatLoader)(int n, double *params);
+typedef NLMaterial *(*MatLoader)(int n, double *params);
 
 struct DoubleList {
    int nval;
@@ -105,6 +105,11 @@ class GeoSource {
 
   bool decJustCalled; // if true, no need for an external DECOMPOSITION FILE
   bool exitAfterDec; // if true no need to save Subdomain info for FEM in memory
+
+  // input file names
+  char *conName;
+  char *geoName;
+  char *decName;
   char *mapName;
   char *matchName;
 
@@ -154,7 +159,7 @@ class GeoSource {
   ResizeArray<LayMat *> layMat;
 
   std::map<const char *, MatLoader, ltstr> userDefMat;
-  std::map<int, Material *> materials;
+  std::map<int, NLMaterial *> materials;
   std::map<int, int> matUsage;
 
   int numProps;
@@ -189,6 +194,7 @@ class GeoSource {
   double mratio; // consistent-lumped matrix ratio; 1==consistent, 0==lumped
 
  public:
+  int fixedEndM; // 0: don't include fixed end moments in gravity force vector for beams and shells
   int *gl2ClSubMap;
 
   // BC Data
@@ -204,12 +210,6 @@ class GeoSource {
   BCond *textNBC;
   int numNeuman;              // number of Neuman bc
   BCond *nbc;   // set of Neuman bc
-
-  int numConvBC;              // number of convective bc
-  BCond *cvbc;  // set of convective bc
-
-  int numRadBC;              // number of radiative bc
-  BCond *rdbc;  // set of radiative bc
 
   int numIDis;                // number of Initial displacements
   BCond *iDis;  // set of those initial displacements
@@ -229,9 +229,6 @@ class GeoSource {
 
   int numIVel;                // number of initial velocities
   BCond *iVel;  // set of those initial velocities
-
-  int numITemp;               // number of initial temperatures
-  BCond *iTemp; // set of those intitial temperatures
 
   int numComplexDirichlet;
   ComplexBCond *cdbc;
@@ -295,8 +292,11 @@ public:
   template<class Scalar>
     void distributeOutputNodesX(GenSubDomain<Scalar> *, Connectivity *nodeToSub);
 
-  void setCpuMap(char *file) { mapName = file; }
+  void setGeo(char *file) { geoName = file; }
+  void setDecomp(char *file) { decName = file; }
   void setMatch(char *file) { matchName = file; }
+  void setCpuMap(char *file) { mapName = file; }
+  void setGlob(char *file) { conName = file; }
   void setExitAfterDec(bool exit);
   void setNumLocSub(int);
   void setMatchArrays(int);
@@ -328,7 +328,7 @@ public:
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
   void setConsistentPFlag(int);
-  void setConsistentQFlag(int);
+  void setConsistentQFlag(int, int=1);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
 
   // Parser support Functions - Boundary Conditions
@@ -336,11 +336,8 @@ public:
   void convertHEVDirToHelmDir(); // added to use HEFRS and Helmholtz per Charbel's request
   int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
   int  setNeuman(int, BCond *);
-  int  setConvBC(int, BCond *);
-  int  setRadBC(int, BCond *);
   int  setIDis(int, BCond *);
   int  setIDis6(int, BCond *);
-  int  setITemp(int, BCond *);
   int  setIVel(int, BCond *);
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
@@ -357,7 +354,7 @@ public:
   int setModalDamping(int, BCond *);
 
   // Parser support Functions - "New" Material Specifications
-  void addMaterial(int i, Material *m) { materials[i] = m; }
+  void addMaterial(int i, NLMaterial *m) { materials[i] = m; }
   void addMaterial(int i, const char *, DoubleList &d);
   void loadMaterial(const char *, const char *);
   void setMatUsage(int i, int t) { matUsage[i] = t; }
@@ -403,7 +400,7 @@ public:
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }
   int  totalNumNodes() { return numNodes + numInternalNodes; }
-  int  getPhantomFlag()  { return phantomFlag; }
+  //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i);
   Connectivity *getClusToSub()  { return clusToSub; }
@@ -436,8 +433,6 @@ public:
   int getTextDirichletBC(BCond *&);
   int getNeumanBC(BCond *&);
   int getTextNeumanBC(BCond *&);
-  int getConvBC(BCond *&);
-  int getRadBC(BCond *&);
   int getIDis(BCond *&);
   int getIDis6(BCond *&);
   int getIVel(BCond *&);
@@ -547,10 +542,12 @@ public:
   void cleanUp();
   void cleanAuxData();
 
+  void setUpRigidElements(bool flag);
   void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   bool setDirectMPC(bool mode) { return mpcDirect = mode; }
+  /// Whether we are doing direct elimination for MPCs
   bool getDirectMPC() { return mpcDirect; }
   Element* getElem(int topid) { return elemSet[topid]; }
 

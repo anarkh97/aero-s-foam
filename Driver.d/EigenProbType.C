@@ -29,6 +29,7 @@ using std::list;
 extern int verboseFlag;
 extern GeoSource *geoSource;
 extern Domain *domain;
+
 //------------------------------------------------------------------------------
 
 // build eigensolver
@@ -104,8 +105,8 @@ EigenSolver< EigOps, VecType, VecSet,
  probDesc->buildEigOps( *eM );
 
  // ... get the number of rigid body modes
- if (geoSource->shiftVal() != 0.0)  nrmod = 0; //CBM
- else nrmod = eM->dynMat->numRBM();
+ if (geoSource->shiftVal() != 0.0 || domain->solInfo().rbmflg == 0) nrmod = 0; //CBM, PJSA
+ else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
 
  if(domain->solInfo().test_ulrich) nrmod = 0;
 
@@ -292,7 +293,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-  this->eM->dynMat->getRBMs((*Z));
+  if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
 
   // ... initialize the first set of vectors
   this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -672,7 +673,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  // ... Store the rbms in the first this->nrmod vectors of VecSet Z
- this->eM->dynMat->getRBMs((*Z));
+ if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
 
  // ... initialize the first set of vectors
  this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -978,7 +979,7 @@ EigenSolver< EigOps, VecType, VecSet,
 
 #ifdef USE_ARPACK //HB - 04/20/05
 extern "C" {
-#ifdef DISTRIBUTED //CBM - 08/08/06
+#if defined(DISTRIBUTED) && defined(USE_PARPACK) //CBM - 08/08/06
 void _FORTRAN(pdsaupd)(MPI_Comm *COMM, int* IDO, char* BMAT, int* N, char* WHICH, int* NEV, double* TOL,
                        double* RESID, int* NCV, double* V, int* LDV, int* IPARAM, int* INPTR, double* WORKD,
                        double* WORKL, int* LWORKL, int* INFO);
@@ -1090,7 +1091,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     else { // one eigen calculation
       sconv = true;
       if(strcmp("",domain->solInfo().which) == 0) {
-        if(geoSource->shiftVal() == 0.0) {
+        if(geoSource->shiftVal() <= 0.0) {
           sprintf(which,"LA");
           //cerr << "which is undefined, setting to LA\n";
         }
@@ -1133,7 +1134,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
 
     // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-    if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
+    if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); // PJSA this->eM->dynMat->getRBMs((*Z));
  
     // ... copy the this->nrmod Z vectors to vector set Q
     for(i=0; i<this->nrmod; ++i) (*Q)[i] = (*Z)[i];
@@ -1187,7 +1188,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
     bool conv = false;
     while(!conv) {
-#ifdef DISTRIBUTED 
+#if defined(DISTRIBUTED) && defined(USE_PARPACK)
         _FORTRAN(pdsaupd)(structCom->getCommunicator(),&ido, bmat, &nloc, which, &nmodes, &tolEig, resid,
                           &ncv, &LanVects[iram], &nloc, iparam, ipntr, workd, workl,
                           &lworkl, &info);
@@ -1287,7 +1288,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
       for(i=0; i<ncv; i++) select[i] = 0;
       double* lambda = &(*this->eigVal)[nevold];
 
-#ifdef DISTRIBUTED 
+#if defined(DISTRIBUTED) && defined(USE_PARPACK)
         _FORTRAN(pdseupd)(structCom->getCommunicator(), 1, howmny, select, lambda, &RitzVects[iram], &nloc, &shift,
                           bmat, &nloc, which, &nmodes, &tolEig,
                           resid, &ncv, &LanVects[iram], &nloc, iparam, ipntr,

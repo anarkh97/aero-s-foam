@@ -17,29 +17,28 @@ extern int verboseFlag;
 int
 NonLinStatic::solVecInfo()
 {
- return domain->numUncon();
+  return domain->numUncon();
 }
 
 int
 NonLinStatic::sysVecInfo()
 {
- return 0;
+  return 0;
 }
 
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, 
-                         Vector& residual,Vector& elementInternalForce, 
-                         Vector &)
+                         Vector& residual, Vector& elementInternalForce, 
+                         Vector &, double lambda)
 {
- times->buildStiffAndForce -= getTime();
+  times->buildStiffAndForce -= getTime();
 
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
+                           kelArray, residual, lambda);
 
- domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                          kelArray, residual);
+  times->buildStiffAndForce += getTime();
 
- times->buildStiffAndForce += getTime();
-
- return sqrt(residual*residual);
+  return sqrt(residual*residual);
 }
 
 void
@@ -58,7 +57,6 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
  geomState->updatePrescribedDisplacement(dbc, numDirichlet, delta);
 
  times->timePresc += getTime();
-
 }
 
 int
@@ -78,15 +76,15 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
 
  if(verboseFlag)
   {
-    fprintf(stderr,"----------------------------------------------------\n");
-    fprintf(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
+    filePrint(stderr,"----------------------------------------------------\n");
+    filePrint(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
                    "first dv     = % e\n \t\t\trelative dv  = % e\n",
                     iter+1, normDv, firstDv, relativeDv);
-    fprintf(stderr,"                \tcurrent Res  = % e\n \t\t\t"
+    filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
                    "first Res    = % e\n \t\t\trelative Res = % e\n",
                     normRes, firstRes, relativeRes);
 
-    fprintf(stderr,"----------------------------------------------------\n");
+    filePrint(stderr,"----------------------------------------------------\n");
   }
 
  int converged = 0;
@@ -96,7 +94,7 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
    converged = 1;
 
  // Check Divergence
- if(normRes > 1000*firstRes) converged = -1;
+ if(normRes > 10000*firstRes) converged = -1;
 
  // Store residual norm and dv norm for output
  times->norms[iter].normDv      = normDv;
@@ -123,28 +121,30 @@ NonLinStatic::createGeomState()
 
  times->timeGeom += getTime();
 
- //fprintf(stderr," ... Time to build GeomState %e\n",times->timeGeom/1000.0);
- //fflush(stderr);
-
  return geomState;
 }
 
 int
 NonLinStatic::reBuild(int iteration, int step, GeomState&)
 {
-
- // NOTE: rebuild also includes factoring
-
  times->rebuild -= getTime();
-  
+
  int rebuildFlag = 0;
 
- // KHP: MODIFICATION
- if( iteration % domain->solInfo().getNLInfo().updateK == 0 )  {
-   cerr << "REBUILDING SOLVER\n";
-   solver->reBuild(kelArray);
+ if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
+   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
+   spm->zeroAll();
+   AllOps<double> ops;
+   if(spp) { // rebuild preconditioner as well as the solver
+     spp->zeroAll();
+     ops.spp = spp;
+   }
+   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray);
+   solver->factor();
+   if(prec) prec->factor();
    rebuildFlag = 1;
  }
+
  times->rebuild += getTime();
 
  return rebuildFlag;
@@ -180,12 +180,18 @@ NonLinStatic::getMaxLambda()
  return domain->solInfo().getNLInfo().maxLambda;
 }
 
-void
-NonLinStatic::getRHS(Vector& rhs, GeomState *gs)
+bool
+NonLinStatic::linesearch()
 {
- // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
+ return domain->solInfo().getNLInfo().linesearch;
+}
+
+void
+NonLinStatic::getRHS(Vector& rhs)
+{
+ // ... BUILD THE RHS FORCE (not including follower or internal forces)
  times->formRhs -= getTime();
- domain->buildRHSForce<double>(rhs, 0, gs);
+ domain->computeConstantForce<double>(rhs);
  times->formRhs += getTime();
 }
 
@@ -195,27 +201,15 @@ NonLinStatic::preProcess()
  // Allocate space for the Static Timers
  times = new StaticTimers;
 
- //times->preProcess -= getTime();
  startTimerMemory(times->preProcess, times->memoryPreProcess);
-
- // Makes renumbering, connectivities and dofsets
- fprintf(stderr," ... Constructing Connectivities    ...\n");
- fflush(stderr);
 
  times->timePre -= getTime();
  domain->preProcessing();
  times->timePre += getTime();
 
- //fprintf(stderr," ... Time to construct Renumbering & Connectivities %e\n", times->timePre/1000.0);
- //fflush(stderr);
-
  int numdof = domain->numdof();
 
- fprintf(stderr," ... Making Boundary Conditions     ...\n");
- fflush(stderr);
-
  times->makeBCs -= getTime();
-
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
  bcx = new double[numdof];
 
@@ -224,33 +218,17 @@ NonLinStatic::preProcess()
 
  times->makeBCs += getTime();
 
- //fprintf(stderr," ... Time to make Boundary Conditions %e\n", times->makeBCs/1000.0);
- //fflush(stderr);
-
  // Now, call make_constrainedDSA(bc) to 
  // built c_dsa that will incorporate all 
  // the boundary conditions info
-
- fprintf(stderr," ... Making Degrees of Freedom      ...\n");
- fflush(stderr);
 
  times->makeDOFs -= getTime();
  domain->make_constrainedDSA(bc);
  domain->makeAllDOFs();
  times->makeDOFs += getTime();
 
- //fprintf(stderr," ... Time to make Degrees of Freedom %e\n", times->makeDOFs/1000.0);
- //fflush(stderr);
-
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
  AllOps<double> allOps;
-
- double Kcoef = 1.0;
- double Mcoef = 0.0;
- double Ccoef = 0.0;
-
- fprintf(stderr," ... Building Solver                ...\n");
- fflush(stderr);
 
  long buildMem = -memoryUsed();
  times->timeBuild -= getTime();
@@ -261,18 +239,14 @@ NonLinStatic::preProcess()
                                                                        // since the nullity of the tangent stiffness matrix may be less than the nullity
                                                                        // of the number of rigid body modes
  
- domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) 0);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
- //fprintf(stderr," ... Time to build solver %e\n",times->timeBuild/1000.0);
- //fprintf(stderr," ... Memory to build solver %12.4f Mb\n", (double)buildMem/(1024*1024));
- //fflush(stderr);
-
  solver = allOps.sysSolver;
-
- fprintf(stderr," ... Creating Element Corotators    ...\n");
- fflush(stderr);
+ spm = allOps.spm;
+ prec = allOps.prec;
+ spp = allOps.spp;
 
  // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
  startTimerMemory(times->preProcess, times->memoryPreProcess);
@@ -283,25 +257,14 @@ NonLinStatic::preProcess()
  domain->createCorotators(allCorot);
  times->corotatorTime += getTime();
 
- //fprintf(stderr," ... Time to create Element Corotators %e\n", times->corotatorTime/1000.0);
- fflush(stderr);
-
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
- fprintf(stderr," ... Creating Elem. Stiff. Array    ...\n");
- fflush(stderr);
-
  times->kelArrayTime -= getTime();
  domain->createKelArray(kelArray);
  times->kelArrayTime += getTime();
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- //fprintf(stderr," ... Time to create Element Stiffness Array %e\n", times->kelArrayTime/1000.0);
- //fflush(stderr);
-
  // Set the nonlinear tolerance used for convergence
  tolerance = domain->solInfo().getNLInfo().tolRes;
-
- //times->preProcess += getTime();
 }
 
 Solver *
@@ -313,7 +276,7 @@ NonLinStatic::getSolver()
 SingleDomainPostProcessor<double, Vector, Solver> *
 NonLinStatic::getPostProcessor()
 {
- return new SingleDomainPostProcessor<double,Vector,Solver>(domain,bcx,times,solver);
+  return new SingleDomainPostProcessor<double,Vector,Solver>(domain,bcx,times,solver);
 }
 
 void
@@ -327,17 +290,58 @@ NonLinStatic::printTimers()
  times->printStaticTimers(solveTime, memoryUsed, domain);
 
  times->timeTimers += getTime();
-
-
 }
 
 void
 NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
-                Vector &)
+                           Vector &)
 {
-
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
   domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot);
   times->output += getTime();
 }
+
+double
+NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
+{
+  Vector sol(domain->numUncon(), 0.0);
+  for(int i=0; i<domain->numNode(); ++i) {
+    Node *node_i = domain->getNodes()[i];
+    int xloc  = domain->getCDSA()->locate(i, DofSet::Xdisp);
+    if(xloc >= 0 && node_i) {
+      sol[xloc]  = ( (*geomState)[i].x - node_i->x);
+    }
+    int yloc  = domain->getCDSA()->locate(i, DofSet::Ydisp);
+    if(yloc >= 0 && node_i)
+      sol[yloc]  = ( (*geomState)[i].y - node_i->y);
+    int zloc  = domain->getCDSA()->locate(i, DofSet::Zdisp);
+    if(zloc >= 0 && node_i)
+      sol[zloc]  = ( (*geomState)[i].z - node_i->z);
+    double rot[3];
+    mat_to_vec((*geomState)[i].R,rot);
+    int xrot  = domain->getCDSA()->locate(i, DofSet::Xrot);
+    if(xrot >= 0 && node_i)
+      sol[xrot]  = rot[0];
+    int yrot  = domain->getCDSA()->locate(i, DofSet::Yrot);
+    if(yrot >= 0 && node_i)
+      sol[yrot]  = rot[1];
+    int zrot  = domain->getCDSA()->locate(i, DofSet::Zrot);
+    if(zrot >= 0 && node_i)
+      sol[zrot]  = rot[2];
+  }
+
+  // compute external energy not including follower forces
+  double Wext = -lambda*force*sol;
+
+  // compute internal energy and external energy due to follower forces
+  // XXXX note: need to include pressure, gravity and thermal forces in getElementEnergy for this to work
+  double Wela = 0.0;
+  for(int i = 0; i < domain->numElements(); ++i)
+     Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
+  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
+
+  // Total Energy = Wext + Wela
+  return Wext + Wela;
+}
+

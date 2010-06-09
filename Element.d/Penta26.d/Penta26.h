@@ -60,8 +60,6 @@ public:
                             Vector &elementThermalForce, int glflag, 
 			    GeomState *geomState);
 
-       void buildCorotator(CoordSet &);
-
        PrioInfo examine(int sub, MultiFront *); // dec
        //double weight() { return 3; } // should be 12 for brick20
        //double trueWeight() { return 3; } // should be 12 for brick20

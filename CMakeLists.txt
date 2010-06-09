@@ -203,6 +203,15 @@ IF(UNIX)
       endif(MUMPS_FOUND AND BLACS_FOUND AND SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
 
+# metis
+    FIND_LIBRARY(METIS_LIBRARY NAMES metis
+                 PATHS /usr/lib /usr/local/lib)
+    IF(METIS_LIBRARY)
+      MESSAGE("-- A library with METIS API found.")
+      add_definitions(-DUSE_METIS)
+      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
+    ENDIF(METIS_LIBRARY)
+
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
 
@@ -219,7 +228,7 @@ if(MPI_FOUND)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                         PROPERTIES 
@@ -272,10 +281,11 @@ add_subdirectory(Paral.d)
 add_subdirectory(Problems.d)
 add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
+add_subdirectory(Material.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)

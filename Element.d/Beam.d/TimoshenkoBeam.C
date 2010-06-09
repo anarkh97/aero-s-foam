@@ -49,23 +49,9 @@ TimoshenkoBeam::renum(int *table)
      nn[1] = table[nn[1]];
 }
 
-int
+void
 TimoshenkoBeam::buildFrame(CoordSet& cs)
 {
- if(cs.exist(nn[0]) == 0) {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[0]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
-  if(cs.exist(nn[1]) == 0)  {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[1]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }  
-
   // store initial orientation of beam
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -97,9 +83,9 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
       normalize(theFrame[2]);
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
-    return 0;
+    return;
   }
-  if(cs.exist(nn[2])) {
+  else {
     Node &nd3 = cs.getNode(nn[2]);
 
     elemframe = new EFrame[1];
@@ -113,9 +99,7 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
     crossprod(xz,theFrame[0],theFrame[1]);
     normalize(theFrame[1]);
     crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    return 1;
-  } else {
-    return 0;
+    return;
   }
 }
 
@@ -234,9 +218,19 @@ TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
         localf[0] =  massPerNode*localg[0];
         localf[1] =  massPerNode*localg[1];
         localf[2] =  massPerNode*localg[2];
-        localm[0] =  0.0;
-        localm[1] = -massPerNode*localg[2]*length/6.0;
-        localm[2] =  massPerNode*localg[1]*length/6.0;
+        if(gravflg == 2) { // consistent
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/6.0;
+          localm[2] =  massPerNode*localg[1]*length/6.0;
+        } 
+        else if(gravflg == 1) { // lumped with fixed-end moments
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/8.0;
+          localm[2] =  massPerNode*localg[1]*length/8.0;
+        } 
+        else {
+          localm[0] = localm[1] = localm[2] = 0.0; // lumped without fixed-end moments
+        }
 
         for(i=0; i<3; ++i) {
           globalf[i] = (t0n[0][i]*localf[0]) + (t0n[1][i]*localf[1]) + (t0n[2][i]*localf[2]);
@@ -380,86 +374,69 @@ void
 TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                      GeomState *geomState, int cflg)
 {
-  double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
   double normal[3],normal2[3];
-  
   double px = 0.0;
   double py = 0.0;
   double pz = 0.0;
-  
   double length;
 
-  if (geomState) {
-
+  if(geomState) {
+    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
     updTransMatrix(cs, geomState, t0n, length);
-
-    #ifdef FOLLOWER_FORCE
-        normal[0] = t0n[1][0];
-        normal[1] = t0n[1][1];
-        normal[2] = t0n[1][2];
-        normal2[0] = t0n[2][0];
-        normal2[1] = t0n[2][1];
-        normal2[2] = t0n[2][2];
-    #else
-        normal[0] = (*elemframe)[1][0];
-        normal[1] = (*elemframe)[1][1];
-        normal[2] = (*elemframe)[1][2];
-        normal2[0] = (*elemframe)[2][0];
-        normal2[1] = (*elemframe)[2][1];
-        normal2[2] = (*elemframe)[2][2];
-    #endif
-
+    normal[0] = t0n[1][0];
+    normal[1] = t0n[1][1];
+    normal[2] = t0n[1][2];
+    normal2[0] = t0n[2][0];
+    normal2[1] = t0n[2][1];
+    normal2[2] = t0n[2][2];
   } 
-
   else {
-
     // Obtain normal to beam (second vector in element frame)
-     normal[0] = (*elemframe)[1][0];
-     normal[1] = (*elemframe)[1][1];
-     normal[2] = (*elemframe)[1][2];
-     normal2[0] = (*elemframe)[2][0];
-     normal2[1] = (*elemframe)[2][1];
-     normal2[2] = (*elemframe)[2][2]; 
+    normal[0] = (*elemframe)[1][0];
+    normal[1] = (*elemframe)[1][1];
+    normal[2] = (*elemframe)[1][2];
+    normal2[0] = (*elemframe)[2][0];
+    normal2[1] = (*elemframe)[2][1];
+    normal2[2] = (*elemframe)[2][2]; 
 
-     // Get length of Beam
-     Node &nd1 = cs.getNode(nn[0]);
-     Node &nd2 = cs.getNode(nn[1]);
-	     
-     double x[2], y[2], z[2];
-	     
-     x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	     
-     double dx = x[1] - x[0];
-     double dy = y[1] - y[0];
-     double dz = z[1] - z[0];
-	     
-     length = sqrt(dx*dx + dy*dy + dz*dz);
+    // Get length of Beam
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
 
+    double x[2], y[2], z[2];
+ 
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+ 
+    double dx = x[1] - x[0];
+    double dy = y[1] - y[0];
+    double dz = z[1] - z[0];
+
+    length = sqrt(dx*dx + dy*dy + dz*dz);
   } 
+
   double pressureForce = 0.5*pressure*length;
   px = pressureForce*normal[0];
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 
   
-    // Consistent
-    
-    double localMz = pressureForce*length/6.0;
-    double mx = localMz*normal2[0];
-    double my = localMz*normal2[1];
-    double mz = localMz*normal2[2]; 
-    elPressureForce[0]  = px;
-    elPressureForce[1]  = py;
-    elPressureForce[2]  = pz;
-    elPressureForce[3]  = mx;
-    elPressureForce[4]  = my;
-    elPressureForce[5]  = mz;
-    elPressureForce[6]  = px;
-    elPressureForce[7]  = py;
-    elPressureForce[8]  = pz;
-    elPressureForce[9]  = -mx;
-    elPressureForce[10] = -my;
-    elPressureForce[11] = -mz;
+  // Consistent
+  double localMz = pressureForce*length/6.0;
+  double mx = localMz*normal2[0];
+  double my = localMz*normal2[1];
+  double mz = localMz*normal2[2]; 
+  elPressureForce[0]  = px;
+  elPressureForce[1]  = py;
+  elPressureForce[2]  = pz;
+  elPressureForce[3]  = mx;
+  elPressureForce[4]  = my;
+  elPressureForce[5]  = mz;
+  elPressureForce[6]  = px;
+  elPressureForce[7]  = py;
+  elPressureForce[8]  = pz;
+  elPressureForce[9]  = -mx;
+  elPressureForce[10] = -my;
+  elPressureForce[11] = -mz;
 }
  
 void

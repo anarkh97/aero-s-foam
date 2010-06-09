@@ -116,6 +116,7 @@ class GenSolver {
 
     void setPrintNullity(bool _p) { print_nullity = _p; }
 
+    virtual void apply(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { solve(rhs, solution); }
 };
 
 template<class Scalar>

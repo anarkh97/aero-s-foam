@@ -1,3 +1,4 @@
+/* DEPRECATED, we are now using DynamProbType.h instead
 #ifndef _TEMPPROBTYPE_H_
 #define _TEMPPROBTYPE_H_
 
@@ -40,3 +41,4 @@ class TempSolver {
 #endif
 
 #endif
+*/

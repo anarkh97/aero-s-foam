@@ -123,17 +123,9 @@ TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector 
         double fx,fy,fz;
         double massPerNode = 0.5*getMass(cs);
 
-// Lumped
-        if (gravflg != 0) {
-          fx = massPerNode*gravityAcceleration[0];
-          fy = massPerNode*gravityAcceleration[1];
-          fz = massPerNode*gravityAcceleration[2];
-        }
-        else {
-          fx = 0.0;
-          fy = 0.0;
-          fz = 0.0;
-        } 
+        fx = massPerNode*gravityAcceleration[0];
+        fy = massPerNode*gravityAcceleration[1];
+        fz = massPerNode*gravityAcceleration[2];
 
         gravityForce[0] = fx;
         gravityForce[1] = fy;
@@ -272,13 +264,13 @@ TwoNodeTruss::markDofs( DofSetArray &dsa )
 Corotator *
 TwoNodeTruss::getCorotator(CoordSet &cs, double *kel, int, int)
 {
- return new BarCorotator(nn[0], nn[1], prop->E, prop->A, preload, cs);
+ return new BarCorotator(nn[0], nn[1], prop, preload, cs);
 }
 
 int
 TwoNodeTruss::getTopNumber()
 {
-  return 101;//1;
+  return 101;
 }
 
 void
@@ -514,3 +506,4 @@ TwoNodeTruss::buildBarFrame(CoordSet& cs, double xg[3][3], double xl[3][3])
         normalize( xl[2] );
 
 }
+

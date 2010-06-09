@@ -5,7 +5,6 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/Skyline.d/SGISky.h>
-#include <Math.d/Skyline.d/NonLinSGISky.h>
 #include <Solvers.d/UFront.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
@@ -187,20 +186,12 @@ Domain::makeFrontalOps(AllOps<double> &ops, double Kcoef, double Mcoef, double C
 SGISky *
 Domain::constructSGISkyMatrix(Rbm *rbm)
 {
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength    ||
-     solInfo().structoptFlag == 1  )
-   return new NonLinSGISky(nodeToNode,dsa,c_dsa,sinfo.trbm,numele,allDOFs,rbm);
- else
-   return new SGISky(nodeToNode,dsa,c_dsa,sinfo.trbm,rbm);
+  return new SGISky(nodeToNode,dsa,c_dsa,sinfo.trbm,rbm);
 }
 
 UFront *
 Domain::constructFrontal(int maxFrontSize, Rbm *rbm)
 {
- return new UFront(c_dsa, maxFrontSize, sinfo.trbm, rbm);
+  return new UFront(c_dsa, maxFrontSize, sinfo.trbm, rbm);
 }
 

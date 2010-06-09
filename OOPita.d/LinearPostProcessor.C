@@ -1,6 +1,7 @@
 #include "LinearPostProcessor.h"
 #include "LinearGenAlphaIntegrator.h"
 #include <Problems.d/DynamDescr.h>
+#include <Driver.d/SysState.h>
 
 namespace Pita {
 

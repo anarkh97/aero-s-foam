@@ -16,9 +16,9 @@ public:
   static void zeroInc(StateIncr *du)  { du->zero(); }
   static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &gRes) {
+		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
     geomState->update(*du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda);
   }
   static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
@@ -32,25 +32,19 @@ public:
                   GeomType *geomState,
 		  StateIncr *, VecType &, 
 		  VecType &, VecType &, VecType &acceleration) {
-
-//   This method should return the proper reactions.
-//   the computation requires the accelerations.
-//
-//
-//
-
-
-     geomState->midpoint_step_update(velN, delta, *refState);
+     double beta, gamma, alphaf, alpham;
+     pbd->getNewmarkParameters(beta, gamma, alphaf, alpham);
+     geomState->midpoint_step_update(velN, acceleration, delta, *refState, beta, gamma, alphaf, alpham);
   }
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 
   static void formRHSpredictor(ProbDescr *pbd, VecType &vel_n, VecType &accel,
     VecType &residual, VecType &rhs, GeomType *geomState, double midtime){
-    pbd->formRHSpredictor(vel_n, residual, rhs, *geomState, midtime);
+    pbd->formRHSpredictor(vel_n, accel, residual, rhs, *geomState, midtime);
   }
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
-    return pbd->formRHScorrector(inc_displac, vel_n, residual, rhs); 
+    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs); 
   }
 
   static void copyTo(RefState *refState, GeomType *geomState, GeomType *stepState, StateIncr *stateIncr, VecType &v, VecType &a, VecType &vp, VecType &force,

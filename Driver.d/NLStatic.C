@@ -17,11 +17,6 @@
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/mathUtility.h>
-#include <Math.d/SparseMatrix.h>
-#include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
 #include <Math.d/matrix.h>
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
@@ -30,15 +25,17 @@
 #include <Driver.d/GeoSource.h>
 
 void
-Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
+Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 		         Corotator **corotators, FullSquareMatrix *kel,
-                         Vector &residual)
+                         Vector &residual, double lambda)
 /*******************************************************************
  *
  * Purpose :
  *
  *  Compute element tangential stiffness and element internal force
  *  and assemble element internal force into global internal force.
+ *  Also compute follower external force contribution to both 
+ *  tangential stiffness matrix and residual
  *
  * Input :
  *
@@ -48,61 +45,112 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementInternalForce,
  *
  * Output :
  *
- *  residual   : residual vector = force - p
+ *  residual   : residual vector = external force - internal force
  *  kel        : array of element tangential stiffness matrices
  *               in current configuration
  *
  *****************************************************************/
 
 {
+  for(int iele = 0; iele < numele; ++iele) {
 
-   // Get updated stiffness and internal force vector
- //int size = sizeof(double)*maxNumDOFs*maxNumDOFs; // XXXX
- //double *karray = (double *) dbg_alloca(size); // XXXX
+    elementForce.zero();
 
-
-   int iele, idof;
-
-   for(iele = 0; iele < numele; ++iele) {
-
-      elementInternalForce.zero();
-
-      // Get updated tangent stiffness matrix and element internal force
-      if(corotators[iele]) { // XXXX
+    // Get updated tangent stiffness matrix and element internal force
+    if(corotators[iele]) {
       corotators[iele]->getStiffAndForce(geomState, nodes, kel[iele],
-                                        elementInternalForce.data());
-        if(!solInfo().getNLInfo().unsymmetric) kel[iele].symmetrize();
+                                         elementForce.data());
+    }
+    // Compute k and internal force for an element with x translation (or temperature) dofs
+    else if(solInfo().soltyp == 2) {
+      kel[iele].zero();
+      Vector temp(packedEset[iele]->numNodes());
+      for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
+        temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
       }
-// compute k and internal force for an element with x translation (or temperature) dofs
-      else if(solInfo().soltyp == 2) {
-        kel[iele].zero();
-        Vector temp(packedEset[iele]->numNodes());
-        for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-          temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
-        }
-        kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data()); /*cerr << "iele = " << iele << endl; kel[iele].print(); */
-        kel[iele].multiply(temp, elementInternalForce, 1.0); // elementInternalForce = kel*temp
-        //cerr << "iele = " << iele << ", temp = "; print_debug(temp); cerr << ", internal force = "; print_debug(elementInternalForce); cerr << endl;
+      kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
+      kel[iele].multiply(temp, elementForce, 1.0); // elementForce = kel*temp
+    }
+    // Assemble element internal force into residual force vector
+    for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(dofNum >= 0)
+        residual[dofNum] -= elementForce[idof];
+    }
+  }
+
+  if(pressureFlag()) {
+    for(int iele = 0; iele < numele;  ++iele) {
+      // If there is a zero pressure defined, skip the element
+      if(packedEset[iele]->getPressure() == 0) continue;
+
+      // Compute element pressure force in the local coordinates
+      elementForce.zero();
+      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
+      elementForce *= lambda;
+
+      // Include the "load stiffness matrix" in kel[iele]
+      corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
+                                            elementForce.data());
+
+      // Determine the elemental force for the corrotated system
+      corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
+
+      // Assemble element pressure forces into residual force vector
+      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+        int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+        if(dofNum >= 0)
+          residual[dofNum] += elementForce[idof];
+      }
+    }
+  }
+
+  if(thermalFlag()) {
+    if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
+    Vector elementTemp(maxNumNodes);
+    for(int iele = 0; iele < numele;  ++iele) {
+      // By convention phantom elements do not have thermal load
+      if(packedEset[iele]->getProperty() == 0) continue;
+
+      // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
+      for(int inod = 0; inod < elemToNode->num(iele); ++inod) {
+        double t = temprcvd[(*elemToNode)[iele][inod]];
+        elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
       }
 
-     // if(elementInternalForce.norm() != 0.0)
-     //   fprintf(stderr,"eIF %e\n",elementInternalForce.norm());
+      // Compute element thermal force in the local coordinates
+      elementForce.zero();
+      packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
+      elementForce *= lambda;
 
-      // assemble element internal force into residual force vector
-      for(idof = 0; idof <  kel[iele].dim(); ++idof) {
-         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-         //cerr << " iele = " << iele <<", dofNum = " << dofNum << endl;
-         if(dofNum >= 0)
-            residual[dofNum] -= elementInternalForce[idof];
+      // Include the "load stiffness matrix" in kel[iele]
+      corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
+                                            elementForce.data());
+
+      // Determine the elemental force for the corrotated system
+      corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
+
+      // Assemble element thermal forces into residual force vector
+      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+        int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+        if(dofNum >= 0)
+          residual[dofNum] += elementForce[idof];
       }
-   }
-}
+    }
+  }
 
-template<class Scalar>
-GenNonLinSkyMatrix<Scalar> *
-Domain::constructNonLinSkyMatrix(Rbm *rbm)
-{
- return new GenNonLinSkyMatrix<Scalar>(nodeToNode,c_dsa,sinfo.trbm,numele,allDOFs,rbm);
+  if(claw && claw->numActuator) {
+    for(int i = 0; i < numNeuman; ++i) {
+      int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+      if(dof < 0) continue;
+      if(nbc[i].type == BCond::Actuators) residual[dof] += lambda*nbc[i].val; // XXXX need to multiply by weight for multidomain
+    }
+  }
+ 
+  if(!solInfo().getNLInfo().unsymmetric)
+    for(int iele = 0; iele < numele;  ++iele) 
+      kel[iele].symmetrize();
+    
 }
 
 // used in nonlinear statics
@@ -275,7 +323,10 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
        case OutputInfo::Displacement:
 	 if(oinfo[iInfo].nodeNumber == -1) {
            fprintf(oinfo[iInfo].filptr,"  % *.*E\n",w,p,time);
+           //cerr << "numNodes = " << numNodes << ", nodes.size() = " << nodes.size() << ", nodes.last() = " << nodes.last() << ", geomState->numNodes() = " << geomState->numNodes() << endl;
            for(i=0; i < numNodes; ++i) {
+             //cerr << "i = " << i << ", nodes[i]     = " << nodes[i]->x << ", " << nodes[i]->y << ", " << nodes[i]->z << endl;
+             //cerr << "i = " << i << ", geomState[i] = " << (*geomState)[i].x << ", " << (*geomState)[i].y << ", " << (*geomState)[i].z << endl;
              double x = (nodes[i]) ? (*geomState)[i].x - nodes[i]->x : 0;
              double y = (nodes[i]) ? (*geomState)[i].y - nodes[i]->y : 0;
              double z = (nodes[i]) ? (*geomState)[i].z - nodes[i]->z : 0;
@@ -848,23 +899,20 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
 
 }
 
-
 void
 Domain::createCorotators(Corotator **allCorot)
 {
-
  // Allocate memory for element stiffness matrix
  double *kmatrix = new double[maxNumDOFs*maxNumDOFs];
 
  // Loop over elements to get their Corotators
- int iele;
- for(iele = 0; iele < numele; ++iele)  {
+ for(int iele = 0; iele < numele; ++iele)
    allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
                                       sinfo.getNLInfo().fitAlgShell,
                                       sinfo.getNLInfo().fitAlgBeam);
- }
-}
 
+ delete [] kmatrix;
+}
 
 void
 Domain::getGeometricStiffness(GeomState &geomState,Vector& elementInternalForce,
@@ -1372,7 +1420,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.dt)){
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())){
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
 

@@ -50,6 +50,7 @@ private:
   GeomState * refState_; 
   GenVector<double> displacement_;
   GenVector<double> velocity_;
+  GenVector<double> acceleration_;
   GenVector<double> incDisplac_;
   GenVector<double> gravityForce_;
   
@@ -73,6 +74,8 @@ private:
   int numStages_;
   int maxNumIter_;
   double dlambda_;
+
+  double beta_, gamma_, alphaf_, alpham_;
 };
   
 } // end namespace Pita

@@ -83,6 +83,15 @@ class BaseConnectivity
   }
 };
 
+/** Class to access a set of element's individual connections */
+template <class A>
+class SetAccess {
+public:
+	int size(); //<! returns the number of members of the set
+	int numNodes(int i); //<! returns the number of targets for member i
+	void getNodes(int i, int *nd); //<! copies into nd the targets for member i
+};
+
 class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectivity> >
 {
  protected:
@@ -111,6 +120,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
  	    
 	      }*/
         Connectivity() { size = 0; numtarget = 0; pointer = 0; target = 0; weight = 0; removeable = 1; }
+        template <class A> Connectivity(SetAccess<A> &sa);
         Connectivity(Elemset *);
         Connectivity(Elemset *, int, SommerElement**);
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1);
@@ -570,4 +580,31 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* 
  return res;
 }
 
+template <class A>
+Connectivity::Connectivity(SetAccess<A> &sa)
+{
+ removeable = 1;
+ int i;
+ weight = (float *) 0;
+
+ size = sa.size();
+
+ // Find out the number of targets we will have
+ pointer = new int[size+1] ;
+ int pp = 0;
+ for(i=0; i < size; ++i) {
+   pointer[i] = pp;
+   pp += sa.numNodes(i);
+ }
+ pointer[size] = pp;
+ numtarget = pp;
+
+ // Create the target array
+ target = new int[pp];
+
+ // Fill it in
+ for(i=0; i < size; ++i) {
+   sa.getNodes(i, target+pointer[i]);
+ }
+}
 #endif

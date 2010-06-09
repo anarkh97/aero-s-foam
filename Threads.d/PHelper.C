@@ -535,14 +535,12 @@ void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&),
  threadManager->execParal(n, &fe);
 }
 
-/*
 template <class TA, class TB, class TC, class TD, class TE, class TG>
-void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG), TB &b, TC &c, TD &d, TE &e, TG g)
+void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC, TD, TE, TG**), TB &b, TC c, TD d, TE e, TG **g)
 {
- FiveArgExecuter<TA,TB&,TC&,TD&,TE&,TG> fe(target,f,b,c,d,e,g);
+ FiveArgExecuter<TA,TB&,TC,TD,TE,TG**> fe(target,f,b,c,d,e,g);
  threadManager->execParal(n, &fe);
 }
-*/
 
 template <class TA, class TB, class TC, class TD, class TE, class TG>
 void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC*, TD&, TE&, TG*), TB &b, TC *c, TD &d, TE &e, TG *g)
@@ -579,6 +577,12 @@ void execParal5R(int n, TA *target, void (TA::*f)(int, TB*, TC*, TD*, TE, TG), T
  threadManager->execParal(n, &fe);
 }
 
+template <class TA, class TB, class TC, class TD, class TE, class TG>
+void execParal5R(int n, TA *target, void (TA::*f)(int, TB&, TC*, TD*, TE, TG), TB &b, TC *c, TD *d, TE e, TG g)
+{
+ FiveArgExecuter<TA,TB&,TC*,TD*,TE,TG> fe(target,f,b,c,d,e,g);
+ threadManager->execParal(n, &fe);
+}
 
 template <class TA, class TB, class TC, class TD, class TE, class TF>
 void timedParal(DistTimer &timer, int n, TA *target, 
@@ -640,6 +644,13 @@ template <class TA, class TB, class TC, class TD, class TE, class TF, class TG>
 void execParal6R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD, TE, TF&, TG&), TB &b, TC &c, TD d, TE e, TF &f, TG &g)
 {
  SixArgExecuter<TA,TB&,TC&,TD,TE,TF&,TG&> fe(target,fct,b,c,d,e,f,g);
+ threadManager->execParal(n, &fe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH>
+void execParal6R(int n, TA *target, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**), TB &b, TC c, TD d, TE e, TG **g, TH **h)
+{
+ SixArgExecuter<TA,TB&,TC,TD,TE,TG**,TH**> fe(target,f,b,c,d,e,g,h);
  threadManager->execParal(n, &fe);
 }
 
@@ -749,6 +760,13 @@ template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, 
 void execParal8R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF&, TG, TH, TI), TB &b, TC &c, TD &d, TE &e, TF &f, TG g, TH h, TI i)
 {
  EightArgExecuter<TA,TB&,TC&,TD&,TE&,TF&,TG,TH,TI> fe(target,fct, b, c, d, e, f, g, h, i);
+ threadManager->execParal(n, &fe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI>
+void execParal8R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF, TG, TH, TI), TB &b, TC &c, TD &d, TE &e, TF f, TG g, TH h, TI i)
+{
+ EightArgExecuter<TA,TB&,TC&,TD&,TE&,TF,TG,TH,TI> fe(target,fct, b, c, d, e, f, g, h, i);
  threadManager->execParal(n, &fe);
 }
 

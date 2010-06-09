@@ -39,7 +39,7 @@ BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu,
 // coordSet  -> contains the original nodal coordinates
 void
 BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &K, double *f)
+                                 FullSquareMatrix &K, double *f)
 {
   int i,j,k;
   int numLinGaussPts = 2;
@@ -59,6 +59,8 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
   }
+  //for(int i=0; i<8; ++i) cerr << geomState[nodeNum[i]].x << "," << geomState[nodeNum[i]].y << "," << geomState[nodeNum[i]].z << " ";
+  //cerr << endl;
 
   int fortran = 1;  // fortran routines start from index 1
   int pt1, pt2, pt3;
@@ -75,7 +77,7 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
         double dOmega;  //det of jacobian
       
         _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
-                       shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
+                         shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
 
         // get volume
         // dOmega is here off by a factor of 1/4
@@ -219,12 +221,13 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
       }
     }		
   }	
-  	
+ 
   // Symmetrize 
   for(i = 0; i < 24; ++i)
     for(j = 0; j <= i; ++j)
       K[i][j] = K[j][i];
 
+//  cerr << "K = "; K.print();
 }
 
 //-------------------------------------------------------------------------------

@@ -2,6 +2,8 @@
 #include <OOPita.d/DynamStateBasis.h>
 #include <Control.d/ControlInterface.h>
 #include <Comm.d/Communicator.h>
+#include <Driver.d/Domain.h>
+#include <Timers.d/StaticTimers.h>
 #include <iostream>
 #include <algorithm>
 
@@ -53,7 +55,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   else
   {
     domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().dt * domain->solInfo().Jratio * sliceRank;
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
     GenVector<double> dummy_acc(solVecInfo(), 0.0);
     GenVector<double> dummy_vp(solVecInfo(), 0.0);
     updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);

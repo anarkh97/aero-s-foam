@@ -78,7 +78,25 @@ namespace ScalarTypes
  inline bool greaterThan(double s1, double s2) { return (s1 > s2); }
  inline bool greaterThan(complex<double> s1, complex<double> s2) 
   { return ((s1.real() > s2.real() && s1.imag() >= s2.imag()) || (s1.real() >= s2.real() && s1.imag() > s2.imag())); }
+ inline bool greaterThanEq(double s1, double s2) { return (s1 >= s2); }
+ inline bool greaterThanEq(complex<double> s1, complex<double> s2)
+  { return (s1.real() >= s2.real() && s1.imag() >= s2.imag()); }
+
+ inline bool lessThan(double s1, double s2) { return (s1 < s2); }
+ inline bool lessThan(complex<double> s1, complex<double> s2)
+  { return ((s1.real() < s2.real() && s1.imag() <= s2.imag()) || (s1.real() <= s2.real() && s1.imag() < s2.imag())); }
+ inline bool lessThanEq(double s1, double s2) { return (s1 <= s2); }
+ inline bool lessThanEq(complex<double> s1, complex<double> s2)
+  { return (s1.real() <= s2.real() && s1.imag() <= s2.imag()); }
+
 }
+
+#ifndef MIN
+#define MIN(X,Y) (ScalarTypes::lessThan(X,Y) ? X : Y)
+#endif
+#ifndef MAX
+#define MAX(X,Y) (ScalarTypes::greaterThan(X,Y) ? X : Y)
+#endif
 
 #include <Utils.d/linkfc.h>
 

@@ -2,8 +2,11 @@
 #include <Pita.d/DynamStateSet.h>
 #include <Utils.d/Connectivity.h>
 #include <Comm.d/Communicator.h>
+#include <Driver.d/GeoSource.h>
 
 extern Communicator * structCom;
+extern int verboseFlag;
+extern GeoSource * geoSource;
 
 NLDistrTimeDecompSolver::NLDistrTimeDecompSolver(PitaNonLinDynamic * pbdesc) :
   probDesc(pbdesc),

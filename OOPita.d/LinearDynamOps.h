@@ -6,7 +6,7 @@
 #include <Driver.d/Dynam.h>
 #include <map>
 
-template<typename Scalar> class SingleDomainDynamic;;
+class SingleDomainDynamic;;
 
 namespace Pita {
  
@@ -80,7 +80,7 @@ public:
   typedef Fwk::Ptr<const LinearDynamOps::Manager> PtrConst;
 
   typedef double Scalar;
-  typedef SingleDomainDynamic<Scalar> ProblemDescriptor;
+  typedef SingleDomainDynamic ProblemDescriptor;
 
   LinearDynamOps::Ptr dynOpsNew(const GeneralizedAlphaParameter & param);
   LinearDynamOps::Ptr dynOps(const GeneralizedAlphaParameter & param) const;

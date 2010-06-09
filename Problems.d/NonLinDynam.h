@@ -1,11 +1,7 @@
 #ifndef _NON_LIN_DYNAM_H_
 #define _NON_LIN_DYNAM_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <Driver.d/Domain.h>
-#include <Driver.d/DynamProbType.h>
+#include <Math.d/Vector.h>
 
 class Domain;
 class Rbm;
@@ -22,8 +18,12 @@ class ControlInterface;
 class SDDynamPostProcessor;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
-
-#include <Problems.d/StaticDescr.h>
+template <typename T> class SysState;
+class PrevFrc;
+template <typename T> struct AllOps;
+class ControlLawInfo;
+template <typename T> class GenFSFullMatrix;
+typedef GenFSFullMatrix<double> FSFullMatrix;
 
 class NLDynamPostProcessor
 {
@@ -46,6 +46,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double *vcx;        // velocity prescribed values
     Solver *solver;
     SparseMatrix *spm;
+    Solver *prec;
+    SparseMatrix *spp;
     FILE   *res;        // file to store residuals
     int     totIter;     // counter of iterations
     /*int    *dofTypeArray; */ 
@@ -115,11 +117,11 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void updateUserSuppliedFunction(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p, double initialTime);
     void updatePrescribedDisplacement(GeomState *geomState);
 
-    int  solVecInfo() { return domain->numUncon(); } // number of unconstrained dof
-    int  sysVecInfo() { return domain->numdof(); }
+    int  solVecInfo();
+    int  sysVecInfo();
     int  elemVecInfo();
 
-    double getTolerance(){ return (tolerance*firstRes); }
+    double getTolerance() { return (tolerance*firstRes); }
 
     void trProject(Vector &f);
     void projector_prep(Rbm *R, SparseMatrix *M);
@@ -133,20 +135,18 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int    getMaxit();
     double getDeltaLambda();
 
-    void getConstForce(Vector & gravityForce);
-    void getExternalForce(Vector & externalForce, 
-                          Vector & gravityForce, int tIndex, double time,
-                          GeomState* geomState, Vector& elementInternalForce, 
-                          Vector &aeroF);
+    void getConstForce(Vector& constantForce);
 
-    double formRHScorrector(Vector& inc_displac, Vector &velocity, 
+    void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
+                          GeomState* geomState, Vector& elementInternalForce, Vector& aeroF);
+
+    double formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs);
-    double formRHScorrector(Vector& inc_displac, Vector &velocity,
-                            Vector &residual, Vector &rhs,
-                            double localDelta);
+    double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
+                            Vector &residual, Vector &rhs, double localDelta);
 
-    void formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &, double mid = 0.0);
-    void formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
+    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid);
+    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 
     void formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs);
 
@@ -168,7 +168,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     // getStiffAndForce forms element stiffness matrices and
     // returns the residual force = external - internal forces
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, double midtime=-1);
+                            Vector& elementInternalForce, double midtime=-1);
 
 
     // reBuild assembles new dynamic stiffness matrix
@@ -183,26 +183,34 @@ class NonLinDynamic : public NLDynamPostProcessor {
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration) const;
     void initNewton() { /* do nothing */ }
+    void updateMpcRhs(GeomState&) { /* not implemented */ }
+    void updateContactConditions(GeomState*) { /* not implemented */ }
+    void zeroMpcForces() { /* not implemented */ }
+    void addMpcForces(Vector &) { /* not implemented */ }
+    double norm(Vector &v) { return sqrt(v*v); }
+    void deleteContactConditions() { /* not implemented */ }
+    void updateSurfaces(GeomState*,int) { /* not implemented */ }
 
-    int  aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& vp);
-    void a5TimeLoopCheck(int& parity, double& t, double dt);
-    void a5StatusRevise(int parity, SysState<Vector>& curState, SysState<Vector>& bkState);
-    int getAeroAlg() { return domain->solInfo().aeroFlag; }
-    int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
+    int getAeroAlg();
+    int getThermoeFlag();
+    int getThermohFlag();
+    int getAeroheatFlag();
+    void getNewmarkParameters(double &beta, double &gamma,
+                              double &alphaf, double &alpham);
 
 };
 
 inline double
-NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity,
+NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
                                 Vector &residual,         Vector &rhs)
 {
-  return formRHScorrector(inc_displacement, velocity, residual, rhs, delta);
+  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
 }
 
 inline void
-NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs, GeomState &geomState, double mid)
+NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid)
 {
-  formRHSpredictor(velocity, residual, rhs, geomState, mid, delta);
+  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, delta);
 }
 
 inline void

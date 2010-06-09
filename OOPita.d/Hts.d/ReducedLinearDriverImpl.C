@@ -60,7 +60,7 @@
 
 namespace Pita { namespace Hts {
 
-ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
+ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic * pbDesc,
                                                  GeoSource * geoSource,
                                                  Domain * domain,
                                                  SolverInfo * solverInfo,
@@ -119,7 +119,7 @@ ReducedLinearDriverImpl::preprocess() {
   dynamOpsMgr_= LinearDynamOps::Manager::New(probDesc());
 
   /* Time-domain */
-  fineTimeStep_ = Seconds(solverInfo()->dt);
+  fineTimeStep_ = Seconds(solverInfo()->getTimeStep());
   halfSliceRatio_ = TimeStepCount(solverInfo()->Jratio / 2);
   sliceRatio_ = TimeStepCount(halfSliceRatio_.value() * 2);
   coarseTimeStep_ = fineTimeStep_ * sliceRatio_.value(); 
@@ -391,6 +391,6 @@ extern Domain * domain;
 
 /* Entrypoint */
 Pita::LinearDriver::Ptr
-linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
+linearPitaDriverNew(SingleDomainDynamic * pbDesc) {
   return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, geoSource, domain, &domain->solInfo(), structCom);
 }

@@ -1,8 +1,8 @@
-#include <Driver.d/DynamProbType.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/mathUtility.h>
 #include <unistd.h>
 #include <Paral.d/SubDOp.h>
+#include <Driver.d/SysState.h>
 
 //-------------------------------------------------------------------------------------------
 template<class VecType>
@@ -11,7 +11,7 @@ SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
    d_n = v2.getDispConst();
    v_n = v2.getVelocConst();
    a_n = v2.getAccelConst();
-   v_n_m = v2.getPrevVelocConst();
+   v_n_p = v2.getPrevVelocConst();
 
    return *this;
 
@@ -236,7 +236,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
-   probDesc->getConstForce( *constForce );
+   //probDesc->getConstForce( *constForce ); PJSA moved to after buildOps
 
    // Get SteadyState Flag and Parameters
    probDesc->getSteadyStateParam(steadyFlag, steadyMin, steadyMax, steadyTol);
@@ -267,7 +267,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Defining Working Arrays   
          workVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(0,probDesc);
  
-         if(gamma != 0.5) {
+         if(domain->solInfo().order != 1 && gamma != 0.5) {
            filePrint(stderr," ### WATCH gamma for explicit Newmark is set to 0.5 ###\n");
            gamma=0.5;
          }
@@ -279,11 +279,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          else
            dynOps = probDesc->buildOps(1.0, 0.0, 0.0);
 
+         probDesc->getConstForce( *constForce );
+
          // Check stability time step
          if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
          if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
          if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
+         if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
+         if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
+         
 
          // Time Integration Loop 
          explicitNewmarkLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax);
@@ -292,12 +297,22 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
          if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
          if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
+         if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
+         if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
 
          // Defining Working Arrays   
          workVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(1,probDesc);
 
-         // Build K, M, C and dynK = ((1-alpham)/(1-alphaf))*M + (dt*gamma)*C + (dt*dt*beta)*K
-         dynOps = probDesc->buildOps(((1.0-alpham)/(1.0-alphaf)), dt*gamma, dt*dt*beta);
+         if(domain->solInfo().order == 1) { // heat
+           // build K, M and dynK = (M + (dt*gamma)*K
+           dynOps = probDesc->buildOps(1, 0, dt*gamma);
+         }
+         else { // mech and acou
+           // Build K, M, C and dynK = ((1-alpham)/(1-alphaf))*M + (dt*gamma)*C + (dt*dt*beta)*K
+           dynOps = probDesc->buildOps(((1.0-alpham)/(1.0-alphaf)), dt*gamma, dt*dt*beta);
+         }
+
+         probDesc->getConstForce( *constForce );
 
          // Time Integration Loop 
          implicitNewmarkLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax);
@@ -309,6 +324,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
        if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
+       if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
+       if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
 
        probDesc->getQuasiStaticParameters(maxVel, delta);
        
@@ -316,7 +333,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        workVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(-1,probDesc);
 
        // Build Necessary Operators (only K!)
-       dynOps = probDesc->buildOps(0,0,1);       
+       dynOps = probDesc->buildOps(0,0,1); 
+ 
+       probDesc->getConstForce( *constForce );
        
        // Quasi-Static Loop
        quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);     
@@ -421,16 +440,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     if(relres <= steadyTol && delta == 0) iSteady = 1;
 
-    if(aeroAlg >= 0 || probDesc->getThermoeFlag() >= 0) {
+    if(aeroAlg >= 0 || probDesc->getAeroheatFlag() >= 0) {
       filePrint(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e ...\n",tIndex, relres);
   
       // command communication with fluid
       if(tIndex == steadyMax && !iSteady) { 
         probDesc->processLastOutput();
-        postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
-        if(aeroFlg != 10)
+        if(aeroFlg != 10) {
+          postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
           probDesc->cmdCom(1); 
-        break;
+          break;
+        }
       }
       else
         iSteady = probDesc->cmdCom(iSteady);
@@ -468,7 +488,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     postProcessor->dynamOutput( tIndex, dynOps, ext_f, aeroForce, curState );
   }
 
-  if (!iSteady) {
+  if (!iSteady && aeroAlg != 10) {
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
     filePrint(stderr," --------------------------------------\n");
@@ -575,15 +595,23 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    // Compute the initial acceleration: a^0 = M^{-1}(fext^0 - Ku^0 - Cv^0)
    if(domain->solInfo().iacc_switch && dynOps.Msolver) {
-     if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
-     dynOps.K->mult(d_n, tmp1);
-     a_n.linC(ext_f, -1.0, tmp1);
-     if(dynOps.C) {
-       dynOps.C->mult(v_n, tmp1);
-       a_n -= tmp1;
+     if(domain->solInfo().order == 1) {
+       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
+       dynOps.K->mult(d_n, tmp1);
+       v_n.linC(ext_f, -1.0, tmp1);
+       dynOps.Msolver->reSolve(v_n);
      }
-     dynOps.Msolver->reSolve(a_n);
-     if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
+     else {
+       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+       dynOps.K->mult(d_n, tmp1);
+       a_n.linC(ext_f, -1.0, tmp1);
+       if(dynOps.C) {
+         dynOps.C->mult(v_n, tmp1);
+         a_n -= tmp1;
+       }
+       dynOps.Msolver->reSolve(a_n);
+       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
+     }
    }
 
    // Output initial state of model
@@ -608,79 +636,97 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      // (if alphaf=0.5, external force is at time t+0.5*dt)
      probDesc->computeExtForce2(curState, ext_f, constForce, n, 
                                 t+(dt*(1-alphaf)), aeroForce, gamma, alphaf);
- 
-     // ... Construct R.H.S. vector
-     // ... d_n_h = ((1-alpham)/(1-alphaf))*d_n 
-     //           + dt*(1-alpham)*v_n 
-     //           + dt*dt*((1-alpham)/2 - beta)*a_n
-     // (if alphaf=alpham=0.5,beta=0.25: d_n_h = d_n + dt*0.5*v_n + zero*a_n)
 
-     // First: d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n 
-     d_n_h.linC( ((1.0-alpham)/(1.0-alphaf)), d_n, dt*(1.0-alpham), v_n );
+     if(domain->solInfo().order == 1) { // heat (XXXX CURRENTLY ONLY IMPLEMENTED FOR alpham = alphaf = 1/2)
+       // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
+       d_n_h.linC(d_n, dt/2.0*(1.0-2.0*gamma), v_n);
+       dynOps.M->mult( d_n_h, Md_n_h );
+       rhs.linC( Md_n_h, gamma*dt, ext_f );
+       dynOps.dynMat->reSolve( rhs );
 
-     // Second: d_n_h = d_n_h + dt*dt*((1-alpham)/2 - beta)*a_n
-     d_n_h.linC( d_n_h, dt*dt*(0.5*(1.0-alpham)-beta), a_n );
+       //if(probDesc->getHzemFlag() == 2) probDesc->tempProject(rhs);
 
-     // Third: Multiply by Mass Matrix M
-     dynOps.M->mult( d_n_h, Md_n_h );
+       // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
+       d_n.linC(2.0, rhs, -1.0, d_n);
 
-     // Accumulate in rhs vector: rhs = Md_n_h + beta*dt*dt*ext_f
-     rhs.linC( Md_n_h, beta*dt*dt, ext_f );
-
-     if(dynOps.C) {
-       // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
-       // ...       - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
-       // (if alphaf=alpham=gamma=0.5,beta=0.25: d_n_h = dt*0.5*d_n - zero*v_n - zero*a_n)
-
-       // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
-       d_n_h.linC( dt*gamma, d_n, dt*dt*(gamma*(1.0-alphaf)-beta), v_n );
-
-       // ... d_n_h = d_n_h - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
-       d_n_h.linC( d_n_h, dt*dt*dt*0.5*(alphaf-1.0)*(2.0*beta - gamma), a_n );
-
-       // Multiply by Damping Matrix C
-       dynOps.C->mult( d_n_h, Cd_n_h );
-  
-       // Accumulate in rhs vector 
-       rhs += Cd_n_h;
-
+       // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
+       v_n_p.linC(2.0/(gamma*dt), d_n, -2.0/(gamma*dt), rhs);
+       if(gamma != 1.0) v_n_p.linAdd(-(1.0-gamma)/gamma, v_n);
      }
-     // add prescribed boundary condition contributions to rhs vector
-     // and update accelerations at prescribed dofs
-     // probDesc->addPrescContrib( dynOps.M12, dynOps.C12, dnc, vnc, anc, tmp1, t);
-     //rhs += tmp1;
-     //tmp1.zero();
+     else { // mech, acou
+       // ... Construct R.H.S. vector
+       // ... d_n_h = ((1-alpham)/(1-alphaf))*d_n 
+       //           + dt*(1-alpham)*v_n 
+       //           + dt*dt*((1-alpham)/2 - beta)*a_n
+       // (if alphaf=alpham=0.5,beta=0.25: d_n_h = d_n + dt*0.5*v_n + zero*a_n)
 
-     dynOps.dynMat->reSolve( rhs ); // Now rhs contains (d_n+1-alphaf)
+       // First: d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n 
+       d_n_h.linC( ((1.0-alpham)/(1.0-alphaf)), d_n, dt*(1.0-alpham), v_n );
 
-     // call projector for RBMs in case of rbmfilter level 2
-     if (probDesc->getFilterFlag() == 2) probDesc->project( rhs );
+       // Second: d_n_h = d_n_h + dt*dt*((1-alpham)/2 - beta)*a_n
+       d_n_h.linC( d_n_h, dt*dt*(0.5*(1.0-alpham)-beta), a_n );
 
-     // one time step forward
-     d_n_p.linC(rhs,(-1.0*alphaf),d_n);
-     d_n_p *= (1.0/(1-alphaf));
+       // Third: Multiply by Mass Matrix M
+       dynOps.M->mult( d_n_h, Md_n_h );
 
-     v_n_h =  d_n_p;
-     v_n_h -= d_n; // v_n_h currently is d_(n+1) - d_n
+       // Accumulate in rhs vector: rhs = Md_n_h + beta*dt*dt*ext_f
+       rhs.linC( Md_n_h, beta*dt*dt, ext_f );
+
+       if(dynOps.C) {
+         // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
+         // ...       - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
+         // (if alphaf=alpham=gamma=0.5,beta=0.25: d_n_h = dt*0.5*d_n - zero*v_n - zero*a_n)
+
+         // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
+         d_n_h.linC( dt*gamma, d_n, dt*dt*(gamma*(1.0-alphaf)-beta), v_n );
+
+         // ... d_n_h = d_n_h - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
+         d_n_h.linC( d_n_h, dt*dt*dt*0.5*(alphaf-1.0)*(2.0*beta - gamma), a_n );
+
+         // Multiply by Damping Matrix C
+         dynOps.C->mult( d_n_h, Cd_n_h );
+  
+         // Accumulate in rhs vector 
+         rhs += Cd_n_h;
+
+       }
+       // add prescribed boundary condition contributions to rhs vector
+       // and update accelerations at prescribed dofs
+       // probDesc->addPrescContrib( dynOps.M12, dynOps.C12, dnc, vnc, anc, tmp1, t);
+       //rhs += tmp1;
+       //tmp1.zero();
+
+       dynOps.dynMat->reSolve( rhs ); // Now rhs contains (d_n+1-alphaf)
+
+       // call projector for RBMs in case of rbmfilter level 2
+       if (probDesc->getFilterFlag() == 2) probDesc->project( rhs );
+
+       // one time step forward
+       d_n_p.linC(rhs,(-1.0*alphaf),d_n);
+       d_n_p *= (1.0/(1-alphaf));
+
+       v_n_h =  d_n_p;
+       v_n_h -= d_n; // v_n_h currently is d_(n+1) - d_n
    
-     a_n_p = v_n_h;
-     a_n_p *= (1.0/(dt*dt*beta));
-     a_n_p.linAdd( (-1.0/(dt*beta)), v_n, (1.0-1.0/(2.0*beta)), a_n );
+       a_n_p = v_n_h;
+       a_n_p *= (1.0/(dt*dt*beta));
+       a_n_p.linAdd( (-1.0/(dt*beta)), v_n, (1.0-1.0/(2.0*beta)), a_n );
 
-     v_n_h =  rhs;
-     v_n_h -= d_n; // v_n_h currently is d_(n+1-alphaf) - d_n
-     v_n_h *= (gamma/(beta*dt));
-     v_n_h.linAdd( (1.0-(gamma*(1.0-alphaf)/beta)), v_n,
-                   (dt*0.5*(1.0-alphaf)*(2.0*beta-gamma)/beta), a_n);
+       v_n_h =  rhs;
+       v_n_h -= d_n; // v_n_h currently is d_(n+1-alphaf) - d_n
+       v_n_h *= (gamma/(beta*dt));
+       v_n_h.linAdd( (1.0-(gamma*(1.0-alphaf)/beta)), v_n,
+                     (dt*0.5*(1.0-alphaf)*(2.0*beta-gamma)/beta), a_n);
 
-     v_n_p.linC(v_n_h,(-1.0*alphaf),v_n);
-     v_n_p *= (1.0/(1-alphaf));
+       v_n_p.linC(v_n_h,(-1.0*alphaf),v_n);
+       v_n_p *= (1.0/(1-alphaf));
      
-     // Now swap v_n_p -> v_n and d_n_p -> d_n
-     v_p = v_n;
+       // Now swap v_n_p -> v_n and d_n_p -> d_n
+       v_p = v_n;
+       d_n.swap( d_n_p );
+       a_n.swap( a_n_p );
+     }
      v_n.swap( v_n_p );
-     d_n.swap( d_n_p );
-     a_n.swap( a_n_p );
 
      // Increment time index
      n++;
@@ -743,6 +789,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                       NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                       double dt, double tmax)
 {
+  // XXXX this hasn't been generalized for first order yet
   filePrint(stderr, " ... Explicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.0,0.5,0.0,0.0);
 
   int parity = 0;
@@ -786,6 +833,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   dynOps.K->mult(d_n, fint);
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
+  // XXXX this should be the initial velocity for first order problems
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
   if(dynOps.C) {
     dynOps.C->mult(v_n,tmp2);

@@ -1,4 +1,3 @@
-/* DEPRECATED, we now use SingleDomainDynam in DynamDescr.h instead
 #ifndef _TEMP_DESCR_H_
 #define _TEMP_DESCR_H_
 
@@ -89,4 +88,3 @@ class SingleDomainTemp {
 
 
 #endif
-*/

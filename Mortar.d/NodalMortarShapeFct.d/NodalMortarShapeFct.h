@@ -29,6 +29,7 @@ class NodalMortarShapeFct {
 
 	std::vector<double> SlaveMPCCoeffs;
 	std::vector<double> MasterMPCCoeffs;
+        double MPCRhs;
 	
   public:
 	// Constructors

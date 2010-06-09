@@ -461,7 +461,8 @@ class GenSubDomain : public BaseSub
   int *CCtrow, *CCtcol;
   Scalar* CCtval;
   Scalar *bcx_scalar;
-  int *mpcStatus; bool *mpcStatus1, *mpcStatus2;
+  int *mpcStatus;
+  bool *mpcStatus1;
 
   // templated RBMs
   GenFullM<Scalar> Rstar;
@@ -638,23 +639,15 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs(int iMPC);
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
-  void constraintProductTmp(double* R, GenVector<Scalar> &V);
+  void addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
   void deleteMPCs();
 
   void projectActiveIneq(Scalar *v);
-  void projectIneqExp(Scalar *v);
-  void getn_u(Scalar *n_u, int mpcid);
-  void split(Scalar *v, Scalar *v_f, Scalar *v_c, Scalar *v_p, double tol = 0.0);
-  void chop(Scalar *v, Scalar *v_c, double tol, int chop_flag);
+  void split(Scalar *v, Scalar *v_f, Scalar *v_c);
   void bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
-  void Max(Scalar *v, Scalar &max, int flag);
-  void Equal(Scalar *v, Scalar val, int &mpcid, int flag);
-  void markRedundant(int mpcid);
-  void unmarkRedundant();
-  void updateActiveSet_one(int mpcid, int flag);
   void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
   void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
   void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
@@ -692,19 +685,16 @@ class GenSubDomain : public BaseSub
   void saveMpcStatus();
   void restoreMpcStatus();
   void saveMpcStatus1();
-  void saveMpcStatus2();
-  void restoreMpcStatus2();
   void cleanMpcData();
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
-  void updateMpcRhs(GeomState &geomState, Connectivity *mpcToSub);
-  void updateMpcRhs(GeomState &geomState, GeomState &refState, Connectivity *mpcToSub);
+  void getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda);
   void setMpcRhs(Scalar *interfvec);
   void updateMpcRhs(Scalar *interfvec);
-  void zeroMpcForces();
+  double getMpcError();
 
   // Helmholtz fluid functions
   void dumpMiscData(int handle);
@@ -816,7 +806,7 @@ class GenSubDomain : public BaseSub
   void multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha);  // y = alpha*G*x
   void trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha); // y = alpha*G^T*x
   // (G^T*G) matrix assembly
-  void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int flag);
+  void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
 
   // R_g matrix construction and access
   void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!

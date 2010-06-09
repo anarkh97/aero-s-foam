@@ -135,11 +135,9 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
     }
     rhs.linAdd(dt*dt*beta, residual);
   }
-  //addMpcForces(rhs); // XXXX
 
   double resN = sqrt(solver->getFNormSq(rhs));
   times->correctorTime += getTime();
-  //return rhs.norm();
   return resN;
 }
 
@@ -255,6 +253,13 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   secondRes = 0.0;
   claw = 0; 
   userSupFunc = 0;
+  mu = 0; lambda = 0;
+}
+
+MDNLDynamic::~MDNLDynamic()
+{
+  if(mu) delete [] mu;
+  if(lambda) delete [] lambda;
 }
 
 int
@@ -326,7 +331,8 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce);
 
-  updateMpcRhs(geomState);
+  //updateMpcRhs(geomState);
+  if(t != -1.0) updateConstraintTerms(&geomState);
 
   // add the ACTUATOR forces
   if(claw && userSupFunc) {
@@ -497,6 +503,8 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+  mu = new std::map<int,double>[decDomain->getNumSub()];
+  lambda = new std::vector<double>[decDomain->getNumSub()];
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 }
@@ -807,81 +815,60 @@ MDNLDynamic::sysVecInfo()
   return decDomain->sysVecInfo();
 }
 
-void
-MDNLDynamic::initNewton()
-{
-  solver->initNewton();
-}
-
 double
-MDNLDynamic::norm(DistrVector &vec)
+MDNLDynamic::getResidualNorm(DistrVector &r)
 {
- return sqrt(solver->getFNormSq(vec));
+ //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
+ DistrVector w(r);
+ execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w); // w = r + C^T*lambda
+                  // note C = grad(gap) has already been updated in getStiffAndForce.
+                  // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
+                  // correctly only for the case of one contactsurfaces pair
+ return sqrt(solver->getFNormSq(w));
 }
 
 void
-MDNLDynamic::addMpcForces(DistrVector& vec)
+MDNLDynamic::addConstraintForces(int isub, DistrVector& vec)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subAddMpcForces, vec);
+  // I need to treat the contact forces from CONTACTSURFACES separately due to search,
+  // the ith lagrange multiplier at iteration n may not correspond to the ith constraint
+  // after updating the contact surfaces
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector localvec(vec.subData(isub), vec.subLen(isub));
+  sd->addConstraintForces(mu[isub], lambda[isub], localvec);  // C^T*lambda added to vec
 }
 
 void
-MDNLDynamic::subAddMpcForces(int isub, DistrVector& vec)
+MDNLDynamic::getConstraintMultipliers(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
-  double *mpcForces = new double[sd->numMPCs()];      // don't delete  
-  solver->getLocalMpcForces(isub, mpcForces);         // mpcForces set to incremental mpc lagrange multipliers
-  StackVector localvec(vec.subData(isub), vec.subLen(isub));
-  sd->constraintProductTmp(mpcForces, localvec);      // C^T*lambda added to vec
+  mu[isub].clear();
+  lambda[isub].clear();
+  sd->getConstraintMultipliers(mu[isub], lambda[isub]);
 }
 
 void
 MDNLDynamic::updateMpcRhs(DistrGeomState &geomState)
 {
   decDomain->setContactGap(&geomState, solver);
-  //execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMpcRhs, geomState);
 }
 
 void
-MDNLDynamic::subUpdateMpcRhs(int isub, DistrGeomState &geomState)
+MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
 {
-  SubDomain *sd = decDomain->getSubDomain(isub);
-  sd->updateMpcRhs(*geomState[isub], decDomain->getMpcToSub());
-}
-
-void
-MDNLDynamic::zeroMpcForces()
-{
-  paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::zeroMpcForces);
-}
-
-void
-MDNLDynamic::updateContactConditions(DistrGeomState* geomState)
-{
-  // YYYY
-  domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
-  domain->PerformStaticContactSearch();
-  //domain->PerformDynamicContactSearch(domain->solInfo().dt);  XXXX this is not supported by acme 2.5e for face-face interactions
-  domain->deleteLMPCs();
-  domain->ExpComputeMortarLMPC();
-//domain->printLMPC();
-  domain->CreateMortarToMPC();
-  decDomain->reProcessMPCs();
-  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
-}
-
-void
-MDNLDynamic::deleteContactConditions()
-{
-  domain->deleteLMPCs();
-  decDomain->reProcessMPCs();
-  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
-}
-
-void
-MDNLDynamic::updateSurfaces(DistrGeomState* geomState, int config_type)
-{
-  domain->UpdateSurfaces(geomState, config_type, decDomain->getAllSubDomains());
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
+  if(domain->GetnContactSurfacePairs()) {
+    // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
+    // XXXX the hessian of the constraint functions needs to be computed also
+    domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch();
+    //domain->PerformDynamicContactSearch(domain->solInfo().dt);  XXXX this is not supported by acme 2.5e for face-face interactions
+    domain->deleteLMPCs(); // XXXX should only delete the lmpcs due to contact. need to check and refine this
+    domain->ExpComputeMortarLMPC();
+    domain->CreateMortarToMPC();
+    decDomain->reProcessMPCs();
+    ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  }
 }
 
 void 

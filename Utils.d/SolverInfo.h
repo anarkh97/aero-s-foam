@@ -227,6 +227,7 @@ struct SolverInfo {
                   // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
                   //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
+   bool ffi_debug;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -396,6 +397,7 @@ struct SolverInfo {
 
                   dist_acme = 0;
                   allproc_acme = true;
+                  ffi_debug = false;
                  }
 
    // Set RbmFilter level
@@ -617,6 +619,8 @@ struct SolverInfo {
     { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; mumps_cntl[3] = trbm; }
    void setGrbm(double _tolzpv)
     { trbm = _tolzpv; rbmflg = 1; mumps_cntl[3] = trbm; }
+   void setGrbm() 
+    { rbmflg = 1; }
 
    bool isAcousticHelm() {
      return ((probType == Helmholtz) || (probType == HelmholtzDirSweep)

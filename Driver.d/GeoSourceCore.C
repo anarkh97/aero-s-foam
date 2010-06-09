@@ -418,13 +418,15 @@ findGroups(Connectivity *nToN, Connectivity &nToE) {
     		  elementGroup.insert(nToE[j][el]);
       }
       // We now have the group of nodes that form a complete rigid body.
-      fprintf(stderr, "in GeoSource::findGroups, Number of nodes: %d number of MPCs: %d\n", nodeGroup.size(), elementGroup.size());
+      cerr << "in GeoSource::findGroups, Number of nodes: " << nodeGroup.size() << " number of MPCs: " << elementGroup.size() << endl;
     }
 }
 
+#ifdef USE_EIGEN2
 #include <Math.d/rref.h>
 #include <eigen2/Eigen/Core>
 using namespace Eigen;
+#endif
 
 /** Order the terms in MPCs so that the first term can be directly written in terms of the others */
 void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
@@ -463,6 +465,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   //fprintf(stderr," New number of MPCs: %d\n", numLMPC);
 */
 
+  cerr << "here in GeoSource::makeDirectMPCs, numLMPC = " << numLMPC << endl;
   if(numLMPC) {
     bool use_rref = false; // this is set to true if we cannot find a slave for each mpc, or if an mpc cannot be written independently
     using std::map;
@@ -572,7 +575,9 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
 
     if(use_rref) {
-
+#ifndef USE_EIGEN2
+      cerr << "here in Driver.d/GeoSourceCore.C, use_rref is disabled\n";
+#else
       vector<int> *term2col = new vector<int>[numLMPC];
       vector<pair<int,int> > col2pair(dofToLMPC->csize());
       for(int i = 0; i < numLMPC; ++i) {
@@ -621,6 +626,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 
       //setDirectMPC(false); geoSource->addMpcElements(numLMPC, lmpc); // for debugging
       //for(int i=0; i<numLMPC; ++i) { cerr << "i = " << i << endl; lmpc[i]->print(); }
+#endif
     }
 
   }
@@ -791,7 +797,7 @@ void GeoSource::setUpData()
                       " non existent element %d \n",attrib[i].nele+1);
       continue;
     }
-
+    if(ele->isRigidElement()) continue;
     if(attrib[i].attr < -1) { // phantom elements
       phantomFlag = 1;
       ele->setProp(0);

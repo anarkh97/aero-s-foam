@@ -161,7 +161,7 @@ Joint.d/ParallelAxesConstraintType2.C
 Joint.d/PrismaticJoint.C
 Joint.d/RevoluteJoint.C
 Joint.d/SphericalJoint.C
-Joint.d/TranslationalJoint.C
+Joint.d/OrientJoint.C
 Joint.d/UniversalJoint.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C

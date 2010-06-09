@@ -937,6 +937,9 @@ ToleranceInfo:
         | GRBM NewLine Float NewLine
         { domain->solInfo().setGrbm($3); 
          filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+        | GRBM NewLine 
+        { domain->solInfo().setGrbm();
+         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
 	;
 ModeFilterInfo:
         MODEFILTER Integer NewLine

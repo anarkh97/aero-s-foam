@@ -527,8 +527,8 @@ class Domain : public HData {
      template <class Scalar> 
        void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
                              GenSparseMatrix<Scalar> *kuc = 0);
-     //void computeExtForce(Vector &f, double t, int tIndex,
-     //                     SparseMatrix *kuc, Vector &prev_f);
+     void computeExtForce(Vector &f, double t, int tIndex,
+                          SparseMatrix *kuc, Vector &prev_f);
 
 
      int  probType() { return sinfo.probType; }
@@ -793,6 +793,7 @@ class Domain : public HData {
      void PrintSurfaceEntities();
 
      int nMortarCond;
+     int nContactSurfacePairs; 
      ResizeArray<MortarHandler*> MortarConds;
 
      int AddMortarCond(MortarHandler*);
@@ -823,6 +824,7 @@ class Domain : public HData {
 
      Connectivity* GetMortarToMPC();
      int GetnMortarConds() { return nMortarCond; }
+     int GetnContactSurfacePairs() { return nContactSurfacePairs; }
      int GetnMortarLMPCs();
      MortarHandler* GetMortarCond(int i) { return MortarConds[i]; }
      ResizeArray<SurfaceEntity*>* viewSurfEntities() { return(&SurfEntities); }

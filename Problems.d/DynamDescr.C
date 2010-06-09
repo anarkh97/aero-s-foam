@@ -657,33 +657,6 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   domain->computeExtForce4(ext_f, cnst_f, t, kuc);
   if(userDefineDisp) delete [] userDefineDisp;
 
-/*
-  // add USDF forces
-  if(claw && userSupFunc) {
-    if(claw->numUserForce) {
-      double *userDefineForce = new double[claw->numUserForce];
-      userSupFunc->usd_forc(t, userDefineForce);
-      addUserForce(ext_f, userDefineForce);
-      delete [] userDefineForce;
-    }
-  }
-
-  // add ACTUATOR forces XXXX but is state at time t? need to check disp/vel/acc for explicit/implicit/quasistatics
-  if(claw && userSupFunc) {
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel = new double[claw->numSensor];
-      double *ctracc = new double[claw->numSensor];
-      double *ctrfrc = new double[claw->numActuator];
-
-      extractControlData(state, ctrdisp, ctrvel, ctracc);
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t, &state, &ext_f);
-      addCtrl(ext_f, ctrfrc);
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
-    }
-  }
-*/
-
   // add aeroelastic forces from fluid dynamics code
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
     domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);

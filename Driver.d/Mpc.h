@@ -197,32 +197,6 @@ class SubLMPCons
     for(int i=0; i<nterms; i++) ScalarTypes::initScalar(ksum[i], 1.0);  
   }
 
-  Scalar computeError(GeomState &gState, CoordSet &cs, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting; 
-    for(int i = 0; i < nterms; i++) {
-      int nnum = terms[i].nnum;
-      Node &node1 = cs.getNode(nnum);
-      NodeState ns1 = gState[nnum];
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * ns1.diff(node1, dofnum);
-    }
-    return error;
-  }
-
-  Scalar computeError(GeomState &gState, GeomState &refState, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting;
-    for(int i = 0; i < nterms; i++) {
-      Vector v(6, 0.0);
-      int nnum = terms[i].nnum;
-      gState.diff1(refState, v, nnum);
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * v[dofnum];
-    }
-    return error;
-  }
-
   void print()
   {
     std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs << ", nterms = " << nterms << endl;

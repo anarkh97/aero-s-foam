@@ -639,8 +639,7 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs(int iMPC);
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
-  void constraintProductTmp(double* R, GenVector<Scalar> &V);
-  void constraintProductExp(std::map<int, double> &R, GenVector<Scalar> &V);
+  void addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
@@ -692,12 +691,9 @@ class GenSubDomain : public BaseSub
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
-  void getLocalMpcForcesExp(std::map<int,double> &mpcLambda);
-  void updateMpcRhs(GeomState &geomState, Connectivity *mpcToSub);
-  void updateMpcRhs(GeomState &geomState, GeomState &refState, Connectivity *mpcToSub);
+  void getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda);
   void setMpcRhs(Scalar *interfvec);
   void updateMpcRhs(Scalar *interfvec);
-  void zeroMpcForces();
   double getMpcError();
 
   // Helmholtz fluid functions

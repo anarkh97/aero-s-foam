@@ -1144,9 +1144,6 @@ GenFetiDPSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar>
        solveGCR(f, u);
        break;
  }
- if(this->fetiInfo->type == FetiInfo::nonlinear) { // PJSA 9-18-2007
-   newton_iter++;
- }
 }
 
 template<class Scalar> 
@@ -2114,6 +2111,7 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
   this->fetiCom->globalSum(fc.size(), fc.data());
 #endif
   double mpcerr = 0.0;
+
   for(int i=0; i<this->nsub; ++i) mpcerr += this->sd[i]->getMpcError();
 #ifdef DISTRIBUTED
   mpcerr = this->fetiCom->globalSum(mpcerr);
@@ -2408,14 +2406,6 @@ GenFetiDPSolver<Scalar>::getLocalMpcForces(int iSub, double *mpcLambda)
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::getLocalMpcForcesExp(int iSub, std::map<int,double> &mpcLambda)
-{
-  // mpcLambda is the local MPC forces for subdomain iSub 
-  this->sd[iSub]->getLocalMpcForcesExp(mpcLambda);
-}
-
-template<class Scalar>
-void
 GenFetiDPSolver<Scalar>::addMpcRHS(int iMPC, Scalar *fcstar)
 {
  int dof = cornerEqs->firstdof(mpcOffset+iMPC);
@@ -2448,7 +2438,6 @@ GenFetiDPSolver<Scalar>::initialize()
   subsWithMpcs = 0; numSubsWithMpcs = 0; mpcSubMap = 0;
   dualStatusChange = primalStatusChange = stepLengthChange = false;
   nMatVecProd = nRebuildGtG = nRebuildCCt = nLinesearch = nLinesearchIter = nSubIterDual = nSubIterPrimal = nStatChDual = nStatChPrimal = 0;
-  newton_iter = 0;
   mpcPat = 0;
   kccrbms = 0;
 }
@@ -2870,7 +2859,9 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::computeL0(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f)
 {
-  if(newton_iter == 0) lambda.zero();
+  lambda.zero(); // XXXX consider starting from previous iteration or time (load) step for nonlinear dynamics (statics)
+                 // currently lambda is initialized to zero in workspace constructor for feti-dp and a 
+                 // new workspace is constructed every time the solver is refactored
   if(this->glNumMpc) {
     if(ngrbms > 0) makeE(f); // compute e = R^T*f
     project(lambda, lambda, true); 

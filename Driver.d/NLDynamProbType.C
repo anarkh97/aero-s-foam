@@ -180,9 +180,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
     double resN, initialRes;
     int converged;
-    probDesc->initNewton(); // PJSA 10-9-2007
-    stateIncr->zero(); // PJSA 4/16/2010
-    //stateIncr->linC((1.0-alphaf)*dt, velocity_n, ((1.0-alphaf)*(0.5-beta)-(1-alphaf)/(1-alpham)*beta*alpham)*dt*dt, acceleration); // PJSA 4/16/2010
+
+    // Initialize states
+    StateUpdate::copyState(geomState, refState);
+    StateUpdate::zeroInc(stateIncr);
 
     // Iteration loop
     for(int iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
@@ -190,14 +191,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       residual = external_force;
          
       // And stateIncr to geomState and compute element tangent stiffness and internal/follower forces
+      // also update the constraints (updateContactConditions called)
       StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
-
-      //VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY g = C^T*lambda  this is wrong, we should use the updated C^T make sure the lambda is correctly mapped
-      probDesc->updateContactConditions(geomState);
-      VecType g(rhs); g.zero(); if(iter>0) probDesc->addMpcForces(g);
-      //now I am doing this in in NodalMortarShapeFct::CreateMortarCtcLMPCons probDesc->updateMpcRhs(*geomState); // YYYY
 
       // Assemble global tangent stiffness
       probDesc->reBuild(*geomState, iter);
@@ -208,26 +205,19 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
+      resN = probDesc->getResidualNorm(rhs); // addMpcForces called
 
-      //VecType g(rhs); g.zero(); probDesc->addMpcForces(g); // YYYY resN = ||rhs + C^T*lambda||
-      double ggtmp = g*g;
-      g += rhs; resN = probDesc->norm(g); // resN = ||rhs + C^T*lambda||
-      // XXXX at very least need to include primal feas error for contact
-      // ie resN = sqrt( (rhs+c^T*lambda)**2 + pos_part(c*u-g)**2 )
-      //filePrint(stderr,"2 NORMS: fext*fext %e fctc*fctc %e residual*residual %e\n", external_force*external_force, ggtmp, resN*resN);
+      //filePrint(stderr,"2 NORMS: fext*fext %e %e residual*residual %e\n", external_force*external_force, resN*resN);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-      //cerr << "rhs*rhs = " << rhs*rhs << endl;
       solver->reSolve(rhs);
-      //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
       // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing
-      // YYYY shouldn't we also check for primal & dual feasibility and complimentary slackness??
       converged = probDesc->checkConvergence(iter, resN, residual, rhs, time);
       StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
 

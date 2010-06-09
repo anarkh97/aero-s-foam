@@ -1,4 +1,3 @@
-/* DEPRECATED, we now use DynamProbType.C instead
 #include <Driver.d/TempProbType.h>
 #include <Math.d/mathUtility.h>
 #include <Math.d/TVectorSet.h>
@@ -342,4 +341,3 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
 }
 
 //------------------------------------------------------------------------------
-*/

@@ -33,25 +33,26 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
 }
 
 double
-MDNLStatic::norm(DistrVector &vec)
+MDNLStatic::getResidualNorm(DistrVector &r)
 {
- return sqrt(solver->getFNormSq(vec));
+ // XXXX should also include constraint error i.e. pos_part<gap>
+ DistrVector w(r);
+ execParal1R(decDomain->getNumSub(), this, &MDNLStatic::addConstraintForces, w); // w = r + C^T*lambda
+                  // note C = grad(gap) has already been updated in getStiffAndForce.
+                  // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
+                  // correctly only for the case of one contactsurfaces pair
+ return sqrt(solver->getFNormSq(w));
 }
 
 void
-MDNLStatic::addMpcForces(DistrVector &vec)
+MDNLStatic::addConstraintForces(int isub, DistrVector &vec)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subAddMpcForces, vec);
-}
-
-void
-MDNLStatic::subAddMpcForces(int isub, DistrVector &vec)
-{
+  // I need to treat the contact forces from CONTACTSURFACES separately due to search,
+  // the ith lagrange multiplier at iteration n may not correspond to the ith constraint
+  // after updating the contact surfaces
   SubDomain *sd = decDomain->getSubDomain(isub);
-  double *mpcForces = new double[sd->numMPCs()]; // don't delete  
-  solver->getLocalMpcForces(isub, mpcForces);  // mpcForces set to incremental mpc lagrange multipliers
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
-  sd->constraintProductTmp(mpcForces, localvec); // C^T*lambda added to force residual
+  sd->addConstraintForces(mu[isub], lambda[isub], localvec);      // C^T*lambda added to vec
 }
 
 void
@@ -74,29 +75,21 @@ MDNLStatic::makeSubCorotators(int isub)
 MDNLStatic::MDNLStatic(Domain *d)
 {
  domain = d;
-/*
- switch(domain->solInfo().fetiInfo.version) {
-  default:
-  case FetiInfo::feti1:
-    filePrint(stderr," ... FETI-1 is Selected             ...\n");
-    break;
-  case FetiInfo::feti2:
-    filePrint(stderr," ... FETI-2 is Selected             ...\n");
-    break;
-  case FetiInfo::fetidp:
-    if (!(domain->solInfo().fetiInfo.dph_flag))
-      filePrint(stderr," ... FETI-Dual/Primal is Selected   ...\n");
-    else
-      filePrint(stderr," ... FETI-DPH is Selected           ...\n");
-    break;
-  }
-*/
+
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<double>(domain);
 #else
  decDomain = new GenDecDomain<double>(domain);
 #endif
  numSystems = 0;
+ mu = 0; lambda = 0;
+}
+
+// Destructor
+MDNLStatic::~MDNLStatic()
+{
+  if(mu) delete [] mu;
+  if(lambda) delete [] lambda;
 }
 
 DistrInfo&
@@ -175,12 +168,14 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 double
 MDNLStatic::getStiffAndForce(DistrGeomState& geomState, 
                              DistrVector& residual, DistrVector& elementInternalForce,
-                             DistrVector&, double lambda)
+                             DistrVector&, double _lambda)
 {
  times->buildStiffAndForce -= getTime();
 
  execParal4R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
-             residual, elementInternalForce, lambda);
+             residual, elementInternalForce, _lambda);
+
+ updateConstraintTerms(&geomState);
 
  times->buildStiffAndForce += getTime();
 
@@ -293,6 +288,8 @@ MDNLStatic::preProcess()
  tolerance = domain->solInfo().getNLInfo().tolRes;
 
  domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+ mu = new std::map<int,double>[decDomain->getNumSub()];
+ lambda = new std::vector<double>[decDomain->getNumSub()];
 }
 
 int
@@ -425,19 +422,27 @@ MDNLStatic::updateMpcRhs(DistrGeomState &geomState)
 }
 
 void
-MDNLStatic::updateContactConditions(DistrGeomState* geomState)
+MDNLStatic::updateConstraintTerms(DistrGeomState* geomState)
 {
+  execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
+  if(domain->GetnContactSurfacePairs()) {
+    domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch();
+    domain->deleteLMPCs();
+    domain->ExpComputeMortarLMPC();
+    domain->CreateMortarToMPC();
+    ((GenFetiDPSolver<double> *) solver)->deleteG();
+    decDomain->reProcessMPCs();
+    ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  }
+}
 
-  domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
-  domain->PerformStaticContactSearch();
-  domain->deleteLMPCs();
-  domain->ExpComputeMortarLMPC();
-  //domain->printLMPC();
-  domain->CreateMortarToMPC();
-  ((GenFetiDPSolver<double> *) solver)->deleteG();
-  decDomain->reProcessMPCs();
-  ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
-  //solver = decDomain->getFetiSolver();
-
+void
+MDNLStatic::getConstraintMultipliers(int isub)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  mu[isub].clear();
+  lambda[isub].clear();
+  sd->getConstraintMultipliers(mu[isub], lambda[isub]);
 }
 

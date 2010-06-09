@@ -787,7 +787,6 @@ FlExchanger::cmdCom( int commandFlag )
   return returnFlag;
 }
 
-/*
 int
 FlExchanger::cmdComHeat( int commandFlag )
 {
@@ -824,7 +823,6 @@ FlExchanger::cmdComHeat( int commandFlag )
 
   return returnFlag;
 }
-*/
 
 
 

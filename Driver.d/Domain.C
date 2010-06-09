@@ -2492,6 +2492,8 @@ Domain::AddMortarCond(MortarHandler* _MortarCond)
   // Count number of MortarCond
   nMortarCond++;
 
+  if(_MortarCond->GetInteractionType() == MortarHandler::CTC) nContactSurfacePairs++;
+
   return 0;
 }
 
@@ -2973,6 +2975,7 @@ Domain::initialize()
  numCTC=0;
  output_match_in_top = false;//TG
  C_condensed = 0;
+ nContactSurfacePairs = 0;
 }
 
 Domain::~Domain()

@@ -1,4 +1,3 @@
-/* DEPRECATED, now we use SingleDomainDynam DynamDescr.C instead
 #include <Problems.d/TempDescr.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
@@ -116,7 +115,7 @@ SingleDomainTemp::dbcVecInfo()
 void
 SingleDomainTemp::getTempTimes(double &dtemp, double &tmax)
 {
- dtemp = domain->solInfo().dtemp;
+ dtemp = domain->solInfo().getTimeStep();
  tmax = domain->solInfo().tmax;
 }
 
@@ -469,4 +468,3 @@ SingleDomainTemp::modeDecomp(double t, int tIndex, Vector& d_n)
   }
   if(alfa) delete [] alfa;
 }
-*/

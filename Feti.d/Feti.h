@@ -315,7 +315,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     virtual double getFNormSq(GenDistrVector<Scalar> &f);
 
     virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
-    virtual void getLocalMpcForcesExp(int iSub, std::map<int,double> &mpcLambda) { };  // only implemented for DP
 
     // for helmholtz freqency sweep
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k);
@@ -327,8 +326,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     virtual void rebuildLHSfreq();  // for multiple LHS frequency sweep
 
     GenSolver<Scalar> * newSolver(int type, Connectivity *con, EqNumberer *nums, double tol, GenSparseMatrix<Scalar> *&sparse); // PJSA 2-23-2007
-
-    virtual void initNewton() { cerr << "initNewton undefined for Feti-1 \n"; }
 
   protected:
     FSCommPattern<Scalar> *wiPat;
@@ -453,7 +450,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     int *mpcSubMap;
     void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V = 0);
     FSCommPattern<int> *mpcPat;
-    int newton_iter;
     double lastError;
 
     // Contact functions
@@ -492,7 +488,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     Connectivity * getBlockToMpc();
     void cctSolveMpc(GenDistrVector<Scalar> &v);
     void getLocalMpcForces(int iSub, double *mpcLambda);
-    void getLocalMpcForcesExp(int iSub, std::map<int,double> &mpcLambda);
   private:
     void setBodyRBMoffset(int iSub, int *zColOffset);
     void addMpcRHS(int iMPC, Scalar *singleC);
@@ -503,7 +498,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
                                // ie no change in mpcs, contact, etc.
     void reconstruct();
     void refactor();
-    void initNewton() { newton_iter = 0; }
     void reconstructMPCs(Connectivity *_mpcToSub, Connectivity *_mpcToMpc, Connectivity *_mpcToCpu);
     void zeroG();
     void deleteG();

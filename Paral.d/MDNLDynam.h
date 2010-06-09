@@ -35,8 +35,6 @@ class MDNLDynamic
     FetiSolver *solver;
     int     totIter;             // counter of iterations
 
-    //SparseMatrix **M;          // array of subdomain Mass matrices 
-    //SparseMatrix **kuc;        // array of subdomain Kuc  matrices
     MDDynamMat *allOps;
     SubDOp *M;
     SubDOp *C;
@@ -82,13 +80,14 @@ class MDNLDynamic
     DistrVector *aeroForce;
     DistrVector *nodalTemps;
 
-    std::map<int, double> *mpcForcesExp;
+    std::map<int, double> *mu; // lagrange multipliers for the inequality constraints
+    std::vector<double> *lambda; // lagrange multipliers for the equality constraints
 
  public:
 
     // Constructor
     MDNLDynamic(Domain *d);
-    virtual ~MDNLDynamic() { }
+    virtual ~MDNLDynamic();
 
     MultiDomainPostProcessor *getPostProcessor();
     void getInitialTime(int &initTimeIndex, double &initTime);
@@ -160,14 +159,7 @@ class MDNLDynamic
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
                           int aeroAlg);
 
-    void initNewton();
-    void addMpcForces(DistrVector& vec);
-    void updateMpcRhs(DistrGeomState &geomState);
-    void updateContactConditions(DistrGeomState* geomState);
-    void zeroMpcForces();
-    double norm(DistrVector &vec);
-    void deleteContactConditions();
-    void updateSurfaces(DistrGeomState* geomState, int config_type);
+    double getResidualNorm(DistrVector &vec);
 
     int getAeroAlg();
     int getThermoeFlag();
@@ -184,9 +176,8 @@ class MDNLDynamic
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
-    void subAddMpcForces(int isub, DistrVector& rhs);
-    void subGetMpcForces(int isub);
-    void subUpdateMpcRhs(int isub, DistrGeomState &geomState);
+    void addConstraintForces(int isub, DistrVector& rhs);
+    void getConstraintMultipliers(int isub);
     void subUpdateGeomStateUSDD(int isub, DistrGeomState &geomState, double *userDefineDisp);
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
@@ -198,6 +189,8 @@ class MDNLDynamic
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
+    void updateMpcRhs(DistrGeomState &geomState);
+    void updateConstraintTerms(DistrGeomState* geomState);
 };
 
 inline double

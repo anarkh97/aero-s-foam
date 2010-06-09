@@ -4598,50 +4598,15 @@ GenSubDomain<Scalar>::getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEq
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getLocalMpcForcesExp(std::map<int,double> &mpcLambda)
+GenSubDomain<Scalar>::getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda)
 {
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int l = scomm->mpcNb(i);
-    if(mpc[l]->type == 1) { // contact
-      //cerr << "slave node = " << -mpc[l]->lmpcnum << ", lambda = " << localLambda[scomm->mapT(SComm::mpc,i)] << ", active = " << mpc[l]->active << endl;
-      mpcLambda[mpc[l]->lmpcnum] = localLambda[scomm->mapT(SComm::mpc,i)];
-    }
+    if(mpc[l]->type == 1) // contact
+      mu[mpc[l]->lmpcnum] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
+    else
+      lambda.push_back( (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0 );
   }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::updateMpcRhs(GeomState &geomState, Connectivity *mpcToSub)
-{
-  // used in nonlinear statics
-  for(int i=0; i<numMPC; ++i) {
-    double rhs_weighting = double(mpcToSub->num(localToGlobalMPC[i]));
-    mpc[i]->rhs = -mpc[i]->computeError(geomState, nodes, rhs_weighting); // DEBUG NONLINEAR (this was +ve)
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::updateMpcRhs(GeomState &geomState, GeomState &refState, Connectivity *mpcToSub)
-{
-  // used in nonlinear statics
-  for(int i=0; i<numMPC; ++i) {
-    double rhs_weighting = double(mpcToSub->num(localToGlobalMPC[i]));
-    mpc[i]->rhs = -mpc[i]->computeError(geomState, refState, rhs_weighting); // DEBUG NONLINEAR
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::zeroMpcForces()
-{
-  // for non-linear FETI dual LMPCs
-  if(mpcForces) delete [] mpcForces;  // note numMPC may have changed
-  mpcForces = new double[numMPC];
-  for(int i=0; i<numMPC; ++i) mpcForces[i] = 0.0;
-  if(localLambda) delete [] localLambda;
-  localLambda = new double[totalInterfSize];
-  for(int i=0; i<totalInterfSize; ++i) localLambda[i] = 0.0;
 }
 
 template<class Scalar>
@@ -6163,40 +6128,29 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double* R[], Scalar*
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::constraintProductTmp(double* R, GenVector<Scalar> &V)
+GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f)
 {
-  // V += C^T * R
-  // called in MDNLStatic::getSubStiffAndForce(...)
-  int i, iMPC;
-  for(iMPC=0; iMPC<numMPC; ++iMPC) {
-    for(i=0; i<mpc[iMPC]->nterms; ++i) {
-      int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
-                              (1 << mpc[iMPC]->terms[i].dofnum));
-      if(dof < 0) continue;
-      V[dof] += mpc[iMPC]->terms[i].coef*R[iMPC];
-    }
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::constraintProductExp(std::map<int, double> &R, GenVector<Scalar> &V)
-{
-  // V += C^T * R
-  // called in MDNLStatic::getSubStiffAndForce(...)
+  vector<double>::iterator it2 = lambda.begin();
   for(int i = 0; i < numMPC; ++i) {
     if(mpc[i]->type == 1) { // contact
-      map<int, double>::iterator it = R.find(mpc[i]->lmpcnum);
-      if(it != R.end()) {
-        //cerr << "found: slave node " << -mpc[i]->lmpcnum << ", lambda = " << it->second << endl;
+      map<int, double>::iterator it1 = mu.find(mpc[i]->lmpcnum);
+      if(it1 != mu.end()) {
         for(int j = 0; j < mpc[i]->nterms; ++j) {
           int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
                                   (1 << mpc[i]->terms[j].dofnum));
           if(dof < 0) continue;
-          V[dof] += mpc[i]->terms[j].coef*it->second;
+          f[dof] += mpc[i]->terms[j].coef*it1->second;
         }
       }
-      //else cerr << "not found: slave node " << -mpc[i]->lmpcnum << endl;
+    }
+    else {
+      for(int j = 0; j < mpc[i]->nterms; ++j) {
+        int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
+                                (1 << mpc[i]->terms[j].dofnum));
+        if(dof < 0) continue;
+        f[dof] += mpc[i]->terms[j].coef*(*it2);
+      }
+      it2++;
     }
   }
 }

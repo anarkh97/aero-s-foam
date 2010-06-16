@@ -15,6 +15,7 @@ DynamTimeIntegrator.C
 FullCorrectionPropagatorImpl.C
 HomogeneousGenAlphaIntegrator.C
 IncrementalPostProcessor.C
+InitialSeedTask.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
 JumpBuilder.C
@@ -60,6 +61,16 @@ UpdatedSeedAssemblerImpl.C
 lev2pchol.f
 lev3pchol.f
 blas_dmax_val.f
+Std.d/AffineBasisCollector.C
+Std.d/HomogeneousTaskManager.C
+Std.d/IncrementalPropagation.C
+Std.d/LinearPropagatorManager.C
+Std.d/LinearProjectionNetwork.C
+Std.d/NonHomogeneousTaskManager.C
+Std.d/ReducedLinearDriverImpl.C
+Std.d/RemoteCoarseCorrectionServer.C
+Std.d/RemoteSeedInitializerServer.C
+Std.d/SliceMapping.C
 Hts.d/AffineHalfTimeSliceImpl.C
 Hts.d/BasisCollectorImpl.C
 Hts.d/HalfTimeSlice.C

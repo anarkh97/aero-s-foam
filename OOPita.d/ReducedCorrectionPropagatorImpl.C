@@ -24,8 +24,8 @@ ReducedCorrectionPropagatorImpl::iterationIs(IterationRank ir) {
 
   Vector result = jump()->state();
   
+  // result == reprojectionMatrix * correction + jump
   if (correction()->status() != Seed::INACTIVE) {
-    // result == reprojectionMatrix * correction + jump 
     const_cast<FullSquareMatrix *>(reprojectionMatrix())->multiply(
         const_cast<Vector &>(correction()->state()),
         result,       

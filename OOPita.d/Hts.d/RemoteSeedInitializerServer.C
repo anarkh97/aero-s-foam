@@ -5,9 +5,10 @@
 namespace Pita { namespace Hts {
 
 RemoteSeedInitializerServer::RemoteSeedInitializerServer(Communicator * cc, SeedInitializer * si, const SliceMapping * m) :
-  RemoteCoarseServer(cc, m),
   baseInitializer_(si),
-  sBuffer_()
+  clientCommunicator_(cc),
+  sBuffer_(),
+  clientMapping_(m)
 {}
 
 void

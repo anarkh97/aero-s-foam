@@ -5,8 +5,8 @@ namespace Pita { namespace Hts {
 RemoteCoarseCorrectionServer::RemoteCoarseCorrectionServer(
     RemoteDynamPropagatorServer * server,
     const SliceMapping * clientMapping) :
-  RemoteCoarseServer(server->clientCommunicator(), clientMapping),
-  server_(server)
+  server_(server),
+  clientMapping_(clientMapping)
 {}
 
 void

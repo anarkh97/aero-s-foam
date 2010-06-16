@@ -4,7 +4,8 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "RemoteCoarseServer.h" 
+#include "../RemoteCoarseServer.h" 
+#include "SliceMapping.h"
 
 #include "../RemoteDynamPropagatorServer.h"
 
@@ -19,6 +20,7 @@ public:
   virtual void statusIs(Status s); // overriden
   
   RemoteDynamPropagatorServer * server() const { return server_.ptr(); }
+  const SliceMapping * clientMapping() const { return clientMapping_.ptr(); }
 
   // Caution: mapping must be kept up-to-date 
   static Ptr New(RemoteDynamPropagatorServer * server, const SliceMapping * mapping) {
@@ -26,10 +28,11 @@ public:
   }
 
 protected:
-  RemoteCoarseCorrectionServer(RemoteDynamPropagatorServer * server, const SliceMapping * mapping);
+  RemoteCoarseCorrectionServer(RemoteDynamPropagatorServer * server, const SliceMapping * clientMapping);
 
 private:
   RemoteDynamPropagatorServer::Ptr server_;
+  SliceMapping::PtrConst clientMapping_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteCoarseCorrectionServer);
 };

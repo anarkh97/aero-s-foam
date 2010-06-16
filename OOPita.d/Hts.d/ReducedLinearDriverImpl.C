@@ -66,11 +66,7 @@ ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * p
                                                  Domain * domain,
                                                  SolverInfo * solverInfo,
                                                  Communicator * baseComm) :
-  probDesc_(pbDesc),
-  geoSource_(geoSource),
-  domain_(domain),
-  solverInfo_(solverInfo),
-  baseComm_(baseComm)
+  LinearDriverImpl(pbDesc, geoSource, domain, solverInfo, baseComm)
 {}
 
 // Main routine
@@ -276,18 +272,6 @@ ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
   log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
-DynamState
-ReducedLinearDriverImpl::initialSeed() const {
-  DynamState result = DynamState(vectorSize_);
-
-  Vector & init_d = result.displacement();
-  Vector & init_v = result.velocity();
-  Vector init_a(vectorSize_);
-  Vector init_vp(vectorSize_);
-  domain()->initDispVeloc(init_d, init_v, init_a, init_vp);
-
-  return result;
-}
 
 HalfTimeSlice::Manager::Ptr
 ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fineIntegrationParam,
@@ -373,6 +357,6 @@ extern Domain * domain;
 
 /* Entrypoint */
 Pita::LinearDriver::Ptr
-linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
+linearReversiblePitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
   return Pita::Hts::ReducedLinearDriverImpl::New(pbDesc, geoSource, domain, &domain->solInfo(), structCom);
 }

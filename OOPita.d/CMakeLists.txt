@@ -20,6 +20,7 @@ IntegratorSeedInitializer.C
 JumpBuilder.C
 JumpProjectorImpl.C
 LeastSquareSolver.C
+LinearDriverImpl.C
 LinearDynamOps.C
 LinearGenAlphaIntegrator.C
 LinearizedPropagator.C

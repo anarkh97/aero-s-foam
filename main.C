@@ -1054,7 +1054,7 @@ int main(int argc, char** argv)
              if (domain->solInfo().newPitaImplementation) {
                  fprintf(stderr," ... Time-reversible linear PITA ...\n");
                  SingleDomainDynamic<double> dynamProb(domain);
-                 Pita::LinearDriver::Ptr driver = linearPitaDriverNew(&dynamProb);
+                 Pita::LinearDriver::Ptr driver = linearReversiblePitaDriverNew(&dynamProb);
                  driver->solve();
              } else {
                  fprintf(stderr," ... Linear PITA ...\n");

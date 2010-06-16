@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../LinearDriver.h"
+#include "../LinearDriverImpl.h"
 
 #include "../DynamState.h"
 
@@ -25,19 +25,12 @@ class SDDynamPostProcessor;
 
 namespace Pita { namespace Hts {
 
-class ReducedLinearDriverImpl : public LinearDriver {
+class ReducedLinearDriverImpl : public LinearDriverImpl {
 public:
   EXPORT_PTRINTERFACE_TYPES(ReducedLinearDriverImpl);
 
   virtual void solve();
-
-  SingleDomainDynamic<double> * probDesc() const { return probDesc_; }
-  GeoSource * geoSource() const { return geoSource_; }
-  Domain * domain() const { return domain_; }
-  SolverInfo * solverInfo() const { return solverInfo_; }
-  Communicator * baseComm() const { return baseComm_; }
-
-  // Independent from global state
+  
   static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
                                           GeoSource * geoSource,
                                           Domain * domain,
@@ -53,8 +46,6 @@ protected:
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
   void solveCoarse(Communicator * timeComm);
  
-  DynamState initialSeed() const;
-  
   HalfTimeSlice::Manager::Ptr buildHalfTimeSliceManager(
       GeneralizedAlphaParameter fineIntegrationParam,
       PostProcessing::Manager * postProcessingMgr,
@@ -68,13 +59,6 @@ protected:
   SeedInitializer::Ptr buildSeedInitializer(bool local, Communicator * timeComm) const;
 
 private:
-  /* Primary sources */
-  SingleDomainDynamic<double> * probDesc_;
-  GeoSource * geoSource_;
-  Domain * domain_;
-  SolverInfo * solverInfo_;
-  Communicator * baseComm_;
-
   /* Space-domain */
   size_t vectorSize_;
   LinearDynamOps::Manager::Ptr dynamOpsMgr_;
@@ -102,6 +86,6 @@ private:
 
 } /* namespace Hts */ } /* end namespace Pita */
 
-Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
+Pita::LinearDriver::Ptr linearReversiblePitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 
 #endif /* PITA_HTS_REDUCEDLINEARDRIVERIMPL_H */

@@ -12,6 +12,7 @@ public:
   typedef Fwk::Ptr<const DynamStateBasisWrapper> PtrConst;
 
   virtual size_t stateCount() const { return stateCount_; }
+  using DynamStateBasis::state;
   virtual DynamState state(size_t index) const { // Unsafe
     return DynamState(vectorSize(), data_ + 2 * index * vectorSize());
   }

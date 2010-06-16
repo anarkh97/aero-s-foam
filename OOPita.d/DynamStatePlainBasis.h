@@ -11,6 +11,7 @@ public:
   EXPORT_PTRINTERFACE_TYPES(DynamStatePlainBasis);
 
   virtual size_t stateCount() const { return state_.size(); }
+  using DynamStateBasis::state;
   DynamState state(size_t index) const { return state_[index]; } // Unsafe
 
   void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unsafe

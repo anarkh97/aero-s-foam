@@ -46,13 +46,7 @@ using namespace std;
 #ifdef DISTRIBUTED
   // Old PITA implementation
   #include <Pita.d/PitaNonLinDynam.h>
-  #include <Pita.d/DistrTimeDecompSolver.h>
-  #include <Pita.d/PitaTimers.h>
-  #include <Pita.d/TimeSlice.h>
-  #include <Pita.d/StateSet.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
-  #include <Pita.d/MDDistrTimeDecompSolver.h>
-  #include <Pita.d/SDDistrTimeDecompSolver.h>
   // New Pita implementation
   #include <OOPita.d/PitaNonLinDynam.h>
   #include <OOPita.d/NlDriver.h>
@@ -730,13 +724,6 @@ int main(int argc, char** argv)
    switch(domain->probType()) {
      case SolverInfo::Dynamic: {
         if(domain->solInfo().mdPita) { // Not implemented yet
-          //double solver=getTime();
-          //fprintf(stderr," ... Distr Time And Space Parall Method  ...\n");
-          //MultiDomainDynam dynamProb(domain);
-          //MDDistrTimeDecompSolver<PitaDynamMat, DistrVector, MultiDomDynPostProcessor,
-          //                     MultiDomainDynam, DistrInfo> distrTimedec(&dynamProb);
-          //distrTimedec.solve_PITA_linearDynam();
-          //cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;*/
           filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
         } else {
           MultiDomainDynam<double> dynamProb(domain);
@@ -1050,20 +1037,16 @@ int main(int argc, char** argv)
         else {
           if (domain->solInfo().tiParall) {
 #ifdef DISTRIBUTED
-             double solver=getTime();
-             if (domain->solInfo().newPitaImplementation) {
-                 fprintf(stderr," ... Time-reversible linear PITA ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
-                 Pita::LinearDriver::Ptr driver = linearReversiblePitaDriverNew(&dynamProb);
-                 driver->solve();
-             } else {
+             SingleDomainDynamic<double> dynamProb(domain);
+             Pita::LinearDriver::Ptr driver;
+             if (!domain->solInfo().newPitaImplementation) {
                  fprintf(stderr," ... Linear PITA ...\n");
-                 SingleDomainDynamic<double> dynamProb(domain);
-                 SDDistrTimeDecompSolver<PitaDynamMat,Vector,SDDynamPostProcessor,
-                     SingleDomainDynamic<double>,SingleInfo> distrTimedec(&dynamProb);
-                 distrTimedec.solve_PITA_linearDynam();
-                 cout<<"!!! tps solver !!! "<<(getTime()-solver)/1000.0<<endl;
+                 driver = linearPitaDriverNew(&dynamProb);
+             } else {
+                 fprintf(stderr," ... Time-reversible linear PITA ...\n");
+                 driver = linearReversiblePitaDriverNew(&dynamProb);
              }
+             driver->solve();
 #else
              fprintf(stderr," ... PITA requires distributed version ...\n");
 #endif

@@ -28,6 +28,7 @@ private:
 
 } // end namespace Pita
 
+extern Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 extern Pita::LinearDriver::Ptr linearReversiblePitaDriverNew(SingleDomainDynamic<double> * pbDesc);
 
 #endif /* PITA_LINEARDRIVER_H */

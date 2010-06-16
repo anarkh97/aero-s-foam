@@ -5,7 +5,6 @@ ADD_LIBRARY( pita
 		  NLTimeSlice.C
 		  NiceTimer.C
 		  PitaNonLinDynam.C
-		  PitaTimers.C
 		  TimeSliceMapping.C
 		 ../Driver.d/DomainPita.C
 )

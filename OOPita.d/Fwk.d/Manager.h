@@ -68,7 +68,7 @@ public:
 /* Generic Manager Implementation
 ** T => Managed type
 ** K => Key                       */
-template <typename T, typename K>
+template <typename T, typename K, typename CreatePtrT = T*>
 class GenManagerImpl {
 public:
   typedef std::map<K, Ptr<T> > InstanceMap;
@@ -103,22 +103,22 @@ public:
 protected:
   virtual ~GenManagerImpl() {}
 
-  virtual T * createNewInstance(const K & key) = 0;
+  virtual CreatePtrT createNewInstance(const K & key) = 0;
 
 private:
   InstanceMap instance_;
 };
 
-template <typename T, typename K>
+template <typename T, typename K, typename CreatePtrT>
 T *
-GenManagerImpl<T, K>::instance(const K & key) const {
+GenManagerImpl<T, K, CreatePtrT>::instance(const K & key) const {
   typename InstanceMap::const_iterator it = instance_.find(key);
   return (it != instance_.end()) ? it->second.ptr() : NULL;
 }
 
-template <typename T, typename K>
+template <typename T, typename K, typename CreatePtrT>
 T *
-GenManagerImpl<T, K>::instanceNew(const K & key) {
+GenManagerImpl<T, K, CreatePtrT>::instanceNew(const K & key) {
   // Find insertion point
   typename InstanceMap::iterator it = instance_.lower_bound(key);
   if (it != instance_.end() && it->first == key)
@@ -137,7 +137,7 @@ struct InstanceFactory {
   typedef T InstanceType;
   typedef K KeyType;
 
-  /* Derived classes should implement T * operator()(const K & key) [const] */
+  /* Derived classes should implement [T / Ptr<T>] operator()(const K & key) [const] */
 };
 
 template <typename FactoryType> 
@@ -196,25 +196,34 @@ FactoryManagerImpl<FactoryType>::instanceNew(const typename FactoryManagerImpl<F
 }
 
 /* Template Manager */
-template <typename T, typename K>
-class GenManager : public PtrInterface<GenManager<T, K> >, private GenManagerImpl<T, K> {
+template <typename T, typename K, typename CreatePtrT = Ptr<T> >
+class GenManager : public PtrInterface<GenManager<T, K, CreatePtrT> >, private GenManagerImpl<T, K, CreatePtrT> {
 public:
   EXPORT_PTRINTERFACE_TYPES(GenManager);
  
-  typedef typename GenManagerImpl<T, K>::InstanceCount InstanceCount;
+  typedef typename GenManagerImpl<T, K, CreatePtrT>::InstanceCount InstanceCount;
 
-  T * instance(const K & key) const { return GenManagerImpl<T, K>::instance(key); } 
-  InstanceCount instanceCount() const { return GenManagerImpl<T, K>::instanceCount(); }
+  T * instance(const K & key) const { return GenManagerImpl<T, K, CreatePtrT>::instance(key); } 
+  InstanceCount instanceCount() const { return GenManagerImpl<T, K, CreatePtrT>::instanceCount(); }
   
-  T * instanceNew(const K & key) { return GenManagerImpl<T, K>::instanceNew(key); }
-  void instanceDel(const K & key) { GenManagerImpl<T, K>::instanceDel(key); }
+  T * instanceNew(const K & key) { return GenManagerImpl<T, K, CreatePtrT>::instanceNew(key); }
+  void instanceDel(const K & key) { GenManagerImpl<T, K, CreatePtrT>::instanceDel(key); }
 
 protected:
   GenManager() {}
  
   typedef K KeyType;
+  typedef GenManagerImpl<T, K, CreatePtrT> Impl;
+  typedef typename Impl::IteratorConst IteratorConst;
+  typedef typename Impl::Iterator Iterator;
+  
+  IteratorConst instanceBegin() const { return Impl::instanceBegin(); }
+  IteratorConst instanceEnd() const { return Impl::instanceEnd(); }
 
-  virtual T * createNewInstance(const K & key) = 0;
+  Iterator instanceBegin() { return Impl::instanceBegin(); }
+  Iterator instanceEnd() { return Impl::instanceEnd(); }
+
+  virtual CreatePtrT createNewInstance(const K & key) = 0;
 
   DISALLOW_COPY_AND_ASSIGN(GenManager);
 };
@@ -226,8 +235,7 @@ typedef GenManagerImpl<NamedInterface, String> NamedInterfaceManagerImpl;
 template <typename T>
 class GenNamedInterfaceManager : public PtrInterface<GenNamedInterfaceManager<T> >, private NamedInterfaceManagerImpl {
 public:
-  typedef Fwk::Ptr<GenNamedInterfaceManager<T> > Ptr;
-  typedef Fwk::Ptr<const GenNamedInterfaceManager<T> > PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(GenNamedInterfaceManager<T>);
  
   typedef NamedInterfaceManagerImpl::InstanceCount InstanceCount;
 
@@ -249,4 +257,4 @@ typedef GenNamedInterfaceManager<NamedInterface> NamedInterfaceManager;
 
 } // end namespace Fwk
 
-#endif /* Fwk_MANAGER_H */
+#endif /* FWK_MANAGER_H */

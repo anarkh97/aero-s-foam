@@ -24,7 +24,7 @@ SeedErrorEvaluator::Manager::Manager(const DynamOps * defaultMetric) :
   defaultMetric_(defaultMetric)
 {}
 
-SeedErrorEvaluator *
+SeedErrorEvaluator::Ptr
 SeedErrorEvaluator::Manager::createNewInstance(const SeedErrorEvaluator::Manager::KeyType & key) {
   return new SeedErrorEvaluator(defaultMetric(), key, NULL);
 }

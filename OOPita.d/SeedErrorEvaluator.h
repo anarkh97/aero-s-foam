@@ -45,7 +45,7 @@ public:
 protected:
   explicit Manager(const DynamOps * defaultMetric);
 
-  virtual SeedErrorEvaluator * createNewInstance(const KeyType & key); // overriden
+  virtual SeedErrorEvaluator::Ptr createNewInstance(const KeyType & key); // overriden
 
 private:
   DynamOps::PtrConst defaultMetric_;

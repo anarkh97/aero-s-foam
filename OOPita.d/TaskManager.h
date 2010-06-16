@@ -6,7 +6,7 @@
 
 #include "NamedTask.h"
 
-#include <vector>
+#include <list>
 
 namespace Pita {
 
@@ -20,9 +20,11 @@ public:
 
   // Phases
   class Phase;
+  virtual Phase * phase() = 0;
+  virtual void phaseInc() = 0;
 
 protected:
-  // Auxiliary type
+  // Auxiliary implementation type
   template <typename E>
   class Iterator {
   public:
@@ -32,14 +34,14 @@ protected:
     Iterator<E> operator++(int) { Iterator<E> temp(*this); this->operator++(); return temp; }
     operator bool() const { return it_ != it_end_; } 
 
-    explicit Iterator(std::vector<Fwk::Ptr<E> > & container) :
+    explicit Iterator(std::list<Fwk::Ptr<E> > & container) :
       it_(container.begin()),
       it_end_(container.end())
     {}
 
   private:
-    typename std::vector<Fwk::Ptr<E> >::iterator it_;
-    typename std::vector<Fwk::Ptr<E> >::iterator it_end_;
+    typename std::list<Fwk::Ptr<E> >::iterator it_;
+    typename std::list<Fwk::Ptr<E> >::iterator it_end_;
   };
 
 public:
@@ -52,7 +54,7 @@ public:
     TaskIterator task() { return TaskIterator(task_); }
 
   protected:
-    Phase(const String & name, const std::vector<NamedTask::Ptr> & taskList) :
+    Phase(const String & name, const std::list<NamedTask::Ptr> & taskList) :
       NamedInterface(name),
       task_(taskList)
     {}
@@ -60,15 +62,11 @@ public:
     friend class TaskManager;
 
   private:
-    typedef std::vector<NamedTask::Ptr> TaskList;
+    typedef std::list<NamedTask::Ptr> TaskList;
     TaskList task_; 
 
     DISALLOW_COPY_AND_ASSIGN(Phase);
   };
-  
-  typedef Iterator<Phase> PhaseIterator;
-
-  PhaseIterator phase() { return PhaseIterator(phase_); }
 
 protected:
   explicit TaskManager(IterationRank initialIter) :
@@ -77,18 +75,14 @@ protected:
 
   void setIteration(IterationRank i) { iteration_ = i; }
 
-  typedef std::vector<Fwk::Ptr<Phase> > PhaseList;
   typedef Phase::TaskList TaskList;
 
   static Phase * phaseNew(const String & name, const TaskList & taskList) {
     return new Phase(name, taskList);
   }
 
-  PhaseList & phases() { return phase_; }
-
 private:
   IterationRank iteration_;
-  PhaseList phase_;
 
   DISALLOW_COPY_AND_ASSIGN(TaskManager);
 };

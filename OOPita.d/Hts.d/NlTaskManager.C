@@ -10,7 +10,7 @@ NlTaskManager::NlTaskManager() :
 
 void
 NlTaskManager::iterationInc() {
-  phases().clear();
+  //phases().clear();
   
   IterationRank nextIteration = iteration().next();
   

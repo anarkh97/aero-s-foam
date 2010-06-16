@@ -37,6 +37,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(LinearLocalNetwork * network,
   initializer_(initializer)
 {
   scheduleIterationZero();
+  updatePhaseIt();
 }
 
 void
@@ -48,7 +49,8 @@ HomogeneousTaskManager::iterationInc() {
   correctionMgr()->prepareProjection();
   network()->convergedSlicesInc();
   scheduleNormalIteration();
-  
+  updatePhaseIt();
+
   setIteration(nextIteration);
 }
 

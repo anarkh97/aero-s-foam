@@ -29,7 +29,10 @@ LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
   TaskManager(initialIteration),
   network_(network),
   correctionMgr_(correctionMgr),
-  commMgr_(commMgr)
+  commMgr_(commMgr),
+  phase_(),
+
+  phaseIt_(new HtsPhaseIteratorImpl(phase_))
 {}
 
 void

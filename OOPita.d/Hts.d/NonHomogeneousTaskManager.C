@@ -25,9 +25,6 @@ private:
   Seed::Status status_;
 };
 
-
-class AffineTermPrecomputation;
-
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * network,
                                                      LinearProjectionNetworkImpl * correctionMgr,
                                                      RemoteState::MpiManager * commMgr,
@@ -36,6 +33,7 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * networ
   initialCondition_(initialCondition)
 {
   schedulePreIteration();
+  updatePhaseIt();
 }
 
 void
@@ -52,7 +50,8 @@ NonHomogeneousTaskManager::iterationInc() {
     network()->convergedSlicesInc();
     scheduleNormalIteration();
   }
-  
+
+  updatePhaseIt();  
   setIteration(nextIteration);
 }
 

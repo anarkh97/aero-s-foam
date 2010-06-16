@@ -50,6 +50,7 @@ RemoteTimeSlice.C
 SeedErrorEvaluator.C
 SeedUpdater.C
 SimpleSeedInitializer.C
+TimedExecution.C
 TimeSlice.C
 TimeSliceImpl.C
 TimeSliceMapping.C

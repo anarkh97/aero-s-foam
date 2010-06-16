@@ -52,6 +52,7 @@
 
 #include <Driver.d/Domain.h>
 
+#include "../TimedExecution.h"
 #include "HomogeneousTaskManager.h"
 #include "NonHomogeneousTaskManager.h"
 #include "LinearLocalNetwork.h"
@@ -226,36 +227,17 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
         seedInitializer.ptr(),
         correctionMgr.ptr(),
         commMgr.ptr());
-
-    initialIteration = IterationRank(0);
   } else {
     taskManager = new NonHomogeneousTaskManager(
         network.ptr(),
         correctionMgr.ptr(),
         commMgr.ptr(),
         initialSeed());
-
-    initialIteration = IterationRank(-1);
   }
 
-  // Iteration loop
-  for (IterationRank iteration = initialIteration; iteration < lastIteration_; iteration = iteration.next()) {
-    assert(iteration == taskManager->iteration());
-    log() << "-> Iteration: " << iteration << "\n";
+  TimedExecution::Ptr timedExecution = TimedExecution::New(taskManager.ptr()); 
+  timedExecution->targetIterationIs(lastIteration_);
 
-    for (TaskManager::PhaseIterator phase_it = taskManager->phase(); phase_it; ++phase_it) {
-      TaskManager::Phase::Ptr currentPhase = *phase_it;
-      log() << "  -> Phase: " << currentPhase->name() << "\n";
-      for (TaskManager::Phase::TaskIterator task_it = currentPhase->task(); task_it; ++task_it) {
-        NamedTask::Ptr currentTask = *task_it;
-        log() << "    -> Task: " << currentTask->name() << "\n";
-        currentTask->iterationIs(iteration);
-      } 
-    }
-
-    taskManager->iterationInc();
-  }
-  
   toc = getTime();
   log() << "\n";
   log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";

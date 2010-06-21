@@ -245,7 +245,7 @@ struct SolverInfo {
                   mppFactor = 1.0;
 		 
                   // Parameters for PITA 
-		              tiParall       = false;
+		  tiParall       = false;
                   mdPita         = false;
                   NoForcePita    = false;
                   ConstForcePita = false;

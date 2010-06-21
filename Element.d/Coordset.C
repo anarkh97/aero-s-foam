@@ -41,6 +41,24 @@ CoordSet::operator = (const CoordSet & other)
   return *this;
 }
 
+Node *& CoordSet::operator[] (int n)
+{
+ if(n >= nmax) // resize nodes[]
+  {
+    int newsize = ((n+1)*3)/2;
+    NodeP *np = new NodeP[newsize] ;
+    int i;
+    for(i= 0; i < nmax ; ++i)
+     np[i] = nodes[i] ;
+    for(nmax = newsize; i < nmax; ++i)
+     np[i] = 0 ;
+    if(nodes) delete [] nodes ;
+    nodes = np ;
+  }
+ if(n >= last) last = n+1;
+ return nodes[n];
+}
+
 void CoordSet::nodeadd(int n, double *xyz)
 {
  if(n<0) { return ; }

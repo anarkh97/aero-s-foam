@@ -8,6 +8,7 @@
 #include <vector>
 #include <cassert>
 #include <complex>
+#include <set>
 
 // this is a fix to get around apparent template bug in solaris compiler
 inline double abs(std::complex<double> a)
@@ -251,8 +252,9 @@ public:
         void getCoordinates(int *nn, int numNodes,
                             double *xx, double *yy, double *zz);
 
-        Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
+        //Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
         Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
+        Node *& operator[] (int i);
 };
 
 
@@ -528,11 +530,12 @@ class Elemset
     bool myData;
   public:
     Elemset(int = 256);
-    virtual ~Elemset() { deleteElems(); }
+    virtual ~Elemset() { /*deleteElems();*/ }
     Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap);
     int size() const { return emax; }
     int last() const;
     Element *operator[] (int i) const { return elem[i]; }
+    Element *& operator[] (int i);
     void elemadd(int num, Element *);
     void elemadd(int num, int type, int nnodes, int *nodes);
     void mpcelemadd(int num, LMPCons *mpc);
@@ -543,7 +546,7 @@ class Elemset
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
-    void collapseRigid6(); // replaces all 6-DOF rigid elements that share a node by a single element
+    void collapseRigid6(std::set<int> &);
 };
 
 class EsetGeomAccessor {

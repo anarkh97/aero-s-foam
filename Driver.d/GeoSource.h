@@ -542,8 +542,8 @@ public:
   void cleanUp();
   void cleanAuxData();
 
-  void setUpRigidElements(bool flag);
   void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   bool setDirectMPC(bool mode) { return mpcDirect = mode; }

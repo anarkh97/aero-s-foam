@@ -57,10 +57,10 @@
 //                         is still done at compile time (see SurfaceEntity.h) 
 // -----------------------------------------------------------------------
 // Std C/C++ headers 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
 
 // STL
 #include <algorithm>

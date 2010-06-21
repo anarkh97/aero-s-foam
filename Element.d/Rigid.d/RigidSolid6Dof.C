@@ -8,7 +8,7 @@ RigidSolid6Dof::RigidSolid6Dof(int _nnodes, int *_nn)
   nSubElems = _nnodes - 1;
   subElems = new Element * [nSubElems];
   for(int i = 0; i < nSubElems; ++i) {
-    int indices[2] = { i, i+1 };
+    int indices[2] = { i+1, 0 }; // all sub-elements have the same master node
     subElems[i] = new RigidBeam(indices);
   }
   initialize(_nnodes, _nn);

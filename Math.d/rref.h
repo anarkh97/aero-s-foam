@@ -5,13 +5,16 @@
  * Row echelon form with full pivoting. Note that columns and
  * rows might be swapped due to the full pivoting, returned in rowmap and colmap if not NULL
  *  
- * @param mx            the matrix to reduce
+ * @param mx            the matr to reduce
  * @param reduced       if true, the reduced row echelon form is returned, that
  *                      is, zeros above the diagonal, too
  * @param rowmap        the row mapping to reestablish the original row ordering. 
  * @param colmap        the column mapping to reestablish the original column ordering.
- * @return              the rank of the matrix
+ * @return              the rank of the matr
  */
+
+#include <limits>
+
 template <typename T, typename Matrix>
 int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap) 
 {
@@ -36,7 +39,7 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
         
   //precondition (each iteration): prow/pcol/pval are set
   for (int pivot = 0; pivot < pivs; pivot++) {
-    if (pval <= std::numeric_limits<T>::epsilon() ) return pivot;
+    if (pval <= 10*std::numeric_limits<T>::epsilon()) return pivot;
           
     //swap rows / columns
     if (prow != pivot) {
@@ -47,6 +50,7 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
         rowmap[pivot] = tmp;
       }
     }
+
     if (pcol != pivot) {
       mx.col(pcol).swap(mx.col(pivot));
       if (colmap != NULL) {
@@ -99,6 +103,50 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
     }
   }
   return pivs;
+}
+
+template <typename T, typename Matrix>
+void ToReducedRowEchelonForm(Matrix& m, int *rowmap) 
+{
+  int lead = 0;
+  int rowCount = m.rows();
+  int colCount = m.cols();
+
+  int i;
+  T lv;
+ 
+  for(int r = 0; r < rowCount; r++) {
+    if(lead >= colCount)
+      return;
+    i = r;
+    //while(m(i,lead) == 0) {
+    while(abs<T>(m(i,lead)) <= std::numeric_limits<T>::epsilon()) {
+      i++;
+      if(i == rowCount) {
+        i = r;
+        lead++;
+        if(lead == colCount)
+          return;
+      }
+    }
+
+    m.row(i).swap(m.row(r));
+    if (rowmap != NULL) {
+      int tmp = rowmap[i];
+      rowmap[i] = rowmap[r];
+      rowmap[r] = tmp;
+    }
+
+    lv = m(r,lead);
+    m.row(r) /= lv;
+    for(i = 0; i < rowCount; i++) {
+      if(i != r) {
+        lv = m(i, lead);
+        m.row(i) -= m.row(r)*lv;
+      }
+    }
+    lead++;
+  }
 }
 
 #endif

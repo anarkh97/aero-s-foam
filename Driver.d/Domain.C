@@ -1555,30 +1555,42 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode == 0)
-   if(geoSource->getDirectMPC()) {
+   if(geoSource->getDirectMPC() && (sinfo.subtype == 0 || sinfo.subtype == 1)) { // skyline and sparse only
      // MPC Connectivity treatment in direct way.
      std::multimap<int, int> mpcConnect;
+     std::multimap<int, int>::iterator it;
+     std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
      int ndMax = nodeToElem->csize();
      for(int i = 0; i < this->numLMPC; ++i) {
        for(int j = 1; j < lmpc[i]->nterms; ++j)
-         if( lmpc[i]->terms[0].nnum < ndMax && lmpc[i]->terms[j].nnum < ndMax &&
-             lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum)
-           mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+         if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
+
+           ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
+           bool found = false;
+           for(it = ret.first; it != ret.second; ++it)
+             if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
+
+           if(!found)
+             mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+         }
      }
+
      int *ptr = new int[ndMax+1];
      for(int i = 0; i < ndMax; ++i)
        ptr[i] = 1;
+     
      ptr[ndMax] = 0;
-     for(std::multimap<int, int>::iterator it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
        ptr[it->first]++;
      for(int i = 0; i < ndMax; ++i)
        ptr[i+1] += ptr[i];
      int *tg = new int[ptr[ndMax]];
 
-     for(std::multimap<int, int>::iterator it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-            tg[--ptr[it->first]] = it->second;
+     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+       tg[--ptr[it->first]] = it->second;
      for(int i = 0; i < ndMax; ++i)
        tg[--ptr[i]] = i;
+
      Connectivity renumToNode(ndMax, ptr, tg);
      Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
      Connectivity *renumToElem = elemToRenum->reverse();
@@ -1587,7 +1599,6 @@ Domain::getRenumbering()
      delete elemToRenum;
    } else
      nodeToNode = nodeToElem->transcon(elemToNode);
-
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
@@ -3041,8 +3052,8 @@ Domain::~Domain()
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
  for(int i=0; i<nMortarCond; ++i) // HB
    if(MortarConds[i]) delete MortarConds[i];
- for(int i=0; i<numLMPC; ++i) // HB
-   if(lmpc[i]) delete lmpc[i];
+ //for(int i=0; i<numLMPC; ++i) // HB
+ //  if(lmpc[i]) delete lmpc[i];
 }
 
 #include <Element.d/Helm.d/HelmElement.h>

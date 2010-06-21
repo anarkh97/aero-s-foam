@@ -50,8 +50,10 @@ DotConstraintType2::buildFrame(CoordSet& cs)
       c0[1][0] = -c0[0][1]/N1;
       c0[1][1] = c0[0][0]/N1;
       c0[1][2] = 0.0;
+      //cerr << "N1 > N2\n";
     }
     else {
+      //cerr << "N1 <= N2\n";
       c0[1][0] = c0[0][2]/N2;
       c0[1][1] = 0.0;
       c0[1][2] = -c0[0][0]/N2;

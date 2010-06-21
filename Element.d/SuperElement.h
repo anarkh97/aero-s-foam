@@ -2,12 +2,15 @@
 #define _SUPERELEMENT_H_
 
 #include <Element.d/Element.h>
+#include <map>
 class SuperCorotator;
 
 class SuperElement : public Element 
 {
   protected:
         // all of the following member variables need to be set in the constructor
+        Elemset *eset;
+        DofSetArray *dsa;
         Element **subElems;    
         int nSubElems;       
         SuperCorotator *superCorotator;
@@ -18,7 +21,6 @@ class SuperElement : public Element
         int *nn; // all the node numbers
 
         FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
-        void initialize(int, int*);
   public:
         SuperElement() { nn = 0; superCorotator = 0; };
         virtual ~SuperElement();
@@ -93,6 +95,8 @@ class SuperElement : public Element
         int getMassType();
         int getNumMPCs();
         LMPCons** getMPCs();
+
+        void initialize(int, int*);
 };
 
 #endif

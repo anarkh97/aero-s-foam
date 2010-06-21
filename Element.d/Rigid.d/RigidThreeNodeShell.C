@@ -8,7 +8,7 @@ RigidThreeNodeShell::RigidThreeNodeShell(int *_nn)
   nSubElems = 2;
   subElems = new Element * [nSubElems];
   for(int i = 0; i < nSubElems; ++i) {
-    int indices[2] = { i, i+1 };
+    int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
   initialize(3, _nn);

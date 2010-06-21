@@ -1,15 +1,17 @@
 #include <Element.d/SuperElement.h>
 #include <Corotational.d/SuperCorotator.h>
 #include <Utils.d/dbg_alloca.h>
+#include <Driver.d/Mpc.h>
 
-// PJSA: note to self, check all the vector/matrix adds - perhaps some should be averages or overwrites
+//#define DEBUG_SUPERELEMENT
 
 void
 SuperElement::renum(int *table)
 {
-  int i;
-  for(i=0; i<nnodes; ++i) nn[i] = table[nn[i]];
-  for(i=0; i<nSubElems; ++i) subElems[i]->renum(table);
+  for(int i = 0; i < nnodes; ++i) nn[i] = table[nn[i]];
+#ifndef DEBUG_SUPERELEMENT
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(table);
+#endif
 }
 
 void 
@@ -41,10 +43,17 @@ SuperElement::setFrame(EFrame *frame)
 }
 
 void
+#ifdef DEBUG_SUPERELEMENT
+SuperElement::buildFrame(CoordSet &_cs)
+{
+  CoordSet cs(nnodes-numInternalNodes());
+  for(int i = 0; i < nnodes-numInternalNodes(); ++i)
+    cs[i] = _cs[nn[i]];
+#else
 SuperElement::buildFrame(CoordSet& cs)
 {
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->buildFrame(cs);
+#endif
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->buildFrame(cs);
 }
 
 void 
@@ -79,8 +88,15 @@ SuperElement::setCompositeData2(int _type, int nlays, double *lData,
 
 
 FullSquareMatrix 
+#ifdef DEBUG_SUPERELEMENT
+SuperElement::stiffness(CoordSet &_cs, double *karray, int flg)
+{
+  CoordSet cs(nnodes-numInternalNodes());
+  for(int i=0; i<nnodes-numInternalNodes(); ++i) cs[i] = _cs[nn[i]];
+#else
 SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
 {
+#endif
   FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
   int i;
@@ -307,25 +323,34 @@ SuperElement::getFlFlux(double gp[2], double *flF, double *tresF)
 }
 
 void
-SuperElement::markDofs(DofSetArray &dsa)
+SuperElement::markDofs(DofSetArray &_dsa)
 {
-  int i;
-  for(i=0; i<nSubElems; ++i) subElems[i]->markDofs(dsa);
+#ifdef DEBUG_SUPERELEMENT
+  for(int i = 0; i < nnodes; ++i)
+    _dsa.mark(nn[i], (*dsa)[i].list());
+#else
+  for(int i = 0; i < nSubElems; ++i)
+    subElems[i]->markDofs(_dsa);
+#endif
 }
 
 int*
-SuperElement::dofs(DofSetArray &dsa, int *p)
+SuperElement::dofs(DofSetArray &_dsa, int *p)
 {
   if(p == 0) p = new int[numDofs()];
-  int i, j;
-  for(i=0; i<nSubElems; ++i) {
+#ifdef DEBUG_SUPERELEMENT
+  for(int i = 0; i < nnodes; ++i)
+    p += _dsa.number(nn[i], (*dsa)[i], p);
+#else
+  for(int i = 0; i < nSubElems; ++i) {
     int *subp = new int[subElems[i]->numDofs()];
-    subp = subElems[i]->dofs(dsa, subp);
-    for(j=0; j<subElems[i]->numDofs(); ++j) {
+    subp = subElems[i]->dofs(_dsa, subp);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
       p[subElemDofs[i][j]] = subp[j];
     }
     if(subp) delete [] subp;
   }
+#endif
   return p;
 }
 
@@ -468,7 +493,9 @@ SuperElement::setInternalNodes(int *in)
   int i;
   // set sub-element internal nodes
   for(i=0; i<nSubElems; ++i) {
+#ifndef DEBUG_SUPERELEMENT
     subElems[i]->setInternalNodes(in+offset);
+#endif
     offset += subElems[i]->numInternalNodes();
   }
   // set super-element internal nodes
@@ -568,8 +595,7 @@ int
 SuperElement::getNumMPCs()
 {
   int ret = 0;
-  int i;
-  for(i=0; i<nSubElems; ++i) ret += subElems[i]->getNumMPCs();
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->getNumMPCs();
   return ret;
 }
 
@@ -577,10 +603,18 @@ LMPCons**
 SuperElement::getMPCs()
 {
   LMPCons** ret = new LMPCons * [getNumMPCs()];
-  int i,j,k=0;
-  for(i=0; i<nSubElems; ++i) {
+  int k = 0;
+  for(int i = 0; i < nSubElems; ++i) {
     LMPCons** submpcs = subElems[i]->getMPCs();
-    for(j=0; j<subElems[i]->getNumMPCs(); ++j) ret[k++] = submpcs[j];
+    for(int j = 0; j < subElems[i]->getNumMPCs(); ++j) {
+      //ret[k] = submpcs[j];
+      ret[k] = new LMPCons(*submpcs[j]);
+#ifdef DEBUG_SUPERELEMENT
+      for(int l = 0; l < ret[k]->nterms; ++l) ret[k]->terms[l].nnum = nn[ret[k]->terms[l].nnum];
+#endif
+      k++;
+    }
+    delete [] submpcs;
   }
   return ret;
 }
@@ -594,8 +628,9 @@ SuperElement::initialize(int l, int* _nn)
   // _nn is an array of dimension l containing the node numbers
 
   // make the element set
-  Elemset eset; eset.setMyData(false);
-  for(int i = 0; i < nSubElems; ++i) eset.elemadd(i, subElems[i]);
+  eset = new Elemset(nSubElems);
+  eset->setMyData(false);
+  for(int i = 0; i < nSubElems; ++i) eset->elemadd(i, subElems[i]);
 
   // count and number the internal nodes
   int m = 0;
@@ -614,22 +649,27 @@ SuperElement::initialize(int l, int* _nn)
     subElemNodes[i] = new int[subElems[i]->numNodes()];
     subElems[i]->nodes(subElemNodes[i]); 
   }
-  //for(int i=0; i<nSubElems; ++i) { cerr << "subElemNodes[" << i << "] = "; for(int j=0; j<subElems[i]->numNodes(); ++j) cerr << subElemNodes[i][j] << " "; cerr << endl; }
 
   // number the sub-to-super dof numbering maps
-  DofSetArray dsa(nnodes, eset);
+  dsa = new DofSetArray(nnodes, *eset);
   subElemDofs = new int * [nSubElems];
   for(int i = 0; i < nSubElems; ++i) { 
     subElemDofs[i] = new int[subElems[i]->numDofs()]; 
-    subElems[i]->dofs(dsa, subElemDofs[i]); 
+    subElems[i]->dofs(*dsa, subElemDofs[i]); 
+    //cerr << "i = " << i << ", subElems[i]->numDofs() = " << subElems[i]->numDofs() << ", subElemDofs[i] = ";
+    //for(int j=0; j<subElems[i]->numDofs(); ++j) cerr << subElemDofs[i][j] << " "; cerr << endl;
   }
-  ndofs = dsa.size();
+  ndofs = dsa->size();
 
   // renumber sub element nodes to global node numbering
   int *new_nn = new int[nnodes];
-  for(int i = 0; i < l; ++i) new_nn[i] = _nn[i]; for(int i = l; i < nnodes; ++i) new_nn[i] = -1;
+  for(int i = 0; i < l; ++i) new_nn[i] = (_nn) ? _nn[i] : nn[i];
+  for(int i = l; i < nnodes; ++i) new_nn[i] = -1;
+#ifndef DEBUG_SUPERELEMENT
   for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(new_nn);
+#endif
   if(nn) delete [] nn; nn = new_nn;
 
   for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(-1);  
 }
+

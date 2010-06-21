@@ -31,7 +31,7 @@ class DofSet {
     DofSet()      { flags = 0; }
     DofSet(int t) { flags = t; }
 
-    DofSet & operator|=(const DofSet &ds) { flags |= ds.flags; return *this; }
+    DofSet & operator |= (const DofSet &ds) { flags |= ds.flags; return *this; }
     bool operator == (const DofSet &ds) const { return flags == ds.flags; }
 
     // mark marks given dofs as being used
@@ -116,7 +116,7 @@ class EqNumberer {
     virtual ~EqNumberer();
 
     // Return the total number of degrees of freedom
-    int size(){ return (node_offset) ? node_offset[numnodes] : 0; }
+    int size() { return (node_offset) ? node_offset[numnodes] : 0; }
 
     // Return the number of nodes
     int numNodes() { return numnodes; }

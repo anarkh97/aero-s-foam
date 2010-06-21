@@ -2,13 +2,23 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 
+
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : nNodes(_nNodes), LMPCons(0, 0.0)
 {
   // this constructor is for a constraint involving the same DofSet on each node
   nn = new int[nNodes+1];
-  for(int i = 0; i < nNodes; ++i) {
+  for(int i = 0; i < nNodes; ++i)
     nn[i] = _nn[i];
+  addTerms(nodalDofs);
+}
+
+void
+MpcElement::addTerms(DofSet nodalDofs)
+{
+  terms.clear();
+  nterms = 0;
+  for(int i = 0; i < nNodes; ++i) {
     for(int j = 0; j < nodalDofs.count(); ++j)
       for(int k = 0; k < 11; ++k)
         if(nodalDofs.contains(1 << k)) addterm(new LMPCTerm(nn[i], k, 0.0));
@@ -20,8 +30,17 @@ MpcElement::MpcElement(int _nNodes, DofSet *nodalDofs, int* _nn)
 {
   // this constructor is for a constraint involving a different DofSet on each nodes
   nn = new int[nNodes+1];
-  for(int i = 0; i < nNodes; ++i) {
+  for(int i = 0; i < nNodes; ++i)
     nn[i] = _nn[i];
+  addTerms(nodalDofs);
+}
+
+void
+MpcElement::addTerms(DofSet *nodalDofs)
+{
+  terms.clear();
+  nterms = 0;
+  for(int i = 0; i < nNodes; ++i) {
     for(int j = 0; j < nodalDofs[i].count(); ++j)
       for(int k = 0; k < 11; ++k)
         if(nodalDofs[i].contains(1 << k)) addterm(new LMPCTerm(nn[i], k, 0.0));
@@ -59,7 +78,7 @@ LMPCons**
 MpcElement::getMPCs()
 {
   LMPCons **mpcs = new LMPCons*[1];
-  mpcs[0] = this;
+  mpcs[0] = new LMPCons(*this);
   return mpcs;
 }
 
@@ -84,15 +103,17 @@ MpcElement::numNodes()
 void
 MpcElement::renum(int* table)
 {
-  for(int i = 0; i < nNodes+1; ++i) nn[i] = table[nn[i]];
-  for(int i = 0; i < nterms; ++i) terms[i].nnum = table[terms[i].nnum];
+  for(int i = 0; i < numNodes(); ++i)
+    nn[i] = table[nn[i]];
+  for(int i = 0; i < nterms; ++i)
+    terms[i].nnum = table[terms[i].nnum];
 }
 
 int*
 MpcElement::nodes(int* p)
 {
-  if(p == 0) p = new int[nNodes+1];
-  for(int i = 0; i < nNodes+1; ++i) p[i] = nn[i];
+  if(p == 0) p = new int[numNodes()];
+  for(int i = 0; i < numNodes(); ++i) p[i] = nn[i];
   return p;
 }
 
@@ -105,8 +126,9 @@ MpcElement::numDofs()
 int *
 MpcElement::dofs(DofSetArray &dsa, int *p)
 {
-  if(p == 0) p = new int[nterms+1];
-  for(int i = 0; i < nterms; i++) dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
+  if(p == 0) p = new int[numDofs()];
+  for(int i = 0; i < nterms; i++)
+    dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
   dsa.number(nn[nNodes], DofSet::Lagrange, p+nterms);
   return p;
 }
@@ -114,18 +136,19 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
 void
 MpcElement::markDofs(DofSetArray &dsa)
 {
-  for(int i = 0; i < nterms; i++) dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
+  for(int i = 0; i < nterms; i++)
+    dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
   dsa.mark(nn[nNodes], DofSet::Lagrange);
 }
 
 FullSquareMatrix
 MpcElement::stiffness(CoordSet&, double* karray, int)
 {
-  FullSquareMatrix ret(nterms+1, karray);
+  FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
-  for(int i = 0; i < nterms; ++i) ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
+  for(int i = 0; i < nterms; ++i)
+    ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
   return ret;
-
 }
 
 Corotator*
@@ -138,8 +161,7 @@ void
 MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f)
 {
   Ktan.zero();
-  for(int i = 0; i < nterms+1; ++i) f[i] = 0.0;
-
+  for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   update(c1, c0); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   FullSquareMatrix H(nterms);
   getHessian(c1, c0, H); // H is the hessian of the constraint function

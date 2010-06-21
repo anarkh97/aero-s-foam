@@ -7,6 +7,7 @@
 #include <Utils.d/resize_array.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/Element.h>
+#include <Utils.d/Connectivity.h>
 #include <vector>
 
 struct RealOrComplex 
@@ -217,5 +218,28 @@ inline void LMPCons::removeNullTerms() {
     }
     nterms = terms.size();
 }
+
+template<>
+class SetAccess<LMPCons>
+{
+    int numLMPC;
+    //ResizeArray<LMPCons *>&lmpc;
+    LMPCons **lmpc;
+    std::map<std::pair<int,int>, int> &dofID;
+  public:
+    //SetAccess(int n, ResizeArray<LMPCons *>&l, std::map<std::pair<int,int>, int> &d)
+    SetAccess(int n, LMPCons **l, std::map<std::pair<int,int>, int> &d)
+      : numLMPC(n), lmpc(l), dofID(d) {}
+    int size() {
+      return numLMPC;
+    }
+    int numNodes(int i) {
+      return lmpc[i]->nterms;
+    }
+    void getNodes(int i, int *nd) {
+      for(int j = 0; j < lmpc[i]->nterms; ++j)
+        nd[j] = dofID[pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
+    }
+};
 
 #endif

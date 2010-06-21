@@ -4,6 +4,7 @@
 #include <Driver.d/Mpc.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/Corotator.h>
+#include <map>
 
 class DofSet;
 
@@ -12,6 +13,10 @@ class MpcElement : public Element, public Corotator, public LMPCons
   protected:
     int nNodes;              // number of nodes (not including "internal node")
     int *nn;                 // node numbers
+    int lagrangeType;        // 1: coordinate transformation, 2: Lagrange multipliers (default)
+
+    void addTerms(DofSet);
+    void addTerms(DofSet*);
 
   public:
     MpcElement(int, DofSet, int*);

@@ -55,7 +55,7 @@ IF(UNIX)
     IF(NOT MPI_FOUND)
       MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
       MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acme acmeSharedOPT acmeSharedDBG
+      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
                    PATHS /usr/lib /usr/local/lib)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
@@ -67,12 +67,12 @@ IF(UNIX)
     ELSE(NOT MPI_FOUND)
       MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
       MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acme acmeDistOPT acmeDistDBG
+      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
                    PATHS /usr/lib /usr/local/lib)
-      IF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
+      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5)
+        add_definitions(-DUSE_ACME -DACME_2_5 -DHB_NORMAL_GEOM_GAP -DHB_ACME_FFI_DEBUG -DEXP_MORTAR_CONTACT)
         SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${METIS_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
       ENDIF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
@@ -122,6 +122,15 @@ IF(UNIX)
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
+
+# eigen2
+    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
+                 PATHS /usr/include /usr/local/include .)
+    IF(EIGEN2_INCLUDE_PATH)
+      MESSAGE("-- A library with EIGEN2 API found.")
+      add_definitions(-DUSE_EIGEN2)
+      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
+    ENDIF(EIGEN2_INCLUDE_PATH)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis
@@ -316,9 +325,10 @@ target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING 
+      "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
-
 
 SET(AllTargets femexecutable)
 IF(MPI_FOUND AND NOT APPLE)

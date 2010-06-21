@@ -14,7 +14,7 @@ int
       DofSet::Yrot = 1 << 4,
       DofSet::Zrot = 1 << 5,
       DofSet::XYZrot = (1 << 3) + (1 << 4) + (1 << 5),
-#ifdef SALINAS // temporary reversal until salinas is fixed
+#ifdef SALINAS
       DofSet::Helm = 1 << 6,
       DofSet::Temp = 1 << 7,
 #else
@@ -24,7 +24,7 @@ int
       DofSet::IntPress = 1 << 8,
       DofSet::Contact = 1 << 9,
       DofSet::Potential = 1 << 10,
-      DofSet::Lagrange = 1 << 0;
+      DofSet::Lagrange = 1 << 11; // PJSA previously was 0
     
 DofSet DofSet::nullDofset(-1);
 

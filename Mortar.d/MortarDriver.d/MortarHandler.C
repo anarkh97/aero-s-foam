@@ -340,7 +340,7 @@ MortarHandler::Initialize()
   wavespeed = 0;
 
   NoSecondary = false;
-  DIST_ACME = domain->solInfo().dist_acme;
+  DIST_ACME = 0; //domain->solInfo().dist_acme;
 
   SelfContact = false;
 }
@@ -575,6 +575,12 @@ void
 MortarHandler::SetSelfContact(bool _SelfContact)
 {
   SelfContact = _SelfContact;
+}
+
+void
+MortarHandler::SetDistAcme(int _DistAcme)
+{
+  DIST_ACME = _DistAcme;
 }
 
 // -----------------------------------------------------------------------------------------------------

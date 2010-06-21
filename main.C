@@ -542,7 +542,7 @@ int main(int argc, char** argv)
      if(!callSower) {
        domain->ProcessSurfaceBCs();
        domain->SetMortarPairing();
-       if(domain->solInfo().newmarkBeta != 0) { // not for explicit dynamics
+       if(domain->solInfo().newmarkBeta != 0 && !domain->solInfo().isNonLin()) { // not for explicit dynamics or nonlinear 
          domain->ComputeMortarLMPC();
          domain->computeMatchingWetInterfaceLMPC();
          domain->CreateMortarToMPC();

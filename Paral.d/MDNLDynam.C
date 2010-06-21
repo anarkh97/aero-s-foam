@@ -502,7 +502,7 @@ MDNLDynamic::preProcess()
 
   localTemp = new DistrVector(decDomain->solVecInfo());
 
-  domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+  domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
   mu = new std::map<int,double>[decDomain->getNumSub()];
   lambda = new std::vector<double>[decDomain->getNumSub()];
 

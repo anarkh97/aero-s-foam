@@ -71,7 +71,6 @@ MDNLStatic::makeSubCorotators(int isub)
  sd->createCorotators(allCorot[isub]);
 }
 
-// Constructor
 MDNLStatic::MDNLStatic(Domain *d)
 {
  domain = d;
@@ -85,7 +84,6 @@ MDNLStatic::MDNLStatic(Domain *d)
  mu = 0; lambda = 0;
 }
 
-// Destructor
 MDNLStatic::~MDNLStatic()
 {
   if(mu) delete [] mu;
@@ -209,21 +207,13 @@ MDNLStatic::updatePrescribedDisp(int isub, DistrGeomState& geomState)
 int
 MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
 {
- if(step == 1 && iteration == 0) return 0; // XXXX
  times->rebuild -= getTime();
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
-
    GenMDDynamMat<double> allOps;
    allOps.sysSolver = solver;
    decDomain->rebuildOps(allOps, 0.0, 0.0, 1.0, kelArray);
-
-/*
-   GenMDDynamMat<double> allOps;
-   decDomain->buildOps(allOps, 0.0, 0.0, 1.0, (Rbm **)0, kelArray);
-   solver = (GenFetiSolver<double> *) allOps.sysSolver;
-*/
    rebuildFlag = 1;
  }
 
@@ -245,7 +235,7 @@ MDNLStatic::preProcess()
  times = new StaticTimers;
 
  times->memoryPreProcess -= threadManager->memoryUsed();
- 
+
  // Constructs renumbering, connectivities and dofsets
  times->preProcess -= getTime();
  decDomain->preProcess();
@@ -258,7 +248,7 @@ MDNLStatic::preProcess()
  times->makeDOFs -= getTime();
  execParal(numSub, this, &MDNLStatic::makeSubDofs);
  times->makeDOFs += getTime();
- 
+
  // Make subdomain's corotators
  times->corotatorTime -= getTime();
  allCorot = new Corotator**[numSub]; 
@@ -287,7 +277,8 @@ MDNLStatic::preProcess()
 
  tolerance = domain->solInfo().getNLInfo().tolRes;
 
- domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+ domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+
  mu = new std::map<int,double>[decDomain->getNumSub()];
  lambda = new std::vector<double>[decDomain->getNumSub()];
 }
@@ -415,11 +406,13 @@ MDNLStatic::printTimers()
   times->timeTimers += getTime();
 }
 
+/*
 void
 MDNLStatic::updateMpcRhs(DistrGeomState &geomState)
 {
   decDomain->setContactGap(&geomState, solver);
 }
+*/
 
 void
 MDNLStatic::updateConstraintTerms(DistrGeomState* geomState)
@@ -431,7 +424,6 @@ MDNLStatic::updateConstraintTerms(DistrGeomState* geomState)
     domain->deleteLMPCs();
     domain->ExpComputeMortarLMPC();
     domain->CreateMortarToMPC();
-    ((GenFetiDPSolver<double> *) solver)->deleteG();
     decDomain->reProcessMPCs();
     ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   }
@@ -445,4 +437,3 @@ MDNLStatic::getConstraintMultipliers(int isub)
   lambda[isub].clear();
   sd->getConstraintMultipliers(mu[isub], lambda[isub]);
 }
-

@@ -861,8 +861,9 @@ template<class Scalar>
 GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::operator=(GenDistrVector<Scalar> &x)
 {
+ int dummy;
  if(x.len != len) {
-  fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
+  fprintf(stderr, "Length error in = %d not equal to %d %d\n",x.len, len, dummy);
  }
  GenVecOp<Scalar> assign(&GenVecOp<Scalar>::assign,this, &x);
  threadManager->execParal(nT, &assign);

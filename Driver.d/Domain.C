@@ -2613,6 +2613,7 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
     CurrentMortarCond->build_search(numSub, sd);
     CurrentMortarCond->build_td_enforcement();
     CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
@@ -2709,7 +2710,7 @@ void Domain::MakeNodalMass(SubDOp *M, SubDomain **sd)
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
       CurrentMortarCond->make_nodal_mass(M, sd);
-       CurrentMortarCond->make_kinematic_partitioning(M->getNumSub(), sd);
+      CurrentMortarCond->make_kinematic_partitioning(M->getNumSub(), sd);
     }
   }
 }
@@ -2720,14 +2721,18 @@ void Domain::InitializeStaticContactSearch(int numSub, SubDomain **sd)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-/*
+    CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
+
     CurrentMortarCond->build_search(numSub, sd);
     CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
+    CurrentMortarCond->set_node_configuration(1);
+    CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
     CurrentMortarCond->set_search_options();
     if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
-    else CurrentMortarCond->set_node_constraints(numSub, sd);
-*/
-    CurrentMortarCond->make_share(numSub, sd);
+    else {
+      CurrentMortarCond->set_node_constraints(numSub, sd);
+      CurrentMortarCond->make_share(numSub, sd);
+    }
   }
 }
 

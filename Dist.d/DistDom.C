@@ -119,7 +119,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing #1              ...\n");
+    filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
@@ -1139,7 +1139,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing #2              ...\n");
+    filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;

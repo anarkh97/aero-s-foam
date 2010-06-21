@@ -567,9 +567,6 @@ FFIPolygon::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, C
   N = IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarEl, SlaveCoords, MasterCoords, ngp);
 }
 
-
-
-#ifdef HB_NORMAL_GEOM_GAP
 void
 FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
 {
@@ -580,13 +577,12 @@ FFIPolygon::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, 
    // Loop over triangularization
    for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
      NormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), SlaveCoords,
-                                                                                    SlaveCoords, ngp);
+                                                                          SlaveCoords, ngp);
      NormalGeoGaps -= SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, MasterFacet(Facets, i), SlaveCoords,
-                                                                                    MasterCoords, ngp);
+                                                                          MasterCoords, ngp);
    }
    //NormalGeoGaps.print(" NormalGeoGaps[FFIPolygon]");
 }
-#endif
 
 /*
 // EXPERIMENTAL

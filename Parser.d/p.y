@@ -1770,7 +1770,10 @@ ElemSet:
 	;
 FaceSet:
 	SURFACETOPOLOGY Integer NewLine 
-	{ $$ = new SurfaceEntity($2); domain->AddSurfaceEntity($$); }
+	{ if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          domain->AddSurfaceEntity($$);
+        }
         | FaceSet Integer Integer NodeNums NewLine 
 	{ if($$->GetId() < 0) { // reverse the node numbering
             int *nodes = new int[$4.num];

@@ -211,6 +211,8 @@ class MortarHandler {
 	void ComputeOneFFIMandN(int iFFI, CoordSet& cs);
 	void MakeOneNodalMortarLMPC(int i, bool Dual=false);
 
+        bool SelfContact;
+
   public:
         // Public data 
         // ~~~~~~~~~~~
@@ -264,6 +266,8 @@ class MortarHandler {
         void SetFrictionCoef(double _StaticCoef, double _DynamicCoef, double _VelocityDecay); // TD_VELOCITY_DEPENDENT
 
         void SetNoSecondary(bool _NoSecondary);
+
+        void SetSelfContact(bool _SelfContact);
 
         // Get methods
         // ~~~~~~~~~~~

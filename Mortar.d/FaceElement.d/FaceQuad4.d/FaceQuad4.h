@@ -78,9 +78,7 @@ class FaceQuad4: public FaceElement {
 	
 	// -> implementation of virtual fcts
         double* ViewRefCoords();
-#ifdef EXP_MORTAR_CONTACT
         void GetdNormal(double dNormal[][3], double* m, CoordSet& cs);
-#endif
 
 	// -> implementation of pure virtual fcts
         void   LocalToGlobalCoord(double* M, double* m, CoordSet& cs);

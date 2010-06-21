@@ -262,10 +262,8 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
           MasterMPCCoeffs[3*k+1] += Aq*(*N)[i][3*j+1];
           MasterMPCCoeffs[3*k+2] += Aq*(*N)[i][3*j+2];
         }
-#ifdef HB_NORMAL_GEOM_GAP
         Vector* g = FFI->GetPtrNormalGeoGaps();
         MPCRhs -= Aq*(*g)[i];
-#endif
       }
     }
   }
@@ -377,16 +375,14 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
 }
 
 LMPCons*
-NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, double rhs,
-                                            int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
+NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 {
-#ifdef HB_NORMAL_GEOM_GAP
-  rhs = MPCRhs;
-#endif
-  lmpcnum = -(SlaveLlToGlNodeMap[GetNodeId(0)]+1); // XXXX global id of the slave node. Note this is a temporary fix, since it is only unique within a single contact surface pair
+  double rhs = MPCRhs;
+  // Note: the following lmpcnum is a temporary fix, since it is only unique within a single contact surface pair
+  int lmpcnum = -(SlaveLlToGlNodeMap[GetNodeId(0)]+1); // XXXX global id of the slave node.
   LMPCTerm SlaveTerm;
                                                                                                                                              
-  LMPCons* MortarLMPC = 0;; // = new LMPCons(lmpcnum, rhs);
+  LMPCons* MortarLMPC = 0;
   bool created = false;
   int dofs[3] = {0,1,2};
   for(int i=0; i<int(LinkedSlaveNodes.size()); i++) {

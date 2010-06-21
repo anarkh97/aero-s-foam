@@ -497,10 +497,10 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordS
   Normal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
   Normal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
 
-#ifdef EXP_MORTAR_CONTACT
   // PJSA normalizing the Normal seems to be unnecessary since the normal is re-multiplied by it's norm later
+  //      this just makes the derivatives more complicated to compute
   return 1.0;
-#else
+/*
   double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
 
   if(NormN!=0.0){
@@ -508,11 +508,10 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordS
   }
   //cerr << "here in FaceQuad4::GetIsoParamMappingNormalAndJacobian, Normal = " << Normal[0] << " " << Normal[1] << " " << Normal[2] << ", J = " << NormN << endl;
   return(NormN);
-#endif
+*/
 }
 #endif
 
-#ifdef EXP_MORTAR_CONTACT
 void
 FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
 {
@@ -538,29 +537,7 @@ FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
   X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
   X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
 
-  //dMdx[0] = dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2] + dShapex[3]*X[3];
-  //dMdx[1] = dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2] + dShapex[3]*Y[3];
-  //dMdx[2] = dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2] + dShapex[3]*Z[3];
-
-  //dMdy[0] = dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2] + dShapey[3]*X[3];
-  //dMdy[1] = dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2] + dShapey[3]*Y[3];
-  //dMdy[2] = dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2] + dShapey[3]*Z[3];
-
-  // N = dM/dx x dM/dy
-  //Normal[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
-  //Normal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
-  //Normal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
-
   double dNdX[3][4], dNdY[3][4], dNdZ[3][4];
-  // dNormal[0]dX[i] = 0;
-  // dNormal[1]dX[i] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
-  // dNormal[2]dX[i] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
-  // dNormal[0]dY[i] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
-  // dNormal[1]dY[i] = 0;
-  // dNormal[2]dY[i] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
-  // dNormal[0]dZ[i] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
-  // dNormal[1]dZ[i] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
-  // dNormal[2]dZ[i] = 0;
   for(int i = 0; i < 4; ++ i) {
     dNormal[3*i  ][0] = 0;
     dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
@@ -572,19 +549,7 @@ FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
     dNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
     dNormal[3*i+2][2] = 0;
   }
-/*
-  //ddNormal[0] = dNormal[0]dX[0]*X[0] + dNormal[0]dX[1]*X[1] + ... + dNormal[0]dZ[3]*Z[3]
-  //ddNormal[1] = dNormal[1]dX[0]*X[0] + dNormal[1]dX[1]*X[1] + ... + dNormal[1]dZ[3]*Z[3]
-  //ddNormal[2] = dNormal[2]dX[0]*X[0] + dNormal[2]dX[1]*X[1] + ... + dNormal[2]dZ[3]*Z[3]
-  for(int i = 0; i < 3; ++i) {
-    ddNormal[i] = 0;
-    for(int j = 0; j < 4; ++j) {
-      ddNormal[i] += dNdX[i][j]*X[j] + dNdY[i][j]*Y[j] + dNdZ[i][j]*Z[j];
-    }
-  }
-*/
 }
-#endif
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 

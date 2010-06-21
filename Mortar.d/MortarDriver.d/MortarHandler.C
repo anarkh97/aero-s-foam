@@ -129,8 +129,6 @@ extern Domain *domain;
 
 using namespace std;
 
-//#define SELF_CONTACT
-
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS
 // -----------------------------------------------------------------------------------------------------
@@ -343,6 +341,8 @@ MortarHandler::Initialize()
 
   NoSecondary = false;
   DIST_ACME = domain->solInfo().dist_acme;
+
+  SelfContact = false;
 }
 
 /*
@@ -571,6 +571,12 @@ MortarHandler::SetNoSecondary(bool _NoSecondary)
   NoSecondary = _NoSecondary;
 }
 
+void
+MortarHandler::SetSelfContact(bool _SelfContact)
+{
+  SelfContact = _SelfContact;
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -714,9 +720,7 @@ MortarHandler::ComputeOneFFIMandN(int iFFI, CoordSet &cs)
     CoordSet& csm = PtrMasterEntity->GetNodeSet();
     CtcPolygons[iFFI].ComputeGradNormalM(MortarEl, cs, csm);
     CtcPolygons[iFFI].ComputeGradNormalN(MortarEl, cs, csm);
-#ifdef HB_NORMAL_GEOM_GAP
     CtcPolygons[iFFI].ComputeNormalGeoGap(MortarEl, cs, csm); // PJSA need the master nodes also
-#endif
   }
   else { // TIED
     CtcPolygons[iFFI].ComputeM(MortarEl, cs);
@@ -1184,7 +1188,7 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
   if(InteractionType== MortarHandler::CTC) { // PJSA 12-20-05
     for(int i=0; i<int(NodalMortars.size()); i++){
       lmpcnum--;
-      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, rhs, SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
+      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
       if(MortarLMPC){ (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; numCTC++; }
     }
   }
@@ -1920,17 +1924,18 @@ MortarHandler::set_search_data(int interaction_type)
 //#endif
   }
   for(int i=0; i<4; i++) {
-#ifdef SELF_CONTACT
-    Search_Data[step_size*( 0+i)] = Interaction_Typ;
-    Search_Data[step_size*( 8+i)] = Interaction_Typ;
-    Search_Data[step_size*(16+i)] = Interaction_Typ;
-    Search_Data[step_size*(24+i)] = Interaction_Typ;
-#else
-    Search_Data[step_size*( 4+i)] = Interaction_Typ;
-    Search_Data[step_size*(12+i)] = Interaction_Typ;
-    Search_Data[step_size*(20+i)] = Interaction_Typ;
-    Search_Data[step_size*(28+i)] = Interaction_Typ;
-#endif
+    if(SelfContact) { 
+      Search_Data[step_size*( 0+i)] = Interaction_Typ;
+      Search_Data[step_size*( 8+i)] = Interaction_Typ;
+      Search_Data[step_size*(16+i)] = Interaction_Typ;
+      Search_Data[step_size*(24+i)] = Interaction_Typ;
+    }
+    else {
+      Search_Data[step_size*( 4+i)] = Interaction_Typ;
+      Search_Data[step_size*(12+i)] = Interaction_Typ;
+      Search_Data[step_size*(20+i)] = Interaction_Typ;
+      Search_Data[step_size*(28+i)] = Interaction_Typ;
+    }
   }
 
 #ifdef MORTAR_DEBUG
@@ -2434,23 +2439,25 @@ MortarHandler::build_td_enforcement()
   // 2 tells acme to compute this for each interaction pair based on the physical data (density, wavespeed)
   // (see acme manual section 1.7)
 
-  for(int i=0; i<num_entity_keys*num_entity_keys; ++i) {
-#ifdef SELF_CONTACT
-    Enforcement_Data[2*i+0] = 0.5;
-#else
-    Enforcement_Data[2*i+0] = 0.0;
-#endif
-    Enforcement_Data[2*i+1] = 1.0;
-  } 
-
-#ifndef SELF_CONTACT
-  double fixed_kpf = 1.0; // kinematic partitioning factor: this can be varied 0 < fixed_kpf <= 1.0
-  for(int f_key=0; f_key<4; ++f_key) {
-    for(int n_key = 4; n_key < 8; ++n_key) {
-     Enforcement_Data[(f_key*num_entity_keys+n_key)*2 + 0] = (MortarType == STD) ? fixed_kpf : 2.0;
+  if(SelfContact) {
+    for(int i=0; i<num_entity_keys*num_entity_keys; ++i) {
+      Enforcement_Data[2*i+0] = 0.5;
+      Enforcement_Data[2*i+1] = 1.0;
     }
   }
-#endif
+  else {
+    for(int i=0; i<num_entity_keys*num_entity_keys; ++i) {
+      Enforcement_Data[2*i+0] = 0.0;
+      Enforcement_Data[2*i+1] = 1.0;
+    } 
+
+    double fixed_kpf = 1.0; // kinematic partitioning factor: this can be varied 0 < fixed_kpf <= 1.0
+    for(int f_key=0; f_key<4; ++f_key) {
+      for(int n_key = 4; n_key < 8; ++n_key) {
+        Enforcement_Data[(f_key*num_entity_keys+n_key)*2 + 0] = (MortarType == STD) ? fixed_kpf : 2.0;
+      }
+    }
+  }
 
   bool get_cvars = true;
   bool calc_plot_force = false;

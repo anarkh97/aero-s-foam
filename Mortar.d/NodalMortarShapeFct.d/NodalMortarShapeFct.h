@@ -69,8 +69,7 @@ class NodalMortarShapeFct {
         LMPCons* CreateMortarLMPCons(int, int, double, int* SlaveLlToGlNodeMap=0, 
                                                        int* MasterLlToGlNodeMap=0);
 
-        LMPCons* CreateMortarCtcLMPCons(int lmpcnum, double rhs, int* SlaveLlToGlNodeMap=0,
-                                                                 int* MasterLlToGlNodeMap=0);
+        LMPCons* CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 
 	// Print, display methods
 	// ~~~~~~~~~~~~~~~~~~~~~~

@@ -10,10 +10,8 @@ class CoordSet;
 
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
-#ifdef HB_NORMAL_GEOM_GAP
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
-#endif 
 
 class TriFacet {
   private:
@@ -68,11 +66,8 @@ class TriFacet {
         FullM IntegrateNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, int ngp=6);
         FullM IntegrateGradNormalShapeFctProduct(MortarElement*, TriFacet&, CoordSet&, CoordSet&, TriFacet&, CoordSet&, int ngp=6);
 
-#ifdef HB_NORMAL_GEOM_GAP
         // Compute normal "geometrical" gap
-        // EXPERIMENTAL
         Vector IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendTriFacet, CoordSet& cs, CoordSet& cs1, int ngp=6);
-#endif
 };
 #endif
 

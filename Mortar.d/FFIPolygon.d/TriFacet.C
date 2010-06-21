@@ -419,11 +419,11 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
    double m[2], mOnMortarEl[2], mOnFriendFaceEl[2];
    double r, s, t, weight;
    double Normal[3];
-#ifdef EXP_MORTAR_CONTACT
+
    int nShapeFctOnFriendFaceEl2 = FriendFaceEl->nNodes();
    double* ShapeOnFriendFaceEl2  = (double*) dbg_alloca(nShapeFctOnFriendFaceEl2*sizeof(double));
    double mOnFriendFaceEl2[2], MOnFriendFaceEl[3], MOnFriendFaceEl2[3], dNormal[12][3];
-#endif
+
    int igp, i, j;
    // FOR TEST
    //ngp = 1; r = 1/3.; s = 1/3.; t = 1-r-s; weight = 0.5;
@@ -438,7 +438,7 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      // Jacobian on the face element supporting the CURRENT triangular facet
      double dA = GetIsoParamMappingNormalAndJacobianOnFaceEl(Normal, m, cs);
      //cerr << " # dA = " << dA << endl;
-     // PJSA is the -ve of the normal
+     // PJSA is the -ve of the normal?
      //cerr << " # normal = " << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
 
      // Get local coord. on each face element
@@ -449,11 +449,11 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      // -> for the element supporting the given triangular facet
      FriendFacet.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceEl);
      //cerr << " # mOnFriendFaceEl:   x = " << mOnFriendFaceEl[0] << ", y = " << mOnFriendFaceEl[1] << endl;
-#ifdef EXP_MORTAR_CONTACT
+
      // -> for the element supporting the second given triangular facet
      FriendFacet2.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceEl2);
      //cerr << " # mOnFriendFaceEl:   x = " << mOnFriendFaceEl[0] << ", y = " << mOnFriendFaceEl[1] << endl;
-#endif
+
      // Compute shape fcts
      // -> mortar elem.
      MortarEl->GetShapeFctVal(MortarShape, mOnMortarEl);
@@ -463,7 +463,6 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      FriendFaceEl->GetShapeFctVal(ShapeOnFriendFaceEl, mOnFriendFaceEl);
      //for(j=0;j<nShapeFctOnFaceElem;j++) cerr << " ShapeOnFaceElem[" << j << "] = " << ShapeOnFaceElem[j] << endl;
 
-#ifdef EXP_MORTAR_CONTACT
      // -> for the element supporting the second given triangular facet
      FriendFaceEl2->GetShapeFctVal(ShapeOnFriendFaceEl2, mOnFriendFaceEl2);
      //for(j=0;j<nShapeFctOnFriendFaceEl2;j++) cerr << " ShapeOnFriendFaceEl2[" << j << "] = " << ShapeOnFaceElem2[j] << endl;
@@ -479,23 +478,6 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      // Get global coord. on the element supporting the given other triangular facet
      FriendFaceEl2->LocalToGlobalCoord(MOnFriendFaceEl2, mOnFriendFaceEl2, cs2);
      //cerr << " # MOnFriendFaceEl:   x = " << MOnFriendFaceEl[0] << ", y = " << MOnFriendFaceEl[1] << ", z = " << MOnFriendFaceEl[2] << endl;
-#endif
-
-     // NormalGeoGaps[i] at gauss point igp 
-     //   = weight * dA * ( MOnFriendFaceEl[0]*Normal[0] + MOnFriendFaceEl[1]*Normal[1] + MOnFriendFaceEl[2]*Normal[2] ) * MortarShape[i]
-     //   = weight * dA * ( (ShapeOnFriendFaceEl[0]*X[0]+ShapeOnFriendFaceEl[1]*X[1]+ShapeOnFriendFaceEl[2]*X[2]+ShapeOnFriendFaceEl[3]*X[3])*Normal[0]
-     //                    +(ShapeOnFriendFaceEl[0]*Y[0]+ShapeOnFriendFaceEl[1]*Y[1]+ShapeOnFriendFaceEl[2]*Y[2]+ShapeOnFriendFaceEl[3]*Y[3])*Normal[1] 
-     //                    +(ShapeOnFriendFaceEl[0]*Z[0]+ShapeOnFriendFaceEl[1]*Z[1]+ShapeOnFriendFaceEl[2]*Z[2]+ShapeOnFriendFaceEl[3]*Z[3])*Normal[2] ) * MortarShape[i]
-     // (FACE ELEM)
-     // the derivative of NormalGeoGaps[i] at gauss point igp w.r.t X[j] including variation of normal but not the variation of the shape functions and dA
-     //   = weight * dA * ( (ShapeOnFriendFaceEl[0]*X[0]+ShapeOnFriendFaceEl[1]*X[1]+ShapeOnFriendFaceEl[2]*X[2]+ShapeOnFriendFaceEl[3]*X[3])*dNormal[0]dX[j] + ShapeOnFriendFaceEl[j]*Normal[0]
-     //                    +(ShapeOnFriendFaceEl[0]*Y[0]+ShapeOnFriendFaceEl[1]*Y[1]+ShapeOnFriendFaceEl[2]*Y[2]+ShapeOnFriendFaceEl[3]*Y[3])*dNormal[1]dX[j]
-     //                    +(ShapeOnFriendFaceEl[0]*Z[0]+ShapeOnFriendFaceEl[1]*Z[1]+ShapeOnFriendFaceEl[2]*Z[2]+ShapeOnFriendFaceEl[3]*Z[3])*dNormal[2]dX[j] ) * MortarShape[i]
-     //   = weight * dA * ( MOnFriendFaceEl[0]*dNormal[0]dX[j] + MOnFriendFaceEl[1]*dNormal[1]dX[j] + MOnFriendFaceEl[2]*dNormal[2]dX[j] + ShapeOnFriendFaceEl[j]*Normal[0] ) * MortarShape[i]
-     // similarly, the derivative of NormalGeoGaps[i] at gauss point igp w.r.t Y[j] 
-     //   = weight * dA * ( MOnFriendFaceEl[0]*dNormal[0]dY[j] + MOnFriendFaceEl[1]*dNormal[1]dY[j] + MOnFriendFaceEl[2]*dNormal[2]dY[j] + ShapeOnFriendFaceEl[j]*Normal[1] ) * MortarShape[i]
-     // and the derivative of NormalGeoGaps[i] at gauss point igp w.r.t Z[j] 
-     //   = weight * dA * ( MOnFriendFaceEl[0]*dNormal[0]dZ[j] + MOnFriendFaceEl[1]*dNormal[1]dZ[j] + MOnFriendFaceEl[2]*dNormal[2]dZ[j] + ShapeOnFriendFaceEl[j]*Normal[2] ) * MortarShape[i]
 
      // Shape fcts product & integration
      for(i=0;i<nMortarShapeFct;i++)
@@ -505,7 +487,6 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
          MatShapeFctProd[i][3*j+2] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*Normal[2];
          //cerr << "i = " << i << ", j = " << j << ", MatShapeFctProd[i] #1 = " << MatShapeFctProd[i][3*j  ] << " " << MatShapeFctProd[i][3*j+1]
          //     << " " << MatShapeFctProd[i][3*j+2] << endl;
-#ifdef EXP_MORTAR_CONTACT
          MatShapeFctProd[i][3*j  ] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dNormal[3*j  ][0]
                                       +MOnFriendFaceEl[1]*dNormal[3*j  ][1]+MOnFriendFaceEl[2]*dNormal[3*j  ][2]);
          MatShapeFctProd[i][3*j+1] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dNormal[3*j+1][0]
@@ -520,7 +501,6 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
                                       +MOnFriendFaceEl2[1]*dNormal[3*j+2][1]+MOnFriendFaceEl2[2]*dNormal[3*j+2][2]);
          //cerr << "i = " << i << ", j = " << j << ", MatShapeFctProd[i] #2 = " << MatShapeFctProd[i][3*j  ] << " " << MatShapeFctProd[i][3*j+1]
          //     << " " << MatShapeFctProd[i][3*j+2] << endl;
-#endif
        } 
   }
 
@@ -528,9 +508,7 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
   return MatShapeFctProd;
 }
 
-#ifdef HB_NORMAL_GEOM_GAP
 // Compute normal "geometrical" gap 
-// EXPERIMENTAL
 Vector
 TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, CoordSet& cs1, int ngp)
 // ******************************************************************************************************
@@ -595,49 +573,8 @@ TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& Frien
      double sdot = weight*dA*(MOnFriendFaceEl[0]*Normal[0]+MOnFriendFaceEl[1]*Normal[1]+MOnFriendFaceEl[2]*Normal[2]);
      for(i=0;i<nMortarShapeFct;i++)
        NormalGeoGaps[i] += sdot*MortarShape[i];
-
-     // NormalGeoGaps[i] at gauss point igp 
-     //   = weight * dA * ( MOnFriendFaceEl[0]*Normal[0] + MOnFriendFaceEl[1]*Normal[1] + MOnFriendFaceEl[2]*Normal[2] ) * MortarShape[i]
-     //   = weight * dA * ( (ShapeOnFriendFaceEl[0]*X[0]+ShapeOnFriendFaceEl[1]*X[1]+ShapeOnFriendFaceEl[2]*X[2]+ShapeOnFriendFaceEl[3]*X[3])*Normal[0]
-     //                    +(ShapeOnFriendFaceEl[0]*Y[0]+ShapeOnFriendFaceEl[1]*Y[1]+ShapeOnFriendFaceEl[2]*Y[2]+ShapeOnFriendFaceEl[3]*Y[3])*Normal[1] 
-     //                    +(ShapeOnFriendFaceEl[0]*Z[0]+ShapeOnFriendFaceEl[1]*Z[1]+ShapeOnFriendFaceEl[2]*Z[2]+ShapeOnFriendFaceEl[3]*Z[3])*Normal[2] ) * MortarShape[i]
-
-     // XXXX now the variation that I am missing is due to the variation of LocalCoordOnFaceEl of both master and slave
-     // ie NormalGeoGaps[i] = f(dA(LocalCoordOnFaceEl(x))*(MOnFriendFaceEl(LocalCoordOnFaceEl(x),x)*Normal(x)*MortarShape[i](LocalCoordOnFaceEl(x))) = f(g(x))
-     // dNormalGeoGaps[i]/dx = g'(x)f'(g(x))
-
-     // NormalGeoGaps[i] at gauss point igp 
-     //   = weight * dA(LocalCoordOnFaceEl(x)) * MortarShape[i](LocalCoordOnFaceEl(x)) *
-     //      ( ( ShapeOnFriendFaceEl[0](LocalCoordOnFaceEl(x))*X[0]+ShapeOnFriendFaceEl[1](LocalCoordOnFaceEl(x))*X[1]
-     //         +ShapeOnFriendFaceEl[2](LocalCoordOnFaceEl(x))*X[2]+ShapeOnFriendFaceEl[3](LocalCoordOnFaceEl(x))*X[3] ) * Normal[0](x)
-     //       +( ShapeOnFriendFaceEl[0](LocalCoordOnFaceEl(x))*Y[0]+ShapeOnFriendFaceEl[1](LocalCoordOnFaceEl(x))*Y[1]
-     //         +ShapeOnFriendFaceEl[2](LocalCoordOnFaceEl(x))*Y[2]+ShapeOnFriendFaceEl[3](LocalCoordOnFaceEl(x))*Y[3] ) * Normal[1](x) 
-     //       +( ShapeOnFriendFaceEl[0](LocalCoordOnFaceEl(x))*Z[0]+ShapeOnFriendFaceEl[1](LocalCoordOnFaceEl(x))*Z[1]
-     //         +ShapeOnFriendFaceEl[2](LocalCoordOnFaceEl(x))*Z[2]+ShapeOnFriendFaceEl[3](LocalCoordOnFaceEl(x))*Z[3] ) * Normal[2](x) )
-     //  = weight * dA(LocalCoordOnFaceEl(x)) * MortarShape[i](LocalCoordOnFaceEl(x)) * sum_j( Normal[j](x) * sum_k( ShapeOnFriendFaceEl[k](LocalCoordOnFaceEl(x))*x[3*k+j] ) )
-     //  = weight * sum_j_k ( dA(LocalCoordOnFaceEl(x)) * MortarShape[i](LocalCoordOnFaceEl(x)) * ShapeOnFriendFaceEl[k](LocalCoordOnFaceEl(x)) * Normal[j](x) * x[3*k+j] )
-     //  = weight * sum_j_k ( t(g(x)) * u(g(x)) * v(g(x)) *w(g(x)) * x[3*k+j] )
-     //  = weight * sum_j_k ( t*u*v*w*x[3*k+j] )
-     // dNormalGeoGaps[i]dx[l] = weight * sum_j_k ( t'uvwx[3k+j] + tu'vwx[3k+j] + tuv'wx[3k+j] + tuvwx[3k+j]') where ' indicates derivative wrt x[l]
-     //  where t = dA(LocalCoordOnFaceEl(x)), t' = dt/dx[l] = dt(g(x))/dx[l] = dt/dg*dg/dx[l] = ddA/dLocalCoordOnFaceEl*dLocalCoordOnFaceEl/dx[l]
-     //        u = MortarShape[i](LocalCoordOnFaceEl(x)), u' = dMortarShape[i]/dLocalCoordOnFaceEl*dLocalCoordOnFaceEl/dx[l]
-     //        v = ShapeOnFriendFaceEl[k](LocalCoordOnFaceEl(x)), v' = dShapeOnFriendFaceEl[k]/dLocalCoordOnFaceEl*dLocalCoordOnFaceEl/dx[l]
-     //        w = Normal[j](x), w' = dNormal[j]/dx[l]
-     //        x[3k+j]' = dx[3k+j]/dx[l] = (l==3k+j) ? 1 : 0
-     // so now I need the derivatives of dA, MortarShape and ShapeOnFriendFaceEl w.r.t. LocalCoordOnFaceEl (this part should be easy)
-     // and the derivatives of LocalCoordOnFaceEl w.r.t. x (this is more difficult, since LocalCoordOnFaceEl comes from ACME)
-
-     // chain rule for f(g[1](x),g[2](x),...,g[n](x))
-     // df/dx[i] = df/dg[1]*dg[1]/dx[i] + df/dg[2]*dg[2]/dx[i] + ... + df/dg[n]*dg[n]/dx[i]
-
-     // first consider dMortarShape/dLocalCoordOnFaceEl
-     //   MortarShape = f(mOnMortarEl(dLocalCoordOnFaceEl))
-     //   dMortarShape/dLocalCoordOnFaceEl = dMortarShape/dmOnMortarEl*dmOnMortarEl/dLocalCoordOnFaceEl
-     //   we already have dMortarShape (see for example, FaceQuad4::GetdShapeFct), so now we need dmOnMortarEl/dLocalCoordOnFaceEl
-
   }
 
   //NormalGeoGaps.print("  NormalGeoGaps[TriFacet]=");
   return NormalGeoGaps;
 }
-#endif

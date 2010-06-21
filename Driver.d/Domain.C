@@ -2446,9 +2446,9 @@ Domain::AddSurfaceEntity(SurfaceEntity* _SurfEntity)
  // if _SurfEntity not previously defined create new
  if (i==nSurfEntity)
   SurfEntities[nSurfEntity++] = _SurfEntity;
- else{
-  filePrint(stderr," *** WARNING: Surface Entity of Id %d has already been defined !!!\n", SurfEntities[i]->ID());
- };
+ else 
+  if(_SurfEntity->ID() != 0) filePrint(stderr," *** WARNING: Surface Entity of Id %d has already been defined !!!\n", SurfEntities[i]->ID());
+
  return 0;
 }
 
@@ -2496,6 +2496,14 @@ Domain::AddMortarCond(MortarHandler* _MortarCond)
   // By default, set the  MortarCond Id = the order in which
   //we read them (see no check !!)
   _MortarCond->SetId(nMortarCond);
+
+  // PJSA dirty fix for self contact
+  if(_MortarCond->GetMasterEntityId() == _MortarCond->GetSlaveEntityId()) {
+    SurfaceEntity *dummy = new SurfaceEntity(0); 
+    AddSurfaceEntity(dummy);
+    _MortarCond->SetMasterEntityId(0);
+    _MortarCond->SetSelfContact(true);
+  }
 
   // Add the MortarCond to the MortarConds array
   MortarConds[nMortarCond] = _MortarCond;

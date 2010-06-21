@@ -487,9 +487,7 @@ QuadFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, QuadFacet
   return MatShapeFctProd;
 }
 
-#ifdef HB_NORMAL_GEOM_GAP
 // Compute normal "geometrical" gap 
-// EXPERIMENTAL
 Vector
 QuadFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, QuadFacet& FriendFacet, CoordSet& cs, CoordSet& cs1, int ngp)
 // ******************************************************************************************************
@@ -557,4 +555,3 @@ QuadFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, QuadFacet& Fri
   //NormalGeoGaps.print("NormalGeoGaps[QuadFacet]=");
   return NormalGeoGaps;
 }
-#endif

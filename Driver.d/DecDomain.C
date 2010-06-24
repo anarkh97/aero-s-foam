@@ -564,10 +564,11 @@ GenDecDomain<Scalar>::getFetiSolver()
    GenSolver<Scalar> **sysMatrices = 0;
    GenSparseMatrix<Scalar> **sysMat = 0;
    Rbm **rbms = 0;
-   bool computeRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted();
+   bool geometricRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) 
+                       && !geoSource->isShifted() && !domain->solInfo().isNonLin() && (finfo->nullSpace != FetiInfo::trbm);
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo,
                                       communicator, glSubToLocal, mpcToSub_dual, mpcToSub_primal,
-                                      mpcToMpc, mpcToCpu, cpuToSub, grToSub, sysMatrices, sysMat, rbms, 0, computeRbms);
+                                      mpcToMpc, mpcToCpu, cpuToSub, grToSub, sysMatrices, sysMat, rbms, 0, geometricRbms);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
@@ -579,11 +580,12 @@ GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getDynamicFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
- bool computeRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted(); 
+ bool geometricRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal)
+                    && !geoSource->isShifted() && !domain->solInfo().isNonLin() && (finfo->nullSpace != FetiInfo::trbm); 
  if(finfo->version == FetiInfo::fetidp) {
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
-                                      dgt.dynMats, dgt.spMats, dgt.rbms, 0, computeRbms);
+                                      dgt.dynMats, dgt.spMats, dgt.rbms, 0, geometricRbms);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
@@ -3533,9 +3535,8 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::setContactGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
+void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
 {
-  // XXXX this should only be done for linear mpcs
   if(numDualMpc) {
     GenDistrVector<Scalar> *cx = new GenDistrVector<Scalar>(fetiSolver->interfInfo());
     GenDistrVector<Scalar> *x = new GenDistrVector<Scalar>(fetiSolver->localInfo());

@@ -12,6 +12,7 @@
 #include <Driver.d/HData.h>
 #include <Parser.d/AuxDefs.h>
 #include <Sfem.d/Sfem.h>
+#include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
 class MortarHandler;
 class MFTTData;
@@ -467,6 +468,9 @@ class Domain : public HData {
      template<class Scalar>
        void addThermalForce(GenVector<Scalar>& force);
 
+     template<class Scalar>
+       void addMpcRhs(GenVector<Scalar>& force);
+
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 
@@ -781,7 +785,8 @@ class Domain : public HData {
      int getNumCTC() { return numCTC; }
      void addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype);
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
-     void deleteLMPCs() { lmpc.deleteArray(); lmpc.restartArray(); numLMPC = 0; nMortarLMPCs = 0; numCTC = 0; if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; } } // YYYY
+     void deleteAllLMPCs();
+     void deleteSomeLMPCs(mpc::ConstraintSource s);
 
      // HB: mortar stuff (EXPERIMENTAL)
   protected:
@@ -803,7 +808,7 @@ class Domain : public HData {
      void DeleteMortarConds();
 
      void SetMortarPairing();
-     void SetUpSurfaces(CoordSet* cs=0);
+     void SetUpSurfaces(CoordSet* cs = 0);
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
      void MakeNodalMass(SparseMatrix *M);
@@ -815,11 +820,12 @@ class Domain : public HData {
      void AddContactForces(double dt, Vector &f);
      void AddContactForces(double dt, DistrVector &f);
 
-     void InitializeStaticContactSearch(int numSub = 0, SubDomain **sd = 0);
-     void PerformStaticContactSearch();
-     void ExpComputeMortarLMPC(int nDofs=0, int* Dofs=0);
+     void InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
+     void UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd);
+     void PerformStaticContactSearch(MortarHandler::Interaction_Type t);
+     void ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs = 0, int* Dofs = 0);
 
-     void ComputeMortarLMPC(int nDofs=0, int* Dofs=0);
+     void ComputeMortarLMPC(int nDofs = 0, int* Dofs = 0);
      void computeMatchingWetInterfaceLMPC();
 
      void CreateMortarToMPC();

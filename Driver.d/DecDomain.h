@@ -120,7 +120,7 @@ class GenDecDomain
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
-  void setContactGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
+  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
 
  protected:
   void makeSubDomains();

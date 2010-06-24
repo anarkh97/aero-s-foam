@@ -54,5 +54,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }
+
+    void computePressureForce(CoordSet&, Vector& elPressureForce,
+                              GeomState *gs, int cflg);
 };
 #endif

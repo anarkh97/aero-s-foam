@@ -87,7 +87,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
                   int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal, Connectivity *_mpcToMpc,
                   Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
                   GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse,
-                  Rbm **, int sandiaFlag, bool _computeRbms)
+                  Rbm **, int sandiaFlag, bool _geometricRbms)
  : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
  if(geoSource->isShifted())
@@ -124,7 +124,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
   globalFlagCtc = this->fetiCom->globalMax((int) globalFlagCtc);
 #endif
 
- computeRbms = _computeRbms;
+ geometricRbms = _geometricRbms;
 
  this->myCPU = this->fetiCom->cpuNum();
  this->numCPUs = this->fetiCom->size();
@@ -332,7 +332,6 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
 
  t6 += getTime();
 }
-
 
 template<class Scalar>
 void
@@ -610,123 +609,126 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #ifdef DISTRIBUTED
  if(this->sd) {
    groups[0] = (*subToGroup)[this->sd[0]->subNum()][0];
-   int n=1;
-   for(i=1; i<this->nsub; ++i) {
+   int n = 1;
+   for(int i = 1; i < this->nsub; ++i) {
      int group = (*subToGroup)[this->sd[i]->subNum()][0];
      int j;
-     for(j=0; j<n; ++j) if(group == groups[j]) j=n+1;
-     if(j==n) groups[n++] = group;
+     for(j = 0; j < n; ++j) if(group == groups[j]) j = n+1;
+     if(j == n) groups[n++] = group;
    }
    nGroups1 = n;  // number of groups represented on this processor
  }
  else nGroups1 = 0;
 #else
- for(i=0; i<nGroups; ++i) groups[i] = i; 
+ for(int i = 0; i < nGroups; ++i) groups[i] = i; 
  nGroups1 = nGroups;  
 #endif
+ if(ngrbmGr) delete [] ngrbmGr;
+ ngrbmGr = new int[nGroups];
+ for(int i = 0; i < nGroups; ++i) ngrbmGr[i] = 0;
  if(verboseFlag) filePrint(stderr, " ... Number of bodies = %3d         ...\n", nGroups);
  
- ngrbms = ngrbm = 0;
- int *groupProc = 0;
- if(computeRbms && this->fetiInfo->parallel_grbm) { // this can now be deactivated
-  if((this->fetiInfo->corners == FetiInfo::noCorners) && (this->glNumMpc_primal > 0)) {
+ int ngrbm = 0;
+ ngrbms = 0;
+ if(geometricRbms) {
+   if((this->fetiInfo->corners == FetiInfo::noCorners) && (this->glNumMpc_primal > 0)) {
      // subdomain ZEMs need to be projected or eliminated
      // I think adding the dofs of primal mpcs to the "c" dofs would resolve this issue
      filePrint(stderr, " *** ERROR: mpc_type 2 is not supported with no corners *** \n"); 
      exit(-1);
-  }
-  if(verboseFlag) filePrint(stderr, " ... Computing multi-body GRBMs     ...\n");
-  // calculate the centroid of each group
-  double *centroid = new double[nGroups*3];   // pseudo centroid of each group
-  double *nNodes = new double[nGroups];       // number of nodes in each group;
-  for(i=0; i<nGroups; ++i) {
-    nNodes[i] = 0.0;
-    for(int j=0; j<3; ++j) centroid[3*i+j] = 0.0;
-  }
-  for(i=0; i<this->nsub; ++i) this->sd[i]->addNodeXYZ(centroid, nNodes);  // groups could be done in parallel
+   }
+   if(verboseFlag) filePrint(stderr, " ... Computing multi-body GRBMs     ...\n");
+   // calculate the centroid of each group
+   double *centroid = new double[nGroups*3];   // pseudo centroid of each group
+   double *nNodes = new double[nGroups];       // number of nodes in each group;
+   for(int i = 0; i < nGroups; ++i) {
+     nNodes[i] = 0.0;
+     for(int j = 0; j < 3; ++j) centroid[3*i+j] = 0.0;
+   }
+   for(int i = 0; i < this->nsub; ++i) this->sd[i]->addNodeXYZ(centroid, nNodes);  // groups could be done in parallel
 #ifdef DISTRIBUTED
-  this->fetiCom->globalSum(nGroups, nNodes);
-  this->fetiCom->globalSum(nGroups*3, centroid);
+   this->fetiCom->globalSum(nGroups, nNodes);
+   this->fetiCom->globalSum(nGroups*3, centroid);
 #endif
-  for(i=0; i<nGroups; ++i) {
-    if(nNodes[i] > 0) 
-      for(int j=0; j<3; ++j) 
-        centroid[3*i+j] = centroid[3*i+j]/nNodes[i];
-  }
-  // note: this centroid calculation assumes nodes are equally spaced, and also
-  // interface nodes from a group split over more than one interface are used more than once.
-  // however, the objective is only to find a point inside the group to be used as 
-  // a reference for the geometric rbm calculation.  it is not necessary to use the exact
-  // geometric centroid.
-  delete [] nNodes;
+   for(int i = 0; i < nGroups; ++i) {
+     if(nNodes[i] > 0) 
+       for(int j = 0; j < 3; ++j) 
+         centroid[3*i+j] = centroid[3*i+j]/nNodes[i];
+   }
+   // note: this centroid calculation assumes nodes are equally spaced, and also
+   // interface nodes from a group split over more than one interface are used more than once.
+   // however, the objective is only to find a point inside the group to be used as 
+   // a reference for the geometric rbm calculation.  it is not necessary to use the exact
+   // geometric centroid.
+   delete [] nNodes;
  
-  // make Zstar and R matrices for each subdomain
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeZstarAndR, centroid);
-  delete [] centroid;
+   // make Zstar and R matrices for each subdomain
+   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeZstarAndR, centroid);
+   delete [] centroid;
  
-  Connectivity *groupToMpc = 0;
-  if(this->glNumMpc_primal > 0) {
-    Connectivity *subToMpc = this->mpcToSub_primal->reverse();
-    groupToMpc = groupToSub->transcon(subToMpc);
-    paralApply(this->nsub, this->sd, &BaseSub::makeLocalToGroupMPC, groupToMpc);
-    delete subToMpc;
-  }
+   Connectivity *groupToMpc = 0;
+   if(this->glNumMpc_primal > 0) {
+     Connectivity *subToMpc = this->mpcToSub_primal->reverse();
+     groupToMpc = groupToSub->transcon(subToMpc);
+     paralApply(this->nsub, this->sd, &BaseSub::makeLocalToGroupMPC, groupToMpc);
+     delete subToMpc;
+   }
 
-  // assemble global Zstar matrix for each body
-  FullM **globalZstar = new FullM * [nGroups];
-  int *zRow = new int[nGroups];
-  int *zRowDim = new int[nGroups];
-  int *zColDim = new int[nGroups];
-  int *zColOffset = new int[nBodies];
-  int zColDim1 = (this->sd) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
+   // assemble global Zstar matrix for each body
+   FullM **globalZstar = new FullM * [nGroups];
+   int *zRow = new int[nGroups];
+   int *zRowDim = new int[nGroups];
+   int *zColDim = new int[nGroups];
+   int *zColOffset = new int[nBodies];
+   int zColDim1 = (this->sd) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
 #ifdef DISTRIBUTED
-  zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
+   zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
 #endif
-  for(i=0; i<nGroups; ++i) {
-    zRowDim[i] = 0; 
-    if(mbgflag) {
-      int cOff = 0;
-      for(int j=0; j < groupToBody->num(i); ++j) {
-        int body = (*groupToBody)[i][j];
-        zColOffset[body] = cOff;
-        cOff += zColDim1;
-      }
-      zColDim[i] = cOff;
-    }
-    else {
-      zColOffset[i] = 0;
-      zColDim[i] = zColDim1;
-    }
-  }
-  for(iSub=0; iSub<this->nsub; ++iSub) {
-    int subGroup = (*subToGroup)[this->sd[iSub]->subNum()][0];
-    zRowDim[subGroup] += this->sd[iSub]->zRowDim();
-  }
-  if(this->glNumMpc_primal > 0) {
-    for(i=0; i<nGroups; ++i) zRowDim[i] += groupToMpc->num(i);
-  }
-  if(groupToBody) delete groupToBody;
+   for(int i = 0; i < nGroups; ++i) {
+     zRowDim[i] = 0; 
+     if(mbgflag) {
+       int cOff = 0;
+       for(int j = 0; j < groupToBody->num(i); ++j) {
+         int body = (*groupToBody)[i][j];
+         zColOffset[body] = cOff;
+         cOff += zColDim1;
+       }
+       zColDim[i] = cOff;
+     }
+     else {
+       zColOffset[i] = 0;
+       zColDim[i] = zColDim1;
+     }
+   }
+   for(int iSub = 0; iSub < this->nsub; ++iSub) {
+     int subGroup = (*subToGroup)[this->sd[iSub]->subNum()][0];
+     zRowDim[subGroup] += this->sd[iSub]->zRowDim();
+   }
+   if(this->glNumMpc_primal > 0) {
+     for(int i = 0; i < nGroups; ++i) zRowDim[i] += groupToMpc->num(i);
+   }
+   if(groupToBody) delete groupToBody;
 
 #ifdef DISTRIBUTED
    int *zRowOffset = new int[this->numCPUs*nGroups];
-   for(i=0; i<this->numCPUs*nGroups; ++i) zRowOffset[i] = 0;
-   for(i=0; i<nGroups1; ++i) {
+   for(int i = 0; i < this->numCPUs*nGroups; ++i) zRowOffset[i] = 0;
+   for(int i = 0; i < nGroups1; ++i) {
      int iGroup = groups[i];
-     for(int j=this->myCPU+1; j<this->numCPUs; ++j) zRowOffset[iGroup*this->numCPUs +j] = zRowDim[iGroup];
+     for(int j = this->myCPU+1; j < this->numCPUs; ++j) zRowOffset[iGroup*this->numCPUs +j] = zRowDim[iGroup];
    }
    this->fetiCom->globalSum(nGroups, zRowDim);
    this->fetiCom->globalSum(this->numCPUs*nGroups, zRowOffset);
-   for(i=0; i<nGroups; ++i) zRow[i] = zRowOffset[i*this->numCPUs + this->myCPU];
+   for(int i = 0; i < nGroups; ++i) zRow[i] = zRowOffset[i*this->numCPUs + this->myCPU];
    delete [] zRowOffset;
 #else
-   for(i=0; i<nGroups; ++i) zRow[i] = 0;
+   for(int i = 0; i < nGroups; ++i) zRow[i] = 0;
 #endif
-   for(i=0; i<nGroups; ++i) {
+   for(int i = 0; i < nGroups; ++i) {
      globalZstar[i] = new FullM(zRowDim[i], zColDim[i]);
      globalZstar[i]->zero();
    }
    // could do this in parallel (by groups)
-   for(iSub=0; iSub<this->nsub; ++iSub) {
+   for(int iSub = 0; iSub < this->nsub; ++iSub) {
      int subBody = (*subToBody)[this->sd[iSub]->subNum()][0];
      int subGroup = (*subToGroup)[this->sd[iSub]->subNum()][0];
      if(this->sd[iSub]->zRowDim() > 0) 
@@ -740,25 +742,23 @@ GenFetiDPSolver<Scalar>::makeKcc()
    delete [] zColOffset;
    if(groupToMpc) delete groupToMpc;
  
-   groupProc = new int[nGroups];
+   int *groupProc = new int[nGroups];
 #ifdef DISTRIBUTED
-   for(i=0; i<nGroups; ++i) {
+   for(int i = 0; i < nGroups; ++i) {
      this->fetiCom->globalSum(zRowDim[i]*zColDim[i], globalZstar[i]->data());
      groupProc[i] = -1;
    }
-   for(i=0; i<nGroups1; ++i) groupProc[groups[i]] = this->myCPU;
-   for(i=0; i<nGroups; ++i) groupProc[i] = this->fetiCom->globalMax(groupProc[i]);
+   for(int i = 0; i < nGroups1; ++i) groupProc[groups[i]] = this->myCPU;
+   for(int i = 0; i < nGroups; ++i) groupProc[i] = this->fetiCom->globalMax(groupProc[i]);
 #else
-   for(i=0; i<nGroups; ++i) groupProc[i] = this->myCPU;
+   for(int i = 0; i < nGroups; ++i) groupProc[i] = this->myCPU;
 #endif
  
    // now do svd on globalZstar for each group to get globalQ for each group
-   ngrbmGr = new int[nGroups];
-   for(i=0; i<nGroups; ++i) ngrbmGr[i] = 0;
    ngrbm = 0;  // total of all groups
    FullM  **Qtranspose;
    Qtranspose = new FullM * [nGroups];
-   for(i=0; i<nGroups1; ++i) {
+   for(int i = 0; i < nGroups1; ++i) {
      int iGroup = groups[i];
      int ncol = zColDim[iGroup];  
      int nrow = zRowDim[iGroup];
@@ -781,23 +781,24 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
    if(verboseFlag) filePrint(stderr, " ... total number of GRBMs = %5d  ...\n", ngrbms);
  
+   delete [] groupProc;
    delete [] zRow;
    delete [] zRowDim;
    delete [] zColDim;
-   for(i=0; i<nGroups; ++i) delete globalZstar[i];
+   for(int i = 0; i < nGroups; ++i) delete globalZstar[i];
    delete [] globalZstar;
  
    // make local Rstar
    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeLocalRstar, Qtranspose);
-   for(i=0; i<nGroups1; ++i) delete Qtranspose[groups[i]];
+   for(int i = 0; i < nGroups1; ++i) delete Qtranspose[groups[i]];
    delete [] Qtranspose;
  }
- if(computeRbms && this->fetiInfo->use_krr_nullspace) {
+ if(!geometricRbms && this->fetiInfo->corners == FetiInfo::noCorners) {
    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::useKrrNullspace);
    ngrbmGr = new int[nGroups];
    ngrbm = 0;
-   for(int i=0; i<nGroups; ++i) ngrbmGr[i] = 0;
-   for(int iSub=0; iSub<this->nsub; ++iSub) {
+   for(int i = 0; i < nGroups; ++i) ngrbmGr[i] = 0;
+   for(int iSub = 0; iSub < this->nsub; ++iSub) {
      int subGroup = (*subToGroup)[this->sd[iSub]->subNum()][0];
      ngrbmGr[subGroup] = this->sd[iSub]->Krr->numRBM();
      ngrbm += ngrbmGr[subGroup];
@@ -809,9 +810,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
  }
  
- if(ngrbms) { // need to do this global sum after constrain_kcc
+ if(ngrbms) {
 #ifdef DISTRIBUTED
-   delete [] groupProc;
    this->fetiCom->globalSum(nGroups, ngrbmGr);
 #endif
    paralApply(this->nsub, this->sd, &BaseSub::setNumGroupRBM, ngrbmGr);
@@ -934,14 +934,15 @@ GenFetiDPSolver<Scalar>::makeKcc()
    KccSolver->parallelFactor();
    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
-   if(computeRbms && this->myCPU == 0) {
+   if(geometricRbms && this->myCPU == 0) {
      if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
-       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ") does not match the number of Geometric RBMs of the decomposed domain (" << ngrbms << ")\n";
-       cerr << " *** try adjusting global_cor_rbm_tol\n";
+       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << endl
+            << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << endl
+            << " *** try adjusting global_cor_rbm_tol or use TRBM method" << endl;
      }
    } 
  
-   if(KccSolver->numRBM() > 0 && this->fetiInfo->nullSpace == FetiInfo::trbm) { // TRBM
+   if(!geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
      kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
      KccSolver->getNullSpace(kccrbms);
      if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
@@ -1624,7 +1625,7 @@ void
 GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc,
                                        GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda)
 {
-  if(this->fetiInfo->nullSpace == FetiInfo::trbm) { // TRBM
+  if(!geometricRbms && this->fetiInfo->corners != FetiInfo::noCorners) {
     GenVector<Scalar> &alpha = this->wksp->ret_alpha();
     for(int i= 0; i<KccSolver->numRBM(); ++i) 
       for(int j=0; j<KccSolver->neqs(); ++j) 
@@ -1635,7 +1636,7 @@ GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Sca
   execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, ur, uc, u, lambda);
   if(ngrbms) { // add rigid body modes
     GenVector<Scalar> &alpha = this->wksp->ret_alpha(); // amplitudes of the rigid body modes
-    if(this->fetiInfo->nullSpace == FetiInfo::grbm) // GRBM
+    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
       execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::addRalpha, u, alpha);
     if(this->fetiInfo->uproj) computeProjectedDisplacement(u);
     else filePrint(stderr, " ... Do not project the displacement ...\n"); //HB
@@ -2432,12 +2433,11 @@ GenFetiDPSolver<Scalar>::initialize()
 {
   KccSolver = 0; KccSparse = 0; glNumCorners = 0;
   cornerToSub = 0; cornerEqs = 0;
-  mpcOffset = 0; ngrbm = 0;
+  mpcOffset = 0;
   ngrbmGr = 0; nGroups = 0; nGroups1 = 0; groups = 0;
   groupToSub = 0; bodyToSub = 0; subToBody = 0; subToGroup = 0;
   GtGtilda = 0; coarseConnectGtG = 0; eqNumsGtG = 0;
-  //glCrnGroup = 0; 
-  ngrbms = 0; //firstAlpha = 0; nRowAlpha = 0;
+  ngrbms = 0;
   mpcToMpc = 0; CCtsolver = 0; 
   subsWithMpcs = 0; numSubsWithMpcs = 0; mpcSubMap = 0;
   dualStatusChange = primalStatusChange = stepLengthChange = false;
@@ -2450,8 +2450,8 @@ template<class Scalar>
 int
 GenFetiDPSolver<Scalar>::numRBM()
 {
- if(GtGtilda) return GtGtilda->numRBM();
- else return (KccSolver) ? KccSolver->numRBM() : 0;
+  if(GtGtilda) return GtGtilda->numRBM();
+  else return (KccSolver) ? KccSolver->numRBM() : 0;
 }
 
 template<class Scalar>
@@ -2582,68 +2582,6 @@ GenFetiDPSolver<Scalar>::refactor()
   else // PJSA: spooles and mumps are not thread safe
     for(int iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
   stopTimerMemory(this->times.factor, this->times.memoryFactor);
-
-/*
-  // 6. zero and rebuild and refactor Kcc 
-  if(this->fetiInfo->isEdgeAugmentationOn() && this->fetiInfo->numdir > 0) {
-    if(verboseFlag) filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
-    delete KccSparse; KccSparse = 0; KccSolver = 0;
-    makeKcc();
-
-    delete this->wksp;
-    this->times.memoryDV -= memoryUsed();
-    int numC = (KccSolver) ? KccSolver->neqs() : 0;
-    this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
-    this->times.memoryDV += memoryUsed();
-
-    int tLocalCLen = 0;
-    for(int iSub = 0; iSub < this->nsub; ++iSub) {
-      internalC.domLen[iSub] = this->sd[iSub]->numCoarseDofs();
-      tLocalCLen += internalC.domLen[iSub];
-    }
-    internalC.len = tLocalCLen;
-  }
-  else {
-    if(cornerEqs->size() > 0) {
-      if(verboseFlag) filePrint(stderr, " ... Re-assemble Kcc solver         ... \n");
-      startTimerMemory(this->times.coarse1, this->times.memoryGtG);
-      if(KccSolver) KccSolver->zeroAll();
-      paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc);
-      if(KccSparse) for(int iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
-      stopTimerMemory(this->times.coarse1, this->times.memoryGtG);
-      if(verboseFlag) filePrint(stderr, " ... Factorize Kcc solver           ... \n");
-      startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-#ifdef DISTRIBUTED
-      if(KccSolver) KccSolver->unify(this->fetiCom);
-#endif
-      if(KccSolver) KccSolver->parallelFactor();
-
-      if(this->fetiInfo->nullSpace == FetiInfo::trbm) {
-        if(kccrbms) delete [] kccrbms; kccrbms = 0;
-        ngrbms = KccSolver->numRBM();
-        if(KccSolver->numRBM() > 0) { // TRBM
-          kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
-          KccSolver->getNullSpace(kccrbms);
-          //cerr << "kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
-          if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
-            for(int i= 0; i<KccSolver->numRBM(); ++i)
-              for(int j=0; j<KccSolver->neqs(); ++j)
-                if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < this->fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
-            //cerr << "filtered kccrbms = "; for(int i=0; i<KccSolver->numRBM()*KccSolver->neqs(); ++i) cerr << kccrbms[i] << " "; cerr << endl;
-          }
-        }
-      }
-    }
-    cerr << "here in GenFetiDPSolver<Scalar>::refactor(), ngrbms = " << ngrbms << endl;
-    GenVector<Scalar> &e = this->wksp->ret_e(); e.reset(ngrbms);
-    GenVector<Scalar> &alpha = this->wksp->ret_alpha(); alpha.reset(ngrbms);
-    GenVector<Scalar> &gamma = this->wksp->ret_gamma(); gamma.reset(ngrbms);
-    if(ngrbms) makeGtG();
-    else { deleteG(); if(GtG) { delete GtG; GtG = 0; GtGsparse = 0; } if(GtGtilda) { delete GtGtilda; GtGtilda = 0; } }
-    
-    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-  }
-*/
 
   if(verboseFlag) filePrint(stderr, " ... Reconstruct Kcc solver         ... \n");
   delete KccSparse; KccSparse = 0; KccSolver = 0;

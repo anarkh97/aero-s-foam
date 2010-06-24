@@ -2717,45 +2717,63 @@ void Domain::MakeNodalMass(SubDOp *M, SubDomain **sd)
 // **********************************************************************************************************************
 
 // These functions use ACME's static 1-configuation search algorithm and face-face interaction, and Henri's mortar LMPCs for statics and implicit dynamics
-void Domain::InitializeStaticContactSearch(int numSub, SubDomain **sd)
+void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub, SubDomain **sd)
 {
-  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
-
-    CurrentMortarCond->build_search(numSub, sd);
-    CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
-    CurrentMortarCond->set_node_configuration(1);
-    CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
-    CurrentMortarCond->set_search_options();
-    if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
-    else {
-      CurrentMortarCond->set_node_constraints(numSub, sd);
-      CurrentMortarCond->make_share(numSub, sd);
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
+      CurrentMortarCond->build_search(numSub, sd);
+      CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
+      CurrentMortarCond->set_node_configuration(1);
+      CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
+      CurrentMortarCond->set_search_options();
+      if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+      else {
+        CurrentMortarCond->set_node_constraints(numSub, sd);
+        CurrentMortarCond->make_share(numSub, sd);
+      }
     }
   }
 }
 
-void Domain::PerformStaticContactSearch()
+void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd) 
 {
-  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    int search_algorithm = 1; // static 1-configuration
-    CurrentMortarCond->perform_search(search_algorithm);
-    int interaction_type = 4;
-    CurrentMortarCond->get_interactions(interaction_type);
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->set_node_configuration(1, geomState->getNumSub(), sd); // 1 --> config_type current
+    }
   }
 }
 
-void Domain::ExpComputeMortarLMPC(int nDofs, int *dofs)
+
+void Domain::PerformStaticContactSearch(MortarHandler::Interaction_Type t)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      int search_algorithm = 1; // static 1-configuration
+      CurrentMortarCond->perform_search(search_algorithm);
+      int interaction_type = 4;
+      CurrentMortarCond->get_interactions(interaction_type);
+    }
+  }
+}
+
+void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, int *dofs)
 {
   int num_interactions = 0;
-  for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    CurrentMortarCond->CreateFFIPolygon();
-    CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
-    nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
-    num_interactions += CurrentMortarCond->GetnFFI();
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->CreateFFIPolygon();
+      CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
+      nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
+      num_interactions += CurrentMortarCond->GetnFFI();
+    }
   }
 #ifdef HB_ACME_FFI_DEBUG
   if(sinfo.ffi_debug && num_interactions > 0) {
@@ -3270,12 +3288,12 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  bool addZeros = false;
  double normalGap = (normalGapPresent) ? _normalGap : 0.0;
  //double fricCoef = (fricCoefPresent) ? _fricCoef : domain->solInfo().coulomb_fric_coef;
- int mode = (modePresent) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied, 1 -> normal contact,
+ int mode = (modePresent) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
                                                                      // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
  int lmpcnum = (mode == 1 || mode == 3) ? numCTC : 0;
  if(_lmpcnum > -1) lmpcnum = _lmpcnum; // PJSA 9-13-07
 
- // contact note: normal contact only (no tied, friction etc)
+ // normal constraint
  LMPCons *_CTC = new LMPCons(lmpcnum, normalGap);
  double norm = sqrt(nx*nx + ny*ny + nz*nz);
  if(addZeros || (nx != 0.0)) {
@@ -3299,7 +3317,9 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
    LMPCTerm *term2 = new LMPCTerm(n2, 2, -nz);
    _CTC->addterm(term2);
  }
- _CTC->type = (mode == 1 || mode == 3);
+ _CTC->type = (mode == 1 || mode == 3); // this is to be phased out
+ if(mode == 1 || mode == 3) _CTC->setType(mpc::Inequality);
+ _CTC->setSource(mpc::NodalContact);
  //addLMPC(_CTC,false);
  addLMPC(_CTC,(_lmpcnum > -1)); //  PJSA 9-13-07
  if(_CTC->type == 1) numCTC++; // inequality constraint
@@ -3322,6 +3342,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                     LMPCTerm *term2 = new LMPCTerm(n2, 1, -t1[1]); _TGT1->addterm(term2); }
    if(addZeros || (t1[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t1[2]); _TGT1->addterm(term1);
                                     LMPCTerm *term2 = new LMPCTerm(n2, 2, -t1[2]); _TGT1->addterm(term2); }
+   _TGT1->setSource(mpc::NodalContact);
    addLMPC(_TGT1,false);
    if(solInfo().fetiInfo.spaceDimension == 3) {
      crossprod(n,t1,t2);
@@ -3333,6 +3354,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                       LMPCTerm *term2 = new LMPCTerm(n2, 1, -t2[1]); _TGT2->addterm(term2); }
      if(addZeros || (t2[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t2[2]); _TGT2->addterm(term1);
                                       LMPCTerm *term2 = new LMPCTerm(n2, 2, -t2[2]); _TGT2->addterm(term2); }
+     _TGT2->setSource(mpc::NodalContact);
      addLMPC(_TGT2,false);
    }
  }
@@ -3776,10 +3798,42 @@ Domain::setEigenValues(double _lbound , double _ubound, int _neigps, int _maxArn
   sinfo.doEigSweep = true;
 }
 
-/*
 void
-Domain::collapseRigid6() {
-	packedEset.collapseRigid6();
+Domain::deleteAllLMPCs()
+{
+  lmpc.deleteArray();
+  lmpc.restartArray();
+  numLMPC = 0;
+  nMortarLMPCs = 0;
+  numCTC = 0;
+  if(mortarToMPC) {
+    delete mortarToMPC;
+    mortarToMPC = 0;
+  }
 }
-*/
 
+void
+Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
+{ 
+  int j = 0;
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == s) {
+      if(lmpc[i]->getType() == mpc::Inequality) numCTC--;
+      if(s == mpc::ContactSurfaces || s == mpc::TiedSurfaces) nMortarLMPCs--;
+      delete lmpc[i];
+      lmpc[i] = 0;
+    }
+    else {
+      if(i != j) {
+        lmpc[j] = lmpc[i];
+        lmpc[i] = 0;
+      }
+      j++; 
+    }
+  }
+  numLMPC = j;
+  if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
+    delete mortarToMPC;
+    mortarToMPC = 0;
+  }
+}

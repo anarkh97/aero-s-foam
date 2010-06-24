@@ -34,8 +34,8 @@ class MDNLStatic
     int numSystems;
     double deltaLambda;
 
-    std::map<int, double> *mu; // lagrange multipliers for the inequality constraints
-    std::vector<double> *lambda; // lagrange multipliers for the equality constraints
+    std::map<int, double> *mu; // lagrange multipliers for the contact surfaces
+    std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
  public:
     // Constructor
@@ -90,7 +90,6 @@ class MDNLStatic
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
-    void updateMpcRhs(DistrGeomState &geomState);
     void updateConstraintTerms(DistrGeomState* geomState);
 };
 

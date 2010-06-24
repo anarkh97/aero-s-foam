@@ -277,7 +277,7 @@ MDNLStatic::preProcess()
 
  tolerance = domain->solInfo().getNLInfo().tolRes;
 
- domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+ domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
 
  mu = new std::map<int,double>[decDomain->getNumSub()];
  lambda = new std::vector<double>[decDomain->getNumSub()];
@@ -406,27 +406,21 @@ MDNLStatic::printTimers()
   times->timeTimers += getTime();
 }
 
-/*
-void
-MDNLStatic::updateMpcRhs(DistrGeomState &geomState)
-{
-  decDomain->setContactGap(&geomState, solver);
-}
-*/
-
 void
 MDNLStatic::updateConstraintTerms(DistrGeomState* geomState)
 {
   execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
   if(domain->GetnContactSurfacePairs()) {
-    domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
-    domain->PerformStaticContactSearch();
-    domain->deleteLMPCs();
-    domain->ExpComputeMortarLMPC();
+    domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->CreateMortarToMPC();
     decDomain->reProcessMPCs();
     ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   }
+  // set the gap for the linear constraints
+  decDomain->setConstraintGap(geomState, dynamic_cast<FetiSolver*>(solver));
 }
 
 void
@@ -437,3 +431,4 @@ MDNLStatic::getConstraintMultipliers(int isub)
   lambda[isub].clear();
   sd->getConstraintMultipliers(mu[isub], lambda[isub]);
 }
+

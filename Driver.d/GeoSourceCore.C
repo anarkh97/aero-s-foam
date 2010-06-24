@@ -1797,16 +1797,9 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[11],
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
               w,p,glv[i][0], w,p,glv[i][1], w,p,glv[i][2]);
-/*
-    else
-      filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                w,p,glv[i][0], w,p,glv[i][1], w,p,glv[i][2]);
-*/
     else {
       fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                w, p, (std::abs<double>(glv[i][0]) < std::numeric_limits<double>::epsilon()) ? 0.0 : glv[i][0],
-                w, p, (std::abs<double>(glv[i][1]) < std::numeric_limits<double>::epsilon()) ? 0.0 : glv[i][1],
-                w, p, (std::abs<double>(glv[i][2]) < std::numeric_limits<double>::epsilon()) ? 0.0 : glv[i][2]);
+              w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
     }
   }
   fflush(oinfo[fileNum].filptr);

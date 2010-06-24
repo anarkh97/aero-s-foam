@@ -10,6 +10,11 @@
 #include <Utils.d/Connectivity.h>
 #include <vector>
 
+
+// TODO remove nterms and type from LMPCons and SubLMPCons
+//      use terms.size() and m_type/m_source instead
+//      merge LMPCons/SubLMPCons
+
 struct RealOrComplex 
 {
   double r_value;
@@ -70,54 +75,71 @@ class GenLMPCTerm
   GenLMPCTerm() { dof = cdof = ccdof = -1; }
 };
 
+namespace mpc {
+  enum ConstraintType { Equality, Inequality };
+  enum ConstraintSource { Lmpc, NodalContact, TiedSurfaces, ContactSurfaces, Rigid, Joint, FetiPrimal, FetiDual, Undefined };
+}
+
 /** Linear Multi-Point Constraint class */
 class LMPCons
 {
- public:
-  bool isComplex;
-  RealOrComplex rhs;              // right hand side of mpc
-  std::vector<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
-  union {
-    int lmpcnum;                  // id number of the mpc from input
-    int fluid_node;            
-    int pairNb;
-  };
-  int nterms;                     // number of terms in mpc
-  int type;                       // 0: dual equality constraint
-                                  // 1: dual inequality constraint (contact)
-                                  // 2: dual FETI boundary lagrange multiplier constraint
-                                  // 3: primal equality constraint to be incorporated into the coarse problem for feti-dp solver
-                                  // 4: primal inequality constraint
-                                  // 5: primal FETI boundary lagrange multiplier constraint
-  int psub, nsub;                 // subdomains involved in type 2 constraint.
-                                  // psub will have coef +1.0, nsub will have coef -1.0
+  private:
+    mpc::ConstraintType m_type;
+    mpc::ConstraintSource m_source;
 
-  // real constructor 
-  LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);
+  public:
+    bool isComplex;
+    RealOrComplex rhs;              // right hand side of mpc
+    RealOrComplex original_rhs;
+    std::vector<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+    union {
+      int lmpcnum;                  // id number of the mpc from input
+      int fluid_node;            
+      int pairNb;
+    };
+    int nterms;                     // number of terms in mpc
 
-  // complex constructor 
-  LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0 = 0);
+    int type;                       // 0: dual equality constraint
+                                    // 1: dual inequality constraint (contact)
+                                    // 2: dual FETI boundary lagrange multiplier constraint
+                                    // 3: primal equality constraint to be incorporated into the coarse problem for feti-dp solver
+                                    // 4: primal inequality constraint
+                                    // 5: primal FETI boundary lagrange multiplier constraint
 
-  // templated data access functions
-  template<class Scalar> Scalar getRhs();
-  template<class Scalar> GenLMPCTerm<Scalar> getTerm(int i);
+    int psub, nsub;                 // subdomains involved in Feti constraint.
+                                    // psub will have coef +1.0, nsub will have coef -1.0
 
-  // make rhs and all terms complex if they aren't already
-  void makeComplex();
+    // real constructor 
+    LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);
 
-  // add term
-  void addterm(LMPCTerm *term);
+    // complex constructor 
+    LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0 = 0);
 
-  // memory
-  long mem() { return nterms*(4+1+1)+1; } //HB
+    // templated data access functions
+    template<class Scalar> Scalar getRhs();
+    template<class Scalar> GenLMPCTerm<Scalar> getTerm(int i);
 
-  bool isPrimalMPC() { return ((type == 3) || (type == 4) || (type == 5)); }
-  bool isBoundaryMPC() { return ((type == 2) || (type == 5)); }
+    // make rhs and all terms complex if they aren't already
+    void makeComplex();
 
-  void print(); 
+    // add term
+    void addterm(LMPCTerm *term);
 
-  /** remove the zero terms in this constraint */
-  void removeNullTerms();
+    // memory
+    long mem() { return nterms*(4+1+1)+1; } //HB
+
+    bool isPrimalMPC() { return ((type == 3) || (type == 4) || (type == 5)); }
+    bool isBoundaryMPC() { return ((type == 2) || (type == 5)); }
+
+    void print(); 
+
+    /** remove the zero terms in this constraint */
+    void removeNullTerms();
+
+    void setType(mpc::ConstraintType _type) { m_type = _type; }
+    mpc::ConstraintType getType() { return m_type; }
+    void setSource(mpc::ConstraintSource _source) { m_source = _source; }
+    mpc::ConstraintSource getSource() { return m_source; }
 };
 
 template<> double LMPCons::getRhs<double>();
@@ -136,6 +158,8 @@ template<class Scalar>
 class SubLMPCons 
 {
  private:
+  mpc::ConstraintType m_type;
+  mpc::ConstraintSource m_source;
   SubLMPCons(const SubLMPCons<Scalar> &) { cerr << "SubLMPCons copy constructor is not implemented \n"; }
  public:
   Scalar rhs;              
@@ -147,8 +171,10 @@ class SubLMPCons
     int pairNb;
   };
   int nterms; 
+
   int type;                       // 0: equality constraint
                                   // 1: inequality constraint (contact)
+
   bool active;                    // defines active set, used for contact
                                   // in FETI-DP active means than the lagrange multiplier associated with the mpc is constrained to be zero (ie the dual constraint is active)
 
@@ -169,6 +195,8 @@ class SubLMPCons
     ScalarTypes::initScalar(k[0], 1.0); 
     type = 0;
     active = false;
+    m_type = mpc::Equality;
+    m_source = mpc::Undefined;
   }
 
   virtual ~SubLMPCons() { if(ksum) delete [] ksum; }
@@ -206,6 +234,10 @@ class SubLMPCons
                 << terms[i].dofnum << "  coef " << terms[i].coef << endl;
   }
 
+  void setType(mpc::ConstraintType _type) { m_type = _type; }
+  mpc::ConstraintType getType() { return m_type; }
+  void setSource(mpc::ConstraintSource _source) { m_source = _source; }
+  mpc::ConstraintSource getSource() { return m_source; }
 };
 
 inline void LMPCons::removeNullTerms() {

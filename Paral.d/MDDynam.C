@@ -238,80 +238,56 @@ MultiDomainDynam::~MultiDomainDynam()
 MDDynamMat *
 MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
 {
- // Have each subdomain create their operators, then put the
- // dynamic matrices in the Feti Solver
- dynMat = new MDDynamMat;
+  // Have each subdomain create their operators, then put the
+  // dynamic matrices in the Feti Solver
+  dynMat = new MDDynamMat;
 
- times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
- decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
+  times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
+  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
 
- if(domain->tdenforceFlag()) { 
-   domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
- }
+  if(domain->tdenforceFlag()) { 
+    domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
+  }
 
- times->getFetiSolverTime += getTime();
- return dynMat;
+  times->getFetiSolverTime += getTime();
+  return dynMat;
 }
 
 MultiDomainDynam::MultiDomainDynam(Domain *d)
 {
- domain = d;
-/*
- switch(domain->solInfo().type) {
-   default:
-   case 2: // FETI
-     switch(domain->solInfo().fetiInfo.version) {
-       default:
-       case FetiInfo::feti1:
-         filePrint(stderr, " ... FETI-1 is Selected             ...\n");
-         break;
-       case FetiInfo::feti2:
-         filePrint(stderr, " ... FETI-2 is Selected             ...\n");
-         break;
-       case FetiInfo::fetidp:
-         if (!(d->solInfo().fetiInfo.dph_flag))
-           filePrint(stderr, " ... FETI-Dual/Primal is Selected   ...\n");
-         else
-           filePrint(stderr, " ... FETI-DPH is Selected           ...\n");
-         break;
-     }
-     break;
-   case 3: // "Block Diagonal" solver
-     filePrint(stderr, " ... Diag Parallel is Selected      ...\n");
-     break;
-  }
-*/
-#ifdef DISTRIBUTED
- decDomain = new GenDistrDomain<double>(domain);
-#else
- decDomain = new GenDecDomain<double>(domain);
-#endif
- times  = new StaticTimers;
+  domain = d;
 
- claw = 0;
- userSupFunc = 0;
- kelArray = 0;
- allCorot = 0;
- geomState = 0;
- dprev = 0;
+#ifdef DISTRIBUTED
+  decDomain = new GenDistrDomain<double>(domain);
+#else
+  decDomain = new GenDecDomain<double>(domain);
+#endif
+  times  = new StaticTimers;
+
+  claw = 0;
+  userSupFunc = 0;
+  kelArray = 0;
+  allCorot = 0;
+  geomState = 0;
+  dprev = 0;
 }
                                                                                                  
 const DistrInfo &
 MultiDomainDynam::solVecInfo()
 {
- return decDomain->solVecInfo();
+  return decDomain->solVecInfo();
 }
                                                                                                  
 DistrInfo &
 MultiDomainDynam::bcInfo()
 {
- // prescribed boundary condition distributed vector information
- return *decDomain->pbcVectorInfo();
+  // prescribed boundary condition distributed vector information
+  return *decDomain->pbcVectorInfo();
 }
 
 void
-MultiDomainDynam::processLastOutput()  {
-
+MultiDomainDynam::processLastOutput()
+{
   OutputInfo *oinfo = geoSource->getOutputInfo();
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
@@ -363,8 +339,10 @@ MultiDomainDynam::preProcess()
   // Initialization for contact
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+/* currently done in main.C for linear case
   else
-    domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains()); // YYYY
+    domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
+*/
 }
 
 void

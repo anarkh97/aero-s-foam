@@ -28,6 +28,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Hetero.d/FlExchange.h>
 #include <Element.d/Helm.d/HelmElement.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 
 extern Sfem* sfem;
@@ -1650,6 +1651,28 @@ Domain::addThermalForce(GenVector<Scalar> &force)
 
 template<class Scalar>
 void
+Domain::addMpcRhs(GenVector<Scalar> &force)
+{
+  Vector elementForce(maxNumDOFs);
+
+  for(int iele = 0; iele < numele; ++iele) {
+    // If there is a zero pressure defined, skip it.
+    if(dynamic_cast<MpcElement*>(packedEset[iele]) == NULL) continue;
+
+    // Otherwise, compute element force due to mpc rhs
+    packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0);
+
+    // Assemble element pressure forces into domain force vector
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(cn >= 0)
+        force[cn] += elementForce[idof];
+    }
+  }
+}
+
+template<class Scalar>
+void
 Domain::scaleDisp(Scalar *u)
 {
   // PJSA: 9-22-06 this is for multi-point pade with coupled fluid-structure
@@ -1867,6 +1890,9 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 
   // ... ADD PRESSURE LOAD
   if(pressureFlag() && !sinfo.isNonLin()) addPressureForce<Scalar>(force);
+
+  // ... ADD LMPC RHS
+  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -2999,12 +3025,15 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   //  note #1: when MFTT is present this term is not constant (see computeExtForce4)
   if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
 
-  // COMPUTE FORCE FROM PRESSURE
+  // ... COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT is present this term is not constant (see computeExtForce4)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
   if(pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
-  // COMPUTE FORCE FROM TEMPERATURES
+  // ... ADD RHS FROM LMPCs
+  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs(cnst_f);
+
+  // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
   if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
@@ -3012,7 +3041,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce4)
   // note #2  for nonlinear this term is not constant (see getStiffAndForce) 
-  if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin()) {
+  if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
     Vector Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
@@ -3075,7 +3104,7 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)
   // note #2: for nonlinear this term is follower (see getStiffAndForce)
-  if(numDirichlet && (claw && claw->numUserDisp) && !sinfo.isNonLin()) {
+  if(numDirichlet && (claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
     Vector Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
@@ -3106,5 +3135,4 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
 
   // ADD CONSTANT FORCE
   f += constantForce;
-  //EXP f.linAdd(mfttFactor, constantForce); // f = f + mfttFactor*constantForce
 }

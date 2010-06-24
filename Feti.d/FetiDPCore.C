@@ -63,24 +63,22 @@ void
 GenFetiDPSolver<Scalar>::makeGtG()
 {
   filePrint(stderr, " ... Build G matrix and GtG solver  ...\n");
-  int i;
   startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
   // 0. delete previous G if it exists
   deleteG();
 
   // 1. make local G = Bbar * R
-  // this function also initializes GTilda to G
-  if(this->fetiInfo->nullSpace == FetiInfo::grbm) // GRBM
+  if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeG);
-  else /*if(KccSolver->numRBM() > 0)*/ { // TRBM
+  else {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
     paralApply(this->nsub, this->sd, &BaseSub::getNumGroupRBM, ngrbmGr);
   }
 
   // 2. exchange G's between neighboring subdomains
   FSCommPattern<int> *sPat = new FSCommPattern<int>(this->fetiCom, this->cpuToSub, this->myCPU, FSCommPattern<int>::CopyOnSend);
-  for(i=0; i<this->nsub; ++i) this->sd[i]->setMpcNeighbCommSize(sPat, 2);
+  for(int i = 0; i < this->nsub; ++i) this->sd[i]->setMpcNeighbCommSize(sPat, 2);
   sPat->finalize();
   paralApply(this->nsub, this->sd, &BaseSub::sendNeighbGrbmInfo, sPat);
   sPat->exchange();  // neighboring subs number of group RBMs and offset
@@ -89,7 +87,7 @@ GenFetiDPSolver<Scalar>::makeGtG()
   // create bodyRbmPat FSCommPattern object, used to send/receive G matrix
   FSCommPattern<Scalar> *gPat = new FSCommPattern<Scalar>(this->fetiCom, this->cpuToSub, this->myCPU,
                                        FSCommPattern<Scalar>::CopyOnSend, FSCommPattern<Scalar>::NonSym);
-  for(i=0; i<this->nsub; ++i) this->sd[i]->setGCommSize(gPat);
+  for(int i = 0; i < this->nsub; ++i) this->sd[i]->setGCommSize(gPat);
   gPat->finalize();
   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendG, gPat);
   gPat->exchange();
@@ -110,24 +108,11 @@ GenFetiDPSolver<Scalar>::makeGtG()
     delete bodyToSub;
   }
   eqNumsGtG = new SimpleNumberer(nGroups);
-  for(i = 0; i < nGroups; ++i) eqNumsGtG->setWeight(i, ngrbmGr[i]);
+  for(int i = 0; i < nGroups; ++i) eqNumsGtG->setWeight(i, ngrbmGr[i]);
   eqNumsGtG->makeOffset();
 
   // 4. create, assemble and factorize GtG
   rebuildGtGtilda();
-/*
-  GtG = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-  //GtG->setPrintNullity(false);
-  execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG, 0);
-#ifdef DISTRIBUTED
-  GtG->unify(this->fetiCom);
-#endif
-  //cerr << "GtG = \n"; ((SkyMatrix *) GtGsparse)->print();
-  startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-  GtG->parallelFactor();
-  stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-  GtGtilda = GtG;
-*/
 
   // 5. check for singularities in GtGstar (representing global RBMs)
   //if(GtG->numRBM() > 0) 
@@ -144,22 +129,23 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
   GenVector<Scalar> &e = this->wksp->ret_e();
   e.zero();
 
-  if(this->fetiInfo->nullSpace == FetiInfo::trbm) { // TRBM
-    GenVector<Scalar> &fc = this->wksp->ret_fc();
-    GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
-    Vector dummy(KccSolver->neqs(), 0.0);
-    for(int i=0; i<this->nsub; ++i) this->sd[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->sd[i]->localSubNum()));
-#ifdef DISTRIBUTED
-    this->fetiCom->globalSum(ngrbms, e.data());
-#endif
-    for(int i=0; i<KccSolver->numRBM(); ++i)
-      for(int j=0; j<KccSolver->neqs(); ++j)
-        e[i] += fc[j]*kccrbms[i*KccSolver->neqs()+j];
-  } else { // GRBM
+  if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners) {
     execParal2R(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleE, e, f);
 #ifdef DISTRIBUTED
     this->fetiCom->globalSum(ngrbms, e.data());
 #endif
+  }
+  else {
+    GenVector<Scalar> &fc = this->wksp->ret_fc();
+    GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
+    for(int i = 0; i < this->nsub; ++i)
+      this->sd[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->sd[i]->localSubNum()));
+#ifdef DISTRIBUTED
+    this->fetiCom->globalSum(ngrbms, e.data());
+#endif
+    for(int i = 0; i < KccSolver->numRBM(); ++i)
+      for(int j = 0; j < KccSolver->neqs(); ++j)
+        e[i] += fc[j]*kccrbms[i*KccSolver->neqs()+j];
   }
 }
 
@@ -168,7 +154,7 @@ void
 GenFetiDPSolver<Scalar>::assembleE(int iGroup, GenVector<Scalar> &e, GenDistrVector<Scalar> &f)
 {
 #ifdef DISTRIBUTED
-  for(int i=0; i<this->nsub; ++i) {
+  for(int i = 0; i < this->nsub; ++i) {
     if(this->sd[i]->group == groups[iGroup])
       this->sd[i]->assembleE(e, f.subData(this->sd[i]->localSubNum()));
   }
@@ -272,8 +258,10 @@ GenFetiDPSolver<Scalar>::getGlobalRBM(int iSub, int &iRBM, GenDistrVector<Scalar
 
 template<class Scalar>
 inline void
-GenFetiDPSolver<Scalar>::split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f, GenDistrVector<Scalar> &v_c)
+GenFetiDPSolver<Scalar>::split(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &v_f,
+                               GenDistrVector<Scalar> &v_c)
 {
-  this->sd[iSub]->split(v.subData(this->sd[iSub]->localSubNum()), v_f.subData(this->sd[iSub]->localSubNum()), v_c.subData(this->sd[iSub]->localSubNum()));
+  this->sd[iSub]->split(v.subData(this->sd[iSub]->localSubNum()), v_f.subData(this->sd[iSub]->localSubNum()),
+                        v_c.subData(this->sd[iSub]->localSubNum()));
 }
 

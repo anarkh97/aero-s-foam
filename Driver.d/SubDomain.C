@@ -568,7 +568,7 @@ GenSubDomain<Scalar>::applyMpcSplitting()
   // num = number of subdomains touching a dof
   int cdof, num;
 
-  // mpcs (NOTE: optional kscaling is done later, rhs is not split)
+  // mpcs (NOTE: optional kscaling is done later, hhs is not split)
   if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::tscaling) {
     for(int iMPC=0; iMPC<numMPC; ++iMPC) { // dual mpcs
       if(mpc[iMPC]->type == 2) continue; // bmpc
@@ -4178,11 +4178,10 @@ GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec)
   // set the rhs of inequality mpcs to the geometric gap and reset the rhs of the equality mpcs to the original rhs
   // (used in nonlinear analysis)
   // idea: initalize to dual-active if gap is open (+ve) // XXXX
-  for(int i=0; i<scomm->lenT(SComm::mpc); ++i) {
+  for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
-    if(mpc[locMpcNb]->type != 1) mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs; else
-    mpc[locMpcNb]->original_rhs = mpc[locMpcNb]->rhs = interfvec[scomm->mapT(SComm::mpc,i)];
-    //cerr << "type = " << mpc[locMpcNb]->type << ", rhs = " << mpc[locMpcNb]->rhs << endl;
+    if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces)
+      mpc[locMpcNb]->original_rhs = mpc[locMpcNb]->rhs = interfvec[scomm->mapT(SComm::mpc,i)];
   }
 }
 
@@ -4612,10 +4611,11 @@ GenSubDomain<Scalar>::getConstraintMultipliers(std::map<int,double> &mu, std::ve
 {
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int l = scomm->mpcNb(i);
-    if(mpc[l]->type == 1) // contact
+    if(mpc[l]->getSource() == mpc::ContactSurfaces) {
       mu[mpc[l]->lmpcnum] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
-    else
+    } else {
       lambda.push_back( (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0 );
+    }
   }
 }
 
@@ -5608,7 +5608,9 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
             else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
           }
           mpc[numMPC] = new SubLMPCons<Scalar>(/*numMPC*/ lmpc[iMPC]->lmpcnum, rhs, term0, lmpc[iMPC]->nterms, i); // XXXX PJSA changed numMPC to lmpcnum to preserve global id
-          mpc[numMPC]->type = lmpc[iMPC]->type;
+          mpc[numMPC]->type = lmpc[iMPC]->type; // this is to be phased out
+          mpc[numMPC]->setType(lmpc[iMPC]->getType());
+          mpc[numMPC]->setSource(lmpc[iMPC]->getSource());
           used = 1;
         }
         else {
@@ -5682,6 +5684,8 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
           }
           mpc_primal[numMPC_primal] = new SubLMPCons<Scalar>(numMPC_primal, rhs, term0, lmpc[iMPC]->nterms, i);
           mpc_primal[numMPC_primal]->type = lmpc[iMPC]->type;
+          mpc_primal[numMPC_primal]->setType(lmpc[iMPC]->getType());
+          mpc_primal[numMPC_primal]->setSource(lmpc[iMPC]->getSource());
           used = 1;
         }
         else {
@@ -6142,7 +6146,7 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector
 {
   vector<double>::iterator it2 = lambda.begin();
   for(int i = 0; i < numMPC; ++i) {
-    if(mpc[i]->type == 1) { // contact
+    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
       map<int, double>::iterator it1 = mu.find(mpc[i]->lmpcnum);
       if(it1 != mu.end()) {
         for(int j = 0; j < mpc[i]->nterms; ++j) {
@@ -6154,13 +6158,16 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector
       }
     }
     else {
-      for(int j = 0; j < mpc[i]->nterms; ++j) {
-        int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
-                                (1 << mpc[i]->terms[j].dofnum));
-        if(dof < 0) continue;
-        f[dof] += mpc[i]->terms[j].coef*(*it2);
+      if(it2 != lambda.end()) {
+        for(int j = 0; j < mpc[i]->nterms; ++j) {
+          int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
+                                  (1 << mpc[i]->terms[j].dofnum));
+          if(dof < 0) continue;
+          
+          f[dof] += mpc[i]->terms[j].coef*(*it2);
+        }
+        it2++;
       }
-      it2++;
     }
   }
 }

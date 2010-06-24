@@ -230,7 +230,6 @@ class FetiInfo {
     int rebuildSbb;
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
-    bool parallel_grbm, use_krr_nullspace;
     double gamma;
     bool bmpc, dmpc, cmpc;
     double linesearch_tau;
@@ -271,7 +270,7 @@ FetiInfo::FetiInfo()
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
   solvertype  = sparse;   // default use skyline subdomain solver
   gtgSolver   = sparse;   // default use skyline GtG solver
-  auxCoarseSolver   = sparse;
+  auxCoarseSolver = sparse;
   cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
@@ -329,7 +328,6 @@ FetiInfo::FetiInfo()
   cct_tol      = 1.0e-16;
   cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  parallel_grbm = true; use_krr_nullspace = false;
   rebuildcct   = 0; 
   rebuildSbb   = 0; 
   geometric_gap = false;

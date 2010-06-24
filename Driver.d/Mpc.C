@@ -80,9 +80,11 @@ LMPCons::LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0) //: terms(LMPCTerm(
 {
   isComplex = false;
   lmpcnum = _lmpcnum;
-  rhs.r_value = _rhs;
+  original_rhs.r_value = rhs.r_value = _rhs;
   nterms = 0;
   type = 0;
+  m_type = mpc::Equality;
+  m_source = mpc::Undefined;
   if(term0) addterm(term0);
 }
 
@@ -91,9 +93,11 @@ LMPCons::LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0) //: te
 {
   isComplex = true;
   lmpcnum = _lmpcnum;
-  rhs.c_value = DComplex(rrhs, irhs);
+  original_rhs.c_value = rhs.c_value = DComplex(rrhs, irhs);
   nterms = 0;
   type = 0;
+  m_type = mpc::Equality;
+  m_source = mpc::Undefined;
   if(term0) addterm(term0);
 }
 

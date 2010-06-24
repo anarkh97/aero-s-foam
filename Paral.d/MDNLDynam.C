@@ -192,8 +192,6 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
     rhs.linAdd(dt*dt*beta, residual);
   }
 
-  //updateMpcRhs(geomState); // XXXX
-
   times->predictorTime += getTime();
 }
 
@@ -331,7 +329,6 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce);
 
-  //updateMpcRhs(geomState);
   if(t != -1.0) updateConstraintTerms(&geomState);
 
   // add the ACTUATOR forces
@@ -373,8 +370,6 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
   sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual);
-
-  //sd->updateMpcRhs(*geomState[isub]);
 }
 
 void
@@ -502,7 +497,7 @@ MDNLDynamic::preProcess()
 
   localTemp = new DistrVector(decDomain->solVecInfo());
 
-  domain->InitializeStaticContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+  domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
   mu = new std::map<int,double>[decDomain->getNumSub()];
   lambda = new std::vector<double>[decDomain->getNumSub()];
 
@@ -848,27 +843,22 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 }
 
 void
-MDNLDynamic::updateMpcRhs(DistrGeomState &geomState)
-{
-  decDomain->setContactGap(&geomState, solver);
-}
-
-void
 MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
 {
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
   if(domain->GetnContactSurfacePairs()) {
     // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
     // XXXX the hessian of the constraint functions needs to be computed also
-    domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains());
-    domain->PerformStaticContactSearch();
-    //domain->PerformDynamicContactSearch(domain->solInfo().dt);  XXXX this is not supported by acme 2.5e for face-face interactions
-    domain->deleteLMPCs(); // XXXX should only delete the lmpcs due to contact. need to check and refine this
-    domain->ExpComputeMortarLMPC();
+    domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
+    domain->PerformStaticContactSearch(MortarHandler::CTC); // note: dynamic contact search not supported by acme for face-face interactions
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->CreateMortarToMPC();
     decDomain->reProcessMPCs();
     ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
   }
+  // set the gap for the linear constraints
+  decDomain->setConstraintGap(geomState, dynamic_cast<FetiSolver*>(solver));
 }
 
 void 

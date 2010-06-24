@@ -542,10 +542,18 @@ int main(int argc, char** argv)
      if(!callSower) {
        domain->ProcessSurfaceBCs();
        domain->SetMortarPairing();
-       if(domain->solInfo().newmarkBeta != 0 && !domain->solInfo().isNonLin()) { // not for explicit dynamics or nonlinear 
-         domain->ComputeMortarLMPC();
-         domain->computeMatchingWetInterfaceLMPC();
-         domain->CreateMortarToMPC();
+       if(domain->solInfo().newmarkBeta != 0) { // not for explicit dynamics
+         if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
+           domain->InitializeStaticContactSearch(MortarHandler::TIED);
+           domain->PerformStaticContactSearch(MortarHandler::TIED);
+           domain->ExpComputeMortarLMPC(MortarHandler::TIED);
+           domain->CreateMortarToMPC();
+         }
+         else {
+           domain->ComputeMortarLMPC();
+           domain->computeMatchingWetInterfaceLMPC();
+           domain->CreateMortarToMPC();
+         }
        }
      }
 #ifdef MORTAR_DEBUG

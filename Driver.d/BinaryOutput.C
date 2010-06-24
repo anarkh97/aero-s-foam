@@ -193,7 +193,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       for(int j=0; j<numComponents; ++j) { 
         outfile.width(2+oinfo[fileNumber].width); 
         //outfile << data[i*numComponents+j];
-        outfile << ((std::fabs(data[i*numComponents+j]) < std::numeric_limits<float>::epsilon()) ? 0.0 : data[i*numComponents+j]);
+        outfile << data[i*numComponents+j];
       }
       //outfile.close(); exit(-1);
       outfile << "\n";

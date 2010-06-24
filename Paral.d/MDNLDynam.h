@@ -80,8 +80,8 @@ class MDNLDynamic
     DistrVector *aeroForce;
     DistrVector *nodalTemps;
 
-    std::map<int, double> *mu; // lagrange multipliers for the inequality constraints
-    std::vector<double> *lambda; // lagrange multipliers for the equality constraints
+    std::map<int, double> *mu; // lagrange multipliers for the contact surfaces
+    std::vector<double> *lambda; // lagrange multipliers for all other constraints
 
  public:
 
@@ -189,7 +189,6 @@ class MDNLDynamic
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
-    void updateMpcRhs(DistrGeomState &geomState);
     void updateConstraintTerms(DistrGeomState* geomState);
 };
 

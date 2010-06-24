@@ -80,7 +80,7 @@ TRAIL [a-zA-Z]*
 			}
 	    }
 
-"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODES;    }
+"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODE;    }
 
 "ZERO"[a-zA-Z]*|"zero"[a-zA-Z]*    { return ZERO;    }
 
@@ -1100,8 +1100,6 @@ TRAIL [a-zA-Z]*
 
 "NODALCONTACT"|"nodalcontact"      { return NODALCONTACT; }
 
-"use_krr_nullspace"                { return USEKRRNULLSPACE; }
-"parallel_grbm"                    { return PARALLELGRBM; }
 "BMPC"|"bmpc"                      { return BMPC; }
 "DMPC"|"dmpc"                      { return DMPC; }
 "CMPC"|"cmpc"                      { return CMPC; }

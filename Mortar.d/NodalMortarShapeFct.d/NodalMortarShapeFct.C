@@ -335,32 +335,32 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
   //cerr <<"In NodalMortarShapeFct::CreateMortarLMPCons:"<<endl;
   LMPCTerm SlaveTerm;
 
-  LMPCons* MortarLMPC = 0;; // = new LMPCons(lmpcnum, rhs);
-  bool created = false;  
-  for(int i=0; i<int(LinkedSlaveNodes.size()); i++){
-    //if(fabs(SlaveMPCCoeffs[i]) > 1.0e-16) { // PJSA DEBUG
-    if(SlaveMPCCoeffs[i]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term)
+  LMPCons* MortarLMPC = NULL;
+  double tol = 0.0; // we may use a (relative) tolerance to filter the small term
+  for(int i = 0; i < int(LinkedSlaveNodes.size()); i++){
+    if(std::abs<double>(SlaveMPCCoeffs[i]) > tol) {
       SlaveTerm.nnum   = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
       SlaveTerm.dofnum = dof;
       SlaveTerm.coef.r_value = SlaveMPCCoeffs[i];
-      if(!created){
+      if(MortarLMPC == NULL) {
         MortarLMPC = new LMPCons(lmpcnum, rhs, &SlaveTerm);
-        created = true;
+        MortarLMPC->setType(mpc::Equality);
+        MortarLMPC->setSource(mpc::TiedSurfaces);
       }
       else MortarLMPC->addterm(&SlaveTerm);
     }
   }
 
  LMPCTerm MasterTerm;
- for(int i=0; i<int(LinkedMasterNodes.size()); i++){
-   //if(fabs(MasterMPCCoeffs[i]) > 1.0e-16) { // PJSA DEBUG
-   if(MasterMPCCoeffs[i]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term) 
+ for(int i = 0; i < int(LinkedMasterNodes.size()); i++){
+   if(std::abs<double>(MasterMPCCoeffs[i]) > tol) {
      MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
      MasterTerm.dofnum = dof;
      MasterTerm.coef.r_value = -MasterMPCCoeffs[i];
-     if(!created){
+     if(MortarLMPC == NULL) {
         MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
-        created = true;
+        MortarLMPC->setType(mpc::Equality);
+        MortarLMPC->setSource(mpc::TiedSurfaces);
       }
       else MortarLMPC->addterm(&MasterTerm);
     }
@@ -382,19 +382,20 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
   int lmpcnum = -(SlaveLlToGlNodeMap[GetNodeId(0)]+1); // XXXX global id of the slave node.
   LMPCTerm SlaveTerm;
                                                                                                                                              
-  LMPCons* MortarLMPC = 0;
-  bool created = false;
+  LMPCons* MortarLMPC = NULL;
+  double tol = 0.0; // we may use a (relative) tolerance to filter the small term
   int dofs[3] = {0,1,2};
-  for(int i=0; i<int(LinkedSlaveNodes.size()); i++) {
-    for(int idof=0; idof<3; idof++){
-      //if(fabs(SlaveMPCCoeffs[3*i+idof]) > 1.0e-16) { // PJSA DEBUG
-      if(SlaveMPCCoeffs[3*i+idof]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term)
+  for(int i = 0; i < int(LinkedSlaveNodes.size()); i++) {
+    for(int idof = 0; idof < 3; idof++) {
+      if(std::abs<double>(SlaveMPCCoeffs[3*i+idof]) > tol) {
         SlaveTerm.nnum   = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
         SlaveTerm.dofnum = dofs[idof];
         SlaveTerm.coef.r_value = SlaveMPCCoeffs[3*i+idof];
-        if(!created){
+        if(MortarLMPC == NULL) {
           MortarLMPC = new LMPCons(lmpcnum, rhs, &SlaveTerm);
-          created = true;
+          MortarLMPC->type = 1; // this is to be phased out
+          MortarLMPC->setType(mpc::Inequality);
+          MortarLMPC->setSource(mpc::ContactSurfaces);
         } else
           MortarLMPC->addterm(&SlaveTerm);
       }
@@ -402,22 +403,23 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
   }
 
  LMPCTerm MasterTerm;
- for(int i=0; i<int(LinkedMasterNodes.size()); i++){
-   for(int idof=0; idof<3; idof++){
-     //if(fabs(MasterMPCCoeffs[3*i+idof]) > 1.0e-16) { // PJSA DEBUG
-     if(MasterMPCCoeffs[3*i+idof]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term)
+ for(int i = 0; i < int(LinkedMasterNodes.size()); i++) {
+   for(int idof = 0; idof < 3; idof++){
+     if(std::abs<double>(MasterMPCCoeffs[3*i+idof]) > tol) {
        MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
        MasterTerm.dofnum = dofs[idof];
        MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof];
-       if(!created){
+       if(MortarLMPC == NULL){
          MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
-         created = true;
+         MortarLMPC->type = 1; // this is to be phased out
+         MortarLMPC->setType(mpc::Inequality);
+         MortarLMPC->setSource(mpc::ContactSurfaces);
        } else
          MortarLMPC->addterm(&MasterTerm);
      }
    }
  }
- if(created) MortarLMPC->type = 1; //inequality
+
  return MortarLMPC;
 }
 

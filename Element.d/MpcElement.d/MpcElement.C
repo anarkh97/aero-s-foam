@@ -1,6 +1,7 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include <Corotational.d/utilities.h>
 
 
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
@@ -177,9 +178,14 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 }
 
 void 
-MpcElement::update(GeomState&, CoordSet&) 
+MpcElement::update(GeomState& c1, CoordSet& c2) 
 { 
-  rhs.r_value = 0.0;
+  rhs.r_value = 0; //original_rhs.r_value;
+  for(int i = 0; i < nterms; ++i) {
+    double q[6] = { c1[terms[i].nnum].x, c1[terms[i].nnum].y, c1[terms[i].nnum].z, 0.0, 0.0, 0.0 };
+    mat_to_vec(c1[terms[i].nnum].R, q+3);
+    rhs.r_value += terms[i].coef.r_value*q[terms[i].dofnum];
+  }
 }
 
 void 
@@ -188,3 +194,9 @@ MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H)
   H.zero(); 
 }
 
+void
+MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
+{
+  for(int i = 0; i < nterms; ++i) f[i] = 0.0;
+  f[nterms] = rhs.r_value;
+}

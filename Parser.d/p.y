@@ -9,9 +9,9 @@
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/DistHelper.h>
 
-#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
-#include <Mortar.d/FaceElement.d/FaceElement.h>
-#include <Mortar.d/MortarDriver.d/MortarHandler.h>
+//#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
+//#include <Mortar.d/FaceElement.d/FaceElement.h>
+//#include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
 #include <Driver.d/GeoSource.h>
 #ifdef STRUCTOPT
@@ -875,7 +875,7 @@ NewmarkFirstOrder:
           domain->solInfo().order = 1;
          }
           else 
-          domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
+          domain->solInfo().setProbType(SolverInfo::TempDynamic);
           domain->solInfo().setNewmarkFirstOrderInfo($1); 
         }
         ;
@@ -891,18 +891,18 @@ QstaticInfo:
 QMechInfo:
         MECH Float Float Integer NewLine
         { domain->solInfo().setQuasistaticInfo($2, 0, $3, $4); }
-        |
-        MECH Float Float Integer Float NewLine
+        | MECH Float Float Integer Float NewLine
         { domain->solInfo().setQuasistaticInfo($2, 0, $3, $4, $5); }
 	;
 QHeatInfo:
         HEAT Float Float Float Integer NewLine
-        { domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
+        { domain->solInfo().setProbType(SolverInfo::TempDynamic);
           domain->solInfo().setQuasistaticInfo($2, $3, $4, $5); }
-        |
-        MECH Float Float Integer Float Float NewLine
-        { domain->solInfo().setProbType(SolverInfo::TempDynamic); // XXXX
+/* need to check this
+        | MECH Float Float Integer Float Float NewLine
+        { domain->solInfo().setProbType(SolverInfo::TempDynamic);
           domain->solInfo().setQuasistaticInfo($2, $3, $4, $5, $6); }
+*/
 	;
 AeroInfo:
         AERO AEROTYPE NewLine
@@ -2351,7 +2351,7 @@ Solver:
         | PTOL Float Float NewLine
         { domain->solInfo().fetiInfo.primal_proj_tol = $2;
           domain->solInfo().fetiInfo.dual_proj_tol = $3; }
-        | PMAXIT Float Float NewLine
+        | PMAXIT Integer Integer NewLine
         { domain->solInfo().fetiInfo.primal_plan_maxit = $2;
           domain->solInfo().fetiInfo.dual_plan_maxit = $3; }
         | PLANTOL Float Float NewLine

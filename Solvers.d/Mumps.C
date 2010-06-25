@@ -462,7 +462,7 @@ long int
 GenMumpsSolver<Scalar>::size()
 {
 #ifdef USE_MUMPS
-  if(mumpsId.id.INFOG(3) < 0) return -1e6*mumpsId.id.INFOG(3);
+  if(mumpsId.id.INFOG(3) < 0) return static_cast<long int>(-1e6)*mumpsId.id.INFOG(3);
   else return mumpsId.id.INFOG(3);
 #else
   return 0;

@@ -142,9 +142,15 @@ public:
   static void zeroInc(StateIncr *incr)  { incr->zero(); }
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &totalRes, VecType=0, VecType=0,
-		  double=0) {
+		  VecType &elementInternalForce, VecType &totalRes, double = 1.0) {
     return pbd->integrate(*sn, *snp, *du, residual, 
+                          elementInternalForce, totalRes);
+  }
+  static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
+                  StateIncr *du, VecType &residual,
+                  VecType &elementInternalForce, VecType &totalRes, VecType, VecType,
+                  double) {
+    return pbd->integrate(*sn, *snp, *du, residual,
                           elementInternalForce, totalRes);
   }
   static void updateIncr(StateIncr *du, VecType &ddu) { *du += ddu; }

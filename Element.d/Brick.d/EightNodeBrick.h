@@ -54,8 +54,6 @@ public:
                             Vector &elementThermalForce, int glflag, 
 			    GeomState *geomState);
 
-       void buildCorotator(CoordSet &);
-
        PrioInfo examine(int sub, MultiFront *); // dec
        //double weight() { return 3; } // should be 12 for brick20
        //double trueWeight() { return 3; } // should be 12 for brick20
@@ -77,6 +75,7 @@ public:
 
         void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 		               Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
+
 
 };
 #endif

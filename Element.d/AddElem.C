@@ -11,6 +11,7 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Element.d/Shell.d/FourNodeShell.h>
+#include <Element.d/Shell.d/ExpFourNodeShell.h>
 #include <Element.d/Shell.d/Therm3NoShell.h>
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
@@ -20,6 +21,7 @@
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Membrane.d/Membrane.h>
+#include <Element.d/Membrane.d/FourNodeMembrane.h>
 #include <Element.d/Spring.d/TorSpring.h>
 #include <Element.d/Spring.d/TransSprlink.h>
 #include <Element.d/Spring.d/RotnSprlink.h>
@@ -71,17 +73,7 @@
 #include <Element.d/BulkFluid.d/TriangleBulk.h>
 #include <Element.d/BulkFluid.d/TetraBulk.h>
 #include <Element.d/BulkFluid.d/PentaBulk.h>
-#include <Element.d/CtcVirtualElt.d/CtcVirtualElt.h>
-#include <Element.d/Truss.d/TwoNodeTrussRigid.h>
-#include <Element.d/Beam.d/RigidBeam.h>
-#include <Element.d/Spring.d/RigidSpring.h>
-#include <Element.d/Spring.d/RigidSpringTr.h>
-#include <Element.d/Spring.d/RigidSpringRo.h>
-#include <Element.d/Brick.d/EightNodeBrickRigid.h>
-#include <Element.d/Solid.d/RigidSolid.h>
-#include <Element.d/Solid.d/RigidSolid6Dof.h>
 #include <Element.d/Brick20.d/Brick20.h>
-#include <Element.d/Shell.d/RigidThreeNodeShell.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/Shell.d/ConnectedTri.h>
@@ -97,15 +89,23 @@
 #include <map>
 extern map<int,double > weightList;
 
-#include <Element.d/Truss.d/TwoNodeTrussRigidMpc.h>
-#include <Element.d/Beam.d/RigidMpcBeam.h>
-#include <Element.d/Spring.d/RigidMpcSpring.h>
-#include <Element.d/Spring.d/RigidMpcSpringTr.h>
-#include <Element.d/Spring.d/RigidMpcSpringRo.h>
-#include <Element.d/Solid.d/RigidMpcSolid6Dof.h>
-#include <Element.d/Solid.d/RigidMpcSolid.h>
-#include <Element.d/Rigid.d/RBE2Mpc.h>
-#include <Element.d/Rigid.d/RBE2.h>
+#include <Element.d/Rigid.d/RigidBeam.h>
+#include <Element.d/Rigid.d/RigidSpring.h>
+#include <Element.d/Rigid.d/RigidTransSprlink.h>
+#include <Element.d/Rigid.d/RigidRotnSprlink.h>
+#include <Element.d/Rigid.d/RigidEightNodeBrick.h>
+#include <Element.d/Rigid.d/RigidSolid.h>
+#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
+#include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
+#include <Element.d/Rigid.d/RigidSolid6Dof.h>
+//#include <Element.d/Rigid.d/RBE2.h>
+
+#include <Element.d/Joint.d/SphericalJoint.h>
+#include <Element.d/Joint.d/RevoluteJoint.h>
+#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/UniversalJoint.h>
+#include <Element.d/Joint.d/CylindricalJoint.h>
+#include <Element.d/Joint.d/PrismaticJoint.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -156,10 +156,6 @@ Element*
 ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 {
    Element *ele;
-   bool grbmeig = (domain->solInfo().probType == SolverInfo::Modal && domain->solInfo().rbmflg == 1);
-   bool rigidmpc = ((domain->solInfo().type == 2) 
-                    || (grbmeig && (etype != 66) && (etype != 73) && (etype != 74)) // safe to leave these as rigid for GRBM
-                    || (domain->solInfo().isNonLin() && etype != 65));
    switch(etype) 
    {
      case 1:
@@ -322,52 +318,39 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        break;
-     case 64: // CKT virtual Elements for contact =64
-       ele = new (ba) CtcVirtualElt(nnodes,n);
-       break;
      case 65:
-       if(rigidmpc) ele = new (ba) TwoNodeTrussRigidMpc(n); // FETI
-       else ele = new (ba) TwoNodeTrussRigid(n); // direct
+       ele = new (ba) RigidTwoNodeTruss(n);
        break;
      case 66:
-       if(rigidmpc) ele = new (ba) RigidMpcBeam(n);
-       else ele = new (ba) RigidBeam(n);
+       ele = new (ba) RigidBeam(n);
        break;
      case 67:
-       if(rigidmpc) ele = new (ba) RigidMpcSpring(n);
-       else ele = new (ba) RigidSpring(n);
+       ele = new (ba) RigidSpring(n);
        break;
      case 68:
-       if(rigidmpc) ele = new (ba) RigidMpcSpringTr(n);
-       else ele = new (ba) RigidSpringTr(n);
+       ele = new (ba) RigidTransSprlink(n);
        break;
      case 69:
-       if(rigidmpc) ele = new (ba) RigidMpcSpringRo(n);
-       else ele = new (ba) RigidSpringRo(n);
+       ele = new (ba) RigidRotnSprlink(n);
        break;
      case 70:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid(8,n);
-       else ele = new (ba) EightNodeBrickRigid(n);
+       ele = new (ba) RigidEightNodeBrick(n);
        break;
      case 71:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid(nnodes,n);
-       else ele = new (ba) RigidSolid(nnodes,n);
+       ele = new (ba) RigidSolid(nnodes,n);
        break;
      case 72:
        ele = new (ba) Brick20(n);
        break;
      case 73:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid6Dof(3,n);
-       else ele = new (ba) RigidThreeNodeShell(n);
+       ele = new (ba) RigidThreeNodeShell(n);
        break;
      case 74:
-       if(rigidmpc) ele = new (ba) RigidMpcSolid6Dof(nnodes,n);
-       else ele = new (ba) RigidSolid6Dof(nnodes,n);
+       ele = new (ba) RigidSolid6Dof(nnodes,n);
        break;
-     case 75:  // PJSA 3-30-05
-       if(rigidmpc) 
-         ele = new (ba) RBE2Mpc(nnodes,n);
-       else ele = new (ba) RBE2(nnodes,n);
+     case 75:
+       //else = new (ba) RBE2(nnodes,n);
+       cerr  << "Error: Element type 75 is not supported\n"; exit(-1);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);
@@ -389,6 +372,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 86:
        ele = new (ba) PentaBulk(n);  // 3D Bulk Fluid Element
+       break;
+     case 87:
+       ele = new (ba) FourNodeMembrane(n);
        break;
      case 88:
        {
@@ -416,23 +402,22 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          }
        }
        break;
+     case 89:
+       ele = new (ba) ExpFourNodeShell(n);
+       break;
      case 90:
        ele = new (ba) HelmPenta(n); 
        break;
      case 91:
-       //filePrint(stderr," *** add a Brick32 element\n");
        ele = new (ba) Brick32(n); 
        break;
      case 92:
-       //filePrint(stderr," *** add a Penta26 element\n");
        ele = new (ba) Penta26(n); 
        break;
      case 93:
-       //filePrint(stderr," *** add a HelmBrick32 element\n");
        ele = new (ba) HelmBrick32(n); 
        break;
      case 94:
-       //filePrint(stderr," *** add a HelmPenta26 element\n");
        ele = new (ba) HelmPenta26(n); 
        break;
      case 95:
@@ -442,7 +427,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) HelmIsoParamTetra(nnodes,n);
        break;
      case 97:
-       //filePrint(stderr," *** add a Penta15 element\n");
        ele = new (ba) Penta15(n);
        break;
      case 98:
@@ -472,11 +456,32 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
        break;
+     case 120:
+       ele = new (ba) SphericalJoint(n);
+       break;
+     case 121:
+       ele = new (ba) OrientJoint(n);
+       break;
+     case 122:
+       ele = new (ba) UniversalJoint(n);
+       break;
+     case 123:
+       ele = new (ba) RevoluteJoint(n);
+       break;
+     case 124:
+       ele = new (ba) CylindricalJoint(n);
+       break;
+     case 125:
+       ele = new (ba) PrismaticJoint(n);
+       break;
      case 201:
-       ele = new (ba) NLHexahedral(n,true); // linear kinematics
+       ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure
        break;
      case 202:
-       ele = new (ba) NLHexahedral(n,false); // non-linear kinematics
+       ele = new (ba) NLHexahedral(n, 1); // green-lagrange strain measure
+       break;
+     case 205:
+       ele = new (ba) NLHexahedral(n, 2); // deformation gradient strain measure
        break;
      case 203:
        ele = new (ba) NLMembrane(n,false);

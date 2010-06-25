@@ -23,5 +23,11 @@ mat_mult_mat(double A[3][3], double B[3][3], double C[3][3], int transflag)
        C[i][j] = A[i][0]*B[j][0] + A[i][1]*B[j][1] + A[i][2]*B[j][2];
 
  }
+}
 
+void
+mat_mult_vec(double A[3][3], double b[3], double c[3])
+{
+  for(int i=0; i<3; ++i)
+    c[i] = A[i][0]*b[0]+A[i][1]*b[1]+A[i][2]*b[2];
 }

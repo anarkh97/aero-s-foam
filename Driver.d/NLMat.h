@@ -13,6 +13,7 @@ class NLMatProbDesc {
    DofSetArray *dsa;
    ConstrainedDSA *c_dsa;
    Solver *solver;
+   SparseMatrix *spm;
    SparseMatrix *kuc;
    int numNLEle;
    MatNLElement **nlElem;
@@ -131,10 +132,17 @@ public:
    double getTolerance()  { return tolerance*firstRes; }
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
-   void initNewton() { /* do nothing */ }
+   double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }
-    void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &) { cerr << "NLMatProbDesc::formRHSinitializer is not implemented\n"; }
+   int getThermohFlag() { return domain.solInfo().thermohFlag; }
+   int getAeroheatFlag() { return domain.solInfo().aeroheatFlag; }
+   void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &);
+   bool linesearch();
+   double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; }
+   void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham);
+
 };
 
 inline

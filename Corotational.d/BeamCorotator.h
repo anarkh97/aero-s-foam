@@ -9,7 +9,7 @@ class NodeState;
 class BeamCorotator : public Corotator {
    int n1;			// node number 1
    int n2;			// node number 2
-   double zVec[3];		// element normal vector
+   double* zVec;
    double origK[12][12];	// element stiffness matrix
    int fitAlg;			// fit algorithm
  public:
@@ -26,6 +26,16 @@ class BeamCorotator : public Corotator {
                 double xl0[2][3], double xln[2][3]);
 
    void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
+   
+   void formCorrectGeometricStiffness(
+                            double pmat[12][12],double gmat[3][12], 
+			    double f[12], double stiffGeo1[12][12], 
+                            double stiffGeo2[12][12],double fe[12],
+			    Node &node1, Node &node2, NodeState &ns1,
+			    NodeState &ns2);
+   
+   void getInternalForce(GeomState &geomState, CoordSet &cs, 
+                           FullSquareMatrix &elK, double *f);
 
    void formGeometricStiffness(GeomState &, CoordSet &, 
                                FullSquareMatrix &, double *);
@@ -46,7 +56,7 @@ class BeamCorotator : public Corotator {
                    double gmat[3][12]);
 
    void gradDefDisp(double zVecL[][3],double xln[][3],
-                    double pmat[12][12]);
+                    double pmat[12][12], double gmat[3][12]);
 
    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                             int &nlflag);
@@ -61,7 +71,12 @@ class BeamCorotator : public Corotator {
                        GeomState &, CoordSet &, int);
 
    double getElementEnergy(GeomState &, CoordSet &);
-
+ 
+   void reBuildorigK(FullSquareMatrix &);
+   
+   double* dzVec;	
+   
 };
+
 
 #endif

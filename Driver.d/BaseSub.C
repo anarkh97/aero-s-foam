@@ -71,7 +71,7 @@ BaseSub::BaseSub(Domain &dom, int sn, CoordSet* _nodes, Elemset* _elems, int *gl
   initialize();
   initHelm(dom);
 
-  glNumNodes = _nodes->last();
+  glNumNodes = _nodes->size();
   glNums = glNodeNums;
   glElems = glElemNums;
   makeGlobalToLocalNodeMap(); 
@@ -229,33 +229,6 @@ BaseSub::makeCCDSA()
   // store global corner Node numbers
  glCornerNodes = new int[numCRN];
  for(int i=0; i<numCRN; ++i) glCornerNodes[i] = glNums[cornerNodes[i]];
-}
-
-void
-BaseSub::countCornerDofs(int *cornerWeight)
-{
- int i;
- int mknd = DofSet::max_known_nonL_dof;
- for(i=0; i<numCRN; ++i) {
-   if(cornerDofs[i].contains(DofSet::Xdisp))
-     cornerWeight[mknd*glCornerNodes[i]] +=1;
-   if(cornerDofs[i].contains(DofSet::Ydisp))
-     cornerWeight[mknd*glCornerNodes[i]+1] +=1;
-   if(cornerDofs[i].contains(DofSet::Zdisp))
-     cornerWeight[mknd*glCornerNodes[i]+2] +=1;
-   if(cornerDofs[i].contains(DofSet::Xrot))
-     cornerWeight[mknd*glCornerNodes[i]+3] +=1;
-   if(cornerDofs[i].contains(DofSet::Yrot))
-     cornerWeight[mknd*glCornerNodes[i]+4] +=1;
-   if(cornerDofs[i].contains(DofSet::Zrot))
-     cornerWeight[mknd*glCornerNodes[i]+5] +=1;
-   if(cornerDofs[i].contains(DofSet::Temp))
-     cornerWeight[mknd*glCornerNodes[i]+6] +=1;
-   if(cornerDofs[i].contains(DofSet::Helm))
-     cornerWeight[mknd*glCornerNodes[i]+7] +=1;  
-   if(cornerDofs[i].contains(DofSet::IntPress))
-     cornerWeight[mknd*glCornerNodes[i]+8] +=1;  
- }
 }
 
 int
@@ -1127,9 +1100,6 @@ int BaseSub::renumberBC(int *map)
   for(i = 0; i < numIVel; ++i)
     iVel[i].nnum = map[iVel[i].nnum];
 
-  for(i = 0; i < numITemp; ++i)
-    iTemp[i].nnum = map[iTemp[i].nnum];
-
   return 0;
 }
 
@@ -1273,20 +1243,18 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
   // get bc's from geoSource
   BCond *dbc = 0;
   BCond *nbc = 0;
-  BCond *cvbc = 0;
+  //BCond *cvbc = 0;
   BCond *iDis = 0;
   BCond *iDis6 = 0;
   BCond *iVel = 0;
-  BCond *iTemp = 0;
 
   int numDirichlet = geoSource->getDirichletBC(dbc);
   int numNeuman    = geoSource->getNeumanBC(nbc);
-  int numConvBC    = geoSource->getConvBC(cvbc);
-  int numRadBC    = geoSource->getRadBC(cvbc);
+  //int numConvBC    = geoSource->getConvBC(cvbc);
+  //int numRadBC    = geoSource->getRadBC(cvbc);
   int numIDis      = geoSource->getIDis(iDis);
   int numIDis6     = geoSource->getIDis6(iDis6);
   int numIVel      = geoSource->getIVel(iVel);
-  int numITemp     = geoSource->getITemp(iTemp);
 
   // get bc's for this subdomain
   BCond *subBC;
@@ -1296,13 +1264,13 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
 
   int numLocNeuman = getBC(nbc, numNeuman, cl2LocNodeMap, subBC);
   this->setNeuman(numLocNeuman, subBC); 
-
+/*
   int numLocConvBC = getBC(cvbc, numConvBC, cl2LocNodeMap, subBC);
   this->setConvBC(numLocConvBC, subBC);
 
   int numLocRadBC = getBC(cvbc, numRadBC, cl2LocNodeMap, subBC);
   this->setRadBC(numLocRadBC, subBC);
-
+*/
   int numLocIDis = getBC(iDis, numIDis, cl2LocNodeMap, subBC);
   this->setIDis(numLocIDis, subBC);
 
@@ -1311,9 +1279,6 @@ void BaseSub::distributeBCs(int *cl2LocNodeMap)  {
 
   int numLocIVel = getBC(iVel, numIVel, cl2LocNodeMap, subBC);
   this->setIVel(numLocIVel, subBC);
-
-  int numLocITemp = getBC(iTemp, numITemp, cl2LocNodeMap, subBC);
-  this->setITemp(numLocITemp, subBC);
 
 }
 
@@ -1478,54 +1443,6 @@ void BaseSub::makeLocalToGroupMPC(Connectivity *groupToMPC)
   }
 }
 
-void BaseSub::makeLocalRstar(FullM **Qtranspose, bool cflag) 
-{
-  FullM &R = rigidBodyModesG->R;
-  FullM *Rc = rigidBodyModesG->Rc;
-  if(numMPC_primal > 0) {
-    FullM Qbody(Qtranspose[group]->transpose(), R.numCol(), bodyRBMoffset, Qtranspose[group]->numRow(), 0);
-    Rstar = R * Qbody;
-    if(cflag) Rcstar = *Rc * Qbody;
-  }
-  else {
-    Rstar = R % *(Qtranspose[group]);
-    if(cflag) Rcstar = *Rc % *(Qtranspose[group]);
-  }
-}
-
-void BaseSub::assembleGlobalRcstar(DofSetArray *cornerEqs, FullM &globalRcstar, int *ngrbmGr)
-{
- // actually this is not global, just for the groups allocated to this mpi process for fem.dist
- if(ngrbmGr[group] == 0) return;
- int tmpGroupRBMoffset = 0; for(int i=0; i<group; ++i) tmpGroupRBMoffset += ngrbmGr[i];
- int numC = numCoarseDofs();
- int *tmpCornerEqNums = new int[numC];
- // This loop numbers the corners
- int i,j,k;
- int offset=0;
- for(i=0; i<numCRN; ++i) {
-   cornerEqs->number(glCornerNodes[i], cornerDofs[i].list(),
-                     tmpCornerEqNums+offset);
-   offset += cornerDofs[i].count();
- }
-
- offset=0;
- for(i=0; i<numCRN; ++i) {
-   int lDof[6];
-   dsa->number(cornerNodes[i], cornerDofs[i].list(), lDof);
-   for( k = 0; k < cornerDofs[i].count(); ++k)
-     //for(j = 0; j < numGroupRBM; ++j) {
-     for(j = 0; j < ngrbmGr[group]; ++j) {
-       if(lDof[k] >= 0) 
-         globalRcstar[tmpCornerEqNums[offset+k]][j+tmpGroupRBMoffset] = Rcstar[offset+k][j];
-     }
-   offset += cornerDofs[i].count();
- }
-
- delete [] tmpCornerEqNums;
- Rcstar.clean_up();
-}
-
 void BaseSub::setNumGroupRBM(int *ngrbmGr) 
 {  
   groupRBMoffset = 0;
@@ -1533,108 +1450,15 @@ void BaseSub::setNumGroupRBM(int *ngrbmGr)
   numGroupRBM = ngrbmGr[group];
 }
 
-// START GLOBAL RBM 
-void BaseSub::buildGlobalRBMs(FullM &Xmatrix, Connectivity *cornerToSub)
+void BaseSub::getNumGroupRBM(int *ngrbmGr)
 {
-  int i,j,k;
-  if(numGroupRBM == 0) numGlobalRBMs = 0;
-  else {
-    numGlobalRBMs = Xmatrix.numCol();
-    FullM groupX(Xmatrix, numGroupRBM, groupRBMoffset, numGlobalRBMs, 0); 
-    Rstar_g = Rstar * groupX;
-
-    double *sharedUse = new double[Rstar.numRow()];
-    for(i=0; i<Rstar.numRow(); ++i) sharedUse[i] = 1.0;
-    // if i is a shared dof set sharedUse[i] = 0.0
-    // for all but one of the subdomains sharing it in this body
-
-    for(i=0; i<scomm->numT(SComm::std); ++i) {  // check non-corner dofs
-      if(subNumber > scomm->neighbT(SComm::std,i))
-        for(j=0; j<scomm->lenT(SComm::std,i); ++j) 
-          sharedUse[ccToC[scomm->boundDofT(SComm::std,i,j)]] = 0.0;
-    }
-    for(i=0; i<numCRN; ++i) { // check corner dofs
-      if(subNumber != (*cornerToSub)[glCornerNodes[i]][0]) {
-        int lDof[6];
-        c_dsa->number(cornerNodes[i], cornerDofs[i].list(), lDof);
-        for(j=0; j<cornerDofs[i].count(); ++j)
-          if(lDof[j] >= 0) sharedUse[lDof[j]] = 0.0;
-      }
-    }
-
-    // if i is a shared dof sharedRstar_g[i] is set to zero 
-    // for all but one of the subdomains sharing it in this body
-    // (used to prevent duplication in construction of RtR)
-    if(sharedRstar_g) delete sharedRstar_g;
-    sharedRstar_g = new FullM(Rstar_g.numRow(), Rstar_g.numCol());
-    for(i=0; i<Rstar_g.numRow(); ++i) 
-      for(j=0; j<Rstar_g.numCol(); ++j) (*sharedRstar_g)[i][j] = Rstar_g[i][j] * sharedUse[i];
-    delete [] sharedUse;
-  
-    // if i is a shared dof tmpRstar_g[i] is set to Rstar_g[i]/n 
-    // where n is the number of subdomains (is this body) sharing this dof
-    // used to compute a distributed vector, since distvec[i]*n = actual value at dof i  
-    if(tmpRstar_g) delete tmpRstar_g;
-    tmpRstar_g = new FullM(Rstar_g);
-    for(i=0; i<scomm->numT(SComm::all); ++i) {
-      for(j=0; j<scomm->lenT(SComm::all,i); ++j) {
-        int bdof = scomm->boundDofT(SComm::all,i,j);
-        if(bdof >= 0)  // not a contact dof 
-          for(k=0; k<numGlobalRBMs; ++k) 
-            (*tmpRstar_g)[ccToC[bdof]][k] /= weight[bdof]; 
-      }
-    }
-    for(i=0; i<numCRN; ++i) {
-      int lDof[6];
-      c_dsa->number(cornerNodes[i], cornerDofs[i].list(), lDof);
-      for(j=0; j<cornerDofs[i].count(); ++j)
-        if(lDof[j] >= 0)
-          for(k=0; k<numGlobalRBMs; ++k) 
-            (*tmpRstar_g)[lDof[j]][k] /= (double) (cornerToSub->num(glCornerNodes[i]));
-    }
-  }
+  cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << endl;
+  ngrbmGr[group] = numGroupRBM;
 }
-
-void BaseSub::getGlobalRBM(int iRBM, double *Rvec)
-{
-  if(numGlobalRBMs > 0) 
-    for(int iRow=0; iRow<Rstar_g.numRow(); ++iRow) Rvec[iRow] = Rstar_g[iRow][iRBM];
-}
-
-void BaseSub::assembleRtR(FullM &RtR)
-{
-  // builds RtR for u projection
-  if(numGlobalRBMs > 0) {
-    FullM tmp(numGlobalRBMs, numGlobalRBMs);
-    sharedRstar_g->transposeMult((*sharedRstar_g), tmp);
-    RtR.add(tmp, 0, 0);
-  }
-}
-
-void BaseSub::subtractRstar_g(double *u, Vector &beta)
-{
-  int i;
-  if(numGlobalRBMs > 0) {
-    // compute u = u - Rstar_g * beta  (second part of displacement projection)
-    Vector tmpu(Rstar_g.numRow());
-    tmpu = Rstar_g * beta;
-    for(i=0; i<Rstar_g.numRow(); ++i) u[i] = u[i] - tmpu[i];
-  }
-}
-
-void BaseSub::addRstar_gT(double *u, Vector &beta)
-{
-  if(numGlobalRBMs > 0) {
-    // compute beta += Rstar_g^t * u  (first part of displacement projection)
-    Vector uvec(u, Rstar_g.numRow());
-    beta += *tmpRstar_g ^ uvec;
-  }
-}
-// END GLOBAL RBM
 
 void BaseSub::addNodeXYZ(double *centroid, double* nNodes)
 {
-  for(int i=0; i<numnodes; ++i) {
+  for(int i=0; i<nodes.size(); ++i) {
     Node &nd = nodes.getNode(i);
     nNodes[group] += 1.0;
     centroid[3*group] += nd.x;
@@ -1690,52 +1514,6 @@ BaseSub::receiveNeighbGrbmInfo(FSCommPattern<int> *pat)
     neighbNumGroupGrbm[i] = rInfo.data[0];
     neighbGroupGrbmOffset[i] = rInfo.data[1];
   }
-}
-
-void
-BaseSub::setGrbmCommSize(FSCommPattern<double> *pat)
-{
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    int nRow = G[i]->numRow();
-    int nCol = numGroupRBM;
-    pat->setLen(subNumber, scomm->neighbT(SComm::mpc, i), nRow*nCol);
-  }   
-}
- 
-void BaseSub::sendG(FSCommPattern<double> *rbmPat)
-{
-  if(numGroupRBM == 0) return;
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) 
-    rbmPat->sendData(subNumber, scomm->neighbT(SComm::mpc, i),  G[i]->data());
-}
-
-void BaseSub::receiveG(FSCommPattern<double> *rbmPat)
-{
-  for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-    FSSubRecInfo<double> rInfo = rbmPat->recData(scomm->neighbT(SComm::mpc, i), subNumber);
-    int nRow = G[i]->numRow();  // number of potential contact dofs on interface with neighb
-    int nCol = neighbNumGroupGrbm[i];  //number of rbms for neighb's group
-    if(neighbG[i]) delete neighbG[i];
-    neighbG[i] = new FullM(rInfo.data, nRow, nCol);  
-  }
-}
-
-void BaseSub::assembleE(Vector &e, double *f)
-{
-  if(numGroupRBM > 0) {
-    Vector local_e(numGroupRBM, 0.0);
-    Vector fvec(f, Rstar.numRow());
-    local_e = Rstar ^ fvec; // = Rtranspose * fvec
-    e.add(local_e, groupRBMoffset);  
-  }
-}
-
-void BaseSub::addRalpha(double *u, Vector &alpha)
-{
-  int i, j;
-  for(i=0; i<Rstar.numRow(); ++i) 
-    for(j=0; j<Rstar.numCol(); ++j) 
-      u[i] += Rstar[i][j] * alpha[groupRBMoffset + j];
 }
 
 // PJSA 10-18-02
@@ -1989,14 +1767,12 @@ BaseSub::initialize()
   localCornerList = 0; cornerDofs = 0; cornerNodes = 0; glCornerNodes = 0;
   glCrnGroup = 0; nGrbm = 0; numCRN = 0; numCRNdof = 0; 
   cc_dsa = 0; ccToC = 0; cToCC = 0; boundaryDOFs = 0; nCDofs = -1;
-  neighbNumGRBMs = 0; edgeDofSize = 0; group = 0;
-  numGroupRBM = 0; groupRBMoffset = 0; localMpcToMpc = 0; 
-  localMpcToGlobalMpc = 0; G = 0; 
-  //c_cornerDofs = 0; 
-  neighbNumGroupGrbm = 0; neighbGroupGrbmOffset = 0; neighbG = 0; 
-  faceIsSafe = 0; 
-  sharedRstar_g = 0; tmpRstar_g = 0; localToGroupMPC = 0; 
-  localToBlockMPC = 0; boundDofFlag = 0; masterFlag = 0; 
+  edgeDofSize = 0; localMpcToMpc = 0; localMpcToGlobalMpc = 0;
+  faceIsSafe = 0;
+  group = 0; numGroupRBM = 0; groupRBMoffset = 0;
+  neighbNumGroupGrbm = 0; neighbGroupGrbmOffset = 0;
+  numGlobalRBMs = 0; neighbNumGRBMs = 0;
+  localToGroupMPC = 0; localToBlockMPC = 0; boundDofFlag = 0; masterFlag = 0; 
   mpcMaster = 0; mpcToDof = 0; invBoundMap = 0;
   localMpcToBlock = 0; localMpcToBlockMpc = 0; mpcToBoundDof = 0;
   localLambda = 0; bodyRBMoffset = 0; 
@@ -2015,11 +1791,12 @@ BaseSub::initialize()
   drySharedNodes = 0; wiMaster = 0; neighbGlToLocalWImap = 0;
   haveAverageMatProps = false; wiInternalMap = 0;
   edgeQindex[0] = edgeQindex[1] = -1;
-  numGlobalRBMs = 0; mpclast = 0;
+  mpclast = 0;
   edgeDofSizeTmp = 0; isMixedSub = false;
   internalMasterFlag = 0;
   isCornerNode = 0;
   glToLocalElem = 0;
+  //comm = 0;
 }
 
 BaseSub::~BaseSub()
@@ -2074,20 +1851,6 @@ BaseSub::~BaseSub()
   if(localMpcToBlockMpc) { delete localMpcToBlockMpc; localMpcToBlockMpc = 0; }
   if(mpcToBoundDof) { delete mpcToBoundDof; mpcToBoundDof = 0; }
   if(mpcMaster) { delete [] mpcMaster; mpcMaster = 0; } 
-
-  if(sharedRstar_g) { delete sharedRstar_g; sharedRstar_g = 0; }
-  if(tmpRstar_g) { delete tmpRstar_g; tmpRstar_g = 0; }
-  int numPCN = scomm->numT(SComm::mpc);
-  if(G) {
-    for(int i=0; i<numPCN; ++i)
-      if(G[i]) { delete G[i]; G[i] = 0; }
-     delete [] G; G = 0;
-  }
-  if(neighbG) {
-    for(int i=0; i<numPCN; ++i)
-      if(neighbG[i]) { delete neighbG[i]; neighbG[i] = 0; }
-     delete [] neighbG; neighbG = 0;
-  }
   if(neighbNumGroupGrbm) { delete [] neighbNumGroupGrbm; neighbNumGroupGrbm = 0; }
   if(neighbGroupGrbmOffset) { delete [] neighbGroupGrbmOffset; neighbGroupGrbmOffset = 0; }
 
@@ -3026,26 +2789,6 @@ BaseSub::setNeumanBC(list<BCond *> *_list)
 }
 
 void
-BaseSub::setConvection(list<BCond *> *_list)
-{
-  numConvBC = 0;
-  cvbc = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    cvbc[numConvBC++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
-BaseSub::setRadiation(list<BCond *> *_list)
-{
-  numRadBC = 0;
-  cvbc = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    cvbc[numRadBC++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
 BaseSub::setInitialDisplacement(list<BCond *> *_list)
 {
   numIDis = 0;
@@ -3072,16 +2815,6 @@ BaseSub::setInitialVelocity(list<BCond *> *_list)
   iVel = new BCond[_list->size()];
   for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
     iVel[numIVel++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
-  }
-}
-
-void
-BaseSub::setInitialTemperature(list<BCond *> *_list)
-{
-  numITemp = 0;
-  iTemp = new BCond[_list->size()];
-  for(list<BCond *>::iterator it = _list->begin(); it != _list->end(); ++it) {
-    iTemp[numITemp++].setData((*it)->nnum, (*it)->dofnum, (*it)->val);
   }
 }
 
@@ -3422,31 +3155,18 @@ BaseSub::makeFsiInterface(Connectivity *subToFsi, Connectivity *fsiToSub,
 }
 
 void
-BaseSub::assembleGlobalG(GenFullM<double> *globalG)
-{
-  bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
-  for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
-  if(numGroupRBM > 0) {
-    for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
-      for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
-        int locMpcNb = scomm->mpcNb(i,j);
-        if(mpcFlag[locMpcNb]) {
-          int glMpcNb = localToGlobalMPC[locMpcNb];
-          for(int iRbm = 0; iRbm < numGroupRBM; ++iRbm)
-            (*globalG)[glMpcNb][groupRBMoffset+iRbm] += (*G[i])[j][iRbm];
-          mpcFlag[locMpcNb] = false;
-        }
-      }
-    }
-  }
-}
-
-void
 BaseSub::mergeInterfaces()
 {
   // mpc list should already have been set before now
   boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
   allBoundDofs = scomm->allBoundDofs(); // PJSA 7-29-05
   totalInterfSize = scomm->totalInterfSize();
+}
+
+void
+BaseSub::markCornerDofs(int *glCornerDofs)
+{
+  for(int i=0; i<numCRN; ++i)
+    glCornerDofs[glCornerNodes[i]] |= cornerDofs[i].list();
 }
 

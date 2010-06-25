@@ -371,8 +371,6 @@ void
 Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                            Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-
-      if (gravflg != 0) {
         double massPerNode = getMass(cs)/3.0;
 
         double fx = massPerNode*gravityAcceleration[0];
@@ -384,15 +382,6 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 	gravityForce[3] = fy;
 	gravityForce[4] = fx;
 	gravityForce[5] = fy;
-      }
-      else {
-	gravityForce[0] = 0.0;
-	gravityForce[1] = 0.0;
-	gravityForce[2] = 0.0;
-	gravityForce[3] = 0.0;
-	gravityForce[4] = 0.0;
-	gravityForce[5] = 0.0;
-      }
 }
 
 FullSquareMatrix

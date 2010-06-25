@@ -13,10 +13,8 @@
 #include <Math.d/matrix.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
-#ifdef HB_NORMAL_GEOM_GAP
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
-#endif
 
 class CoordSet;
 class FaceElement;
@@ -37,9 +35,7 @@ class FFIPolygon {
         FullM M;                     // store the (FFI contibution to) M matrix (Mortar-Slave)
         FullM N;                     // store the (FFI contibution to) N matrix (Mortar-Master)
 
-#ifdef HB_NORMAL_GEOM_GAP
         Vector NormalGeoGaps;        // store the (FFI contibution to) the "geometrical" normal gaps (Slave-Master)
-#endif
 
 #ifdef HB_ACME_FFI_DEBUG
         double (*VertexLlCoordOnSFaceEl)[2];
@@ -89,7 +85,9 @@ class FFIPolygon {
         FullM* GetPtrM() { return &M; }
 
         FullM* GetPtrN() { return &N; }
-        
+
+        Vector* GetPtrNormalGeoGaps() { return &NormalGeoGaps; }
+
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         void Print(); 
@@ -115,14 +113,20 @@ class FFIPolygon {
 	FullM IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* , CoordSet &, int ngp=6);
         FullM IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
 
+        FullM IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+        FullM IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+
         void ComputeM(MortarElement*, CoordSet&, int ngp=6);
         void ComputeN(MortarElement*, CoordSet&, int ngp=6);
 
         void ComputeNormalM(MortarElement*, CoordSet&, int ngp=6);
         void ComputeNormalN(MortarElement*, CoordSet&, int ngp=6);
-#ifdef HB_NORMAL_GEOM_GAP
-	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
-#endif
+
+        void ComputeGradNormalM(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+        void ComputeGradNormalN(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
+
+	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet&, CoordSet&, int ngp=6);
+
         // Space/memory allocation/desallocation methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 };
@@ -132,7 +136,7 @@ class FFIPolygon {
 // EXPERIMENTAL
 // Alternative implementation that do not store the (triangular) facets but
 // construct them on-the-fly when performing the integrations
-// This may save memory as the nodes of the facets are no more dupplicated and stored
+// This may save memory as the nodes of the facets are no more duplicated and stored
 // Also the FFIPolygon object may only references the ACME_FFI_Data array instead of
 // extracting and storing its revelant data; in which case the ACME_FFI_Data may
 // must NOT be destroyed before the FFIPolygon objects are used. This approach should
@@ -154,9 +158,7 @@ class FFIPolygon {
         FullM M;                     // store the (FFI contibution to) M matrix (Mortar-Slave)
         FullM N;                     // store the (FFI contibution to) N matrix (Mortar-Master)
 
-#ifdef HB_NORMAL_GEOM_GAP
         Vector NormalGeoGaps;        // store the (FFI contibution to) the "geometrical" normal gaps (Slave-Master)
-#endif
 
 #ifdef HB_ACME_FFI_DEBUG
         double (*VertexLlCoordOnSFaceEl)[2];
@@ -230,9 +232,9 @@ class FFIPolygon {
 
         void ComputeNormalM(MortarElement*, CoordSet&, int ngp=6);
         void ComputeNormalN(MortarElement*, CoordSet&, int ngp=6);
-#ifdef HB_NORMAL_GEOM_GAP
+
         void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
-#endif
+
         // Space/memory allocation/desallocation methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 };

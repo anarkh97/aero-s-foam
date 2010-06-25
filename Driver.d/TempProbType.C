@@ -274,7 +274,7 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
     // command communication with fluid or structure for coupled aerothermal or thermoelastic
     if(probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0) {
       if(tIndex == steadyMax  && !iSteady) {
-        /*int idum =*/ probDesc->cmdComHeat(1);          
+        probDesc->cmdComHeat(1);          
         break;
       }
       else {

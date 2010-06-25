@@ -17,7 +17,7 @@ class NLDynamSolver {
      typename StateUpdate::StateIncr *stateIncr;
 
      FILE *vel;
-     //double beta, gamma, alphaf, alpham; // EXPLICIT
+     double beta, gamma, alphaf, alpham;
    public:
 
      // Constructor
@@ -25,7 +25,6 @@ class NLDynamSolver {
        { probDesc = PrbD; }
 
      void solve();
-     //void explicitNewmarkLoop();
 };
 
 #ifdef _TEMPLATE_FIX_

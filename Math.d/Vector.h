@@ -88,6 +88,7 @@ class GenVector {
    void linC(const GenVector<Scalar> &v, Scalar c);
    void linC(const GenVector<Scalar> &, Scalar, const GenVector<Scalar> & );
    void linC(Scalar, const GenVector<Scalar> &, Scalar, const GenVector<Scalar> &);
+   void linC(Scalar, const GenVector<Scalar> &, Scalar, const GenVector<Scalar> &, Scalar, const GenVector<Scalar> &);
    void swap(GenVector<Scalar> &);
    Scalar* data() const { return d; }
 

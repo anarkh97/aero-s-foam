@@ -2,12 +2,15 @@
 #define _SUPERELEMENT_H_
 
 #include <Element.d/Element.h>
+#include <map>
 class SuperCorotator;
 
 class SuperElement : public Element 
 {
   protected:
         // all of the following member variables need to be set in the constructor
+        Elemset *eset;
+        DofSetArray *dsa;
         Element **subElems;    
         int nSubElems;       
         SuperCorotator *superCorotator;
@@ -19,7 +22,7 @@ class SuperElement : public Element
 
         FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
   public:
-        SuperElement() { superCorotator = 0; };
+        SuperElement() { nn = 0; superCorotator = 0; };
         virtual ~SuperElement();
 
         int getNumSubElems() { return nSubElems; }
@@ -32,12 +35,11 @@ class SuperElement : public Element
         double getPressure() { return subElems[0]->getPressure(); }
 
         void renum(int *table);
-        void buildCorotator(CoordSet &cs);
 
         void setProp(StructProp *p, bool _myProp = false); 
         void setPreLoad(double load, int &flg);
         void setFrame(EFrame *frame);
-        int buildFrame(CoordSet &cs);
+        void buildFrame(CoordSet &cs);
         void setOffset(double *o);
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame);
@@ -80,7 +82,6 @@ class SuperElement : public Element
         double* getCompositeData(int nl);
         double* getCompositeFrame();
         int getCompositeLayer();
-        double getMoment(Vector &force, CoordSet &cs, int node, int idir);
         int dim();
         void addFaces(PolygonSet *pset);
         int numInternalNodes();
@@ -88,10 +89,14 @@ class SuperElement : public Element
         bool isSafe();
         bool isRotMidSideNode(int iNode);
         bool isMpcElement();
-        bool isRigidMpcElement();
-        void computeMPCs(CoordSet &cs, int &lmpcnum);
-        void updateMPCs(GeomState &gState);
-        void setMpcForces(double *mpcForces);
+        //bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false);
+        bool isConstraintElement();
+
+        int getMassType();
+        int getNumMPCs();
+        LMPCons** getMPCs();
+
+        void initialize(int, int*);
 };
 
 #endif

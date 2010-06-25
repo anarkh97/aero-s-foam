@@ -115,7 +115,7 @@ SingleDomainTemp::dbcVecInfo()
 void
 SingleDomainTemp::getTempTimes(double &dtemp, double &tmax)
 {
- dtemp = domain->solInfo().dtemp;
+ dtemp = domain->solInfo().getTimeStep();
  tmax = domain->solInfo().tmax;
 }
 
@@ -176,8 +176,6 @@ SingleDomainTemp::getQuasiStaticParameters(double &maxVel, double &qsbeta)
 void
 SingleDomainTemp::tempInitState(TempState<Vector> &inState)
 {
-// domain->initTempVec(inState.getDisp(), inState.getVeloc());
-
   domain->initTempVector(inState.getDisp(), inState.getVeloc(), inState.getPrevVeloc());
 }
 
@@ -201,7 +199,7 @@ SingleDomainTemp::preProcess()
 
  // Makes renumbering, connectivities and dofsets
 
- domain->preProcessing();  /*Defined in Static.C and Domain.h*/
+ domain->preProcessing();  //Defined in Static.C and Domain.h
 
  int ndof = domain->numdof();
 
@@ -470,4 +468,3 @@ SingleDomainTemp::modeDecomp(double t, int tIndex, Vector& d_n)
   }
   if(alfa) delete [] alfa;
 }
-

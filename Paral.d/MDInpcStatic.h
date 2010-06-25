@@ -84,6 +84,8 @@ class GenMultiDomainInpcStatic
     void assignRandMat() {decDomain->assignRandMat(); }     
     void retrieveElemset() {decDomain->retrieveElemset();}
     void project(DistrBlockVector<Scalar> &) {cerr << "project(DistrBlockVector) not implemented" << endl;}
+  private:
+    void subGetRHS(int isub, GenDistrVector<Scalar>& rhs, GenSubDOp<Scalar> *Kuc);
 };
 
 #ifdef _TEMPLATE_FIX_

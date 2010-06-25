@@ -4,6 +4,8 @@
 #ifndef _FACEELEMENT_H_
 #define _FACEELEMENT_H_
 
+#include <iostream>
+
 // STL 
 #include <map>
 
@@ -114,6 +116,8 @@ class FaceElement {
         virtual void IntegrateShapeFcts(double*, CoordSet&, double rho, int ngp)=0;
 
         virtual double* ViewRefCoords();
+        virtual void GetdNormal(double dNormal[][3], double* m, CoordSet& cs) { 
+          std::cerr << "FaceElement::GetdNormal not implemented\n"; exit(-1); }
 
 	// Print, display ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~

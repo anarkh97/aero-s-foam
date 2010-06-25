@@ -13,11 +13,14 @@
 #include <Driver.d/DynamProbType.h>
 #include <Feti.d/DistrVector.h>
 #include <Comm.d/Communicator.h>
+#include <Driver.d/SysState.h>
+
+#include <Corotational.d/DistrGeomState.h>
 
 //--------------------------------------------------------------------
 
 // global variables
-extern Communicator *structCom, *fluidCom;
+extern Communicator *structCom, *fluidCom, *heatStructCom;
 
 int toFluid = 1;
 int fromFluid = 1;
@@ -47,14 +50,14 @@ DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset,
 
 //---------------------------------------------------------------------
 
-MatchMap DistFlExchanger::getMatchData()  {
+MatchMap* DistFlExchanger::getMatchData()  {
 
   Connectivity *cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
   int *numMatch = geoSource->getNumMatchData();
 
-  MatchMap globMatches;
+  MatchMap* globMatches = new MatchMap();
 
   // create global sub to local sub map
   int totSub = cpuToSub->numConnect();
@@ -84,7 +87,7 @@ MatchMap DistFlExchanger::getMatchData()  {
       iPoint.elemNum = matchData[iMatch].elemNum;
       iPoint.xy[0] = matchData[iMatch].xi;
       iPoint.xy[1] = matchData[iMatch].eta;
-      globMatches[gPos] = iPoint;
+      (*globMatches)[gPos] = iPoint;
     }
   }
 
@@ -133,13 +136,13 @@ void DistFlExchanger::negotiate()  {
     }
   }
 
-  MatchMap globMatches = getMatchData();
+  MatchMap* globMatches = getMatchData();
 
   // # of fluid mpi's receiving data from this mpi
   numFluidNeighbors = 0;
 
   int *index = new int[maxSize];
-  fprintf(stderr,"struct %d allocating sndTable of size %d\n", structCom->myID(), nSender);
+  //fprintf(stderr,"struct %d allocating sndTable of size %d\n", structCom->myID(), nSender);
   sndTable = new InterpPoint *[nSender];
 
   // receive matches from each sender
@@ -163,7 +166,7 @@ void DistFlExchanger::negotiate()  {
     int numHits = 0;
     int iMatch;
     for (iMatch = 0; iMatch < nbSendTo[sender]; iMatch++)
-      if (globMatches.find(index[iMatch]) != globMatches.end()) 
+      if (globMatches->find(index[iMatch]) != globMatches->end()) 
         numHits++;
 
     totSize += numHits;
@@ -171,19 +174,16 @@ void DistFlExchanger::negotiate()  {
 
     int totalNDof = 0;
 
-
-      //fprintf(stderr,"Struct CPU %d has %d matches w/fluid %d\n", structCom->myID(), numHits, sender);
-      matchList = new int[numHits];
-      sndTable[sender] = new InterpPoint[numHits];
+    //fprintf(stderr,"Struct CPU %d has %d matches w/fluid %d\n", structCom->myID(), numHits, sender);
+    matchList = new int[numHits];
+    sndTable[sender] = new InterpPoint[numHits];
 
     if (numHits > 0)  {
       // create list of matches in this mpi
       int iHit = 0;
       for (iMatch = 0; iMatch < nbSendTo[sender]; iMatch++)
-        if (globMatches.find(index[iMatch]) != globMatches.end())  {
+        if (globMatches->find(index[iMatch]) != globMatches->end()) 
           matchList[iHit++] = iMatch;
-        
-        }
 
       // reset nbSendTo to actual number of matches in this mpi 
       nbSendTo[sender] = numHits;
@@ -193,10 +193,10 @@ void DistFlExchanger::negotiate()  {
       for (int ipt = 0; ipt < nbSendTo[sender]; ++ipt) {
        
         int arrayPos = index[matchList[ipt]];
-        sndTable[sender][ipt].subNumber = globMatches[arrayPos].subNumber; 
-        sndTable[sender][ipt].elemNum = globMatches[arrayPos].elemNum; 
-        sndTable[sender][ipt].xy[0] = globMatches[arrayPos].xy[0]; 
-        sndTable[sender][ipt].xy[1]= globMatches[arrayPos].xy[1]; 
+        sndTable[sender][ipt].subNumber = (*globMatches)[arrayPos].subNumber; 
+        sndTable[sender][ipt].elemNum = (*globMatches)[arrayPos].elemNum; 
+        sndTable[sender][ipt].xy[0] = (*globMatches)[arrayPos].xy[0]; 
+        sndTable[sender][ipt].xy[1]= (*globMatches)[arrayPos].xy[1]; 
 
         // assign dofs to element 
         int locSub = sndTable[sender][ipt].subNumber;
@@ -264,9 +264,11 @@ void DistFlExchanger::negotiate()  {
 
 //---------------------------------------------------------------------
 
-void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState, 
-		double **usrDefDisps, double **usrDefVels,  int tag)  {
-
+void
+DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState, 
+                                   double** usrDefDisps, double** usrDefVels, int tag,
+                                   DistrGeomState *distrGeomState)
+{
   Connectivity *cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
@@ -277,9 +279,10 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
   *tmpDisp = dState.getDisp();
   tmpDisp->linAdd(dt*alpha[0], dState.getVeloc(), dt*alpha[1], dState.getPrevVeloc());
 
-  //fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
+  //if(verboseFlag)
+  //  filePrint(stderr, "Disp Norm %e Veloc Norm %e\n", (*tmpDisp)*(*tmpDisp), dState.getVeloc()*dState.getVeloc());
 
-  double xxx = 0;
+  double xxx = 0, yyy = 0;
   int pos = 0;
 
 
@@ -289,10 +292,6 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
     vel = new Vector [numSub];
     acc = new Vector [numSub];
     pVel = new Vector [numSub];
-    newState = new State [numSub];
-
-
-    newState = new State [numSub];
   }
 
   for (int iSub = 0; iSub < numSub; iSub++)  {
@@ -307,11 +306,6 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
 
     pVel[iSub].setData(dState.getPrevVeloc().subData(iSub), 
 		      	    dState.getPrevVeloc().subLen(iSub));
-/*
-    newState[iSub] = State(cdsa[iSub], dsa[iSub], usrDefDisps[iSub], 
-	 		usrDefVels[iSub], dsp[iSub], vel[iSub], 
-			acc[iSub], pVel[iSub]);
-*/
   }
 
   for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
@@ -330,26 +324,30 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
 
       int iSub = locSub;
       State localState(cdsa[iSub], dsa[iSub], usrDefDisps[iSub],
-                        usrDefVels[iSub], dsp[iSub], vel[iSub],
-                        acc[iSub], pVel[iSub]);
+                        usrDefVels[iSub], dsp[iSub],
+                        vel[iSub], acc[iSub], pVel[iSub]);
+      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[iSub] : 0;
       thisElement->computeDisp(*cs[locSub], localState,
-			       sndTable[mpiNum][iData], buffer+pos);
+      			       sndTable[mpiNum][iData], buffer+pos, geomState);
       pos += 6;
 
     }
   
-    if (tag < 0) 
-      tag = STTOFLMT+( (sndParity > 0) ? 1 : 0);
+    if(tag < 0) tag = STTOFLMT+( (sndParity > 0) ? 1 : 0);
 
     toFluid = 1;
-    for (int ip = origPos; ip < pos; ip += 6)
-      xxx += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
-            buffer[ip+5]*buffer[ip+5];
+    for (int ip = origPos; ip < pos; ip += 6) {
+      xxx += buffer[ip+0]*buffer[ip+0] + buffer[ip+1]*buffer[ip+1] +
+             buffer[ip+2]*buffer[ip+2];
+      yyy += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
+             buffer[ip+5]*buffer[ip+5];
+    }
 
     fluidCom->sendTo(mpiNum, tag, buffer+origPos, pos-origPos);
   }
   fluidCom->waitForAllReq();
-  fprintf(stderr, "Sending %e to %d CPUs\n",xxx, numFluidNeighbors);
+  //if(verboseFlag)
+  //  filePrint(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, numFluidNeighbors);
   flipSndParity();
 
 }
@@ -357,15 +355,16 @@ void DistFlExchanger::sendDisplacements(SysState<DistrVector> &dState,
 //---------------------------------------------------------------------
 
 void DistFlExchanger::sendParam(int algnum, double step, double totaltime, 
-		int rstinc, int _isCollocated, double _a[2])  {
-
+		                int rstinc, int _isCollocated, double _a[2])
+{
   //int zero = 0;
   int TNd  = 0;
   int thisNode = structCom->myID();
 
   double buffer[5];
   buffer[0] = (double) algnum;
-  buffer[1] = step;
+  buffer[1] = (algnum==5)? step/2 : step;
+  //buffer[1] = step;
   buffer[2] = totaltime;
   buffer[3] = (double) rstinc;
   buffer[4] = (double) 2; // Used to be AeroScheme now always conservative
@@ -389,9 +388,43 @@ void DistFlExchanger::sendParam(int algnum, double step, double totaltime,
 
 //---------------------------------------------------------------------
 
-double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex, 
-			double time, double alphaf, int &iscollocated)  {
+void
+DistFlExchanger::sendTempParam(int algnum, double step, double totaltime,
+                               int rstinc, double alphat[2])
+{
+  int TNd  = 0;
+  int thisNode;
+  thisNode = structCom->myID();
 
+  double buffer[5];
+  buffer[0] = (double) algnum;
+  buffer[1] = step;
+  buffer[2] = totaltime;
+  buffer[3] = (double) rstinc;
+  buffer[4] = (double) 2; // Used to be AeroScheme now always conservative
+  int msglen = 5;
+  int tag = 3000;
+
+// Send to SUBROUTINE GETTEMPALG of Fluid Code
+  if(thisNode == 0){
+   fluidCom->sendTo(TNd, tag, buffer, msglen);
+   fluidCom->waitForAllReq();
+   }
+
+  dtemp = step;
+  alph[0] = alphat[0];
+  alph[1] = alphat[1];
+
+//  waitOnSend();
+}
+
+//---------------------------------------------------------------------
+
+double
+DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex, 
+                              double time, double alphaf, int& iscollocated,
+                              DistrGeomState* distrGeomState)
+{
   aforce[0] = 0.0;
   aforce[1] = 0.0;
   aforce[2] = 0.0;
@@ -415,9 +448,10 @@ double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex,
       int locSub = sndTable[mpiNum][iData].subNumber;  
       int locElem = sndTable[mpiNum][iData].elemNum;
       Element *thisElement = (*eset[locSub])[locElem];
+      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[locSub] : 0;
       
       thisElement->getFlLoad(*(cs[locSub]), sndTable[mpiNum][iData], 
-			     buffer+3*iData, localF);
+			     buffer+3*iData, localF, geomState);
 
       int nDof = thisElement->numDofs();
       int *dof = sndTable[mpiNum][iData].dofs;
@@ -449,41 +483,255 @@ double DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex,
 }
 
 //---------------------------------------------------------------------
+
+void
+DistFlExchanger::sendModeFreq(double *modfrq, int nummod)
+{
+
+        int TNd  = 0;
+
+        int ThisNode = structCom->myID();
+
+        int Type = 1200;
+
+        double *sBuffer = new double[1+nummod];
+        sBuffer[0]   = (double) nummod;
+
+        int mod;
+        for (mod = 0; mod < nummod; mod++)
+                sBuffer[1+mod] = modfrq[mod];
+
+        int Pos  = 1 + nummod;
+
+        if (ThisNode == 0) {
+                // _FORTRAN(nsedoc)(zero, Type, sBuffer, Pos,
+                //                 TNd, toFluid);
+           fluidCom->sendTo(TNd, Type, sBuffer, Pos);
+           fluidCom->waitForAllReq();
+        }
+
+}
+
+void
+DistFlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
+                                SysState<DistrVector>& st, double ampFactor)
+{
+  cerr << "ERROR: DistFlExchanger::sendModeShapes is not implemented\n"; 
+  exit(-1);
 /*
-int DistFlExchanger::cmdCom( int commandFlag )
+  int iMode;
+  for(iMode = 0; iMode < numModes; ++iMode) {
+     // Create the state
+     Vector &d = st.getDisp();
+     d.zero();
+     int iNode, dof;
+     for(iNode = 0; iNode < numN; ++iNode) {
+       dof = dsa->locate(iNode, DofSet::Xdisp);
+       if(dof >= 0) d[dof] = v[iMode][iNode][0]*ampFactor;
+       dof = dsa->locate(iNode, DofSet::Ydisp);
+       if(dof >= 0) d[dof] = v[iMode][iNode][1]*ampFactor;
+       dof = dsa->locate(iNode, DofSet::Zdisp);
+       if(dof >= 0) d[dof] = v[iMode][iNode][2]*ampFactor;
+       dof = dsa->locate(iNode, DofSet::Xrot);
+       if(dof >= 0) d[dof] = v[iMode][iNode][3]*ampFactor;
+       dof = dsa->locate(iNode, DofSet::Yrot);
+       if(dof >= 0) d[dof] = v[iMode][iNode][4]*ampFactor;
+       dof = dsa->locate(iNode, DofSet::Zrot);
+       if(dof >= 0) d[dof] = v[iMode][iNode][5]*ampFactor;
+     }
+     //fprintf(stderr, "Total mode disp %e\n", d*d);
+     sendDisplacements(st, 1201+iMode);
+  }
+*/
+}
+
+void
+DistFlExchanger::thermoread(int bLen)
+{
+// Initialize the buffer
+
+  buffLen = bLen;
+  buff = new double[buffLen];
+}
+
+
+void
+DistFlExchanger::sendStrucTemp(DistrVector& tempsent)
+{
+  // for now we assume that the structure and thermal models have the same mesh and the same decomposition
+  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  int myCPU = structCom->myID();
+  int numSub = cpuToSub->num(myCPU);
+
+// Sends temperature to mechanical structure
+// for now we assume that the structure and thermal models have the same mesh and the same decomposition
+
+   int thisNode;
+   thisNode = structCom->myID();
+   int tag = STTOSTMT;
+   int zero = 0;
+
+   int i;
+   int pos=tempsent.size();
+
+   for(i=0; i<pos; i++) {
+     buff[i]=tempsent[i];
+    }
+
+//    if (thisNode==0)
+    //fprintf(stderr,"++++ Sending TempLoad \n");
+
+    heatStructCom->sendTo(thisNode, tag, buff, pos);
+
+    //fprintf(stderr,"++++ Finished Sending TempLoad \n");
+}
+
+void
+DistFlExchanger::getStrucTemp(double* temprcvd)
+{
+// Receives temperature from Thermal Elements
+// temprcvd are NODAL temperatures
+
+    int thisNode;
+    thisNode = structCom->myID();
+    int tag = STTOSTMT;
+    int rsize;
+    int fromNd;
+
+//    if(thisNode==0){
+    //fprintf(stderr,"---- getting TempLoad \n");
+    RecInfo rInfo = heatStructCom->recFrom(tag, buff, buffLen);
+    fromNd = rInfo.cpu;
+    rsize = rInfo.len;
+
+    //fprintf(stderr,"++++ Finished Receiving TempLoad \n");
+
+    int i;
+    for (i=0; i<rsize; i++) { temprcvd[i]=buff[i] ;
+      //fprintf(stderr,"**** received  = %f %d %d \n",buff[i], buffLen, rsize);
+    }
+
+}
+
+int
+DistFlExchanger::cmdCom(int commandFlag)
 {
   int returnFlag = 0;
-  int zero   = 0;
   int FldNd  = 0;
-
-  int rsize;
   int tag;
-
-  int thisNode;
-  _FORTRAN(getnod)(thisNode);
-
-  double buffer[1];
-  buffer[0] = (double) commandFlag;
+  int thisNode = structCom->myID();
+  double buffer[1] = { double(commandFlag) };
   int msglen = 1;
- 
-  toFluid=1;
 
   if(thisNode == 0) {
-
-    // fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);
-
+    // fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);   
     // fflush(stderr);
     tag = STCMDMSG;
-   _FORTRAN(nsedoc)(zero, tag, buffer,msglen,FldNd, toFluid);
-
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
     tag =  FLCMDMSG;
-   _FORTRAN(nrecoc)(zero, tag, buffer,msglen,rsize, FldNd, toFluid);
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
     returnFlag = (int) buffer[0];
-    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);
+    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);   
     // fflush(stderr);
   }
 
   return returnFlag;
 }
 
-*/
+void
+DistFlExchanger::sendTemperature(SysState<DistrVector>& dState)
+{
+  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  int myCPU = structCom->myID();
+  int numSub = cpuToSub->num(myCPU);
+
+  if (tmpDisp == 0)
+    tmpDisp = new DistrVector(dState.getDisp());
+
+  *tmpDisp = dState.getDisp();
+  tmpDisp->linAdd(dtemp*alpha[0], dState.getVeloc(), dtemp*alpha[1], dState.getPrevVeloc());
+
+  double xxx = 0, yyy = 0;
+  int pos = 0;
+
+  // get the temperature, velocities and previous velocities
+  if (dsp == 0)  {
+    dsp = new Vector [numSub];
+    vel = new Vector [numSub];
+    pVel = new Vector [numSub];
+  }
+
+  for (int iSub = 0; iSub < numSub; iSub++)  {
+
+    dsp[iSub].setData(tmpDisp->subData(iSub), tmpDisp->subLen(iSub));
+
+    vel[iSub].setData(dState.getVeloc().subData(iSub), 
+	      	     	   dState.getVeloc().subLen(iSub));
+
+    pVel[iSub].setData(dState.getPrevVeloc().subData(iSub), 
+		      	    dState.getPrevVeloc().subLen(iSub));
+  }
+
+  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+
+    // get fluid mpi to send disps to
+    int mpiNum = idSendTo[iNeigh];
+
+    int origPos = pos;
+
+    // compute displacements for each match point
+    for (int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
+
+      int locSub = sndTable[mpiNum][iData].subNumber;
+      int locElem = sndTable[mpiNum][iData].elemNum;
+      Element *thisElement = (*eset[locSub])[locElem];
+
+      int iSub = locSub;
+      State localState(cdsa[iSub], dsa[iSub], (double *) 0 /*usrDefDisps[iSub]*/,
+                       dsp[iSub], vel[iSub], pVel[iSub]);
+      thisElement->computeTemp(*cs[locSub], localState,
+      			       sndTable[mpiNum][iData].xy, buffer+pos);
+      pos += 1;
+
+    }
+  
+    int tag = STTOFLHEAT;
+
+    fluidCom->sendTo(mpiNum, tag, buffer+origPos, pos-origPos);
+  }
+  fluidCom->waitForAllReq();
+}
+
+double
+DistFlExchanger::getFluidFlux(DistrVector& flux, double time, double &bflux)
+{
+  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+
+    int tag =  FLTOSTHEAT;
+    toFluid = 1;
+
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
+    // get fluid mpi process
+    int mpiNum = rInfo.cpu;
+
+    for (int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
+
+      int locSub = sndTable[mpiNum][iData].subNumber;
+      int locElem = sndTable[mpiNum][iData].elemNum;
+      Element *thisElement = (*eset[locSub])[locElem];
+
+      thisElement->getFlFlux(sndTable[mpiNum][iData].xy, buffer+iData, localF);
+
+      int nDof = thisElement->numDofs();
+      int *dof = sndTable[mpiNum][iData].dofs;
+      for (int iDof = 0; iDof < nDof; ++iDof)
+        if (dof[iDof] >= 0) {
+          flux.subData(locSub)[dof[iDof]] += localF[iDof];
+          bflux += localF[iDof];
+        }
+    }
+  }
+
+  return bflux;
+}
+

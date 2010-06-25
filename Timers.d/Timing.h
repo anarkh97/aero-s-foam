@@ -59,6 +59,7 @@ public:
     int converged;
     int numRBMs; // number of rigid body modes
     int numCRNs; // number of corner modes
+    int numMPCs;
 
     // variables to store memory used under various categories
     long memoryFETI;

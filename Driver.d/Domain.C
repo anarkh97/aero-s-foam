@@ -31,23 +31,26 @@ using std::map;
 extern int verboseFlag;
 extern Sfem *sfem;
 extern GeoSource *geoSource;
+extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(d.nodes, nnodes, nnums)), lmpc(0), fsi(0), ymtt(0), ctett(0),
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0),
     SurfEntities(0), MortarConds(0)
 {
  initialize();
 
  int iele;
  numele = nele;        // number of elements
- for(iele=0; iele < numele; ++iele)
-   //if(eles[iele] < d.packedEset.size()) // PJSA
-     packedEset.elemadd(iele, d.packedEset[eles[iele]]);
+ for(int i=0; i < numele; ++i)
+   packedEset.elemadd(i, d.packedEset[eles[i]]);
 
  numnodes = nnodes; // number of nodes
+ for(int i=0; i < numnodes; ++i)
+   if(d.nodes[nnums[i]] != NULL)
+     nodes.nodeadd(i, *d.nodes[nnums[i]]);
 
  if(d.gravityFlag() ) {
    gravityAcceleration = new double [3];
@@ -74,7 +77,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  for(iele=0; iele < numele; ++iele)
    packedEset.elemadd(iele, (*_elems)[iele]);
 
- numnodes = _nodes->last();
+ numnodes = _nodes->size();
 
  if(d.gravityFlag() ) {
    gravityAcceleration = new double [3];
@@ -185,51 +188,13 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",nbc[i].nnum+1,nbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
+     //          ", dof %d\n",nbc[i].nnum+1,nbc[i].dofnum+1);
      bcx[dof] += nbc[i].val;
    }
    else {
      bc[dof] = BCLOAD;
      bcx[dof] = nbc[i].val;
-   }
- }
-
- // Set the convective boundary conditions
- for(i=0; i<numConvBC; ++i) {
-  int dof  = dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-   if(dof < 0) {
-     //filePrint(stderr,"*** WARNING: Found FORCE on non-existent dof: node %d dof %d\n",
-     //          cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     continue;
-   }
-   if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     bcx[dof] += cvbc[i].val;
-   }
-   else {
-     bc[dof] = BCLOAD;
-     bcx[dof] = cvbc[i].val;
-   }
- }
-
-// Set the radiative boundary conditions
- for(i=0; i<numRadBC; ++i) {
-  int dof  = dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-   if(dof < 0) {
-     //filePrint(stderr,"*** WARNING: Found FORCE on non-existent dof: node %d dof %d\n",
-     //          cvbc[i].nnum+1,cvbc[i].dofnum+1);
-     continue;
-   }
-   if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",rdbc[i].nnum+1,rdbc[i].dofnum+1);
-     bcx[dof] += rdbc[i].val;
-   }
-   else {
-     bc[dof] = BCLOAD;
-     bcx[dof] = rdbc[i].val;
    }
  }
 
@@ -242,8 +207,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCLOAD) {
-     filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
-               ", dof %d\n",cnbc[i].nnum+1,cnbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, multiple FORCEs defined at node %d"
+     //          ", dof %d\n",cnbc[i].nnum+1,cnbc[i].dofnum+1);
      bcx[dof] += cnbc[i].reval;
    }
    else {
@@ -261,8 +226,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCFIXED) {
-     filePrint(stderr," *** WARNING: check input, found repeated DISP"
-                    " (node %d, dof %d)\n",dbc[i].nnum+1,dbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, found repeated DISP"
+     //               " (node %d, dof %d)\n",dbc[i].nnum+1,dbc[i].dofnum+1);
    }
 
    bc[dof] = BCFIXED;
@@ -278,8 +243,8 @@ Domain::make_bc(int *bc, double *bcx)
      continue;
    }
    if(bc[dof] == BCFIXED) {
-     filePrint(stderr," *** WARNING: check input, found repeated Complex DISP"
-                    " (node %d, dof %d)\n",cdbc[i].nnum+1,cdbc[i].dofnum+1);
+     //filePrint(stderr," *** WARNING: check input, found repeated Complex DISP"
+     //               " (node %d, dof %d)\n",cdbc[i].nnum+1,cdbc[i].dofnum+1);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = cdbc[i].reval;
@@ -880,20 +845,6 @@ int Domain::setNeuman(int _numNeuman, BCond *_nbc)
  return 0;
 }
 
-int Domain::setConvBC(int _numConvBC, BCond *_cvbc)
-{
- numConvBC = _numConvBC;
- cvbc      = _cvbc;
- return 0;
-}
-
-int Domain::setRadBC(int _numRadBC, BCond *_rdbc)
-{
- numRadBC = _numRadBC;
- rdbc      = _rdbc;
- return 0;
-}
-
 int
 Domain::setMFTT(MFTTData *_mftval)
 {
@@ -977,11 +928,6 @@ void Domain::printCTETT()
   }
 }
 
-
-
-
-
-
 int
 Domain::setIDis6(int _numIDis6, BCond *_iDis6)
 {
@@ -1015,21 +961,6 @@ int Domain::setIAcc(int , BCond *)
  return 0;
 }
 
-int Domain::setITemp(int _numITemp, BCond *_iTemp)
-{
- numITemp = _numITemp;
-    iTemp = _iTemp;
- return 0;
-}
-
-/*
-void
-Domain::addOutput(OutputInfo &outputInfo)
-{
- oinfo[numOutInfo++] = outputInfo;
-}
-*/
-
 void
 Domain::setGravity(double ax, double ay, double az)
 {
@@ -1039,15 +970,11 @@ Domain::setGravity(double ax, double ay, double az)
  gravityAcceleration[2] = az;
 }
 
-//ADDED FOR SLOSHING PROBLEM, EC, 20070724
-
 void
 Domain::setGravitySloshing(double gg)
 {
  gravitySloshing = gg;
 }
-
-//---------------------------------------------------------------
 
 void
 Domain::setUpData()
@@ -1055,13 +982,13 @@ Domain::setUpData()
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
   Elemset eset_tmp;
-  if(sinfo.type == 0) { // PJSA
+  if(sinfo.type == 0) {
     if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
   }
 
   geoSource->setUpData();
 
-  if(sinfo.type == 0) { // PJSA
+  if(sinfo.type == 0) {
     if(numLMPC) {
       Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
@@ -1082,6 +1009,7 @@ Domain::setUpData()
   if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
   else numnodes = geoSource->totalNumNodes();
   numele = geoSource->getElems(packedEset);
+  numele = packedEset.last(); // XXXX
 
   // set boundary conditions
   int numBC;
@@ -1091,7 +1019,6 @@ Domain::setUpData()
 
   // set dirichlet
   numBC = geoSource->getDirichletBC(bc);
-  //fprintf(stderr,"numBC = %d\n",numBC);
   numTextBC = geoSource->getTextDirichletBC(textBC);
   if (numTextBC)
     geoSource->augmentBC(numTextBC, textBC, bc, numBC);
@@ -1099,7 +1026,6 @@ Domain::setUpData()
     int numBCFluid;
     BCond *bcFluid;
     numBCFluid = geoSource->getDirichletBCFluid(bcFluid);
-    //fprintf(stderr,"numBCFluid = %d\n",numBCFluid);
     setDirichletFluid(numBCFluid, bcFluid);
   }
   setDirichlet(numBC, bc);
@@ -1107,14 +1033,6 @@ Domain::setUpData()
   // set neuman
   numBC = geoSource->getNeumanBC(bc);
   setNeuman(numBC, bc);
-
-  // set convective bc
-  numBC = geoSource->getConvBC(bc);
-  setConvBC(numBC, bc);
-
-  // set radiative bc
-  numBC = geoSource->getRadBC(bc);
-  setRadBC(numBC, bc);
 
   // set initial displacements
   numBC = geoSource->getIDis(bc);
@@ -1128,18 +1046,13 @@ Domain::setUpData()
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
 
-  // set initial temps
-  numBC = geoSource->getITemp(bc);
-  setITemp(numBC, bc);
-
   // set Control Law
   claw = geoSource->getControlLaw();
 
-  // GR: create the unit tangents defining the plane of friction
-  // FRICTION if(ctc->hasFriction()) ctc->setUnitTangents();
-
   // PJSA: compute temperature dependent material properties
   computeTDProps();
+
+  initNodalTemperatures();
 
 /*
   -- Include here checks on LMPC --
@@ -1610,7 +1523,8 @@ Domain::resProcessing(Vector &totRes, int index, double t)
 }
 
 Connectivity *
-Domain::makeSommerToNode() {
+Domain::makeSommerToNode() 
+{
  int size = numSommer;
  // Find out the number of targets we will have
  int *pointer = new int[size+1] ;
@@ -1641,30 +1555,42 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode == 0)
-   if(geoSource->getDirectMPC()) {
+   if(geoSource->getDirectMPC() && (sinfo.subtype == 0 || sinfo.subtype == 1)) { // skyline and sparse only
      // MPC Connectivity treatment in direct way.
      std::multimap<int, int> mpcConnect;
+     std::multimap<int, int>::iterator it;
+     std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
      int ndMax = nodeToElem->csize();
      for(int i = 0; i < this->numLMPC; ++i) {
        for(int j = 1; j < lmpc[i]->nterms; ++j)
-         if( lmpc[i]->terms[0].nnum < ndMax && lmpc[i]->terms[j].nnum < ndMax &&
-             lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum)
-           mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+         if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
+
+           ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
+           bool found = false;
+           for(it = ret.first; it != ret.second; ++it)
+             if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
+
+           if(!found)
+             mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+         }
      }
+
      int *ptr = new int[ndMax+1];
      for(int i = 0; i < ndMax; ++i)
        ptr[i] = 1;
+     
      ptr[ndMax] = 0;
-     for(std::multimap<int, int>::iterator it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
        ptr[it->first]++;
      for(int i = 0; i < ndMax; ++i)
        ptr[i+1] += ptr[i];
      int *tg = new int[ptr[ndMax]];
 
-     for(std::multimap<int, int>::iterator it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-            tg[--ptr[it->first]] = it->second;
+     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+       tg[--ptr[it->first]] = it->second;
      for(int i = 0; i < ndMax; ++i)
        tg[--ptr[i]] = i;
+
      Connectivity renumToNode(ndMax, ptr, tg);
      Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
      Connectivity *renumToElem = elemToRenum->reverse();
@@ -1673,7 +1599,6 @@ Domain::getRenumbering()
      delete elemToRenum;
    } else
      nodeToNode = nodeToElem->transcon(elemToNode);
-
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
@@ -2322,82 +2247,6 @@ void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
 
 }
 
-//-------------------------------------------------------------------
-
-/*
-void
-Domain::aeroSolve() {
-
-
-  double timeAero = - getTime();
-
-  switch(domain->probType())
-  {
-    case SolverInfo::Dynamic:  {
-      if(domain->solInfo().modal){
-        fprintf(stderr," ... Modal Dynamics  ...\n");
-        ModalDescr<double> modalProb(domain);
-        DynamicSolver <ModalOps, Vector, ModalDescr<double>, ModalDescr<double>, double>
-          modalSolver(&modalProb);
-        modalSolver.solve();
-      }
-      else {
-        SingleDomainDynamic<double> dynamProb(domain);
-        DynamicSolver <DynamMat, Vector, SDDynamPostProcessor, SingleDomainDynamic<double>, double>
-          dynaSolver(&dynamProb);
-        dynaSolver.solve();
-      }
-    }
-    break;
-
-    case SolverInfo::NonLinDynam:
-    {
-      if(domain->solInfo().newmarkBeta == 0.0) { // explicit
-        SingleDomainDynamic<double> dynamProb(domain);
-        DynamicSolver <GenDynamMat<double>, Vector,
-              SDDynamPostProcessor, SingleDomainDynamic<double>, double>
-          dynaSolver(&dynamProb);
-        dynaSolver.solve();
-      }
-      else { // implicit
-        NonLinDynamic nldynamic(domain);
-        NLDynamSolver <Solver,Vector,SDDynamPostProcessor,
-                     NonLinDynamic, GeomState  > nldynamicSolver(&nldynamic);
-        nldynamicSolver.solve();
-      }
-    }
-    break;
-
-    default:
-      filePrint(stderr,"Incorrect problem type, exiting\n");
-  }
-  timeAero += getTime();
-
-  filePrint(stderr," ... Aeroelastic simulation time: %.2e s\n",
-         timeAero/1000.0);
-
-  //_FORTRAN(endcom)();
-}
-
-void
-Domain::aeroheatSolve()
-{
- //int structID = 3;  // structID is the identification number of the structure
-                      // code. The fluid uses 1 and control 3
-
- fprintf(stderr, " ... Calling inicom\n");
- // TO be changed
- //_FORTRAN(inicom)(structID);
-
- SingleDomainTemp tempProb(domain);
- TempSolver <DynamMat, Vector, SDTempDynamPostProcessor, SingleDomainTemp>
-      dynaSolver(&tempProb);
- dynaSolver.solve();
-
- //_FORTRAN(endcom)();
-}
-*/
-
 void Domain::mergeDisp(double (*xyz)[11], double *u, double *cdisp)//DofSet::max_known_nonL_dof
 {
   int inode;
@@ -2506,7 +2355,7 @@ void Domain::computeTDProps()
 {
   if((numYMTT > 0) || (numCTETT > 0)) {
     // PJDS: used to calculate temperature dependent material properties
-    double defaultTemp = -10000000.0;
+    //double defaultTemp = -10000000.0;
 
     // compute maximum number of nodes per element
     // note this is also done in Domain::makeAllDOFs()
@@ -2540,7 +2389,7 @@ void Domain::computeTDProps()
     for(iele = 0; iele < numele; ++iele) {
       // note: packedEset[iele]->numNodes() > 2 is temp fix to avoid springs
       // this means that until fixed, beams can't have temp-dependent material props
-      if((packedEset[iele]->numNodes() > 2) && (packedEset[iele]->isPhantomElement()==0)) {//getProperty()))
+      if((packedEset[iele]->numNodes() > 2) && !packedEset[iele]->isPhantomElement()) {
         if((packedEset[iele]->getProperty()->E < 0) ||
            (packedEset[iele]->getProperty()->W < 0)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();
@@ -2597,9 +2446,9 @@ Domain::AddSurfaceEntity(SurfaceEntity* _SurfEntity)
  // if _SurfEntity not previously defined create new
  if (i==nSurfEntity)
   SurfEntities[nSurfEntity++] = _SurfEntity;
- else{
-  filePrint(stderr," *** WARNING: Surface Entity of Id %d has already been defined !!!\n", SurfEntities[i]->ID());
- };
+ else 
+  if(_SurfEntity->ID() != 0) filePrint(stderr," *** WARNING: Surface Entity of Id %d has already been defined !!!\n", SurfEntities[i]->ID());
+
  return 0;
 }
 
@@ -2648,11 +2497,21 @@ Domain::AddMortarCond(MortarHandler* _MortarCond)
   //we read them (see no check !!)
   _MortarCond->SetId(nMortarCond);
 
+  // PJSA dirty fix for self contact
+  if(_MortarCond->GetMasterEntityId() == _MortarCond->GetSlaveEntityId()) {
+    SurfaceEntity *dummy = new SurfaceEntity(0); 
+    AddSurfaceEntity(dummy);
+    _MortarCond->SetMasterEntityId(0);
+    _MortarCond->SetSelfContact(true);
+  }
+
   // Add the MortarCond to the MortarConds array
   MortarConds[nMortarCond] = _MortarCond;
 
   // Count number of MortarCond
   nMortarCond++;
+
+  if(_MortarCond->GetInteractionType() == MortarHandler::CTC) nContactSurfacePairs++;
 
   return 0;
 }
@@ -2716,7 +2575,7 @@ Domain::SetMortarPairing()
 // HB: to setup internal data & renumber surfaces
 void Domain::SetUpSurfaces(CoordSet* cs)
 {
-#ifdef MORTAR_LOCALNUMBERING
+#if defined(MORTAR_LOCALNUMBERING) && defined(MORTAR_DEBUG)
   // if we want to work with local numbering of the surface entities (Salinas)
   if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
 #endif
@@ -2754,6 +2613,7 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
     CurrentMortarCond->build_search(numSub, sd);
     CurrentMortarCond->build_td_enforcement();
     CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
@@ -2785,18 +2645,17 @@ void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_typ
 
 void Domain::UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd) // config_type = 1 for current, 2 for predicted
 {
-#ifndef DIST_ACME_2
-  for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
-    SurfEntities[iSurf]->UpdateNodeData(geomState, sd);
+  if(solInfo().dist_acme != 2) {
+    for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
+      SurfEntities[iSurf]->UpdateNodeData(geomState, sd);
+    }
   }
-#endif
-
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-#ifdef DIST_ACME_2
-    CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
-    CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
-#endif
+    if(solInfo().dist_acme == 2) {
+      CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
+    }
     CurrentMortarCond->set_node_configuration(config_type, geomState->getNumSub(), sd);
   }
 }
@@ -2851,11 +2710,82 @@ void Domain::MakeNodalMass(SubDOp *M, SubDomain **sd)
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
       CurrentMortarCond->make_nodal_mass(M, sd);
-       CurrentMortarCond->make_kinematic_partitioning(M->getNumSub(), sd);
+      CurrentMortarCond->make_kinematic_partitioning(M->getNumSub(), sd);
     }
   }
 }
 // **********************************************************************************************************************
+
+// These functions use ACME's static 1-configuation search algorithm and face-face interaction, and Henri's mortar LMPCs for statics and implicit dynamics
+void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub, SubDomain **sd)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
+      CurrentMortarCond->build_search(numSub, sd);
+      CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
+      CurrentMortarCond->set_node_configuration(1);
+      CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
+      CurrentMortarCond->set_search_options();
+      if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+      else {
+        CurrentMortarCond->set_node_constraints(numSub, sd);
+        CurrentMortarCond->make_share(numSub, sd);
+      }
+    }
+  }
+}
+
+void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd) 
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState, sd);
+      CurrentMortarCond->set_node_configuration(1, geomState->getNumSub(), sd); // 1 --> config_type current
+    }
+  }
+}
+
+
+void Domain::PerformStaticContactSearch(MortarHandler::Interaction_Type t)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      int search_algorithm = 1; // static 1-configuration
+      CurrentMortarCond->perform_search(search_algorithm);
+      int interaction_type = 4;
+      CurrentMortarCond->get_interactions(interaction_type);
+    }
+  }
+}
+
+void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, int *dofs)
+{
+  int num_interactions = 0;
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->CreateFFIPolygon();
+      CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
+      nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
+      num_interactions += CurrentMortarCond->GetnFFI();
+    }
+  }
+#ifdef HB_ACME_FFI_DEBUG
+  if(sinfo.ffi_debug && num_interactions > 0) {
+    char fname[16];
+    sprintf(fname,"FFI.top.%d",totalNewtonIter);
+    filePrint(stderr," -> Write FFI top file: %s for %d interactions\n", fname, num_interactions);
+    FILE* FFITopFile = fopen(fname,"w");
+    WriteFFITopFile(FFITopFile);
+    fclose(FFITopFile);
+  }
+#endif
+}
 
 // HB: compute & add to the standard LMPC array (lmpc) the Mortar LMPCs:
 void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
@@ -2864,13 +2794,13 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   double time00=-getTime();
   for(int iMortar=0; iMortar<nMortarCond; iMortar++){
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
-    filePrint(stderr," ... Treat Mortar condition Id %d\n",CurrentMortarCond->ID());
 #ifdef MORTAR_TIMINGS
     double time0= -getTime();
     double time = -getTime();
 #endif
 #ifdef MORTAR_DEBUG
-   CurrentMortarCond->Print();
+    filePrint(stderr," ... Treat Mortar condition Id %d\n",CurrentMortarCond->ID());
+    CurrentMortarCond->Print();
 #endif
     switch(int(CurrentMortarCond->GetGeomType())){
      case MortarHandler::EQUIVALENCED:
@@ -2912,9 +2842,10 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   }
 
   time00 += getTime();
-  filePrint(stderr," ... Build %d Mortar (tied/ctc) LMPCs\n",nMortarLMPCs);
-  if(numFSI) filePrint(stderr," ... Build %d wet FSI interactions\n",numFSI);
-  filePrint(stderr," ... CPU time for building Mortar LMPCs/ wet FSI: %e s\n",time00/1000);
+  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
+#ifdef MORTAR_TIMINGS
+  filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
+#endif
   //if(numFSI){
   //  printFSI();
   //  long memFSI = 0;
@@ -2942,13 +2873,13 @@ void Domain::WriteFFITopFile(FILE* file)
       MortarCond->PrintFFIPolyVertices(file, firstNodeId);
     }
     firstNodeId = 1;
-    int firstEdgeId = 1;
+    int firstElemId = 1;
     for(int iMortar=0; iMortar<nMortarCond; iMortar++){
       MortarHandler* MortarCond = MortarConds[iMortar];
-      fprintf(file,"Elements SlaveFFI_%d\n",MortarCond->GetSlaveEntityId());
-      MortarCond->PrintFFIPolyTopo(file, firstEdgeId, firstNodeId);
-      fprintf(file,"Elements MasterFFI_%d\n",MortarCond->GetMasterEntityId());
-      MortarCond->PrintFFIPolyTopo(file, firstEdgeId, firstNodeId);
+      fprintf(file,"Elements SlaveFFI_%d using FFINodes\n",MortarCond->GetSlaveEntityId());
+      MortarCond->PrintFFIPolyTopo(file, firstElemId, firstNodeId);
+      fprintf(file,"Elements MasterFFI_%d using FFINodes\n",MortarCond->GetMasterEntityId());
+      MortarCond->PrintFFIPolyTopo(file, firstElemId, firstNodeId);
     }
   }
 }
@@ -2975,7 +2906,9 @@ Domain::CreateMortarToMPC()
   if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
 
   if(nMortarCond>0){
+#ifdef MORTAR_DEBUG
     filePrint(stderr," ... Create (Tied) Mortar To LMPCs connectivity ...\n");
+#endif
 
     // 1) Set the map pointer array & count number of
     //    targets = total number of (Tied) Mortar LMPCs
@@ -3061,12 +2994,12 @@ Domain::initialize()
 {
  numdofs = 0; numDispDirichlet = 0; numContactPairs = 0;
  numIDis = 0; numIVel = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
- numComplexDirichlet = 0; numComplexNeuman = 0; numConvBC = 0; numRadBC = 0;
- firstDiMass = 0; numITemp = 0; numIDis6 = 0; gravityAcceleration = 0;
+ numComplexDirichlet = 0; numComplexNeuman = 0; 
+ firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
  numLMPC = 0; numYMTT = 0; numCTETT = 0; MidPoint = 0; temprcvd = 0;
- heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; cvbc = 0;
- iDis = 0; iVel = 0; iTemp = 0;  iDis6 = 0; elemToNode = 0; nodeToElem = 0;
+ heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; 
+ iDis = 0; iVel = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
@@ -3084,6 +3017,7 @@ Domain::initialize()
  numCTC=0;
  output_match_in_top = false;//TG
  C_condensed = 0;
+ nContactSurfacePairs = 0;
 }
 
 Domain::~Domain()
@@ -3111,10 +3045,9 @@ Domain::~Domain()
  if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
  if(dbc) { delete [] dbc; dbc = 0; }
  if(nbc) { delete [] nbc; nbc = 0; }
- if(cvbc) { delete [] cvbc; cvbc = 0; }
+ //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
  if(iVel) { delete [] iVel; iVel = 0; }
- if(iTemp) { delete [] iTemp; iTemp = 0; }
  if(iDis6) { delete [] iDis6; iDis6 = 0; }
  if(cdbc) { delete [] cdbc; cdbc = 0; }
  if(cnbc) { delete [] cnbc; cnbc = 0; }
@@ -3150,33 +3083,9 @@ Domain::~Domain()
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
  for(int i=0; i<nMortarCond; ++i) // HB
    if(MortarConds[i]) delete MortarConds[i];
- for(int i=0; i<numLMPC; ++i) // HB
-   if(lmpc[i]) delete lmpc[i];
+ //for(int i=0; i<numLMPC; ++i) // HB
+ //  if(lmpc[i]) delete lmpc[i];
 }
-
-/*
-double
-LMPCons::computeError(GeomState &gState, CoordSet &cs, int *glToLocalNode)
-{
-  int i;
-  double error = -original_rhs; // question: should this always be the original rhs??
-  // cerr << "gState.numNodes() = " << gState.numNodes() << endl;
-  for(i = 0; i < nterms; i++) {
-    double val = terms[i].val;
-    // cerr << "terms[i].nnum = " << terms[i].nnum << endl;
-    // int nnum = glToLocalNode[terms[i].nnum];
-    // cerr << "glToLocalNode[terms[i].nnum] = " << glToLocalNode[terms[i].nnum] << endl;
-    int nnum = terms[i].nnum;
-    int dofnum = terms[i].dofnum;
-    Node &node1 = cs.getNode(nnum);
-    // cerr << "node1 xyz = " << node1.x << " " << node1.y << " " << node1.z << endl;
-    NodeState ns1 = gState[nnum];
-    error += val * ns1.diff(node1, dofnum);
-  }
-  return error;
-  // return 0.0;
-}
-*/
 
 #include <Element.d/Helm.d/HelmElement.h>
 
@@ -3379,12 +3288,12 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  bool addZeros = false;
  double normalGap = (normalGapPresent) ? _normalGap : 0.0;
  //double fricCoef = (fricCoefPresent) ? _fricCoef : domain->solInfo().coulomb_fric_coef;
- int mode = (modePresent) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied, 1 -> normal contact,
+ int mode = (modePresent) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
                                                                      // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
  int lmpcnum = (mode == 1 || mode == 3) ? numCTC : 0;
  if(_lmpcnum > -1) lmpcnum = _lmpcnum; // PJSA 9-13-07
 
- // contact note: normal contact only (no tied, friction etc)
+ // normal constraint
  LMPCons *_CTC = new LMPCons(lmpcnum, normalGap);
  double norm = sqrt(nx*nx + ny*ny + nz*nz);
  if(addZeros || (nx != 0.0)) {
@@ -3408,7 +3317,9 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
    LMPCTerm *term2 = new LMPCTerm(n2, 2, -nz);
    _CTC->addterm(term2);
  }
- _CTC->type = (mode == 1 || mode == 3);
+ _CTC->type = (mode == 1 || mode == 3); // this is to be phased out
+ if(mode == 1 || mode == 3) _CTC->setType(mpc::Inequality);
+ _CTC->setSource(mpc::NodalContact);
  //addLMPC(_CTC,false);
  addLMPC(_CTC,(_lmpcnum > -1)); //  PJSA 9-13-07
  if(_CTC->type == 1) numCTC++; // inequality constraint
@@ -3431,6 +3342,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                     LMPCTerm *term2 = new LMPCTerm(n2, 1, -t1[1]); _TGT1->addterm(term2); }
    if(addZeros || (t1[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t1[2]); _TGT1->addterm(term1);
                                     LMPCTerm *term2 = new LMPCTerm(n2, 2, -t1[2]); _TGT1->addterm(term2); }
+   _TGT1->setSource(mpc::NodalContact);
    addLMPC(_TGT1,false);
    if(solInfo().fetiInfo.spaceDimension == 3) {
      crossprod(n,t1,t2);
@@ -3442,6 +3354,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                       LMPCTerm *term2 = new LMPCTerm(n2, 1, -t2[1]); _TGT2->addterm(term2); }
      if(addZeros || (t2[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t2[2]); _TGT2->addterm(term1);
                                       LMPCTerm *term2 = new LMPCTerm(n2, 2, -t2[2]); _TGT2->addterm(term2); }
+     _TGT2->setSource(mpc::NodalContact);
      addLMPC(_TGT2,false);
    }
  }
@@ -3495,7 +3408,8 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
       }
     }
     if(domain->solInfo().dbccheck) {
-      //filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+      if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+      bool xxx;
       for(int i=0; i < numLMPC; ++i) {
         for(int j=0; j < lmpc[i]->nterms; ++j) {
           int mpc_node = lmpc[i]->terms[j].nnum;
@@ -3505,10 +3419,12 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
             int dbc_dof = dbc[k].dofnum;
             if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
               if(!lmpc[i]->isComplex) {
+                //cerr << "warning: found an mpc with constrained term\n"; // XXXX seems to cause problem in feti-dpc
                 lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
               }
-              else
+              else {
                 lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
+              }
             }
           }
           for(int k=0; k<numComplexDirichlet; ++k) {
@@ -3600,7 +3516,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; }
+        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; bc[k].type = surface_dbc[i].type; }
         int numDirichlet_copy = geoSource->getNumDirichlet();
         geoSource->setDirichlet(nNodes, bc);
         if(numDirichlet_copy != 0) delete [] bc;
@@ -3617,7 +3533,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; }
+        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;
@@ -3880,4 +3796,44 @@ Domain::setEigenValues(double _lbound , double _ubound, int _neigps, int _maxArn
   sinfo.neigps = _neigps;
   sinfo.maxArnItr = _maxArnItr;
   sinfo.doEigSweep = true;
+}
+
+void
+Domain::deleteAllLMPCs()
+{
+  lmpc.deleteArray();
+  lmpc.restartArray();
+  numLMPC = 0;
+  nMortarLMPCs = 0;
+  numCTC = 0;
+  if(mortarToMPC) {
+    delete mortarToMPC;
+    mortarToMPC = 0;
+  }
+}
+
+void
+Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
+{ 
+  int j = 0;
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == s) {
+      if(lmpc[i]->getType() == mpc::Inequality) numCTC--;
+      if(s == mpc::ContactSurfaces || s == mpc::TiedSurfaces) nMortarLMPCs--;
+      delete lmpc[i];
+      lmpc[i] = 0;
+    }
+    else {
+      if(i != j) {
+        lmpc[j] = lmpc[i];
+        lmpc[i] = 0;
+      }
+      j++; 
+    }
+  }
+  numLMPC = j;
+  if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
+    delete mortarToMPC;
+    mortarToMPC = 0;
+  }
 }

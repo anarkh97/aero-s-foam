@@ -62,7 +62,7 @@ c set thickness
 c
         esp = h(1)
 c
-c membrane elastic matrix
+c bending elastic matrix
 c
         cb      = e*esp**3/12.0/(1.0-(nu*nu))
         db(1,1) =    cb
@@ -75,7 +75,7 @@ c
         db(3,2) = 0.0
         db(3,3) = ((1.0-nu)/2.0)*cb
 c
-c bending elastic matrix
+c membrane elastic matrix
 c
         cb=e*esp/(1.0-(nu*nu))
         dm(1,1) =    cb

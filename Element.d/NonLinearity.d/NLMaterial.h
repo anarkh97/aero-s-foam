@@ -6,9 +6,11 @@
 #include <Utils.d/NodeSpaceArray.h>
 
 //Declaration of the material properties
-class Material {
+
+class NLMaterial
+{
    public:
-     Material() {}  
+     NLMaterial() {}  
      virtual int getNumStates() = 0;  
 
      virtual void getTangentMaterial(Tensor *tm,Tensor &strain, double *state) = 0;
@@ -24,7 +26,7 @@ class Material {
                       double *staten, double *statenp, double dt = 0.0) = 0;
      virtual void initStates(double *) = 0;
 
-     
+     virtual double getDensity() {} // PJSA
 };
 
 #endif

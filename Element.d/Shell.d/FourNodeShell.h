@@ -17,6 +17,7 @@ class FourNodeShell : public SuperElement
     void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront *mf);
+
 };
 
 #endif

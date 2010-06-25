@@ -34,9 +34,7 @@ BeamCorotator::BeamCorotator(int _n1, int _n2, double z[3],
      origK[i][j] = _origK[i][j];
 
  // Copy the element normal vector
- zVec[0] = z[0];
- zVec[1] = z[1];
- zVec[2] = z[2];
+ zVec =  z;
 
  // Set the fit algorithm
  fitAlg  = fitAlgBeam;
@@ -68,7 +66,8 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
      elK[i][j] = origK[i][j];
 
  // compute locF (unprojected internal local Force) as origK*vld
- _FORTRAN(dgemv)('N',12,12,1.0,(double *)origK,12,vld,1,0.0,locF,1);
+ _FORTRAN(dgemv)('N',12,12,1.0,(double *)elK.data(),12,vld,1,0.0,locF,1);
+
 
  // Compute gradients of nodal deformational pseudorotations
  // and correct stiffness and force
@@ -91,7 +90,6 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
                        rotvar[inode][2][i]*locF[6*inode+5];
    }
 
-
  // Add second variation of pseudorotations contracted with the
  // nodal moment to the diagonal blocks of the stiffness
 
@@ -107,7 +105,8 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 // and correct stiffness and force
 // pmat = projector matrix
  double pmat[12][12];
- gradDefDisp( zVecL, xln, pmat);
+ double gmat[3][12];
+ gradDefDisp( zVecL, xln, pmat, gmat);
 
  double scrstiff[12][12];
 
@@ -115,6 +114,12 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  _FORTRAN(dgemm)('N','T',12,12,12,1.0,elK.data(),12,
                    (double*)pmat,12,0.0,(double*)scrstiff,12);
+		   
+ // Form:  [K] = [K*][P]
+
+ _FORTRAN(dgemm)('N','N',12,12,12,1.0,(double*)pmat,12,
+                   (double*)scrstiff,12,0.0,elK.data(),12);		   
+		   
 
  // Form: {f} = [P']{fe}
 
@@ -124,25 +129,104 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  double stiffGeo1[12][12], stiffGeo2[12][12];
  corotStiffGeo(zVecL,xln,pmat,f,stiffGeo1,stiffGeo2);
+ //formCorrectGeometricStiffness( pmat, gmat, f, stiffGeo1, 
+ //                              stiffGeo2, fe, node1, node2, ns1, ns2);
 
  // Sum geometric stiffness contributions into elK first
 
  for(i=0; i<12; ++i)
    for(j=0; j<12; ++j)
-     elK[i][j] = stiffGeo1[i][j] + stiffGeo2[i][j];
+     elK[i][j] += stiffGeo1[i][j] + stiffGeo2[i][j];
 
  //
  // Now multiply scrstiff by pmat on the right and sum into elK
  //
 
- _FORTRAN(dgemm)('T','T',12,12,12,1.0,(double*)scrstiff,12,
-                 (double*)pmat,12,1.0,elK.data(),12);
+// _FORTRAN(dgemm)('T','T',12,12,12,1.0,(double*)scrstiff,12,
+//                 (double*)pmat,12,1.0,elK.data(),12);
 
 // Transform internal force and stiffness matrix to global coordinate system 
 
  tran_fsl(f,elK,t0n,2);
 
 }
+
+//----------------------------------------------------------------------
+
+void 
+BeamCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+                                  FullSquareMatrix &elK, double *f)
+{
+
+int i, j, inode;
+
+ // Get Nodes original coordinates
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+
+ // Get Nodes current coordinates
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+
+ double xl0[2][3],xln[2][3],t0[3][3],t0n[3][3],vld[12],locF[12],zVecL[2][3];
+ 
+ // Extract deformational displacement
+ extractDefDisp(node1,node2,ns1,ns2,zVecL,xl0,xln,t0,t0n,vld);
+ 
+  // copy origK (original stiffness matrix) to elK
+  for(i=0; i<12; ++i)
+   for(j=0; j<12; ++j)
+     elK[i][j] = origK[i][j];
+ 
+ // compute locF (unprojected internal local Force) as origK*vld
+ _FORTRAN(dgemv)('N',12,12,1.0,(double *)elK.data(),12,vld,1,0.0,locF,1);
+
+ // Compute gradients of nodal deformational pseudorotations
+ // and correct stiffness and force
+
+ double rotvar[2][3][3];
+ 
+ for(inode = 0; inode < 2; ++inode)
+   pseudorot_var(vld+inode*6+3, rotvar[inode]);
+  
+
+ double fe[12];
+
+ for(inode = 0; inode < 2; ++inode)
+   for(i = 0; i < 3; ++i) {
+     fe[6*inode+i]   = locF[6*inode+i];
+     fe[6*inode+i+3] = rotvar[inode][0][i]*locF[6*inode+3] +
+                       rotvar[inode][1][i]*locF[6*inode+4] +
+                       rotvar[inode][2][i]*locF[6*inode+5];
+   }
+
+// Compute nonlinear projector matrix relative to deformed element
+// and correct stiffness and force
+// pmat = projector matrix
+ double pmat[12][12];
+ double gmat[3][12];
+ gradDefDisp( zVecL, xln, pmat, gmat);
+
+ double scrstiff[12][12];
+
+ 
+ // Form: {f} = [P']{fe}
+
+  _FORTRAN(dgemv)('N',12,12,1.0,(double *)pmat,12,fe,1,0.0,f,1);
+
+
+ 
+
+ 
+
+// Transform internal force and stiffness matrix to global coordinate system 
+
+ tran_force(f,t0n,2);
+
+
+}				  
+
+//----------------------------------------------------------------------------
 
 void
 BeamCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs, 
@@ -162,6 +246,11 @@ BeamCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
 
  // Extract deformational displacement
  extractDefDisp(node1,node2,ns1,ns2,zVecL,xl0,xln,t0,t0n,vld);
+
+ // copy origK (original stiffness matrix) to elK
+  for(i=0; i<12; ++i)
+   for(j=0; j<12; ++j)
+     elK[i][j] = origK[i][j];
 
  // Form unprojected internal forces and initialize stiffness matrix
  _FORTRAN(dgemv)('N',12,12,1.0,(double *)origK,12,vld,1,0.0,locF,1);
@@ -187,7 +276,8 @@ BeamCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
 // and correct stiffness and force
 // pmat = projector matrix
  double pmat[12][12];
- gradDefDisp( zVecL, xln, pmat);
+ double gmat[3][12];
+ gradDefDisp( zVecL, xln, pmat, gmat);
 
  // Form: {f} = [P']{fe}
 
@@ -207,6 +297,7 @@ BeamCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
 
 }
 
+//-----------------------------------------------------------------------
 
 void
 BeamCorotator::extractDefDisp(Node &nd1, Node &nd2, NodeState &ns1, 
@@ -297,6 +388,7 @@ BeamCorotator::extractDefDisp(Node &nd1, Node &nd2, NodeState &ns1,
 
 }
 	
+//-----------------------------------------------------------------------
 
 void
 BeamCorotator::corotStiffGeo(double zVecL[2][3],
@@ -370,6 +462,8 @@ BeamCorotator::corotStiffGeo(double zVecL[2][3],
    }
 
 }
+
+//-------------------------------------------------------------------
 
 void 
 BeamCorotator::spinAxialAndMoment ( double f[], double fnm[][3])
@@ -546,7 +640,7 @@ BeamCorotator::spinAxial( double f[], double fn[][3] )
 
 void
 BeamCorotator::gradDefDisp( double zVecL[][3], double xln[][3],
-                            double pmat[12][12])
+                            double pmat[12][12], double gmat[3][12])
 /***********************************************************************
  *
  *   Compute the gradients of the deformational displacement
@@ -570,7 +664,7 @@ BeamCorotator::gradDefDisp( double zVecL[][3], double xln[][3],
  **********************************************************************/
 {
    int    nod, inod, jnod, dof;
-   double fac, gmat[3][12], len;
+   double fac,  len;
 
 // Gmat( gradient of local rotations) dependent part of projector matrix
 
@@ -857,7 +951,8 @@ BeamCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
  extractDefDisp(node1,node2,ns1,ns2,zVecL,xl0,xln,t0,t0n,vld);
 
  // transform element displacement vector from local to global coordinates
- tran_force( vld, t0, 2 );
+ //why do they do this?
+ //tran_force( vld, t0, 2 );
  
  // Multiply by the original stiffness matrix
  for(i=0; i<12; ++i) {
@@ -876,4 +971,191 @@ BeamCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
  return Energy;
 }
 
- 
+//------------------------------------------------------------------------------
+
+void
+BeamCorotator::formCorrectGeometricStiffness( 
+                            double pmat[12][12],double gmat[3][12], 
+			    double f[12], double stiffGeo1[12][12], 
+                            double stiffGeo2[12][12],double fe[12],
+			    Node &node1, Node &node2, NodeState &ns1,
+			    NodeState &ns2)
+{
+   
+     int i, j, k, m, inod;
+     double fspin[12][3], fproj[12][3];
+     //zero stiffness matricies
+     for (i=0;i<12;i++)
+         for (j=0;j<12;j++){
+	      stiffGeo1[i][j]=0.0;
+	      stiffGeo2[i][j]=0.0;
+	 }
+
+
+     //First Compute Kgeo1
+    
+       // Fspin with both axial and moment contributions
+          spinAxialAndMoment( f, fspin );
+
+       // Geometric stiffness contribution Kgeo1 = -Fspin*Gmat ,Fspin(P'H'f)
+
+          for( i=0; i<12; ++i ) {
+              for( j=0; j<12; ++j ) {
+                   stiffGeo1[i][j] = -( fspin[i][0]*gmat[0][j]
+                                        +fspin[i][1]*gmat[1][j]
+                                        +fspin[i][2]*gmat[2][j] );
+               }
+           }
+
+
+     // Geometric stiffness contribution Kgeo2  
+       // 
+       // Fspin with only axial contributions
+          spinAxial( fe, fspin );
+
+       // Compute Fproj' = Fspin'*Pmat
+
+         for( i=0; i<3; ++i ) {
+            for( j=0; j<12; ++j ) {
+                fproj[j][i] = 0.0;
+                for( k=0; k<12; ++k )
+                    fproj[j][i] += fspin[k][i]*pmat[k][j];
+                } 
+             }
+
+         for( i=0; i<12; ++i )
+            for( j=0; j<12; ++j )
+                stiffGeo2[i][j] = -( gmat[0][i]*fproj[j][0]
+			            +gmat[1][i]*fproj[j][1]
+                                    +gmat[2][i]*fproj[j][2] );
+/*
+        //get contribution from the variation of G
+	double PvarPartG[12][12];
+	
+	double x0[2][3], dx0[2][3], xn[2][3], dxn[2][3];
+ 	double (*  rot[2])[3][3];
+	double (* drot[2])[3][3];
+	
+	x0[0][0]  = node1.x; //x coordinate of node 1
+ 	x0[0][1]  = node1.y; //y coordinate of node 1
+ 	x0[0][2]  = node1.z; //z coordinate of node 1
+	dx0[0][0]  = 0.0;
+	dx0[0][1]  = 0.0;
+	dx0[0][2]  = 0.0;
+ 	x0[1][0]  = node2.x; //x coordinate of node 2
+ 	x0[1][1]  = node2.y; //y coordinate of node 2
+ 	x0[1][2]  = node2.z; //z coordinate of node 2
+	dx0[1][0]  = 0.0;
+	dx0[1][1]  = 0.0;
+	dx0[1][2]  = 0.0;
+
+ 	xn[0][0]  = ns1.x; //x coordinate of node state 1
+ 	xn[0][1]  = ns1.y; //y coordinate of node state 1
+ 	xn[0][2]  = ns1.z; //z coordinate of node state 1
+
+ 	xn[1][0]  = ns2.x; //x coordinate of node state 2
+ 	xn[1][1]  = ns2.y; //y coordinate of node state 2
+ 	xn[1][2]  = ns2.z; //z coordinate of node state 2
+
+ 	rot[0]    = &(ns1.R); // rotation tensor of node state 1
+ 	rot[1]    = &(ns2.R); // rotation tensor of node state 2
+
+	
+        //loop over each variation
+	double temp[12];
+	Vector temp_rot(3, 0.0);
+	double rot_zero[3];
+	for (i=0;i<3;i++)
+	    rot_zero[i] =0.0;
+	double (* dummy)[3][3];
+	double zVecL[2][3], dzVecL[2][3];
+	double t0[3][3], dt0[3][3];
+	double t0n[3][3], dt0n[3][3];
+	double xln[2][3], dxln[2][3];
+	double xl0[2][3], dxl0[2][3];
+	double Gvar[3][12];
+	double tempstiff[12][12];
+	double len, dlen;
+	
+	for (i=0;i<12;i++){
+	
+		//zero variational terms	      
+	        for (j=0;j<2;j++)
+		     for (k=0;k<3;k++)
+			dxn[j][k] = 0.0;
+	       for (j=0;j<2;j++)
+	            for (k=0;k<3;k++)
+	               for (m=0;m<3;m++)
+	                   (*drot[j])[k][m] = 0.0; 
+	    
+		//write if statements to fill up the dxn, drot
+		if (i<3)
+		   dxn[1][i] = 1.0;
+		else if (i<6){
+		   temp_rot.zero();
+		   temp_rot[i-3] = 1.0;
+		   dvec_to_mat(rot_zero, temp_rot.data(), *dummy, *drot[1]);}
+		else if (i<9)
+		   dxn[2][i-6] = 1.0;
+		else {
+		   temp_rot.zero();
+		   temp_rot[i-9] = 1.0;
+		   dvec_to_mat(rot_zero, temp_rot.data(), *dummy, *drot[2]);}
+		   
+		
+		localCoord(zVec, dzVec, zVecL, dzVecL, rot, drot, x0, dx0, xn, dxn, t0, dt0,
+                           t0n, dt0n, xl0, dxl0, xln, dxln);
+
+		  len =  xln[1][0] -  xln[0][0];
+                  dlen = dxln[1][0] - dxln[0][0];
+                 dgradLocRot( len, dlen, zVecL, dzVecL, gmat, Gvar);
+
+		//create partial derivative of P wrt to G
+		int nod,dof;
+		for( nod=0; nod<2; nod++ ) {
+                    for( dof=0; dof<12; dof++ ) {
+
+                     // Translation part
+                     PvarPartG[nod*6  ][dof] = -xln[nod][2]*Gvar[1][dof]
+					       +xln[nod][1]*Gvar[2][dof];
+                     PvarPartG[nod*6+1][dof] =  xln[nod][2]*Gvar[0][dof]
+                                               -xln[nod][0]*Gvar[2][dof];
+                     PvarPartG[nod*6+2][dof] = -xln[nod][1]*Gvar[0][dof]
+                                               +xln[nod][0]*Gvar[1][dof];
+                     // Rotation part
+                        PvarPartG[nod*6+3][dof] = -Gvar[0][dof];
+                        PvarPartG[nod*6+4][dof] = -Gvar[1][dof];
+                        PvarPartG[nod*6+5][dof] = -Gvar[2][dof];
+                        }
+
+                     }
+		_FORTRAN(dgemv)('N',12,12,1.0,(double*)PvarPartG,12,fe,1,0.0,temp,1);
+		for (j=0;j<12;j++) tempstiff[j][i] = temp[j]; 
+               }
+		
+double t0nt[3][3];
+for (i=0;i<3;i++)
+    for (j=0;j<3;j++)
+      t0nt[i][j]=t0n[j][i];
+
+for (i=0;i<12;i++) {
+    for (j=0;j<12;j++) temp[j]=tempstiff[i][j];
+    tran_force(temp, t0nt, 3);
+    for (j=0;j<12;j++) stiffGeo2[i][j] += temp[j];
+  }
+  
+  */
+}
+
+//-----------------------------------------------------------------------------
+
+void
+BeamCorotator::reBuildorigK(FullSquareMatrix &_origK)
+{
+ // Copy Element's stiffness matrix to origK (original stiffness matrix)
+ int i, j;
+ for(i=0; i<12; ++i)
+   for(j=0; j<12; ++j)
+     origK[i][j] = _origK[i][j];
+}
+

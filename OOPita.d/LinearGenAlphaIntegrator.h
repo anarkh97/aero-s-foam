@@ -3,7 +3,7 @@
 
 #include "AffineDynamTimeIntegrator.h"
 #include "LinearDynamOps.h"
-template <typename Scalar> class SingleDomainDynamic;
+class SingleDomainDynamic;
 template <typename VectorType> class SysState;
 
 namespace Pita {
@@ -15,7 +15,7 @@ public:
   // Type aliases for (future) templating
   typedef double Scalar;
   typedef ::GenVector<Scalar> VectorType;
-  typedef SingleDomainDynamic<Scalar> ProblemDescriptor;
+  typedef SingleDomainDynamic ProblemDescriptor;
 
   // Overriden methods
   virtual void timeStepSizeIs(Seconds dt);

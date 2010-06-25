@@ -7,6 +7,13 @@
 #include <Utils.d/resize_array.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/Element.h>
+#include <Utils.d/Connectivity.h>
+#include <vector>
+
+
+// TODO remove nterms and type from LMPCons and SubLMPCons
+//      use terms.size() and m_type/m_source instead
+//      merge LMPCons/SubLMPCons
 
 struct RealOrComplex 
 {
@@ -50,7 +57,7 @@ class LMPCTerm
    }
   
   bool isNull() {
-     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0;
+     return isComplex ? coef.c_value == 0.0 : coef.r_value == 0.0;
   }
 }; 
 
@@ -68,51 +75,71 @@ class GenLMPCTerm
   GenLMPCTerm() { dof = cdof = ccdof = -1; }
 };
 
+namespace mpc {
+  enum ConstraintType { Equality, Inequality };
+  enum ConstraintSource { Lmpc, NodalContact, TiedSurfaces, ContactSurfaces, Rigid, Joint, FetiPrimal, FetiDual, Undefined };
+}
+
+/** Linear Multi-Point Constraint class */
 class LMPCons
 {
- public:
-  bool isComplex;
-  RealOrComplex rhs;              // right hand side of mpc
-  ResizeArray<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
-  union {
-    int lmpcnum;                  // id number of the mpc from input
-    int fluid_node;            
-    int pairNb;
-  };
-  int nterms;                     // number of terms in mpc
-  int type;                       // 0: dual equality constraint
-                                  // 1: dual inequality constraint (contact)
-                                  // 2: dual FETI boundary lagrange multiplier constraint
-                                  // 3: primal equality constraint to be incorporated into the coarse problem for feti-dp solver
-                                  // 4: primal inequality constraint
-                                  // 5: primal FETI boundary lagrange multiplier constraint
-  int psub, nsub;                 // subdomains involved in type 2 constraint.
-                                  // psub will have coef +1.0, nsub will have coef -1.0
+  private:
+    mpc::ConstraintType m_type;
+    mpc::ConstraintSource m_source;
 
-  // real constructor 
-  LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);
+  public:
+    bool isComplex;
+    RealOrComplex rhs;              // right hand side of mpc
+    RealOrComplex original_rhs;
+    std::vector<LMPCTerm> terms;    // terms of the mpc (node, dof & coef)
+    union {
+      int lmpcnum;                  // id number of the mpc from input
+      int fluid_node;            
+      int pairNb;
+    };
+    int nterms;                     // number of terms in mpc
 
-  // complex constructor 
-  LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0 = 0);
+    int type;                       // 0: dual equality constraint
+                                    // 1: dual inequality constraint (contact)
+                                    // 2: dual FETI boundary lagrange multiplier constraint
+                                    // 3: primal equality constraint to be incorporated into the coarse problem for feti-dp solver
+                                    // 4: primal inequality constraint
+                                    // 5: primal FETI boundary lagrange multiplier constraint
 
-  // templated data access functions
-  template<class Scalar> Scalar getRhs();
-  template<class Scalar> GenLMPCTerm<Scalar> getTerm(int i);
+    int psub, nsub;                 // subdomains involved in Feti constraint.
+                                    // psub will have coef +1.0, nsub will have coef -1.0
 
-  // make rhs and all terms complex if they aren't already
-  void makeComplex();
+    // real constructor 
+    LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);
 
-  // add term
-  void addterm(LMPCTerm *term);
+    // complex constructor 
+    LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0 = 0);
 
-  // memory
-  long mem() { return nterms*(4+1+1)+1; } //HB
+    // templated data access functions
+    template<class Scalar> Scalar getRhs();
+    template<class Scalar> GenLMPCTerm<Scalar> getTerm(int i);
 
-  bool isPrimalMPC() { return ((type == 3) || (type == 4) || (type == 5)); }
-  bool isBoundaryMPC() { return ((type == 2) || (type == 5)); }
+    // make rhs and all terms complex if they aren't already
+    void makeComplex();
 
-  void print(); 
+    // add term
+    void addterm(LMPCTerm *term);
 
+    // memory
+    long mem() { return nterms*(4+1+1)+1; } //HB
+
+    bool isPrimalMPC() { return ((type == 3) || (type == 4) || (type == 5)); }
+    bool isBoundaryMPC() { return ((type == 2) || (type == 5)); }
+
+    void print(); 
+
+    /** remove the zero terms in this constraint */
+    void removeNullTerms();
+
+    void setType(mpc::ConstraintType _type) { m_type = _type; }
+    mpc::ConstraintType getType() { return m_type; }
+    void setSource(mpc::ConstraintSource _source) { m_source = _source; }
+    mpc::ConstraintSource getSource() { return m_source; }
 };
 
 template<> double LMPCons::getRhs<double>();
@@ -131,6 +158,8 @@ template<class Scalar>
 class SubLMPCons 
 {
  private:
+  mpc::ConstraintType m_type;
+  mpc::ConstraintSource m_source;
   SubLMPCons(const SubLMPCons<Scalar> &) { cerr << "SubLMPCons copy constructor is not implemented \n"; }
  public:
   Scalar rhs;              
@@ -142,11 +171,12 @@ class SubLMPCons
     int pairNb;
   };
   int nterms; 
+
   int type;                       // 0: equality constraint
                                   // 1: inequality constraint (contact)
-  bool isFree;                    // defines free set (and it's complement the active set), used for contact
-                                  // active means than the lagrange multiplier associated with the mpc is constrained to be zero
-  bool redundant_flag;            // mpc is redundant wrt to active set so do not add it
+
+  bool active;                    // defines active set, used for contact
+                                  // in FETI-DP active means than the lagrange multiplier associated with the mpc is constrained to be zero (ie the dual constraint is active)
 
   ResizeArray<int> gi;      // index of mpc term before it is distributed to subd
   int gsize;                // number of terms in mpc before distributing to subds
@@ -164,8 +194,9 @@ class SubLMPCons
     gi[0] = _gi; 
     ScalarTypes::initScalar(k[0], 1.0); 
     type = 0;
-    isFree = true;
-    redundant_flag = false;
+    active = false;
+    m_type = mpc::Equality;
+    m_source = mpc::Undefined;
   }
 
   virtual ~SubLMPCons() { if(ksum) delete [] ksum; }
@@ -195,32 +226,6 @@ class SubLMPCons
     for(int i=0; i<nterms; i++) ScalarTypes::initScalar(ksum[i], 1.0);  
   }
 
-  Scalar computeError(GeomState &gState, CoordSet &cs, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting; 
-    for(int i = 0; i < nterms; i++) {
-      int nnum = terms[i].nnum;
-      Node &node1 = cs.getNode(nnum);
-      NodeState ns1 = gState[nnum];
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * ns1.diff(node1, dofnum);
-    }
-    return error;
-  }
-
-  Scalar computeError(GeomState &gState, GeomState &refState, double rhs_weighting)
-  {
-    Scalar error = -original_rhs/rhs_weighting;
-    for(int i = 0; i < nterms; i++) {
-      Vector v(6, 0.0);
-      int nnum = terms[i].nnum;
-      gState.diff1(refState, v, nnum);
-      int dofnum = terms[i].dofnum;
-      error += terms[i].coef * v[dofnum];
-    }
-    return error;
-  }
-
   void print()
   {
     std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs << ", nterms = " << nterms << endl;
@@ -229,7 +234,44 @@ class SubLMPCons
                 << terms[i].dofnum << "  coef " << terms[i].coef << endl;
   }
 
-  bool isActive() { return !isFree; }
+  void setType(mpc::ConstraintType _type) { m_type = _type; }
+  mpc::ConstraintType getType() { return m_type; }
+  void setSource(mpc::ConstraintSource _source) { m_source = _source; }
+  mpc::ConstraintSource getSource() { return m_source; }
+};
+
+inline void LMPCons::removeNullTerms() {
+    vector<LMPCTerm>::iterator i = terms.begin();
+    while(i != terms.end()) {
+      if(i->isNull())
+        i = terms.erase(i);
+      else
+        ++i;
+    }
+    nterms = terms.size();
+}
+
+template<>
+class SetAccess<LMPCons>
+{
+    int numLMPC;
+    //ResizeArray<LMPCons *>&lmpc;
+    LMPCons **lmpc;
+    std::map<std::pair<int,int>, int> &dofID;
+  public:
+    //SetAccess(int n, ResizeArray<LMPCons *>&l, std::map<std::pair<int,int>, int> &d)
+    SetAccess(int n, LMPCons **l, std::map<std::pair<int,int>, int> &d)
+      : numLMPC(n), lmpc(l), dofID(d) {}
+    int size() {
+      return numLMPC;
+    }
+    int numNodes(int i) {
+      return lmpc[i]->nterms;
+    }
+    void getNodes(int i, int *nd) {
+      for(int j = 0; j < lmpc[i]->nterms; ++j)
+        nd[j] = dofID[pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
+    }
 };
 
 #endif

@@ -18,6 +18,7 @@
 #include "Utils.d/dofset.h"                                                 
 
 extern bool nosa;
+extern int verboseFlag;
 
 OrderList::OrderList(int l)
 {
@@ -158,8 +159,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
  eToN = new Connectivity(eset);
  nToE = eToN->reverse();
  numEle = elems->size();
- //cerr << "elems->size() = " << elems->size() << ", elems->last() = " << elems->last() << endl;
- filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
+ if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
  int nrnodes = 0;
  for(int x = 0; x < nToE->csize(); ++x)
    if(nToE->num(x) != 0)
@@ -222,7 +222,7 @@ MultiFront::redoConnect()
  eToN = new Connectivity(elems);
  nToE = eToN->reverse();
  numEle = elems->size();
- filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
+ if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
  delete [] flag;
  int numNode = nToE->csize();
  // Now we create a flag array used for checking during an operation
@@ -387,7 +387,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
  nodeMask = new int[numNodes];
  int iNode, iElem;
 
- filePrint(stderr," ... Starting Initial Mesh Decomposition ...\n");
+ if(verboseFlag) filePrint(stderr," ... Starting Initial Mesh Decomposition ...\n");
  for(iNode = 0; iNode < numNodes; ++iNode)  {
    nodeMask[iNode] = 0;
    for(iElem = 0; iElem < nToE->num(iNode); ++iElem)
@@ -574,31 +574,31 @@ subdomain, from a fsi node/element in the current priority list.
  //           (getTime() - t1)/1000.0, (memoryUsed() - m1)/(1024.0*1024.0));
  
  // Now apply improvements to the decomposition
- filePrint(stderr, " ...     Initial Number of Subdomains = %d ...\n", dec->nsub);
+ if(verboseFlag) filePrint(stderr, " ...     Initial Number of Subdomains = %d ...\n", dec->nsub);
  dec = improveDec(dec, 0.2);
  rebuildInfo(dec);
 
  //optimization
  if(true) {
-   filePrint(stderr," ... Optimizing Initial Mesh Decomposition with %d subs ...\n", dec->nsub);
+   if(verboseFlag) filePrint(stderr," ... Optimizing Initial Mesh Decomposition with %d subs ...\n", dec->nsub);
    t1 = getTime();
    m1 = memoryUsed();
    dec = optimize(dec);
 
-   filePrint(stderr," ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
+   if(verboseFlag) filePrint(stderr," ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
    // filePrint(stderr," ... Optimized Initial Mesh Decomposition In %14.5f sec and %14.3f Mb\n", 
    //           (getTime() - t1)/1000.0, (memoryUsed() - m1)/(1024.0*1024.0));
      
-   filePrint(stderr," ... Checking Components            ...\n");
+   if(verboseFlag) filePrint(stderr," ... Checking Components            ...\n");
    t1 = getTime();
    m1 = memoryUsed();
    dec = checkComponents(dec);
 
-   filePrint(stderr, " ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
+   if(verboseFlag) filePrint(stderr, " ...     Updated Number of Subdomains = %d ...\n", dec->nsub);
    // filePrint(stderr," ... Checked Optimized Mesh Decomposition In %14.5f sec and %14.3f Mb\n", 
    //           (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
      
-   filePrint(stderr," ... Re-tying Subdomains            ...\n");
+   if(verboseFlag) filePrint(stderr," ... Re-tying Subdomains            ...\n");
    t1 = getTime();
    m1 = memoryUsed();
    rebuildInfo(dec);
@@ -1214,11 +1214,11 @@ MultiFront::optimize(Decomposition *origDec)
  double rT = 1.0-1.0/8;// 1.0-1.0/20;
  int tChange = boundList.size();
  if(tChange > 150000 || nosa ) {
-   filePrint(stderr, " ...     Using a Deterministic Scheme ...\n");
+   if(verboseFlag) filePrint(stderr, " ...     Using a Deterministic Scheme ...\n");
    T = 0.0;
  } 
  else {
-   filePrint(stderr, " ...     Using a Simulated Annealing Scheme ...\n");
+   if(verboseFlag) filePrint(stderr, " ...     Using a Simulated Annealing Scheme ...\n");
    srand48(45302172); // will make sure that XPost's decomposer and fem's dec agree ! Thomas
  }
 

@@ -26,7 +26,9 @@ ResizeArray<Type>::resize(int ns)
      nd[j] = d[j];
   for(; j <nsize; ++j)
     nd[j] = init_v;
+#if !defined(DEBUG_OPENMP)
   if(d) delete [] d;
+#endif
   csize=nsize;
   d=nd;
 }

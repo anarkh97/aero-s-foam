@@ -20,7 +20,7 @@ public:
 	void renum(int *);
 
         void setFrame(EFrame *ef) { elemframe = ef; }
-        int buildFrame(CoordSet&);
+        void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet& cs, double *kel, int flg = 1);
         FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
@@ -47,6 +47,7 @@ public:
 	                 int strInd,int surface=0, double *ndTemps=0,
 			 double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
+        int getMassType() { return 0; } // lumped only
 private:
        
         void updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len);
@@ -80,9 +81,6 @@ private:
 
 	// Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
-        // isStart indicates if an element is suitable to
-        // be a germination center for a subdomain (bars are not)
-        bool isStart() { return true; }  
 	bool hasRot() { return true; }
 
 };

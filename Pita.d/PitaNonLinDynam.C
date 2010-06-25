@@ -2,6 +2,8 @@
 #include <Pita.d/DynamStateSet.h>
 #include <Control.d/ControlInterface.h>
 #include <Comm.d/Communicator.h>
+#include <Driver.d/Domain.h>
+#include <Timers.d/StaticTimers.h>
 #include <iostream>
 
 extern Communicator* structCom;
@@ -47,7 +49,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState<double> & ds, int sliceRank)
     domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
     if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
     {
-      double sliceTime = domain->solInfo().dt * domain->solInfo().Jratio * sliceRank;
+      double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
       double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
       double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
       double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);

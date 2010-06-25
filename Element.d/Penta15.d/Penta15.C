@@ -17,21 +17,19 @@
 #include <Corotational.d/PentaCorotator.h>
 
 #define CHECK_JACOBIAN //HB: force check nullity & constant sign of jacobian over el.
-//#define PENTA15_DEBUG
+#define PENTA15_DEBUG
 
 extern bool useFull;
 
 extern "C" {
 void  _FORTRAN(brkcmt)(double&, double&, double*);
-
-void _FORTRAN(lgauss)(const int &, int &, double *, double *);
 }
 
 //HB: for anisotropic elastic constitutive matrix
 void rotateConstitutiveMatrix(double *Cin, double *T33, double Cout[6][6]);
 
 // HB: for stiffness matrix with ansitropic constitutive matrix and/or consistent mass matrix
-extern void   Penta15ShapeFct(double Shape[15], double dShape[15][3], double m[3]);
+//extern void   Penta15ShapeFct(double Shape[15], double dShape[15][3], double m[3]);
 extern double Penta15ShapeFct(double Shape[15], double DShape[15][3], double m[3], double X[15], double Y[15], double Z[15]);
 extern double computePenta15DShapeFct(double dShape[15][3], double X[15], double Y[15], double Z[15], double (*DShape)[3] = 0);
 
@@ -49,6 +47,19 @@ extern double computeStress3DSolid(double Stress[6],double Strain[6], double C[6
 extern double computeVonMisesStress(double Stress[6]);
 extern double computeVonMisesStrain(double Strain[6]);
 
+double weight3d8[9] = { 0.092592592592593,0.092592592592593,0.092592592592593,
+                        0.148148148148148,0.148148148148148,0.148148148148148,
+                        0.092592592592593,0.092592592592593,0.092592592592593};
+double gauss3d8[9][3] = { {0.166666666666667,0.166666666666667,-0.774596669241483},
+                          {0.666666666666667,0.166666666666667,-0.774596669241483},
+                          {0.166666666666667,0.666666666666667,-0.774596669241483},
+                          {0.166666666666667,0.166666666666667,0.},
+                          {0.666666666666667,0.166666666666667,0.},
+                          {0.166666666666667,0.666666666666667,0.},
+                          {0.166666666666667,0.166666666666667,0.774596669241483},
+                          {0.666666666666667,0.166666666666667,0.774596669241483},
+                          {0.166666666666667,0.666666666666667,0.774596669241483} };
+
 Penta15::Penta15(int* nodenums)
 {
   for(int i=0; i<15; i++)
@@ -58,6 +69,7 @@ Penta15::Penta15(int* nodenums)
 
   cFrame = 0; 
   cCoefs = 0;
+
 }
 
 Element *
@@ -266,182 +278,161 @@ Penta15::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 double
 Penta15::getMass(CoordSet& cs)
 {
-  fprintf(stderr," *** WARNING: Penta15::getMass: NOT implemented. Return null mass.\n");
-  return(0.0);
+  const int nnodes = 15;
+  const int ngauss = 9;
+  double *x = new double[nnodes];
+  double *y = new double[nnodes];
+  double *z = new double[nnodes];
+  double *shape = new double[nnodes];
+  double (*dShape)[3] = new double[nnodes][3];
+
+  // get global coordinates of the nodes
+  cs.getCoordinates(nn, nnodes, x, y, z);
+
+  // integration: loop over gauss pts
+  double volume = 0.0;
+  for(int i = 0; i < ngauss; i++){
+    double dOmega = Penta15ShapeFct(shape, dShape, gauss3d8[i], x, y, z);
+    volume += fabs(dOmega)*weight3d8[i];
+  }
+
+  delete [] x; delete [] y; delete [] z;
+  delete [] shape; delete [] dShape;
+
+  return volume*prop->rho;
 }
 
 void
-Penta15::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
-                                Vector& gravityForce, int gravflg, GeomState *geomState)
+Penta15::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
+                         Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-  fprintf(stderr," *** WARNING: Penta15::getGravityForce: NOT implemented. Return null gravity force.\n");
-  gravityForce.zero();
+  int nnodes = 15;
+
+  // Lumped
+  if (gravflg != 2) {
+
+    double totmas = getMass(cs);
+
+    // divvy up the total body force using same ratio as the corresponding diagonal of the lumped mass matrix to the total mass
+    for(int i = 0; i < nnodes; ++i) {
+      gravityForce[3*i+0] = totmas*gravityAcceleration[0]*(3.0*factors[3*i+0]);
+      gravityForce[3*i+1] = totmas*gravityAcceleration[1]*(3.0*factors[3*i+1]);
+      gravityForce[3*i+2] = totmas*gravityAcceleration[2]*(3.0*factors[3*i+2]);
+    }
+
+  }
+  // Consistent
+  else {
+
+    const int ngauss = 9;
+    double *x = new double[nnodes];
+    double *y = new double[nnodes];
+    double *z = new double[nnodes];
+    double *shape = new double[nnodes];
+    double (*dShape)[3] = new double[nnodes][3];
+    double *lforce = new double[nnodes];
+
+    // get global coordinates of the nodes
+    cs.getCoordinates(nn, nnodes, x, y, z);
+
+    for(int i = 0; i < nnodes; ++i) lforce[i] = 0.0;
+
+    // integration: loop over gauss pts
+    for(int i = 0; i < ngauss; i++){
+      double dOmega = Penta15ShapeFct(shape, dShape, gauss3d8[i], x, y, z);
+      for(int j = 0; j < nnodes; ++j) lforce[j] += fabs(dOmega)*weight3d8[i]*shape[j];
+    }
+
+    for(int i = 0; i < nnodes; ++i)
+      for(int j = 0; j < 3; ++j)
+        gravityForce[3*i+j] = lforce[i]*gravityAcceleration[j]*prop->rho;
+
+    delete [] x; delete [] y; delete [] z;
+    delete [] shape; delete [] dShape;
+    delete [] lforce;
+  }
 }
 
 FullSquareMatrix
 Penta15::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
-  //int status = 0;
-  const int nnodes  = 15;
-  const int ndofs   = 45;
-  //const int numgauss= 4;
+  const int ndofs = 45;
+  FullSquareMatrix M(ndofs, mel);
 
-  double X[15], Y[15], Z[15];
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-
-  FullSquareMatrix M(ndofs,mel);
-  //double *gravityAcceleration = 0, *grvfor = 0;
-  //int grvflg = 0;
-  //double totmas = 0.0;
-
-  if(cmflg) { //HB: consistent mass matrix
-    //fprintf(stderr," *** In Penta15::massMatrix: make consistent mass matrix.\n");
-    M.zero();
+  if(cmflg) { // consistent mass matrix
+    const int nnodes = 15;
+    const int ngauss = 9;
+    double *x = new double[nnodes];
+    double *y = new double[nnodes];
+    double *z = new double[nnodes];
+    double *shape = new double[nnodes];
+    double (*dShape)[3] = new double[nnodes][3];
     int ls[45] = {0,3,6, 9,12,15,18,21,24,27,30,33,36,39,42,
                   1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,
-                  2,5,8,11,14,17,20,23,15,29,32,35,38,41,44};
+                  2,5,8,11,14,17,20,23,26,29,32,35,38,41,44};
 
-    // hard coded order 8 triangle quadrature rule: {r,s,t(=1-r-s),w}
-    // This is probably too much for this el.
-    double w1 = 0.116786275715379 ;
-    double l1 = 0.501415509658179 ;
-    double l2 = 0.249286745170910 ;
-    double l3 = 1. - l1 - l2;
+    // get global coordinates of the nodes
+    cs.getCoordinates(nn, nnodes, x, y, z);
 
-    double w2 = 0.050844906370207 ;
-    double h1 = 0.873821971016996 ;
-    double h2 = 0.063089014491502 ;
-    double h3 = 1. - h1 - h2;
- 
-    double w3 = 0.082851075618374 ;
-    double k1 = 0.053145049847817 ;
-    double k2 = 0.310352451033784 ;
-    double k3 = 1. - k1 - k2;
-    
-    // divide weight by 1/2
-    // (unit triangle area = 1/2 and NOT 1)
-    w1 *= 0.5; w2 *= 0.5; w3 *= 0.5;
+    M.zero();
 
-    double TriGPt12[12][4]= {{l1, l2, l3, w1},
-                             {l2, l3, l1, w1},
-                             {l3, l1, l2, w1},
-                             {h1, h2, h3, w2},
-                             {h2, h3, h1, w2}, 
-                             {h3, h1, h2, w2},
-                             {k1, k2, k3, w3},
-                             {k1, k3, k2, w3},
-                             {k2, k1, k3, w3},
-                             {k3, k1, k2, w3},
-                             {k2, k3, k1, w3},
-                             {k3, k2, k1, w3}};
-
-    // integration: loop over Gauss pts
-    double wxy,wz,w;
-    int ngpz =  4; // number of (linear) Gauss pts in the (local) z direction
-    int ngpxy= 12; // numbder of (triangular) integration pts (in the local x-y plane)
-    double m[3], Shape[15], DShape[15][3];
-    double dOmega;//det of jacobian
-    int jSign = 0;
-    for(int iz=1;iz<=ngpz;iz++){ // routine lgauss uses fortran indexing
-      _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz); // get z position & weight of the Gauss pt
-      for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-        // get x, y  position & weight of the Gauss pt
-        m[0] = TriGPt12[ixy][0]; m[1] = TriGPt12[ixy][1]; wxy = TriGPt12[ixy][3];
-        dOmega = Penta15ShapeFct(Shape, DShape, m, X, Y, Z);
-#ifdef PENTA15_DEBUG
-        fprintf(stderr," *** In Penta15::massMatrix: iz = %d, ixy = %d, J = %e\n",iz,ixy+1,dOmega);
-#endif
-#ifdef CHECK_JACOBIAN
-        checkJacobian(&dOmega, &jSign, getGlNum()+1, "Penta15::massMatrix");
-#endif
-        w = fabs(dOmega)*wxy*wz*prop->rho;
-        addNtDNtoM3DSolid(M, Shape, w, nnodes, ls);
-      }
+    // integration: loop over gauss pts
+    for(int i = 0; i < ngauss; i++){
+      double dOmega = Penta15ShapeFct(shape, dShape, gauss3d8[i], x, y, z);
+      double w = fabs(dOmega)*weight3d8[i]*prop->rho;
+      addNtDNtoM3DSolid(M, shape, w, nnodes, ls);
     }
-  } else { // Lumped mass matrix
+
+    delete [] x; delete [] y; delete [] z;
+    delete [] shape; delete [] dShape;
+  }
+  else { // lumped mass matrix
     fprintf(stderr," *** In Penta15::massMatrix: Lumped mass matrix NOT implemented. Abort.\n");
     exit(-1);
   }
 
-  return(M);
+  return M;
 }
 
 FullSquareMatrix
 Penta15::stiffness(CoordSet &cs, double *d, int flg)
 {
-  double X[15], Y[15], Z[15];
-                                                                                                                                         
-  //int status = 0;
-  const int nnodes  = 15;
-  const int ndofs   = 45;
-  //const int numgauss= 4;
+  const int nnodes = 15;
+  const int ngauss = 9;
+  const int ndofs = 45;
 
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-
-  FullSquareMatrix K(ndofs,d);
-  K.zero();
-  //double *gravityAcceleration = 0, *grvfor = 0;
-  //int grvflg = 0;
-  //double totmas = 0.0;
-  double C[6][6];                                                                                                                                       
-  if(cCoefs) {  // PJSA 3-30-05: orthotropic material
-    // transform local constitutive matrix to global
-    rotateConstitutiveMatrix(cCoefs, cFrame, C); 
-  }
-  else { // isotropic material
-   _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C); 
-  }
-
+  double *x = new double[nnodes];
+  double *y = new double[nnodes];
+  double *z = new double[nnodes];
+  double *shape = new double[nnodes];
+  double (*dShape)[3] = new double[nnodes][3];
+  FullSquareMatrix K(ndofs, d);
   int ls[45] = {0,3,6, 9,12,15,18,21,24,27,30,33,36,39,42,
                 1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,
-                2,5,8,11,14,17,20,23,15,29,32,35,38,41,44};
+                2,5,8,11,14,17,20,23,26,29,32,35,38,41,44};
 
-  // hard coded order 4 triangle quadrature rule: {r,s,t(=1-r-s),w}
-  // This is probably too much for this el.
-  double a1 = 0.445978490915965;
-  double b1 = 0.091576213509771;
-  double a2 = 1-2.*a1;
-  double b2 = 1-2.*b1;
-  double w1 = 0.111690797839005;
-  double w2 = 0.054975871827661;
-  double TriGPt6[6][4] = {{a1, a1, 1.-a1-a1, w1},
-                          {a2, a1, 1.-a2-a1, w1},
-                          {a1, a2, 1.-a1-a2, w1},
-                          {b1, b1, 1.-b1-b1, w2},
-                          {b2, b1, 1.-b2-b1, w2},
-                          {b1, b2, 1.-b1-b2, w2}};
+  double C[6][6];
+  if(cCoefs)
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);  // orthotropic material
+  else 
+   _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C); // isotropic material
 
-  // integration: loop over Gauss pts
-  double wxy,wz,w;
-  int ngpz = 3; // number of (linear) Gauss pts in the (local) z direction
-  int ngpxy= 6; // numbder of (triangular) integration pts (in the local x-y plane)
-  double m[3], Shape[15], DShape[15][3];
-  double dOmega;//det of jacobian
-  int jSign = 0;
-#ifdef PENTA15_DEBUG
-  double Vol = 0.0;
-#endif
-  for(int iz=1;iz<=ngpz;iz++){ // routine lgauss uses fortran indexing
-    _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz); // get z position & weight of the Gauss pt
-    for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-      // get x, y  position & weight of the Gauss pt
-      m[0] = TriGPt6[ixy][0]; m[1] = TriGPt6[ixy][1]; wxy = TriGPt6[ixy][3];
-      dOmega = Penta15ShapeFct(Shape, DShape, m, X, Y, Z);
-#ifdef PENTA15_DEBUG
-      fprintf(stderr," *** In Penta15::stiffness: iz = %d, ixy = %d, J = %e\n",iz,ixy+1,dOmega);
-      Vol += dOmega*wxy*wz;
-#endif
-#ifdef CHECK_JACOBIAN
-      checkJacobian(&dOmega, &jSign, getGlNum()+1, "Penta::stiffness");
-#endif
-      w = fabs(dOmega)*wxy*wz;
-      addBtCBtoK3DSolid(K, DShape, C, w, nnodes, ls);
-    }
+  // get global coordinates of the nodes
+  cs.getCoordinates(nn, nnodes, x, y, z);
+
+  K.zero();
+
+  // integration: loop over gauss pts
+  for(int i = 0; i < ngauss; i++){
+    double dOmega = Penta15ShapeFct(shape, dShape, gauss3d8[i], x, y, z);
+    double w = fabs(dOmega)*weight3d8[i];
+    addBtCBtoK3DSolid(K, dShape, C, w, nnodes, ls);
   }
-#ifdef PENTA15_DEBUG
-  fprintf(stderr," *** In Penta15::stiffness: volume = %e\n",Vol);
-#endif
-  return(K);
+
+  delete [] x; delete [] y; delete [] z;
+  delete [] shape; delete [] dShape;
+
+  return K;
 }
 
 int
@@ -492,22 +483,18 @@ Penta15::markDofs(DofSetArray &dsa)
   dsa.mark(nn, numNodes(), DofSet::XYZdisp);
 }
 
+// treat as a 6-node penta
 int
-Penta15::getTopNumber() { return(197); } 
+Penta15::getTopNumber() { return(124); } 
 
 int
-Penta15::numTopNodes() { return(15); } 
+Penta15::numTopNodes() { return(6); } 
 
-//-------------------------------------------------------------------
 void
 Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
-                                Vector &elementThermalForce, int glflag, 
-				GeomState *geomState)
+                         Vector &elementThermalForce, int glflag, 
+                         GeomState *geomState)
 {
-  fprintf(stderr," *** WARNING: Penta15::getThermalForce: NOT implemented. Return NULL force.\n");
-  elementThermalForce.zero();
-  return;
- 
   //HB: NOT TESTED, VALIDATED YET ...
   // ASSUME CONSTANT THERMAL EXPANSION COEFF. & REFERENCE TEMPERATURE OVER THE ELEMENT 
   const int nnodes= 15;	
@@ -527,7 +514,6 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
   double C[6][6];
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    //cerr<<" *** DEBUG: in Pentahedral::stiffness, anisotropic/orthotropic material\n";
      rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
@@ -539,59 +525,34 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // M is the position in the real frame, m its associated position in the reference
   // element frame
   // !!! USE BRUTE FORCE: NUMERICAL INETGRATION BY GAUSS PTS !!!
-  double Shape[15], DShape[15][3], m[3];
-  double wxy,wz,w,J;
-  int ngpz = 3; // number of (linear) Gauss pts in the (local) z direction
-  int ngpxy= 6; // numbder of (triangular) integration pts (in the local x-y plane)
+  double Shape[15], DShape[15][3];
+  double w, J;
+  int ngauss = 9;
 
-  // hard coded order 4 triangle quadrature rule: {r,s,t(=1-r-s),w}
-  double a1 = 0.445978490915965;
-  double b1 = 0.091576213509771;
-  double a2 = 1-2.*a1;
-  double b2 = 1-2.*b1;
-  double w1 = 0.111690797839005;
-  double w2 = 0.054975871827661;
-  double TriGPt6[6][4] = {{a1, a1, 1.-a1-a1, w1},
-                          {a2, a1, 1.-a2-a1, w1},
-                          {a1, a2, 1.-a1-a2, w1},
-                          {b1, b1, 1.-b1-b1, w2},
-                          {b2, b1, 1.-b2-b1, w2},
-                          {b1, b2, 1.-b1-b2, w2}};
- 
   if (geomState)  { // GEOMETRICAL NONLINEAR ANALYSIS
      fprintf(stderr," *** ERROR: Penta15::getThermalForce NOT supported for geometric nonlinear analysis. Abort.\n");
      exit(-1);
-  } else { // GEOMETRICAL LINEAR ANALYSIS
+  } 
+  else { // GEOMETRICAL LINEAR ANALYSIS
     // integration: loop over Gauss pts
-    for(int iz=1;iz<=ngpz;iz++){        // z Gauss pts
-      // get z position & weight of the Gauss pt
-      _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
-      for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-        // get x, y  position & weight of the Gauss pt
-        m[0] = TriGPt6[ixy][0]; m[1] = TriGPt6[ixy][1]; wxy = TriGPt6[ixy][3];
-        // compute shape fcts & their derivatives at the Gauss pt
-        J = Penta15ShapeFct(Shape, DShape, m, X, Y, Z);
-        w = wxy*wz*fabs(J);
-        // compute thermal stresses
-        double eT = 0.0;
-        for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-        double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-	double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
-        computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-       // sum contribution
-        for(int inode=0; inode<nnodes; inode++){
-          elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-          elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-          elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-        }  
+    for(int i = 0; i < ngauss; i++) {
+      // compute shape fcts & their derivatives at the Gauss pt
+      J = Penta15ShapeFct(Shape, DShape, gauss3d8[i], X, Y, Z);
+      w = weight3d8[i]*fabs(J);
+      // compute thermal stresses
+      double eT = 0.0;
+      for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
+      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
+      computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+      // sum contribution
+      for(int inode=0; inode<nnodes; inode++){
+        elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+        elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+        elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
       }
     }
   }
-  
-  //cerr<<" ---------------------------------------"<<endl;
-  //for(int i=0; i<78; i++){
-  //  cerr<<" elementThermalForce["<<i<<"] = "<<elementThermalForce[i]<<endl;
-  //}
 }
 
 //---------------------------------------------------------------------------------
@@ -601,13 +562,5 @@ Penta15::getCorotator(CoordSet &cs, double *kel, int , int )
  fprintf(stderr," *** WARNING: Penta15::getCorotator: NOT implemented. Abort.\n");
  exit(-1);
  return((Corotator*)0); 
-}
-
-void Penta15::buildCorotator(CoordSet &cs)  
-{
-  fprintf(stderr," *** WARNING: Penta15::buildCorotator: NOT implemented. Abort.\n");
-  exit(-1);
-  //if (!brickCorotator)
-  //  brickCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
 }
 

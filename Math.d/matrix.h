@@ -86,6 +86,9 @@ class GenFullM {
    Scalar* getData() { return v; }
    Scalar* Column(int i) const;
 
+   Scalar & operator() (int row, int col) { return (*this)[row][col]; }
+   const Scalar operator() (int row, int col) const { return (*this)[row][col]; }
+
    double max();
    double min();
    double maxAbs();

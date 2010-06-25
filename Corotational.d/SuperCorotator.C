@@ -40,7 +40,7 @@ SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
     FullSquareMatrix subK(ndofs);
-    subK.zero();  // this is necessary because formGeometricStiffness may not be implemented for all subelems
+    subK.zero();  // this is necessary because getStiffAndForce may not be implemented for all subelems
     double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
     subElemCorotators[i]->getStiffAndForce(geomState, cs, subK, subf);
@@ -49,6 +49,9 @@ SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
     delete [] subf;
   }
+  //cerr << "here in SuperCorotator::getStiffAndForce\n";
+  //cerr << "elK = \n"; elK.print();
+  //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
 }
 
 void 

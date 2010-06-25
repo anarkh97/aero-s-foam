@@ -16,7 +16,7 @@
 #include "../CorrectionPropagator.h"
 #include "../SeedInitializer.h"
 
-template <typename Scalar> class SingleDomainDynamic;
+class SingleDomainDynamic;
 class GeoSource;
 class Domain;
 class SolverInfo;
@@ -31,7 +31,7 @@ public:
 
   virtual void solve();
   
-  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
+  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic * pbDesc,
                                           GeoSource * geoSource,
                                           Domain * domain,
                                           SolverInfo * solverInfo,
@@ -40,7 +40,7 @@ public:
   }
 
 protected:
-  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, GeoSource *, Domain *, SolverInfo *, Communicator *);
+  ReducedLinearDriverImpl(SingleDomainDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
@@ -86,6 +86,6 @@ private:
 
 } /* namespace Hts */ } /* end namespace Pita */
 
-Pita::LinearDriver::Ptr linearReversiblePitaDriverNew(SingleDomainDynamic<double> * pbDesc);
+Pita::LinearDriver::Ptr linearReversiblePitaDriverNew(SingleDomainDynamic * pbDesc);
 
 #endif /* PITA_HTS_REDUCEDLINEARDRIVERIMPL_H */

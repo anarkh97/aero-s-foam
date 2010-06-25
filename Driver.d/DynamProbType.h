@@ -8,7 +8,9 @@
 class Structopt;
 class DistrInfo;
 class SingleInfo;
+template <typename T> class SysState;
 
+/*
 template <class VecType> 
 class SysState {
    VecType &d_n, &v_n, &a_n, &v_n_m;
@@ -32,6 +34,7 @@ class SysState {
    VecType &getAccelConst()     const { return a_n; }
 
 };
+*/
 
 template <class VecType,
           class ProblemDescriptor> 

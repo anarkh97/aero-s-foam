@@ -1,11 +1,12 @@
 
 extern Domain * domain;
+extern Connectivity * procMpcToMpc;
 
 template<class Scalar>
 GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_mpcToCpu, int _numSubsWithMpcs, 
                                          GenSubDomain<Scalar> **_subsWithMpcs, FetiInfo *finfo, FSCommunicator *_fetiCom)
 {
-  filePrint(stderr, " ... Build CCt solver               ...\n");
+  if(verboseFlag) filePrint(stderr, " ... Build CCt solver               ...\n");
   this->mpcToCpu = _mpcToCpu;
   this->numSubsWithMpcs = _numSubsWithMpcs;
   this->subsWithMpcs = _subsWithMpcs;
@@ -42,7 +43,19 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
         CCtsolver = new GenSpoolesSolver<Scalar>(mpcToMpc, mpcEqNums);
       } break;
 #endif
-
+#ifdef USE_MUMPS
+      case FetiInfo::mumps: {
+        mpcEqNums = new SimpleNumberer(this->glNumMpc);
+        for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
+        mpcEqNums->makeOffset();
+#ifdef DISTRIBUTED
+        if(domain->solInfo().mumps_icntl[18] == 3) 
+          CCtsolver = new GenMumpsSolver<Scalar>(procMpcToMpc, mpcEqNums, (int *)0, this->fetiCom);
+        else 
+#endif
+        CCtsolver = new GenMumpsSolver<Scalar>(mpcToMpc, mpcEqNums, (int *)0, this->fetiCom);
+      } break;
+#endif
   }
   CCtsolver->setPrintNullity(false);
 }
@@ -58,22 +71,22 @@ template<class Scalar>
 void
 GlobalCCtSolver<Scalar>::assemble()
 {
-  bool new_global_cct = true;
+  bool new_global_cct = false;
   if(new_global_cct && (this->numSubsWithMpcs > 1)) { 
-     // each sub (with LMPCs) compute its own contributions to the global CCt matrix
-     execParal1R(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::computeSubContributionToGlobalCCt, mpcEqNums);
-     // assemble the global CCt matrix (i.e. add the sub's contributions)
-     for(int i=0; i<this->numSubsWithMpcs; ++i)
-       this->subsWithMpcs[i]->assembleGlobalCCtsolver(CCtsolver);
-   } 
-   else { 
-     for(int i=0; i<this->numSubsWithMpcs; ++i) 
-       this->subsWithMpcs[i]->assembleGlobalCCtsolver(CCtsolver, mpcEqNums);
-   }
+    // each sub (with LMPCs) compute its own contributions to the global CCt matrix
+    execParal1R(this->numSubsWithMpcs, this, &GlobalCCtSolver<Scalar>::computeSubContributionToGlobalCCt, mpcEqNums);
+    // assemble the global CCt matrix (i.e. add the sub's contributions)
+    for(int i=0; i<this->numSubsWithMpcs; ++i)
+      this->subsWithMpcs[i]->assembleGlobalCCtsolver(CCtsolver);
+  } 
+  else { 
+    for(int i=0; i<this->numSubsWithMpcs; ++i) 
+      this->subsWithMpcs[i]->assembleGlobalCCtsolver(CCtsolver, mpcEqNums);
+  }
 #ifdef DISTRIBUTED
-   CCtsolver->unify(this->fetiCom);
+  CCtsolver->unify(this->fetiCom);
 #endif
-   //if(this->fetiCom->cpuNum() == 0) ((GenSkyMatrix<Scalar> *)CCtsolver)->print(stderr);
+  //if(this->fetiCom->cpuNum() == 0) ((GenSkyMatrix<Scalar> *)CCtsolver)->print(stderr);
 }
 
 template<class Scalar>

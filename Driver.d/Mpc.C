@@ -76,24 +76,28 @@ LMPCTerm::makeComplex()
 
 
 // real constructor
-LMPCons::LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0) : terms(LMPCTerm(), 0)
+LMPCons::LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0) //: terms(LMPCTerm(), 0)
 {
   isComplex = false;
   lmpcnum = _lmpcnum;
-  rhs.r_value = _rhs;
+  original_rhs.r_value = rhs.r_value = _rhs;
   nterms = 0;
   type = 0;
+  m_type = mpc::Equality;
+  m_source = mpc::Undefined;
   if(term0) addterm(term0);
 }
 
 // complex constructor
-LMPCons::LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0) : terms(LMPCTerm(true), 0)
+LMPCons::LMPCons(int _lmpcnum, double rrhs, double irhs, LMPCTerm *term0) //: terms(LMPCTerm(true), 0)
 {
   isComplex = true;
   lmpcnum = _lmpcnum;
-  rhs.c_value = DComplex(rrhs, irhs);
+  original_rhs.c_value = rhs.c_value = DComplex(rrhs, irhs);
   nterms = 0;
   type = 0;
+  m_type = mpc::Equality;
+  m_source = mpc::Undefined;
   if(term0) addterm(term0);
 }
 
@@ -119,7 +123,9 @@ LMPCons::addterm(LMPCTerm *term)
   if(i == nterms) {
     if(!isComplex && term->isComplex) makeComplex(); // new term is complex & lmpc was real
     if(isComplex && !term->isComplex) term->makeComplex();  // new term was real & lmpc is complex
-    terms[nterms++] = *term;
+    //terms[nterms++] = *term;
+    terms.push_back(*term); 
+    nterms++;
   }
   // if term already implied, add coefficients
   else {

@@ -151,15 +151,13 @@ class FetiInfo {
 
     // Data members
     int    maxit;
-    int    maxouterit;
-    int    maxinnerit;
     double tol;
-    double absolute_tol; // if stagnation is detected then terminate analysis if the absolute norm of the primal error is greater than absolute_tol
-                         // otherwise continue and print warning
+    double absolute_tol;
+    double stagnation_tol;
+    double absolute_stagnation_tol;
     double grbm_tol;
     double crbm_tol;
     double cct_tol; // used to factorize CC^t in rixen mpc method
-    double stagnation_tol, dual_stagnation_tol;
     int    uproj;
     int    maxortho;
     int    noCoarse;
@@ -199,6 +197,8 @@ class FetiInfo {
     enum RbmType { translation, rotation, all,
                    averageTran, averageRot, averageAll, None,
                    pressure, temperature } rbmType;
+    enum NullSpace { grbm, trbm } nullSpace;
+    double nullSpaceFilterTol;
 
     // FETI-H
     double tolcgm;
@@ -227,30 +227,14 @@ class FetiInfo {
     int contactPrintFlag;
     bool cctScaled;
     int rebuildcct;
-    bool project_g; // true if we intent to satisfy grbm (equality constraints: G^T*lambda+e = 0) using projected CG
     int rebuildSbb;
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
-    bool constrain_kcc; double constrain_kcc_tol;
-    int expansion; // 1: 1-step, 2: 2-step (dostal)
-    double alphabar_cntl, gamma, expansion_tol; // contact parameters (2-step expansion steplength control parameter and tolerance)
+    double gamma;
     bool bmpc, dmpc, cmpc;
-    double rho_cntl, beta, M, eta, maxrho, minM; // augmented lagrangian parameters
-    bool cgal_prec;
-    double cgal_prec_cntl;
-    int cgal_adapt_icntl; // 0: update rho, 1: update M
-    double wolfe_c1, wolfe_c2;
-    int linesearch; // 0 = none, 1 = backtracking (armijo-goldstein), 2 = bisection, 3 = more-thuente
     double linesearch_tau;
     int linesearch_maxit;
-    int max_power_iter;
-    double power_iter_tol;
-    double equi_tol, iequ_tol;
     bool c_normalize;
-    double dual_tol; // don't compute primal error until dual error is less than this tolerance for GMRES and CGAL solvers
-    double cq_tol;
-    enum ConstraintQualificationType { nocq = 0, crcq } cq_type; // nocq = no constraint qualification
-                                                                 // crcq = constant rank constraint qualification
 
     bool useMRHS;
     bool gmresResidual; //HB: to force computing the "primal residual" at each GMRES iteration;
@@ -262,18 +246,20 @@ class FetiInfo {
 
     bool fsi_element, mpc_element; // true means add to element set & decompose
     int fsi_corner;
-    int initial_lambda;
     bool complex_hermitian;
+    double dual_proj_tol, primal_proj_tol;
+    double dual_plan_tol, primal_plan_tol;
+    int dual_plan_maxit, primal_plan_maxit;
 };
 
 inline
 FetiInfo::FetiInfo()
 {
   maxit      = 1000;       // default max number of iterations
-  maxouterit = 10;
-  maxinnerit = 1000;
   tol        = 1.0E-6;     // default global tolerance
-  absolute_tol = 1.0e-12; 
+  absolute_tol = 0.0; 
+  stagnation_tol = 1.0e-6;
+  absolute_stagnation_tol = 0.0;
   grbm_tol = 1.0E-06;      // default global rigid body mode rel. tolerance
   crbm_tol = 1.0E-12;      // default global corner rigid body mode tolerance
   maxortho   = maxit;      // default max number of reortho vectors
@@ -284,11 +270,11 @@ FetiInfo::FetiInfo()
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
   solvertype  = sparse;   // default use skyline subdomain solver
   gtgSolver   = sparse;   // default use skyline GtG solver
-  auxCoarseSolver   = sparse;
+  auxCoarseSolver = sparse;
   cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
-  scaling     = tscaling;  // default use k scaling
+  scaling     = tscaling;  // default use t scaling
   rescalef    = true;      // reassemble and apply scaling to f for every system, not just the first
   mpc_scaling = tscaling;  // default use t scaling
   fsi_scaling = tscaling;
@@ -328,37 +314,21 @@ FetiInfo::FetiInfo()
   // DPC information
   uproj        = 1;   	   // default project the displacements wrt global RBMs
   contactPrintFlag = 0;
-  stagnation_tol = 1.0e-6; dual_stagnation_tol = 0.0;
-  expansion = 1; alphabar_cntl = 2.0; expansion_tol = 1.0e-10;
   gamma = 1.0;
-  wolfe_c1 = 0.0; wolfe_c2 = 0.9;
-  linesearch = 0; linesearch_tau = 0.8; linesearch_maxit = 100;
+  linesearch_tau = 0.6667; 
+  linesearch_maxit = 20;
   cmpc = bmpc = dmpc = false;
-  cq_type = crcq; cq_tol = 1.0e-14;
-  max_power_iter = 100; power_iter_tol = 1e-3;
-  initial_lambda = 0;
 
-  // augmented lagrangian
-  cgal_prec = true;
-  cgal_prec_cntl = 1.0;
-  cgal_adapt_icntl = 0; 
-  rho_cntl = 10.0; maxrho = 1.0e6; beta = 10.0; 
-  M = 1.0, minM = 1.0e-6, eta = 1.0e-4;
-  equi_tol = 1.0e-6; 
-  iequ_tol = 1.0e-6;
-  dual_tol = 1.0e-6;
   c_normalize = false;
   
   // MPC information
-  mpc_precno   = autoSelectCCt;  // default mpc preconditioner for Rixen method
+  mpc_precno   = globalCCt;  // default mpc preconditioner for Rixen method
   mpc_block    = topoBlock;
   mpcflag      = 1;
   cct_tol      = 1.0e-16;
   cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  constrain_kcc = false; constrain_kcc_tol = 1.0e-4;
   rebuildcct   = 0; 
-  project_g    = true;
   rebuildSbb   = 0; 
   geometric_gap = false;
 
@@ -375,6 +345,11 @@ FetiInfo::FetiInfo()
   pick_unsafe_corners = true;
   fsi_corner = 2;
   complex_hermitian = false;
+  nullSpace = grbm;
+  nullSpaceFilterTol = 0.0;
+  dual_proj_tol = primal_proj_tol = 1.0e-16;
+  dual_plan_tol = primal_plan_tol = 0.0;
+  dual_plan_maxit = primal_plan_maxit = 20;
 }
 
 

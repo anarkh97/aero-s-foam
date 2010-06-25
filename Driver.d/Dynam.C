@@ -133,7 +133,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &d_n,
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.dt){
+ if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()){
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
 
@@ -232,15 +232,12 @@ Domain::addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x,
 //------------------------------------------------------------------------------------------------
 
 void
-Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx, double* vcx)
+Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState)
 {
   // Send u + IDISP6 to fluid code.
   // IDISP6 is used to compute pre-stress effects.
-  if(sinfo.aeroFlag < 0) return;
-
   getTimers().sendFluidTime -= getTime();
   Vector d_n_aero(d_n);
-  double * bcx_aero = bcx;
 
   if(sinfo.gepsFlg == 1) {
 
@@ -251,19 +248,156 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double *bcx
     }
   }
 
-  State state(c_dsa, dsa, bcx_aero, vcx, d_n_aero, v_n, a_n, v_p);
+  State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
-  flExchanger->sendDisplacements(nodes, state);
+  flExchanger->sendDisplacements(state, -1, geomState);
   if(verboseFlag) fprintf(stderr, " ... [E] Sent displacements ...\n");
 
   getTimers().sendFluidTime += getTime();
 }
 
 void
+Domain::aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState)
+{
+  State tempState(c_dsa, dsa, bcx, d_n, v_n, v_p);
+
+  flExchanger->sendTemperature(tempState);
+  if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+}
+
+void
+Domain::thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState)
+{
+/* we have to send the vector of temperatures in NODAL order, not
+int DOF order (in which is d_n)!
+print(), zero() can be put behind VECTORS!
+numUncon() is a function and sets the vector in its correspond. size.
+d_n.print("comment"); 
+*/
+
+  int iNode;
+  Vector tempsent(numnodes);
+
+  for(iNode=0; iNode<numnodes; ++iNode) {
+    int tloc  = c_dsa->locate( iNode, DofSet::Temp);
+    int tloc1 =   dsa->locate( iNode, DofSet::Temp);
+    double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
+    if(tloc1 < 0) temp = 0.0;
+    tempsent[iNode] = temp;
+  }
+
+  flExchanger->sendStrucTemp(tempsent);
+  if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
+}
+
+void
+Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
+{
+  // ... COMPUTE AEROELASTIC FORCE 
+  getTimers().receiveFluidTime -= getTime();
+
+  // ... Temporary variable for inter(extra)polated force
+  double *tmpFmem = new double[numUncon()];
+  StackVector tmpF(tmpFmem, numUncon());
+  tmpF.zero();
+
+  int iscollocated;
+  double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
+                                            alphaf, iscollocated, geomState);
+  if(verboseFlag) filePrint(stderr," ... [E] Received fluid load ...\n");
+  if(iscollocated == 0) {
+    if(prevFrc.lastTIndex >= 0) {
+      tmpF *= (1/gamma);
+      tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
+    }
+  }
+
+  double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
+  f.linAdd(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  prevFrc.lastFluidLoad = tmpF;
+  prevFrc.lastFluidTime = tFluid;
+  prevFrc.lastTIndex = tIndex;
+
+  delete [] tmpFmem;
+  getTimers().receiveFluidTime += getTime();
+}
+
+void
+Domain::buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t)
+{
+  // ... ADD FLUID FLUX
+  getTimers().receiveFluidTime -= getTime();
+
+  // ... Temporary variable for inter(extra)polated force
+  double *tmpFmem = (double *) dbg_alloca(sizeof(double)*numUncon());
+  StackVector tmpF(tmpFmem, numUncon());
+
+  double sflux = 0;
+  double bfl ;
+
+/*  linAdd is in Maths.d/Vector.C , f.linAdd(a,g,b,h) 
+    means f = f+a*g+b*h 
+    f.linAdd(a,g)= f+a*g  */
+
+  tmpF.zero();
+  flExchanger->getFluidFlux(tmpF, t, bfl);
+
+  if(verboseFlag) filePrint(stderr, " ... [T] Received fluid fluxes ...\n");
+
+  int vectlen = tmpF.size();
+
+/*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
+
+  int useProjector = domain->solInfo().filterFlags;
+
+  if(tIndex == 0)
+    f += tmpF;
+  else {
+    if(useProjector) f = tmpF;
+    else
+      f.linAdd(0.5, tmpF, 0.5, prev_f);
+  }
+
+  prev_f = tmpF;
+
+/*  Print out sum of fluxes received at n+1 and at n+1/2 in a file
+    specified by raerotfl in entry */
+
+  int numOutInfo = geoSource->getNumOutInfo();
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  for(int i=0; i < numOutInfo; i++) {
+    if(oinfo[i].interval != 0 && tIndex % oinfo[i].interval == 0) {
+      switch(oinfo[i].type) {
+        case OutputInfo::AeroFlux:
+          fprintf(oinfo[i].filptr,"%e   ",t);
+          fprintf(oinfo[i].filptr,"%e   ",bfl);
+          for(int j=0; j<vectlen; j++)  {
+            sflux += 0.5*(tmpF[j]+prev_f[j]);
+          }
+          fprintf(oinfo[i].filptr,"%e\n",sflux);
+          fflush(oinfo[i].filptr);
+        break;
+        default: /* do nothing */
+        break;
+      }
+    }
+  }
+}
+
+void
+Domain::thermoeComm()
+{
+  flExchanger->getStrucTemp(temprcvd);
+  if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
+  //buildThermalForce(temprcvd, f, geomState);
+}
+
+void
 Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
                     Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx) {
   // Current time stamp
-  double time = tIndex*sinfo.dt;
+  double time = tIndex*sinfo.getTimeStep();
    
   if (sinfo.nRestart > 0 && !sinfo.modal) {
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
@@ -272,6 +406,12 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
   // Send to fluid code (except C0)
   if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20)
     aeroSend(d_n, v_n, a_n, v_p, bcx, vcx);
+
+  if(sinfo.aeroheatFlag >= 0 && tIndex != 0 )
+    aeroheatSend(d_n, v_n, a_n, v_p, bcx, vcx);
+
+  if(sinfo.thermohFlag >=0 && tIndex != sinfo.initialTimeIndex) 
+    thermohSend(d_n, v_n, a_n, v_p, bcx, vcx);
 
   int numOutInfo = geoSource->getNumOutInfo();
 
@@ -307,6 +447,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                          double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
+  // XXXX numnodes is no longer reliable since it comes from the reduced node to node for direct mpcs
   double (*glDisp)[11] = new double[numnodes][11];//DofSet::max_known_nonL_dof
   for (int i = 0; i < numnodes; ++i)
     for (int j = 0 ; j < 11 ; j++)
@@ -831,6 +972,32 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
           delete [] plot_data;
         } break;
+
+       case OutputInfo::HeatFlXX:
+         getHeatFlux(d_n, bcx, i, HFLX, time);
+         break;
+       case OutputInfo::HeatFlXY:
+         getHeatFlux(d_n, bcx, i, HFLY, time);
+         break;
+       case OutputInfo::HeatFlXZ:
+         getHeatFlux(d_n, bcx, i, HFLZ, time);
+         break;
+       case OutputInfo::GrdTempX:
+         getHeatFlux(d_n, bcx, i, GRTX, time);
+         break;
+       case OutputInfo::GrdTempY:
+         getHeatFlux(d_n, bcx, i, GRTY, time);
+         break;
+       case OutputInfo::GrdTempZ:
+         getHeatFlux(d_n, bcx, i, GRTZ, time);
+         break;
+       case OutputInfo::HeatFlX:
+         getTrussHeatFlux(d_n, bcx, i, HFLX, time);
+         break;
+       case OutputInfo::GrdTemp:
+         getTrussHeatFlux(d_n, bcx, i, GRTX, time);
+         break;
+
         default:
           break;
         
@@ -976,29 +1143,6 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 {
   if(sinfo.aeroFlag >= 0) {
 
-    Vector d_n_aero(d_n);
- 
-    // Send u + IDISP6 to fluid code.
-    // IDISP6 is used to compute pre-stress effects.
-
-    if(sinfo.gepsFlg == 1) {
-      // If we are in the first time step, and we initialized with
-      // IDISP6, do not send IDISP6
-      if(numIDis == 0 && sinfo.zeroInitialDisp != 1) {
-        fprintf(stderr," ... DO NOT SEND IDISP6 0\n"); //HB
-      } else {
-        fprintf(stderr," ... SENDING IDISP6 0\n"); //HB
-        int i;
-        for(i = 0; i < numIDis6; ++i) {
-          int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
-          if(dof >= 0)
-            d_n_aero[dof] += iDis6[i].val;
-        }
-      }
-    }
-
-    State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
-
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
 
@@ -1014,13 +1158,13 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
 
     if(flag)
-      flExchanger = new FlExchanger(packedEset, c_dsa, oinfo+iInfo);
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
     else
-      flExchanger = new FlExchanger(packedEset, c_dsa );
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
 
     char *matchFile = geoSource->getMatchFileName();
     if(matchFile == 0)
-      matchFile = (char *) "MATCHER";
+      matchFile = (char*) "MATCHER";
     flExchanger->read(0, matchFile);
 
     //XML New step of negotiation with fluid code
@@ -1028,34 +1172,57 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     int restartinc = (solInfo().nRestart >= 0) ? (solInfo().nRestart) : 0;
 
+    Vector d_n_aero(d_n);
+
+    // Send u + IDISP6 to fluid code.
+    // IDISP6 is used to compute pre-stress effects.
+    if(sinfo.gepsFlg == 1) {
+      // If we are in the first time step, and we initialized with
+      // IDISP6, do not send IDISP6
+      if(numIDis == 0 && sinfo.zeroInitialDisp != 1) {
+        fprintf(stderr," ... DO NOT SEND IDISP6 0\n"); //HB
+      } else {
+        fprintf(stderr," ... SENDING IDISP6 0\n"); //HB
+        int i;
+        for(i = 0; i < numIDis6; ++i) {
+          int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
+          if(dof >= 0)
+            d_n_aero[dof] += iDis6[i].val;
+        }
+      }
+    }
+    
+    State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
+
 
     if(sinfo.aeroFlag == 8) {
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.dt, sinfo.mppFactor,
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                              restartinc, sinfo.isCollocated, sinfo.alphas);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
+      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
-                   modeData.modes, nodes, curState, sinfo.mppFactor);
-      return;
+                   modeData.modes, curState, sinfo.mppFactor);
+      if(verboseFlag) fprintf(stderr,"... [E] Sent mode shapes ...\n");
     }
-    else
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.dt, sinfo.tmax, restartinc,
+    else {
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas);
-    if(verboseFlag) fprintf(stderr,"... [E] Sent parameters and modes ...\n");
+      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters ...\n");
 
-    if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
-      flExchanger->initRcvParity(1);
-      flExchanger->initSndParity(1);
-    } else {
-      flExchanger->initRcvParity(-1);
-      flExchanger->initSndParity(-1);
-    }
+      if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
+        flExchanger->initRcvParity(1);
+        flExchanger->initSndParity(1);
+      } else {
+        flExchanger->initRcvParity(-1);
+        flExchanger->initSndParity(-1);
+      }
 
-    flExchanger->sendDisplacements(nodes, curState);
-    if(verboseFlag) fprintf(stderr,"... [E] Sent initial displacements ...\n");
+      flExchanger->sendDisplacements(curState);
+      if(verboseFlag) fprintf(stderr,"... [E] Sent initial displacements ...\n");
 
-    if(sinfo.aeroFlag == 1) { // Ping pong only
-      fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");
-      return;
+      if(sinfo.aeroFlag == 1) { // Ping pong only
+        fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");
+      }
     }
   }
 }
@@ -1072,12 +1239,12 @@ Domain::thermoePreProcess()
     // if sinfo.aeroFlag >= 0, flExchanger has already been initialize before,
     // thus, only when sinfo.aeroFlag < 0 is necessary.
     if(sinfo.aeroFlag < 0)
-      flExchanger = new FlExchanger(packedEset, c_dsa );
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
 
     flExchanger->thermoread(buffLen);
  
     flExchanger->getStrucTemp(temprcvd) ;
-    //if(verboseFlag) fprintf(stderr,"... [E] Received initial temperatures ...\n");
+    if(verboseFlag) fprintf(stderr,"... [E] Received initial temperatures ...\n");
   }
 }
 
@@ -1169,3 +1336,48 @@ double Domain::getDampingEnergy( Vector& vel, SparseMatrix * gDamp )
   
   return energy;
 }
+
+void
+Domain::updateUsddInDbc(double* userDefineDisp, int* map)
+{
+  int j = 0;
+  for(int i = 0; i < numDirichlet; ++i)
+    if(dbc[i].type == BCond::Usdd) {
+      int k = (map) ? map[j] : j;
+      dbc[i].val = userDefineDisp[k];
+      j++;
+    }
+}
+
+void
+Domain::updateUsdfInNbc(double* userDefineForce, int* map, double* weight)
+{
+  int j = 0;
+  for(int i = 0; i < numNeuman; ++i) 
+    if(nbc[i].type == BCond::Usdf) {
+      int k = (map) ? map[j] : j;
+      nbc[i].val = userDefineForce[k];
+      if(weight) {
+        int dof = c_dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
+        nbc[i].val *= weight[dof];
+      }
+      j++;
+    }
+}
+
+void
+Domain::updateActuatorsInNbc(double* actuatorsForce, int* map, double* weight)
+{
+  int j = 0;
+  for(int i = 0; i < numNeuman; ++i)   
+    if(nbc[i].type == BCond::Actuators) {
+      int k = (map) ? map[j] : j;
+      nbc[i].val = actuatorsForce[k];
+      if(weight) {
+        int dof = c_dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
+        nbc[i].val *= weight[dof];
+      }
+      j++;
+    }
+}
+

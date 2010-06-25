@@ -130,10 +130,10 @@ FullSquareMatrix LEIsoParamHexa::stiffness(CoordSet &cs, double *K, int flg ) {
 
 void   LEIsoParamHexa::getGravityForce(CoordSet &cs,double *gravity,
                            Vector &force, int gravflag, GeomState *gs) {
- if (gravflag==1) {
+ if (gravflag != 2) {
    fprintf(stderr,"LEIsoParamHexa::getGravityForce: lumped is not supported\n");
    return;
- } else if (gravflag==2) {
+ } else {
    IsoParamUtils ipu(order);
    int orderc = ipu.getorderc();
    double *xyz=(double*)alloca(sizeof(double)*3*orderc);
@@ -145,9 +145,6 @@ void   LEIsoParamHexa::getGravityForce(CoordSet &cs,double *gravity,
    if (order<=3) gorder = O3;
    else if (order<=4) gorder = O4;
    ipu.volumeInt3d(xyz, f, gorder);
- } else {
-    int i;
-    for(i=0; i<numDofs(); ++i) force[i] = 0.0;
  }
 }
 

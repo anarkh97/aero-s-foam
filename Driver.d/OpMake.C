@@ -1,30 +1,24 @@
 #include <typeinfo>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/NonLinSkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
-#include <Math.d/NonLinBLKSparseMatrix.h>
 #include <Math.d/SGISparseMatrix.h>
-#include <Math.d/NonLinSGISparseMatrix.h>
 #include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/Skyline.d/NonLinBlockSky.h>
 #include <Math.d/Skyline.d/SGISky.h>
-#include <Math.d/Skyline.d/NonLinSGISky.h>
 #include <Solvers.d/PCGSolver.h>
-#include <Solvers.d/NonLinPCGSolver.h>
 #include <Solvers.d/UFront.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
+#include <Solvers.d/GmresSolver.h>
+#include <Solvers.d/Spooles.h>
 #include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
-#include <Solvers.d/NonLinSpooles.h>
-#include <Solvers.d/NonLinMumps.h>
 #include <Solvers.d/MappedAssembledSolver.h>
 #include <Driver.d/Dynam.h>
 #include <Sfem.d/Sfem.h>
@@ -34,7 +28,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Hetero.d/FlExchange.h>
 #include <Element.d/Helm.d/HelmElement.h>
-#include <Driver.d/NLState.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 
 extern Sfem* sfem;
@@ -53,7 +47,6 @@ Domain::assembleSparseOps(OpList &ops) {
   Scalar *marray = (Scalar *) dbg_alloca(size);
   for(int iele=0; iele < numele; ++iele) {
     // Skip all irrelevant elements
-    if(packedEset[iele]->isPhantomElement()) continue;
     if(packedEset[iele]->isSommerElement()) continue;
 
     if(ops.needStiff()) {
@@ -87,7 +80,7 @@ template<class Scalar>
 void
 Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 		      double Ccoef, GenSparseMatrix<Scalar> *mat,
-                      FullSquareMatrix *kelArray)
+                      FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
  int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
@@ -138,20 +131,17 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  int iele;
 
-
-
  for(iele=0; iele < numele; ++iele) {
-   if(packedEset[iele]->isPhantomElement()) continue;
+   StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
-   bool isComplexF = (packedEset[iele]->getProperty())->fp.PMLtype!=0;
-   alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : alphaDamp;
-   beta = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : betaDamp;
+   bool isComplexF = (prop && prop->fp.PMLtype != 0);
+   alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
+   beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
    // Form element stiffness and mass matrices
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if (isComplexF) {
      kcel = packedEset[iele]->stiffness(nodes, kcarray);
    } else {
-     //if(kelArray) { cerr << "****\n"; kel = kelArray[iele]; }
      if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
      else kel = packedEset[iele]->stiffness(nodes, karray);
      this->densProjectStiffness(kel, iele);
@@ -167,9 +157,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if (isComplexF) {
        mcel = packedEset[iele]->massMatrix(nodes, mcarray);
      } else {
-       mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
+       if(melArray) mel.copy(melArray[iele]); // PJSA 11-5-09
+       else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
-
      }
      if(sinfo.isCoupled && isStructureElement(iele)) mel *= cscale_factor2;
    }
@@ -236,8 +226,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    else {
      // do something for coupled eigen/dynamics, set fluidCelerity = 1500
      if(makeMass && sinfo.isCoupled && isFluidElement(iele)) mel /= (1500.0 * 1500);
-     if(sinfo.acoustic == 1) {
-       double c = packedEset[iele]->getProperty()->ss;//speed of sound
+     if(sinfo.acoustic == 1 && prop) {
+       double c = prop->ss; //speed of sound
        mel /= (c*c);
      }
    }
@@ -258,6 +248,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.K)   ops.K->addImaginary(izel,(*allDOFs)[iele]);
        if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
        if(mat) mat->addImaginary(izel,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
      }
      if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
      if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
@@ -289,8 +280,11 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(matrixTimers) matrixTimers->assemble -= getTime();
    if (isComplexF || (imag(kappa2)!=0)) {
      if(mat) mat->add(kcel,(*allDOFs)[iele]);
+     if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
    } else {
+     //std::cout << " Trace 2: " << kel.trace() << std::endl;
      if(mat) mat->add(kel,(*allDOFs)[iele]);
+     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {
      if(isDamped && isStructureElement(iele)) {
@@ -320,7 +314,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    {
      // we assume they have no damping
      for(iele=0; iele < numele; ++iele) {
-       if(packedEset[iele]->isPhantomElement()) continue;
+       StructProp *prop = packedEset[iele]->getProperty();
        if(packedEset[iele]->isSommerElement()) continue;
        if(!packedEset[iele]->isComplex()) continue;
 
@@ -358,8 +352,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        else {
 	 // do something for coupled eigen/dynamics, set fluidCelerity = 1500
 	 if(makeMass && sinfo.isCoupled && isFluidElement(iele)) melC /= (1500.0 * 1500);
-	 if(sinfo.acoustic == 1) {
-	   double c = packedEset[iele]->getProperty()->ss;//speed of sound
+	 if(sinfo.acoustic == 1 && prop) {
+	   double c = prop->ss;//speed of sound
 	   melC /= (c*c);
 	 }
        }
@@ -373,6 +367,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
        if(ops.Msolver) ops.Msolver->add(melC,(*allDOFs)[iele]);
        if(mat) mat->add(kelC,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->add(kelC,(*allDOFs)[iele]);
        if(matrixTimers) matrixTimers->assemble += getTime();
      }
    }
@@ -390,7 +385,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
   //FullSquareMatrixC kel2(1,0);
 
   for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   if(packedEset[iele]->isPhantomElement()) continue;
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
    //add massMatrix
    mel.zero();
@@ -406,6 +400,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
    if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
    cel.zero();
@@ -414,6 +409,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
    if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
    kel.zero();
@@ -422,6 +418,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    //add Imaginary part of stiffness
    kel.zero();
    kel = packedEset[iele]->imStiffness(nodes, karray);
@@ -429,11 +426,11 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->addImaginary(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
   }
  }
  else
  for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   if(packedEset[iele]->isPhantomElement()) continue;
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
    //add massMatrix
    mel.zero();
@@ -449,6 +446,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
    if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
    cel.zero();
@@ -457,6 +455,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
    if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
    kel.zero();
@@ -465,6 +464,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
    if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
  }
 
  if(makeMass || isShifted) {
@@ -492,6 +492,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mat) mat->add(dof, jdof, m);
+         if(ops.spp) ops.spp->add(dof, jdof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
@@ -506,6 +507,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
          if(mat) mat->add(dof,jdof,mass);
+         if(ops.spp) ops.spp->add(dof,jdof,mass);
        }
      }
      else {
@@ -515,6 +517,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_imag = isDamped ? -omega*alpha*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mat) mat->addDiscreteMass(dof, m);
+         if(ops.spp) ops.spp->addDiscreteMass(dof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
@@ -529,6 +532,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
          if(mat) mat->addDiscreteMass(dof, mass);
+         if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
        }
      }
      current = current->next;
@@ -603,6 +607,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        Ma_NZ *= (-omega2*Kcoef);
        if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);
        if (mat)   mat->add(Ma_NZ,domain->umap_add);
+     if (ops.spp)   ops.spp->add(Ma_NZ,domain->umap_add);
        fprintf(stderr," ... HEV Problem: Added mass contribution included in shifted opertor ...\n");
      }
    }
@@ -689,43 +694,28 @@ template<class Scalar>
 GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
- if(DSA==0) DSA=c_dsa;
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-     return new GenNonLinSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs, rbm);
- else
-   if(!geoSource->getDirectMPC())
+  if(DSA==0) DSA=c_dsa;
+  if(!geoSource->getDirectMPC())
     return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, rbm);
-   else {
-     DOFMap *baseMap = new DOFMap[dsa->size()];
-     DOFMap *eqMap = new DOFMap[DSA->size()];
-     // TODO Examine when DSA can be different from c_dsa
-     ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-     typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNode, MpcDSA, sinfo.trbm, rbm);
-     int nMappedEq = DSA->size();
-     return
-       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-           nMappedEq, eqMap);
-   }
+  else {
+    DOFMap *baseMap = new DOFMap[dsa->size()];
+    DOFMap *eqMap = new DOFMap[DSA->size()];
+    // TODO Examine when DSA can be different from c_dsa
+    ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNode, MpcDSA, sinfo.trbm, rbm);
+    int nMappedEq = DSA->size();
+    return
+      new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
+          nMappedEq, eqMap);
+  }
 }
 
 template<class Scalar>
 GenBlockSky<Scalar> *
 Domain::constructBlockSky(DofSetArray *DSA)
 {
- if(DSA==0) DSA=c_dsa;
-
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm, numele, allDOFs);
- else
-   return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
+  if(DSA==0) DSA=c_dsa;
+  return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
 }
 
 template<class Scalar>
@@ -758,141 +748,76 @@ template<class Scalar>
 GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
- if(DSA==0) DSA=c_dsa;
-
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, numele,
-	                                       allDOFs, sinfo.trbm, sinfo.sparse_renum, rbm);
- else {
-   //axess the newmark parameters for acoustic time domain - JFD
-   if (sinfo.newmarkBeta==0.0 && sinfo.acoustic) {
-     if (sinfo.ATDARBFlag>-1.0) {
-       return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-     }
-     else {
-       int numN=numNodes();
-       // import a diagonal connectivity for the mass matrix
-       Connectivity *connForMas = 0;
-       connForMas = new Connectivity(numN);
-       //connForMass->print();
-       connForMas = connForMas->modify();
-       GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-       delete connForMas;
-       return retur;
-     }
-   }
-   else
-     if(!geoSource->getDirectMPC())
-       return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-     else {
-       DOFMap *baseMap = new DOFMap[dsa->size()];
-            DOFMap *eqMap = new DOFMap[DSA->size()];
-            // TODO Examine when DSA can be different from c_dsa
-            ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-            typename WrapSparseMat<Scalar>::CtorData
-              baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
-            int nMappedEq = DSA->size();
-            return
-              new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-                  nMappedEq, eqMap);
-     }
- }
+  if(DSA == 0) DSA = c_dsa;
+  if(sinfo.newmarkBeta == 0.0 && sinfo.acoustic) {
+    if(sinfo.ATDARBFlag >- 1.0) {
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+    }
+    else {
+      int numN=numNodes();
+      // import a diagonal connectivity for the mass matrix
+      Connectivity *connForMas = 0;
+      connForMas = new Connectivity(numN);
+      //connForMass->print();
+      connForMas = connForMas->modify();
+      GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      delete connForMas;
+      return retur;
+    }
+  }
+  else {
+    if(!geoSource->getDirectMPC())
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+    else {
+      DOFMap *baseMap = new DOFMap[dsa->size()];
+      DOFMap *eqMap = new DOFMap[DSA->size()];
+      // TODO Examine when DSA can be different from c_dsa
+      ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+      typename WrapSparseMat<Scalar>::CtorData
+        baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      int nMappedEq = DSA->size();
+      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
+    }
+  }
 }
 
 template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(Rbm *rbm)
 {
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
-                                               allDOFs, rbm);
- else
-   return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm);
+  return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm);
 }
 
 template<class Scalar>
 GenSGISparseMatrix<Scalar> *
 Domain::constructSGISparseMatrix(int subNumber, Rbm *rbm)
 {
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, numele,
-                                               allDOFs, rbm);
- else
-   return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm, subNumber);
+  return new GenSGISparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, rbm, subNumber);
 }
 
 template<class Scalar>
 GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *
 Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
 {
- GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *pcgSolver;
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength    ||
-     solInfo().structoptFlag == 1  )
- {
-   pcgSolver = new GenNonLinPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                                     (K, sinfo.precond, sinfo.maxit, sinfo.tol, numele,
-                                     allDOFs, sinfo.getNLInfo().kryflg, sinfo.getNLInfo().initflg,
-                                     sinfo.getNLInfo().reorthoflg, sinfo.getNLInfo().maxVec, rbm);
- }
- else {
-    pcgSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
+  return new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
                                 (K, sinfo.precond, sinfo.maxit, sinfo.tol, sinfo.maxvecsize, rbm);
- }
-
- return pcgSolver;
 }
 
 template<class Scalar>
 GenSpoolesSolver<Scalar> *
 Domain::constructSpooles(ConstrainedDSA *CDSA, Rbm *rbm)
 {
- if(CDSA==0) CDSA=c_dsa;
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength )
-   return new GenNonLinSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
-                                             allDOFs, rbm);
- else
-   return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
+  if(CDSA == 0) CDSA = c_dsa;
+  return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
 }
 
 template<class Scalar>
 GenMumpsSolver<Scalar> *
 Domain::constructMumps(ConstrainedDSA *CDSA, Rbm *rbm, FSCommunicator *com)
 {
- if(CDSA==0) CDSA=c_dsa;
- if( probType() == SolverInfo::NonLinStatic ||
-     probType() == SolverInfo::NonLinDynam  ||
-     probType() == SolverInfo::MatNonLinDynam  ||
-     probType() == SolverInfo::MatNonLinStatic ||
-     probType() == SolverInfo::ArcLength    ||
-     solInfo().structoptFlag == 1  )
-   return new GenNonLinMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, numele,
-                                           allDOFs, rbm);
- else
-   return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
+  if(CDSA == 0) CDSA = c_dsa;
+  return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
 }
-
-
-
 
 template<class Scalar>
 void
@@ -962,20 +887,20 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  else {
    switch(sinfo.iterType) {
      default:
-     case 1 : {
-       fprintf(stderr," ... PCG Method is Selected          ...\n");
+     case 0 : {
+       filePrint(stderr," ... CG Solver is Selected           ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
      }
-     case 2: {
-       fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
-       allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
+     case 4: {
+       filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
+       allOps.sysSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
-     case 3: {
-       fprintf(stderr," ... CR Method is Selected          ...\n");
-       allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
+     case 5: {
+       filePrint(stderr," ... CR Solver is Selected          ...\n");
+       allOps.sysSolver = new GenCRSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, sfbm);
        break;
      }
    }
@@ -1134,8 +1059,6 @@ void Domain::makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc,
 
   int iele;
   for(iele=0; iele < numele; ++iele) {
-    if(packedEset[iele]->isPhantomElement()) continue;
-
     // Form element stiffness and mass matrices
     if(matrixTimers) matrixTimers->formTime -= getTime();
     if(kelArray) kel = kelArray[iele];
@@ -1447,25 +1370,25 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
   switch(sinfo.subtype) {
     default:
     case 0:
-      fprintf(stderr," ... Skyline Solver is Selected     ...\n");
+      filePrint(stderr," ... Skyline Solver is Selected     ...\n");
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 5:
-      fprintf(stderr," ... Frontal Solver is Selected     ...\n");
+      filePrint(stderr," ... Frontal Solver is Selected     ...\n");
       makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm, kelArray);
       systemSolver = allOps.sysSolver;
       break;
     case 1:
-      fprintf(stderr," ... Sparse Solver is Selected      ...\n");
+      filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
       spm->zeroAll(); // PJSA
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
-      fprintf(stderr," ... SGI Sparse Solver is Selected  ...\n");
+      filePrint(stderr," ... SGI Sparse Solver is Selected  ...\n");
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
@@ -1473,7 +1396,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
-      fprintf(stderr," ... SGI Skyline Solver is Selected ...\n");
+      filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
       makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -1484,7 +1407,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #ifdef USE_SPOOLES
     case 8:
-      fprintf(stderr," ... Spooles Solver is Selected     ...\n");
+      filePrint(stderr," ... Spooles Solver is Selected     ...\n");
       spm = constructSpooles<Scalar>(c_dsa, rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
@@ -1504,7 +1427,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
     case 10:
-      fprintf(stderr," ... Diagonal Solver is Selected    ...\n");
+      filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
       //fprintf(stderr,"Warning, RBMs are not taken into account\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -1521,21 +1444,30 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 {
   switch(sinfo.subtype) {
     case 2:
-      fprintf(stderr," ... Node Based Sparse Matrix       ...\n");
+      filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
       spm = constructNBSparseMatrix<Scalar>();
       break;
     default:
     case 3:
-      fprintf(stderr," ... Dof Based Sparse Matrix        ...\n");
+      filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
       spm = constructDBSparseMatrix<Scalar>();
       break;
   }
+  switch(sinfo.precond) {
+    case 1:
+      filePrint(stderr," ... Diagonal Preconditioner        ...\n");
+      GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(c_dsa);
+      allOps.prec = (GenSolver<Scalar> *) diag;
+      allOps.spp = (GenSparseMatrix<Scalar> *) diag;
+      break;
+  }
   makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray);
+  if(allOps.prec) allOps.prec->factor();
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
     default:
-    case 1: {
-      fprintf(stderr," ... CG Method is Selected          ...\n");
+    case 0: {
+      filePrint(stderr," ... CG Solver is Selected          ...\n");
       if (sinfo.precond==3) {
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
         prec_solver->zeroAll();
@@ -1547,21 +1479,32 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 
       GenPCGSolver<Scalar,GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *pcgSolver = constructPCGSolver<Scalar>(spm, rbm);
-      systemSolver         = pcgSolver;
+      systemSolver = pcgSolver;
       break;
     }
-    case 2: {
-      fprintf(stderr," ... Bi-CG Method is Selected       ...\n");
-      GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-        *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
+    case 4: {
+      filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
+      GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+        *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = bcgSolver;
       break;
     }
-    case 3: {
-      fprintf(stderr," ... CR Method is Selected          ...\n");
-      GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-        *crSolver = new  GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(sinfo.maxit, sinfo.tol, spm);
+    case 5: {
+      filePrint(stderr," ... CR Solver is Selected          ...\n");
+      GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
+        *crSolver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
       systemSolver = crSolver;
+      break;
+    }
+    case 1 : {
+      filePrint(stderr," ... GMRES Solver is Selected       ...\n");
+      GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+        *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
+         (sinfo.maxit, sinfo.tol, spm, &GenSparseMatrix<Scalar>::matvec, allOps.prec, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
+      if(sinfo.maxvecsize > 0) gmresSolver->maxortho = sinfo.maxvecsize;
+      gmresSolver->verbose = verboseFlag;
+      gmresSolver->printNumber = sinfo.fetiInfo.printNumber;
+      systemSolver = gmresSolver;
       break;
     }
   }
@@ -1570,158 +1513,162 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 
 template<class Scalar>
 void
-Domain::buildGravityForce(GenVector<Scalar> &force)
+Domain::addGravityForce(GenVector<Scalar> &force)
 {
-  int gravflg = gravityFlag();
+  // ... ADD ELEMENT MASS CONTRIBUTION ...
+  Vector elementGravityForce(maxNumDOFs);
+  int gravflg;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+       
+    if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0)) 
+      gravflg = 2;                       // 2: consistent (for dynamics, consistent gravity should not be used if element only has a lumped mass matrix)
+    else gravflg = geoSource->fixedEndM; // 1: lumped with fixed-end moments
+                                         // 0: lumped without fixed-end moments
 
-  if(gravflg) {
-    if (geoSource->consistentQFlag()) gravflg=2;
+    elementGravityForce.zero();
+    packedEset[iele]->getGravityForce(nodes, gravityAcceleration, elementGravityForce, gravflg);
 
-    // ... ADD ELEMENT MASS CONTRIBUTION ...
-    int i, cn, iele;
-    Vector ElementGravityForce(maxNumDOFs,0.0);
-
-    for(iele=0; iele<numele; ++iele) {
-      packedEset[iele]->getGravityForce(nodes,gravityAcceleration,
-                                        ElementGravityForce,gravflg);
-
-      for(i=0; i<allDOFs->num(iele); ++i) {
-        cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-        if(cn >= 0)
-          force[cn] += ElementGravityForce[i];
-      }
-    }
-
-    // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
-    DMassData *current = firstDiMass;
-    while(current != 0) {
-      int thisDof = c_dsa->locate(current->node, (1 << current->dof));
-      if(thisDof >= 0 ) {
-        if(current->dof == 0)
-          force[thisDof] += (current->diMass)*gravityAcceleration[0];
-        if(current->dof == 1)
-          force[thisDof] += (current->diMass)*gravityAcceleration[1];
-        if(current->dof == 2)
-          force[thisDof] += (current->diMass)*gravityAcceleration[2];
-      }
-      current = current->next;
-    }
- }
-}
-
-template<class Scalar>
-void
-Domain::buildPressureForce(GenVector<Scalar> &force, GeomState *gs)
-{
- Vector ElementPressureForce(maxNumDOFs,0.0);
- int cflg = geoSource->consistentPFlag();
-
- int i, iele;
- // for(iele = 0; iele< numele; ++iele) {
- int nEls = packedEset.last(); //HB: performance issue (avoid calling method last() at each loop)
- for(iele = 0; iele<nEls;  ++iele) {  // PJSA: 5-2-05 for phantoms
-   // If there is a zero pressure defined, skip it.
-   if( packedEset[iele]->getPressure() == 0.0 ) continue;
-
-   // Otherwise, compute element pressure force
-   packedEset[iele]->computePressureForce(nodes, ElementPressureForce,
-                                          gs, cflg);
-
-   // Assemble element pressure forces into global rhs vector
-   for(i=0; i<allDOFs->num(iele); ++i) {
-     if((*allDOFs)[iele][i] > -1) {
-       int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-       if(cn >= 0) {
-         force[cn] += ElementPressureForce[i];
-       }
-     }
-   }
- }
-}
-
-template<class Scalar>
-void
-Domain::buildPressureForce(GenVector<Scalar> &force, NLState *gs)
-{
- Vector ElementPressureForce(maxNumDOFs,0.0);
- int cflg = geoSource->consistentPFlag();
- double lunp[1014];
- if(maxNumDOFs > 1024)
-    throw "Too many dofs for buildPressureForce\n";
-
- int i, iele;
- for(iele = 0; iele< numele; ++iele) {
-   // If there is a zero pressure defined, skip it.
-   if( packedEset[iele]->getPressure() == 0.0 ) continue;
-
-   for(i=0; i<allDOFs->num(iele); ++i) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
-      if(cn >= 0){
-         lunp[i] = gs->disp[cn];
-      } else {
-        int fdf = c_dsa->invRCN((*allDOFs)[iele][i]);
-        lunp[i]  = gs->prescDisp[fdf];
-      }
-   }
-   // Otherwise, compute element pressure force
-   Node localNodes[128];
-   int ndNum[128];
-   int nnd = packedEset[iele]->numNodes();
-   packedEset[iele]->nodes(ndNum);
-   for(int iNode = 0; iNode < nnd; ++iNode)
-     localNodes[iNode] = *nodes[ndNum[iNode]];
-   packedEset[iele]->computePressureForce(localNodes, ElementPressureForce,
-                                          lunp, cflg);
-
-   // Assemble element pressure forces into global rhs vector
-   for(i=0; i<allDOFs->num(iele); ++i) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][i]);
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(cn >= 0)
-        force[cn] += ElementPressureForce[i];
-   }
- }
-}
-
-template<class Scalar>
-void
-Domain::buildThermalForce(double *nodalTemperatures, GenVector<Scalar> &force, GeomState *gs)
-{
-  // allocate integer array to store node numbers
-  int *nodeNumber = new int[maxNumNodes];
-  double defaultTemp = -10000000.0;
-
-  Vector elemNodeTemps(maxNumNodes);
-  Vector elemThermalForce(maxNumDOFs,0.0);
-
-  int iEle, iNode;
-  for(iEle=0; iEle<numele; ++iEle) {
-
-    double ta = packedEset[iEle]->getProperty()->Ta;
-
-    int numNodesPerElement = packedEset[iEle]->numNodes();
-    packedEset[iEle]->nodes(nodeNumber);
-
-    for(iNode=0; iNode<numNodesPerElement; ++iNode) {
-      if(nodalTemperatures[nodeNumber[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumber[iNode]];
-    }
-
-    packedEset[iEle]->getThermalForce(nodes,elemNodeTemps,elemThermalForce,0,gs);
-
-    // Assemble element thermal forces into global rhs vector
-    int i;
-    for(i=0; i<allDOFs->num(iEle); ++i) {
-      int cn = c_dsa->getRCN((*allDOFs)[iEle][i]);
-      if(cn >= 0)
-        force[cn] += elemThermalForce[i];
+        force[cn] += elementGravityForce[idof];
     }
   }
 
- // nodal tempatures are needed for taking into account thermal loads
- if(sinfo.thermalLoadFlag)
-   delete [] nodalTemperatures;
+  // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
+  DMassData *current = firstDiMass;
+  while(current != 0) {
+    int thisDof = c_dsa->locate(current->node, (1 << current->dof));
+    if(thisDof >= 0 ) {
+      if(current->dof == 0)
+        force[thisDof] += (current->diMass)*gravityAcceleration[0];
+      if(current->dof == 1)
+        force[thisDof] += (current->diMass)*gravityAcceleration[1];
+      if(current->dof == 2)
+        force[thisDof] += (current->diMass)*gravityAcceleration[2];
+    }
+    current = current->next;
+  }
+}
+
+template<class Scalar>
+void
+Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
+{
+  Vector elementPressureForce(maxNumDOFs);
+  int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE
+
+  for(int iele = 0; iele < numele; ++iele) {
+    // If there is a zero pressure defined, skip it.
+    if(packedEset[iele]->getPressure() == 0.0) continue;
+
+    // Otherwise, compute element pressure force
+    elementPressureForce.zero();
+    packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
+
+    // Assemble element pressure forces into domain force vector
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(cn >= 0)
+        force[cn] += lambda*elementPressureForce[idof];
+    }
+  }
+}
+
+template<class Scalar>
+void
+Domain::addAtddnbForce(GenVector<Scalar> &force, double lambda)
+{
+  Vector elementAtddnbForce(maxNumDOFs);
+
+  for(int iele = 0; iele < numNeum; ++iele) {
+    // Compute acoustic element distributed Neumann force
+    elementAtddnbForce.zero();
+    neum[iele]->neumVector(nodes, elementAtddnbForce);
+    elementAtddnbForce *= sinfo.ATDDNBVal;
+    
+    // Assemble element force vector into domain force vector
+    int *dofs = neum[iele]->dofs(*c_dsa);
+    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
+      force[dofs[idof]] += lambda*elementAtddnbForce[idof];
+    }
+    delete [] dofs;
+  }
+}
+
+template<class Scalar>
+void
+Domain::addAtdrobForce(GenVector<Scalar> &force, double lambda)
+{
+  Vector elementAtdrobForce(maxNumDOFs);
+
+  for(int iele = 0; iele < numScatter; ++iele) {
+    // Compute acoustic element Robin distributed boundary condition
+    elementAtdrobForce.zero();
+    scatter[iele]->neumVector(nodes, elementAtdrobForce);
+    elementAtdrobForce *= (sinfo.ATDROBVal/sinfo.ATDROBalpha);
+
+    // Assemble element force vector into domain force vector
+    int *dofs = scatter[iele]->dofs(*c_dsa);
+    for(int idof = 0; idof < scatter[iele]->numDofs(); ++idof) {
+      force[dofs[idof]] += lambda*elementAtdrobForce[idof];
+    }
+    delete [] dofs;
+  }
+}
+
+template<class Scalar>
+void
+Domain::addThermalForce(GenVector<Scalar> &force)
+{
+  if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
+  Vector elementTemp(maxNumNodes);
+  Vector elementThermalForce(maxNumDOFs);
+
+  for(int iele = 0; iele < numele;  ++iele) {
+    // By convention phantom elements do not have thermal load
+    if(packedEset[iele]->getProperty() == 0) continue;
+
+    // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
+    for(int inod = 0; inod < elemToNode->num(iele); ++inod) {
+      double t = temprcvd[(*elemToNode)[iele][inod]];
+      elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
+    }
+
+    // Compute element thermal force in the global coordinates
+    elementThermalForce.zero();
+    packedEset[iele]->getThermalForce(nodes, elementTemp, elementThermalForce, 0);
+
+    // Assemble element thermal forces into the force vector
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(dofNum >= 0)
+        force[dofNum] += elementThermalForce[idof];
+    }
+  }
+}
+
+template<class Scalar>
+void
+Domain::addMpcRhs(GenVector<Scalar> &force)
+{
+  Vector elementForce(maxNumDOFs);
+
+  for(int iele = 0; iele < numele; ++iele) {
+    // If there is a zero pressure defined, skip it.
+    if(dynamic_cast<MpcElement*>(packedEset[iele]) == NULL) continue;
+
+    // Otherwise, compute element force due to mpc rhs
+    packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0);
+
+    // Assemble element pressure forces into domain force vector
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(cn >= 0)
+        force[cn] += elementForce[idof];
+    }
+  }
 }
 
 template<class Scalar>
@@ -1862,7 +1809,7 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//Dof
 
 template<class Scalar>
 void
-Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, GeomState *gs)
+Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 {
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -1874,8 +1821,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    //if(nbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], nbc[i].val/fluidDensity); else // PJSA 1-9-2008 temp fix (homogenous fluid only)
-    //                                                                                         // required for backward-compatibility with old versions (before acoustic equations divided by rho)
     ScalarTypes::addScalar(force[dof], nbc[i].val);
   }
 
@@ -1883,19 +1828,14 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
-    //if(cnbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], cnbc[i].reval/fluidDensity, cnbc[i].imval/fluidDensity); else // PJSA 1-9-2008
     ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
   }
 
-  // PJSA: new FETI-H stuff
   if (implicitFlag) {
     int i, iele;
     double *direction = getWaveDirection();
-// RT
     ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
-    int* edofs = (int*) dbg_alloca(this->maxNumDOFs*sizeof(int));
-//#define PRTEST
-#ifndef PRTEST
+    int* edofs = (int*) dbg_alloca(this->maxNumDOFs*4*sizeof(int));
     for(iele=0; iele<numNeum; ++iele) {
       double kappa = neum[iele]->el->getProperty()->kappaHelm; // PJSA 1-15-2008
       neum[iele]->dofs(*this->dsa,edofs);
@@ -1903,142 +1843,15 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
                              kappa,direction[0],direction[1],direction[2],
                              pointSourceFlag);
       for(i=0;i<neum[iele]->numDofs();i++) {
-#else
-    for(iele=0; iele<numNeum; ++iele) {
-      neum[iele]->solidDofs(*this->dsa,edofs);
-      neum[iele]->neumVector(this->nodes,elementNeumanScatterForce,
-                             omega,direction[0],direction[1],direction[2],
-                             pointSourceFlag);
-      for(i=0;i<neum[iele]->numSolidDofs();i++) {
-#endif
-       int cn = c_dsa->getRCN(edofs[i]);
-       if(cn >= 0) {
-        ScalarTypes::addScalar(force[cn], elementNeumanScatterForce[i].real(),
-                               elementNeumanScatterForce[i].imag());
-       }
-      }
-    }
-  }
-
-/*
-  if (implicitFlag) {
-
-    double *direction = getWaveDirection();
-// RT - check that this is the heterogenous scattering
-    int imat;
-    double rho1, rho2;
-    complex<double> kappa1(0.0,0.0), kappa2(0.0,0.0);
-    for(imat=0;imat<geoSource->getNumProps();imat++) {
-      StructProp *sp = &((geoSource->getStructProps())[imat]);
-      if (sp!=0)
-      if (sp->kappaHelm!=0.0) {
-        if (kappa1==complex<double>(0.0,0.0)) {
-          kappa1 = complex<double>(sp->kappaHelm,0.0);
-          rho1 = sp->rho;
-        } else {
-          if (kappa1!=complex<double>(sp->kappaHelm,sp->kappaHelmImag)) {
-            if (kappa2==complex<double>(0.0,0.0)) {
-              kappa2 = complex<double>(sp->kappaHelm,sp->kappaHelmImag);
-              rho2 = sp->rho;
-            }
-          }
+        int cn = c_dsa->getRCN(edofs[i]);
+        if(cn >= 0) {
+          ScalarTypes::addScalar(force[cn], elementNeumanScatterForce[i].real(),
+                                 elementNeumanScatterForce[i].imag());
         }
       }
     }
 
-//fprintf(stderr,"kappa1 rho1 kappa2 rho2: %f %f %f %f %f\n", real(kappa1),rho1, real(kappa2),imag(kappa2),rho2);
-
-    complex<double> diri[3][3] ={ {0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0} };
-    complex<double> coefi[3] = {0.0,0.0,0.0};
-
-    if (real(kappa2)!=0) {
-// Assumptions - fluid 1 is in z<0, fluid 2 is in z>0
-//             - incident wave is of form (dx,dy,dz), dz>0
-//             - incident wave vector is normalized
-//             - kappa1 is real
-//             - |kappa2| < kappa1
-
-       double alpha = acos(direction[2]);
-
-       double ll = sqrt(direction[0]*direction[0]+direction[1]*direction[1]);
-       double dx = 0.0;
-       double dy = 0.0;
-       if (ll!=0.0) {
-         dx = direction[0]/ll;
-         dy = direction[1]/ll;
-       }
-
-       diri[0][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[0][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[0][2] = kappa1*complex<double>(0.0,direction[2]);
-       diri[1][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[1][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[1][2] = kappa1*complex<double>(0.0,-direction[2]);
-       diri[2][0] = kappa1*complex<double>(0.0,sin(alpha)*dx);
-       diri[2][1] = kappa1*complex<double>(0.0,sin(alpha)*dy);
-       diri[2][2] = sqrt(sin(alpha)*sin(alpha)*kappa1*kappa1-kappa2*kappa2);
-       if (real(diri[2][2])>1e-15) diri[2][2] = -diri[2][2];
-
-       coefi[0] = complex<double>(1.0,0.0);
-       coefi[1] = (rho2*kappa1/(rho1*kappa2)-
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2]))) /
-                  (rho2*kappa1/(rho1*kappa2)+
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2])));
-       coefi[2] = 2.0 /
-                  (rho2*kappa1/(rho1*kappa2)+
-                  diri[2][2]/(kappa2*complex<double>(0.0,direction[2])));
-       coefi[2] *= rho2/rho1*kappa1/kappa2;
-    } else {
-       diri[2][0] = kappa1*complex<double>(0.0,direction[0]);
-       diri[2][1] = kappa1*complex<double>(0.0,direction[1]);
-       diri[2][2] = kappa1*complex<double>(0.0,direction[2]);
-       coefi[2] = complex<double>(1.0,0.0);
-    }
-
-    int iele;
     ComplexVector elementWetInterfaceScatterForce(this->maxNumDOFs,0.0);
-    int* edofs = (int*) alloca(this->maxNumDOFs*4*sizeof(int));
-    int numWetDof;
-    for(iele=0; iele<numWet; ++iele) {
-      HelmElement *he = dynamic_cast<HelmElement *>(wet[iele]->el);
-      if (he==0 && wet[iele]->el2==0) {
-        numWetDof = wet[iele]->numSolidDofs();
-        wet[iele]->solidDofs(*this->dsa,edofs);
-      } else if (he!=0 && wet[iele]->el2==0) {
-        numWetDof = wet[iele]->numDofs();
-        wet[iele]->dofs(*this->dsa,edofs);
-      } else {
-        numWetDof = wet[iele]->numWetDofs();
-        wet[iele]->wetDofs(*this->dsa,edofs);
-      }
-
-      if (pointSourceFlag==0) {
-         wet[iele]->wetInterfaceVector(this->nodes,
-                            elementWetInterfaceScatterForce, diri,coefi);
-       }
-       else
-         wet[iele]->wetInterfaceVectorPoint(this->nodes,
-                            elementWetInterfaceScatterForce, real(kappa1),
-                            direction[0], direction[1], direction[2]);
-#ifndef PRTEST
-      int i;
-      for(i=0;i<numWetDof;i++) {
-       int cn = c_dsa->getRCN(edofs[i]);
-       if(cn >= 0)
-        ScalarTypes::addScalar(force[cn],
-          elementWetInterfaceScatterForce[i].real(),
-          elementWetInterfaceScatterForce[i].imag());
-      }
-#endif
-    }
-*/
-  if (implicitFlag) {
-
-    double *direction = getWaveDirection();
-
-    int iele;
-    ComplexVector elementWetInterfaceScatterForce(this->maxNumDOFs,0.0);
-    int* edofs = (int*) alloca(this->maxNumDOFs*4*sizeof(int));
     int numWetDof;
     for(iele=0; iele<numWet; ++iele) {
       HelmElement *he = dynamic_cast<HelmElement *>(wet[iele]->el);
@@ -2059,74 +1872,27 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
                         elementWetInterfaceScatterForce, real(kappaw),
                         direction[0], direction[1], direction[2],0,
                         pointSourceFlag);
-#ifndef PRTEST
-      int i;
       for(i=0;i<numWetDof;i++) {
-       int cn = c_dsa->getRCN(edofs[i]);
-       if(cn >= 0)
-        ScalarTypes::addScalar(force[cn],
-          elementWetInterfaceScatterForce[i].real(),
-          elementWetInterfaceScatterForce[i].imag());
+        int cn = c_dsa->getRCN(edofs[i]);
+        if(cn >= 0)
+          ScalarTypes::addScalar(force[cn],
+            elementWetInterfaceScatterForce[i].real(),
+            elementWetInterfaceScatterForce[i].imag());
       }
-#endif
     }
-
   }
-
-
-// see also Dynam.C for RHS - JF
 
   // ... ADD GRAVITY FORCES
-  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+  if(gravityFlag()) addGravityForce<Scalar>(force);
+
+  // ... ADD THERMAL FORCES
+  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
+  if(pressureFlag() && !sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
-  GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
-
-  // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
-  for(i=0; i<numDirichlet; ++i) {
-    int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
-    if(dof < 0) continue;
-    dof = c_dsa->invRCN(dof);
-    if(dof >= 0) {
-      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof], dbc[i].val);
-    }
-  }
-
-  // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
-  ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
-  for(i=0; i<numComplexDirichlet; ++i) {
-    int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
-    if(dof2 < 0) continue;
-    dof2 = c_dsa->invRCN(dof2);
-    if(dof2 >= 0) {
-      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
-    }
-  }
-
-  // ... CONSTRUCT THERMAL FORCES
-  if(sinfo.thermalLoadFlag) {
-    double *nodalTemperatures = getNodalTemperatures();
-    buildThermalForce(nodalTemperatures, force, gs);
-  }
-
-  // ... ADD BOUNDARY CONVECTIVE FLUXES
-  for(i=0; i<numConvBC; ++i) {
-    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], cvbc[i].val);
-  }
-
-  // ... ADD BOUNDARY RADIATIVE FLUXES
-  for(i=0; i<numRadBC; ++i) {
-    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-    fprintf(stderr,"i=%d, rdbc[i].nnum = %d, rdbc[i].val=%f\n",i,rdbc[i].nnum,rdbc[i].val);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], rdbc[i].val);
-  }
+  // ... ADD LMPC RHS
+  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -2142,22 +1908,41 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, Ge
   // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
   // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
   // MODIFYING THE RHS VECTOR
-  if(probType() != SolverInfo::NonLinStatic &&
-     probType() != SolverInfo::NonLinDynam  &&
-     probType() != SolverInfo::ArcLength)
-    if(kuc) {
-      kuc->multSubtract(Vc, force);
+  if(kuc && !sinfo.isNonLin()) {
+    GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
+
+    // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
+    for(i=0; i<numDirichlet; ++i) {
+      int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
+      if(dof < 0) continue;
+      dof = c_dsa->invRCN(dof);
+      if(dof >= 0) {
+        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
+        ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+      }
     }
+
+    // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
+    ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
+    for(i=0; i<numComplexDirichlet; ++i) {
+      int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
+      if(dof2 < 0) continue;
+      dof2 = c_dsa->invRCN(dof2);
+      if(dof2 >= 0) {
+        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
+        ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+      }
+    }
+
+    kuc->multSubtract(Vc, force);
+  }
 }
-
-
 
 template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
-  GenSparseMatrix<Scalar> *kuc,
-  GenSparseMatrix<Scalar> *muc, GenSparseMatrix<Scalar> **cuc_deriv,
-  double omega, double delta_omega, GeomState *gs)
+                      GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *muc, 
+                      GenSparseMatrix<Scalar> **cuc_deriv, double omega, double delta_omega, GeomState *gs)
 {
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -2244,13 +2029,14 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     }
   }
 
-// see also Dynam.C for RHS - JF
-
   // ... ADD GRAVITY FORCES
-  if(domain->gravityFlag()) buildGravityForce<Scalar>(force);
+  if(gravityFlag()) addGravityForce<Scalar>(force);
+
+  // ... ADD THERMAL FORCES
+  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(geoSource->pressureFlag()) buildPressureForce<Scalar>(force, gs);
+  if(pressureFlag() && !sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
@@ -2275,27 +2061,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
       if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
       ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
     }
-  }
-
-  // ... CONSTRUCT THERMAL FORCES
-  if(sinfo.thermalLoadFlag) {
-    double *nodalTemperatures = getNodalTemperatures();
-    buildThermalForce(nodalTemperatures, force, gs);
-  }
-
-  // ... ADD BOUNDARY CONVECTIVE FLUXES
-  for(i=0; i<numConvBC; ++i) {
-    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], cvbc[i].val);
-  }
-
-  // ... ADD BOUNDARY RADIATIVE FLUXES
-  for(i=0; i<numRadBC; ++i) {
-    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-    fprintf(stderr,"i=%d, rdbc[i].nnum = %d, rdbc[i].val=%f\n",i,rdbc[i].nnum,rdbc[i].val);
-    if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], rdbc[i].val);
   }
 
   // scale RHS force for coupled domains
@@ -2333,100 +2098,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
       force += tmp;
     }
   }
-}
-
-
-template<class Scalar>
-void
-Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc, NLState *gs)
-{
-  if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
-    checkSommerTypeBC(this);
-  // ... ZERO FORCE VECTOR INITIALLY
-  force.zero();
-
-  // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
-  int i;
-  // cerr << "numNeuman = " << numNeuman << endl;
-  for(i=0; i < numNeuman; ++i) {
-    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
-    if(dof < 0) continue;
-    // force[dof] += nbc[i].val;
-    ScalarTypes::addScalar(force[dof], nbc[i].val);
-  }
-
-  // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
-  // cerr << "numComplexNeuman = " << numComplexNeuman << endl;
-  for(i=0; i < numComplexNeuman; ++i) {
-    int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
-    if(dof < 0) continue;
-    // force[dof] += Scalar(cnbc[i].reval, cnbc[i].imval);
-    ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
-  }
-
-  // PJSA: new FETI-H stuff
-  if (implicitFlag) {
-    int i, iele;
-    double *direction = getWaveDirection();
-    ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
-    // cerr << "numNeum = " << numNeum << endl;
-    for(iele=0; iele<numNeum; ++iele) {
-      int *dofs = neum[iele]->dofs(*this->dsa);
-      double kappa = neum[iele]->el->getProperty()->kappaHelm; // PJSA 1-15-2008
-      neum[iele]->neumVector(this->nodes,elementNeumanScatterForce,
-                             kappa,direction[0],direction[1],direction[2],
-                             pointSourceFlag);
-      for(i=0;i<neum[iele]->numDofs();i++) {
-        ScalarTypes::addScalar(force[dofs[i]], elementNeumanScatterForce[i].real(),
-                               elementNeumanScatterForce[i].imag());
-        // force[dofs[i]] += elementNeumanScatterForce[i];
-      }
-    }
-  }
-
-  // ... ADD GRAVITY FORCES
-  if(domain->gravityFlag()) {
-    // fprintf(stderr," ... Building Gravity Forces        ...\n");
-    buildGravityForce<Scalar>(force);
-  }
-
-  // ... ADD PRESSURE LOAD
-  if(geoSource->pressureFlag()) {
-    // fprintf(stderr," ... Building Pressure Forces       ...\n");
-    buildPressureForce<Scalar>(force, gs);
-  }
-
-  GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
-
-  // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
-  // cerr << "numDirichlet = " << numDirichlet << endl;
-  for(i=0; i<numDirichlet; ++i) {
-    int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
-    if(dof < 0) continue;
-    dof = c_dsa->invRCN(dof);
-    if(dof >= 0) ScalarTypes::initScalar(Vc[dof], dbc[i].val);
-  }
-
-  // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
-  ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
-  // cerr << "numComplexDirichlet = " << numComplexDirichlet << endl;
-  for(i=0; i<numComplexDirichlet; ++i) {
-    int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
-    if(dof2 < 0) continue;
-    dof2 = c_dsa->invRCN(dof2);
-    if(dof2 >= 0) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
-  }
-
-  // COMPUTE NONHOMOGENEOUS FORCE CONTRIBUTION
-  // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
-  // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
-  // MODIFYING THE RHS VECTOR
-  if(probType() != SolverInfo::NonLinStatic &&
-     probType() != SolverInfo::NonLinDynam  &&
-     probType() != SolverInfo::ArcLength)
-    if(kuc) {
-      kuc->multSubtract(Vc, force);
-    }
 }
 
 template<class Scalar>
@@ -2929,11 +2600,13 @@ Domain::updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, in
    FullSquareMatrix temp(reEl->dim(),(double*)dbg_alloca(reEl->dim()*reEl->dim()*sizeof(double)));
    reEl->multiply(temp,Kcoef);
    if(K) K->add(temp,dofs);
+   if(ops && ops->spp) ops->spp->add(temp,dofs);
    if(ops && ops->K) ops->K->add(*reEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
   }
   if(imEl) {//there should not be imaginary part
    if(K) K->addImaginary(*imEl, dofs);
+   if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
    if(ops && ops->K) ops->K->addImaginary(*imEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
   }
@@ -2941,11 +2614,13 @@ Domain::updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, in
  else {
   if(reEl) {
    if(K) K->add(*reEl, dofs);
+   if(ops && ops->spp) ops->spp->add(*reEl, dofs);
    if(ops && ops->K) ops->K->add(*reEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
   }
   if(imEl) {
    if(K) K->addImaginary(*imEl, dofs);
+   if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
    if(ops && ops->K) ops->K->addImaginary(*imEl, dofs);
    if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
   }
@@ -3313,142 +2988,151 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
  if (xyz) delete xyz;
 }
 
+// XXXX this can and should be merged with buildRHSForce
+template <class Scalar>
+void
+Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>* kuc)
+{
+  // This is called for linear and nonlinear dynamics 
+  // cnst_f is independent of t
+
+  if(! dynamic_cast<GenSubDomain<Scalar>*> (this)) checkSommerTypeBC(this);
+
+  cnst_f.zero();
+
+  // ... COMPUTE FORCE FROM GRAVITY
+  if(gravityFlag()) addGravityForce(cnst_f);
+
+  // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
+  // note #1 when MFTT is present then FORCES contribution is not constant
+  // note #2 when HFTT is present the FLUX contribution is not constant
+  for(int i = 0; i < numNeuman; ++i) {
+    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+    if(dof < 0) continue;
+    switch(nbc[i].type) {
+      case(BCond::Forces) : if(!domain->mftval) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Flux) :   if(!domain->hftval) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Actuators) : case(BCond::Usdf) : break;  // these are never constant
+      default : cnst_f[dof] += nbc[i].val;
+    }
+  }
+
+  // ... COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
+  // note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  if(sinfo.ATDDNBVal != 0.0 && !domain->mftval) addAtddnbForce(cnst_f);
+
+  // ... COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
+  //  note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
+
+  // ... COMPUTE FORCE FROM PRESSURE
+  // note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
+  if(pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
+
+  // ... ADD RHS FROM LMPCs
+  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs(cnst_f);
+
+  // ... COMPUTE FORCE FROM TEMPERATURES
+  // note #1: for THERMOE problems TEMPERATURES are ignored 
+  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
+  if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
+
+  // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
+  // note #1: when USDD is present this is term is not constant (see computeExtForce4)
+  // note #2  for nonlinear this term is not constant (see getStiffAndForce) 
+  if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
+    Vector Vc(numDirichlet, 0.0);
+    // construct the non-homogeneous dirichlet bc vector
+    for(int i = 0; i < numDirichlet; ++i) {
+      int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
+      if(dof >= 0) {
+        int dof2 = c_dsa->invRCN(dof);
+        if(dof2 >= 0) Vc[dof2] = dbc[i].val;
+      }
+    }
+    // compute the non-homogeneous force
+    kuc->multSubtract(Vc, cnst_f);
+  }
+}
 
 template <class Scalar>
 void
-Domain::computeExtForce4(PrevFrc &prevFrc,
-                        GenVector<Scalar> &f, GenVector<Scalar> &gf,
-                        int tIndex, double t, GenSparseMatrix<Scalar> *kuc,
-                        Scalar *userDefineDisp, int *userMap, Vector *af,
-                        double gamma, double alphaf)
+Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
+                         double t, GenSparseMatrix<Scalar>* kuc)
 {
-  if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
-    checkSommerTypeBC(this);
+  // This is called for linear and nonlinear dynamics 
+  // doesn't include follower forces
 
-  int i;
-  // ... ZERO THE FORCE VECTOR
   f.zero();
 
-  // ... COMPUTE EXTERNAL FORCE FROM NON-HOMOGENEOUS DISCRETE DIRICHLET BOUNDARY CONDITION (DISP and USDD)
-  // this is not required for nonlinear problems because the contribution of the prescribed displacements
-  // is taken into account when the internal force is computed using the geomState
-  if(kuc && !sinfo.isNonLin()) {
-    // construct Vc and zero it
-    double *vcmem = (double *) dbg_alloca(sizeof(double)*numDirichlet);
-    StackVector Vc(vcmem, numDirichlet);
-    Vc.zero();
+  // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
+  // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
+  // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
+  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
+  double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
+  if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
+    for(int i = 0; i < numNeuman; ++i) {
+      int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+      if(dof < 0) continue;
+      switch(nbc[i].type) {
+        case(BCond::Forces) : if(domain->mftval) f[dof] += mfttFactor*nbc[i].val; break;
+        case(BCond::Flux)   : if(domain->hftval) f[dof] += hfttFactor*nbc[i].val; break;
+        case(BCond::Actuators) : case(BCond::Usdf) : f[dof] += nbc[i].val; break;
+        default : /* all other cases are constant */ ;
+      }
+    }
+  }
+
+  // COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
+  // note #1: when MFTT not present this term is constant (see computeConstantForce)
+  if(sinfo.ATDDNBVal != 0.0 && domain->mftval) addAtddnbForce(f, mfttFactor);
+
+  // COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
+  // note #1: when MFTT not present this term is constant (see computeConstantForce)
+  if(sinfo.ATDROBalpha != 0.0 && domain->mftval) addAtdrobForce(f, mfttFactor);
+
+  // COMPUTE FORCE FROM PRESSURE
+  // note #1: when MFTT not present this term is constant (see computeConstantForce)
+  // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
+  if(pressureFlag() && domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+
+  // COMPUTE FORCE FROM THERMOE
+  // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
+  if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
+
+  // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
+  // note #1: when USDD is not present this term is constant (see computeConstantForce)
+  // note #2: for nonlinear this term is follower (see getStiffAndForce)
+  if(numDirichlet && (claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
+    Vector Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
-    for(i = 0; i < numDirichlet; ++i) {
+    for(int i = 0; i < numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
       if(dof < 0) continue;
       int dof2 = c_dsa->invRCN(dof);
       if(dof2 >= 0) Vc[dof2] = dbc[i].val;
     }
-    if(userDefineDisp) {
-      int numDisp = claw->numUserDisp;
-      for(i = 0; i < numDisp; ++i) {
-        int dof = dsa->locate(claw->userDisp[i].nnum, (1 << claw->userDisp[i].dofnum));
-        if(dof < 0) continue;
-        int dof2 = c_dsa->invRCN(dof);
-        if(dof2 >= 0)
-          if(userMap) {
-            Vc[dof2] += userDefineDisp[userMap[i]];
-          }
-          else
-            Vc[dof2] += userDefineDisp[i];
-      }
-    }
+// see Domain::updateUsddInDbc
+//    if(userDefineDisp) {
+//      int numDisp = claw->numUserDisp;
+//      for(int i = 0; i < numDisp; ++i) {
+//        int dof = dsa->locate(claw->userDisp[i].nnum, (1 << claw->userDisp[i].dofnum));
+//        if(dof < 0) continue;
+//        int dof2 = c_dsa->invRCN(dof);
+//        if(dof2 >= 0)
+//          if(userMap) {
+//            Vc[dof2] += userDefineDisp[userMap[i]];
+//          }
+//          else
+//            Vc[dof2] += userDefineDisp[i];
+//      }
+//    }
+
     // compute the non-homogeneous force
     kuc->multSubtract(Vc, f);
   }
 
-
-  // ... COMPUTE TIME DEPENDENT FORCE COEFFICIENT (MFTT) if present
-  double mfttFactor = (mftval) ? mftval->getVal(t) : 1.0;
-
-  // ... COMPUTE EXTERNAL FORCE FROM DISCRETE NEUMAN
-  for(i = 0; i < numNeuman; ++i) {
-    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
-    if(dof < 0) continue;
-    f[dof] += mfttFactor*nbc[i].val;
-  }
-
-  // COMPUTE EXTERNAL FORCE FROM REAL DISTRIBUTED NEUMAN BC
-  if(sinfo.ATDDNBVal != 0.0) {
-    //checkSommerTypeBC(this);//set the normals be oriented toward the exterior of the domain
-    Vector elementNeumanScatterForce(this->maxNumDOFs,0.0);
-    for(int iele = 0; iele < numNeum; ++iele) {
-      int *dofs = neum[iele]->dofs(*this->c_dsa);
-      neum[iele]->neumVector(this->nodes,elementNeumanScatterForce);
-      elementNeumanScatterForce *= sinfo.ATDDNBVal;
-      for(i=0;i<neum[iele]->numDofs();i++) {
-        f[dofs[i]] += mfttFactor*elementNeumanScatterForce[i];
-      }
-    }
-  }
-
-  // COMPUTE EXTERNAL FORCE FOR ROBIN BC
-  if (sinfo.ATDROBalpha != 0.0) {
-    //checkSommerTypeBC(this);//set the normals be oriented toward the exterior of the domain
-    double temp = sinfo.ATDROBVal/sinfo.ATDROBalpha;
-    Vector elementRobinScatterForce(this->maxNumDOFs,0.0);
-    for(int iele = 0; iele < numScatter; ++iele) {
-      int *dofs = scatter[iele]->dofs(*this->c_dsa);
-      scatter[iele]->neumVector(this->nodes,elementRobinScatterForce);
-      elementRobinScatterForce *= temp;
-      for(i = 0; i < scatter[iele]->numDofs(); i++) {
-        f[dofs[i]] += mfttFactor*elementRobinScatterForce[i];//*sin(omega*t);
-      }
-    }
-  }
-
-  // ... ADD GRAVITY FORCE AND (if non-follower) PRESSURE FORCE
-  f += gf;
-
-  // ... COMPUTE AEROELASTIC FORCE
-  // This section of AEROELASTIC is done only if the aeroFlag is set
-  // and the solver is non-feti (i.e. solver type is not 2)
-  if(sinfo.aeroFlag >= 0 && sinfo.type != 2 && tIndex >= 0) {
-    getTimers().receiveFluidTime -= getTime();
-
-    // ... Temporary variable for inter(extra)polated force
-    double *tmpFmem = new double[numUncon()];
-    StackVector tmpF(tmpFmem, numUncon());
-    tmpF.zero();
-
-    int iscollocated;
-    double tFluid = flExchanger->getFluidLoad(nodes, tmpF, tIndex, t,
-                                              alphaf, iscollocated);
-    if(verboseFlag) fprintf(stderr," ... [E] Received fluid load ...\n");
-    if(iscollocated == 0) {
-      if(prevFrc.lastTIndex >= 0) {
-        tmpF *= (1/gamma);
-        tmpF.linAdd(((gamma-1.0)/gamma),prevFrc.lastFluidLoad);
-      }
-    }
-
-    double alpha = 1.0-alphaf;
-    if(prevFrc.lastTIndex < 0) alpha = 1.0;
-    f.linAdd(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
-    if(af) (*af) = alpha*tmpF + (1.0-alpha)*prevFrc.lastFluidLoad;
-    prevFrc.lastFluidLoad = tmpF;
-    prevFrc.lastFluidTime = tFluid;
-    prevFrc.lastTIndex = tIndex;
-
-    delete [] tmpFmem;
-    getTimers().receiveFluidTime += getTime();
-  }
-
-  // ... CONSTRUCT THERMAL FORCES
-  // ... Using specified temperatures
-  if(sinfo.thermalLoadFlag) {
-    double *nodalTemperatures = getNodalTemperatures();
-    buildThermalForce(nodalTemperatures, f);
-  }
-  // ... Get thermal force from thermal code
-  if(sinfo.thermoeFlag >=0) {
-    flExchanger->getStrucTemp(temprcvd) ;
-    //if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
-    buildThermalForce(temprcvd, f);
-  }
+  // ADD CONSTANT FORCE
+  f += constantForce;
 }

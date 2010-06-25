@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <map>
+#include <algorithm>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -18,6 +19,11 @@ using namespace std;
 
 struct SolverInfo {
 
+ private:
+   double dt;           // time step value
+   double dtemp;        // thermal time step value
+
+ public:
    // Problem Type parameters
    enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam, 
 	  ArcLength, ConditionNumber, TempDynamic, Top,
@@ -55,7 +61,7 @@ struct SolverInfo {
    // Solver parameters
    int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
    int subtype;  // subtype and matrix storage... 9 is mumps  10 is diag
-   int iterType; // 0 = CG, 1 = CR, 2 = BCG
+   int iterType; // 0 = CG, 1 = GMRES, 2 = GCR, 4 = BCG, 5 = CR
    int precond;  // preconditioner 0 = none, 1 = jacobi
    int maxit;    // maximum number of iterations
    double tol;   // tolerance for convergence
@@ -93,8 +99,10 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
-   double dt;           // structural time step value
+/* these are now private, use getTimeStep and setTimeStep functions to access
+   double dt;           // time step value
    double dtemp;        // thermal time step value
+*/
    double alphaDamp;    // Rayleigh Mass damping coefficient 
    double betaDamp;     // Rayleigh Stiffness damping coefficient
    double alphaTemp;
@@ -215,6 +223,12 @@ struct SolverInfo {
                      // heat: true --> compute consistent initial first time derivative ie, v^0 = M^{-1}(fext^0 - fint^0) for a first order differential equation (ie heat)
                      //       false --> v^0 = 0
 
+   int dist_acme; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
+                  // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
+                  //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
+   bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
+   bool ffi_debug;
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   NLInfo = 0; 
@@ -231,7 +245,7 @@ struct SolverInfo {
                   mppFactor = 1.0;
 		 
                   // Parameters for PITA 
-		              tiParall       = false;
+		  tiParall       = false;
                   mdPita         = false;
                   NoForcePita    = false;
                   ConstForcePita = false;
@@ -257,6 +271,9 @@ struct SolverInfo {
                   steadyMin = 1;
                   steadyMax = 10;
                   steadyTol = 1.0e-3; 
+                  qsMaxvel = 1.0;
+                  qsBeta = 1.0;
+                  delta = 0.0;
                   no_secondary = false;
 
                   trbm = 1.0E-16;   // default zero pivot tolerance
@@ -367,18 +384,20 @@ struct SolverInfo {
                   //mumps_cntl[1] = 0.01; // relative threshold for numerical pivoting (larger value may increase fill in but lead to more accurate factorization)
 
                   for(int i=0; i<20; ++i) { debug_icntl[i] = 0; debug_cntl[i] = 0.0; }
-                  // some temporary defaults for FETI contact
-                  debug_icntl[0] = 0; debug_icntl[1] = 0; debug_icntl[3] = 0;
 
                   // iterative solver defaults
                   precond = 0; 
-                  tol = 1.0e-6; 
-                  maxit = 100;
-                  iterType = 1; 
+                  tol = 1.0e-8; 
+                  maxit = 1000;
+                  iterType = 0; 
                   subtype = 3; 
                   maxvecsize = 0; 
 
                   iacc_switch = true;
+
+                  dist_acme = 0;
+                  allproc_acme = true;
+                  ffi_debug = false;
                  }
 
    // Set RbmFilter level
@@ -409,6 +428,8 @@ struct SolverInfo {
    NonlinearInfo *NLInfo;
    void initNLInfo() { if(NLInfo == 0) NLInfo = new NonlinearInfo; }
    NonlinearInfo & getNLInfo() { return *NLInfo; }
+
+   bool unsym() { return NLInfo ? NLInfo->unsymmetric : false; }
 
    int gepsFlg;         // Geometric pre-stress flag
    int buckling;        // Buckling analysis flag
@@ -529,7 +550,8 @@ struct SolverInfo {
    {
      timeIntegration = Newmark;
      order = 1;
-     alphaTemp = epsiln;
+     newmarkGamma = alphaTemp = epsiln;
+     if(newmarkGamma == 0) newmarkBeta = 0; // this is used to flag explicit scheme
      //if(alphaTemp < 0.5){
      //   fprintf(stderr," ... WARNING: UNSTABLE EXPLICIT SCHEME ...\n");
      // }
@@ -558,6 +580,18 @@ struct SolverInfo {
        fprintf(stderr, " ... Setting Max Quasi-Static Velocity Parameter to 1.0\n");
      }
    }
+
+   double getTimeStep() 
+   {
+     if(thermoeFlag > -1 || thermohFlag > -1) return std::min(dt, dtemp);
+     else return (order == 1) ? dtemp : dt;
+   }
+
+   void setTimeStep(double _dt)
+   {
+     if(order == 1) dtemp = _dt;
+     else dt = _dt;
+   }
  
    // set parameters for eigen problem  
    void setSubSpaceInfo(int _subspaceSize, double _tolEig, double _tolJac)
@@ -568,21 +602,25 @@ struct SolverInfo {
      tolJac = _tolJac; 
    }
 
-   // DEFINE SOLVER
+   // direct solver
    void setSolver(int _substype) { type = 0; subtype = _substype;  }
 
-   void setSolver(int _precond, double _tol,int _maxit,int _iterType=1,
+   // iterative solver
+   void setSolver(int _iterType, int _precond, double _tol=1.0e-8, int _maxit=1000,
                   int _subtype=3, int _maxvecsize=0)
     { type = 1; precond = _precond; tol = _tol; maxit = _maxit; 
-      iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; }
+      iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; 
+    }
 
    void setTrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 0; }
+    { trbm = _tolzpv; rbmflg = 0; mumps_cntl[3] = trbm; fetiInfo.nullSpace = FetiInfo::trbm; }
 
    void setGrbm(double _tolsvd, double _tolzpv)
-    { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
+    { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; mumps_cntl[3] = trbm; fetiInfo.nullSpace = FetiInfo::grbm; }
    void setGrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 1; }
+    { trbm = _tolzpv; rbmflg = 1; mumps_cntl[3] = trbm; }
+   void setGrbm() 
+    { rbmflg = 1; }
 
    bool isAcousticHelm() {
      return ((probType == Helmholtz) || (probType == HelmholtzDirSweep)

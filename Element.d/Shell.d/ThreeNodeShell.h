@@ -46,12 +46,12 @@ public:
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs, int cflg);
 				  
-	double getMoment(Vector& force, CoordSet& cs, int node, int idir);
-	
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
 	                     int glfag, GeomState *gs=0);
 	                                        
         bool isShell() { return true; }
+
+        int getMassType() { return 0; } // lumped only
 
 #ifdef STRUCTOPT
 

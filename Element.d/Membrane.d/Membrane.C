@@ -8,9 +8,10 @@
 #include <Corotational.d/utilities.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Corotational.d/Shell3Corotator.h>
 
 extern "C"      {
-void _FORTRAN(trimem)(double* ,double* ,double* ,double& , double& ,
+void _FORTRAN(trimem)(int&, double* ,double* ,double* ,double& , double& ,
                       double* ,double* );
 void _FORTRAN(sands19)(double*,double*,double*,double&,double&,double*,double*,
         double*, const int&, const int&, const int&, const int&, const int&);
@@ -171,21 +172,23 @@ Membrane::getMass(CoordSet& cs)
 }
 
 void
-Membrane::getGravityForce(CoordSet& cs,double *gravityAcceleration,
+Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
                           Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-      double mass = getMass(cs);
-      double massPerNode = mass/3.0;
-      double fx, fy, fz;
+        double mass = getMass(cs);
+        double massPerNode = mass/3.0;
+        double fx, fy, fz;
 
-      if (gravflg != 0) {
+        // Lumped
+        if(gravflg != 2) {
 
-        fx = massPerNode*gravityAcceleration[0];
-        fy = massPerNode*gravityAcceleration[1];
-        fz = massPerNode*gravityAcceleration[2];
+          fx = massPerNode*gravityAcceleration[0];
+          fy = massPerNode*gravityAcceleration[1];
+          fz = massPerNode*gravityAcceleration[2];
+
         }
-// Consistent
-        else if (gravflg == 2) {
+        // Consistent
+        else {
           int i;
           Node &nd1 = cs.getNode(nn[0]);
           Node &nd2 = cs.getNode(nn[1]);
@@ -228,16 +231,11 @@ Membrane::getGravityForce(CoordSet& cs,double *gravityAcceleration,
           localf[1] = massPerNode*localg[1];
           localf[2] = massPerNode*localg[2];
 
-  
           fx = (T1[0]*localf[0]) + (T2[0]*localf[1]) + (T3[0]*localf[2]);
           fy = (T1[1]*localf[0]) + (T2[1]*localf[1]) + (T3[1]*localf[2]);
           fz = (T1[2]*localf[0]) + (T2[2]*localf[1]) + (T3[2]*localf[2]);
         }
-        else {
-          fx = 0.0;
-          fy = 0.0;
-          fz = 0.0;
-        }
+
         gravityForce[0] =  fx;
         gravityForce[1] =  fy;
         gravityForce[2] =  fz;
@@ -317,9 +315,11 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
           fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
-        _FORTRAN(trimem)(x, y, z, prop->E, prop->nu, h, (double *)d);
+        _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
 
-        FullSquareMatrix ret(9,d);
+        FullSquareMatrix ret(18,d);
+
+        //cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
 }
@@ -343,23 +343,23 @@ Membrane::nodes(int *p)
 int
 Membrane::numDofs()
 {
- 	return 9;
+ 	return 18;
 }
 
 int*
 Membrane::dofs(DofSetArray &dsa, int *p)
 {
- 	if(p == 0) p = new int[9];
-        dsa.number(nn[0], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p  );
-        dsa.number(nn[1], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p+3);
-        dsa.number(nn[2], DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot, p+6);
+ 	if(p == 0) p = new int[18];
+        dsa.number(nn[0], DofSet::XYZdisp | DofSet::XYZrot, p  );
+        dsa.number(nn[1], DofSet::XYZdisp | DofSet::XYZrot, p+6);
+        dsa.number(nn[2], DofSet::XYZdisp | DofSet::XYZrot, p+12);
 	return p;
 }
 
 void
 Membrane::markDofs(DofSetArray &dsa)
 {
-        dsa.mark(nn, 3, DofSet::Xdisp | DofSet::Ydisp | DofSet::Zrot );
+        dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot );
 }
 
 int
@@ -367,3 +367,12 @@ Membrane::getTopNumber()
 {
   return 119;//4;
 }
+
+Corotator *
+Membrane::getCorotator(CoordSet &cs, double *kel, int fitAlg, int)
+{
+ int flag = 0; // signals stiffness routine to keep local matrix 
+ FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+ return new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlg);
+}
+

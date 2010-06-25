@@ -3,32 +3,33 @@
 
 #include <Element.d/Element.h>
 
-class TransSprlink : virtual public Element {
+class TransSprlink : virtual public Element 
+{
+    int nn[2];
 
-        int nn[2];
-public:
+  public:
 
-	TransSprlink(int*);
+    TransSprlink(int*);
 
-	Element *clone();
+    Element *clone();
 
-	void renum(int *);
+    void renum(int *);
 
-        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
+    FullSquareMatrix stiffness(CoordSet& cs, double* d, int flg = 1);
+    FullSquareMatrix massMatrix(CoordSet& cs, double* mel, int cmflg=1);
 
-        void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+    void markDofs(DofSetArray&);
+    int* dofs(DofSetArray&, int* = 0);
+    int numDofs();
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-        Corotator *getCorotator(CoordSet &, double*, int, int);
+    int numNodes();
+    int* nodes(int* = 0);
+    Corotator* getCorotator(CoordSet&, double*, int, int);
 
-	int getTopNumber();
-	bool isSafe() { return false; }
-	bool isSpring() { return true; }
-	PrioInfo examine(int sub, MultiFront *);
+    int getTopNumber();
+    bool isSafe() { return false; }
+    bool isSpring() { return true; }
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

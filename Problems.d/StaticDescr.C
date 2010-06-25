@@ -427,7 +427,6 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
   stopTimerMemory(times->formRhs, times->memoryRhs);
 }
 
-
 template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double omega, double deltaomega)
@@ -437,7 +436,6 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double om
                              omega, deltaomega);
   delete vec;
 }
-
 
 template<class T, class VectorType, class SolverType>
 void

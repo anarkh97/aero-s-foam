@@ -66,3 +66,14 @@ DistrInfo::computeOffsets()
   threadOffset[0] = 0;
   
 }
+
+void
+DistrInfo::recomputeOffsets()
+{
+  if(subOffset) { delete [] subOffset; subOffset = 0; }
+  if(threadOffset) { delete [] threadOffset; threadOffset = 0; }
+  if(threadLen) { delete [] threadLen; threadLen = 0; }
+
+  computeOffsets();
+}
+

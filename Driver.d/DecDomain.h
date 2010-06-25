@@ -26,22 +26,25 @@ typedef GenFullSquareMatrix<double> FullSquareMatrix;
 template<class Scalar>
 class GenDecDomain 
 {
+ public:
+  Connectivity *mpcToSub_dual;
+  Connectivity *mpcToMpc;
+  Connectivity *mpcToCpu;
  protected:
   Domain *domain;
   MatrixTimers &mt;
   Connectivity *subToNode;
   Connectivity *subToSub;
-  Connectivity *mpcToSub_dual;
   Connectivity *mpcToSub_primal;
   Connectivity *subToElem;
   Connectivity *elemToNode;
   Connectivity *nodeToSub;
-  Connectivity *mpcToMpc;
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
   GenSubDomain<Scalar> **subDomain;
   DistrInfo internalInfo, internalInfo2;
   DistrInfo nodeInfo;
+  DistrInfo *nodeVecInfo;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 
@@ -61,7 +64,6 @@ class GenDecDomain
   int numCPU, myCPU;            // number of CPUs, my CPU number
   Connectivity *cpuToCPU;       // global problem connectivity
   int *subToCPU;                // subdomain to cpu mapping  
-  Connectivity *mpcToCpu;
   int numDualMpc, numPrimalMpc;
 
   int numWetInterfaceNodes;
@@ -70,7 +72,6 @@ class GenDecDomain
   int outEigCount;
 
   bool soweredInput;
-  int *cornerWeight;
 
   int sizeSfemStress;
   bool firstOutput; 
@@ -85,24 +86,23 @@ class GenDecDomain
   GenFetiSolver<Scalar> *getDynamicFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0, bool make_feti = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
-  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double);
-  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double);
+  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
+  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**);
   int getNumSub() { return numSub; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
   virtual void preProcess();
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
-  //virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0);
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0);
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs
+  DistrInfo &ndVecInfo(); // all nodes
   // user defined control functions
   void extractControlData(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
                           GenDistrVector<Scalar> &,
                           Scalar *, Scalar *, Scalar *);
-  void initUserDefBC();
   void addUserForce(GenDistrVector<Scalar> &, Scalar*);
   void addCtrl(GenDistrVector<Scalar> &, Scalar*);
   // Non linear functions
@@ -119,6 +119,8 @@ class GenDecDomain
   virtual void updateSfemStress(Scalar* str, int fileNumber);
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
+  void reProcessMPCs();
+  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
 
  protected:
   void makeSubDomains();
@@ -128,11 +130,11 @@ class GenDecDomain
   void addBMPCs();
   void makeSubToSubEtc();
   void preProcessBCsEtc();
+  void preProcessMPCs();
   void distributeBCs();
   void distributeControlLawData();
   void distributeDiscreteMass();
   void renumberBC();
-  void preProcessMPCs();
   void getSharedDOFs();
   void getSharedMPCs();
   void makeCorners();
@@ -148,6 +150,11 @@ class GenDecDomain
   void buildFFP(GenDistrVector<Scalar> &u, FILE *fffp);
   void makeCornerHandler(int iSub, SubCornerHandler **cornerHandler);
   void setLocalCorners(int iSub, SubCornerHandler **cornerHandler);
+  void deleteMPCs();
+  void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
+  virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu);
+ public:
+  void printLMPC();
 
  private:
   void initialize();

@@ -50,30 +50,36 @@ IF(UNIX)
               PATHS /usr/include /usr/local/include)
     FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
               PATHS /usr/include /usr/local/include)
+    #FIND_PATH(ACME_driver_INCLUDE_PATH params.h
+    #          PATHS /usr/include /usr/local/include)
     IF(NOT MPI_FOUND)
       MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
       MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT acmeSharedDBG
+      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
                    PATHS /usr/lib /usr/local/lib)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_9 -DCONTACT_NO_MPI)
+        add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI)
         SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
       ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
     ELSE(NOT MPI_FOUND)
       MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
       MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acme acmeDistOPT acmeDistDBG
+      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
                    PATHS /usr/lib /usr/local/lib)
-      IF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
+      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
+              PATHS /usr/include /usr/local/include)
+      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
+                   PATHS /usr/lib /usr/local/lib)
+      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_9)
-        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${METIS_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
-      ENDIF(ACME_INCLUDE_PATH AND ACME_acme_LIBRARY)
+        add_definitions(-DUSE_ACME -DACME_2_5)
+        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
+        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
+      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
     ENDIF(NOT MPI_FOUND)
 
 # arpack
@@ -120,6 +126,15 @@ IF(UNIX)
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
+
+# eigen2
+    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
+                 PATHS /usr/include /usr/local/include .)
+    IF(EIGEN2_INCLUDE_PATH)
+      MESSAGE("-- A library with EIGEN2 API found.")
+      add_definitions(-DUSE_EIGEN2)
+      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
+    ENDIF(EIGEN2_INCLUDE_PATH)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis
@@ -203,6 +218,15 @@ IF(UNIX)
       endif(MUMPS_FOUND AND BLACS_FOUND AND SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
 
+# metis
+    FIND_LIBRARY(METIS_LIBRARY NAMES metis
+                 PATHS /usr/lib /usr/local/lib)
+    IF(METIS_LIBRARY)
+      MESSAGE("-- A library with METIS API found.")
+      add_definitions(-DUSE_METIS)
+      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
+    ENDIF(METIS_LIBRARY)
+
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
 
@@ -219,7 +243,7 @@ if(MPI_FOUND)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                         PROPERTIES 
@@ -272,10 +296,11 @@ add_subdirectory(Paral.d)
 add_subdirectory(Problems.d)
 add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
+add_subdirectory(Material.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corrotational Mortar Math Util Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm getopt)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
@@ -304,9 +329,10 @@ target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING 
+      "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
-
 
 SET(AllTargets femexecutable)
 IF(MPI_FOUND AND NOT APPLE)

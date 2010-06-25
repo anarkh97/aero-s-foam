@@ -1,14 +1,15 @@
 #include "LinearDriverImpl.h"
 
 #include <Problems.d/DynamDescr.h>
+#include <Driver.d/SysState.h>
 
 namespace Pita {
 
-LinearDriverImpl::LinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
-                                                 GeoSource * geoSource,
-                                                 Domain * domain,
-                                                 SolverInfo * solverInfo,
-                                                 Communicator * baseComm) :
+LinearDriverImpl::LinearDriverImpl(SingleDomainDynamic * pbDesc,
+                                   GeoSource * geoSource,
+                                   Domain * domain,
+                                   SolverInfo * solverInfo,
+                                   Communicator * baseComm) :
   LinearDriver(pbDesc),
   geoSource_(geoSource),
   domain_(domain),

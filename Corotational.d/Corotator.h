@@ -17,34 +17,46 @@ class Corotator {
   public:
     // DEFINITE
     virtual void getStiffAndForce(GeomState &, CoordSet &, 
-                                  FullSquareMatrix &, double *) = 0; 
+                                  FullSquareMatrix &, double *)=0; 
+
+    virtual void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
+                                     FullSquareMatrix &elK, double *locF){}
+
+    virtual void getInternalForce(GeomState &, CoordSet &,
+                                  FullSquareMatrix &, double *) {}
+
+    virtual void getExternalForce(GeomState &, CoordSet &,  double *) {}
 
     // ONLY FOR BUCKLING (EIGEN)
     // ONLY NONLINEAR TERM OF K
     virtual void formGeometricStiffness(GeomState &, CoordSet &, 
-                                        FullSquareMatrix &, double *) { }; 
+                                        FullSquareMatrix &, double *); 
 
-    virtual double* getOriginalStiffness() { return 0; };
+    virtual double* getOriginalStiffness();
 
     // ONLY FOR STRESSES
     virtual void extractDeformations(GeomState &geomState, CoordSet &cs, 
-                                     double *vld, int &nlflag) { };
+                                     double *vld, int &nlflag);
     virtual void extractDeformations(GeomState &geomState, CoordSet &cs,
-                                     DComplex *vld, int &nlflag) { };
+                                     DComplex *vld, int &nlflag);
+
+    virtual void getGlobalDisp(GeomState& , CoordSet&, Vector& ){}
 
     virtual void getNLVonMises(Vector&, Vector& weight,
-                               GeomState &, CoordSet &, int) { };
+                               GeomState &, CoordSet &, int);
     virtual void getNLVonMises(ComplexVector&, Vector& weight,
-                               GeomState &, CoordSet &, int) { };
+                               GeomState &, CoordSet &, int);
 
     virtual void getNLAllStress(FullM&, Vector&,
-                                GeomState &, CoordSet &, int) { };
+                                GeomState &, CoordSet &, int);
 
-    virtual double getElementEnergy(GeomState &, CoordSet &) { return 0.0; }; 
+    virtual double getElementEnergy(GeomState &, CoordSet &);
  
     // NOT USED
     virtual void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-                                        double *vlr) { };
+                                        double *vlr);
+
+    virtual void reBuildorigK(FullSquareMatrix&) {}
 
     virtual ~Corotator() {/*TODO*/}
 };

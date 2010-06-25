@@ -101,10 +101,10 @@ class Structopt {
 
                          //for single domain eigenvalue analysis
 
-      SingleDomainDynamic<double> *dynpro;
+      SingleDomainDynamic *dynpro;
       
       DynamicSolver <DynamMat, Vector,
-                     SDDynamPostProcessor, SingleDomainDynamic<double>,double>
+                     SDDynamPostProcessor, SingleDomainDynamic, double>
 		                               *dynsolver;
 
    public:

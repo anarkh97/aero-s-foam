@@ -23,7 +23,7 @@ double t3 = 0.0;
 double t4 = 0.0;
 double t5 = 0.0;
 double t6 = 0.0;
-int iterTotal = -1;
+extern int iterTotal;
 
 #ifndef SALINAS
 static const char* problemType[] = {

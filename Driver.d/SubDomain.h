@@ -219,20 +219,15 @@ class BaseSub : virtual public Domain
   int group;
  protected:
   int numGroupRBM, groupRBMoffset;
-  FullM Rstar;
-  Connectivity *localMpcToMpc;
-  Connectivity *localMpcToGlobalMpc;
-  FullM Rcstar;
-  FullM **G;
   int *neighbGroup; // PJSA 4-27-06
   int *neighbNumGroupGrbm;
   int *neighbGroupGrbmOffset;
-  FullM **neighbG;
-  bool *faceIsSafe;
   int numGlobalRBMs;
-  FullM Rstar_g;  // global RBMs
-  FullM *sharedRstar_g;
-  FullM *tmpRstar_g;
+
+ protected:
+  Connectivity *localMpcToMpc;
+  Connectivity *localMpcToGlobalMpc;
+  bool *faceIsSafe;
   int *localToGroupMPC, *localToBlockMPC;
   int *boundDofFlag;  // boundDofFlag[i] = 0 -> perfect interface dof  (not contact or mpc)
                       // boundDofFlag[i] = 1 -> node-to-node contact interface dof
@@ -256,34 +251,18 @@ class BaseSub : virtual public Domain
  public:
   void makeLocalMpcToGlobalMpc(Connectivity *mpcToMpc);
   void setLocalMpcToBlock(Connectivity *mpcToBlock, Connectivity *blockToMpc);
-  void makeLocalRstar(FullM **Qtranspose, bool cflag = true);
-  void assembleGlobalRcstar(DofSetArray *cornerEqs, FullM &globalRcstar, int *ngrbmGr);
   void setGlCrnGroup(int *_gcg) { glCrnGroup = _gcg; }
   void setGroup(Connectivity *subToGroup) { group = (*subToGroup)[subNumber][0]; }
   void setNumGroupRBM(int *ngrbmGr); 
-  void buildGlobalRBMs(FullM &Xmatrix, Connectivity *cornerToSub);
-  void getGlobalRBM(int iRBM, double *Rvec);
-  void getGlobalRBM(int iRBM, DComplex *Rvec)  
-    { cerr << " *** WARNING: BaseSub::getGlobalRBM(int iRBM, DComplex *Rvec) is not implemented \n"; }
-  void getGlobalRBM(int iRBM, GenDistrVector<double> &Rvec); //CBM
+  void getNumGroupRBM(int *ngrbmGr);
   void addNodeXYZ(double *centroid, double* nNodes);
-  void assembleRtR(FullM &RtRu);
-  void subtractRstar_g(double *u, Vector &beta);
-  void addRstar_gT(double *u, Vector &beta);
-  void assembleE(Vector &e, double *f);
-  void addRalpha(double *u, Vector &alpha);
   void sendNeighbGrbmInfo(FSCommPattern<int> *pat);
   void receiveNeighbGrbmInfo(FSCommPattern<int> *pat);
   void setCommSize(FSCommPattern<int> *pat, int size);
   void setCommSize(FSCommPattern<double> *, int size);
   void setMpcNeighbCommSize(FSCommPattern<int> *pt, int size);
-  void setGrbmCommSize(FSCommPattern<double> *pat);
-  void sendG(FSCommPattern<double> *rbmPat);
-  void receiveG(FSCommPattern<double> *rbmPat);
-  void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
   int numSPCs() { return c_dsa->getInvRCNmax(); }
-  void assembleGlobalG(GenFullM<double> *globalG);
-
+  void addSPCsToGlobalZstar(FullM *globalZstar, int &zRow, int zColOffset);
   void initializeFaceSafety();
   void locateUnsafeFaces();
   void sendFaceSafetyInfo(FSCommPattern<int> *sPat);
@@ -352,12 +331,9 @@ class BaseSub : virtual public Domain
 
   void setDirichletBC(list<BCond *> *_list);
   void setNeumanBC(list<BCond *> *_list);
-  void setConvection(list<BCond *> *_list);
-  void setRadiation(list<BCond *> *_list);
   void setInitialDisplacement(list<BCond *> *_list);
   void setInitialDisplacement6(list<BCond *> *_list);
   void setInitialVelocity(list<BCond *> *_list);
-  void setInitialTemperature(list<BCond *> *_list);
   void setSensor(list<BCond *> *_list);
   void setActuator(list<BCond *> *_list);
   void setUsdd(list<BCond *> *_list);
@@ -426,6 +402,7 @@ class BaseSub : virtual public Domain
   GlobalToLocalMap& getNeighbGlToLocalWImap(int i) { return neighbGlToLocalWImap[i]; }
   void zeroEdgeDofSize();
   void mergeInterfaces();
+  void markCornerDofs(int *glCornerDofs);
 
 #ifdef HB_COUPLED_PRECOND
   Connectivity* precNodeToNode;
@@ -445,11 +422,11 @@ class GenSubDomain : public BaseSub
 
  protected:
   Scalar *scaling;
-  GenCuCSparse<Scalar> *Kuc;    // constrained to unconstrained part of K
   void sendDOFList(FSCommPattern<int> *pat); // Send to neighbors the list of DOFs on the shared nodes
   GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
  public:
+  GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
   GenSparseSet<Scalar>      *Src;
   GenSparseSet<Scalar>      *Qrc;
   GenSolver<Scalar>         *Krr;
@@ -484,7 +461,16 @@ class GenSubDomain : public BaseSub
   int *CCtrow, *CCtcol;
   Scalar* CCtval;
   Scalar *bcx_scalar;
-  int *mpcStatus; bool *mpcStatus2;
+  int *mpcStatus;
+  bool *mpcStatus1;
+
+  // templated RBMs
+  GenFullM<Scalar> Rstar;
+  GenFullM<Scalar> Rstar_g;
+  GenFullM<Scalar> *sharedRstar_g;
+  GenFullM<Scalar> *tmpRstar_g;
+  GenFullM<Scalar> **G;
+  GenFullM<Scalar> **neighbG;
 
  public:
   GenSubDomain(int, int);
@@ -537,17 +523,15 @@ class GenSubDomain : public BaseSub
 
   void expandRBM(Scalar *localR, VectorSet &globalR);
   void getSRMult(Scalar *lvec, Scalar *lbvec, int nRBM, double *locRBMs, Scalar *alpha);
-  void subtractKGap(Scalar *refRHS);
   void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
-  void makeLoad(Scalar *, GeomState *gs = 0); //HB: add GeomState for computing 
-                                              //    follower load (i.e. pressure)
   void makeLoad(Scalar *, Scalar *, double, double, GeomState *gs = 0); //HB: add GeomState for computing 
                                               //    follower load (i.e. pressure)
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   void rebuildKbbMpc();
   void makeKbbMpc();
+  void rebuildKbb();
   void makeKbb(DofSetArray *dofsetarray=0);
   void factorKii();
   void factorKrr();
@@ -596,14 +580,11 @@ class GenSubDomain : public BaseSub
   void firstAssemble(GenSparseMatrix<Scalar> *K);
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
   void initMpcScaling();
-  void initUserDefBC();
   void makeZstarAndR(double *centroid);  // makes Zstar and R
-  int *getKccDofs(DofSetArray *cornerEqs, int offset, Connectivity &subToEdge, int mpcOffset = 0);
-  int *getKccDofs();
-  void makeGlCrnDofGroup(DofSetArray *cornerEqs, int* glCrnDofGroup);
+  void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
+  void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
   void deleteKcc();
   void multKbbMpc(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *deltaF, bool errorFlag = true);
-  void computeL00(Scalar *lambda00, Scalar *fr);
   void normalizeCstep1(Scalar *cnorm);
   void normalizeCstep2(Scalar *cnorm);
   void getQtKQ(GenSolver<Scalar> *s);
@@ -628,6 +609,7 @@ class GenSubDomain : public BaseSub
   void setMpcSparseMatrix();
   void assembleMpcIntoKcc();
   void multKcc();
+  void reMultKcc();
   void multKrc(Scalar *fr, Scalar *uc);
   void multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *bf);
   void multFcB(Scalar *bf);
@@ -647,34 +629,25 @@ class GenSubDomain : public BaseSub
   void clean_up();
 
   // MPC and contact functions
-  void makeG();
-  void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver, int flag);
-  void multG(GenVector<Scalar> &x, Scalar *y, double alpha, int flag);
-  void trMultG(Scalar *x, GenVector<Scalar> &y, double alpha, int flag);
   void extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc);
   void extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &lmpc);
-  void splitData(int *cornerWeight);
+  void printLMPC();
+  void applySplitting();
+  void applyDmassSplitting();
+  void applyForceSplitting();
+  void applyMpcSplitting();
   Scalar getMpcRhs(int iMPC);
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
-  void constraintProductTmp(double* R, GenVector<Scalar> &V);
+  void addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
+  void deleteMPCs();
 
   void projectActiveIneq(Scalar *v);
-  void checkInequalities(Scalar *v, bool &ret, int flag, bool print_flag = false);
-  void getn_u(Scalar *n_u, int mpcid);
-  void split(Scalar *v, Scalar *v_f, Scalar *v_c, Scalar *v_p, double tol = 0.0);
-  void chop(Scalar *v, Scalar *v_c, double tol, int chop_flag);
+  void split(Scalar *v, Scalar *v_f, Scalar *v_c);
   void bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
-  void Max(Scalar *v, Scalar &max, int flag);
-  void Equal(Scalar *v, Scalar val, int &mpcid, int flag);
-  void quotient(Scalar *q, Scalar *lambda, Scalar *p);
-  void markRedundant(int mpcid);
-  void unmarkRedundant();
-  void initContactStatus();
-  void updateActiveSet_one(int mpcid, int flag);
   void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
   void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
   void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt
@@ -707,28 +680,21 @@ class GenSubDomain : public BaseSub
   void setMpcCommSize(FSCommPattern<int> *mpcPat);
   void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
   void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag);
+  void printMpcStatus();
+  void initMpcStatus();
   void saveMpcStatus();
   void restoreMpcStatus();
-  void saveMpcStatus2();
-  void restoreMpcStatus2();
-  void assembleP_i(GenVector<Scalar> *P_i);
-  void sendMpcRhs(FSCommPattern<Scalar> *mpcPat);
-  void recvMpcRhs(FSCommPattern<Scalar> *mpcPat);
-
+  void saveMpcStatus1();
+  void cleanMpcData();
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
-  void getLocalContactForces(double* ctcForces);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
-  void updateMpcRhs(GeomState &geomState, Connectivity *mpcToSub);
-  void updateMpcRhs(GeomState &geomState, GeomState &refState, Connectivity *mpcToSub);
+  void getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda);
   void setMpcRhs(Scalar *interfvec);
   void updateMpcRhs(Scalar *interfvec);
-  void zeroMpcRhs();
-  void zeroFreeMpcRhs();
-  void addMpcForceIncrement(double *&deltaMpcForces);
-  void zeroMpcForces();
+  double getMpcError();
 
   // Helmholtz fluid functions
   void dumpMiscData(int handle);
@@ -805,6 +771,52 @@ class GenSubDomain : public BaseSub
   void multBr(Scalar *localvec, Scalar *interfvec, Scalar *uc = 0, Scalar *uw = 0);
   void multAddCT(Scalar *interfvec, Scalar *localvec);
   void multC(Scalar *localvec, Scalar *interfvec);
+
+  // templated R and G functions
+  // note #1: we use feti to solve global domain problem: min 1/2 u_g^T*K_g*u_g - u_g^T*f_g subj. to C_g*u_g <= g
+  //          by solving an equivalent decomposed domain problem: min 1/2 u^T*K*u - u^T*f subj to B*u = 0, C*u <= g
+  // the columns of R_g span the left null space of [ K_g & C_gtilda^T // C_gtilda & 0 ] ... C_gtilda = gtilda are the active constraints
+  // the columns of R span the left null space of K
+  // G = [B^T C^T]^T*R 
+  // e = R^T*f
+  // note #2: the null space of a matrix must be templated (i.e. it is real if the matrix is real or complex if the matrix is complex)
+  // note #3: the geometric rigid body modes (GRBMs) or heat zero energy modes (HZEMs) can be used to construct the null space SOMETIMES, NOT ALWAYS !!!! 
+  // note #4: the GRBMs are not always computed correctly when there are mechanisms
+  // note #5: the GRBMs/HZEMs are always real
+
+  // R matrix construction and access
+  void makeLocalRstar(FullM **Qtranspose); // this is used by decomposed domain GRBM algorithm
+  void useKrrNullspace();
+  // R matrix-vector multiplication
+  void addRalpha(Scalar *u, GenVector<Scalar> &alpha);  // u += R_g*alpha
+  void addTrbmRalpha(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *alpha, Scalar *ur); // u += R_g*alpha
+  void assembleE(GenVector<Scalar> &e, Scalar *f); // e = R^T*f
+  void assembleTrbmE(Scalar *rbms, int nrbms, int glNumCDofs, Scalar *e, Scalar *fr); // e = R^T*f
+
+  // G matrix construction and destruction
+  void makeG();
+  void makeTrbmG(Scalar *rbms, int nrbms, int glNumCDofs);
+  void assembleGlobalG(GenFullM<Scalar> *globalG);
+  void setGCommSize(FSCommPattern<Scalar> *pat);
+  void sendG(FSCommPattern<Scalar> *rbmPat);
+  void receiveG(FSCommPattern<Scalar> *rbmPat);
+  void zeroG();
+  void deleteG();
+  // G matrix-vector multiplication
+  void multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha);  // y = alpha*G*x
+  void trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha); // y = alpha*G^T*x
+  // (G^T*G) matrix assembly
+  void assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver);
+
+  // R_g matrix construction and access
+  void buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *cornerToSub); // use null space of (G^T*P_H*G) ... trbm method !!!
+  void getGlobalRBM(int iRBM, Scalar *Rvec);
+  // R_g matrix-vector multiplication
+  void subtractRstar_g(Scalar *u, GenVector<Scalar> &beta); // u -= R_g*beta
+  void addRstar_gT(Scalar *u, GenVector<Scalar> &beta); // u += R_g*beta
+  // (R_g^T*R_g) matrix assembly
+  void assembleRtR(GenFullM<Scalar> &RtRu);
+
 };
 
 typedef GenSubDomain<double> SubDomain;
@@ -812,6 +824,7 @@ typedef GenSubDomain<double> SubDomain;
   #include <Driver.d/SubDomain.C>
   #include <Driver.d/HSubDomain.C>
   #include <Driver.d/BOps.C>
+  #include <Driver.d/RbmOps.C>
 #endif
 
 #endif

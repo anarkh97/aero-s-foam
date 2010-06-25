@@ -8,6 +8,8 @@
 #include "../DynamStateOps.h"
 
 #include <Problems.d/DynamDescr.h>
+#include <Utils.d/SolverInfo.h>
+#include <Driver.d/Domain.h>
 
 #include "SliceMapping.h"
 
@@ -45,9 +47,11 @@
 #include "../RemoteDynamPropagatorProxy.h"
 #include "RemoteCoarseCorrectionServer.h"
 
+#include <Timers.d/GetTime.h>
+
 namespace Pita { namespace Std {
 
-ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic<double> * pbDesc,
+ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic * pbDesc,
                                                  GeoSource * geoSource,
                                                  Domain * domain,
                                                  SolverInfo * solverInfo,
@@ -102,7 +106,7 @@ ReducedLinearDriverImpl::preprocess() {
   dynamOpsMgr_= LinearDynamOps::Manager::New(probDesc());
 
   // Time-domain 
-  fineTimeStep_ = Seconds(solverInfo()->dt);
+  fineTimeStep_ = Seconds(solverInfo()->getTimeStep());
   sliceRatio_ = TimeStepCount(solverInfo()->Jratio);
   coarseTimeStep_ = fineTimeStep_ * sliceRatio_.value(); 
   initialTime_ = Seconds(solverInfo()->initialTime);
@@ -308,6 +312,6 @@ extern Domain * domain;
 
 /* Entrypoint */
 Pita::LinearDriver::Ptr
-linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc) {
+linearPitaDriverNew(SingleDomainDynamic * pbDesc) {
   return Pita::Std::ReducedLinearDriverImpl::New(pbDesc, geoSource, domain, &domain->solInfo(), structCom);
 }

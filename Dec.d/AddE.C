@@ -10,7 +10,6 @@
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 //#include <Element.d/Shell.d/FourNodeShell.h>
 #include <Element.d/Truss.d/TwoNodeTruss.h>
-#include <Element.d/Brick.d/EightNodeBrickRigid.h>
 #include <Driver.d/MultiFront.h>
 
 /*

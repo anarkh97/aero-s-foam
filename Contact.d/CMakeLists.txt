@@ -1,5 +1,0 @@
-ADD_LIBRARY(Contact NodalContact.C)
-
-SET(INC_DIR ..)
-
-INCLUDE_DIRECTORIES( ${INC_DIR} )

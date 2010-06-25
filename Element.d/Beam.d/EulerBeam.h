@@ -1,15 +1,16 @@
 #ifndef _EULERBEAM_H_
 #define _EULERBEAM_H_
 
-#include        <Element.d/Element.h>
+#include <Element.d/Element.h>
 
 class GeomState;
 
-class EulerBeam : public Element {
-
+class EulerBeam : public Element 
+{
         EFrame *elemframe;
         int nn[3];
 	double *offset;
+        double c0[3][3];
 public:
 
 	EulerBeam(int*);
@@ -19,7 +20,7 @@ public:
 	void renum(int *);
 
 	void setFrame(EFrame *ef) { elemframe = ef; }
-        int buildFrame(CoordSet&);
+        void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet&, double *kel,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
@@ -55,11 +56,10 @@ public:
 
 	// Routines for the decomposer
 	PrioInfo examine(int sub, MultiFront *);
-	// isStart indicates if an element is suitable to
-	// be a germination center for a subdomain (bars are not)
-	bool isStart() { return true; }  
 	bool hasRot() { return true; }
-	
+   
+        int getMassType() { return 2; } // both consistent and lumped
+
 private:
 
        void    getLength(CoordSet&, double &length);

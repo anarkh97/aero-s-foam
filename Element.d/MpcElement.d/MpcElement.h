@@ -1,71 +1,61 @@
 #ifndef _MPCELEMENT_H_
 #define _MPCELEMENT_H_
 
+#include <Driver.d/Mpc.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/Corotator.h>
-#include <Corotational.d/GeomState.h>
-class LMPCons;
+#include <map>
 
-class MpcElement : public Element , public Corotator
+class DofSet;
+
+class MpcElement : public Element, public Corotator, public LMPCons
 {
-    int nnodes;  // number of nodes
-    int *nn;  // node numbers
-    int ndofs; // number of dofs
-    LMPCons *mpc;
-    int *renumTable;
+  protected:
+    int nNodes;              // number of nodes (not including "internal node")
+    int *nn;                 // node numbers
+    int lagrangeType;        // 1: coordinate transformation, 2: Lagrange multipliers (default)
+
+    void addTerms(DofSet);
+    void addTerms(DofSet*);
 
   public:
+    MpcElement(int, DofSet, int*);
+    MpcElement(int, DofSet*, int*);
     MpcElement(LMPCons *mpc);
-    virtual ~MpcElement()
-      { if(nn) delete [] nn;  if(renumTable) delete [] renumTable; };
+   ~MpcElement();
 
-    void setProp(StructProp *p) { };
+    int getNumMPCs();
+    LMPCons** getMPCs();
+
+    void renum(int*);
+
+    int numNodes();
+    int* nodes(int* = 0);
+
+    int numInternalNodes();
+    void setInternalNodes(int*);
+
+    int numDofs();
+    int* dofs(DofSetArray&, int* = 0);
+    void markDofs(DofSetArray&);
+
+    FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
+
+    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0) { f.zero(); }
+
     bool isMpcElement() { return true; }
 
-    void renum(int *table);
+    Corotator* getCorotator(CoordSet&, double*, int, int);
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*);
+    double getElementEnergy(GeomState&, CoordSet&) { }
 
-    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    virtual void update(GeomState&, CoordSet&);
+    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
 
-    void markDofs(DofSetArray &);
-    int* dofs(DofSetArray &, int *p=0);
-    int  numDofs() { return ndofs; }
-    int  numNodes() { return nnodes; }
-    int* nodes(int * = 0);
-    int  numInternalNodes() { return 1; }
-    void setInternalNodes(int *in) { nn[nnodes] = in[0]; nnodes++; }
+    PrioInfo examine(int sub, MultiFront *mf);
+    bool isSafe() { return false; }
 
-    Corotator *getCorotator(CoordSet &, double *, int, int)
-       { return this; }
-
-    void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
-
-     void formGeometricStiffness(GeomState &, CoordSet &, FullSquareMatrix &, double *)
-       { cerr << "formGeometricStiffness() not implemented for MpcElement \n"; };
-
-     double* getOriginalStiffness() { return 0; };
-
-     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag)
-       { /*cerr << "extractDeformations() not implemented for MpcElement \n";*/ };
-
-     void getNLVonMises(Vector&, Vector& weight, GeomState &, CoordSet &, int)
-       { /*cerr << "getNLVonMises() not implemented for MpcElement \n";*/ };
-
-     void getNLAllStress(FullM&, Vector&, GeomState &, CoordSet &, int)
-       { /*cerr << "getNLAllStress() not implemented for MpcElement \n";*/ };
-
-     double getElementEnergy(GeomState &, CoordSet &) { return 0.0; };
-
-     void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr)
-       { /*cerr << "extractRigidBodyMotion() not implemented for MpcElement \n";*/ };
-
-     int  getTopNumber() { return 501; }
-     int  numTopNodes() { return nnodes-1; }
-
-     PrioInfo examine(int sub, MultiFront *mf);
-
-     bool isSafe() { return false; }
+    void computePressureForce(CoordSet&, Vector& elPressureForce,
+                              GeomState *gs, int cflg);
 };
 #endif
-

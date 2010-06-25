@@ -6,14 +6,14 @@
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 
-BarCorotator::BarCorotator(int _n1, int _n2, double _em, double _a0, 
+BarCorotator::BarCorotator(int _n1, int _n2, StructProp *_prop, 
                            double _preload, CoordSet& cs)
 {
  n1 = _n1;	// Node 1
  n2 = _n2;	// Node 2
- em = _em;	// Elastic modulus
- a0 = _a0;	// Original Cross-sectional area
+
  preload = _preload;  // Preload in Truss
+ prop    = _prop;
 
  // Get original coordinates of bar's nodes
  Node &node1 = cs.getNode(n1);
@@ -23,7 +23,7 @@ BarCorotator::BarCorotator(int _n1, int _n2, double _em, double _a0,
  double dx = node2.x - node1.x;
  double dy = node2.y - node1.y;
  double dz = node2.z - node1.z;
- l0 = sqrt(dx*dx + dy*dy + dz*dz);
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
 }
 
 void
@@ -63,10 +63,18 @@ BarCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  // Declare local variables 
  int    i, j;
  double kt[6][6], xn[2][3], x0[2][3], t[3], t0[3], f0[6];
-
+ 
+ double a0 = prop->A;  //cross-sectional area
+ double em = prop->E;  //Young's modulus
+ 
  // Get original coordinates of bar's nodes
  Node &node1 = cs.getNode(n1);
  Node &node2 = cs.getNode(n2);
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
 
  // Get current Node State
  NodeState &ns1 = geomState[n1];
@@ -89,9 +97,9 @@ BarCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  xn[1][2] = ns2.z; // zn coordinate of node 2
 
  // Compute deformed length: ld
- double dx = xn[1][0] - xn[0][0];
- double dy = xn[1][1] - xn[0][1];
- double dz = xn[1][2] - xn[0][2];
+        dx = xn[1][0] - xn[0][0];
+        dy = xn[1][1] - xn[0][1];
+        dz = xn[1][2] - xn[0][2];
  double ld = sqrt(dx*dx + dy*dy + dz*dz);
 
  // Form transformation tensor: t (1st vector only)
@@ -108,10 +116,10 @@ BarCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  t0[0] = dx/l0;
  t0[1] = dy/l0;
  t0[2] = dz/l0;
-
+ 
  // Compute current GL-strain
  double e = (ld - l0)/l0;
-
+  
  // Compute current PK2-stress
  double sigma = em*e;
 
@@ -128,16 +136,135 @@ BarCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  formInternalForce(t0, preload, f0);
 
  for(i=0; i<6; ++i)
+ 
    f[i] -= f0[i];
 
  // Form tangent stiffness matrix
- formTangentStiffness(t, p, ld, kt);
+ formTangentStiffness(t, p, l0, ld, kt);
 
  // Copy tangent stiffness matrix to element K matrix
  for(i=0; i<6; ++i)
    for(j=0; j<6; ++j)
      elK[i][j] = kt[i][j];
 }
+
+//----------------------------------------------------------------------
+
+void
+BarCorotator::getExternalForce(GeomState &geomState, CoordSet &cs, double *f)
+{
+
+ // Declare local variables 
+ int    i, j;
+ double xn[2][3], t[3];
+ 
+  // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+    
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+ double dx = xn[1][0] - xn[0][0];
+ double dy = xn[1][1] - xn[0][1];
+ double dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+ 
+ //build force
+ f[3] = t[0]*f[0];
+ f[4] = t[1]*f[0];
+ f[5] = t[2]*f[0];
+
+ f[0] = -f[3];
+ f[1] = -f[4];
+ f[2] = -f[5];
+  
+}
+
+//----------------------------------------------------------------------
+
+void 
+BarCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs, 
+                                     FullSquareMatrix &elK, double *locF)
+{
+
+// Declare local variables 
+ int    i, j;
+ double xn[2][3], t[3];
+ 
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+    
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+ double dx = xn[1][0] - xn[0][0];
+ double dy = xn[1][1] - xn[0][1];
+ double dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+
+ double p = -locF[0];
+ double dummyK[3][3];
+  
+ dummyK[0][0] = p*(t[1]*t[1] + t[2]*t[2])/ld;
+ dummyK[0][1] = -p*t[0]*t[1]/ld;
+ dummyK[0][2] = -p*t[0]*t[2]/ld;
+ dummyK[1][0] = -p*t[1]*t[0]/ld;
+ dummyK[1][1] = p*(t[0]*t[0] + t[2]*t[2])/ld;
+ dummyK[1][2] = -p*t[1]*t[2]/ld;
+ dummyK[2][0] = -p*t[2]*t[0]/ld;
+ dummyK[2][1] = -p*t[2]*t[1]/ld;
+ dummyK[2][2] = p*(t[0]*t[0] + t[1]*t[1])/ld;
+ 
+ // Fill element stiffness matrix
+ for(i=0; i<3; i++) {
+   for(j=0; j<3; j++) {
+      elK[  i][  j] += dummyK[i][j];
+      elK[  i][3+j] -= dummyK[i][j];
+      elK[3+i][  j] -= dummyK[i][j];
+      elK[3+i][3+j] += dummyK[i][j];
+   }
+ } 
+
+}				     
+
+//-----------------------------------------------------------------------
+
+void 
+BarCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+                                  FullSquareMatrix &elK, double *f)
+{
+
+  getStiffAndForce(geomState, cs, elK, f);
+
+}				  
+
+//-----------------------------------------------------------------------
 
 void
 BarCorotator::formInternalForce(double t[3], double p, double *f)
@@ -173,7 +300,7 @@ BarCorotator::formInternalForce(double t[3], double p, double *f)
 }
 
 void
-BarCorotator::formTangentStiffness(double t[3], double p, 
+BarCorotator::formTangentStiffness(double t[3], double p, double l0,
                                    double ld, double kt[6][6])
 /*******************************************************************
  * 
@@ -194,7 +321,10 @@ BarCorotator::formTangentStiffness(double t[3], double p,
 {
      int i, j;
      double c1;
-
+     double a0, em;
+    a0 = prop->A;  //cross-sectional area
+    em = prop->E;  //Young's modulus
+ 
   // Zero stiffness matrix
      for(i=0; i<6; ++i )
        for(j=0; j<6; ++j )
@@ -205,13 +335,24 @@ BarCorotator::formTangentStiffness(double t[3], double p,
 
   // Transform to global system by: Kt = T'*Kl*T 
      for(i=0; i < 3; ++i)
-       for(j=0; j < 3; ++j){ 
-        kt[i][j]  = c1*t[i]*t[j];
-        kt[i][j] -= (p/ld)*t[i]*t[j]; //HB
-       }
-     kt[0][0] += p/ld; 
-     kt[1][1] += p/ld; 
-     kt[2][2] += p/ld; 
+       for(j=0; j < 3; ++j) 
+        kt[i][j]     = c1*t[i]*t[j];
+
+  //Form Consistent Tangent Stiffness Term
+    //old way
+      //kt[0][0] += p/l0 ;
+      //kt[1][1] += p/l0 ;
+      //kt[2][2] += p/l0 ;
+     
+      kt[0][0] += p*(t[1]*t[1] + t[2]*t[2])/ld;
+      kt[0][1] += -p*t[0]*t[1]/ld;
+      kt[0][2] += -p*t[0]*t[2]/ld;
+      kt[1][0] += -p*t[1]*t[0]/ld;
+      kt[1][1] += p*(t[0]*t[0] + t[2]*t[2])/ld;
+      kt[1][2] += -p*t[1]*t[2]/ld;
+      kt[2][0] += -p*t[2]*t[0]/ld;
+      kt[2][1] += -p*t[2]*t[1]/ld;
+      kt[2][2] += p*(t[0]*t[0] + t[1]*t[1])/ld;
      
   // Fill element stiffness matrix
      for(i=0; i<3; i++) {
@@ -224,7 +365,7 @@ BarCorotator::formTangentStiffness(double t[3], double p,
 }
 
 void
-BarCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
+BarCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &kg, double *f)
 {
 /*******************************************************************
@@ -252,8 +393,18 @@ BarCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
  *****************************************************************/
  // Declare local variables
  int    i, j;
- double xn[2][3];
-
+ double xn[2][3],t[3];
+ double em,a0;
+ 
+ // Get original coordinates of bar's nodes
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ 
+  double dx = node2.x - node1.x;
+  double dy = node2.y - node1.y;
+  double dz = node2.z - node1.z;
+  double l0 = sqrt(dx*dx + dy*dy + dz*dz);
+	
  // Get current Node State
  NodeState &ns1 = geomState[n1];
  NodeState &ns2 = geomState[n2];
@@ -267,14 +418,24 @@ BarCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
  xn[1][2] = ns2.z; // zn coordinate of node 2
 
  // Compute deformed length: ld
- double dx = xn[1][0] - xn[0][0];
- double dy = xn[1][1] - xn[0][1];
- double dz = xn[1][2] - xn[0][2];
+  dx = xn[1][0] - xn[0][0];
+  dy = xn[1][1] - xn[0][1];
+  dz = xn[1][2] - xn[0][2];
  double ld = sqrt(dx*dx + dy*dy + dz*dz);
-
+ 
+ 
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+ 
+ a0 = prop->A;  //cross-sectional area
+ em = prop->E;  //Young's modulus
+ 
  // Compute current GL-strain
  double e = (ld - l0)/l0;
-
+ 
  // Compute current PK2-stress
  double sigma = em*e;
 
@@ -288,10 +449,21 @@ BarCorotator::formGeometricStiffness( GeomState &geomState, CoordSet &,
  for(i=0; i<6; ++i )
    for(j=0; j<6; ++j )
      kg[i][j] = 0.0;
+ 
+ //kg[0][0] += p/l0;
+ //kg[1][1] += p/l0;
+ //kg[2][2] += p/l0;
 
- kg[0][0] += p/ld;
- kg[1][1] += p/ld;
- kg[2][2] += p/ld;
+ kg[0][0] += p*(t[1]*t[1] + t[2]*t[2])/ld;
+ kg[0][1] += -p*t[0]*t[1]/ld;
+ kg[0][2] += -p*t[0]*t[2]/ld;
+ kg[1][0] += -p*t[1]*t[0]/ld;
+ kg[1][1] += p*(t[0]*t[0] + t[2]*t[2])/ld;
+ kg[1][2] += -p*t[1]*t[2]/ld;
+ kg[2][0] += -p*t[2]*t[0]/ld;
+ kg[2][1] += -p*t[2]*t[1]/ld;
+ kg[2][2] += p*(t[0]*t[0] + t[1]*t[1])/ld;
+
 
  // Fill element stiffness matrix
  for(i=0; i<3; i++) {
@@ -314,6 +486,11 @@ BarCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
  Node &node1 = cs.getNode(n1);
  Node &node2 = cs.getNode(n2);
 
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
  double xn[2][3], x0[2][3];
 
  // Set coordinates of C0 configuration
@@ -337,9 +514,9 @@ BarCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
  xn[1][2] = ns2.z; // zn coordinate of node 2
 
  // Compute deformed length: ld
- double dx = xn[1][0] - xn[0][0];
- double dy = xn[1][1] - xn[0][1];
- double dz = xn[1][2] - xn[0][2];
+ dx = xn[1][0] - xn[0][0];
+ dy = xn[1][1] - xn[0][1];
+ dz = xn[1][2] - xn[0][2];
  double ld = sqrt(dx*dx + dy*dy + dz*dz);
  double delta_l = ld-l0;
 
@@ -364,12 +541,12 @@ BarCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
 
 void
 BarCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-                                     double *vlr)
+               double *vlr)
 {
 }
 
 void
-BarCorotator::getNLVonMises(Vector &stress, Vector &weight,
+BarCorotator::getNLVonMises(Vector& stress,Vector& weight,
                             GeomState &geomState, CoordSet &cs,
                             int strInd)
 {
@@ -378,7 +555,7 @@ BarCorotator::getNLVonMises(Vector &stress, Vector &weight,
 }
 
 void
-BarCorotator::getNLAllStress(FullM &stress, Vector &weight,
+BarCorotator::getNLAllStress(FullM& stress,Vector& weight,
                              GeomState &geomState, CoordSet &cs,
                              int strInd)
 {
@@ -390,10 +567,20 @@ double
 BarCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {
 // Computes Internal Energy of Element in Given State
-
+ 
+  double a0 = prop->A;  //cross-sectional area
+  double em = prop->E;  //Young's modulus
+ 
  // Get original coordinates of bar's nodes
- //Node &node1 = cs.getNode(n1);
- //Node &node2 = cs.getNode(n2);
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
+ 
+ 
 
  // Get current Node State
  NodeState &ns1 = geomState[n1];
@@ -408,15 +595,18 @@ BarCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
  xn[1][1] = ns2.y; // yn coordinate of node 2
  xn[1][2] = ns2.z; // zn coordinate of node 2
 
+
+
  // Compute deformed length: ld
- double dx = xn[1][0] - xn[0][0];
- double dy = xn[1][1] - xn[0][1];
- double dz = xn[1][2] - xn[0][2];
+  dx = xn[1][0] - xn[0][0];
+  dy = xn[1][1] - xn[0][1];
+  dz = xn[1][2] - xn[0][2];
  double ld = sqrt(dx*dx + dy*dy + dz*dz);
 
  // Compute current GL-strain
  double e = (ld - l0)/l0;
-
+  
+ 
  // Compute stress
  double sigma = em*e;
 
@@ -428,3 +618,115 @@ BarCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 
  return Energy;
 }
+
+//-------------------------------------------------------------------------
+
+void BarCorotator::getLocalDisp(GeomState &geomState , CoordSet &cs, Vector &disp)
+{
+double xn[2][3], x0[2][3];
+
+ // Get original coordinates of bar's nodes
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+
+ // Set coordinates of C0 configuration
+ x0[0][0] = node1.x;
+ x0[0][1] = node1.y;
+ x0[0][2] = node1.z;
+ x0[1][0] = node2.x;
+ x0[1][1] = node2.y;
+ x0[1][2] = node2.z;
+
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+  	dx = xn[1][0] - xn[0][0];
+  	dy = xn[1][1] - xn[0][1];
+ 	dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ disp.zero();
+ disp[0] = (l0-ld)/2;
+ disp[3] = (ld-l0)/2;
+
+
+}
+
+//--------------------------------------------------------------------------
+
+void BarCorotator::getGlobalDisp(GeomState &geomState , CoordSet &cs, Vector &disp)
+{
+
+ double a0 = prop->A;  //cross-sectional area
+ double em = prop->E;  //Young's modulus
+ 
+ // Get original coordinates of bar's nodes
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
+ double xn[2][3], x0[2][3];
+
+ // Set coordinates of C0 configuration
+ x0[0][0] = node1.x;
+ x0[0][1] = node1.y;
+ x0[0][2] = node1.z;
+ x0[1][0] = node2.x;
+ x0[1][1] = node2.y;
+ x0[1][2] = node2.z;
+
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
+
+ // Set coordinates of Cn configuration
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+  dx = xn[1][0] - xn[0][0];
+  dy = xn[1][1] - xn[0][1];
+  dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+ double delta_l = ld-l0;
+
+ dx = x0[1][0] - x0[0][0];
+ dy = x0[1][1] - x0[0][1];
+ dz = x0[1][2] - x0[0][2];
+
+ // scale dx, dy, and dz by the initial length
+ dx /= l0;
+ dy /= l0;
+ dz /= l0;
+
+ // Transform to global coordinate by  dXg = T'*dXl
+ // Shortened form, since def[1] = def[2] = 0.0
+ disp[3] = dx*delta_l/2.0;
+ disp[4] = dy*delta_l/2.0;
+ disp[5] = dz*delta_l/2.0;
+ disp[0] = -disp[3];
+ disp[1] = -disp[4];
+ disp[2] = -disp[5]; 
+}
+

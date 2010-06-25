@@ -14,10 +14,12 @@ class GenVecOp : public TaskDescr
      GenDistrVector<Scalar> *v1;
      GenDistrVector<Scalar> *v2;
      GenDistrVector<Scalar> *v3;
+     GenDistrVector<Scalar> *v4;
      Scalar *res;
      Scalar c;
      Scalar c1;
      Scalar c2;
+     Scalar c3;
      void (GenVecOp<Scalar>::*f)(int);
 
    public:
@@ -45,6 +47,11 @@ class GenVecOp : public TaskDescr
           GenDistrVector<Scalar> *_v1, Scalar c1, GenDistrVector<Scalar> *_v2, 
                             Scalar c2, GenDistrVector<Scalar> *_v3);
 
+     GenVecOp(void (GenVecOp<Scalar>::*_f)(int),
+          GenDistrVector<Scalar> *_v1, Scalar c1, GenDistrVector<Scalar> *_v2,
+                            Scalar c2, GenDistrVector<Scalar> *_v3, Scalar c3,
+                            GenDistrVector<Scalar> *_v4);
+
      void alloc(int);
      void dot(int);
      void zero(int);
@@ -53,6 +60,7 @@ class GenVecOp : public TaskDescr
      void linAdd1(int);
      void linAdd2(int);
      void linC(int);
+     void linC1(int);
      void linC2(int);
      void linC3(int);
      void assign(int);
@@ -130,6 +138,22 @@ GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Sca
  v2 = _v2;
  c2 = _c2;
  v3 = _v3;
+}
+
+template<class Scalar>
+GenVecOp<Scalar>::GenVecOp(void (GenVecOp<Scalar>::*_f)(int), GenDistrVector<Scalar> *_v1,
+                           Scalar _c1, GenDistrVector<Scalar> *_v2,
+                           Scalar _c2, GenDistrVector<Scalar> *_v3,
+                           Scalar _c3, GenDistrVector<Scalar> *_v4)
+{
+ f  = _f;
+ v1 = _v1;
+ c1 = _c1;
+ v2 = _v2;
+ c2 = _c2;
+ v3 = _v3;
+ c3 = _c3;
+ v4 = _v4;
 }
 
 template<class Scalar>
@@ -308,20 +332,6 @@ GenVecOp<Scalar>::linAdd2(int threadNum)
 
 template<class Scalar>
 void
-GenVecOp<Scalar>::linC3(int threadNum)
-{
- Scalar *d1 = v1->threadData(threadNum);
- Scalar *d2 = v2->threadData(threadNum);
-
- int len = v1->threadLen(threadNum);
-
- int i;
- for(i = 0; i < len; ++i)
-    d1[i] = c*d2[i];
-}
-
-template<class Scalar>
-void
 GenVecOp<Scalar>::linC(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
@@ -335,6 +345,21 @@ GenVecOp<Scalar>::linC(int threadNum)
 
 template<class Scalar>
 void
+GenVecOp<Scalar>::linC1(int threadNum)
+{
+ Scalar *d1 = v1->threadData(threadNum);
+ Scalar *d2 = v2->threadData(threadNum);
+
+ int len = v1->threadLen(threadNum);
+
+ int i;
+ for(i = 0; i < len; ++i)
+    d1[i] = c*d2[i];
+}
+
+
+template<class Scalar>
+void
 GenVecOp<Scalar>::linC2(int threadNum)
 {
  Scalar *d1 = v1->threadData(threadNum);
@@ -345,6 +370,21 @@ GenVecOp<Scalar>::linC2(int threadNum)
  for(i = 0; i < len; ++i)
     d1[i] = c1*d2[i] + c2*d3[i];
 }
+
+template<class Scalar>
+void
+GenVecOp<Scalar>::linC3(int threadNum)
+{
+ Scalar *d1 = v1->threadData(threadNum);
+ Scalar *d2 = v2->threadData(threadNum);
+ Scalar *d3 = v3->threadData(threadNum);
+ Scalar *d4 = v4->threadData(threadNum);
+ int len = v1->threadLen(threadNum);
+ int i;
+ for(i = 0; i < len; ++i)
+    d1[i] = c1*d2[i] + c2*d3[i] + c3*d4[i];
+}
+
 
 template<class Scalar>
 void
@@ -821,8 +861,9 @@ template<class Scalar>
 GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::operator=(GenDistrVector<Scalar> &x)
 {
+ int dummy;
  if(x.len != len) {
-  fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
+  fprintf(stderr, "Length error in = %d not equal to %d %d\n",x.len, len, dummy);
  }
  GenVecOp<Scalar> assign(&GenVecOp<Scalar>::assign,this, &x);
  threadManager->execParal(nT, &assign);
@@ -966,15 +1007,6 @@ GenDistrVector<Scalar>::linAdd(Scalar c1, GenDistrVector<Scalar> &x, Scalar c2,
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &v, Scalar c)
-{
- GenVecOp<Scalar> linC3(&GenVecOp<Scalar>::linC3, this, &v, c);
- threadManager->execParal(nT, &linC3);
- return *this;
-}
-
-template<class Scalar>
-GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::linC( GenDistrVector<Scalar> &x, Scalar c, GenDistrVector<Scalar> &y)
 {
  if(x.len != y.len) {
@@ -987,14 +1019,31 @@ GenDistrVector<Scalar>::linC( GenDistrVector<Scalar> &x, Scalar c, GenDistrVecto
 
 template<class Scalar>
 GenDistrVector<Scalar> &
+GenDistrVector<Scalar>::linC(GenDistrVector<Scalar> &v, Scalar c)
+{
+ GenVecOp<Scalar> linC1(&GenVecOp<Scalar>::linC1, this, &v, c);
+ threadManager->execParal(nT, &linC1);
+ return *this;
+}
+
+template<class Scalar>
+GenDistrVector<Scalar> &
 GenDistrVector<Scalar>::linC( Scalar c1, GenDistrVector<Scalar> &x, 
                               Scalar c2, GenDistrVector<Scalar> &y)
 {
- if(x.len != y.len) {
-  fprintf(stderr, "Length error in linC\n");
- }
  GenVecOp<Scalar> linC2(&GenVecOp<Scalar>::linC2, this, c1, &x, c2, &y);
  threadManager->execParal(nT, &linC2);
+ return *this;
+}
+
+template<class Scalar>
+GenDistrVector<Scalar> &
+GenDistrVector<Scalar>::linC( Scalar c1, GenDistrVector<Scalar> &x,
+                              Scalar c2, GenDistrVector<Scalar> &y,
+                              Scalar c3, GenDistrVector<Scalar> &z)
+{
+ GenVecOp<Scalar> linC3(&GenVecOp<Scalar>::linC3, this, c1, &x, c2, &y, c3, &z);
+ threadManager->execParal(nT, &linC3);
  return *this;
 }
 

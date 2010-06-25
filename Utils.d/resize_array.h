@@ -18,7 +18,7 @@ template <class Type> class ResizeArray {
     // It will not check that the returned pointer is not used beyond
     // the existing values
    Type *yield(); // When we want to keep the array and remove the resizing
-   void deleteArray()  { delete [] d; d = 0; csize = 1; }
+   void deleteArray()  { delete [] d; d = 0; csize = 0; }
    void restartArray() { d = new Type[csize]; };
    Type *data(bool _myData = true) { myData = _myData; return d; }
 };

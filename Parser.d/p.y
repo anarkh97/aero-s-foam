@@ -56,46 +56,48 @@
  OutputInfo oinfo;
 }
 
+%expect 6
+
 %token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES 
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ADDEDMASS
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION CGALPARAM CGALPREC
+%token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
-%token CONSTRAINTQUALIFICATION CQTYPE CONSTRAINKCC COMPLEXOUTTYPE
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DMPC DEBUGCNTL DEBUGICNTL 
+%token COMPLEXOUTTYPE
+%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EXPANSION
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INITIALLAMBDA
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
 %token JACOBI KRYLOVTYPE
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LINESEARCHTYPE LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MAXRHO MECH MODEFILTER
-%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODES NONINPC
-%token NSBSPV NLTOL NUMCGM NOSECONDARY
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
+%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODE NONINPC
+%token NSBSPV NLTOL NUMCGM NOSECONDARY NULLSPACE
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING POWERITE PLOAD PADEPOLES POINTSOURCE PLANEWAVE
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE TOTALFETI TOLEQUI TOLREDU THERMMAT TDENFORC TESTULRICH
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
-%token VERSION WAVENUMBER WETCORNERS WOLFE YMTT 
-%token ZERO BINARY GEOMETRY DECOMPFILE GLOBAL MATCHER CPUMAP
+%token VERSION WAVENUMBER WETCORNERS YMTT 
+%token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
-%token OUTERLOOP OUTERLOOPTYPE EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS READ
+%token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
+%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -120,12 +122,11 @@
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
 %type <ival>     DOFTYPE
 %type <ival>     FETIPREC FETI2TYPE 
-%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LINESEARCHTYPE CQTYPE
+%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
-%type <ival>     OUTERLOOPTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -241,13 +242,13 @@ Component:
         | TempNeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | TempConvection
-        { if(geoSource->setConvBC($1->n,$1->d) < 0) return -1; }
+        { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
 	| HEVDirichletBC
 	{ if(geoSource->setDirichletFluid($1->n,$1->d) < 0) return -1; }
 	| HEVFRSBC
 	{ if(geoSource->setDirichletFluid($1->n,$1->d) < 0) return -1; }
 	| TempRadiation
-        { if(geoSource->setRadBC($1->n,$1->d) < 0) return -1; }
+        { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | TopInfo
         | OldHelmInfo
         | DEMInfo
@@ -276,6 +277,7 @@ Component:
         | AxiNumSlices
         | AxiHSommer
         | AxiMPC
+        | Sower
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -315,6 +317,7 @@ Component:
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
+        | AcmeControls
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -503,15 +506,27 @@ ReconsInfo:
           }
         }
         ;
-BinarySpec:
-	BINARY NewLine
+Sower:
+	SOWER NewLine
           { geoSource->binaryInput = true; geoSource->binaryOutput = true; }
         | BINARYINPUT SWITCH NewLine 
           { geoSource->binaryInput = bool($2); }
         | BINARYOUTPUT SWITCH NewLine
           { geoSource->binaryOutput = bool($2); }
         ;
-
+BinarySpec:
+        BINARY NewLine
+        | BinarySpec GEOMETRY FNAME NewLine
+          { geoSource->setGeo($3); }
+        | BinarySpec DECOMPOSITION FNAME NewLine
+          { geoSource->setDecomp($3); }
+        | BinarySpec GLOBAL   FNAME NewLine
+          { geoSource->setGlob($3); }
+        | BinarySpec MATCHER  FNAME NewLine
+          { geoSource->setMatch($3); }
+        | BinarySpec CPUMAP  FNAME NewLine
+          { geoSource->setCpuMap($3); }
+        ;
 AnalysisInfo:
         ANALYSIS Integer NewLine
         { 
@@ -674,21 +689,27 @@ UseCInfo:
 	;
 SensorLocations:
         SENSORS NewLine BCDataList
-        { if(geoSource->setSensorLocations($3->n,$3->d) < 0) return -1;   }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Sensors;
+          if(geoSource->setSensorLocations($3->n,$3->d) < 0) return -1; }
 	;
 ActuatorLocations:
         ACTUATORS NewLine BCDataList
-        { if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Actuators;
+          if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; 
+          if(geoSource->setNeuman($3->n,$3->d) < 0)            return -1; }
 	;
 UsdfLocations:
 	USERDEFINEFORCE NewLine BCDataList
         { geoSource->binaryInputControlLeft = true;
-          if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;   }
+          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdf;
+          if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;
+          if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
 UsddLocations:
 	USERDEFINEDISP NewLine BCDataList
 	{ geoSource->binaryInputControlLeft = true;
-          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;   
+          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdd;
+          if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
 Output:
@@ -720,6 +741,9 @@ OutInfo:
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4; }
         | TDENFORC Integer Integer FNAME Integer Integer // formatted output for one node (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6; }
+
+        | OutInfo NODE Integer
+        { $$.nodeNumber = $3; }
         | OutInfo DOFTYPE
         { $$.type = (OutputInfo::Type) $2; }
         | OutInfo SURFACE
@@ -902,8 +926,8 @@ AeroInfo:
         }
 	| AeroInfo COLLOCATEDTYPE NewLine
 	{ domain->solInfo().isCollocated = $2; }
-        | MATCHER FNAME NewLine
-        { geoSource->setMatch($2); }
+        | AeroInfo MATCHER FNAME NewLine
+        { geoSource->setMatch($3); }
 	;
 AeroHeatInfo:
         AEROH NewLine AEROTYPE Float Float NewLine
@@ -941,6 +965,9 @@ ToleranceInfo:
          filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
         | GRBM NewLine Float NewLine
         { domain->solInfo().setGrbm($3); 
+         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+        | GRBM NewLine 
+        { domain->solInfo().setGrbm();
          filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
 	;
 ModeFilterInfo:
@@ -1080,15 +1107,15 @@ IComplexNeumannBC:
         ;
 DirichletBC:
         DISP NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
 	;
 SurfaceDirichletBC:
         SDISP NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Pdir; $$ = $3; }
 	;
 HEVDBCDataList:
 	HEVDBC_Data
@@ -1139,6 +1166,8 @@ HEVFRSBC:  // Added for HEV problem, EC, 20080512
           for (int ii=0; ii<numHEVFSNodes; ii++)
             $$->add(allHEVFSNodes[ii],10,0.0); 
           delete [] allHEVFSNodes;
+
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Hefrs;
         }
         ;
 HEVFRSBCList:
@@ -1161,31 +1190,31 @@ HEVFRSBCElem: // Added for HEV problem, EC, 20080512
         ;
 TempDirichletBC:
         TEMP NewLine
-        { $$ = new BCList; domain->solInfo().thermalLoadFlag = 1;}
+        { $$ = new BCList; if(domain->solInfo().soltyp != 2) domain->solInfo().thermalLoadFlag = 1;}
         | TempDirichletBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }
 	;
 TempNeumanBC:
         FLUX NewLine
         { $$ = new BCList; }
         | TempNeumanBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
 	;
 TempConvection:
         CONVECTION NewLine
         { $$ = new BCList; }
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3*$4*$5; $$->add(bc); }
+          bc.val = $3*$4*$5; bc.type = BCond::Convection; $$->add(bc); }
 	;
 TempRadiation:
         RADIATION NewLine
         { $$ = new BCList; }
         | TempRadiation Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; $$->add(bc); }
+          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; $$->add(bc); }
         ;
 HelmHoltzBC:
         HSOMMERFELD NewLine SommerfeldBCDataList
@@ -1285,11 +1314,11 @@ PBCDataList:
 	;
 AtdDirScatterer:
         ATDDIR NewLine PBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atddir; $$ = $3; }
         ;
 AtdNeuScatterer:
         ATDNEU NewLine PBCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atdneu; $$ = $3; }
         ;
 AtdArbScatterer:
 	ATDARB Float NewLine
@@ -1397,11 +1426,13 @@ Mode:
 	;
 IDisp:
 	IDIS NewLine BCDataList
-	{ if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
+	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	| IDIS ZERO NewLine
 	{ domain->solInfo().zeroInitialDisp = 1; }
 	| IDIS NewLine MODAL NewLine ModalValList
 	{ domain->solInfo().modalIDisp = true;
+          for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDis($5->n, $5->d) < 0) return -1; }
 	;
 IDisp6:
@@ -1417,6 +1448,7 @@ IDisp6:
                           bc.dofnum = 3; bc.val = amplitude*$6; $$->add(bc);
                           bc.dofnum = 4; bc.val = amplitude*$7; $$->add(bc);
                           bc.dofnum = 5; bc.val = amplitude*$8; $$->add(bc);
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
         | IDisp6 Integer Float Float Float NewLine
@@ -1427,6 +1459,7 @@ IDisp6:
                           bc.dofnum = 3; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 4; bc.val = 0.0         ; $$->add(bc);
                           bc.dofnum = 5; bc.val = 0.0         ; $$->add(bc);
+          for(int i=0; i<$$->n; ++i) $$->d[i].type = BCond::Idisp6;
           geoSource->setIDis6($$->n, $$->d);
         }
 	| GEPS NewLine
@@ -1467,25 +1500,35 @@ IVel6Pita:
         ;
 IVel:
         IVEL NewLine BCDataList
-        { if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
-        { if(geoSource->setITemp($3->n,$3->d) < 0) return -1; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
+          if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
 NeumanBC:
 	FORCE NewLine BCDataList
-	{ $$ = $3; }
+	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
 	;
 SurfaceNeumanBC:
         SFORCE NewLine BCDataList
-        { $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
         ;
 BCDataList:
 	BC_Data
 	{ $$ = new BCList; $$->add($1); }
 	| BCDataList BC_Data
 	{ $$ = $1; $$->add($2); }
+        | Integer THRU Integer Integer Float NewLine
+        { $$ = new BCList; for(int i=$1; i<=$3; ++i) { BCond bc; bc.setData(i-1, $4-1, $5); $$->add(bc); } }
+        | BCDataList Integer THRU Integer Integer Float NewLine
+        { $$ = $1; for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6); $$->add(bc); } }
+        | Integer THRU Integer STEP Integer Integer Float NewLine
+        { $$ = new BCList; for(int i=$1; i<=$3; i+=$5) { BCond bc; bc.setData(i-1, $6-1, $7); $$->add(bc); } }
+        | BCDataList Integer THRU Integer STEP Integer Integer Float NewLine
+        { $$ = $1; for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8); $$->add(bc); } }
 	;
 ModalValList:
 	ModalVal
@@ -1732,7 +1775,10 @@ ElemSet:
 	;
 FaceSet:
 	SURFACETOPOLOGY Integer NewLine 
-	{ $$ = new SurfaceEntity($2); domain->AddSurfaceEntity($$); }
+	{ if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          domain->AddSurfaceEntity($$);
+        }
         | FaceSet Integer Integer NodeNums NewLine 
 	{ if($$->GetId() < 0) { // reverse the node numbering
             int *nodes = new int[$4.num];
@@ -1940,8 +1986,13 @@ ContactSurfaces:
           domain->AddMortarCond($$);
         }
         ;
+AcmeControls:
+        ACMECNTL Integer NewLine
+        { domain->solInfo().dist_acme = $2; }
+        | FFIDEBUG Integer NewLine
+        { domain->solInfo().ffi_debug = bool($2); }
 NodeSet:
-	NODES NewLine Node
+	NODE NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }
 	| NodeSet Node
 	{ geoSource->addNode($2.num, $2.xyz); }
@@ -2077,6 +2128,11 @@ Lumped:
           geoSource->setConsistentQFlag(false); 
           geoSource->setConsistentPFlag(false); 
         }
+        | LUMPED Integer NewLine
+        { geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false, $2);
+          geoSource->setConsistentPFlag(false);
+        }
 	;
 Preload:
         PRELOAD NewLine
@@ -2120,14 +2176,20 @@ Solver:
           domain->solInfo().setProbType(SolverInfo::Static);
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
+        | STATS NewLine ITERTYPE Integer NewLine
+        { domain->solInfo().setSolver($3,$4);    
+          domain->solInfo().setProbType(SolverInfo::Static); }
+        | STATS NewLine ITERTYPE Integer Float NewLine
+        { domain->solInfo().setSolver($3,$4,$5);    
+          domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3,3); 
+	{ domain->solInfo().setSolver($3,$4,$5,$6); 
           domain->solInfo().setProbType(SolverInfo::Static); }
 	| STATS NewLine ITERTYPE Integer Float Integer Integer NewLine
-	{ domain->solInfo().setSolver($4,$5,$6,$3,$7); 
+	{ domain->solInfo().setSolver($3,$4,$5,$6,$7); 
           domain->solInfo().setProbType(SolverInfo::Static); }
         | STATS NewLine ITERTYPE Integer Float Integer Integer Integer NewLine
-        { domain->solInfo().setSolver($4,$5,$6,$3,$7,$8);
+        { domain->solInfo().setSolver($3,$4,$5,$6,$7,$8);
           domain->solInfo().setProbType(SolverInfo::Static); }
 /*
         | STATS NewLine ITERTYPE NewLine PRECNO Integer NewLine TOLPCG Float NewLine MAXITR Integer NewLine
@@ -2243,30 +2305,6 @@ Solver:
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
-        | Solver MAXITR Integer Integer Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = $3; 
-          domain->solInfo().fetiInfo.maxouterit = $4; 
-          domain->solInfo().fetiInfo.maxinnerit = $5; }
-        | Solver MAXITR Integer Integer NewLine
-        { domain->solInfo().fetiInfo.maxit = domain->solInfo().fetiInfo.maxinnerit = $3;
-          domain->solInfo().fetiInfo.maxouterit = $4; }
-        | TOLEQUI Float NewLine
-        { domain->solInfo().fetiInfo.equi_tol = $2; }
-        | CGALPARAM Float Float Float Float NewLine
-        { domain->solInfo().fetiInfo.rho_cntl = $2; domain->solInfo().fetiInfo.beta = $3; 
-          domain->solInfo().fetiInfo.M = $4; domain->solInfo().fetiInfo.eta = $5; }
-        | CGALPARAM Float Float Float Float Integer NewLine
-        { domain->solInfo().fetiInfo.rho_cntl = $2; domain->solInfo().fetiInfo.beta = $3;
-          domain->solInfo().fetiInfo.M = $4; domain->solInfo().fetiInfo.eta = $5; 
-          domain->solInfo().fetiInfo.cgal_adapt_icntl = $6; }
-        | POWERITE Integer Float NewLine
-        { domain->solInfo().fetiInfo.max_power_iter = $2; domain->solInfo().fetiInfo.power_iter_tol = $3; }
-        | CGALPREC SWITCH NewLine
-        { domain->solInfo().fetiInfo.cgal_prec = bool($2); }
-        | CGALPREC SWITCH Float NewLine
-        { domain->solInfo().fetiInfo.cgal_prec = bool($2); domain->solInfo().fetiInfo.cgal_prec_cntl = $3; }
-        | MAXRHO Float NewLine
-        { domain->solInfo().fetiInfo.maxrho = $2; }
         | DEBUGICNTL Integer Integer NewLine
         { domain->solInfo().debug_icntl[$2] = $3; }
         | DEBUGCNTL Integer Float NewLine
@@ -2299,23 +2337,26 @@ Solver:
             fprintf(stderr," *** WARNING: Incorrect Preconditioner Type selected, using nonshifted\n");
           }
           domain->solInfo().fetiInfo.prectype = (FetiInfo::PreconditionerType) $2;
-        }	
-        | TOLFETI Float NewLine
-  	{ domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $2;
-          domain->solInfo().fetiInfo.equi_tol = $2;
-          domain->solInfo().fetiInfo.iequ_tol = $2;
         }
+        | TOLFETI Float NewLine
+  	{ domain->solInfo().fetiInfo.tol = $2; }
         | TOLFETI Float Float NewLine
         { domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $3; 
-        }
-        | TOLFETI Float Float Float Float NewLine
-        { domain->solInfo().fetiInfo.tol = $2; 
-          domain->solInfo().fetiInfo.dual_tol = $3; 
-          domain->solInfo().fetiInfo.equi_tol = $4; 
-          domain->solInfo().fetiInfo.iequ_tol = $5;
-        }
+          domain->solInfo().fetiInfo.absolute_tol = $3; }
+        | STAGTOL Float NewLine
+        { domain->solInfo().fetiInfo.stagnation_tol = $2; }
+        | STAGTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.stagnation_tol = $2;
+          domain->solInfo().fetiInfo.absolute_stagnation_tol = $3; }
+        | PTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.primal_proj_tol = $2;
+          domain->solInfo().fetiInfo.dual_proj_tol = $3; }
+        | PMAXIT Float Float NewLine
+        { domain->solInfo().fetiInfo.primal_plan_maxit = $2;
+          domain->solInfo().fetiInfo.dual_plan_maxit = $3; }
+        | PLANTOL Float Float NewLine
+        { domain->solInfo().fetiInfo.primal_plan_tol = $2;
+          domain->solInfo().fetiInfo.dual_plan_tol = $3; }
 	| Solver MAXORTHO Integer NewLine
 	{ domain->solInfo().fetiInfo.maxortho = $3; }
 	| NOCOARSE NewLine
@@ -2379,7 +2420,7 @@ Solver:
             domain->solInfo().fetiInfo.pickAnyCorner = 0; 
             domain->solInfo().fetiInfo.bmpc = true;
             domain->solInfo().fetiInfo.pick_unsafe_corners = false;
-            domain->solInfo().fetiInfo.constrain_kcc = false;
+            domain->solInfo().fetiInfo.augment = FetiInfo::none;
           }
         }
         | AUGMENT AUGMENTTYPE NewLine
@@ -2458,12 +2499,15 @@ Solver:
         { domain->solInfo().fetiInfo.cct_tol = $2; }
         | REBUILDCCT SWITCH NewLine
         { domain->solInfo().fetiInfo.rebuildcct = int($2); }
+        | NULLSPACE GRBM NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::grbm; }
+        | NULLSPACE TRBM NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm; }
+        | NULLSPACE TRBM Float NewLine
+        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm;
+          domain->solInfo().fetiInfo.nullSpaceFilterTol = $3; }
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
-        | STAGTOL Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; }
-        | STAGTOL Float Float NewLine
-        { domain->solInfo().fetiInfo.stagnation_tol = $2; domain->solInfo().fetiInfo.dual_stagnation_tol = $3; }
 	| PRINTMATLAB NewLine
 	{ domain->solInfo().fetiInfo.printMatLab = 1; }
 	| LOCALSOLVER SOLVERTYPE NewLine
@@ -2534,10 +2578,6 @@ Solver:
         { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
         | PICKANYCORNER Integer NewLine
         { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
-/*
-        | ITERTYPE NewLine
-	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::pcg; }
-*/
         | FRONTAL NewLine
 	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
         | NLPREC NewLine
@@ -2655,13 +2695,11 @@ Solver:
           domain->curvatureConst2 = $4;
           domain->curvatureFlag = 2;
         }
-        | OUTERLOOP OUTERLOOPTYPE NewLine
+        | OUTERLOOP ITERTYPE NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2; }
-        | OUTERLOOP OUTERLOOPTYPE HERMITIAN NewLine
+        | OUTERLOOP ITERTYPE HERMITIAN NewLine
         { domain->solInfo().fetiInfo.outerloop = (FetiInfo::OuterloopType) $2;
           domain->solInfo().fetiInfo.complex_hermitian = true; }
-        | INITIALLAMBDA Integer NewLine
-        { domain->solInfo().fetiInfo.initial_lambda = $2; }
         | MPCTYPE Integer NewLine
         { domain->solInfo().fetiInfo.mpcflag = $2; }
         | MPCTYPE MPCTYPEID NewLine
@@ -2694,37 +2732,9 @@ Solver:
         { if($2 < 1) domain->solInfo().fetiInfo.useMRHS = false; }
         | PROPORTIONING Float NewLine
         { domain->solInfo().fetiInfo.gamma = $2; }
-        | EXPANSION Integer NewLine
-        { domain->solInfo().fetiInfo.expansion = $2; }
-        | EXPANSION Integer Float NewLine
-        { domain->solInfo().fetiInfo.expansion = $2; 
-          domain->solInfo().fetiInfo.alphabar_cntl = $3; }
-        | EXPANSION Integer Float Float NewLine
-        { domain->solInfo().fetiInfo.expansion = $2;
-          domain->solInfo().fetiInfo.alphabar_cntl = $3; 
-          domain->solInfo().fetiInfo.expansion_tol = $4; }
-        | WOLFE Float Float NewLine
-        { domain->solInfo().fetiInfo.wolfe_c1 = $2;
-          domain->solInfo().fetiInfo.wolfe_c2 = $3; }
-        | LINESEARCH SWITCH NewLine
-        { domain->solInfo().fetiInfo.linesearch = int($2); }
-        | LINESEARCH LINESEARCHTYPE NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2; }
-        | LINESEARCH LINESEARCHTYPE Integer NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2;
-          domain->solInfo().fetiInfo.linesearch_maxit = $3; }
-        | LINESEARCH LINESEARCHTYPE Integer Float NewLine
-        { domain->solInfo().fetiInfo.linesearch = $2;
-          domain->solInfo().fetiInfo.linesearch_maxit = $3;
-          domain->solInfo().fetiInfo.linesearch_tau = $4; }
-        | CONSTRAINTQUALIFICATION CQTYPE NewLine
-        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2; }
-        | CONSTRAINTQUALIFICATION CQTYPE Float NewLine
-        { domain->solInfo().fetiInfo.cq_type = (FetiInfo::ConstraintQualificationType) $2; 
-          domain->solInfo().fetiInfo.cq_tol = $3; }
-        | TOTALFETI SWITCH NewLine
-        { domain->solInfo().fetiInfo.bmpc = bool($2); 
-          domain->solInfo().fetiInfo.dmpc = bool($2); }
+        | LINESEARCH Integer Float NewLine
+        { domain->solInfo().fetiInfo.linesearch_maxit = $2;
+          domain->solInfo().fetiInfo.linesearch_tau = $3; }
         | BMPC SWITCH NewLine
         { domain->solInfo().fetiInfo.bmpc = bool($2); }
         | DMPC SWITCH NewLine
@@ -2735,10 +2745,6 @@ Solver:
         { domain->solInfo().fetiInfo.c_normalize = bool($2); }
         | MPCCHECK Integer NewLine
         { domain->solInfo().dbccheck = bool($2); }
-        | CONSTRAINKCC SWITCH NewLine
-        { domain->solInfo().fetiInfo.constrain_kcc = bool($2); }
-        | CONSTRAINKCC SWITCH Float NewLine
-        { domain->solInfo().fetiInfo.constrain_kcc = bool($2); domain->solInfo().fetiInfo.constrain_kcc_tol = $3; }
 	;
 OldHelmInfo:
         FACOUSTICS NewLine FAcousticData
@@ -2946,52 +2952,6 @@ DEMInfo:
         }
         ;
 NLInfo:
-/*
-        NL NewLine MAXITR Integer NewLine NLTOL Float NewLine
-	{ if(domain->solInfo().probType == SolverInfo::Dynamic)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-          domain->solInfo().setNLInfo($4,$7,1,1.0,1.0);
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL Integer NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-        { if($2 == 1)
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-          else if($2 == 2)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else if($2 == 3)
-            domain->solInfo().setProbType(SolverInfo::ArcLength);
-          domain->solInfo().setNLInfo($5,$8,$11,$14,$17);
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL NewLine ARCLENGTH NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-	{ domain->solInfo().setProbType(SolverInfo::ArcLength);
-	  domain->solInfo().setNLInfo($6,$9,$12,$15,$18); 
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; //HB
-        }
-	| NL NewLine MAXITR Integer NewLine NLTOL Float NewLine MAXVEC Integer NewLine DLAMBDA Float NewLine LFACTOR Float NewLine
-	{
-	  if(domain->solInfo().probType == SolverInfo::Dynamic)
-            domain->solInfo().setProbType(SolverInfo::NonLinDynam);
-          else
-            domain->solInfo().setProbType(SolverInfo::NonLinStatic);
-	  domain->solInfo().setNLInfo($4,$7,$10,$13,$16); }
-        | NLInfo TimeInfo
-	| DLAMBDA Float Float NewLine
-	{ domain->solInfo().getNLInfo().dlambda   = $2; 
-          domain->solInfo().getNLInfo().maxLambda = $3; 
-          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;}
-	| NLInfo NLMAT NewLine
-        { 
-         if(domain->solInfo().probType == SolverInfo::Dynamic ||
-            domain->solInfo().probType == SolverInfo::NonLinDynam)
-           domain->solInfo().setProbType(SolverInfo::MatNonLinDynam,
-                                         SolverInfo::Newmark);
-         else
-           domain->solInfo().setProbType(SolverInfo::MatNonLinStatic); }
-	;
-*/
         NL NewLine
         { 
           if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
@@ -3034,6 +2994,10 @@ NLInfo:
         { domain->solInfo().getNLInfo().unsymmetric = true; }
         | NLInfo LFACTOR Float NewLine
         { domain->solInfo().getNLInfo().lfactor = $3; }
+/* conflict
+        | NLInfo LINESEARCH NewLine
+        { domain->solInfo().getNLInfo().linesearch = true; }
+*/
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -3069,19 +3033,6 @@ NewtonInfo:
           domain->solInfo().fetiInfo.nPrec = rebuildPrec;
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
 	}
-/* moved to NLInfo
-        | DLAMBDA Float Float NewLine
-        { domain->solInfo().getNLInfo().dlambda = $3; 
-          domain->solInfo().getNLInfo().maxLambda = $4; }
-	| FITALG Integer NewLine
-	{ domain->solInfo().getNLInfo().fitAlgShell = $2; 
-          domain->solInfo().getNLInfo().fitAlgBeam  = 2; }
-	| FITALG Integer Integer NewLine
-	{ domain->solInfo().getNLInfo().fitAlgShell = $2; 
-          domain->solInfo().getNLInfo().fitAlgBeam  = $3; }
-	| NLTOL Float NewLine
-	{ domain->solInfo().getNLInfo().tolRes = $2; }
-*/
 	;
 OrthoInfo:
 	REORTHO NewLine
@@ -3164,9 +3115,18 @@ MatSpec:
 	 }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
-           fprintf(stderr, "Creating a plain stess element\n");
-             geoSource->addMaterial($2-1,
-               new ElaLinIsoMat2D($4, $5, $6, $7));
+           geoSource->addMaterial($2-1,
+             new ElaLinIsoMat2D($4, $5, $6, $7));
+         }
+        | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new NeoHookeanMat($4, $5, $6));
+         }
+        | MatSpec Integer SIMPLE Integer Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new SimpleMat($4, $5, $6, $7));
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

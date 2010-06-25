@@ -91,6 +91,11 @@ class FSCommunicator {
        void allGatherv(Type *send_data, int send_count, Type *recv_data,
                       int recv_counts[], int displacements[]);
 
+#ifdef USE_MPI
+    template <class Type>
+       void globalMpiOp(int num, Type *data, MPI_Op mpi_op);
+#endif
+
      template <class Type>
        void reduce(int num, Type*data, int root = 0);
 

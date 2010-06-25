@@ -58,7 +58,8 @@ class TemperatureState : public GeomState {
                                        ControlLawInfo* claw,
                                        CoordSet &cs );
 */
-     void midpoint_step_update(Vector &veloc_n, double delta, GeomState &ss);
+     void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
+                               double beta, double gamma, double alphaf, double alpham);
      void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
 /*
      void zeroRotDofs(Vector &vec);

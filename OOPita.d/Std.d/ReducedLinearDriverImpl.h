@@ -25,7 +25,7 @@ public:
   virtual void solve();
 
   // Independent from global state
-  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic<double> * pbDesc,
+  static ReducedLinearDriverImpl::Ptr New(SingleDomainDynamic * pbDesc,
                                           GeoSource * geoSource,
                                           Domain * domain,
                                           SolverInfo * solverInfo,
@@ -34,7 +34,7 @@ public:
   }
 
 protected:
-  ReducedLinearDriverImpl(SingleDomainDynamic<double> *, GeoSource *, Domain *, SolverInfo *, Communicator *);
+  ReducedLinearDriverImpl(SingleDomainDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
@@ -73,6 +73,6 @@ private:
 
 } /* namespace Std */ } /* end namespace Pita */
 
-Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic<double> * pbDesc);
+Pita::LinearDriver::Ptr linearPitaDriverNew(SingleDomainDynamic * pbDesc);
 
 #endif /* PITA_STD_REDUCEDLINEARDRIVERIMPL_H */

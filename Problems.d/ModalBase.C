@@ -247,7 +247,7 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
   OutputInfo *oinfo = geoSource->getOutputInfo();
   SolverInfo &sinfo = domain->solInfo();
   int i, w, p, iMode;
-  double time = tIndex * domain->solInfo().dt;
+  double time = tIndex * domain->solInfo().getTimeStep();
   Vector &mDsp = state.getDisp();
   Vector &mVel = state.getVeloc();
   Vector &mVel_p = state.getPrevVeloc();

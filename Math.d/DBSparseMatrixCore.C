@@ -68,6 +68,7 @@ GenDBSparseMatrix<double>
   fprintf(stderr, "GenDBSparseMatrix<double> cannot addImaginary\n");
 }
 
+/*
 template<>
 void
 GenDBSparseMatrix<double>::transposeMult(const Vector &rhs, Vector &result)
@@ -81,6 +82,7 @@ GenDBSparseMatrix<DComplex>::transposeMult(const ComplexVector &rhs, ComplexVect
 {
   fprintf(stderr, "GenDBSparseMatrix<DComplex>::transposeMult(const ComplexVector &rhs, ComplexVector &result) not implemented \n");
 }
+*/
 
 template<>
 void

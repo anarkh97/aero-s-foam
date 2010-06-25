@@ -24,7 +24,7 @@ public:
   Communicator * baseComm() const { return baseComm_; }
 
 protected:
-  LinearDriverImpl(SingleDomainDynamic<double> *, GeoSource *, Domain *, SolverInfo *, Communicator *);
+  LinearDriverImpl(SingleDomainDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   DynamState initialSeed() const;
 

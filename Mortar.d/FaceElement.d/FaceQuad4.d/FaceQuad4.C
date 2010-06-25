@@ -29,6 +29,8 @@ void _FORTRAN(qgauss)(int &, int &, int &, int &,
                       double &,  double &, double &);
 }
 
+#define NICER_IMPLEMENTATION
+
 // -----------------------------------------------------------------------------------------------------
 //                                  STATIC MEMBERS
 // -----------------------------------------------------------------------------------------------------
@@ -270,7 +272,7 @@ FaceQuad4::GetShapeFctAndJacobian(double *Shape, double *m, CoordSet &cs)
 void
 FaceQuad4::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs)
 {
-  // Compute shape fcts derivatives
+  // Compute shape functions' derivatives w.r.t. the local coordinates
   double dShapex[4], dShapey[4];
   GetdShapeFct(dShapex, dShapey, m);
 
@@ -338,6 +340,9 @@ IsoParamInterpolation(double* V, double* Shape, double* NdVals, int nNds, int nC
 void
 FaceQuad4::LocalToGlobalCoord(double* M, double* m, CoordSet &cs)
 {
+  // input  : m, the local coordinates of some point P on the face
+  //         cs, the global coordinates of the vertices of the face 
+  // output : M, the global x,y,z coordinates of P
   Node &nd1 = cs.getNode(Nodes[0]);
   Node &nd2 = cs.getNode(Nodes[1]);
   Node &nd3 = cs.getNode(Nodes[2]);
@@ -363,6 +368,7 @@ FaceQuad4::GetShapeFctVal(double *Shape, double *m)
   GetShapeFct(Shape, m);
 }
 
+#ifndef NICER_IMPLEMENTATION
 double
 FaceQuad4::GetJacobian(double *m, CoordSet &cs)
 {
@@ -457,10 +463,12 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordS
   if(NormN!=0.0){
     Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
   }
+  //cerr << "here in FaceQuad4::GetIsoParamMappingNormalAndJacobian, Normal = " << Normal[0] << " " << Normal[1] << " " << Normal[2] << ", J = " << 0.25*NormN << endl;
   return(0.25*NormN); 
 }
 
-/* NICER IMPLEMENTATION ...
+#else // NICER IMPLEMENTATION ...
+
 double
 FaceQuad4::GetJacobian(double* m, CoordSet& cs)
 {
@@ -489,14 +497,60 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordS
   Normal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
   Normal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
 
+  // PJSA normalizing the Normal seems to be unnecessary since the normal is re-multiplied by it's norm later
+  //      this just makes the derivatives more complicated to compute
+  return 1.0;
+/*
   double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
 
   if(NormN!=0.0){
    Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
   }
+  //cerr << "here in FaceQuad4::GetIsoParamMappingNormalAndJacobian, Normal = " << Normal[0] << " " << Normal[1] << " " << Normal[2] << ", J = " << NormN << endl;
   return(NormN);
-}
 */
+}
+#endif
+
+void
+FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
+{
+  // This function computes ddNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
+  // It is used to compute the gradient of the gap function
+
+  // Compute shape functions' derivatives w.r.t. the local coordinates
+  double dShapex[4], dShapey[4];
+  GetdShapeFct(dShapex, dShapey, m);
+
+  // Compute dM/dx & dM/dy
+  double dMdx[3], dMdy[3];
+  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
+
+  Node &nd1 = cs.getNode(Nodes[0]);
+  Node &nd2 = cs.getNode(Nodes[1]);
+  Node &nd3 = cs.getNode(Nodes[2]);
+  Node &nd4 = cs.getNode(Nodes[3]);
+
+  double X[4], Y[4], Z[4];
+  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
+  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
+  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
+  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
+
+  double dNdX[3][4], dNdY[3][4], dNdZ[3][4];
+  for(int i = 0; i < 4; ++ i) {
+    dNormal[3*i  ][0] = 0;
+    dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
+    dNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
+    dNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
+    dNormal[3*i+1][1] = 0;
+    dNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
+    dNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
+    dNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
+    dNormal[3*i+2][2] = 0;
+  }
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------

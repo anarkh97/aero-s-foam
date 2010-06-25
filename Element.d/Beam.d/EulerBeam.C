@@ -1,15 +1,15 @@
-#include	<stdio.h>
-#include        <Element.d/Beam.d/EulerBeam.h>
-#include        <Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Utils.d/linkfc.h>
-#include	<math.h>
+#include <stdio.h>
+#include <Element.d/Beam.d/EulerBeam.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <math.h>
 
-#include        <stdlib.h>
-#include        <Corotational.d/BeamCorotator.h>
-#include        <Corotational.d/GeomState.h>
-#include        <Corotational.d/utilities.h>
-#include        <Element.d/State.h>
+#include <stdlib.h>
+#include <Corotational.d/BeamCorotator.h>
+#include <Corotational.d/GeomState.h>
+#include <Corotational.d/utilities.h>
+#include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <iostream>
 
@@ -47,23 +47,9 @@ EulerBeam::EulerBeam(int* nodenums)
 	offset = 0;
 }
 
-int
+void
 EulerBeam::buildFrame(CoordSet& cs)
 {
-  if(cs.exist(nn[0]) == 0) {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[0]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
-  if(cs.exist(nn[1]) == 0)  {
-    fprintf(stderr," *********************************\n");
-    fprintf(stderr," *** ERROR: Node %d is undefined \n",nn[1]+1);
-    fprintf(stderr," *********************************\n");
-    exit(-1);
-  }
-
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
   if(nn[2] < 0) {
@@ -77,9 +63,36 @@ EulerBeam::buildFrame(CoordSet& cs)
       normalize(theFrame[2]);
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
-    return 0;
+    else {
+      fprintf(stderr," *** WARNING: No element frame exists for beam. Constructing default frame.\n",
+              nn[0]+1,nn[1]+1);
+      c0[0][0] = nd2.x-nd1.x;
+      c0[0][1] = nd2.y-nd1.y;
+      c0[0][2] = nd2.z-nd1.z;
+      normalize(c0[0]);
+      double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
+      double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
+
+      if (N1 > N2) {
+        c0[1][0] = -c0[0][1]/N1;
+        c0[1][1] = c0[0][0]/N1;
+        c0[1][2] = 0.0;
+      }
+      else {
+        c0[1][0] = c0[0][2]/N2;
+        c0[1][1] = 0.0;
+        c0[1][2] = -c0[0][0]/N2;
+      }
+
+      c0[2][0] = c0[0][1] * c0[1][2] - c0[0][2] * c0[1][1];
+      c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
+      c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
+
+      elemframe = &c0;
+    }
+    return;
   }
-  if(cs.exist(nn[2])) {
+  else {
     Node &nd3 = cs.getNode(nn[2]);
 
     elemframe = new EFrame[1];
@@ -93,9 +106,7 @@ EulerBeam::buildFrame(CoordSet& cs)
     crossprod(xz,theFrame[0],theFrame[1]);
     normalize(theFrame[1]);
     crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    return 1;
-  } else {
-    return 0;
+    return;
   }
 }
 
@@ -165,22 +176,15 @@ void
 EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                            Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-        if (prop == NULL) {
-           gravityForce.zero();
-           return;
-        }
-
         double massPerNode = 0.5*getMass(cs);
 	
         double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
 	double length;
 	  
 	if (geomState) {
-          
 	    updTransMatrix(cs, geomState, t0n, length);
 		 
         }  else  {
-	  
            getLength(cs, length);
 	     
            for(int i=0; i<3; ++i) {   
@@ -190,9 +194,7 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	      }
            }
         }         
-	  
-        // Consistent
-	 
+
         int i;
         double localg[3];
 
@@ -209,9 +211,17 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         localf[0] =  massPerNode*localg[0];
         localf[1] =  massPerNode*localg[1];
         localf[2] =  massPerNode*localg[2];
-        localm[0] =  0.0;
-        localm[1] = -massPerNode*localg[2]*length/6.0;
-        localm[2] =  massPerNode*localg[1]*length/6.0;
+        if (gravflg == 2) { // consistent
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/6.0;
+          localm[2] =  massPerNode*localg[1]*length/6.0;
+        }
+        else if (gravflg == 1) { // lumped with fixed-end moments
+          localm[0] =  0.0;
+          localm[1] = -massPerNode*localg[2]*length/8.0;
+          localm[2] =  massPerNode*localg[1]*length/8.0;
+        }
+        else localm[0] = localm[1] = localm[2] = 0.0; // lumped without fixed-end moments
 
         for(i=0; i<3; ++i) {
           globalf[i] = (t0n[0][i]*localf[0]) + (t0n[1][i]*localf[1]) + (t0n[2][i]*localf[2]);
@@ -230,8 +240,6 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 	gravityForce[9]  = -globalm[0];
 	gravityForce[10] = -globalm[1];
 	gravityForce[11] = -globalm[2];
-
-        //cerr << "beam gravityForce = "; for(int i=0; i<12; ++i) cerr << gravityForce[i] << " "; cerr << endl;
 
 }
 
@@ -285,6 +293,13 @@ EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 FullSquareMatrix
 EulerBeam::stiffness(CoordSet &cs, double *d, int flg)
 {
+        // Check for phantom element, which has no stiffness
+        if (prop == NULL) {
+           FullSquareMatrix ret(12,d);
+           ret.zero();
+           return ret;
+        }
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 
@@ -379,9 +394,9 @@ EulerBeam::markDofs(DofSetArray &dsa)
 Corotator *
 EulerBeam::getCorotator(CoordSet &cs, double *kel, int , int fitAlgBeam)
 {
- int flag = 0; 
- FullSquareMatrix myStiff = stiffness(cs, kel, flag);
- return new BeamCorotator( nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
+  int flag = 0; 
+  FullSquareMatrix myStiff = stiffness(cs, kel, flag);
+  return new BeamCorotator(nn[0], nn[1], (*elemframe)[2], myStiff, fitAlgBeam);
 }
 
 int
@@ -394,47 +409,30 @@ void
 EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                 GeomState *geomState, int cflg)
 {
-  double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
   double normal[3], normal2[3];
-  
   double px = 0.0;
   double py = 0.0;
   double pz = 0.0;
-  
   double length;
   
-  if (geomState) {
-
+  if(geomState) {
+    double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
     updTransMatrix(cs, geomState, t0n, length);
-
-    #ifdef FOLLOWER_FORCE
-        normal[0] = t0n[1][0];
-        normal[1] = t0n[1][1];
-        normal[2] = t0n[1][2];
-        normal2[0] = t0n[2][0];
-        normal2[1] = t0n[2][1];
-        normal2[2] = t0n[2][2];
-    #else
-        normal[0] = (*elemframe)[1][0];
-        normal[1] = (*elemframe)[1][1];
-        normal[2] = (*elemframe)[1][2];
-        normal2[0] = (*elemframe)[2][0];
-        normal2[1] = (*elemframe)[2][1];
-        normal2[2] = (*elemframe)[2][2];
-    #endif
-
+    normal[0] = t0n[1][0];
+    normal[1] = t0n[1][1];
+    normal[2] = t0n[1][2];
+    normal2[0] = t0n[2][0];
+    normal2[1] = t0n[2][1];
+    normal2[2] = t0n[2][2];
   } 
-
   else {
-
-    // Obtain normal to beam (second vector in element frame)
+     // Obtain normal to beam (second vector in element frame)
      normal[0] = (*elemframe)[1][0];
      normal[1] = (*elemframe)[1][1];
      normal[2] = (*elemframe)[1][2];
      normal2[0] = (*elemframe)[2][0];
      normal2[1] = (*elemframe)[2][1];
      normal2[2] = (*elemframe)[2][2]; 
-
      getLength(cs, length);
   } 
   double pressureForce = 0.5*pressure*length;
@@ -442,24 +440,23 @@ EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 
   
-    // Consistent
-
-    double localMz = pressureForce*length/6.0;
-    double mx = localMz*normal2[0];
-    double my = localMz*normal2[1];
-    double mz = localMz*normal2[2]; 
-    elPressureForce[0]  = px;
-    elPressureForce[1]  = py;
-    elPressureForce[2]  = pz;
-    elPressureForce[3]  = mx;
-    elPressureForce[4]  = my;
-    elPressureForce[5]  = mz;
-    elPressureForce[6]  = px;
-    elPressureForce[7]  = py;
-    elPressureForce[8]  = pz;
-    elPressureForce[9]  = -mx;
-    elPressureForce[10] = -my;
-    elPressureForce[11] = -mz;
+  // Consistent
+  double localMz = pressureForce*length/6.0;
+  double mx = localMz*normal2[0];
+  double my = localMz*normal2[1];
+  double mz = localMz*normal2[2]; 
+  elPressureForce[0]  = px;
+  elPressureForce[1]  = py;
+  elPressureForce[2]  = pz;
+  elPressureForce[3]  = mx;
+  elPressureForce[4]  = my;
+  elPressureForce[5]  = mz;
+  elPressureForce[6]  = px;
+  elPressureForce[7]  = py;
+  elPressureForce[8]  = pz;
+  elPressureForce[9]  = -mx;
+  elPressureForce[10] = -my;
+  elPressureForce[11] = -mz;
 }
 
 void
@@ -1138,3 +1135,32 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
 }
 
+/* this is for a 2D beam!!!
+void
+EulerBeam::subtractLoadStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &elK)
+{
+   // PJSA 1/15/2010 subtract load stiffness due to pressure
+ double dx = ns2.x - ns1.x;
+ double dy = ns2.y - ns1.y;
+ double dz = ns2.z - ns1.z;
+ double length = sqrt(dx*dx + dy*dy + dz*dz);
+ 
+ double p = pressure/2, q = pressure*length/12;
+ elK[0][1] -= p;
+ elK[0][2] -= q; 
+ elK[0][4] += p;
+ elK[0][5] += q;
+ elK[1][0] += p;
+ elK[1][3] -= p;
+ elK[2][0] -= q;
+ elK[2][3] += q;
+ elK[3][1] -= p;
+ elK[3][2] += q;
+ elK[3][4] += p;
+ elK[3][5] -= q;
+ elK[4][0] += p;
+ elK[4][3] -= p;
+ elK[5][0] += q;
+ elK[5][3] -= q;
+}
+*/

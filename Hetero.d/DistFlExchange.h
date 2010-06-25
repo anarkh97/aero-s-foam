@@ -17,6 +17,7 @@ typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class VecType> class SysState;
+class DistrGeomState;
 
 #define FL_NEGOT 10000
 
@@ -37,10 +38,8 @@ typedef map<int, InterpPoint> MatchMap;
 class DofSetArray;
 
 class DistFlExchanger {
-  double *buffer;
-  //double *buff;
-  int bufferLen;
-  //int buffLen;
+  double *buffer, *buff;
+  int bufferLen, buffLen;
 
   //double *pArray;
   //int     pArrayLen;
@@ -75,7 +74,6 @@ class DistFlExchanger {
   Vector *vel;
   Vector *acc; 
   Vector *pVel; 
-  State *newState;
 
   CoordSet **cs;      	     // nodes in this mpi process
 
@@ -83,23 +81,36 @@ public:
 
   DistFlExchanger(CoordSet **, Elemset **, DofSetArray **, 
 		DofSetArray **, OutputInfo *oinfo = 0);
-  MatchMap getMatchData();
+  MatchMap* getMatchData();
   void negotiate();
-  void sendDisplacements(SysState<DistrVector> &, double **, double **, int = -1);
+  void thermoread(int);
+
+  void sendDisplacements(SysState<DistrVector>&, double**, double**, int = -1, DistrGeomState* = 0);
+  void sendTemperature(SysState<DistrVector>&);
+  void sendStrucTemp(DistrVector&);
+  
+  double getFluidLoad(DistrVector&, int, double, double, int&, DistrGeomState* = 0);
+  double getFluidFlux(DistrVector& flux, double time, double &bflux);
+  void getStrucTemp(double*);
+
   void sendParam(int, double, double, int, int, double a[2]);
-  double getFluidLoad(DistrVector &, int, double,
-                      double alphaf, int& iscollocated);
+  void sendTempParam(int algnum, double step, double totaltime,
+                     int rstinc, double alphat[2]);
 
   void setBufferLength(int size)  { bufferLen = size; }
  
-
-  //int cmdCom(int);
+  void sendModeFreq(double *modFrq, int numFrq);
+  void sendModeShapes(int numFrq, int nNodes, double (**)[6],
+                      SysState<DistrVector>&, double factor = 1.0);
 
   void initSndParity(int pinit) { sndParity = pinit; }
   void initRcvParity(int pinit) { rcvParity = pinit; }
   void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
   void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
-} ;
+
+ int cmdCom(int);
+
+};
 
 #define FLTOSTMT 1000
 #define STTOFLMT 2000
@@ -111,6 +122,7 @@ public:
 #define OPTPARMSG 8100
 #define OPTRESMSG 9100
 #define NBPRESSDATAMAX 7
+#define FL_NEGOT 10000
 
 #endif
 

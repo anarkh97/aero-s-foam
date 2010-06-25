@@ -3,10 +3,12 @@
 
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
+#include <Utils.d/dofset.h>
 #include <iostream>
 #include <vector>
 #include <cassert>
 #include <complex>
+#include <set>
 
 // this is a fix to get around apparent template bug in solaris compiler
 inline double abs(std::complex<double> a)
@@ -14,12 +16,11 @@ inline double abs(std::complex<double> a)
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
 
-class DofSetArray;
 class Corotator;
 class State;
 class PolygonSet;
 class InterpPoint;
-class Material;
+class NLMaterial;
 class LMPCons;
 class GeomState;  // PJSA: for sgi intel
 template <class Scalar> class GenVector; // PJSA: for sgi intel
@@ -34,6 +35,10 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
+  enum { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
+         Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
+         Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
+         Sensors } type;
   void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; };
 };
 
@@ -224,44 +229,32 @@ class Node {
 
 class CoordSet {
         int nmax;
+        int last;
 	Node **nodes;
         BlockAlloc ba;
+        
 public:
         // Constructors
         CoordSet(int = 256);
-	CoordSet(const CoordSet&, int n, int *nd);
-        ~CoordSet() { deleteNodes(); }
+        CoordSet(const CoordSet&);
 
-	CoordSet* copy();
+        // Destructor
+        ~CoordSet();
+
+        // Assignment operator
+        CoordSet & operator = (const CoordSet & other);
 
 	// Member functions
-        int size() { return nmax ; }
-        int last();
-	void list(void)
-	  {
-	    std::cerr << "Size: " << nmax << std::endl;
-	    for(int i = 0;i<nmax-1;i++)
-	      if(nodes[i])
-		std::cout << i << " : " << nodes[i]->x << "," << nodes[i]->y << "," << nodes[i]->z << std::endl;
-	      else
-		std::cerr << "warning no assignation for node #" << i <<std::endl;
-	  }
-        int exist(int numNodes);
+        int size();
         void  nodeadd(int n, double*xyz);
         void  nodeadd(int n, Node &node);
-        void  nodeCopy(int n, CoordSet &nd);
 	Node &getNode(int n);
         void getCoordinates(int *nn, int numNodes,
                             double *xx, double *yy, double *zz);
 
-        Node *operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
-        Node *operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
-
-        void deleteNodes()
-	  { if(nodes) {
-	      delete [] nodes; nodes = 0; nmax = 0;
-	    }
-	  }
+        //Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
+        Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
+        Node *& operator[] (int i);
 };
 
 
@@ -303,7 +296,8 @@ class Element {
         double preload;
         bool myProp;
         int glNum;
-	void lumpMatrix(FullSquareMatrix&, double ratio);
+        vector<double> factors;
+	void lumpMatrix(FullSquareMatrix&);
   public:
         Element() { prop = 0; pressure = 0.0; preload = 0.0;
         _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
@@ -313,9 +307,9 @@ class Element {
         virtual Element *clone() { return 0; }
         virtual void renum(int *)=0;
 
-        static Element *build(int,int,int*);
+//NOT USED static Element *build(int,int,int*);
 
-        virtual void buildCorotator(CoordSet &)  {};
+//NOT USED virtual void buildCorotator(CoordSet &)  {};
 
         virtual void setProp(StructProp *p, bool _myProp = false) {
           if(myProp && prop)  {
@@ -335,8 +329,8 @@ class Element {
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame
-        virtual int buildFrame(CoordSet&) { return 1; }
-        virtual void setOffset(double*){}
+        virtual void buildFrame(CoordSet&) {}
+        virtual void setOffset(double*) {}
 	    virtual void setCompositeData(int _type, int nlays, double *lData,
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
@@ -408,7 +402,6 @@ class Element {
 	virtual int    numDofs()=0;
 
 	virtual int    numNodes() = 0;
-        virtual int    totNumNodes() { return numNodes(); }
 	virtual int*   nodes(int * = 0) = 0;
         virtual int*   allNodes(int *x = 0) { return nodes(x); }
 
@@ -416,29 +409,26 @@ class Element {
         { printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0; }
 
 	virtual int  getTopNumber();
-        virtual int  numTopNodes() { return numNodes(); }   // this is the number of nodes printed in the top file
-                                                            // can make it different to numNodes for elements that aren't
-                                                            // supported by xpost eg RigidSolid6Dof
+        virtual int  numTopNodes() { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
+                                                                                 // can make it different to numNodes for elements that aren't
+                                                                                 // supported by xpost eg RigidSolid6Dof
         virtual void computePressureForce(CoordSet& cs,Vector& elPressureForce,
                                           GeomState *gs=0, int cflg = 0);
         virtual void computePressureForce(Node *nd,Vector& elPressureForce,
                                           double *gs=0, int cflg = 0);
 	virtual double * getMidPoint(CoordSet &)  { return 0; }
 	/* toxa: use this midPoint instead */
-	virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }
+	//virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }
         virtual double * getCompositeData(int )   { return 0; }
         virtual double * getCompositeFrame()      { return 0; }
 
         virtual int      getCompositeLayer()      { return 0; }
 
-	virtual double   getMoment(Vector&, CoordSet&, int, int)
-	                 { return 0.0; }
-
         virtual int     dim() { return 3; }
 
         virtual void addFaces(PolygonSet *pset);
 
-        virtual void setMaterial(Material *);
+        virtual void setMaterial(NLMaterial *);
 
 	virtual int numInternalNodes() { return 0; }
 
@@ -482,27 +472,26 @@ class Element {
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
-        virtual bool isRigidMpcElement() { return false; }
+        //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }
         virtual bool isRigidElement() { return false; }
-        virtual void computeMPCs(CoordSet &cs, int &lmpcnum) { };
-        virtual void updateMPCs(GeomState &gState) { };
-        virtual void setMpcForces(double *mpcForces) { };
+        virtual int getNumMPCs() { return 0; }
+        virtual LMPCons** getMPCs() { return 0; }
 
-        virtual double helmCoef() { return prop->kappaHelm * prop->kappaHelm; }
-        virtual complex<double> helmCoefC() { return
+        virtual double helmCoef() { return prop ? prop->kappaHelm * prop->kappaHelm : 0; }
+        virtual complex<double> helmCoefC() { return prop ?
            complex<double>(prop->kappaHelm,prop->kappaHelmImag)*
-           complex<double>(prop->kappaHelm,prop->kappaHelmImag);
+           complex<double>(prop->kappaHelm,prop->kappaHelmImag) : 0;
         }
         virtual double helmCoef(double omega) {
-           return omega*omega*real(prop->soundSpeed)*real(prop->soundSpeed);
+           return prop ? omega*omega*real(prop->soundSpeed)*real(prop->soundSpeed) : 0;
         }
         virtual complex<double> helmCoefC(double omega) {
-           return (omega*omega)*prop->soundSpeed*prop->soundSpeed;
+           return prop ? (omega*omega)*prop->soundSpeed*prop->soundSpeed : 0;
         }
 
         virtual bool isShell() { return false; }
 
-        bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isRigidMpcElement() || isFsiElement()); }
+        virtual bool isConstraintElement() { return (isRigidElement() || isMpcElement() || isFsiElement()); }
         virtual bool isPhantomElement() { return (!(prop || isConstraintElement() || isSommerElement())); }
 
         int getElementType() { return elementType; }
@@ -519,7 +508,11 @@ class Element {
 
         Category getCategory() { return category; } 
         void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
-        bool isDamped() { return (getCategory() != Thermal) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+        bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+
+        virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
+                                                 // notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
+                                                 //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
 };
 
 // *****************************************************************
@@ -533,35 +526,33 @@ class Elemset
   protected:
     Element **elem;
     int emax;
-    int nPhantoms;
     BlockAlloc ba;
     bool myData;
   public:
     Elemset(int = 256);
-    virtual ~Elemset() { deleteElems(); }
+    virtual ~Elemset() { /*deleteElems();*/ }
     Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap);
     int size() const { return emax; }
     int last() const;
-    int numPhantoms()  { return nPhantoms; }
     Element *operator[] (int i) const { return elem[i]; }
+    Element *& operator[] (int i);
     void elemadd(int num, Element *);
     void elemadd(int num, int type, int nnodes, int *nodes);
     void mpcelemadd(int num, LMPCons *mpc);
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
-    void setNumPhantoms(int n)  { nPhantoms = n; }
     void list();
     void deleteElems()  { if(elem) { if(myData) for(int i=0; i<last(); ++i) delete elem[i]; delete [] elem; elem = 0; emax = 0;} }
-    //void deleteElems()  { if(elem) delete [] elem; elem = 0; emax = 0; }
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
+    void collapseRigid6(std::set<int> &);
 };
 
 class EsetGeomAccessor {
   public:
     static int getNum(/*const*/ Elemset &eSet, int elNum)
-     { return eSet[elNum] ? eSet[elNum]->totNumNodes() : 0; }
+     { return eSet[elNum] ? eSet[elNum]->numNodes() : 0; }
     static int getSize(const Elemset &eSet)
      { return eSet.last(); }
     static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)

@@ -1,4 +1,5 @@
 #include <Corotational.d/utilities.h>
+#include <iostream>
 
 void inc_rottensor( double rvec[3], double rten[3][3] )
 
@@ -39,4 +40,5 @@ void inc_rottensor( double rvec[3], double rten[3][3] )
       for( i=0; i<3; i++ )
         for( j=0; j<3; j++ ) 
           rten[i][j] = nrten[i][j];
+
 }

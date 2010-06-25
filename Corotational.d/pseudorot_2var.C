@@ -30,6 +30,7 @@ void pseudorot_2var( double r[3], double f[3], double scndvar[3][3])
 /* Check small value of theta : th = 0.01 gives small error between ex.
  * and approximate solution for eta
  */
+ 
    if ( th < 0.05 ) {
       eta = (1.0/12.0)  + (th*th)/720.0  + ((th*th)*(th*th))/30240.0;
       nu  = (1.0/360.0) + (th*th)/7560.0 + ((th*th)*(th*th))/201600.0;
@@ -54,6 +55,7 @@ void pseudorot_2var( double r[3], double f[3], double scndvar[3][3])
    sr[2][0] = -r[1];
    sr[1][0] =  r[2];
 
+
 // Compute first part of mat =  -SpinF/2
    mat[0][0] = 0.0;
    mat[1][1] = 0.0;
@@ -66,7 +68,6 @@ void pseudorot_2var( double r[3], double f[3], double scndvar[3][3])
    mat[2][1] = -0.5*f[0];
    mat[2][0] =  0.5*f[1];
    mat[1][0] = -0.5*f[2];
-
 
 /* Add the terms  mat += eta*( (r'*f)I +r*f' -2f*r') */
    fac = r[0]*f[0] + r[1]*f[1] + r[2]*f[2];

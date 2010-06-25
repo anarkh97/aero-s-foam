@@ -123,6 +123,34 @@ FSCommunicator::globalMin(int num, Type*data)
 #endif
 }
 
+#ifdef USE_MPI
+template <class Type>
+void
+FSCommunicator::globalMpiOp(int num, Type *data, MPI_Op mpi_op)
+{
+  Type *work;
+  dbg_alloca(0);
+
+  //int segSize = (num > 65536) ? 65536 : num;
+  int segSize = (num > 4096) ? 4096 : num; // PJSA 6-19-07
+
+  if(segSize > 5000)
+    work = new Type[segSize];
+  else
+    work = (Type *)dbg_alloca(segSize*sizeof(Type));
+
+  int offset;
+  for(offset = 0; offset < num; offset +=segSize) {
+    int msgSize = (num-offset < segSize) ? num-offset : segSize;
+    MPI_Allreduce(data+offset, work, msgSize,
+                  CommTrace<Type>::MPIType, mpi_op, comm);
+    for(int i = 0; i < msgSize; ++i)
+      data[offset+i] = work[i];
+  }
+  if(segSize > 5000)
+    delete [] work;
+}
+#endif
 
 template <class Type>
 void
@@ -201,7 +229,7 @@ FSCommunicator::reduce(int num, Type* data, int root)
   for(int offset = 0; offset < num; offset +=segSize) {
     int count = (num-offset < segSize) ? num-offset : segSize;
     MPI_Reduce(data+offset, buffer, count, CommTrace<Type>::MPIType, MPI_SUM, root, comm);
-    for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
+    if(thisCPU == root) for(int i = 0; i < count; ++i) data[offset+i] = buffer[i];
   }
   if(segSize > _MAX_ALLOCA_SIZE)
     delete [] buffer;

@@ -1,4 +1,5 @@
-ADD_LIBRARY(Corrotational  BeamCorotator.C inc_rottensor.C 
+ADD_LIBRARY(Corrotational  Corotator.C 
+       BeamCorotator.C inc_rottensor.C 
        Shell3Corotator.C BarCorotator.C 
        BarThermalCorotator.C 
        rightmult_rotvar.C mat_to_vec.C 

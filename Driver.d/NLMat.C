@@ -76,8 +76,19 @@ NLMatProbDesc::preProcess()
 
  userSupFunc = geoSource->getUserSuppliedFunction();
   
- if(domain.probType() == SolverInfo::MatNonLinStatic)
+ if(domain.probType() == SolverInfo::MatNonLinStatic) {
+/* PJSA 
     domain.getSolverAndKuc<double>(solver, kuc);
+*/
+    AllOps<double> allOps;
+
+    domain.buildOps<double>(allOps, 1.0, 0.0, 0.0);
+
+    solver = allOps.sysSolver;
+    spm = allOps.spm;
+    
+    domain.createKelArray(kelArray);
+ }
  else {
    AllOps<double> allOps;
 
@@ -86,7 +97,7 @@ NLMatProbDesc::preProcess()
    allOps.Muc = domain.constructCuCSparse<double>();
    allOps.Mcc = domain.constructCCSparse<double>();
 
-   double Kcoef = 1.0;
+   double Kcoef = 0.0; // PJSA changed to 0.0 from 1.0 
    double Mcoef = 1.0;
    double Ccoef = 0.0;
 
@@ -96,7 +107,7 @@ NLMatProbDesc::preProcess()
    Mcc    = allOps.Mcc;
    Muc    = allOps.Muc;
    solver = allOps.sysSolver;
-
+   spm    = allOps.spm;
    kuc = allOps.Kuc;
 
    boundAcc = new Vector(Mcc->numRow(), 0.0);
@@ -105,9 +116,9 @@ NLMatProbDesc::preProcess()
    boundInertiaF = new Vector(Mcc->numRow(), 0.0);
    unconstrInertiaF = new Vector(M->numRow(), 0.0);
    
+   // melArray is only needed for dynamics
+   domain.createKelArray(kelArray, melArray);
  }
- // melArray is only needed for dynamics
- domain.createKelArray(kelArray, melArray);
  totalRes = new Vector(sysVecInfo());
 }
 
@@ -189,7 +200,7 @@ NLMatProbDesc::createGeomState()
 
 double
 NLMatProbDesc::integrate(NLState &sn, NLState &snp, Vector &du, Vector &resid,
-		Vector &intrnForce, Vector &glRes)
+		         Vector &intrnForce, Vector &glRes)
 {
   int iState = 0;
   double *internStateN = sn.internalStates.data();
@@ -197,7 +208,7 @@ NLMatProbDesc::integrate(NLState &sn, NLState &snp, Vector &du, Vector &resid,
   int iEle, iDof;
   snp.disp = sn.disp + du;
 
-  fprintf(stderr, "Integrating\n");
+  //fprintf(stderr, "Integrating\n");
   //state.prescDisp.print("Presc Disp\n");
   //state.disp.print("Current disp\n");
   // zero the force
@@ -249,12 +260,12 @@ NLMatProbDesc::integrate(NLState &sn, NLState &snp, Vector &du, Vector &resid,
     }
     //FullSquareMatrix k(nd, locK);
     FullSquareMatrix &kel = kelArray[iEle];
-   // nlElem[iEle]->getStiffAndForce(nodes, un, internStates+iState,
-	//	    fsm, force);
+    // nlElem[iEle]->getStiffAndForce(nodes, un, internStates+iState,
+    //                                fsm, force);
     nlElem[iEle]->integrate(nodes, un,  internStateN+iState, 
                                    unp, internStateNp+iState,
                             kel, force);
-       
+ 
     for(iDof = 0; iDof < nd; ++iDof) {
       int df = c_dsa->getRCN(dofs[iDof]);
       if(df >= 0)
@@ -273,9 +284,9 @@ NLMatProbDesc::integrate(NLState &sn, NLState &snp, Vector &du, Vector &resid,
   //fprintf(stderr, "Factored and found %d RBMs\n", solver->numRBM());
 #endif
   if(solver->numRBM() > 0) {
-     //fprintf(stderr,
-     //    "Error: The tangent stiffness matrix has %d singularities\n",
-     //         solver->numRBM());
+     fprintf(stderr,
+         "Error: The tangent stiffness matrix has %d singularities\n",
+              solver->numRBM());
      exit(-10);
   }
   return resid.norm();
@@ -350,9 +361,9 @@ NLMatProbDesc::getStiffAndForce(NLState &state, Vector &resid,
   //resid.print("Residual\n");
   solver->factor();
   if(solver->numRBM() > 0) {
-     //fprintf(stderr,
-     //    "Error: The tangent stiffness matrix has %d singularities\n",
-     //         solver->numRBM());
+     fprintf(stderr,
+         "Error: The tangent stiffness matrix has %d singularities\n",
+              solver->numRBM());
      exit(-10);
   }
   return resid.norm();
@@ -421,7 +432,7 @@ NLMatProbDesc::updatePrescribedDisplacement(NLState *state, double t,
 int
 NLMatProbDesc::checkConvergence(int it, double, double resNorm)
 {
- fprintf(stderr, "Init res %e\n", initRes);
+  //fprintf(stderr, "Init res %e\n", initRes);
   if(it == 0)
     initRes = resNorm;
   double tolerance = domain.solInfo().getNLInfo().tolRes; 
@@ -455,6 +466,12 @@ double
 NLMatProbDesc::getMaxLambda()
 {
  return domain.solInfo().getNLInfo().maxLambda;
+}
+
+bool
+NLMatProbDesc::linesearch()
+{
+ return domain.solInfo().getNLInfo().linesearch;
 }
 
 NLState::NLState(NLMatProbDesc*pdesc,int nInt,int nfree,int npresc) :
@@ -492,7 +509,7 @@ void NLMatProbDesc::computeTimeInfo()
  
   // Get total time and time step size and store them
   totalTime = domain.solInfo().tmax;
-  dt        = domain.solInfo().dt;
+  dt        = domain.solInfo().getTimeStep();
   delta     = 0.5*dt;
  
   // Compute maximum number of steps
@@ -509,11 +526,14 @@ void NLMatProbDesc::computeTimeInfo()
 void
 NLMatProbDesc::getConstForce(Vector& constantForce)
 {
+ domain.computeConstantForce(constantForce);
+/*
  constantForce.zero();
  
  if( domain.gravityFlag()  ) domain.buildGravityForce<double>(constantForce);
  
  // if( domain.pressureFlag() ) domain.buildPressureForce(constantForce);
+*/
 }
 
 int
@@ -531,7 +551,7 @@ NLMatProbDesc::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
    extract( d_n, v_n, a_n, ctrdisp, ctrvel, ctracc );
    userSupFunc->init( ctrdisp, ctrvel, ctracc );
  }
- return 1;
+ return -1;
 }
 
 void
@@ -575,7 +595,7 @@ NLMatProbDesc::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double& t,
    // domain.buildPressureForce( pressureForce, geomState);
    gf += pressureForce;
  }
- domain.computeExtForce4(*prevFrc, rhs, gf,tIndex, t,kuc);
+ domain.computeExtForce4(rhs, gf, t, kuc);
 
 /* XXXXX XML Work on this for user-supplied functions
  // Compute any user defined forces
@@ -672,6 +692,14 @@ NLMatProbDesc::getStiffAndForce(NLState& state, Vector& residual,
  return residual.norm();
 }
 
+void
+NLMatProbDesc::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce,
+                                  NLState &st, Vector &rhs)
+{
+  // rhs = (fext - fint - Cv)
+  rhs = fext;
+  // PJSA fint and Cv assumed zero for now
+}
 
 void
 NLMatProbDesc::formRHSpredictor(Vector &velocity, Vector &residual, Vector &rhs,
@@ -718,15 +746,14 @@ NLMatProbDesc::addInertialTerm(Vector &glRes, Vector &acc)
   
 }
 int
-NLMatProbDesc::checkConvergence(int iteration, double resN,
+NLMatProbDesc::checkConvergence(int iteration, double normRes,
                                 Vector& residual, Vector& dv,
                                 double time)
 {
+     /*if(dofTypeArray == 0)
+       dofTypeArray = cdsa->makeDofTypeArray();*/
+#ifdef PRINT_FORCENORMS 
      ConstrainedDSA *cdsa = domain.getCDSA();
- 
-     if(dofTypeArray == 0)
-       dofTypeArray = cdsa->makeDofTypeArray();
- 
      double momenNorm = 0.0;
      double forceNorm = 0.0;
      int i;
@@ -750,14 +777,8 @@ NLMatProbDesc::checkConvergence(int iteration, double resN,
        if(dof >= 0)
          momenNorm += (residual[dof]*residual[dof]);
      }
-     double normRes    = residual.norm();
-     double normDv     = dv.norm();
-     double normEnergy = residual*dv;
  
      if(iteration == 0)  {
-       firstRes = normRes;
-       firstDv  = normDv;
-       firstEng = normEnergy;
        firstForceNorm = sqrt(forceNorm);
        firstMomenNorm = sqrt(momenNorm);
        if(firstForceNorm == 0) firstForceNorm = 1;
@@ -768,7 +789,16 @@ NLMatProbDesc::checkConvergence(int iteration, double resN,
                time,
                sqrt(forceNorm)/firstForceNorm,
                sqrt(momenNorm)/firstMomenNorm);
- 
+#endif 
+
+     double normDv     = dv.norm();
+     double normEnergy = residual*dv;
+     if(iteration == 0)  {
+       firstRes = normRes;
+       firstDv  = normDv;
+       firstEng = normEnergy;
+     }
+
      double relRes = (firstRes == 0) ? 0 : normRes/firstRes;
      double relDv  = (firstDv == 0) ? 0 : normDv /firstDv;
      double relEng = (firstEng == 0) ? 0 : normEnergy/firstEng;
@@ -783,7 +813,7 @@ NLMatProbDesc::checkConvergence(int iteration, double resN,
        converged = -1;
  
      if(verboseFlag) {
-       fprintf(stderr," Iteration # %d\n",iteration+1);
+       fprintf(stderr," Iteration # %d\n",iteration);
        fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
                       " rel. r = %e rel. dv = %e rel. energy = %e\n",
                         normRes,normDv,normEnergy,
@@ -816,8 +846,21 @@ NLMatProbDesc::reBuild(NLState &, int iteration)
  times->rebuild -= getTime();
 
  // Rebuild every updateK iterations
- if( iteration % domain.solInfo().getNLInfo().updateK == 0 )
+ if( iteration % domain.solInfo().getNLInfo().updateK == 0 ) {
+/* PJSA
    solver->reBuild(kelArray, melArray, delta);
+*/
+   spm->zeroAll();
+   AllOps<double> ops;
+   ops.Kuc = kuc;
+   double beta, gamma, alphaf, alpham, dt = 2*delta;
+   getNewmarkParameters(beta, gamma, alphaf, alpham);
+   double Kcoef = dt*dt*beta;
+   double Ccoef = dt*gamma;
+   double Mcoef = (1-alpham)/(1-alphaf);
+   domain.makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+   solver->factor();
+ }
 
  times->rebuild += getTime();
 
@@ -828,9 +871,17 @@ NLMatProbDesc::reBuild(int iteration, int, NLState &)
 {
  times->rebuild -= getTime();
 
+ //cerr << "here in NLMatProbDesc::reBuild(int iteration, int, NLState &)\n";
  // Rebuild every updateK iterations
- if( iteration % domain.solInfo().getNLInfo().updateK == 0 )
+ if( iteration % domain.solInfo().getNLInfo().updateK == 0 ) {
+/* PJSA
    solver->reBuild(kelArray);
+*/
+   spm->zeroAll();
+   AllOps<double> ops;
+   domain.makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray);
+   solver->factor();
+ }
 
  times->rebuild += getTime();
 
@@ -889,7 +940,7 @@ NLMatProbDesc::extract(Vector &, Vector &, Vector &, double *, double *, double 
 }
 
 void
-NLState::get_inc_displacement (Vector &inc, NLState &prev)
+NLState::get_inc_displacement (Vector &inc, NLState &prev, bool)
 {
  inc = disp;
  inc -= prev.disp;
@@ -937,3 +988,14 @@ NLState::midpoint_step_update(Vector &, double &, NLState &)
 {
 
 }*/
+
+void
+NLMatProbDesc::getNewmarkParameters(double &beta, double &gamma,
+                                    double &alphaf, double &alpham)
+{
+ beta  = domain.solInfo().newmarkBeta;
+ gamma = domain.solInfo().newmarkGamma;
+ alphaf = domain.solInfo().newmarkAlphaF;
+ alpham = domain.solInfo().newmarkAlphaM;
+}
+

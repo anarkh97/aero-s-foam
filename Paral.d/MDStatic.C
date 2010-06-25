@@ -21,6 +21,7 @@ template<class Scalar>
 GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 {
  domain = d;
+/*
  switch(domain->solInfo().fetiInfo.version) {
   default:
   case FetiInfo::feti1:
@@ -36,6 +37,7 @@ GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
       filePrint(stderr," ... FETI-DPH is Selected           ...\n");
     break;
   }
+*/
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<Scalar>(domain);
 #else
@@ -69,13 +71,22 @@ void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 {
  times->formRhs -= getTime();
- solver->makeStaticLoad(rhs);
+ execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
 
  // eigen mode projector 
  if(domain->solInfo().modeFilterFlag)
    project(rhs);
 
  times->formRhs += getTime();
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::subGetRHS(int isub, GenDistrVector<Scalar>& rhs)
+{
+ GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
+ GenStackVector<Scalar> subrhs(rhs.subData(isub), rhs.subLen(isub));
+ sd->buildRHSForce(subrhs, (*allOps.Kuc)[isub]);
 }
 
 template<class Scalar>
@@ -97,13 +108,13 @@ GenMultiDomainStatic<Scalar>::preProcess()
    for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
    decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
    solver = (GenFetiSolver<Scalar> *) allOps.sysSolver;
-//   K = allOps.K;
-//   M = allOps.M;
-//   C_deriv = 0; // damping not supported yet
  }
  else {
-  allOps.sysSolver = solver = decDomain->getFetiSolver();
+   allOps.sysSolver = solver = decDomain->getFetiSolver();
+   allOps.Kuc = new GenSubDOp<Scalar>(decDomain->getNumSub());
+   for(int i=0; i<decDomain->getNumSub(); ++i) (*allOps.Kuc)[i] = decDomain->getSubDomain(i)->Kuc;
  }
+
  times->getFetiSolverTime += getTime();
 
  int useModeFilter = domain->solInfo().modeFilterFlag;
@@ -282,8 +293,6 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, 
                                               GenDistrVector<Scalar> **sol_prev, int iRHS)
-//GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> *sol,
-//                                            GenDistrVector<Scalar> *sol_prev, int iRHS)
 {
 // RT: should only be done for the projection method
  if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
@@ -309,10 +318,8 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
      }
    }
  }
-  solver->getFreqSweepRHS(rhs, sol_prev, iRHS);
-  //solver->getFreqSweepRHS(rhs, sol, sol_prev, iRHS);
+ solver->getFreqSweepRHS(rhs, sol_prev, iRHS);
 }
-
 
 template<class Scalar>
 void

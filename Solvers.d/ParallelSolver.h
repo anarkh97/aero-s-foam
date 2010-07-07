@@ -18,8 +18,9 @@ class GenParallelSolver {
     virtual Timings& getTimers() = 0;
     virtual int numRBM()=0;
     virtual void getRBMs(GenDistrVectorSet<Scalar> &) = 0;
-    virtual void reconstruct() { cerr << "GenParallelSolver::reconstruct not implemented\n"; }
-    virtual void refactor() { cerr << "GenParallelSolver::refactor not implemented\n"; }
+    virtual void reconstruct() {}
+    virtual void refactor() {}
+    virtual double getFNormSq(GenDistrVector<Scalar> &f) { cerr << "GenParallelSolver::getSqNorm not implemented\n"; }
 };
 
 template<class Scalar>

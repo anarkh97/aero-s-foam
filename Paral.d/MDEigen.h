@@ -15,8 +15,8 @@ typedef GenSparseMatrix<double> SparseMatrix;
 template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 class StaticTimers;
-template <class Scalar> class GenFetiSolver;
-typedef GenFetiSolver<double> FetiSolver;
+template <class Scalar> class GenParallelSolver;
+typedef GenParallelSolver<double> ParallelSolver;
 template <class Scalar> class GenSolver;
 typedef GenSolver<double> Solver;
 template <class Scalar> class GenParallelSolver;
@@ -35,11 +35,11 @@ template <class Scalar>
 class GenMultiDomainEigenPostProcessor
 {
     GenDecDomain<Scalar> *decDomain;
-    GenFetiSolver<Scalar> *solver;
+    GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
 
   public:
-    GenMultiDomainEigenPostProcessor(GenDecDomain<Scalar> *d, GenFetiSolver<Scalar> *s,
+    GenMultiDomainEigenPostProcessor(GenDecDomain<Scalar> *d, GenParallelSolver<Scalar> *s,
                                 StaticTimers* _times=0)
        { decDomain = d; solver = s; times = _times; }
 
@@ -53,7 +53,7 @@ class GenMultiDomainEigen
 {
     Domain *domain;
     GenDecDomain<Scalar> *decDomain;
-    GenFetiSolver<Scalar> *solver;
+    GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
 
  public:

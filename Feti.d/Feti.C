@@ -187,6 +187,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
  times.memoryOSet += memoryUsed();
 
  if(sysMatrices == 0) {
+/* deprecated
    startTimerMemory(times.constructMatrices, times.memorySubMatrices);
    // Construct and Assemble Sub-domain matrices i.e. K, Kii, Kib, Kbb, Kuc
    fprintf(stderr," ... Construct Subdomain Matrice    ... \n");
@@ -194,6 +195,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
    fprintf(stderr," ... Assemble Subdomain Matrices    ... \n");
    timedParal(times.consMatrix,nsub,this,&GenFetiSolver<Scalar>::assembleMatrices);
    stopTimerMemory(times.constructMatrices, times.memorySubMatrices);
+*/
  } 
  else {
    int iSub;
@@ -268,6 +270,7 @@ GenFetiSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
  return f.sqNorm();
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::constructMatrices(int iSub)
@@ -333,6 +336,7 @@ GenFetiSolver<Scalar>::assembleMatrices(int iSub)
 {
   sd[iSub]->assemble(fetiOps[iSub]->KasSparse);
 }
+*/
 
 template<class Scalar>
 void
@@ -1081,6 +1085,7 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
  times.reOrtho += getTime();
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, double omega, double deltaomega,  DistrGeomState *gs)
@@ -1103,6 +1108,7 @@ GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Sca
 
   sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),tmp.subData(sd[iSub]->localSubNum()),o[0],o[1],subgs);
 }
+*/
 
 template<class Scalar>
 void
@@ -3740,6 +3746,7 @@ GenFetiSolver<Scalar>::orthoAddGCR(GenDistrVector<Scalar> &p, GenDistrVector<Sca
   times.memoryOSet += memoryUsed();
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
@@ -3808,13 +3815,13 @@ GenFetiSolver<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVe
   delete [] sub_u;
 }
 
-
 template<class Scalar>
 void
 GenFetiSolver<Scalar>::rebuildLHSfreq()
 {
   cerr << " *** ERROR: GenFetiSolver<Scalar>::rebuildLHSfreq() is not implemented \n";
 }
+*/
 
 template<class Scalar>
 void

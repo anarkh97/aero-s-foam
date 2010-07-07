@@ -691,7 +691,7 @@ int main(int argc, char** argv)
 
       case SolverInfo::NonLinStatic: {
         MDNLStatic nlstatic(domain);
-        NLStaticSolver < FetiSolver,DistrVector,MultiDomainPostProcessor,
+        NLStaticSolver < ParallelSolver,DistrVector,MultiDomainPostProcessor,
                       MDNLStatic, DistrGeomState >
                       nlsolver(&nlstatic);
         nlsolver.solve();
@@ -699,7 +699,7 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::ArcLength: {
 	MDNLStatic nlstatic(domain);
-	NLStaticSolver < FetiSolver,DistrVector,MultiDomainPostProcessor,
+	NLStaticSolver < ParallelSolver,DistrVector,MultiDomainPostProcessor,
                       MDNLStatic, DistrGeomState >
                       nlsolver(&nlstatic);
 	nlsolver.arclength();
@@ -756,7 +756,7 @@ int main(int argc, char** argv)
 #endif
 	   {
          GenMultiDomainStatic<complex<double> > statProb(domain);
-         StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, /*GenFetiSolver<complex<double> >,*/ GenDistrVector<complex<double> >,
+         StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, GenDistrVector<complex<double> >,
                       GenMultiDomainPostProcessor<complex<double> >, GenMultiDomainStatic<complex<double> >,
                       GenDistrVector<complex<double> > >
            statSolver(&statProb);
@@ -767,7 +767,7 @@ int main(int argc, char** argv)
          if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
          if(domain->solInfo().inpc) {
            GenMultiDomainInpcStatic<double> statProb(domain);
-           StaticSolver<double, AllOps<double>, /*GenSolver<double>,*/ DistrBlockVector<double>,
+           StaticSolver<double, AllOps<double>, DistrBlockVector<double>,
                         GenMultiDomainInpcPostProcessor<double>, GenMultiDomainInpcStatic<double>,
                         DistrBlockVector<complex<double> > >
                 statSolver(&statProb);
@@ -790,7 +790,7 @@ int main(int argc, char** argv)
 #endif
 	   {
          GenMultiDomainStatic<double> statProb(domain);
-         StaticSolver<double, GenMDDynamMat<double>, /*GenFetiSolver<double>,*/ GenDistrVector<double>,
+         StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
                       GenMultiDomainPostProcessor<double>, GenMultiDomainStatic<double>,
                       GenDistrVector<complex<double> > >
               statSolver(&statProb);
@@ -806,7 +806,7 @@ int main(int argc, char** argv)
        if(domain->isComplex()) {
          filePrint(stderr, "in Complex Domain ...\n");
          GenMultiDomainStatic<complex<double> > FAProb(domain);
-         StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, /*GenFetiSolver<complex<double> >,*/ GenDistrVector<complex<double> >,
+         StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, GenDistrVector<complex<double> >,
                       GenMultiDomainPostProcessor<complex<double> >, GenMultiDomainStatic<complex<double> >,
                       GenDistrVector<complex<double> > >
             FASolver(&FAProb);
@@ -815,7 +815,7 @@ int main(int argc, char** argv)
        else {
          filePrint(stderr,"in Real Domain ...\n");
          GenMultiDomainStatic<double> FAProb(domain);
-         StaticSolver<double, GenMDDynamMat<double>, /*GenFetiSolver<double>,*/ GenDistrVector<double>,
+         StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
                       GenMultiDomainPostProcessor<double>, GenMultiDomainStatic<double>,
                       GenDistrVector<complex<double> > >
               FASolver(&FAProb);
@@ -831,7 +831,7 @@ int main(int argc, char** argv)
        }
        else {
          MDNLDynamic nldynamic(domain);
-         NLDynamSolver <FetiSolver, DistrVector, MultiDomainPostProcessor,
+         NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
          nldynamicSolver.solve();
        }

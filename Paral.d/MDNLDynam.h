@@ -4,8 +4,8 @@
 class Domain;
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
-template <class Scalar> class GenFetiSolver;
-typedef GenFetiSolver<double> FetiSolver;
+template <class Scalar> class GenParallelSolver;
+typedef GenParallelSolver<double> ParallelSolver;
 template <class Scalar> class GenSparseMatrix;
 typedef GenSparseMatrix<double> SparseMatrix;
 template <class Scalar> class GenFullSquareMatrix;
@@ -32,7 +32,7 @@ class MDNLDynamic
 {
     Domain *domain;
     DecDomain  *decDomain;
-    FetiSolver *solver;
+    ParallelSolver *solver;
     int     totIter;             // counter of iterations
 
     MDDynamMat *allOps;
@@ -134,7 +134,7 @@ class MDNLDynamic
     void preProcess();
 
     void processLastOutput();
-    FetiSolver *getSolver();
+    ParallelSolver *getSolver();
 
     DistrGeomState* createGeomState();
     DistrGeomState* copyGeomState(DistrGeomState* geomState);

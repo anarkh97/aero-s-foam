@@ -1641,10 +1641,10 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[11],
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
     else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
-  for(int inode = 0; inode < outputSize; inode++)  {
+  for(int inode = 0; inode < outputSize; inode++) {
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,
              " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
@@ -1679,7 +1679,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
-      for(int inode = 0; inode < outputSize; inode++)  {
+      for(int inode = 0; inode < outputSize; inode++) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,
                   " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
@@ -1789,7 +1789,7 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[11],
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
     else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
   int i;
@@ -1820,9 +1820,9 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[11],
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
-      for(i = 0; i < outputSize; i++)  {
+      for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
                   w,p,glv[i][0].real(), w,p,glv[i][0].imag(), w,p,glv[i][1].real(),
@@ -1905,7 +1905,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
     else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
   for(int i = 0; i < outputSize; i++) {
@@ -1933,7 +1933,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
@@ -3628,8 +3628,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  // filePrint(stderr," ... Constructed Connectivities In %14.5f sec and %14.3f Mb\n", (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
 
  // Decompose and optimize the structure into subdomains
- if ( (domain->solInfo().isCoupled) && !(domain->solInfo().isMatching) &&
-      (domain->solInfo().fetiInfo.fsi_corner != 0) )
+ if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 
+      (!domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0) ) )
    optDec = mf.decompose(numSubdomains, bool(domain->getNumFSI()));
  else
    optDec = mf.decompose(numSubdomains);

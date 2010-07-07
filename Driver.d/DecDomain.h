@@ -60,10 +60,11 @@ class GenDecDomain
   int numSub;                   // local number of subdomains
 
   FSCommunicator *communicator; // PJSA
+  FSCommPattern<Scalar> *wiPat;
 
   int numCPU, myCPU;            // number of CPUs, my CPU number
   Connectivity *cpuToCPU;       // global problem connectivity
-  int *subToCPU;                // subdomain to cpu mapping  
+  //int *subToCPU;                // subdomain to cpu mapping  
   int numDualMpc, numPrimalMpc;
 
   int numWetInterfaceNodes;
@@ -121,6 +122,7 @@ class GenDecDomain
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
   void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
+  FSCommPattern<Scalar> * getWiCommPattern();
 
  protected:
   void makeSubDomains();

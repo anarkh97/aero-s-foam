@@ -11,6 +11,8 @@
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/VectorSet.h>
+#include <Solvers.d/MultiDomainSolver.h>
+#include <Feti.d/DistrVectorSet.h>
 
 class EqNumberer;
 class ConstrainedDSA;
@@ -46,7 +48,7 @@ class MumpsId<complex<double> > {
 #endif
 
 template<class Scalar>
-class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>, public SparseData 
+class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>, public SparseData, public MultiDomainSolver<Scalar> 
 {
    int 	neq;        // number of equations = id.n for Mumps
    Scalar *unonz;   // matrix of elements = id.a for mumps
@@ -59,10 +61,12 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 
    FSCommunicator *mpicomm;
    bool host;
+   Timings times;
 
  public:
    GenMumpsSolver(Connectivity *nToN, EqNumberer *dsa, int *map=0, FSCommunicator *_mpicomm = 0);
    GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm = 0);
+   GenMumpsSolver(Connectivity *nToN, DofSetArray *dsa, ConstrainedDSA *c_dsa, int nsub, GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm = 0);
 
    virtual ~GenMumpsSolver();
 
@@ -97,6 +101,13 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    Scalar &diag(int dof);
 
    void zeroAll();
+
+   // for parallel solver
+   double getSolutionTime() { return 0.0; }
+   void getRBMs(Scalar *) {}
+   Timings& getTimers() { return times; }
+   void getRBMs(GenDistrVectorSet<Scalar> &) {}
+   void refactor() { factor(); }
    
  private:
    void init();

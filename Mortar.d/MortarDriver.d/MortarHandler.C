@@ -339,6 +339,11 @@ MortarHandler::Initialize()
   density = 0;
   wavespeed = 0;
 
+  comm_proc_id = 0;
+  number_nodes_to_partner = 0;
+  comm_node = 0;
+
+
   NoSecondary = false;
   DIST_ACME = 0; //domain->solInfo().dist_acme;
 

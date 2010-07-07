@@ -4,8 +4,8 @@
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
 class Domain;
-template <class Scalar> class GenFetiSolver;
-typedef GenFetiSolver<double> FetiSolver;
+template <class Scalar> class GenParallelSolver;
+typedef GenParallelSolver<double> ParallelSolver;
 template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 class Corotator;
@@ -21,7 +21,7 @@ class MDNLStatic
 {
     Domain     *domain;
     DecDomain  *decDomain;
-    FetiSolver *solver;
+    ParallelSolver *solver;
 
     FullSquareMatrix **kelArray;
     Corotator ***allCorot;
@@ -51,7 +51,7 @@ class MDNLStatic
     double getDeltaLambda0();
     double getMaxLambda();
     void getRHS(DistrVector &);
-    FetiSolver *getSolver();
+    ParallelSolver *getSolver();
 
     void printTimers();
 

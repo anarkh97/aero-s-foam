@@ -13,8 +13,6 @@ class ControlInterface;
 
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
-template <class Scalar> class GenFetiSolver;
-typedef GenFetiSolver<double> FetiSolver;
 template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
 template <class Scalar> class GenSubDOp;
@@ -95,7 +93,6 @@ class MultiDomainDynam
     DecDomain *decDomain;
     Domain *domain;
     CuCSparse **cucs;
-    FetiSolver *solver;
     StaticTimers *times;
 
     // control law data

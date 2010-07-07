@@ -312,10 +312,10 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     int numNeighbor(int iSub); // { return sd[iSub]->getSComm()->numNeighb; }
     Scalar *interfaceBuffer(int iSub) { return fetiOps[iSub]->interfBuff; }
     virtual void clean_up();
-    virtual double getFNormSq(GenDistrVector<Scalar> &f);
+    double getFNormSq(GenDistrVector<Scalar> &f);
 
     virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
-
+/* deprecated
     // for helmholtz freqency sweep
     void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k);
     void multM(int iSub, GenDistrVector<Scalar> *rhs,  GenDistrVector<Scalar> **u, int k);
@@ -324,7 +324,7 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     void pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);
     void subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);
     virtual void rebuildLHSfreq();  // for multiple LHS frequency sweep
-
+*/
     GenSolver<Scalar> * newSolver(int type, Connectivity *con, EqNumberer *nums, double tol, GenSparseMatrix<Scalar> *&sparse); // PJSA 2-23-2007
 
   protected:
@@ -494,8 +494,10 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void wetInterfaceComms();  // coupled_dph
     void computeLocalWaveNumbers();
   public:
+/* deprecated
     void rebuildLHSfreq();     // for multiple LHS frequency sweep, assuming no changes except freq/k
                                // ie no change in mpcs, contact, etc.
+*/
     void reconstruct();
     void refactor();
     void reconstructMPCs(Connectivity *_mpcToSub, Connectivity *_mpcToMpc, Connectivity *_mpcToCpu);

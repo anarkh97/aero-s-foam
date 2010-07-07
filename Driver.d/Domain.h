@@ -761,6 +761,7 @@ class Domain : public HData {
      void thermohPreProcess(Vector&, Vector&, Vector&, double *bcx );
 
      Connectivity *getNodeToNode();
+     Connectivity *getNodeToElem() { return nodeToElem; }
      Connectivity* getNodeToNode_sommer() { return nodeToNode_sommer;}
      ConstrainedDSA *makeCDSA(int nbc, BCond *bcs);
      void getNormal2D(int node1, int node2, double &nx, double &ny);

@@ -298,7 +298,7 @@ MultiDomainDynam::preProcess()
 {
   times->preProcess -= getTime();
                                                                                                  
-  // Makes renumbering, connectivities and dofsets
+  // Makes local renumbering, connectivities and dofsets
   decDomain->preProcess();
 
   // Make all element's dofs

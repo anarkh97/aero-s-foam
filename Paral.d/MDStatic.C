@@ -54,7 +54,7 @@ template<class Scalar>
 DistrInfo &
 GenMultiDomainStatic<Scalar>::solVecInfo()
 {
- return solver->localInfo();
+ return decDomain->solVecInfo();
 }
 
 template<class Scalar>
@@ -62,7 +62,7 @@ DistrInfo &
 GenMultiDomainStatic<Scalar>::solVecInfo(int i) 
 {
  cerr << "Warning : GenMultiDomainStatic<Scalar>::solVecInfo(int i) should not be called" << endl;
- return solver->localInfo();
+ return decDomain->solVecInfo();
 }
 
 
@@ -100,7 +100,7 @@ GenMultiDomainStatic<Scalar>::preProcess()
 
  // Construct FETI solver and any other matrices required
  times->getFetiSolverTime -= getTime();
-
+/* deprecated
  if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
     domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
     domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
@@ -109,11 +109,15 @@ GenMultiDomainStatic<Scalar>::preProcess()
    decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
    solver = (GenFetiSolver<Scalar> *) allOps.sysSolver;
  }
- else {
+ else { // XXXX
    allOps.sysSolver = solver = decDomain->getFetiSolver();
    allOps.Kuc = new GenSubDOp<Scalar>(decDomain->getNumSub());
    for(int i=0; i<decDomain->getNumSub(); ++i) (*allOps.Kuc)[i] = decDomain->getSubDomain(i)->Kuc;
  }
+*/
+ for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
+ decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
+ solver = allOps.sysSolver;
 
  times->getFetiSolverTime += getTime();
 
@@ -130,6 +134,7 @@ void
 GenMultiDomainStatic<Scalar>::rebuildSolver()
 {
   times->getFetiSolverTime -= getTime(); // PJSA 3-30-06
+/* deprecated
   if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
      domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
      domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
@@ -143,9 +148,18 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
     ops.Muc = allOps.Muc;
     decDomain->rebuildOps(ops, 0.0, 0.0, 1.0); // just rebuild solver and K
   }
-  else {
+  else { // XXXX
     solver->rebuildLHSfreq();
   }
+*/
+  GenMDDynamMat<Scalar> ops;
+  ops.sysSolver = allOps.sysSolver;
+  ops.K = allOps.K;
+  ops.Kuc = allOps.Kuc;
+  ops.M = allOps.M;
+  ops.Muc = allOps.Muc;
+  decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
+
   times->getFetiSolverTime += getTime(); // PJSA 3-30-06
 }
 
@@ -173,7 +187,7 @@ GenMultiDomainStatic<Scalar>::clean()
 }
 
 template<class Scalar>
-GenFetiSolver<Scalar> *
+GenParallelSolver<Scalar> *
 GenMultiDomainStatic<Scalar>::getSolver()
 {
  return solver;
@@ -294,6 +308,7 @@ void
 GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, 
                                               GenDistrVector<Scalar> **sol_prev, int iRHS)
 {
+/* deprecated
 // RT: should only be done for the projection method
  if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
     domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
@@ -318,7 +333,73 @@ GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs,
      }
    }
  }
- solver->getFreqSweepRHS(rhs, sol_prev, iRHS);
+ solver->getFreqSweepRHS(rhs, sol_prev, iRHS); // XXXX
+*/
+
+  // TODO this is a bit messy
+  for(int i=0;i<decDomain->getNumSub();i++) {
+    decDomain->getSubDomain(i)->M = (*allOps.M)[i];
+    decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];
+    if (allOps.C) decDomain->getSubDomain(i)->C = (*allOps.C)[i];
+    if (allOps.C_deriv) {
+      decDomain->getSubDomain(i)->C_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->C_deriv)[0] = ((*allOps.C_deriv)[0])[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
+    }
+    if (allOps.Cuc_deriv) {
+      decDomain->getSubDomain(i)->Cuc_deriv =
+         new GenSparseMatrix<Scalar>*[iRHS+1];
+      (decDomain->getSubDomain(i)->Cuc_deriv)[0] = ((*allOps.Cuc_deriv)[0])[i];
+      for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
+    }
+  }
+
+  Timings &timers = solver->getTimers();
+  if(domain->solInfo().isCoupled && domain->solInfo().getFetiInfo().fsi_corner == 0) {
+    timedParal3(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multMCoupled1, rhs, sol_prev, iRHS);
+    decDomain->getWiCommPattern()->exchange();
+    timedParal(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multMCoupled2, rhs);
+  }
+  else timedParal3(timers.buildRhs, decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::multM, rhs, sol_prev, iRHS);
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  int subI = sd->localSubNum();
+  if (u==0) sd->multM(rhs->subData(subI), 0, k);
+  else {
+    GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
+    for(int i=0; i<=k; ++i)
+      sub_u[i]=
+         new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
+    sd->multM(rhs->subData(subI), sub_u, k);
+    delete [] sub_u;
+  }
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  int subI = sd->localSubNum();
+  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
+  for(int i=0; i<=k; ++i)
+    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
+  sd->multMCoupled1(rhs->subData(subI), sub_u, k, decDomain->getWiCommPattern());
+  delete [] sub_u;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::multMCoupled2(int iSub, GenDistrVector<Scalar> *rhs)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  sd->multMCoupled2(rhs->subData(sd->localSubNum()), decDomain->getWiCommPattern());
 }
 
 template<class Scalar>
@@ -326,14 +407,48 @@ void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs, double omega,
                                      double deltaomega)
 {
- solver->makeStaticLoad(rhs,omega,deltaomega);
+/* deprecated
+ solver->makeStaticLoad(rhs,omega,deltaomega); // XXXX
+*/
+  filePrint(stderr," ... Building the Force             ...\n");
+  rhs.zero();
+  GenDistrVector<Scalar> *tmp = new GenDistrVector<Scalar>(solVecInfo());
+  double o[2] = { omega, deltaomega };
+// RT: 4/30/09 - should be timed
+  execParal3R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr, rhs, *tmp, o);
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  sd->makeLoad(f.subData(sd->localSubNum()), tmp.subData(sd->localSubNum()), o[0], o[1]);
 }
 
 template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **sol_prev, double *h, double x)
 {
-  solver->pade(sol, sol_prev, h, x);
+/* deprecated
+  solver->pade(sol, sol_prev, h, x); // XXXX
+*/
+  execParal(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subPade, sol, sol_prev, h, x);
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x)
+{
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+  int subI = sd->localSubNum();
+  GenStackVector<Scalar> *sub_sol = new GenStackVector<Scalar>(sol->subData(subI), sol->subLen(subI));
+  int usize = (domain->solInfo().nFreqSweepRHS+1)*domain->solInfo().padeN;
+  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [usize];
+  for(int i=0; i<usize; ++i)
+    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
+  sd->pade(sub_sol, sub_u, h, x);
+  delete [] sub_u;
 }
 
 template<class Scalar>

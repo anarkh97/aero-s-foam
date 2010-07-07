@@ -41,14 +41,14 @@ template<class Scalar>
 DistrInfo &
 GenMultiDomainEigen<Scalar>::solVecInfo()
 {
- return solver->localInfo();
+ return decDomain->solVecInfo();
 }
 
 template<class Scalar>
 int
 GenMultiDomainEigen<Scalar>::solVecSize()
 {
- return solver->neq();
+ return decDomain->solVecInfo().len;
 }
 
 
@@ -83,7 +83,7 @@ GenMultiDomainEigen<Scalar>::buildEigOps(MDDynamMat &dMat)
 {
  times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
  decDomain->buildOps(dMat, 0.0, 0.0, 1.0);
- solver = (GenFetiSolver<double> *)dMat.dynMat;
+ solver = dMat.dynMat;
  times->getFetiSolverTime += getTime();
 }
 

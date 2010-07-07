@@ -1757,7 +1757,7 @@ GenSubDomain<Scalar>::rebuildKbbMpc()
     makeKbbMpc();
     GenSparseMatrix<Scalar> *Kas = 0;
     GenSolver<Scalar> *smat = 0;
-    assemble(Kas,smat,true);
+    assemble(Kas,smat,true); // TODO: should use Domain::makeSparseOps in Driver.d/OpMake.C
     factorKii();
   }
 }
@@ -2085,7 +2085,7 @@ GenSubDomain<Scalar>::assemble(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *
  bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
 
 
- double *z = (isShifted /*&&*/|| isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
+ double *z = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
 
  bool precm = (solInfo().getFetiInfo().prectype==FetiInfo::shifted) ? true : false; //HB
  double omega = 0.0;
@@ -4644,6 +4644,7 @@ GenSubDomain<Scalar>::initialize()
   mpcStatus = 0; mpcStatus1 = 0;
   G = 0; neighbG = 0;
   sharedRstar_g = 0; tmpRstar_g = 0;
+  l2g = 0;
 }
 
 template<class Scalar>

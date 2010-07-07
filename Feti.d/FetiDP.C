@@ -90,11 +90,12 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
                   Rbm **, int sandiaFlag, bool _geometricRbms)
  : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
+/*
  if(geoSource->isShifted())
    filePrint(stderr, " ... FETI-DPH Solver is Selected    ...\n");
  else
    filePrint(stderr, " ... FETI-DP Solver is Selected     ...\n");
-
+*/
  initialize();
 
  // Compute memory used by FETI Solver
@@ -205,6 +206,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->times.memoryOSet += memoryUsed();
 
  if(sysMatrices == 0) {
+/* deprecated
    if(verboseFlag) filePrint(stderr," ... Construct Subdomain Matrices   ... \n");
    startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
    timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::constructMatrices);
@@ -214,6 +216,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
    startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
    timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::assembleMatrices);
    stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
+*/
  }
  else {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -2484,6 +2487,7 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
   this->wiPat->finalize();
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::rebuildLHSfreq()
@@ -2500,6 +2504,7 @@ GenFetiDPSolver<Scalar>::rebuildLHSfreq()
 
   refactor();
 }
+*/
 
 template<class Scalar>
 void

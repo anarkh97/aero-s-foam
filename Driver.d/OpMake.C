@@ -124,12 +124,14 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  if(sinfo.isCoupled) computeCoupledScaleFactors();
 
- if (! dynamic_cast<GenSubDomain<Scalar>*> (this)) 
+ GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
+ if (!subCast) 
    if (sinfo.ATDARBFlag>=0.0||sinfo.ATDROBalpha!=0.0)  checkSommerTypeBC(this);
 
  if(sinfo.farfield) { addSBoundNodes(); makeKss(this); } // PJSA 3-15-2007 for Farfield output, direct solver (check with Radek)
 
  int iele;
+ int *m_dofs;
 
  for(iele=0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
@@ -137,6 +139,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
    beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
+   m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
    // Form element stiffness and mass matrices
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if (isComplexF) {
@@ -247,7 +250,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(isShifted && isDamped && isStructureElement(iele)) {
        if(ops.K)   ops.K->addImaginary(izel,(*allDOFs)[iele]);
        if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
-       if(mat) mat->addImaginary(izel,(*allDOFs)[iele]);
+       if(mat) mat->addImaginary(izel,m_dofs);
        if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
      }
      if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
@@ -279,11 +282,10 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
    if(matrixTimers) matrixTimers->assemble -= getTime();
    if (isComplexF || (imag(kappa2)!=0)) {
-     if(mat) mat->add(kcel,(*allDOFs)[iele]);
+     if(mat) mat->add(kcel,m_dofs);
      if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
    } else {
-     //std::cout << " Trace 2: " << kel.trace() << std::endl;
-     if(mat) mat->add(kel,(*allDOFs)[iele]);
+     if(mat) mat->add(kel,m_dofs);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    }
    if(isShifted) {
@@ -317,6 +319,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        StructProp *prop = packedEset[iele]->getProperty();
        if(packedEset[iele]->isSommerElement()) continue;
        if(!packedEset[iele]->isComplex()) continue;
+       m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
 
        if(matrixTimers) matrixTimers->formTime -= getTime();
        kelC = packedEset[iele]->complexStiffness(nodes, karrayC);
@@ -366,7 +369,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.Muc) ops.Muc->add(melC,(*allDOFs)[iele]);
        if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
        if(ops.Msolver) ops.Msolver->add(melC,(*allDOFs)[iele]);
-       if(mat) mat->add(kelC,(*allDOFs)[iele]);
+       if(mat) mat->add(kelC,m_dofs);
        if(ops.spp) ops.spp->add(kelC,(*allDOFs)[iele]);
        if(matrixTimers) matrixTimers->assemble += getTime();
      }
@@ -386,6 +389,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
   for(iele=0; iele < numele; ++iele) {//for the sommerElements
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
+   m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
    //add massMatrix
    mel.zero();
    mel = packedEset[iele]->massMatrix(nodes, marray,mratio);
@@ -399,7 +403,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
-   if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(mat) mat->add(mel,m_dofs);
    if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
@@ -408,7 +412,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
-   if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(mat) mat->add(cel,m_dofs);
    if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
@@ -417,7 +421,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
-   if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(mat) mat->add(kel,m_dofs);
    if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    //add Imaginary part of stiffness
    kel.zero();
@@ -425,13 +429,14 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.K) ops.K->addImaginary(kel,(*allDOFs)[iele]);
    if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
-   if(mat) mat->addImaginary(kel,(*allDOFs)[iele]);
+   if(mat) mat->addImaginary(kel,m_dofs);
    if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
   }
  }
  else
  for(iele=0; iele < numele; ++iele) {//for the sommerElements
    if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
+   m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
    //add massMatrix
    mel.zero();
    mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
@@ -445,7 +450,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
    if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
    mel *= Mcoef;
-   if(mat) mat->add(mel,(*allDOFs)[iele]);
+   if(mat) mat->add(mel,m_dofs);
    if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
    //add dampingMatrix
@@ -454,7 +459,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
    if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
    cel *= Ccoef;
-   if(mat) mat->add(cel,(*allDOFs)[iele]);
+   if(mat) mat->add(cel,m_dofs);
    if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
 
    //add stiffness
@@ -463,7 +468,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
    if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
    kel *= Kcoef;
-   if(mat) mat->add(kel,(*allDOFs)[iele]);
+   if(mat) mat->add(kel,m_dofs);
    if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
  }
 
@@ -479,10 +484,12 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      // PJSA: modified all addDiscreteMass functions to accept dsa dof rather than cdsa dof (much safer)
      // XXXX what about Kuc, Cuc?
      int dof = dsa->locate(current->node, (1 << current->dof));
+     int m_dof = (sinfo.type == 0 && subCast) ? domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)) : dof; 
      if(dof == -1) 
        { current = current->next; continue; }
      if(current->jdof > -1) { // PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
        int jdof = dsa->locate(current->node, (1 << current->jdof));
+       int m_jdof = (sinfo.type == 0 && subCast) ? domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->jdof)) : jdof;
        if(jdof == -1) 
          { current = current->next; continue; }
        if(isShifted) {
@@ -491,7 +498,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_real = -omega2*mass;
          double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(mat) mat->add(dof, jdof, m);
+         if(mat) mat->add(m_dof, m_jdof, m);
          if(ops.spp) ops.spp->add(dof, jdof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
@@ -506,7 +513,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.C) ops.C->add(dof,jdof,alpha*current->diMass);
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
-         if(mat) mat->add(dof,jdof,mass);
+         if(mat) mat->add(m_dof,m_jdof,mass);
          if(ops.spp) ops.spp->add(dof,jdof,mass);
        }
      }
@@ -516,7 +523,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          double m_real = -omega2*mass;
          double m_imag = isDamped ? -omega*alpha*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
-         if(mat) mat->addDiscreteMass(dof, m);
+         if(mat) mat->addDiscreteMass(m_dof, m);
          if(ops.spp) ops.spp->addDiscreteMass(dof, m);
          if(isDamped) {
            ScalarTypes::initScalar(m, 0.0, alpha*mass);
@@ -531,7 +538,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.C) ops.C->addDiscreteMass(dof, alpha*current->diMass);
          double mass = Mcoef*current->diMass;
          if (ops.C) mass += Ccoef*alpha*mass;
-         if(mat) mat->addDiscreteMass(dof, mass);
+         if(mat) mat->addDiscreteMass(m_dof, mass);
          if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
        }
      }

@@ -93,13 +93,13 @@ MDNLStatic::~MDNLStatic()
 DistrInfo&
 MDNLStatic::solVecInfo()
 {
- return solver->localInfo();
+ return decDomain->solVecInfo();
 }
 
 DistrInfo&
 MDNLStatic::sysVecInfo()
 {
- return solver->localInfo();
+ return decDomain->sysVecInfo();
 }
 
 
@@ -124,15 +124,17 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  double relativeRes = normRes/firstRes;
  lastRes = normRes;
 
- filePrint(stderr,"----------------------------------------------------\n");
- filePrint(stderr,"Nonlinear Iter #%d\tcurrent dv   = % e\n \t\t\t"
-                  "first dv     = % e\n \t\t\trelative dv  = % e\n",
-                   iter+1, normDv, firstDv, relativeDv);
- filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
-                  "first Res    = % e\n \t\t\trelative Res = % e\n",
-                   normRes, firstRes, relativeRes);
+ if(verboseFlag) {
+   filePrint(stderr,"----------------------------------------------------\n");
+   filePrint(stderr,"Nonlinear Iter #%d\tcurrent dv   = % e\n \t\t\t"
+                    "first dv     = % e\n \t\t\trelative dv  = % e\n",
+                     iter+1, normDv, firstDv, relativeDv);
+   filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
+                    "first Res    = % e\n \t\t\trelative Res = % e\n",
+                     normRes, firstRes, relativeRes);
 
- filePrint(stderr,"----------------------------------------------------\n");
+   filePrint(stderr,"----------------------------------------------------\n");
+ }
  
  int converged = 0;
 
@@ -264,7 +266,7 @@ MDNLStatic::preProcess()
  times->getFetiSolverTime -= getTime();
  GenMDDynamMat<double> allOps;
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
- solver = (GenFetiSolver<double> *) allOps.sysSolver;
+ solver = allOps.sysSolver;
  times->getFetiSolverTime += getTime();
 
  // Make subdomain's array of stiffness matrices
@@ -332,7 +334,7 @@ MDNLStatic::subGetRHS(int isub, DistrVector& rhs)
   sd->computeConstantForce<double>(subrhs);
 }
 
-FetiSolver *
+ParallelSolver *
 MDNLStatic::getSolver()
 {
   return solver;
@@ -409,18 +411,21 @@ MDNLStatic::printTimers()
 void
 MDNLStatic::updateConstraintTerms(DistrGeomState* geomState)
 {
-  execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
-  if(domain->GetnContactSurfacePairs()) {
-    domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
-    domain->PerformStaticContactSearch(MortarHandler::CTC);
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->CreateMortarToMPC();
-    decDomain->reProcessMPCs();
-    ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
+  if(fetiSolver) {
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::getConstraintMultipliers);
+    if(domain->GetnContactSurfacePairs()) {
+      domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
+      domain->PerformStaticContactSearch(MortarHandler::CTC);
+      domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+      domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+      domain->CreateMortarToMPC();
+      decDomain->reProcessMPCs();
+      fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+    }
+    // set the gap for the linear constraints
+    decDomain->setConstraintGap(geomState, fetiSolver);
   }
-  // set the gap for the linear constraints
-  decDomain->setConstraintGap(geomState, dynamic_cast<FetiSolver*>(solver));
 }
 
 void

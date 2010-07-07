@@ -2,7 +2,7 @@
 #define _MD_STATIC_DESCR_H_
 #include <Driver.d/DecDomain.h>
 
-template <class Scalar> class GenFetiSolver;
+template <class Scalar> class GenParallelSolver;
 class StaticTimers;
 template <class Scalar> class GenDistrVector;
 class DistrGeomState;
@@ -13,11 +13,11 @@ class GenMultiDomainPostProcessor
 {
  protected:
     GenDecDomain<Scalar> *decDomain;
-    GenFetiSolver<Scalar> *solver;
+    GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
 
   public:
-    GenMultiDomainPostProcessor(GenDecDomain<Scalar> *d, GenFetiSolver<Scalar> *s, 
+    GenMultiDomainPostProcessor(GenDecDomain<Scalar> *d, GenParallelSolver<Scalar> *s, 
                                 StaticTimers* _times=0)
        { decDomain = d; solver = s; times = _times; }
     void staticOutput(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &, bool printTimers = true, int ndflag=0);
@@ -32,7 +32,7 @@ class GenMultiDomainPostProcessor
     void updateSfemStress(Scalar* str, int fileNumber) { cerr << "GenMultiDomainPostProcessor::updateSfemStress() not implemented" << endl;}
     void getMemoryK(int iSub, long *memory);
     void getMemoryPrec(int iSub, long *memory);
-    void setSolver(GenParallelSolver<Scalar> *s) { solver = (GenFetiSolver<Scalar> *) s; }
+    void setSolver(GenParallelSolver<Scalar> *s) { solver = s; }
 };
 
 template<class Scalar>
@@ -41,7 +41,7 @@ class GenMultiDomainStatic
  protected:
     Domain *domain;
     GenDecDomain<Scalar> *decDomain;
-    GenFetiSolver<Scalar> *solver;
+    GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
     GenMDDynamMat<Scalar> allOps;
 //    SubDOp *K;
@@ -72,13 +72,18 @@ class GenMultiDomainStatic
     void getRHS(GenDistrVector<Scalar> &,double,double);
     void pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **sol_prev, double *h, double x);
     GenMDDynamMat<Scalar> *getAllOps() { return &allOps; }
-    GenFetiSolver<Scalar> *getSolver();
+    GenParallelSolver<Scalar> *getSolver();
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void project(GenDistrVector<Scalar> &);
  private:
     void eigmode_projector_prep();
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);
+    void makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o);
+    void subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);
+    void multM(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k);
+    void multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k);
+    void multMCoupled2(int iSub, GenDistrVector<Scalar> *rhs);
 };
 
 typedef GenMultiDomainStatic<double> MultiDomainStatic;

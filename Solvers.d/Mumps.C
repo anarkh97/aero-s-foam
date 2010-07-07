@@ -50,6 +50,21 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
 }
 
 template<class Scalar>
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
+                                       GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm)
+ : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
+{
+  neq = numUncon;
+  myMem = 0;
+  nNonZero = xunonz[numUncon]-1;
+  unonz = new Scalar[nNonZero];
+  for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
+  mpicomm = _mpicomm;
+  init();
+}
+
+
+template<class Scalar>
 void
 GenMumpsSolver<Scalar>::init()
 {
@@ -298,15 +313,15 @@ GenMumpsSolver<Scalar>::factor()
     mumpsId.id.n = neq;
     if(mumpsId.id.ICNTL(18) == 0) { // centralized matrix input
       mumpsId.id.nz  = nNonZero;
-      mumpsId.id.irn = rowu; //irn;
-      mumpsId.id.jcn = colu; //jcn;
+      mumpsId.id.irn = rowu;
+      mumpsId.id.jcn = colu;
       copyToMumpsLHS(mumpsId.id.a, unonz, nNonZero);
     }
   }
   if(mumpsId.id.ICNTL(18) == 3) { // distributed matrix input
     mumpsId.id.nz_loc  = nNonZero;
-    mumpsId.id.irn_loc = rowu; //irn;
-    mumpsId.id.jcn_loc = colu; //jcn;
+    mumpsId.id.irn_loc = rowu;
+    mumpsId.id.jcn_loc = colu;
     copyToMumpsLHS(mumpsId.id.a_loc, unonz, nNonZero);
   }
   mumpsId.id.job = 4; // 4: analysis and factorization, 1: analysis only, 2: factorization only
@@ -448,12 +463,10 @@ void
 GenMumpsSolver<Scalar>::print()
 {
 #ifdef USE_MUMPS
- if(host && mumpsId.id.ICNTL(18) == 0) { // centralized matrix on host
-   cerr << endl;
-   for(int i=0; i < nNonZero; ++i)
-     cerr << "K(" << mumpsId.id.irn[i] << "," << mumpsId.id.jcn[i] << ") = " << unonz[i] << endl;
+ if((mumpsId.id.ICNTL(18) == 0 && host) || mumpsId.id.ICNTL(18) == 3) { // centralized matrix on host
+   for(int i = 0; i < nNonZero; ++i)
+     cerr << "A(" << rowu[i] << "," << colu[i] << ") = " << unonz[i] << endl;
  }
- else if(host && mumpsId.id.ICNTL(18) == 3) cerr << "GenMumpsSolver<Scalar>::print() is not implemented for ICNTL(18) = 3\n";
 #endif
 }
 

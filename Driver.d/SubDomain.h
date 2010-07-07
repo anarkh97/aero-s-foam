@@ -817,6 +817,13 @@ class GenSubDomain : public BaseSub
   // (R_g^T*R_g) matrix assembly
   void assembleRtR(GenFullM<Scalar> &RtRu);
 
+  int *l2g;
+  void makeLocalToGlobalDofMap();
+  void multAddLT(Scalar *localvec, Scalar *globalvec);
+  void multAddLinv(Scalar *localvec, Scalar *globalvec);
+  void multLTinv(Scalar *globalvec, Scalar *localvec);
+  void multL(Scalar *globalvec, Scalar *localvec);
+
 };
 
 typedef GenSubDomain<double> SubDomain;
@@ -825,6 +832,7 @@ typedef GenSubDomain<double> SubDomain;
   #include <Driver.d/HSubDomain.C>
   #include <Driver.d/BOps.C>
   #include <Driver.d/RbmOps.C>
+  #include <Driver.d/LOps.C>
 #endif
 
 #endif

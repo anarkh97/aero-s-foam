@@ -464,7 +464,7 @@ MDNLDynamic::preProcess()
   double Mcoef = 1.0;
   double Ccoef = 0.0;
   decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef);
-  solver = (FetiSolver *) allOps->dynMat;
+  solver = (ParallelSolver *) allOps->dynMat;
   M = allOps->M;
   C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
   Kuc = allOps->Kuc;
@@ -666,7 +666,7 @@ MDNLDynamic::subExtractControlDisp(int isub, DistrGeomState &geomState, double *
   }
 }
 
-FetiSolver *
+ParallelSolver *
 MDNLDynamic::getSolver()
 {
   return solver;
@@ -845,20 +845,23 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 void
 MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
 {
-  execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
-  if(domain->GetnContactSurfacePairs()) {
-    // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
-    // XXXX the hessian of the constraint functions needs to be computed also
-    domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
-    domain->PerformStaticContactSearch(MortarHandler::CTC); // note: dynamic contact search not supported by acme for face-face interactions
-    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
-    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->CreateMortarToMPC();
-    decDomain->reProcessMPCs();
-    ((GenFetiDPSolver<double> *) solver)->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+  GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
+  if(fetiSolver) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
+    if(domain->GetnContactSurfacePairs()) {
+      // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
+      // XXXX the hessian of the constraint functions needs to be computed also
+      domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
+      domain->PerformStaticContactSearch(MortarHandler::CTC); // note: dynamic contact search not supported by acme for face-face interactions
+      domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+      domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+      domain->CreateMortarToMPC();
+      decDomain->reProcessMPCs();
+      fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
+    }
+    // set the gap for the linear constraints
+    decDomain->setConstraintGap(geomState, fetiSolver);
   }
-  // set the gap for the linear constraints
-  decDomain->setConstraintGap(geomState, dynamic_cast<FetiSolver*>(solver));
 }
 
 void 

@@ -110,6 +110,7 @@ Domain::makeAllDOFs() // build the dof connectivity
 {
  // Test if allDOFs has been made already
  if(allDOFs) return;
+
  int numele = packedEset.last(); // PJSA 5-2-05: include phantoms here
 
  int iele;

@@ -39,11 +39,11 @@ rotateConstitutiveMatrix(double *_Cin, double *T33, double Cout[6][6])
   // need to check for the presence or not of the sqrt(2) in the stress/strain vectors
   double sqrt2 = sqrt(2.0);
   for(int i=0; i<3; i++)
-#ifdef LOOP_UNROL
+#ifdef LOOP_UNROLL
     { TNS[i][0] *= sqrt2; TNS[i][1] *= sqrt2; TNS[i][2] *= sqrt2; 
       TSN[i][0] *= sqrt2; TSN[i][1] *= sqrt2; TSN[i][2] *= sqrt2; }
 #else
-    for(int j=0; j<3; j++){ TNS[i][0] *= sqrt2;  TSN[i][j] *= sqrt2; }
+    for(int j=0; j<3; j++){ TNS[i][j] *= sqrt2;  TSN[i][j] *= sqrt2; }
 #endif
 
   double T66[6][6] = {{TNN[0][0],TNN[0][1],TNN[0][2],TNS[0][0],TNS[0][1],TNS[0][2]},

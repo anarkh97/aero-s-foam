@@ -3383,6 +3383,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                 domain->numSommer, finfo->solvertype, elemToNode, elemToSub, cpuToSub, communicator);
 
  if(domain->solInfo().type == 0) { // only mumps is supported
+#ifdef USE_MUMPS
    GenMumpsSolver<Scalar> *msmat;
    if(domain->solInfo().mumps_icntl[18] == 3) {
      Connectivity *subToCpu = cpuToSub->reverse();
@@ -3400,6 +3401,9 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      dgt.dynMats[i] = dynamic_cast<GenSolver<Scalar>* >(msmat);
      dgt.spMats[i] = dynamic_cast<GenSparseMatrix<Scalar>* >(msmat);
    }
+#else
+   cerr << "you need mumps for this option\n"; exit(-1);
+#endif
  }
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");

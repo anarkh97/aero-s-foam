@@ -283,10 +283,6 @@ ReducedLinearDriverImpl::buildCoarseIntegrator() const {
 
 CorrectionPropagator<DynamState>::Manager::Ptr
 ReducedLinearDriverImpl::buildCoarseCorrection(Communicator * coarseComm) const {
-  if (noForce_) {
-    return NULL;
-  }
-
   DynamPropagator::Ptr coarsePropagator = buildCoarsePropagator(!remoteCoarse_, coarseComm);
   return FullCorrectionPropagatorImpl::Manager::New(coarsePropagator.ptr());
 }

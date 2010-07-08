@@ -4,7 +4,6 @@
 #include "Fwk.h"
 #include "Types.h"
 #include "../Seed.h"
-#include "../Activity.h"
 #include "../NamedTask.h"
 
 namespace Pita { namespace Hts {

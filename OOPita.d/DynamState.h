@@ -35,6 +35,8 @@ public:
 
   DynamState & operator+=(const DynamState & ds); 
   DynamState & operator-=(const DynamState & ds);
+  DynamState & operator*=(double coef);
+  DynamState & operator/=(double coef);
 
   void linAdd(double coef, const DynamState & ds);
 
@@ -59,6 +61,8 @@ protected:
 
     Desc & operator+=(const Desc & dsd);
     Desc & operator-=(const Desc & dsd);
+    Desc & operator*=(double coef);
+    Desc & operator/=(double coef);
 
     void linAdd(double coef, const Desc & dsd);
 

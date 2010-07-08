@@ -193,8 +193,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Coarse time-integration */ 
   CorrectionPropagator<DynamState>::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
 
-  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm);
-  commMgr->vectorSizeIs(vectorSize_);
+  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   /* Jump error */
   SeedErrorEvaluator::Manager::Ptr jumpErrorMgr = SeedErrorEvaluator::Manager::New(dynamOps.ptr());

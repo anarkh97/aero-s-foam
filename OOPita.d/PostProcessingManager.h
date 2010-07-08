@@ -53,7 +53,7 @@ class PropagatorReactor : public DynamPropagator::Notifiee {
 public:
   EXPORT_PTRINTERFACE_TYPES(PropagatorReactor);
 
-  class Manager : public Fwk::PtrInterface<PropagatorReactor> {
+  class Manager : public Fwk::PtrInterface<Manager> {
   public:
     EXPORT_PTRINTERFACE_TYPES(Manager);
     

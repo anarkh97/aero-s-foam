@@ -1,5 +1,8 @@
 #include "DynamState.h"
 
+#include <functional>
+#include <algorithm>
+
 namespace Pita {
 
 DynamState::Desc::Desc(size_t vectorSize, Scalar initValue) :
@@ -33,6 +36,20 @@ DynamState::Desc &
 DynamState::Desc::operator-=(const DynamState::Desc & dsd) {
   disp_ -= dsd.disp_;
   vel_ -= dsd.vel_;
+  return *this;
+}
+
+DynamState::Desc &
+DynamState::Desc::operator*=(double coef) {
+  std::transform(disp_.data(), disp_.data() + disp_.size(), disp_.data(), std::bind2nd(std::multiplies<double>(), coef));
+  std::transform(vel_.data(), vel_.data() + vel_.size(), vel_.data(), std::bind2nd(std::multiplies<double>(), coef));
+  return *this;
+}
+
+DynamState::Desc &
+DynamState::Desc::operator/=(double coef) {
+  std::transform(disp_.data(), disp_.data() + disp_.size(), disp_.data(), std::bind2nd(std::divides<double>(), coef));
+  std::transform(vel_.data(), vel_.data() + vel_.size(), vel_.data(), std::bind2nd(std::divides<double>(), coef));
   return *this;
 }
 
@@ -104,6 +121,20 @@ DynamState &
 DynamState::operator-=(const DynamState & ds) {
   unshareDesc();
   *desc_ -= *(ds.desc_);
+  return *this;
+}
+
+DynamState &
+DynamState::operator*=(double coef) {
+  unshareDesc();
+  *desc_ *= coef;
+  return *this;
+}
+
+DynamState &
+DynamState::operator/=(double coef) {
+  unshareDesc();
+  *desc_ /= coef;
   return *this;
 }
 

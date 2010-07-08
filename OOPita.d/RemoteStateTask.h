@@ -12,7 +12,7 @@ public:
 
   virtual void iterationIs(IterationRank i);
 
-  const RemoteState::Activity * RemoteActivity() const { return remoteActivity_.ptr(); }
+  const RemoteState::Activity * remoteActivity() const { return remoteActivity_.ptr(); }
 
   static Ptr New(const String & name, RemoteState::Activity * remoteActivity) {
     return new RemoteStateTask(name, remoteActivity);
@@ -20,6 +20,8 @@ public:
 
 protected:
   RemoteStateTask(const String &, RemoteState::Activity *);
+
+  RemoteState::Activity * remoteActivity() { return remoteActivity_.ptr(); }
 
 private:
   RemoteState::Activity::Ptr remoteActivity_;

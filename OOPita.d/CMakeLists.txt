@@ -1,12 +1,13 @@
 ADD_LIBRARY( pitadriver
 AffineIntegratorPropagator.C
 CommSplitter.C
+ConcurrentBasisManager.C
 DynamStateBasisWrapper.C
 DynamState.C
 DynamStateOps.C
 DynamStatePlainBasis.C
-DynamStateReconstructorImpl.C
-DynamStateReductorImpl.C
+DynamStateReconstructor.C
+DynamStateReductor.C
 DynamTimeIntegrator.C
 FullCorrectionPropagatorImpl.C
 HomogeneousGenAlphaIntegrator.C
@@ -29,6 +30,7 @@ NlDynamOps.C
 NlDynamTimeIntegrator.C
 NlPostProcessor.C
 NlSeedInitializerImpl.C
+OrthoDynamStateBasis.C
 PitaNonLinDynam.C
 PivotedCholeskySolver.C
 PostProcessingManager.C

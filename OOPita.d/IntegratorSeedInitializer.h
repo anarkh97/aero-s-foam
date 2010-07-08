@@ -18,22 +18,32 @@ public:
 
   virtual DynamState initialSeed(SliceRank rank) const; // Overriden
   
-  DynamTimeIntegrator * integrator() const { return integrator_.ptr(); }
+  const DynamTimeIntegrator * integrator() const { return integrator_.ptr(); }
+  Seconds timeStepSize() const { return timeStepSize_; }
   TimeStepCount timeStepsBetweenSeeds() const { return timeStepsBetweenSeeds_; }
 
+  // integrator must not be modified externally and must be correctly initialized (initialCondition, timeStepSize).
   static Ptr New(DynamTimeIntegrator * integrator,
                  TimeStepCount timeStepsBetweenSeeds) {
-    return new IntegratorSeedInitializer(integrator, timeStepsBetweenSeeds);
+    return new IntegratorSeedInitializer(integrator, integrator->timeStepSize(), timeStepsBetweenSeeds, integrator->currentState(), integrator->currentTime());
   }
 
+
 protected:
-  IntegratorSeedInitializer(DynamTimeIntegrator * i, TimeStepCount tsbs);
+  IntegratorSeedInitializer(DynamTimeIntegrator * i,
+                            Seconds tss,
+                            TimeStepCount tsbs,
+                            DynamState is,
+                            Seconds it);
 
 private:
-  DynamTimeIntegrator::Ptr integrator_;
+  mutable DynamTimeIntegrator::Ptr integrator_;
+
+  Seconds timeStepSize_;
   TimeStepCount timeStepsBetweenSeeds_;
 
-  DynamStatePlainBasis::Ptr seed_;
+  mutable Seconds lastStateTime_;
+  mutable DynamStatePlainBasis::Ptr seed_;
 };
 
 } // end namespace Pita

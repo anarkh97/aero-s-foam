@@ -6,36 +6,35 @@
 #include "DynamState.h"
 #include <Math.d/Vector.h>
 
+#include "DynamStateBasis.h"
+
 namespace Pita {
 
 class DynamStateReconstructor : public Fwk::PtrInterface<DynamStateReconstructor> {
 public:
   EXPORT_PTRINTERFACE_TYPES(DynamStateReconstructor);
-  typedef Fwk::GenManagerInterface<DynamStateReconstructor*, String> Manager;
 
-  size_t vectorSize() const { return vectorSize_; }
-  const DynamState & finalState() const { return finalState_; }
-  size_t reducedBasisSize() const { return reducedBasisSize_; }
+  // Operator characteristics 
+  size_t vectorSize() const { return reconstructionBasis_->vectorSize(); }
+  size_t reducedBasisSize() const { return reconstructionBasis_->stateCount(); }
   
-  // Removed as an optimization
-  // const Vector & reducedBasisComponents() const { return reducedBasisComponents_; }
-  virtual void reducedBasisComponentsIs(const Vector & c) = 0;
+  const DynamStateBasis * reconstructionBasis() const { return reconstructionBasis_.ptr(); } 
+  void reconstructionBasisIs(const DynamStateBasis * rb);
+
+  // Input
+  virtual void reducedBasisComponentsIs(const Vector & c);
+  
+  // Result
+  const DynamState & finalState() const { return finalState_; }
+  
+  explicit DynamStateReconstructor(const DynamStateBasis * rb);
 
 protected:
-  DynamStateReconstructor() :
-    vectorSize_(0),
-    finalState_(),
-    reducedBasisSize_(0)
-  {}
-
-  void setVectorSize(size_t vectorSize) { vectorSize_ = vectorSize; }
   void setFinalState(const DynamState & finalState) { finalState_ = finalState; }
-  void setReducedBasisSize(size_t size) { reducedBasisSize_ = size; }
  
 private:
-  size_t vectorSize_;
   DynamState finalState_;
-  size_t reducedBasisSize_;
+  DynamStateBasis::PtrConst reconstructionBasis_;
 
   DISALLOW_COPY_AND_ASSIGN(DynamStateReconstructor);
 };

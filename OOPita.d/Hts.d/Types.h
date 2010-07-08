@@ -5,10 +5,6 @@
 
 namespace Pita { namespace Hts {
 
-// Forward declarations
-class PrimalSliceRank;
-class DualSliceRank;
-
 class HalfTimeSlice;
 typedef Fwk::Numeric<HalfTimeSlice, int> HalfSliceCount;
 
@@ -18,9 +14,6 @@ public:
 
   HalfSliceRank next() const { return HalfSliceRank(value() + 1); }
   HalfSliceRank previous() const { return HalfSliceRank(value() - 1); }
-
-  PrimalSliceRank primalRank() const;
-  DualSliceRank dualRank() const;
 };
 
 inline
@@ -34,7 +27,13 @@ HalfSliceRank
 operator-(const HalfSliceRank & a, const HalfSliceCount & d) {
   return HalfSliceRank(a.value() - d.value());
 }
-  
+
+enum Direction {
+  NO_DIRECTION = 0,
+  FORWARD,
+  BACKWARD
+};
+
 enum SeedType {
   UNDEFINED_SEED = 0,
   MAIN_SEED,
@@ -44,28 +43,13 @@ enum SeedType {
   SEED_CORRECTION
 };
 
-enum ReductionFlag {
-  FULL = 0,
-  REDUCED
-};
-
 inline
 Fwk::OStream &
 operator<<(Fwk::OStream & out, SeedType t) {
-  char c;
-  switch (t) {
-    case UNDEFINED_SEED:          c = 'U'; break;
-    case MAIN_SEED:               c = 'M'; break;
-    case LEFT_SEED:               c = 'L'; break;
-    case RIGHT_SEED:              c = 'R'; break;
-    case SEED_JUMP:               c = 'J'; break;
-    case SEED_CORRECTION:         c = 'C'; break;
-    default:                      c = '?'; break;
-  }
-  out << c;
+  static const char * const table = "UMLRJC?";
+  out << table[t <= SEED_CORRECTION ? t : SEED_CORRECTION + 1];
   return out;
 }
-
 
 template <typename T>
 class GenId {
@@ -132,91 +116,12 @@ operator<<(Fwk::OStream & out, const CommId & c) {
 }
 
 class FullTimeSlice;
-typedef Fwk::Numeric<FullTimeSlice, int> FullSliceCount;
-
-class FullSliceRank : public Fwk::Interval<FullTimeSlice, int, FullSliceCount> {
+class FullSliceCount : public Fwk::Numeric<FullTimeSlice, int> {
 public:
-  explicit FullSliceRank(int v = 0) : Fwk::Interval<FullTimeSlice, int, FullSliceCount>(v) {}
+  explicit FullSliceCount(int v = 0) : Fwk::Numeric<FullTimeSlice, int>(v) {}
 
-  operator SliceRank() const { return SliceRank(value()); }
+  operator HalfSliceCount() { return HalfSliceCount(value() * 2); }
 };
-
-inline
-FullSliceRank
-operator+(const FullSliceRank & a, const FullSliceCount & d) {
-  return FullSliceRank(a.value() + d.value());
-}
-
-inline 
-FullSliceRank
-operator-(const FullSliceRank & a, const FullSliceCount & d) {
-  return FullSliceRank(a.value() - d.value());
-}
-
-
-class PrimalTimeSlice;
-typedef Fwk::Numeric<PrimalTimeSlice, int> PrimalSliceCount;
-
-class PrimalSliceRank : public Fwk::Interval<PrimalTimeSlice, int, PrimalSliceCount> {
-public:
-  explicit PrimalSliceRank(int v = 0) : Fwk::Interval<PrimalTimeSlice, int, PrimalSliceCount>(v) {}
-
-  HalfSliceRank headRank() const; 
-  HalfSliceRank tailRank() const;
-};
-
-
-class DualTimeSlice;
-typedef Fwk::Numeric<DualTimeSlice, int> DualSliceCount;
-
-class DualSliceRank : public Fwk::Interval<DualTimeSlice, int, DualSliceCount> {
-public:
-  explicit DualSliceRank(int v = 0) : Fwk::Interval<DualTimeSlice, int, DualSliceCount>(v) {}
-
-  HalfSliceRank headRank() const; 
-  HalfSliceRank tailRank() const;
-};
-
-
-inline
-PrimalSliceRank
-HalfSliceRank::primalRank() const {
-  return PrimalSliceRank(value() >= 0 ? value() / 2 : -((1 - value()) / 2));
-}
-
-inline
-DualSliceRank
-HalfSliceRank::dualRank() const {
-  return DualSliceRank(value() >= 1 ? (value() - 1) / 2 : -((-value()) / 2) - 1);
-}
-
-
-inline
-HalfSliceRank
-PrimalSliceRank::headRank() const {
-  return HalfSliceRank(2 * value());
-}
-
-
-inline
-HalfSliceRank
-PrimalSliceRank::tailRank() const {
-  return HalfSliceRank(2 * value() + 1);
-}
-
-
-inline
-HalfSliceRank
-DualSliceRank::headRank() const {
-  return HalfSliceRank(2 * value() + 1);
-}
-
-
-inline
-HalfSliceRank
-DualSliceRank::tailRank() const {
-  return HalfSliceRank(2 * value() + 2);
-}
 
 } /* end namespace Hts */ } /* end namespace Pita */
 

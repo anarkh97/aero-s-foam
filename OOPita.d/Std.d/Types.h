@@ -5,29 +5,6 @@
 
 namespace Pita { namespace Std {
 
-class TimeSlice;
-typedef Fwk::Numeric<TimeSlice, int> SliceCount;
-
-class SliceRank : public Fwk::Interval<TimeSlice, int, SliceCount> {
-public:
-  explicit SliceRank(int v = 0) : Fwk::Interval<TimeSlice, int, SliceCount>(v) {}
-
-  SliceRank next() const { return SliceRank(value() + 1); }
-  SliceRank previous() const { return SliceRank(value() - 1); }
-};
-
-inline
-SliceRank
-operator+(const SliceRank & a, const SliceCount & d) {
-  return SliceRank(a.value() + d.value());
-}
-
-inline 
-SliceRank
-operator-(const SliceRank & a, const SliceCount & d) {
-  return SliceRank(a.value() - d.value());
-}
-  
 enum SeedType {
   UNDEFINED_SEED = 0,
   MAIN_SEED,
@@ -36,24 +13,11 @@ enum SeedType {
   SEED_CORRECTION
 };
 
-enum ReductionFlag {
-  FULL = 0,
-  REDUCED
-};
-
 inline
 Fwk::OStream &
 operator<<(Fwk::OStream & out, SeedType t) {
-  char c;
-  switch (t) {
-    case UNDEFINED_SEED:          c = 'U'; break;
-    case MAIN_SEED:               c = 'M'; break;
-    case PROPAGATED_SEED:         c = 'P'; break;
-    case SEED_JUMP:               c = 'J'; break;
-    case SEED_CORRECTION:         c = 'C'; break;
-    default:                      c = '?'; break;
-  }
-  out << c;
+  static const char * const table = "UMPJC?";
+  out << table[t <= SEED_CORRECTION ? t : SEED_CORRECTION + 1];
   return out;
 }
 

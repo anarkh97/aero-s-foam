@@ -65,7 +65,7 @@ HomogeneousTaskManager::scheduleInitialization() {
     SliceRank slice = *sl_it;
     Seed::Ptr targetSeed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice)));
     Seed::Status initialSeedStatus = (slice == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
-    NamedTask::Ptr task = new InitialSeedTask(targetSeed.ptr(), initializer_.ptr(), ::Pita::SliceRank(slice.value()), initialSeedStatus);
+    NamedTask::Ptr task = new InitialSeedTask(targetSeed.ptr(), initializer_.ptr(), slice, initialSeedStatus);
     initialSeedInformation.push_back(task);
   }
   

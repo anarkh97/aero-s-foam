@@ -24,7 +24,7 @@ RemoteSeedInitializerServer::statusIs(RemoteCoarseServer::Status s) {
     sBuffer_.sizeIs(stateSize * seedCount);
  
     for (int s = 0; s < seedCount; ++s) {
-      DynamState seed = baseInitializer_->initialSeed(::Pita::SliceRank(s));
+      DynamState seed = baseInitializer_->initialSeed(SliceRank(s));
       double * buffer = sBuffer_.array() + s * stateSize;
       bufferStateCopy(seed, buffer);
     

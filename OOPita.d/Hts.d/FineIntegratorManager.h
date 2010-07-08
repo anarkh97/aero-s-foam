@@ -7,19 +7,6 @@
 
 namespace Pita { namespace Hts {
 
-/*class FineIntegratorManager : Fwk::PtrInterface<FineIntegratorManager> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(FineIntegratorManager);
-  
-  Seconds fineTimeStepSize() const { return fineTimeStepSize_; }
-  IntegratorType * fineIntegrator(HalfTimeSlice::Direction direction) const;
-
-private:
-  Seconds fineTimeStepSize_;
-  
-  DISALLOW_COPY_AND_ASSIGN(FineIntegratorManager);
-};*/
-
 template <typename IntegratorType>
 class GenFineIntegratorManager : public Fwk::PtrInterface<GenFineIntegratorManager<IntegratorType> > {
 public:

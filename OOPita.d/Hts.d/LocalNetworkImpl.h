@@ -24,7 +24,7 @@
 
 namespace Pita { namespace Hts {
 
-namespace LocalNetwork {
+namespace LocalNetworkImpl {
 
 /* Task activity range */
 class ActivationRange {
@@ -33,10 +33,13 @@ public:
   HalfSliceCount extent() const { return extent_; }
   HalfSliceRank extentSlice() const { return baseSlice() + extent(); }
 
-  ActivationRange(HalfSliceRank baseSlice, HalfSliceCount extent) :
+  // Implicit conversion from HalfSliceRank
+  ActivationRange(HalfSliceRank baseSlice, HalfSliceCount extent = HalfSliceCount(0)) :
     baseSlice_(baseSlice), extent_(extent)
   {}
 
+  struct Comparator;
+  class Inclusion;
 private:
   HalfSliceRank baseSlice_;
   HalfSliceCount extent_;
@@ -49,6 +52,12 @@ activatedBefore(const ActivationRange & a, const ActivationRange & b) {
   return (a.baseSlice() == b.baseSlice()) ? (a.extent() < b.extent()) : (a.baseSlice() < b.baseSlice());  
 }
 
+struct ActivationRange::Comparator : public std::binary_function<ActivationRange, ActivationRange, bool> {
+  bool operator()(const ActivationRange & a, const ActivationRange & b) const {
+    return activatedBefore(a, b);
+  }
+};
+
 // Activation check
 inline
 bool
@@ -58,11 +67,25 @@ includedIn(HalfSliceRank slice, const ActivationRange & b) {
 
 inline
 bool
-includedIn(const ActivationRange & a, const ActivationRange & b) {
-  return includedIn(a.baseSlice(), b) && includedIn(a.extentSlice(), b);
+includedIn(const ActivationRange & a, const ActivationRange & inRange) {
+  return includedIn(a.baseSlice(), inRange) && includedIn(a.extentSlice(), inRange);
 }
 
-inline
+class ActivationRange::Inclusion : public std::unary_function<ActivationRange, bool> {
+public:
+  bool operator()(const ActivationRange & a) const {
+    includedIn(a, inRange_);
+  }
+
+  explicit Inclusion(const ActivationRange & inRange) :
+    inRange_(inRange)
+  {}
+
+private:
+  ActivationRange inRange_;
+};
+
+/*inline
 bool
 isEven(HalfSliceCount a) {
   return a.value() % 2 == 0;
@@ -72,14 +95,14 @@ inline
 bool
 activeIn(const ActivationRange & a, const ActivationRange & b) {
   return includedIn(a, b) && isEven(a.baseSlice() - b.baseSlice());
-}
+}*/
 
 /* Zero correction */
 
 template <typename S>
 class NoCorrection : public SharedState<S>::NotifieeConst {
 public:
-  virtual void onIteration();
+  virtual void onIteration(); //overriden
 
   NoCorrection(const SharedState<S> * parent, SharedStateRoot * target) :
     SharedState<S>::NotifieeConst(parent),
@@ -117,8 +140,11 @@ class NoCorrectionManager : public Fwk::PtrInterface<NoCorrectionManager> {
 public:
   EXPORT_PTRINTERFACE_TYPES(NoCorrectionManager);
 
-  void notifierAdd(SharedStateRoot * target, Seed * notifier) { 
-    NoCorrection<DynamState> * reactor = reactorMgr_.instanceNew(target);
+  void notifierIs(SharedStateRoot * target, Seed * notifier) {
+    NoCorrection<DynamState>::Ptr reactor = reactorMgr_.instance(target);
+    if (!reactor) {
+      reactor = reactorMgr_.instanceNew(target);
+    }
     reactor->notifierIs(notifier);
   }
 
@@ -367,7 +393,7 @@ public:
   CorrectionPropagatorBuilder(const SliceMapping * mapping,
                               typename CorrectionPropagator<S>::Manager * cpMgr,
                               RemoteState::Manager * commMgr,
-                              LocalNetwork::SeedGetter<S> seedGetter) :
+                              LocalNetworkImpl::SeedGetter<S> seedGetter) :
     mapping_(mapping),
     cpMgr_(cpMgr),
     commMgr_(commMgr),
@@ -396,7 +422,7 @@ private:
   const SliceMapping * mapping_;
   typename CorrectionPropagator<S>::Manager * cpMgr_;
   RemoteState::Manager * commMgr_;
-  LocalNetwork::SeedGetter<S> seedGetter_;
+  LocalNetworkImpl::SeedGetter<S> seedGetter_;
 };
 
 template <typename S>
@@ -503,8 +529,21 @@ CorrectionPropagatorBuilder<S>::buildCorrectionSyncSend(
   }
 }
 
+template <typename Key, typename Value, typename Comparator>
+std::deque<Value>
+mapToDeque(const std::map<Key, Value, Comparator> & m) {
+  std::deque<Value> result;
 
-} /* end namespace LocalNetwork */
+  typedef typename std::map<Key, Value, Comparator>::const_iterator MapIt;
+  MapIt it_end = m.end();
+  for (MapIt it = m.begin(); it != it_end; ++it) {
+    result.push_back(it->second);
+  }
+
+  return result;
+}
+
+} /* end namespace LocalNetworkImpl */
 
 } /* end namespace Hts */ } /* end namespace Pita */
 

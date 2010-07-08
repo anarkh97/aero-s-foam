@@ -29,6 +29,11 @@ SliceMapping::activeSlices() const {
   return HalfSliceCount(loadBalancer_->currentGlobalWorkload());
 }
 
+HalfSliceCount
+SliceMapping::activeSlices(CpuRank cpu) const {
+  return HalfSliceCount(loadBalancer_->currentWorkload(cpu.value()));
+}
+
 HalfSliceRank
 SliceMapping::firstActiveSlice() const {
   return HalfSliceRank(loadBalancer_->firstCurrentTask());
@@ -37,6 +42,16 @@ SliceMapping::firstActiveSlice() const {
 HalfSliceRank
 SliceMapping::firstInactiveSlice() const {
   return HalfSliceRank(loadBalancer_->firstWaitingTask());
+}
+
+FullSliceCount
+SliceMapping::activePrimalSlices() const {
+  return FullSliceCount(loadBalancer_->currentGlobalWorkload() / 2);
+}
+
+FullSliceCount
+SliceMapping::activeDualSlices() const {
+  return FullSliceCount((loadBalancer_->currentGlobalWorkload() - 1) / 2);
 }
 
 HalfSliceCount

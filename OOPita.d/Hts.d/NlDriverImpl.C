@@ -1,23 +1,31 @@
 #include "NlDriverImpl.h"
 
 #include "../NlDynamTimeIntegrator.h"
-#include "../IntegratorPropagator.h"
 
 #include "../NlPostProcessor.h"
 #include "../PostProcessingManager.h"
 
+#include "../IntegratorPropagator.h"
+#include "NlPropagatorManager.h"
+
+#include "../IntegratorSeedInitializer.h"
+
+#include "../RemoteStateMpiImpl.h"
+#include "../SeedErrorEvaluator.h"
+
 #include "NlTaskManager.h"
+#include "../TimedExecution.h"
+
+#include <Timers.d/GetTime.h>
 
 namespace Pita { namespace Hts {
 
 NlDriverImpl::NlDriverImpl(PitaNonLinDynamic * probDesc,
                            GeoSource * geoSource,
-                           Domain * domain,
                            SolverInfo * solverInfo,
                            Communicator * baseComm) :
   NlDriver(probDesc),
   geoSource_(geoSource),
-  domain_(domain),
   solverInfo_(solverInfo),
   baseComm_(baseComm)
 {}
@@ -25,55 +33,12 @@ NlDriverImpl::NlDriverImpl(PitaNonLinDynamic * probDesc,
 void
 NlDriverImpl::solve() {
   log() << "Begin Reversible NonLinear Pita\n";
-  double tic = getTime(); // Total time
+  double tic = getTime();
 
   preprocess();
+  summarizeParameters();
+  solveParallel();
 
-  /* Summarize problem and parameters */
-  log() << "\n"; 
-  log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-  log() << "Iteration count = " << lastIteration_ << "\n"; 
-  log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
-  log() << "VectorSize = " << vectorSize_ << " dofs\n";
-  log() << "Projector tol = " << projectorTolerance_ << "\n";
-
-  // Problem parameters for the sequential-in-time
-  DynamState initialState(vectorSize_);
-  probDesc()->getInitState(initialState);
-  TimeStepCount timeStepCount = halfSliceRatio_ * mapping_->totalSlices().value();
-  NlDynamTimeIntegrator::Ptr integrator = NlDynamTimeIntegrator::New(probDesc());
-  
-  // Propagators
-  IntegratorPropagator::Ptr forwardPropagator = IntegratorPropagator::New(integrator.ptr());
-  forwardPropagator->initialTimeIs(Seconds(0.0));
-  forwardPropagator->timeStepSizeIs(fineTimeStep_);
-  forwardPropagator->timeStepCountIs(timeStepCount);
-  
-  IntegratorPropagator::Ptr backwardPropagator = IntegratorPropagator::New(integrator.ptr());
-  backwardPropagator->initialTimeIs(finalTime_);
-  backwardPropagator->timeStepSizeIs(-fineTimeStep_);
-  backwardPropagator->timeStepCountIs(timeStepCount);
- 
-  // Set-up post-processing 
-  /*CpuRank myCpu(baseComm()->myID()); 
-  std::vector<int> ts;
-  for (SliceMapping::SliceIterator s = mapping_->hostedSlice(myCpu); s; ++s) {
-    ts.push_back((*s).value()); 
-  }*/
-  const int outputFileCount = 2;
-  int ts[outputFileCount] = { 0, 1 };
-  NlPostProcessor::Ptr pitaPostProcessor = NlPostProcessor::New(geoSource(), outputFileCount, ts, probDesc());
-  typedef PostProcessing::IntegratorReactorImpl<NlPostProcessor> NlIntegratorReactor;
-  NlIntegratorReactor::Builder::Ptr ppBuilder = NlIntegratorReactor::Builder::New(pitaPostProcessor.ptr());
-  PostProcessing::Manager::Ptr ppMgr = PostProcessing::Manager::New(ppBuilder.ptr());
-  
-  ppMgr->outputFileSetIs(forwardPropagator.ptr(), PostProcessor::FileSetId(0));
-  ppMgr->outputFileSetIs(backwardPropagator.ptr(), PostProcessor::FileSetId(1));
- 
-  // Perform forward-in-time then backward-in-time
-  forwardPropagator->initialStateIs(initialState);
-  backwardPropagator->initialStateIs(forwardPropagator->finalState());
-  
   double toc = getTime();
   log() << "\n" << "Total time = " << (toc - tic) / 1000.0 << " s\n";
   log() << "\n" << "End Reversible NonLinear Pita\n";
@@ -85,10 +50,10 @@ NlDriverImpl::preprocess() {
   
   probDesc()->preProcess();
   
-  /* Space-domain */
+  // Space-domain 
   vectorSize_ = probDesc()->solVecInfo();
 
-  /* Time-domain */
+  // Time-domain 
   fineTimeStep_ = Seconds(solverInfo()->getTimeStep());
   halfSliceRatio_ = TimeStepCount(solverInfo()->Jratio / 2);
   sliceRatio_ = TimeStepCount(halfSliceRatio_.value() * 2);
@@ -99,14 +64,15 @@ NlDriverImpl::preprocess() {
   HalfSliceCount numSlices(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (halfSliceRatio_.value() * fineTimeStep_.value()))));
   FullSliceCount fullTimeSlices((numSlices.value() / 2) + (numSlices.value() % 2));
   numSlices = HalfSliceCount(fullTimeSlices.value() * 2);
-  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * halfSliceRatio_.value()); // To have a whole number of full time-slices 
+  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * halfSliceRatio_.value()); // To have a whole number of primal full time-slices 
 
-  /* Load balancing */ 
+  // Load balancing 
   CpuCount numCpus(baseComm()->numCPUs());
+  localCpu_ = CpuRank(baseComm()->myID());
   HalfSliceCount maxActive(solverInfo()->numTSperCycleperCPU);
   mapping_ = SliceMapping::New(fullTimeSlices, numCpus, maxActive);
 
-  /* Other parameters */ 
+  // Other parameters
   lastIteration_ = IterationRank(solverInfo()->kiter);
   projectorTolerance_ = solverInfo()->pitaProjTol;
  
@@ -115,7 +81,78 @@ NlDriverImpl::preprocess() {
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
+void
+NlDriverImpl::summarizeParameters() const {
+  log() << "\n"; 
+  log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+  log() << "VectorSize = " << vectorSize_ << " dofs\n";
+  log() << "Projector tol = " << projectorTolerance_ << "\n";
+}
+
+void
+NlDriverImpl::solveParallel() {
+  log() << "\n";
+  log() << "Parallel solver initialization\n";
+  double tic = getTime();
+
+  // Initial conditions
+  Seconds initialTime(0.0);
+  DynamState initialState(vectorSize_);
+  probDesc()->getInitState(initialState);
+
+  // Time-integration
+  NlDynamTimeIntegrator::Ptr integrator = NlDynamTimeIntegrator::New(probDesc());
+  NlPropagatorManager::Ptr propagatorMgr = NlPropagatorManager::New(
+      integrator.ptr(),
+      fineTimeStep_,
+      halfSliceRatio_,
+      initialTime);
+
+  // Initial Seeds
+  integrator->timeStepSizeIs(coarseTimeStep_);
+  integrator->initialConditionIs(initialState, initialTime);
+  IntegratorSeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(integrator.ptr(), TimeStepCount(1));
+  
+  // Post-processing
+  PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
+
+  // Jump evaluation (Output only)
+  NlDynamOps::Ptr dynOps = integrator->nlDynamOpsNew();
+  SeedErrorEvaluator::Manager::Ptr jumpEvalMgr = SeedErrorEvaluator::Manager::New(dynOps.ptr()); 
+
+  // Communications
+  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(baseComm(), vectorSize_);
+ 
+  // Execute the algorithm 
+  NlTaskManager::Ptr taskManager = new NlTaskManager(mapping_.ptr(), commMgr.ptr(),
+                                                     propagatorMgr.ptr(), seedInitializer.ptr(),
+                                                     postProcessingMgr.ptr(), jumpEvalMgr.ptr(),
+                                                     projectorTolerance_, lastIteration_);
+  TimedExecution::Ptr execution = TimedExecution::New(taskManager.ptr()); 
+  execution->targetIterationIs(lastIteration_);
+
+  double toc = getTime();
+  log() << "\n";
+  log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
+}
+
+PostProcessing::Manager::Ptr
+NlDriverImpl::buildPostProcessor() { 
+  std::vector<int> ts;
+  for (SliceMapping::SliceIterator s = mapping_->hostedSlice(localCpu_); s; ++s) {
+    ts.push_back((*s).value()); 
+  }
+  NlPostProcessor::Ptr pitaPostProcessor = NlPostProcessor::New(geoSource(), ts.size(), &ts[0], probDesc());
+  typedef PostProcessing::IntegratorReactorImpl<NlPostProcessor> NlIntegratorReactor;
+  NlIntegratorReactor::Builder::Ptr ppBuilder = NlIntegratorReactor::Builder::New(pitaPostProcessor.ptr());
+  return PostProcessing::Manager::New(ppBuilder.ptr());
+}
+
 } /* end namespace Hts */ } /* end namespace Pita */
+
+#include <Driver.d/Domain.h>
 
 extern GeoSource * geoSource;
 extern Domain * domain;
@@ -123,6 +160,5 @@ extern Communicator * structCom;
 
 Pita::NlDriver::Ptr
 nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
-  return Pita::Hts::NlDriverImpl::New(problemDescriptor, geoSource, domain, &domain->solInfo(), structCom);
+  return Pita::Hts::NlDriverImpl::New(problemDescriptor, geoSource, &domain->solInfo(), structCom);
 }
-

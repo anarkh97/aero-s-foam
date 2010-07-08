@@ -8,10 +8,16 @@
 
 #include "../PitaNonLinDynam.h"
 #include <Utils.d/SolverInfo.h>
-#include <Driver.d/Domain.h>
 #include <Comm.d/Communicator.h>
 
 #include "SliceMapping.h"
+#include "NlLocalNetwork.h"
+
+#include "../PostProcessingManager.h"
+
+class GeoSource;
+class SolverInfo;
+class Communicator;
 
 namespace Pita { namespace Hts {
 
@@ -22,27 +28,27 @@ public:
   virtual void solve();
 
   GeoSource * geoSource() const { return geoSource_; }
-  Domain * domain() const { return domain_; }
   SolverInfo * solverInfo() const { return solverInfo_; }
   Communicator * baseComm() const { return baseComm_; }
   
   static Ptr New(PitaNonLinDynamic * pbDesc,
                  GeoSource * geoSource,
-                 Domain * domain, 
                  SolverInfo * solverInfo,
                  Communicator * baseComm) {
-    return new NlDriverImpl(pbDesc, geoSource, domain, solverInfo, baseComm);
+    return new NlDriverImpl(pbDesc, geoSource, solverInfo, baseComm);
   }
 
 protected:
-  explicit NlDriverImpl(PitaNonLinDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
+  explicit NlDriverImpl(PitaNonLinDynamic *, GeoSource *, SolverInfo *, Communicator *);
 
   void preprocess();
+  void summarizeParameters() const;
+  void solveParallel();
+  PostProcessing::Manager::Ptr buildPostProcessor(); 
 
 private:
   /* Primary sources */
   GeoSource * geoSource_;
-  Domain * domain_;
   SolverInfo * solverInfo_;
   Communicator * baseComm_;
   
@@ -59,13 +65,14 @@ private:
 
   /* Load balancing */ 
   SliceMapping::Ptr mapping_;
+  CpuRank localCpu_;
 
   /* Other parameters */
   IterationRank lastIteration_;
   double projectorTolerance_;
 };
 
-} /* end namespace Hts */ } /* end namespac Pta */
+} /* end namespace Hts */ } /* end namespace Pita */
 
 Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
 

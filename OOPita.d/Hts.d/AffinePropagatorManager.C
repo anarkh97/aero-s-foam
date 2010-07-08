@@ -1,4 +1,4 @@
-#include "PropagatorManager.h"
+#include "AffinePropagatorManager.h"
 
 #include "../AffineIntegratorPropagator.h"
 
@@ -6,11 +6,11 @@
 
 namespace Pita { namespace Hts {
 
-PropagatorManager::PropagatorManager(BasisCollector * collector,
-                                     GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
-                                     PostProcessing::Manager * postProcessingMgr,
-                                     TimeStepCount halfSliceRatio,
-                                     Seconds initialTime) :
+AffinePropagatorManager::AffinePropagatorManager(BasisCollector * collector,
+                                                 GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
+                                                 PostProcessing::Manager * postProcessingMgr,
+                                                 TimeStepCount halfSliceRatio,
+                                                 Seconds initialTime) :
   collector_(collector),
   integratorMgr_(integratorMgr),
   postProcessingMgr_(postProcessingMgr),
@@ -20,7 +20,7 @@ PropagatorManager::PropagatorManager(BasisCollector * collector,
 {}
 
 AffineDynamPropagator *
-PropagatorManager::instance(const HalfSliceId & id) const {
+AffinePropagatorManager::instance(const HalfSliceId & id) const {
   DynamPropagator * original = const_cast<DynamPropagator *>(collector_->source(id));
   if (original) {
     AffineDynamPropagator * downcasted = dynamic_cast<AffineDynamPropagator *>(original);
@@ -32,12 +32,12 @@ PropagatorManager::instance(const HalfSliceId & id) const {
 }
 
 size_t
-PropagatorManager::instanceCount() const { 
+AffinePropagatorManager::instanceCount() const { 
   return collector_->sourceCount();
 }
 
 AffineDynamPropagator *
-PropagatorManager::instanceNew(const HalfSliceId & id) {
+AffinePropagatorManager::instanceNew(const HalfSliceId & id) {
   // Create propagator 
   AffineGenAlphaIntegrator::Ptr integrator = integratorMgr_->fineIntegrator(id.direction());
   AffineIntegratorPropagator::Ptr newPropagator = AffineIntegratorPropagator::New(integrator.ptr());
@@ -62,7 +62,7 @@ PropagatorManager::instanceNew(const HalfSliceId & id) {
 }
 
 void
-PropagatorManager::instanceDel(const HalfSliceId & id) {
+AffinePropagatorManager::instanceDel(const HalfSliceId & id) {
   collector_->sourceIs(id, NULL);
 }
 

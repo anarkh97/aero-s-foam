@@ -34,7 +34,7 @@
 
 #include "../IncrementalPostProcessor.h"
 #include "LinearFineIntegratorManager.h"
-#include "PropagatorManager.h"
+#include "AffinePropagatorManager.h"
 #include "AffineHalfTimeSliceImpl.h"
 
 #include "../ReducedCorrectionPropagatorImpl.h"
@@ -202,7 +202,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
   LinearLocalNetwork::Ptr network = new LinearLocalNetwork(
       mapping_.ptr(),
-      myCpu,
       hsMgr.ptr(),
       reducedCorrMgr.ptr(),
       commMgr.ptr(),
@@ -280,7 +279,7 @@ ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fin
                                                    BasisCollector * collector) const {
   GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
-  PropagatorManager::Ptr propagatorMgr = PropagatorManager::New(
+  AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
       collector,
       fineIntegratorMgr.ptr(), 
       postProcessingMgr,

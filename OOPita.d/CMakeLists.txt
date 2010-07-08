@@ -1,9 +1,5 @@
 ADD_LIBRARY( pitadriver
-ActivityImpl.C
 AffineIntegratorPropagator.C
-AlternatingIntegratorPropagator.C
-CommManager.C
-CommManagerImpl.C
 CommSplitter.C
 DynamStateBasisWrapper.C
 DynamState.C
@@ -27,16 +23,12 @@ LinearGenAlphaIntegrator.C
 LinearizedPropagator.C
 LinearPostProcessor.C
 LoadBalancer.C
-LocalTimeSlice.C
 Log.C
 NearSymmetricSolver.C
-NlDriverImpl.C
 NlDynamOps.C
-NlDynamPostProcessor.C
 NlDynamTimeIntegrator.C
 NlPostProcessor.C
 NlSeedInitializerImpl.C
-NlTimeSlice.C
 PitaNonLinDynam.C
 PivotedCholeskySolver.C
 PostProcessingManager.C
@@ -48,15 +40,10 @@ RemoteDynamPropagatorServer.C
 RemoteSeedInitializerProxy.C
 RemoteStateMpiImpl.C
 RemoteStateTask.C
-RemoteTimeSlice.C
 SeedErrorEvaluator.C
 SeedUpdater.C
 SimpleSeedInitializer.C
 TimedExecution.C
-TimeSlice.C
-TimeSliceImpl.C
-TimeSliceMapping.C
-TimeSliceNetwork.C
 UpdatedSeedAssemblerImpl.C
 lev2pchol.f
 lev3pchol.f

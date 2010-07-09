@@ -18,6 +18,9 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *domain) :
 void
 PitaNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
+  
+  K = domain->constructDBSparseMatrix<double>();
+  
   computeTimeInfo();
  
   kiter = domain->solInfo().kiter;
@@ -68,16 +71,11 @@ void PitaNonLinDynamic::reBuildKonly()
 {
   times->rebuild -= getTime();
 
-  int iele;
-
-  if (kuc) kuc->zeroAll();
-  if (K) K->zeroAll();
+  K->zeroAll();
 
   Connectivity *allDofs = domain->getAllDOFs();
-  for( iele = 0; iele < domain->numElements(); ++iele)
-  {
-    if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );
-    if (K) K->add( kelArray[iele], (*allDofs)[iele] );
+  for (int iele = 0; iele < domain->numElements(); ++iele) {
+    K->add(kelArray[iele], (*allDofs)[iele]);
   }
 
   times->rebuild += getTime();
@@ -101,13 +99,6 @@ void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
       if (dofPos >= 0)
         vec[dofPos] = 0.0;
   }
-}
-
-void PitaNonLinDynamic::buildOps(AllOps<double> & allOps, double Kcoef, double Mcoef, double Ccoef, Rbm * rigidBodyModes)
-{
-  allOps.K = domain->constructDBSparseMatrix<double>();
-  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, rigidBodyModes);
-  K = allOps.K;
 }
 
 double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)

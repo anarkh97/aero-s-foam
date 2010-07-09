@@ -54,10 +54,6 @@ protected:
   int numTS;                     // Total number of time-slices 
   double coarseDt, coarseDelta;  // Coarse time parameters
   int baseImprovementMethod;     // 0 = all seeds (global), 1 = increments only (local)
-
-private:
-  // Overloaded method, to build the stiffness matrix during NonLinDynamic::preProcess() 
-  void buildOps(AllOps<double> &, double, double, double, Rbm *);
 };
 
 } // end namespace Pita

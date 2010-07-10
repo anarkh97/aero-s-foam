@@ -10,31 +10,27 @@ namespace Pita { namespace Hts {
 /* LinearLocalNetwork Constructor */
 
 LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
-                           CpuRank localCpu,
-                           HalfTimeSlice::Manager * sliceMgr,
-                           ReducedCorrectionManager * redCorrMgr,
-                           RemoteState::Manager * commMgr,
-                           SeedErrorEvaluator::Manager * jumpErrorMgr) :
-  mapping_(mapping),
-  localCpu_(localCpu),
+                                       HalfTimeSlice::Manager * sliceMgr,
+                                       ReducedCorrectionManager * redCorrMgr,
+                                       RemoteState::Manager * commMgr,
+                                       SeedErrorEvaluator::Manager * jumpErrorMgr) :
+  LocalNetwork(mapping, commMgr),
   sliceMgr_(sliceMgr),
   redCorrMgr_(redCorrMgr),
-  commMgr_(commMgr),
   jumpErrorMgr_(jumpErrorMgr),
-  fullSeedGetter_(Seed::Manager::New()),
-  reducedSeedGetter_(ReducedSeed::Manager::New()),
-  fullCorrectionBuilder_(mapping, redCorrMgr->fcpMgr(), commMgr, fullSeedGetter_),
-  reducedCorrectionBuilder_(mapping, redCorrMgr->rcpMgr(), commMgr, reducedSeedGetter_),
+  fullCorrectionBuilder_(mapping, redCorrMgr->fcpMgr(), commMgr, fullSeedGetter()),
+  reducedCorrectionBuilder_(mapping, redCorrMgr->rcpMgr(), commMgr, reducedSeedGetter()),
   noCorrectionMgr_(NoCorrectionManager::New())
 {
   init();
+  setStatus(ACTIVE);
 }
 
 /* Task building - Helper classes */
 
 void
 LinearLocalNetwork::init() {
-  for (SliceMapping::SliceIterator it = mapping_->hostedSlice(localCpu()); it; ++it) {
+  for (SliceMapping::SliceIterator it = hostedSlice(localCpu()); it; ++it) {
     HalfSliceRank primalSliceRank = *it;
     HalfSliceRank dualSliceRank = primalSliceRank.next();
   
@@ -50,9 +46,9 @@ void
 LinearLocalNetwork::buildForwardPropagation(HalfSliceRank sliceRank) {
   HalfSliceRank nextSliceRank = sliceRank.next();
   HalfTimeSlice::Ptr forwardSlice = sliceMgr_->instanceNew(HalfSliceId(sliceRank, HalfTimeSlice::FORWARD));
-  Seed::Ptr mainSeed = fullSeedGetter_(SeedId(MAIN_SEED, sliceRank));
+  Seed::Ptr mainSeed = fullSeedGet(SeedId(MAIN_SEED, sliceRank));
   forwardSlice->seedIs(mainSeed.ptr());
-  forwardSlice->propagatedSeedIs(fullSeedGetter_(SeedId(LEFT_SEED, nextSliceRank)));
+  forwardSlice->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, nextSliceRank)));
   halfTimeSlice_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, forwardSlice));
 
   mainSeed_[sliceRank] = mainSeed;
@@ -62,10 +58,10 @@ void
 LinearLocalNetwork::buildBackwardPropagation(HalfSliceRank sliceRank) {
   HalfSliceRank previousSliceRank = sliceRank.previous();
   HalfTimeSlice::Ptr backwardSlice = sliceMgr_->instanceNew(HalfSliceId(previousSliceRank, HalfTimeSlice::BACKWARD));
-  Seed::Ptr mainSeed = fullSeedGetter_(SeedId(MAIN_SEED, sliceRank));
+  Seed::Ptr mainSeed = fullSeedGet(SeedId(MAIN_SEED, sliceRank));
   backwardSlice->seedIs(mainSeed.ptr());
-  backwardSlice->propagatedSeedIs(fullSeedGetter_(SeedId(RIGHT_SEED, previousSliceRank)));
-  halfTimeSlice_[sliceRank.value() % 2].insert(std::make_pair(sliceRank.next(), backwardSlice));
+  backwardSlice->propagatedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, previousSliceRank)));
+  halfTimeSlice_[sliceRank.value() % 2].insert(std::make_pair(sliceRank.previous(), backwardSlice));
 
   mainSeed_[sliceRank] = mainSeed;
 }
@@ -90,7 +86,7 @@ LinearLocalNetwork::buildPrimalCorrectionNetwork(HalfSliceRank sliceRank) {
 void
 LinearLocalNetwork::buildDualCorrectionNetwork(HalfSliceRank sliceRank) {
   // Entirely parallel (provides support for the primal network)
-  if (sliceRank < mapping_->firstInactiveSlice()) {
+  if (sliceRank < firstInactiveSlice()) {
     buildPropagatedSeedSend(sliceRank);
   }
 
@@ -102,12 +98,12 @@ LinearLocalNetwork::buildDualCorrectionNetwork(HalfSliceRank sliceRank) {
 void
 LinearLocalNetwork::buildPropagatedSeedRecv(HalfSliceRank sliceRank) {
   HalfSliceRank previousSliceRank = sliceRank.previous();
-  CpuRank previousCpu = mapping_->hostCpu(previousSliceRank);
+  CpuRank previousCpu = hostCpu(previousSliceRank);
 
   assert(previousCpu != CpuRank(-1));
 
   if (previousCpu != localCpu()) {
-    RemoteState::SeedWriter::Ptr writer = commMgr_->writerNew(fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)), previousCpu);
+    RemoteState::SeedWriter::Ptr writer = commMgr()->writerNew(fullSeedGet(SeedId(LEFT_SEED, sliceRank)), previousCpu);
     if (writer) {
       String taskName = String("Receive Propagated Seed ") + toString(sliceRank);
       RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
@@ -118,15 +114,15 @@ LinearLocalNetwork::buildPropagatedSeedRecv(HalfSliceRank sliceRank) {
 
 void
 LinearLocalNetwork::buildPropagatedSeedSend(HalfSliceRank sliceRank) {
-  if (sliceRank < mapping_->firstInactiveSlice()) {
-    assert(mapping_->hostCpu(sliceRank.previous()) == localCpu());
+  if (sliceRank < firstInactiveSlice()) {
+    assert(hostCpu(sliceRank.previous()) == localCpu());
 
-    CpuRank targetCpu(mapping_->hostCpu(sliceRank));
+    CpuRank targetCpu(hostCpu(sliceRank));
 
     assert(targetCpu != CpuRank(-1));
     
     if (targetCpu != localCpu()) {
-      RemoteState::SeedReader::Ptr reader = commMgr_->readerNew(fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)), targetCpu);
+      RemoteState::SeedReader::Ptr reader = commMgr()->readerNew(fullSeedGet(SeedId(LEFT_SEED, sliceRank)), targetCpu);
       if (reader) {
         String taskName = String("Send Propagated Seed ") + toString(sliceRank);
         RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
@@ -141,10 +137,10 @@ LinearLocalNetwork::buildJumpBuilder(HalfSliceRank sliceRank) {
   String taskName = toString(sliceRank);
   JumpProjector::Ptr task = redCorrMgr_->jumpProjMgr()->instanceNew(taskName);
 
-  task->predictedSeedIs(fullSeedGetter_(SeedId(RIGHT_SEED, sliceRank)));
-  task->actualSeedIs(fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)));
-  task->seedJumpIs(fullSeedGetter_(SeedId(SEED_JUMP, sliceRank)));
-  task->reducedSeedJumpIs(reducedSeedGetter_(SeedId(SEED_JUMP, sliceRank)));
+  task->predictedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, sliceRank)));
+  task->actualSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
+  task->seedJumpIs(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
+  task->reducedSeedJumpIs(reducedSeedGet(SeedId(SEED_JUMP, sliceRank)));
 
   jumpProjector_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
 }
@@ -152,8 +148,8 @@ LinearLocalNetwork::buildJumpBuilder(HalfSliceRank sliceRank) {
 
 void
 LinearLocalNetwork::buildJumpEstimator(HalfSliceRank sliceRank) {
-  SeedErrorEvaluator::Ptr jumpErrorEvaluator = jumpErrorMgr_->instanceNew(fullSeedGetter_(SeedId(SEED_JUMP, sliceRank)));
-  jumpErrorEvaluator->referenceSeedIs(fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)));
+  SeedErrorEvaluator::Ptr jumpErrorEvaluator = jumpErrorMgr_->instanceNew(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
+  jumpErrorEvaluator->referenceSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
 }
 
 void
@@ -164,13 +160,13 @@ LinearLocalNetwork::buildSeedUpdater(HalfSliceRank sliceRank) {
   if (!task) {
     task = redCorrMgr_->usaMgr()->instanceNew(taskName);
 
-    task->correctionIs(fullSeedGetter_(SeedId(SEED_CORRECTION, sliceRank)));
-    task->propagatedSeedIs(fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)));
-    task->updatedSeedIs(fullSeedGetter_(SeedId(MAIN_SEED, sliceRank)));
-    task->correctionComponentsIs(reducedSeedGetter_(SeedId(SEED_CORRECTION, sliceRank)));
+    task->correctionIs(fullSeedGet(SeedId(SEED_CORRECTION, sliceRank)));
+    task->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
+    task->updatedSeedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank)));
+    task->correctionComponentsIs(reducedSeedGet(SeedId(SEED_CORRECTION, sliceRank)));
 
-    noCorrectionMgr_->notifierAdd(fullSeedGetter_(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)));
-    noCorrectionMgr_->notifierAdd(reducedSeedGetter_(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGetter_(SeedId(LEFT_SEED, sliceRank)));
+    noCorrectionMgr_->notifierIs(fullSeedGet(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
+    noCorrectionMgr_->notifierIs(reducedSeedGet(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
 
     seedAssembler_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
   }
@@ -220,7 +216,7 @@ LinearLocalNetwork::buildFullCorrectionPropagator(HalfSliceRank sliceRank) {
 
 void
 LinearLocalNetwork::convergedSlicesInc() {
-  mapping_->convergedSlicesInc();
+  LocalNetwork::convergedSlicesInc();
   
   mainSeed_.erase(mainSeed_.begin(), mainSeed_.lower_bound(firstActiveSlice()));
   
@@ -301,7 +297,7 @@ LinearLocalNetwork::getActive(const TaskMap task[2]) const {
 }
 
 LinearLocalNetwork::TaskList
-LinearLocalNetwork::getAll(const TaskMap & task) const {
+LinearLocalNetwork::getAll(const TaskMap & task) {
   TaskList result;
 
   TaskMap::const_iterator it_end = task.end();
@@ -323,7 +319,7 @@ LinearLocalNetwork::activeMainSeeds() const {
 
   SeedMap::const_iterator it_end = mainSeed_.end();
   for (SeedMap::const_iterator it = mainSeed_.begin(); it != it_end; ++it) {
-    if ((it->first.value() - mapping_->firstActiveSlice().value()) % 2 == 0) {
+    if ((it->first.value() - firstActiveSlice().value()) % 2 == 0) {
       msp.insert(msp.end(), std::make_pair(SliceRank(it->first.value() / 2), it->second));
     }
   }

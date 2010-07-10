@@ -64,7 +64,7 @@ PropagatorReactor::onInitialState() {
     }
   }
   
-  if (const IntegratorPropagator * downcasted = dynamic_cast<const IntegratorPropagator *>(notifier_)) {
+  if (const IntegratorPropagatorRoot * downcasted = dynamic_cast<const IntegratorPropagatorRoot *>(notifier_)) {
     if (const DynamTimeIntegrator * integrator = downcasted->integrator()) {
       integratorReactor_ = parent_->reactorBuilder()->reactorNew(integrator, fileSet_);
     }

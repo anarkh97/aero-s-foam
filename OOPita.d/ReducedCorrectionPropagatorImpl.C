@@ -9,8 +9,8 @@ namespace Pita {
 // ReducedCorrectionPropagatorImpl implementation
 
 ReducedCorrectionPropagatorImpl::ReducedCorrectionPropagatorImpl(const String & name,
-                                                   const FullSquareMatrix * reprojectionMatrix,
-                                                   const RankDeficientSolver * projectionSolver):
+                                                                 const FullSquareMatrix * reprojectionMatrix,
+                                                                 const RankDeficientSolver * projectionSolver):
   CorrectionPropagator<Vector>(name),
   reprojectionMatrix_(reprojectionMatrix),
   projectionSolver_(projectionSolver)

@@ -171,7 +171,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(), sliceRatio_, initialTime_);
 
   // Point-to-point communication
-  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm);
+  RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   // Tasks
   TaskManager::Ptr taskMgr;
@@ -283,10 +283,6 @@ ReducedLinearDriverImpl::buildCoarseIntegrator() const {
 
 CorrectionPropagator<DynamState>::Manager::Ptr
 ReducedLinearDriverImpl::buildCoarseCorrection(Communicator * coarseComm) const {
-  if (noForce_) {
-    return NULL;
-  }
-
   DynamPropagator::Ptr coarsePropagator = buildCoarsePropagator(!remoteCoarse_, coarseComm);
   return FullCorrectionPropagatorImpl::Manager::New(coarsePropagator.ptr());
 }

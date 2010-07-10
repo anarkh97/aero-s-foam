@@ -151,12 +151,14 @@ public:
 
   SimpleBuffer<double> * sharedBuffer() { return &sharedBuffer_; }
   
-  static Ptr New(Communicator * comm) {
-    return new MpiManager(comm);
+  static Ptr New(Communicator * comm, size_t vectorSize) {
+    return new MpiManager(comm, vectorSize);
   }
 
 protected:
-  explicit MpiManager(Communicator * comm);
+  MpiManager(Communicator * comm, size_t vectorSize);
+
+  static int computeBufferSize(size_t vectorSize) { return 2 * vectorSize + 2; }
 
 private:
   Communicator * communicator_;

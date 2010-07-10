@@ -27,7 +27,8 @@ JumpBuilder::updateJump() {
 
 JumpBuilder *
 JumpBuilder::ManagerImpl::createNewInstance(const String & key) {
-  return new JumpBuilder(key);
+  String taskName = "JumpBuilder " + toString(key);
+  return new JumpBuilder(taskName);
 }
 
 } /* end namespace */

@@ -31,4 +31,9 @@ SeedUpdater::vectorSize() const {
   return propagatedSeed() ? propagatedSeed()->state().vectorSize() : 0; 
 }
 
+SeedUpdater *
+SeedUpdater::ManagerImpl::createNewInstance(const String & key) {
+  return new SeedUpdater(String("Seed Updater ") + key);
+}
+
 } /* end namespace Pita */

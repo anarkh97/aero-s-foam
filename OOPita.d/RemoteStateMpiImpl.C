@@ -182,11 +182,11 @@ MpiReducedSeedWriter::statusIs(Status s) {
 
 /* MpiManager implementation */
 
-MpiManager::MpiManager(Communicator * comm) :
+MpiManager::MpiManager(Communicator * comm, size_t vectorSize) :
   communicator_(comm),
-  vectorSize_(0),
+  vectorSize_(vectorSize),
   reducedStateSize_(0),
-  sharedBuffer_(0),
+  sharedBuffer_(computeBufferSize(vectorSize)),
   seedReaderMgr_(SeedReaderFactory(this)),
   reducedSeedReaderMgr_(ReducedSeedReaderFactory(this)),
   seedWriterMgr_(SeedWriterFactory(this)),
@@ -257,9 +257,10 @@ void
 MpiManager::writerDel(ReducedSeed * target, CpuRank originCpu) {
   reducedSeedWriterMgr_.instanceDel(ActivityId<ReducedSeed>(target, originCpu));
 }
+
 void
 MpiManager::vectorSizeIs(size_t vSize) {
-  sharedBuffer_.sizeIs(2 * vSize + 2);
+  sharedBuffer_.sizeIs(computeBufferSize(vSize));
 
   SeedWriterMgr::Iterator it_end = seedWriterMgr_.instanceEnd();
   for (SeedWriterMgr::Iterator it = seedWriterMgr_.instanceBegin(); it != it_end; ++it) {

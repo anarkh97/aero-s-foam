@@ -14,8 +14,25 @@ typedef Fwk::Numeric<TimeStep, int> TimeStepCount;
 class TimeSlice;
 typedef Fwk::Numeric<TimeSlice, int> SliceCount;
 
-class TimeSliceRankFix;
-typedef Fwk::Numeric<TimeSliceRankFix, int> SliceRank;
+class SliceRank : public Fwk::Interval<TimeSlice, int, SliceCount> {
+public:
+  explicit SliceRank(int v = 0) : Fwk::Interval<TimeSlice, int, SliceCount>(v) {}
+
+  SliceRank next() const { return SliceRank(value() + 1); }
+  SliceRank previous() const { return SliceRank(value() - 1); }
+};
+
+inline
+SliceRank
+operator+(const SliceRank & a, const SliceCount & d) {
+  return SliceRank(a.value() + d.value());
+}
+
+inline 
+SliceRank
+operator-(const SliceRank & a, const SliceCount & d) {
+  return SliceRank(a.value() - d.value());
+}
 
 class Cpu;
 typedef Fwk::Numeric<Cpu, int> CpuCount;
@@ -38,18 +55,6 @@ class IterationRank : public Fwk::Ordinal<IterationRank, int> {
 public:
   explicit IterationRank(int rank = 0) : Fwk::Ordinal<IterationRank, int>(rank) {}
   IterationRank next() const { return IterationRank(value() + 1); }
-};
-
-class PhaseRank : public Fwk::Ordinal<PhaseRank, int> {
-public:
-  explicit PhaseRank(int rank = 0) : Fwk::Ordinal<PhaseRank, int>(rank) {}
-
-  static PhaseRank none() { return PhaseRank(0); }
-  static PhaseRank correction() { return PhaseRank(1); }
-  static PhaseRank convergence() { return PhaseRank(2); }
-  static PhaseRank basisUpdate() { return PhaseRank(3); }
-  static PhaseRank globalCommunication() { return PhaseRank(4); }
-  static PhaseRank fineGrid() { return PhaseRank(5); }
 };
 
 } /* end namespace Pita */

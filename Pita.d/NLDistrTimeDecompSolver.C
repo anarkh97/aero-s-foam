@@ -324,7 +324,7 @@ void NLDistrTimeDecompSolver::computeCorrection()
 {
   probDesc->pitaTimers.start("Correction");
 
-  int bufferSize = 2 * getProbSize() + 1;
+  int bufferSize = 2 * getProbSize();
   seedBuffer.size(bufferSize);
   
   DynamState<DataType> currState(getProbSize());
@@ -349,8 +349,6 @@ void NLDistrTimeDecompSolver::computeCorrection()
         recInfo = timeCom->recFrom<DataType>(currSliceRank, seedBuffer.array(), bufferSize);
         probDesc->pitaTimers.stop();
         currState.setRaw(seedBuffer.array());
-        // Get number of converged slices
-        sliceMap->numCvgSlices(int(floor(seedBuffer[bufferSize - 1])));
       }
       it->seedState = currState;
       if (it->active) // TS is already active : Compute correction
@@ -358,17 +356,12 @@ void NLDistrTimeDecompSolver::computeCorrection()
         probDesc->pitaTimers.start("Update");
         computeSliceUpdate(*it);
         probDesc->pitaTimers.stop();
-        if (it->converged && sliceMap->numCvgSlices() == currSliceRank)
-        {
-          sliceMap->incrementNumCvgSlices();
-          convergenceFlag = true;
-        }
       }
       else // TS is not currently active : Initialize and activate
       {
         it->locDispOG = currState.disp();
         it->locTimeOG = it->initialTime;
-        it->active;
+        it->active = true;
         coarseIntegrator(*it);
       }
     }
@@ -378,7 +371,6 @@ void NLDistrTimeDecompSolver::computeCorrection()
       trivialSliceUpdate(*it);
       probDesc->pitaTimers.stop();
       it->active = false;
-      sliceMap->incrementNumCvgSlices();
       convergenceFlag = true;
     }
 
@@ -389,8 +381,6 @@ void NLDistrTimeDecompSolver::computeCorrection()
     {
       // Send final value
       currState.getRaw(seedBuffer.array());
-      // Send number of converged slices
-      seedBuffer[bufferSize - 1] = DataType(sliceMap->numCvgSlices());
       //fprintf(stderr, "CPU #%d is sending to CPU #%d the seed of TS #%d\n", myCPU, sliceMap->numCPU(currSliceRank), currSliceRank);
       timeCom->sendTo<DataType>(sliceMap->numCPU(currSliceRank), currSliceRank, seedBuffer.array(), bufferSize);
     }
@@ -404,6 +394,7 @@ void NLDistrTimeDecompSolver::computeCorrection()
   }
 
   timeCom->waitForAllReq();
+  sliceMap->incrementNumCvgSlices();
   probDesc->pitaTimers.stop();
 }
 
@@ -434,7 +425,7 @@ void NLDistrTimeDecompSolver::coarseIntegrator(NLTimeSlice & timeSlice)
   getIntegratorState(timeSlice.nextSeedState);
   probDesc->pitaTimers.stop(); // End Coarse Grid Time Integration
 }
-                                                                                                                                                                                                     
+
 void NLDistrTimeDecompSolver::fineIntegrator(NLTimeSlice & timeSlice)
 {
   probDesc->pitaTimers.start("Fine Time-Grid Integration");

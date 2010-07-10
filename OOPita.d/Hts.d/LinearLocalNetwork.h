@@ -20,11 +20,12 @@
 #include <deque>
 #include <cassert>
 
+#include "LocalNetwork.h"
 #include "LocalNetworkImpl.h"
 
 namespace Pita { namespace Hts {
 
-using namespace LocalNetwork;
+using namespace LocalNetworkImpl;
 
 class ReducedCorrectionManager : public Fwk::PtrInterface<ReducedCorrectionManager> {
 public:
@@ -55,27 +56,12 @@ private:
 };
 
 
-class LinearLocalNetwork : public Fwk::PtrInterface<LinearLocalNetwork> {
+class LinearLocalNetwork : public LocalNetwork {
 public:
   EXPORT_PTRINTERFACE_TYPES(LinearLocalNetwork);
-
-  typedef std::map<HalfSliceRank, NamedTask::Ptr> TaskMap;
-  typedef std::deque<NamedTask::Ptr> TaskList;
-
-  typedef std::map<HalfSliceRank, Seed::Ptr> SeedMap;
-  typedef std::map<SliceRank, Seed::Ptr> MainSeedMap;
-  
-  /* Basic info */
-  FullSliceCount totalFullSlices() const { return mapping_->totalFullSlices(); }
-  CpuCount availableCpus() const { return mapping_->availableCpus(); }
-  HalfSliceCount maxWorkload() const { return mapping_->maxWorkload(); }
-  CpuRank localCpu() const { return localCpu_; }
-
-  /* Current state */
-  HalfSliceRank firstActiveSlice() const { return mapping_->firstActiveSlice(); }
-  HalfSliceRank firstInactiveSlice() const { return mapping_->firstInactiveSlice(); }
-  HalfSliceCount convergedSlices() const { return mapping_->convergedSlices(); }
-  void convergedSlicesInc();
+ 
+  virtual void statusIs(Status s) { /* TODO */ }
+  virtual void convergedSlicesInc(); // overriden
 
   /* Local network elements */
   TaskList halfTimeSlices() const;
@@ -94,11 +80,10 @@ public:
   MainSeedMap activeMainSeeds() const;
 
   LinearLocalNetwork(SliceMapping * mapping,
-               CpuRank localCpu,
-               HalfTimeSlice::Manager * sliceMgr,
-               ReducedCorrectionManager * redCorrMgr,
-               RemoteState::Manager * commMgr,
-               SeedErrorEvaluator::Manager * jumpErrorMgr);
+                     HalfTimeSlice::Manager * sliceMgr,
+                     ReducedCorrectionManager * redCorrMgr,
+                     RemoteState::Manager * commMgr,
+                     SeedErrorEvaluator::Manager * jumpErrorMgr);
 
 protected:
   void init();
@@ -125,16 +110,11 @@ protected:
 
   void eraseInactive(TaskMap & task) { task.erase(task.begin(), task.lower_bound(firstActiveSlice())); }
   TaskList getActive(const TaskMap task[2]) const;
-  TaskList getAll(const TaskMap & task) const;
+  static TaskList getAll(const TaskMap & task);
 
 private:
-  SliceMapping::Ptr mapping_;
-  CpuRank localCpu_;
-
   HalfTimeSlice::Manager::Ptr sliceMgr_;
   ReducedCorrectionManager::Ptr redCorrMgr_;
-
-  RemoteState::Manager::Ptr commMgr_;
   
   TaskMap halfTimeSlice_[2];
   TaskMap jumpProjector_[2];
@@ -151,9 +131,6 @@ private:
 
   SeedErrorEvaluator::Manager::Ptr jumpErrorMgr_;
   
-  SeedGetter<DynamState> fullSeedGetter_;
-  SeedGetter<Vector> reducedSeedGetter_;
-
   CorrectionPropagatorBuilder<DynamState> fullCorrectionBuilder_;
   CorrectionPropagatorBuilder<Vector> reducedCorrectionBuilder_;
 

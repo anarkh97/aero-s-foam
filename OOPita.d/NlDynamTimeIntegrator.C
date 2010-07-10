@@ -57,8 +57,10 @@ NlDynamTimeIntegrator::~NlDynamTimeIntegrator() {
 
 void
 NlDynamTimeIntegrator::timeStepSizeIs(Seconds dt) {
-  updateDelta(dt.value());
-  setTimeStepSize(dt);
+  if (dt != timeStepSize()) { 
+    updateDelta(dt.value());
+    setTimeStepSize(dt);
+  }
 }
 
 void

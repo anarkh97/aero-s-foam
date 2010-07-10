@@ -22,8 +22,13 @@ public:
   HalfSliceCount maxWorkload() const;
 
   HalfSliceCount activeSlices() const;
+  HalfSliceCount activeSlices(CpuRank cpu) const;
+
   HalfSliceRank firstActiveSlice() const;
   HalfSliceRank firstInactiveSlice() const;
+
+  FullSliceCount activePrimalSlices() const;
+  FullSliceCount activeDualSlices() const;
 
   HalfSliceCount convergedSlices() const;
   void convergedSlicesInc(HalfSliceCount increment = HalfSliceCount(1));

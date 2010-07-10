@@ -4,7 +4,6 @@
 #include "Fwk.h"
 #include "Types.h"
 #include "../Seed.h"
-#include "../Activity.h"
 #include "../NamedTask.h"
 
 namespace Pita { namespace Hts {
@@ -16,11 +15,10 @@ class HalfTimeSlice : public NamedTask {
 public:
   EXPORT_PTRINTERFACE_TYPES(HalfTimeSlice);
 
-  enum Direction {
-    NO_DIRECTION = 0,
-    FORWARD,
-    BACKWARD
-  };
+  typedef ::Pita::Hts::Direction Direction;
+  static const Direction NO_DIRECTION = ::Pita::Hts::NO_DIRECTION;
+  static const Direction FORWARD = ::Pita::Hts::FORWARD;
+  static const Direction BACKWARD = ::Pita::Hts::BACKWARD;
   
   typedef Fwk::GenManagerInterface<HalfTimeSlice *, HalfSliceId> Manager;
 

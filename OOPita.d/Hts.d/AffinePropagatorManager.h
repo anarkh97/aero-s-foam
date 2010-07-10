@@ -1,5 +1,5 @@
-#ifndef PITA_HTS_PROPAGATOR_MANAGER
-#define PITA_HTS_PROPAGATOR_MANAGER
+#ifndef PITA_HTS_AFFINEPROPAGATOR_MANAGER
+#define PITA_HTS_AFFINEPROPAGATOR_MANAGER
 
 #include "Fwk.h"
 #include "Types.h"
@@ -16,9 +16,9 @@ namespace Pita { namespace Hts {
 
 // DynamPropagator::Manager implementation for Pita HalfSlice problems
 // Attach the necessary Reactors to the produced propagators
-class PropagatorManager : public Fwk::GenManagerInterface<AffineDynamPropagator*, HalfSliceId> {
+class AffinePropagatorManager : public Fwk::GenManagerInterface<AffineDynamPropagator*, HalfSliceId> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(PropagatorManager);
+  EXPORT_PTRINTERFACE_TYPES(AffinePropagatorManager);
  
   virtual AffineDynamPropagator * instance(const HalfSliceId & id) const;
   virtual size_t instanceCount() const;
@@ -31,15 +31,15 @@ public:
                  PostProcessing::Manager * postProcessingMgr,
                  TimeStepCount halfSliceRatio,
                  Seconds initialTime) {
-    return new PropagatorManager(collector, integratorMgr, postProcessingMgr, halfSliceRatio, initialTime);
+    return new AffinePropagatorManager(collector, integratorMgr, postProcessingMgr, halfSliceRatio, initialTime);
   }
 
 protected:
-  PropagatorManager(BasisCollector * collector,
-                    GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
-                    PostProcessing::Manager * postProcessingMgr,
-                    TimeStepCount halfSliceRatio,
-                    Seconds initialTime);
+  AffinePropagatorManager(BasisCollector * collector,
+                          GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
+                          PostProcessing::Manager * postProcessingMgr,
+                          TimeStepCount halfSliceRatio,
+                          Seconds initialTime);
 
 private:
   BasisCollector * collector_;
@@ -49,9 +49,9 @@ private:
   TimeStepCount halfSliceRatio_;
   Seconds initialTime_;
 
-  DISALLOW_COPY_AND_ASSIGN(PropagatorManager);
+  DISALLOW_COPY_AND_ASSIGN(AffinePropagatorManager);
 };
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HTS_PROPAGATOR_MANAGER */
+#endif /* PITA_HTS_AFFINEPROPAGATOR_MANAGER */

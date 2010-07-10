@@ -73,7 +73,7 @@ void PitaNonLinDynamic::reBuildKonly()
   if (kuc) kuc->zeroAll();
   if (K) K->zeroAll();
 
-  Connectivity *allDofs = solver->getAllDofs();
+  Connectivity *allDofs = domain->getAllDOFs();
   for( iele = 0; iele < domain->numElements(); ++iele)
   {
     if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );

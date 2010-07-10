@@ -155,7 +155,7 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
-  void _FORTRAN(gethistvar3d)(int&, int&, int&, double*, double*, double*, double*, double*, double*, double*)
+  void _FORTRAN(gethistvar3d)(int&, int&, int&, double*, double*, double*, double*, double*, double*, double*);
   void _FORTRAN(elefinthypobt1)(int&, int*, double*, double&, double*, int&, int&, int&,
                                 double*, double*, double*, double*, double*, double*,
                                 double*, double*, double*, double*);

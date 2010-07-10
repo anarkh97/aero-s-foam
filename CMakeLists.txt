@@ -6,6 +6,7 @@ PROJECT (FEM)
 
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
+set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} "-ffree-line-length-none")
 
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic

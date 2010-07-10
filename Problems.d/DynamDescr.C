@@ -802,7 +802,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray);
  else
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray);
-   
+
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
  if(useRbmFilter == 2)

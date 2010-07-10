@@ -118,15 +118,15 @@ extern map<int,double > weightList;
 #include <Element.d/DEM.d/DEMLE2d.h>
 #include <Element.d/DEM.d/DEMLE3d.h>
 
-//ADDED FOR SLOSHING PROBLEM, EC, 20070713
 #include <Element.d/FluidQuad.d/SloshQuadGal.h> 
 #include <Element.d/FluidQuad.d/BarSloshFS.h>
 #include <Element.d/FluidTetra.d/SloshTetra.h> 
 #include <Element.d/FluidTriangle3.d/SloshTriangleFS.h> 
 
-//ADDED FOR HEV PROBLEM, EC, 20070815
 #include <Element.d/FluidQuad.d/HEVibQuadGal.h> 
 #include <Element.d/FluidTetra.d/HEVibTetra.h> 
+
+#include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
 #include <Driver.d/Domain.h>
 extern Domain *domain;
@@ -199,6 +199,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 11:
        ele = new (ba) TorSpring(n);
+       break;
+     case 16:
+       ele = new (ba) BelytschkoTsayShell(n);
        break;
      case 17:
        ele = new (ba) EightNodeBrick(n);

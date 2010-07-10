@@ -2684,7 +2684,7 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
 
   // organize displacements
   if (sinfo.HEV) numNodeLim = myMax(numNodes,numnodes); 
-  else numNodeLim = numnodes;
+  else numNodeLim = numNodes; // XXXX
     
   Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;

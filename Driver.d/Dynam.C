@@ -447,12 +447,11 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                          double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
-  // XXXX numnodes is no longer reliable since it comes from the reduced node to node for direct mpcs
-  double (*glDisp)[11] = new double[numnodes][11];//DofSet::max_known_nonL_dof
-  for (int i = 0; i < numnodes; ++i)
+  double (*glDisp)[11] = new double[nodes.size()][11];//DofSet::max_known_nonL_dof
+  for (int i = 0; i < nodes.size(); ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
-  /*int exactNumNodes =*/ mergeDistributedDisp(glDisp, d_n.data(), bcx);
+  mergeDistributedDisp(glDisp, d_n.data(), bcx);
 
   for (int i = firstRequest; i < lastRequest; ++i) {
     enum {YOUNG,MDENS,THICK};

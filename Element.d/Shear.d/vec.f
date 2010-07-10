@@ -23,13 +23,13 @@ c
       do 10 i=1,3
         w(i) = v(i)-u(i)
  10   continue
-      call normv(w)
+      call normve(w)
 c
       return
       end
 c
 c***********************************************************************
-      subroutine normv(u)
+      subroutine normve(u)
 c     make vector into unit vector
 c
       real*8     u(3)

@@ -547,6 +547,8 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
          xn[2][i] = r3[i];
        }
 
+     double mcoef = 8; // 12 ???
+
      if(!geomState) {
 
        // compute unit normal to shell surface
@@ -585,7 +587,8 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            crossprod( normal, v1, v2 );
            normalize( v2 );
 
-           double lmy = -pressureForce*length/12.0;
+           double lmy = -pressureForce*length/mcoef; // mcoef = 8 seems to work better for cylinder shell model
+
            mx[n1] += (v2[0]*lmy);
            my[n1] += (v2[1]*lmy);
            mz[n1] += (v2[2]*lmy);
@@ -652,28 +655,28 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
         elPressureForce[0]  = 0;
         elPressureForce[1]  = 0;
         elPressureForce[2]  = pressureForce;
-        elPressureForce[3]  = cflg*pressureForce*( xl0[2][1] - xl0[0][1]
-                                                  +xl0[1][1] - xl0[0][1])/12;
-        elPressureForce[4]  = cflg*pressureForce*( xl0[0][0] - xl0[2][0]
-                                                  +xl0[0][0] - xl0[1][0])/12;
+        elPressureForce[3]  = static_cast<double>(cflg)*pressureForce*( xl0[2][1] - xl0[0][1]
+                                                  +xl0[1][1] - xl0[0][1])/mcoef;
+        elPressureForce[4]  = static_cast<double>(cflg)*pressureForce*( xl0[0][0] - xl0[2][0]
+                                                  +xl0[0][0] - xl0[1][0])/mcoef;
         elPressureForce[5]  = 0;
 
         elPressureForce[6]  = 0;
         elPressureForce[7]  = 0;
         elPressureForce[8]  = pressureForce;
-        elPressureForce[9]  = cflg*pressureForce*( xl0[0][1] - xl0[1][1]
-                                                  +xl0[2][1] - xl0[1][1])/12;
-        elPressureForce[10] = cflg*pressureForce*( xl0[1][0] - xl0[0][0]
-                                                  +xl0[1][0] - xl0[2][0])/12;
+        elPressureForce[9]  = static_cast<double>(cflg)*pressureForce*( xl0[0][1] - xl0[1][1]
+                                                  +xl0[2][1] - xl0[1][1])/mcoef;
+        elPressureForce[10] = static_cast<double>(cflg)*pressureForce*( xl0[1][0] - xl0[0][0]
+                                                  +xl0[1][0] - xl0[2][0])/mcoef;
         elPressureForce[11] = 0;
 
         elPressureForce[12] = 0;
         elPressureForce[13] = 0;
         elPressureForce[14] = pressureForce;
-        elPressureForce[15] = cflg*pressureForce*( xl0[1][1] - xl0[2][1]
-                                                  +xl0[0][1] - xl0[2][1])/12;
-        elPressureForce[16] = cflg*pressureForce*( xl0[2][0] - xl0[1][0]
-                                                  +xl0[2][0] - xl0[0][0])/12;
+        elPressureForce[15] = static_cast<double>(cflg)*pressureForce*( xl0[1][1] - xl0[2][1]
+                                                  +xl0[0][1] - xl0[2][1])/mcoef;
+        elPressureForce[16] = static_cast<double>(cflg)*pressureForce*( xl0[2][0] - xl0[1][0]
+                                                  +xl0[2][0] - xl0[0][0])/mcoef;
         elPressureForce[17] = 0;
 
      }

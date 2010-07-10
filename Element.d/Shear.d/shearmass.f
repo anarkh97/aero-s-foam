@@ -162,7 +162,7 @@ C
 C... Define perpindicular as cross between v2 and v3
 C
       call cross(v2,v3,v4)
-      call normv(v4)
+      call normve(v4)
       call length(v4,len)
       if (len .eq. 0.0)        then
         write(6,*)  'ERROR: subroutine shearmass.f'
@@ -173,12 +173,12 @@ C
 C... Cross v4 and v1 (Local Y axis = v2)
 C
       call cross(v4,v1,v2)
-      call normv(v2)
+      call normve(v2)
 C
 C... Cross v1 and v2 (Local Z axis = v3)
 C
       call cross(v1,v2,v3)
-      call normv(v3)
+      call normve(v3)
 C
 C... Compute Local Coordinates: store in "local"
 C

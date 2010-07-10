@@ -273,7 +273,6 @@ Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 void
 Shell3Corotator::getExternalForce(GeomState &geomState, CoordSet &cs, double *f)
 {
-
  int i;
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode( n1 );

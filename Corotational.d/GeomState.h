@@ -20,6 +20,7 @@ class NodeState {
     double R[3][3];      	        // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
+    NodeState() : vx(0), vy(0), vz(0) {}
 };
 
 

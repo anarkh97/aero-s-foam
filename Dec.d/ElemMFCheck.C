@@ -96,6 +96,8 @@
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
+#include  <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
+
 PrioInfo
 examineBar2(int sub, MultiFront *mf, int *nn)
 {
@@ -319,6 +321,13 @@ FourNodeQuad::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
 }
+
+PrioInfo
+BelytschkoTsayShell::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
+}
+
 
 PrioInfo
 HelmAxiQuad::examine(int sub, MultiFront *mf)

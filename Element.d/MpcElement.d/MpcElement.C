@@ -86,19 +86,20 @@ MpcElement::getMPCs()
 int
 MpcElement::numInternalNodes()
 {
-  return 1;
+  return (prop->lagrangeMult) ? 1 : 0;
 }
 
 void
 MpcElement::setInternalNodes(int* in)
 {
-  nn[nNodes] = in[0];
+  if(prop->lagrangeMult)
+    nn[nNodes] = in[0];
 }
 
 int
 MpcElement::numNodes()
 {
-  return nNodes+1;
+  return (prop->lagrangeMult) ? nNodes+1 : nNodes;
 }
 
 void
@@ -121,7 +122,7 @@ MpcElement::nodes(int* p)
 int
 MpcElement::numDofs()
 {
-  return nterms+1;
+  return (prop->lagrangeMult) ? nterms+1 : nterms;
 }
 
 int *
@@ -130,7 +131,8 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
   if(p == 0) p = new int[numDofs()];
   for(int i = 0; i < nterms; i++)
     dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
-  dsa.number(nn[nNodes], DofSet::Lagrange, p+nterms);
+  if(prop->lagrangeMult)
+    dsa.number(nn[nNodes], DofSet::Lagrange, p+nterms);
   return p;
 }
 
@@ -139,7 +141,8 @@ MpcElement::markDofs(DofSetArray &dsa)
 {
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
-  dsa.mark(nn[nNodes], DofSet::Lagrange);
+  if(prop->lagrangeMult)
+    dsa.mark(nn[nNodes], DofSet::Lagrange);
 }
 
 FullSquareMatrix
@@ -147,8 +150,10 @@ MpcElement::stiffness(CoordSet&, double* karray, int)
 {
   FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
-  for(int i = 0; i < nterms; ++i)
-    ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
+  if(prop->lagrangeMult) {
+    for(int i = 0; i < nterms; ++i)
+      ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
+  }
   return ret;
 }
 
@@ -164,23 +169,34 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   update(c1, c0); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  FullSquareMatrix H(nterms);
-  getHessian(c1, c0, H); // H is the hessian of the constraint function
-  double lambda = c1[nn[nNodes]].x;
-  for(int i = 0; i < nterms; ++i)
-    for(int j = 0; j < nterms; ++j) 
-      Ktan[i][j] += lambda*H[i][j];
-  for(int i = 0; i < nterms; ++i) {
-    Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
-    f[i] += lambda*terms[i].coef.r_value;
+  if(prop->lagrangeMult) {
+    FullSquareMatrix H(nterms);
+    getHessian(c1, c0, H); // H is the hessian of the constraint function
+    double lambda = c1[nn[nNodes]].x;
+    for(int i = 0; i < nterms; ++i)
+      for(int j = 0; j < nterms; ++j) 
+        Ktan[i][j] += lambda*H[i][j];
+    for(int i = 0; i < nterms; ++i) {
+      Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
+      f[i] += lambda*terms[i].coef.r_value;
+    }
+    f[nterms] = rhs.r_value; // value of the constraint function
   }
-  f[nterms] = rhs.r_value; // value of the constraint function
+  if(prop->penalty != 0) {
+    if(type == 0 || (type == 1 && rhs.r_value > 0)) {
+      for(int i = 0; i < nterms; ++i) {
+        // TODO Ktan contribution
+        f[i] += prop->penalty*rhs.r_value*terms[i].coef.r_value;
+      }
+    }
+  }
 }
 
 void 
 MpcElement::update(GeomState& c1, CoordSet& c2) 
 { 
-  rhs.r_value = 0; //original_rhs.r_value;
+  rhs.r_value = 0;
+  //rhs = original_rhs; // TODO check
   for(int i = 0; i < nterms; ++i) {
     double q[6] = { c1[terms[i].nnum].x, c1[terms[i].nnum].y, c1[terms[i].nnum].z, 0.0, 0.0, 0.0 };
     mat_to_vec(c1[terms[i].nnum].R, q+3);
@@ -197,6 +213,8 @@ MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H)
 void
 MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
 {
+  // this is only called for linear analysis
   for(int i = 0; i < nterms; ++i) f[i] = 0.0;
-  f[nterms] = rhs.r_value;
+  if(prop->lagrangeMult)
+    f[nterms] = rhs.r_value;
 }

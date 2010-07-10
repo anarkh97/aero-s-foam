@@ -13,7 +13,10 @@ class MpcElement : public Element, public Corotator, public LMPCons
   protected:
     int nNodes;              // number of nodes (not including "internal node")
     int *nn;                 // node numbers
-    int lagrangeType;        // 1: coordinate transformation, 2: Lagrange multipliers (default)
+    // for direct elimination / coordinate split / state space  set prop->lagrangeMult to false and prop->penalty to 0
+    // for lagrange multipliers method set prop->lagrangeMult to true and prop->penalty to 0
+    // for penalty method set prop->lagrangeMult to false and prop->penalty to some large number
+    // for augmented lagrangian method set prop->lagrangeMult to true and prop->penalty to some large number
 
     void addTerms(DofSet);
     void addTerms(DofSet*);

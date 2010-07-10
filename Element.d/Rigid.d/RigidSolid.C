@@ -2,6 +2,7 @@
 #include <Element.d/Joint.d/ConstantDistanceConstraint.h>
 
 RigidSolid::RigidSolid(int _nnodes, int* _nn)
+ : SuperElement(true)
 {
   if(_nnodes < 3) {
     cerr << " *** ERROR: minimum number of nodes is 3 for rigid solid. Exiting...\n";
@@ -73,13 +74,13 @@ RigidSolid::buildFrame(CoordSet& cs)
     }
   }
 
-  initialize(nnodes, nn);
+  SuperElement::buildFrame(cs);
 }
 
 int 
 RigidSolid::getTopNumber()
 { 
-  switch(nnodes - numInternalNodes()) {
+  switch(nnodes) {
     case 4 : return 123; // 4-node tetra
     case 6 : return 124; // 6-node penta
     case 8 : return 117; // 8-node hexa
@@ -95,7 +96,7 @@ RigidSolid::getTopNumber()
 int 
 RigidSolid::numTopNodes() 
 { 
-  switch(nnodes - numInternalNodes()) {
+  switch(nnodes) {
     case 4 : return 4; // 4-node tetra
     case 6 : return 6; // 6-node penta
     case 8 : return 8; // 8-node hexa

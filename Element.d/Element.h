@@ -145,6 +145,9 @@ class StructProp {
                               // Helmholtz problem
         complex<double> soundSpeed;
 
+        bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
+        double penalty;    // penalty parameter for mpc type elements
+
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
 	double F_Uc; // Critical Stretch of the Fibrils
@@ -179,8 +182,10 @@ class StructProp {
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0;
                        ymin = 0.0; ymax = 0.0;
-		       zmin = 0.0; zmax = 0.0; isReal = false; } // Undefined property
+		       zmin = 0.0; zmax = 0.0; isReal = false; 
+                       lagrangeMult = true; penalty = 0.0; } // Undefined property
 
+/* now using default copy constructor instead
         StructProp(StructProp *p)  {E=p->E; A=p->A; nu=p->nu; rho=p->rho; eh=p->eh;
                                     Ixx=p->Ixx; Iyy=p->Iyy; Izz=p->Izz; c=p->c;
                                     k=p->k; Q=p->Q; W=p->W; P=p->P; Ta=p->Ta; sigma=p->sigma;
@@ -189,7 +194,7 @@ class StructProp {
                                     kappaHelmImag = p->kappaHelmImag;
                                     soundSpeed = p->soundSpeed;
                                     fp.PMLtype = p->fp.PMLtype; isReal = p->isReal; }
-
+*/
         //StructProp(const StructProp &p) { cerr << "in StructProp copy constructor\n"; }
         //StructProp& operator = (const StructProp &p) { cerr << "in StructProp  assignment operator\n"; }
 };
@@ -325,7 +330,7 @@ class Element {
         virtual void setPreLoad(double load, int &flg) { }
         virtual double getPreLoad() { return preload; }
 
-        void setGlNum(int gn) { glNum = gn; }
+        virtual void setGlNum(int gn) { glNum = gn; }
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame

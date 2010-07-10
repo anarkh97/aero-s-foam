@@ -2409,7 +2409,7 @@ void Domain::computeTDProps()
           avTemp /= NodesPerElement;
           // if(avTemp > 0) cerr << "element = " << iele << ", avTemp = " << avTemp << endl;
 
-          StructProp *newProp = new StructProp(packedEset[iele]->getProperty());
+          StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
           if(packedEset[iele]->getProperty()->E < 0) {
             int id = (int) -packedEset[iele]->getProperty()->E;
@@ -3587,7 +3587,7 @@ void Domain::setNewProperties(int s)
           int jele = glToPackElem(attr[j].nele);
           if(jele == -1) continue;
 
-          StructProp *newProp = new StructProp(packedEset[jele]->getProperty());
+          StructProp *newProp = new StructProp(*packedEset[jele]->getProperty());
           switch(it->second.randomProperties[0].rprop)  { // switch on the rprop type
             case 0:
                newProp->A = it->second.randomProperties[0].mean; // assuming one group has one random property
@@ -3624,7 +3624,7 @@ void Domain::setNewProperties(int s)
           if(attr[j].attr != iattr) continue;
           int jele = glToPackElem(attr[j].nele);
           if(jele == -1) continue;
-          StructProp *newProp = new StructProp(elems_copy[jele]->getProperty());
+          StructProp *newProp = new StructProp(*elems_copy[jele]->getProperty());
           switch(geoSource->group[s-1].randomProperties[0].rprop)  { // switch on the rprop type
             case 0:
                if(sfem->Gauss) newProp->A = geoSource->group[s-1].randomProperties[0].std_dev;
@@ -3677,7 +3677,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
          if(attr[j].attr != iattr) continue;
             jele = glToPackElem(attr[j].nele);
           if(jele == -1)  continue;
-         StructProp *newProp = new StructProp(packedEset[jele]->getProperty());
+         StructProp *newProp = new StructProp(*packedEset[jele]->getProperty());
          switch(it->second.randomProperties[0].rprop)  { // switch on the rprop type
            case 0:
               newProp->A = it->second.randomProperties[0].mean; // assuming one group has one random property
@@ -3711,7 +3711,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
           if(attr[j].attr != iattr) continue;
           jele = glToPackElem(attr[j].nele);
           if(jele == -1) continue;
-          StructProp *newProp =  new StructProp(packedEset[jele]->getProperty());
+          StructProp *newProp =  new StructProp(*packedEset[jele]->getProperty());
           switch(geoSource->group[s-1].randomProperties[0].rprop)  { // switch on the rprop type
             case 0:
                if(sfem->Gauss) newProp->A = newProp->A +  geoSource->group[s-1].randomProperties[0].std_dev*xitemp[s-1];

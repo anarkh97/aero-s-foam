@@ -881,7 +881,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  // dimass is attached to and itself.
  if(nDimass > 0)
    {
-     fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet", nDimass);
+     fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass);
      DMassData* curMass = firstDiMass;
      fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
 	     cinfo->elemSetName, cinfo->nodeSetName);

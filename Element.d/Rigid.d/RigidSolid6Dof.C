@@ -4,20 +4,23 @@
 // Rigid solid superelement comprising a number of rigid beams connected together
 
 RigidSolid6Dof::RigidSolid6Dof(int _nnodes, int *_nn)
+ : SuperElement(true)
 {
+  nnodes = _nnodes;
+  nn = new int[nnodes];
+  for(int i = 0; i < nnodes; ++i) nn[i] = _nn[i];
   nSubElems = _nnodes - 1;
   subElems = new Element * [nSubElems];
   for(int i = 0; i < nSubElems; ++i) {
     int indices[2] = { i+1, 0 }; // all sub-elements have the same master node
     subElems[i] = new RigidBeam(indices);
   }
-  initialize(_nnodes, _nn);
 }
 
 int
 RigidSolid6Dof::getTopNumber()
 {
-  switch(nnodes-numInternalNodes()) {
+  switch(nnodes) {
     case 4 : return 123; // 4-node tetra
     case 6 : return 124; // 6-node penta
     case 8 : return 117; // 8-node hexa
@@ -33,7 +36,7 @@ RigidSolid6Dof::getTopNumber()
 int
 RigidSolid6Dof::numTopNodes()
 {
-  switch(nnodes-numInternalNodes()) {
+  switch(nnodes) {
     case 4 : return 4; // 4-node tetra
     case 6 : return 6; // 6-node penta
     case 8 : return 8; // 8-node hexa
@@ -45,4 +48,3 @@ RigidSolid6Dof::numTopNodes()
     default : return 2;
   }
 }
-

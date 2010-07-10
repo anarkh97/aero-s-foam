@@ -164,6 +164,10 @@ EulerBeam::getIntrnForce(Vector& elForce, CoordSet& cs,
 double
 EulerBeam::getMass(CoordSet& cs)
 {
+        // Check for phantom element, which has no mass
+        if(prop == NULL)
+          return 0;
+
         double length;
     
         getLength(cs, length);
@@ -246,7 +250,7 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 FullSquareMatrix
 EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
-       // Check for phantom element, which has no stiffness
+        // Check for phantom element, which has no mass
         if(prop == NULL) {
            FullSquareMatrix ret(12,mel);
            ret.zero();
@@ -265,12 +269,12 @@ EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
         int grvflg = 0, masflg = 0;
 
-// Lumped Mass Matrix
+        // Lumped Mass Matrix
         if (cmflg == 0) {
           _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
 	          x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
-// Consistent (Full) Mass Matrix
+        // Consistent (Full) Mass Matrix
         } else {
           _FORTRAN(mass6)(prop->rho,prop->Ixx, prop->Iyy, prop->Izz,
                   (double*)mel,prop->A,x,y,z,gravityAcceleration,

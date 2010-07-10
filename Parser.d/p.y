@@ -66,7 +66,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
 %token COMPLEXOUTTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
-%token CONSTRAINTS MULTIPLIERS
+%token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
@@ -2159,7 +2159,7 @@ IterSolver:
         | IterSolver MAXORTHO Integer NewLine
         { domain->solInfo().maxvecsize = $3; }
         | IterSolver SUBTYPE Integer NewLine
-        { domain->solInfo().subtype = $3; }
+        { domain->solInfo().iterSubtype = $3; }
         ;
 Solver:
 	STATS NewLine DIRECT NewLine
@@ -2238,10 +2238,13 @@ Solver:
 	| STATS NewLine FETI NewLine
 	{ domain->solInfo().type =(2);
           domain->solInfo().setProbType(SolverInfo::Static); }
-        | Solver CONSTRAINTS DIRECT NewLine
+        | CONSTRAINTS DIRECT NewLine
 	{ geoSource->setDirectMPC(true); }// Direct substitution of MPCs
-        | Solver CONSTRAINTS MULTIPLIERS NewLine
+        | CONSTRAINTS MULTIPLIERS NewLine
 	{ geoSource->setDirectMPC(false); }// Treatment of MPCs through Lagrange multipliers
+        | CONSTRAINTS PENALTY Float NewLine
+        { geoSource->setDirectMPC(false);
+          domain->solInfo().penalty = $3; }// Treatment of MPCs through penalty method
 	| FETI NewLine
         { domain->solInfo().type =(2);}
 	| FETI Integer NewLine

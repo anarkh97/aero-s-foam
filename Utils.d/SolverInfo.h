@@ -60,8 +60,9 @@ struct SolverInfo {
 
    // Solver parameters
    int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
-   int subtype;  // subtype and matrix storage... 9 is mumps  10 is diag
+   int subtype;  // subtype ... 9 is mumps  10 is diag
    int iterType; // 0 = CG, 1 = GMRES, 2 = GCR, 4 = BCG, 5 = CR
+   int iterSubtype; // matrix storage
    int precond;  // preconditioner 0 = none, 1 = jacobi
    int maxit;    // maximum number of iterations
    double tol;   // tolerance for convergence
@@ -229,6 +230,8 @@ struct SolverInfo {
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
    bool ffi_debug;
 
+   double penalty;
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   NLInfo = 0; 
@@ -390,7 +393,7 @@ struct SolverInfo {
                   tol = 1.0e-8; 
                   maxit = 1000;
                   iterType = 0; 
-                  subtype = 3; 
+                  iterSubtype = 3; 
                   maxvecsize = 0; 
 
                   iacc_switch = true;
@@ -398,6 +401,8 @@ struct SolverInfo {
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
+
+                  penalty = 0;
                  }
 
    // Set RbmFilter level
@@ -607,9 +612,9 @@ struct SolverInfo {
 
    // iterative solver
    void setSolver(int _iterType, int _precond, double _tol=1.0e-8, int _maxit=1000,
-                  int _subtype=3, int _maxvecsize=0)
+                  int _iterSubtype=3, int _maxvecsize=0)
     { type = 1; precond = _precond; tol = _tol; maxit = _maxit; 
-      iterType = _iterType; subtype = _subtype; maxvecsize = _maxvecsize; 
+      iterType = _iterType; iterSubtype = _iterSubtype; maxvecsize = _maxvecsize; 
     }
 
    void setTrbm(double _tolzpv)

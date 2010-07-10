@@ -12,18 +12,20 @@
 
 
 extern "C"      {
-void    _FORTRAN(modmstif7)(double*, double&, double&, double*, 
-			     double&, double&,    double&, double&, double&, 
-			     double&, double&, double*, double*, double*,
-                             int&);
-void    _FORTRAN(mass7)(int &, double*, double&, double&,
-                         double*, double*, double*, double*, double*,
-                         const int&, double &,const int& );
+void _FORTRAN(modmstif7)(double*, double&, double&, double*, 
+                         double&, double&, double&, double&, double&, 
+                         double&, double&, double*, double*, double*,
+                         int&);
+
+void _FORTRAN(mass7)(int &, double*, double&, double&,
+                     double*, double*, double*, double*, double*,
+                     const int&, double &,const int& );
+
 void _FORTRAN(sands7)(const int&, double&, double&, double*, double&,
-                      double&,    double&, double&, double&, double&,
-                      double&,    double*, double*, double*, double*,
+                      double&, double&, double&, double&, double&,
+                      double&, double*, double*, double*, double*,
                       double*, const int&, const int&, const int&, const int&,
-		      double&, double&, double*);
+                      double&, double&, double*);
 
 void _FORTRAN(transform)(double*, double*, double*, double*, double*, double*, double*);
 }
@@ -144,6 +146,10 @@ TimoshenkoBeam::getIntrnForce(Vector& elForce,CoordSet& cs,
 double
 TimoshenkoBeam::getMass(CoordSet& cs)
 {
+        // Check for phantom element, which has no mass
+        if(prop == NULL) 
+          return 0;
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 
@@ -254,6 +260,13 @@ TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 FullSquareMatrix
 TimoshenkoBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
+        // Check for phantom element, which has no mass
+        if(prop == NULL) {
+           FullSquareMatrix ret(12,mel);
+           ret.zero();
+           return ret;
+        }
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 
@@ -277,6 +290,13 @@ TimoshenkoBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 FullSquareMatrix
 TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
 {
+        // Check for phantom element, which has no stiffness
+        if(prop == NULL) {
+           FullSquareMatrix ret(12,d);
+           ret.zero();
+           return ret;
+        }
+
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 

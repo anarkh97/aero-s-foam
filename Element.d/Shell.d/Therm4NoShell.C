@@ -36,7 +36,6 @@ Therm4NoShell::Therm4NoShell(int *nodenums)
     //      << subElemNodes[i][0] << " " << subElemNodes[i][1] << " " << subElemNodes[i][2] << ", subElemDofs ";
     // for(j=0;j<3;++j) cerr << subElemDofs[i][j] << " "; cerr << endl;
     subElems[i] = new Therm3NoShell(tmp);
-    subElems[i]->setGlNum(-1);
   }
   nnodes = 4;
   ndofs = 4;

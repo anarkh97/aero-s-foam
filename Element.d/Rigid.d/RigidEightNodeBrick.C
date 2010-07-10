@@ -2,7 +2,11 @@
 #include <Element.d/Joint.d/ConstantDistanceConstraint.h>
 
 RigidEightNodeBrick::RigidEightNodeBrick(int *_nn)
+ : SuperElement(true)
 {
+  nnodes = 8;
+  nn = new int[nnodes];
+  for(int i = 0; i < nnodes; ++i) nn[i] = _nn[i];
   nSubElems = 18;
   subElems = new Element * [nSubElems];
   int indices[18][2] = {{0,1},
@@ -23,9 +27,6 @@ RigidEightNodeBrick::RigidEightNodeBrick(int *_nn)
                         {1,6},
                         {2,7},
                         {0,7}};
-  for(int i = 0; i < nSubElems; ++i) {
+  for(int i = 0; i < nSubElems; ++i)
     subElems[i] = new ConstantDistanceConstraint(indices[i]);
-  }
-  initialize(8, _nn);
 }
-

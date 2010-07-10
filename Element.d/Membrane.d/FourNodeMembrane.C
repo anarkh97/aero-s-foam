@@ -29,7 +29,6 @@ FourNodeMembrane::FourNodeMembrane(int *nodenums)
       }
     }
     subElems[i] = new Membrane(tmp);
-    subElems[i]->setGlNum(-1);
   }
   nnodes = 4;
   ndofs = 24;

@@ -36,7 +36,6 @@ FourNodeShell::FourNodeShell(int *nodenums)
     //      << subElemNodes[i][0] << " " << subElemNodes[i][1] << " " << subElemNodes[i][2] << ", subElemDofs ";
     // for(j=0;j<18;++j) cerr << subElemDofs[i][j] << " "; cerr << endl;
     subElems[i] = new ThreeNodeShell(tmp);
-    subElems[i]->setGlNum(-1);
   }
   nnodes = 4;
   ndofs = 24;

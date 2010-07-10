@@ -12,6 +12,12 @@ class RigidBeam : public SuperElement
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
     LMPCons** getMPCs();
+/*
+    // experimental 
+    int getMassType();
+    FullSquareMatrix massMatrix(CoordSet &cs, double *mel, int cmflg = 1);
+    double getMass(CoordSet& cs);
+*/
 };
 
 #endif

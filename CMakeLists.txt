@@ -1,5 +1,7 @@
 PROJECT (FEM)
 
+#add_definitions(-DDEBUG_PENALTY)
+
 #incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
 
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)

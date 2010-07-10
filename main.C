@@ -559,9 +559,7 @@ int main(int argc, char** argv)
  }
 #endif
 
- if(geoSource->getDirectMPC())
-   geoSource->makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
- else if((domain->solInfo().type != 2 || domain->solInfo().fetiInfo.mpc_element) && domain->solInfo().newmarkBeta != 0) // don't use lmpc elements for explicit
+ if(domain->solInfo().type != 2 && !geoSource->getDirectMPC())
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)

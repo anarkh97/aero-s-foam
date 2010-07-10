@@ -123,7 +123,7 @@ class SetAccess<std::pair<Elemset, DofSet> >
       if(els[i]) {
         int *p = new int[els[i]->numNodes()];
         els[i]->nodes(p);
-        for(int j = 0; j < els[i]->numNodes()-els[i]->numInternalNodes(); ++j)
+        for(int j = 0; j < els[i]->numNodes() - els[i]->numInternalNodes(); ++j)
           nd[j] = p[j];
         delete [] p;
       }

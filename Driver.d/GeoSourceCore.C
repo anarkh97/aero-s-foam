@@ -379,7 +379,6 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       else {
         int n = ele->getNumMPCs();
         if(n > 0) {
-          ele->buildFrame(nodes);
           LMPCons **l = ele->getMPCs();
           for(int j = 0; j < n; ++j)
             lmpc[numLMPC++] = l[j];
@@ -394,10 +393,14 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
     rigidSet->collapseRigid6(blockedNodes);
     nRigid = rigidSet->last();
+    StructProp p; // dummy property
     for(int i = 0; i < nRigid; ++i) {
       int n = (*rigidSet)[i]->getNumMPCs();
       if(n > 0) {
-        (*rigidSet)[i]->buildFrame(nodes);
+        if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
+          (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
+          (*rigidSet)[i]->setProp(&p);
+        }
         LMPCons **l = (*rigidSet)[i]->getMPCs();
         for(int j = 0; j < n; ++j)
           lmpc[numLMPC++] = l[j];
@@ -703,24 +706,6 @@ void GeoSource::setUpData()
   int lastNode = numNodes = nodes.size();
   int nMaxEle = elemSet.size();
 
-  // Set up the internal nodes
-  for (int iElem = 0; iElem < nMaxEle; ++iElem) {
-    Element *ele = elemSet[iElem];
-    if(ele == 0) continue;
-    int nIN = ele->numInternalNodes();
-    int nn[375];
-    if(nIN > 375) {
-      fprintf(stderr, " *** ERROR: Code was not developed for elements with more "
-                      "than 375 internal nodes");
-      exit(-1);
-    }
-    for(int i = 0; i < nIN; ++i)
-      nn[i] = lastNode++;
-    ele->setInternalNodes(nn);
-    localToGlobalElementsNumber.push_back(iElem);
-  }
-  numInternalNodes = lastNode-numNodes;
-
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
@@ -735,30 +720,45 @@ void GeoSource::setUpData()
 
   // Set up element attributes
   SolverInfo sinfo = domain->solInfo();
-  if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) { // PJSA
+  if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
     fprintf(stderr," **************************************\n");
     fprintf(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
     fprintf(stderr," **************************************\n");
     exit(-1);
   }
-  if(na != nMaxEle) {
-    // check for elements with no attribute, and add dummy properties
-    bool *hasAttr = (bool *) dbg_alloca(nMaxEle*sizeof(bool));
-    for(int i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
-    for(int i = 0; i < na; ++i) hasAttr[attrib[i].nele] = true;
-    int dattr = maxattrib + 1;
-    StructProp *dprop = new StructProp(); 
-    addMat(dattr, *dprop);
-    for(int i = 0; i < nMaxEle; ++i) {
-      if(elemSet[i] && !hasAttr[i]) {
-        if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
-        else cerr << " *** WARNING: Element " << i+1 << " has no attribute defined\n";
-      }
+
+  // check for elements with no attribute, and add dummy properties in certain cases
+  bool *hasAttr = new bool[nMaxEle];
+  for(int i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
+  for(int i = 0; i < na; ++i) {
+    if(attrib[i].nele < nMaxEle)
+      hasAttr[attrib[i].nele] = true;
+  }
+  int dattr = maxattrib + 1;
+  StructProp *dprop = new StructProp(); 
+  addMat(dattr, *dprop);
+  for(int i = 0; i < nMaxEle; ++i) {
+    if(elemSet[i] && !hasAttr[i]) {
+      if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
+      else cerr << " *** WARNING: Element " << i+1 << " has no attribute defined\n";
     }
+  }
+  delete [] hasAttr;
+
+  // assign default properties
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    if(p->soundSpeed == 1.0)
+      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
+    p->lagrangeMult = (domain->solInfo().penalty == 0 && !mpcDirect);
+    p->penalty = domain->solInfo().penalty;
+    it++;
   }
 
   // Set up material properties
   // & compute average E and nu (for coupled_dph)
+  // & set the mpc data
   int structure_element_count = 0;
   int fluid_element_count = 0;
   global_average_E = 0.0;
@@ -773,7 +773,6 @@ void GeoSource::setUpData()
        //               " non existent element %d \n",attrib[i].nele+1);
       continue;
     }
-    if(ele->isRigidElement()) continue;
     if(attrib[i].attr < -1) { // phantom elements
       phantomFlag = 1;
       ele->setProp(0);
@@ -851,8 +850,7 @@ void GeoSource::setUpData()
   }
 
   // Set up beam element offsets
-  for(vector<OffsetData>::iterator offIt = offsets.begin();
-        	  offIt != offsets.end(); ++offIt) {
+  for(vector<OffsetData>::iterator offIt = offsets.begin(); offIt != offsets.end(); ++offIt) {
     for(int i = offIt->first; i <= offIt->last; ++i) {
       if(elemSet[i] == 0) {
 	fprintf(stderr,
@@ -885,7 +883,7 @@ void GeoSource::setUpData()
       ele->setMaterial(matIter->second);
     uIter++;
   }
-
+/*
   SPropContainer::iterator it = sProps.begin();
   while(it != sProps.end()) {
     StructProp* p = &(it->second);
@@ -893,7 +891,26 @@ void GeoSource::setUpData()
       p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
     it++;
   }
+*/
 
+  // Set up the internal nodes
+  for (int iElem = 0; iElem < nMaxEle; ++iElem) {
+    Element *ele = elemSet[iElem];
+    if(ele == 0) continue;
+    int nIN = ele->numInternalNodes();
+    if(nIN > 0) {
+      int *nn = new int[nIN];
+      for(int i = 0; i < nIN; ++i)
+        nn[i] = lastNode++;
+      ele->setInternalNodes(nn);
+      delete [] nn;
+    }
+    localToGlobalElementsNumber.push_back(iElem);
+  }
+  numInternalNodes = lastNode-numNodes;
+
+  if(mpcDirect)
+    makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
 }
 
 //----------------------------------------------------------------

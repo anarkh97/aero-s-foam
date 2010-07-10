@@ -1449,7 +1449,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
                  Rbm *rbm, FullSquareMatrix *kelArray)
 {
-  switch(sinfo.subtype) {
+  switch(sinfo.iterSubtype) {
     case 2:
       filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
       spm = constructNBSparseMatrix<Scalar>();

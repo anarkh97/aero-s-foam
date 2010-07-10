@@ -1,10 +1,8 @@
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Joint.d/ConstantDistanceConstraint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
-#include <Element.d/Joint.d/DotConstraintType1.h>
 #include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
-#include <Element.d/Joint.d/LinearConstraintType1.h>
-#include <Element.d/Joint.d/DotConstraintType2.h>
+#include <Element.d/Joint.d/DotConstraintType1.h>
+#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
 
 #ifdef USE_EIGEN2
 #include <Math.d/rref.h>
@@ -15,7 +13,11 @@ using namespace Eigen;
 #endif
 
 RigidBeam::RigidBeam(int* _nn)
+ : SuperElement(true)
 {
+  nnodes = 2;
+  nn = new int[nnodes];
+  for(int i = 0; i < nnodes; ++i) nn[i] = _nn[i];
   nSubElems = 4; 
   subElems = new Element * [nSubElems];
   int indices[2] = { 0, 1 };
@@ -24,8 +26,6 @@ RigidBeam::RigidBeam(int* _nn)
   subElems[1] = new ParallelAxesConstraintType2(indices);
   subElems[2] = new DotConstraintType1(indices, 2, 1);
   subElems[3] = new ParallelAxesConstraintType1(indices);
-
-  initialize(2, _nn);
 }
 
 LMPCons **
@@ -117,3 +117,57 @@ RigidBeam::getMPCs()
 #endif
   return lmpc;
 }
+
+/*
+int
+RigidBeam::getMassType()
+{
+  return 0; // lumped only
+}
+
+extern "C" {
+ void _FORTRAN(e3dmas)(double&, double*,
+                       double&, double*, double*, double*,
+                       double*, double*, const int&, double&, const int&);
+}
+
+FullSquareMatrix
+RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
+{
+  FullSquareMatrix ret(numDofs(),mel);
+  ret.zero();
+
+  // Check for phantom element, which has no mass
+  if(prop) {
+    double elmass[12][12];
+    double x[2] = { cs[nn[0]]->x, cs[nn[1]]->x };
+    double y[2] = { cs[nn[0]]->y, cs[nn[1]]->y };
+    double z[2] = { cs[nn[0]]->z, cs[nn[1]]->z };
+    double totmas = 0;
+    _FORTRAN(e3dmas)(prop->rho, (double*)elmass, prop->A, x, y, z,
+                     (double*)0, (double*)0, 0, totmas, 1);
+
+    for(int i = 0; i < 12; ++i) ret[i][i] = elmass[i][i];
+  }
+
+  return ret;
+}
+
+double
+RigidBeam::getMass(CoordSet& cs)
+{
+  // Check for phantom element, which has no mass
+  if(prop) {
+    double dx = cs[nn[1]]->x - cs[nn[0]]->x;
+    double dy = cs[nn[1]]->y - cs[nn[0]]->y;
+    double dz = cs[nn[1]]->z - cs[nn[0]]->z;
+    double length = sqrt(dx*dx + dy*dy + dz*dz);
+    return length*(prop->rho)*(prop->A);
+  }
+  else {
+    return 0;
+  }
+}
+
+// TODO: RigidBeam::getGravityForce
+*/

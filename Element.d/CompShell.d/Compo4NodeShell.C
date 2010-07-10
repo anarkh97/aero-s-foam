@@ -32,7 +32,6 @@ Compo4NodeShell::Compo4NodeShell(int *nodenums)
       }
     }
     subElems[i] = new Compo3NodeShell(tmp);
-    subElems[i]->setGlNum(-1);
   }
   nnodes = 4;
   ndofs = 24;

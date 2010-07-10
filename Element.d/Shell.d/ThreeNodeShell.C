@@ -327,7 +327,7 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 FullSquareMatrix
 ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
-        // Check for phantom element, which has no stiffness
+        // Check for phantom element, which has no mass
         if(prop == NULL) {
            FullSquareMatrix ret(18,mel);
 	   ret.zero();

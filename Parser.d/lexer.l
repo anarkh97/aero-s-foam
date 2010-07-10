@@ -508,7 +508,9 @@ TRAIL [a-zA-Z]*
 
 "MULT"[a-zA-Z]*|"mult"[a-zA-Z]*    { return MULTIPLIERS; }
 
-"CONSTRAINTS"|"constraints"    { return CONSTRAINTS; }
+"CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
+
+"PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }
 

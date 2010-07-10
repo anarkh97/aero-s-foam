@@ -2,6 +2,7 @@
 #include <Element.d/Joint.d/LinearConstraintType1.h>
 
 RigidTransSprlink::RigidTransSprlink(int* _nn)
+ : SuperElement(true)
 { 
   nnodes = 2;
   nn = new int[nnodes];
@@ -27,7 +28,7 @@ RigidTransSprlink::setProp(StructProp* _prop, bool _myProp)
     DofSet zz[2] = { DofSet::Zdisp,  DofSet::Zdisp };
     subElems[count++] = new LinearConstraintType1(indices, zz);
   }
-  initialize(nnodes, nn);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->buildFrame(*css); // since these elements had not been instantiated when
+                                                                    // SupereElement::buildFrame was called
   SuperElement::setProp(_prop, _myProp);
 }
-

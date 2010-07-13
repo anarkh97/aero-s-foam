@@ -159,6 +159,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
   // rbms is the null space of the global Kcc^* matrix
   // nrbm is the nullity of the global Kcc^* matrix
   // size is the number of rows and columns of the global Kcc^* matrix
+  // TODO what about augmentation
   int numCDofs = (Src) ? Src->numCol() : 0;
   Scalar *localc = (Scalar *) dbg_alloca(sizeof(Scalar)*numCDofs);
 
@@ -178,9 +179,10 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
       nrbms_local++;
     }
   }
-  cerr << "sub = " << subNumber << " has " << nrbms_local << " rbms, offset = " << first << endl;
-  numGroupRBM = nrbms_local; // XXXX this isn't general since global trbms may not be grouped like grbms
-  groupRBMoffset = first;    // XXXX this isn't general
+  //if(nrbms_local)
+  //  cerr << "sub = " << subNumber << " has " << nrbms_local << " rbms, offset = " << first << endl;
+  numGroupRBM = nrbms_local; // TODO this isn't general since global trbms may not be grouped like grbms
+  groupRBMoffset = first;    // TODO this isn't general
 
   G = new GenFullM<Scalar>*[scomm->numT(SComm::mpc)];
   neighbG = new GenFullM<Scalar>*[scomm->numT(SComm::mpc)];

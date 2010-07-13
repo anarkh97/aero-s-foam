@@ -1452,7 +1452,7 @@ void BaseSub::setNumGroupRBM(int *ngrbmGr)
 
 void BaseSub::getNumGroupRBM(int *ngrbmGr)
 {
-  cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << endl;
+  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << endl;
   ngrbmGr[group] = numGroupRBM;
 }
 

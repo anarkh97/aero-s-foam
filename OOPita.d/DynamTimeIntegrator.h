@@ -25,9 +25,6 @@ public:
   virtual void initialConditionIs(const DynamState & initialState, Seconds initialTime = Seconds(0.0)) = 0;
   virtual void currentTimeInc(Seconds currentTime) = 0;
   virtual void timeStepCountInc(TimeStepCount steps = TimeStepCount(1)) = 0;
-  
-  SliceRank currentSlice() const { return currentSlice_; } // TODO HACK
-  void currentSliceIs(SliceRank slice) { setCurrentSlice(slice); performNotification(&NotifieeConst::onCurrentSlice); } // TODO HACK
 
   class NotifieeConst : public Fwk::BaseMultiNotifiee<const DynamTimeIntegrator, NotifieeConst> {
   public:
@@ -35,7 +32,6 @@ public:
     
     virtual void onInitialCondition() {}
     virtual void onCurrentCondition() {}
-    virtual void onCurrentSlice()     {} // TODO HACK
 
   protected:
     explicit NotifieeConst(const DynamTimeIntegrator * notifier) :
@@ -58,7 +54,6 @@ protected:
   void setInitialTime(Seconds initialTime) { initialTime_ = initialTime; }
   void setCurrentTime(Seconds currentTime) { currentTime_ = currentTime; }
   void setTimeStepCount(TimeStepCount timeStepCount) { timeStepCount_ = timeStepCount; }
-  void setCurrentSlice(SliceRank slice) { currentSlice_ = slice; }
 
 private:
   size_t vectorSize_;
@@ -68,7 +63,6 @@ private:
   Seconds currentTime_; 
   Seconds timeStepSize_;
   TimeStepCount timeStepCount_;
-  SliceRank currentSlice_; // TODO HACK
 
   GenNotifierDelegate<NotifieeConst> notifierDelegate_;
   GenNotifierDelegate<NotifieeConst> & notifierDelegate() const { return const_cast<DynamTimeIntegrator *>(this)->notifierDelegate_; }

@@ -31,11 +31,13 @@ NlDynamPostProcessor::sliceRankIs(SliceRank r) {
 }
 
 void
-NlDynamPostProcessor::lastNlOutputIs(Seconds time, TimeStepCount step, const DynamState & state, const GeomState * geom, const GenVector<double> & force) {
+NlDynamPostProcessor::lastNlOutputIs(Seconds time, TimeStepCount step, const DynamState & state,
+                                     const GeomState * geom, const GenVector<double> & force,
+                                     const GenVector<double> & acceleration) {
   if (status() == DynamPostProcessor::CLOSED)
     statusIs(DynamPostProcessor::OPEN);
   probDesc_->pitaDynamOutput(sliceRank().value(), const_cast<GeomState*>(geom), const_cast<Vector&>(state.velocity()),
-      dummy_, time.value(), step.value(), const_cast<Vector&>(force), dummy_);
+      dummy_, time.value(), step.value(), const_cast<Vector&>(force), dummy_, acceleration);
 }
 
 // IntegratorReactor implementation

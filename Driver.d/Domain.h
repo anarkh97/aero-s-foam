@@ -512,7 +512,7 @@ class Domain : public HData {
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
                              int step = 0, double *velocity = 0, double *vcx = 0,
-                             Corotator **allCorot = 0, FullSquareMatrix *mArray = 0);
+                             Corotator **allCorot = 0, FullSquareMatrix *mArray = 0, double * acceleration = 0);
 
      // Dynamic functions and thermal functions
      void aeroSolve();

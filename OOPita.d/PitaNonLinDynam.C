@@ -66,6 +66,11 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   }
 }
 
+bool
+PitaNonLinDynamic::getInitialAcceleration() const {
+  return domain->solInfo().iacc_switch;
+}
+
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)
 void PitaNonLinDynamic::reBuildKonly()
 {
@@ -133,10 +138,11 @@ void PitaNonLinDynamic::openResidualFile()
 // No Aero
 void
 PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vector& velocity,
-                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF)
+                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF,
+                                   Vector & acceleration)
 {
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray);
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray, acceleration.data());
   times->output += getTime();
 }
 

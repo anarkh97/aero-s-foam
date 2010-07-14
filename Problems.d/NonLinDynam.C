@@ -316,6 +316,8 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     }
   }
 
+  //if(t != -1.0) updateConstraintTerms(&geomState); XXXX
+
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
 
   times->buildStiffAndForce +=  getTime();
@@ -797,6 +799,8 @@ NonLinDynamic::preProcess()
  prevFrc = new PrevFrc(domain->numUncon());
 
  localTemp.initialize(solVecInfo());
+
+ //XXXX domain->InitializeStaticContactSearch(MortarHandler::CTC); XXXX
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 

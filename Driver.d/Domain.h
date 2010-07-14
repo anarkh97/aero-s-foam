@@ -712,7 +712,7 @@ class Domain : public HData {
      int  preloadFlag();
 
      // returns the value of the contact force flag
-     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
+     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.penalty == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
      int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
 
@@ -780,9 +780,7 @@ class Domain : public HData {
      LMPCons* getFsi(int i) { return fsi[i]; }
      ResizeArray<LMPCons *>* getLMPC() { return &lmpc; }
      int addNodalCTC(int n1, int n2, double nx, double ny, double nz,
-                     double _normalGap = 0.0, bool normalGapPresent = false,
-                     double _fricCoef = 0.0, bool fricCoefPresent = false,
-                     int _mode = 1, bool modePresent = false, int _lmpcnum = -1);
+                     double normalGap = 0.0, int _mode = -1, int lagrangeMult = -1, double penalty = 0.0);
      int getNumCTC() { return numCTC; }
      void addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype);
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);

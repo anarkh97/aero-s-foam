@@ -3280,38 +3280,32 @@ Domain::initSfem()
 // add nodal contact mpcs
 int
 Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
-                    double _normalGap, bool normalGapPresent,
-                    double _fricCoef, bool fricCoefPresent,
-                    int _mode, bool modePresent, int _lmpcnum)
+                    double normalGap, int _mode, int lagrangeMult, double penalty)
 {
  // contact note: if normalGapPresent is false perhaps the default should be to compute the geometric gap
  // using the nodal coordinates
- bool addZeros = false;
- double normalGap = (normalGapPresent) ? _normalGap : 0.0;
- //double fricCoef = (fricCoefPresent) ? _fricCoef : domain->solInfo().coulomb_fric_coef;
- int mode = (modePresent) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
-                                                                     // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
- int lmpcnum = (mode == 1 || mode == 3) ? numCTC : 0;
- if(_lmpcnum > -1) lmpcnum = _lmpcnum; // PJSA 9-13-07
+ int mode = (_mode > -1) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
+                                                                    // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
+ int lmpcnum = 0;
 
  // normal constraint
  LMPCons *_CTC = new LMPCons(lmpcnum, normalGap);
  double norm = sqrt(nx*nx + ny*ny + nz*nz);
- if(addZeros || (nx != 0.0)) {
+ if(nx != 0.0) {
    nx /= norm;
    LMPCTerm *term1 = new LMPCTerm(n1, 0, nx);
    _CTC->addterm(term1);
    LMPCTerm *term2 = new LMPCTerm(n2, 0, -nx);
    _CTC->addterm(term2);
  }
- if(addZeros || (ny != 0.0)) {
+ if(ny != 0.0) {
    ny /= norm;
    LMPCTerm *term1 = new LMPCTerm(n1, 1, ny);
    _CTC->addterm(term1);
    LMPCTerm *term2 = new LMPCTerm(n2, 1, -ny);
    _CTC->addterm(term2);
  }
- if(addZeros || (nz != 0.0)) {
+ if(nz != 0.0) {
    nz /= norm;
    LMPCTerm *term1 = new LMPCTerm(n1, 2, nz);
    _CTC->addterm(term1);
@@ -3321,8 +3315,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  _CTC->type = (mode == 1 || mode == 3); // this is to be phased out
  if(mode == 1 || mode == 3) _CTC->setType(mpc::Inequality);
  _CTC->setSource(mpc::NodalContact);
- //addLMPC(_CTC,false);
- addLMPC(_CTC,(_lmpcnum > -1)); //  PJSA 9-13-07
+ addLMPC(_CTC,false);
  if(_CTC->type == 1) numCTC++; // inequality constraint
 
  // PJSA 7-12-2007 tangential constraints ... note this may lead to redundant constraints (singularity in CCt)
@@ -3337,11 +3330,11 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
    crossprod(n,t2,t1);
    normalize(t1);
    LMPCons *_TGT1 = new LMPCons(0, 0.0);
-   if(addZeros || (t1[0] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 0, t1[0]); _TGT1->addterm(term1);
+   if(t1[0] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 0, t1[0]); _TGT1->addterm(term1);
                                     LMPCTerm *term2 = new LMPCTerm(n2, 0, -t1[0]); _TGT1->addterm(term2); }
-   if(addZeros || (t1[1] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 1, t1[1]); _TGT1->addterm(term1);
+   if(t1[1] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 1, t1[1]); _TGT1->addterm(term1);
                                     LMPCTerm *term2 = new LMPCTerm(n2, 1, -t1[1]); _TGT1->addterm(term2); }
-   if(addZeros || (t1[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t1[2]); _TGT1->addterm(term1);
+   if(t1[2] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t1[2]); _TGT1->addterm(term1);
                                     LMPCTerm *term2 = new LMPCTerm(n2, 2, -t1[2]); _TGT1->addterm(term2); }
    _TGT1->setSource(mpc::NodalContact);
    addLMPC(_TGT1,false);
@@ -3349,11 +3342,11 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
      crossprod(n,t1,t2);
      normalize(t2);
      LMPCons *_TGT2 = new LMPCons(0, 0.0);
-     if(addZeros || (t2[0] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 0, t2[0]); _TGT2->addterm(term1);
+     if(t2[0] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 0, t2[0]); _TGT2->addterm(term1);
                                       LMPCTerm *term2 = new LMPCTerm(n2, 0, -t2[0]); _TGT2->addterm(term2); }
-     if(addZeros || (t2[1] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 1, t2[1]); _TGT2->addterm(term1);
+     if(t2[1] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 1, t2[1]); _TGT2->addterm(term1);
                                       LMPCTerm *term2 = new LMPCTerm(n2, 1, -t2[1]); _TGT2->addterm(term2); }
-     if(addZeros || (t2[2] != 0.0)) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t2[2]); _TGT2->addterm(term1);
+     if(t2[2] != 0.0) { LMPCTerm *term1 = new LMPCTerm(n1, 2, t2[2]); _TGT2->addterm(term1);
                                       LMPCTerm *term2 = new LMPCTerm(n2, 2, -t2[2]); _TGT2->addterm(term2); }
      _TGT2->setSource(mpc::NodalContact);
      addLMPC(_TGT2,false);
@@ -3363,6 +3356,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  return numCTC;
 }
 
+/*
 void
 Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], double gap_vector[3], int itype)
 {
@@ -3383,9 +3377,10 @@ Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], d
     double norm = sqrt(face_normal[0]*face_normal[0]+face_normal[1]*face_normal[1]+face_normal[2]*face_normal[2]);
     if(norm == 0.0) cerr << " *** ERROR in Domain::addNodeToNodeLMPCs, face_normal has length 0.0." << endl;
     double gap = (face_normal[0]*gap_vector[0] + face_normal[1]*gap_vector[1] + face_normal[2]*gap_vector[2])/norm;
-    addNodalCTC(n1, n2, face_normal[0], face_normal[1], face_normal[2], gap, true, 0.0, true, 1, true, lmpcnum);
+    addNodalCTC(n1, n2, face_normal[0], face_normal[1], face_normal[2], gap, true, 1, true, lmpcnum);
   }
 }
+*/
 
 void
 Domain::addDirichletLMPCs(int _numDirichlet, BCond *_dbc)

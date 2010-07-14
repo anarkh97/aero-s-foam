@@ -584,12 +584,12 @@ GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getDynamicFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
- bool geometricRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal)
-                    && !geoSource->isShifted() && !domain->solInfo().isNonLin() && (finfo->nullSpace != FetiInfo::trbm); 
  if(finfo->version == FetiInfo::fetidp) {
+   bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
+   bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
-                                      dgt.dynMats, dgt.spMats, dgt.rbms, 0, geometricRbms);
+                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
@@ -3492,7 +3492,11 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
 {
   AllOps<Scalar> allOps;
 
-  if(res.K)  allOps.K = (*res.K)[iSub];
+  if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
+   allOps.K = new GenMultiSparse<Scalar>((res.K) ? (*res.K)[iSub] : 0, subDomain[iSub]->KiiSparse,
+                                         subDomain[iSub]->Kbb, subDomain[iSub]->Kib);
+  else
+   allOps.K = (res.K) ? (*res.K)[iSub] : 0;
   if(res.C)  allOps.C = (*res.C)[iSub];
   if(res.Cuc)  allOps.Cuc = (*res.Cuc)[iSub];
   if(res.M)  allOps.M = (*res.M)[iSub];
@@ -3509,12 +3513,19 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                                     (melArray) ? melArray[iSub] : 0);
   }
   else {
-    GenMultiSparse<Scalar> allMats(subDomain[iSub]->KrrSparse, subDomain[iSub]->KiiSparse, subDomain[iSub]->Kbb,
-                                   subDomain[iSub]->Kib, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
-    allMats.zeroAll();
-    subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, &allMats, (kelArray) ? kelArray[iSub] : 0, 
+    GenMultiSparse<Scalar> *allMats;
+    if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
+      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
+    else 
+      allMats = new GenMultiSparse<Scalar>(subDomain[iSub]->KrrSparse, subDomain[iSub]->KiiSparse, subDomain[iSub]->Kbb,
+                                           subDomain[iSub]->Kib, subDomain[iSub]->Krc, subDomain[iSub]->Kcc);
+    allMats->zeroAll();
+    subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, (kelArray) ? kelArray[iSub] : 0, 
                                                     (melArray) ? melArray[iSub] : 0);
+    delete allMats;
   }
+
+  if(domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted) delete allOps.K;
 }
 
 template<class Scalar>

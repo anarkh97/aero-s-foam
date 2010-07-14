@@ -426,7 +426,7 @@ class GenSubDomain : public BaseSub
   GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
  public:
-  GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
+  //GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
   GenSparseSet<Scalar>      *Src;
   GenSparseSet<Scalar>      *Qrc;
   GenSolver<Scalar>         *Krr;
@@ -490,8 +490,8 @@ class GenSubDomain : public BaseSub
   Scalar *getBcx()  { if(!bcx_scalar) makeBcx_scalar(); return bcx_scalar; }
   double *getVcx()  { return vcx; }
   void setUserDefBC(double *, double *);
-  void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
-  GenCuCSparse<Scalar> *getKuc() { return Kuc; }
+  //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
+  //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);
   void addDMass(int glNum, int dof, double m);
   // computes localvec = K-1 (localvec -B interfvec)
@@ -529,7 +529,6 @@ class GenSubDomain : public BaseSub
                                               //    follower load (i.e. pressure)
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
-  void rebuildKbbMpc();
   void makeKbbMpc();
   void rebuildKbb();
   void makeKbb(DofSetArray *dofsetarray=0);

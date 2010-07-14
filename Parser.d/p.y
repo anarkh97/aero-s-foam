@@ -82,7 +82,7 @@
 %token MASS MATERIALS MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODE NONINPC
-%token NSBSPV NLTOL NUMCGM NOSECONDARY NULLSPACE
+%token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
@@ -2524,13 +2524,6 @@ Solver:
         { domain->solInfo().fetiInfo.cct_tol = $2; }
         | REBUILDCCT SWITCH NewLine
         { domain->solInfo().fetiInfo.rebuildcct = int($2); }
-        | NULLSPACE GRBM NewLine
-        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::grbm; }
-        | NULLSPACE TRBM NewLine
-        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm; }
-        | NULLSPACE TRBM Float NewLine
-        { domain->solInfo().fetiInfo.nullSpace = FetiInfo::trbm;
-          domain->solInfo().fetiInfo.nullSpaceFilterTol = $3; }
         | UPROJ Integer NewLine
         { domain->solInfo().fetiInfo.uproj = $2; }
 	| PRINTMATLAB NewLine

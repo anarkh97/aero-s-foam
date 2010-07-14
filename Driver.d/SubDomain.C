@@ -588,6 +588,7 @@ GenSubDomain<Scalar>::applyMpcSplitting()
 
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double deltaomega, GeomState *gs) // this makes a weighted load
@@ -601,6 +602,7 @@ GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double delt
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
  buildRHSForce<Scalar>(force, vtmp, Kuc, Muc, Cuc_deriv, omega, deltaomega,  gs);
 }
+*/
 
 template<class Scalar>
 void
@@ -1243,6 +1245,7 @@ void GenSubDomain<Scalar>::extractControlData(Scalar *disp, Scalar *vel,
   }
 }
 
+/* deprecated
 template<class Scalar>
 void
 GenSubDomain<Scalar>::constructLocalMatrices()
@@ -1283,6 +1286,7 @@ GenSubDomain<Scalar>::constructLocalMatrices()
 
  makeAllDOFs();
 }
+*/
 
 template<class Scalar>
 GenSkyMatrix<Scalar> *
@@ -1748,32 +1752,18 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::rebuildKbbMpc()
-{
-  if(numMPC) { // could limit it just to subdomains with contact and status change
-    if(Kbb) delete Kbb;
-    if(KiiSparse) delete KiiSparse;
-    if(Kib) delete Kib;
-    makeKbbMpc();
-    GenSparseMatrix<Scalar> *Kas = 0;
-    GenSolver<Scalar> *smat = 0;
-    assemble(Kas,smat,true); // TODO: should use Domain::makeSparseOps in Driver.d/OpMake.C
-    factorKii();
-  }
-}
-
-template<class Scalar>
-void
 GenSubDomain<Scalar>::rebuildKbb()
 {
   if(Kbb) delete Kbb;
   if(KiiSparse) delete KiiSparse;
   if(Kib) delete Kib;
   if(numMPC) makeKbbMpc(); else makeKbb(getCCDSA());
+/*
   GenSparseMatrix<Scalar> *Kas = 0;
   GenSolver<Scalar> *smat = 0;
   assemble(Kas,smat,true);
   factorKii();
+*/
 }
 
 
@@ -2062,6 +2052,7 @@ GenSubDomain<Scalar>::factorKrr()
   if(Krr) Krr->factor();
 }
 
+/* deprecated
 #include <Element.d/Helm.d/HelmElement.h>
 
 template<class Scalar>
@@ -2442,6 +2433,7 @@ GenSubDomain<Scalar>::zeroLocalMatrices()
   rebuildPade = true;
   // for coupled also need to re-scale or rebuild neighbKww
 }
+*/
 
 template<class Scalar>
 void
@@ -4089,11 +4081,13 @@ GenSubDomain<Scalar>::clean_up()
  if(internalMap) { delete [] internalMap; internalMap = 0; }
 
  long m1 = 0;
+/*
  if(Kuc) {
    m1 = -memoryUsed();
    Kuc->clean_up();
    m1 += memoryUsed();
  }
+*/
 
  if(Kbb) {
    m1 = -memoryUsed();
@@ -4623,7 +4617,9 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::initialize()
 {
-  kweight = 0; deltaFmpc = 0; scaling = 0; Kuc = 0; rigidBodyModes = 0; rigidBodyModesG = 0;
+  kweight = 0; deltaFmpc = 0; scaling = 0; 
+  //Kuc = 0;
+  rigidBodyModes = 0; rigidBodyModesG = 0;
   Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0; Kcc = 0; Krc = 0;
   Grc = 0; rbms = 0; interfaceRBMs = 0; qtkq = 0; KiiSparse = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
@@ -4673,7 +4669,7 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(rigidBodyModesG) { delete rigidBodyModesG; rigidBodyModesG = 0; }
   if(Src) { delete Src; Src = 0; }
   if(MPCsparse) { delete MPCsparse; MPCsparse = 0; }
-  if(Kuc) { delete Kuc; Kuc = 0; }
+  //if(Kuc) { delete Kuc; Kuc = 0; }
   if(glInternalMap) { delete [] glInternalMap; glInternalMap = 0; }
   if(glBoundMap) { delete [] glBoundMap; glBoundMap = 0; }
   if(mpcForces) { delete [] mpcForces; mpcForces = 0; }
@@ -6232,6 +6228,7 @@ GenSubDomain<Scalar>::setWICommSize(FSCommPattern<Scalar> *pat)
 template<> double GenSubDomain<double>::Bcx(int i);
 template<> DComplex GenSubDomain<DComplex>::Bcx(int i);
 
+/* deprecated
 template<class Scalar>
 void
 GenSubDomain<Scalar>::constructLocalMassAndDampingMatrices()
@@ -6264,7 +6261,7 @@ GenSubDomain<Scalar>::constructLocalMassAndDampingMatrices()
     }
   }
 }
-
+*/
 template<class Scalar>
 void
 GenSubDomain<Scalar>::multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k)

@@ -91,25 +91,20 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
- double *karray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
- double *marray = new double[maxNumDOFs*maxNumDOFs]; //(double *) dbg_alloca(size);
- //double *carray = (double *) dbg_alloca(size);
+ double *karray = new double[maxNumDOFs*maxNumDOFs];
+ double *marray = new double[maxNumDOFs*maxNumDOFs];
 
- //FullSquareMatrix kel(1, karray);
- //FullSquareMatrix mel(1, marray);
- //FullSquareMatrix cel(1, carray);
  FullSquareMatrix kel, mel, cel;
 
  double mratio = geoSource->getMRatio(); // 0 for lumped, 1 for consistent mass matrix
 
- complex<double> *kcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
- complex<double> *mcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs]; //(complex<double> *) dbg_alloca(4*size);
+ complex<double> *kcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs];
+ complex<double> *mcarray = new complex<double>[4*maxNumDOFs*maxNumDOFs];
 
  FullSquareMatrixC kcel(1, kcarray);
  FullSquareMatrixC mcel(1, mcarray);
 
  bool isShifted = geoSource->isShifted();
- //bool isDamped = (alpha != 0.0) || (beta != 0.0);
  bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
 
  double *izarray = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
@@ -117,113 +112,125 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  double omega, omega2;
 
  int sizeC = sizeof(DComplex)*maxNumDOFs*maxNumDOFs;
- DComplex *karrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
- DComplex *marrayC = new DComplex[maxNumDOFs*maxNumDOFs]; //static_cast<DComplex*>(dbg_alloca(sizeC));
+ DComplex *karrayC = new DComplex[maxNumDOFs*maxNumDOFs];
+ DComplex *marrayC = new DComplex[maxNumDOFs*maxNumDOFs];
  FullSquareMatrixC kelC(1, karrayC);
  FullSquareMatrixC melC(1, marrayC);
 
  if(sinfo.isCoupled) computeCoupledScaleFactors();
 
  GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
- if (!subCast) 
-   if (sinfo.ATDARBFlag>=0.0||sinfo.ATDROBalpha!=0.0)  checkSommerTypeBC(this);
+ if(!subCast) 
+   if(sinfo.ATDARBFlag >= 0.0 || sinfo.ATDROBalpha != 0.0) checkSommerTypeBC(this);
 
- if(sinfo.farfield) { addSBoundNodes(); makeKss(this); } // PJSA 3-15-2007 for Farfield output, direct solver (check with Radek)
+ if(sinfo.farfield) { addSBoundNodes(); makeKss(this); } // for Farfield output (TODO check with Radek)
 
  int iele;
  int *m_dofs;
 
- for(iele=0; iele < numele; ++iele) {
+ // LOOP over elements except for sommer
+ for(iele = 0; iele < numele; ++iele) {
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
    alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
    beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
    m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
-   // Form element stiffness and mass matrices
+   complex<double> kappa2 = packedEset[iele]->helmCoefC();
+   omega2 = geoSource->shiftVal();
+
+   // Form element real and complex stiffness matrices in kel and kcel
    if(matrixTimers) matrixTimers->formTime -= getTime();
-   if (isComplexF) {
+   if(isComplexF) {
      kcel = packedEset[iele]->stiffness(nodes, kcarray);
-   } else {
-     if(kelArray) kel.copy(kelArray[iele]); // PJSA 4-1-08
+   }
+   else {
+     if(kelArray) kel.copy(kelArray[iele]);
      else kel = packedEset[iele]->stiffness(nodes, karray);
      this->densProjectStiffness(kel, iele);
    }
-
-   if(sinfo.isCoupled) {  // coupled scaling
+   if(sinfo.isCoupled) {
       if(isStructureElement(iele)) kel *= cscale_factor2;
       else if(packedEset[iele]->isFsiElement()) kel *= cscale_factor;
    }
+   if(matrixTimers) matrixTimers->formTime += getTime();
+
+   // Assemble element real and complex stiffness matrices in ops.K
+   if(matrixTimers) matrixTimers->assemble -= getTime();
+   if(isComplexF || (imag(kappa2) != 0)) {
+     if(ops.K) ops.K->add(kcel,(*allDOFs)[iele]);
+   }
+   else {
+     if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
+   }
+   if(matrixTimers) matrixTimers->assemble += getTime();
 
    int i, j, dim = kel.dim();
+   // Form element real and complex mass matrices in mel and mcel
+   if(matrixTimers) matrixTimers->formTime -= getTime();
    if(makeMass || isShifted) {
-     if (isComplexF) {
+     if(isComplexF) {
        mcel = packedEset[iele]->massMatrix(nodes, mcarray);
-     } else {
-       if(melArray) mel.copy(melArray[iele]); // PJSA 11-5-09
+     }
+     else {
+       if(melArray) mel.copy(melArray[iele]);
        else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
      }
      if(sinfo.isCoupled && isStructureElement(iele)) mel *= cscale_factor2;
    }
 
-   complex<double> kappa2 = packedEset[iele]->helmCoefC();
-   omega2 = geoSource->shiftVal();
    if(isShifted) {
      if(isDamped && isStructureElement(iele)) {
        omega = sqrt(omega2);
-       if(packedEset[iele]->hasDamping())
-	 {
-	   izel = packedEset[iele]->dampingMatrix(nodes, izarray);
-	   this->densProjectStiffness(izel, iele);
-	   for(i = 0; i < dim; ++i) {
-	     for(j = 0; j < dim; ++j)
-	       { izel[i][j] = -omega*(izel[i][j]+beta*kel[i][j] + alpha*mel[i][j]); }
-	   }
-	 }
-       else if(isDamped)
-	 {
-	   izel.setSize(mel.dim());
-	     for(i = 0; i < dim; ++i) {
-	       for(j = 0; j < dim; ++j)
-		 { izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]); }
-	     }
-	 }
+       if(packedEset[iele]->hasDamping()) {
+	 izel = packedEset[iele]->dampingMatrix(nodes, izarray);
+	 this->densProjectStiffness(izel, iele);
+	 for(i = 0; i < dim; ++i)
+	   for(j = 0; j < dim; ++j)
+             izel[i][j] = -omega*(izel[i][j]+beta*kel[i][j] + alpha*mel[i][j]);
+       }
+       else if(isDamped) {
+	 izel.setSize(mel.dim());
+	 for(i = 0; i < dim; ++i)
+	   for(j = 0; j < dim; ++j)
+             izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
+       }
      }
-     if (isComplexF) {
+     if(isComplexF) {
        int dim = kcel.dim();
        for(i = 0; i < dim; ++i)
          for(j = 0; j < dim; ++j)
            kcel[i][j] -= kappa2*mcel[i][j];
-     } else if (imag(kappa2)!=0.0) {
+     } 
+     else if(imag(kappa2) != 0.0) {
        kcel.setSize(kel.dim());
        for(i = 0; i < dim; ++i)
          for(j = 0; j < dim; ++j)
            kcel[i][j] = complex<double>(kel[i][j])-kappa2*mel[i][j];
-     } else {
+     }
+     else {
        double o2 = (isFluidElement(iele)) ? real(kappa2) : omega2;
-       for(i = 0; i < dim; ++i) {
+       for(i = 0; i < dim; ++i)
          for(j = 0; j < dim; ++j) {
            if(isDamped && isStructureElement(iele))
-              izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
+             izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
            kel[i][j] -= o2*mel[i][j];
-           //kel.print();
          }
-       }
      }
-// RT : 11/17/08
-//     if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele))
-     if(sinfo.doFreqSweep && isFluidElement(iele))
-     {
-       if (isComplexF)
-          mcel *= kappa2/omega2;
-       else if (imag(kappa2)!=0) {
+     if(sinfo.doFreqSweep && isFluidElement(iele)) {
+       if(isComplexF) {
+         mcel *= kappa2/omega2;
+       }
+       else if (imag(kappa2) != 0) {
          mcel.setSize(mel.dim());
          for(i = 0; i < dim; ++i)
            for(j = 0; j < dim; ++j)
              mcel[i][j] = kappa2/omega2*mel[i][j];
-       } else
+       }
+       else {
          mel *= real(kappa2)/omega2;
+       }
      }
    }
    else {
@@ -235,32 +242,24 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      }
    }
    if(matrixTimers) matrixTimers->formTime += getTime();
-   if(matrixTimers) matrixTimers->assemble -= getTime();
 
-   if (isComplexF || (imag(kappa2)!=0)) {
-     if(ops.K)   ops.K->add(kcel,(*allDOFs)[iele]);
-     if(ops.Kuc) ops.Kuc->add(kcel,(*allDOFs)[iele]);
+   // Assemble element real and complex mass matrices in ops.M, ops.Muc, ops.Mcc and ops.Msolver
+   if(matrixTimers) matrixTimers->assemble -= getTime();
+   if(isComplexF || (imag(kappa2) != 0)) {
      if(ops.M)   ops.M->add(mcel,(*allDOFs)[iele]);
      if(ops.Muc) ops.Muc->add(mcel,(*allDOFs)[iele]);
      if(ops.Mcc) ops.Mcc->add(mcel,(*allDOFs)[iele]);
      if(ops.Msolver) ops.Msolver->add(mcel,(*allDOFs)[iele]);
-   } else {
-     if(ops.K)   ops.K->add(kel,(*allDOFs)[iele]);
-     if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
-     if(isShifted && isDamped && isStructureElement(iele)) {
-       if(ops.K)   ops.K->addImaginary(izel,(*allDOFs)[iele]);
-       if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
-       if(mat) mat->addImaginary(izel,m_dofs);
-       if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
-     }
+   }
+   else {
      if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
      if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
      if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
      if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
-     if(Kss) Kss->add(kel,(*allDOFs)[iele]); // PJSA 3-15-2007 for Farfield output (check with Radek)
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
 
+   // Form the element impedance matrix in kel and the element damping matrix in mel
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if(!isShifted) {
      if(makeMass) {
@@ -268,7 +267,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          for(j = 0; j < dim; ++j) {
            double m  = mel[i][j];
            double k  = kel[i][j];
-           mel[i][j] = alpha*m + beta*k; // mel is now cel (damping element matrix)
+           mel[i][j] = alpha*m + beta*k; // mel is now the damping element matrix
            kel[i][j] = Kcoef*k + Ccoef*mel[i][j] + Mcoef*m;
          }
      }
@@ -280,14 +279,26 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
    if(matrixTimers) matrixTimers->formTime += getTime();
 
+   // Assemble the element impedance matrix kel in mat, ops.Kuc and ops.spp
    if(matrixTimers) matrixTimers->assemble -= getTime();
-   if (isComplexF || (imag(kappa2)!=0)) {
+   if(isComplexF || (imag(kappa2) != 0)) {
      if(mat) mat->add(kcel,m_dofs);
+     if(ops.Kuc) ops.Kuc->add(kcel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
-   } else {
-     if(mat) mat->add(kel,m_dofs);
-     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    }
+   else {
+     if(mat) mat->add(kel,m_dofs);
+     if(ops.Kuc) ops.Kuc->add(kel,m_dofs);
+     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
+     if(Kss) Kss->add(kel,(*allDOFs)[iele]); // for farfield output (TODO: check with Radek)
+     if(isShifted && isDamped && isStructureElement(iele)) {
+       if(mat) mat->addImaginary(izel,m_dofs);
+       if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
+     }
+   }
+
+   // Assemble the element damping matrix mel in ops.C and ops.C_deriv
    if(isShifted) {
      if(isDamped && isStructureElement(iele)) {
        izel /= omega;
@@ -312,164 +323,155 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
 
  // now deal with complex elements
- if(typeid(Scalar)==typeid(DComplex))
-   {
-     // we assume they have no damping
-     for(iele=0; iele < numele; ++iele) {
-       StructProp *prop = packedEset[iele]->getProperty();
-       if(packedEset[iele]->isSommerElement()) continue;
-       if(!packedEset[iele]->isComplex()) continue;
-       m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
+ if(typeid(Scalar)==typeid(DComplex)) {
+   // we assume they have no damping
+   for(iele = 0; iele < numele; ++iele) {
+     StructProp *prop = packedEset[iele]->getProperty();
+     if(packedEset[iele]->isSommerElement()) continue;
+     if(!packedEset[iele]->isComplex()) continue;
+     m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
 
-       if(matrixTimers) matrixTimers->formTime -= getTime();
-       kelC = packedEset[iele]->complexStiffness(nodes, karrayC);
-       this->densProjectStiffnessC(kelC, iele);
-       if(sinfo.isCoupled) {  // coupled scaling
-	 if(isStructureElement(iele)) kelC *= cscale_factor2;
-	 else if(packedEset[iele]->isFsiElement()) kelC *= cscale_factor;
-       }
-
-       int i, j, dim = kel.dim();
-       if(makeMass || isShifted) {
-	 melC = packedEset[iele]->complexMassMatrix(nodes, marrayC, mratio);
-	 this->densProjectStiffnessC(melC, iele);
-	 if(sinfo.isCoupled && isStructureElement(iele)) melC *= cscale_factor2;
-       }
-       if(isShifted) {
-	 omega2 = (isFluidElement(iele)) ? packedEset[iele]->helmCoef() : geoSource->shiftVal();
-	 if(isStructureElement(iele)) {
-	   omega = sqrt(omega2);
-	 }
-	 for(i = 0; i < dim; ++i) {
-	   for(j = 0; j < dim; ++j) {
-	     kelC[i][j] -= omega2*melC[i][j];
-	   }
-	 }
-// RT: 11/17/08
-//	 if(sinfo.isCoupled && sinfo.doFreqSweep && isFluidElement(iele))
-	 if(sinfo.doFreqSweep && isFluidElement(iele))
-// RT: 11-6-08
-//	   melC /= (domain->fluidCelerity * domain->fluidCelerity);
-	   melC *= packedEset[iele]->helmCoef()/geoSource->shiftVal();
-       }
-       else {
-	 // do something for coupled eigen/dynamics, set fluidCelerity = 1500
-	 if(makeMass && sinfo.isCoupled && isFluidElement(iele)) melC /= (1500.0 * 1500);
-	 if(sinfo.acoustic == 1 && prop) {
-	   double c = prop->ss;//speed of sound
-	   melC /= (c*c);
-	 }
-       }
-       if(matrixTimers) matrixTimers->formTime += getTime();
-
-       if(matrixTimers) matrixTimers->assemble -= getTime();
-       if(ops.K)   ops.K->add(kelC,(*allDOFs)[iele]);
-       if(ops.Kuc) ops.Kuc->add(kelC,(*allDOFs)[iele]);
-       if(ops.M)   ops.M->add(melC,(*allDOFs)[iele]);
-       if(ops.Muc) ops.Muc->add(melC,(*allDOFs)[iele]);
-       if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
-       if(ops.Msolver) ops.Msolver->add(melC,(*allDOFs)[iele]);
-       if(mat) mat->add(kelC,m_dofs);
-       if(ops.spp) ops.spp->add(kelC,(*allDOFs)[iele]);
-       if(matrixTimers) matrixTimers->assemble += getTime();
+     if(matrixTimers) matrixTimers->formTime -= getTime();
+     kelC = packedEset[iele]->complexStiffness(nodes, karrayC);
+     this->densProjectStiffnessC(kelC, iele);
+     if(sinfo.isCoupled) {  // coupled scaling
+       if(isStructureElement(iele)) kelC *= cscale_factor2;
+       else if(packedEset[iele]->isFsiElement()) kelC *= cscale_factor;
      }
-   }
 
- if (sinfo.ATDARBFlag >= 1.0) {
-   getCurvatures3Daccurate(this);
-   //cerr << "getCurv ok" << endl;
+     int i, j, dim = kel.dim();
+     if(makeMass || isShifted) {
+       melC = packedEset[iele]->complexMassMatrix(nodes, marrayC, mratio);
+       this->densProjectStiffnessC(melC, iele);
+       if(sinfo.isCoupled && isStructureElement(iele)) melC *= cscale_factor2;
+     }
+     if(isShifted) {
+       omega2 = (isFluidElement(iele)) ? packedEset[iele]->helmCoef() : geoSource->shiftVal();
+       if(isStructureElement(iele)) {
+         omega = sqrt(omega2);
+       }
+       for(i = 0; i < dim; ++i)
+         for(j = 0; j < dim; ++j)
+           kelC[i][j] -= omega2*melC[i][j];
+       if(sinfo.doFreqSweep && isFluidElement(iele))
+         melC *= packedEset[iele]->helmCoef()/geoSource->shiftVal();
+     }
+     else {
+       // do something for coupled eigen/dynamics, set fluidCelerity = 1500
+       if(makeMass && sinfo.isCoupled && isFluidElement(iele)) melC /= (1500.0 * 1500);
+       if(sinfo.acoustic == 1 && prop) {
+         double c = prop->ss;//speed of sound
+         melC /= (c*c);
+       }
+     }
+     if(matrixTimers) matrixTimers->formTime += getTime();
+
+     if(matrixTimers) matrixTimers->assemble -= getTime();
+     if(ops.K)   ops.K->add(kelC,(*allDOFs)[iele]);
+     if(ops.Kuc) ops.Kuc->add(kelC,(*allDOFs)[iele]);
+     if(ops.M)   ops.M->add(melC,(*allDOFs)[iele]);
+     if(ops.Muc) ops.Muc->add(melC,(*allDOFs)[iele]);
+     if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
+     if(ops.Msolver) ops.Msolver->add(melC,(*allDOFs)[iele]);
+     if(mat) mat->add(kelC,m_dofs);
+     if(ops.spp) ops.spp->add(kelC,(*allDOFs)[iele]);
+     if(matrixTimers) matrixTimers->assemble += getTime();
+   }
  }
- //int compt = -1;
- int passage=0;
+
+ if(sinfo.ATDARBFlag >= 1.0) {
+   getCurvatures3Daccurate(this);
+ }
+ int passage = 0;
  bool Complx = false;//Test for stabilising absorbing condition of high order - JF
 
- if ((sinfo.ATDARBFlag==1.5) && Complx ) {//kel goes for DComplex, mat and ops.K(s) too
-  //DComplex *karray2 = (DComplex *) dbg_alloca(2*size);
-  //FullSquareMatrixC kel2(1,0);
+ // LOOP over the sommer elements
+ if((sinfo.ATDARBFlag == 1.5) && Complx) { // kel goes for DComplex, mat and ops.K(s) too
+   for(iele = 0; iele < numele; ++iele) {
+     if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
+     m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
+     //add massMatrix
+     mel.zero();
+     mel = packedEset[iele]->massMatrix(nodes, marray,mratio);
+     if (passage==0) {
+       int si = mel.dim();
+       cel.setSize(si);
+       passage=1;
+     }
+     if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
+     if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
+     if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
+     if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
+     mel *= Mcoef;
+     if(mat) mat->add(mel,m_dofs);
+     if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
 
-  for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
-   m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
-   //add massMatrix
-   mel.zero();
-   mel = packedEset[iele]->massMatrix(nodes, marray,mratio);
-   if (passage==0) {
-     int si = mel.dim();
-     cel.setSize(si);
-     passage=1;
+     //add dampingMatrix
+     cel.zero();
+     cel = packedEset[iele]->dampingMatrix(nodes, marray);
+     if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
+     if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
+     cel *= Ccoef;
+     if(mat) mat->add(cel,m_dofs);
+     if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
+
+     //add stiffness
+     kel.zero();
+     kel = packedEset[iele]->stiffness(nodes, karray);
+     if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
+     if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     kel *= Kcoef;
+     if(mat) mat->add(kel,m_dofs);
+     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
+     //add Imaginary part of stiffness
+     kel.zero();
+     kel = packedEset[iele]->imStiffness(nodes, karray);
+     if(ops.K) ops.K->addImaginary(kel,(*allDOFs)[iele]);
+     if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
+     kel *= Kcoef;
+     if(mat) mat->addImaginary(kel,m_dofs);
+     if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
    }
-   if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
-   if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
-   if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
-   if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
-   mel *= Mcoef;
-   if(mat) mat->add(mel,m_dofs);
-   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
-
-   //add dampingMatrix
-   cel.zero();
-   cel = packedEset[iele]->dampingMatrix(nodes, marray);
-   if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
-   if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
-   cel *= Ccoef;
-   if(mat) mat->add(cel,m_dofs);
-   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
-
-   //add stiffness
-   kel.zero();
-   kel = packedEset[iele]->stiffness(nodes, karray);
-   if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
-   if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
-   kel *= Kcoef;
-   if(mat) mat->add(kel,m_dofs);
-   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
-   //add Imaginary part of stiffness
-   kel.zero();
-   kel = packedEset[iele]->imStiffness(nodes, karray);
-   if(ops.K) ops.K->addImaginary(kel,(*allDOFs)[iele]);
-   if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
-   kel *= Kcoef;
-   if(mat) mat->addImaginary(kel,m_dofs);
-   if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
-  }
  }
- else
- for(iele=0; iele < numele; ++iele) {//for the sommerElements
-   if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
-   m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
-   //add massMatrix
-   mel.zero();
-   mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
-   if (passage==0) {
-     int si = mel.dim();
-     cel.setSize(si);
-     passage=1;
+ else {
+   for(iele = 0; iele < numele; ++iele) {
+     if(!packedEset[iele]->isSommerElement() || sinfo.ATDARBFlag == -2.0) continue;
+     m_dofs = (sinfo.type == 0 && subCast) ? (*domain->getAllDOFs())[subCast->getGlElems()[iele]] : (*allDOFs)[iele];
+
+     // add massMatrix
+     mel.zero();
+     mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
+     if (passage==0) {
+       int si = mel.dim();
+       cel.setSize(si);
+       passage=1;
+     }
+     if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
+     if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
+     if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
+     if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
+     mel *= Mcoef;
+     if(mat) mat->add(mel,m_dofs);
+     if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
+
+     // add dampingMatrix
+     cel.zero();
+     cel = packedEset[iele]->dampingMatrix(nodes, marray);
+     if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
+     if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
+     cel *= Ccoef;
+     if(mat) mat->add(cel,m_dofs);
+     if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
+
+     // add stiffness
+     kel.zero();
+     kel = packedEset[iele]->stiffness(nodes, karray);
+     if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
+     if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     kel *= Kcoef;
+     if(mat) mat->add(kel,m_dofs);
+     if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
    }
-   if(ops.M)   ops.M->add(mel,(*allDOFs)[iele]);
-   if(ops.Muc) ops.Muc->add(mel,(*allDOFs)[iele]);
-   if(ops.Mcc) ops.Mcc->add(mel,(*allDOFs)[iele]);
-   if(ops.Msolver) ops.Msolver->add(mel,(*allDOFs)[iele]);
-   mel *= Mcoef;
-   if(mat) mat->add(mel,m_dofs);
-   if(ops.spp) ops.spp->add(mel,(*allDOFs)[iele]);
-
-   //add dampingMatrix
-   cel.zero();
-   cel = packedEset[iele]->dampingMatrix(nodes, marray);
-   if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
-   if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
-   cel *= Ccoef;
-   if(mat) mat->add(cel,m_dofs);
-   if(ops.spp) ops.spp->add(cel,(*allDOFs)[iele]);
-
-   //add stiffness
-   kel.zero();
-   kel = packedEset[iele]->stiffness(nodes, karray);
-   if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
-   if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
-   kel *= Kcoef;
-   if(mat) mat->add(kel,m_dofs);
-   if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
  }
 
  if(makeMass || isShifted) {
@@ -482,7 +484,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    double omega = sqrt(geoSource->shiftVal()); 
    while(current != 0) {
      // PJSA: modified all addDiscreteMass functions to accept dsa dof rather than cdsa dof (much safer)
-     // XXXX what about Kuc, Cuc?
+     // TODO what about Kuc, Cuc?
      int dof = dsa->locate(current->node, (1 << current->dof));
      int m_dof = (sinfo.type == 0 && subCast) ? domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)) : dof; 
      if(dof == -1) 
@@ -547,11 +549,11 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  }
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
- if ((sinfo.HEV) && (probType() == SolverInfo::Modal))  {
+ if((sinfo.HEV) && (probType() == SolverInfo::Modal)) {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.trbm, sinfo.sparse_renum, 0);
    Mff->zeroAll();
 
-   for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
+   for(iele = 0; iele < geoSource->numElemFluid(); ++iele) {
      //element matrix already premultiplied by fluid density
      kel = (*(geoSource->getPackedEsetFluid()))[iele]->stiffness(nodes,karray);
      Mff->add(kel,(*allDOFsFluid)[iele]);
@@ -609,7 +611,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      ops.M->add(Ma_NZ,domain->umap_add);
      fprintf(stderr," ... HEV Problem: Added mass contribution included in structural mass ...\n");
 
-     if (isShifted)  {
+     if(isShifted) {
        omega2 = geoSource->shiftVal();
        Ma_NZ *= (-omega2*Kcoef);
        if (ops.K) ops.K->add(Ma_NZ,domain->umap_add);

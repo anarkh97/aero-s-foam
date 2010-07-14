@@ -71,7 +71,7 @@ GenSubDomain<double>::makeFrontal()
 {
  makeKbb(c_dsa);
 
- Kuc = new GenCuCSparse<double>(nodeToNode, dsa, c_dsa);
+ //Kuc = new GenCuCSparse<double>(nodeToNode, dsa, c_dsa);
 
  makeAllDOFs();
 

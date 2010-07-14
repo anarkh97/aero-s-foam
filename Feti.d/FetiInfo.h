@@ -197,7 +197,6 @@ class FetiInfo {
     enum RbmType { translation, rotation, all,
                    averageTran, averageRot, averageAll, None,
                    pressure, temperature } rbmType;
-    enum NullSpace { grbm, trbm } nullSpace;
     double nullSpaceFilterTol;
 
     // FETI-H
@@ -345,7 +344,6 @@ FetiInfo::FetiInfo()
   pick_unsafe_corners = true;
   fsi_corner = 2;
   complex_hermitian = false;
-  nullSpace = grbm;
   nullSpaceFilterTol = 0.0;
   dual_proj_tol = primal_proj_tol = 1.0e-16;
   dual_plan_tol = primal_plan_tol = 0.0;

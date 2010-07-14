@@ -28,15 +28,11 @@ class GenDomainGroupTask : public TaskDescr {
    double alpha, beta;
    int numSommer;
    int solvertype;
-   Connectivity *elemToNode;
-   Connectivity *elemToSub;
-   Connectivity *cpuToSub;
    FSCommunicator *com;
 
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 
-                      int, int solvertype, Connectivity *, Connectivity *, Connectivity *,
-                      FSCommunicator *);
+                      int, int solvertype, FSCommunicator *);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
 };

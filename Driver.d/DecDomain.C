@@ -3375,35 +3375,38 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 {
  GenBasicAssembler<Scalar> *ba = 0;
 
- bool isFeti = domain->solInfo().type == 2;
- FetiInfo *finfo = &domain->solInfo().getFetiInfo();
-
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
-                                domain->numSommer, finfo->solvertype, elemToNode, elemToSub, cpuToSub, communicator);
+                                domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
+                                communicator);
 
- if(domain->solInfo().type == 0) { // only mumps is supported
+ if(domain->solInfo().type == 0) {
+   switch(domain->solInfo().subtype) {
 #ifdef USE_MUMPS
-   GenMumpsSolver<Scalar> *msmat;
-   if(domain->solInfo().mumps_icntl[18] == 3) {
-     Connectivity *subToCpu = cpuToSub->reverse();
-     Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
-     Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());
-     msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
-     delete nodeToNodeLocal;
-     delete elemToCpu;
-     delete subToCpu;
-   }
-   else {
-     msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
-   }
-   for(int i = 0; i < numSub; ++i) {
-     dgt.dynMats[i] = dynamic_cast<GenSolver<Scalar>* >(msmat);
-     dgt.spMats[i] = dynamic_cast<GenSparseMatrix<Scalar>* >(msmat);
-   }
-#else
-   cerr << "you need mumps for this option\n"; exit(-1);
+     case 9 : {
+       GenMumpsSolver<Scalar> *msmat;
+       if(domain->solInfo().mumps_icntl[18] == 3) {
+         Connectivity *subToCpu = cpuToSub->reverse();
+         Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
+         Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());
+         msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+         delete nodeToNodeLocal;
+         delete elemToCpu;
+         delete subToCpu;
+       }
+       else {
+         msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+       }
+       for(int i = 0; i < numSub; ++i) {
+         dgt.dynMats[i] = dynamic_cast<GenSolver<Scalar>* >(msmat);
+         dgt.spMats[i] = dynamic_cast<GenSparseMatrix<Scalar>* >(msmat);
+       }
+     } break;
 #endif
+     default :
+       cerr << " *** ERROR: subtype " << domain->solInfo().subtype << " not supported here in GenDecDomain::buildOps\n";
+       exit(-1);
+   }
  }
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
@@ -3452,8 +3455,9 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
      res.dynMat->refactor();
    } break;
-   case 1 : { //iterative
-     cerr << "case 1 not implemented\n"; exit(-1);
+   case 1 : { // iterative
+     cerr << " *** ERROR: type 1 not supported here in GenDecDomain::buildOps\n";
+     exit(-1);
    } break;
    case 2 : { // feti
      if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";

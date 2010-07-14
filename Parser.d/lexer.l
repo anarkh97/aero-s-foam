@@ -474,8 +474,6 @@ TRAIL [a-zA-Z]*
 
 "u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
 
-"nulls"[a-zA-Z]*|"NULLS"[a-zA-Z]*  { return NULLSPACE; }
-
 "mpc_type"|"MPC_TYPE"              { return MPCTYPE; }
 
 "dual"                             { yylval.ival = 1; return MPCTYPEID; }

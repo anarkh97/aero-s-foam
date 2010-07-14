@@ -87,7 +87,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
                   int *_glSubToLoc, Connectivity *_mpcToSub, Connectivity *_mpcToSub_primal, Connectivity *_mpcToMpc,
                   Connectivity *_mpcToCpu, Connectivity *_cpuToSub, Connectivity *_bodyToSub,
                   GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse,
-                  Rbm **, int sandiaFlag, bool _geometricRbms)
+                  Rbm **, bool _rbmFlag, bool _geometricRbms)
  : GenFetiSolver<Scalar>(_nsub, threadManager->numThr()), internalR(_nsub), internalC(_nsub), internalWI(_nsub) 
 {
 /*
@@ -125,7 +125,11 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
   globalFlagCtc = this->fetiCom->globalMax((int) globalFlagCtc);
 #endif
 
- geometricRbms = _geometricRbms;
+ rbmFlag = _rbmFlag; // if this is true then check for singularities in Kcc^* and each Krr^{(s)}
+                     // and deal with the rigid body modes using projection method
+ geometricRbms = _geometricRbms; // if this is true then use geometric method
+                                 // to compute the rigid body modes of Kcc^* and Krr^{(s)}
+                                 // when rbmFlag is true, otherwise use algebraic null space   
 
  this->myCPU = this->fetiCom->cpuNum();
  this->numCPUs = this->fetiCom->size();
@@ -633,7 +637,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  
  int ngrbm = 0;
  ngrbms = 0;
- if(geometricRbms) {
+ if(rbmFlag && geometricRbms) {
    if((this->fetiInfo->corners == FetiInfo::noCorners) && (this->glNumMpc_primal > 0)) {
      // subdomain ZEMs need to be projected or eliminated
      // I think adding the dofs of primal mpcs to the "c" dofs would resolve this issue
@@ -796,7 +800,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    for(int i = 0; i < nGroups1; ++i) delete Qtranspose[groups[i]];
    delete [] Qtranspose;
  }
- if(!geometricRbms && this->fetiInfo->corners == FetiInfo::noCorners) {
+ if(rbmFlag && !geometricRbms && this->fetiInfo->corners == FetiInfo::noCorners) {
    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::useKrrNullspace);
    ngrbmGr = new int[nGroups];
    ngrbm = 0;
@@ -937,7 +941,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    KccSolver->parallelFactor();
    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
-   if(geometricRbms && this->myCPU == 0) {
+   if(rbmFlag && geometricRbms && this->myCPU == 0) {
      if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
        cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << endl
             << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << endl
@@ -945,7 +949,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      }
    } 
  
-   if(!geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
+   if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
      kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
      KccSolver->getNullSpace(kccrbms);
      if(this->fetiInfo->nullSpaceFilterTol > 0.0) {
@@ -1628,19 +1632,22 @@ void
 GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Scalar> &uc,
                                        GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &lambda)
 {
-  if(!geometricRbms && this->fetiInfo->corners != FetiInfo::noCorners) {
-    GenVector<Scalar> &alpha = this->wksp->ret_alpha();
-    for(int i= 0; i<KccSolver->numRBM(); ++i) 
-      for(int j=0; j<KccSolver->neqs(); ++j) 
-        uc[j] += alpha[i]*kccrbms[i*KccSolver->neqs()+j];
-    for(int i=0; i<this->nsub;++i) this->sd[i]->addTrbmRalpha(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), alpha.data(), ur.subData(i));
+  if(ngrbms) {
+    if(!geometricRbms && this->fetiInfo->corners != FetiInfo::noCorners) {
+      GenVector<Scalar> &alpha = this->wksp->ret_alpha();
+      for(int i= 0; i<KccSolver->numRBM(); ++i) 
+        for(int j=0; j<KccSolver->neqs(); ++j) 
+          uc[j] += alpha[i]*kccrbms[i*KccSolver->neqs()+j];
+      for(int i=0; i<this->nsub;++i) this->sd[i]->addTrbmRalpha(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), alpha.data(), ur.subData(i));
+    }
   }
 
   execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::mergeUr, ur, uc, u, lambda);
   if(ngrbms) { // add rigid body modes
-    GenVector<Scalar> &alpha = this->wksp->ret_alpha(); // amplitudes of the rigid body modes
-    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners) {
+      GenVector<Scalar> &alpha = this->wksp->ret_alpha(); // amplitudes of the rigid body modes
       execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::addRalpha, u, alpha);
+    }
     if(this->fetiInfo->uproj) computeProjectedDisplacement(u);
     else filePrint(stderr, " ... Do not project the displacement ...\n"); //HB
   }

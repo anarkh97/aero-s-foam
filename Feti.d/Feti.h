@@ -343,6 +343,7 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     DofSetArray *cornerEqs;
     int mpcOffset, augOffset; // mpc equation offset for coarse grid
     void initialize();
+    bool rbmFlag;
     bool geometricRbms;
     enum StepType { CG, PROPORTIONING, EXPANSION };
     bool proportional;
@@ -352,7 +353,7 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
                     FetiInfo *finfo, FSCommunicator *fetiCom, int *glToLoc, Connectivity *mpcToSub, Connectivity *mpcToSub_primal,
                     Connectivity *mpcToMpc, Connectivity *mpcToCpu, Connectivity *cpuToSub, 
                     Connectivity *bodyToSub = 0, GenSolver<Scalar> **sysMatrices = 0,
-                    GenSparseMatrix<Scalar> **sysMat = 0, Rbm **rbms = 0, int sandiaFlag = 0,
+                    GenSparseMatrix<Scalar> **sysMat = 0, Rbm **rbms = 0, bool rbmFlag = 0,
                     bool geometricRbms = true);
     virtual ~GenFetiDPSolver();
 

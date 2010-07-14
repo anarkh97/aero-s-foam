@@ -369,14 +369,13 @@ void
 GenMultiDomainStatic<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
-  int subI = sd->localSubNum();
-  if (u==0) sd->multM(rhs->subData(subI), 0, k);
+  if (u==0) sd->multM(rhs->subData(iSub), 0, k);
   else {
     GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
     for(int i=0; i<=k; ++i)
       sub_u[i]=
-         new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-    sd->multM(rhs->subData(subI), sub_u, k);
+        new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
+    sd->multM(rhs->subData(iSub), sub_u, k); // TODO
     delete [] sub_u;
   }
 }
@@ -386,11 +385,10 @@ void
 GenMultiDomainStatic<Scalar>::multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
-  int subI = sd->localSubNum();
   GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
   for(int i=0; i<=k; ++i)
-    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-  sd->multMCoupled1(rhs->subData(subI), sub_u, k, decDomain->getWiCommPattern());
+    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
+  sd->multMCoupled1(rhs->subData(iSub), sub_u, k, decDomain->getWiCommPattern()); // TODO
   delete [] sub_u;
 }
 
@@ -399,7 +397,7 @@ void
 GenMultiDomainStatic<Scalar>::multMCoupled2(int iSub, GenDistrVector<Scalar> *rhs)
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
-  sd->multMCoupled2(rhs->subData(sd->localSubNum()), decDomain->getWiCommPattern());
+  sd->multMCoupled2(rhs->subData(sd->localSubNum()), decDomain->getWiCommPattern()); // TODO
 }
 
 template<class Scalar>
@@ -420,10 +418,18 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs, double omega,
 
 template<class Scalar>
 void
-GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o)
+GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int isub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o)
 {
-  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
+/* deprecated
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
   sd->makeLoad(f.subData(sd->localSubNum()), tmp.subData(sd->localSubNum()), o[0], o[1]);
+*/
+  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
+  GenStackVector<Scalar> subf(f.subData(isub), f.subLen(isub));
+  GenStackVector<Scalar> subv(tmp.subData(isub), tmp.subLen(isub));
+
+  // TODO subdomain shouldn't have Cuc_deriv pointer
+  sd->buildRHSForce(subf, subv, (*allOps.Kuc)[isub], (*allOps.Muc)[isub], sd->Cuc_deriv, o[0], o[1]);
 }
 
 template<class Scalar>
@@ -441,13 +447,12 @@ void
 GenMultiDomainStatic<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x)
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
-  int subI = sd->localSubNum();
-  GenStackVector<Scalar> *sub_sol = new GenStackVector<Scalar>(sol->subData(subI), sol->subLen(subI));
+  GenStackVector<Scalar> *sub_sol = new GenStackVector<Scalar>(sol->subData(iSub), sol->subLen(iSub));
   int usize = (domain->solInfo().nFreqSweepRHS+1)*domain->solInfo().padeN;
   GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [usize];
   for(int i=0; i<usize; ++i)
-    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-  sd->pade(sub_sol, sub_u, h, x);
+    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));
+  sd->pade(sub_sol, sub_u, h, x); // TODO
   delete [] sub_u;
 }
 

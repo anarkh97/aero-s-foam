@@ -1,3 +1,4 @@
+/*
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -96,7 +97,6 @@ GenSubDomain<Scalar>::updateLocalDampingMatrices(int *dofs,
    if(Cuc_deriv && Cuc_deriv[n-1]) Cuc_deriv[n-1]->addImaginary(*imEl, dofs);
  }
 }
-
 
 template<class Scalar>
 void
@@ -437,34 +437,34 @@ GenSubDomain<Scalar>::computeSommerDerivatives(double HH, double KK, int curvatu
     else cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
   }
 
-/* PJSA DEBUG    
-  GenFullSquareMatrix<DComplex> bt2(ms.dim(),(DComplex*)dbg_alloca(ms.dim()*ms.dim()*sizeof(DComplex)));
-  int kDof=0;
-  for(int iDof=0; iDof<ms.dim(); iDof++) {
-    for(int jDof=0; jDof<ms.dim(); jDof++) {
-      bt2[iDof][jDof] = bt2Matrix[kDof];
-      kDof++;
-    }
-  }
-  FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-  FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-
-  GenFullSquareMatrix<DComplex> bt2n(bt2,1.0);
-  for(int n=1; n<=N; ++n) {
-    GenFullSquareMatrix<DComplex> copy(bt2n, 1.0);
-    copy.multiply(bt2,bt2n);  // bt2n = bt2n*bt2
-    DComplex cm = -pow(1.0/(2.0*ii*kappa),n+1)*pow(-2.0*ii,n)*double(DFactorial(n));
-    for(int iDof=0; iDof<ms.dim(); iDof++) {
-      for(int jDof=0; jDof<ms.dim(); jDof++) {
-        DComplex cmbt = cm*bt2n[iDof][jDof];
-        ksRe[iDof][jDof] = real(cmbt);
-        ksIm[iDof][jDof] = imag(cmbt);
-      }
-    }
-    updateLocalDampingMatrices(dofs,&ksRe,&ksIm,
-        sqrt(geoSource->shiftVal())/kappa,n);
-  }
-*/
+// PJSA DEBUG    
+//  GenFullSquareMatrix<DComplex> bt2(ms.dim(),(DComplex*)dbg_alloca(ms.dim()*ms.dim()*sizeof(DComplex)));
+//  int kDof=0;
+//  for(int iDof=0; iDof<ms.dim(); iDof++) {
+//    for(int jDof=0; jDof<ms.dim(); jDof++) {
+//      bt2[iDof][jDof] = bt2Matrix[kDof];
+//      kDof++;
+//    }
+//  }
+//  FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
+//  FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
+//
+//  GenFullSquareMatrix<DComplex> bt2n(bt2,1.0);
+//  for(int n=1; n<=N; ++n) {
+//    GenFullSquareMatrix<DComplex> copy(bt2n, 1.0);
+//    copy.multiply(bt2,bt2n);  // bt2n = bt2n*bt2
+//    DComplex cm = -pow(1.0/(2.0*ii*kappa),n+1)*pow(-2.0*ii,n)*double(DFactorial(n));
+//    for(int iDof=0; iDof<ms.dim(); iDof++) {
+//      for(int jDof=0; jDof<ms.dim(); jDof++) {
+//        DComplex cmbt = cm*bt2n[iDof][jDof];
+//        ksRe[iDof][jDof] = real(cmbt);
+//        ksIm[iDof][jDof] = imag(cmbt);
+//      }
+//    }
+//    updateLocalDampingMatrices(dofs,&ksRe,&ksIm,
+//        sqrt(geoSource->shiftVal())/kappa,n);
+//  }
+//
   FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   for(int n=1; n<=N; ++n) {
@@ -482,6 +482,7 @@ GenSubDomain<Scalar>::computeSommerDerivatives(double HH, double KK, int curvatu
          sqrt(geoSource->shiftVal())/kappa,n);
   }
 }
+*/
 
 template<class Scalar>
 void

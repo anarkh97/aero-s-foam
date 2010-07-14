@@ -12,12 +12,16 @@ class GenMultiSparse : public GenSparseMatrix<Scalar>
   public:
    GenMultiSparse(GenSparseMatrix<Scalar> *_K, GenSparseMatrix<Scalar> *_Kii, 
                   GenDBSparseMatrix<Scalar> *_Kbb, GenCuCSparse<Scalar> *_Kib) 
-   { K= _K; Kii = _Kii; Kbb = _Kbb; Kib = _Kib; }
+   { K = _K; Kii = _Kii; Kbb = _Kbb; Kib = _Kib; Kcc = 0; Krc = 0; }
 
    GenMultiSparse(GenSparseMatrix<Scalar> *_K, GenSparseMatrix<Scalar> *_Kii, 
                   GenDBSparseMatrix<Scalar> *_Kbb, GenCuCSparse<Scalar> *_Kib,
                   GenCuCSparse<Scalar> *_Krc, GenAssembledFullM<Scalar> *_Kcc)
-   { K= _K; Kii = _Kii; Kbb = _Kbb; Kib = _Kib; Krc = _Krc; Kcc = _Kcc; }
+   { K = _K; Kii = _Kii; Kbb = _Kbb; Kib = _Kib; Krc = _Krc; Kcc = _Kcc; }
+
+   GenMultiSparse(GenSparseMatrix<Scalar> *_K, GenCuCSparse<Scalar> *_Krc,
+                  GenAssembledFullM<Scalar> *_Kcc)
+   { K = _K; Krc = _Krc; Kcc = _Kcc; Kii = 0; Kbb = 0; Kib = 0; }
    
    ~GenMultiSparse() {};
     
@@ -36,7 +40,7 @@ template<class Scalar>
 void
 GenMultiSparse<Scalar>::zeroAll() 
 {
- K->zeroAll();
+ if(K) K->zeroAll();
  if(Kbb) Kbb->zeroAll();
  if(Kib) Kib->zeroAll();
  if(Kii) Kii->zeroAll();

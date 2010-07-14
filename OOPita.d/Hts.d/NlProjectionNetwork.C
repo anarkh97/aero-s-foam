@@ -45,9 +45,6 @@ BasisOrtho::inputValueIs(const DynamStateBasis & iv) {
   for (DynamStateBasis::IteratorConst it = iv.state(); it; ++it) {
     DynamState state = *it;
     double initialNorm = std::sqrt(state * state);
-    if (initialNorm < tolerance_) {
-      continue;
-    }
     
     for (DynamStateBasis::IteratorConst jt = output()->state(); jt; ++jt) {
       double dot = state * (*jt);
@@ -55,7 +52,7 @@ BasisOrtho::inputValueIs(const DynamStateBasis & iv) {
     }
 
     double finalNorm = std::sqrt(state * state);
-    if (finalNorm >= initialNorm * tolerance_) {
+    if (finalNorm > initialNorm * tolerance_) {
       state /= finalNorm;
       output()->lastStateIs(state); 
     }

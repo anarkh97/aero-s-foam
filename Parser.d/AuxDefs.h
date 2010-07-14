@@ -79,7 +79,10 @@ struct LayerData {
   double d[9];
 };
 
-
+struct ConstraintOptions {
+  bool lagrangeMult;
+  double penalty;
+};
 
 extern double fetiHTol;
 extern int fetiHIterMax;

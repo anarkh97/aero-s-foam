@@ -203,8 +203,6 @@ TRAIL [a-zA-Z]*
 
 "CRHS"|"crhs"                      { return CRHS; }
 
-"CTYPE"|"ctype"                    { return CTYPE; }
-
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
 
 "COND"[a-zA-Z]*|"cond"[a-zA-Z]*    { return CONDITION; }
@@ -516,6 +514,7 @@ TRAIL [a-zA-Z]*
 
 "DYNA"[a-zA-Z]*|"dyna"[a-zA-Z]*    { return DYNAM; }
 
+
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
@@ -777,9 +776,13 @@ TRAIL [a-zA-Z]*
 
 "fluid"|"FLUID"                    { yylval.ival = 2; return WAVETYPE;}
 
-"FLUMAT"|"flumat"                    { return FLUMAT;}
-"FABMAT"			{ return FABMAT;}
-"THERMMAT"|"thermmat"                    { return THERMMAT; }
+"FLUMAT"|"flumat"                  { return FLUMAT;}
+
+"FABMAT"|"fabmat"                  { return FABMAT;}
+
+"THERMMAT"|"thermmat"              { return THERMMAT; }
+
+"CONSTRMAT"|"constrmat"            { return CONSTRMAT; }
 
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 

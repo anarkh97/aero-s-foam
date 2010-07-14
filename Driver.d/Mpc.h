@@ -99,15 +99,14 @@ class LMPCons
     };
     int nterms;                     // number of terms in mpc
 
-    int type;                       // 0: dual equality constraint
-                                    // 1: dual inequality constraint (contact)
-                                    // 2: dual FETI boundary lagrange multiplier constraint
-                                    // 3: primal equality constraint to be incorporated into the coarse problem for feti-dp solver
-                                    // 4: primal inequality constraint
-                                    // 5: primal FETI boundary lagrange multiplier constraint
+    int type;                       // 0: equality constraint
+                                    // 1: inequality constraint (contact)
 
     int psub, nsub;                 // subdomains involved in Feti constraint.
                                     // psub will have coef +1.0, nsub will have coef -1.0
+
+    int lagrangeMult;               // -1 (undefined) or 0/1 (multiplier on/off)
+    double penalty;
 
     // real constructor 
     LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);

@@ -54,6 +54,7 @@
  LMPCTerm* mpcterm;
  GeoSource::Rprop rprop;
  OutputInfo oinfo;
+ ConstraintOptions copt;
 }
 
 %expect 6
@@ -63,8 +64,8 @@
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
-%token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CTYPE CMPC CNORM
-%token COMPLEXOUTTYPE
+%token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
+%token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DOFTYPE DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
@@ -111,7 +112,7 @@
 %type <bclist>   TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem //Added for HEV problem, EC, 20080512
 %type <bclist>   SurfaceDirichletBC SurfaceNeumanBC SurfacePressure
-%type <bcval>    BC_Data MPCHeader TBC_Data ModalVal PBC_Data HEVDBC_Data
+%type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
 %type <mpcterm>  MPCLine ComplexMPCLine
@@ -135,7 +136,7 @@
 %type <ival>     NDTYPE
 %type <nl>       NodeNums SommNodeNums 
 %type <nval>     Node
-%type <lmpcons>  MPCList ComplexMPCList
+%type <lmpcons>  MPCList ComplexMPCList MPCHeader
 %type <strval>   FNAME 
 %type <ymtt>     YMTTList
 %type <ctett>    TETTList
@@ -146,6 +147,7 @@
 %type <ival>     ISOLVERTYPE RECONSALG
 %type <ival>     PRECTYPEID SWITCH
 %type <oinfo>    OutInfo
+%type <copt>     ConstraintOptionsData
 %%
 FinalizedData:
 	All END
@@ -289,8 +291,6 @@ Component:
         | Decompose
 	| WeightList
 	| NodalContact
-        | ContactMode
-        | ContactFriction
 	{}
         | ModeInfo
         | Noninpc
@@ -318,6 +318,7 @@ Component:
 	| BoffsetList
 	| ParallelInTimeInfo 
         | AcmeControls
+        | Constraints
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -1572,28 +1573,42 @@ LMPConstrain:
 	;
 MPCList:
         MPCHeader MPCLine
-        { $$ = new LMPCons($1.nnum,$1.val,$2); $$->type = $1.dofnum; domain->addLMPC($$); }
+        { $$ = $1;
+          $$->addterm($2);
+          domain->addLMPC($$); }
         | MPCList MPCLine
         { $$->addterm($2); }
         | MPCList MPCHeader MPCLine
-        { $$ = new LMPCons($2.nnum,$2.val,$3); $$->type = $2.dofnum; domain->addLMPC($$); }
+        { $$ = $2;
+          $$->addterm($3);
+          domain->addLMPC($$); }
 	;
 MPCHeader:
-        Integer Float CTYPE Integer NewLine // PJSA: added CTYPE to eliminate conflict
-        {$$.nnum=$1; $$.val=$2; $$.dofnum=$4; }
+        Integer NewLine
+        { $$ = new LMPCons($1, 0.0); }
         | Integer Float NewLine
-        {$$.nnum=$1; $$.val=$2; $$.dofnum=0; }
-        | Integer NewLine
-        {$$.nnum=$1; $$.val=0.0; $$.dofnum=0; }
+        { $$ = new LMPCons($1, $2); }
+        | Integer Float MODE Integer NewLine
+        { $$ = new LMPCons($1, $2);
+          $$->type = $4; }
+        | Integer Float ConstraintOptionsData NewLine
+        { $$ = new LMPCons($1, $2);
+          $$->lagrangeMult = $3.lagrangeMult;
+          $$->penalty = $3.penalty; }
 	;
 MPCLine:
         Integer Integer Float NewLine
-        { if($3==0.0) {
-          fprintf(stderr," *** ERROR: zero coefficient in LMPC\n");
-          fprintf(stderr," ***          node %d dof %d\n",$1,$2);
-          return -1; 
+        { if($3 == 0.0) {
+            fprintf(stderr," *** ERROR: zero coefficient in LMPC\n");
+            fprintf(stderr," ***          node %d dof %d\n",$1,$2);
+            return -1; 
           }
-          else { $$ = new LMPCTerm(); $$->nnum=($1-1); $$->dofnum=($2-1); $$->coef.r_value=$3; }
+          else { 
+            $$ = new LMPCTerm();
+            $$->nnum = $1-1;
+            $$->dofnum = $2-1;
+            $$->coef.r_value = $3;
+          }
         }
 	;
 ComplexLMPConstrain:
@@ -1693,6 +1708,7 @@ MatData:
           sp.fp.Rz = $10;
           sp.fp.Sz = $11;
           sp.isReal = true;
+          sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
         }
@@ -1709,6 +1725,7 @@ MatData:
           sp.fp.Rz = $11;
           sp.fp.Sz = $12;
           sp.isReal = true;
+          sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
         }
@@ -1726,6 +1743,7 @@ MatData:
           sp.fp.Rz = $12;
           sp.fp.Sz = $13;
           sp.isReal = true;
+          sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
         }
@@ -1734,6 +1752,7 @@ MatData:
           sp.kappaHelm = $3;
           sp.rho = $4;
           sp.isReal = true;
+          sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
         }
         | Integer FLUMAT Float Float Float NewLine
@@ -1741,6 +1760,7 @@ MatData:
           sp.kappaHelm = $3;
           sp.kappaHelmImag = $4;
           sp.rho = $5;
+          sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
         }
 	| Integer FABMAT Integer Float Float Float Float Float Float Float Float Float Integer Integer Integer NewLine
@@ -1759,6 +1779,7 @@ MatData:
           sp.F_Nf = $14;
 	  sp.Seed = $15;
 	  sp.isReal = true;
+          sp.type = StructProp::Fabric;
           geoSource->addMat( $1-1, sp );
         }
         | Integer THERMMAT Float Float Float Float Float Float Float Float Float NewLine
@@ -1766,6 +1787,14 @@ MatData:
           sp.A = $3;  sp.rho = $4; sp.Q = $5; sp.c = $6; 
           sp.sigma = $7;  sp.k = $8;  sp.eh  = $9;  sp.P   = $10;  sp.Ta  = $11;
           sp.isReal = true;
+          sp.type = StructProp::Thermal;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
 	;
@@ -2238,13 +2267,6 @@ Solver:
 	| STATS NewLine FETI NewLine
 	{ domain->solInfo().type =(2);
           domain->solInfo().setProbType(SolverInfo::Static); }
-        | CONSTRAINTS DIRECT NewLine
-	{ geoSource->setDirectMPC(true); }// Direct substitution of MPCs
-        | CONSTRAINTS MULTIPLIERS NewLine
-	{ geoSource->setDirectMPC(false); }// Treatment of MPCs through Lagrange multipliers
-        | CONSTRAINTS PENALTY Float NewLine
-        { geoSource->setDirectMPC(false);
-          domain->solInfo().penalty = $3; }// Treatment of MPCs through penalty method
 	| FETI NewLine
         { domain->solInfo().type =(2);}
 	| FETI Integer NewLine
@@ -2763,6 +2785,21 @@ FAcousticData:
           domain->solInfo().setProbType(SolverInfo::Helmholtz);
         }
 	;
+Constraints:
+        CONSTRAINTS ConstraintOptionsData NewLine
+        { if(!$2.lagrangeMult && $2.penalty == 0) geoSource->setDirectMPC(true);
+          domain->solInfo().lagrangeMult = $2.lagrangeMult;
+          domain->solInfo().penalty = $2.penalty; }
+        ;
+ConstraintOptionsData:
+        DIRECT
+        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        | MULTIPLIERS
+        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        | PENALTY Float
+        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        | MULTIPLIERS PENALTY Float
+        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
@@ -3068,41 +3105,27 @@ Optimization:
 #endif
  }
 	;
-ContactMode:
-        MODE Integer NewLine
-        { domain->solInfo().contact_mode = $2; }
-ContactFriction:
-        FRIC Float NewLine
-        { domain->solInfo().coulomb_fric_coef = $2; }
 NodalContact: 
-        // NEW CONTACT
         NODALCONTACT NewLine
-//        | NODALCONTACT Integer NewLine // for backward compatability
         | NODALCONTACT MODE Integer NewLine
         { domain->solInfo().contact_mode = $3; }
-        | NODALCONTACT FRIC Float NewLine
-        { domain->solInfo().coulomb_fric_coef = $3; }
+
         // glbNode01 glbNode02 nx ny nz
         | NodalContact Integer Integer Float Float Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6); }
-        // glbNode01 glbNode02 nx ny nz normalGap
-        | NodalContact Integer Integer Float Float Float Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,$7,true);}
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6); }
         // glbNode01 glbNode02 nx ny nz GAP normalGap
         | NodalContact Integer Integer Float Float Float GAP Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,$8,true);}
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6, $8);}
         // glbNode01 glbNode02 nx ny nz MODE mode
         | NodalContact Integer Integer Float Float Float MODE Integer NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,0.0,false,0.0,false,$8,true);}
-        // glbNode01 glbNode02 nx ny nz MODE mode GAP normalGap
-        | NodalContact Integer Integer Float Float Float MODE Integer GAP Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,$10,true,0.0,false,$8,true);}
-        // glbNode01 glbNode02 nx ny nz FRIC fricCoef
-        | NodalContact Integer Integer Float Float Float FRIC Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,0.0,false,$8,true,1,true);}
-        // glbNode01 glbNode02 nx ny nz GAP normalGap FRIC fricCoef
-        | NodalContact Integer Integer Float Float Float GAP Float FRIC Float NewLine
-        { domain->addNodalCTC($2-1,$3-1,$4,$5,$6,$8,true,$10,true,1,true);}
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6, 0.0, $8);}
+        | NodalContact Integer Integer Float Float Float ConstraintOptionsData NewLine
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6, 0.0, -1, $7.lagrangeMult, $7.penalty);}
+        // glbNode01 glbNode02 nx ny nz GAP normalGap MODE mode
+        | NodalContact Integer Integer Float Float Float GAP Float MODE Integer NewLine
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6, $8, $10);}
+        | NodalContact Integer Integer Float Float Float GAP Float MODE Integer ConstraintOptionsData NewLine
+        { domain->addNodalCTC($2-1, $3-1, $4, $5, $6, $8, $10, $11.lagrangeMult, $11.penalty);}
 	;
 MatSpec:
 	MATSPEC NewLine

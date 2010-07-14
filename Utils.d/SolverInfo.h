@@ -210,7 +210,6 @@ struct SolverInfo {
 
    bool dbccheck;
    int contact_mode;
-   double coulomb_fric_coef;
 
    bool noninpc;
    bool inpc;
@@ -230,6 +229,7 @@ struct SolverInfo {
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
    bool ffi_debug;
 
+   bool lagrangeMult;
    double penalty;
 
    // Constructor
@@ -355,7 +355,6 @@ struct SolverInfo {
 
                   dbccheck = false;
                   contact_mode = 1;
-                  coulomb_fric_coef = 0.0;
 
                   nEig = 0;
                   eigenSolverSubType = 0;
@@ -402,6 +401,7 @@ struct SolverInfo {
                   allproc_acme = true;
                   ffi_debug = false;
 
+                  lagrangeMult = true;
                   penalty = 0;
                  }
 

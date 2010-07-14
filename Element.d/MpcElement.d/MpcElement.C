@@ -169,26 +169,26 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   update(c1, c0); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  if(prop->lagrangeMult) {
+
+  // general augmented lagrangian implementation
+  // penalty method is the particular case with prop->lagrangeMult is set to false
+  // multipliers method is the particular case with prop->penalty set to 0
+  // for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
+  bool penalize = (prop->penalty != 0.0 && (type == 0 || (type == 1 && rhs.r_value > 0)));
+  if(prop->lagrangeMult || penalize) {
     FullSquareMatrix H(nterms);
     getHessian(c1, c0, H); // H is the hessian of the constraint function
-    double lambda = c1[nn[nNodes]].x;
-    for(int i = 0; i < nterms; ++i)
-      for(int j = 0; j < nterms; ++j) 
-        Ktan[i][j] += lambda*H[i][j];
+    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0;
+    if(penalize) lambda += prop->penalty*rhs.r_value;
     for(int i = 0; i < nterms; ++i) {
-      Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
+      for(int j = 0; j < nterms; ++j) { 
+        Ktan[i][j] += lambda*H[i][j];
+        if(penalize) Ktan[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
+      }
+      if(prop->lagrangeMult) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
       f[i] += lambda*terms[i].coef.r_value;
     }
-    f[nterms] = rhs.r_value; // value of the constraint function
-  }
-  if(prop->penalty != 0) {
-    if(type == 0 || (type == 1 && rhs.r_value > 0)) {
-      for(int i = 0; i < nterms; ++i) {
-        // TODO Ktan contribution
-        f[i] += prop->penalty*rhs.r_value*terms[i].coef.r_value;
-      }
-    }
+    if(prop->lagrangeMult) f[nterms] = rhs.r_value;
   }
 }
 

@@ -2683,15 +2683,14 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   int numNodeLim;
 
   // organize displacements
-  if (sinfo.HEV) numNodeLim = myMax(numNodes,numnodes); 
-  else numNodeLim = numNodes; // XXXX
+  numNodeLim = myMax(numNodes,numnodes); 
     
   Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;
   for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
-  /*int exactNumNodes =*/ mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
+  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
 
   // Open files and write file headers in first time step
   if(firstOutput) geoSource->openOutputFiles();

@@ -203,8 +203,6 @@ int GeoSource::addMat(int nmat, StructProp &p)
   if (numProps < nmat+1) // attempt to get numProps right -- Julien & Thomas
     numProps = nmat+1;
 
-//  p.soundSpeed = omega()/complex<double>(p.kappaHelm, p.kappaHelmImag); // PJSA 1-15-08
-
   sProps[nmat] = p;
 
   return 0;
@@ -297,67 +295,24 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   if(numLMPC) {
     for(int i = 0; i < numLMPC; ++i) {
       elemSet.mpcelemadd(nEle, lmpc[i]);
+      // if constraint options have been set and they are different from the defaults
+      // then create a StructProp and set attribute for this mpc element
+      if((lmpc[i]->lagrangeMult != -1) && 
+         (lmpc[i]->lagrangeMult != domain->solInfo().lagrangeMult || lmpc[i]->penalty != domain->solInfo().penalty)) {
+        int a = maxattrib + 1;
+        StructProp p;
+        p.lagrangeMult = lmpc[i]->lagrangeMult;
+        p.penalty = lmpc[i]->penalty;
+        p.type = StructProp::Constraint;
+        addMat(a, p);
+        setAttrib(nEle, a);
+      }
       nEle++;
     }
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
   domain->setNumLMPC(0);
-}
-
-/** Class to give priority to DOFs in MPCs */
-struct PrioCompare {
-	/** gives higher priority to dofs with a lower number of MPCs to which it participates */
-	bool operator()(std::pair<int,int> a, std::pair<int,int> b) const {
-		return a.second > b.second || (a.second == b.second && a.first > b.first);
-	}
-};
-
-// MLX Debug
-
-void printLMPC(LMPCons *lmpc, vector<int> &tCount, std::map<std::pair<int,int>, int > &dofID)
-{
-  for(int j = 0; j < lmpc->nterms; ++j)
-    fprintf(stderr, "%d, %d (%d); ", lmpc->terms[j].nnum+1,
-            lmpc->terms[j].dofnum+1, tCount[dofID[std::pair<int,int>(lmpc->terms[j].nnum, lmpc->terms[j].dofnum)]]);
-  fprintf(stderr, "\n");
-}
-
-#include <set>
-void
-findGroups(Connectivity *nToN, Connectivity &nToE)
-{
-  // Examine all the nodes to form groups and for each group, collapse the elements
-  // that form it into a single group.
-  std::set<int> visitedNodes;
-  for(int i = 0; i < nToN->csize(); ++i) {
-    // Skip nodes that have no connection or that have already been treated
-    if(nToN->num(i) == 0 || visitedNodes.find(i) != visitedNodes.end())
-      continue;
-    std::set<int> nodeGroup, elementGroup;
-    std::queue<int> fifo;
-    for(fifo.push(i); !fifo.empty(); fifo.pop()) {
-      int j = fifo.front();
-      if(visitedNodes.insert(j).second == false)
-        continue; // We've already examined all the neighbors of this node
-      //std::cerr << "Starting at " << j+1 << ": ";
-
-      for(int ik = 0; ik < nToN->num(j); ++ik) {
-        int k = (*nToN)[j][ik];
-        // If this node has not been seen before, then we can
-        // add it to the queue.
-        if(nodeGroup.insert(k).second)
-          fifo.push(k);
-        //std::cerr << " " << k+1 << "(" << nodeGroup.size()<<")";
-      }
-      //std::cerr << std::endl;
-      for(int el = 0; el < nToE.num(j); ++el)
-        elementGroup.insert(nToE[j][el]);
-    }
-    // We now have the group of nodes that form a complete rigid body.
-    cerr << "in GeoSource::findGroups, Number of nodes: " << nodeGroup.size() 
-         << " number of MPCs: " << elementGroup.size() << endl;
-  }
 }
 
 /** Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master) */
@@ -751,8 +706,10 @@ void GeoSource::setUpData()
     StructProp* p = &(it->second);
     if(p->soundSpeed == 1.0)
       p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
-    p->lagrangeMult = (domain->solInfo().penalty == 0 && !mpcDirect);
-    p->penalty = domain->solInfo().penalty;
+    if(p->type != StructProp::Constraint) {
+      p->lagrangeMult = (mpcDirect) ? false : domain->solInfo().lagrangeMult;
+      p->penalty = (mpcDirect) ? 0.0 : domain->solInfo().penalty;
+    }
     it++;
   }
 

@@ -525,8 +525,6 @@ class GenSubDomain : public BaseSub
   void getSRMult(Scalar *lvec, Scalar *lbvec, int nRBM, double *locRBMs, Scalar *alpha);
   void sendInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
   void receiveInterfaceGrbm(FSCommPattern<Scalar> *rbmPat);
-  void makeLoad(Scalar *, Scalar *, double, double, GeomState *gs = 0); //HB: add GeomState for computing 
-                                              //    follower load (i.e. pressure)
   void sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   double collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat);
   void makeKbbMpc();
@@ -538,15 +536,7 @@ class GenSubDomain : public BaseSub
   void multDiagKbb(Scalar *, Scalar *);
   void multFi(GenSolver<Scalar> *s, Scalar *, Scalar *);
   void multMFi(GenSolver<Scalar> *s, Scalar *, Scalar *, int numRHS);
-  GenSkyMatrix<Scalar> *makeKSky();
-  GenBlockSky<Scalar> *makeBlockKSky();
-  GenBLKSparseMatrix<Scalar> *makeSSolver();
-  GenSpoolesSolver<Scalar> *makeSpoolesSolver();
-  GenMumpsSolver<Scalar> *makeMumpsSolver();  //Axel
-  GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *makePCGSolver();
-  GenSolver<Scalar> *makeFrontal();
   void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
-  void assemble(GenSparseMatrix<Scalar> *K, GenSolver<Scalar> *smat = 0, bool prec_only = false);
   void mergePrimalError(Scalar* error, Scalar* primal);
   void mergeStress(Scalar *stress, Scalar *weight,
                    Scalar *globStress, Scalar *globWeight);
@@ -623,7 +613,6 @@ class GenSubDomain : public BaseSub
   void weightEdgeGs();
   void constructKcc();
   void constructKrc();
-  void constructLocalMatrices();
   void initSrc();
   void clean_up();
 
@@ -695,12 +684,6 @@ class GenSubDomain : public BaseSub
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
 
-  // Helmholtz fluid functions
-  void dumpMiscData(int handle);
-  void updateLocalMatrices(GenSparseMatrix<Scalar> *K, int *dofs,
-                           FullSquareMatrix *reEl, FullSquareMatrix *imEl);
-  void assembleLocalSommer(GenSparseMatrix<Scalar> *K);
-
  protected:
   double *mpcForces;
 
@@ -747,22 +730,17 @@ class GenSubDomain : public BaseSub
   int numC_deriv;
  private:
   // frequency sweep
-  void constructLocalMassAndDampingMatrices();
   void makeFreqSweepLoad(Scalar *load, int iRHS, double omega);
-  void updateLocalDampingMatrices(int *dofs, FullSquareMatrix *reEl, FullSquareMatrix *imEl, double ss, int n=0);
   GenVector<Scalar> **a, **b;  // pade P, Q coefs
   int ia, ib;
   GenVector<Scalar> *P, *Q; // pade P(x), Q(x)
   bool rebuildPade;
-  void computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *dofs, 
-                                FullSquareMatrix &ms, ComplexD **bt2nMatrix, double kappa);
   
  public:
   void multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k);
   void multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u, int k,
                      FSCommPattern<Scalar> *wiPat);
   void multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiPat);
-  void zeroLocalMatrices();
   void pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> **u, double *h, double x);
 
   // new B operators
@@ -828,7 +806,6 @@ class GenSubDomain : public BaseSub
 typedef GenSubDomain<double> SubDomain;
 #ifdef _TEMPLATE_FIX_
   #include <Driver.d/SubDomain.C>
-  #include <Driver.d/HSubDomain.C>
   #include <Driver.d/BOps.C>
   #include <Driver.d/RbmOps.C>
   #include <Driver.d/LOps.C>

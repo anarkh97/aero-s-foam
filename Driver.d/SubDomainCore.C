@@ -66,39 +66,6 @@ GenSubDomain<double>::getSRMult(double *lvec, double *interfvec, int nRBM, doubl
 }
 
 template<>
-GenSolver<double> *
-GenSubDomain<double>::makeFrontal()
-{
- makeKbb(c_dsa);
-
- //Kuc = new GenCuCSparse<double>(nodeToNode, dsa, c_dsa);
-
- makeAllDOFs();
-
- AllOps<double> ops;
- double Kcoef = 1.0;
- double Mcoef = 0.0;
- double Ccoef = 0.0;
-
- Rbm *rbm = 0;
- if(sinfo.rbmflg && (solInfo().getFetiInfo().version != FetiInfo::fetidp))
-   rbm = constructRbm(false);
-
- // makeFrontalOps<double>(ops, Kcoef, Mcoef, Ccoef, rbm);
- this->makeFrontalOps<double>(ops, Kcoef, Mcoef, Ccoef, rbm);
-
- return ops.sysSolver;
-}
-
-template<>
-GenSolver<DComplex> *
-GenSubDomain<DComplex>::makeFrontal()
-{
-  fprintf(stderr, "ERROR: GenSubDomain<DComplex>::makeFrontal() is not supported\n");
-  return 0;
-}
-
-template<>
 void
 GenSubDomain<DComplex>::precondGrbm()
 {

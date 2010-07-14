@@ -588,22 +588,6 @@ GenSubDomain<Scalar>::applyMpcSplitting()
 
 }
 
-/* deprecated
-template<class Scalar>
-void
-GenSubDomain<Scalar>::makeLoad(Scalar *d, Scalar *tmp, double omega, double deltaomega, GeomState *gs) // this makes a weighted load
-{                                                        // HB: add GeomState for following load
- int numUncon = c_dsa->size();
- GenStackVector<Scalar> force(numUncon, d);
- force.zero();
- GenStackVector<Scalar> vtmp(numUncon, tmp);
- vtmp.zero();
-
- // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
- buildRHSForce<Scalar>(force, vtmp, Kuc, Muc, Cuc_deriv, omega, deltaomega,  gs);
-}
-*/
-
 template<class Scalar>
 void
 GenSubDomain<Scalar>::initScaling()
@@ -1243,162 +1227,6 @@ void GenSubDomain<Scalar>::extractControlData(Scalar *disp, Scalar *vel,
       }
     }
   }
-}
-
-/* deprecated
-template<class Scalar>
-void
-GenSubDomain<Scalar>::constructLocalMatrices()
-{
- // this constructs all of the local matrices except Krr
- memK = 0;
-
- // construct Kcc, Krc (dp)
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   constructKcc();
-   constructKrc();
- }
- //else makeKbb(c_dsa); // construct Kbb, Kii, Kib (feti-1 only, for dp this is done elsewhere)
- if(numMPC) makeKbbMpc();
- else makeKbb(getCCDSA());
-
- // construct Kww, Kcw for coupled_dph
- if(solInfo().isCoupled) {
-   constructKww();
-   constructKcw();
-   constructKrw();
- }
-
- // construct local mass matrix, used for helmholtz frequency sweep
- if(solInfo().doFreqSweep) constructLocalMassAndDampingMatrices();
-
-  // construct rigid body modes if necessary
- rigidBodyModes = 0;
- if((sinfo.rbmflg && (solInfo().getFetiInfo().version != FetiInfo::fetidp))
-     || ((solInfo().getFetiInfo().version == FetiInfo::fetidp) && (numCRNdof == 0) && !solInfo().getFetiInfo().dph_flag)
-     || (solInfo().getFetiInfo().augment == FetiInfo::Gs)) {
-   rigidBodyModes = constructRbm(false);
- }
-
- // construct Kuc
- if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0)
-   Kuc = new GenCuCSparse<Scalar>(nodeToNode, dsa, c_dsa);
-
- makeAllDOFs();
-}
-*/
-
-template<class Scalar>
-GenSkyMatrix<Scalar> *
-GenSubDomain<Scalar>::makeKSky()
-{
- // construct main local solver (Krr for feti-dp)
- GenSkyMatrix<Scalar> *K = 0;
- if(localLen() > 0) {
-   K = constructSkyMatrix<Scalar>(cc_dsa, rigidBodyModes);
-   memK += K->size();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K;
- }
-
- return K;
-}
-
-template<class Scalar>
-GenBLKSparseMatrix<Scalar> *
-GenSubDomain<Scalar>::makeSSolver()
-{
- // construct main local solver (Krr for feti-dp)
- GenBLKSparseMatrix<Scalar> *K = 0;
- if(localLen() > 0) {
-   K = constructBLKSparseMatrix<Scalar>(cc_dsa, rigidBodyModes);
-   memK += K->size();
-   K->zeroAll();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K;
- }
-
- return K;
-}
-
-template<class Scalar>
-GenSpoolesSolver<Scalar> *
-GenSubDomain<Scalar>::makeSpoolesSolver()
-{
- // construct main local solver (Krr for feti-dp)
- GenSpoolesSolver<Scalar> *K = 0;
- if(localLen() > 0) {
-   K = constructSpooles<Scalar>(cc_dsa);
-   memK += K->size();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K;
- }
- return K;
-}
-
-template<class Scalar>
-GenMumpsSolver<Scalar> *
-GenSubDomain<Scalar>::makeMumpsSolver()
-{
- // construct main local solver (Krr for feti-dp)
- GenMumpsSolver<Scalar> *K = 0;
- if(localLen() > 0) {
-   K = constructMumps<Scalar>(cc_dsa);
-   memK += K->size();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K;
- }
- return K;
-}
-
-template<class Scalar>
-GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *
-GenSubDomain<Scalar>::makePCGSolver()
-{
- GenDBSparseMatrix<Scalar> *spm = 0;
- if(solInfo().getFetiInfo().version != FetiInfo::fetidp)
-    spm = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, cc_dsa);
- else
-    spm = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
-
-  // construct main local solver (Krr for feti-dp)
- GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *K = 0;
- if(localLen() > 0) {
-   K = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                       (spm, 1, sinfo.maxit, sinfo.tol, sinfo.maxvecsize, rigidBodyModes);
-   memK += spm->size();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K->getOperator();
- }
-
- return K;
-}
-
-template<class Scalar>
-GenBlockSky<Scalar>*
-GenSubDomain<Scalar>::makeBlockKSky()
-{
- // construct main local solver (Krr for feti-dp)
- GenBlockSky<Scalar> *K = 0;
- if(localLen() > 0) {
-   K = constructBlockSky<Scalar>(cc_dsa);
-   memK += K->size();
- }
- if(solInfo().getFetiInfo().version == FetiInfo::fetidp) {
-   Krr = K;
-   KrrSparse = K;
- }
- return K;
 }
 
 template<class Scalar>
@@ -2052,389 +1880,6 @@ GenSubDomain<Scalar>::factorKrr()
   if(Krr) Krr->factor();
 }
 
-/* deprecated
-#include <Element.d/Helm.d/HelmElement.h>
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::assemble(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat, bool prec_only)
-{
- double cscale_factor = domain->cscale_factor,
-        cscale_factor2 = domain->cscale_factor2; // PJSA 10-24-06
-
- int size = maxNumDOFs*maxNumDOFs*sizeof(double);
- double *v = (double *) dbg_alloca(size);
- double *w = (double *) dbg_alloca(size);
-
- bool isShifted = geoSource->isShifted();
-
- double mratio = geoSource->getMRatio();
-
- // Rayleigh damping coefficients: C = alpha*M + beta*K
- double alphaDamp = -sinfo.alphaDamp, alpha;
- double  betaDamp = -sinfo.betaDamp, beta;
- bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
-
-
- double *z = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
-
- bool precm = (solInfo().getFetiInfo().prectype==FetiInfo::shifted) ? true : false; //HB
- double omega = 0.0;
- FullSquareMatrix *img_prec = 0;
- FullSquareMatrix izel(0, z);
-
- complex<double> *kcarray = (complex<double> *) alloca(2*size);
- complex<double> *mcarray = (complex<double> *) alloca(2*size);
-
- FullSquareMatrixC kcel(1, kcarray);
- FullSquareMatrixC mcel(1, mcarray);
-
- FullSquareMatrix kel(1, v);
- FullSquareMatrix mel(1, w);
-
- int iele;
- for(iele=0; iele < numele; ++iele) {
-   StructProp *prop = packedEset[iele]->getProperty();
-   bool isFluidEle = packedEset[iele]->isFluidElement();
-   bool isFsiEle   = packedEset[iele]->isFsiElement();
-   bool isStructEle = !(isFluidEle || isFsiEle);
-   bool isComplexF = (prop && prop->fp.PMLtype != 0);
-   alpha = (prop && packedEset[iele]->isDamped()) ? -prop->alphaDamp : alphaDamp;
-   beta = (prop && packedEset[iele]->isDamped()) ? -prop->betaDamp : betaDamp;
-
-
-   // compute element stiffness matrix
-   if (isComplexF) {
-     kcel = packedEset[iele]->stiffness(nodes, kcarray);
-   } else {
-     kel = packedEset[iele]->stiffness(nodes,v);
-     this->densProjectStiffness(kel, iele);
-   }
-
-   // scale k for coupled dph
-   if(solInfo().isCoupled) {
-     if(isStructEle) kel *= cscale_factor2;
-     else if(isFsiEle) kel *= cscale_factor;
-   }
-
-   // preconditioner is not shifted so assemble now before kel is adjusted
-   if(!precm) {
-     if (isComplexF) {
-       if(Kbb) Kbb->add(kcel,(*allDOFs)[iele]);
-       if(Kib) Kib->add(kcel,(*allDOFs)[iele]);
-       if(KiiSparse) KiiSparse->add(kcel,(*allDOFs)[iele]);
-     } else {
-       if(Kbb) Kbb->add(kel,(*allDOFs)[iele]);
-       if(Kib) Kib->add(kel,(*allDOFs)[iele]);
-       if(KiiSparse) KiiSparse->add(kel,(*allDOFs)[iele]);
-     }
-   }
-   if(prec_only) continue; // just assemble the preconditioner
-
-   complex<double> kappa2 = packedEset[iele]->helmCoefC();
-   double omega2 = geoSource->shiftVal();
-
-   if(isShifted) {
-     // compute element mass matrix
-     if (isComplexF) {
-       mcel = packedEset[iele]->massMatrix(nodes, mcarray);
-     } else {
-       mel = packedEset[iele]->massMatrix(nodes,w,mratio);
-       this->densProjectStiffness(mel, iele);
-     }
-
-     // scale m for coupled dph (structural elements only)
-     if(solInfo().isCoupled && isStructEle) mel *= cscale_factor2;
-
-     // PJSA 10-9-04: we are not supporting proportional damping for fluid elements
-     if(isDamped && isStructEle) { // required initialization for damping
-       omega = sqrt(omega2);
-       //izel.setSize(mel.dim());
-       if(!precm && (beta != 0.0)) img_prec = new FullSquareMatrix(kel, omega*beta);
-     }
-     //omega2 = isFluidEle? packedEset[iele]->helmCoef() : geoSource->shiftVal();
-     if(!isFluidEle) {
-       omega = sqrt(omega2);
-       if(packedEset[iele]->hasDamping())
-	 {
-	   izel = packedEset[iele]->dampingMatrix(nodes, z);
-	   this->densProjectStiffness(izel, iele);
-	   for(int i = 0; i < izel.dim(); ++i) {
-	     for(int j = 0; j < izel.dim(); ++j)
-	       { izel[i][j] = omega*(izel[i][j]+beta*kel[i][j] + alpha*mel[i][j]); }
-	   }
-	 }
-       else if(isDamped)
-	 {
-	   izel.setSize(mel.dim());
-	   for(int i = 0; i < izel.dim(); ++i) {
-	       for(int j = 0; j < izel.dim(); ++j)
-		 { izel[i][j] = omega*(beta*kel[i][j] + alpha*mel[i][j]); }
-	     }
-	 }
-     }
-
-     if (isComplexF) {
-       for(int i = 0; i < mcel.dim(); ++i)
-         for(int j = 0; j < mcel.dim(); ++j)
-           kcel[i][j] -= kappa2*mcel[i][j];
-     } else if (imag(kappa2)!=0) {
-       kcel.setSize(kel.dim());
-       for(int i = 0; i < mel.dim(); ++i)
-         for(int j = 0; j < mel.dim(); ++j)
-           kcel[i][j] = complex<double>(kel[i][j],0.0) - kappa2*mel[i][j];
-     } else {
-     // construct impedence matrix zel
-     // kel is the real part of zel and izel is the imaginary part
-       double o2 = isFluidEle ? real(kappa2): omega2;
-       for(int i = 0; i < mel.dim(); ++i)
-         for(int j = 0; j < mel.dim(); ++j) {
-           if(isDamped && isStructEle)
-             izel[i][j] = omega*(beta*kel[i][j] + alpha*mel[i][j]);
-           kel[i][j] -= o2*mel[i][j];
-         }
-     }
-   }
-
-   if (isComplexF || (imag(kappa2)!=0) ) {
-     if(Kas) Kas->add(kcel,(*allDOFs)[iele]);
-     if(Kcc) Kcc->add(kcel,(*allDOFs)[iele]);
-     if(Krc) Krc->add(kcel,(*allDOFs)[iele]);
-     if(Kuc) Kuc->add(kcel,(*allDOFs)[iele]);
-     if(precm) {
-       if(Kbb) Kbb->add(kcel,(*allDOFs)[iele]);
-       if(Kib) Kib->add(kcel,(*allDOFs)[iele]);
-       if(KiiSparse) KiiSparse->add(kcel,(*allDOFs)[iele]);
-     }
-     if(Kww) Kww->add(kcel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Kcw) Kcw->add(kcel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Krw) Krw->add(kcel,(*allDOFs)[iele]);  // for coupled_dph
-     if(smat) smat->add(kcel,(*allDOFs)[iele]); // for salinas
-   } else {
-     if(Kas) Kas->add(kel,(*allDOFs)[iele]);
-     if(Kcc) Kcc->add(kel,(*allDOFs)[iele]);
-     if(Krc) Krc->add(kel,(*allDOFs)[iele]);
-     if(Kuc) Kuc->add(kel,(*allDOFs)[iele]);
-     if(precm) {
-       if(Kbb) Kbb->add(kel,(*allDOFs)[iele]);
-       if(Kib) Kib->add(kel,(*allDOFs)[iele]);
-       if(KiiSparse) KiiSparse->add(kel,(*allDOFs)[iele]);
-     }
-     if(Kss) Kss->add(kel,(*allDOFs)[iele]);
-     if(Kww) Kww->add(kel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Kcw) Kcw->add(kel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Krw) Krw->add(kel,(*allDOFs)[iele]);  // for coupled_dph
-     if(smat) smat->add(kel,(*allDOFs)[iele]); // for salinas
-   }
-
-   if(isDamped && isStructEle) {
-     if(Kas) Kas->addImaginary(izel,(*allDOFs)[iele]);
-     if(Kcc) Kcc->addImaginary(izel,(*allDOFs)[iele]);
-     if(Krc) Krc->addImaginary(izel,(*allDOFs)[iele]);
-     if(Kuc) Kuc->addImaginary(izel,(*allDOFs)[iele]);
-     if(Kww) Kww->addImaginary(izel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Kcw) Kcw->addImaginary(izel,(*allDOFs)[iele]);  // for coupled_dph
-     if(Krw) Krw->addImaginary(izel,(*allDOFs)[iele]);  // for coupled_dph
-     if(smat) smat->addImaginary(izel,(*allDOFs)[iele]); // for salinas
-     if(precm) {
-       if(Kbb) Kbb->addImaginary(izel,(*allDOFs)[iele]);
-       if(Kib) Kib->addImaginary(izel,(*allDOFs)[iele]);
-       if(KiiSparse) KiiSparse->addImaginary(izel,(*allDOFs)[iele]);
-     }
-     else {
-       if(beta != 0.0) {
-         if(Kbb) Kbb->addImaginary(*img_prec, (*allDOFs)[iele]);
-         if(Kib) Kib->addImaginary(*img_prec, (*allDOFs)[iele]);
-         if(KiiSparse) KiiSparse->addImaginary(*img_prec, (*allDOFs)[iele]);
-         delete img_prec;
-       }
-     }
-   }
-
-   if(solInfo().doFreqSweep) {
-     if(isDamped && isStructEle) {
-       izel /= omega;  // now izel is damping matrix, D = alpha*m + beta*k
-       // PJSA: C = omega * D, therefore C_deriv[0] = D
-       if(C_deriv[0]) C_deriv[0]->addImaginary(izel, (*allDOFs)[iele]);
-       if(Cuc_deriv && Cuc_deriv[0]) Cuc_deriv[0]->addImaginary(izel, (*allDOFs)[iele]);
-     }
-// RT: 11/17/08
-//     if(solInfo().isCoupled) {
-       if(isFluidEle) {
-          if (isComplexF)
-             mcel *= kappa2/omega2;
-          else if (imag(kappa2)!=0) {
-            mcel.setSize(mel.dim());
-            for(int i = 0; i < mel.dim(); ++i)
-              for(int j = 0; j < mel.dim(); ++j)
-                mcel[i][j] = kappa2/omega2*mel[i][j];
-          }
-          else
-//             mel /= (domain->fluidCelerity * domain->fluidCelerity);
-             mel *= real(kappa2)/omega2;
-       }
-       else if(isFsiEle) {
-         for(int i = 0; i < kel.dim()-1; ++i) {  // just add the C part, not C^transpose
-           kel[i][kel.dim()-1] = 0.0;
-           kel[kel.dim()-1][i] /= -geoSource->shiftVal();
-         }
-         if(M) M->add(kel, (*allDOFs)[iele]);
-         if(Muc) Muc->add(kel, (*allDOFs)[iele]);
-       }
-//     }
-     if (isComplexF || (imag(kappa2)!=0) ) {
-       if(M) M->add(mcel, (*allDOFs)[iele]);
-       if(Muc) Muc->add(mcel, (*allDOFs)[iele]);
-     } else {
-       if(M) M->add(mel, (*allDOFs)[iele]);
-       if(Muc) Muc->add(mel, (*allDOFs)[iele]);
-     }
-
-   }
- }
-
- if(isShifted) { // add discrete mass contributions to local matricies for frequency response analysis
-   DMassData *current = firstDiMass;
-   Scalar m;
-   while(current != 0) {
-     if(solInfo().isCoupled || isDamped) cerr << " *** WARNING: discrete mass not properly implemented for this case \n";
-     bool isFluidNode = false;
-     double mass = (solInfo().isCoupled && !isFluidNode) ? current->diMass*cscale_factor2 : current->diMass;
-     int dof = dsa->locate(current->node, (1 << current->dof));
-     double m_real = -(omega*omega)*mass;
-     double m_imag = (isDamped && !isFluidNode) ? omega*alpha*mass : 0.0;
-     ScalarTypes::initScalar(m, m_real, m_imag);
-     if(Kas) Kas->addDiscreteMass(dof, m);
-     if(Kcc) Kcc->addDiscreteMass(dof, m);
-     if(Krc) Krc->addDiscreteMass(dof, m);
-     if(Kww) Kww->addDiscreteMass(dof, m);
-     if(Kcw) Kcw->addDiscreteMass(dof, m);
-     if(Krw) Krw->addDiscreteMass(dof, m);
-     if(smat) smat->addDiscreteMass(dof, m);  // for salinas
-     if(isDamped && !isFluidNode) {
-       ScalarTypes::initScalar(m, 0.0, alpha*mass);
-       if(C_deriv[0]) C_deriv[0]->addDiscreteMass(dof, m);
-     }
-     if(solInfo().isCoupled && isFluidNode) mass /= (domain->fluidCelerity * domain->fluidCelerity);  // coupled sweep
-     if(M) M->addDiscreteMass(dof, mass);
-     current = current->next;
-   }
- }
-
- if(typeid(Scalar)==typeid(DComplex)) { assembleLocalComplexEls(Kas, smat); }
- if(numSommer > 0) assembleLocalSommer(Kas);
-// { Kib->print(); Kbb->print(); }
-}
-
-template<class Scalar>
-void GenSubDomain<Scalar>::assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat)
-{
-  int size = maxNumDOFs*maxNumDOFs*sizeof(DComplex);
-  DComplex *v = static_cast<DComplex *>(dbg_alloca(size));
-  DComplex *w = static_cast<DComplex *>(dbg_alloca(size));
-
-  bool isShifted = geoSource->isShifted();
-  double mratio = geoSource->getMRatio();
-
-  bool precm = (solInfo().getFetiInfo().prectype==FetiInfo::shifted) ? true : false; //HB
-  //if(precm) filePrint(stderr," ~~~~ USES SHIFTED PREC ~~~~\n");
-  //double omega = 0.0;
-  FullSquareMatrixC mel;
-
-  for(int iele=0; iele < numele; ++iele)
-    {
-      if(!packedEset[iele]->isComplex()) { continue; }
-      bool isFluidEle = isFluid(iele);
-      // compute element stiffness matrix
-      FullSquareMatrixC kel = packedEset[iele]->complexStiffness(nodes,v);
-      this->densProjectStiffnessC(kel, iele);
-
-      // scale k for coupled dph (structural elements only)
-      if(solInfo().isCoupled && !isFluidEle) { kel *= cscale_factor2; }
-
-      // preconditioner is not shifted so assemble now before kel is adjusted
-      if(!precm)
-	{
-	  if(Kbb) { Kbb->add(kel,(*allDOFs)[iele]); }
-	  if(Kib) { Kib->add(kel,(*allDOFs)[iele]); }
-	  if(KiiSparse) { KiiSparse->add(kel,(*allDOFs)[iele]); }
-	}
-
-      if(isShifted)
-	{
-	  // get shift
-	  double omega2 = (isFluidEle) ? packedEset[iele]->helmCoef() : geoSource->shiftVal();
-	  // compute element mass matrix
-	  mel = packedEset[iele]->complexMassMatrix(nodes,w,mratio);
-	  this->densProjectStiffnessC(mel, iele);
-
-	  // scale m for coupled dph (structural elements only)
-	  if(solInfo().isCoupled && !isFluidEle) mel *= cscale_factor2;
-
-	  omega2 = isFluidEle? packedEset[iele]->helmCoef() : geoSource->shiftVal();
-	  // kel is the real part of zel and izel is the imaginary part
-	  for(int i = 0; i < mel.dim(); ++i)
-	    {
-	      for(int j = 0; j < mel.dim(); ++j)
-		{ kel[i][j] -= omega2*mel[i][j]; }
-	    }
-	}
-
-      if(Kas) { Kas->add(kel,(*allDOFs)[iele]); }
-      if(Kcc) { Kcc->add(kel,(*allDOFs)[iele]); }
-      if(Krc) { Krc->add(kel,(*allDOFs)[iele]); }
-      if(Kuc) { Kuc->add(kel,(*allDOFs)[iele]); }
-      if(precm)
-	{
-	  if(Kbb) Kbb->add(kel,(*allDOFs)[iele]);
-	  if(Kib) Kib->add(kel,(*allDOFs)[iele]);
-	  if(KiiSparse) KiiSparse->add(kel,(*allDOFs)[iele]);
-	}
-      // real if(Kss) Kss->add(kel,(*allDOFs)[iele]);  // ask Radek if this should also have izel added
-      if(Kww) { Kww->add(kel,(*allDOFs)[iele]); } // for coupled_dph
-      if(Kcw) { Kcw->add(kel,(*allDOFs)[iele]); } // for coupled_dph
-      if(Krw) { Krw->add(kel,(*allDOFs)[iele]); } // for coupled_dph
-      if(smat) { smat->add(kel,(*allDOFs)[iele]); } // for salinas
-
-      if(solInfo().doFreqSweep)
-	{
-          complex<double> k2 = packedEset[iele]->helmCoefC();
-          double o2 = geoSource->shiftVal();
-// RT: 11/17/08
-//	  if(solInfo().isCoupled && isFluidEle) { mel /= (domain->fluidCelerity * domain->fluidCelerity); }  // coupled sweep
-	  if(solInfo().isCoupled && isFluidEle) { mel *= real(k2)/o2; }
-	  if(M) { M->add(mel, (*allDOFs)[iele]); }
-	  if(Muc) { Muc->add(mel, (*allDOFs)[iele]); }
-	}
-    }
-
-  return;
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::zeroLocalMatrices()
-{
-  if(KrrSparse) KrrSparse->zeroAll();
-  if(Kcc) Kcc->zero();
-  if(Krc) Krc->zeroAll();
-  if(Kuc) Kuc->zeroAll();
-  if(Kbb) Kbb->zeroAll();
-  if(Kib) Kib->zeroAll();  // note this may not be required for multiple LHS freq sweep
-  if(KiiSparse) KiiSparse->zeroAll();  // note this may not be required for multiple LHS freq sweep
-  if(Kss) Kss->zeroAll();
-  if(Kww) Kww->zeroAll();
-  if(Kcw) Kcw->zeroAll();
-  if(Krw) Krw->zeroAll();
-  if(M) M->zeroAll();
-  if(Muc) Muc->zeroAll();
-  if(C_deriv) for(int i=0; i<numC_deriv; ++i) C_deriv[i]->zeroAll();
-  if(Cuc_deriv) for(int i=0; i<numC_deriv; ++i) Cuc_deriv[i]->zeroAll();
-  rebuildPade = true;
-  // for coupled also need to re-scale or rebuild neighbKww
-}
-*/
-
 template<class Scalar>
 void
 GenSubDomain<Scalar>::getHalfInterf(Scalar *s, Scalar *t)
@@ -3019,14 +2464,6 @@ GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState, Scalar deltaLam
       geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
   }
 }
-
-template<>
-GenSolver<double> *
-GenSubDomain<double>::makeFrontal();
-
-template<>
-GenSolver<DComplex> *
-GenSubDomain<DComplex>::makeFrontal();
 
 template<class Scalar>
 void
@@ -4081,13 +3518,6 @@ GenSubDomain<Scalar>::clean_up()
  if(internalMap) { delete [] internalMap; internalMap = 0; }
 
  long m1 = 0;
-/*
- if(Kuc) {
-   m1 = -memoryUsed();
-   Kuc->clean_up();
-   m1 += memoryUsed();
- }
-*/
 
  if(Kbb) {
    m1 = -memoryUsed();
@@ -4618,7 +4048,6 @@ void
 GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 
-  //Kuc = 0;
   rigidBodyModes = 0; rigidBodyModesG = 0;
   Src = 0; Krr = 0; KrrSparse = 0; BKrrKrc = 0; Kcc = 0; Krc = 0;
   Grc = 0; rbms = 0; interfaceRBMs = 0; qtkq = 0; KiiSparse = 0;
@@ -4669,7 +4098,6 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(rigidBodyModesG) { delete rigidBodyModesG; rigidBodyModesG = 0; }
   if(Src) { delete Src; Src = 0; }
   if(MPCsparse) { delete MPCsparse; MPCsparse = 0; }
-  //if(Kuc) { delete Kuc; Kuc = 0; }
   if(glInternalMap) { delete [] glInternalMap; glInternalMap = 0; }
   if(glBoundMap) { delete [] glBoundMap; glBoundMap = 0; }
   if(mpcForces) { delete [] mpcForces; mpcForces = 0; }
@@ -6228,40 +5656,6 @@ GenSubDomain<Scalar>::setWICommSize(FSCommPattern<Scalar> *pat)
 template<> double GenSubDomain<double>::Bcx(int i);
 template<> DComplex GenSubDomain<DComplex>::Bcx(int i);
 
-/* deprecated
-template<class Scalar>
-void
-GenSubDomain<Scalar>::constructLocalMassAndDampingMatrices()
-{
-  if(solInfo().isCoupled && solInfo().fetiInfo.fsi_corner != 0)
-     M = new GenNBSparseMatrix<Scalar>(nodeToNode, c_dsa); // unsymmetric
-  else M = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
-  if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0)
-    Muc = new GenCuCSparse<Scalar>(nodeToNode, dsa, c_dsa);
-
-  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0);
-  if(isDamped || (numSommer > 0)) {
-
-    if((numSommer > 0) && ((sommerfeldType == 2) || (sommerfeldType == 4)))
-      numC_deriv = sinfo.nFreqSweepRHS - 1;
-    else
-      numC_deriv = 1;
-    C_deriv = new GenSparseMatrix<Scalar> * [sinfo.nFreqSweepRHS - 1];
-    Connectivity *con = (numSommer>0) ? nodeToNode_sommer: nodeToNode;
-    for(int n=0; n<numC_deriv; ++n)
-      C_deriv[n] = new GenDBSparseMatrix<Scalar>(con, dsa, c_dsa);
-    for(int n=numC_deriv; n<sinfo.nFreqSweepRHS - 1; ++n)
-      C_deriv[n] = 0;
-    if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
-      Cuc_deriv = new GenSparseMatrix<Scalar> * [sinfo.nFreqSweepRHS - 1];
-      for(int n=0; n<numC_deriv; ++n)
-        Cuc_deriv[n] = new GenCuCSparse<Scalar>(nodeToNode, dsa, c_dsa);
-      for(int n=numC_deriv; n<sinfo.nFreqSweepRHS - 1; ++n)
-        Cuc_deriv[n] = 0;
-    }
-  }
-}
-*/
 template<class Scalar>
 void
 GenSubDomain<Scalar>::multM(Scalar *localrhs, GenStackVector<Scalar> **u, int k)
@@ -6628,3 +6022,15 @@ void GenSubDomain<Scalar>::mergeElemProps(double* props,
     }
   return;
 }
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::addSommer(SommerElement *ele)
+{
+ ele->dom = this;
+ sommer[numSommer++] = ele;
+ //if(sinfo.ATDARBFlag != -2.0) packedEset.elemadd(numele++,ele);  // XDEBUG
+ if(sinfo.ATDARBFlag != -2.0)
+  { ele->renum(glToLocalNode); packedEset.elemadd(numele++,ele); }
+}
+

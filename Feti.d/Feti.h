@@ -192,13 +192,9 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
 
     void sendDeltaF(int iSub, GenDistrVector<Scalar>& deltaF);
     void normDeltaF(int iSub, double * subDots, GenDistrVector<Scalar>* deltaF);
-    void assembleMatrices(int isub);
     void factorMatrices(int isub);
-    void constructMatrices(int isub);
     void sendScale(int isub);
     void collectScale(int isub);
-    void makeSubdomainStaticLoadGalPr(int isub,GenDistrVector<Scalar>& f, GenDistrVector<Scalar>& tmp, double *, DistrGeomState *gs=0);//HB: add DistrGeomState
-                                                                                          //follower load (pressure)
     void getErrorEstimator(int iSub, GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &es);
     void interfaceDiff(int iSub, GenDistrVector<Scalar> &v);
     void rebuildInterface(int iSub, GenDistrVector<Scalar> &v);
@@ -277,7 +273,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     DistrInfo &interfInfo() { return interface; }
     DistrInfo &localInfo()  { return internalDI; }
     GenDistrVector<Scalar> & getLambda() { return wksp->ret_lambda(); }
-    void makeStaticLoad(GenDistrVector<Scalar> &, double, double, DistrGeomState *gs=0); //HB: add DistrGeomState for 
     int neq() { return internalDI.len; }
 
     void updateFeti2lambda(GenDistrVector<Scalar> &, GenDistrVector<Scalar>&, 
@@ -315,16 +310,6 @@ class GenFetiSolver  : public GenParallelSolver<Scalar>
     double getFNormSq(GenDistrVector<Scalar> &f);
 
     virtual void getLocalMpcForces(int iSub, double *mpcLambda) { };  // only implemented for DP
-/* deprecated
-    // for helmholtz freqency sweep
-    void getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k);
-    void multM(int iSub, GenDistrVector<Scalar> *rhs,  GenDistrVector<Scalar> **u, int k);
-    void multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **sol_prev, int k);
-    void multMCoupled2(int iSub, GenDistrVector<Scalar> *rhs);
-    void pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);
-    void subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);
-    virtual void rebuildLHSfreq();  // for multiple LHS frequency sweep
-*/
     GenSolver<Scalar> * newSolver(int type, Connectivity *con, EqNumberer *nums, double tol, GenSparseMatrix<Scalar> *&sparse); // PJSA 2-23-2007
 
   protected:
@@ -495,10 +480,6 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     void wetInterfaceComms();  // coupled_dph
     void computeLocalWaveNumbers();
   public:
-/* deprecated
-    void rebuildLHSfreq();     // for multiple LHS frequency sweep, assuming no changes except freq/k
-                               // ie no change in mpcs, contact, etc.
-*/
     void reconstruct();
     void refactor();
     void reconstructMPCs(Connectivity *_mpcToSub, Connectivity *_mpcToMpc, Connectivity *_mpcToCpu);

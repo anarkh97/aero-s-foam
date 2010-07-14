@@ -21,23 +21,6 @@ template<class Scalar>
 GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 {
  domain = d;
-/*
- switch(domain->solInfo().fetiInfo.version) {
-  default:
-  case FetiInfo::feti1:
-    filePrint(stderr," ... FETI-1 is Selected             ...\n");
-    break;
-  case FetiInfo::feti2:
-    filePrint(stderr," ... FETI-2 is Selected             ...\n");
-    break;
-  case FetiInfo::fetidp:
-    if (!(domain->solInfo().fetiInfo.dph_flag)) 
-      filePrint(stderr," ... FETI-Dual/Primal is Selected   ...\n");
-    else 
-      filePrint(stderr," ... FETI-DPH is Selected           ...\n");
-    break;
-  }
-*/
 #ifdef DISTRIBUTED
  decDomain = new GenDistrDomain<Scalar>(domain);
 #else
@@ -100,21 +83,6 @@ GenMultiDomainStatic<Scalar>::preProcess()
 
  // Construct FETI solver and any other matrices required
  times->getFetiSolverTime -= getTime();
-/* deprecated
- if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
-    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
-    domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
-    domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
-   for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
-   decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
-   solver = (GenFetiSolver<Scalar> *) allOps.sysSolver;
- }
- else { // XXXX
-   allOps.sysSolver = solver = decDomain->getFetiSolver();
-   allOps.Kuc = new GenSubDOp<Scalar>(decDomain->getNumSub());
-   for(int i=0; i<decDomain->getNumSub(); ++i) (*allOps.Kuc)[i] = decDomain->getSubDomain(i)->Kuc;
- }
-*/
  for(int i=0; i<decDomain->getNumSub(); ++i) decDomain->getSubDomain(i)->makeAllDOFs();
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
  solver = allOps.sysSolver;
@@ -126,7 +94,6 @@ GenMultiDomainStatic<Scalar>::preProcess()
    filePrint(stderr, " ... MODEfilter requested          ...\n");
    eigmode_projector_prep();
  }
-
 }
 
 template<class Scalar>
@@ -134,24 +101,6 @@ void
 GenMultiDomainStatic<Scalar>::rebuildSolver()
 {
   times->getFetiSolverTime -= getTime(); // PJSA 3-30-06
-/* deprecated
-  if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
-     domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
-     domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
-     domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
-
-    GenMDDynamMat<Scalar> ops;
-    ops.sysSolver = allOps.sysSolver;
-    ops.K = allOps.K;
-    ops.Kuc = allOps.Kuc;
-    ops.M = allOps.M;
-    ops.Muc = allOps.Muc;
-    decDomain->rebuildOps(ops, 0.0, 0.0, 1.0); // just rebuild solver and K
-  }
-  else { // XXXX
-    solver->rebuildLHSfreq();
-  }
-*/
   GenMDDynamMat<Scalar> ops;
   ops.sysSolver = allOps.sysSolver;
   ops.K = allOps.K;
@@ -159,26 +108,22 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
   ops.M = allOps.M;
   ops.Muc = allOps.Muc;
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
-
   times->getFetiSolverTime += getTime(); // PJSA 3-30-06
 }
-
 
 template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::scaleDisp(GenDistrVector<Scalar> &u)
 {
- decDomain->scaleDisp(u);
+  decDomain->scaleDisp(u);
 }
-
 
 template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::scaleInvDisp(GenDistrVector<Scalar> &u)
 {
- decDomain->scaleInvDisp(u);
+  decDomain->scaleInvDisp(u);
 }
-
 
 template<class Scalar>
 void
@@ -190,14 +135,14 @@ template<class Scalar>
 GenParallelSolver<Scalar> *
 GenMultiDomainStatic<Scalar>::getSolver()
 {
- return solver;
+  return solver;
 }
 
 template<class Scalar>
 GenMultiDomainPostProcessor<Scalar> *
 GenMultiDomainStatic<Scalar>::getPostProcessor()
 {
- return new GenMultiDomainPostProcessor<Scalar>(decDomain, solver, times);
+  return new GenMultiDomainPostProcessor<Scalar>(decDomain, solver, times);
 }
 
 template<class Scalar>
@@ -308,35 +253,7 @@ void
 GenMultiDomainStatic<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, 
                                               GenDistrVector<Scalar> **sol_prev, int iRHS)
 {
-/* deprecated
-// RT: should only be done for the projection method
- if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos ||
-    domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
-    domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
-    domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
-
-   for(int i=0;i<decDomain->getNumSub();i++) {
-     decDomain->getSubDomain(i)->M = (*allOps.M)[i];
-     decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];
-     if (allOps.C) decDomain->getSubDomain(i)->C = (*allOps.C)[i];
-     if (allOps.C_deriv) {
-       decDomain->getSubDomain(i)->C_deriv =
-          new GenSparseMatrix<Scalar>*[iRHS+1];
-       (decDomain->getSubDomain(i)->C_deriv)[0] = ((*allOps.C_deriv)[0])[i];
-       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->C_deriv)[j] = 0;
-     }
-     if (allOps.Cuc_deriv) {
-       decDomain->getSubDomain(i)->Cuc_deriv =
-          new GenSparseMatrix<Scalar>*[iRHS+1];
-       (decDomain->getSubDomain(i)->Cuc_deriv)[0] = ((*allOps.Cuc_deriv)[0])[i];
-       for(int j=1;j<iRHS+1;j++) (decDomain->getSubDomain(i)->Cuc_deriv)[j] = 0;
-     }
-   }
- }
- solver->getFreqSweepRHS(rhs, sol_prev, iRHS); // XXXX
-*/
-
-  // TODO this is a bit messy
+  // TODO
   for(int i=0;i<decDomain->getNumSub();i++) {
     decDomain->getSubDomain(i)->M = (*allOps.M)[i];
     decDomain->getSubDomain(i)->Muc = (GenCuCSparse<Scalar> *)(*allOps.Muc)[i];
@@ -405,9 +322,6 @@ void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs, double omega,
                                      double deltaomega)
 {
-/* deprecated
- solver->makeStaticLoad(rhs,omega,deltaomega); // XXXX
-*/
   filePrint(stderr," ... Building the Force             ...\n");
   rhs.zero();
   GenDistrVector<Scalar> *tmp = new GenDistrVector<Scalar>(solVecInfo());
@@ -420,10 +334,6 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::makeSubdomainStaticLoadGalPr(int isub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o)
 {
-/* deprecated
-  GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
-  sd->makeLoad(f.subData(sd->localSubNum()), tmp.subData(sd->localSubNum()), o[0], o[1]);
-*/
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(isub);
   GenStackVector<Scalar> subf(f.subData(isub), f.subLen(isub));
   GenStackVector<Scalar> subv(tmp.subData(isub), tmp.subLen(isub));
@@ -436,9 +346,6 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **sol_prev, double *h, double x)
 {
-/* deprecated
-  solver->pade(sol, sol_prev, h, x); // XXXX
-*/
   execParal(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subPade, sol, sol_prev, h, x);
 }
 

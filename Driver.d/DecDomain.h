@@ -83,8 +83,7 @@ class GenDecDomain
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
   Connectivity * getSubToSub() { return subToSub; }
-  GenFetiSolver<Scalar> *getFetiSolver();
-  GenFetiSolver<Scalar> *getDynamicFetiSolver(GenDomainGroupTask<Scalar> &);
+  GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0, bool make_feti = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
   void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0);

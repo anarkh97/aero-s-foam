@@ -556,32 +556,9 @@ GenDecDomain<Scalar>::distributeDiscreteMass()
   }
 }
 
-/* deprecated
 template<class Scalar>
 GenFetiSolver<Scalar> *
-GenDecDomain<Scalar>::getFetiSolver()
-{
- FetiInfo *finfo = &domain->solInfo().getFetiInfo();
- if(finfo->version == FetiInfo::fetidp) {
-   GenSolver<Scalar> **sysMatrices = 0;
-   GenSparseMatrix<Scalar> **sysMat = 0;
-   Rbm **rbms = 0;
-   bool geometricRbms = (domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) 
-                       && !geoSource->isShifted() && !domain->solInfo().isNonLin() && (finfo->nullSpace != FetiInfo::trbm);
-   return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo,
-                                      communicator, glSubToLocal, mpcToSub_dual, mpcToSub_primal,
-                                      mpcToMpc, mpcToCpu, cpuToSub, grToSub, sysMatrices, sysMat, rbms, 0, geometricRbms);
- }
- else {
-   return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
-                                    glSubToLocal, mpcToSub_dual, cpuToSub);
- }
-}
-*/
-
-template<class Scalar>
-GenFetiSolver<Scalar> *
-GenDecDomain<Scalar>::getDynamicFetiSolver(GenDomainGroupTask<Scalar> &dgt)
+GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
  if(finfo->version == FetiInfo::fetidp) {
@@ -3461,7 +3438,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    } break;
    case 2 : { // feti
      if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";
-     res.dynMat = getDynamicFetiSolver(dgt);
+     res.dynMat = getFetiSolver(dgt);
    } break;
    case 3 : { // block diag
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);

@@ -186,20 +186,8 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
  oSetCG = (fetiInfo->maxortho > 0) ? new GenCGOrthoSet<Scalar>(halfInterfLen, fetiInfo->maxortho, fetiCom) : 0;
  times.memoryOSet += memoryUsed();
 
- if(sysMatrices == 0) {
-/* deprecated
-   startTimerMemory(times.constructMatrices, times.memorySubMatrices);
-   // Construct and Assemble Sub-domain matrices i.e. K, Kii, Kib, Kbb, Kuc
-   fprintf(stderr," ... Construct Subdomain Matrice    ... \n");
-   timedParal(times.consMatrix,nsub,this,&GenFetiSolver<Scalar>::constructMatrices);
-   fprintf(stderr," ... Assemble Subdomain Matrices    ... \n");
-   timedParal(times.consMatrix,nsub,this,&GenFetiSolver<Scalar>::assembleMatrices);
-   stopTimerMemory(times.constructMatrices, times.memorySubMatrices);
-*/
- } 
- else {
-   int iSub;
-   for(iSub = 0; iSub < nsub; ++iSub) 
+ if(sysMatrices != 0) {
+   for(int iSub = 0; iSub < nsub; ++iSub) 
      fetiOps[iSub]->setSysMatrix(sysMatrices[iSub], sysSparse[iSub]);
  }
 
@@ -269,74 +257,6 @@ GenFetiSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
  distributeForce(f);
  return f.sqNorm();
 }
-
-/* deprecated
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::constructMatrices(int iSub)
-{
-  // This function allocates memory for the subdomain stiffness matrices
-  sd[iSub]->constructLocalMatrices(); // (eg Kcc, Kuc, Kbb, Kii, Kww etc.)
-  switch(fetiInfo->solvertype) { // Krr
-    default:
-    case FetiInfo::skyline:
-    {
-      GenSkyMatrix<Scalar> *sky = sd[iSub]->makeKSky();
-      fetiOps[iSub]->K = sky;
-      fetiOps[iSub]->KasSparse = sky;
-    } break;
-    case FetiInfo::blocksky:
-    {
-      GenBlockSky<Scalar> *sky = sd[iSub]->makeBlockKSky();
-      fetiOps[iSub]->K = sky; 
-      fetiOps[iSub]->KasSparse = sky;
-    } break;
-    case FetiInfo::sparse:
-    {
-      GenBLKSparseMatrix<Scalar> *sm = sd[iSub]->makeSSolver();
-      fetiOps[iSub]->K = sm;
-      fetiOps[iSub]->KasSparse = sm;
-    } break;
-    case FetiInfo::pcg:
-    {
-      GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *pcg = sd[iSub]->makePCGSolver();
-      fetiOps[iSub]->K = pcg;
-      fetiOps[iSub]->KasSparse = pcg->getOperator();
-    } break;
-    case FetiInfo::frontal:
-    {
-      fetiOps[iSub]->K = sd[iSub]->makeFrontal();
-      fetiOps[iSub]->KasSparse = 0;
-    } break;
-    case FetiInfo::spooles:
-    {
-      GenSpoolesSolver<Scalar> *sp = sd[iSub]->makeSpoolesSolver();
-      fetiOps[iSub]->K = sp;
-      fetiOps[iSub]->KasSparse = sp;
-    } break;
-    case FetiInfo::mumps:
-    {
-      GenMumpsSolver<Scalar> *mump = sd[iSub]->makeMumpsSolver();
-      fetiOps[iSub]->K = mump;
-      fetiOps[iSub]->KasSparse = mump;
-    } break;
-  }
-#if defined(sgi) && ! defined(USE_OPENMP)
-  ussetlock(allocLock);
-  totMemSparse += (fetiOps[iSub]->K) ? fetiOps[isub]->K->size() : 0;
-  usunsetlock(allocLock);
-#endif
-
-  if(fetiInfo->dph_flag) sd[iSub]->makeKss(sd[iSub]);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::assembleMatrices(int iSub)
-{
-  sd[iSub]->assemble(fetiOps[iSub]->KasSparse);
-}
-*/
 
 template<class Scalar>
 void
@@ -1084,31 +1004,6 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
 
  times.reOrtho += getTime();
 }
-
-/* deprecated
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeStaticLoad(GenDistrVector<Scalar> &f, double omega, double deltaomega,  DistrGeomState *gs)
-{
-  filePrint(stderr," ... Building the Force             ...\n");
-  f.zero();
-  GenDistrVector<Scalar> *tmp = new GenDistrVector<Scalar>(internalDI);
-  double o[2] = {omega,deltaomega};
-// RT: 4/30/09 - should be timed
-  execParal4R(nsub,this,&GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr, f, *tmp, o, gs);
-  delete tmp;
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o, DistrGeomState *gs)
-{
-  GeomState *subgs = 0;
-  if(gs) subgs = (*gs)[iSub];
-
-  sd[iSub]->makeLoad(f.subData(sd[iSub]->localSubNum()),tmp.subData(sd[iSub]->localSubNum()),o[0],o[1],subgs);
-}
-*/
 
 template<class Scalar>
 void
@@ -3745,83 +3640,6 @@ GenFetiSolver<Scalar>::orthoAddGCR(GenDistrVector<Scalar> &p, GenDistrVector<Sca
   oSetGCR->orthoAddTimed(times.orthogonalize, hp, hFp, FpFp);
   times.memoryOSet += memoryUsed();
 }
-
-/* deprecated
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::getFreqSweepRHS(GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
-{
-  if(domain->solInfo().isCoupled && fetiInfo->fsi_corner == 0) {
-    timedParal3(times.buildRhs, nsub, this, &GenFetiSolver<Scalar>::multMCoupled1, rhs, u, k);
-    wiPat->exchange();
-    timedParal(times.buildRhs, nsub, this, &GenFetiSolver<Scalar>::multMCoupled2, rhs);
-  }
-  else timedParal3(times.buildRhs, nsub, this, &GenFetiSolver<Scalar>::multM, rhs, u, k);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::pade(GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x)
-{
-  execParal(nsub, this, &GenFetiSolver<Scalar>::subPade, sol, u, h, x);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::multM(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
-{
-  int subI = sd[iSub]->localSubNum();
-  if (u==0) sd[iSub]->multM(rhs->subData(subI), 0, k);
-  else {
-    GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
-    for(int i=0; i<=k; ++i)
-      sub_u[i]=
-         new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-    sd[iSub]->multM(rhs->subData(subI), sub_u, k);
-    delete [] sub_u;
-  }
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::multMCoupled1(int iSub, GenDistrVector<Scalar> *rhs, GenDistrVector<Scalar> **u, int k)
-{
-  int subI = sd[iSub]->localSubNum();
-  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [k+1];
-  for(int i=0; i<=k; ++i)
-    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-  sd[iSub]->multMCoupled1(rhs->subData(subI), sub_u, k, wiPat);
-  delete [] sub_u;
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::multMCoupled2(int iSub, GenDistrVector<Scalar> *rhs)
-{
-  sd[iSub]->multMCoupled2(rhs->subData(sd[iSub]->localSubNum()), wiPat);
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x)
-{
-  int subI = sd[iSub]->localSubNum();
-  GenStackVector<Scalar> *sub_sol = new GenStackVector<Scalar>(sol->subData(subI), sol->subLen(subI));
-  int usize = (domain->solInfo().nFreqSweepRHS+1)*domain->solInfo().padeN;
-  GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [usize];
-  for(int i=0; i<usize; ++i) 
-    sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(subI), u[i]->subLen(subI));
-  sd[iSub]->pade(sub_sol, sub_u, h, x);
-  delete [] sub_u;
-}
-
-template<class Scalar>
-void
-GenFetiSolver<Scalar>::rebuildLHSfreq()
-{
-  cerr << " *** ERROR: GenFetiSolver<Scalar>::rebuildLHSfreq() is not implemented \n";
-}
-*/
 
 template<class Scalar>
 void

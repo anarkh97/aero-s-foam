@@ -209,20 +209,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
    this->oSetGCR = new GenGCROrthoSet<Scalar>(this->halfSize, this->fetiInfo->maxortho, this->fetiCom);
  this->times.memoryOSet += memoryUsed();
 
- if(sysMatrices == 0) {
-/* deprecated
-   if(verboseFlag) filePrint(stderr," ... Construct Subdomain Matrices   ... \n");
-   startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-   timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::constructMatrices);
-   stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-
-   if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
-   startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-   timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::assembleMatrices);
-   stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-*/
- }
- else {
+ if(sysMatrices != 0) {
    for(iSub = 0; iSub < this->nsub; ++iSub) {
      this->sd[iSub]->Krr = sysMatrices[iSub];
      this->sd[iSub]->KrrSparse = sysSparse[iSub];
@@ -2493,25 +2480,6 @@ GenFetiDPSolver<Scalar>::wetInterfaceComms()
   for(int iSub=0; iSub<this->nsub; ++iSub) this->sd[iSub]->setWICommSize(this->wiPat);
   this->wiPat->finalize();
 }
-
-/* deprecated
-template<class Scalar>
-void
-GenFetiDPSolver<Scalar>::rebuildLHSfreq()
-{
-  // PJSA 12-15-04: this function is used to rebuild the LHS in the case of a change in the frequncy or waveNumber
-  // assuming nothing else is changed (ie no new mpcs or contact for example)
-
-  reconstruct();
-
-  startTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::zeroLocalMatrices);
-  timedParal(this->times.consMatrix, this->nsub, this, &GenFetiSolver<Scalar>::assembleMatrices);
-  stopTimerMemory(this->times.constructMatrices, this->times.memorySubMatrices);
-
-  refactor();
-}
-*/
 
 template<class Scalar>
 void

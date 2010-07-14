@@ -28,8 +28,7 @@ template<class Scalar>
 GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> **_sd, double _cm, 
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
-                                               Connectivity *_elemToNode, Connectivity *_elemToSub, 
-                                               Connectivity *_cpuToSub, FSCommunicator *_com)
+                                               FSCommunicator *_com)
 {
   nsub = _nsub;
   sd = _sd;
@@ -56,9 +55,6 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   alpha   = _alpha; 
   beta    = _beta;
   solvertype = _solvertype;
-  elemToNode = _elemToNode;
-  elemToSub = _elemToSub;
-  cpuToSub = _cpuToSub;
   com = _com;
 }
 
@@ -208,16 +204,20 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
          dynMats[isub] = dynamic_cast<GenSolver<Scalar> *>(sgisky);
          spMats[isub] = dynamic_cast<GenSparseMatrix<Scalar> *>(sgisky);
        } break;
+#ifdef USE_SPOOLES
        case 8 : {
          GenSpoolesSolver<Scalar> *ssmat = sd[isub]->template constructSpooles<Scalar>(sd[isub]->getCCDSA());
          dynMats[isub] = ssmat;
          spMats[isub] = ssmat;
        } break;
+#endif
+#ifdef USE_MUMPS
        case 9 : {
          GenMumpsSolver<Scalar> *msmat = sd[isub]->template constructMumps<Scalar>(sd[isub]->getCCDSA());
          dynMats[isub] = msmat;
          spMats[isub] = msmat;
        } break;
+#endif
        case 10 : {
          GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); 
          dynMats[isub] = spm;

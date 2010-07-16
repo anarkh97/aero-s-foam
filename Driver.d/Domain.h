@@ -846,16 +846,18 @@ class Domain : public HData {
 
      // FETI-DPH acoustics
      template<class Scalar>
-       void assembleGlobalSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0);
+       void assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0);
+     template<class Scalar>
+       void computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *dofs, FullSquareMatrix &ms,
+                                     DComplex **bt2nMatrix, double kappa, double ss, AllOps<Scalar> *ops);
      template<class Scalar>
        void assembleATDROB(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0, double Kcoef = 0.0);
      template<class Scalar>
-       void updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
-                                 FullSquareMatrix *reEl, FullSquareMatrix *imEl,double Kcoef = 0.0);
+       void updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
+                           FullSquareMatrix *reEl, FullSquareMatrix *imEl,double Kcoef = 0.0);
      template<class Scalar>
-       void updateGlobalDampingMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
-                                        FullSquareMatrix *reEl, FullSquareMatrix *imEl,
-                                        double ss, double coef = 0.0, int n=0);
+       void updateDampingMatrices(AllOps<Scalar> *ops, int *dofs, FullSquareMatrix *reEl,
+                                  FullSquareMatrix *imEl, double ss, int n);
      struct WetInterface {
        int fluidSurfaceID;
        int structureSurfaceID;

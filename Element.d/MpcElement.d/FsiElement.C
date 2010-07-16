@@ -50,10 +50,17 @@ FsiElement::renum(int *table)
 FullSquareMatrix
 FsiElement::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
-  FullSquareMatrix elementMassMatrix(ndofs,mel);
-  // zero the element mass matrix
-  elementMassMatrix.zero();
-  return elementMassMatrix;
+  FullSquareMatrix ret(ndofs,mel);
+  ret.zero();
+
+  for(int i = 0; i < fsi->nterms; i++) {
+    if((fsi->terms)[i].isComplex)
+      ret[ndofs-1][i] = -(fsi->terms)[i].coef.c_value.real();
+    else
+      ret[ndofs-1][i] = -(fsi->terms)[i].coef.r_value;
+  }
+
+  return ret;
 }
 
 FullSquareMatrix
@@ -62,19 +69,13 @@ FsiElement::stiffness(CoordSet &cs, double *k, int flg)
   FullSquareMatrix ret(ndofs,k);
   ret.zero();
   
-  int i;
-  for(i = 0; i < fsi->nterms; i++) {
-    if((fsi->terms)[i].isComplex) {
-      double val = (fsi->terms)[i].coef.c_value.real();
-      ret[i][ndofs-1] = ret[ndofs-1][i] = val;
-    }
-    else {
-      double val = (fsi->terms)[i].coef.r_value;
-      ret[i][ndofs-1] = ret[ndofs-1][i] = val;
-    }
+  for(int i = 0; i < fsi->nterms; i++) {
+    if((fsi->terms)[i].isComplex)
+      ret[i][ndofs-1] = (fsi->terms)[i].coef.c_value.real();
+    else
+      ret[i][ndofs-1] = (fsi->terms)[i].coef.r_value;
   }
 
-  // cerr << "FsiElement real stiffness matrix = \n"; ret.print();
   return ret;
 }
 
@@ -84,15 +85,11 @@ FsiElement::imagStiffness(CoordSet &cs, double *k, int flg)
   FullSquareMatrix ret(ndofs,k);
   ret.zero();
 
-  int i;
-  for(i = 0; i < fsi->nterms; i++) {
-    if((fsi->terms)[i].isComplex) {
-      double val = (fsi->terms)[i].coef.c_value.imag();
-      ret[i][ndofs-1] = ret[ndofs-1][i] = val;
-    }
+  for(int i = 0; i < fsi->nterms; i++) {
+    if((fsi->terms)[i].isComplex)
+      ret[i][ndofs-1] = (fsi->terms)[i].coef.c_value.imag();
   }
 
-  // cerr << "FsiElement imaginary stiffness matrix = \n"; ret.print();
   return ret;
 }
 

@@ -442,8 +442,9 @@ ScalarTypes::Imag((*u[i])[j]));
      for(int j=0;j<nRHS;j++) {
        VhMV[i*(nRHS)+j] = *b * *u[j];
        VhCV[i*(nRHS)+j] = *c * *u[j];
-       VhKV[i*(nRHS)+j] = *a * *u[j] + (w-deltaw)*(w-deltaw) * VhMV[i*(nRHS)+j];
-       ScalarTypes::addComplex(VhKV[i*(nRHS)+j], -(w-deltaw)*VhCV[i*(nRHS)+j] );
+       VhKV[i*(nRHS)+j] = *a * *u[j];
+// + (w-deltaw)*(w-deltaw) * VhMV[i*(nRHS)+j];
+//       ScalarTypes::addComplex(VhKV[i*(nRHS)+j], -(w-deltaw)*VhCV[i*(nRHS)+j] );
      }
    }
    delete b;
@@ -646,8 +647,9 @@ StaticSolver< Scalar, OpSolver, VecType,
      for(int j=0;j<nOrtho+nRHS;j++) {
        VhMV[i*(nOrtho+nRHS)+j] = *b * *u[j];
        VhCV[i*(nOrtho+nRHS)+j] = *c * *u[j];
-       VhKV[i*(nOrtho+nRHS)+j] = *a * *u[j] + (w-deltaw)*(w-deltaw) * VhMV[i*(nOrtho+nRHS)+j];
-       ScalarTypes::addComplex(VhKV[i*(nOrtho+nRHS)+j], -(w-deltaw)*VhCV[i*(nOrtho+nRHS)+j] );
+       VhKV[i*(nOrtho+nRHS)+j] = *a * *u[j];
+// + (w-deltaw)*(w-deltaw) * VhMV[i*(nOrtho+nRHS)+j];
+//      ScalarTypes::addComplex(VhKV[i*(nOrtho+nRHS)+j], -(w-deltaw)*VhCV[i*(nOrtho+nRHS)+j] );
      }
    }
 
@@ -893,3 +895,4 @@ StaticSolver< Scalar, OpSolver, VecType,
  delete[] z;
  delete[] zz;
 }
+

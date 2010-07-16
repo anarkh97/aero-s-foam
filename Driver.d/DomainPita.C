@@ -35,13 +35,13 @@ void Domain::initDispVelocOnTimeSlice(GenVector<double> & d_n, GenVector<double>
 // Precondition: The files corresponding to the active time-slice have been opened
 void Domain::pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector& force, Vector &aeroForce,
                                 double time, int step, double* velocity, double *vcx,
-                                Corotator **allCorot, FullSquareMatrix *mel)
+                                Corotator **allCorot, FullSquareMatrix *mel, double * acceleration)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo)
   {
     if (oinfo[iInfo].timeSliceRank == timeSliceRank)
-      postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx, allCorot, mel);
+      postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx, allCorot, mel, acceleration, NULL);
   }
 }

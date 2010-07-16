@@ -80,8 +80,6 @@ protected:
   int baseImprovementMethod;     // 0 = all seeds (global), 1 = increments only (local)
 
 private:
-  // Overloaded method, to build the stiffness matrix during NonLinDynamic::preProcess() 
-  void buildOps(AllOps<double> &, double, double, double, Rbm *);
   PitaPostProcessor defaultPostProcessor_;
 };
 

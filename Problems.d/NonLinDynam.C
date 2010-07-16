@@ -662,12 +662,6 @@ NonLinDynamic::processLastOutput()  {
 }
 
 void
-NonLinDynamic::buildOps(AllOps<double> & allOps, double Kcoef, double Mcoef, double Ccoef, Rbm * rigidBodyModes)
-{
-  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, rigidBodyModes);
-}
-
-void
 NonLinDynamic::preProcess()
 {
 
@@ -749,7 +743,7 @@ NonLinDynamic::preProcess()
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- buildOps(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // don't use Rbm's to factor in dynamics
+ domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");

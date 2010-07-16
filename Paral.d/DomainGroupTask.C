@@ -262,7 +262,5 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
     rbms[isub] = sd[isub]->constructRbm(false);
 */
 
- //sd[isub]->setKuc((GenCuCSparse<Scalar>*)allOps.Kuc);
-
  if(allMats) delete allMats;
 }

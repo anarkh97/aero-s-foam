@@ -659,7 +659,7 @@ StaticSolver< Scalar, OpSolver, VecType,
 
    for(int i=0;i<nOrtho+nRHS;i++) *v[i] = *u[i];
    if(domain->solInfo().isCoupled) {
-     for(int i=0;i<nOrtho+nRHS;i++) 
+     for(int i=0;i<nOrtho+nRHS;i++)
         scaleDisp(*v[i]);
    }
 /*

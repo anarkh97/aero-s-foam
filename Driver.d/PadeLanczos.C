@@ -895,3 +895,4 @@ StaticSolver< Scalar, OpSolver, VecType,
  delete[] z;
  delete[] zz;
 }
+

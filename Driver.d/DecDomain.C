@@ -2326,7 +2326,8 @@ void GenDecDomain<Scalar>::distributeBCs()
 
   int numDirichlet = geoSource->getDirichletBC(dbc);
   int numNeuman    = geoSource->getNeumanBC(nbc);
-  int numIDis      = geoSource->getIDis(iDis);
+  //int numIDis      = geoSource->getIDis(iDis);
+  int numIDis = domain->numInitDisp(); iDis = domain->getInitDisp();
   int numIDis6     = geoSource->getIDis6(iDis6);
   int numIVel      = geoSource->getIVel(iVel);
 

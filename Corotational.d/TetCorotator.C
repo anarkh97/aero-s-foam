@@ -29,7 +29,7 @@ TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu,
 // coordSet  -> contains the original nodal coordinates
 void
 TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &K, double *f)
+                               FullSquareMatrix &K, double *f, double dt)
 {
   int i,j,k;
   double nGrad[4][3];

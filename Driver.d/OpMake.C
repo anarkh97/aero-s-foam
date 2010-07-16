@@ -1009,7 +1009,7 @@ void Domain::buildPitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc, doub
       break;
 #endif
     case 10:
-      fprintf(stderr," ... Diagonal Solver is Selected       ...\n");
+      //fprintf(stderr," ... Diagonal Solver is Selected       ...\n");
       mat    = new GenDiagMatrix<Scalar>(c_dsa);
       mat_Dt = new GenDiagMatrix<Scalar>(c_dsa);
       makeSparsePitaOps(dMat,Kuc,Kc,Mc,Cc,Kc_Dt,Mc_Dt,Cc_Dt,mat,mat_Dt,rbm,kelArray);
@@ -1436,7 +1436,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
     case 10:
-      filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
+      //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
       //fprintf(stderr,"Warning, RBMs are not taken into account\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -3009,7 +3009,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   cnst_f.zero();
 
   // ... COMPUTE FORCE FROM GRAVITY
-  if(gravityFlag()) addGravityForce(cnst_f);
+  if(domain->gravityFlag()) addGravityForce(cnst_f);
 
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
@@ -3036,7 +3036,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT is present this term is not constant (see computeExtForce4)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
+  if(domain->pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // ... ADD RHS FROM LMPCs
   if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs(cnst_f);
@@ -3103,7 +3103,7 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(pressureFlag() && domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+  if(domain->pressureFlag() && domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM THERMOE
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)

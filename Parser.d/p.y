@@ -87,7 +87,7 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
@@ -98,7 +98,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ
+%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ HYPOELAST ELASTOVISCOPLAST J2PLAST
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -1806,10 +1806,17 @@ FaceSet:
 	SURFACETOPOLOGY Integer NewLine 
 	{ if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
+          $$->SetReverseNormals(false);
+          domain->AddSurfaceEntity($$);
+        }
+        | SURFACETOPOLOGY Integer REVERSENORMALS NewLine 
+        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          $$->SetReverseNormals(true);
           domain->AddSurfaceEntity($$);
         }
         | FaceSet Integer Integer NodeNums NewLine 
-	{ if($$->GetId() < 0) { // reverse the node numbering
+	{ if($$->GetReverseNormals()) { // reverse the node numbering
             int *nodes = new int[$4.num];
             for(int i=0; i<$4.num; ++i) nodes[$4.num-1-i] = $4.nd[i];
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
@@ -3146,6 +3153,21 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new SimpleMat($4, $5, $6, $7));
+         }
+        | MatSpec Integer HYPOELAST Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HypoElasticMat($4, $5, $6));
+         }
+        | MatSpec Integer ELASTOVISCOPLAST Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ElastoViscoPlasticMat($4, $5, $6) ); // TODO
+         }
+        | MatSpec Integer J2PLAST Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new J2PlasticityMat($4, $5, $6, $7, $8) );
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

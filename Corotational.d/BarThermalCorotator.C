@@ -28,7 +28,7 @@ BarThermalCorotator::BarThermalCorotator(int _n1, int _n2, double _P,
 
 void
 BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f)
+                               FullSquareMatrix &elK, double *f, double dt)
 /*******************************************************************
  *
  * Purpose :

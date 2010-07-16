@@ -16,11 +16,11 @@ class NodeState {
 //    DirectionCosineMatrix* d2Rdr2;      // vector of the second parital derivatives of R wrt thetax, thetay and thetaz
   public:
     double x,   y,  z;			// x,y,z coordinates
-    double vx, vy, vz;			// x,y,z velocities
+    double v[6], a[6];			// x,y,z velocities and accelerations
     double R[3][3];      	        // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
-    NodeState() : vx(0), vy(0), vz(0) {}
+    NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0; }
 };
 
 
@@ -64,7 +64,7 @@ class GeomState {
      void extract(double *p);
 
      virtual void update(const Vector &);
-     virtual void setVelocity(const Vector &);
+     virtual void setVelocity(const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
                                        double delta = 1.0);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,

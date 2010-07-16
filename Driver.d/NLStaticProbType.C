@@ -200,8 +200,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  // ... COMPUTE W = SMOOTHING PARAMETER
  //double w = (deltaS*deltaS) / (deltaLambda0*deltaLambda0);
- //HB: the same as in Corotational.d/GeomNLSolver.C arcLength()
- // -> it seems to work but for me this is wrong !!!
+ // HB: it seems to work but for me this is wrong !!!
  //deltaS = deltaS*deltaS;
  double w = (deltaS*deltaS) / (deltaLambda0*deltaLambda0);
  w = 0;

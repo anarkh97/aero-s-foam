@@ -49,8 +49,16 @@ DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
 void
 DistrGeomState::subUpdate(int isub, DistrVector &v)
 {
- StackVector vec(v.subData(isub), v.subLen(isub) );
- gs[isub]->update(vec);
+  StackVector vec(v.subData(isub), v.subLen(isub));
+  gs[isub]->update(vec);
+}
+
+void
+DistrGeomState::subSetVelocity(int isub, DistrVector &v, DistrVector &a)
+{
+  StackVector vsub(v.subData(isub), v.subLen(isub));
+  StackVector asub(a.subData(isub), a.subLen(isub));
+  gs[isub]->setVelocity(vsub, asub);
 }
 
 void
@@ -98,13 +106,13 @@ DistrGeomState::subInterp(int isub, double &alpha, DistrGeomState &u,
 void
 DistrGeomState::interp(double alpha, DistrGeomState &u, DistrGeomState &un)
 {
- execParal3R(numSub,this,&DistrGeomState::subInterp,alpha,u,un);
+  execParal3R(numSub, this, &DistrGeomState::subInterp, alpha, u, un);
 }
 
 void
 DistrGeomState::subDiff(int isub, DistrGeomState &unp, DistrVector &un)
 {
- StackVector u(un.subData(isub), un.subLen(isub) );
+ StackVector u(un.subData(isub), un.subLen(isub));
  GeomState &unpR = *unp[isub];
  gs[isub]->diff(unpR, u);
 }
@@ -112,20 +120,25 @@ DistrGeomState::subDiff(int isub, DistrGeomState &unp, DistrVector &un)
 void
 DistrGeomState::diff(DistrGeomState &unp, DistrVector &un)
 {
- execParal2R(numSub,this,&DistrGeomState::subDiff,unp,un);
+  execParal2R(numSub, this, &DistrGeomState::subDiff, unp, un);
 }
-
 
 void
 DistrGeomState::update(DistrVector &v)
 {
-   execParal1R(numSub, this,&DistrGeomState::subUpdate, v);
+  execParal1R(numSub, this, &DistrGeomState::subUpdate, v);
+}
+
+void
+DistrGeomState::setVelocity(DistrVector &v, DistrVector &a)
+{
+  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, a);
 }
 
 DistrGeomState &
 DistrGeomState::operator=(DistrGeomState &unp)
 {
-  execParal1R(numSub, this,&DistrGeomState::subCopy, unp);
+  execParal1R(numSub, this, &DistrGeomState::subCopy, unp);
   return *this;
 }
 

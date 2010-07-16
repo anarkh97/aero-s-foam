@@ -59,7 +59,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele]) {
       corotators[iele]->getStiffAndForce(geomState, nodes, kel[iele],
-                                         elementForce.data());
+                                         elementForce.data(), sinfo.getTimeStep());
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
@@ -79,7 +79,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  if(pressureFlag()) {
+  if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
@@ -107,7 +107,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  if(thermalFlag()) {
+  if(domain->thermalFlag()) {
     if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
     Vector elementTemp(maxNumNodes);
     for(int iele = 0; iele < numele;  ++iele) {

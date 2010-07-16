@@ -237,7 +237,7 @@ BarFCorotator::RndNorm(double mean, double stdev)
 
 void
 BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f)
+                               FullSquareMatrix &elK, double *f, double dt)
 /*******************************************************************
  *
  * Purpose :

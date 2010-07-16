@@ -6,6 +6,7 @@
 
 class GeomState;
 class MultiFront;
+class NLMaterial;
 
 class BelytschkoTsayShell : virtual public Element, public Corotator
 {
@@ -22,13 +23,26 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
                   // ngqpt[1] = gq rule for enriched element
                   // ngqpt[3] = gq rule for through thickness
+    int ngqpt4; // gq rule for bc or cohesive force integration
     int nndof;
     int ndime;
     int nnode;
 
+    int mgaus[3];
+    int mgqpt[2];
+    double *evar1; // effective strain and damage
+    double *evar2; // effective stress
+    double *evoit1; // voight form of hourglass control stress
+    double *evoit2; // voight form of local cauchy stress
+    double *evoit3; // strain (local)
+    double ematpro[20];
+
   public:
     BelytschkoTsayShell(int*);
+    ~BelytschkoTsayShell();
 
+    void setProp(StructProp *p, bool _myProp = false);
+    void setMaterial(NLMaterial *);
     Element *clone();
 
     void renum(int *);
@@ -53,7 +67,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int numNodes();
     int* nodes(int* = 0);
     Corotator *getCorotator(CoordSet&, double*, int , int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*);
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double delt);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
                     GeomState*);

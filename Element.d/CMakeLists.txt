@@ -39,6 +39,8 @@ BelytschkoTsayShell.d/evp.f90
 BelytschkoTsayShell.d/cri_effstr.f90
 BelytschkoTsayShell.d/j2.f90
 BelytschkoTsayShell.d/cri_mpts.f90
+BelytschkoTsayShell.d/typcond.f90
+BelytschkoTsayShell.d/bc2.f90
 Brick20.d/br20mas.f
 Brick20.d/br20vmint.f
 Brick20.d/Brick20.C

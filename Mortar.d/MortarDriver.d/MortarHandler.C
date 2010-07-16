@@ -2346,13 +2346,16 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
 #endif
       break;
-    case 4:
+    case 4: {
 #ifdef ACME_1_3
       error = search_obj->Dynamic_Search_Augmented_2_Configuration(mass, dt_old, dt);
 #else
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
 #endif
-      break;
+      //int num_interactions, data_size;
+      //search_obj->Size_NodeFace_Interactions(num_interactions, data_size);
+      //cerr << "here in MortarHandler::perform_search, num_interactions = " << num_interactions << endl;
+    } break;
   }  
   if(error) {
     std::cerr << "Error in ACME ContactSearch: error code = " << error << std::endl; 

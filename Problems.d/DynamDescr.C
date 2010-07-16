@@ -644,7 +644,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     geomState->update(dinc);
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
     (*dprev) = state.getDisp(); // keep a copy so the incremental displacement can be computed
-    geomState->setVelocity(state.getVeloc()); 
+    geomState->setVelocity(state.getVeloc(), state.getAccel()); 
   }
 
   // THERMOE update nodal temperatures

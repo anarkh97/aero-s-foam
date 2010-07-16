@@ -1211,7 +1211,7 @@ int main(int argc, char** argv)
  filePrint(stderr," ... Total Time           = %.2e s\n",
          (getTime() - initTime)/1000.0);
  filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
- if(domain->solInfo().isNonLin())
+ if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta != 0.0)
    filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
  if(iterTotal > 0)
    filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);

@@ -164,7 +164,7 @@ MpcElement::getCorotator(CoordSet&, double*, int, int)
 }
 
 void
-MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f)
+MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f, double)
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;

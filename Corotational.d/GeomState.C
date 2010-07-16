@@ -280,24 +280,14 @@ GeomState::update(const Vector &v)
 }
 
 void
-GeomState::setVelocity(const Vector &v)
+GeomState::setVelocity(const Vector &v, const Vector &a)
 {
- // v = velocity vector
-
- int i;
- for(i=0; i<numnodes; ++i) {
-
-     // Set Velocity
-
-     double Vx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double Vy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double Vz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
-
-     ns[i].vx = Vx;
-     ns[i].vy = Vy;
-     ns[i].vz = Vz;
-
-   }
+  for(int i = 0; i < numnodes; ++i)
+    for(int j = 0; j < 6; ++j)
+      if(loc[i][j] > -1) {
+        ns[i].v[j] = v[loc[i][j]];
+        ns[i].a[j] = a[loc[i][j]];
+      }
 }
 
 void

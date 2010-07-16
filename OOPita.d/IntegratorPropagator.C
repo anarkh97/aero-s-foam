@@ -43,7 +43,6 @@ IntegratorPropagator::initialStateIs(const DynamState & initialState) {
   initialStateNotify();
 
   if (integrator()) {
-    integrator()->currentSliceIs(sliceRank()); // HACK
     integrator()->timeStepSizeIs(timeStepSize());
     integrator()->initialConditionIs(initialState, initialTime());
     integrator()->timeStepCountInc(timeStepCount());

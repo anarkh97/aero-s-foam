@@ -23,7 +23,8 @@ NlPostProcessor::outputNew(NlPostProcessor::FileSetId fileSetId, const NlDynamTi
       integrator->currentTime().value(),
       integrator->timeStepCount().value(),
       const_cast<Vector&>(integrator->externalForce()),
-      dummy_);
+      dummy_,
+      const_cast<Vector&>(integrator->acceleration()));
 }
 
 } /* end namespace Pita */

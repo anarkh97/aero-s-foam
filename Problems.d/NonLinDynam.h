@@ -97,9 +97,6 @@ class NonLinDynamic : public NLDynamPostProcessor {
     FSFullMatrix *X;    // pre-calculated projector
     double *Rmem;        // global rigid body modes (numdof X 6)
     int numR;            // number of rigid body modes
-  
- private:
-    virtual void buildOps(AllOps<double> &, double, double, double, Rbm*);
 
  public:
     // Constructor

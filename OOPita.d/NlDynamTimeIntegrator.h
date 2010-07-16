@@ -33,49 +33,52 @@ public:
   // Accessors for output
   GeomState * geomState() const { return geomState_; }
   const GenVector<double> & externalForce() const { return externalForce_; }
-  
+  const GenVector<double> & acceleration() const { return acceleration_; }
+
 protected:
   explicit NlDynamTimeIntegrator(PitaNonLinDynamic * pbDesc);
   ~NlDynamTimeIntegrator();
 
 private:
-  void integrate(unsigned int stepCount);
-  void updateDelta(double dt);
-  void updateForce();
+  void integrate(int stepCount);
+  void updateInitialCondition(const DynamState & initialState, Seconds initialTime);
+  void updateDt(double timeStep);
+  void updateAcceleration();
   
+  GenVector<double> & displacement() { return internalState_.displacement(); }
+  const GenVector<double> & displacement() const { return internalState_.displacement(); }
+
+  GenVector<double> & velocity() { return internalState_.velocity(); }
+  const GenVector<double> & velocity() const { return internalState_.velocity(); }
+
   PitaNonLinDynamic * probDesc_;
   
   GeomState * geomState_;
   GeomState * stepState_;
   GeomState * refState_; 
-  GenVector<double> displacement_;
-  GenVector<double> velocity_;
+
+  DynamState internalState_;
   GenVector<double> acceleration_;
-  GenVector<double> incDisplac_;
+
+  GenVector<double> externalForce_;
   GenVector<double> gravityForce_;
-  
+  GenVector<double> aeroForce_;
   GenVector<double> elementInternalForce_;
+  
+  GenVector<double> incDisplac_;
+  GenVector<double> previousVelocity_; 
   GenVector<double> residual_;
   GenVector<double> rhs_;
-  GenVector<double> aeroForce_;
-  GenVector<double> prevIntForce_;
-  GenVector<double> externalForce_;
   GenVector<double> stateIncr_;
-  GenVector<double> dummyVp_; 
   
-  double currTime_;
-  double midTime_;
-  
-  int currStep_;
-  
+  double beta_, gamma_, alphaf_, alpham_;
   double localDt_;
   double localDelta_;
-  
-  int numStages_;
   int maxNumIter_;
-  double dlambda_;
-
-  double beta_, gamma_, alphaf_, alpham_;
+  
+  double currTime_;
+  double midTime_; // Time for equilibrium enforcement
+  int currStep_;
 };
   
 } // end namespace Pita

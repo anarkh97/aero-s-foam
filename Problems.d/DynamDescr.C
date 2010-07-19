@@ -733,9 +733,10 @@ SingleDomainDynamic::preProcess()
     }
   }
 
-  if(domain->tdenforceFlag()) {
+  if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch();
-  }
+  else if(domain->GetnContactSurfacePairs())
+    domain->InitializeStaticContactSearch(MortarHandler::CTC);
 
   prevFrc = new PrevFrc(domain->numUncon());
   prevFrcBackup = new PrevFrc(domain->numUncon());

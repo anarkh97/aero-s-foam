@@ -3162,7 +3162,7 @@ MatSpec:
         | MatSpec Integer ELASTOVISCOPLAST Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ElastoViscoPlasticMat($4, $5, $6) ); // TODO
+             new ElastoViscoPlasticMat($4, $5, $6, $7, $8, $9, $10, $11) ); // TODO
          }
         | MatSpec Integer J2PLAST Float Float Float Float Float NewLine
          {

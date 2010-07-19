@@ -11,15 +11,18 @@ class NLMaterial;
 class BelytschkoTsayShell : virtual public Element, public Corotator
 {
   protected:
+    // TODO most of this should belong to element property (and therefore be shared to save memory)
     int nn[4];
     int optele; // element type option (3 for bt shell)
     int optmhd; // numerical method option (0 for conventional fem)
     int optctv; // constiutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 explicit)
     int optdmg; // damage model type (0 for no damage, 1 for lematire damage model, 2 for linear softening with scaling)
     int opthgc; // hourglass control (1 for perturbation type hourglass control)
-    int optcri[10]; // crack criterion
+    int optcri[2]; // crack criterion
+    int optdmp; // damping (0/1 for damping off/on)
     double prmdmg[10]; // damage control parameters
     double prmhgc[10]; // hourglass control parameters
+    double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
                   // ngqpt[1] = gq rule for enriched element
                   // ngqpt[3] = gq rule for through thickness

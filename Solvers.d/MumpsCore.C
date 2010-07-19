@@ -1,10 +1,15 @@
 #include<Solvers.d/Mumps.h>
 
-// Same as Spooles
 template<>
 void
-GenMumpsSolver<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenMumpsSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+{
+  fprintf(stderr, "GenMumpsSolver<double> cannot addImaginary\n");
+}
+
+template<>
+void
+GenMumpsSolver<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs)
 {
   int i, j, m, mstart, mstop;
   int kndof = kel.dim();                       // Dimension of element stiff.
@@ -30,11 +35,36 @@ GenMumpsSolver<complex<double> >
 
 template<>
 void
-GenMumpsSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenMumpsSolver<double>::add(FullSquareMatrixC &kel, int *dofs)
 {
-  fprintf(stderr, "GenMumpsSolver<double> cannot addImaginary\n");
+  fprintf(stderr, "GenMumpsSolver<double>::add(FullSquareMatrixC &kel, int *dofs is not implemented\n");
 }
 
+template<>
+void
+GenMumpsSolver<complex<double> >::add(FullSquareMatrixC &kel, int *dofs)
+{
+  int i, j, m, mstart, mstop;
+  int kndof = kel.dim();                       // Dimension of element stiff.
+
+  for(i = 0; i < kndof; ++i) {                 // Loop over rows.
+    if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
+    for(j = 0; j < kndof; ++j) {               // Loop over columns.
+      if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
+      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
+      mstart = xunonz[unconstrNum[dofs[j]]];
+      mstop  = xunonz[unconstrNum[dofs[j]]+1];
+      for(m=mstart; m<mstop; ++m) {
+        // if(rowu[m-1] > unconstrNum[dofs[j]]+1)
+        //   fprintf(stderr, "Bigger: %d %d\n", rowu[m-1]-1, unconstrNum[dofs[j]]);
+        if(rowu[m-1] == (unconstrNum[dofs[i]] + 1)) {
+          unonz[m-1] += kel[i][j];
+          break;
+        }
+      }
+    }
+  }
+}
 
 #ifdef USE_MUMPS
 template<>

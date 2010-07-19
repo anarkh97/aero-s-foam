@@ -1564,7 +1564,7 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode == 0)
-   if(geoSource->getDirectMPC() && (sinfo.subtype == 0 || sinfo.subtype == 1)) { // skyline and sparse only
+   if(geoSource->getDirectMPC()) {
      // MPC Connectivity treatment in direct way.
      std::multimap<int, int> mpcConnect;
      std::multimap<int, int>::iterator it;

@@ -2,6 +2,13 @@
 
 template<>
 void
+GenSpoolesSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs)
+{
+  fprintf(stderr, "GenSpoolesSolver<double> cannot addImaginary\n");
+}
+
+template<>
+void
 GenSpoolesSolver<complex<double> >
    ::addImaginary(FullSquareMatrix &kel, int *dofs)
 {
@@ -29,18 +36,9 @@ GenSpoolesSolver<complex<double> >
 
 template<>
 void
-GenSpoolesSolver<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs)
+GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs)
 {
-  fprintf(stderr, "GenSpoolesSolver<double> cannot addImaginary\n");
-}
-
-
-template<>
-void
-GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs) {
- fprintf(stderr,"GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs) is not implemented.\n");
-
+  fprintf(stderr,"GenSpoolesSolver<double>::add(FullSquareMatrixC &kel, int *dofs) is not implemented.\n");
 }
 
 template<>

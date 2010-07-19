@@ -677,27 +677,6 @@ Domain::constructCCSparse(DofSetArray *dof_set_array)
 }
 
 template<class Scalar>
-class WrapSkyMat : public GenSkyMatrix<Scalar> {
-  public:
-    struct CtorData {
-      Connectivity *cn;
-      DofSetArray *dsa;
-      double trbm;
-      Rbm *rbm;
-      CtorData(Connectivity *c, DofSetArray *d, double t, Rbm *r) {
-        cn = c;
-        dsa = d;
-        trbm = t;
-        rbm = r;
-      }
-    };
-
-    WrapSkyMat(CtorData &ctd) : GenSkyMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.trbm, ctd.rbm) {
-    }
-
-};
-
-template<class Scalar>
 GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
@@ -724,32 +703,6 @@ Domain::constructBlockSky(DofSetArray *DSA)
   if(DSA==0) DSA=c_dsa;
   return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.trbm);
 }
-
-template<class Scalar>
-class WrapSparseMat : public GenBLKSparseMatrix<Scalar> {
-  public:
-    struct CtorData {
-      Connectivity *cn;
-      DofSetArray *dsa, *cdsa;
-      double trbm;
-      Rbm *rbm;
-      int spRenum;
-      CtorData(Connectivity *c, DofSetArray *d, DofSetArray *dc, double t, int sr, Rbm *r) {
-        cn = c;
-        dsa = d;
-        cdsa = dc;
-        trbm = t;
-        int spRenum = sr;
-        rbm = r;
-      }
-    };
-
-    WrapSparseMat(CtorData &ctd) : GenBLKSparseMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa,
-        ctd.trbm, ctd.spRenum, ctd.rbm) {
-    }
-
-};
-
 
 template<class Scalar>
 GenBLKSparseMatrix<Scalar> *
@@ -812,18 +765,42 @@ Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
 
 template<class Scalar>
 GenSpoolesSolver<Scalar> *
-Domain::constructSpooles(ConstrainedDSA *CDSA, Rbm *rbm)
+Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
 {
-  if(CDSA == 0) CDSA = c_dsa;
-  return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, CDSA, rbm);
+  if(DSA == 0) DSA = c_dsa;
+  if(!geoSource->getDirectMPC())
+    return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, DSA, rbm);
+  else {
+    DOFMap *baseMap = new DOFMap[dsa->size()];
+    DOFMap *eqMap = new DOFMap[DSA->size()];
+    // TODO Examine when DSA can be different from c_dsa
+    ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNode, dsa, MpcDSA, rbm);
+    int nMappedEq = DSA->size();
+    return
+      new MappedAssembledSolver<WrapSpooles<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
+          nMappedEq, eqMap);
+  }
 }
 
 template<class Scalar>
 GenMumpsSolver<Scalar> *
-Domain::constructMumps(ConstrainedDSA *CDSA, Rbm *rbm, FSCommunicator *com)
+Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
 {
-  if(CDSA == 0) CDSA = c_dsa;
-  return new GenMumpsSolver<Scalar>(nodeToNode, dsa, CDSA, com);
+  if(DSA == 0) DSA = c_dsa;
+  if(!geoSource->getDirectMPC())
+    return new GenMumpsSolver<Scalar>(nodeToNode, dsa, DSA, com);
+  else {
+    DOFMap *baseMap = new DOFMap[dsa->size()];
+    DOFMap *eqMap = new DOFMap[DSA->size()];
+    // TODO Examine when DSA can be different from c_dsa
+    ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
+    typename WrapMumps<Scalar>::CtorData baseArg(nodeToNode, dsa, MpcDSA, com);
+    int nMappedEq = DSA->size();
+    return
+      new MappedAssembledSolver<WrapMumps<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
+          nMappedEq, eqMap);
+  }
 }
 
 template<class Scalar>

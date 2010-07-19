@@ -134,7 +134,30 @@ protected:
  private:
    void init();
    void computeRBMs();
+};
 
+template<class Scalar>
+class WrapSparseMat : public GenBLKSparseMatrix<Scalar>
+{
+  public:
+    struct CtorData {
+      Connectivity *cn;
+      DofSetArray *dsa, *cdsa;
+      double trbm;
+      Rbm *rbm;
+      int spRenum;
+      CtorData(Connectivity *c, DofSetArray *d, DofSetArray *dc, double t, int sr, Rbm *r) {
+        cn = c;
+        dsa = d;
+        cdsa = dc;
+        trbm = t;
+        spRenum = sr;
+        rbm = r;
+      }
+    };
+
+    WrapSparseMat(CtorData &ctd) : GenBLKSparseMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa,
+        ctd.trbm, ctd.spRenum, ctd.rbm) {}
 };
 
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;

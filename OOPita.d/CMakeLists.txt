@@ -29,7 +29,6 @@ NearSymmetricSolver.C
 NlDynamOps.C
 NlDynamTimeIntegrator.C
 NlPostProcessor.C
-NlSeedInitializerImpl.C
 OrthoDynamStateBasis.C
 PitaNonLinDynam.C
 PivotedCholeskySolver.C
@@ -47,6 +46,7 @@ SeedUpdater.C
 SimpleSeedInitializer.C
 TimedExecution.C
 UpdatedSeedAssemblerImpl.C
+UserProvidedSeedInitializer.C
 lev2pchol.f
 lev3pchol.f
 blas_dmax_val.f

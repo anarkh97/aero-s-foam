@@ -9,6 +9,7 @@
 #include "NlPropagatorManager.h"
 
 #include "../IntegratorSeedInitializer.h"
+#include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
 #include "../SeedErrorEvaluator.h"
@@ -17,6 +18,7 @@
 #include "../TimedExecution.h"
 
 #include <Timers.d/GetTime.h>
+#include <Driver.d/GeoSource.h>
 
 namespace Pita { namespace Hts {
 
@@ -75,7 +77,8 @@ NlDriverImpl::preprocess() {
   // Other parameters
   lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
   projectorTolerance_ = solverInfo()->pitaProjTol;
- 
+  userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
+
   double toc = getTime();
   log() << "\n";
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
@@ -87,6 +90,7 @@ NlDriverImpl::summarizeParameters() const {
   log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
   log() << "Iteration count = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+  if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
   log() << "VectorSize = " << vectorSize_ << " dofs\n";
   log() << "Projector tol = " << projectorTolerance_ << "\n";
 }
@@ -111,9 +115,16 @@ NlDriverImpl::solveParallel() {
       initialTime);
 
   // Initial Seeds
-  integrator->timeStepSizeIs(coarseTimeStep_);
-  integrator->initialConditionIs(initialState, initialTime);
-  IntegratorSeedInitializer::Ptr seedInitializer = IntegratorSeedInitializer::New(integrator.ptr(), TimeStepCount(1));
+  SeedInitializer::Ptr seedInitializer;
+  if (userProvidedSeeds_) {
+    log() << "Initial seed information provided by user\n"; // TODO remove
+    seedInitializer = UserProvidedSeedInitializer::New(vectorSize_, geoSource(), domain());
+  } else {
+    log() << "Initial seed information from time-integration\n"; // TODO remove
+    integrator->timeStepSizeIs(coarseTimeStep_);
+    integrator->initialConditionIs(initialState, initialTime);
+    seedInitializer = IntegratorSeedInitializer::New(integrator.ptr(), TimeStepCount(1));
+  }
   
   // Post-processing
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
@@ -160,5 +171,5 @@ extern Communicator * structCom;
 
 Pita::NlDriver::Ptr
 nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
-  return Pita::Hts::NlDriverImpl::New(problemDescriptor, geoSource, &domain->solInfo(), structCom);
+  return Pita::Hts::NlDriverImpl::New(problemDescriptor, geoSource, domain, &domain->solInfo(), structCom);
 }

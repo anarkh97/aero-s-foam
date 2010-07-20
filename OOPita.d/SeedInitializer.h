@@ -31,6 +31,6 @@ private:
   DISALLOW_COPY_AND_ASSIGN(SeedInitializer);
 };
   
-}
+} /* end namespace Pita */
 
 #endif /* PITA_SEEDINITIALIZER_H */

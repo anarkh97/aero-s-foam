@@ -43,8 +43,8 @@ protected:
   PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
   CorrectionPropagator<DynamState>::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;
   LinearGenAlphaIntegrator::Ptr buildCoarseIntegrator() const; 
-  DynamPropagator::Ptr buildCoarsePropagator(bool local, Communicator * coarseComm) const;
-  SeedInitializer::Ptr buildSeedInitializer(bool local, Communicator * clientComm) const;
+  DynamPropagator::Ptr buildCoarsePropagator(Communicator * coarseComm = NULL) const;
+  SeedInitializer::Ptr buildSeedInitializer(Communicator * clientComm = NULL) const;
 
 private:
   /* Space-domain */
@@ -60,6 +60,7 @@ private:
 
   /* Main options */
   bool noForce_;
+  bool userProvidedSeeds_;
   bool remoteCoarse_;
   
   /* Load balancing */ 

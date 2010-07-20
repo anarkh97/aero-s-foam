@@ -56,8 +56,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
     void getVonMises(Vector& stress, Vector& weight, CoordSet& cs, 
-                     Vector& elDisp, int strInd, int surface = 0,
-                     double *ndTemps = 0,double ylayer = 0.0,
+                     Vector& elDisp,  int strInd, int surface = 0,
+                     double *ndTemps = 0, double ylayer = 0.0,
                      double zlayer = 0.0, int avgnum = 0);
     void getAllStress(FullM& stress, Vector& weight, CoordSet& cs,
                       Vector& elDisp, int strInd, int surface = 0,
@@ -91,6 +91,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     bool hasRot() { return true; }
 
     PrioInfo examine(int sub, MultiFront* mf);
+
 };
 #endif
 

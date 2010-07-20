@@ -139,7 +139,33 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                                  Vector& elDisp, int strInd, int surface,
                                  double *ndTemps, double ylayer, double zlayer, int avgnum)
 { 
-  cerr << "BelytschkoTsayShell::getVonMises not implemented\n";
+  // voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
+  stress.zero();
+  weight = 1.0;
+  int k[6] = { 0, 1, 2, 5, 3, 4 };
+  for(int i = 0; i < nnode; ++i) {
+    for(int j = 0; j < mgqpt[0]; ++j) {
+      switch(strInd) {
+        case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : // sxx, syy, szz, sxy, syz, sxz
+          stress[i] += evoit2[6*j+k[strInd]];
+          break;
+        case 6 : // von mises stress
+          stress[i] += evar2[5*j+0];
+          break;
+        case 7 : case 8 : case 9 : case 10: case 11: case 12: // exx, eyy, ezz, exy, eyz, exz
+          stress[i] += evoit1[6*j+k[strInd-7]];
+          break;
+        case 13 : // von mises strain
+          stress[i] += evar1[5*j+0];
+          break;
+        case 14 : case 15 : case 16 : // not available
+          break;
+        case 17 : // damage
+          stress[i] += evar1[5*j+1];
+          break;
+      }
+    }
+  }
 }
 
 void

@@ -2833,7 +2833,6 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
         case OutputInfo::GrdTemp:
           getTrussHeatFlux(sol, bcx, i, GRTX);
           break;
-
         case OutputInfo::SloshDisplacement:
           getSloshDispAll(sol, bcx, i, freq);
           break;
@@ -2846,67 +2845,63 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
         case OutputInfo::SloshDispZ:
           getSloshDisp(sol, bcx, i, SLDZ, freq);
           break;
-
-
         case OutputInfo::StressXX:
-          getStressStrain(sol,bcx,i,SXX);
+          getStressStrain(sol, bcx, i, SXX);
           break;
         case OutputInfo::StressYY:
-          getStressStrain(sol,bcx,i,SYY);
+          getStressStrain(sol, bcx, i, SYY);
           break;
         case OutputInfo::StressZZ:
-          getStressStrain(sol,bcx,i,SZZ);
+          getStressStrain(sol, bcx, i, SZZ);
           break;
         case OutputInfo::StressXY:
-          getStressStrain(sol,bcx,i,SXY);
+          getStressStrain(sol, bcx, i, SXY);
           break;
         case OutputInfo::StressYZ:
-          getStressStrain(sol,bcx,i,SYZ);
+          getStressStrain(sol, bcx, i, SYZ);
           break;
         case OutputInfo::StressXZ:
-          getStressStrain(sol,bcx,i,SXZ);
+          getStressStrain(sol, bcx, i, SXZ);
           break;
         case OutputInfo::StrainXX:
-          getStressStrain(sol,bcx,i,EXX);
+          getStressStrain(sol, bcx, i, EXX);
           break;
         case OutputInfo::StrainYY:
-          getStressStrain(sol,bcx,i,EYY);
+          getStressStrain(sol, bcx, i, EYY);
           break;
         case OutputInfo::StrainZZ:
-          getStressStrain(sol,bcx,i,EZZ);
+          getStressStrain(sol, bcx, i, EZZ);
           break;
         case OutputInfo::StrainXY:
-          getStressStrain(sol,bcx,i,EXY);
+          getStressStrain(sol, bcx, i, EXY);
           break;
         case OutputInfo::StrainYZ:
-          getStressStrain(sol,bcx,i,EYZ);
+          getStressStrain(sol, bcx, i, EYZ);
           break;
         case OutputInfo::StrainXZ:
-          getStressStrain(sol,bcx,i,EXZ);
+          getStressStrain(sol, bcx, i, EXZ);
           break;
         case OutputInfo::StressVM:
-          getStressStrain(sol,bcx,i,VON);
+          getStressStrain(sol, bcx, i, VON);
           break;
-
         case OutputInfo::StressPR1:
-          getPrincipalStress(sol,bcx,i,PSTRESS1);
+          getPrincipalStress(sol, bcx, i, PSTRESS1);
           break;
         case OutputInfo::StressPR2:
-          getPrincipalStress(sol,bcx,i,PSTRESS2);
+          getPrincipalStress(sol, bcx, i, PSTRESS2);
           break;
         case OutputInfo::StressPR3:
-          getPrincipalStress(sol,bcx,i,PSTRESS3);
+          getPrincipalStress(sol, bcx, i, PSTRESS3);
           break;
         case OutputInfo::StrainPR1:
-          getPrincipalStress(sol,bcx,i,PSTRAIN1);
+          getPrincipalStress(sol, bcx, i, PSTRAIN1);
           break;
         case OutputInfo::StrainPR2:
-          getPrincipalStress(sol,bcx,i,PSTRAIN2);
+          getPrincipalStress(sol, bcx, i, PSTRAIN2);
           break;
         case OutputInfo::StrainPR3:
-          getPrincipalStress(sol,bcx,i,PSTRAIN3);
+          getPrincipalStress(sol, bcx, i, PSTRAIN3);
          break;
-
         case OutputInfo::InXForce:
           getElementForces(sol, bcx, i, INX);
           break;
@@ -2926,9 +2921,8 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
           getElementForces(sol, bcx, i, AZM);
           break;
         case OutputInfo::StrainVM:
-          getStressStrain(sol,bcx,i,STRAINVON);
+          getStressStrain(sol, bcx, i, STRAINVON);
           break;
-
         case OutputInfo::Energies: {
           Wext = ScalarTypes::Real(force*sol);   // Wext = external energy
           Wela =   0.5 * Wext;   // Wela = elastic energy

@@ -4,9 +4,11 @@
 
 void Domain::initDispVelocOnTimeSlice(GenVector<double> & d_n, GenVector<double> & v_n, int sliceRank)
 {
-  d_n = v_n = 0.0; // Default value if no condition is specified for any dof (not recommended)
+  // Default value if no condition is specified for any dof (not recommended)
+  d_n = 0.0;
+  v_n = 0.0;
 
-  if (!geoSource->getNewStep0())
+  if (geoSource->getUserProvidedSeedCount() == 0)
   {
     // No initial seed was specified -- Should not happen
     fprintf(stderr, "Warning -- in Domain::initDispVelocOnTimeSlice(Vector&, Vector&, int) : No initial seeds specified\n");

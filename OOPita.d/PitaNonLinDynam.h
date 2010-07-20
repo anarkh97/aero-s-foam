@@ -24,8 +24,8 @@ public:
   int getInitSeed(DynamState &, int sliceRank);
  
   // Added Accessors
-  int getKiter() const { return kiter; }
-  int getJratio() const { return Jratio; }
+  int getKiter() const { return mainIterMax; }
+  int getJratio() const { return timeGridRatio; }
   int getNumTSonCPU() const { return numTSonCPU; }
   int getNumTS() const { return numTS; }
   double getCoarseDt() const { return coarseDt; }
@@ -49,7 +49,7 @@ public:
 
 protected:
   SparseMatrix *K;               // PITA requires to explicitely build the stiffness matrix
-  int kiter, Jratio, numTSonCPU; // PITA main parameters from input file
+  int mainIterMax, timeGridRatio, numTSonCPU; // PITA main parameters from input file
   int numTS;                     // Total number of time-slices 
   double coarseDt, coarseDelta;  // Coarse time parameters
   int baseImprovementMethod;     // 0 = all seeds (global), 1 = increments only (local)

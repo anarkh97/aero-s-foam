@@ -18,9 +18,9 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
   
   this->computeTimeInfo();
  
-  kiter = d->solInfo().kiter;
-  Jratio = d->solInfo().Jratio;
-  numTSonCPU = d->solInfo().numTSperCycleperCPU;
+  kiter = d->solInfo().pitaMainIterMax;
+  Jratio = d->solInfo().pitaTimeGridRatio;
+  numTSonCPU = d->solInfo().pitaProcessWorkloadMax;
 
   coarseDt = this->getDt() * Jratio;
   coarseDelta = this->getDelta() * Jratio;
@@ -29,7 +29,7 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
 
   totalTime = numTS * coarseDt;
 
-  baseImprovementMethod = d->solInfo().baseImprovementMethodForPita;
+  baseImprovementMethod = d->solInfo().pitaBaseImprovement;
 }
 
 int PitaNonLinDynamic::getInitState(DynamState<double> & ds)
@@ -42,25 +42,18 @@ int PitaNonLinDynamic::getInitState(DynamState<double> & ds)
 
 int PitaNonLinDynamic::getInitSeed(DynamState<double> & ds, int sliceRank)
 {
-  if (sliceRank <= 0)
+  domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
+  if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
   {
-    return getInitState(ds);
-  }
-  else
-  {
-    domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
-    if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
-    {
-      double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
-      double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
-      double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
-      double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
-      GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-      extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
-      userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
-    }  
-    return 0; // Default value for int aeroAlg
-  }
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
+    double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
+    double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
+    double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
+    GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
+    extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
+    userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
+  }  
+  return 0; // Default value for int aeroAlg
 }
 
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)

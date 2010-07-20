@@ -119,7 +119,7 @@ ReducedLinearDriverImpl::preprocess() {
 
   /* Time-domain */
   fineTimeStep_ = Seconds(solverInfo()->getTimeStep());
-  halfSliceRatio_ = TimeStepCount(solverInfo()->Jratio / 2);
+  halfSliceRatio_ = TimeStepCount(solverInfo()->pitaTimeGridRatio / 2);
   sliceRatio_ = TimeStepCount(halfSliceRatio_.value() * 2);
   coarseTimeStep_ = fineTimeStep_ * sliceRatio_.value(); 
   initialTime_ = Seconds(solverInfo()->initialTime);
@@ -131,16 +131,16 @@ ReducedLinearDriverImpl::preprocess() {
   finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * halfSliceRatio_.value()); // To have a whole number of full time-slices 
   
   /* Main options */
-  noForce_ = solverInfo()->NoForcePita;
-  remoteCoarse_ = solverInfo()->remoteCoarse && (baseComm()->numCPUs() > 1);
+  noForce_ = solverInfo()->pitaNoForce;
+  remoteCoarse_ = solverInfo()->pitaRemoteCoarse && (baseComm()->numCPUs() > 1);
 
   /* Load balancing */ 
   CpuCount numCpus(baseComm()->numCPUs() - (remoteCoarse_ ? 1 : 0));
-  HalfSliceCount maxActive(solverInfo()->numTSperCycleperCPU);
+  HalfSliceCount maxActive(solverInfo()->pitaProcessWorkloadMax);
   mapping_ = SliceMapping::New(fullTimeSlices, numCpus, maxActive);
 
   /* Other parameters */ 
-  lastIteration_ = IterationRank(solverInfo()->kiter);
+  lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
   projectorTolerance_ = solverInfo()->pitaProjTol;
   coarseRhoInfinity_ = 1.0; // TODO Could be set in input file
  

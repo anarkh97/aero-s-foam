@@ -74,20 +74,18 @@ struct SolverInfo {
    enum { Newmark, Qstatic };
 
    // Parameters for PITA
-   bool tiParall; 	    // Enables PITA (both linear and nonlinear problems)
+   bool activatePita; 	    // Enables PITA (both linear and nonlinear problems)
    bool mdPita;             // Enables time-space parallelism (linear problem only)
-   bool NoForcePita;        // Enables NoForce optimization (linear problem only)
-   bool ConstForcePita;     // Enables ConstantForce optimization (linear problem only)
-   bool CkCoarse;           // Enable coarse time-grid correction (linear problem only)
-   int Jratio;              // Coarse/fine time-grid ratio (always required)  
-   int kiter;               // Maximum number of main iterations (always required)
-   int numTSperCycleperCPU; // Maximum number of active time-slices on each CPU (always required)
-   int numSpaceMPIProc;     // Number of CPUs in the space domain (only when time-space parallelism is enabled)
-   int baseImprovementMethodForPita; // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
-   bool remoteCoarse;       // Coarse grid integrator on dedicated CPU 
+   bool pitaNoForce;        // Enables NoForce optimization (linear problem only)
+   int pitaTimeGridRatio;   // Coarse/fine time-grid ratio (always required)  
+   int pitaMainIterMax;     // Maximum number of main iterations (always required)
+   int pitaProcessWorkloadMax; // Maximum number of active time-slices on each CPU (always required)
+   //int numSpaceMPIProc;     // Number of CPUs in the space domain (only when time-space parallelism is enabled)
+   int pitaBaseImprovement; // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
+   bool pitaRemoteCoarse;       // Coarse grid integrator on dedicated CPU 
    double pitaProjTol;      // Tolerance used to build the projector
-
-   bool newPitaImplementation; // JC TODO Remove when new PITA implementation ready
+   bool pitaTimeReversible; // true if PITA exploits the time-reversibility of the problem
+   bool pitaReadInitSeed;   // true if PITA uses provided initial seed information
 
    bool modal;          // true iff system is to be solved in modal coordinates
    bool acoustic;       // true iff system is to be solved for acoustic time domain
@@ -248,19 +246,18 @@ struct SolverInfo {
                   mppFactor = 1.0;
 		 
                   // Parameters for PITA 
-		  tiParall       = false;
-                  mdPita         = false;
-                  NoForcePita    = false;
-                  ConstForcePita = false;
-                  CkCoarse       = false;
-		  Jratio = 1;
-		  kiter  = 0;
-                  numTSperCycleperCPU = 1;
-                  numSpaceMPIProc     = 1;
-                  baseImprovementMethodForPita = 0;
-                  remoteCoarse = false;
+                  activatePita = false;
+                  mdPita = false;
+                  pitaNoForce = false;
+                  pitaTimeGridRatio = 1;
+                  pitaMainIterMax = 0;
+                  pitaProcessWorkloadMax = 1;
+                  //numSpaceMPIProc = 1;
+                  pitaBaseImprovement = 0;
+                  pitaRemoteCoarse = false;
                   pitaProjTol = 1.0e-6;
-                  newPitaImplementation = false; // JC TODO Remove when new PITA implementation ready
+                  pitaTimeReversible = false;
+                  pitaReadInitSeed = false;
 
                   acoustic = false;
                   modifiedWaveEquation = false;
@@ -454,10 +451,10 @@ struct SolverInfo {
    // SET DYNAMIC VALUE FUNCTIONS
 
    void setTimes(double _tmax, double _dt, double _dtemp)
-    { tmax = _tmax; dt = _dt; dtemp = _dtemp; }
+   { tmax = _tmax; dt = _dt; dtemp = _dtemp; }
 
-   void setParallelInTime( int _Jratio, int _kiter, int _numTSperCycleperCPU)    
-    { Jratio = _Jratio; kiter=_kiter; numTSperCycleperCPU=_numTSperCycleperCPU; }
+   void setParallelInTime(int J, int k, int workloadMax)
+   { pitaTimeGridRatio = J; pitaMainIterMax = k; pitaProcessWorkloadMax = workloadMax; }
 
    // Set Rayleigh damping stiffness coefficient alpha
    // Set Rayleigh damping mass coefficient beta

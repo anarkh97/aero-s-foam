@@ -42,7 +42,6 @@ class SGISky;
 class UFront;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
-class PitaDynamMat;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
@@ -376,15 +375,6 @@ class Domain : public HData {
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
-
-     template<class Scalar>
-       void buildPitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc, double Kcoef, double Mcoef, double Ccoef,
-                     double Kcoef_Dt, double Mcoef_Dt, double Ccoef_Dt, Rbm *rbm,
-                     FullSquareMatrix *kelArray);
-     template<class Scalar>
-       void makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc, double Kc, double Mc, double Cc,
-                     double Kc_Dt, double Mc_Dt, double Cc_Dt, GenSparseMatrix<Scalar> *mat,
-                     GenSparseMatrix<Scalar> *mat_Dt, Rbm *rbm, FullSquareMatrix *kelArray);
 
      template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,

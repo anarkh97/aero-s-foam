@@ -591,17 +591,15 @@ TRAIL [a-zA-Z]*
 
 "NoForce"|"noforce"|"NOFORCE"      { return NOFORCE; }
 
-"ConstForce"|"constforce"|"CONSTFORCE" { return CONSTFORCE; }
-
-"CkCoarse"|"ckcoarse"|"CKCOARSE"   { return CKCOARSE; }
-
 "localbases"|"LocalBases"|"LOCALBASES" { return LOCALBASES; }
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
 
 "ORTHOPROJTOL"|"orthoprojtol"      { return ORTHOPROJTOL; }
 
-"newimpl"|"NEWIMPL"|"OOPITA"       { return NEWIMPL; }
+"timereversible"|"TIMEREVERSIBLE"  { return TIMEREVERSIBLE; }
+
+"readinitseed"|"READINITSEED"      { return READINITSEED; }
 
 "heat"|"HEAT"                      { return HEAT; }
 

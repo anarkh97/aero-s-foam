@@ -219,7 +219,6 @@ class GeoSource {
 
   // PITA
   map<int, std::pair<int, int> > timeSliceOutputFiles;
-  bool newStep0;       // True if initial seed conditions are specified
   BCond *PitaIDis6;    // Array of initial seed displacement array
   int numPitaIDis6;    // # of initial seed initial displacement conditions
   int numTSPitaIDis6;  // # of initial seed displacement vectors
@@ -375,13 +374,15 @@ public:
   Elemset* getPackedEsetFluid() { return packedEsetFluid; }  //ADDED FOR HEV PROBLEM, EC, 20070820
 
   // PITA: Access to initial seed conditions
-  bool getNewStep0()      { return newStep0; }         // True if initial seed conditions are given
-  int getNumPitaIDis6()   { return numPitaIDis6; }     // # of initial seed initial displacement conditions
-  int getNumPitaIVel6()   { return numPitaIVel6; }     // # of initial seed initial velocity conditions
-  int getNumTSPitaIDis6() { return numTSPitaIDis6; }   // # of initial seed displacement vectors
-  int getNumTSPitaIVel6() { return numTSPitaIVel6; }   // # of initial seed velocity vectors
-  BCond &getPitaIDis6(int i) { return PitaIDis6[i]; }  // Initial seed displacement for each time-slice
-  BCond &getPitaIVel6(int i) { return PitaIVel6[i]; }  // Initial seed velocity for each time-slice
+  int getNumPitaIDis6() const  { return numPitaIDis6; }     // # of initial seed initial displacement conditions
+  int getNumPitaIVel6() const  { return numPitaIVel6; }     // # of initial seed initial velocity conditions
+  int getNumTSPitaIDis6() const { return numTSPitaIDis6; }   // # of initial seed displacement vectors
+  int getNumTSPitaIVel6() const { return numTSPitaIVel6; }   // # of initial seed velocity vectors
+  int getUserProvidedSeedCount() const { return std::min(numTSPitaIDis6, numTSPitaIVel6); }
+  const BCond &getPitaIDis6(int i) const { return PitaIDis6[i]; }  // Initial seed displacement for each time-slice
+  BCond &getPitaIDis6(int i) { return PitaIDis6[i]; } 
+  const BCond &getPitaIVel6(int i) const { return PitaIVel6[i]; }  // Initial seed velocity for each time-slice
+  BCond &getPitaIVel6(int i) { return PitaIVel6[i]; } 
 
   ControlInfo *getCheckFileInfo()  { return cinfo; }
   int  getNumClusNodes()  { return numClusNodes; }

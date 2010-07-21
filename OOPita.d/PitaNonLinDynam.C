@@ -23,22 +23,22 @@ PitaNonLinDynamic::preProcess() {
   
   computeTimeInfo();
  
-  kiter = domain->solInfo().kiter;
-  Jratio = domain->solInfo().Jratio;
-  numTSonCPU = domain->solInfo().numTSperCycleperCPU;
+  mainIterMax = domain->solInfo().pitaMainIterMax;
+  timeGridRatio = domain->solInfo().pitaTimeGridRatio;
+  numTSonCPU = domain->solInfo().pitaProcessWorkloadMax;
 
-  coarseDt = getDt() * Jratio;
-  coarseDelta = getDelta() * Jratio;
+  coarseDt = getDt() * timeGridRatio;
+  coarseDelta = getDelta() * timeGridRatio;
 
-  numTS = int( ceil( ( getTotalTime() / getDt() ) / Jratio) );
+  numTS = int( ceil( ( getTotalTime() / getDt() ) / timeGridRatio) );
 
   totalTime = numTS * coarseDt;
 
-  baseImprovementMethod = domain->solInfo().baseImprovementMethodForPita;
+  baseImprovementMethod = domain->solInfo().pitaBaseImprovement;
 }
 
 int PitaNonLinDynamic::getInitSeedCount() const {
-  return geoSource->getNewStep0() ? std::max(std::min(std::min(geoSource->getNumTSPitaIDis6(), geoSource->getNumTSPitaIVel6()), numTS), 1) : 1;
+  return std::max(std::min(geoSource->getUserProvidedSeedCount(), numTS), 1);
 }
 
 int PitaNonLinDynamic::getInitState(DynamState & ds)
@@ -58,7 +58,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   else
   {
     domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
     GenVector<double> dummy_acc(solVecInfo(), 0.0);
     GenVector<double> dummy_vp(solVecInfo(), 0.0);
     updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);

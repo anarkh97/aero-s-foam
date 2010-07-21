@@ -23,7 +23,6 @@ class Domain;
 class ControlLawInfo;
 template <typename Scalar> class GenSolver;
 class Rbm;
-class PitaDynamMat;
 
 // Single Domain Dynamic Post Processor Class
 
@@ -130,7 +129,6 @@ class SingleDomainDynamic
     void getQuasiStaticParameters(double &maxVel, double &delta);
     void getRayleighCoef(double &alpha);
     void getInitState(SysState<Vector> & currentState);
-    void getPitaState(SysState<Vector> &inState, int TS);
     void getInitialTime(int &tIndex, double &initialTime); 
     double getInitialForceNorm(); 
     void getConstForce(Vector &gravityForce);
@@ -143,7 +141,6 @@ class SingleDomainDynamic
     void preProcess();
     void processLastOutput();
     DynamMat * buildOps(double coeM, double coeC, double coeK);
-    PitaDynamMat *buildPitaOps(double cM, double cC, double cK, double cM_Dt, double cC_Dt, double cK_Dt, bool coarse);
     GenSolver<double> *getSolver();
     SDDynamPostProcessor *getPostProcessor();
     void printTimers(DynamMat *, double);

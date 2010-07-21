@@ -987,11 +987,11 @@ int main(int argc, char** argv)
           modalSolver.solve();
         }
         else {
-          if (domain->solInfo().tiParall) {
+          if (domain->solInfo().activatePita) {
 #ifdef DISTRIBUTED
              SingleDomainDynamic dynamProb(domain);
              Pita::LinearDriver::Ptr driver;
-             if (!domain->solInfo().newPitaImplementation) {
+             if (!domain->solInfo().pitaTimeReversible) {
                  fprintf(stderr," ... Linear PITA ...\n");
                  driver = linearPitaDriverNew(&dynamProb);
              } else {
@@ -1084,9 +1084,9 @@ int main(int argc, char** argv)
          nlmodalsolver.solve();
        }
        else {
-         if(domain->solInfo().tiParall) {
+         if(domain->solInfo().activatePita) {
 #ifdef DISTRIBUTED
-           if (domain->solInfo().newPitaImplementation) {
+           if (domain->solInfo().pitaTimeReversible) {
              filePrint(stderr, " ... Time-reversible nonlinear PITA ...\n");
              Pita::PitaNonLinDynamic pitaProblem(domain);
              Pita::NlDriver::Ptr pitaDriver = nlPitaDriverNew(&pitaProblem);

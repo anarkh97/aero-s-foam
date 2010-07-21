@@ -35,88 +35,6 @@ typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
-// ALL COMMENTED FUNCTIONS ARE IN THE FILE DYNAMDESCRTEM.C - JF
-
-//-------------------------------------------------------------------------------------------------------------
-PitaDynamMat *
-SingleDomainDynamic::buildPitaOps(double cM, double cC, double cK, double cM_Dt, double cC_Dt, double cK_Dt, bool Coarse)
-{
- /* CD: for Pita, factorize amplification matrix with dt and Dt.
-        dMat inherits a DynamMat dynMat that contains: K, Kuc, M, 
-        Muc, Mcc, C, Cuc and a solver dynMat computed with the 
-        time step dt. 
-        dMat contains too a solver computed with the time step Dt 
-        ie dynMat_Dt.
-        All its elements are computed in domain->buildPitaOps
-        cf Driver.d/Domain.h and Driver.d/OpMake.C 
-  */
-
- PitaDynamMat *dMat; 
-
- if (Coarse) {
- 
- dMat = new  PitaDynamMat;
-
- dMat->K = domain->constructDBSparseMatrix<double>();
- dMat->M = domain->constructDBSparseMatrix<double>();
- dMat->Muc = domain->constructCuCSparse<double>();
- dMat->Mcc = domain->constructCCSparse<double>();
- SparseMatrix *Kuc = domain->constructCuCSparse<double>();
-
- // Rayleigh Damping coefficients
- double alpha = domain->solInfo().alphaDamp;
- double beta  = domain->solInfo().betaDamp;
-
- // Damping Matrix: C = alpha*M + beta*K
- if(alpha != 0.0 || beta != 0.0) {
-    dMat->C   = domain->constructDBSparseMatrix<double>();
-    dMat->Cuc = domain->constructCuCSparse<double>();
- }
- 
- Rbm *rigidBodyModes = 0;
- 
- int useProjector = domain->solInfo().filterFlags;
- int useGrbm = domain->solInfo().rbmflg;
-
- if (useGrbm || useProjector)
-   rigidBodyModes = domain->constructRbm();
-
- if (!useGrbm || (getTimeIntegration() != 1) )
-   domain->buildPitaOps<double>(*dMat, Kuc, cK, cM, cC, cK_Dt, cM_Dt, cC_Dt, 0, kelArray);
- else
-   domain->buildPitaOps<double>(*dMat, Kuc, cK, cM, cC, cK_Dt, cM_Dt, cC_Dt, rigidBodyModes, kelArray);
-
- // Filter RBM
-
- if(useProjector == 1)
-    fprintf(stderr," ... RBMfilter Level 1 Requested    ...\n");
- if(useProjector == 2)
-    fprintf(stderr," ... RBMfilter Level 2 Requested    ...\n");
-
- if(useProjector)
-   projector_prep(rigidBodyModes, dMat->M);
-
- // Modal decomposition preprocessing
-
- int decompFlag = domain->solInfo().modeDecompFlag;
- if (decompFlag) {
-   fprintf(stderr," ... Modal decomposition requested ...\n");
-   modeDecompPreProcess(dMat->M);
- }
- 
- kuc    = Kuc;
-// solver = dMat->dynMat;
- 
- }else{
- dMat = (PitaDynamMat *) buildOps(cM, cC, cK); // Unsafe cast !!!
- }
-
- return dMat;
-
- fflush(stderr);
-
-}
-
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
@@ -459,37 +377,6 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
       extractControlData(inState, ctrdisp, ctrvel, ctracc);
       userSupFunc->init(ctrdisp, ctrvel, ctracc, this);
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc;
-    }
-  }
-}
-
-void
-SingleDomainDynamic::getPitaState(SysState<Vector> &inState, int sliceRank)
-{
-  // PITA: Use the user-supplied initial seed values
-  if (sliceRank == 0)
-  {
-    getInitState(inState);
-  }
-  else
-  {
-    Vector  &d_n = inState.getDisp();
-    Vector  &v_n = inState.getVeloc();
-    Vector  &v_p = inState.getPrevVeloc();
-    Vector  &a_n = inState.getAccel();
-    d_n.zero(); v_n.zero(); a_n.zero(); v_p.zero();
-    domain->initDispVelocOnTimeSlice(d_n, v_n, sliceRank);
-
-    // If we have a user supplied function, extract user supplied
-    // initial displacement and velocity
-    if (userSupFunc)
-    {
-      double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
-      double *ctrdisp = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
-      double *ctrvel  = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
-      double *ctracc  = (double *) dbg_alloca(sizeof(double) * claw->numSensor);
-      extractControlData(inState, ctrdisp, ctrvel, ctracc);
-      userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
     }
   }
 }

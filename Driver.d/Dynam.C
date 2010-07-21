@@ -442,8 +442,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                          double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
-  double (*glDisp)[11] = new double[nodes.size()][11];//DofSet::max_known_nonL_dof
-  for (int i = 0; i < nodes.size(); ++i)
+  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
+  int numNodeLim = myMax(numNodes,numnodes);
+  double (*glDisp)[11] = new double[numNodeLim][11];//DofSet::max_known_nonL_dof
+  for (int i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
   mergeDistributedDisp(glDisp, d_n.data(), bcx);
@@ -453,7 +455,6 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     int iNode;
     int first_node, last_node;
     
-    int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
     OutputInfo *oinfo = geoSource->getOutputInfo();
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 

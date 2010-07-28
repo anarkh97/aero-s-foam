@@ -2744,6 +2744,18 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
   }
 }
 
+void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      CurrentMortarCond->GetPtrMasterEntity()->UpdateNodeData(geomState);
+      CurrentMortarCond->GetPtrSlaveEntity()->UpdateNodeData(geomState);
+      CurrentMortarCond->set_node_configuration(1); // 1 --> config_type current
+    }
+  }
+}
+
 void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd) 
 {
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
@@ -2755,7 +2767,6 @@ void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *g
     }
   }
 }
-
 
 void Domain::PerformStaticContactSearch(MortarHandler::Interaction_Type t)
 {
@@ -2782,6 +2793,7 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
       num_interactions += CurrentMortarCond->GetnFFI();
     }
   }
+  //cerr << "nMortarLMPCs = " << nMortarLMPCs << ", num_interactions = " << num_interactions << endl;
 #ifdef HB_ACME_FFI_DEBUG
   if(sinfo.ffi_debug && num_interactions > 0) {
     char fname[16];
@@ -3833,9 +3845,53 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
       j++; 
     }
   }
+  //cerr << "deleted " << numLMPC-j << " mpcs, ";
   numLMPC = j;
   if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
     delete mortarToMPC;
     mortarToMPC = 0;
   }
+}
+
+void
+Domain::UpdateContactSurfaceElements()
+{
+  //cerr << "here in Domain::UpdateContactSurfaceElements, numLMPC = " << numLMPC << endl;
+  StructProp *p = new StructProp(); // TODO memory leak
+  p->lagrangeMult = sinfo.lagrangeMult;
+  p->penalty = sinfo.penalty;
+  p->type = StructProp::Constraint;
+  int count = 0;
+  int nEle = packedEset.size();
+  int count1 = 0;
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+      if(count < contactSurfElems.size()) { // replace
+        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
+        //delete packedEset[contactSurfElems[count]];
+        packedEset[contactSurfElems[count]] = 0;
+        packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
+        packedEset[contactSurfElems[count]]->setProp(p);
+        count1++;
+      }
+      else { // new
+        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
+        packedEset.mpcelemadd(nEle, lmpc[i]); // new
+        packedEset[nEle]->setProp(p);
+        contactSurfElems.push_back(nEle);
+        nEle++;
+      }
+      count++;
+    }
+  }
+  int count2 = 0;
+  while(count < contactSurfElems.size()) {
+    //cerr << "deleting elemset " << contactSurfElems.back() << endl;
+    //delete packedEset[contactSurfElems.back()];
+    packedEset[contactSurfElems.back()] = 0;
+    contactSurfElems.pop_back();
+    count2++;
+  }
+  packedEset.setEmax(nEle-count2); // because element set is packed
+  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
 }

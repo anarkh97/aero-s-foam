@@ -326,10 +326,10 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
+  if(t != -1.0) updateConstraintTerms(&geomState);
+
   execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce);
-
-  if(t != -1.0) updateConstraintTerms(&geomState);
 
   // add the ACTUATOR forces
   if(claw && userSupFunc) {

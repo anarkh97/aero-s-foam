@@ -786,6 +786,7 @@ class Domain : public HData {
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
      void deleteAllLMPCs();
      void deleteSomeLMPCs(mpc::ConstraintSource s);
+     void UpdateContactSurfaceElements();
 
      // HB: mortar stuff (EXPERIMENTAL)
   protected:
@@ -793,6 +794,7 @@ class Domain : public HData {
      ResizeArray<SurfaceEntity*> SurfEntities; //
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
+     vector<int> contactSurfElems;
   public:
      int AddSurfaceEntity(SurfaceEntity*);
      int AddSurfaceEntity(SurfaceEntity*, int isurf);
@@ -820,6 +822,7 @@ class Domain : public HData {
      void AddContactForces(double dt, DistrVector &f);
 
      void InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
+     void UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState);
      void UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd);
      void PerformStaticContactSearch(MortarHandler::Interaction_Type t);
      void ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs = 0, int* Dofs = 0);

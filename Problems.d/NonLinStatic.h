@@ -62,7 +62,7 @@ class NonLinStatic {
     bool linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 
-    double getResidualNorm(Vector &res) { return res.norm(); }
+    double getResidualNorm(Vector &res);
 };
 
 #endif

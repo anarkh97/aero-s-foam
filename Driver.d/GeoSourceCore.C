@@ -325,40 +325,42 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   int nRigid = 0;
   Elemset *rigidSet = new Elemset;
 
-  for(int i = 0; i < nEle; ++i) {
-    Element *ele = elemSet[i];
-    if(ele != 0) {
-      if(dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele))
-        rigidSet->elemadd(nRigid++, ele);
-      else {
-        int n = ele->getNumMPCs();
+  if(!domain->solInfo().isNonLin()) { // direct elimination for nonlinear constraints is not supported
+    for(int i = 0; i < nEle; ++i) {
+      Element *ele = elemSet[i];
+      if(ele != 0) {
+        if(dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele))
+          rigidSet->elemadd(nRigid++, ele);
+        else {
+          int n = ele->getNumMPCs();
+          if(n > 0) {
+            LMPCons **l = ele->getMPCs();
+            for(int j = 0; j < n; ++j)
+              lmpc[numLMPC++] = l[j];
+            delete [] l;
+          }
+        }
+      }
+    }
+    if(nRigid > 0) {
+      //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
+      std::set<int> blockedNodes;
+      for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
+      rigidSet->collapseRigid6(blockedNodes);
+      nRigid = rigidSet->last();
+      StructProp p; // dummy property
+      for(int i = 0; i < nRigid; ++i) {
+        int n = (*rigidSet)[i]->getNumMPCs();
         if(n > 0) {
-          LMPCons **l = ele->getMPCs();
+          if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
+            (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
+            (*rigidSet)[i]->setProp(&p);
+          }
+          LMPCons **l = (*rigidSet)[i]->getMPCs();
           for(int j = 0; j < n; ++j)
             lmpc[numLMPC++] = l[j];
           delete [] l;
         }
-      }
-    }
-  }
-  if(nRigid > 0) {
-    //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
-    std::set<int> blockedNodes;
-    for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
-    rigidSet->collapseRigid6(blockedNodes);
-    nRigid = rigidSet->last();
-    StructProp p; // dummy property
-    for(int i = 0; i < nRigid; ++i) {
-      int n = (*rigidSet)[i]->getNumMPCs();
-      if(n > 0) {
-        if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
-          (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
-          (*rigidSet)[i]->setProp(&p);
-        }
-        LMPCons **l = (*rigidSet)[i]->getMPCs();
-        for(int j = 0; j < n; ++j)
-          lmpc[numLMPC++] = l[j];
-        delete [] l;
       }
     }
   }

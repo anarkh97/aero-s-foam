@@ -1069,3 +1069,11 @@ NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
  alpham = domain->solInfo().newmarkAlphaM;
 }
 
+double
+NonLinDynamic::getResidualNorm(Vector &res)
+{
+  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
+  if(m) return m->norm(res);
+  else return res.norm();
+}
+

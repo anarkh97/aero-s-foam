@@ -696,28 +696,30 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        //rhs += tmp1;
        //tmp1.zero();
 
-       dynOps.dynMat->reSolve( rhs ); // Now rhs contains (d_n+1-alphaf)
+       dynOps.dynMat->reSolve( rhs ); // Now rhs contains d_(n+1-alphaf)
 
        // call projector for RBMs in case of rbmfilter level 2
        if (probDesc->getFilterFlag() == 2) probDesc->project( rhs );
 
        // one time step forward
+       // d_n_p = 1/(1-alphaf)*[d_(n+1-alphaf)-alphaf*d_n] = d_(n+1)
        d_n_p.linC(rhs,(-1.0*alphaf),d_n);
        d_n_p *= (1.0/(1-alphaf));
-
-       v_n_h =  d_n_p;
-       v_n_h -= d_n; // v_n_h currently is d_(n+1) - d_n
    
-       a_n_p = v_n_h;
+       // a_n_p = 1/(dt^2*beta)*[d_(n+1)-d_n] - 1/(dt*beta)*v_n + (1-1/(2*beta))*a_n = a_(n+1)
+       a_n_p = d_n_p;
+       a_n_p -= d_n;
        a_n_p *= (1.0/(dt*dt*beta));
        a_n_p.linAdd( (-1.0/(dt*beta)), v_n, (1.0-1.0/(2.0*beta)), a_n );
 
+       // v_n_h = gamma/(beta*dt)*[d_(n+1-alphaf) - d_n] + (1.0-(1.0-alphaf)*gamma/beta)*v_n + dt*(1.0-alphaf)*(2.0*beta-gamma)/(2*beta)*a_n
        v_n_h =  rhs;
-       v_n_h -= d_n; // v_n_h currently is d_(n+1-alphaf) - d_n
+       v_n_h -= d_n;
        v_n_h *= (gamma/(beta*dt));
        v_n_h.linAdd( (1.0-(gamma*(1.0-alphaf)/beta)), v_n,
                      (dt*0.5*(1.0-alphaf)*(2.0*beta-gamma)/beta), a_n);
 
+       // v_n_p = 1/(1-alphaf)*(v_n_h - alphaf*v_n) = v_(n+1)
        v_n_p.linC(v_n_h,(-1.0*alphaf),v_n);
        v_n_p *= (1.0/(1-alphaf));
      

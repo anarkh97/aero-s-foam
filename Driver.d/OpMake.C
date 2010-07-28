@@ -163,6 +163,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
    else {
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
+     if(packedEset[iele]->isConstraintElement() && ops.Msolver) ops.Msolver->add(kel,(*allDOFs)[iele]); // XXXX
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
 
@@ -734,7 +735,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       // TODO Examine when DSA can be different from c_dsa
       ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
-        baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+        baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
       int nMappedEq = DSA->size();
       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
     }
@@ -2474,10 +2475,8 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   if(numOutInfo && firstOutput && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
-  int numNodeLim;
-
   // organize displacements
-  numNodeLim = myMax(numNodes,numnodes); 
+  int numNodeLim = myMax(numNodes,numnodes); 
     
   Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
   int i;

@@ -667,15 +667,16 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
 //#define USE_GLOBAL_CG //HB: to use the global cg as reference pt for the rotations
 #ifdef USE_GLOBAL_CG
  int count = 0;
- for(n=0; n<comp->numComp; ++n) 
+ for(n=0; n<comp->numComp; ++n) {
    for(i = comp->xcomp[n]; i<comp->xcomp[n+1]; ++i) {
      inode = comp->order[i];
      if(dsa->firstdof(inode) == -1) continue;
-     if(cs.exist(inode) == 0) continue;
+     if(cs[inode] == 0) continue;
      Node &nd = cs.getNode(inode); 
      x0 += nd.x; y0 += nd.y; z0 += nd.z;
      count++;
-    } 
+   } 
+ }
  xyzRot[0][0] = x0/count;
  xyzRot[0][1] = y0/count;
  xyzRot[0][2] = z0/count;

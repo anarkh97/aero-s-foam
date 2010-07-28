@@ -1097,11 +1097,9 @@ TRAIL [a-zA-Z]*
 
 "simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]*                     { return SIMPLE; }
 
-"hypoelast"[a-zA-Z]*|"HYPOELAST"[a-zA-Z]*               { return HYPOELAST; }
+"hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
 
-"j2plast"[a-zA-Z]*|"J2PLAST"[a-zA-Z]*                   { return J2PLAST; }
-
-"elastoviscoplast"[a-zA-Z]*|"ELASTOVISCOPLAST"[a-zA-Z]* { return ELASTOVISCOPLAST; }
+"j2exp"[a-zA-Z]*|"J2EXP"[a-zA-Z]*                       { yylval.ival = 5; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
 

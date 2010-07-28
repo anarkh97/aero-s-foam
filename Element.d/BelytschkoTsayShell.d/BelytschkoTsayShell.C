@@ -2,9 +2,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
-#include <Element.d/NonLinearity.d/HypoElasticMat.h>
-#include <Element.d/NonLinearity.d/ElastoViscoPlasticMat.h>
-#include <Element.d/NonLinearity.d/J2PlasticityMat.h>
+#include <Element.d/NonLinearity.d/ExpMat.h>
 
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
@@ -27,7 +25,6 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 {
   optele = 3; // bt shell
   optmhd = 0; // conventional fem
-  optctv = 1; // hypoelastic constitutive law
   optdmg = 0; // no damage
   opthgc = 1; // perturbation type hourglass control
   optcri[0] = optcri[1] = 0; // criterion type = none, averaging type = none
@@ -35,8 +32,8 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;
-  ngqpt[0] = 1; ngqpt[1] = 1; ngqpt[2] = 2;
-  ngqpt4 = 2;
+  ngqpt[0] = 1; ngqpt[1] = 1; ngqpt[2] = 3;
+  ngqpt4 = 3;
   // damage control parameters
   for(int i = 0; i < 10; ++i) prmdmg[i];
   // hourglass control parameters
@@ -70,6 +67,8 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   evoit3 = new double[6*mgqpt[0]];
   for(int i = 0; i < 5*mgqpt[0]; ++i) evar1[i] = evar2[i] = 0;
   for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
+
+  expmat = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -81,6 +80,7 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit3;
 }
 
+/*
 void
 BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
 {
@@ -93,32 +93,15 @@ BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
   ematpro[5] = 0;          // yield stress (evp)
   ematpro[6] = 0;          // yield strain (evp)
   ematpro[7] = 0;          // strain hardening exponent (evp)
-  ematpro[18] = 0.84;      // shear correction factor
+  ematpro[18] = 0.833;     // shear correction factor
   ematpro[19] = prop->eh;  // thickness
 }
+*/
 
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
-  HypoElasticMat *m1 = dynamic_cast<HypoElasticMat *>(m);
-  if(m1) {
-    for(int i = 0; i < 3; ++i) ematpro[i] = m1->ematpro[i];
-    optctv = 1;
-    return;
-  }
-  ElastoViscoPlasticMat *m3 = dynamic_cast<ElastoViscoPlasticMat *>(m);
-  if(m3) {
-    for(int i = 0; i < 8; ++i) ematpro[i] = m3->ematpro[i];
-    optctv = 3;
-    for(int i = 0; i < mgqpt[0]; ++i) evar1[5*i+1] = 293.0; // TODO check
-    return;
-  }
-  J2PlasticityMat *m5 = dynamic_cast<J2PlasticityMat *>(m);
-  if(m5) {
-    for(int i = 0; i < 5; ++i) ematpro[i] = m5->ematpro[i];
-    optctv = 5;
-    return;
-  }
+  expmat = dynamic_cast<ExpMat *>(m);
 }
 
 Element *
@@ -251,7 +234,7 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
     double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
     // get bt shell element lumped mass
-    _FORTRAN(elemaslbt)(nndof, ematpro, ecord, edisp, emasl);
+    _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
        // input : nndof,ematpro,ecord,edisp
        // output : emasl
     delete [] ecord;
@@ -363,10 +346,10 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     // ---------------------------------------------------------------
     // constitutive model
     // ------------------
-    switch(optctv) {
+    switch(expmat->optctv) {
       default:
       case 1 : // hypoelastic
-        _FORTRAN(elefinthypobt1)(optdmg, optcri, prmdmg, delt, ematpro, nndof, mgaus[2], mgqpt[0],
+        _FORTRAN(elefinthypobt1)(optdmg, optcri, prmdmg, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0],
                                  gqpoin3, gqweigt3, ecord, edisp, evelo, evar1, evoit2, evoit3,
                                  evar2, efint);
            // input : optdmg,optcri,prmdmg
@@ -378,7 +361,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         cerr << " *** WARNING: thermo elasto viscoplastic constitutive model not supported for bt shell element"
              << ", using elasto viscoplastic instead\n";
       case 3 : // elasto viscoplastic
-        _FORTRAN(elefintevpbt1)(optcri, delt, ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
+        _FORTRAN(elefintevpbt1)(optcri, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
                                 ecord, edisp, evelo, eaccl, evar1, evoit2, evoit3, evar2, efint);
            // input : optcri,delt,ematpro,nndof,mgaus[2],mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo,eaccl
            // inoutput : evar1,evoit2,evoit3
@@ -387,7 +370,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       case 4: // gurson model
         cerr << " *** WARNING: gurson constitutive model not supported for bt shell element, using j2 instead\n";
       case 5: // j2 explicit
-        _FORTRAN(elefintj2bt1)(optcri, delt, ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
+        _FORTRAN(elefintj2bt1)(optcri, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
                                ecord, edisp, evelo, evar1, evoit2, evoit3, evar2, efint);
            // input : optcri,delt,ematpro,nndof,mgaus(3),mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo
            // inoutput : evar1,evoit2,evoit3
@@ -400,7 +383,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     // -----------------------
     double* efhgc = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
     for(int i = 0; i < nnode*nndof; ++i) efhgc[i] = 0;
-    _FORTRAN(elefhgcbt1)(prmhgc, delt, ematpro, nndof, ecord, edisp, evelo, evoit1, efhgc);
+    _FORTRAN(elefhgcbt1)(prmhgc, delt, expmat->ematpro, nndof, ecord, edisp, evelo, evoit1, efhgc);
        // input : prmhgc,delt,ematpro,nndof,ecord,edisp,evelo
        // inoutput : evoit1(hgc local)
        // output : efhgc
@@ -416,7 +399,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       double freq = prmdmp[1]; // frequency: 1.0d0 / cycle(time)
       double cnst = 2.0 * freq * dmpfctr;
       double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
-      _FORTRAN(elemaslbt)(nndof, ematpro, ecord, edisp, emasl); // TODO: unnecessary recomputation
+      _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl); // TODO: unnecessary recomputation
       for(int i = 0; i < nnode*nndof; ++i) efint[i] += cnst*emasl[i]*evelo[i];
     }
   }

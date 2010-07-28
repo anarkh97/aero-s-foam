@@ -7,6 +7,7 @@
 class GeomState;
 class MultiFront;
 class NLMaterial;
+class ExpMat;
 
 class BelytschkoTsayShell : virtual public Element, public Corotator
 {
@@ -15,7 +16,6 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int nn[4];
     int optele; // element type option (3 for bt shell)
     int optmhd; // numerical method option (0 for conventional fem)
-    int optctv; // constiutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 explicit)
     int optdmg; // damage model type (0 for no damage, 1 for lematire damage model, 2 for linear softening with scaling)
     int opthgc; // hourglass control (1 for perturbation type hourglass control)
     int optcri[2]; // crack criterion
@@ -38,13 +38,13 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double *evoit1; // voight form of hourglass control stress
     double *evoit2; // voight form of local cauchy stress
     double *evoit3; // strain (local)
-    double ematpro[20];
+    ExpMat *expmat;
 
   public:
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
-    void setProp(StructProp *p, bool _myProp = false);
+    //void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
     Element *clone();
 

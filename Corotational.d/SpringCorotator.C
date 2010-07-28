@@ -62,7 +62,7 @@ SpringCorotator::SpringCorotator(int *nn, CoordSet &cs,
 
 void
 SpringCorotator::getStiffAndForce(GeomState &geomState, CoordSet & cs, 
-                               FullSquareMatrix &elK, double *f)
+                                  FullSquareMatrix &elK, double *f, double dt)
 /*******************************************************************
  *
  * Purpose :

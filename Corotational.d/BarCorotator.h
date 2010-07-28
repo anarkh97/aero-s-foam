@@ -15,9 +15,9 @@ class BarCorotator : public Corotator {
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f);
+                             FullSquareMatrix &elk, double *f, double dt);
      void   getInternalForce(GeomState &geomState, CoordSet &cs, 
-                                  FullSquareMatrix &elK, double *f);
+                                  FullSquareMatrix &elK, double *f, double dt);
      void   getExternalForce(GeomState &geomState, CoordSet &cs, double *f);
      
      void   formInternalForce(double t[3], double p, double *f);

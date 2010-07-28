@@ -111,14 +111,16 @@ void NLDistrTimeDecompSolver::getInitialSeeds()
   int totalSeeds = sliceMap->numActiveSlices();
   StateSet localSeedBase(getProbSize(), totalSeeds); 
   int seedsFromFile = 0;
-  if (geoSource->getNewStep0() && geoSource->getNumPitaIDis6() == geoSource->getNumPitaIVel6())
-  {
-    seedsFromFile = std::min(std::min(geoSource->getNumTSPitaIDis6(), geoSource->getNumTSPitaIVel6()), totalSeeds); 
+  if (domain->solInfo().pitaReadInitSeed) {
+    seedsFromFile = std::min(geoSource->getUserProvidedSeedCount(), totalSeeds);
   }
   localSeedBase.addState();
-  probDesc->getInitState(localSeedBase[0]); 
-  int seedRank = 1;
-  if (seedsFromFile > 0)
+  int seedRank = 0;
+  if (seedsFromFile == 0) {
+    probDesc->getInitState(localSeedBase[0]);
+    seedRank = 1;
+  }
+  else
   {
     probDesc->pitaTimers.start("User-provided seeds");
     do

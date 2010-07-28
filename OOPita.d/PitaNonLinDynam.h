@@ -4,8 +4,6 @@
 #include <Problems.d/NonLinDynam.h>
 #include <OOPita.d/DynamState.h>
 
-/*#include <Pita.d/NiceTimer.h>*/
-
 namespace Pita {
 
 class PitaNonLinDynamic : public NonLinDynamic {
@@ -26,15 +24,16 @@ public:
   int getInitSeed(DynamState &, int sliceRank);
  
   // Added Accessors
-  int getKiter() const { return kiter; }
-  int getJratio() const { return Jratio; }
+  int getKiter() const { return mainIterMax; }
+  int getJratio() const { return timeGridRatio; }
   int getNumTSonCPU() const { return numTSonCPU; }
   int getNumTS() const { return numTS; }
   double getCoarseDt() const { return coarseDt; }
   double getCoarseDelta() const { return coarseDelta; }  
   const SparseMatrix * getStiffMatrix() const { return K; }
   int getBaseImprovementMethod() const { return baseImprovementMethod; }
- 
+  bool getInitialAcceleration() const;
+
   // Added methods
   void reBuildKonly();
   void zeroRotDofs(VecType &) const;
@@ -44,20 +43,16 @@ public:
   // Output
   void openResidualFile();
   void pitaDynamOutput(int timeSliceRank, GeomState * geomState, Vector & velocity,
-                       Vector & vp, double time, int step, Vector & force, Vector & aeroF);
+                       Vector & vp, double time, int step, Vector & force, Vector & aeroF, Vector & acceleration);
   void openOutputFiles(int sliceRank);
   void closeOutputFiles(); 
 
 protected:
   SparseMatrix *K;               // PITA requires to explicitely build the stiffness matrix
-  int kiter, Jratio, numTSonCPU; // PITA main parameters from input file
+  int mainIterMax, timeGridRatio, numTSonCPU; // PITA main parameters from input file
   int numTS;                     // Total number of time-slices 
   double coarseDt, coarseDelta;  // Coarse time parameters
   int baseImprovementMethod;     // 0 = all seeds (global), 1 = increments only (local)
-
-private:
-  // Overloaded method, to build the stiffness matrix during NonLinDynamic::preProcess() 
-  void buildOps(AllOps<double> &, double, double, double, Rbm *);
 };
 
 } // end namespace Pita

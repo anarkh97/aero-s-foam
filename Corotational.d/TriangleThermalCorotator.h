@@ -20,7 +20,7 @@ class TriangleThermalCorotator : public Corotator {
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &ts, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f);
+                             FullSquareMatrix &elk, double *f, double dt);
 
      void   formInternalForce(double xn[3], double A, double eps, double sigma, double Tr, double f[3]);
 

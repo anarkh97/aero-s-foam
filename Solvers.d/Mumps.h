@@ -72,6 +72,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
 
    void add(FullSquareMatrix &, int *dofs);
    void addImaginary(FullSquareMatrix &, int *dofs);
+   void add(FullSquareMatrixC&, int *dofs);
    void add(GenFullM<Scalar> &, int, int);
    void add(GenAssembledFullM<Scalar> &, int *);
    void addDiscreteMass(int dof, Scalar);
@@ -129,6 +130,27 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void copyFromMumpsRHS(GenVector<double> *d, double *m, int len, int nRHS);
 #endif
 };
+
+template<class Scalar>
+class WrapMumps : public GenMumpsSolver<Scalar>
+{
+  public:
+    struct CtorData {
+      Connectivity *cn;
+      DofSetArray *dsa;
+      ConstrainedDSA *cdsa;
+      FSCommunicator *com;
+      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, FSCommunicator *_com) {
+        cn = c;
+        dsa = d;
+        cdsa = dc;
+        com = _com;
+      }
+    };
+
+    WrapMumps(CtorData &ctd) : GenMumpsSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.com) {}
+};
+
 
 typedef GenMumpsSolver<double> MumpsSolver;
 typedef GenMumpsSolver<DComplex> ComplexMumpsSolver;

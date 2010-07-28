@@ -8,6 +8,9 @@
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Element.d/NonLinearity.d/NeoHookeanMat.h>
 #include <Element.d/NonLinearity.d/SimpleMat.h>
+#include <Element.d/NonLinearity.d/HypoElasticMat.h>
+#include <Element.d/NonLinearity.d/ElastoViscoPlasticMat.h>
+#include <Element.d/NonLinearity.d/J2PlasticityMat.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>

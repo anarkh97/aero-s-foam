@@ -20,7 +20,7 @@ TriangleThermalCorotator::TriangleThermalCorotator(int _n1, int _n2, int _n3, do
 
 void
 TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f)
+                                           FullSquareMatrix &elK, double *f, double dt)
 /*******************************************************************
  *
  * Purpose :

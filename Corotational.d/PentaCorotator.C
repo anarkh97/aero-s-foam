@@ -35,7 +35,7 @@ PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, Coord
 // coordSet  -> contains the original nodal coordinates
 void
 PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &K, double *f)
+                                 FullSquareMatrix &K, double *f, double dt)
 {
   int i,j,k;
 

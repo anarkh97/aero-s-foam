@@ -18,24 +18,27 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *domain) :
 void
 PitaNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
+  
+  K = domain->constructDBSparseMatrix<double>();
+  
   computeTimeInfo();
  
-  kiter = domain->solInfo().kiter;
-  Jratio = domain->solInfo().Jratio;
-  numTSonCPU = domain->solInfo().numTSperCycleperCPU;
+  mainIterMax = domain->solInfo().pitaMainIterMax;
+  timeGridRatio = domain->solInfo().pitaTimeGridRatio;
+  numTSonCPU = domain->solInfo().pitaProcessWorkloadMax;
 
-  coarseDt = getDt() * Jratio;
-  coarseDelta = getDelta() * Jratio;
+  coarseDt = getDt() * timeGridRatio;
+  coarseDelta = getDelta() * timeGridRatio;
 
-  numTS = int( ceil( ( getTotalTime() / getDt() ) / Jratio) );
+  numTS = int( ceil( ( getTotalTime() / getDt() ) / timeGridRatio) );
 
   totalTime = numTS * coarseDt;
 
-  baseImprovementMethod = domain->solInfo().baseImprovementMethodForPita;
+  baseImprovementMethod = domain->solInfo().pitaBaseImprovement;
 }
 
 int PitaNonLinDynamic::getInitSeedCount() const {
-  return geoSource->getNewStep0() ? std::max(std::min(std::min(geoSource->getNumTSPitaIDis6(), geoSource->getNumTSPitaIVel6()), numTS), 1) : 1;
+  return std::max(std::min(geoSource->getUserProvidedSeedCount(), numTS), 1);
 }
 
 int PitaNonLinDynamic::getInitState(DynamState & ds)
@@ -55,7 +58,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   else
   {
     domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
     GenVector<double> dummy_acc(solVecInfo(), 0.0);
     GenVector<double> dummy_vp(solVecInfo(), 0.0);
     updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);
@@ -63,21 +66,21 @@ int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
   }
 }
 
+bool
+PitaNonLinDynamic::getInitialAcceleration() const {
+  return domain->solInfo().iacc_switch;
+}
+
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)
 void PitaNonLinDynamic::reBuildKonly()
 {
   times->rebuild -= getTime();
 
-  int iele;
-
-  if (kuc) kuc->zeroAll();
-  if (K) K->zeroAll();
+  K->zeroAll();
 
   Connectivity *allDofs = domain->getAllDOFs();
-  for( iele = 0; iele < domain->numElements(); ++iele)
-  {
-    if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );
-    if (K) K->add( kelArray[iele], (*allDofs)[iele] );
+  for (int iele = 0; iele < domain->numElements(); ++iele) {
+    K->add(kelArray[iele], (*allDofs)[iele]);
   }
 
   times->rebuild += getTime();
@@ -101,13 +104,6 @@ void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
       if (dofPos >= 0)
         vec[dofPos] = 0.0;
   }
-}
-
-void PitaNonLinDynamic::buildOps(AllOps<double> & allOps, double Kcoef, double Mcoef, double Ccoef, Rbm * rigidBodyModes)
-{
-  allOps.K = domain->constructDBSparseMatrix<double>();
-  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, rigidBodyModes);
-  K = allOps.K;
 }
 
 double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)
@@ -142,10 +138,11 @@ void PitaNonLinDynamic::openResidualFile()
 // No Aero
 void
 PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vector& velocity,
-                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF)
+                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF,
+                                   Vector & acceleration)
 {
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray);
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray, acceleration.data());
   times->output += getTime();
 }
 

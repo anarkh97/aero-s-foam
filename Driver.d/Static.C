@@ -1407,8 +1407,8 @@ Domain::updateSfemStress(double* str, int fileNumber)
 }
 
 void
-Domain::getStressStrain( Vector &sol, double *bcx, int fileNumber,
-                         int stressIndex, double time, int printFlag)
+Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
+                        int stressIndex, double time, int printFlag)
 {
   int numNodes = geoSource->numNode();  // PJSA 4-12-05 don't want to print displacements for internal nodes
 
@@ -1514,10 +1514,9 @@ Domain::getStressStrain( Vector &sol, double *bcx, int fileNumber,
         }
 
       // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-      packedEset[iele]->getVonMises( *elstress,   *elweight, nodes,
-                                      *elDisp, stressIndex, surface,
-                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
-
+      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                    *elDisp, stressIndex, surface,
+                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
       if(avgnum != 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
@@ -1676,15 +1675,15 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
       }
 
 // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-    if (packedEset[iele]->getProperty())
-      packedEset[iele]->getAllStress( *p_elstress, *elweight, nodes,
-                                      *elDisp, strInd, surface,
-                                       elemNodeTemps.data());
+    if(packedEset[iele]->getProperty())
+      packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                     *elDisp, strInd, surface,
+                                     elemNodeTemps.data());
 
 // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
 
-    for(k=0; k<NodesPerElement; ++k) {
-      for(j=0; j<6; ++j) {
+    for(k = 0; k < NodesPerElement; ++k) {
+      for(j = 0; j < 6; ++j) {
         (*p_stress)[(*elemToNode)[iele][k]][j] += (*p_elstress)[k][j];
       }
       (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];

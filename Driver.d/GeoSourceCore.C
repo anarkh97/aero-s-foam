@@ -106,7 +106,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numTSPitaIDis6 = 0;
   numPitaIVel6   = 0;
   numTSPitaIVel6 = 0;
-  newStep0 = false;
 
   subToCPU = 0;
   cpuToSub = 0;
@@ -2488,7 +2487,6 @@ int GeoSource::setPitaIDis6(int n, BCond *i, int numTSPitaIDis6_)
   numPitaIDis6   = n / numTSPitaIDis6_;
   numTSPitaIDis6 = numTSPitaIDis6_;
   PitaIDis6 = i;
-  newStep0 = true;
   return 0;
 }
 
@@ -2499,7 +2497,6 @@ int GeoSource::setPitaIVel6(int n, BCond *i, int numTSPitaIVel6_)
   numPitaIVel6   = n / numTSPitaIVel6_;
   numTSPitaIVel6 = numTSPitaIVel6_;
   PitaIVel6 = i;
-  newStep0 = true;
   return 0;
 }
 

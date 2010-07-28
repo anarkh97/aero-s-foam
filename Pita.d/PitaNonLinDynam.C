@@ -14,11 +14,13 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
   defaultPostProcessor_(*this)
 { 
   this->preProcess();
+  this->K = domain->constructDBSparseMatrix<double>();
+  
   this->computeTimeInfo();
  
-  kiter = d->solInfo().kiter;
-  Jratio = d->solInfo().Jratio;
-  numTSonCPU = d->solInfo().numTSperCycleperCPU;
+  kiter = d->solInfo().pitaMainIterMax;
+  Jratio = d->solInfo().pitaTimeGridRatio;
+  numTSonCPU = d->solInfo().pitaProcessWorkloadMax;
 
   coarseDt = this->getDt() * Jratio;
   coarseDelta = this->getDelta() * Jratio;
@@ -27,7 +29,7 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
 
   totalTime = numTS * coarseDt;
 
-  baseImprovementMethod = d->solInfo().baseImprovementMethodForPita;
+  baseImprovementMethod = d->solInfo().pitaBaseImprovement;
 }
 
 int PitaNonLinDynamic::getInitState(DynamState<double> & ds)
@@ -40,25 +42,18 @@ int PitaNonLinDynamic::getInitState(DynamState<double> & ds)
 
 int PitaNonLinDynamic::getInitSeed(DynamState<double> & ds, int sliceRank)
 {
-  if (sliceRank <= 0)
+  domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
+  if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
   {
-    return getInitState(ds);
-  }
-  else
-  {
-    domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
-    if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
-    {
-      double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().Jratio * sliceRank;
-      double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
-      double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
-      double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
-      GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-      extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
-      userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
-    }  
-    return 0; // Default value for int aeroAlg
-  }
+    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
+    double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
+    double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
+    double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
+    GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
+    extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
+    userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
+  }  
+  return 0; // Default value for int aeroAlg
 }
 
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)
@@ -66,17 +61,11 @@ void PitaNonLinDynamic::reBuildKonly()
 {
   times->rebuild -= getTime();
 
-  int iele;
-
-  if (kuc) kuc->zeroAll();
-  if (K) K->zeroAll();
+  K->zeroAll();
 
   Connectivity *allDofs = domain->getAllDOFs();
-  for( iele = 0; iele < domain->numElements(); ++iele)
-  {
-    //int dim = kelArray[iele].dim();
-    if (kuc) kuc->add( kelArray[iele], (*allDofs)[iele] );
-    if (K) K->add( kelArray[iele], (*allDofs)[iele] );
+  for (int iele = 0; iele < domain->numElements(); ++iele) {
+    K->add(kelArray[iele], (*allDofs)[iele]);
   }
 
   times->rebuild += getTime();
@@ -100,13 +89,6 @@ void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
       if (dofPos >= 0)
         vec[dofPos] = 0.0;
   }
-}
-
-void PitaNonLinDynamic::buildOps(AllOps<double> & allOps, double Kcoef, double Mcoef, double Ccoef, Rbm * rigidBodyModes)
-{
-  allOps.K = domain->constructDBSparseMatrix<double>();
-  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, rigidBodyModes);
-  K = allOps.K;
 }
 
 double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)

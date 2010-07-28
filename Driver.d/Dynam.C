@@ -47,16 +47,11 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
    // ... SET INITIAL DISPLACEMENT FROM IDISP IF IDISP6 DOES NOT EXIST
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1 ) { // note: always use global num to do this check
-     if(domain->solInfo().modalIDisp) { //HB: BCond array iDis contains y0
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0)\n"); //HB
-       modeData.addMultY(numIDis, iDis, d_n, c_dsa);
-     } 
-     else { //HB: BCond array iDis contains directly u0
-       //if(domain->numInitDisp()) cerr << "In Domain::initDispVeloc: adding IDISP to d_n\n"; //HB
-       for(i = 0; i < numIDis; ++i) {
-         int dof = c_dsa->locate(iDis[i].nnum, 1 << iDis[i].dofnum);
-         if(dof >= 0) d_n[dof] = iDis[i].val;
-       } 
+     //if(domain->numInitDisp()) cerr << "In Domain::initDispVeloc: adding IDISP to d_n\n"; //HB
+     // note: preprocessing of modal idis moved to Domain::setUpData
+     for(i = 0; i < numIDis; ++i) {
+       int dof = c_dsa->locate(iDis[i].nnum, 1 << iDis[i].dofnum);
+       if(dof >= 0) d_n[dof] = iDis[i].val;
      }
    }
 
@@ -447,8 +442,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                          double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
-  double (*glDisp)[11] = new double[nodes.size()][11];//DofSet::max_known_nonL_dof
-  for (int i = 0; i < nodes.size(); ++i)
+  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
+  int numNodeLim = myMax(numNodes,numnodes);
+  double (*glDisp)[11] = new double[numNodeLim][11];//DofSet::max_known_nonL_dof
+  for (int i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
   mergeDistributedDisp(glDisp, d_n.data(), bcx);
@@ -458,7 +455,6 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     int iNode;
     int first_node, last_node;
     
-    int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
     OutputInfo *oinfo = geoSource->getOutputInfo();
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 
@@ -640,64 +636,64 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           } break;
 
         case OutputInfo::StressXX:
-          getStressStrain(d_n,bcx,i,SXX, time);
+          getStressStrain(d_n, bcx, i, SXX, time);
           break;
         case OutputInfo::StressYY:
-          getStressStrain(d_n,bcx,i,SYY, time);
+          getStressStrain(d_n, bcx, i, SYY, time);
           break;
         case OutputInfo::StressZZ:
-          getStressStrain(d_n,bcx,i,SZZ, time);
+          getStressStrain(d_n, bcx, i, SZZ, time);
           break;
         case OutputInfo::StressXY:
-          getStressStrain(d_n,bcx,i,SXY, time);
+          getStressStrain(d_n, bcx, i, SXY, time);
           break;
         case OutputInfo::StressYZ:
-          getStressStrain(d_n,bcx,i,SYZ, time);
+          getStressStrain(d_n, bcx, i, SYZ, time);
           break;
         case OutputInfo::StressXZ:
-          getStressStrain(d_n,bcx,i,SXZ, time);
+          getStressStrain(d_n, bcx, i, SXZ, time);
           break;
         case OutputInfo::StrainXX:
-          getStressStrain(d_n,bcx,i,EXX, time);
+          getStressStrain(d_n, bcx, i, EXX, time);
           break;
         case OutputInfo::StrainYY:
-          getStressStrain(d_n,bcx,i,EYY, time);
+          getStressStrain(d_n, bcx, i, EYY, time);
           break;
         case OutputInfo::StrainZZ:
-          getStressStrain(d_n,bcx,i,EZZ, time);
+          getStressStrain(d_n, bcx, i, EZZ, time);
           break;
         case OutputInfo::StrainXY:
-          getStressStrain(d_n,bcx,i,EXY, time);
+          getStressStrain(d_n, bcx, i, EXY, time);
           break;
         case OutputInfo::StrainYZ:
-          getStressStrain(d_n,bcx,i,EYZ, time);
+          getStressStrain(d_n, bcx, i, EYZ, time);
           break;
         case OutputInfo::StrainXZ:
-          getStressStrain(d_n,bcx,i,EXZ, time);
+          getStressStrain(d_n, bcx, i, EXZ, time);
           break;
         case OutputInfo::StressVM:
-          getStressStrain(d_n,bcx,i,VON, time);
+          getStressStrain(d_n, bcx, i, VON, time);
           break;
         case OutputInfo::Damage:
-          getStressStrain(d_n,bcx,i,DAMAGE, time);
+          getStressStrain(d_n, bcx, i, DAMAGE, time);
           break;
         case OutputInfo::StressPR1:
-          getPrincipalStress(d_n,bcx,i,PSTRESS1,time);
+          getPrincipalStress(d_n, bcx, i, PSTRESS1, time);
           break;
         case OutputInfo::StressPR2:
-          getPrincipalStress(d_n,bcx,i,PSTRESS2,time);
+          getPrincipalStress(d_n, bcx, i, PSTRESS2, time);
           break;
         case OutputInfo::StressPR3:
-          getPrincipalStress(d_n,bcx,i,PSTRESS3,time);
+          getPrincipalStress(d_n, bcx, i, PSTRESS3, time);
           break;
         case OutputInfo::StrainPR1:
-          getPrincipalStress(d_n,bcx,i,PSTRAIN1,time);
+          getPrincipalStress(d_n, bcx, i, PSTRAIN1, time);
           break;
         case OutputInfo::StrainPR2:
-          getPrincipalStress(d_n,bcx,i,PSTRAIN2,time);
+          getPrincipalStress(d_n, bcx, i, PSTRAIN2, time);
           break;
         case OutputInfo::StrainPR3:
-          getPrincipalStress(d_n,bcx,i,PSTRAIN3,time);
+          getPrincipalStress(d_n, bcx, i, PSTRAIN3, time);
           break;
         case OutputInfo::InXForce:
           getElementForces(d_n, bcx, i, INX, time);

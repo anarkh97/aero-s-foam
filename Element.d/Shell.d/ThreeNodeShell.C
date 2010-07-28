@@ -57,8 +57,8 @@ ThreeNodeShell::renum(int *table)
 }
 
 void
-ThreeNodeShell::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
-		       	    Vector& elDisp, int strInd,int surface,
+ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
+		       	    Vector& elDisp, int strInd, int surface,
                             double *ndTemps, double ylayer, double zlayer, int avgnum)
 { 
 	weight = 1.0;
@@ -111,8 +111,8 @@ ThreeNodeShell::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 
 void
 ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
-                            Vector& elDisp, int strInd,int surface,
-                            double *ndTemps)
+                             Vector& elDisp, int strInd,int surface,
+                             double *ndTemps)
 {
         weight = 1.0;
 

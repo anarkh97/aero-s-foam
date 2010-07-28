@@ -591,17 +591,15 @@ TRAIL [a-zA-Z]*
 
 "NoForce"|"noforce"|"NOFORCE"      { return NOFORCE; }
 
-"ConstForce"|"constforce"|"CONSTFORCE" { return CONSTFORCE; }
-
-"CkCoarse"|"ckcoarse"|"CKCOARSE"   { return CKCOARSE; }
-
 "localbases"|"LocalBases"|"LOCALBASES" { return LOCALBASES; }
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
 
 "ORTHOPROJTOL"|"orthoprojtol"      { return ORTHOPROJTOL; }
 
-"newimpl"|"NEWIMPL"|"OOPITA"       { return NEWIMPL; }
+"timereversible"|"TIMEREVERSIBLE"  { return TIMEREVERSIBLE; }
+
+"readinitseed"|"READINITSEED"      { return READINITSEED; }
 
 "heat"|"HEAT"                      { return HEAT; }
 
@@ -1089,15 +1087,21 @@ TRAIL [a-zA-Z]*
 
 "MATUSAGE"|"matusage"              { return MATUSAGE; }
 
-"bilinplast"|"BILINPLAST"          { return BILINPLAST; }
+"bilinplast"|"BILINPLAST"                               { return BILINPLAST; }
 
-"linearplanestress"|"LINEARPLANESTRESS" { return LINPLSTRESS; }
+"linearplanestress"|"LINEARPLANESTRESS"                 { return LINPLSTRESS; }
 
-"linear"|"LINEAR"                  { return LINEAR; }
+"linear"|"LINEAR"                                       { return LINEAR; }
 
-"neohookean"|"NEOHOOKEAN"          { return NEOHOOKEAN; }
+"neohookean"|"NEOHOOKEAN"                               { return NEOHOOKEAN; }
 
-"simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]* { return SIMPLE; }
+"simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]*                     { return SIMPLE; }
+
+"hypoelast"[a-zA-Z]*|"HYPOELAST"[a-zA-Z]*               { return HYPOELAST; }
+
+"j2plast"[a-zA-Z]*|"J2PLAST"[a-zA-Z]*                   { return J2PLAST; }
+
+"elastoviscoplast"[a-zA-Z]*|"ELASTOVISCOPLAST"[a-zA-Z]* { return ELASTOVISCOPLAST; }
 
 "read"|"READ"                      { return READ; }
 
@@ -1114,6 +1118,8 @@ TRAIL [a-zA-Z]*
 "SURFTOPO"|"SURFACETOPO"           { return SURFACETOPOLOGY; }
 
 "surftopo"|"surfacetopo"           { return SURFACETOPOLOGY; }
+
+"REVERSE"[a-zA-Z]*|"reverse"[a-zA-Z]* { return REVERSENORMALS; }
 
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
 

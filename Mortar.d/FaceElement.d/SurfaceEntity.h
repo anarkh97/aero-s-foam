@@ -56,6 +56,7 @@ class SurfaceEntity {
 #ifdef HB_NODALNORMAL
         double (*NdNormals)[3];
 #endif
+        bool ReverseNormals;
 
   public:
 	// Constructors & destructor
@@ -103,6 +104,7 @@ class SurfaceEntity {
 	void AddFaceElement(FaceElement*);
         void SetNodeCoordMap(std::map<int,Node> *_map) { NodeCoordMap = _map; };
         void SetPtrNodeSet(CoordSet* ndSet);
+        void SetReverseNormals(bool);
 
 	// Get/Accessor methods
 	// ~~~~~~~~~~~~~~~~~~~~
@@ -136,6 +138,8 @@ class SurfaceEntity {
 #ifdef HB_NODALNORMAL
         double* ViewNodalNormals() { return(reinterpret_cast<double*>(NdNormals)); }
 #endif
+        bool GetReverseNormals();
+
 	// Print, display, ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	void PrintFaceElemSet();

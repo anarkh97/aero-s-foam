@@ -87,7 +87,6 @@ class StructProp {
 	{
 	double	nu; 	// Poisson's ratio
 	double a;	// shear-t contribution ratio
-	double Ep;      // Plastic modulus
         double kz;
         double lambda;  // damage control
 	};
@@ -120,6 +119,7 @@ class StructProp {
 	double alphaZ;  // Shear deflection constant associated to Izz
 	double v2;      // Fracture Energy
 	double fc;      // Compressive strength -October 2001 - JMP
+        double Ep;      // Hardening modulus
 	};
      union {
         double Q;	// Specific heat coeffiecient

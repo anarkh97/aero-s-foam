@@ -91,6 +91,7 @@ SurfaceEntity::Initialize()
 #ifdef HB_NODALNORMAL
   NdNormals = 0;
 #endif
+  ReverseNormals = false;
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -468,6 +469,9 @@ void
 SurfaceEntity::SetId(int _Id) { Id = _Id; }
 
 void
+SurfaceEntity::SetReverseNormals(bool _ReverseNormals) { ReverseNormals = _ReverseNormals; }
+
+void
 SurfaceEntity::AddFaceElement(int num, int etype, int nnodes, int* nodes)
 {
   ElemSet.elemadd(ElemSet.last(), etype, nnodes, nodes); // PJSA 3-5-2007
@@ -496,6 +500,9 @@ SurfaceEntity::GetId() { return(Id); }
 
 int 
 SurfaceEntity::ID() { return(Id); }
+
+bool
+SurfaceEntity::GetReverseNormals() { return ReverseNormals; }
 
 FaceElemSet*
 SurfaceEntity::GetPtrFaceElemSet() { return(&ElemSet); }

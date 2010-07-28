@@ -44,19 +44,8 @@ class GenDynamMat {
        rigidBodyModes = (*d).rigidBodyModes;
    }
 };
+
 typedef GenDynamMat<double> DynamMat;
-
-class PitaDynamMat: public DynamMat{
-
- //CD: for Pita, solver on the coarse time grid
- public:
-  Solver  *dynMat_Dt;
-
-  PitaDynamMat() : DynamMat() { dynMat_Dt = 0; }
-  PitaDynamMat(DynamMat *d) : DynamMat(d) { dynMat_Dt = 0;}
-
-};
-
 
 class EigenMat {
  public:

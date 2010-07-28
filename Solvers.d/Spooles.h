@@ -123,6 +123,26 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    void symmetricScaling();
 };
 
+template<class Scalar>
+class WrapSpooles : public GenSpoolesSolver<Scalar>
+{
+  public:
+    struct CtorData {
+      Connectivity *cn;
+      DofSetArray *dsa;
+      ConstrainedDSA *cdsa;
+      Rbm *rbm;
+      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, Rbm *r) {
+        cn = c;
+        dsa = d;
+        cdsa = dc;
+        rbm = r;
+      }
+    };
+
+    WrapSpooles(CtorData &ctd) : GenSpoolesSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.rbm) {}
+};
+
 typedef GenSpoolesSolver<double> SpoolesSolver;
 typedef GenSpoolesSolver<DComplex> ComplexSpoolesSolver;
 

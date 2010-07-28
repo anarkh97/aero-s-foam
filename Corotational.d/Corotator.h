@@ -17,13 +17,13 @@ class Corotator {
   public:
     // DEFINITE
     virtual void getStiffAndForce(GeomState &, CoordSet &, 
-                                  FullSquareMatrix &, double *)=0; 
+                                  FullSquareMatrix &, double *, double)=0; 
 
     virtual void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
                                      FullSquareMatrix &elK, double *locF){}
 
     virtual void getInternalForce(GeomState &, CoordSet &,
-                                  FullSquareMatrix &, double *) {}
+                                  FullSquareMatrix &, double *, double) {}
 
     virtual void getExternalForce(GeomState &, CoordSet &,  double *) {}
 

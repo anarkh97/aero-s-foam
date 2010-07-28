@@ -13,12 +13,12 @@ class Shell3Corotator : public Corotator {
  public:
    Shell3Corotator(int _n1,int _n2,int _n3,FullSquareMatrix &,int fitAlgShell);
 
-   void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
+   void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double dt);
 
    void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
                                      FullSquareMatrix &elK, double *locF);
 
-   void getInternalForce(GeomState &, CoordSet &, FullSquareMatrix &, double *);
+   void getInternalForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double);
 
    void getExternalForce(GeomState &,CoordSet &, double*);
    

@@ -1037,7 +1037,15 @@ Domain::setUpData()
 
   // set initial displacements
   numBC = geoSource->getIDis(bc);
-  setIDis(numBC, bc);
+  if(sinfo.modalIDisp) {
+    filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
+    numIDis = modeData.numNodes*6;
+    iDis = new BCond[numIDis];
+    modeData.addMultY(numBC, bc, iDis);
+  }
+  else {
+    setIDis(numBC, bc);
+  }
 
   // set init disp6
   numBC = geoSource->getIDis6(bc);
@@ -1556,7 +1564,7 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode == 0)
-   if(geoSource->getDirectMPC() && (sinfo.subtype == 0 || sinfo.subtype == 1)) { // skyline and sparse only
+   if(geoSource->getDirectMPC()) {
      // MPC Connectivity treatment in direct way.
      std::multimap<int, int> mpcConnect;
      std::multimap<int, int>::iterator it;
@@ -1722,7 +1730,7 @@ Domain::makeNodeToNode_sommer()
 void
 Domain::readInModes(char* modeFileName)
 {
- filePrint(stderr," ... Read in Modes from file: %s\n",modeFileName);
+ filePrint(stderr," ... Read in Modes from file: %s ...\n",modeFileName);
 
  // Open file containing mode shapes and frequencies.
  FILE *f;
@@ -1733,7 +1741,7 @@ Domain::readInModes(char* modeFileName)
  fflush(f);
 
  // Read in number of modes and number of nodes
- fscanf(f, "%d%d", &modeData.numModes, &modeData.numNodes);
+ int count = fscanf(f, "%d%d", &modeData.numModes, &modeData.numNodes);
 
  // Allocation of memory for frequencies and mode shapes
  modeData.frequencies  = new double[modeData.numModes];
@@ -1751,12 +1759,12 @@ Domain::readInModes(char* modeFileName)
  for(iMode=0; iMode<modeData.numModes; ++iMode) {
    modeData.modes[iMode] = new double[modeData.numNodes][6];
 
-   fscanf(f,"%lf\n",&modeData.frequencies[iMode]);
+   count = fscanf(f,"%lf\n",&modeData.frequencies[iMode]);
 
    //int nodeNum;
    for(iNode=0; iNode<modeData.numNodes; ++iNode) {
 
-     fgets(input, 500, f);
+     char *c = fgets(input, 500, f);
      substring = strtok(input, " ");
      numsubstring = 0;
      do {
@@ -1811,8 +1819,6 @@ Domain::readInModes(char* modeFileName)
      }
    }
  }
- filePrint(stderr," ... Done reading mode data\n");
-
 }
 
 void

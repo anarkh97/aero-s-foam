@@ -164,8 +164,28 @@ protected:
 #else
    void pfact(int, int, Scalar *);
 #endif
-
 };
+
+template<class Scalar>
+class WrapSkyMat : public GenSkyMatrix<Scalar>
+{
+  public:
+    struct CtorData {
+      Connectivity *cn;
+      DofSetArray *dsa;
+      double trbm;
+      Rbm *rbm;
+      CtorData(Connectivity *c, DofSetArray *d, double t, Rbm *r) {
+        cn = c;
+        dsa = d;
+        trbm = t;
+        rbm = r;
+      }
+    };
+
+    WrapSkyMat(CtorData &ctd) : GenSkyMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.trbm, ctd.rbm) {}
+};
+
 
 typedef GenSkyMatrix<double> SkyMatrix;
 typedef GenSkyMatrix<DComplex> SkyMatrixC;

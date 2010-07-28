@@ -16,6 +16,7 @@
 #include "../PostProcessingManager.h"
 
 class GeoSource;
+class Domain;
 class SolverInfo;
 class Communicator;
 
@@ -28,11 +29,13 @@ public:
   virtual void solve();
 
   GeoSource * geoSource() const { return geoSource_; }
+  Domain * domain() const { return domain_; }
   SolverInfo * solverInfo() const { return solverInfo_; }
   Communicator * baseComm() const { return baseComm_; }
   
   static Ptr New(PitaNonLinDynamic * pbDesc,
                  GeoSource * geoSource,
+                 Domain * domain,
                  SolverInfo * solverInfo,
                  Communicator * baseComm) {
     return new NlDriverImpl(pbDesc, geoSource, solverInfo, baseComm);
@@ -49,6 +52,7 @@ protected:
 private:
   /* Primary sources */
   GeoSource * geoSource_;
+  Domain * domain_;
   SolverInfo * solverInfo_;
   Communicator * baseComm_;
   
@@ -70,6 +74,7 @@ private:
   /* Other parameters */
   IterationRank lastIteration_;
   double projectorTolerance_;
+  bool userProvidedSeeds_;
 };
 
 } /* end namespace Hts */ } /* end namespace Pita */

@@ -42,7 +42,6 @@ class SGISky;
 class UFront;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
-class PitaDynamMat;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
@@ -378,15 +377,6 @@ class Domain : public HData {
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
 
      template<class Scalar>
-       void buildPitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc, double Kcoef, double Mcoef, double Ccoef,
-                     double Kcoef_Dt, double Mcoef_Dt, double Ccoef_Dt, Rbm *rbm,
-                     FullSquareMatrix *kelArray);
-     template<class Scalar>
-       void makeSparsePitaOps(PitaDynamMat &dMat, GenSparseMatrix<Scalar> *Kuc, double Kc, double Mc, double Cc,
-                     double Kc_Dt, double Mc_Dt, double Cc_Dt, GenSparseMatrix<Scalar> *mat,
-                     GenSparseMatrix<Scalar> *mat_Dt, Rbm *rbm, FullSquareMatrix *kelArray);
-
-     template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
                  Rbm *rbm = 0, FullSquareMatrix *kelArray = 0);
@@ -512,7 +502,7 @@ class Domain : public HData {
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
                              int step = 0, double *velocity = 0, double *vcx = 0,
-                             Corotator **allCorot = 0, FullSquareMatrix *mArray = 0);
+                             Corotator **allCorot = 0, FullSquareMatrix *mArray = 0, double * acceleration = 0);
 
      // Dynamic functions and thermal functions
      void aeroSolve();
@@ -846,16 +836,18 @@ class Domain : public HData {
 
      // FETI-DPH acoustics
      template<class Scalar>
-       void assembleGlobalSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0);
+       void assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0);
+     template<class Scalar>
+       void computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *dofs, FullSquareMatrix &ms,
+                                     DComplex **bt2nMatrix, double kappa, double ss, AllOps<Scalar> *ops);
      template<class Scalar>
        void assembleATDROB(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0, double Kcoef = 0.0);
      template<class Scalar>
-       void updateGlobalMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
-                                 FullSquareMatrix *reEl, FullSquareMatrix *imEl,double Kcoef = 0.0);
+       void updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
+                           FullSquareMatrix *reEl, FullSquareMatrix *imEl,double Kcoef = 0.0);
      template<class Scalar>
-       void updateGlobalDampingMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
-                                        FullSquareMatrix *reEl, FullSquareMatrix *imEl,
-                                        double ss, double coef = 0.0, int n=0);
+       void updateDampingMatrices(AllOps<Scalar> *ops, int *dofs, FullSquareMatrix *reEl,
+                                  FullSquareMatrix *imEl, double ss, int n);
      struct WetInterface {
        int fluidSurfaceID;
        int structureSurfaceID;

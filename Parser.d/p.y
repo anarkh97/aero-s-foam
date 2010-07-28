@@ -85,9 +85,9 @@
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
-%token PITA PITADISP6 PITAVEL6 NOFORCE CONSTFORCE CKCOARSE MDPITA LOCALBASES NEWIMPL REMOTECOARSE ORTHOPROJTOL
+%token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM 
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
@@ -98,7 +98,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ
+%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ HYPOELAST ELASTOVISCOPLAST J2PLAST
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -1017,21 +1017,21 @@ TimeInfo:
 ParallelInTimeInfo:
         PITA NewLine Integer Integer ParallelInTimeOptions
         {
-          domain->solInfo().tiParall = true;
+          domain->solInfo().activatePita = true;
           domain->solInfo().setParallelInTime($3,$4,1);
         }
         |
         PITA NewLine Integer Integer Integer ParallelInTimeOptions
         {
-          domain->solInfo().tiParall = true;
+          domain->solInfo().activatePita = true;
           domain->solInfo().setParallelInTime($3,$4,$5);
         }
         | MDPITA NewLine Integer Integer Integer Integer ParallelInTimeOptions
         {
-          domain->solInfo().tiParall = true;
+          domain->solInfo().activatePita = true;
           domain->solInfo().mdPita = true;
           domain->solInfo().setParallelInTime($3,$4,$5); 
-          domain->solInfo().numSpaceMPIProc = $6;
+          /*domain->solInfo().numSpaceMPIProc = $6;*/
         }
         ;
 ParallelInTimeOptions:
@@ -1040,19 +1040,17 @@ ParallelInTimeOptions:
         ;
 ParallelInTimeKeyWord:    
         NOFORCE
-        { domain->solInfo().NoForcePita = true; }
-        | CONSTFORCE
-        { domain->solInfo().ConstForcePita = true; }
-        | CKCOARSE
-        { domain->solInfo().CkCoarse = true; }
+        { domain->solInfo().pitaNoForce = true; }
         | LOCALBASES
-        { domain->solInfo().baseImprovementMethodForPita = 1; }
-	      | NEWIMPL
-	      { domain->solInfo().newPitaImplementation = true; }
+        { domain->solInfo().pitaBaseImprovement = 1; }
+	      | TIMEREVERSIBLE
+	      { domain->solInfo().pitaTimeReversible = true; }
 	      | REMOTECOARSE
-	      { domain->solInfo().remoteCoarse = true; }
+	      { domain->solInfo().pitaRemoteCoarse = true; }
         | ORTHOPROJTOL Float
         { domain->solInfo().pitaProjTol = $2; }
+        | READINITSEED
+        { domain->solInfo().pitaReadInitSeed = true; }
         ;
 DampInfo:
 	DAMPING Float Float NewLine
@@ -1472,30 +1470,30 @@ IDisp6:
 IDisp6Pita:
         /* PITA: Get initial seed displacement for each time-slice. */
         PITADISP6 Integer NewLine
-        { $$ = new BCList; amplitude = 1.0; PitaTS = $2; }
+        { $$ = new BCList; PitaTS = $2; }
         | IDisp6Pita Integer Float Float Float Float Float Float NewLine
         { BCond bc;                          /* add 6 boundary conditions */
-          bc.nnum = $2-1; bc.dofnum = 0; bc.val = amplitude*$3; $$->add(bc);
-                          bc.dofnum = 1; bc.val = amplitude*$4; $$->add(bc);
-                          bc.dofnum = 2; bc.val = amplitude*$5; $$->add(bc);
-                          bc.dofnum = 3; bc.val = amplitude*$6; $$->add(bc);
-                          bc.dofnum = 4; bc.val = amplitude*$7; $$->add(bc);
-                          bc.dofnum = 5; bc.val = amplitude*$8; $$->add(bc);
+          bc.nnum = $2-1; bc.dofnum = 0; bc.val = $3; $$->add(bc);
+                          bc.dofnum = 1; bc.val = $4; $$->add(bc);
+                          bc.dofnum = 2; bc.val = $5; $$->add(bc);
+                          bc.dofnum = 3; bc.val = $6; $$->add(bc);
+                          bc.dofnum = 4; bc.val = $7; $$->add(bc);
+                          bc.dofnum = 5; bc.val = $8; $$->add(bc);
           geoSource->setPitaIDis6($$->n, $$->d, PitaTS);
         } 
         ;
 IVel6Pita:
         /* PITA: Get initial seed velocity for each time-slice. */
         PITAVEL6 Integer NewLine
-        { $$ = new BCList; amplitude = 1.0; PitaTS = $2; }
+        { $$ = new BCList; PitaTS = $2; }
         | IVel6Pita Integer Float Float Float Float Float Float NewLine
         { BCond bc;                          /* add 6 boundary conditions */
-          bc.nnum = $2-1; bc.dofnum = 0; bc.val = amplitude*$3; $$->add(bc);
-                          bc.dofnum = 1; bc.val = amplitude*$4; $$->add(bc);
-                          bc.dofnum = 2; bc.val = amplitude*$5; $$->add(bc);
-                          bc.dofnum = 3; bc.val = amplitude*$6; $$->add(bc);
-                          bc.dofnum = 4; bc.val = amplitude*$7; $$->add(bc);
-                          bc.dofnum = 5; bc.val = amplitude*$8; $$->add(bc);
+          bc.nnum = $2-1; bc.dofnum = 0; bc.val = $3; $$->add(bc);
+                          bc.dofnum = 1; bc.val = $4; $$->add(bc);
+                          bc.dofnum = 2; bc.val = $5; $$->add(bc);
+                          bc.dofnum = 3; bc.val = $6; $$->add(bc);
+                          bc.dofnum = 4; bc.val = $7; $$->add(bc);
+                          bc.dofnum = 5; bc.val = $8; $$->add(bc);
           geoSource->setPitaIVel6($$->n, $$->d, PitaTS);
         }
         ;
@@ -1806,10 +1804,17 @@ FaceSet:
 	SURFACETOPOLOGY Integer NewLine 
 	{ if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
+          $$->SetReverseNormals(false);
+          domain->AddSurfaceEntity($$);
+        }
+        | SURFACETOPOLOGY Integer REVERSENORMALS NewLine 
+        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          $$->SetReverseNormals(true);
           domain->AddSurfaceEntity($$);
         }
         | FaceSet Integer Integer NodeNums NewLine 
-	{ if($$->GetId() < 0) { // reverse the node numbering
+	{ if($$->GetReverseNormals()) { // reverse the node numbering
             int *nodes = new int[$4.num];
             for(int i=0; i<$4.num; ++i) nodes[$4.num-1-i] = $4.nd[i];
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
@@ -3146,6 +3151,21 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new SimpleMat($4, $5, $6, $7));
+         }
+        | MatSpec Integer HYPOELAST Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HypoElasticMat($4, $5, $6));
+         }
+        | MatSpec Integer ELASTOVISCOPLAST Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ElastoViscoPlasticMat($4, $5, $6, $7, $8, $9, $10, $11) ); // TODO
+         }
+        | MatSpec Integer J2PLAST Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new J2PlasticityMat($4, $5, $6, $7, $8) );
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

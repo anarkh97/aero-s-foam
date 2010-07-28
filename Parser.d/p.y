@@ -8,11 +8,6 @@
 #include <Driver.d/Domain.h>
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/DistHelper.h>
-
-//#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
-//#include <Mortar.d/FaceElement.d/FaceElement.h>
-//#include <Mortar.d/MortarDriver.d/MortarHandler.h>
-
 #include <Driver.d/GeoSource.h>
 #ifdef STRUCTOPT
 #include <Structopt.d/Driver_opt.d/Domain_opt.h>
@@ -98,7 +93,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ HYPOELAST ELASTOVISCOPLAST J2PLAST
+%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ OPTCTV
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -124,7 +119,7 @@
 %type <ival>     DOFTYPE
 %type <ival>     FETIPREC FETI2TYPE 
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
-%type <ival>     RBMSET RENUMBERID
+%type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
@@ -3152,20 +3147,10 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new SimpleMat($4, $5, $6, $7));
          }
-        | MatSpec Integer HYPOELAST Float Float Float NewLine
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HypoElasticMat($4, $5, $6));
-         }
-        | MatSpec Integer ELASTOVISCOPLAST Float Float Float Float Float Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new ElastoViscoPlasticMat($4, $5, $6, $7, $8, $9, $10, $11) ); // TODO
-         }
-        | MatSpec Integer J2PLAST Float Float Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new J2PlasticityMat($4, $5, $6, $7, $8) );
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

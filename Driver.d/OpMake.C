@@ -288,7 +288,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
    else {
      if(mat) mat->add(kel,m_dofs);
-     if(ops.Kuc) ops.Kuc->add(kel,m_dofs);
+     if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
      if(Kss) Kss->add(kel,(*allDOFs)[iele]); // for farfield output (TODO: check with Radek)
      if(isShifted && isDamped && isStructureElement(iele)) {

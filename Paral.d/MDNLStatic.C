@@ -172,10 +172,10 @@ MDNLStatic::getStiffAndForce(DistrGeomState& geomState,
 {
  times->buildStiffAndForce -= getTime();
 
+ updateConstraintTerms(&geomState);
+
  execParal4R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
              residual, elementInternalForce, _lambda);
-
- updateConstraintTerms(&geomState);
 
  times->buildStiffAndForce += getTime();
 

@@ -746,9 +746,9 @@ MortarHandler::MakeOneNodalMortarLMPC(int i, bool Dual)
   NodalMortars[i].MakeSlaveLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, Dual);
   NodalMortars[i].MakeMasterLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
   if(InteractionType==MortarHandler::FSI)
-    NodalMortars[i].BuildWetFSICoupling(ActiveSlaveNodeToElem, &ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
+    NodalMortars[i].BuildWetFSICoupling(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
   else if(InteractionType==MortarHandler::CTC)
-    NodalMortars[i].BuildMortarCtcLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet,SlaveFaceToFFIConnect, &CtcPolygons[0]);
+    NodalMortars[i].BuildMortarCtcLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
   else // TIED
     NodalMortars[i].BuildMortarLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
 }
@@ -847,21 +847,29 @@ MortarHandler::CreateFFIPolygon()
   //FILE* FFIDataFile = fopen("FFIDataOffset.txt","w");
   std::vector<int> IndexActiveSlaveFaces ; IndexActiveSlaveFaces.reserve(512);
   std::vector<int> IndexActiveMasterFaces; IndexActiveMasterFaces.reserve(512);
-  for(int iFFI=0; iFFI<nFFI; iFFI++){
-    int SlaveBlkId  = Slave_face_block_id[iFFI]-1;
+  int SlaveBlkId, MasterBlkId;
+  for(int iFFI=0; iFFI < nFFI; iFFI++) {
+    SlaveBlkId  = Slave_face_block_id[iFFI]-1;
     if(Slave_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI
                                                   << ", Slave_face_index_in_block[iFFI] = " << Slave_face_index_in_block[iFFI] << endl;
     int slave_face  = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
- 
-    int MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
+    FaceElement *SlaveFaceEl  = (*SlaveElemSet)[slave_face];
+
+    if(SelfContact) { // TODO
+      MasterBlkId = Master_face_block_id[iFFI]-1;
+      MasterACMEBlocksMap = SlaveACMEBlocksMap;
+      MasterElemSet = SlaveElemSet;
+      PtrMasterEntity = PtrSlaveEntity;
+    }
+    else {
+      MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
+    }
     if(Master_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
-                                                  << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << endl;
+                                                << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << endl;
     int master_face = (*MasterACMEBlocksMap)[MasterBlkId][Master_face_index_in_block[iFFI]-1];
+    FaceElement *MasterFaceEl = (*MasterElemSet)[master_face];
 
     int FFIDataOffset = ACMEFFI_index[iFFI];
-    
-    FaceElement* MasterFaceEl = (*MasterElemSet)[master_face];
-    FaceElement* SlaveFaceEl  = (*SlaveElemSet)[slave_face];
     int nVertices = (int) ACMEFFI_data[FFIDataOffset];
     double* ACME_FFI_Data = &ACMEFFI_data[FFIDataOffset];
 
@@ -2296,7 +2304,6 @@ MortarHandler::set_search_options()
     }
   }
 #endif
-  
   // Activate multiple interations
   data[0] = 30.;
   error = search_obj->Set_Search_Option(ContactSearch::MULTIPLE_INTERACTIONS,
@@ -2315,6 +2322,7 @@ MortarHandler::set_search_options()
   error = search_obj->Set_Search_Option(ContactSearch::NORMAL_SMOOTHING,
                                        ContactSearch::ACTIVE,
                                        &data[0]);
+
   if(error) {
     std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;   
     for(int i=1; i<=search_obj->Number_of_Errors(); ++i) 
@@ -2424,6 +2432,9 @@ MortarHandler::get_interactions(int interaction_type)
                                               Slave_face_procs,
                                               ACMEFFI_index,
                                               ACMEFFI_data);
+        //for(int i = 0; i < num_FFI; ++i) cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i]
+        //  << " " << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << ACMEFFI_index[i] << " " << endl;
+        //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) cerr << ACMEFFI_data[i] << " "; cerr << endl;
       } else {
 #ifdef MORTAR_DEBUG
         filePrint(stderr," *** WARNING: no Face-Face interaction found between master surf %2d & slave surf %2d\n",

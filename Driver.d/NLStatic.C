@@ -79,6 +79,25 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
+  for(int iele = numele; iele < packedEset.size(); ++iele) {
+    Corotator *c = dynamic_cast<Corotator*>(packedEset[iele]);
+    if(c) {
+      // TODO implicit
+      FullSquareMatrix kelTmp(packedEset[iele]->numDofs());
+      Vector elementForceTmp(packedEset[iele]->numDofs());  
+      kelTmp.zero();
+      elementForceTmp.zero();
+      c->getStiffAndForce(geomState, nodes, kelTmp, elementForceTmp.getData(), sinfo.getTimeStep());
+      int *p = new int[packedEset[iele]->numDofs()];
+      packedEset[iele]->dofs(*c_dsa, p);
+      //cerr << "iele = " << iele << ", force = "; elementForceTmp.print();
+      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
+        if(p[idof] > -1) residual[p[idof]] -= elementForceTmp[idof];
+      }
+      delete [] p;
+    }
+  }
+
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     for(int iele = 0; iele < numele;  ++iele) {

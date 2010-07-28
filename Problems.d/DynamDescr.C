@@ -99,7 +99,7 @@ SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f,
   stopTimerMemory(times->output, times->memoryOutput);
 }
 
-// Update bcx for time dependent prescribed displacements and velocities (previously done in computeExternalForce2)
+// Update bcx for time dependent prescribed displacements and velocities (previously done in computeExtForce2)
 void
 SDDynamPostProcessor::fillBcxVcx(int tIndex) {
   ControlLawInfo *claw = geoSource->getControlLaw();
@@ -525,13 +525,21 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // update geomState for nonlinear problems. note computeExtForce2 must be called before getInternalForce
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-    if(!dprev) { dprev = new Vector(domain->numUncon(), 0.0); }
+    if(!dprev) dprev = new Vector(domain->numUncon(), 0.0);
     Vector dinc(domain->numUncon());
     dinc.linC(1.0, state.getDisp(), -1.0, *dprev); // incremental displacement: dinc = d - dprev
     geomState->update(dinc);
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
     (*dprev) = state.getDisp(); // keep a copy so the incremental displacement can be computed
     geomState->setVelocity(state.getVeloc(), state.getAccel()); 
+  }
+
+  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+    domain->UpdateSurfaces(MortarHandler::CTC, geomState);
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->UpdateContactSurfaceElements();
   }
 
   // THERMOE update nodal temperatures

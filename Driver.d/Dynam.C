@@ -47,7 +47,6 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
    // ... SET INITIAL DISPLACEMENT FROM IDISP IF IDISP6 DOES NOT EXIST
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1 ) { // note: always use global num to do this check
-     //if(domain->numInitDisp()) cerr << "In Domain::initDispVeloc: adding IDISP to d_n\n"; //HB
      // note: preprocessing of modal idis moved to Domain::setUpData
      for(i = 0; i < numIDis; ++i) {
        int dof = c_dsa->locate(iDis[i].nnum, 1 << iDis[i].dofnum);
@@ -427,8 +426,8 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
 // 2) The corresponding output files must already be open
 void
 Domain::pitaDynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
-                    Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, 
-                    int sliceRank, double time)
+                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, 
+                        int sliceRank, double time)
 {
   std::pair<int, int> requestIndices = geoSource->getTimeSliceOutputFileIndices(sliceRank);
   this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, time, requestIndices.first, requestIndices.second);
@@ -438,8 +437,8 @@ Domain::pitaDynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 // Precondition: The corresponding output files must already be open
 void
 Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce,
-                         Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx,
-                         double time, int firstRequest, int lastRequest)
+                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx,
+                        double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes

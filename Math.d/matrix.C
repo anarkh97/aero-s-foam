@@ -94,9 +94,10 @@ GenFullM<Scalar>::GenFullM(int nr)
 {
  nrow    = nr;
  ncolumn = nr;
- if(nrow*ncolumn > 0) v = new Scalar[nrow*ncolumn];
- else v = 0;
- if(!v) cerr << "Could not construct GenFullM properly, not enough memory ?" << endl;
+ if(nrow*ncolumn == 0)
+   v = 0;
+ else
+   v = new Scalar[nrow*ncolumn];
  iprow = 0;
  ipcol = 0;
  ndef = 0;

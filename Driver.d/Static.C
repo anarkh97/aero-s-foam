@@ -629,8 +629,12 @@ Rbm *
 Domain::constructRbm(bool printFlag)
 {
   Rbm *rbm = 0;
-  if(numLMPC) 
-    rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
+  if(numLMPC) {
+    if(renumb_nompc.numComp == 0)
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb,  numLMPC, lmpc);
+    else
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
+  }
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
   if(printFlag)

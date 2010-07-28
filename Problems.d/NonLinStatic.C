@@ -345,3 +345,10 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
   return Wext + Wela;
 }
 
+double
+NonLinStatic::getResidualNorm(Vector &res)
+{
+  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
+  if(m) return m->norm(res);
+  else return res.norm();
+}

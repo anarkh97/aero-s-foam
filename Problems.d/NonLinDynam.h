@@ -179,7 +179,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
                           int aeroAlg);
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration) const;
-    double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+    double getResidualNorm(Vector &rhs);
 
     int getAeroAlg();
     int getThermoeFlag();

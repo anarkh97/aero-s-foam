@@ -41,7 +41,7 @@ PivotedCholeskySolver::matrixIs(const SymFullMatrix & matrix) {
 }
 
 void
-PivotedCholeskySolver::matrixIs(const FullSquareMatrix & matrix) {
+PivotedCholeskySolver::transposedMatrixIs(const FullSquareMatrix & matrix) {
   choleskyFactor_.copy(matrix);
   performFactorization();
 }

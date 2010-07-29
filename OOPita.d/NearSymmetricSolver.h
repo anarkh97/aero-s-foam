@@ -32,7 +32,7 @@ public:
 protected:
   explicit NearSymmetricSolver(double tol);
 
-  void setTransposedMatrix(const FullSquareMatrix & tm) { transposedMatrix_ = tm; } 
+  void setTransposedMatrix(const FullSquareMatrix & tm) { transposedMatrix_.copy(tm); } 
 
 private:
   FullSquareMatrix transposedMatrix_;

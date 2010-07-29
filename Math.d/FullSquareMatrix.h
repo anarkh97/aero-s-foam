@@ -18,6 +18,14 @@ public:
   GenFullSquareMatrix(GenFullSquareMatrix<Scalar> &m, Scalar s);
   ~GenFullSquareMatrix();
 
+  // WARNING: Default copy constructor and assignement operator are used
+  
+  // Behavior is likely to be faulty if the original matrix is responsible
+  // for managing its own memory (That is, when myval == true)
+  
+  // GenFullSquareMatrix(const GenFullSquareMatrix &) = default;
+  // const GenFullSquareMatrix & operator=(const GenFullSquareMatrix &) = default;
+
   void setSize(int); 
   void changeSize(int i, int numMax);
   void reSize(int newSize); // Resize and preserve data
@@ -66,9 +74,6 @@ public:
   void multiply(GenFullSquareMatrix<Scalar> &M2, GenFullSquareMatrix<Scalar> &result);
   void eigenVals(Scalar*);
   void eigenV(Scalar*);
-  //void invert(GenFullSquareMatrix<Scalar>);
-private:
-  template<class Scalar1> const GenFullSquareMatrix<Scalar> & operator = (const GenFullSquareMatrix<Scalar1> &M2);
 };
 
 template<class Scalar>

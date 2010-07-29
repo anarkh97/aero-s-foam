@@ -43,7 +43,7 @@ RemoteDynamPropagatorServer.C
 RemoteSeedInitializerProxy.C
 RemoteStateMpiImpl.C
 RemoteStateTask.C
-SeedErrorEvaluator.C
+SeedDifferenceEvaluator.C
 SeedUpdater.C
 SimpleSeedInitializer.C
 TimedExecution.C

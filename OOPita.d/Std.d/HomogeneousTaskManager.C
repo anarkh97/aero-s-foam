@@ -27,7 +27,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
   seedMgr_(Seed::Manager::New()),
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
-  jumpEvalMgr_(SeedErrorEvaluator::Manager::New(projectionMgr->metric())), 
+  jumpEvalMgr_(LinSeedDifferenceEvaluator::Manager::New(projectionMgr->metric())), 
   phase_(NULL),
   continuation_(&HomogeneousTaskManager::noop)
 {
@@ -217,7 +217,7 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
     Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
 
-    SeedErrorEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
+    LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
     eval->referenceSeedIs(propagatedSeed.ptr());
   }
 

@@ -12,7 +12,7 @@
 #include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 #include "NlTaskManager.h"
 #include "../TimedExecution.h"
@@ -129,8 +129,7 @@ NlDriver::solveParallel() {
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
 
   // Jump evaluation (Output only)
-  NlDynamOps::Ptr dynOps = integrator->nlDynamOpsNew();
-  SeedErrorEvaluator::Manager::Ptr jumpEvalMgr = SeedErrorEvaluator::Manager::New(dynOps.ptr()); 
+  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr = NonLinSeedDifferenceEvaluator::Manager::New(probDesc()); 
 
   // Communications
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(baseComm(), vectorSize_);

@@ -11,7 +11,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                CorrectionReconstructor::Manager * corrReconMgr,
                                BasisCondensationManager * condensMgr,
                                ProjectionBuildingFactory * projBuildMgr,
-                               SeedErrorEvaluator::Manager * jumpEvalMgr) :
+                               NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr) :
   LocalNetwork(mapping, commMgr),
   htsMgr_(htsMgr),
   jumpMgr_(JumpBuilder::ManagerImpl::New()),
@@ -135,7 +135,7 @@ NlLocalNetwork::addJumpBuilder(HalfSliceRank seedRank) {
   jumpBuilders_[iterParity][seedRank] = task;
   
   if (jumpEvalMgr()) { 
-    SeedErrorEvaluator::Ptr jumpEvaluator = jumpEvalMgr()->instanceNew(fullSeedGet(SeedId(SEED_JUMP, seedRank)));
+    NonLinSeedDifferenceEvaluator::Ptr jumpEvaluator = jumpEvalMgr()->instanceNew(fullSeedGet(SeedId(SEED_JUMP, seedRank)));
     jumpEvaluator->referenceSeedIs(fullSeedGet(SeedId(LEFT_SEED, seedRank)));
   }
 }

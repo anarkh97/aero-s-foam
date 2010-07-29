@@ -15,7 +15,7 @@ namespace Pita { namespace Hts {
 
 NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                              NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
-                             PostProcessing::Manager * postProcessingMgr, SeedErrorEvaluator::Manager * jumpEvaluatorMgr,
+                             PostProcessing::Manager * postProcessingMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                              double projectorTolerance, IterationRank lastIteration) :
   TaskManager(IterationRank(0)),
   mapping_(mapping),

@@ -60,7 +60,7 @@
 #include "NonHomogeneousTaskManager.h"
 #include "LinearLocalNetwork.h"
 
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 namespace Pita { namespace Hts {
 
@@ -199,7 +199,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   /* Jump error */
-  SeedErrorEvaluator::Manager::Ptr jumpErrorMgr = SeedErrorEvaluator::Manager::New(dynamOps.ptr());
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
 
   /* Local tasks */
   ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());

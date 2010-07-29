@@ -24,8 +24,8 @@ class Manager : public Fwk::PtrInterface<Manager> {
 public:
   EXPORT_PTRINTERFACE_TYPES(Manager);
 
-  const Propagator * concurrentPropagator(const DynamStatePlainBasis * basis) const;
-  void concurrentPropagatorIs(DynamStatePlainBasis * basis, const Propagator * cp);
+  const Propagator * referencePropagator(const DynamStatePlainBasis * concurrentBasis) const;
+  void referencePropagatorIs(DynamStatePlainBasis * concurrentBasis, const Propagator * cp);
 
   static Ptr New() { return new Manager(); }
 
@@ -57,11 +57,11 @@ public:
 
   virtual void onCurrentCondition(); // overriden
 
-  IntegratorReactor(const NlDynamTimeIntegrator * notifier, DynamStatePlainBasis * basis, DynamPropagator * stepPropagator);
+  IntegratorReactor(const NlDynamTimeIntegrator * notifier, DynamStatePlainBasis * concurrentBasis, LinearizedPropagator * stepPropagator);
 
 private:
   DynamStatePlainBasis::Ptr basis_;
-  DynamPropagator::Ptr stepPropagator_;
+  LinearizedPropagator::Ptr stepPropagator_;
 };
 
 class PropagatorReactor : public DynamPropagator::Notifiee {
@@ -71,7 +71,7 @@ public:
   virtual void onInitialState(); // overriden
   virtual void onFinalState(); // overriden
 
-  PropagatorReactor(const Propagator * notifier, DynamStatePlainBasis * basis, Manager * parent);
+  PropagatorReactor(const Propagator * notifier, DynamStatePlainBasis * concurrentBasis, Manager * parent);
 
 private:
   Manager * parent_;

@@ -2,6 +2,13 @@
 
 namespace Pita {
 
+DynamState &
+DynamStatePlainBasis::internalState(size_t index) {
+  DynamState & result = state_[index];
+  unshare(result);
+  return result;
+}
+
 void
 DynamStatePlainBasis::firstStateIs(const DynamState & ds) {
   if (ds.vectorSize() != this->vectorSize())

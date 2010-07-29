@@ -12,9 +12,10 @@ public:
 
   virtual size_t stateCount() const { return state_.size(); }
   using DynamStateBasis::state;
-  DynamState state(size_t index) const { return state_[index]; } // Unsafe
+  DynamState state(size_t index) const { return state_[index]; } // Unchecked access
+  DynamState & internalState(size_t index); // Unchecked access and unsafe (returns a reference to the internals)
 
-  void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unsafe
+  void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unchecked access
 
   virtual void lastStateIs(const DynamState & ds);
   virtual void lastStateBasisIs(const DynamStateBasis * dsb);

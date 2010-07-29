@@ -1,34 +1,38 @@
 #ifndef PITA_LINEARIZEDPROPAGATOR_H
 #define PITA_LINEARIZEDPROPAGATOR_H
 
-#include "DynamPropagator.h"
+#include "Fwk.h"
+#include "DynamState.h"
 
 namespace Pita {
 
 class PitaNonLinDynamic;
 class NlDynamTimeIntegrator;
 
-class LinearizedPropagator : public DynamPropagator {
+class LinearizedPropagator : public Fwk::PtrInterface<LinearizedPropagator> {
 public:
-  typedef Fwk::Ptr<LinearizedPropagator> Ptr;
-  typedef Fwk::Ptr<const LinearizedPropagator> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(LinearizedPropagator);
   
-  virtual void initialStateIs(const DynamState & initialState);
+  size_t vectorSize() const;
+  const PitaNonLinDynamic * probDesc() const;
 
-  static LinearizedPropagator::Ptr New(const NlDynamTimeIntegrator * integrator) {
-    return new LinearizedPropagator(integrator);
+  DynamState & finalState(DynamState & modifiedInitialState) const;
+
+  static LinearizedPropagator::Ptr New(const NlDynamTimeIntegrator * baseIntegrator) {
+    return new LinearizedPropagator(baseIntegrator);
   }
 
 protected:
-  explicit LinearizedPropagator(const NlDynamTimeIntegrator * integrator);
+  explicit LinearizedPropagator(const NlDynamTimeIntegrator * baseIntegrator);
 
-private: 
-  Fwk::Ptr<const NlDynamTimeIntegrator> integrator_;
-  const PitaNonLinDynamic * probDesc_;
-  GenVector<double> temp_;
-  GenVector<double> midTimeDisp_;
+private:
+  Fwk::Ptr<const NlDynamTimeIntegrator> baseIntegrator_;
+
+  // Internal implementation
+  mutable GenVector<double> temp1_;
+  mutable GenVector<double> temp2_;
 };  
   
-} // end namespace Pita
+} /* end namespace Pita */
 
 #endif /* PITA_LINEARIZEDPROPAGATOR_H */

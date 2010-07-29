@@ -50,7 +50,7 @@ NlPropagatorManager::createNewInstance(const HalfSliceId & id) {
 
     // Attach concurrent basis propagator
     if (concurrentBasisMgr_) {
-      concurrentBasisMgr_->concurrentPropagatorIs(concurrentBasis.ptr(), result.ptr());
+      concurrentBasisMgr_->referencePropagatorIs(concurrentBasis.ptr(), result.ptr());
     }
   }
 

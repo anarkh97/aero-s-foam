@@ -842,6 +842,8 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
+"WETSURFACE"|"wetsurface"          { return WETSURFACE; }
+
 "DX"|"dx"                          { yylval.ival = OutputInfo::DispX;  return DOFTYPE; }
 
 "DY"|"dy"                          { yylval.ival = OutputInfo::DispY;  return DOFTYPE; }

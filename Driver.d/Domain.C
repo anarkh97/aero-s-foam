@@ -6,7 +6,9 @@ using std::istringstream;
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>
+#include <list>
 using std::map;
+using std::list;
 
 #include <unistd.h>
 #include <Timers.d/GetTime.h>
@@ -16,6 +18,7 @@ using std::map;
 #include <Mortar.d/MortarElement.d/MortarElement.h>
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
+#include <Mortar.d/FaceElement.d/FaceElemSet.h>
 
 #include <Utils.d/dofset.h>
 #include <Driver.d/Domain.h>
@@ -35,6 +38,134 @@ extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
+
+//----------------------------------------------------------------------------------
+// KW: Utility class for EmbeddedWetSurface::buildSurface(...)
+struct Vec3D {
+  int gId; //global Id.
+  double x,y,z;
+  Vec3D() : x(0.0), y(0.0), z(0.0), gId(-1) {}
+  Vec3D(int gId_, double x_, double y_, double z_) : x(x_), y(y_), z(z_), gId(gId_) {}
+};
+
+struct triangle {
+  const int a,b,c; //global Ids
+  int id1, id2, id3; //global Ids, sorted.
+  triangle(int a_, int b_, int c_): a(a_), b(b_), c(c_) {
+    std::set<int> triNodes;
+    triNodes.insert(a); triNodes.insert(b); triNodes.insert(c);
+    if(triNodes.size()!=3) {fprintf(stderr,"Error! Repeated node in a triangle.\n"); exit(-1);}
+    std::set<int>::iterator it = triNodes.begin();
+    id1 = *it++;
+    id2 = *it++;
+    id3 = *it;
+  }
+  bool operator<(const triangle &rhs) const {
+    if     (id1<rhs.id1) return 1; else if(id1>rhs.id1) return 0;
+    else if(id2<rhs.id2) return 1; else if(id2>rhs.id2) return 0;
+    else if(id3<rhs.id3) return 1; else if(id3>rhs.id3) return 0;
+    else return 0;
+  }
+};
+
+// KW: The wet surface of structure
+EmbeddedWetSurface::EmbeddedWetSurface() : nNodes(0), nElems(0), nodes(0), elems(0), gNodeId(0)
+{/*nothing*/}
+
+EmbeddedWetSurface::EmbeddedWetSurface(int nSurfEntities, ResizeArray<SurfaceEntity*> &SurfEntities, std::set<int> ids)
+{buildSurface(nSurfEntities, SurfEntities, ids);}
+
+EmbeddedWetSurface::~EmbeddedWetSurface()
+{
+  if(nodes) delete[] nodes;
+  if(elems) delete[] elems;
+  if(gNodeId) delete[] gNodeId;
+}
+
+int EmbeddedWetSurface::buildSurface(int nSurf, ResizeArray<SurfaceEntity*> &Surf, std::set<int> ids)
+{
+  if(nNodes||nElems||nodes||elems||gNodeId) {
+    fprintf(stderr,"WARNING: EmbeddedWetSurface overwritten.\n");
+    nNodes = nElems = 0;
+    if(nodes) {delete[] nodes; nodes = 0;}
+    if(elems) {delete[] elems; elems = 0;}
+    if(gNodeId) {delete[] gNodeId; gNodeId = 0;}
+  }
+
+  list<Vec3D> nodes0; // The node set under construction.
+  map<int,int> glob2new; // maps from global node Id to index in nodes.
+  std::set<triangle> elems0; // The element set under construction.
+  int count = 0;
+
+  for(int iSurf=0; iSurf<nSurf; iSurf++) {
+    if(ids.find(Surf[iSurf]->ID())==ids.end()) 
+      continue;
+
+    int         esize = Surf[iSurf]->GetnFaceElems();
+    FaceElemSet& eSet = Surf[iSurf]->GetFaceElemSet();
+    CoordSet&    nSet = Surf[iSurf]->GetNodeSet();    
+    int*          gId = Surf[iSurf]->GetPtrGlNodeIds();
+
+    map<int,int>::iterator it;
+    for(int iElem=0; iElem<esize; iElem++) {
+      int newId[3];
+      // add nodes to list
+      for(int j=0; j<3; j++) {
+        int myLocId  = eSet[iElem]->GetNode(j);
+        int myGlobId = gId[myLocId];
+        it = glob2new.find(myGlobId);
+        if(it==glob2new.end()) {//new
+          glob2new[myGlobId] = newId[j] = count++;
+          nodes0.push_back(Vec3D(myGlobId, nSet.getNode(myLocId).x, nSet.getNode(myLocId).y, nSet.getNode(myLocId).z));
+        } else //already exists
+          newId[j] = it->second;
+      }
+      // add element to list
+      elems0.insert(triangle(newId[0],newId[1],newId[2])); 
+    }
+  }
+     
+  if(count!=nodes0.size()) {
+    fprintf(stderr,"Weird!\n");
+    exit(-1);
+  }
+
+  nNodes = nodes0.size();
+  nElems = elems0.size();
+  nodes = new double[nNodes][3];
+  elems = new int[nElems][3];
+  gNodeId = new int[nNodes];
+
+  count =0;
+  for(list<Vec3D>::iterator it=nodes0.begin(); it!=nodes0.end(); it++) {
+    nodes[count][0] = it->x;
+    nodes[count][1] = it->y;
+    nodes[count][2] = it->z;
+    gNodeId[count]  = it->gId;
+    count++;
+  }
+
+  count = 0;
+  for(std::set<triangle>::iterator it=elems0.begin(); it!=elems0.end(); it++) { 
+    elems[count][0] = it->a;
+    elems[count][1] = it->b;
+    elems[count][2] = it->c;
+    count++;
+  }
+
+  //debug only
+/*  fprintf(stderr,"Node Set\n");
+  for(int i=0; i<nNodes; i++)
+    fprintf(stderr,"%d %e %e %e\n", i, nodes[i][0], nodes[i][1], nodes[i][2]);
+  fprintf(stderr,"Element Set\n");
+  for(int i=0; i<nElems; i++)
+    fprintf(stderr,"%d %d %d %d\n", i, elems[i][0], elems[i][1], elems[i][2]);
+  fprintf(stderr,"DONE\n");
+*/
+  return nElems;
+}
+
+//----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0),
@@ -2494,6 +2625,13 @@ void Domain::PrintSurfaceEntities()
  }
 }
 
+// Add a wet surface Id.
+int 
+Domain::AddWetSurfaceId(int Id)
+{
+  wetSurfaceId.insert(Id);
+  return 0;
+}
 // HB: Add Mortar Conditions to the MortarConds array
 // Warning: CURRENTLY NO CHECK FOR MULTIPLE DEFINITION OF THE SAME MORTAR
 //          CONDITION
@@ -2582,6 +2720,7 @@ Domain::SetMortarPairing()
 // HB: to setup internal data & renumber surfaces
 void Domain::SetUpSurfaces(CoordSet* cs)
 {
+  fprintf(stderr,"KW: nSurfEntity = %d\n", nSurfEntity);
 #if defined(MORTAR_LOCALNUMBERING) && defined(MORTAR_DEBUG)
   // if we want to work with local numbering of the surface entities (Salinas)
   if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");

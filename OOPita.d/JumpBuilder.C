@@ -6,7 +6,7 @@ namespace Pita {
 
 void
 JumpBuilder::iterationIs(IterationRank ir) {
-  assert(actualSeed()->iteration().next() == ir);
+  // assert(actualSeed()->iteration().next() == ir); // TODO: Reactivate when jump building schedule fixed
   
   updateJump();
   setIteration(ir);
@@ -27,7 +27,7 @@ JumpBuilder::updateJump() {
 
 JumpBuilder *
 JumpBuilder::ManagerImpl::createNewInstance(const String & key) {
-  String taskName = "JumpBuilder " + toString(key);
+  String taskName = "Evaluate Jump " + toString(key);
   return new JumpBuilder(taskName);
 }
 

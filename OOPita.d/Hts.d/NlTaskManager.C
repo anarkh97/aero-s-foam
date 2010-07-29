@@ -123,7 +123,7 @@ void
 NlTaskManager::scheduleFinePropagation() {
   LocalNetwork::TaskList oldStyleList = localNetwork_->activeFinePropagators();
   setPhase(phaseNew("Parallel Fine Propagation", TaskList(oldStyleList.begin(), oldStyleList.end())));
-  setContinuation(&NlTaskManager::scheduleNothing);
+  setContinuation(&NlTaskManager::schedulePropagatedSeedSynchronization);
 }
 
 void
@@ -138,22 +138,23 @@ NlTaskManager::scheduleDataSharing() {
 
 void
 NlTaskManager::checkConvergence() {
-  localNetwork_->convergedSlicesInc();
-  schedulePropagatedSeedSynchronization();
+  // TODO: Use jumps to check convergence
+  localNetwork_->convergedSlicesInc(); // Default convergence: First slice only
+  scheduleProjectionBuilding();
 }
 
 void
 NlTaskManager::schedulePropagatedSeedSynchronization() {
   LocalNetwork::TaskList oldStyleList = localNetwork_->activePropagatedSeedSyncs();
   setPhase(phaseNew("Propagated Seed Synchronization", TaskList(oldStyleList.begin(), oldStyleList.end())));
-  setContinuation(&NlTaskManager::scheduleJumpProjection);
+  setContinuation(&NlTaskManager::scheduleJumpEvaluation);
 }
 
 void
-NlTaskManager::scheduleJumpProjection() {
+NlTaskManager::scheduleJumpEvaluation() {
   LocalNetwork::TaskList oldStyleList = localNetwork_->activeJumpBuilders();
   setPhase(phaseNew("Jump Evaluation", TaskList(oldStyleList.begin(), oldStyleList.end())));
-  setContinuation(&NlTaskManager::scheduleProjectionBuilding);
+  setContinuation(&NlTaskManager::scheduleNothing);
 }
 
 void

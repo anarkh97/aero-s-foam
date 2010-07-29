@@ -50,7 +50,7 @@ protected:
   void scheduleDataSharing();
   void checkConvergence();
   void schedulePropagatedSeedSynchronization();
-  void scheduleJumpProjection();
+  void scheduleJumpEvaluation();
   void scheduleProjectionBuilding();
   void scheduleCorrectionPropagation();
   void scheduleSeedUpdate();

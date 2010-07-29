@@ -110,7 +110,7 @@ NlLocalNetwork::addPropagatedSeedSend(HalfSliceRank seedRank) {
   NamedTask::Ptr task = propagatedSeedSendNew(seedRank);
   if (!task) return; // Comm guard
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   propagatedSeedSyncs_[iterParity][seedRank] = task;
 }
 
@@ -121,7 +121,7 @@ NlLocalNetwork::addPropagatedSeedRecv(HalfSliceRank seedRank) {
   NamedTask::Ptr task = propagatedSeedRecvNew(seedRank);
   if (!task) return; // Comm guard
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   propagatedSeedSyncs_[iterParity][seedRank] = task;
 }
 
@@ -131,7 +131,7 @@ NlLocalNetwork::addJumpBuilder(HalfSliceRank seedRank) {
 
   NamedTask::Ptr task = jumpBuilderNew(seedRank);
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   jumpBuilders_[iterParity][seedRank] = task;
   
   if (jumpEvalMgr()) { 

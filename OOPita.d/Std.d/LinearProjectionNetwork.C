@@ -409,7 +409,9 @@ LinearProjectionNetwork::buildProjection() {
   int cpuCount = mapping_->availableCpus().value();
 
   // 1) Collect new local states
+#ifndef NDEBUG
   log() << "^^ Collecting new local states\n";
+#endif /* NDEBUG */
 
   size_t stateSize = 2 * vectorSize_;
   size_t targetBufferSize = stateSize * iterNumbering->stateCount();
@@ -454,7 +456,9 @@ LinearProjectionNetwork::buildProjection() {
   }
 
   // 2) Consolidate new states
+#ifndef NDEBUG
   log() << "^^ Consolidating new local states\n";
+#endif /* NDEBUG */
   SimpleBuffer<int> recvs_counts(cpuCount); // TODO member
   SimpleBuffer<int> displacements(cpuCount); // TODO member
  
@@ -503,7 +507,9 @@ LinearProjectionNetwork::buildProjection() {
   //}
 
   // 3) Assemble [new] local ROWS of the TRANSPOSED reduced operators
+#ifndef NDEBUG
   log() << "^^ Assembling local rows\n";
+#endif /* NDEBUG */
   int matrixSizeIncrement = iterNumbering->stateCount() / 2;
   int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
 
@@ -532,7 +538,9 @@ LinearProjectionNetwork::buildProjection() {
   }
 
   // 4) Consolidate [new] rows of reduced operators
+#ifndef NDEBUG
   log() << "^^ Consolidating reduced operators\n";
+#endif /* NDEBUG */
 
   for (int cpu = 0; cpu < cpuCount; ++cpu) {
     recvs_counts[cpu] = numbering_->stateCount(CpuRank(cpu)) * newMatrixSize; // (# rows) * (size of row)
@@ -556,7 +564,9 @@ LinearProjectionNetwork::buildProjection() {
   //}
 
   // 5) Assemble rank-deficient operators
+#ifndef NDEBUG
   log() << "^^ Assembling reduced operators\n";
+#endif /* NDEBUG */
   normalMatrix_.reSize(newMatrixSize);
   transmissionMatrix_.reSize(newMatrixSize);
 
@@ -584,11 +594,15 @@ LinearProjectionNetwork::buildProjection() {
   }
 
   // 6) Factor rank-deficient normal matrix
+#ifndef NDEBUG
   log() << "^^ Factorizing rank-deficient matrix\n";
+#endif /* NDEBUG */
   normalMatrixSolver_->transposedMatrixIs(normalMatrix_);
 
   // 7) Assemble full-rank compact operators and bases
+#ifndef NDEBUG
   log() << "^^ Assembling full-rank operators\n";
+#endif /* NDEBUG */
   int numericalRank = normalMatrixSolver_->factorRank();
   log() << "*** Rank = " << numericalRank << "\n";
   reprojectionMatrix_.reSize(numericalRank);

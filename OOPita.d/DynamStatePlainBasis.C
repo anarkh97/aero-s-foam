@@ -3,10 +3,34 @@
 namespace Pita {
 
 void
+DynamStatePlainBasis::firstStateIs(const DynamState & ds) {
+  if (ds.vectorSize() != this->vectorSize())
+    throw Fwk::RangeException(); 
+  prependState(ds);
+}
+
+void
+DynamStatePlainBasis::firstStateBasisIs(const DynamStateBasis * dsb) {
+  if (dsb->vectorSize() != this->vectorSize())
+    throw Fwk::RangeException();
+  size_t statesToAdd = dsb->stateCount();
+  for (int i = statesToAdd - 1; i >= 0; --i) {
+    prependState(dsb->state(i));
+  }
+}
+
+void
+DynamStatePlainBasis::firstStateBasisIs(const DynamStatePlainBasis * dsb) {
+  if (dsb->vectorSize() != this->vectorSize())
+    throw Fwk::RangeException();
+  prependStateBasis(dsb);
+}
+
+void
 DynamStatePlainBasis::lastStateIs(const DynamState & ds) {
   if (ds.vectorSize() != this->vectorSize())
     throw Fwk::RangeException(); 
-  addState(ds);
+  appendState(ds);
 }
 
 void
@@ -14,15 +38,16 @@ DynamStatePlainBasis::lastStateBasisIs(const DynamStateBasis * dsb) {
   if (dsb->vectorSize() != this->vectorSize())
     throw Fwk::RangeException();
   size_t statesToAdd = dsb->stateCount();
-  for (size_t i = 0; i < statesToAdd; ++i)
-    addState(dsb->state(i));
+  for (size_t i = 0; i < statesToAdd; ++i) {
+    appendState(dsb->state(i));
+  }
 }
 
 void
 DynamStatePlainBasis::lastStateBasisIs(const DynamStatePlainBasis * dsb) {
   if (dsb->vectorSize() != this->vectorSize())
     throw Fwk::RangeException();
-  addStateBasis(dsb);
+  appendStateBasis(dsb);
 }
 
 

@@ -179,9 +179,10 @@ NlTaskManager::scheduleSeedUpdate() {
 
 void
 NlTaskManager::enrichProjectionBasis() {
-  projectionNetwork_->sharedProjectionBasis()->lastStateBasisIs(sharing_->consolidatedBasis());
   if (iteration() == lastIteration_) { 
     projectionNetwork_->sharedProjectionBasis()->stateBasisDel();
+  } else {
+    projectionNetwork_->sharedProjectionBasis()->firstStateBasisIs(sharing_->consolidatedBasis());
   }
   scheduleProjectionBasisCondensation();
 }

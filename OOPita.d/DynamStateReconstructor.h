@@ -14,26 +14,20 @@ class DynamStateReconstructor : public Fwk::PtrInterface<DynamStateReconstructor
 public:
   EXPORT_PTRINTERFACE_TYPES(DynamStateReconstructor);
 
-  // Operator characteristics 
+  // Main function
+  DynamState result(const Vector & components) const;
+
+  // Operator properties
   size_t vectorSize() const { return reconstructionBasis_->vectorSize(); }
   size_t reducedBasisSize() const { return reconstructionBasis_->stateCount(); }
-  
-  const DynamStateBasis * reconstructionBasis() const { return reconstructionBasis_.ptr(); } 
-  void reconstructionBasisIs(const DynamStateBasis * rb);
-
-  // Input
-  virtual void reducedBasisComponentsIs(const Vector & c);
-  
-  // Result
-  const DynamState & finalState() const { return finalState_; }
+ 
+  // Basis 
+  const DynamStateBasis * reconstructionBasis() const { return reconstructionBasis_.ptr(); }
+  void reconstructionBasisIs(const DynamStateBasis * rb) { reconstructionBasis_ = rb; }
   
   explicit DynamStateReconstructor(const DynamStateBasis * rb);
-
-protected:
-  void setFinalState(const DynamState & finalState) { finalState_ = finalState; }
  
 private:
-  DynamState finalState_;
   DynamStateBasis::PtrConst reconstructionBasis_;
 
   DISALLOW_COPY_AND_ASSIGN(DynamStateReconstructor);

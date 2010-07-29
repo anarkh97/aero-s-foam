@@ -9,39 +9,47 @@ DynamStateReductor::DynamStateReductor(const DynamStateBasis * reductionBasis,
 {}
 
 Vector
-DynamStateReductor::reducedComponents(const DynamState & is) const {
+DynamStateReductor::result(const DynamState & is) const {
+  Vector answer(reducedBasisSize());
+  return result(is, answer);
+}
+
+const Vector &
+ DynamStateReductor::result(const DynamState & is, Vector & answer) const {
   assert(int(reducedBasisSize()) == solver()->matrixSize());
 
   if (is.vectorSize() != vectorSize()) {
     throw Fwk::RangeException("Dimension mismatch");
   }
 
-  Vector result(reducedBasisSize(), 0.0);
+  if (answer.size() != reducedBasisSize()) {
+    answer.initialize(reducedBasisSize());
+  }
 
   if (reducedBasisSize() != 0) {
     // Assemble relevant part of rhs
     for (int i = 0; i < solver_->factorRank(); ++i) {
       int index = solver()->factorPermutation(i);
-      result[index] = is * reductionBasis()->state(index);
+      answer[index] = is * reductionBasis()->state(index);
     }
 
     /*log() << "Rhs = ";
     for (int i = 0; i < reducedBasisSize(); ++i) {
-      log() << result[i] << " ";
+      log() << answer[i] << " ";
     }
     log() << "\n";*/
     
     // Perform in place resolution
-    solver()->solution(result);
+    solver()->solution(answer);
 
     /*log() << "Solution = ";
     for (int i = 0; i < reducedBasisSize(); ++i) {
-      log() << result[i] << " ";
+      log() << answer[i] << " ";
     }
     log() << "\n";*/
   }
 
-  return result;
+  return answer;
 }
 
 } /* end namespace Pita */

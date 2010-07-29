@@ -6,9 +6,7 @@ void
 CorrectionReconstructor::iterationIs(IterationRank ir) {
   if (correction()->iteration() < correctionComponents()->iteration()) {
     if (correctionComponents()->status() != Seed::INACTIVE) {
-      log() << "*** Assembling from projection on space of size " << reconstructor_->reducedBasisSize() << "\n";
-      reconstructor_->reducedBasisComponentsIs(correctionComponents()->state());
-      correction()->stateIs(reconstructor_->finalState());
+      correction()->stateIs(reconstructor_->result(correctionComponents()->state()));
     }
     correction()->statusIs(correctionComponents()->status());
     correction()->iterationIs(correctionComponents()->iteration());

@@ -18,9 +18,7 @@ CorrectionReductor::iterationIs(IterationRank ir) {
     update += correction()->state();
   }
 
-  log() << "*** Projection on subspace of size " << reductor()->reducedBasisSize() << "\n";
-
-  nextCorrection()->stateIs(reductor()->reducedComponents(update));
+  nextCorrection()->stateIs(reductor()->result(update));
   nextCorrection()->statusIs(correction()->status() == Seed::ACTIVE ? Seed::ACTIVE : jump()->status());
   nextCorrection()->iterationIs(jump()->iteration());
 

@@ -3,31 +3,23 @@
 namespace Pita {
 
 DynamStateReconstructor::DynamStateReconstructor(const DynamStateBasis * rb) :
-  finalState_(),
   reconstructionBasis_(rb)
 {}
 
-void
-DynamStateReconstructor::reducedBasisComponentsIs(const Vector & c) {
+DynamState
+DynamStateReconstructor::result(const Vector & c) const {
   int rbs = static_cast<int>(reducedBasisSize());
   if (c.size() != rbs) {
     throw Fwk::RangeException("Dimension mismatch");
   }
-  DynamState result(vectorSize(), 0.0);
+
+  DynamState answer(vectorSize(), 0.0);
   for (int i = 0; i < rbs; ++i) {
     if (c[i] != 0.0) {
-      result.linAdd(c[i], reconstructionBasis_->state(i));
+      answer.linAdd(c[i], reconstructionBasis_->state(i));
     }
   }
-  setFinalState(result);
-}
-
-void
-DynamStateReconstructor::reconstructionBasisIs(const DynamStateBasis * rb) {
-  if (rb != reconstructionBasis_.ptr()) {
-    setFinalState(DynamState());
-    reconstructionBasis_ = rb;
-  }
+  return answer;
 }
 
 } // end namespace Pita

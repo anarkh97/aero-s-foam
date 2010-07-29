@@ -6,7 +6,7 @@ namespace Pita {
 
 void
 JumpBuilder::iterationIs(IterationRank ir) {
-  assert(actualSeed()->iteration() == ir);
+  assert(actualSeed()->iteration().next() == ir);
   
   updateJump();
   setIteration(ir);

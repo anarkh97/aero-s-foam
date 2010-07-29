@@ -9,9 +9,9 @@ CorrectionReductor::CorrectionReductor(const String & name, const DynamStateRedu
 
 void
 CorrectionReductor::iterationIs(IterationRank ir) {
+  assert(jump()->iteration().next() == ir);
   assert(correction()->iteration() == jump()->iteration() || correction()->status() == Seed::INACTIVE);
   assert(jump()->status() == Seed::CONVERGED || correction()->status() != Seed::INACTIVE);
-  assert(jump()->iteration() == ir);
 
   DynamState update = jump()->state();
   if (correction()->status() != Seed::INACTIVE) {

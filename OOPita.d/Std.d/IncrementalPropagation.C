@@ -48,7 +48,7 @@ IncrementalPropagation::iterationIs(IterationRank i) {
 
   previousSeedState_ = seed()->state(); 
 
-  propagatedSeed()->iterationIs(seed()->iteration().next());
+  propagatedSeed()->iterationIs(seed()->iteration());
 }
 
 } /* end namespace Std */ } /* end namespace Pita */

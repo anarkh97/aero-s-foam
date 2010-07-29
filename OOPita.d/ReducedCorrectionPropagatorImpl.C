@@ -20,7 +20,7 @@ void
 ReducedCorrectionPropagatorImpl::iterationIs(IterationRank ir) {
   assert(correction()->iteration() == jump()->iteration() || correction()->status() == Seed::INACTIVE);
   assert(jump()->status() == Seed::CONVERGED || correction()->status() != Seed::INACTIVE);
-  assert(jump()->iteration() == ir);
+  assert(jump()->iteration().next() == ir);
 
   Vector result = jump()->state();
   

@@ -6,7 +6,7 @@ namespace Pita {
 
 void
 SeedUpdater::iterationIs(IterationRank ir) {
-  assert(propagatedSeed()->iteration() == ir);
+  assert(propagatedSeed()->iteration().next() == ir);
   updateSeed();
   setIteration(ir);
 }
@@ -23,7 +23,7 @@ SeedUpdater::updateSeed() {
 
   updatedSeed()->stateIs(newSeed);
   updatedSeed()->statusIs(propagatedSeed()->status());
-  updatedSeed()->iterationIs(propagatedSeed()->iteration());
+  updatedSeed()->iterationIs(propagatedSeed()->iteration().next());
 }
 
 size_t
@@ -33,7 +33,7 @@ SeedUpdater::vectorSize() const {
 
 SeedUpdater *
 SeedUpdater::ManagerImpl::createNewInstance(const String & key) {
-  return new SeedUpdater(String("Seed Updater ") + key);
+  return new SeedUpdater(String("Update Seed ") + key);
 }
 
 } /* end namespace Pita */

@@ -37,35 +37,6 @@ PitaNonLinDynamic::preProcess() {
   baseImprovementMethod = domain->solInfo().pitaBaseImprovement;
 }
 
-int PitaNonLinDynamic::getInitSeedCount() const {
-  return std::max(std::min(geoSource->getUserProvidedSeedCount(), numTS), 1);
-}
-
-int PitaNonLinDynamic::getInitState(DynamState & ds)
-{
-  // Dummy vectors: We do not need that information for PITA
-  GenVector<double> dummy_acc(solVecInfo(), 0.0);
-  GenVector<double> dummy_vp(solVecInfo(), 0.0);
-  return NonLinDynamic::getInitState(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp);
-}
-
-int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
-{
-  if (sliceRank <= 0)
-  {
-    return getInitState(ds);
-  }
-  else
-  {
-    domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
-    GenVector<double> dummy_acc(solVecInfo(), 0.0);
-    GenVector<double> dummy_vp(solVecInfo(), 0.0);
-    updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);
-    return 0; // Default value for int aeroAlg
-  }
-}
-
 bool
 PitaNonLinDynamic::getInitialAcceleration() const {
   return domain->solInfo().iacc_switch;

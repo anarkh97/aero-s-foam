@@ -2,7 +2,6 @@
 #define PITA_PITANONLINDYNAM_H_
 
 #include <Problems.d/NonLinDynam.h>
-#include <OOPita.d/DynamState.h>
 
 namespace Pita {
 
@@ -16,12 +15,6 @@ public:
 
   // Constructor
   PitaNonLinDynamic(Domain *);
-   
-  // Get initial displacement and velocity
-  using NonLinDynamic::getInitState; // to avoid hiding
-  int getInitState(DynamState &);
-  int getInitSeedCount() const;
-  int getInitSeed(DynamState &, int sliceRank);
  
   // Added Accessors
   int getKiter() const { return mainIterMax; }

@@ -27,6 +27,7 @@ LinearPostProcessor.C
 LoadBalancer.C
 Log.C
 NearSymmetricSolver.C
+NlDriverImpl.C
 NlDynamOps.C
 NlDynamTimeIntegrator.C
 NlPostProcessor.C
@@ -71,7 +72,7 @@ Hts.d/HomogeneousTaskManager.C
 Hts.d/LinearTaskManager.C
 Hts.d/LinearProjectionNetworkImpl.C
 Hts.d/LinearLocalNetwork.C
-Hts.d/NlDriverImpl.C
+Hts.d/NlDriver.C
 Hts.d/NlLocalNetwork.C
 Hts.d/NlProjectionNetwork.C
 Hts.d/NlPropagatorManager.C

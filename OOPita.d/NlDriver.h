@@ -1,7 +1,9 @@
 #ifndef PITA_NLDRIVER_H
 #define PITA_NLDRIVER_H
 
-#include "Fwk.h"
+#include "Fwk.d/Ptr.h"
+#include "Fwk.d/PtrInterface.h"
+#include "Fwk.d/Macros.h"
 
 namespace Pita {
 
@@ -28,7 +30,6 @@ private:
   
 } // end namespace Pita
 
-extern Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
-
+extern Pita::NlDriver::Ptr nlReversiblePitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
 
 #endif /* PITA_NLDRIVER_H */

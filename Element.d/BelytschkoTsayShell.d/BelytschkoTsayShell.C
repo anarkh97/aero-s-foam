@@ -229,7 +229,7 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
       ecord[i*ndime+0] = cs[nn[i]]->x;
       ecord[i*ndime+1] = cs[nn[i]]->y;
       ecord[i*ndime+2] = cs[nn[i]]->z;
-      for(int j = 0; j < 6; ++j) edisp[i*nndof+j] = 0; // constant mass matrix
+      for(int j = 0; j < nndof; ++j) edisp[i*nndof+j] = 0; // constant mass matrix
     }
 
     double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
@@ -330,8 +330,8 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       edisp[i*nndof+1] = geomState[nn[i]].y - cs[nn[i]]->y;
       edisp[i*nndof+2] = geomState[nn[i]].z - cs[nn[i]]->z;
       mat_to_vec(geomState[nn[i]].R, edisp+i*nndof+3);
-      for(int j = 0; j < 6; ++j) evelo[i*nndof+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
-      for(int j = 0; j < 6; ++j) eaccl[i*nndof+j] = geomState[nn[i]].a[j];
+      for(int j = 0; j < nndof; ++j) evelo[i*nndof+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
+      for(int j = 0; j < nndof; ++j) eaccl[i*nndof+j] = geomState[nn[i]].a[j];
     }
 
     // ---------------------------------------------------------------
@@ -444,7 +444,7 @@ BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     edisp[i*nndof+2] = (*geomState)[nn[i]].z - cs[nn[i]]->z;
     mat_to_vec((*geomState)[nn[i]].R, edisp+i*nndof+3);
   }
-  double trac[3] = { pressure, 0, 0 };
+  double trac[3] = { -pressure, 0, 0 };
   double *efbc = elPressureForce.data();
 
   _FORTRAN(elefbcbt2)(optdom, opttrc, nndof, ngqpt4, ecord, edisp, trac, efbc);

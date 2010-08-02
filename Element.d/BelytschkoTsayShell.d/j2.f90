@@ -251,7 +251,7 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
 
   else
      dlambda= 0.0d0
-
+     j2dirvoit(:,:)= 0.0d0
   end if
 
   ! plastic strain increment
@@ -273,8 +273,6 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
   ipstrn(1:3,1)= ipstrn(1:3,1) + ipstrndel(1:3,1) ! estrndel(1:3,1) ! update strain
 
   ipstrs(1:3,1)= ipstrs(1:3,1) + estrsdel(1:3,1) ! update stress
-
-
 
   return
 end subroutine updj2pexp

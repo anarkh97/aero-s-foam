@@ -126,8 +126,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce *= lambda;
 
       // Include the "load stiffness matrix" in kel[iele]
-      corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
-                                            elementForce.data());
+      if(sinfo.newmarkBeta != 0.0)
+        corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
+                                              elementForce.data());
 
       // Determine the elemental force for the corrotated system
       corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());

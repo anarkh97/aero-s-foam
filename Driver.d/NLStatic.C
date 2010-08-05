@@ -87,7 +87,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       Vector elementForceTmp(packedEset[iele]->numDofs());  
       kelTmp.zero();
       elementForceTmp.zero();
-      c->getStiffAndForce(geomState, nodes, kelTmp, elementForceTmp.getData(), sinfo.getTimeStep());
+      c->getStiffAndForce(geomState, nodes, kelTmp, elementForceTmp.getData(), sinfo.getTimeStep(), time);
       int *p = new int[packedEset[iele]->numDofs()];
       packedEset[iele]->dofs(*c_dsa, p);
       //cerr << "iele = " << iele << ", force = "; elementForceTmp.print();

@@ -11,7 +11,7 @@ class ConstantDistanceConstraint : public MpcElement
     ConstantDistanceConstraint(int*);
     void buildFrame(CoordSet&);
     int getTopNumber();
-    void update(GeomState& gState, CoordSet& cs);
+    void update(GeomState& gState, CoordSet& cs, double);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
 };
 

@@ -31,7 +31,7 @@ SuperCorotator::~SuperCorotator()
 
 void 
 SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
-                                 FullSquareMatrix &elK, double *f, double dt) 
+                                 FullSquareMatrix &elK, double *f, double dt, double t) 
 {
   int i, j;
   elK.zero();
@@ -43,7 +43,7 @@ SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     subK.zero();  // this is necessary because getStiffAndForce may not be implemented for all subelems
     double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
-    subElemCorotators[i]->getStiffAndForce(geomState, cs, subK, subf, dt);
+    subElemCorotators[i]->getStiffAndForce(geomState, cs, subK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
     elK.add(subK, subElemDofs);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
@@ -75,7 +75,7 @@ SuperCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
 
 void
 SuperCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
-                                 FullSquareMatrix &elK, double *f, double dt)
+                                 FullSquareMatrix &elK, double *f, double dt, double t)
 {
   int i, j;                            
   elK.zero();
@@ -87,7 +87,7 @@ SuperCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     subK.zero();
     double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
-    subElemCorotators[i]->getInternalForce(geomState, cs, subK, subf, dt);
+    subElemCorotators[i]->getInternalForce(geomState, cs, subK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
     elK.add(subK, subElemDofs);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];

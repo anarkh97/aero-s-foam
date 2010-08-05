@@ -677,6 +677,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::Damage:
           getStressStrain(d_n, bcx, i, DAMAGE, time);
           break;
+        case OutputInfo::EffPStrn:
+          getStressStrain(d_n, bcx, i, EFFPSTRN, time);
+          break;
+        case OutputInfo::HardVar:
+          getStressStrain(d_n, bcx, i, HARDVAR, time);
+          break;
         case OutputInfo::StressPR1:
           getPrincipalStress(d_n, bcx, i, PSTRESS1, time);
           break;

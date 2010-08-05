@@ -39,7 +39,7 @@ BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu,
 // coordSet  -> contains the original nodal coordinates
 void
 BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                                 FullSquareMatrix &K, double *f, double dt)
+                                 FullSquareMatrix &K, double *f, double dt, double t)
 {
   int i,j,k;
   int numLinGaussPts = 2;

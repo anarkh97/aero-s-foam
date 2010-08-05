@@ -1,23 +1,24 @@
-#include <Element.d/Joint.d/DotConstraintType1.h>
+#include <Element.d/Joint.d/DotConstraintType1a.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Joint.d/exp-map.h>
 
-DotConstraintType1::DotConstraintType1(int* _nn, int _axis1, int _axis2)
+DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2)
  : MpcElement(2, DofSet::XYZrot, _nn)
 {
   elemframe = 0;
   axis1 = _axis1;
   axis2 = _axis2;
+  t = 0;
 }
 
 void
-DotConstraintType1::setFrame(EFrame *_elemframe) 
+DotConstraintType1a::setFrame(EFrame *_elemframe) 
 { 
   elemframe = _elemframe; 
 }
 
 void 
-DotConstraintType1::buildFrame(CoordSet& cs)
+DotConstraintType1a::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
   if(elemframe) {
@@ -36,7 +37,7 @@ DotConstraintType1::buildFrame(CoordSet& cs)
     double l0 = sqrt( dx*dx + dy*dy + dz*dz );
 
     if(l0 == 0.0) {
-      cerr << " *** ERROR: division by zero in DotConstraintType1::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
+      cerr << " *** ERROR: division by zero in DotConstraintType1a::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
       exit(-1);
     }
 
@@ -81,13 +82,13 @@ DotConstraintType1::buildFrame(CoordSet& cs)
 }
 
 int 
-DotConstraintType1::getTopNumber() 
+DotConstraintType1a::getTopNumber() 
 { 
   return 106; 
 }
 
 void 
-DotConstraintType1::update(GeomState& gState, CoordSet& cs, double)
+DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
@@ -118,11 +119,12 @@ DotConstraintType1::update(GeomState& gState, CoordSet& cs, double)
   }
 
   // values of constraint functions
-  rhs.r_value = c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2];
+  rhs.r_value = -prop->amplitude*sin(prop->omega*t)
+                + c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2];
 }
 
 void
-DotConstraintType1::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+DotConstraintType1a::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
 {
   H.zero();
 

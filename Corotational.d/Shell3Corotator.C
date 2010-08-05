@@ -52,7 +52,7 @@ Shell3Corotator::Shell3Corotator(int _n1, int _n2, int _n3,
 
 void
 Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                                  FullSquareMatrix &elK, double *f, double dt)
+                                  FullSquareMatrix &elK, double *f, double dt, double t)
 {
 
  // Get Nodes original coordinates (C0 configuration)
@@ -188,7 +188,7 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
 void
 Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
-                                  FullSquareMatrix &elK, double *f, double dt)
+                                  FullSquareMatrix &elK, double *f, double dt, double t)
 {
 
  // Get Nodes original coordinates (C0 configuration)

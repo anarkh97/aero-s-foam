@@ -316,9 +316,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     }
   }
 
-  //if(t != -1.0) updateConstraintTerms(&geomState); XXXX
-
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t);
 
   times->buildStiffAndForce +=  getTime();
  

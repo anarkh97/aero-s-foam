@@ -164,11 +164,11 @@ MpcElement::getCorotator(CoordSet&, double*, int, int)
 }
 
 void
-MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f, double)
+MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f, double delt, double t)
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
-  update(c1, c0); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+  update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
 
   // general augmented lagrangian implementation
   // penalty method is the particular case with prop->lagrangeMult is set to false
@@ -193,7 +193,7 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 }
 
 void 
-MpcElement::update(GeomState& c1, CoordSet& c2) 
+MpcElement::update(GeomState& c1, CoordSet& c2, double t) 
 { 
   rhs.r_value = 0;
   //rhs = original_rhs; // TODO check

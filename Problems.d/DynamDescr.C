@@ -35,6 +35,8 @@ typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
+#define EXPLICIT_UPDATE
+
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
@@ -464,10 +466,14 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 1); // update to current configuration
     times->updateSurfsTime += getTime();
-
+#ifdef EXPLICIT_UPDATE
+    geomState->explicitUpdate(domain->getNodes(), d);
+#else
     Vector dinc(domain->numUncon());
     dinc.linC(1.0, d, -1.0, *dprev);
     geomState->update(dinc);
+    (*dprev) = d;
+#endif
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -479,8 +485,6 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     times->contactForcesTime -= getTime();
     domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
     times->contactForcesTime += getTime();
-
-    (*dprev) = d;
   }
   times->tdenforceTime += getTime();
 }
@@ -525,13 +529,17 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // update geomState for nonlinear problems. note computeExtForce2 must be called before getInternalForce
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
+#ifdef EXPLICIT_UPDATE
+    geomState->explicitUpdate(domain->getNodes(), state.getDisp());
+#else
     if(!dprev) { dprev = new Vector(domain->numUncon(), 0.0); }
     Vector dinc(domain->numUncon());
     dinc.linC(1.0, state.getDisp(), -1.0, *dprev); // incremental displacement: dinc = d - dprev
     geomState->update(dinc);
-    if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
     (*dprev) = state.getDisp(); // keep a copy so the incremental displacement can be computed
-    geomState->setVelocity(state.getVeloc(), state.getAccel()); 
+#endif
+    if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+    geomState->setVelocity(state.getDisp(), state.getVeloc(), state.getAccel()); 
   }
 
   // THERMOE update nodal temperatures
@@ -727,10 +735,10 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 void
 SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t)
 {
-  if(domain->solInfo().isNonLin()) { // PJSA 3-31-08
+  if(domain->solInfo().isNonLin()) {
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
-    domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual); // kelArray = tangent stiffness, residual -= internal force (nonlinear elements)
+    domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
     f.linC(-1.0,residual); // f = -residual
   }
   else {

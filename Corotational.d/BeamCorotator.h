@@ -25,7 +25,7 @@ class BeamCorotator : public Corotator {
                 double t0n[3][3],
                 double xl0[2][3], double xln[2][3]);
 
-   void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double);
+   void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double, double);
    
    void formCorrectGeometricStiffness(
                             double pmat[12][12],double gmat[3][12], 
@@ -35,7 +35,7 @@ class BeamCorotator : public Corotator {
 			    NodeState &ns2);
    
    void getInternalForce(GeomState &geomState, CoordSet &cs, 
-                         FullSquareMatrix &elK, double *f, double dt);
+                         FullSquareMatrix &elK, double *f, double dt, double t);
 
    void formGeometricStiffness(GeomState &, CoordSet &, 
                                FullSquareMatrix &, double *);

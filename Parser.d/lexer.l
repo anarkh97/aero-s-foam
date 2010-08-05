@@ -1080,6 +1080,8 @@ TRAIL [a-zA-Z]*
 "gap_old"|"GAP_OLD"                                  { yylval.ival = 16; return TDENFORC; }
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
+"effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EffPStrn; return STRESSID; }
+"hardvar"|"HARDVAR"                { yylval.ival = OutputInfo::HardVar; return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 

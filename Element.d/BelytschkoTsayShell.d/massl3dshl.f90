@@ -1,159 +1,116 @@
 ! ==================================
-! lumped mass matrix 
+! lumped mass 3d shell
 ! ==================================
 !      type                  name                              arguement
 !      ----                  ----                              ---------
-! 1.  subroutine           elemasl1d          (nnode,nndof,ematpro,ecord, emasl1d)
-! 2.  subroutine           elemasl2d          (nnode,nndof,ematpro,ecord, emasl2d)
-! 3.  subroutine           elemaslbt          (nndof,ematpro,ecord,edisp, emaslbt)
-! 4.  subroutine           elemasl3d          (nnode,nndof,ematpro,ecord, emasl3d)
+! 1.  subroutine           getmaslbt1           (ielem,optele,msize,mnode,ndime,nnode,nndof,matpro,matnum,adrs,elestatus,conec,coord,disp, &
+!                                                mass)
+! 2.  subroutine           elemaslbt            (nndof,ematpro,ecord,edisp, emaslbt)
 !
 ! =========================================================================================================
 
 
-subroutine elemasl1d(nnode,nndof,ematpro,ecord, emasl1d)
+
+subroutine getmaslbt1(ielem,optele,msize,mnode,ndime,nnode,nndof,matpro,matnum,adrs,elestatus,conec,coord,disp, &
+                      mass)
   !=======================================================================
-  !  elemaslmp1 = compute lumped element mass matrix
-  !
-  !               1d element, total lagrangian
+  !  getmaslbt1 = compute lumped element mass matrix for bt shell
   !
   !  arguments description
   !  ---------------------
   !  input:
   !  -----
-  !  nnode : node per element
   !
-  !  nndof : total dof per node
-  !
-  !  ematpro(*) : element material properties
-  !
-  !  ecord(1,*) : element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  emasl1d(nndof*nnode,1) : lumped 1d element mass matrix
+  !  inoutput:
+  !  --------
+  !  mass(msize,1) : global lumped mass matrix
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  integer, intent(in) :: nnode, nndof
-  real(8), dimension(*), intent(in) :: ematpro
-  real(8), dimension(1,*), intent(in) :: ecord
+  integer, intent(in) :: ielem,optele,msize,mnode,ndime,nnode,nndof
+  real(8), dimension(20,*), intent(in) :: matpro
+  integer, dimension(*), intent(in) :: matnum
+  integer, dimension(*), intent(in) :: adrs
+  integer, dimension(*), intent(in) :: elestatus
+  integer, dimension(mnode,*), intent(in) :: conec
+  real(8), dimension(ndime,*), intent(in) :: coord
+  real(8), dimension(msize,1), intent(in) :: disp
+  ! ------------------------------------
 
-  real(8), dimension(nndof*nnode,1), intent(out) :: emasl1d
+  real(8), dimension(msize,1), intent(inout) :: mass
   ! ====================================
   ! local variable
   ! ==============
-  real(8) :: denst, thick, xarea
+  real(8), dimension(20) :: ematpro
+  
+  integer, dimension(nnode) :: eadrs
+  integer, dimension(nnode) :: econc
+  real(8), dimension(ndime,nnode) :: ecord
+  real(8), dimension(nndof,nnode) :: edisp
+
+  real(8), dimension(nndof*nnode,1) :: emasl
+  integer, dimension(nndof*nnode) :: sctr
 
   ! loop index
-  integer :: irow, icol
+  integer :: idof
   ! ====================================
 
-  ! initialize
-  emasl1d(:,:)= 0.0d0
+  ! initialize: do not initialize
 
-  ! -------------------------------------------
+
+  ! ---------------------------------------------------------------
   ! get material properties
-  denst= ematpro(3)
-  thick= ematpro(20)
-  xarea= thick**2
-  ! -------------------------------------------
+  ! -----------------------
+  call getmatprop0(ielem,matpro,matnum, ematpro) 
+     ! input : ielem,matpro,matnum
+     ! output : ematpro
+
+  ! get element nodal coordinates and connectivity
+  ! ----------------------------------------------
+  call geteledata1hybrid(ielem,mnode,ndime,nnode,conec,coord, econc,ecord) 
+     ! input : ielem,mnode,ndime,nnode,conec,coord
+     ! output : econc,ecord
+
+  ! get global element nodal address
+  call geteadrs(nnode,adrs,econc, eadrs)
+     ! input : nnode,adrs,econc
+     ! output : eadrs
+
+  ! get element nodal displacement
+  ! ------------------------------
+  call geteleval1hybrid(msize,nnode,nndof,eadrs,disp, edisp)
+     ! input : msize,nnode,nndof,eadrs,disp
+     ! output : edisp
 
 
-  ! compute lumped mass matrix
-  if( nnode==2 ) then ! 1d linear: 2 node
-     emasl1d(1:nndof*nnode,1)= dsqrt( ( ecord(1,1)-ecord(1,2) )**2 ) * xarea * denst / 2.0d0
+  ! get bt shell element lumped mass
+  ! --------------------------------
+  call elemaslbt(nndof,ematpro,ecord,edisp, emasl)
+     ! input : nndof,ematpro,ecord,edisp
+     ! output : emasl
 
-  else
-     write(*,*) "not implemented yet: elemasl1d"
-     write(nout5,*) "not implemented yet: elemasl1d"
-     stop
+  ! ---------------------------------------------------------------
+  ! get scatter matrix
+  ! ------------------
+  call getsctrhybrid(nnode,nndof,eadrs, sctr)
+     ! input : nnode,nndof,eadrs
+     ! output : sctr
 
-  end if
+  ! set global lumped mass matrix
+  ! -----------------------------
+  do idof=1, nndof*nnode
+     mass(sctr(idof),1)= mass(sctr(idof),1) + emasl(idof,1)
+  end do
+  ! ---------------------------------------------------------------
 
 
 
   return
-end subroutine elemasl1d
-
-
-
-
-
-subroutine elemasl2d(nnode,nndof,ematpro,ecord, emasl2d)
-  !=======================================================================
-  !  elemasl2d = compute lumped element mass matrix
-  !
-  !              2d element, total lagrangian
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  nnode : node per element
-  !
-  !  nndof : total dof per node
-  !
-  !  ematpro(*) : element material properties
-  !
-  !  ecord(2,*) : element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  emasl2d(nndof*nnode,1) : lumped 2d element mass matrix
-  !                            
-  ! ======================================================================
-
-  use preset
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: nnode, nndof
-  real(8), dimension(*), intent(in) :: ematpro
-  real(8), dimension(2,*), intent(in) :: ecord
-
-  real(8), dimension(nndof*nnode,1), intent(out) :: emasl2d
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8) :: denst, thick
-  real(8) :: area
-
-  ! loop index
-  integer :: irow, icol
-  ! ====================================
-
-  ! initialize
-  emasl2d(:,:)= 0.0d0
-
-  ! -------------------------------------------
-  ! get material properties
-  denst= ematpro(3)
-  thick= ematpro(20)
-  ! -------------------------------------------
-
-  ! compute lumped mass matrix
-  if( nnode==3 ) then ! 3 node tri.
-     emasl2d(1:nndof*nnode,1)= area(nnode,ecord) * thick * denst / 3.0d0
- 
-  else if ( nnode==4 ) then ! 4 node quad.
-     emasl2d(1:nndof*nnode,1)= area(nnode,ecord) * thick * denst / 4.0d0
-
-  else
-     write(*,*) "not available: elemasl2d"
-     write(nout5,*) "not available: elemasl2d"
-     stop
-
-  end if
-
-
-
-  return
-end subroutine elemasl2d
+end subroutine getmaslbt1
 
 
 
@@ -194,7 +151,7 @@ subroutine elemaslbt(nndof,ematpro,ecord,edisp, emaslbt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -313,75 +270,3 @@ subroutine elemaslbt(nndof,ematpro,ecord,edisp, emaslbt)
 
   return
 end subroutine elemaslbt
-
-
-
-
-
-subroutine elemasl3d(nnode,nndof,ematpro,ecord, emasl3d)
-  !=======================================================================
-  !  elemasl3d = compute lumped element mass matrix
-  !
-  !              3d element, total lagrangian
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  nnode : node per element
-  !
-  !  nndof : total dof per node
-  !
-  !  ematpro(*) : element material properties
-  !
-  !  ecord(3,*) : element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  emasl3d(nndof*nnode,1) : lumped 2d element mass matrix
-  !                            
-  ! ======================================================================
-
-  use preset
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: nnode, nndof
-  real(8), dimension(*), intent(in) :: ematpro
-  real(8), dimension(3,*), intent(in) :: ecord
-
-  real(8), dimension(nndof*nnode,1), intent(out) :: emasl3d
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8) :: denst
-  real(8) :: vol3d8nod
-
-  ! loop index
-  integer :: irow, icol
-  ! ====================================
-
-  ! initialize
-  emasl3d(:,:)= 0.0d0
-
-
-  ! -------------------------------------------
-  ! get material properties
-  denst= ematpro(3)
-  ! -------------------------------------------
-
-  ! compute lumped mass matrix
-  if( nnode==8 ) then ! 8 node brick
-     emasl3d(1:nndof*nnode,1)= vol3d8nod(ecord) * denst / 8.0d0
-
-  else
-     write(*,*) "not available: elemasl3d"
-     write(nout5,*) "not available: elemasl3d"
-     stop
-
-  end if
-
-
-
-  return
-end subroutine elemasl3d

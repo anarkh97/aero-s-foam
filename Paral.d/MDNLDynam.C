@@ -326,8 +326,8 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
-  execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
-              residual, elementInternalForce);
+  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
+              residual, elementInternalForce, t);
 
   if(t != -1.0) updateConstraintTerms(&geomState);
 
@@ -362,14 +362,14 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 
 void
 MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                                 DistrVector &res, DistrVector &elemIntForce)
+                                 DistrVector &res, DistrVector &elemIntForce, double t)
 {
   // PJSA: 10-4-2007 copied from MDNLStatic
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector residual(res.subData(isub), res.subLen(isub));
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual);
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t);
 }
 
 void

@@ -201,12 +201,13 @@ class MultiDomainDynam
     int getAeroheatFlag();
    
   private:
-    void subGetInternalForce(int isub, DistrVector &res);
+    void subGetInternalForce(int isub, DistrVector &res, double t);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void initSubPrescribedDisplacement(int isub);
     void subUpdateGeomStateUSDD(int isub, double *userDefineDisp);
+    void subExplicitUpdate(int isub, DistrVector &d);
 };
 
 #endif

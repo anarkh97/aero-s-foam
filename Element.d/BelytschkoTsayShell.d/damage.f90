@@ -5,25 +5,25 @@
 !      ----                  ----                              ---------
 ! 1d model
 ! --------
-! 1.  subroutine          getlemdmg1d             (prmdmg,ematpro,strn, damage)
-! 2.  subroutine          getlineardmg1d          (prmdmg,ematpro,strn, damage)
+! 1.  subroutine          getlemdmg1d             (ematpro,strn, damage)
+! 2.  subroutine          getlineardmg1d          (ematpro,strn, damage)
 !
 ! 2d model
 ! --------
-! 3.  subroutine          getlemdmg2d0            (optpty,prmdmg,ematpro,strntens, damage, csntvoit,ctanvoit,ctantens)
-! 5.  subroutine          getlineardmg2d0         (optpty,prmdmg,ematpro,ehleng,strntens, damage, csntvoit,ctanvoit,ctantens)
+! 3.  subroutine          getlemdmg2d0            (optpty,ematpro,strntens, damage, csntvoit,ctanvoit,ctantens)
+! 5.  subroutine          getlineardmg2d0         (optpty,ematpro,ehleng,strntens, damage, csntvoit,ctanvoit,ctantens)
 ! 6.  subroutine          scalstrcurv1            (young,hele,ft,gf, nflag,eps0,eps1)  ! scalling linear softening curve
 !
 ! 3d model
 ! --------
-! 7.  subroutine          getlemdmg3d0            (prmdmg,ematpro,strntens, damage, csntvoit)
-! 8.  subroutine          getlineardmg3d0         (prmdmg,ematpro,strntens, damage, csntvoit)
+! 7.  subroutine          getlemdmg3d0            (ematpro,strntens, damage, csntvoit)
+! 8.  subroutine          getlineardmg3d0         (ematpro,strntens, damage, csntvoit)
 !
 ! =========================================================================================================
 
 
 
-subroutine getlemdmg1d(prmdmg,ematpro,strn, damage)
+subroutine getlemdmg1d(ematpro,strn, damage)
   !=======================================================================
   !  getlemdmg2d = 1d lemaitre material damage model
   !                lemaitre, mechanics of solid materials, p. 449
@@ -32,8 +32,6 @@ subroutine getlemdmg1d(prmdmg,ematpro,strn, damage)
   !  ---------------------
   !  input:
   !  -----
-  !  prmdmg(*) : damage parameter
-  !
   !  ematpro(*) : material properties
   !
   !  strn : 1d strain value
@@ -44,11 +42,10 @@ subroutine getlemdmg1d(prmdmg,ematpro,strn, damage)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), intent(in) :: strn
 
@@ -69,13 +66,13 @@ subroutine getlemdmg1d(prmdmg,ematpro,strn, damage)
   damage0= damage ! save the last damage
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  cofa= prmdmg(1) ! softening parameter: cofa=1 : complete softening w/o residual stress
-  cofb= prmdmg(2) ! softening parameter: softening slope
-  epscr= prmdmg(3) ! critical strain
-
   ! get material properties
   young= ematpro(1)
+
+  ! set damagemodel parameter
+  cofa= ematpro(4) ! softening parameter: cofa=1 : complete softening w/o residual stress
+  cofb= ematpro(5) ! softening parameter: softening slope
+  epscr= ematpro(6) ! critical strain
   ! ------------------------------------
 
   ! calculate the equivalent strain and corresponding increment
@@ -104,7 +101,7 @@ end subroutine getlemdmg1d
 
 
 
-subroutine getlineardmg1d(prmdmg,ematpro,strn, damage)
+subroutine getlineardmg1d(ematpro,strn, damage)
   !=======================================================================
   !  getlineardmg1d = 1d isotropic linear softening damage model
   !
@@ -112,8 +109,6 @@ subroutine getlineardmg1d(prmdmg,ematpro,strn, damage)
   !  ---------------------
   !  input:
   !  -----
-  !  prmdmg(*) : damage parameter
-  !
   !  ematpro(*) : material properties
   !
   !  strn : 1d strain value
@@ -124,11 +119,10 @@ subroutine getlineardmg1d(prmdmg,ematpro,strn, damage)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), intent(in) :: strn
 
@@ -165,12 +159,14 @@ subroutine getlineardmg1d(prmdmg,ematpro,strn, damage)
 
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  ft= prmdmg(1) ! maximum tensile strength
-  gf= prmdmg(2) ! fracture energy
-
   ! get material properties
   young= ematpro(1)
+
+  ! set damagemodel parameter
+  ft= ematpro(4) ! maximum tensile strength
+  gf= ematpro(5) ! fracture energy
+
+  ! ------------------------------------
 
   ! compute eps0
   eps0= ft / young
@@ -222,7 +218,7 @@ end subroutine getlineardmg1d
 
 
 
-subroutine getlemdmg2d0(optpty,prmdmg,ematpro,strntens, damage, csntvoit,ctanvoit,ctantens)
+subroutine getlemdmg2d0(optpty,ematpro,strntens, damage, csntvoit,ctanvoit,ctantens)
   !=======================================================================
   !  getlemdmg2d0 = 2d lemaitre material damage model
   !                lemaitre, mechanics of solid materials, p. 449
@@ -232,8 +228,6 @@ subroutine getlemdmg2d0(optpty,prmdmg,ematpro,strntens, damage, csntvoit,ctanvoi
   !  input:
   !  -----
   !  optptyp : plane stress/strain option
-  !
-  !  prmdmg(*) : damage parameter
   !
   !  ematpro(*) : material properties
   !
@@ -253,12 +247,11 @@ subroutine getlemdmg2d0(optpty,prmdmg,ematpro,strntens, damage, csntvoit,ctanvoi
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
   integer, intent(in) :: optpty
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), dimension(2,2), intent(in) :: strntens
 
@@ -303,14 +296,14 @@ subroutine getlemdmg2d0(optpty,prmdmg,ematpro,strntens, damage, csntvoit,ctanvoi
   damage0= damage ! save the last damage
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  cofa= prmdmg(1) ! softening parameter: cofa=1 : complete softening w/o residual stress
-  cofb= prmdmg(2) ! softening parameter: softening slope
-  epscr= prmdmg(3) ! strain thresholds
-
   ! get material properties
   young= ematpro(1)
   poiss= ematpro(2)
+
+  ! set damagemodel parameter
+  cofa= ematpro(4) ! softening parameter: cofa=1 : complete softening w/o residual stress
+  cofb= ematpro(5) ! softening parameter: softening slope
+  epscr= ematpro(6) ! strain thresholds
   ! ------------------------------------
 
   ! get vergin elastic moduli
@@ -451,7 +444,7 @@ end subroutine getlemdmg2d0
 
 
 
-subroutine getlineardmg2d0(optpty,prmdmg,ematpro,ehleng,strntens, damage, csntvoit,ctanvoit,ctantens)
+subroutine getlineardmg2d0(optpty,ematpro,ehleng,strntens, damage, csntvoit,ctanvoit,ctantens)
   !=======================================================================
   !  getlineardmg2d0 = 2d isotropic linear softening model
   !
@@ -460,8 +453,6 @@ subroutine getlineardmg2d0(optpty,prmdmg,ematpro,ehleng,strntens, damage, csntvo
   !  input:
   !  -----
   !  optptyp : plane stress/strain option
-  !
-  !  prmdmg(*) : damage parameter
   !
   !  ematpro(*) : material properties
   !
@@ -483,12 +474,11 @@ subroutine getlineardmg2d0(optpty,prmdmg,ematpro,ehleng,strntens, damage, csntvo
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
   integer, intent(in) :: optpty
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), intent(in) :: ehleng
   real(8), dimension(2,2), intent(in) :: strntens
@@ -553,15 +543,15 @@ subroutine getlineardmg2d0(optpty,prmdmg,ematpro,ehleng,strntens, damage, csntvo
 
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  ft= prmdmg(1) ! maximum tensile strength
-  gf= prmdmg(2) ! fracture energy
-  scalftcr=  prmdmg(3) ! element size scaling factor
-                       ! note: scalftcr= 1.0d0 means no scalling                      
-
   ! get material properties
   young= ematpro(1)
   poiss= ematpro(2)
+
+  ! set damagemodel parameter
+  ft= ematpro(4) ! maximum tensile strength
+  gf= ematpro(5) ! fracture energy
+  scalftcr= ematpro(6) ! element size scaling factor
+                       ! note: scalftcr= 1.0d0 means no scalling                      
   ! ------------------------------------
 
   ! store history value
@@ -761,7 +751,7 @@ subroutine scalstrcurv1(young,ehleng,ft,gf, nflag,eps0,eps1)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -824,7 +814,7 @@ end subroutine scalstrcurv1
 
 
 
-subroutine getlemdmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
+subroutine getlemdmg3d0(ematpro,strntens, damage, csntvoit)
   !=======================================================================
   !  getlemdmg3d0 = 3d lemaitre material damage model
   !                 lemaitre, mechanics of solid materials, p. 449
@@ -833,9 +823,6 @@ subroutine getlemdmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
   !  ---------------------
   !  input:
   !  -----
-  !
-  !  prmdmg(*) : damage parameter
-  !
   !  ematpro(*) : material properties
   !
   !  strntens(3,3) : 2d strain tensor
@@ -850,11 +837,10 @@ subroutine getlemdmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), dimension(3,3), intent(in) :: strntens
 
@@ -884,14 +870,14 @@ subroutine getlemdmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
   damage0= damage ! save the last damage
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  cofa= prmdmg(1) ! softening parameter: cofa=1 : complete softening w/o residual stress
-  cofb= prmdmg(2) ! softening parameter: softening slope
-  epscr= prmdmg(3) ! strain thresholds
-
   ! get material properties
   young= ematpro(1)
   poiss= ematpro(2)
+
+  ! set damagemodel parameter
+  cofa= ematpro(4) ! softening parameter: cofa=1 : complete softening w/o residual stress
+  cofb= ematpro(5) ! softening parameter: softening slope
+  epscr= ematpro(6) ! strain thresholds
   ! ------------------------------------
 
   ! get vergin elastic moduli
@@ -941,7 +927,7 @@ end subroutine getlemdmg3d0
 
 
 
-subroutine getlineardmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
+subroutine getlineardmg3d0(ematpro,strntens, damage, csntvoit)
   !=======================================================================
   !  getlineardmg3d0 = 3d isotropic linear softening model
   !
@@ -949,8 +935,6 @@ subroutine getlineardmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
   !  ---------------------
   !  input:
   !  -----
-  !  prmdmg(*) : damage parameter
-  !
   !  ematpro(*) : material properties
   !
   !  strntens(3,3) : 2d strain tensor
@@ -965,11 +949,10 @@ subroutine getlineardmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(*), intent(in) :: prmdmg
   real(8), dimension(*), intent(in) :: ematpro
   real(8), dimension(3,3), intent(in) :: strntens
 
@@ -1014,13 +997,15 @@ subroutine getlineardmg3d0(prmdmg,ematpro,strntens, damage, csntvoit)
 
 
   ! ------------------------------------
-  ! set damagemodel parameter
-  ft= prmdmg(1) ! maximum tensile strength
-  gf= prmdmg(2) ! fracture energy
-
   ! get material properties
   young= ematpro(1)
   poiss= ematpro(2)
+
+  ! set damagemodel parameter
+  ft= ematpro(4) ! maximum tensile strength
+  gf= ematpro(5) ! fracture energy
+
+  ! ------------------------------------
 
   ! compute eps0
   eps0= ft / young

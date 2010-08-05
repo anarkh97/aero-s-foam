@@ -8,9 +8,9 @@
 !  3. subroutine        gethnpsievp1          (opt,ematpro,delt,prveffstrs,mideffstrs,effpstrn, h,psi)
 !  4. subroutine        gettantensevp1        (ematpro,nndex,lptens,h,psi,effstrs, tantens)
 !  5. subroutine        getkirjevp1           (ematpro,nndex,deftens,pdirtens,delt,effstrs,effpstrn, tantens,kirjtens)
-!  6. subroutine        updkirtevp1           (ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midkirtens,effstrs) 
+!  6. subroutine        updkirtevp1           (ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctantens,midkirtens,effstrs) 
 !  7. subroutine        updpstrnevp1          (ematpro,nndex,middeftens,prvkirtens,midkirtens,delt, effpstrn) 
-!  8. subroutine        updevp1               (ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs)
+!  8. subroutine        updevp1               (ematpro,nndex,midltens,delt, effpstrn,kirtens, ctantens,effstrs)
 !
 ! =========================================================================================================
 
@@ -32,7 +32,7 @@ subroutine getpropevp1(ematpro, e,nu,rho,eps0dot,m,sig0,eps0,n)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -57,6 +57,8 @@ subroutine getpropevp1(ematpro, e,nu,rho,eps0dot,m,sig0,eps0,n)
 
   return
 end subroutine getpropevp1
+
+
 
 
 
@@ -85,7 +87,7 @@ subroutine getetaevp1(ematpro,effstrs,effpstrn, eta)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -164,7 +166,7 @@ subroutine gethnpsievp1(opt,ematpro,delt,prveffstrs,mideffstrs,effpstrn, h,psi)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -191,7 +193,6 @@ subroutine gethnpsievp1(opt,ematpro,delt,prveffstrs,mideffstrs,effpstrn, h,psi)
   h= 0.0d0
   psi= 0.0d0
 
-
   ! get material properties
   ! -----------------------
   call getpropevp1(ematpro, e,nu,rho,eps0dot,m,sig0,eps0,n)
@@ -205,7 +206,7 @@ subroutine gethnpsievp1(opt,ematpro,delt,prveffstrs,mideffstrs,effpstrn, h,psi)
 
   ! -------------------------------------------------------------------
   ! compute eta function value for convenience: previous step [n]
-  call getetaevp1(ematpro,effstrs,effpstrn, eta)
+  call getetaevp1(ematpro,prveffstrs,effpstrn, eta)
      ! input : ematpro,prveffstrs,effpstrn
      ! output : eta
 
@@ -278,7 +279,7 @@ subroutine gettantensevp1(ematpro,nndex,lptens,h,psi,effstrs, tantens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -392,7 +393,7 @@ subroutine getkirjevp1(ematpro,nndex,deftens,pdirtens,delt,effstrs,effpstrn, tan
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -498,7 +499,7 @@ end subroutine getkirjevp1
 
 
 
-subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midkirtens,effstrs) 
+subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctantens,midkirtens,effstrs) 
   !=======================================================================
   !  updkirtevp1 = driver for updating kirchoff stress of evp model
   !
@@ -531,14 +532,14 @@ subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midk
   !
   !  output:
   !  --------
-  !  ctan(nndex,nndex,nndex,nndex) : tangent modulus
+  !  ctantens(nndex,nndex,nndex,nndex) : tangent modulus
   !
   !  midkirtens(nndex,nndex) : kirchoff stresstensor: mid step [n+1/2]
   !
   !  effstrs : effective stress
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -550,7 +551,7 @@ subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midk
 
   real(8), dimension(nndex,nndex), intent(inout) :: kirtens
 
-  real(8), dimension(nndex,nndex,nndex,nndex), intent(out) :: ctan
+  real(8), dimension(nndex,nndex,nndex,nndex), intent(out) :: ctantens
   real(8), dimension(nndex,nndex), intent(out) :: midkirtens
   real(8), intent(out) :: effstrs
   ! ====================================
@@ -562,7 +563,7 @@ subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midk
   real(8), dimension(nndex,nndex) :: dkirtens, kirjtens
   ! ====================================
   ! initialize: do not initialize kirtens
-  ctan(:,:,:,:)= 0.0d0
+  ctantens(:,:,:,:)= 0.0d0
   midkirtens(:,:)= 0.0d0
   effstrs= 0.0d0
 
@@ -584,9 +585,9 @@ subroutine updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midk
   ! -------------------------------------------------------------------
 
   ! compute jauman rate of kirchoff stress: mid step [n+1/2]
-  call getkirjevp1(ematpro,nndex,middeftens,pdirtens,delt,effstrs,effpstrn, ctan,kirjtens)
+  call getkirjevp1(ematpro,nndex,middeftens,pdirtens,delt,effstrs,effpstrn, ctantens,kirjtens)
     ! input : ematpro,nndex,middeftens,pdirtens,delt,effstrs,effpstrn
-    ! output : ctan,kirjtens
+    ! output : ctantens,kirjtens
   ! -------------------------------------------------------------------
 
   ! compute increment of kirchoff stress: d_kir= delt * kir^jauman
@@ -646,7 +647,7 @@ subroutine updpstrnevp1(ematpro,nndex,middeftens,prvkirtens,midkirtens,delt, eff
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -763,7 +764,7 @@ end subroutine updpstrnevp1
 
 
 
-subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs) 
+subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctantens,effstrs) 
   !=======================================================================
   !  updevp1 = main driver routine
   !            update elasto-visco plastic constitutive model and historic variables
@@ -798,13 +799,13 @@ subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs)
   !
   !  output:
   !  ------
-  !  ctan(nndex,nndex,nndex,nndex) : tangent modulus
+  !  ctantens(nndex,nndex,nndex,nndex) : tangent modulus
   !
   !  effstrs : effective stress
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -816,7 +817,7 @@ subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs)
   real(8), intent(inout) :: effpstrn
   real(8), dimension(nndex,nndex), intent(inout) :: kirtens
 
-  real(8), dimension(nndex,nndex,nndex,nndex), intent(out) :: ctan
+  real(8), dimension(nndex,nndex,nndex,nndex), intent(out) :: ctantens
   real(8), intent(out) :: effstrs
   ! ====================================
   ! local variable
@@ -830,7 +831,7 @@ subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs)
   real(8) :: pstrndot ! consistently approximated effective plastic strain: mid step [n+1/2]  
   ! ====================================
   ! initialize : do not initialize effpstrn, kirtens and tmp
-  ctan(:,:,:,:)= 0.0d0
+  ctantens(:,:,:,:)= 0.0d0
 
   ! store kirchoff stress tensor: previous step [n]
   prvkirtens(:,:)= kirtens(:,:)
@@ -843,10 +844,10 @@ subroutine updevp1(ematpro,nndex,midltens,delt, effpstrn,kirtens, ctan,effstrs)
   ! ----------------------
   ! update kirchoff stress: [n] -> [n+1]
   ! ----------------------
-  call updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctan,midkirtens,effstrs) 
+  call updkirevp1(ematpro,nndex,middeftens,delt,effpstrn, kirtens, ctantens,midkirtens,effstrs) 
      ! input : ematpro,nndex,middeftens,delt,effpstrn
      ! inoutput: kirtens
-     ! output : ctan,midkirtens,effstrs
+     ! output : ctantens,midkirtens,effstrs
 
   ! ---------------------
   ! update plastic strain: [n] -> [n+1]

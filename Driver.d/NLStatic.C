@@ -27,7 +27,7 @@
 void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 		         Corotator **corotators, FullSquareMatrix *kel,
-                         Vector &residual, double lambda)
+                         Vector &residual, double lambda, double time)
 /*******************************************************************
  *
  * Purpose :
@@ -59,7 +59,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele]) {
       corotators[iele]->getStiffAndForce(geomState, nodes, kel[iele],
-                                         elementForce.data(), sinfo.getTimeStep());
+                                         elementForce.data(), sinfo.getTimeStep(), time);
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
@@ -145,8 +145,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce *= lambda;
 
       // Include the "load stiffness matrix" in kel[iele]
-      corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
-                                            elementForce.data());
+      if(sinfo.newmarkBeta != 0.0)
+        corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
+                                              elementForce.data());
 
       // Determine the elemental force for the corrotated system
       corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());

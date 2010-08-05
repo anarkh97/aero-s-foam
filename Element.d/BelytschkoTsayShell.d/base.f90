@@ -37,7 +37,8 @@
 ! 32. subroutine             elearea         (optele,ndime,ecord, earea)
 ! 33. subroutine             elehleng0       (optele,ndime,ecord, ehleng)
 ! 34. subroutine             elehleng1       (ielem,optele,ndime,nnode,conec,coord, ehleng)
-! 35. subroutine             getnod2ele      (npoin,nelem,nnode,conec, nod2ele)
+! 35. subroutine             elehleng1a      (ielem,optele,mnode,ndime,nnode,conec,coord, ehleng)
+! 36. subroutine             getnod2ele      (npoin,nelem,nnode,conec, nod2ele)
 !
 ! =========================================================================================================
 
@@ -76,7 +77,7 @@ subroutine pcwlnaprx2d(optorg,optend,ndatapt,datapt,xval, yval,nflagend)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -290,6 +291,8 @@ end subroutine pcwlnaprx2d
 
 
 
+
+
 subroutine matprd(nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
   !=======================================================================
   !  matprd= matrix multiplication
@@ -318,7 +321,7 @@ subroutine matprd(nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -428,7 +431,7 @@ real(8) function area(nvrtx,vrtx)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -501,7 +504,7 @@ logical function chkcross(ndime,line1,line2)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -578,7 +581,7 @@ logical function ptinarea(nvrtx,vrtx,point)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -651,7 +654,7 @@ real(8) function permu(indx,jndx,kndx)
   !  permu : the permutation symbol value
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -669,10 +672,14 @@ real(8) function permu(indx,jndx,kndx)
   ! initialize
   permu= 0.0d0
 
-  if ( ( indx==1 .and. jndx==2 .and. kndx==3 ) .or. ( indx==2 .and. jndx==3 .and. kndx==1 ) .or. ( indx==3 .and. jndx==1 .and. kndx==2 ) ) then
+  if ( ( indx==1 .and. jndx==2 .and. kndx==3 ) .or. & 
+       ( indx==2 .and. jndx==3 .and. kndx==1 ) .or. &
+       ( indx==3 .and. jndx==1 .and. kndx==2 ) ) then
      permu= 1.0d0
 
-  else if ( ( indx==1 .and. jndx==3 .and. kndx==2 ) .or. ( indx==2 .and. jndx==1 .and. kndx==3 ) .or. ( indx==3 .and. jndx==2 .and. kndx==1 ) ) then
+  else if ( ( indx==1 .and. jndx==3 .and. kndx==2 ) .or. &
+            ( indx==2 .and. jndx==1 .and. kndx==3 ) .or. &
+            ( indx==3 .and. jndx==2 .and. kndx==1 ) ) then
      permu= -1.0d0
 
   else
@@ -707,7 +714,7 @@ real(8) function distance(ndime, line, point)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -787,7 +794,7 @@ real(8) function hsign(ndime, line, point)
   !  hsign
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -847,7 +854,7 @@ real(8) function heavi(xval)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -890,7 +897,7 @@ real(8) function angle(ndime,point)
   !  angle : angle between given line and global x-coordinate
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -998,7 +1005,7 @@ subroutine gettmftval(opt,prmtft,time,tmax,dist, tmftval,nflagrmv)
   ! 
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1193,7 +1200,7 @@ subroutine getparent2d(optele,nnode,ecord,poinx,poiny, s,t)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1335,7 +1342,7 @@ subroutine weightff(opttyp,optpol,rmax,dist, weight)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1410,7 +1417,7 @@ subroutine angfilter(ndime,crpt, angle)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1516,7 +1523,7 @@ subroutine ludcmp(n, a, indx,d)
   !  d : +/-1 depending on whether the row number interchanges was even or odd
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1654,7 +1661,7 @@ subroutine lubksb(n,a,indx, b)
   !           output-> x matrix
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1734,7 +1741,7 @@ real(8) function getdet(ndime,amat)
   !
   !======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1816,7 +1823,7 @@ subroutine getinv(ndime,amat, bmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1957,7 +1964,7 @@ subroutine getpertub(nptb,minval,maxval, ptbval)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2026,7 +2033,7 @@ subroutine gettvec(ndime,line, tvec)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2099,7 +2106,7 @@ subroutine hpsort(n, ra, indx)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2214,7 +2221,7 @@ subroutine rotpt2d(ndime,theta, poin)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2284,7 +2291,7 @@ subroutine getlineseg(ndime,seglen,segang,segorg, segline)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2356,7 +2363,7 @@ subroutine crsprdt3d(opt,avec,bvec, cvec)
   !                            
   ! ======================================================================
   
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2368,9 +2375,6 @@ subroutine crsprdt3d(opt,avec,bvec, cvec)
   ! local variable
   ! ==============
   real(8) :: lenght
-
-  ! loop index
-  integer :: idime
   ! ====================================
 
   ! initialize
@@ -2417,7 +2421,7 @@ real(8) function dotprdt(ndime,avec,bvec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2465,7 +2469,7 @@ subroutine unitvec1(ndime, avec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2528,7 +2532,7 @@ subroutine unitvec2(ndime,avec, bvec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2603,7 +2607,7 @@ subroutine mlsfit2dqd(npt,rmax,ptcord,ptdist,ptval,chkpt, dvaldx,dvaldy,fitcoef)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2742,7 +2746,7 @@ subroutine mlsfit2dln(npt,rmax,ptcord,ptdist,ptval, dvaldx,dvaldy,fitcoef)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2877,7 +2881,7 @@ subroutine mlsrhsmat(npt,npol,pmat,wmat,ptval, rhsmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2944,7 +2948,7 @@ subroutine mlsmmat(npt,npol,pmat,wmat, mmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -3003,7 +3007,7 @@ subroutine elearea(optele,ndime,ecord, earea)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -3090,7 +3094,7 @@ subroutine elehleng0(optele,ndime,ecord, ehleng)
   ! 
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -3183,11 +3187,12 @@ subroutine elehleng1(ielem,optele,ndime,nnode,conec,coord, ehleng)
   ! 
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  integer, intent(in) :: ielem, optele
+  integer, intent(in) :: ielem
+  integer, intent(in) :: optele
   integer, intent(in) :: ndime, nnode
   integer, dimension(nnode,*), intent(in) :: conec
   real(8), dimension(ndime,*), intent(in) :: coord
@@ -3226,6 +3231,68 @@ end subroutine elehleng1
 
 
 
+subroutine elehleng1a(ielem,optele,mnode,ndime,nnode,conec,coord, ehleng)
+  !=======================================================================
+  !  elehleng1a = compute average element size h
+  !
+  !              2d triangular, quadrilateral
+  !              3d shell
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !
+  !  output:
+  !  ------
+  !  ehleng : characteristic element h length
+  ! 
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: ielem
+  integer, intent(in) :: optele
+  integer, intent(in) :: mnode, ndime, nnode
+  integer, dimension(mnode,*), intent(in) :: conec
+  real(8), dimension(ndime,*), intent(in) :: coord
+
+  real(8), intent(out) :: ehleng
+  ! ====================================
+  ! local variable
+  ! ==============
+  integer, dimension(nnode) :: econc
+  real(8), dimension(ndime,nnode) :: ecord
+
+  ! ====================================
+
+  ! initialize
+  ehleng= 0.0d0
+
+
+  ! get element nodal coordinates and connectivity
+  ! ----------------------------------------------
+  call geteledata1hybrid(ielem,mnode,ndime,nnode,conec,coord, econc,ecord)
+     ! input : ielem,mnode,ndime,nnode,conec,coord
+     ! output : econc,ecord
+
+  ! compute characteristic h length
+  ! -------------------------------
+  call elehleng0(optele,ndime,ecord, ehleng)
+     ! input : optele,ndime,ecord
+     ! output : hleng
+
+
+
+  return
+end subroutine elehleng1a
+
+
+
+
+
 subroutine getnod2ele(npoin,nelem,nnode,conec, nod2ele)
   !=======================================================================
   !  getnod2ele = get node to neighbour elements map
@@ -3250,7 +3317,7 @@ subroutine getnod2ele(npoin,nelem,nnode,conec, nod2ele)
   ! 
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -3291,5 +3358,3 @@ subroutine getnod2ele(npoin,nelem,nnode,conec, nod2ele)
 
   return
 end subroutine getnod2ele
-
-

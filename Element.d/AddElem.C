@@ -107,6 +107,8 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
 
+#include <Element.d/Joint.d/RevoluteActuator.h>
+
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
 #include <Element.d/Helm.d/HelmBrick32.h> 
@@ -476,6 +478,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 125:
        ele = new (ba) PrismaticJoint(n);
+       break;
+     case 126:
+       ele = new (ba) RevoluteActuator(n);
        break;
      case 201:
        ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure

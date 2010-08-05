@@ -37,7 +37,7 @@ subroutine chkeffstrcri2d(optstr,effpstr,svoit2d, crival,criang)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -66,6 +66,20 @@ subroutine chkeffstrcri2d(optstr,effpstr,svoit2d, crival,criang)
 
   ! set results
   crival= effpstr
+
+
+! ### crack direction is computed from both of tension and compression
+!  if ( abs(pval1) > abs(pval2) ) then
+
+     ! minimum principal stress angle
+!     criang= pang2
+
+!  else if ( abs(pval2) > abs(pval1) ) then
+
+     ! minimum principal stress angle
+!     criang= pang1
+
+!  end if
 
   ! perpendicular to maximum principal direction
   criang= pang2

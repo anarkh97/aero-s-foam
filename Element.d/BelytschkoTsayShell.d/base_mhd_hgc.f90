@@ -1,9 +1,9 @@
 ! ==================================
-! hourglass control force: 3d 8 node hexahedron
+! hourglass control scheme
 ! ==================================
 !      type                  name                              arguement
 !      ----                  ----                              ---------
-! 1.  subroutine          elefhgc3d8nod                 (prmhgc,ematpro,ecord,edisp,evelo, efhgc)
+! 1.  subroutine          getgamma4nod                  (ecordloc, gamma)
 ! 2.  subroutine          getgamma8nod                  (ecurn, gamma)
 ! 3.  subroutine          gethgcbmat                    (ecord, hgcbmat)
 ! 4.  real(8) function    vol3d8nod                     (ecord)
@@ -13,148 +13,83 @@
 
 
 
-subroutine elefhgc3d8nod(prmhgc,ematpro,ecord,edisp,evelo, efhgc)
+subroutine getgamma4nod(ecordloc, gamma)
   !=======================================================================
-  !  elefhgc3d8nod = compute hourglass control force for 3d 8 node hexahedron element
+  !  getgamma4nod = compute gamma projection operator of 4 node quad. element
   !
-  !                  note:
-  !                  ----
-  !                  john o holliquist, livermore softwear, 1993, pp. 3.8, eq.(3.26)-(3.27)
-  !                  ls-dyna3d theory manual
-  !
-  !                  belytschko and bachrach, IJNME, 1986, vol. 54, pp. 279-301
-  !                  efficient implimemtation of quadrilaterals with high coarse-mesh accuracy
+  !                 note:
+  !                 ----
+  !                 flanagan and belytschko, IJNME, 1981, vol. 17, pp. 679-706
+  !                 a uniform strain hexahedron and quadrilateral
+  !                 with orthogonal hourglass control
+  !                 (see, eq (72))
   !
   !  arguments description
   !  ---------------------
   !  input:
   !  -----
-  !  prmhgc(*) : hourglass control parameter
-  !
-  !  ematpro(*) : material property
-  !
-  !  ecord(3,8) : element nodal coordinate data
-  !           
-  !  edisp(3,8) : element nodal displacement data
-  !
-  !  evelo(3,8) : element nodal displacement 
+  !  ecordloc(2,4) : local element nodal coordinate
   !
   !  output:
   !  ------
-  !  efhgc(24,1) : hourglass mode control force
+  !  gamma(4,1) : gamma projection operator
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(*), intent(in) :: prmhgc
-  real(8), dimension(*), intent(in) :: ematpro
+  real(8), dimension(2,4), intent(in) :: ecordloc
 
-  real(8), dimension(3,8), intent(in) :: ecord
-  real(8), dimension(3,8), intent(in) :: edisp
-  real(8), dimension(3,8), intent(in) :: evelo
-
-  real(8), dimension(24,1), intent(out) :: efhgc
+  real(8), dimension(4,1), intent(out) :: gamma
   ! ====================================
   ! local variable
   ! ==============
-  real(8) :: rk
-  real(8) :: young, poiss, denst
+  real(8) :: area, const
+  real(8) :: x1,x2,x3,x4
+  real(8) :: y1,y2,y3,y4
 
-  real(8), dimension(3,8) :: ecurn
-  real(8), dimension(4,8) :: gamma
-
-  real(8), dimension(3,4) :: g
-  real(8), dimension(3,8) :: ggamma
-
-  real(8) :: cd, cs, cr
-
-  real(8) :: vol3d8nod, volume
-
-  real(8) :: hgconst
-
-  integer :: iloc
-
-  ! loop index
-  integer :: inode
   ! ====================================
 
   ! initialize
-  efhgc(:,:)= 0.0d0
+  gamma(:,:)= 0.0d0
 
 
-  ! -------------------------------------------
-  ! stiffness propotional stabilization parameter
-  rk= prmhgc(1) ! usually 0.05 - 0.15
+  ! define components
+  x1= ecordloc(1,1)
+  x2= ecordloc(1,2)
+  x3= ecordloc(1,3)
+  x4= ecordloc(1,4)
 
-  ! get material properties
-  young= ematpro(1)
-  poiss= ematpro(2)
-  denst= ematpro(3)
-  ! -------------------------------------------
+  y1= ecordloc(2,1)
+  y2= ecordloc(2,2)
+  y3= ecordloc(2,3)
+  y4= ecordloc(2,4)
 
+  ! compute area
+  area= 0.50d0 * ( ( x3 - x1 ) * ( y4 - y2 ) + ( x2 - x4 ) * ( y3 - y1 ) )
 
-  ! compute current coordinate: x= u + X
-  ! --------------------------
-  ecurn(1:3,1:8)= ecord(1:3,1:8) + edisp(1:3,1:8)
+  ! check current element configuration
+  if ( area <= 0.0d0 ) then
+     write(*,*) "current element has zero or negative area: getgamma4nod"
+     write(nout5,*) "current element has zero or negative area: getgamma4nod"
+     stop
+  end if
 
-  ! compute gamma projector
-  ! -----------------------
-  call getgamma8nod(ecurn, gamma)
-     ! input : ecurn
-     ! output : gamma
+  ! compute constant
+  const= 1.0d0 / ( 4.0d0 * area )
 
-  ! compute g: g_ia= vel_ik gamma_ak, see eq.(3.26)
-  ! ---------
-  call matprd(3,8,0, 4,8,1, 3,4, evelo,gamma, g)
-     ! input : 3,8,0, 4,8,1, 3,4, evelo,gamma
-     ! output : g
-
-  ! compute ggamma: ggamma_ik= g_ia gamma_ak, see eq.(3.27)
-  ! --------------
-  call matprd(3,4,0, 4,8,0, 3,8, g,gamma, ggamma)
-     ! input : 3,4,0, 4,8,0, 3,8, g,gamma
-     ! output : ggamma
-
-  ! compute material sound speed
-  ! ----------------------------
-  ! dilational wave speed
-  cd= dsqrt( young * ( 1.0d0-poiss ) / denst / ( 1.0d0+poiss ) / ( 1.0d0-2.0d0*poiss ) )
-
-  ! shear wave speed
-  cs= dsqrt( young / 2.0d0 / denst / ( 1.0d0+poiss ) )
-
-  ! rayleigh surface wave speed
-  cr= cs *( 0.8620d0+1.140d0*poiss ) / ( 1.0d0+poiss )
-
-  ! compute volume
-  ! --------------
-  volume= vol3d8nod(ecurn)
-
-  ! compute constant: hgconst= 1/4 * rk * rho * ( volume**2/3 ) * c
-  ! ----------------
-  hgconst= 0.250d0 * rk * denst * volume**(2.0d0/3.0d0) * max( cd,cs,cr )
-
-
-  ! ---------------------------------
-  ! set stabilization force component: [f1x, f1y, f1z| f2x, f2y, f2z| ...... | f8x, f8y, f8z]
-  ! ---------------------------------
-  do inode=1, 8
-
-     iloc= 3 * inode - 2
-
-     efhgc(iloc,1)= hgconst * ggamma(1,inode)
-     efhgc(iloc+1,1)= hgconst * ggamma(2,inode)
-     efhgc(iloc+2,1)= hgconst * ggamma(3,inode)
-
-  end do 
+  ! set gamm projection operator for one point integration
+  gamma(1,1)= const*( x2*(y3-y4) + x3*(y4-y2) + x4*(y2-y3) )
+  gamma(2,1)= const*( x3*(y1-y4) + x4*(y3-y1) + x1*(y4-y3) )
+  gamma(3,1)= const*( x4*(y1-y2) + x1*(y2-y4) + x2*(y4-y1) )
+  gamma(4,1)= const*( x1*(y3-y2) + x2*(y1-y3) + x3*(y2-y1) )
 
 
 
   return
-end subroutine elefhgc3d8nod
+end subroutine getgamma4nod
 
 
 
@@ -184,7 +119,7 @@ subroutine getgamma8nod(ecurn, gamma)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -278,7 +213,7 @@ subroutine gethgcbmat(ecord, hgcbmat)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -350,7 +285,7 @@ real(8) function vol3d8nod(ecord)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -410,7 +345,7 @@ subroutine getcijk3d8nod(cijk)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================

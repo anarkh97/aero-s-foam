@@ -28,7 +28,7 @@ class SpringCorotator : public Corotator {
 			double,  FullSquareMatrix&);
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f, double dt);
+                             FullSquareMatrix &elk, double *f, double dt, double t);
 
      void formGeometricStiffness(GeomState
                       &, CoordSet &, FullSquareMatrix &, double *);

@@ -43,7 +43,7 @@ BeamCorotator::BeamCorotator(int _n1, int _n2, double z[3],
 
 void
 BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                                FullSquareMatrix &elK, double *f, double dt)
+                                FullSquareMatrix &elK, double *f, double dt, double t)
 {
  int i, j, inode;
 
@@ -155,7 +155,7 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
 void 
 BeamCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
-                                FullSquareMatrix &elK, double *f, double dt)
+                                FullSquareMatrix &elK, double *f, double dt, double t)
 {
 
 int i, j, inode;

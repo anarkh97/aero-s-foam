@@ -37,6 +37,9 @@
 ! 32. subroutine             curn2inivec     (ndime,ftens,veccurn, vecini)
 ! 33. subroutine             curn2iniang2d   (ftens,angcurn, angini)
 ! 34. real(8) function       trsprs          (nsprs,krow,kcol,sprsmat)             ! trace of a sparse matrix
+! 35. subroutine             getbtens        (ndime,ftens, btens)                  ! left cauchy-green deformation tensor B
+! 36. subroutine             getbbartens     (ndime,ftens, bbartens)               ! volume-preserving part of left cauchy-green deformation tensor B
+! 37. subroutine             getctens        (ndime,ftens, ctens)                  ! right cauchy-green deformation tensor c
 !
 ! =========================================================================================================
 
@@ -60,7 +63,7 @@ real(8) function krodelt(i,j)
   !  krodelt
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -111,7 +114,7 @@ real(8) function sprdts(opt,nndex,atens,btens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -199,7 +202,7 @@ subroutine sprdtt(opt,nndex,atens,btens, ctens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -294,7 +297,7 @@ subroutine dyadt(nndex,atens,btens, ctens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -353,7 +356,7 @@ subroutine symtens(nndex,atens, btens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -408,7 +411,7 @@ subroutine antisymtens(nndex,atens, btens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -461,7 +464,7 @@ real(8) function tr(nndex, atens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -519,7 +522,7 @@ real(8) function invrnt3d(opt,strstens3d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -579,7 +582,7 @@ integer function nvoit(ndime)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -617,7 +620,7 @@ subroutine ind2voit(ntype,ndime,tensor, voigt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -707,7 +710,7 @@ subroutine voit2ind(ntype,ndime,voigt, tensor)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -805,7 +808,7 @@ subroutine caucy2kir(nndex,ftens,sigtens, kirtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -861,7 +864,7 @@ subroutine caucy2pk2(nndex,ftens,sigtens, pk2tens)
   ! 
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -962,7 +965,7 @@ subroutine kir2caucy(nndex,ftens,kirtens, sigtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1026,7 +1029,7 @@ subroutine pk22caucy(nndex,ftens,pk2tens, sigtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1102,7 +1105,7 @@ subroutine pk22nomi(nndex,ftens,pk2tens, ptens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1162,7 +1165,7 @@ subroutine kir2pk2(nndex,ftens,kirtens, pk2tens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1263,7 +1266,7 @@ subroutine getftens(ndime,nnode,edisp,cartd, ftens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1346,7 +1349,7 @@ subroutine getetens(ndime,nnode,edisp,cartd, etens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1431,7 +1434,7 @@ subroutine getltens(ndime,nnode,evel,cartd,ftens, ltens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1497,7 +1500,7 @@ subroutine getrotens2d(ndime,theta, rotens2d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1551,7 +1554,7 @@ subroutine getdevtens(nndex,tens, devtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1615,7 +1618,7 @@ subroutine geteffstrn(nndex,devstrntens, effstrn)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1670,7 +1673,7 @@ subroutine geteffstrs(nndex,devstrstens, effstrs)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1726,7 +1729,7 @@ subroutine getj2dirtens(nndex,devstrstens,effstrs, j2dirtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1743,6 +1746,7 @@ subroutine getj2dirtens(nndex,devstrstens,effstrs, j2dirtens)
 
   ! initialize
   j2dirtens(:,:)= 0.0d0
+
 
   ! compute plastic flow direction
   if ( effstrs == 0.0d0 ) then
@@ -1794,7 +1798,7 @@ subroutine updjgeo(nndex,midltens,delt, strsjtens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1870,7 +1874,7 @@ subroutine updhwgeo(nndex,midltens,delt, strstens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1969,7 +1973,7 @@ subroutine voit3d2tens2d4(voit3d, tens2d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2039,7 +2043,7 @@ subroutine getcstrtens3d4(sigtens3d, cstrtens3d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2103,7 +2107,7 @@ subroutine voit2ind3d4(voigt3d4, tensor3d4)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2174,7 +2178,7 @@ subroutine ctantenscj2ct3d(ctantenscj3d,sigtens3d, ctantensct3d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2233,7 +2237,7 @@ subroutine getatens3d4(ctantens3d,sigtens3d, atens3d)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2294,7 +2298,7 @@ subroutine curn2inivec(ndime,ftens,veccurn, vecini)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2367,7 +2371,7 @@ subroutine curn2iniang2d(ftens,angcurn, angini)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2447,7 +2451,7 @@ real(8) function trsprs(nsprs,krow,kcol,sprsmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2485,3 +2489,177 @@ end function trsprs
 
 
 
+
+subroutine getbtens(ndime,ftens, btens)
+  !=======================================================================
+  !  getbtens= compute left cauchy-green deformation tensor
+  !
+  !            b = f.f^t
+  !
+  !            note:
+  !            ----
+  !            rotation-independent deformation measures
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ndime : dimension of tensor
+  !
+  !  ftens(ndime,ndime) : deformation gradient tensor
+  !  
+  !  output:
+  !  ------
+  !  btens(ndime,ndime) : left cauchy-green deformation tensor
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: ndime
+  real(8), dimension(ndime,ndime), intent(in) :: ftens
+
+  real(8), dimension(ndime,ndime), intent(out) :: btens
+  ! ====================================
+  ! local variable
+  ! ==============
+  
+  ! ====================================
+
+  ! initialize
+  btens(:,:)= 0.0d0
+
+
+  ! compute left cauchy-green deformation tensor: b = f.f^t
+  call matprd(ndime,ndime,0, ndime,ndime,1, ndime,ndime, ftens,ftens, btens)
+     ! input : ndime,ndime,0, ndime,ndime,1, ndime,ndime, ftens,ftens
+     ! output : btens
+
+
+
+  return
+end subroutine getbtens
+
+
+
+
+
+subroutine getbbartens(ndime,ftens, bbartens)
+  !=======================================================================
+  !  getbtens= compute volume preserving part of left cauchy-green deformation tensor
+  !
+  !            b = fbar.fbar^t
+  !
+  !            fbar= |f|^(-1/3) f
+  !
+  !            note:
+  !            ----
+  !            rotation-independent deformation measures
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ndime : dimension of tensor
+  !
+  !  ftens(ndime,ndime) : deformation gradient tensor
+  !  
+  !  output:
+  !  ------
+  !  bbartens(ndime,ndime) : volume preserving part of left cauchy-green deformation tensor
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: ndime
+  real(8), dimension(ndime,ndime), intent(in) :: ftens
+
+  real(8), dimension(ndime,ndime), intent(out) :: bbartens
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8) :: jdet, getdet
+  real(8), dimension(ndime,ndime) :: fbartens
+  
+  ! ====================================
+
+  ! initialize
+  bbartens(:,:)= 0.0d0
+
+
+  ! compute determinant of ftens tensor: jdet
+  jdet= getdet(ndime,ftens)
+
+  ! volume-preserving part of deformation gradient tensor
+  fbartens(1:ndime,1:ndime)= jdet**( -1.0d0 / 3.0d0 ) * ftens(1:ndime,1:ndime)
+
+  ! compute volume-preserving part of left cauchy-green deformation tensor: bbar = fbar.fbar^t
+  call matprd(ndime,ndime,0, ndime,ndime,1, ndime,ndime, fbartens,fbartens, bbartens)
+     ! input : ndime,ndime,0, ndime,ndime,1, ndime,ndime, fbartens,fbartens
+     ! output : bbartens
+
+
+
+  return
+end subroutine getbbartens
+
+
+
+
+
+subroutine getctens(ndime,ftens, ctens)
+  !=======================================================================
+  !  getbtens= compute right cauchy-green deformation tensor
+  !
+  !            c = f^t.f
+  !
+  !            note:
+  !            ----
+  !            rotation-independent deformation measures
+  !          
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ndime : dimension of tensor
+  !
+  !  ftens(ndime,ndime) : deformation gradient tensor
+  !  
+  !  output:
+  !  ------
+  !  ctens(ndime,ndime) : right cauchy-green deformation tensor
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: ndime
+  real(8), dimension(ndime,ndime), intent(in) :: ftens
+
+  real(8), dimension(ndime,ndime), intent(out) :: ctens
+  ! ====================================
+  ! local variable
+  ! ==============
+  
+  ! ====================================
+
+  ! initialize
+  ctens(:,:)= 0.0d0
+
+
+  ! compute right cauchy-green deformation tensor: b = f^t.f
+  call matprd(ndime,ndime,1, ndime,ndime,0, ndime,ndime, ftens,ftens, ctens)
+     ! input : ndime,ndime,1, ndime,ndime,0, ndime,ndime, ftens,ftens
+     ! output : ctens
+
+
+
+  return
+end subroutine getctens

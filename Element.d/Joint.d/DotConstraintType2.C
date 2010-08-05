@@ -93,7 +93,7 @@ DotConstraintType2::getTopNumber()
 }
 
 void 
-DotConstraintType2::update(GeomState& gState, CoordSet& cs)
+DotConstraintType2::update(GeomState& gState, CoordSet& cs, double)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];

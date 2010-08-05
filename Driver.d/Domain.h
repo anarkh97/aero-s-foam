@@ -300,7 +300,7 @@ class Domain : public HData {
                           int fileNumber, int stressIndex, double time);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
 			   Corotator **allCorot, FullSquareMatrix *kel,
-                           Vector &residual, double lambda = 1.0);
+                           Vector &residual, double lambda = 1.0, double time = 0.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,

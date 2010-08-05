@@ -34,7 +34,7 @@ struct OutputInfo {
           StressPR1Direc, StressPR2Direc, StressPR3Direc,
           StrainPR1Direc, StrainPR2Direc, StrainPR3Direc,
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
-          TDEnforcement, Damage,
+          TDEnforcement, Damage, EffPStrn, HardVar,
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative
          };
 

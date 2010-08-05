@@ -22,9 +22,9 @@ class SuperCorotator : public Corotator
   double* getPreviouslyExtractedSubDeformations(int i) { return (sub_vld) ? sub_vld[i] : 0; }
   double* getPreviouslyExtractedSubRigidBodyMotion(int i) { return (sub_vlr) ? sub_vlr[i] : 0; }
 
-  void getStiffAndForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt);
+  void getStiffAndForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getDExternalForceDu(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
-  void getInternalForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt);
+  void getInternalForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getExternalForce(GeomState &geomState, CoordSet &cs,  double *f);
 
   void formGeometricStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);

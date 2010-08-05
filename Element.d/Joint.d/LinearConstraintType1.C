@@ -30,7 +30,7 @@ LinearConstraintType1::getTopNumber()
 }
 
 void 
-LinearConstraintType1::update(GeomState& gState, CoordSet& cs)
+LinearConstraintType1::update(GeomState& gState, CoordSet& cs, double)
 {
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];

@@ -21,6 +21,8 @@
 #include <Feti.d/Feti.h>
 #include <Utils.d/ModeData.h>
 
+#define EXPLICIT_UPDATE
+
 extern ModeData modeData;
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
@@ -470,11 +472,14 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains()); // update to current configuration
     times->updateSurfsTime += getTime();
-
+#ifdef EXPLICIT_UPDATE
+    execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, d);
+#else
     DistrVector dinc(decDomain->solVecInfo());
     dinc.linC(1.0, d, -1.0, *dprev);
     geomState->update(dinc);
-
+    (*dprev) = d;
+#endif
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2, decDomain->getAllSubDomains()); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -486,8 +491,6 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     times->contactForcesTime -= getTime();
     domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
     times->contactForcesTime += getTime();
-
-    (*dprev) = d;
   }
   times->tdenforceTime += getTime();
 }
@@ -515,13 +518,17 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
   // update geomState for nonlinear problems. note computeExtForce2 must be called before getInternalForce
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
+#ifdef EXPLICIT_UPDATE
+    execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp());
+#else
     if(!dprev) { dprev = new DistrVector(decDomain->solVecInfo()); dprev->zero(); }
     DistrVector dinc(decDomain->solVecInfo());
     dinc.linC(1.0, distState.getDisp(), -1.0, *dprev); // incremental displacement: dinc = d - dprev
     geomState->update(dinc);
-    execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp);
     *dprev = distState.getDisp();
-    geomState->setVelocity(distState.getVeloc(), distState.getAccel());
+#endif
+    execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp);
+    geomState->setVelocity(distState.getDisp(), distState.getVeloc(), distState.getAccel());
   }
 
   // update nodal temperatures for thermoe problem
@@ -839,7 +846,7 @@ void
 MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t)
 {
   if(domain->solInfo().isNonLin())  // PJSA 3-31-08
-    execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f);
+    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t);
   else {
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
@@ -848,6 +855,15 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t)
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
 }
+
+void
+MultiDomainDynam::subExplicitUpdate(int isub, DistrVector &d)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subd(d.subData(isub), d.subLen(isub));
+  (*geomState)[isub]->explicitUpdate(sd->getNodes(), subd);
+}
+
 
 void
 MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp)
@@ -866,12 +882,12 @@ MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp)
 }
 
 void
-MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f)
+MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double t)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   Vector residual(f.subLen(isub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
-  sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual); // residual -= internal force
+  sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual
 }

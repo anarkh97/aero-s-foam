@@ -29,6 +29,12 @@
 ! 23. subroutine          rotprojbt2                     (ecord,edisp,evelo,eaccl, edisp0,evelo0,eaccl0)
 ! 24. subroutine          rotprojbt3                     (ecord,edisp,efvec0, efvec)
 ! 25. subroutine          getrotpmatbt                   (inode,ecurn, rotpmat)
+! ---------------------------------------------------------------------------------------------
+! 26. subroutine          getenergy                      (msize,nsize,delt,velo,fvec,fvecold, wenrg)
+! ---------------------------------------------------------------------------------------------
+! 27. subroutine          getsq1d                        (nsimp, possp,weisp)
+! 28. subroutine          getsq2dquad                    (nsqpt,msimp, sqpoin,sqweigt)
+! 29. subroutine          getsqele                       (optele,nsqdim,nsqpt,msimp, sqpoin,sqweigt)
 !
 ! =========================================================================================================
 
@@ -56,7 +62,7 @@ subroutine intrplfe2d(optele,nnode,psi,eta,nodval, intplval)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -117,7 +123,7 @@ subroutine intrplpt(optele,ndime,nnode,enodval,psi,eta, pt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -183,7 +189,7 @@ subroutine getparcord2d(optele,nnode,nodloc, parnod)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -256,7 +262,7 @@ subroutine getshape1d(nnode,psi, shap,deriv)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -335,7 +341,7 @@ subroutine getshape2d(optele,nnode,psi,eta, shap,deriv)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -380,23 +386,27 @@ subroutine getshape2d(optele,nnode,psi,eta, shap,deriv)
   if(optele==2 .and. nnode==4) handler='2d_q4'
   if(optele==2 .and. nnode==8) handler='2d_q8'
 
-  ! 3d TB shell element
+  ! 3d bt shell element
   if(optele==3 .and. nnode==4) handler='2d_q4'
   ! ------------------------------------------
 
   select case(handler)
 
-  ! 2d line element
-  case ('2d_l2')
-     ! set shape function's value
-     shap(1)=(1.0d0-s)/2.0d0
-     shap(2)=(1.0d0+s)/2.0d0
-
-     ! set derivation of shape function's value
-     deriv(1,1)=-1.0d0/2.0d0 ! dn/d(psi)
-     deriv(1,2)=1.0d0/2.0d0
-
   ! three-nodes triangle element : t3
+  ! ----------------------------
+  !    eta
+  !     ^
+  !     |
+  ! (3) 0 
+  !     | * 
+  !     |   * 
+  !     |     *
+  !     |       * 
+  !     |         *
+  !     |           *
+  !     0-------------0----> psi
+  !  (1)              (2)
+  !
   case ('2d_t3')
      ! set shape function's value
      shap(1)=1.0d0-s-t
@@ -411,32 +421,68 @@ subroutine getshape2d(optele,nnode,psi,eta, shap,deriv)
      deriv(2,2)=0.0d0
      deriv(2,3)=1.0d0
 
+
   ! six-nodes triangle element : t6
+  ! --------------------------
+  !    eta
+  !     ^
+  !     |
+  ! (3) 0 
+  !     |  * 
+  !     |    * 
+  !     |      *
+  ! [6] 0        0  [5]
+  !     |          * 
+  !     |            *
+  !     |              *
+  !     0--------0-------0----> psi
+  !  (1)        [4]       (2)
+  !
+
   case('2d_t6')
      ! set shape function's value
      shap(1)=1.0d0-3.0d0*(s+t)+4.0d0*st+2.0d0*(ss+tt)
      shap(2)=s*(2.0d0*s-1.0d0)
      shap(3)=t*(2.0d0*t-1.0d0)
      shap(4)=4.0d0*s*(1.0d0-s-t) ! mid node
-     shap(5)=4.0d0*s*t           ! midnode
-     shap(6)=4.0d0*t*(1.0d0-s-t) ! midnode
+     shap(5)=4.0d0*s*t           ! mid node
+     shap(6)=4.0d0*t*(1.0d0-s-t) ! mid node
 
      ! set derivation of shape function's value
      deriv(1,1)=4.0d0*(s+t)-3.0d0 ! dn/d(psi)
      deriv(1,2)=4.0d0*s-1.0d0 
      deriv(1,3)=0.0d0
-     deriv(1,4)=4.0d0*(1.0d0-t-2.0d0*s) ! midnode
-     deriv(1,5)=4.0d0*t                 ! midnode
-     deriv(1,6)=-4.0d0*t                ! midnode
+     deriv(1,4)=4.0d0*(1.0d0-t-2.0d0*s) ! mid node
+     deriv(1,5)=4.0d0*t                 ! mid node
+     deriv(1,6)=-4.0d0*t                ! mid node
 
      deriv(2,1)=4.0d0*(s+t)-3.0d0 ! dn/d(eta)
      deriv(2,2)=0.0d0
      deriv(2,3)=4.0d0*t-1.0d0
-     deriv(2,4)=-4.0d0*s                ! midnode
-     deriv(2,5)=4.0d0*s                 ! midnode
-     deriv(2,6)=4.0d0*(1.0d0-s-2.0d0*t) ! midnode
+     deriv(2,4)=-4.0d0*s                ! mid node
+     deriv(2,5)=4.0d0*s                 ! mid node
+     deriv(2,6)=4.0d0*(1.0d0-s-2.0d0*t) ! mid node
+
+
 
   ! four-nodes quadrialteral element : q4
+  ! --------------------------------
+  !             eta
+  !              ^
+  !              |
+  !  (4)         |         (3) 
+  !     0--------|--------0 
+  !     |        |        |
+  !     |        |        |
+  !     |        |        |
+  !     |        ---------|---------> psi
+  !     |                 |
+  !     |                 |
+  !     |                 |
+  !     0-----------------0
+  !  (1)                   (2)
+  !
+
   case('2d_q4')
      ! shape functions for 4 noded element
      shap(1)=(1.d0-t-s+st)/4.0d0
@@ -445,42 +491,62 @@ subroutine getshape2d(optele,nnode,psi,eta, shap,deriv)
      shap(4)=(1.d0+t-s-st)/4.0d0
 
      ! shape function derivatives for 4 noded element
-     deriv(1,1)=(-1.d0+t)/4.0d0
+     deriv(1,1)=(-1.d0+t)/4.0d0   ! dn/d(psi)
      deriv(1,2)=( 1.d0-t)/4.0d0
      deriv(1,3)=( 1.d0+t)/4.0d0
-     deriv(1,4)=(-1.d0-t)/4.0d0   ! dn/d(psi)
-     deriv(2,1)=(-1.d0+s)/4.0d0
+     deriv(1,4)=(-1.d0-t)/4.0d0
+     deriv(2,1)=(-1.d0+s)/4.0d0   ! dn/d(eta)
      deriv(2,2)=(-1.d0-s)/4.0d0
      deriv(2,3)=( 1.d0+s)/4.0d0
-     deriv(2,4)=( 1.d0-s)/4.0d0   ! dn/d(eta)
+     deriv(2,4)=( 1.d0-s)/4.0d0
+
+
+  ! eight-nodes quadrialteral element : q8
+  ! ---------------------------------
+  !             eta
+  !              ^
+  !              |
+  !              |
+  !  (4)        [7]        (3) 
+  !     0--------0--------0 
+  !     |        |        |
+  !     |        |        |
+  !     |        |        |
+  ! [8] 0        ---------0---------> psi
+  !     |                 | [6]
+  !     |                 |
+  !     |                 |
+  !     0--------0--------0
+  !  (1)        [5]        (2)
+  !
 
   case('2d_q8')
      shap(1)=(-1.0d0+st+ss+tt-sst-stt)/4.0d0
-     shap(2)=(1.0d0-t-ss+sst)/2.0d0
-     shap(3)=(-1.0d0-st+ss+tt-sst+stt)/4.0d0
-     shap(4)=(1.0d0+s-tt-stt)/2.0d0
-     shap(5)=(-1.0d0+st+ss+tt+sst+stt)/4.0d0
-     shap(6)=(1.0d0+t-ss-sst)/2.0d0
-     shap(7)=(-1.0d0-st+ss+tt+sst-stt)/4.0d0
-     shap(8)=(1.0d0-s-tt+stt)/2.0d0
+     shap(2)=(-1.0d0-st+ss+tt-sst+stt)/4.0d0
+     shap(3)=(-1.0d0+st+ss+tt+sst+stt)/4.0d0
+     shap(4)=(-1.0d0-st+ss+tt+sst-stt)/4.0d0
+     shap(5)=(1.0d0-t-ss+sst)/2.0d0 ! mid node
+     shap(6)=(1.0d0+s-tt-stt)/2.0d0 ! mid node
+     shap(7)=(1.0d0+t-ss-sst)/2.0d0 ! mid node
+     shap(8)=(1.0d0-s-tt+stt)/2.0d0 ! mid node
 
      ! shape function derivatives
      deriv(1,1)=(t+s2-st2-tt)/4.0d0 ! dn/d(psi)
-     deriv(1,2)=-s+st
-     deriv(1,3)=(-t+s2-st2+tt)/4.0d0
-     deriv(1,4)=(1.0d0-tt)/2.0d0
-     deriv(1,5)=(t+s2+st2+tt)/4.0d0
-     deriv(1,6)=-s-st
-     deriv(1,7)=(-t+s2+st2-tt)/4.0d0
-     deriv(1,8)=(-1.0d0+tt)/2.0d0
+     deriv(1,2)=(-t+s2-st2+tt)/4.0d0
+     deriv(1,3)=(t+s2+st2+tt)/4.0d0
+     deriv(1,4)=(-t+s2+st2-tt)/4.0d0
+     deriv(1,5)=-s+st             ! mid node
+     deriv(1,6)=(1.0d0-tt)/2.0d0  ! mid node
+     deriv(1,7)=-s-st             ! mid node
+     deriv(1,8)=(-1.0d0+tt)/2.0d0 ! mid node
      deriv(2,1)=(s+t2-ss-st2)/4.0d0 ! dn/d(eta)
-     deriv(2,2)=(-1.0d0+ss)/2.0d0
-     deriv(2,3)=(-s+t2-ss+st2)/4.0d0
-     deriv(2,4)=-t-st
-     deriv(2,5)=(s+t2+ss+st2)/4.0d0
-     deriv(2,6)=(1.0d0-ss)/2.0d0
-     deriv(2,7)=(-s+t2+ss-st2)/4.0d0
-     deriv(2,8)=-t+st
+     deriv(2,2)=(-s+t2-ss+st2)/4.0d0
+     deriv(2,3)=(s+t2+ss+st2)/4.0d0
+     deriv(2,4)=(-s+t2+ss-st2)/4.0d0
+     deriv(2,5)=(-1.0d0+ss)/2.0d0 ! mid node
+     deriv(2,6)=-t-st             ! mid node
+     deriv(2,7)=(1.0d0-ss)/2.0d0  ! mid node
+     deriv(2,8)=-t+st             ! mid node
   
   case default
      write(*,*) "not avaliable shape function: getshape2d"
@@ -526,7 +592,7 @@ subroutine getshape3d(optele,nnode,psi,eta,zet, shap,deriv)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -632,7 +698,7 @@ subroutine jacob0(ndime,nnode,deriv,ecord, djacob)
   !
   ! ======================================================================
  
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -659,15 +725,6 @@ subroutine jacob0(ndime,nnode,deriv,ecord, djacob)
 
   ! check determinant of jacobian matrix : djacb
   djacob= getdet(ndime,xjacm)
-
-! ### working
-!  if ( djacob <= 0.0d0) then
-!     write(*,*) "negative jacobian determinant: jacob0"
-!     write(nout5,*) "negative jacobian determinant: jacob0"
-!     djacob= 0.0d0
-!     return
-!  end if
-
 
 
   return
@@ -711,7 +768,7 @@ subroutine jacob1(ndime,nnode,deriv,ecord, djacob,cartd)
   !                            
   ! ======================================================================
  
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -741,15 +798,6 @@ subroutine jacob1(ndime,nnode,deriv,ecord, djacob,cartd)
 
   ! check determinant of jacobian matrix : djacb
   djacob= getdet(ndime,xjacm)
-
-! ### working
-!  if ( djacob <= 0.0d0) then
-!     write(*,*) "negative jacobian determinant: jacob1"
-!     write(nout5,*) "negative jacobian determinant: jacob1"
-!     djacob= 0.0d0
-!     cartd(:,:)= 0.0d0
-!     return
-!  end if
 
   ! calculate inverse of jacobian matrix : xjaci
   call getinv(ndime,xjacm, xjaci)
@@ -805,7 +853,7 @@ subroutine jacob2(ndime,nnode,deriv,ecord, djacob,xjaci,cartd)
   !                            
   ! ======================================================================
  
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -835,15 +883,6 @@ subroutine jacob2(ndime,nnode,deriv,ecord, djacob,xjaci,cartd)
 
   ! check determinant of jacobian matrix : djacb
   djacob= getdet(ndime,xjacm)
-
-! ### working
-!  if ( djacob <= 0.0d0) then
-!     write(*,*) "negative jacobian determinant: jacob2"
-!     write(nout5,*) "negative jacobian determinant: jacob2"
-!     djacob= 0.0d0
-!     cartd(:,:)= 0.0d0
-!     return
-!  end if
 
   ! calculate inverse of jacobian matrix : xjaci
   call getinv(ndime,xjacm, xjaci)
@@ -889,7 +928,7 @@ subroutine getgqele(optele,ngqdim,ngqpt1,mgaus1, gqpoin,gqweigt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -972,7 +1011,7 @@ subroutine getgq3dhexa(ngqpt1,mgaus1, gqpoin,gqweigt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1061,7 +1100,7 @@ subroutine getgq2dquad(ngqpt1,mgaus1, gqpoin,gqweigt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1143,7 +1182,7 @@ subroutine getgq2dtri(ngaus, posgp,weigp)
   !
   !=======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1235,7 +1274,7 @@ subroutine getgq1d(ngaus, posgp,weigp)
   !
   !=======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1596,7 +1635,7 @@ subroutine getnmat(nnode,nndof,shap, nmat)
   !                             [ ...                ]
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1653,7 +1692,7 @@ subroutine getgqcod(ndime,nnode,shap,ecord, gqcod)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1712,7 +1751,7 @@ subroutine getb0mat2d(nnode,cartd,ftens, b0mat2d)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1778,7 +1817,7 @@ subroutine getbmat2d(nnode,cartd, bmat2d)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1844,7 +1883,7 @@ subroutine getb0mat3d(nnode,cartd,ftens, b0mat3d)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -1924,7 +1963,7 @@ subroutine getbmat1pt(ecordloc, bmat1pt)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2013,7 +2052,7 @@ subroutine getbcmat1pt(ecordloc, bcmat1pt)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2121,7 +2160,7 @@ subroutine getbsmat1pt(ecordloc, bsmat1pt)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2213,7 +2252,7 @@ subroutine rotprojbt1(ecord,edisp,evelo, edisp0,evelo0)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2321,7 +2360,7 @@ subroutine rotprojbt2(ecord,edisp,evelo,eaccl, edisp0,evelo0,eaccl0)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2440,7 +2479,7 @@ subroutine rotprojbt3(ecord,edisp,efvec0, efvec)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2538,7 +2577,7 @@ subroutine getrotpmatbt(inode,ecurn, rotpmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -2610,3 +2649,270 @@ subroutine getrotpmatbt(inode,ecurn, rotpmat)
 
   return
 end subroutine getrotpmatbt
+
+
+
+
+
+subroutine getenergy(msize,nsize,delt,velo,fvec,fvecold, wenrg)
+  !=======================================================================
+  !  getenergy = compute energy
+  !
+  !              note:
+  !              ----
+  !              w^n+1 = w^n + delt*velo*0.5*(fvec+fvecold)
+  !
+  !  arguments description
+  !  ---------------------
+  !  input
+  !  -----
+  !
+  !  inoutput:
+  !  --------
+  !  wenrg : energy
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: msize, nsize
+  real(8), intent(in) :: delt
+  real(8), dimension(msize,1), intent(in) :: velo
+  real(8), dimension(msize,1), intent(in) :: fvec
+  real(8), dimension(msize,1), intent(in) :: fvecold
+  ! ------------------------------------
+
+  real(8), intent(inout) :: wenrg
+  ! ====================================
+  ! local variable
+  ! ==============
+
+  ! loop index
+  integer :: indx
+  ! ====================================
+
+  ! initialize: do not initialzie
+  
+  
+  do indx=1, nsize
+
+     wenrg= wenrg + delt* velo(indx,1) * 0.50d0 * ( fvec(indx,1) + fvecold(indx,1) )
+
+  end do
+
+
+
+  return
+end subroutine getenergy
+
+
+
+
+
+subroutine getsq1d(nsimp, possp,weisp)
+  !=======================================================================
+  !  getsq1d = sets up the simpson integration constants for 1d line
+  !
+  !  input :
+  !  -------
+  !  nsimp : the number of simpson quadarture
+  !
+  !  output :
+  !  --------
+  !  possp(nsimp) : simpson quadrature position in psi domain
+  !
+  !  weisp(nsimp) : simpson quadrature weight values
+  !
+  !=======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: nsimp
+
+  real(8), dimension(nsimp), intent(out) :: possp
+  real(8), dimension(nsimp), intent(out) :: weisp
+  ! ====================================
+  ! local variable
+  ! ==============
+
+  ! loop index
+  integer :: isimp
+  ! ====================================
+
+  ! initialize
+  possp(:)=0.d0
+  weisp(:)=0.d0 
+
+
+  ! set 1d mension simpson quadrature and it's weight value
+  do isimp=1, nsimp
+     
+     possp(isimp)= -1.0d0 + 1.0d0 / real(nsimp) + 2.0d0 / real(nsimp) * real( isimp - 1 )
+     
+     weisp(isimp)= 2.0d0 / real(nsimp)
+
+  end do
+
+
+  return
+end subroutine getsq1d
+
+
+
+
+
+subroutine getsq2dquad(nsqpt,msimp, sqpoin,sqweigt)
+  !=======================================================================
+  !  getsq2dquad = get 2d sq rule for quad
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  nsqpt : 1dsq rule
+  !
+  !  msimp : total number of sq
+  !           msimp = nsqpt**2 : psi and eta direction
+  !
+  !  output:
+  !  ------
+  !  gqpoin(2,msimp) : gq position
+  !
+  !  gqweigt(msimp) : gq weight
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: nsqpt, msimp
+
+  real(8), dimension(2,msimp), intent(out) :: sqpoin 
+  real(8), dimension(msimp), intent(out) :: sqweigt 
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8), dimension(nsqpt) :: possp
+  real(8), dimension(nsqpt) :: weisp
+
+  integer :: nsimp
+
+  ! loop index
+  integer :: isimp, jsimp
+  ! ====================================
+
+  ! initialize
+  sqpoin(:,:)= 0.0d0
+  sqweigt(:)= 0.0d0
+  
+
+  ! get simpson qquadrature rule for 1d line domain
+  call getsq1d(nsqpt, possp,weisp)
+     ! iput : nsqpt
+     ! output : possp,weisp
+
+  ! set total gq point and it's weight
+  nsimp=0 ! initialize
+  do isimp=1, nsqpt
+     do jsimp=1, nsqpt
+
+        ! increase counter
+        nsimp= nsimp+1
+
+        ! set 2d position
+        sqpoin(1,nsimp)= possp(isimp)
+        sqpoin(2,nsimp)= possp(jsimp)
+
+        ! set weight
+       sqweigt(nsimp)= weisp(isimp) * weisp(jsimp)
+
+     end do ! jgaus
+  end do ! igaus
+
+  ! error check
+  if( nsimp /= msimp) then
+     write(*,*) "inconsistency in sq rule: getsq2dquad"
+     write(nout5,*) "inconsistency in sq rule: getsq2dquad"
+     stop
+
+  end if
+
+
+
+  return
+end subroutine getsq2dquad
+
+
+
+
+
+subroutine getsqele(optele,nsqdim,nsqpt,msimp, sqpoin,sqweigt)
+  !=======================================================================
+  !  getsqele = get rule for given sq dimension and element
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  optele : element type option handler
+  !
+  !  nsqdim : dimension of sq
+  !
+  !  nsqpt : 1d sq rule
+  !
+  !  msimp : total number of sq
+  !           for quad. ele. : msimp= nsqpt**2 :psi and eta direction
+  !
+  !  output:
+  !  ------
+  !  sqpoin(2,msimp) : sq position
+  !
+  !  sqweigt(msimp) : sq weight
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: optele
+  integer, intent(in) :: nsqdim
+  integer, intent(in) :: nsqpt, msimp
+
+  real(8), dimension(nsqdim,msimp), intent(out) :: sqpoin 
+  real(8), dimension(msimp), intent(out) :: sqweigt 
+  ! ====================================
+  ! local variable
+  ! ==============
+
+  ! loop index
+  ! ====================================
+
+  ! initialize
+  sqpoin(:,:)= 0.0d0
+  sqweigt(:)= 0.0d0
+  
+
+  if ( nsqdim== 2 .and. optele == 2 ) then ! 2d quad
+
+     ! get sq rule for 2d quad
+     call getsq2dquad(nsqpt,msimp, sqpoin,sqweigt)
+        ! iput : nsqpt,msimp
+        ! output : sqpoin,sqweigt
+
+  else
+     write(*,*) "not available: getsqele"
+     write(nout5,*) "not available: getsqele"
+     stop
+
+  end if
+
+
+
+  return
+end subroutine getsqele

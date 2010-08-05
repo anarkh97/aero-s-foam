@@ -14,7 +14,7 @@
 ! 9.  integer function    ismbr1di                   (nndx,array1d,inumber)
 ! 10. integer function    ismbr2di                   (nrndx,ncndx,array2d,inumber)
 ! 11. integer function    ismbr1d1d0                 (nndx0,nndx1,array1d0,array1d1)
-! 12. subroutine          geteleval1vec              (msize,nnode,nndof,econc,disp, edisp) 
+! 12. subroutine          geteleval1vec              (msize,nnode,nndof,econc,disp, edisp)
 !
 ! =========================================================================================================
 
@@ -41,7 +41,7 @@ subroutine getsctr(nnode,nndof,econc, sctr)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -66,7 +66,7 @@ subroutine getsctr(nnode,nndof,econc, sctr)
      do idof=1, nndof
 
 	    indx= indx+1 ! count
-		sctr(indx)= nndof*(econc(inode)-1) + idof
+		 sctr(indx)= nndof*(econc(inode)-1) + idof
 
      end do
   end do
@@ -99,7 +99,7 @@ subroutine geteledata0(ielem,nnode,conec, econc)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -161,7 +161,7 @@ subroutine geteledata1(ielem,ndime,nnode,conec,coord, econc,ecord)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -228,7 +228,7 @@ subroutine geteleval1(msize,nnode,nndof,econc,disp, edisp)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -298,7 +298,7 @@ subroutine geteleval2(msize,nnode,nndof,econc,disp,velo, edisp,evelo)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -377,7 +377,7 @@ subroutine geteleval3(msize,nnode,nndof,econc,disp,velo,accl, edisp,evelo,eaccl)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -448,7 +448,7 @@ subroutine getmatprop0(ielem,matpro,matnum, ematpro)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -497,7 +497,7 @@ subroutine getmatprop1(ielem,matpro,matnum, young,poiss,denst,thick)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -553,7 +553,7 @@ integer function ismbr1di(nndx,array1d,inumber)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -614,7 +614,7 @@ integer function ismbr2di(nrndx,ncndx,array2d,inumber)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -675,7 +675,7 @@ integer function ismbr1d1d0(nndx0,nndx1,array1d0,array1d1)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -742,7 +742,7 @@ subroutine geteleval1vec(msize,nnode,nndof,econc,disp, edisp)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -807,7 +807,7 @@ subroutine cnvtevalvec2mat(nnode,nndof,evalvec, evalmat)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================

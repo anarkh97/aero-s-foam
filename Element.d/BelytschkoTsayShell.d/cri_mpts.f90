@@ -3,7 +3,7 @@
 ! ================================
 !      type                  name                              arguement
 !      ----                  ----                              ---------
-! 1.  subroutine           maxcri2d0             (prmcri,mgqpt1,crival,criang, nflagcr,crangle)
+! 1.  subroutine           maxcri2d1             (prmcri,mgqpt1,crival,criang, nflagcr,crvalue,crangle)
 ! 2.  subroutine           chkmptcri2d           (optstr,svoit2d, crival,criang)
 ! 3.  subroutine           chkmptscri2d          (optstr,svoit2d, crival,criang)
 ! 4.  subroutine           getptstr2d            (optstr,svoit2d, pval1,pval2,pang1,pang2)
@@ -13,9 +13,9 @@
 
 
 
-subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
+subroutine maxcri2d1(prmcri,mgqpt1,crival,criang, nflagcr,crvalue,crangle)
   !=======================================================================
-  !  maxcri2d0= 
+  !  maxcri2d1= 
   !
   !            note:
   !            ----
@@ -38,11 +38,13 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
   !            nflagcr=0 : crack criterion is not satisfied
   !            nflagcr=1 : crack criterion is satisfied
   !
+  !  crvalue : crack propagation value
+  !
   !  crangle : crack propagation angle
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -51,6 +53,7 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
   real(8), dimension(mgqpt1), intent(in) :: crival, criang
 
   integer, intent(out) :: nflagcr
+  real(8), intent(out) :: crvalue
   real(8), intent(out) :: crangle
   ! ====================================
   ! local variable
@@ -63,6 +66,7 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
 
   ! initialize
   nflagcr= 0
+  crvalue= 0.0d0
   crangle= 0.0d0
 
 
@@ -79,6 +83,9 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
         ! increase counter
         nflagcr= nflagcr + 1
 
+        ! crack propagation
+        crvalue= crvalue + crival(igaus)
+        
         ! crack propagation angle
         crangle= crangle + criang(igaus)
 
@@ -90,6 +97,8 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
   ! set flag and average angle
   if ( nflagcr /= 0 ) then
 
+     crvalue= crvalue / real(nflagcr)
+
      crangle= crangle / real(nflagcr)
 
      nflagcr= 1
@@ -100,7 +109,7 @@ subroutine maxcri2d0(prmcri,mgqpt1,crival,criang, nflagcr,crangle)
 
 
   return
-end subroutine maxcri2d0
+end subroutine maxcri2d1
 
 
 
@@ -128,7 +137,7 @@ subroutine chkmptcri2d(optstr,svoit2d, crival,criang)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -192,7 +201,7 @@ subroutine chkmptscri2d(optstr,svoit2d, crival,criang)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -275,7 +284,7 @@ subroutine getptstr2d(optstr,svoit2d, pval1,pval2,pang1,pang2)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -397,7 +406,7 @@ subroutine getpsstr2d(optstr,svoit2d, pval1,pang1)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================

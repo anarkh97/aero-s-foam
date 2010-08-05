@@ -163,5 +163,5 @@ GenDiagMatrix<Scalar>::factor()
       //exit(-1);
     }
   }
-  if(count > 0) cerr << " *** ERROR: " << count << " zero diagonal/s detected in the mass matrix and set to " << small << endl;
+  if(count > 0) cerr << " *** WARNING: " << count << " zero diagonal/s detected in mass matrix set to " << small << endl;
 }

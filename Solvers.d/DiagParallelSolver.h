@@ -104,8 +104,16 @@ DiagParallelSolver<Scalar>::assembleDiag(int iSub) {
     diagVals[i] = 0;
   sd[iSub]->assembleInterf(diagVals, vPat);
   GenSparseMatrix<Scalar> *sps = dynamic_cast<GenSparseMatrix<Scalar> * >(solver[iSub]);
-  for(int i = 0; i < solver[iSub]->neqs(); ++i)
+  int count = 0;
+  double small = 1e-5;
+  for(int i = 0; i < solver[iSub]->neqs(); ++i) {
     sps->diag(i) += diagVals[i];
+    if(sps->diag(i) == 0.0) {
+      sps->diag(i) = small;
+      count++;
+    }
+  }
+  if(count > 0) cerr << " *** WARNING: " << count << " zero diagonal/s detected in subdomain mass matrix set to " << small << endl;
   delete [] diagVals;
 }
 

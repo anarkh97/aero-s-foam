@@ -8,6 +8,8 @@ class CylindricalJoint : public SuperElement
   public:
     CylindricalJoint(int*);
     int getTopNumber();
+    bool hasRot() { return true; }
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

@@ -96,6 +96,15 @@
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
+#include <Element.d/Joint.d/SphericalJoint.h>
+#include <Element.d/Joint.d/RevoluteJoint.h>
+#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/UniversalJoint.h>
+#include <Element.d/Joint.d/CylindricalJoint.h>
+#include <Element.d/Joint.d/PrismaticJoint.h>
+
+#include <Element.d/Joint.d/RevoluteActuator.h>
+
 #include  <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
 PrioInfo
@@ -1248,5 +1257,47 @@ RigidSolid6Dof::examine(int sub, MultiFront *mf)
     case 32 : return examineHex8(sub, mf, nn); // 32-node hexa
     default : return examineBar2(sub, mf, nn);
   }
+}
+
+PrioInfo
+SphericalJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+OrientJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+UniversalJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+CylindricalJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PrismaticJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteActuator::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
 }
 

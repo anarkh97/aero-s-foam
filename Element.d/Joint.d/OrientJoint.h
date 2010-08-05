@@ -11,6 +11,8 @@ class OrientJoint : public SuperElement
   public:
     OrientJoint(int*);
     int getTopNumber();
+    bool hasRot() { return true; }
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

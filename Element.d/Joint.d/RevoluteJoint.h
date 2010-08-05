@@ -8,6 +8,8 @@ class RevoluteJoint : public SuperElement
   public:
     RevoluteJoint(int*);
     int getTopNumber();
+    bool hasRot() { return true; }
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

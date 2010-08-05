@@ -8,6 +8,8 @@ class PrismaticJoint : public SuperElement
   public:
     PrismaticJoint(int*);
     int getTopNumber();
+    bool hasRot() { return true; }
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

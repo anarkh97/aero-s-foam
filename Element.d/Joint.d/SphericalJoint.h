@@ -8,6 +8,7 @@ class SphericalJoint : public SuperElement
   public:
     SphericalJoint(int*);
     int getTopNumber();
+    PrioInfo examine(int sub, MultiFront*);
 };
 
 #endif

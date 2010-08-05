@@ -24,7 +24,7 @@ subroutine gettransmat(ndime,ntrndof,locbvec, transmat)
   !=======================================================================
   !  gettransmat = get transformation matrix
   !                transmat is the matrix of direction cosine
-  !                between local and global
+  !                between local(x,y,z) and global(1,2,3)
   !
   !                transformation matrix:
   !                ---------------------
@@ -56,7 +56,7 @@ subroutine gettransmat(ndime,ntrndof,locbvec, transmat)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -154,7 +154,7 @@ subroutine loc2glbtens(ndime,ntrndof,locbvec,loctens, glbtens)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -222,7 +222,7 @@ subroutine glb2loctens(ndime,ntrndof,locbvec,glbtens, loctens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -284,7 +284,7 @@ subroutine glb2locnodv(ndime,nnode,ntrndof,locbvec,eglbnodv, elocnodv)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -345,7 +345,7 @@ subroutine loc2glbnodv(ndime,nnode,ntrndof,locbvec,elocnodv, eglbnodv)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -418,7 +418,7 @@ subroutine glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -484,7 +484,7 @@ subroutine loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -544,7 +544,7 @@ subroutine loc2loc0v(ndime,ntrndof,locbvec,locbvec0,locvec, locvec0)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -628,7 +628,7 @@ subroutine getlocbvecbt(ecurn, locbvec)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================

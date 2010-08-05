@@ -37,7 +37,7 @@ ConstantDistanceConstraint::getTopNumber()
 }
 
 void 
-ConstantDistanceConstraint::update(GeomState& gState, CoordSet& cs)
+ConstantDistanceConstraint::update(GeomState& gState, CoordSet& cs, double)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];

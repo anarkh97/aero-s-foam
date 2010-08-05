@@ -153,7 +153,15 @@ void
 GenDiagMatrix<Scalar>::factor()
 {
   // check for zero
+  int count = 0;
+  double small = 1e-5;
   for (int i = 0 ; i < neq ; i++) {
-    if(v[i] == 0.0) { cerr << " *** ERROR: zero diagonal detected in the mass matrix. Exiting to avoid division by zero ... \n"; exit(-1); }
+    if(v[i] == 0.0) { 
+      v[i] = small;
+      count++;
+      //cerr << " *** ERROR: zero diagonal detected in the mass matrix. Exiting to avoid division by zero ... \n";
+      //exit(-1);
+    }
   }
+  if(count > 0) cerr << " *** ERROR: " << count << " zero diagonal/s detected in the mass matrix and set to " << small << endl;
 }

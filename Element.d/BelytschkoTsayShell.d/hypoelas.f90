@@ -46,7 +46,7 @@ subroutine getlameconst(young,poiss, lamd,mu)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -104,7 +104,7 @@ subroutine getbulkconst(young,poiss, bulk)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -157,7 +157,7 @@ subroutine getelsvoit2d(optpty,young,poiss, elsvoit2d)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -245,7 +245,7 @@ subroutine getelsvoit3d(young,poiss, elsvoit3d)
   !                            
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -319,7 +319,7 @@ subroutine getelstens(nndex,lamd,mu, elstens)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -386,7 +386,7 @@ real(8) function elscomp(lamd,mu, i,j,k,l)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================

@@ -107,7 +107,7 @@ GeomNLSolver::getStiffAndForce(GeomState &u, Vector &residual)
 
       // Get updated stiffness and element internal force vector
       allCorot[iele]->getStiffAndForce(u, nodes, kelArray[iele], 
-                      elementInternalForce.data(), 0);
+                      elementInternalForce.data(), 0, 0);
 
       // Symmetrize element stiffness matrix
       if(!domain->solInfo().getNLInfo().unsymmetric) kelArray[iele].symmetrize();

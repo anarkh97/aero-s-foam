@@ -1,19 +1,19 @@
 ! ================================
-! j2 plasticity model model
+! j2 plasticity model model: explicit integration
 ! ================================
 !      type                  name                              arguement
 !      ----                  ----                              ---------
-!  1. subroutine        getpropj21            (ematpro, e,nu,rho,sigy,h)
-!  2. subroutine        getj2dlambda1         (h,j2dirvoit,elsvoid2d,ipstrndel, dlambda)
-!  3. subroutine        updj2pexp             (ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs) 
+! 1.  subroutine        getpropj2            (ematpro, e,nu,rho,sigy,h)
+! 2.  subroutine        getj2dlambdaexp      (nvoit,h,j2dirvoit,elsvoid,dstrnvoit, dlambda)
+! 3.  subroutine        updj2pexp            (optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,strsvoit, effstrs) 
 !
 ! =========================================================================================================
 
 
 
-subroutine getpropj21(ematpro, e,nu,rho,sigy,h)
+subroutine getpropj2(ematpro, e,nu,rho,sigy,h)
   !=======================================================================
-  !  getpropj21 = get j21 model material properties
+  !  getpropj2 = get j2 model material properties
   !
   !  arguments description
   !  ---------------------
@@ -27,7 +27,7 @@ subroutine getpropj21(ematpro, e,nu,rho,sigy,h)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
@@ -48,94 +48,90 @@ subroutine getpropj21(ematpro, e,nu,rho,sigy,h)
 
 
   return
-end subroutine getpropj21
+end subroutine getpropj2
 
 
 
 
 
-subroutine getj2dlambda1(h,j2dirvoit,elsvoid2d,ipstrndel, dlambda)
+subroutine getj2dlambdaexp(nvoit,h,j2dirvoit,elsvoit,dstrnvoit, dlambda)
   !=======================================================================
-  !  getj2dlambda1 = explicit calculation of dlambda(plastic flow)
-  !                 in j2 plasticity
+  !  getj2dlambdaexp = explicit calculation of dlambda (plastic flow)
+  !                    in j2 plasticity
   !
   !  arguments description
   !  ---------------------
   !  input:
   !  -----
-  !  ematpro(*) : material properties
-  !
-  !  ipstrndel(3,1) : increment of in plane strain tensor
-  !
-  !  inoutput:
-  !  --------
-  !  effpstrn : effective plastic strain
-  !
-  !  hardvar : hardening variable
-  !
-  !  ipstrn(3,1) : voight form in plane strain
-  !
-  !  ipstrs(3,1) : voight form in plane stress
   !
   !  output:
   !  ------
-  !  effstrs : effective stress
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
+  integer, intent(in) :: nvoit
   real(8), intent(in) :: h
-  real(8), dimension(3,1), intent(in) :: j2dirvoit
-  real(8), dimension(3,3), intent(in) :: elsvoid2d
-  real(8), dimension(3,1), intent(in) :: ipstrndel
+  real(8), dimension(nvoit,1), intent(in) :: j2dirvoit
+  real(8), dimension(nvoit,nvoit), intent(in) :: elsvoit
+  real(8), dimension(nvoit,1), intent(in) :: dstrnvoit
 
   real(8), intent(out) :: dlambda
   ! ====================================
   ! local variable
   ! ==============
-  real(8), dimension(3,1) :: temp1
+  real(8), dimension(nvoit,1) :: temp1
   real(8) :: temp2
-  real(8), dimension(3,1) :: temp3
+  real(8), dimension(nvoit,1) :: temp3
   real(8) :: temp4
 
   ! loop index
+  integer :: ivoit
   ! ====================================
 
   ! initialize
   dlambda= 0.0d0
 
-  ! elasvoit2d[3x3]*ipstrndel[3,1]
-  call matprd(3,3,0, 3,1,0, 3,1, elsvoid2d,ipstrndel, temp1)
-     ! input : 3,3,0, 3,1,0, 3,1, elsvoid2d,ipstrndel
+
+  ! elasvoit2d[nvoit x nvoit]*delstrnvoit[nvoit,1]
+  call matprd(nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,dstrnvoit, temp1)
+     ! input : nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,dstrnvoit
      ! output : temp1
 
-  ! n.elasvoit2d[3x3].ipstrndel[3,1]
-  temp2= j2dirvoit(1,1)*temp1(1,1) + j2dirvoit(2,1)*temp1(2,1) + j2dirvoit(3,1)*temp1(3,1)
+  ! j2dirvoit[nvoit x nvoit].temp1[nvoit x 1]
+  temp2= 0.0d0 ! initialize
+  do ivoit=1, nvoit
+     temp2= temp2 + j2dirvoit(ivoit,1)*temp1(ivoit,1)
+  end do
 
-  ! elasvoit2d[3x3]*j2dirvoit[3,1]
-  call matprd(3,3,0, 3,1,0, 3,1, elsvoid2d,j2dirvoit, temp3)
-     ! input : 3,3,0, 3,1,0, 3,1, elsvoid2d,j2dirvoit
+  ! elasvoit[nvoit x nvoit].j2dirvoit[nvoit,1]
+  call matprd(nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,j2dirvoit, temp3)
+     ! input : nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,j2dirvoit
      ! output : temp3
 
-  ! n.elasvoit2d[3x3].n
-  temp4= j2dirvoit(1,1)*temp3(1,1) + j2dirvoit(2,1)*temp3(2,1) + j2dirvoit(3,1)*temp3(3,1)
+  ! j2dirvoit[nvoit x nvoit].temp3[nvoit x 1]
+  temp4= 0.0d0 ! initialize
+  do ivoit=1, nvoit
+     temp4= temp4 + j2dirvoit(ivoit,1)*temp3(ivoit,1)
+  end do
+
 
   ! compute dlambda
-  dlambda= dabs(temp2 / ( temp4 + h) )
+  dlambda= dabs( temp2 / ( temp4 + h ) )
 
 
 
   return
-end subroutine getj2dlambda1
+end subroutine getj2dlambdaexp
 
 
 
 
 
-subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs) 
+subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,strsvoit, effstrs) 
   !=======================================================================
   !  updj2pexp = explicitly update j2 plasticity
   !
@@ -143,9 +139,13 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
   !  ---------------------
   !  input:
   !  -----
+  !  optpty : 2d problem type
+  !
+  !  ndime : dimension
+  !
   !  ematpro(*) : material properties
   !
-  !  ipstrndel(3,1) : increment of in plane strain tensor
+  !  dstrnvoit(nvoit,1) : total strain increment in voigt form
   !
   !  inoutput:
   !  --------
@@ -153,9 +153,9 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
   !
   !  hardvar : hardening variable
   !
-  !  ipstrn(3,1) : voight form in-plane strain
+  !  strnvoit(nvoit,1) : voight form strain
   !
-  !  ipstrs(3,1) : voight form in-plane stress
+  !  strsvoit(nvoit,1) : voight form stress
   !
   !  output:
   !  ------
@@ -163,90 +163,117 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
   !
   ! ======================================================================
 
-  use preset
+  include 'preset.fi'
   ! ====================================
   ! subroutine argument
   ! ===================
+  integer, intent(in) :: optpty
+  integer, intent(in) :: ndime
   real(8), dimension(*), intent(in) :: ematpro
-  real(8), dimension(3,1), intent(in) :: ipstrndel
+  real(8), dimension(ndime*(ndime+1)/2,1), intent(in) :: dstrnvoit
+  ! -------------------------------------
 
-  real(8), intent(inout) :: effpstrn, hardvar
-  real(8), dimension(3,1), intent(inout) :: ipstrn, ipstrs
+  real(8), intent(inout) :: effpstrn
+  real(8), intent(inout) :: hardvar
+  real(8), dimension(ndime*(ndime+1)/2,1), intent(inout) :: strnvoit
+  real(8), dimension(ndime*(ndime+1)/2,1), intent(inout) :: strsvoit
 
+  ! -------------------------------------
   real(8), intent(out) :: effstrs
   ! ====================================
   ! local variable
   ! ==============
+  integer :: nvoit
+
   real(8) :: e, nu, rho, sigy, h
 
-  real(8), dimension(3,3) :: elsvoid2d
-  real(8), dimension(2,2) :: ipstrstens
-  real(8), dimension(2,2) :: devstrstens
+  ! voight form
+  real(8), dimension(ndime*(ndime+1)/2,ndime*(ndime+1)/2) :: elsvoit
+
+  ! tensor
+  real(8), dimension(ndime,ndime) :: strstens
+  real(8), dimension(ndime,ndime) :: devstrstens
+  real(8), dimension(ndime,ndime) :: j2dirtens
+
+  ! voight form
+  real(8), dimension(ndime*(ndime+1)/2,1) :: j2dirvoit
+
   real(8) :: yield
-
-  real(8), dimension(2,2) :: j2dirtens
-  real(8), dimension(3,1) :: j2dirvoit
-
   real(8) :: dlambda
 
-  real(8), dimension(3,1) :: pstrndel, estrndel, estrsdel
-
-  ! loop index
+  ! voight form
+  real(8), dimension(ndime*(ndime+1)/2,1) :: dpstrnvoit
+  real(8), dimension(ndime*(ndime+1)/2,1) :: destrnvoit
+  real(8), dimension(ndime*(ndime+1)/2,1) :: destrsvoit
   ! ====================================
 
   ! initialize
   effstrs= 0.0d0
 
 
+  ! compute number of voight form components
+  nvoit= ndime * ( ndime + 1 ) / 2
+
+  ! --------------------------------------------------------------
+  ! material properties
+  ! -------------------
   ! get material properties
-  call getpropj21(ematpro, e,nu,rho,sigy,h)
+  call getpropj2(ematpro, e,nu,rho,sigy,h)
      ! input : ematpro
      ! output : e,nu,rho,sigy,h
 
-
   ! get virgin elastic moduli
-  call getelsvoit2d(1,e,nu, elsvoid2d)
-     ! input : 1(optpty:p strs),e,nu
-     ! output : elsvoit2d
+  if ( ndime==2 ) then
+     call getelsvoit2d(optpty,e,nu, elsvoit)
+        ! input : optpty,e,nu
+        ! output : elsvoit
+
+  else if (ndime == 3 ) then
+     call getelsvoit3d(e,nu, elsvoit)
+        ! input : e,nu
+        ! output : elsvoit
+  end if
 
 
-  ! change voight form to tensor
-  ipstrstens(1,1)= ipstrs(1,1) 
-  ipstrstens(2,2)= ipstrs(2,1) 
-  ipstrstens(1,2)= ipstrs(3,1) 
-  ipstrstens(2,1)= ipstrs(3,1) 
-
+  ! --------------------------------------------------------------
+  ! compute effective stress
+  ! ------------------------
+  ! convert strsvoit to strstens
+  call voit2ind(0,ndime,strsvoit, strstens)
+     ! input : 0(ntype:kinetic),ndime,strsvoit
+     ! output : strstens
 
   ! compute deviatoric stress
-  call getdevtens(2,ipstrstens, devstrstens)
-     ! input : 2(nndex),ipstrstens
+  call getdevtens(ndime,strstens, devstrstens)
+     ! input : ndime,strstens
      ! output : devstrstens
 
   ! compute effective stress
-  call geteffstrs(2,devstrstens, effstrs)
-     ! input : 2(nndex),devstrstens
+  call geteffstrs(ndime,devstrstens, effstrs)
+     ! input : ndime,devstrstens
      ! output : effstrn
 
+
+  ! --------------------------------------------------------------
   ! check yield condition
+  ! ---------------------
   yield= effstrs - hardvar - sigy
 
-
-  ! if yield criterion is satisfied
-  if ( yield > 0.0d0 ) then
+  if ( yield > 0.0d0 ) then ! yield criterion is satisfied
 
      ! calculate plastic flow direction
-     call getj2dirtens(2,devstrstens,effstrs, j2dirtens)
-        ! input : 2(nndex),devstrstens,effstrs
+     call getj2dirtens(ndime,devstrstens,effstrs, j2dirtens)
+        ! input : ndime,devstrstens,effstrs
         ! output : j2dirtens
 
-     ! voight form
-     j2dirvoit(1,1)= j2dirtens(1,1)
-     j2dirvoit(2,1)= j2dirtens(2,2)
-     j2dirvoit(3,1)= j2dirtens(1,2)
-
+     ! get voight form j2 plastic flow direction
+     call ind2voit(0,ndime,j2dirtens, j2dirvoit)
+        ! input : 0(ntype:kinetic),ndime,j2dirtens
+        ! output : j2dirvoit  
+  
      ! compute dlambda: plastic multiplier
-     call getj2dlambda1(h,j2dirvoit,elsvoid2d,ipstrndel, dlambda)
-        ! input : h,j2dirvoit,elsvoid2d,ipstrndel
+     call getj2dlambdaexp(nvoit,h,j2dirvoit,elsvoit,dstrnvoit, dlambda)
+        ! input : nvoit,h,j2dirvoit,elsvoit,dstrnvoit
         ! output : dlambda
 
   else
@@ -254,25 +281,38 @@ subroutine updj2pexp(ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
      j2dirvoit(:,:)= 0.0d0
   end if
 
+
+  ! --------------------------------------------------------------
+  ! compute elastic stress increment
+  ! --------------------------------
   ! plastic strain increment
-  pstrndel(1:3,1)= dlambda * j2dirvoit(1:3,1)
+  dpstrnvoit(1:nvoit,1)= dlambda * j2dirvoit(1:nvoit,1)
 
   ! elastic strain increment
-  estrndel(1:3,1)= ipstrndel(1:3,1) - pstrndel(1:3,1)
+  destrnvoit(1:nvoit,1)= dstrnvoit(1:nvoit,1) - dpstrnvoit(1:nvoit,1)
 
   ! elastic stress increment
-  call matprd(3,3,0, 3,1,0, 3,1, elsvoid2d,estrndel, estrsdel)
-     ! input : 3,3,0, 3,1,0, 3,1, elsvoid2d,estrndel
-     ! output : estrsdel
+  call matprd(nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,destrnvoit, destrsvoit)
+     ! input : nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,destrnvoit
+     ! output : destrsvoit
 
+  ! --------------------------------------------------------------
   ! explicit update
-  effpstrn= effpstrn + dlambda ! effective plastic strain
+  ! ---------------
+  ! effective plastic strain
+  effpstrn= effpstrn + dlambda
 
-  hardvar= hardvar + h*dlambda ! hardening variable
+  ! hardening variable
+  hardvar= hardvar + h*dlambda
 
-  ipstrn(1:3,1)= ipstrn(1:3,1) + ipstrndel(1:3,1) ! estrndel(1:3,1) ! update strain
+  ! update strain
+  strnvoit(1:nvoit,1)= strnvoit(1:nvoit,1) + dstrnvoit(1:nvoit,1)
 
-  ipstrs(1:3,1)= ipstrs(1:3,1) + estrsdel(1:3,1) ! update stress
+  ! update stress
+  strsvoit(1:nvoit,1)= strsvoit(1:nvoit,1) + destrsvoit(1:nvoit,1)
+  ! --------------------------------------------------------------
+
+
 
   return
 end subroutine updj2pexp

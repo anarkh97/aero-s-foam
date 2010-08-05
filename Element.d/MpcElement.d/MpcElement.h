@@ -49,10 +49,10 @@ class MpcElement : public Element, public Corotator, public LMPCons
     bool isMpcElement() { return true; }
 
     Corotator* getCorotator(CoordSet&, double*, int, int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double);
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     double getElementEnergy(GeomState&, CoordSet&) { }
 
-    virtual void update(GeomState&, CoordSet&);
+    virtual void update(GeomState&, CoordSet&, double);
     virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
 
     PrioInfo examine(int sub, MultiFront *mf);

@@ -73,34 +73,31 @@ struct PMLProps {
 
 class StructProp {
   public:
-    union
-        {
+    union {
+        double  A;      // Cross-sectional area
+        double kx;
+        };
+    union {
 	double	E;      // Elastic modulus
 	double d0;      // Initial stiffness of nonlin element
         double ky;
 	};
     union {
-	double  A;  	// Cross-sectional area
-        double kx;
-        };
-    union
-	{
 	double	nu; 	// Poisson's ratio
 	double a;	// shear-t contribution ratio
         double kz;
         double lambda;  // damage control
 	};
-
+     union {
 	double  rho; 	// Mass density per unit volume
-     union
-	{
+        };
+     union {
 	double  eh;	// Element thickness
 	double  C1;	// Non-uniform torsion constant
 	double b;       // shear-s contribution ratio
 	double xo;      // Plastic parameter    -January 2002 - JMP
 	};
-     union
-        {
+     union {
 	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
         };
@@ -146,7 +143,8 @@ class StructProp {
         complex<double> soundSpeed;
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
-        double penalty;    // penalty parameter for mpc type elements
+        double penalty; // penalty parameter for mpc type elements
+        double amplitude, omega; // amplitude and circular frequency of forcing term for some mpc type elements
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
 
 	// Fabric Material Options
@@ -184,7 +182,8 @@ class StructProp {
                        soundSpeed = 1.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; type = Undefined; } 
+                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0;
+                       type = Undefined; } 
 
 };
 

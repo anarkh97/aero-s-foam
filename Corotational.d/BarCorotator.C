@@ -28,7 +28,7 @@ BarCorotator::BarCorotator(int _n1, int _n2, StructProp *_prop,
 
 void
 BarCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f, double)
+                               FullSquareMatrix &elK, double *f, double, double)
 /*******************************************************************
  *
  * Purpose :
@@ -257,10 +257,10 @@ BarCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
 
 void 
 BarCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f, double dt)
+                               FullSquareMatrix &elK, double *f, double dt, double t)
 {
 
-  getStiffAndForce(geomState, cs, elK, f, dt);
+  getStiffAndForce(geomState, cs, elK, f, dt, t);
 
 }				  
 

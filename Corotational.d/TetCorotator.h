@@ -14,7 +14,7 @@ class TetCorotator : public Corotator {
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f, double dt);
+                             FullSquareMatrix &elk, double *f, double dt, double t);
 
      void   formGeometricStiffness(GeomState &gs, CoordSet &cs, 
                                    FullSquareMatrix &elk, double *f);

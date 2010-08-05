@@ -885,6 +885,12 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Damage:
           getStressStrain(u, i, DAMAGE, time);
           break;
+        case OutputInfo::EffPStrn:
+          getStressStrain(u, i, EFFPSTRN, time);
+          break;
+        case OutputInfo::HardVar:
+          getStressStrain(u, i, HARDVAR, time);
+          break;
         case OutputInfo::StressPR1:
           getPrincipalStress(u, i, PSTRESS1, time);
           break;

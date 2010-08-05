@@ -12,7 +12,7 @@ class DotConstraintType1 : public MpcElement
     DotConstraintType1(int*, int, int);
     void buildFrame(CoordSet&);
     int getTopNumber();
-    void update(GeomState& gState, CoordSet& cs);
+    void update(GeomState& gState, CoordSet& cs, double);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
     void setFrame(EFrame *);
 };

@@ -20,7 +20,7 @@ class QuadThermalCorotator : public Corotator {
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &ts, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f, double dt);
+                             FullSquareMatrix &elk, double *f, double dt, double t);
 
      void   formInternalForce(double xl[4], double yl[4], double xn[4], double eps, double sigma, double Tr, double f[4]);  
 

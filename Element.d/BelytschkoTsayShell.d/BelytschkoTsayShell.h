@@ -20,7 +20,6 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int opthgc; // hourglass control (1 for perturbation type hourglass control)
     int optcri[2]; // crack criterion
     int optdmp; // damping (0/1 for damping off/on)
-    double prmdmg[10]; // damage control parameters
     double prmhgc[10]; // hourglass control parameters
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
@@ -70,7 +69,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int numNodes();
     int* nodes(int* = 0);
     Corotator *getCorotator(CoordSet&, double*, int , int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double delt);
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double delt, double);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
                     GeomState*);

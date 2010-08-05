@@ -174,7 +174,7 @@ class MDNLDynamic
     void makeSubElementArrays(int isub);
     void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce);
+                             DistrVector &res, DistrVector &elemIntForce, double t);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void addConstraintForces(int isub, DistrVector& rhs);
     void getConstraintMultipliers(int isub);

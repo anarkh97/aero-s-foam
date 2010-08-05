@@ -51,6 +51,7 @@
 * 5. neither cclrc nor hyprotech uk limited shall be liable for any
 *    direct or consequential loss or damage whatsoever arising out of
 *    the use of packages by the licensee.
+*
 * *******************************************************************
 *
 *######date 26 oct 1992
@@ -225,6 +226,7 @@ c
 * 5. neither cclrc nor hyprotech uk limited shall be liable for any
 *    direct or consequential loss or damage whatsoever arising out of
 *    the use of packages by the licensee.
+*
 * *******************************************************************
 *
 *######date 26 oct 1992

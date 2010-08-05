@@ -842,7 +842,7 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
-"WETSURFACE"|"wetsurface"          { return WETSURFACE; }
+"AEROEMBED"[a-zA-Z]*|"aeroembede"[a-zA-z]* { return AEROEMBED; }
 
 "DX"|"dx"                          { yylval.ival = OutputInfo::DispX;  return DOFTYPE; }
 

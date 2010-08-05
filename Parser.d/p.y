@@ -94,7 +94,7 @@
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
-%token VERSION WAVENUMBER WETCORNERS WETSURFACE YMTT 
+%token VERSION WAVENUMBER WETCORNERS AEROEMBED YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -929,14 +929,14 @@ AeroInfo:
 	{ domain->solInfo().isCollocated = $2; }
         | AeroInfo MATCHER FNAME NewLine
         { geoSource->setMatch($3); }
-        | AeroInfo WetSurfaceInfo NewLine
+        | AeroInfo AeroEmbeddedSurfaceInfo NewLine
         {}
 	;
-WetSurfaceInfo:
-        WETSURFACE
+AeroEmbeddedSurfaceInfo:
+        AEROEMBED
         {}
-        | WetSurfaceInfo Integer
-        { domain->AddWetSurfaceId($2); }
+        | AeroEmbeddedSurfaceInfo Integer
+        { domain->AddAeroEmbedSurfaceId($2); }
 	;
 AeroHeatInfo:
         AEROH NewLine AEROTYPE Float Float NewLine

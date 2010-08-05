@@ -26,13 +26,7 @@ class FlExchanger {
  
      //KW (Jul.27,2010): FS Communication using Face Elements
      SurfaceEntity *surface;
-/*     FaceElemSet &feset;
-     int nFaceElems
-     CoordSet& fnodes;
-     int* fnId;
-     int *dofmap;*/
      bool useFaceElem;
-
 
      double *buffer;
      double *buff;
@@ -78,8 +72,7 @@ class FlExchanger {
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
      FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo = 0);
-     void matchup();     
-
+     void matchup(); // like "read" 
 
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
      void read(int mynode, char *filename);

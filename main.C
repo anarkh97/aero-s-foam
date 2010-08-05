@@ -523,12 +523,10 @@ int main(int argc, char** argv)
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
- fprintf(stderr,"KW: OK.\n");
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
 #ifdef SOWER_SURFS
  else {
 #endif
-   fprintf(stderr,"KW: OK. I'm here.\n");
    // HB for checking Mortar & generating LMPCs from Mortar tied conditions
    if(topFlag < 0) {
      domain->SetUpSurfaces(&(geoSource->GetNodes()));
@@ -549,11 +547,10 @@ int main(int argc, char** argv)
          }
        }
      }
-//#ifdef MORTAR_DEBUG
-     fprintf(stderr,"KW: going to print surface entities.\n");
+#ifdef MORTAR_DEBUG
      domain->PrintSurfaceEntities();
-//     domain->PrintMortarConds();
-//#endif
+     domain->PrintMortarConds();
+#endif
      //domain->printLMPC();
      //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
    }

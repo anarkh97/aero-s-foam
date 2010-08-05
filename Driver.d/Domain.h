@@ -142,27 +142,6 @@ struct PrevFrc {
    PrevFrc(int neq) : lastFluidLoad(neq, 0.0) { lastTIndex = -1; }
 };
 
-// KW: The wet surface of structure. To be sent to Fluid.
-// KW: Currently only support triangle_3.
-class EmbeddedWetSurface {
-  int nNodes;
-  int nElems;
-  double (*nodes)[3];
-  int *gNodeId;
-  int (*elems)[3];
-public:
-  EmbeddedWetSurface(); // initialize an empty surface
-  EmbeddedWetSurface(int nSurfEntities, ResizeArray<SurfaceEntity*> &SurfEntities, std::set<int> ids); 
-  ~EmbeddedWetSurface();
-  int numNodes()          {return nNodes;}
-  int numElems()          {return nElems;}
-  double (*getNodes())[3] {return nodes;}
-  int *getGlobNodeId()    {return gNodeId;}
-  int (*getElems())[3]    {return elems;}
-  
-  int buildSurface(int nSurfEntities, ResizeArray<SurfaceEntity*> &SurfEntities, std::set<int> ids);
-};
-
 /** Class representing a structure and containing all auxiliary data-structures
  *
  */
@@ -806,14 +785,13 @@ class Domain : public HData {
      ResizeArray<SurfaceEntity*> SurfEntities; //
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
-     std::set<int> wetSurfaceId;  //KW: Ids of wet surfaces
-     EmbeddedWetSurface eSurface; //KW: Embedded Surface 
+     std::set<int> aeroEmbeddedSurfaceId;  //KW: Ids of wet surfaces
   public:
      int AddSurfaceEntity(SurfaceEntity*);
      int AddSurfaceEntity(SurfaceEntity*, int isurf);
      void PrintSurfaceEntities();
 
-     int AddWetSurfaceId(int Id);
+     int AddAeroEmbedSurfaceId(int Id);
 
      int nMortarCond;
      int nContactSurfacePairs; 

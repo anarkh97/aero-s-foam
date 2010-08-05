@@ -1151,10 +1151,10 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
-    if(wetSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size()!=0) {
       int iSurf = -1;
       for(int i=0; i<nSurfEntity; i++)
-        if(wetSurfaceId.find(SurfEntities[i]->ID())!=wetSurfaceId.end()) {
+        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID())!=aeroEmbeddedSurfaceId.end()) {
           iSurf = i; 
           break; //only allows one Surface.
         }
@@ -1162,9 +1162,8 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa);
-      //flExchanger = new FlExchanger(nodes, SurfEntities[iSurf]->GetFaceElemSet(), c_dsa,
-      //                                     SurfEntities[iSurf]->GetNodeSet(), SurfEntities[iSurf]->GetPtrGlNodeIds());
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa); //packedEset is not used, but flExchanger needs
+                                                                                    // to have a reference of it at construction.
     } else {
       if(flag)
         flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
@@ -1176,24 +1175,17 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
 
-    if(wetSurfaceId.size()!=0) 
+    if(aeroEmbeddedSurfaceId.size()!=0) 
       flExchanger->matchup();
     else
       flExchanger->read(0, matchFile);
 
     //KW: send the embedded wet surface to fluid 
-    if(wetSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size()!=0) {
       flExchanger->sendEmbeddedWetSurface();
       if(verboseFlag) fprintf(stderr,"... [E] Sent embedded wet surface ...\n");
     }
 
-/*    if(wetSurfaceId.size()!=0) {
-      eSurface.buildSurface(nSurfEntity, SurfEntities, wetSurfaceId);
-      flExchanger->sendEmbeddedWetSurface(eSurface.numNodes(), (double*)eSurface.getNodes(),
-                                          eSurface.numElems(), (int*)eSurface.getElems());
-      if(verboseFlag) fprintf(stderr,"... [E] Sent embedded wet surface ...\n");
-    }
-*/
     //XML New step of negotiation with fluid code
     flExchanger->negotiate();
 

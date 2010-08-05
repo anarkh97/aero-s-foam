@@ -354,8 +354,6 @@ void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, doubl
   state.getDV(Nodes[0], xyz[0], xyz[0]+3);
   state.getDV(Nodes[1], xyz[1], xyz[1]+3);
   state.getDV(Nodes[2], xyz[2], xyz[2]+3);
-//  for(int s=0; s<3; s++)
-//    fprintf(stderr,"%d (%e %e %e) (%e %e %e)\n", Nodes[s], xyz[s][0], xyz[s][1], xyz[s][2], xyz[s][3], xyz[s][4], xyz[s][5]);
 
   for(int j=0; j<6; ++j)
     res[j] = gp[0]*xyz[0][j] + gp[1]*xyz[1][j] + (1.0-gp[0]-gp[1])*xyz[2][j]; //using ACME convention

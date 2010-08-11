@@ -163,6 +163,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
    else {
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
+     if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement() && ops.Msolver) ops.Msolver->add(kel,(*allDOFs)[iele]); // XXXX
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
@@ -288,12 +289,12 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(matrixTimers) matrixTimers->assemble -= getTime();
    if(isComplexF || (imag(kappa2) != 0)) {
      if(mat) mat->add(kcel,m_dofs);
-     if(ops.Kuc) ops.Kuc->add(kcel,(*allDOFs)[iele]);
+     if(isShifted && ops.Kuc) ops.Kuc->add(kcel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
    }
    else {
      if(mat) mat->add(kel,m_dofs);
-     if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     if(isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]); // note: Kuc is [K-omega2*M]_{uc} for IMPE (TODO check eigen)
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
      if(Kss) Kss->add(kel,(*allDOFs)[iele]); // for farfield output (TODO: check with Radek)
      if(isShifted && isDamped && isStructureElement(iele)) {

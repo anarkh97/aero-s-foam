@@ -1592,16 +1592,13 @@ MPCHeader:
 MPCLine:
         Integer Integer Float NewLine
         { if($3 == 0.0) {
-            fprintf(stderr," *** ERROR: zero coefficient in LMPC\n");
+            fprintf(stderr," *** WARNING: zero coefficient in LMPC\n");
             fprintf(stderr," ***          node %d dof %d\n",$1,$2);
-            return -1; 
           }
-          else { 
-            $$ = new LMPCTerm();
-            $$->nnum = $1-1;
-            $$->dofnum = $2-1;
-            $$->coef.r_value = $3;
-          }
+          $$ = new LMPCTerm();
+          $$->nnum = $1-1;
+          $$->dofnum = $2-1;
+          $$->coef.r_value = $3;
         }
 	;
 ComplexLMPConstrain:

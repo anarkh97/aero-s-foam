@@ -164,7 +164,15 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    else {
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
-     if(packedEset[iele]->isConstraintElement() && ops.Msolver) ops.Msolver->add(kel,(*allDOFs)[iele]); // XXXX
+     if(packedEset[iele]->isConstraintElement()) { // XXXX
+       if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0) {
+         //cerr << "adding C to Msolver\n";
+         if(mat) mat->add(kel,(*allDOFs)[iele]);
+       }
+       else {
+         if(ops.Msolver) ops.Msolver->add(kel,(*allDOFs)[iele]);
+       }
+     }
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
 

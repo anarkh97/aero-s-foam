@@ -286,8 +286,8 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 
  double theta[3];
 
- int i;
- for(i=0; i<numnodes; ++i) {
+ for(int i = 0; i < numnodes; ++i) {
+   if(cs[i]) {
 
      // Set translational displacements
 
@@ -310,6 +310,7 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
      // Update rotation tensor 
      form_rottensor( theta, ns[i].R );
    }
+ }
 
  computeGlobalRotation();
 }

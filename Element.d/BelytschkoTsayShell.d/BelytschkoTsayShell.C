@@ -440,8 +440,6 @@ void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *geomState, int cflg)
 {
-  int optdom = 1; // 0 : integrate over reference domain
-                  // 1 : integrate over current domain
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
@@ -450,13 +448,7 @@ BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     ecord[i*ndime+0] = cs[nn[i]]->x;
     ecord[i*ndime+1] = cs[nn[i]]->y;
     ecord[i*ndime+2] = cs[nn[i]]->z;
-/*
-    edisp[i*nndof+0] = (*geomState)[nn[i]].x - cs[nn[i]]->x;
-    edisp[i*nndof+1] = (*geomState)[nn[i]].y - cs[nn[i]]->y;
-    edisp[i*nndof+2] = (*geomState)[nn[i]].z - cs[nn[i]]->z;
-    mat_to_vec((*geomState)[nn[i]].R, edisp+i*nndof+3);
-*/
-    for(int j = 0; j < 3; ++j) edisp[i*nndof+j] = (*geomState)[nn[i]].d[j];
+    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (*geomState)[nn[i]].d[j];
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only

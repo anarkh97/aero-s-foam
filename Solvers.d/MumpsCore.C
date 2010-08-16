@@ -77,6 +77,7 @@ GenMumpsSolver<DComplex>::copyToMumpsLHS(mumps_double_complex *&m, DComplex *&d,
     m[i].i = d[i].imag();
   }
   delete [] d; d = 0;
+  //m = reinterpret_cast<mumps_double_complex *>(d);
 }
 
 template<>

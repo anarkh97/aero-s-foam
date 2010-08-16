@@ -19,6 +19,8 @@ extern const char* problemTypeMessage[];
 
 extern FILE *debugFile;
 
+//#define SERIALIZED_OUTPUT
+
 template<class Scalar>
 GenDistrDomain<Scalar>::GenDistrDomain(Domain *d) : GenDecDomain<Scalar>(d)
 {
@@ -182,8 +184,8 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-// RT - serialize the OUTPUT 
-#ifdef DISTRIBUTED
+// RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
+#ifdef SERIALIZED_OUTPUT
 for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
  this->communicator->sync();
  if(this->communicator->cpuNum() == iCPU) {
@@ -205,11 +207,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         continue;
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
-        if(iCPU == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->setHeaderLen(iInfo);
       }
     }
-
+#ifndef SERIALIZED_OUTPUT
+    this->communicator->sync();
+#endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield) {
@@ -510,7 +514,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
   }
   this->firstOutput = false;
 // RT - serialize the OUTPUT
-#ifdef DISTRIBUTED
+#ifdef SERIALIZED_OUTPUT
   }
 }
 this->communicator->sync();
@@ -1184,8 +1188,8 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-// RT - serialize the OUTPUT
-#ifdef DISTRIBUTED
+// RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
+#ifdef SERIALIZED_OUTPUT
 for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
  this->communicator->sync();
  if(this->communicator->cpuNum() == iCPU) {
@@ -1202,11 +1206,13 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
-        if(iCPU == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->setHeaderLen(iInfo);
       }
     }
-
+#ifndef SERIALIZED_OUTPUT
+    this->communicator->sync();
+#endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1) {
@@ -1414,7 +1420,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
   }
   x++;
-#ifdef DISTRIBUTED
+#ifdef SERIALIZED_OUTPUT
  }
 }
 this->communicator->sync();

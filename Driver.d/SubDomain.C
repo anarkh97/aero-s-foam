@@ -2211,11 +2211,13 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
       int iNode;
       if(packedEset[iele]->getProperty()) {
-        for(iNode=0; iNode<NodesPerElement; ++iNode) {
-          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+        if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
+          for(iNode=0; iNode<NodesPerElement; ++iNode) {
+            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+              elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+            else
+              elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+          }
         }
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                       *elDisp, stressIndex, surface,

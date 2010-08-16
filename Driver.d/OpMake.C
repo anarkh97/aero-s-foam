@@ -639,10 +639,10 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
 template<class Scalar>
 GenDBSparseMatrix<Scalar> *
-Domain::constructDBSparseMatrix(DofSetArray *dof_set_array,Connectivity *cn)
+Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
 {
  if(dof_set_array == 0) dof_set_array = c_dsa;
- if(cn==0)
+ if(cn == 0)
    return new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
  else
    return new GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa);

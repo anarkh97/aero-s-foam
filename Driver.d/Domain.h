@@ -865,7 +865,7 @@ class Domain : public HData {
      bool isComplex() {
        return ((numComplexDirichlet > 0) || (numComplexNeuman > 0)
                || (numSommer > 0) || (numComplexLMPC > 0) ||
-                   sinfo.hasDamping() || PMLFlag /*|| (numWet)*/ || packedEset.hasDamping() );
+                   sinfo.hasDamping() || PMLFlag || packedEset.hasDamping() );
      }
      bool isHomogeneous();
      void addWetInterface(int fluidSurfaceID, int structureSurfaceID, double normal_tol = 0.1, double tangential_tol = 0.001);

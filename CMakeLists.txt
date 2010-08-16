@@ -41,7 +41,8 @@ MARK_AS_ADVANCED(CLEAR BLAS_LIBRARIES)
 MARK_AS_ADVANCED(CLEAR LAPACK_LIBRARIES)
 
 SET(INC_DIR .)
-SET(BINDIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+SET(BINDIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
+SET(LIBDIR ${CMAKE_CURRENT_BINARY_DIR}/lib)
 SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
 
 if(AERO)
@@ -258,12 +259,11 @@ if(MPI_FOUND)
        Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
-                        PROPERTIES 
-		        LIBRARY_OUTPUT_DIRECTORY ${BINDIR}
-			RELEASE_OUTPUT_NAME aeros
-			DEBUG_OUTPUT_NAME aeros.debug
-			PREFIX ""
-		     )
+                           PROPERTIES 
+                           ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
+                           RELEASE_OUTPUT_NAME aeros
+                           DEBUG_OUTPUT_NAME aeros.debug
+                           PREFIX "")
    ENDIF(NOT APPLE)
 endif(MPI_FOUND)
 
@@ -273,15 +273,15 @@ IF(MERCURIAL_EXECUTABLE)
   #MESSAGE("Rule 1")
   MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
   add_custom_command(OUTPUT HgIdentity.C 
-                   COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
-                 DEPENDS main.C
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+                     COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
+                     DEPENDS main.C
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 ELSE (MERCURIAL_EXECUTABLE)
   #MESSAGE("Rule 2")
   add_custom_command(OUTPUT HgIdentity.C 
-                   COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
-                 DEPENDS main.C
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+                     COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
+                     DEPENDS main.C
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS  -DMAP_MIN_MEMORY)
@@ -327,11 +327,11 @@ add_executable(femexecutable  main.C HgIdentity.C)
 
 SET_TARGET_PROPERTIES(femexecutable 
                       PROPERTIES
-		         RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
-			 RELEASE_OUTPUT_NAME aeros
-			 DEBUG_OUTPUT_NAME aeros.debug
-#                         LINK_SEARCH_END_STATIC 1
-		      )
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME aeros
+                      DEBUG_OUTPUT_NAME aeros.debug
+                      # LINK_SEARCH_END_STATIC 1
+                      )
 
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
 if(MPI_FOUND)
@@ -354,7 +354,7 @@ ENDIF(MPI_FOUND AND NOT APPLE)
 
 INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
+        LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 
 MESSAGE("")
@@ -410,4 +410,3 @@ MESSAGE("")
 
 MARK_AS_ADVANCED(FORCE BISON_EXECUTABLE FLEX_EXECUTABLE MERCURIAL_EXECUTABLE CMAKE_INSTALL_PREFIX)
 MARK_AS_ADVANCED(CLEAR CMAKE_CXX_COMPILER CMAKE_Fortran_COMPILER)
-

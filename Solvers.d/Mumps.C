@@ -329,12 +329,12 @@ GenMumpsSolver<Scalar>::factor()
     Tmumps_c(mumpsId.id);
 
     if(mumpsId.id.INFOG(1) == -8 || mumpsId.id.INFOG(1)  == -9) { 
-       cerr << " ... increasing MUMPS workspace     ...\n"; 
+       if(host) cerr << " ... increasing MUMPS workspace     ...\n"; 
        mumpsId.id.ICNTL(14) *= 2; 
-        mumpsId.id.job = 2; // recall factorization
+       mumpsId.id.job = 2; // recall factorization
     }
     else if(mumpsId.id.INFOG(1) < 0) { 
-      cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
+      if(host) cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
       exit(-1);
     }
     else break;

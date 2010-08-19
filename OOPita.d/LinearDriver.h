@@ -1,7 +1,10 @@
 #ifndef PITA_LINEARDRIVER_H
 #define PITA_LINEARDRIVER_H
 
-#include "Fwk.h"
+#include "Fwk.d/Ptr.h"
+#include "Fwk.d/PtrInterface.h"
+#include "Fwk.d/Macros.h"
+
 class SingleDomainDynamic;
 
 namespace Pita {

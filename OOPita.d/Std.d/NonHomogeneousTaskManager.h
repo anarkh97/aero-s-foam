@@ -14,7 +14,7 @@
 #include "../CorrectionPropagator.h"
 #include "../UpdatedSeedAssembler.h"
 
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 #include "../Seed.h"
 
@@ -103,7 +103,7 @@ private:
 
   void fillTaskList(SliceTaskItem item, TaskList & target);
 
-  SeedErrorEvaluator::Manager::Ptr jumpEvalMgr_;
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
 
   Phase::Ptr phase_;
 

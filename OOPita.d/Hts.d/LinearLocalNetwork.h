@@ -14,7 +14,7 @@
 #include "../UpdatedSeedAssembler.h"
 #include "../CorrectionPropagator.h"
 
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 #include <map>
 #include <deque>
@@ -83,7 +83,7 @@ public:
                      HalfTimeSlice::Manager * sliceMgr,
                      ReducedCorrectionManager * redCorrMgr,
                      RemoteState::Manager * commMgr,
-                     SeedErrorEvaluator::Manager * jumpErrorMgr);
+                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr);
 
 protected:
   void init();
@@ -129,7 +129,7 @@ private:
   
   SeedMap mainSeed_; 
 
-  SeedErrorEvaluator::Manager::Ptr jumpErrorMgr_;
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr_;
   
   CorrectionPropagatorBuilder<DynamState> fullCorrectionBuilder_;
   CorrectionPropagatorBuilder<Vector> reducedCorrectionBuilder_;

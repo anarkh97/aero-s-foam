@@ -11,7 +11,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                CorrectionReconstructor::Manager * corrReconMgr,
                                BasisCondensationManager * condensMgr,
                                ProjectionBuildingFactory * projBuildMgr,
-                               SeedErrorEvaluator::Manager * jumpEvalMgr) :
+                               NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr) :
   LocalNetwork(mapping, commMgr),
   htsMgr_(htsMgr),
   jumpMgr_(JumpBuilder::ManagerImpl::New()),
@@ -110,7 +110,7 @@ NlLocalNetwork::addPropagatedSeedSend(HalfSliceRank seedRank) {
   NamedTask::Ptr task = propagatedSeedSendNew(seedRank);
   if (!task) return; // Comm guard
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   propagatedSeedSyncs_[iterParity][seedRank] = task;
 }
 
@@ -121,7 +121,7 @@ NlLocalNetwork::addPropagatedSeedRecv(HalfSliceRank seedRank) {
   NamedTask::Ptr task = propagatedSeedRecvNew(seedRank);
   if (!task) return; // Comm guard
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   propagatedSeedSyncs_[iterParity][seedRank] = task;
 }
 
@@ -131,11 +131,11 @@ NlLocalNetwork::addJumpBuilder(HalfSliceRank seedRank) {
 
   NamedTask::Ptr task = jumpBuilderNew(seedRank);
 
-  int iterParity = parity(seedRank);
+  int iterParity = parity(seedRank.previous());
   jumpBuilders_[iterParity][seedRank] = task;
   
   if (jumpEvalMgr()) { 
-    SeedErrorEvaluator::Ptr jumpEvaluator = jumpEvalMgr()->instanceNew(fullSeedGet(SeedId(SEED_JUMP, seedRank)));
+    NonLinSeedDifferenceEvaluator::Ptr jumpEvaluator = jumpEvalMgr()->instanceNew(fullSeedGet(SeedId(SEED_JUMP, seedRank)));
     jumpEvaluator->referenceSeedIs(fullSeedGet(SeedId(LEFT_SEED, seedRank)));
   }
 }

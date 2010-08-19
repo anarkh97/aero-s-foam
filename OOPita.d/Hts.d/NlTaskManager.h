@@ -7,7 +7,7 @@
 #include "NlPropagatorManager.h"
 #include "../SeedInitializer.h"
 #include "../PostProcessingManager.h"
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 #include "../RemoteStateMpiImpl.h"
 #include "NlProjectionNetwork.h"
 #include "PropagationDataSharing.h"
@@ -28,7 +28,7 @@ public:
 
   NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                 NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
-                PostProcessing::Manager * postProcessingMgr, SeedErrorEvaluator::Manager * jumpEvaluatorMgr,
+                PostProcessing::Manager * postProcessingMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                 double projectorTolerance, IterationRank lastIteration);
 
 protected:
@@ -50,7 +50,7 @@ protected:
   void scheduleDataSharing();
   void checkConvergence();
   void schedulePropagatedSeedSynchronization();
-  void scheduleJumpProjection();
+  void scheduleJumpEvaluation();
   void scheduleProjectionBuilding();
   void scheduleCorrectionPropagation();
   void scheduleSeedUpdate();
@@ -63,7 +63,7 @@ private:
   NlPropagatorManager::Ptr propagatorMgr_;
   SeedInitializer::Ptr seedInitializer_;
   PostProcessing::Manager::Ptr postProcessingMgr_;
-  SeedErrorEvaluator::Manager::Ptr jumpEvaluatorMgr_;
+  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvaluatorMgr_;
 
   double projectorTolerance_;
 

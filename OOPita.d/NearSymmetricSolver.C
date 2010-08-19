@@ -4,12 +4,6 @@
 #include <iterator>
 
 extern "C" {
-  // Lapack: Matrix-matrix multiplication
-  // C := alpha*op(A)*op(B) + beta*C where op(M) = M or M^T
-  /*void _FORTRAN(dgemm)(const char* transa, const char* transb, const int* m, const int* n, const int* k,
-                       const double* alpha, const double* a, const int* lda, const double* b, const int* ldb,
-                       const double* beta, double* c, const int* ldc);*/
-
   // Blas: Rank-1 update A += alpha*x*y'
   void _FORTRAN(dger)(const int* m, const int* n, const double* alpha,
                       const double* x, const int* incx, const double* y, const int* incy,
@@ -51,7 +45,7 @@ NearSymmetricSolver::NearSymmetricSolver(double tol) :
 
 void
 NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
-  transposedMatrix_.copy(tm);
+  setTransposedMatrix(tm);
   setMatrixSize(transposedMatrix_.dim());
     
   // Rescale matrix

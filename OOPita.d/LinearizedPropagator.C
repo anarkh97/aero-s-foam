@@ -6,36 +6,46 @@
 
 namespace Pita {
 
-LinearizedPropagator::LinearizedPropagator(const NlDynamTimeIntegrator * integrator) :
-  DynamPropagator(integrator->vectorSize()),
-  integrator_(integrator),
-  probDesc_(dynamic_cast<const PitaNonLinDynamic*>(integrator->probDesc())),
-  temp_(integrator->vectorSize()),
-  midTimeDisp_(integrator->vectorSize())
+LinearizedPropagator::LinearizedPropagator(const NlDynamTimeIntegrator * baseIntegrator) :
+  baseIntegrator_(baseIntegrator),
+  temp1_(baseIntegrator->vectorSize()),
+  temp2_(baseIntegrator->vectorSize())
 {}
 
-void
-LinearizedPropagator::initialStateIs(const DynamState & initialState) {
-  double delta = 0.5 * integrator_->timeStepSize().value();
-  temp_ = initialState.displacement();
-  temp_.linAdd(delta, initialState.velocity());
-  probDesc_->zeroRotDofs(temp_);
-  const_cast<GenSparseMatrix<double>*>(const_cast<PitaNonLinDynamic*>(probDesc_)->getMassMatrix())->mult(temp_, midTimeDisp_);
-  const_cast<PitaNonLinDynamic*>(probDesc_)->getSolver()->reSolve(midTimeDisp_);
-  temp_.linC(-1.0, initialState.displacement(), 2.0, midTimeDisp_);
-  DynamState finalState(initialState.vectorSize());
-  finalState.displacement() = temp_;
-  temp_ -= initialState.displacement();
-  temp_ *= (1.0 / delta);
-  temp_ -= initialState.velocity();
-  probDesc_->zeroRotDofs(temp_);
-  finalState.velocity() = temp_;
-
-  // Commit changes
-  setInitialState(initialState);
-  initialStateNotify();
-  setFinalState(finalState);
-  finalStateNotify();
+size_t
+LinearizedPropagator::vectorSize() const {
+  return baseIntegrator_->vectorSize();
 }
 
-} // end namespace Pita
+const PitaNonLinDynamic *
+LinearizedPropagator::probDesc() const {
+  return baseIntegrator_->probDesc();
+}
+
+DynamState &
+LinearizedPropagator::finalState(DynamState & state) const {
+  double dt = baseIntegrator_->timeStepSize().value();
+  Vector & disp = state.displacement();
+  Vector & velo = state.velocity();
+
+  // u_{n+1/2} = (M + (dt^2/4) K)^{-1} * M * Z * (u_n + (dt/2) v_n)
+  temp1_.linC(disp, dt / 2.0, velo);
+  probDesc()->zeroRotDofs(temp1_);
+  const_cast<GenSparseMatrix<double>*>(const_cast<PitaNonLinDynamic*>(probDesc())->getMassMatrix())->mult(temp1_, temp2_);
+  const_cast<PitaNonLinDynamic*>(probDesc())->getSolver()->reSolve(temp2_);
+
+  // Half displacement increment: (1/2) * (u_{n+1} - u_{n}) = u_{n+1/2} - u_n
+  temp2_ -= disp;
+
+  // u_{n+1} = 2 * u_{n+1/2} - u_n = u_n + 2 * (u_{n+1/2} - u_n)
+  disp.linAdd(2.0, temp2_);
+  
+  // v_{n+1} = Z * ((4/dt) * (u_{n+1/2} - u_n) - v_n)
+  temp2_ *= (4.0 / dt);
+  velo.diff(temp2_, velo);
+  probDesc()->zeroRotDofs(velo);
+  
+  return state;
+}
+
+} /* end namespace Pita */

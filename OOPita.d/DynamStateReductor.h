@@ -16,7 +16,9 @@ public:
   EXPORT_PTRINTERFACE_TYPES(DynamStateReductor);
 
   // Main function
-  Vector reducedComponents(const DynamState & is) const;
+  Vector result(const DynamState & is) const;
+  // Optimized main function
+  const Vector & result(const DynamState & is, Vector & answer) const;
 
   // Projection elements
   // Should have: reductionBasis->vectorSize() == solver->matrixSize()

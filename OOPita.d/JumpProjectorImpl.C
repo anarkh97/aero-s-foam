@@ -17,7 +17,7 @@ JumpProjectorImpl::reducedBasisSize() const {
 
 void
 JumpProjectorImpl::iterationIs(IterationRank ir) {
-  assert(actualSeed()->iteration() == ir);
+  assert(actualSeed()->iteration().next() == ir); // Happens at the next iteration
 
   updateJump();
   //log() << "seedJump()->state().vectorSize() = " << seedJump()->state().vectorSize() << "\n";

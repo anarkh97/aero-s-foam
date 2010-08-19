@@ -9,18 +9,18 @@ Manager::Manager() :
 {}
 
 const Propagator *
-Manager::concurrentPropagator(const DynamStatePlainBasis * concurrentBasis) const {
+Manager::referencePropagator(const DynamStatePlainBasis * concurrentBasis) const {
    ReactorMap::const_iterator it = reactor_.find(concurrentBasis);
    return (it != reactor_.end()) ? static_cast<const Propagator *>(it->second->notifier()) : NULL;
 }
 
 void
-Manager::concurrentPropagatorIs(DynamStatePlainBasis * concurrentBasis, const Propagator * cp) {
+Manager::referencePropagatorIs(DynamStatePlainBasis * concurrentBasis, const Propagator * rp) {
   if (!concurrentBasis) return;
-  if (!cp) {
+  if (!rp) {
     reactor_.erase(concurrentBasis);
   } else {
-    reactor_[concurrentBasis] = new PropagatorReactor(cp, concurrentBasis, this);
+    reactor_[concurrentBasis] = new PropagatorReactor(rp, concurrentBasis, this);
   }
 }
 
@@ -51,7 +51,7 @@ PropagatorReactor::onFinalState() {
 
 IntegratorReactor::IntegratorReactor(const NlDynamTimeIntegrator * notifier,
                                      DynamStatePlainBasis * basis,
-                                     DynamPropagator * stepPropagator) :
+                                     LinearizedPropagator * stepPropagator) :
   DynamTimeIntegrator::NotifieeConst(notifier),
   basis_(basis),
   stepPropagator_(stepPropagator)
@@ -61,8 +61,8 @@ void
 IntegratorReactor::onCurrentCondition() {
   size_t stateCount = basis_->stateCount();
   for (size_t i = 0; i < stateCount; ++i) {
-    stepPropagator_->initialStateIs(basis_->state(i));
-    basis_->stateIs(i, stepPropagator_->finalState());
+    // Ignore return value, use only side-effect only
+    stepPropagator_->finalState(basis_->internalState(i));
   }
 }
 

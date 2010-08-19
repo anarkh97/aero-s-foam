@@ -47,7 +47,9 @@ LinearProjectionNetworkImpl::prepareProjection() {
 
 void
 LinearProjectionNetworkImpl::buildProjection() {
+#ifndef NDEBUG
   double tic = getTime(), toc;
+#endif /* NDEBUG*/
 
   int previousMatrixSize = normalMatrix_.dim();
 
@@ -58,9 +60,11 @@ LinearProjectionNetworkImpl::buildProjection() {
     gBuffer_.sizeIs(targetBufferSize);
   }
 
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Build buffer: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
   
   // Collect data from time-slices
   // 1) Final states
@@ -99,9 +103,11 @@ LinearProjectionNetworkImpl::buildProjection() {
     cs = collector_->firstBackwardFinalState();
   }
 
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Collect data from local time-slices: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
   
   // Setup parameters for global MPI communication
   int numCpus = mapping_->availableCpus().value(); 
@@ -124,9 +130,11 @@ LinearProjectionNetworkImpl::buildProjection() {
   timeCommunicator_->allGatherv(gBuffer_.array() + displacements[myCpu], recv_counts[myCpu], gBuffer_.array(), recv_counts, displacements);
   //log() << " complete !\n";
   
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Allgather: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
 
   // Add new states to projection bases
   DynamStateBasisWrapper::Ptr receivedBasis = DynamStateBasisWrapper::New(vectorSize_, globalExchangeNumbering_.back()->stateCount(), gBuffer_.array());
@@ -151,9 +159,11 @@ LinearProjectionNetworkImpl::buildProjection() {
     log() << "Metric State # " << i << " disp[2] = " << metricBasis_->state(i).displacement()[2] << "\n";
   }*/
 
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Add new states: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
  
   // Assemble normal and reprojection matrices in parallel (local rows)
   int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(HalfTimeSlice::BACKWARD);
@@ -188,16 +198,20 @@ LinearProjectionNetworkImpl::buildProjection() {
     rowBuffer += newMatrixSize;
   }
   
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Compute normal and reprojection matrices: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
 
   // Exchange normal/reprojection matrix data  
   timeCommunicator_->allGatherv(mBuffer_.array() + displacements[myCpu], recv_counts[myCpu], mBuffer_.array(), recv_counts, displacements);
   
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Exchange normal matrix: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
 
   /*log() << "Buffer is\n";
   for (int i = 0; i < newMatrixSize; ++i) {
@@ -270,9 +284,11 @@ LinearProjectionNetworkImpl::buildProjection() {
     log() << "\n";
   } */
 
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Assemble normal matrix: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
 
   //log() << "Check symmetry\n";
   
@@ -396,9 +412,11 @@ LinearProjectionNetworkImpl::buildProjection() {
     }
   }*/
   
+#ifndef NDEBUG
   toc = getTime();
   log() << "      -> Factor: " << toc - tic << " ms\n";
   tic = toc;
+#endif /* NDEBUG*/
 
   // Debug
   //log() << "Debug\n";

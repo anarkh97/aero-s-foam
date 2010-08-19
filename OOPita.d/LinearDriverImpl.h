@@ -1,9 +1,9 @@
 #ifndef PITA_LINEARDRIVERIMPL_H
 #define PITA_LINEARDRIVERIMPL_H
 
-#include "Fwk.h"
 #include "LinearDriver.h"
 
+#include "Fwk.h"
 #include "DynamState.h"
 
 class GeoSource;

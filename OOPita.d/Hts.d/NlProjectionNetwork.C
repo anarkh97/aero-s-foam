@@ -21,8 +21,7 @@ NlProjectionNetwork::NlProjectionNetwork(PropagationDataSharing * sharing,
   corrRedMgr_(NULL),
   corrReconMgr_(NULL)
 {
-  const double tol = 1.0e-4; // TODO
-  condensMgr_ = new BasisCondensationManager(vectorSize, tol, endBasisMgr_.ptr(), midBasisMgr_.ptr());
+  condensMgr_ = new BasisCondensationManager(vectorSize, projectionTolerance, endBasisMgr_.ptr(), midBasisMgr_.ptr());
   projBuildMgr_ = new ProjectionBuildingFactory(dynamOps, endBasisMgr_.ptr(), projBasisMgr_.ptr(), solverMgr_.ptr()); 
 
   CorrectionReductor::Manager::OperatorManager::Ptr redMgr = ReductorManager::New(projBasisMgr_.ptr(), solverMgr_.ptr());

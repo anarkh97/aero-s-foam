@@ -1,4 +1,4 @@
-#include "NlDriverImpl.h"
+#include "NlDriver.h"
 
 #include "../NlDynamTimeIntegrator.h"
 
@@ -12,7 +12,7 @@
 #include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 #include "NlTaskManager.h"
 #include "../TimedExecution.h"
@@ -22,18 +22,18 @@
 
 namespace Pita { namespace Hts {
 
-NlDriverImpl::NlDriverImpl(PitaNonLinDynamic * probDesc,
-                           GeoSource * geoSource,
-                           SolverInfo * solverInfo,
-                           Communicator * baseComm) :
-  NlDriver(probDesc),
+NlDriver::NlDriver(PitaNonLinDynamic * probDesc,
+                   GeoSource * geoSource,
+                   SolverInfo * solverInfo,
+                   Communicator * baseComm) :
+  NlDriverImpl(probDesc),
   geoSource_(geoSource),
   solverInfo_(solverInfo),
   baseComm_(baseComm)
 {}
 
 void
-NlDriverImpl::solve() {
+NlDriver::solve() {
   log() << "Begin Reversible NonLinear Pita\n";
   double tic = getTime();
 
@@ -47,7 +47,7 @@ NlDriverImpl::solve() {
 }
 
 void
-NlDriverImpl::preprocess() {
+NlDriver::preprocess() {
   double tic = getTime();
   
   probDesc()->preProcess();
@@ -85,7 +85,7 @@ NlDriverImpl::preprocess() {
 }
 
 void
-NlDriverImpl::summarizeParameters() const {
+NlDriver::summarizeParameters() const {
   log() << "\n"; 
   log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
   log() << "Iteration count = " << lastIteration_ << "\n"; 
@@ -96,15 +96,14 @@ NlDriverImpl::summarizeParameters() const {
 }
 
 void
-NlDriverImpl::solveParallel() {
+NlDriver::solveParallel() {
   log() << "\n";
   log() << "Parallel solver initialization\n";
   double tic = getTime();
 
   // Initial conditions
-  Seconds initialTime(0.0);
-  DynamState initialState(vectorSize_);
-  probDesc()->getInitState(initialState);
+  Seconds initTime(0.0);
+  DynamState initState = initialState();
 
   // Time-integration
   NlDynamTimeIntegrator::Ptr integrator = NlDynamTimeIntegrator::New(probDesc());
@@ -112,7 +111,7 @@ NlDriverImpl::solveParallel() {
       integrator.ptr(),
       fineTimeStep_,
       halfSliceRatio_,
-      initialTime);
+      initTime);
 
   // Initial Seeds
   SeedInitializer::Ptr seedInitializer;
@@ -122,7 +121,7 @@ NlDriverImpl::solveParallel() {
   } else {
     log() << "Initial seed information from time-integration\n"; // TODO remove
     integrator->timeStepSizeIs(coarseTimeStep_);
-    integrator->initialConditionIs(initialState, initialTime);
+    integrator->initialConditionIs(initState, initTime);
     seedInitializer = IntegratorSeedInitializer::New(integrator.ptr(), TimeStepCount(1));
   }
   
@@ -130,8 +129,7 @@ NlDriverImpl::solveParallel() {
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
 
   // Jump evaluation (Output only)
-  NlDynamOps::Ptr dynOps = integrator->nlDynamOpsNew();
-  SeedErrorEvaluator::Manager::Ptr jumpEvalMgr = SeedErrorEvaluator::Manager::New(dynOps.ptr()); 
+  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr = NonLinSeedDifferenceEvaluator::Manager::New(probDesc()); 
 
   // Communications
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(baseComm(), vectorSize_);
@@ -150,7 +148,7 @@ NlDriverImpl::solveParallel() {
 }
 
 PostProcessing::Manager::Ptr
-NlDriverImpl::buildPostProcessor() { 
+NlDriver::buildPostProcessor() { 
   std::vector<int> ts;
   for (SliceMapping::SliceIterator s = mapping_->hostedSlice(localCpu_); s; ++s) {
     ts.push_back((*s).value()); 
@@ -170,6 +168,6 @@ extern Domain * domain;
 extern Communicator * structCom;
 
 Pita::NlDriver::Ptr
-nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
-  return Pita::Hts::NlDriverImpl::New(problemDescriptor, geoSource, domain, &domain->solInfo(), structCom);
+nlReversiblePitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor) {
+  return Pita::Hts::NlDriver::New(problemDescriptor, geoSource, domain, &domain->solInfo(), structCom);
 }

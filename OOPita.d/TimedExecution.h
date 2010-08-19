@@ -4,6 +4,7 @@
 #include "Fwk.h"
 
 #include "TaskManager.h"
+#include "HierarchicalTimer.h"
 
 namespace Pita {
 
@@ -22,10 +23,13 @@ public:
 
 protected:
   explicit TimedExecution(TaskManager * taskMgr);
+  virtual ~TimedExecution();
 
 private:
   TaskManager::Ptr taskMgr_;
   IterationRank currentIteration_;
+
+  HierarchicalTimer::Ptr timer_;
 
   DISALLOW_COPY_AND_ASSIGN(TimedExecution);
 };

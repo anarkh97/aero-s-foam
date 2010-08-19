@@ -1,11 +1,10 @@
 #include <OOPita.d/PitaNonLinDynam.h>
-#include <OOPita.d/DynamStateBasis.h>
-#include <Control.d/ControlInterface.h>
+
 #include <Comm.d/Communicator.h>
 #include <Driver.d/Domain.h>
 #include <Timers.d/StaticTimers.h>
-#include <iostream>
-#include <algorithm>
+
+#include <sstream>
 
 extern Communicator* structCom;
 
@@ -18,52 +17,8 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *domain) :
 void
 PitaNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
-  
-  K = domain->constructDBSparseMatrix<double>();
-  
+  Kt = domain->constructDBSparseMatrix<double>();
   computeTimeInfo();
- 
-  mainIterMax = domain->solInfo().pitaMainIterMax;
-  timeGridRatio = domain->solInfo().pitaTimeGridRatio;
-  numTSonCPU = domain->solInfo().pitaProcessWorkloadMax;
-
-  coarseDt = getDt() * timeGridRatio;
-  coarseDelta = getDelta() * timeGridRatio;
-
-  numTS = int( ceil( ( getTotalTime() / getDt() ) / timeGridRatio) );
-
-  totalTime = numTS * coarseDt;
-
-  baseImprovementMethod = domain->solInfo().pitaBaseImprovement;
-}
-
-int PitaNonLinDynamic::getInitSeedCount() const {
-  return std::max(std::min(geoSource->getUserProvidedSeedCount(), numTS), 1);
-}
-
-int PitaNonLinDynamic::getInitState(DynamState & ds)
-{
-  // Dummy vectors: We do not need that information for PITA
-  GenVector<double> dummy_acc(solVecInfo(), 0.0);
-  GenVector<double> dummy_vp(solVecInfo(), 0.0);
-  return NonLinDynamic::getInitState(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp);
-}
-
-int PitaNonLinDynamic::getInitSeed(DynamState & ds, int sliceRank)
-{
-  if (sliceRank <= 0)
-  {
-    return getInitState(ds);
-  }
-  else
-  {
-    domain->initDispVelocOnTimeSlice(ds.displacement(), ds.velocity(), sliceRank);
-    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
-    GenVector<double> dummy_acc(solVecInfo(), 0.0);
-    GenVector<double> dummy_vp(solVecInfo(), 0.0);
-    updateUserSuppliedFunction(ds.displacement(), ds.velocity(), dummy_acc, dummy_vp, sliceTime);
-    return 0; // Default value for int aeroAlg
-  }
 }
 
 bool
@@ -72,28 +27,27 @@ PitaNonLinDynamic::getInitialAcceleration() const {
 }
 
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)
-void PitaNonLinDynamic::reBuildKonly()
-{
+void
+PitaNonLinDynamic::reBuildKonly() {
   times->rebuild -= getTime();
 
-  K->zeroAll();
+  Kt->zeroAll();
 
   Connectivity *allDofs = domain->getAllDOFs();
   for (int iele = 0; iele < domain->numElements(); ++iele) {
-    K->add(kelArray[iele], (*allDofs)[iele]);
+    Kt->add(kelArray[iele], (*allDofs)[iele]);
   }
 
   times->rebuild += getTime();
 }
 
 // Set rotational displacements equal to zero.
-void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
-{
+void
+PitaNonLinDynamic::zeroRotDofs(VecType & vec) const {
   ConstrainedDSA & cdsa = *(domain->getCDSA());
   int numNodes = cdsa.numNodes(); 
   int dofPos;
-  for (int inode = 0; inode < numNodes; ++inode)
-  {
+  for (int inode = 0; inode < numNodes; ++inode) {
       dofPos = cdsa.locate(inode, DofSet::Xrot);
       if (dofPos >= 0)
         vec[dofPos] = 0.0;
@@ -106,22 +60,28 @@ void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
   }
 }
 
-double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)
-{
-  return sqrt(energyDot(disp, velo, disp, velo)); 
+double
+PitaNonLinDynamic::internalEnergy(const GeomState * configuration) const {
+  double result = 0.0;
+  for (int iele = 0; iele < domain->numElements(); ++iele) {
+    result += allCorot[iele]->getElementEnergy(const_cast<GeomState &>(*configuration), domain->getNodes());
+  }
+  return result;
 }
 
-double PitaNonLinDynamic::energyDot(const Vector &disp1, const Vector &velo1, const Vector &disp2, const Vector &velo2)
-{
-  Vector Kdisp(disp1.size());
-  Vector Mvelo(velo1.size());
-  K->mult(disp1, Kdisp);
-  M->mult(velo1, Mvelo);
-  return (Mvelo * velo2) + (Kdisp * disp2); 
+double
+PitaNonLinDynamic::internalEnergy(const VecType & displacement) const {
+  GeomState * configuration = const_cast<PitaNonLinDynamic *>(this)->createGeomState();
+  configuration->update(const_cast<VecType &>(displacement));
+
+  double result = internalEnergy(configuration);
+
+  delete configuration;
+  return result;
 }
 
-void PitaNonLinDynamic::openResidualFile()
-{
+void
+PitaNonLinDynamic::openResidualFile() {
   if (res != (FILE*) 0)
     fclose(res);
   
@@ -131,32 +91,32 @@ void PitaNonLinDynamic::openResidualFile()
   s << "residuals." << myCPU;
   res = fopen(s.str().c_str(), "wt");
   
-  if (res == (FILE *) 0)
+  if (res == (FILE *) 0) {
     filePrint(stderr, " *** ERROR: Cannot open residual file for CPU # %d\n", myCPU);
+  }
 }
 
-// No Aero
 void
-PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vector& velocity,
-                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF,
-                                   Vector & acceleration)
-{
+PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, VecType & velocity,
+                                   VecType & vp, double time, int step, VecType & force, VecType & aeroF,
+                                   VecType & acceleration) {
+  // Note: No Aero
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray, acceleration.data());
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF,
+                             time, step, velocity.data(), vcx,
+                             allCorot, melArray, acceleration.data());
   times->output += getTime();
 }
 
 void
-PitaNonLinDynamic::openOutputFiles(int sliceRank)
-{
+PitaNonLinDynamic::openOutputFiles(int sliceRank) {
   geoSource->openOutputFilesForPita(sliceRank);
   //domain->printStatistics(); // Deactivated
 }
 
 void
-PitaNonLinDynamic::closeOutputFiles()
-{
+PitaNonLinDynamic::closeOutputFiles() {
   geoSource->closeOutputFiles();
 }
 
-} // end namespace Pita
+} /* end namespace Pita */

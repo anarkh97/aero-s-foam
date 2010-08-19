@@ -74,10 +74,17 @@ protected:
 };
   
   void unshareDesc();
+  friend void unshare(DynamState & state);
 
 private:
   DynamState::Desc::Ptr desc_;
 };
+
+inline
+void
+unshare(DynamState & state) {
+  state.unshareDesc();
+}
 
 const DynamState operator+(const DynamState & op1, const DynamState & op2);
 const DynamState operator-(const DynamState & op1, const DynamState & op2);

@@ -18,7 +18,7 @@ BasicHalfTimeSliceImpl::iterationIs(IterationRank i) {
   assert(seed()->iteration() == i);
   assert(seed()->status() != Seed::INACTIVE);
   propagateSeed();
-  propagatedSeed()->iterationIs(seed()->iteration().next());
+  propagatedSeed()->iterationIs(seed()->iteration());
 }
 
 void

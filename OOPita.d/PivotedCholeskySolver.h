@@ -15,13 +15,12 @@ public:
   EXPORT_PTRINTERFACE_TYPES(PivotedCholeskySolver);
 
   // Accessors
-  const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; }
+  const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; } // Only lower triangular part is relevant
   virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
   // Mutators
   void matrixIs(const SymFullMatrix & matrix);
-  void matrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part
-  virtual void transposedMatrixIs(const FullSquareMatrix & matrix) { matrixIs(matrix); } // Use only upper triangular part
+  virtual void transposedMatrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part of transposed matrix
   virtual void orderingIs(Ordering o);
   
   static Ptr New(double tolerance = -1.0) {

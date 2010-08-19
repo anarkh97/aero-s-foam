@@ -13,7 +13,7 @@ LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
                                        HalfTimeSlice::Manager * sliceMgr,
                                        ReducedCorrectionManager * redCorrMgr,
                                        RemoteState::Manager * commMgr,
-                                       SeedErrorEvaluator::Manager * jumpErrorMgr) :
+                                       LinSeedDifferenceEvaluator::Manager * jumpErrorMgr) :
   LocalNetwork(mapping, commMgr),
   sliceMgr_(sliceMgr),
   redCorrMgr_(redCorrMgr),
@@ -148,7 +148,7 @@ LinearLocalNetwork::buildJumpBuilder(HalfSliceRank sliceRank) {
 
 void
 LinearLocalNetwork::buildJumpEstimator(HalfSliceRank sliceRank) {
-  SeedErrorEvaluator::Ptr jumpErrorEvaluator = jumpErrorMgr_->instanceNew(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
+  LinSeedDifferenceEvaluator::Ptr jumpErrorEvaluator = jumpErrorMgr_->instanceNew(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
   jumpErrorEvaluator->referenceSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
 }
 

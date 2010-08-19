@@ -1097,7 +1097,7 @@ int main(int argc, char** argv)
            if (domain->solInfo().pitaTimeReversible) {
              filePrint(stderr, " ... Time-reversible nonlinear PITA ...\n");
              Pita::PitaNonLinDynamic pitaProblem(domain);
-             Pita::NlDriver::Ptr pitaDriver = nlPitaDriverNew(&pitaProblem);
+             Pita::NlDriver::Ptr pitaDriver = nlReversiblePitaDriverNew(&pitaProblem);
              pitaDriver->solve();
            } else {
              filePrint(stderr, " ... Nonlinear PITA ...\n");

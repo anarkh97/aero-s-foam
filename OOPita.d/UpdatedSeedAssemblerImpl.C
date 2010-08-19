@@ -15,23 +15,22 @@ UpdatedSeedAssemblerImpl::UpdatedSeedAssemblerImpl(const String & name, const Ma
 void
 UpdatedSeedAssemblerImpl::iterationIs(IterationRank ir) {
   assert(correctionComponents()->iteration() == propagatedSeed()->iteration() || correctionComponents()->status() == Seed::INACTIVE);
-  
-  if (correction()->iteration() < correctionComponents()->iteration()) {
-    if (correctionComponents()->status() != Seed::INACTIVE) { 
-      //log() << "Reading state from " << correctionComponents()->name() << "\n";
-      const Vector & components = correctionComponents()->state();
+ 
+  if (correctionComponents()->status() != Seed::INACTIVE) {
+    //log() << "Reading state from " << correctionComponents()->name() << "\n";
+    const Vector & components = correctionComponents()->state();
 
-      DynamState result(propagatedSeed()->state().vectorSize(), 0.0);
-      int rbs = static_cast<int>(correctionBasis()->stateCount());
-      //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
-      for (int i = 0; i < rbs; ++i) {
-        if (components[i] != 0.0) {
-          result.linAdd(components[i], correctionBasis()->state(i));
-        }
+    DynamState result(propagatedSeed()->state().vectorSize(), 0.0);
+    int rbs = static_cast<int>(correctionBasis()->stateCount());
+    //log() << "reducedBasisSize/correctionComponentSize == " << rbs << "/" << components.size() << "\n";
+    for (int i = 0; i < rbs; ++i) {
+      if (components[i] != 0.0) {
+        result.linAdd(components[i], correctionBasis()->state(i));
       }
-
-      correction()->stateIs(result);
     }
+
+    correction()->stateIs(result);
+
     correction()->statusIs(correctionComponents()->status());
     correction()->iterationIs(correctionComponents()->iteration());
   }

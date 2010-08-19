@@ -19,7 +19,7 @@
 
 #include "NlProjectionNetwork.h"
 
-#include "../SeedErrorEvaluator.h"
+#include "../SeedDifferenceEvaluator.h"
 
 #include "LocalNetworkImpl.h"
 
@@ -44,7 +44,7 @@ public:
                  CorrectionReconstructor::Manager * corrReconMgr,
                  BasisCondensationManager * condensMgr,
                  ProjectionBuildingFactory * projBuildMgr,
-                 SeedErrorEvaluator::Manager * jumpEvalMgr);
+                 NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr);
 
   MainSeedMap activeSeeds() const { return seeds_[activeParity()]; }
   
@@ -60,7 +60,7 @@ public:
 protected:
   HalfTimeSlice::Manager * htsMgr() { return htsMgr_.ptr(); }
   JumpBuilder::Manager * jumpMgr() { return jumpMgr_.ptr(); }
-  SeedErrorEvaluator::Manager * jumpEvalMgr() { return jumpEvalMgr_.ptr(); }
+  NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr() { return jumpEvalMgr_.ptr(); }
   SeedUpdater::Manager * seedUpMgr() { return seedUpMgr_.ptr(); }
   CorrectionReductor::Manager * corrRedMgr() { return corrRedMgr_.ptr(); }
   CorrectionReconstructor::Manager * corrReconMgr() { return corrReconMgr_.ptr(); }
@@ -122,7 +122,7 @@ private:
   BasisCondensationManager::Ptr condensMgr_;
   ProjectionBuildingFactory::Ptr projBuildMgr_;
 
-  SeedErrorEvaluator::Manager::Ptr jumpEvalMgr_;
+  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
   NoCorrectionManager::Ptr noCorrectionMgr_;
   
   MainSeedMap seeds_[2];

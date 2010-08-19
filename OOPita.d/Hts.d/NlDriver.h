@@ -1,10 +1,10 @@
-#ifndef PITA_HTS_NLDRIVERIMPL_H
-#define PITA_HTS_NLDRIVERIMPL_H
+#ifndef PITA_HTS_NLDRIVER_H
+#define PITA_HTS_NLDRIVER_H
 
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../NlDriver.h"
+#include "../NlDriverImpl.h"
 
 #include "../PitaNonLinDynam.h"
 #include <Utils.d/SolverInfo.h>
@@ -22,9 +22,9 @@ class Communicator;
 
 namespace Pita { namespace Hts {
 
-class NlDriverImpl : public NlDriver {
+class NlDriver : public NlDriverImpl {
 public:
-  EXPORT_PTRINTERFACE_TYPES(NlDriverImpl);
+  EXPORT_PTRINTERFACE_TYPES(NlDriver);
 
   virtual void solve();
 
@@ -38,11 +38,11 @@ public:
                  Domain * domain,
                  SolverInfo * solverInfo,
                  Communicator * baseComm) {
-    return new NlDriverImpl(pbDesc, geoSource, solverInfo, baseComm);
+    return new NlDriver(pbDesc, geoSource, solverInfo, baseComm);
   }
 
 protected:
-  explicit NlDriverImpl(PitaNonLinDynamic *, GeoSource *, SolverInfo *, Communicator *);
+  explicit NlDriver(PitaNonLinDynamic *, GeoSource *, SolverInfo *, Communicator *);
 
   void preprocess();
   void summarizeParameters() const;
@@ -79,6 +79,6 @@ private:
 
 } /* end namespace Hts */ } /* end namespace Pita */
 
-Pita::NlDriver::Ptr nlPitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
+Pita::NlDriver::Ptr nlReversiblePitaDriverNew(Pita::PitaNonLinDynamic * problemDescriptor);
 
-#endif /* PITA_HTS_NLDRIVERIMPL_H */
+#endif /* PITA_HTS_NLDRIVER_H */

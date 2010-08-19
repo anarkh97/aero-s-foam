@@ -12,13 +12,18 @@ public:
 
   virtual size_t stateCount() const { return state_.size(); }
   using DynamStateBasis::state;
-  DynamState state(size_t index) const { return state_[index]; } // Unsafe
+  DynamState state(size_t index) const { return state_[index]; } // Unchecked access
+  DynamState & internalState(size_t index); // Unchecked access and unsafe (returns a reference to the internals)
 
-  void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unsafe
+  void stateIs(size_t index, const DynamState & newState) { state_[index] = newState; } // Unchecked access
 
   virtual void lastStateIs(const DynamState & ds);
   virtual void lastStateBasisIs(const DynamStateBasis * dsb);
   virtual void lastStateBasisIs(const DynamStatePlainBasis * dsb);
+  
+  virtual void firstStateIs(const DynamState & ds);
+  virtual void firstStateBasisIs(const DynamStateBasis * dsb);
+  virtual void firstStateBasisIs(const DynamStatePlainBasis * dsb);
 
   void stateBasisDel();
   
@@ -26,9 +31,12 @@ public:
   
 protected:
   explicit DynamStatePlainBasis(size_t vectorSize) : DynamStateBasis(vectorSize) {}
- 
-  void addState(const DynamState & ds);
-  void addStateBasis(const DynamStatePlainBasis * dsb);
+
+  void prependState(const DynamState & ds);
+  void prependStateBasis(const DynamStatePlainBasis * dsb);
+  
+  void appendState(const DynamState & ds);
+  void appendStateBasis(const DynamStatePlainBasis * dsb);
   
 private:
   std::deque<DynamState> state_;
@@ -42,13 +50,25 @@ DynamStatePlainBasis::stateBasisDel() {
 
 inline
 void
-DynamStatePlainBasis::addState(const DynamState & ds) {
+DynamStatePlainBasis::prependState(const DynamState & ds) {
+  this->state_.push_front(ds);
+}
+
+inline 
+void
+DynamStatePlainBasis::prependStateBasis(const DynamStatePlainBasis * dsb) {
+  this->state_.insert(this->state_.begin(), dsb->state_.begin(), dsb->state_.end());
+}
+
+inline
+void
+DynamStatePlainBasis::appendState(const DynamState & ds) {
   this->state_.push_back(ds);
 }
 
 inline 
 void
-DynamStatePlainBasis::addStateBasis(const DynamStatePlainBasis * dsb) {
+DynamStatePlainBasis::appendStateBasis(const DynamStatePlainBasis * dsb) {
   this->state_.insert(this->state_.end(), dsb->state_.begin(), dsb->state_.end());
 }
 

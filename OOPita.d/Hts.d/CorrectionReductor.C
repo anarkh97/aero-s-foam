@@ -9,18 +9,16 @@ CorrectionReductor::CorrectionReductor(const String & name, const DynamStateRedu
 
 void
 CorrectionReductor::iterationIs(IterationRank ir) {
+  assert(jump()->iteration().next() == ir);
   assert(correction()->iteration() == jump()->iteration() || correction()->status() == Seed::INACTIVE);
   assert(jump()->status() == Seed::CONVERGED || correction()->status() != Seed::INACTIVE);
-  assert(jump()->iteration() == ir);
 
   DynamState update = jump()->state();
   if (correction()->status() != Seed::INACTIVE) {
     update += correction()->state();
   }
 
-  log() << "*** Projection on subspace of size " << reductor()->reducedBasisSize() << "\n";
-
-  nextCorrection()->stateIs(reductor()->reducedComponents(update));
+  nextCorrection()->stateIs(reductor()->result(update));
   nextCorrection()->statusIs(correction()->status() == Seed::ACTIVE ? Seed::ACTIVE : jump()->status());
   nextCorrection()->iterationIs(jump()->iteration());
 

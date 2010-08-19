@@ -3,6 +3,8 @@
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
+#include <Element.d/State.h>
+#include <Hetero.d/InterpPoint.h>
 
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
@@ -420,17 +422,36 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
 }
 
 void
-BelytschkoTsayShell::computeDisp(CoordSet&, State &state, const InterpPoint &ip,
+BelytschkoTsayShell::computeDisp(CoordSet& cs, State& state, const InterpPoint& ip,
                                  double *res, GeomState *gs)
 {
-  cerr << "BelytschkoTsayShell::computeDisp not implemented\n";
+  const double *gp = ip.xy;
+  double xyz[4][6];
+  state.getDV(nn[0], xyz[0], xyz[0]+3);
+  state.getDV(nn[1], xyz[1], xyz[1]+3);
+  state.getDV(nn[2], xyz[2], xyz[2]+3);
+  state.getDV(nn[3], xyz[3], xyz[3]+3);
+
+  int j;
+  for(j=0; j<6; ++j)
+    res[j] = (1-gp[0])*(1-gp[1])* xyz[0][j] +
+             gp[0]*(1-gp[1])* xyz[1][j] +
+             (1-gp[0])*gp[1]* xyz[3][j] +
+             gp[0]*gp[1]*xyz[2][j];
 }
 
 void
-BelytschkoTsayShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF, 
+BelytschkoTsayShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
                                double *resF, GeomState *gs)
 {
-  cerr << "BelytschkoTsayShell::getFlLoad not implemented\n";
+  const double *gp = ip.xy;
+  for(int i = 0; i < 3; ++i) {
+    resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
+    resF[i]    = (1-gp[0])*(1-gp[1])* flF[i];
+    resF[6+i]  = gp[0]*(1-gp[1])* flF[i];
+    resF[12+i] = (1-gp[0])*gp[1]* flF[i];
+    resF[18+i] = gp[0]*gp[1]* flF[i];
+  }
 }
 
 int

@@ -4,7 +4,6 @@ PROJECT (FEM)
 
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
-set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} "-ffree-line-length-none")
 
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
@@ -29,6 +28,8 @@ MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
 FIND_PACKAGE(OpenMP)
 if(OpenMP_FLAG_DETECTED)
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS})
+  set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} ${OpenMP_CXX_FLAGS})
   add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 

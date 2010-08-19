@@ -56,7 +56,7 @@ SuperCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
                                     FullSquareMatrix &elK, double *f)
 {
   int i, j;
-  elK.zero();
+  //elK.zero();
   for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
 
   for(i=0; i<nSubElems; ++i) {

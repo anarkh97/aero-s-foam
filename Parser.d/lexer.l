@@ -191,7 +191,7 @@ TRAIL [a-zA-Z]*
 
 "MATE"[a-zA-Z]*|"mate"[a-zA-Z]*    { return MATERIALS; }
 
-"DISP"[a-zA-Z]*|"disp"[a-zA-Z]*    { return DISP; }
+"DISP"|"disp"|"DISPL"|"displ"|"DISPLA"|"displa"|"DISPLAC"|"displac"|"DISPLACE"|"displace"|"DISPLACEM"[a-zA-Z]*|"displacem"[a-zA-Z]* { return DISP; }
 
 "THRU"[a-zA-Z]*|"thru"[a-zA-Z]*    { return THRU; }
 
@@ -792,7 +792,7 @@ TRAIL [a-zA-Z]*
 
 "trans"[a-zA-Z]*|"TRANS"[a-zA-Z]*  { yylval.ival = FetiInfo::translation; return RBMSET; }
 
-"rotat"[a-zA-Z]*|"ROTAT"[a-zA-Z]*  { yylval.ival = FetiInfo::rotation;    return RBMSET; }
+"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"[a-zA-Z]*|"ROTATION"[a-zA-Z]* { yylval.ival = FetiInfo::rotation; return RBMSET; }
 
 "all"[a-zA-Z]*|"ALL"[a-zA-Z]*      { yylval.ival = FetiInfo::all;         return RBMSET; }
 
@@ -842,23 +842,23 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
-"DX"|"dx"                          { yylval.ival = OutputInfo::DispX;  return DOFTYPE; }
+"displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 
-"DY"|"dy"                          { yylval.ival = OutputInfo::DispY;  return DOFTYPE; }
+"displacy"|"DISPLACY"              { yylval.ival = OutputInfo::DispY;  return STRESSID; }
 
-"DZ"|"dz"                          { yylval.ival = OutputInfo::DispZ;  return DOFTYPE; }
+"displacz"|"DISPLACZ"              { yylval.ival = OutputInfo::DispZ;  return STRESSID; }
 
-"RX"|"rx"                          { yylval.ival = OutputInfo::RotX;   return DOFTYPE; }
+"rotatiox"|"ROTATIOX"              { yylval.ival = OutputInfo::RotX;   return STRESSID; }
 
-"RY"|"ry"                          { yylval.ival = OutputInfo::RotY;   return DOFTYPE; }
+"rotatioy"|"ROTATIOY"              { yylval.ival = OutputInfo::RotY;   return STRESSID; }
 
-"RZ"|"rz"                          { yylval.ival = OutputInfo::RotZ;   return DOFTYPE; }
+"rotatioz"|"ROTATIOZ"              { yylval.ival = OutputInfo::RotZ;   return STRESSID; }
 
-"DM"|"dm"                          { yylval.ival = OutputInfo::DispMod;return DOFTYPE; }
+"displmod"|"DISPLMOD"              { yylval.ival = OutputInfo::DispMod;return STRESSID; }
 
-"RM"|"rm"                          { yylval.ival = OutputInfo::RotMod; return DOFTYPE; }
+"rotatmod"|"ROTATMOD"              { yylval.ival = OutputInfo::RotMod; return STRESSID; }
 
-"TM"|"tm"                          { yylval.ival = OutputInfo::TotMod; return DOFTYPE; }
+"totalmod"|"TOTALMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 

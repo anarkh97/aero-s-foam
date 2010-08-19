@@ -172,25 +172,28 @@ BelytschkoTsayShell::getMass(CoordSet& cs)
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
   Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
 
-  double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+  Vector r1(3), r2(3), r3(3), r4(3);
 
-  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
-  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
-  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
 
-  v1[0] = r3[0] - r1[0];
-  v1[1] = r3[1] - r1[1];
-  v1[2] = r3[2] - r1[2];
+  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
 
-  v2[0] = r2[0] - r1[0];
-  v2[1] = r2[1] - r1[1];
-  v2[2] = r2[2] - r1[2];
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
 
-  crossprod(v1, v2, v3);
+  v4 = v1.cross(v2);
+  v5 = v2.cross(v3);
 
-  double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
-  double mass = area*prop->rho*prop->eh;
+  double area = 0.5*(v4.magnitude() + v5.magnitude());
+  double rho = expmat->ematpro[2];
+  double eh = expmat->ematpro[19];
+  double mass = area*rho*eh;
 
   return mass;
 }

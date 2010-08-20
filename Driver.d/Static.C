@@ -961,6 +961,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  // output surface elements, each in a separate element set if there are any
  // for now, just output the vertices
  for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
+   if(SurfEntities[iSurf]->GetId() == 0) continue;
    fprintf(cinfo->checkfileptr,"Elements surface_%d using %s\n",
            SurfEntities[iSurf]->GetId(), cinfo->nodeSetName);
    FaceElemSet &faceElemSet = SurfEntities[iSurf]->GetFaceElemSet();
@@ -1214,12 +1215,16 @@ Domain::makeTopFile(int topFlag)
    SPropContainer &sProps = geoSource->getStructProps();
    for(map<int, StructProp>::iterator it = sProps.begin(); it != sProps.end(); ++it) {
        n = it->first;
-       fprintf(matList,"Elements EleSet%d using %s\n", n+1, cinfo->nodeSetName);
+       bool first = true; // PJSA to deal with case of empty EleSet
        for(i=0; i<na; ++i) {
          if(attrib[i].attr == n) {
-           int e = attrib[i].nele; // PJSA: fixed bug here
+           int e = attrib[i].nele; 
            Element *elem = geoSource->getElem(e);
            if(elem) {
+             if(first) {
+               fprintf(matList,"Elements EleSet%d using %s\n", n+1, cinfo->nodeSetName);
+               first = false;
+             }
              int eletype = elem->getTopNumber();
              fprintf(matList,"%d %d ",e+1,eletype);
              int numNodesPerElement = elem->numTopNodes();

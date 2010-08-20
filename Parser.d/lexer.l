@@ -858,7 +858,7 @@ TRAIL [a-zA-Z]*
 
 "rotatmod"|"ROTATMOD"              { yylval.ival = OutputInfo::RotMod; return STRESSID; }
 
-"totalmod"|"TOTALMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
+"gdispmod"|"GDISPMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
@@ -1089,7 +1089,7 @@ TRAIL [a-zA-Z]*
 
 "MATUSAGE"|"matusage"              { return MATUSAGE; }
 
-"bilinplast"|"BILINPLAST"                               { return BILINPLAST; }
+"bilinearplastic"|"BILINEARPLASTIC"                     { return BILINPLAST; }
 
 "linearplanestress"|"LINEARPLANESTRESS"                 { return LINPLSTRESS; }
 
@@ -1100,8 +1100,8 @@ TRAIL [a-zA-Z]*
 "simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]*                     { return SIMPLE; }
 
 "hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
-
-"j2exp"[a-zA-Z]*|"J2EXP"[a-zA-Z]*                       { yylval.ival = 5; return OPTCTV; }
+"elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
+"j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
 

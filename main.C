@@ -151,6 +151,7 @@ int main(int argc, char** argv)
  weightList[4] = 2.0;   // Triangle3
  weightList[8] = 3.0;   // ThreeNodeShell
  weightList[10] = 2.0;  // ThermQuadGal
+ weightList[13] = 2.0;  // thermoleastic quad
  weightList[16] = 4.0;  // FourNodeShell
  weightList[17] = 3.0;  // EightNodeBrick
  weightList[19] = 3.0;  // Membrane
@@ -199,6 +200,29 @@ int main(int argc, char** argv)
  weightList[312] = 2.0; // 3d 3-node free-surface (fluid) triangle
  weightList[321] = 2.0; // 2d 4-node hydroelastic vibration (fluid) quadrilateral
  weightList[331] = 3.0; // 3d 4-node hydroelastic vibration (fluid) tetrahedral
+ weightList[1101] = 2.0; 
+ weightList[1102] = 4.0;
+ weightList[1103] = 8.0;
+ weightList[1104] = 2.0;
+ weightList[1111] = 2.0;
+ weightList[1121] = 2.0;
+ weightList[1122] = 4.0;
+ weightList[1123] = 8.0;
+ weightList[1131] = 2.0;
+ weightList[1151] = 4.0;
+ weightList[1152] = 8.0;
+ weightList[1153] = 12.0;
+ weightList[1161] = 4.0;
+ weightList[1162] = 8.0;
+ weightList[1171] = 4.0;
+ weightList[1172] = 8.0;
+ weightList[1173] = 12.0;
+ weightList[1200] = 2.0;
+ weightList[1201] = 8.0;
+ weightList[1220] = 2.0;
+ weightList[1250] = 3.0;
+ weightList[1251] = 15.0;
+ weightList[1252] = 28.0;
 
 #if defined(USE_MPI)
  SysCom theCom(argc,argv);

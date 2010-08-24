@@ -66,7 +66,7 @@
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
@@ -128,6 +128,7 @@
 %type <mptval>   MPTTInfo
 %type <hftval>   HFTTInfo
 %type <ival>     NDTYPE
+%type <ival>     GROUPTYPE
 %type <nl>       NodeNums SommNodeNums 
 %type <nval>     Node
 %type <lmpcons>  MPCList ComplexMPCList MPCHeader
@@ -329,12 +330,22 @@ Inpc:
         ;
 Group:
         GROUP NewLine
-        | Group Integer Integer NewLine
-        { geoSource->setGroupAttribute($2-1,$3-1); }
-        | Group Integer Integer Integer NewLine
+        | Group GROUPTYPE Integer Integer NewLine
+        { if ($2 == OutputInfo::Attribute)  geoSource->setGroupAttribute($3-1, $4-1);
+          else if ($2 == OutputInfo::Nodal)  geoSource->setNodeGroup($3-1, $4);
+          else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
+        }
+        | Group GROUPTYPE Integer Integer Integer NewLine
         { int i;
-          for(i=$2; i<$3+1; ++i)
-            geoSource->setGroupAttribute(i-1,$4-1);
+          if ($2 == OutputInfo::Attribute)  {
+            for(i=$3; i<$4+1; ++i)
+              geoSource->setGroupAttribute(i-1,$5-1);
+          }
+          else if ($2 == OutputInfo::Nodal)  {
+            for(i=$3; i<$4+1; ++i)
+              geoSource->setNodeGroup(i-1, $5);
+          }
+          else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
         }
         ;
 Random:
@@ -726,16 +737,25 @@ OutInfo:
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
         | STRESSID FNAME Integer Integer // unformatted output for one node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4-1; }
+        | STRESSID FNAME Integer GROUPTYPE Integer // TDL: unformatted output for node group or node
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; 
+          if ($4 == OutputInfo::NodeGroup) $$.groupNumber = $5; else $$.nodeNumber = $5-1;}
         | STRESSID Integer Integer FNAME Integer Integer // formatted output for one node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6-1; }
+        | STRESSID Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for node group or node
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
         | TDENFORC FNAME Integer // unformatted output for all nodes (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; }
         | TDENFORC Integer Integer FNAME Integer // formatted output for all nodes (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
         | TDENFORC FNAME Integer Integer // unformatted output for one node (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; $$.nodeNumber = $4-1; }
+        | TDENFORC FNAME Integer GROUPTYPE Integer // TDL: unformatted output for group or one node (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; if ($4 == OutputInfo::NodeGroup) $$.groupNumber = $5; else $$.nodeNumber = $5-1; }
         | TDENFORC Integer Integer FNAME Integer Integer // formatted output for one node (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6-1; }
+        | TDENFORC Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for group or one node (for explicit dynamics tied/contact surfaces)
+        { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
 
         | OutInfo NODE Integer
         { $$.nodeNumber = $3-1; }

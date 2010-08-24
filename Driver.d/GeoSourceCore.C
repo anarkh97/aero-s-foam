@@ -869,6 +869,30 @@ void GeoSource::setUpData()
 
   if(mpcDirect)
     makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+
+  // verify node groups
+  map<int, list<int> >::iterator ngIter = nodeGroup.begin();
+
+  while (ngIter != nodeGroup.end())   {
+    nodeGroup[ngIter->first].sort();
+    nodeGroup[ngIter->first].unique();
+/*
+    list<int>::iterator it = nodeGroup[ngIter->first].begin();
+    while (it != nodeGroup[ngIter->first].end() )  {
+      fprintf(stderr, "NG %d has node %d\n", ngIter->first, *it+1);
+      it++;
+    }
+    fprintf(stderr, "NG %d has %d nodes \n", ngIter->first, nodeGroup[ngIter->first].size());
+*/
+    ngIter++;
+  }
+
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    if (oinfo[iOut].groupNumber > 0)  {
+      if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
+        fprintf(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
+    }
+  }
 }
 
 //----------------------------------------------------------------
@@ -4119,6 +4143,16 @@ void GeoSource::setGroupAttribute(int a, int g)
 {
  group[g].attributes.push_back(a);
 }
+
+//-------------------------------------------------------
+
+void GeoSource::setNodeGroup(int nn, int id)  {
+
+  nodeGroup[id].push_back(nn);
+}
+
+//-------------------------------------------------------
+
 
 
 void GeoSource::printGroups()

@@ -609,7 +609,7 @@ TRAIL [a-zA-Z]*
 
 "OUTPUT"|"output"                  { return OUTPUT; }
 
-"OUTPUT6"|"outpu6"                 { return OUTPUT6; }
+"OUTPUT6"|"output6"                { return OUTPUT6; }
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
 
@@ -1148,6 +1148,9 @@ TRAIL [a-zA-Z]*
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }
 "GROUP"|"group" { return GROUP; }
+"N"|"n" { yylval.ival = OutputInfo::Nodal; return GROUPTYPE; }
+"A"|"a" { yylval.ival = OutputInfo::Attribute; return GROUPTYPE; }
+"NG"|"ng" { yylval.ival = OutputInfo::NodeGroup; return GROUPTYPE; }
 "RAND"[a-zA-Z]*|"rand"[a-zA-Z]* { return RANDOM; }
 "E"|"e" { yylval.rprop = GeoSource::E; return RPROP; }
 "KX"|"kx"|"Kx" { yylval.rprop = GeoSource::KX; return RPROP; }

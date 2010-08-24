@@ -2,6 +2,7 @@
 #define _GEO_SOURCE_H_
 
 #include <cstring>
+#include <list>
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
@@ -245,6 +246,7 @@ class GeoSource {
   Decomposition *optDec;
 
   map<int, Group> group;
+  map<int, list<int> > nodeGroup;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -559,6 +561,7 @@ public:
 
 // Group stuff
    void setGroupAttribute(int a, int g);
+   void setNodeGroup(int nn, int id);
 
 // Sfem stuff
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem

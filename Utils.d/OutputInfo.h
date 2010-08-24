@@ -38,6 +38,7 @@ struct OutputInfo {
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative
          };
 
+   enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
    int   interval;
    char* filename;
@@ -47,6 +48,7 @@ struct OutputInfo {
    int   width;
    int   precision;
    int   nodeNumber;	// To output just one node's information to a file.
+   int   groupNumber;   // To output the nodes associated w/this group.
    int   dim;           // dimension of output data
    int   dataType;      // 1 for nodal (nodal_full or nodal_partial), 2 for elemental
    int   loadcase;      // for loadcase =-1 file is assigned to all load cases
@@ -68,6 +70,7 @@ struct OutputInfo {
      averageFlg = 1;
      surface = 2;
      nodeNumber = -1;
+     groupNumber = -1;
      ylayer = 0.0;
      zlayer = 0.0;
      timeSliceRank = 0;

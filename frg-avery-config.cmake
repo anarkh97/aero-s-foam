@@ -1,14 +1,19 @@
 # use to tell cmake where to search for the include files and libraries of:
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
 SET(CMAKE_INCLUDE_PATH /home/pavery/code/SPOOLES
-                       /home/pavery/code/MUMPS/MUMPS_4.9.1/include)
+                       /home/pavery/code/MUMPS/MUMPS_4.9.1/include
+                       /home/pavery/code/ACME/acme-2.5e/search
+                       /home/pavery/code/ACME/acme-2.5e/enforcement
+                       /home/pavery/code/Zoltan/include)
 SET(CMAKE_LIBRARY_PATH /home/pavery/code/ARPACK
                        /home/pavery/code/SPOOLES
                        /home/pavery/code/SPOOLES/MT/src
                        /home/pavery/code/BLACS/LIB
                        /home/pavery/code/SCALAPACK
                        /home/pavery/code/MUMPS/MUMPS_4.9.1/lib
-                       /home/pavery/code/ParMETIS3_1)
+                       /home/pavery/code/ParMETIS3_1
+                       /home/pavery/code/ACME/acme-2.5e/lib
+                       /home/pavery/code/Zoltan/Obj_generic)
 SET(BLAS_LIBRARIES /home/pavery/code/LAPACK/lapack-3.2.1/libblas.a)
 SET(LAPACK_LIBRARIES /home/pavery/code/LAPACK/lapack-3.2.1/liblapack.a ${BLAS_LIBRARIES})
 SET(LAPACK_FOUND true)

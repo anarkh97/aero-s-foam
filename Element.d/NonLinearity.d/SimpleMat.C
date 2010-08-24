@@ -9,6 +9,7 @@ SimpleMat::SimpleMat(int type, double rho, double E, double nu)
 {
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu = E/(2.*(1.+nu));
+
   switch(type) {
    case 1:
      mat = new IsotropicLinearElastic(lambda, mu, rho);
@@ -17,6 +18,8 @@ SimpleMat::SimpleMat(int type, double rho, double E, double nu)
      mat = new NeoHookean(lambda, mu, rho);
      break;
   }
+
+mat = 0;
 }
 
 void
@@ -55,7 +58,7 @@ SimpleMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
     for (int j = 0; j < 3; j++)
       lstrain[3*i+j] = enp[3*i+j];
 
-  mat->GetConstitutiveResponse(&lstrain, &lstress, &ltangents);
+  //mat->GetConstitutiveResponse(&lstrain, &lstress, &ltangents);
 
 #ifndef PJSA_CONVERT_TO_PK2
   for (int i = 0; i < 3; i++)
@@ -91,4 +94,5 @@ double
 SimpleMat::getDensity()
 { 
   return mat->GetDensityInReference();
+  return 0.0;
 } 

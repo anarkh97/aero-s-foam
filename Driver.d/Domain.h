@@ -2,6 +2,8 @@
 #define _DOMAIN_H_
 
 #include <cassert>
+#include <set>
+#include <map>
 
 #include <Utils.d/resize_array.h>
 #include <Utils.d/SolverInfo.h>
@@ -785,10 +787,13 @@ class Domain : public HData {
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
      vector<int> contactSurfElems;
+     std::set<int> aeroEmbeddedSurfaceId;  //KW: Ids of wet surfaces
   public:
      int AddSurfaceEntity(SurfaceEntity*);
      int AddSurfaceEntity(SurfaceEntity*, int isurf);
      void PrintSurfaceEntities();
+
+     int AddAeroEmbedSurfaceId(int Id);
 
      int nMortarCond;
      int nContactSurfacePairs; 

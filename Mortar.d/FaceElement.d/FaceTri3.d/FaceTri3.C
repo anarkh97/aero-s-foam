@@ -30,6 +30,9 @@
 #include <Utils.d/DistHelper.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.h>
+#include <Utils.d/dofset.h>
+#include <Hetero.d/FlExchange.h>
+#include <Element.d/State.h>
 
 // ACME headers
 #ifdef USE_ACME
@@ -332,3 +335,44 @@ FaceTri3::print()
 {
   printNodes();
 }
+// -----------------------------------------------------------------------------------------------------
+//                                            FS COMMUNICATION (KW) 
+// -----------------------------------------------------------------------------------------------------
+int* FaceTri3::dofs(DofSetArray &dsa, int *p) 
+{
+  if(p == 0) p = new int[9];
+    dsa.number(Nodes[0], DofSet::XYZdisp, p);
+    dsa.number(Nodes[1], DofSet::XYZdisp, p+3);
+    dsa.number(Nodes[2], DofSet::XYZdisp, p+6);
+    return p;
+}
+
+void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*) 
+{
+  const double *gp = ip.xy;
+  double xyz[3][6];
+  state.getDV(Nodes[0], xyz[0], xyz[0]+3);
+  state.getDV(Nodes[1], xyz[1], xyz[1]+3);
+  state.getDV(Nodes[2], xyz[2], xyz[2]+3);
+
+  for(int j=0; j<6; ++j)
+    res[j] = gp[0]*xyz[0][j] + gp[1]*xyz[1][j] + (1.0-gp[0]-gp[1])*xyz[2][j]; //using ACME convention
+}
+
+void FaceTri3::getFlLoad(CoordSet&, const InterpPoint &ip, double *flF, double *resF, GeomState*) 
+{
+  const double *gp = ip.xy;
+  for(int i = 0; i < 3; ++i) {
+  resF[i]    = gp[0] * flF[i]; //using ACME convention
+  resF[3+i]  = gp[1] * flF[i];
+  resF[6+i] = (1.0-gp[0]-gp[1]) * flF[i];
+  }
+}
+
+
+
+
+
+
+
+

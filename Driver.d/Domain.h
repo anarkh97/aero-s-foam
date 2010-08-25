@@ -12,6 +12,7 @@
 #include <Driver.d/HData.h>
 #include <Parser.d/AuxDefs.h>
 #include <Sfem.d/Sfem.h>
+#include <Utils.d/OutputInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
 class MortarHandler;
@@ -238,7 +239,6 @@ class Domain : public HData {
      Vector *fluidDispSlosh;
      Vector *elFluidDispSlosh;
      Vector *elPotSlosh;
-     Vector *fluidDispSloshAll;
      Vector *elFluidDispSloshAll;
 
     bool sowering;
@@ -490,8 +490,9 @@ class Domain : public HData {
 
      // static & freq response post processing function
      template<class Scalar>
-        void postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force, int ndflag=0, double eigV=0.0);
-     void postProcessing(Vector &sol, Vector &pDisp, Vector &force, int index=0, double t=0);
+     void postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force, 
+                         int ndflag=0, int index = 0, double time = 0, double eigV=0.0);
+
      void resProcessing(Vector &, int index=0, double t=0);
 
      // Nonlinear post processing function
@@ -567,6 +568,15 @@ class Domain : public HData {
      double computeConditionNumber(DynamMat&);
 
      //   Output Related functions
+     int processOutput(OutputInfo::Type &type, Vector &sol, double *bcx, int iInfo,
+                       double time, double freq = 0, int printFlag = 0);
+     int processOutput(OutputInfo::Type &type, ComplexVector &sol, DComplex *bcx, int iInfo,
+                       double time, double freq = 0, int printFlag = 0)  {
+                       cerr << "whoops Stress!\n";  return 0;}
+
+     template<class Scalar>
+     int processDispTypeOutputs(OutputInfo &oinfo, Scalar (*sol)[11], int iInfo,
+                                 int numNodes, double time, double freq = 0, int printFlag = 0);
      void getStressStrain(Vector &sol, double *bcx, int fileNumber,
                           int strInd, double time = 0, int printFlag =0);
      void getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
@@ -605,9 +615,7 @@ class Domain : public HData {
        void scaleInvDisp(Scalar *u);
 
      template<class Scalar>
-       int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
-
-     void mergeDisp(double (*xyz)[11], double *u, double *cdisp);
+     int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
 
      Connectivity *makeSommerToNode();
      // renumbering functions

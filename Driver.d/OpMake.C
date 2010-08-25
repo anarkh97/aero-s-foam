@@ -2468,15 +2468,159 @@ Domain::updateDampingMatrices(AllOps<Scalar> *ops, int *dofs, FullSquareMatrix *
   }
 }
 
+//-------------------------------------------------------------------------------------
+template<class Scalar>
+int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int numNodes,
+                                   int i, double time, double freq, int printFlag)  {
+
+  int success = 1;
+  int dof = -1;
+  Scalar *globVal = 0;
+  switch (oinfo.type)  {
+
+    case OutputInfo::Displacement:
+      if (oinfo.nodeNumber == -1) { // all nodes
+        geoSource->outputNodeVectors(i, glDisp, numNodes, time);
+      }
+      else    // one node
+        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::Disp6DOF:
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeVectors6(i, glDisp, numNodes, time);
+      else
+        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::EigenPair:
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeVectors(i, glDisp, numNodes, freq);
+      else
+        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, freq);
+      break;
+    case OutputInfo::EigenPair6:
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeVectors6(i, glDisp, numNodes, freq);
+      else
+        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, freq);
+      break;
+    case OutputInfo::DispX:
+      if(dof==-1) dof = 0;
+    case OutputInfo::DispY:
+      if(dof==-1) dof = 1;
+    case OutputInfo::DispZ:
+      if(dof==-1) dof = 2;
+    case OutputInfo::RotX:
+      if(dof==-1) dof = 3;
+    case OutputInfo::RotY:
+      if(dof==-1) dof = 4;
+    case OutputInfo::RotZ:
+      if(dof==-1) dof = 5;
+    case OutputInfo::Temperature:
+      if(dof==-1) dof = 6;
+
+      globVal = new Scalar [numNodes];
+      for (int iNode=0; iNode<numNodes; ++iNode)
+        globVal[iNode] = glDisp[iNode][dof];
+
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, time);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::DispMod:
+      globVal = new Scalar[numNodes];
+      for (int iNode = 0; iNode < numNodes; ++iNode)
+        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
+                              glDisp[iNode][1]*glDisp[iNode][1] +
+                              glDisp[iNode][2]*glDisp[iNode][2]);
+
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, time);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::RotMod:
+      globVal = new Scalar[numNodes];
+      for (int iNode = 0; iNode < numNodes; ++iNode)
+        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][3]*glDisp[iNode][3] +
+                              glDisp[iNode][4]*glDisp[iNode][4] +
+                              glDisp[iNode][5]*glDisp[iNode][5]);
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, time);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::TotMod:
+      globVal = new Scalar[numNodes];
+      for (int iNode = 0; iNode < numNodes; ++iNode)
+        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
+                              glDisp[iNode][1]*glDisp[iNode][1] +
+                              glDisp[iNode][2]*glDisp[iNode][2] +
+                              glDisp[iNode][3]*glDisp[iNode][3] +
+                              glDisp[iNode][4]*glDisp[iNode][4] +
+                              glDisp[iNode][5]*glDisp[iNode][5]);
+
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, time);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+      break;
+    case OutputInfo::EigenPressure:
+    case OutputInfo::HelmholtzModes:
+    case OutputInfo::Helmholtz:
+      if (dof==-1) dof = 7;
+     globVal = new Scalar[numNodes];
+      for (int iNode=0; iNode<numNodes; ++iNode) {
+        globVal[iNode] = glDisp[iNode][dof];
+      }
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, freq);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
+      break;
+    case OutputInfo::EigenSlosh:
+      if(dof == -1) dof = 10;
+        globVal = new Scalar[numNodes];
+         for (int iNode=0; iNode<numNodes; ++iNode) {
+           globVal[iNode] = glDisp[iNode][dof];
+         }
+      if(oinfo.nodeNumber == -1)
+        geoSource->outputNodeScalars(i, globVal, numNodes, freq);
+      else
+        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
+      break;
+    default:
+      success = 0;
+      break;
+  }
+
+  if (globVal) {
+    delete [] globVal;
+    globVal = 0;
+  }
+  return success;
+}
+
+//-------------------------------------------------------------------------------------
+
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
-void
-Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force, int ndflag, double eigV)
-{
+void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,
+                            int ndflag, int index, double time, double eigV)  {
+
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
   double freq;
   if (domain->probType() == SolverInfo::Modal) freq = eigV;
   else freq = domain->getFrequencyOrWavenumber();
+
+  if (domain->probType() == SolverInfo::Helmholtz ||
+      domain->probType() == SolverInfo::HelmholtzFreqSweep ||
+      domain->probType() == SolverInfo::HelmholtzDirSweep ||
+      domain->probType() == SolverInfo::HelmholtzMF ||
+      domain->probType() == SolverInfo::HelmholtzSO ||
+      geoSource->isShifted())
+    time = freq;
+
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -2510,163 +2654,15 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
   for(i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
-                                                                            // if non-deterministic and NOT displacement
+    // if non-deterministic and NOT displacement
     if(oinfo[i].interval == 1 || oinfo[i].type == OutputInfo::Farfield) {
       dof = -1;
+      int success = processDispTypeOutputs(oinfo[i], xyz, numNodes, i, time, freq);
+      if (success) continue;
+      success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
+      if (success) continue;
+      success = 1;
       switch(oinfo[i].type)  {
-        default:
-          fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
-          break;
-        case OutputInfo::EigenPair:
-        case OutputInfo::FreqRespModes:
-        case OutputInfo::Displacement:
-          if (oinfo[i].nodeNumber == -1)
-            geoSource->outputNodeVectors(i, xyz, numNodes, freq);  // PJSA
-          else {
-            int iNode = oinfo[i].nodeNumber;
-            geoSource->outputNodeVectors(i, &(xyz[iNode]), 1, freq);
-          }
-          break;
-        case OutputInfo::Disp6DOF:
-          if (oinfo[i].nodeNumber == -1)
-            geoSource->outputNodeVectors6(i, xyz, numNodes, freq); //HB (09/15/05) exactNumNodes -> numNodes
-          else  {
-            iNode = oinfo[i].nodeNumber;
-            geoSource->outputNodeVectors6(i, &(xyz[iNode]), 1, freq);
-          }
-          break;
-
-        // XXXX do Helmholtz, EigenPressure, etc. here also
-        case OutputInfo::Temperature:
-          if(dof == -1) dof = 6;
-        case OutputInfo::EigenSlosh:
-          if(dof == -1) dof = 10;
-
-          if(oinfo[i].nodeNumber == -1) {
-            geoSource->outputNodeScalars(i, xyz[0], 0, freq); // output time
-            for(int inode = 0; inode < numNodes; ++inode)
-              geoSource->outputNodeScalars(i, xyz[inode]+dof, 1);
-          }
-  	  else  {
-            iNode = oinfo[i].nodeNumber;
- 	    geoSource->outputNodeScalars(i, xyz[iNode]+dof, 1, freq);
-          }
-          break;
-
-        case OutputInfo::HeatFlXX:
-          getHeatFlux(sol, bcx, i, HFLX);
-          break;
-        case OutputInfo::HeatFlXY:
-          getHeatFlux(sol, bcx, i, HFLY);
-          break;
-        case OutputInfo::HeatFlXZ:
-          getHeatFlux(sol, bcx, i, HFLZ);
-          break;
-        case OutputInfo::GrdTempX:
-          getHeatFlux(sol, bcx, i, GRTX);
-          break;
-        case OutputInfo::GrdTempY:
-          getHeatFlux(sol, bcx, i, GRTY);
-          break;
-        case OutputInfo::GrdTempZ:
-          getHeatFlux(sol, bcx, i, GRTZ);
-          break;
-        case OutputInfo::HeatFlX:
-          getTrussHeatFlux(sol, bcx, i, HFLX);
-          break;
-        case OutputInfo::GrdTemp:
-          getTrussHeatFlux(sol, bcx, i, GRTX);
-          break;
-        case OutputInfo::SloshDisplacement:
-          getSloshDispAll(sol, bcx, i, freq);
-          break;
-        case OutputInfo::SloshDispX:
-          getSloshDisp(sol, bcx, i, SLDX, freq);
-          break;
-        case OutputInfo::SloshDispY:
-          getSloshDisp(sol, bcx, i, SLDY, freq);
-          break;
-        case OutputInfo::SloshDispZ:
-          getSloshDisp(sol, bcx, i, SLDZ, freq);
-          break;
-        case OutputInfo::StressXX:
-          getStressStrain(sol, bcx, i, SXX);
-          break;
-        case OutputInfo::StressYY:
-          getStressStrain(sol, bcx, i, SYY);
-          break;
-        case OutputInfo::StressZZ:
-          getStressStrain(sol, bcx, i, SZZ);
-          break;
-        case OutputInfo::StressXY:
-          getStressStrain(sol, bcx, i, SXY);
-          break;
-        case OutputInfo::StressYZ:
-          getStressStrain(sol, bcx, i, SYZ);
-          break;
-        case OutputInfo::StressXZ:
-          getStressStrain(sol, bcx, i, SXZ);
-          break;
-        case OutputInfo::StrainXX:
-          getStressStrain(sol, bcx, i, EXX);
-          break;
-        case OutputInfo::StrainYY:
-          getStressStrain(sol, bcx, i, EYY);
-          break;
-        case OutputInfo::StrainZZ:
-          getStressStrain(sol, bcx, i, EZZ);
-          break;
-        case OutputInfo::StrainXY:
-          getStressStrain(sol, bcx, i, EXY);
-          break;
-        case OutputInfo::StrainYZ:
-          getStressStrain(sol, bcx, i, EYZ);
-          break;
-        case OutputInfo::StrainXZ:
-          getStressStrain(sol, bcx, i, EXZ);
-          break;
-        case OutputInfo::StressVM:
-          getStressStrain(sol, bcx, i, VON);
-          break;
-        case OutputInfo::StressPR1:
-          getPrincipalStress(sol, bcx, i, PSTRESS1);
-          break;
-        case OutputInfo::StressPR2:
-          getPrincipalStress(sol, bcx, i, PSTRESS2);
-          break;
-        case OutputInfo::StressPR3:
-          getPrincipalStress(sol, bcx, i, PSTRESS3);
-          break;
-        case OutputInfo::StrainPR1:
-          getPrincipalStress(sol, bcx, i, PSTRAIN1);
-          break;
-        case OutputInfo::StrainPR2:
-          getPrincipalStress(sol, bcx, i, PSTRAIN2);
-          break;
-        case OutputInfo::StrainPR3:
-          getPrincipalStress(sol, bcx, i, PSTRAIN3);
-         break;
-        case OutputInfo::InXForce:
-          getElementForces(sol, bcx, i, INX);
-          break;
-        case OutputInfo::InYForce:
-          getElementForces(sol, bcx, i, INY);
-          break;
-        case OutputInfo::InZForce:
-          getElementForces(sol, bcx, i, INZ);
-          break;
-        case OutputInfo::AXMoment:
-          getElementForces(sol, bcx, i, AXM);
-          break;
-        case OutputInfo::AYMoment:
-          getElementForces(sol, bcx, i, AYM);
-          break;
-        case OutputInfo::AZMoment:
-          getElementForces(sol, bcx, i, AZM);
-          break;
-        case OutputInfo::StrainVM:
-          getStressStrain(sol, bcx, i, STRAINVON);
-          break;
         case OutputInfo::Energies: {
           Wext = ScalarTypes::Real(force*sol);   // Wext = external energy
           Wela =   0.5 * Wext;   // Wela = elastic energy
@@ -2674,72 +2670,10 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
           geoSource->outputEnergies(i, freq, Wext, Waero, Wela, Wkin, Wdmp, error);
           }
           break;
-        case OutputInfo::YModulus:
-          getElementAttr(i,YOUNG);
+        case OutputInfo::Farfield:
+          outputFFP(sol, i);
           break;
-        case OutputInfo::MDensity:
-          getElementAttr(i,MDENS);
-          break;
-        case OutputInfo::Thicknes:
-          getElementAttr(i,THICK);
-          break;
-        case OutputInfo::Composit:
-          getCompositeData(i,1.0);
-          break;
-        case OutputInfo::HelmholtzModes:
-        case OutputInfo::Helmholtz:
-          if(dof==-1) dof = DofSet::Helm;
-        case OutputInfo::DispX:
-          if(dof==-1) dof = DofSet::Xdisp;
-        case OutputInfo::DispY:
-          if(dof==-1) dof = DofSet::Ydisp;
-        case OutputInfo::DispZ:
-          if(dof==-1) dof = DofSet::Zdisp;
-        case OutputInfo::RotX:
-          if(dof==-1) dof = DofSet::Xrot;
-        case OutputInfo::RotY:
-          if(dof==-1) dof = DofSet::Yrot;
-        case OutputInfo::RotZ:
-          if(dof==-1) dof = DofSet::Zrot;
-
-          globVal = new Scalar[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode) {
-            if(nodes[iNode] == 0) continue;
-            int loc  = c_dsa->locate( iNode, dof);
-            int loc1 =   dsa->locate( iNode, dof);
-            Scalar x;
-            if(loc >= 0)       x = sol[loc];
-            else if(loc1 >= 0) x = bcx[loc1];
-            else               x = 0.0;
-  	    globVal[iNode] = x;
-          }
-          if(oinfo[i].nodeNumber == -1)
-            geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-          else {
-            int iNode = oinfo[i].nodeNumber;
-            geoSource->outputNodeScalars(i, &(globVal[iNode]), 1, freq);
-          }
-          break;
-
-       case OutputInfo::DispMod:
-         globVal = new Scalar[numNodes];
-         for (iNode=0; iNode<numNodes; ++iNode)
-           globVal[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                              xyz[iNode][1]*xyz[iNode][1] +
-                                              xyz[iNode][2]*xyz[iNode][2]);
-
-         geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-	 break;
-        case OutputInfo::RotMod:
-          globVal = new Scalar[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode)
-            globVal[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
-                                               xyz[iNode][4]*xyz[iNode][4] +
-                                               xyz[iNode][5]*xyz[iNode][5]);
-
-         geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-	 break;
-
+        // The remaining cases are not officially supported in manual
         case OutputInfo::ElemToNode:
           if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
           break;
@@ -2749,22 +2683,12 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
         case OutputInfo::NodeToNode:
           if(nodeToNode) nodeToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
           break;
-        case OutputInfo::TotMod:
-          globVal = new Scalar[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode)
-            globVal[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                               xyz[iNode][1]*xyz[iNode][1] +
-                                               xyz[iNode][2]*xyz[iNode][2] +
-                                               xyz[iNode][3]*xyz[iNode][3] +
-                                               xyz[iNode][4]*xyz[iNode][4] +
-                                               xyz[iNode][5]*xyz[iNode][5]);
-
-          geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-	  break;
-        case OutputInfo::Farfield:
-          outputFFP(sol, i);
-         break;
+        default:
+          success = 0;
+          break;
       }
+      if (success == 0)
+        fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
     }
     if(globVal)
       { delete [] globVal; globVal = 0; }
@@ -2786,7 +2710,6 @@ Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &f
    firstOutput = false;
  }
 
- //if (xyz) delete [] xyz;
  if (xyz) delete xyz;
 }
 

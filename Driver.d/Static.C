@@ -1443,13 +1443,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   int k;
   int iele;
-/*
-    // ... OUTPUT FILE field width
-    int w = oinfo[fileNumber].width;
 
-    // ... OUTPUT FILE precision
-    int p = oinfo[fileNumber].precision;
-*/
   double *nodalTemperatures = 0;
   // Either get the nodal temperatures from the input file or
   // from the thermal model

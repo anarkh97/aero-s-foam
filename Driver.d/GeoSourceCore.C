@@ -876,14 +876,6 @@ void GeoSource::setUpData()
   while (ngIter != nodeGroup.end())   {
     nodeGroup[ngIter->first].sort();
     nodeGroup[ngIter->first].unique();
-/*
-    list<int>::iterator it = nodeGroup[ngIter->first].begin();
-    while (it != nodeGroup[ngIter->first].end() )  {
-      fprintf(stderr, "NG %d has node %d\n", ngIter->first, *it+1);
-      it++;
-    }
-    fprintf(stderr, "NG %d has %d nodes \n", ngIter->first, nodeGroup[ngIter->first].size());
-*/
     ngIter++;
   }
 
@@ -1636,29 +1628,48 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[11],
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  if(time >= 0.0) {
-    if(outputSize == 1)
+  if (time >= 0.0) {
+    if (outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
     else
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
-  for(int inode = 0; inode < outputSize; inode++) {
-    if(outputSize == 1)
-      fprintf(oinfo[fileNum].filptr,
-             " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-             w, p, xyz[inode][0], w, p, xyz[inode][1],
-             w, p, xyz[inode][2], w, p, xyz[inode][3],
-             w, p, xyz[inode][4], w, p, xyz[inode][5]);
-    else
-      filePrint(oinfo[fileNum].filptr,
-               " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-               w, p, xyz[inode][0], w, p, xyz[inode][1],
-               w, p, xyz[inode][2], w, p, xyz[inode][3],
- 	       w, p, xyz[inode][4], w, p, xyz[inode][5]);
+ if (oinfo[fileNum].groupNumber > 0)  {
+
+   if (nodeGroup.find(oinfo[fileNum].groupNumber) == nodeGroup.end())
+     return;
+
+    int group = oinfo[fileNum].groupNumber;
+    list<int>::iterator it = nodeGroup[group].begin();
+
+    double pos[3];
+    while (it != nodeGroup[group].end() )  {
+
+      int nodeNumber = *it;
+      pos[0] = (*nodes[nodeNumber]).x + xyz[nodeNumber][0];
+      pos[1] = (*nodes[nodeNumber]).y + xyz[nodeNumber][1];
+      pos[2] = (*nodes[nodeNumber]).z + xyz[nodeNumber][2];
+
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                nodeNumber+1, w,p, pos[0], w,p, pos[1], w, p, pos[2],
+                w,p,xyz[nodeNumber][0], w,p,xyz[nodeNumber][1], w,p,xyz[nodeNumber][2],
+                w,p,xyz[nodeNumber][3], w, p, xyz[nodeNumber][4], w, p, xyz[nodeNumber][5]);
+      it++;
+    }
   }
+  else  {
+    for (int inode = 0; inode < outputSize; inode++)  {
+      filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
+                w, p, xyz[inode][4], w, p, xyz[inode][5]);
+    }
+  }
+
   fflush(oinfo[fileNum].filptr);
 }
+
+//-----------------------------------------------------------------
 
 void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
                                    int outputSize, double time)//DofSet::max_known_nonL_dof
@@ -1678,9 +1689,28 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
-      for(int inode = 0; inode < outputSize; inode++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,
+      if (oinfo[fileNum].groupNumber > 0)  {
+  
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+          int inode = *it;
+          filePrint(oinfo[fileNum].filptr, 
+            " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n", 
+            w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
+            w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
+            w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
+            w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
+            w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
+            w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
+          it++;
+        }
+      }
+      else  {
+        for(int inode = 0; inode < outputSize; inode++) {
+          if(outputSize == 1)
+            fprintf(oinfo[fileNum].filptr,
                   " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
                   w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
                   w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
@@ -1688,24 +1718,26 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
                   w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
                   w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
                   w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
-        else
-          filePrint(oinfo[fileNum].filptr,
+          else
+            filePrint(oinfo[fileNum].filptr,
                   " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
                   w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
                   w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
                   w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real());
-      }
-      // print imaginary part
-      if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
         }
-        for(int inode = 0; inode < outputSize; inode++)  {
-          filePrint(oinfo[fileNum].filptr,
+      
+        // print imaginary part
+        if(outputSize != 1) {
+          if(time >= 0.0) {
+            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+          }
+          for(int inode = 0; inode < outputSize; inode++)  {
+            filePrint(oinfo[fileNum].filptr,
                     " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
                     w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
                     w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
                     w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
+          }
         }
       }
       break;
@@ -1717,9 +1749,29 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
-      for(int inode = 0; inode < outputSize; inode++)  {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,
+      if (oinfo[fileNum].groupNumber > 0)  {
+
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+          int inode = *it;
+            filePrint(oinfo[fileNum].filptr,
+            " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
+                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),   
+                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),  
+                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]), 
+                  w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
+                  w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
+                  w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
+
+          it++;
+        }
+      }
+      else  {
+        for(int inode = 0; inode < outputSize; inode++)  {
+          if(outputSize == 1)
+            fprintf(oinfo[fileNum].filptr,
                   " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
                   w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
                   w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
@@ -1727,24 +1779,26 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
                   w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
                   w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
                   w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
-        else
-          filePrint(oinfo[fileNum].filptr,
+          else
+            filePrint(oinfo[fileNum].filptr,
                     " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
                     w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
                     w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
                     w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]));    //CRW
-      }
-      // print phase
-      if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
         }
-        for(int inode = 0; inode < outputSize; inode++)  {
-          filePrint(oinfo[fileNum].filptr,
+      
+        // print phase
+        if(outputSize != 1) {
+          if(time >= 0.0) {
+            filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
+          }
+          for(int inode = 0; inode < outputSize; inode++)  {
+            filePrint(oinfo[fileNum].filptr,
                     " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
                     w, p, arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
                     w, p, arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
                     w, p, arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
+          }
         }
       }
       break;
@@ -1766,7 +1820,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[11],
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node output \n";
+      else cerr << " *** WARNING: animate not supported for single-node or node group output \n";
       break;
   }
 
@@ -1791,14 +1845,31 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[11],
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
-  int i;
-  for(i = 0; i < outputSize; i++) {
-    if(outputSize == 1)
-      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-              w,p,glv[i][0], w,p,glv[i][1], w,p,glv[i][2]);
-    else {
-      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-              w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
+  if (oinfo[fileNum].groupNumber > 0)  {
+
+    int group = oinfo[fileNum].groupNumber;
+    list<int>::iterator it = nodeGroup[group].begin();
+
+    double pos[3];
+    while (it != nodeGroup[group].end() )  {
+
+      int nodeNumber = *it;
+      pos[0] = (*nodes[nodeNumber]).x + glv[nodeNumber][0];
+      pos[1] = (*nodes[nodeNumber]).y + glv[nodeNumber][1];
+      pos[2] = (*nodes[nodeNumber]).z + glv[nodeNumber][2];
+
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                                       nodeNumber+1, w,p, pos[0], w,p, pos[1], w, p, pos[2],
+                                       w,p,glv[nodeNumber][0], w,p, glv[nodeNumber][1], 
+                                       w,p, glv[nodeNumber][2]);
+      it++;
+    }
+
+  }
+  else  {
+    for (int i = 0; i < outputSize; i++) {
+      filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+                                       w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
     }
   }
   fflush(oinfo[fileNum].filptr);
@@ -1821,23 +1892,41 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[11],
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
-      for(i = 0; i < outputSize; i++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
+      if (oinfo[fileNum].groupNumber > 0)  {
+
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+
+          int nodeNumber = *it;
+          filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
+              w,p,glv[nodeNumber][0].real(), w,p,glv[nodeNumber][0].imag(), w,p,glv[nodeNumber][1].real(),
+              w,p,glv[nodeNumber][1].imag(), w,p,glv[nodeNumber][2].real(), w,p,glv[nodeNumber][2].imag());
+          it++;
+        }
+
+      }
+      else  {
+        int i;
+        for (i = 0; i < outputSize; i++) {
+          if (outputSize == 1)
+            fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
                   w,p,glv[i][0].real(), w,p,glv[i][0].imag(), w,p,glv[i][1].real(),
                   w,p,glv[i][1].imag(), w,p,glv[i][2].real(), w,p,glv[i][2].imag());
-        else
-          filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+          else
+            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
                     w,p,glv[i][0].real(), w,p,glv[i][1].real(), w,p,glv[i][2].real());
-      }
-      // print imaginary part
-      if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
         }
-        for(i = 0; i < outputSize; i++)  {
-          filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+        // print imaginary part
+        if (outputSize != 1) {
+          if (time >= 0.0) {
+            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+          }
+          for (i = 0; i < outputSize; i++)  {
+            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
                     w,p,glv[i][0].imag(), w,p,glv[i][1].imag(), w,p,glv[i][2].imag());
+          }
         }
       }
       break;
@@ -1849,23 +1938,42 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[11],
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
       }
-      for(i = 0; i < outputSize; i++)  {
-        if(outputSize == 1)
+      if (oinfo[fileNum].groupNumber > 0)  {
+
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+
+          int nodeNumber = *it;
           fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
+                  w,p,std::abs(glv[nodeNumber][0]), w,p,std::abs(glv[nodeNumber][1]), 
+                  w,p,std::abs(glv[nodeNumber][2]), w,p,arg(glv[nodeNumber][0]), 
+                  w,p,arg(glv[nodeNumber][1]), w,p,arg(glv[nodeNumber][2]));
+          it++;
+        }
+
+      }
+      else  {
+
+        for (i = 0; i < outputSize; i++)  {
+          if (outputSize == 1)
+            fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
                   w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]),    //CRW
                   w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
-        else
-          filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+         else
+           filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
                     w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]));    //CRW
-      }
-      // print phase
-      if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
         }
-        for(i = 0; i < outputSize; i++)  {
-          filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                    w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
+        // print phase
+        if (outputSize != 1) {
+          if (time >= 0.0) {
+            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+          }
+          for (i = 0; i < outputSize; i++)  {
+            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+                      w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
+          }
         }
       }
       break;
@@ -1885,7 +1993,7 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[11],
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node output \n";
+      else cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
       break;
   }
 
@@ -1907,10 +2015,20 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
-  for(int i = 0; i < outputSize; i++) {
-    if(outputSize == 1)
-      fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
-    else
+  if (oinfo[fileNum].groupNumber > 0)  {
+
+    int group = oinfo[fileNum].groupNumber;
+    list<int>::iterator it = nodeGroup[group].begin();
+
+    while (it != nodeGroup[group].end() )  {
+      int nodeNumber = *it;
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E\n", nodeNumber+1, w,p, data[nodeNumber]);
+      it++;
+    }
+
+  }
+  else
+    for (int i = 0; i < outputSize; i++) {
       filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
   }
 
@@ -1934,20 +2052,30 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
-      for(i = 0; i < outputSize; i++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr," % *.*E", w, p, data[i].real());
-        else
-          filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].real());
+      if (oinfo[fileNum].groupNumber > 0)  {
+
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+          int nodeNumber = *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n", nodeNumber+1, w, p,
+                    data[nodeNumber].real(), w, p, data[nodeNumber].imag());
+          it++;
+        }
       }
-      // print imaginary part
-      if(time >= 0.0) {
-        if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
-      }
-      for(i = 0; i < outputSize; i++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
-        else
+      else  {
+        for(i = 0; i < outputSize; i++) {
+          if(outputSize == 1)
+            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, data[i].real());
+          else
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].real());
+        }
+        // print imaginary part
+        if(time >= 0.0) {
+          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+        }
+        for (i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
       }
       break;
@@ -1959,20 +2087,30 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
         else
           filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
       }
-      for(i = 0; i < outputSize; i++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));     //CRW
-        else
-          filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));    //CRW
+      if (oinfo[fileNum].groupNumber > 0)  {
+
+        int group = oinfo[fileNum].groupNumber;
+        list<int>::iterator it = nodeGroup[group].begin();
+
+        while (it != nodeGroup[group].end() )  {
+          int nodeNumber = *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n", nodeNumber+1, w, p,
+                    std::abs(data[nodeNumber]), w, p, arg(data[nodeNumber]));
+          it++;
+        }
       }
-      // print phase part
-      if(time >= 0.0) {
-        if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
-      }
-      for(i = 0; i < outputSize; i++) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, arg(data[i]));
-        else
+      else  {
+        for(i = 0; i < outputSize; i++) {
+          if (outputSize == 1)
+            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));     //CRW
+          else
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));    //CRW
+        }
+        // print phase part
+        if (time >= 0.0) {
+          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+        }
+        for (i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, arg(data[i]));
       }
       break;
@@ -1989,7 +2127,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node output \n";
+      else cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
       break;
   }
 
@@ -3071,6 +3209,7 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
   if(numOuts == 0) { // open all output files and write their corresponding TOPDOM/DEC header
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
       if(oinfo[iInfo].interval != 0) {
+
         char *fileName = oinfo[iInfo].filename;
         if (strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -3280,26 +3419,32 @@ int GeoSource::setUsdfLocation(int _numActuator, BCond *_actuator)
 //--------------------------------------------------------------------
 
 void GeoSource::outputEnergies(int fileNum, double time, double Wext, double Waero,
-			       double Wela, double Wkin, double Wdmp,
-                               double error)
-{
-  fprintf(oinfo[fileNum].filptr," %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E\n",
-          time, Wext, Waero, Wela, Wkin, Wdmp, error);
+			       double Wela, double Wkin, double Wdmp, double error) {
+
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+
+  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+          time, w, p, Wext, w, p, Waero, w, p, Wela, w, p, Wkin, w, p, Wdmp, w, p, error);
 
   fflush(oinfo[fileNum].filptr);
 }
 
 void GeoSource::outputEnergies(int fileNum, double time, DComplex Wext, DComplex Waero,
-                               DComplex Wela, DComplex Wkin, DComplex Wdmp,
-                               DComplex error)
-{
+                               DComplex Wela, DComplex Wkin, DComplex Wdmp, DComplex error) {
+
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+
   // print real part
-  fprintf(oinfo[fileNum].filptr," %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E\n",
-          time, Wext.real(), Waero.real(), Wela.real(), Wkin.real(), Wdmp.real(), error.real());
+  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+          time, w, p, Wext.real(), w, p, Waero.real(), w, p, Wela.real(),
+                w, p, Wkin.real(), w, p, Wdmp.real(), w, p, error.real());
 
   // print imaginary part
-  fprintf(oinfo[fileNum].filptr," %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E %12.5E\n",
-          time, Wext.imag(), Waero.imag(), Wela.imag(), Wkin.imag(), Wdmp.imag(), error.imag());
+  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+          time, w, p, Wext.imag(), w, p, Waero.imag(), w, p, Wela.imag(),
+                w, p, Wkin.imag(), w, p, Wdmp.imag(), w, p, error.imag());
 
   fflush(oinfo[fileNum].filptr);
 }
@@ -3364,7 +3509,17 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
 
   int avgnum = oinfo[fileNumber].averageFlg;
   if (avgnum == 1 || avgnum == 2)  {
-    sprintf(headDescrip, header[type], prbType, cinfo->nodeSetName, numNodes); // PJSA 4-13-05
+    if (oinfo[fileNumber].groupNumber > 0)  {
+      char ng[80];
+      if (oinfo[fileNumber].dim == 3 || oinfo[fileNumber].dim == 6)
+        sprintf(ng, "NODALGROUP %d: NODENUMBER X Y Z RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
+      else
+        sprintf(ng, "NODALGROUP %d: NODENUMBER RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
+
+      sprintf(headDescrip, header[type], prbType, ng, nodeGroup[oinfo[fileNumber].groupNumber].size());
+    }
+    else
+      sprintf(headDescrip, header[type], prbType, cinfo->nodeSetName, numNodes); // PJSA 4-13-05
     dataType = 1;
   }
   else {

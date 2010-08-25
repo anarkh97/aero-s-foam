@@ -52,11 +52,6 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
   elTemp->zero();
   elheatflux->zero();
 
-  // ... WRITE CURRENT TIME VALUE
-  if(oinfo[fileNumber].nodeNumber == -1)
-    fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
-
-
   for(iele=0; iele<numele; ++iele) {
      int NodesPerElement = elemToNode->num(iele);
      packedEset[iele]->nodes(nodeNumbers);
@@ -78,20 +73,19 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
 // ... ASSEMBLE ELEMENT'S NODAL HEAT FLUXES OR TEMPERATURE GRADIENTS
 
      for(k=0; k<NodesPerElement; ++k) {
-       //int actnod = (*elemToNode)[iele][k];
-       //fprintf(stderr, "Global node number = %d\n", actnod);
        (*heatflux)[(*elemToNode)[iele][k]] += (*elheatflux)[k];
-       //fprintf(oinfo[fileNumber].filptr,"%d % *.*E\n",iele,w,p,(*elheatflux)[k]);
      }
 
     }
 
 // ... PRINT HEAT FLUXES OR TEMPERATURE GRADIENTS DEPENDING ON hgIndex
 
-      for(k=0; k<numnodes; ++k)
-       fprintf(oinfo[fileNumber].filptr,"% *.*E\n",w,p,(*heatflux)[k]);
-     
-    fflush(oinfo[fileNumber].filptr);
+    if (oinfo[fileNumber].nodeNumber == -1)
+      geoSource->outputNodeScalars(fileNumber, heatflux->data(), numnodes, time);
+    else
+      geoSource->outputNodeScalars(fileNumber, heatflux->data()+oinfo[fileNumber].nodeNumber, 1, time);
+
+
 }
 
 void

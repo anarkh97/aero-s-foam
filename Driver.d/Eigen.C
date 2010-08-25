@@ -115,11 +115,6 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
   elPotSlosh->zero();
   elFluidDispSlosh->zero();
 
-  // ... WRITE CURRENT TIME VALUE
-  if(oinfo[fileNumber].nodeNumber == -1)
-    fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
-
-
   for(iele=0; iele<numele; ++iele) {
      int NodesPerElement = elemToNode->num(iele);
      packedEset[iele]->nodes(nodeNumbers);
@@ -140,23 +135,18 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
 
 // ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
 
-     for(k=0; k<NodesPerElement; ++k) {
-       //int actnod = (*elemToNode)[iele][k];
-       //fprintf(stderr, "Global node number = %d\n", actnod);
+     for(k=0; k<NodesPerElement; ++k)
        (*fluidDispSlosh)[(*elemToNode)[iele][k]] += (*elFluidDispSlosh)[k];
-       //fprintf(oinfo[fileNumber].filptr,"%d % *.*E\n",iele,w,p,(*elFluidDispSlosh)[k]);
-     }
-
     }
 
 // ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
       
-      for(k=0; k<numnodes; ++k)  {
-        //fprintf(stderr,"%d\t%f\n",k,(*fluidDispSlosh)[k]);
-        fprintf(oinfo[fileNumber].filptr,"% *.*E\n",w,p,(*fluidDispSlosh)[k]);
-      }
+  if (oinfo[fileNumber].nodeNumber == -1)
+    geoSource->outputNodeScalars(fileNumber, fluidDispSlosh->data(), numnodes, time);
+  else  {
+    geoSource->outputNodeScalars(fileNumber, fluidDispSlosh->data()+oinfo[fileNumber].nodeNumber, 1, time);
+  }
 
-    fflush(oinfo[fileNumber].filptr);
 }
 
 void
@@ -178,9 +168,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
   int p = oinfo[fileNumber].precision;
 
   // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
-  if(fluidDispSloshAll == 0)  {
-    fluidDispSloshAll = new Vector(numnodes*3,0.0);
-  }
+  double (*fluidDispSloshAll)[11] = new double[numnodes][11];
 
   if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
 
@@ -195,13 +183,8 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
   }
 
   // zero the vectors
-  fluidDispSloshAll->zero();
   elPotSlosh->zero();
   elFluidDispSloshAll->zero();
-
-  // ... WRITE CURRENT TIME VALUE
-  if(oinfo[fileNumber].nodeNumber == -1)
-    fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
 
   for(iele=0; iele<numele; ++iele) {
      int NodesPerElement = elemToNode->num(iele);
@@ -216,26 +199,22 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
           (*elPotSlosh)[k] = bcx[(*allDOFs)[iele][k]];
      }
 
-// ... CALCULATE FLUID DISPLACEMENT VALUE FOR EACH NODE 
-//     OF THE ELEMENT
+// ... CALCULATE FLUID DISPLACEMENT VALUE FOR EACH NODE OF THE ELEMENT
      packedEset[iele]->computeSloshDispAll(*elFluidDispSloshAll, nodes, *elPotSlosh);
 
 // ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
      for(k=0; k<NodesPerElement; ++k) {
-        for(int j = 0; j<3; ++j)  {
-          (*fluidDispSloshAll)[3*((*elemToNode)[iele][k])+j] += (*elFluidDispSloshAll)[3*k+j];
-       }
+        for(int j = 0; j<3; ++j)
+          fluidDispSloshAll[(*elemToNode)[iele][k]][j] += (*elFluidDispSloshAll)[3*k+j];
      }
   }
 
 // ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
-      for(k=0; k<numnodes; ++k)  {
-        for(int j = 0; j<3; ++j)  {
-          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*fluidDispSloshAll)[3*k+j]);
-        }
-        fprintf(oinfo[fileNumber].filptr,"\n");
-      }
-    fflush(oinfo[fileNumber].filptr);
+  if (oinfo[fileNumber].nodeNumber == -1)
+    geoSource->outputNodeVectors(fileNumber, fluidDispSloshAll, numnodes, time);
+  else
+    geoSource->outputNodeVectors(fileNumber, fluidDispSloshAll+oinfo[fileNumber].nodeNumber, 1, time);
+
 }
 
 void
@@ -277,7 +256,6 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
 
  // --- Print Problem statistics to screen ------------------------------
  if(!domain->solInfo().doEigSweep) {
-   //printStatistics();
 
    fprintf(stderr," --------------------------------------\n");
 
@@ -307,13 +285,5 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
      fprintf(stderr," --------------------------------------\n");
    }
 
-/* this is done in Domain::postProcessing in OpMake.C
-   // ... CALCULATE STRUCTURE MASS IF REQUESTED
-   if(sinfo.massFlag)  {
-     double mass = computeStructureMass();
-     fprintf(stderr," ... Structure mass = %e  ...\n",mass);
-     fprintf(stderr," --------------------------------------\n");
-   }
-*/
  }
 }

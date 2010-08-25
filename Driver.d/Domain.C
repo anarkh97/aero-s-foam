@@ -1159,339 +1159,6 @@ const char* OutputMessage[] = {
 };
 #endif
 
-// postProcessing for direct solver dynamics
-void
-Domain::postProcessing(Vector &sol, Vector &presDisp, Vector& force, int index,
-                       double t)
-{
-  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
-  // for output
-  // double zero = 0.0;
-  double *globVal = 0;
-  // get Output Information
-  int numOutInfo = geoSource->getNumOutInfo();
-  OutputInfo *oinfo = geoSource->getOutputInfo();
-  //oinfo = geoSource->getOutputInfo2();
-  if (numOutInfo && index == 0)
-    filePrint(stderr," ... Postprocessing                 ...\n");
-
-  // organize displacements
-  double (*xyz)[11] = new double[domain->numnodes][11];//DofSet::max_known_nonL_dof
-  int i;
-  for (i = 0; i < numnodes; ++i)
-    for (int j = 0 ; j < 11 ; j++)
-      xyz[i][j] = 0.0;
-  mergeDisp(xyz, sol.data(), presDisp.data());
-
-  // We should change this to not use bcx
-  double *bcx = new double[dsa->size()];
-  for(i = 0; i < dsa->size(); ++i)
-    if(c_dsa->invRCN(i) >= 0)
-      bcx[i] = presDisp[c_dsa->invRCN(i)];
-
-  // Open files and write file headers in first time step
-  //if(index == 0)  geoSource->openOutputFiles();
-  if(firstOutput)  geoSource->openOutputFiles(); //CBM
-
-  // Define Energy Terms
-  // Total Energy = Wext+Wela+Wkin+Wdmp
-  Wext=0.0;  // external energy
-  Waero = 0.0;  // aerodynamic force energy
-  Wdmp=0.0;  // damping energy
-  double Wela=0.0;  // elastic energy
-  double Wkin=0.0;  // kinetic energy
-
-  int dof;
-  int iNode;
-  for (i = 0; i < numOutInfo; ++i)  {
-
-    if (oinfo[i].interval == 1) {
-      dof = -1;
-      // fprintf(stderr,OutputMessage[oinfo[i].type]);
-      switch(oinfo[i].type)  {
-
-        default:
-          fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
-          break;
-        case OutputInfo::EigenPair:
-        case OutputInfo::FreqRespModes:
-        case OutputInfo::Displacement:
-          if (oinfo[i].nodeNumber == -1)
- 	   geoSource->outputNodeVectors(i, xyz, numNodes, t);
-          else {
-            int iNode = oinfo[i].nodeNumber;
-            // fprintf(stderr, "... Outputting for single node %d\n", iNode);
-            geoSource->outputNodeVectors(i, &(xyz[iNode]), 1, t);
-          }
-          break;
-
-        case OutputInfo::Disp6DOF:
-          if (oinfo[i].nodeNumber == -1)
-            geoSource->outputNodeVectors6(i, xyz, numNodes, t);
-          else  {
-            iNode = oinfo[i].nodeNumber;
-            geoSource->outputNodeVectors6(i, &(xyz[iNode]), 1, t);
-          }
-
-          break;
-
-        case OutputInfo::Temperature:
-          if(oinfo[i].nodeNumber == -1) {
-            geoSource->outputNodeScalars(i, xyz[0], 0, t);
-            for (int inode = 0; inode < numNodes; ++inode)
-              geoSource->outputNodeScalars(i, xyz[inode]+6, 1);
-          }
-  	  else  {
-            iNode = oinfo[i].nodeNumber;
- 	    geoSource->outputNodeScalars(i, xyz[iNode]+6, 1, t);
-          }
-          break;
-
-       case OutputInfo::HeatFlXX:
-         getHeatFlux(sol, bcx, i, HFLX);
-         break;
-       case OutputInfo::HeatFlXY:
-         getHeatFlux(sol, bcx, i, HFLY);
-         break;
-       case OutputInfo::HeatFlXZ:
-         getHeatFlux(sol, bcx, i, HFLZ);
-         break;
-       case OutputInfo::GrdTempX:
-         getHeatFlux(sol, bcx, i, GRTX);
-         break;
-       case OutputInfo::GrdTempY:
-         getHeatFlux(sol, bcx, i, GRTY);
-         break;
-       case OutputInfo::GrdTempZ:
-         getHeatFlux(sol, bcx, i, GRTZ);
-         break;
-       case OutputInfo::HeatFlX:
-         getTrussHeatFlux(sol, bcx, i, HFLX);
-         break;
-       case OutputInfo::GrdTemp:
-         getTrussHeatFlux(sol, bcx, i, GRTX);
-         break;
-
-        case OutputInfo::StressXX:
-          getStressStrain(sol,bcx,i,SXX);
-          break;
-        case OutputInfo::StressYY:
-          getStressStrain(sol,bcx,i,SYY);
-          break;
-        case OutputInfo::StressZZ:
-          getStressStrain(sol,bcx,i,SZZ);
-          break;
-        case OutputInfo::StressXY:
-          getStressStrain(sol,bcx,i,SXY);
-          break;
-        case OutputInfo::StressYZ:
-          getStressStrain(sol,bcx,i,SYZ);
-          break;
-        case OutputInfo::StressXZ:
-          getStressStrain(sol,bcx,i,SXZ);
-          break;
-        case OutputInfo::StrainXX:
-          getStressStrain(sol,bcx,i,EXX);
-          break;
-        case OutputInfo::StrainYY:
-          getStressStrain(sol,bcx,i,EYY);
-          break;
-        case OutputInfo::StrainZZ:
-          getStressStrain(sol,bcx,i,EZZ);
-          break;
-        case OutputInfo::StrainXY:
-          getStressStrain(sol,bcx,i,EXY);
-          break;
-        case OutputInfo::StrainYZ:
-          getStressStrain(sol,bcx,i,EYZ);
-          break;
-        case OutputInfo::StrainXZ:
-          getStressStrain(sol,bcx,i,EXZ);
-          break;
-        case OutputInfo::StressVM:
-          getStressStrain(sol,bcx,i,VON);
-          break;
-
-        case OutputInfo::StressPR1:
-          getPrincipalStress(sol,bcx,i,PSTRESS1);
-          break;
-        case OutputInfo::StressPR2:
-          getPrincipalStress(sol,bcx,i,PSTRESS2);
-          break;
-        case OutputInfo::StressPR3:
-          getPrincipalStress(sol,bcx,i,PSTRESS3);
-          break;
-        case OutputInfo::StrainPR1:
-          getPrincipalStress(sol,bcx,i,PSTRAIN1);
-          break;
-        case OutputInfo::StrainPR2:
-          getPrincipalStress(sol,bcx,i,PSTRAIN2);
-          break;
-        case OutputInfo::StrainPR3:
-          getPrincipalStress(sol,bcx,i,PSTRAIN3);
-         break;
-
-        case OutputInfo::InXForce:
-          getElementForces(sol, bcx, i, INX);
-          break;
-        case OutputInfo::InYForce:
-          getElementForces(sol, bcx, i, INY);
-          break;
-        case OutputInfo::InZForce:
-          getElementForces(sol, bcx, i, INZ);
-          break;
-        case OutputInfo::AXMoment:
-          getElementForces(sol, bcx, i, AXM);
-          break;
-        case OutputInfo::AYMoment:
-          getElementForces(sol, bcx, i, AYM);
-          break;
-        case OutputInfo::AZMoment:
-          getElementForces(sol, bcx, i, AZM);
-          break;
-
-        case OutputInfo::Energies: {
-          Wext = force *  sol;   // Wext = external energy
-          Wela =   0.5 * Wext;   // Wela = elastic energy
-          double error = Wext+Wela+Wkin+Wdmp;
-          geoSource->outputEnergies(i, t, Wext, Waero, Wela, Wkin, Wdmp, error);
-          break;
-	}
-
-        case OutputInfo::StrainVM:
-    	  getStressStrain(sol,bcx,i,STRAINVON);
-          break;
-        case OutputInfo::YModulus:
-          getElementAttr(i,YOUNG);
-          break;
-        case OutputInfo::MDensity:
-          getElementAttr(i,MDENS);
-          break;
-        case OutputInfo::Thicknes:
-          getElementAttr(i,THICK);
-          break;
-        case OutputInfo::Composit:
-          getCompositeData(i,1.0);
-          break;
-        case OutputInfo::EigenPressure:
-        case OutputInfo::HelmholtzModes:
-        case OutputInfo::Helmholtz:
-          // ... PRINT (REAL) HELMHOLTZ SOLUTION
-     	  globVal = new double[numNodes];
-          for (iNode=0; iNode<numNodes; ++iNode) {
-            int loc  = c_dsa->locate( iNode, DofSet::Helm);
-            int loc1 =   dsa->locate( iNode, DofSet::Helm);
-
-            double xHelm;
-            if (loc >= 0)        // dof exists and is free
-              xHelm = sol[loc];
-            else if(loc1 >= 0)  // dof exists and is constrained
-              xHelm = bcx[loc1];
-            else                // dof does not exist
-              xHelm = 0.0;
-
-            globVal[iNode] = xHelm;
-          }
-          geoSource->outputNodeScalars(i, globVal, numNodes, t);
-          break;
-        case OutputInfo::DispX:
-          if(dof==-1) dof = DofSet::Xdisp;
-        case OutputInfo::DispY:
-          if(dof==-1) dof = DofSet::Ydisp;
-        case OutputInfo::DispZ:
-          if(dof==-1) dof = DofSet::Zdisp;
-        case OutputInfo::RotX:
-          if(dof==-1) dof = DofSet::Xrot;
-        case OutputInfo::RotY:
-          if(dof==-1) dof = DofSet::Yrot;
-        case OutputInfo::RotZ:
-          if(dof==-1) dof = DofSet::Zrot;
-
-          globVal = new double[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode) {
-
-            if(nodes[iNode] == 0) continue;
-
-            int loc  = c_dsa->locate( iNode, dof);
-            int loc1 =   dsa->locate( iNode, dof);
-
-            double x;
-            if(loc >= 0)       x = sol[loc];
-            else if(loc1 >= 0) x = bcx[loc1];
-            else               x = 0.0;
-
-  	    globVal[iNode] = x;
-          }
-          geoSource->outputNodeScalars(i, globVal, numNodes, t);
-          break;
-
-       case OutputInfo::DispMod:
-         globVal = new double[numNodes];
-         for (iNode=0; iNode<numNodes; ++iNode)
-           globVal[iNode] = sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                 xyz[iNode][1]*xyz[iNode][1] +
-                                 xyz[iNode][2]*xyz[iNode][2]);
-
-         geoSource->outputNodeScalars(i, globVal, numNodes, t);
-	 break;
-        case OutputInfo::RotMod:
-          globVal = new double[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode)
-            globVal[iNode] = sqrt(xyz[iNode][3]*xyz[iNode][3] +
-                                  xyz[iNode][4]*xyz[iNode][4] +
-                                  xyz[iNode][5]*xyz[iNode][5]);
-
-         geoSource->outputNodeScalars(i, globVal, numNodes, t);
-	 break;
-
-        case OutputInfo::ElemToNode:
-          if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
-          break;
-        case OutputInfo::NodeToElem:
-          if(nodeToElem) nodeToElem->print(oinfo[i].filptr, oinfo[i].nodeNumber);
-          break;
-        case OutputInfo::NodeToNode:
-          if(nodeToNode) nodeToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
-          break;
-        case OutputInfo::TotMod:
-          globVal = new double[numNodes];
-          for(iNode=0; iNode<numNodes; ++iNode)
-            globVal[iNode] = sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                  xyz[iNode][1]*xyz[iNode][1] +
-                                  xyz[iNode][2]*xyz[iNode][2] +
-                                  xyz[iNode][3]*xyz[iNode][3] +
-                                  xyz[iNode][4]*xyz[iNode][4] +
-                                  xyz[iNode][5]*xyz[iNode][5]);
-
-          geoSource->outputNodeScalars(i, globVal, numNodes, t);
-	  break;
-      }
-    }
-    if (globVal)
-      delete [] globVal;
-  }
-
- // --- Print Problem statistics to the screen -------------------------------
- if(firstOutput) {
-   if (!domain->solInfo().doEigSweep) {
-   //   printStatistics();
-
-     // ... CALCULATE STRUCTURE MASS IF REQUESTED
-     if(sinfo.massFlag)  {
-       double mass = computeStructureMass();
-       filePrint(stderr," ... Structure mass = %10.4f    ...\n",mass);
-       filePrint(stderr," --------------------------------------\n");
-     }
-   }
-
-   firstOutput = false;
- }
-
- if(bcx) delete [] bcx;
- if(xyz) delete [] xyz;
-}
-
-
 void
 Domain::resProcessing(Vector &totRes, int index, double t)
 {
@@ -1828,9 +1495,6 @@ Domain::getElementAttr(int fileNumber,int iAttr,double time) {
   int avgnum = oinfo[fileNumber].averageFlg;
 
   double eleattr;
-
-  // ... WRITE THE TIME VALUE
-  //filePrint(oinfo[fileNumber].filptr,"%20.10e\n",solInfo().dt);
 
   // ... OUTPUT precision
   int p = oinfo[fileNumber].precision;
@@ -2252,110 +1916,6 @@ void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
     ny = -ny;
  }
 
-}
-
-void Domain::mergeDisp(double (*xyz)[11], double *u, double *cdisp)//DofSet::max_known_nonL_dof
-{
-  int inode;
-  for (inode = 0; inode < numnodes; ++inode){
-    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
-    int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
-    if(xLoc < 0 && xLoc1 >= 0)
-      xLoc1 = c_dsa->invRCN(xLoc1);
-
-    if (xLoc >= 0)
-      xyz[inode][0] = u[xLoc];          // free
-    else if (xLoc1 >= 0)  {
-      xyz[inode][0] = cdisp[xLoc1];       // constrained
-    }
-    else
-      xyz[inode][0] = 0.0;              // doesn't exist
-
-    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
-    int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
-    if(yLoc < 0 && yLoc1 >= 0)
-      yLoc1 = c_dsa->invRCN(yLoc1);
-
-    if (yLoc >= 0)
-      xyz[inode][1] = u[yLoc];
-    else if (yLoc1 >= 0)
-      xyz[inode][1] = cdisp[yLoc1];
-    else
-      xyz[inode][1] = 0.0;
-
-    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
-    int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
-    if(zLoc < 0 && zLoc1 >= 0)
-      zLoc1 = c_dsa->invRCN(zLoc1);
-
-    if (zLoc >= 0)
-      xyz[inode][2] = u[zLoc];
-    else if (zLoc1 >= 0)
-      xyz[inode][2] = cdisp[zLoc1];
-    else
-      xyz[inode][2] = 0.0;
-
-    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
-    int xRot1 =   dsa->locate(inode, DofSet::Xrot);
-    if(xRot < 0 && xRot1 >= 0)
-      xRot1 = c_dsa->invRCN(xRot1);
-
-    if (xRot >= 0)
-      xyz[inode][3] = u[xRot];
-    else if(xRot1 >= 0)
-      xyz[inode][3] = cdisp[xRot1];
-    else
-      xyz[inode][3] = 0.0;
-
-    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
-    int yRot1 =   dsa->locate(inode, DofSet::Yrot);
-    if(yRot < 0 && yRot1 >= 0)
-      yRot1 = c_dsa->invRCN(yRot1);
-
-    if (yRot >= 0)
-      xyz[inode][4] = u[yRot];
-    else if (yRot1 >= 0)
-      xyz[inode][4] = cdisp[yRot1];
-    else
-      xyz[inode][4] = 0.0;
-
-    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
-    int zRot1 =   dsa->locate(inode, DofSet::Zrot);
-    if(zRot < 0 && zRot1 >= 0)
-      zRot1 = c_dsa->invRCN(zRot1);
-
-    if (zRot >= 0)
-      xyz[inode][5] = u[zRot];
-    else if (zRot1 >= 0)
-      xyz[inode][5] = cdisp[zRot1];
-    else
-      xyz[inode][5] = 0.0;
-
-    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
-    int xTemp1 =   dsa->locate(inode, DofSet::Temp);
-    if(xTemp < 0 && xTemp1 >= 0)
-      xTemp1 = c_dsa->invRCN(xTemp1);
-
-    if (xTemp >= 0)
-      xyz[inode][6] = u[xTemp];
-    else if (xTemp1 >= 0)
-      xyz[inode][6] = cdisp[xTemp1];
-    else
-      xyz[inode][6] = 0.0;
-
-    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
-    int xHelm1 =   dsa->locate(inode, DofSet::Helm);
-    if(xHelm < 0 && xHelm1 >= 0)
-      xHelm1 = c_dsa->invRCN(xHelm1);
-
-    if (xHelm >= 0)
-      xyz[inode][7] = u[xHelm];
-    else if (xHelm1 >= 0)
-      xyz[inode][7] = cdisp[xHelm1];
-    else
-      xyz[inode][7] = 0.0;
-
-  }
 }
 
 void Domain::computeTDProps()
@@ -3031,7 +2591,7 @@ Domain::initialize()
  allDOFs = 0; haveNodes = false; nWetInterface = 0; wetInterfaces = 0;
  numFSI = 0; firstOutput = true; nodeToNode_sommer = 0; sowering = false; nDimass = 0;
  fluidDispSlosh = 0; elPotSlosh =0; elFluidDispSlosh =0; //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- fluidDispSloshAll = 0; elFluidDispSloshAll =0; //ADDED FOR SLOSHING PROBLEM, EC, 20081101
+ elFluidDispSloshAll =0; //ADDED FOR SLOSHING PROBLEM, EC, 20081101
  nodeToFsi = 0; //HB
  numCTC=0;
  output_match_in_top = false;//TG
@@ -3895,3 +3455,143 @@ Domain::UpdateContactSurfaceElements()
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
 }
+
+//-------------------------------------------------------------------------------------
+
+int Domain::processOutput(OutputInfo::Type &type, Vector &d_n, double *bcx, int i,
+                          double time, double freq, int printFlag)  {
+
+  int success = 1;
+  switch(type) {
+    case OutputInfo::SloshDisplacement:
+      getSloshDispAll(d_n, bcx, i, freq);
+      break;
+    case OutputInfo::SloshDispX:
+      getSloshDisp(d_n, bcx, i, SLDX, freq);
+      break;
+    case OutputInfo::SloshDispY:
+      getSloshDisp(d_n, bcx, i, SLDY, freq);
+      break;
+    case OutputInfo::SloshDispZ:
+      getSloshDisp(d_n, bcx, i, SLDZ, freq);
+      break;
+    case OutputInfo::YModulus:
+      getElementAttr(i,YOUNG);
+      break;
+    case OutputInfo::MDensity:
+      getElementAttr(i,MDENS);
+      break;
+    case OutputInfo::Thicknes:
+      getElementAttr(i,THICK);
+      break;
+    case OutputInfo::StressXX:
+      getStressStrain(d_n,bcx,i,SXX, time);
+      break;
+    case OutputInfo::StressYY:
+      getStressStrain(d_n,bcx,i,SYY, time);
+      break;
+    case OutputInfo::StressZZ:
+      getStressStrain(d_n,bcx,i,SZZ, time);
+      break;
+    case OutputInfo::StressXY:
+      getStressStrain(d_n,bcx,i,SXY, time);
+      break;
+    case OutputInfo::StressYZ:
+      getStressStrain(d_n,bcx,i,SYZ, time);
+      break;
+    case OutputInfo::StressXZ:
+      getStressStrain(d_n,bcx,i,SXZ, time);
+      break;
+    case OutputInfo::StrainXX:
+      getStressStrain(d_n,bcx,i,EXX, time);
+      break;
+    case OutputInfo::StrainYY:
+      getStressStrain(d_n,bcx,i,EYY, time);
+      break;
+    case OutputInfo::StrainZZ:
+      getStressStrain(d_n,bcx,i,EZZ, time);
+      break;
+    case OutputInfo::StrainXY:
+      getStressStrain(d_n,bcx,i,EXY, time);
+      break;
+    case OutputInfo::StrainYZ:
+      getStressStrain(d_n,bcx,i,EYZ, time);
+      break;
+    case OutputInfo::StrainXZ:
+      getStressStrain(d_n,bcx,i,EXZ, time);
+      break;
+    case OutputInfo::StressVM:
+      getStressStrain(d_n,bcx,i,VON, time);
+      break;
+    case OutputInfo::Damage:
+      getStressStrain(d_n,bcx,i,DAMAGE, time);
+      break;
+    case OutputInfo::StressPR1:
+      getPrincipalStress(d_n,bcx,i,PSTRESS1,time);
+      break;
+    case OutputInfo::StressPR2:
+      getPrincipalStress(d_n,bcx,i,PSTRESS2,time);
+      break;
+    case OutputInfo::StressPR3:
+      getPrincipalStress(d_n,bcx,i,PSTRESS3,time);
+      break;
+    case OutputInfo::StrainPR1:
+      getPrincipalStress(d_n,bcx,i,PSTRAIN1,time);
+      break;
+    case OutputInfo::StrainPR2:
+      getPrincipalStress(d_n,bcx,i,PSTRAIN2,time);
+      break;
+    case OutputInfo::StrainPR3:
+      getPrincipalStress(d_n,bcx,i,PSTRAIN3,time);
+      break;
+    case OutputInfo::InXForce:
+      getElementForces(d_n, bcx, i, INX, time);
+      break;
+    case OutputInfo::InYForce:
+      getElementForces(d_n, bcx, i, INY, time);
+      break;
+    case OutputInfo::InZForce:
+      getElementForces(d_n, bcx, i, INZ, time);
+      break;
+    case OutputInfo::AXMoment:
+      getElementForces(d_n, bcx, i, AXM, time);
+      break;
+    case OutputInfo::AYMoment:
+      getElementForces(d_n, bcx, i, AYM, time);
+      break;
+    case OutputInfo::AZMoment:
+      getElementForces(d_n, bcx, i, AZM, time);
+      break;
+    case OutputInfo::StrainVM:
+      getStressStrain(d_n,bcx,i,STRAINVON, time);
+    case OutputInfo::HeatFlXX:
+      getHeatFlux(d_n, bcx, i, HFLX);
+      break;
+    case OutputInfo::HeatFlXY:
+      getHeatFlux(d_n, bcx, i, HFLY);
+      break;
+    case OutputInfo::HeatFlXZ:
+      getHeatFlux(d_n, bcx, i, HFLZ);
+      break;
+    case OutputInfo::GrdTempX:
+      getHeatFlux(d_n, bcx, i, GRTX);
+      break;
+    case OutputInfo::GrdTempY:
+      getHeatFlux(d_n, bcx, i, GRTY);
+      break;
+    case OutputInfo::GrdTempZ:
+      getHeatFlux(d_n, bcx, i, GRTZ);
+      break;
+    case OutputInfo::HeatFlX:
+      getTrussHeatFlux(d_n, bcx, i, HFLX);
+      break;
+    case OutputInfo::GrdTemp:
+      getTrussHeatFlux(d_n, bcx, i, GRTX);
+      break;
+    default:
+      success = 0;
+      break;
+  }
+  return success;
+}
+

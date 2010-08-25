@@ -445,7 +445,7 @@ NLMatProbDesc::checkConvergence(int it, double, double resNorm)
 void
 NLMatProbDesc::staticOutput(NLState *state, double t, Vector &f, Vector &totRes)
 {
-  domain.postProcessing(state->disp, state->prescDisp, f, outIndex, t);
+  domain.postProcessing<double>(state->disp,state->prescDisp.data(), f, 0, outIndex, t);
   domain.resProcessing(totRes, outIndex, t);
   outIndex++;
 }
@@ -638,7 +638,7 @@ NLMatProbDesc::dynamOutput(NLState* state, Vector& velocity,
   if(step == -1) 
     vld = new Vector(domain.maxNumDOF());
 
-  domain.postProcessing(state->disp, state->prescDisp, force, step+1, time);
+  domain.postProcessing<double>(state->disp,state->prescDisp.data(), force, 0, step+1, time);
  // domain.resProcessing(totRes, outIndex, t);
  times->output += getTime();
 

@@ -12,6 +12,12 @@
 
 // STL
 #include <map>
+#include <list>
+using std::map;
+using std::list;
+using std::pair;
+typedef pair<int, pair<double, double> >  locoord;
+//         elem id      xi1     xi2
 
 // FEM headers
 #include <Utils.d/BlockAlloc.h>
@@ -49,6 +55,10 @@ class FaceElemSet {
     void Renumber(std::map<int,int>& OldToNewNodeIds);
 
     void deleteElems()  { if(elem){ delete [] elem; elem = 0; } emax = 0; nPhantoms = 0; }
+
+    map<int,locoord> computeNodeLocalCoords(int*, int);
+
+
 
 #ifdef SOWER_SURFS
     void WriteSower(BinFileHandler& file, int* ndMap=0);

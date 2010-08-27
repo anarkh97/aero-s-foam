@@ -6,7 +6,9 @@ using std::istringstream;
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>
+#include <list>
 using std::map;
+using std::list;
 
 #include <unistd.h>
 #include <Timers.d/GetTime.h>
@@ -16,6 +18,7 @@ using std::map;
 #include <Mortar.d/MortarElement.d/MortarElement.h>
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
+#include <Mortar.d/FaceElement.d/FaceElemSet.h>
 
 #include <Utils.d/dofset.h>
 #include <Driver.d/Domain.h>
@@ -35,6 +38,8 @@ extern int totalNewtonIter;
 
 // Global variable for mode data
 ModeData modeData;
+
+//----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0),
@@ -2494,6 +2499,13 @@ void Domain::PrintSurfaceEntities()
  }
 }
 
+// Add a wet surface Id.
+int 
+Domain::AddAeroEmbedSurfaceId(int Id)
+{
+  aeroEmbeddedSurfaceId.insert(Id);
+  return 0;
+}
 // HB: Add Mortar Conditions to the MortarConds array
 // Warning: CURRENTLY NO CHECK FOR MULTIPLE DEFINITION OF THE SAME MORTAR
 //          CONDITION

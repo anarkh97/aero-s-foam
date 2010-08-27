@@ -7,6 +7,7 @@
 class CoordSet;
 class State;
 class GeomState;
+class SurfaceEntity;
 
 // This is an inerpolation point. The element elemNum uses x and y to
 // compute the interpolated displacements/velocities
@@ -22,6 +23,11 @@ struct InterpPoint {
 class DofSetArray;
 
 class FlExchanger {
+ 
+     //KW (Jul.27,2010): FS Communication using Face Elements
+     SurfaceEntity *surface;
+     bool useFaceElem;
+
      double *buffer;
      double *buff;
      int bufferLen;
@@ -64,6 +70,10 @@ class FlExchanger {
      double dtemp;
      Vector *tmpDisp;
    public:
+     //KW (Jul.27,2010): FS Communication using Face Elements
+     FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo = 0);
+     void matchup(); // like "read" 
+
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
      void read(int mynode, char *filename);
      void negotiate();
@@ -89,6 +99,8 @@ class FlExchanger {
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
                          State &st, double factor = 1.0);
+     void sendEmbeddedWetSurface(); //KW
+     void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems); //KW
      void printreceiving();
 /*
      void sendModeShapes(CoordinateSet &,

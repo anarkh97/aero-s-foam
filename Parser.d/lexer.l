@@ -842,6 +842,8 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
+"AEROEMBED"[a-zA-Z]*|"aeroembede"[a-zA-z]* { return AEROEMBED; }
+
 "displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 
 "displacy"|"DISPLACY"              { yylval.ival = OutputInfo::DispY;  return STRESSID; }

@@ -1249,6 +1249,7 @@ template<class Scalar>
 void
 Domain::addGravityForce(GenVector<Scalar> &force)
 {
+  cerr << "here in Domain::addGravityForce\n";
   // ... ADD ELEMENT MASS CONTRIBUTION ...
   Vector elementGravityForce(maxNumDOFs);
   int gravflg;
@@ -1634,7 +1635,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j)
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 
@@ -1803,7 +1804,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j) 
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 

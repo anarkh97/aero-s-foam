@@ -1,10 +1,8 @@
-#include <stdio.h>
-//#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/HData.h>
-//#include <Math.d/ComplexD.h>
 #include <Element.d/Helm.d/HelmElement.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
@@ -21,6 +19,8 @@
 #include <Element.d/Sommerfeld.d/IsoParamTriLineSommer.h>
 
 #include <Driver.d/Domain.h>
+
+double HData::coupledScaling = 1.0, HData::cscale_factor = 1.0, HData::cscale_factor2 = 1.0;
 
 extern int verboseFlag;
 
@@ -60,7 +60,6 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   frequencies = 0;
   coarse_frequencies = 0;
   isCoarseGridSolve = true;
-  coupledScaling = cscale_factor = cscale_factor2 = 1.0;
 
   somElemToNode = 0;
   somNodeToElem = 0;

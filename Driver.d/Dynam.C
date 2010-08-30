@@ -1157,15 +1157,40 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
-    if(flag)
-      flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
-    else
-      flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
+    if(aeroEmbeddedSurfaceId.size()!=0) {
+      int iSurf = -1;
+      for(int i=0; i<nSurfEntity; i++)
+        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID())!=aeroEmbeddedSurfaceId.end()) {
+          iSurf = i; 
+          break; //only allows one Surface.
+        }
+      if(iSurf<0) {
+        fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+        exit(-1);
+      }
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa); //packedEset is not used, but flExchanger needs
+                                                                                    // to have a reference of it at construction.
+    } else {
+      if(flag)
+        flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
+      else
+        flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
+    }
 
     char *matchFile = geoSource->getMatchFileName();
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
-    flExchanger->read(0, matchFile);
+
+    if(aeroEmbeddedSurfaceId.size()!=0) 
+      flExchanger->matchup();
+    else
+      flExchanger->read(0, matchFile);
+
+    //KW: send the embedded wet surface to fluid 
+    if(aeroEmbeddedSurfaceId.size()!=0) {
+      flExchanger->sendEmbeddedWetSurface();
+      if(verboseFlag) fprintf(stderr,"... [E] Sent embedded wet surface ...\n");
+    }
 
     //XML New step of negotiation with fluid code
     flExchanger->negotiate();
@@ -1193,7 +1218,6 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
     
     State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
-
 
     if(sinfo.aeroFlag == 8) {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,

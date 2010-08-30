@@ -1249,7 +1249,6 @@ template<class Scalar>
 void
 Domain::addGravityForce(GenVector<Scalar> &force)
 {
-  cerr << "here in Domain::addGravityForce\n";
   // ... ADD ELEMENT MASS CONTRIBUTION ...
   Vector elementGravityForce(maxNumDOFs);
   int gravflg;

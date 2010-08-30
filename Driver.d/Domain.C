@@ -1037,11 +1037,11 @@ Domain::setUpData()
 
   // set initial displacements
   numBC = geoSource->getIDis(bc);
-  if(sinfo.modalIDisp) {
+  if(sinfo.modalIDisp && !domain->solInfo().modal) {
     filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
     numIDis = modeData.numNodes*6;
     iDis = new BCond[numIDis];
-    modeData.addMultY(numBC, bc, iDis);
+    modeData.addMultY(numBC, bc, iDis); // XXXX
   }
   else {
     setIDis(numBC, bc);

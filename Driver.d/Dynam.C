@@ -542,7 +542,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::Velocity:
 
           if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          else fprintf(oinfo[i].filptr,"  % *.*E",w,p,time);
+          else fprintf(oinfo[i].filptr,"  % *.*E ",w,p,time);
 
           for (iNode=first_node; iNode<last_node; ++iNode)  {
                

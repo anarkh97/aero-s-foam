@@ -168,7 +168,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
   int p = oinfo[fileNumber].precision;
 
   // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
-  double (*fluidDispSloshAll)[11] = new double[numnodes][11];
+  double (*fluidDispSloshAll)[3] = new double[numnodes][3];
 
   if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
 
@@ -245,12 +245,12 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
 
   for(int imode=0; imode < maxmode; ++imode) {
     if(domain->solInfo().buckling || solInfo().soltyp == 2)
-      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,eigenValues[imode]);
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0, 0, 0.0, eigenValues[imode]);
     else if(domain->solInfo().sloshing)
-      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0, 0, 0.0, sqrt(eigenValues[imode])/(2.0*pi)*sqrt(gravitySloshing));
     else {
       double freq = (eigenValues[imode] < 0.0) ? 0.0 : sqrt(eigenValues[imode])/(2.0*pi);
-      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0,freq);
+      domain->postProcessing<double>(eigenVectors[imode],bcx,dummyVector,0, 0, 0.0, freq);
     }
   }
 

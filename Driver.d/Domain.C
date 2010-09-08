@@ -1175,7 +1175,7 @@ Domain::resProcessing(Vector &totRes, int index, double t)
         default:
           break;
         case OutputInfo::Reactions:
-          double (*xyz)[11] = new double[numnodes][11];
+          double (*xyz)[3] = new double[numnodes][3];
           for(iNode=0; iNode<numnodes; ++iNode) {
 
             if(nodes[iNode] == 0) continue;
@@ -3525,6 +3525,12 @@ int Domain::processOutput(OutputInfo::Type &type, Vector &d_n, double *bcx, int 
       break;
     case OutputInfo::Damage:
       getStressStrain(d_n,bcx,i,DAMAGE, time);
+      break;
+    case OutputInfo::EffPStrn:
+      getStressStrain(d_n, bcx, i, EFFPSTRN, time);
+      break;
+    case OutputInfo::HardVar:
+      getStressStrain(d_n, bcx, i, HARDVAR, time);
       break;
     case OutputInfo::StressPR1:
       getPrincipalStress(d_n,bcx,i,PSTRESS1,time);

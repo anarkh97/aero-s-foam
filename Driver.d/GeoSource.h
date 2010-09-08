@@ -476,10 +476,14 @@ public:
   void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag); // dec
 
   // Output Functions
-  void outputNodeVectors(int, double (*)[11], int, double time = -1.0);//DofSet::max_known_nonL_dof
-  void outputNodeVectors6(int, double (*)[11], int, double time = -1.0);
-  void outputNodeVectors6(int, DComplex (*)[11], int, double time = -1.0);
-  void outputNodeVectors(int, DComplex (*)[11], int, double time = -1.0);
+  void outputNodeVectors(int, double (*)[3], int, double time = -1.0);//DofSet::max_known_nonL_dof
+  void outputNodeVectors(int, DComplex (*)[3], int, double time = -1.0);
+  //void outputNodeVectors(int, double (*)[11], int, double time = -1.0){};
+  //void outputNodeVectors(int, DComplex (*)[11], int, double time = -1.0){};
+  void outputNodeVectors6(int, double (*)[6], int, double time = -1.0);
+  void outputNodeVectors6(int, DComplex (*)[6], int, double time = -1.0);
+  //void outputNodeVectors6(int, double (*)[11], int, double time = -1.0) {};
+  //void outputNodeVectors6(int, DComplex (*)[11], int, double time = -1.0) {};
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
   void outputEnergies(int, double, double, double, double, double, double, double);

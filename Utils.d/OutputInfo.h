@@ -20,7 +20,7 @@ struct OutputInfo {
           StressVM,     StressPR1,   StressPR2,   StressPR3,   StrainPR1,
           StrainPR2,    StrainPR3,   InXForce,    InYForce,    InZForce,
           AXMoment,     AYMoment,    AZMoment,    Energies,    AeroForce,
-          EigenPair,    StrainVM,    Helmholtz,   Disp6DOF,    EigenPair6,
+          EigenPair,    StrainVM,    Helmholtz,   Disp6DOF,    EigenPair6, 
           AeroXForce,
           AeroYForce,   AeroZForce,  AeroXMom,    AeroYMom,    AeroZMom,
           Velocity,     Acceleration,YModulus,    MDensity,    Thicknes,
@@ -82,9 +82,10 @@ struct OutputInfo {
    }
 
    void finalize(int numColumns) {
-     if(numColumns == 6 && (type == Displacement || type == EigenPair)) type = Disp6DOF;
-     if(numColumns == 6 && (type == Velocity)) type = Velocity6;
-     if(numColumns == 6 && (type == Acceleration)) type = Accel6;
+     if(numColumns == 6 && (type == Displacement)) type = Disp6DOF;
+     else if(numColumns == 6 && (type == EigenPair)) type = EigenPair6;
+     else if(numColumns == 6 && (type == Velocity)) type = Velocity6;
+     else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;
@@ -108,6 +109,7 @@ struct OutputInfo {
          break;
 
        case Disp6DOF:
+       case EigenPair6:
          dim = 6;
          break;
 

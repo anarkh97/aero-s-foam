@@ -2473,131 +2473,138 @@ template<class Scalar>
 int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int numNodes,
                                    int i, double time, double freq, int printFlag)  {
 
-  int success = 1;
-  int dof = -1;
-  Scalar *globVal = 0;
+  int success = 0;
+  double tag;
   switch (oinfo.type)  {
 
-    case OutputInfo::Displacement:
-      if (oinfo.nodeNumber == -1) { // all nodes
-        geoSource->outputNodeVectors(i, glDisp, numNodes, time);
+    case OutputInfo::Displacement:  
+      tag = time;
+      success = 1;
+    case OutputInfo::EigenPair:  {
+      if (success == 0)
+        tag = freq;
+      Scalar (*data)[3] = new Scalar[numNodes][3];
+      for (int jj = 0; jj < numNodes; jj++)  {
+        data[jj][0] = glDisp[jj][0]; 
+        data[jj][1] = glDisp[jj][1]; 
+        data[jj][2] = glDisp[jj][2]; 
       }
+      if (oinfo.nodeNumber == -1)  // all nodes
+        geoSource->outputNodeVectors(i, data, numNodes, tag);
       else    // one node
-        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, time);
+        geoSource->outputNodeVectors(i, &(data[oinfo.nodeNumber]), 1, tag);
+      delete [] data;
+      success = 1;
+    }
       break;
     case OutputInfo::Disp6DOF:
+      tag = time;
+      success = 1;
+    case OutputInfo::EigenPair6:  {
+     if (success == 0)
+        tag = freq;
+      Scalar (*data)[6] = new Scalar[numNodes][6];
+      for (int jj = 0; jj < numNodes; jj++)  
+        for (int kk = 0; kk < 6; kk++) 
+          data[jj][kk] = glDisp[jj][kk];
+      
       if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeVectors6(i, glDisp, numNodes, time);
+        geoSource->outputNodeVectors6(i, data, numNodes, tag);
       else
-        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, time);
-      break;
-    case OutputInfo::EigenPair:
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeVectors(i, glDisp, numNodes, freq);
-      else
-        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, freq);
-      break;
-    case OutputInfo::EigenPair6:
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeVectors6(i, glDisp, numNodes, freq);
-      else
-        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, freq);
-      break;
-    case OutputInfo::DispX:
-      if(dof==-1) dof = 0;
-    case OutputInfo::DispY:
-      if(dof==-1) dof = 1;
-    case OutputInfo::DispZ:
-      if(dof==-1) dof = 2;
-    case OutputInfo::RotX:
-      if(dof==-1) dof = 3;
-    case OutputInfo::RotY:
-      if(dof==-1) dof = 4;
-    case OutputInfo::RotZ:
-      if(dof==-1) dof = 5;
-    case OutputInfo::Temperature:
-      if(dof==-1) dof = 6;
+        geoSource->outputNodeVectors6(i, &(data[oinfo.nodeNumber]), 1, tag);
 
-      globVal = new Scalar [numNodes];
-      for (int iNode=0; iNode<numNodes; ++iNode)
-        globVal[iNode] = glDisp[iNode][dof];
-
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, time);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+      delete [] data;
+      success = 1;
+    }
       break;
-    case OutputInfo::DispMod:
-      globVal = new Scalar[numNodes];
-      for (int iNode = 0; iNode < numNodes; ++iNode)
-        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
-                              glDisp[iNode][1]*glDisp[iNode][1] +
-                              glDisp[iNode][2]*glDisp[iNode][2]);
-
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, time);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
-      break;
-    case OutputInfo::RotMod:
-      globVal = new Scalar[numNodes];
-      for (int iNode = 0; iNode < numNodes; ++iNode)
-        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][3]*glDisp[iNode][3] +
-                              glDisp[iNode][4]*glDisp[iNode][4] +
-                              glDisp[iNode][5]*glDisp[iNode][5]);
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, time);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
-      break;
-    case OutputInfo::TotMod:
-      globVal = new Scalar[numNodes];
-      for (int iNode = 0; iNode < numNodes; ++iNode)
-        globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
-                              glDisp[iNode][1]*glDisp[iNode][1] +
-                              glDisp[iNode][2]*glDisp[iNode][2] +
-                              glDisp[iNode][3]*glDisp[iNode][3] +
-                              glDisp[iNode][4]*glDisp[iNode][4] +
-                              glDisp[iNode][5]*glDisp[iNode][5]);
-
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, time);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
-      break;
-    case OutputInfo::EigenPressure:
-    case OutputInfo::HelmholtzModes:
-    case OutputInfo::Helmholtz:
-      if (dof==-1) dof = 7;
-     globVal = new Scalar[numNodes];
-      for (int iNode=0; iNode<numNodes; ++iNode) {
-        globVal[iNode] = glDisp[iNode][dof];
-      }
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
-      break;
-    case OutputInfo::EigenSlosh:
-      if(dof == -1) dof = 10;
-        globVal = new Scalar[numNodes];
-         for (int iNode=0; iNode<numNodes; ++iNode) {
-           globVal[iNode] = glDisp[iNode][dof];
-         }
-      if(oinfo.nodeNumber == -1)
-        geoSource->outputNodeScalars(i, globVal, numNodes, freq);
-      else
-        geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
-      break;
-    default:
-      success = 0;
+    default: 
       break;
   }
 
-  if (globVal) {
+  Scalar *globVal = 0;
+  if (success == 0)  {
+    globVal = new Scalar[numNodes];
+    int dof = -1;
+
+    switch (oinfo.type)  {
+
+      case OutputInfo::DispX:
+        if(dof==-1) dof = 0;
+      case OutputInfo::DispY:
+        if(dof==-1) dof = 1;
+      case OutputInfo::DispZ:
+        if(dof==-1) dof = 2;
+      case OutputInfo::RotX:
+        if(dof==-1) dof = 3;
+      case OutputInfo::RotY:
+        if(dof==-1) dof = 4;
+      case OutputInfo::RotZ:
+        if(dof==-1) dof = 5;
+      case OutputInfo::Temperature:
+        if(dof==-1) dof = 6;
+
+        for (int iNode=0; iNode<numNodes; ++iNode)
+          globVal[iNode] = glDisp[iNode][dof];
+        success = 1;
+      case OutputInfo::DispMod:
+        if (success == 0)  {
+          for (int iNode = 0; iNode < numNodes; ++iNode)
+            globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
+                                               glDisp[iNode][1]*glDisp[iNode][1] +
+                                               glDisp[iNode][2]*glDisp[iNode][2]);
+          success = 1;
+        }
+      case OutputInfo::RotMod:
+        if (success == 0)  {
+          for (int iNode = 0; iNode < numNodes; ++iNode)
+            globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][3]*glDisp[iNode][3] +
+                                               glDisp[iNode][4]*glDisp[iNode][4] +
+                                               glDisp[iNode][5]*glDisp[iNode][5]);
+          success = 1;
+        }
+      case OutputInfo::TotMod:
+        if (success == 0)  {
+          for (int iNode = 0; iNode < numNodes; ++iNode)
+            globVal[iNode] = ScalarTypes::sqrt(glDisp[iNode][0]*glDisp[iNode][0] +
+                                               glDisp[iNode][1]*glDisp[iNode][1] +
+                                               glDisp[iNode][2]*glDisp[iNode][2] +
+                                               glDisp[iNode][3]*glDisp[iNode][3] +
+                                               glDisp[iNode][4]*glDisp[iNode][4] +
+                                               glDisp[iNode][5]*glDisp[iNode][5]);
+          success = 1;
+        }
+        if (oinfo.nodeNumber == -1)
+          geoSource->outputNodeScalars(i, globVal, numNodes, time);
+        else
+          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+        break;
+      case OutputInfo::EigenPressure:
+      case OutputInfo::HelmholtzModes:
+      case OutputInfo::Helmholtz:
+        if (dof==-1) dof = 7;
+     
+        for (int iNode=0; iNode<numNodes; ++iNode) 
+          globVal[iNode] = glDisp[iNode][dof];
+      
+        success = 1;
+      case OutputInfo::EigenSlosh:
+        if (success == 0)  {  
+          if (dof == -1) dof = 10;
+          for (int iNode=0; iNode<numNodes; ++iNode)
+            globVal[iNode] = glDisp[iNode][dof];
+          success = 1;
+        }
+        if(oinfo.nodeNumber == -1)
+          geoSource->outputNodeScalars(i, globVal, numNodes, freq);
+        else
+          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
+        break;
+      default:
+        break;
+    }
     delete [] globVal;
-    globVal = 0;
   }
+
   return success;
 }
 
@@ -2613,13 +2620,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   if (domain->probType() == SolverInfo::Modal) freq = eigV;
   else freq = domain->getFrequencyOrWavenumber();
 
-  if (domain->probType() == SolverInfo::Helmholtz ||
-      domain->probType() == SolverInfo::HelmholtzFreqSweep ||
-      domain->probType() == SolverInfo::HelmholtzDirSweep ||
-      domain->probType() == SolverInfo::HelmholtzMF ||
-      domain->probType() == SolverInfo::HelmholtzSO ||
-      geoSource->isShifted())
-    time = freq;
+  if (geoSource->isShifted()) time = freq;
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();

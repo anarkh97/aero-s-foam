@@ -441,13 +441,11 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  for(int i=0;i<d->numNode();i++) 
    for(int j=0;j<8;j++) if (scaling[i][j]!=0) nodalSol[i][j] /= scaling[i][j];
 
- complex<double>(*xyz)[11] = 
-    new complex<double>[d->numNode()][11];//DofSet::max_known_nonL_dof
+ complex<double>(*xyz)[3] = 
+    new complex<double>[d->numNode()][3];
  for( int i = 0; i < d->numNode(); ++i) {
-   for (int j = 0 ; j < 6; j++)
+   for (int j = 0 ; j < 3; j++)
      xyz[i][j] = nodalSol[i][j+1];
-   for (int j = 6 ; j < 11 ; j++)
-     xyz[i][j] = 0.0;
  }
 
   int numOutInfo = geoSource->getNumOutInfo();

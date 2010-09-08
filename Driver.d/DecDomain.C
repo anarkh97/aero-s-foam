@@ -1130,15 +1130,35 @@ GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int num
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber];
 
   int inode;
-  if(oinfo.nodeNumber == -1) {
-    if(ndof == 6) geoSource->outputNodeVectors6(fileNumber, xyz, numNodes, time);
-    else geoSource->outputNodeVectors(fileNumber, xyz, numNodes, time);
+  if (ndof == 6) {
+    Scalar (*data)[6] = new Scalar[numNodes][6];
+    for (int iNode = 0; iNode < numNodes; iNode++)
+      for (int iDof = 0; iDof < 6; iDof++)
+        data[iNode][iDof] = xyz[iNode][iDof];
+   
+    if (oinfo.nodeNumber == -1)
+      geoSource->outputNodeVectors6(fileNumber, data, numNodes, time);
+    else  {
+      inode = oinfo.nodeNumber;
+      geoSource->outputNodeVectors6(fileNumber, data+inode, 1, time);
+    }
+    delete [] data;
   }
   else {
-    inode = oinfo.nodeNumber;
-    if(ndof == 6) geoSource->outputNodeVectors6(fileNumber, xyz+inode, 1, time);
-    else geoSource->outputNodeVectors(fileNumber, xyz+inode, 1, time);
+    Scalar (*data)[3] = new Scalar[numNodes][3];
+    for (int iNode = 0; iNode < numNodes; iNode++)
+      for (int iDof = 0; iDof < 3; iDof++)
+        data[iNode][iDof] = xyz[iNode][iDof];
+    if (oinfo.nodeNumber == -1)
+      geoSource->outputNodeVectors(fileNumber, data, numNodes, time);
+    else  {
+      inode = oinfo.nodeNumber;
+      geoSource->outputNodeVectors(fileNumber, data+inode, 1, time);
+    }
+
+    delete [] data;
   }
+
 }
 
 template<class Scalar>
@@ -1520,12 +1540,12 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
   // PJSA 3-24-05: modified to compute principal direction if required
   Scalar svec[6], pvec[3];
   Scalar *globalPVec = 0; 
-  Scalar (*globalPDir)[11] = 0;//DofSet::max_known_nonL_dof 
+  Scalar (*globalPDir)[3] = 0;//DofSet::max_known_nonL_dof 
   Scalar *pdir = 0;
   int numNodes = domain->numNode();
   if(direction) {
-    globalPDir = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof 
-    pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*11);
+    globalPDir = new Scalar[numNodes][3];//DofSet::max_known_nonL_dof 
+    pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*3);
   }
   else globalPVec = new Scalar[numNodes];
 
@@ -1789,12 +1809,12 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
   // PJSA 3-24-05: modified to compute principal direction if required
   Scalar svec[6], pvec[3];
   Scalar *globalPVec = 0; 
-  Scalar (*globalPDir)[11] = 0;//DofSet::max_known_nonL_dof 
+  Scalar (*globalPDir)[3] = 0;//DofSet::max_known_nonL_dof 
   Scalar *pdir = 0;
   int numNodes = domain->numNode();
   if(direction) {
-    globalPDir = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof 
-    pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*11);
+    globalPDir = new Scalar[numNodes][3];//DofSet::max_known_nonL_dof 
+    pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*3);
   }
   else globalPVec = new Scalar[numNodes];
 

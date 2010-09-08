@@ -412,7 +412,6 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
   // Open the file and write the header in the first time step
   if (tIndex == sinfo.initialTimeIndex) {
     if(numOutInfo > 0)
-      //fprintf(stderr," ... Outputting Dynam./Quasi. Sol.  ...\n");
       geoSource->openOutputFiles();
   }
 
@@ -462,261 +461,105 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
      
     if (oinfo[i].nodeNumber == -1){first_node=0; last_node=numNodes;}           
     else { first_node=oinfo[i].nodeNumber; last_node=first_node+1;}
+    //first_node=0; last_node=numNodes;     
 
-    if((oinfo[i].interval != 0) && (tIndex % oinfo[i].interval == 0)) {
+    if ((oinfo[i].interval != 0) && (tIndex % oinfo[i].interval == 0)) {
       int dof=-1;
       int w = oinfo[i].width;
       int p = oinfo[i].precision;
 
+      int success = processDispTypeOutputs(oinfo[i], glDisp, numNodes, i, time);
+      if (success) continue;
+      success = processOutput(oinfo[i].type, d_n, bcx, i, time);
+      if (success) continue;
+      success = 1;
+
+
+      int nNodes = last_node-first_node;
       switch(oinfo[i].type) {
 
-        case OutputInfo::Displacement:
+        case OutputInfo::Velocity6: {
 
-          if (oinfo[i].nodeNumber == -1) {                             // all nodes
-            geoSource->outputNodeVectors(i, glDisp, numNodes, time);
-          } else {                                                      // one node
-            iNode = oinfo[i].nodeNumber;
-            
-            double x,y,z;
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &x, &DofSet::Xdisp, &y, &DofSet::Ydisp, &z, &DofSet::Zdisp);
-            
-            fprintf(oinfo[i].filptr,"  % *.*E   % *.*E % *.*E % *.*E\n",
-                    w, p, time, w, p, x, w, p, y, w, p, z);
+          double (*data)[6] = new double[nNodes][6];
+
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode], &DofSet::Xdisp,
+                                data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
+
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode]+3, &DofSet::Xrot,
+                                data[iNode]+4, &DofSet::Yrot, data[iNode]+5, &DofSet::Zrot);
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeVectors6(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-         
-        case OutputInfo::Helmholtz: {
+        case OutputInfo::Velocity:  {
 
-          if (oinfo[i].nodeNumber == -1) 
-            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          double x; 
-          for (iNode=first_node; iNode<last_node; iNode++){
-            x=0.0;
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &x, &DofSet::Helm, 0, 0, 0, 0);                    
-            if (oinfo[i].nodeNumber == -1) 
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w, p, x);
-            else 
-              fprintf(oinfo[i].filptr,"  % *.*E   % *.*E\n",w, p, time, w, p, x);
+          double (*data)[3] = new double[nNodes][3];
+
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode], &DofSet::Xdisp,
+                                data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
+
           }
-          fflush(oinfo[i].filptr);
-          } break;
-
-        case OutputInfo::Temperature: {
-
-          if (oinfo[i].nodeNumber == -1)
-            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          double x;
-          for (iNode=first_node; iNode<last_node; iNode++){
-            x=0.0;
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &x, &DofSet::Temp, 0, 0, 0, 0);
-            if (oinfo[i].nodeNumber == -1)
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w, p, x);
-            else
-              fprintf(oinfo[i].filptr,"  % *.*E   % *.*E\n",w, p, time, w, p, x);
-          }
-          fflush(oinfo[i].filptr);
-          } break;
- 
-        case OutputInfo::Disp6DOF:
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          for (iNode=first_node; iNode<last_node; iNode++) {                   // all node or one node
-
-            double x,y,z,xr,yr,zr;
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &x, &DofSet::Xdisp, &y, &DofSet::Ydisp, &z, &DofSet::Zdisp);
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &xr, &DofSet::Xrot, &yr, &DofSet::Yrot, &zr, &DofSet::Zrot);
-
-            if (oinfo[i].nodeNumber == -1) {
-              fprintf(oinfo[i].filptr,"%d  % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                                       iNode+1,w,p,x,w,p,y,w,p,z,w,p,xr,w,p,yr,w,p,zr);
-            } else {
-              fprintf(oinfo[i].filptr, "  % *.*E   %d  % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                                        w,p,time,iNode+1,w,p,x,w,p,y,w,p,z,w,p,xr,w,p,yr,w,p,zr);
-            }
-            fflush(oinfo[i].filptr);
-          }
+          geoSource->outputNodeVectors(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-                 
-                
-        case OutputInfo::Velocity6:               // all nodes or only one
-        case OutputInfo::Velocity:
-
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          else fprintf(oinfo[i].filptr,"  % *.*E",w,p,time);
-
-          for (iNode=first_node; iNode<last_node; ++iNode)  {
-               
-            double x,y,z;
-            double xr,yr,zr;
-            getOrAddDofForPrint(get, v_n, vcx, iNode, &x, &DofSet::Xdisp, &y, &DofSet::Ydisp, &z, &DofSet::Zdisp);
-              
-            if (oinfo[i].type == OutputInfo::Velocity6)
-              getOrAddDofForPrint(get, v_n, vcx, iNode, &xr, &DofSet::Xrot, &yr, &DofSet::Yrot, &zr, &DofSet::Zrot);
-             
-            if (oinfo[i].type == OutputInfo::Velocity6)  {
-              fprintf(oinfo[i].filptr, "%d  % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                                           iNode+1,w,p,x,w,p,y,w,p,z,w,p,xr,w,p,yr,w,p,zr);
-            } else
-              fprintf(oinfo[i].filptr," % *.*E % *.*E % *.*E\n",w,p,x,w,p,y,w,p,z);
-          }
-          fflush(oinfo[i].filptr);
-          break;
-
         case OutputInfo::PressureFirstTimeDerivative: {
 
-          if (oinfo[i].nodeNumber == -1)
-            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          double x;
-          for (iNode=first_node; iNode<last_node; iNode++){
-            x=0.0;
-            getOrAddDofForPrint(get, v_n, vcx, iNode, &x, &DofSet::Helm, 0, 0, 0, 0);
-            if (oinfo[i].nodeNumber == -1)
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w, p, x);
-            else
-              fprintf(oinfo[i].filptr,"  % *.*E   % *.*E\n",w, p, time, w, p, x);
-          }
-          fflush(oinfo[i].filptr);
-          } break;
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+iNode, &DofSet::Helm, 0, 0, 0, 0);
+          
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
 
+        } 
+          break;
         case OutputInfo::TemperatureFirstTimeDerivative: {
-
-          if (oinfo[i].nodeNumber == -1)
-            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          double x;
-          for (iNode=first_node; iNode<last_node; iNode++){
-            x=0.0;
-            getOrAddDofForPrint(get, v_n, vcx, iNode, &x, &DofSet::Temp, 0, 0, 0, 0);
-            if (oinfo[i].nodeNumber == -1)
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w, p, x);
-            else
-              fprintf(oinfo[i].filptr,"  % *.*E   % *.*E\n",w, p, time, w, p, x);
+          double *data = new double[nNodes]; 
+          for (iNode = 0; iNode < nNodes; ++iNode)
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+iNode, &DofSet::Temp, 0,0,0,0);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
+          break;
+        case OutputInfo::Accel6:  {
+          double (*data)[6] = new double[nNodes][6];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode],
+                                &DofSet::Xdisp, data[iNode]+1, &DofSet::Ydisp,
+                                data[iNode]+2, &DofSet::Zdisp);
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode]+3, 
+                                &DofSet::Xrot, data[iNode]+4, &DofSet::Yrot, data[iNode]+5, 
+                                &DofSet::Zrot);
           }
-          fflush(oinfo[i].filptr);
-          } break;
-            
-        case OutputInfo::Accel6:
-        case OutputInfo::Acceleration:
+          geoSource->outputNodeVectors6(i, data, nNodes, time);
+          delete [] data;
+        }
+          break;
+        case OutputInfo::Acceleration:  {
           // XXXX acx (prescribed accelerations not implemented)
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          else fprintf(oinfo[i].filptr,"  % *.*E",w,p,time);
+          double (*data)[3] = new double[nNodes][3];
 
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-
-            double x,y,z;
-            double xr,yr,zr;
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, iNode, &x, &DofSet::Xdisp, &y, &DofSet::Ydisp, &z, &DofSet::Zdisp);
-
-            if (oinfo[i].type == OutputInfo::Accel6)
-              getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, iNode, &xr, &DofSet::Xrot, &yr, &DofSet::Yrot, &zr, &DofSet::Zrot);
-
-            if (oinfo[i].type == OutputInfo::Accel6)  {
-              fprintf(oinfo[i].filptr, "%d  % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                                           iNode+1,w,p,x,w,p,y,w,p,z,w,p,xr,w,p,yr,w,p,zr);
-            } else
-              fprintf(oinfo[i].filptr," % *.*E % *.*E % *.*E\n",w,p,x,w,p,y,w,p,z);
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode], 
+            &DofSet::Xdisp, data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeVectors(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-
         case OutputInfo::PressureSecondTimeDerivative: {
-
-          if (oinfo[i].nodeNumber == -1)
-            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          double x;
-          for (iNode=first_node; iNode<last_node; iNode++){
-            x=0.0;
-            getOrAddDofForPrint(get, a_n, (double *) 0, iNode, &x, &DofSet::Helm, 0, 0, 0, 0);
-            if (oinfo[i].nodeNumber == -1)
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w, p, x);
-            else
-              fprintf(oinfo[i].filptr,"  % *.*E   % *.*E\n",w, p, time, w, p, x);
-          }
-          fflush(oinfo[i].filptr);
-          } break;
-
-        case OutputInfo::StressXX:
-          getStressStrain(d_n, bcx, i, SXX, time);
-          break;
-        case OutputInfo::StressYY:
-          getStressStrain(d_n, bcx, i, SYY, time);
-          break;
-        case OutputInfo::StressZZ:
-          getStressStrain(d_n, bcx, i, SZZ, time);
-          break;
-        case OutputInfo::StressXY:
-          getStressStrain(d_n, bcx, i, SXY, time);
-          break;
-        case OutputInfo::StressYZ:
-          getStressStrain(d_n, bcx, i, SYZ, time);
-          break;
-        case OutputInfo::StressXZ:
-          getStressStrain(d_n, bcx, i, SXZ, time);
-          break;
-        case OutputInfo::StrainXX:
-          getStressStrain(d_n, bcx, i, EXX, time);
-          break;
-        case OutputInfo::StrainYY:
-          getStressStrain(d_n, bcx, i, EYY, time);
-          break;
-        case OutputInfo::StrainZZ:
-          getStressStrain(d_n, bcx, i, EZZ, time);
-          break;
-        case OutputInfo::StrainXY:
-          getStressStrain(d_n, bcx, i, EXY, time);
-          break;
-        case OutputInfo::StrainYZ:
-          getStressStrain(d_n, bcx, i, EYZ, time);
-          break;
-        case OutputInfo::StrainXZ:
-          getStressStrain(d_n, bcx, i, EXZ, time);
-          break;
-        case OutputInfo::StressVM:
-          getStressStrain(d_n, bcx, i, VON, time);
-          break;
-        case OutputInfo::Damage:
-          getStressStrain(d_n, bcx, i, DAMAGE, time);
-          break;
-        case OutputInfo::EffPStrn:
-          getStressStrain(d_n, bcx, i, EFFPSTRN, time);
-          break;
-        case OutputInfo::HardVar:
-          getStressStrain(d_n, bcx, i, HARDVAR, time);
-          break;
-        case OutputInfo::StressPR1:
-          getPrincipalStress(d_n, bcx, i, PSTRESS1, time);
-          break;
-        case OutputInfo::StressPR2:
-          getPrincipalStress(d_n, bcx, i, PSTRESS2, time);
-          break;
-        case OutputInfo::StressPR3:
-          getPrincipalStress(d_n, bcx, i, PSTRESS3, time);
-          break;
-        case OutputInfo::StrainPR1:
-          getPrincipalStress(d_n, bcx, i, PSTRAIN1, time);
-          break;
-        case OutputInfo::StrainPR2:
-          getPrincipalStress(d_n, bcx, i, PSTRAIN2, time);
-          break;
-        case OutputInfo::StrainPR3:
-          getPrincipalStress(d_n, bcx, i, PSTRAIN3, time);
-          break;
-        case OutputInfo::InXForce:
-          getElementForces(d_n, bcx, i, INX, time);
-          break;
-        case OutputInfo::InYForce:
-          getElementForces(d_n, bcx, i, INY, time);
-          break;
-        case OutputInfo::InZForce:
-          getElementForces(d_n, bcx, i, INZ, time);
-          break;
-        case OutputInfo::AXMoment:
-          getElementForces(d_n, bcx, i, AXM, time);
-          break;
-        case OutputInfo::AYMoment:
-          getElementForces(d_n, bcx, i, AYM, time);
-          break;
-        case OutputInfo::AZMoment:
-          getElementForces(d_n, bcx, i, AZM, time);
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)
+            getOrAddDofForPrint(get, a_n, (double *) 0, first_node+iNode, data+iNode, &DofSet::Helm, 
+                                0, 0, 0, 0);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
         case OutputInfo::Energies: {
 
@@ -762,17 +605,18 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           Wkin = 0.5 * (v_n * tmpVec);
           dMat.K->mult(d_n,tmpVec);
           Wela = 0.5 * (d_n * tmpVec);
-          if (dMat.C && (time > sinfo.initialTime)) {                                //??????????????????????
+          if (dMat.C && (time > sinfo.initialTime)) {  //??????????????????????
             dMat.C->mult(v_n, tmpVec);
             double c = solInfo().newmarkGamma;
             dWdmp = (c*tmpVec + (1.0-c)*(*previousCq))*(d_n - (*previousDisp));
             Wdmp += dWdmp;
           }
-          double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)+dWdmp-dW; //??????????????????????
+          //??????????????????????
+          double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)+dWdmp-dW; 
           geoSource->outputEnergies(i, time, Wext, Waero, Wela, Wkin, -Wdmp, error);
           pWela=Wela;
           pWkin=Wkin;
-          if (time==sinfo.initialTime) {                                             //?????????????????????
+          if (time==sinfo.initialTime) {  //?????????????????????
             previousDisp = new Vector(d_n);
             previousCq   = new Vector(tmpVec);
           } else {
@@ -784,178 +628,65 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         }
         break;
 
-        case OutputInfo::StrainVM:
-          getStressStrain(d_n,bcx,i,STRAINVON,time);
-          break;
-        case OutputInfo::AeroXForce:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-            int xloc  = c_dsa->locate( iNode, DofSet::Xdisp);
-            double fx  = (xloc >= 0) ? ext_f[xloc] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,fx);
+        case OutputInfo::AeroXForce:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+            data[iNode]  = (xloc >= 0) ? ext_f[xloc] : 0.0;
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-        case OutputInfo::AeroYForce:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-            int yloc  = c_dsa->locate( iNode, DofSet::Ydisp);
-            double fy  = (yloc >= 0) ? ext_f[yloc] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,fy);
+        case OutputInfo::AeroYForce:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+            data[iNode]  = (yloc >= 0) ? ext_f[yloc] : 0.0;
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-        case OutputInfo::AeroZForce:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-            int zloc  = c_dsa->locate( iNode, DofSet::Zdisp);
-            double fz = (zloc >= 0) ? ext_f[zloc] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,fz);
+        case OutputInfo::AeroZForce:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+            data[iNode] = (zloc >= 0) ? ext_f[zloc] : 0.0;
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-        case OutputInfo::AeroXMom:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if(oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode = first_node; iNode<last_node; ++iNode) {
-            int xrot  = c_dsa->locate( iNode, DofSet::Xrot);
-            double mx = (xrot >= 0) ? ext_f[xrot] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,mx);
+        case OutputInfo::AeroXMom:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+            data[iNode] = (xrot >= 0) ? ext_f[xrot] : 0.0;
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-        case OutputInfo::AeroYMom:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-            int yrot  = c_dsa->locate( iNode, DofSet::Yrot);
-            double my = (yrot >= 0) ? ext_f[yrot] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,my);
+        case OutputInfo::AeroYMom:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+            data[iNode] = (yrot >= 0) ? ext_f[yrot] : 0.0;
           }
-          fflush(oinfo[i].filptr);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
-        case OutputInfo::AeroZMom:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; ++iNode) {
-            int zrot  = c_dsa->locate( iNode, DofSet::Zrot);
-            double mz = (zrot >= 0) ? ext_f[zrot] : 0.0;
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,mz);
+        case OutputInfo::AeroZMom:  {
+          double *data = new double[nNodes];
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+            data[iNode] = (zrot >= 0) ? ext_f[zrot] : 0.0;
           }
-          fflush(oinfo[i].filptr);
-          break;
-
-        case OutputInfo::DispX:
-          if(dof==-1) dof = DofSet::Xdisp;
-        case OutputInfo::DispY:
-          if(dof==-1) dof = DofSet::Ydisp;
-        case OutputInfo::DispZ:
-          if(dof==-1) dof = DofSet::Zdisp;
-        case OutputInfo::RotX:
-          if(dof==-1) dof = DofSet::Xrot;
-        case OutputInfo::RotY:
-          if(dof==-1) dof = DofSet::Yrot;
-        case OutputInfo::RotZ:
-          if(dof==-1) dof = DofSet::Zrot;
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; iNode++){
-            if(nodes[iNode] == 0) continue;
-            double data;
-            getOrAddDofForPrint(get, d_n, bcx, iNode, &data, &dof);
-            fprintf(oinfo[i].filptr," % *.*E\n",w,p,data);
-          }
-          break;
-                                                                                                                                       
-        case OutputInfo::DispMod:
-        case OutputInfo::RotMod:
-        case OutputInfo::TotMod:
-          fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          if(oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"\n");
-          for (iNode=first_node; iNode<last_node; iNode++){
-            if(nodes[iNode] == 0) continue;
-            double x,y,z,xr,yr,zr;
-            int dofx,dofy,dofz;
-            if (oinfo[i].type == OutputInfo::DispMod || oinfo[i].type == OutputInfo::TotMod) {
-              dofx=DofSet::Xdisp; dofy=DofSet::Ydisp; dofz=DofSet::Zdisp;
-              getOrAddDofForPrint(get, d_n, bcx, iNode, &x, &dofx, &y, &dofy, &z, &dofz);
-            }
-            if (oinfo[i].type == OutputInfo::RotMod || oinfo[i].type == OutputInfo::TotMod){
-              dofx=DofSet::Xrot; dofy=DofSet::Yrot; dofz=DofSet::Zrot;
-              getOrAddDofForPrint(get, d_n, bcx, iNode, &xr, &dofx, &yr, &dofy, &zr, &dofz);
-            }
-            if (oinfo[i].type == OutputInfo::DispMod) fprintf(oinfo[i].filptr," % *.*E\n",w,p,sqrt(x*x+y*y+z*z));
-            if (oinfo[i].type == OutputInfo::RotMod)  fprintf(oinfo[i].filptr," % *.*E\n",w,p,sqrt(xr*xr+yr*yr+zr*zr));
-            if (oinfo[i].type == OutputInfo::TotMod)
-              fprintf(oinfo[i].filptr," % *.*E\n",w,p,sqrt(x*x+y*y+z*z+xr*xr+yr*yr+zr*zr));
-          }
-          break;
-/*
-        case OutputInfo::Accel6:
-        case OutputInfo::Acceleration:
-            //CD: as it is not quite correct, it wasn't modified by using
-            //    getOrAddDofForPrint 
-          if (oinfo[i].nodeNumber == -1) fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-          else fprintf(oinfo[i].filptr,"  % *.*E  ",w,p,time);
-          for (iNode=first_node; iNode<last_node; iNode++){
-
-            double x,y,z;
-            int xloc  = c_dsa->locate( iNode, DofSet::Xdisp);
-            int xloc1 =   dsa->locate( iNode, DofSet::Xdisp);
-            if(xloc >= 0) x = a_n[xloc];
-            else if(xloc1 >= 0)  x = 0.0; // not quite correct, need to pass acceleration for constrained points  x=bcx[xloc1];
-            else x = 0.0;
-           
-            int yloc  = c_dsa->locate( iNode, DofSet::Ydisp);
-            int yloc1 =   dsa->locate( iNode, DofSet::Ydisp);
-            if (yloc >= 0) y = a_n[yloc]; 
-            else if(yloc1 >= 0) y = 0.0; 
-            else y = 0.0; //same problem
-
-            int zloc  = c_dsa->locate( iNode, DofSet::Zdisp);
-            int zloc1 =   dsa->locate( iNode, DofSet::Zdisp);
-            if (zloc >= 0) z = a_n[zloc]; 
-            else if(zloc1 >= 0) z = 0.0; 
-            else z = 0.0;
-          
-            if (oinfo[i].type == OutputInfo::Accel6) {
-         
-              double xr,yr,zr;
-              int xloc  = c_dsa->locate( iNode, DofSet::Xrot);
-              int xloc1 =   dsa->locate( iNode, DofSet::Xrot);
-              if(xloc >= 0) xr = a_n[xloc];
-              else if(xloc1 >= 0)  xr = 0.0; // not quite correct, need to pass acceleration for constrained points  x=bcx[xloc1];
-              else xr = 0.0;
-     
-              int yloc  = c_dsa->locate( iNode, DofSet::Yrot);
-              int yloc1 =   dsa->locate( iNode, DofSet::Yrot);
-              if(yloc >= 0) yr = a_n[yloc]; else if(yloc1 >= 0) yr = 0.0; else yr = 0.0; //same problem
- 
-              int zloc  = c_dsa->locate( iNode, DofSet::Zrot);
-              int zloc1 =   dsa->locate( iNode, DofSet::Zrot);
-              if(zloc >= 0) zr = a_n[zloc]; else if(zloc1 >= 0) zr = 0.0; else zr = 0.0;
-
-              fprintf(oinfo[i].filptr,"%d  % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n"
-                                        ,iNode+1,w,p,x,w,p,y,w,p,z,w,p,xr,w,p,yr,w,p,zr);
-            }
-            else if (oinfo[i].nodeNumber == -1){
-              fprintf(oinfo[i].filptr," % *.*E % *.*E % *.*E\n",iNode+1,w,p,x,w,p,y,w,p,z);
-            }
-            else{ fprintf(oinfo[i].filptr," % *.*E % *.*E % *.*E\n",w,p,x,w,p,y,w,p,z); }
-          }
-          break;
-*/            
-        case OutputInfo::YModulus:
-          getElementAttr(i,YOUNG);
-          break;
-        case OutputInfo::MDensity:
-          getElementAttr(i,MDENS);
-          break;
-        case OutputInfo::Thicknes:
-          getElementAttr(i,THICK);
+          geoSource->outputNodeScalars(i, data, nNodes, time);
+          delete [] data;
+        }
           break;
         case OutputInfo::Composit:
           getCompositeData(i,time);
@@ -973,132 +704,25 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           delete [] plot_data;
         } break;
 
-       case OutputInfo::HeatFlXX:
-         getHeatFlux(d_n, bcx, i, HFLX, time);
-         break;
-       case OutputInfo::HeatFlXY:
-         getHeatFlux(d_n, bcx, i, HFLY, time);
-         break;
-       case OutputInfo::HeatFlXZ:
-         getHeatFlux(d_n, bcx, i, HFLZ, time);
-         break;
-       case OutputInfo::GrdTempX:
-         getHeatFlux(d_n, bcx, i, GRTX, time);
-         break;
-       case OutputInfo::GrdTempY:
-         getHeatFlux(d_n, bcx, i, GRTY, time);
-         break;
-       case OutputInfo::GrdTempZ:
-         getHeatFlux(d_n, bcx, i, GRTZ, time);
-         break;
-       case OutputInfo::HeatFlX:
-         getTrussHeatFlux(d_n, bcx, i, HFLX, time);
-         break;
-       case OutputInfo::GrdTemp:
-         getTrussHeatFlux(d_n, bcx, i, GRTX, time);
-         break;
-
         default:
+          success = 0;
           break;
         
       }
+      if (success == 0)
+        fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
     }
   }
        
+  
   if (glDisp) delete [] glDisp;
 
 }
 
 //----------------------------------------------------------------------------------------------
 
-/*
-void
-Domain::outputHeader(int fileNumber)
-{
-  // If only one node is requested for output,
-  // then do not write the header to the file as this
-  // output file will be used as gnuplot input
-  if(oinfo[fileNumber].nodeNumber != -1) return;
+ControlInterface* Domain::getUserSuppliedFunction() {
 
-  char prbType[20];
-
-  if (sinfo.probType == SolverInfo::Static )       strcpy(prbType,"Static");
-  if (sinfo.probType == SolverInfo::Dynamic)       strcpy(prbType,"Dynam");
-  if (sinfo.probType == SolverInfo::Helmholtz)     strcpy(prbType,"FAcoustic");
-  if (sinfo.probType == SolverInfo::NonLinStatic)  strcpy(prbType,"NLStatic");
-  if (sinfo.probType == SolverInfo::NonLinDynam)   strcpy(prbType,"NLDynamic");
-  if (sinfo.probType == SolverInfo::ArcLength)     strcpy(prbType,"Arclength");
-  if (sinfo.probType == SolverInfo::TempDynamic)   strcpy(prbType,"Temp");
-  if (sinfo.probType == SolverInfo::AxiHelm)       strcpy(prbType,"AxiHelm");
-
-  if(oinfo[fileNumber].type == OutputInfo::EigenPair) {
-      strcpy(prbType,"modal");
-  }
-  if(oinfo[fileNumber].type == OutputInfo::YModulus) {
-     strcpy(prbType,"Attributes");
-  }
-  if(oinfo[fileNumber].type == OutputInfo::MDensity) {
-     strcpy(prbType,"Attributes");
-  }
-  if(oinfo[fileNumber].type == OutputInfo::Thicknes) {
-     strcpy(prbType,"Attributes");
-  }
-
-  if(oinfo[fileNumber].type == OutputInfo::ShapeAtt) {
-     strcpy(prbType,"Attributes");
-  }
-
-  if(oinfo[fileNumber].type == OutputInfo::ShapeStc) {
-     strcpy(prbType,"Static");
-  }
-  
-  int avgnum = oinfo[fileNumber].averageFlg;
-  int type   = oinfo[fileNumber].type;
-  //int node   = oinfo[fileNumber].nodeNumber;
-
-  // No header for AeroForce
-  if(oinfo[fileNumber].type == OutputInfo::AeroForce) return;
-
-  // No header for CompositeData
-  if(oinfo[fileNumber].type == OutputInfo::Composit) return;
-
-  if(oinfo[fileNumber].type == OutputInfo::InXForce || 
-     oinfo[fileNumber].type == OutputInfo::InYForce ||
-     oinfo[fileNumber].type == OutputInfo::InZForce || 
-     oinfo[fileNumber].type == OutputInfo::AXMoment ||
-     oinfo[fileNumber].type == OutputInfo::AYMoment || 
-     oinfo[fileNumber].type == OutputInfo::AZMoment ) {
-    fprintf(oinfo[fileNumber].filptr,header[type],prbType,
-            cinfo->nodeSetName,numele);
-    return;
-  }
-*/
-  // Compute the last node number
-/*
-  int exactNumNodes = 0;
-  int inode;
-  for(inode=0; inode<numnodes; ++inode) {
-//    if(nodes[inode] && ((*dsa)[inode].list() != 0 ))
-    if(nodes[inode])
-       exactNumNodes = (exactNumNodes+1);
-  }
-*/
-/*
-  int exactNumNodes = numnodes;
-
-  if(avgnum == 1)
-    fprintf(oinfo[fileNumber].filptr,header[type],prbType,
-                                     cinfo->nodeSetName,exactNumNodes);
-  else
-    fprintf(oinfo[fileNumber].filptr,header[type],prbType,
-                                     cinfo->nodeSetName,numele);
-
-}
-*/
-
-ControlInterface*
-Domain::getUserSuppliedFunction()
-{
   ControlInterface *userSupFunc = 0;
 
 #ifndef TFLOP

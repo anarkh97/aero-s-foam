@@ -100,3 +100,41 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
       elPressureForce[6*i+j] = efbc[3*i+j];
 }
 
+#include <Element.d/State.h>
+#include <Hetero.d/InterpPoint.h>
+
+void
+RigidFourNodeShell::computeDisp(CoordSet& cs, State& state, const InterpPoint& ip,
+                                double *res, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  double xyz[4][6];
+  state.getDV(nn[0], xyz[0], xyz[0]+3);
+  state.getDV(nn[1], xyz[1], xyz[1]+3);
+  state.getDV(nn[2], xyz[2], xyz[2]+3);
+  state.getDV(nn[3], xyz[3], xyz[3]+3);
+
+  int j;
+  for(j=0; j<6; ++j)
+    res[j] = (1-gp[0])*(1-gp[1])* xyz[0][j] +
+             gp[0]*(1-gp[1])* xyz[1][j] +
+             (1-gp[0])*gp[1]* xyz[3][j] +
+             gp[0]*gp[1]*xyz[2][j];
+}
+
+void
+RigidFourNodeShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
+                              double *resF, GeomState *gs)
+{
+  // PJSA 9/10/2010 reversed resF[12+i] and resF[18+i] to match 
+  // FlExchanger::getQuadFlLoad in Xfem/Hetero.d/FlExchange.C
+  const double *gp = ip.xy;
+  for(int i = 0; i < 3; ++i) {
+    resF[i]    = (1-gp[0])*(1-gp[1])* flF[i];
+    resF[6+i]  = gp[0]*(1-gp[1])* flF[i];
+    resF[12+i] = gp[0]*gp[1]* flF[i];
+    resF[18+i] = (1-gp[0])*gp[1]* flF[i];
+    resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
+  }
+}
+

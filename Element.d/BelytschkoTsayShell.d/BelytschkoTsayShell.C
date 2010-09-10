@@ -444,13 +444,15 @@ void
 BelytschkoTsayShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
                                double *resF, GeomState *gs)
 {
+  // PJSA 9/10/2010 reversed resF[12+i] and resF[18+i] to match 
+  // FlExchanger::getQuadFlLoad in Xfem/Hetero.d/FlExchange.C
   const double *gp = ip.xy;
   for(int i = 0; i < 3; ++i) {
-    resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
     resF[i]    = (1-gp[0])*(1-gp[1])* flF[i];
     resF[6+i]  = gp[0]*(1-gp[1])* flF[i];
-    resF[12+i] = (1-gp[0])*gp[1]* flF[i];
-    resF[18+i] = gp[0]*gp[1]* flF[i];
+    resF[12+i] = gp[0]*gp[1]* flF[i];
+    resF[18+i] = (1-gp[0])*gp[1]* flF[i];
+    resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
   }
 }
 

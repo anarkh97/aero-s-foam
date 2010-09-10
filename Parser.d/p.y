@@ -85,7 +85,7 @@
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER SHELLTHICKNESS
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
@@ -1819,14 +1819,32 @@ FaceSet:
           $$->SetReverseNormals(true);
           domain->AddSurfaceEntity($$);
         }
+        | SURFACETOPOLOGY Integer SHELLTHICKNESS Float NewLine 
+        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          $$->SetIsShellFace(true);
+          $$->SetShellThickness($4);
+          domain->AddSurfaceEntity($$);
+        }
         | FaceSet Integer Integer NodeNums NewLine 
-	{ if($$->GetReverseNormals()) { // reverse the node numbering
+        { if($$->GetReverseNormals()) { // reverse the node numbering
             int *nodes = new int[$4.num];
             for(int i=0; i<$4.num; ++i) nodes[$4.num-1-i] = $4.nd[i];
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
             delete [] nodes;
           }
-          else $$->AddFaceElement($2-1, $3, $4.num, $4.nd); 
+          else if($$->GetIsShellFace()) { // for acme shell it is necessary to include both sides of the element in the face block
+            $$->AddFaceElement(2*($2-1), $3, $4.num, $4.nd);
+            int *nodes = new int[$4.num];
+            for(int i=0; i<$4.num; ++i) nodes[$4.num-1-i] = $4.nd[i];
+            int etype;
+            if($3 == 1) etype = 5; // SHELLQUADFACEL4
+            else if($3 == 3) etype = 6; // SHELLTRIFACEL3
+            else { cerr << " *** ERROR: Surface element type " << $3 << " not supported with SHELL_THICKNESS option\n"; exit(-1); }
+            $$->AddFaceElement(2*($2-1)+1, etype, $4.num, nodes);
+            delete [] nodes;
+          }
+          else $$->AddFaceElement($2-1, $3, $4.num, $4.nd);
         }
 	; 
 MortarCondition:

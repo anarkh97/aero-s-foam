@@ -241,6 +241,7 @@ class Domain : public HData {
      Vector *elPotSlosh;
      Vector *elFluidDispSloshAll;
 
+    double savedFreq;
     bool sowering;
     bool output_match_in_top;
 
@@ -260,6 +261,8 @@ class Domain : public HData {
      Domain(Domain &, Elemset *elems, CoordSet *nodes);  // PJSA: for new sower
      virtual ~Domain();
 
+     double getSavedFreq()  { return savedFreq; }
+     void setSavedFreq(double freq)  { savedFreq = freq; }
      double *temprcvd;          // temperature received by structure from
                                 // heat solution
      int numContactPairs;  // used for timing file

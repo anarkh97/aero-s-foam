@@ -16,6 +16,10 @@ StaticSolver< Scalar, OpSolver, VecType,
  rhs = new VecType(probDesc->solVecInfo());
  sol = new VecType(probDesc->solVecInfo());
  sol->zero(); 
+ VecType *savedSol = new VecType(probDesc->solVecInfo());
+ VecType *savedRhs = new VecType(probDesc->solVecInfo());
+
+ 
  if((domain->solInfo().inpc || domain->solInfo().noninpc) && domain->solInfo().type != 2) // type != 2 means not FETI solver
    sol->setn(domain->numUncon());
 
@@ -79,6 +83,7 @@ StaticSolver< Scalar, OpSolver, VecType,
    
    // loop over coarse grid
    bool first_time = true;
+   bool savesol = false;
    bool gpReorthoFlag = true;
    double w0;
    int count = 0;
@@ -131,6 +136,7 @@ StaticSolver< Scalar, OpSolver, VecType,
          for(int i=1; i<(nRHS+1); ++i) scaleDisp(*sol_prev[offset+i]);
      bool printTimers = ((domain->coarse_frequencies->size()+domain->frequencies->size()) > 1) ? false : true;
      
+     domain->setSavedFreq(domain->coarse_frequencies->front());
      //----- UH ------
      if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
        //--- We destroy the arrays PadeLanczos_VtKV and PadeLanczos_VtB when V is incomplete.
@@ -145,7 +151,14 @@ StaticSolver< Scalar, OpSolver, VecType,
        //--- It is used to get K (as K is actually storing K - wc*wc*M)
        /*probDesc->*/ PadeLanczos_Evaluate((count+1)*nRHS, PadeLanczos_solprev, 
                                       PadeLanczos_VtKV, PadeLanczos_Vtb, wc, sol, wc*wc);
-       postProcessor->staticOutput(*sol, *rhs, printTimers);
+       if (savesol)  {
+         *savedSol = *sol;
+         *savedRhs = *rhs;
+       }
+       else {
+         savesol = true;
+         postProcessor->staticOutput(*sol, *rhs, printTimers);
+       }
 /* PJSA 10-09-08 MOVED THIS ABOVE PadeLanczos_Evaluate
        //--- We destroy the arrays PadeLanczos_VtKV and PadeLanczos_VtB when V is incomplete.
        //--- This is not optimal as we recompute several times some coefficients.
@@ -158,9 +171,23 @@ StaticSolver< Scalar, OpSolver, VecType,
        } // if (count + 1 < padeN)
 */
      } else if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection || domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
-       postProcessor->staticOutput(*sol, *rhs, printTimers);
+       if (savesol)  {
+         *savedSol = *sol;
+         *savedRhs = *rhs;
+       }
+       else {
+         savesol = true;
+         postProcessor->staticOutput(*sol, *rhs, printTimers);
+       }
      } else {
-       postProcessor->staticOutput(*sol_prev[offset+1], *rhs, printTimers);
+       if (savesol)  {
+         *savedSol = *sol_prev[offset+1];
+         *savedRhs = *rhs;
+       }
+       else {
+         savesol = true;
+         postProcessor->staticOutput(*sol_prev[offset+1], *rhs, printTimers);
+       }
      }
      //----- UH ------
 
@@ -257,6 +284,14 @@ StaticSolver< Scalar, OpSolver, VecType,
          postProcessor->staticOutput(*sol, *rhs, printTimers); 
          domain->frequencies->pop_front();
        } // while((domain->frequencies->size() > 0) ... )
+
+       // print out saved solution
+       if (savedSol)  {
+         domain->isCoarseGridSolve = true;
+         postProcessor->staticOutput(*savedSol, *savedRhs, printTimers); 
+       }
+       else
+         savesol = true;
 
        if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
                                                                           // not optimal, can we reuse part of the basis? 

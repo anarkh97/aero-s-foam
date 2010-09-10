@@ -689,6 +689,8 @@ TRAIL [a-zA-Z]*
 
 "YMTT"|"ymtt"                      { return YMTT; }
 
+"MATLAB"|"matlab"                  { return MATLAB; }
+
 "curve"|"CURVE"                    { return CURVE; }
 
 "TETT"|"tett"                      { return TETT; }

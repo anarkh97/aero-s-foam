@@ -2804,7 +2804,10 @@ Domain::getFrequencyOrWavenumber()
   double ret = 0.0;
   if(geoSource->isShifted()) {
     if(domain->solInfo().doFreqSweep) {
-      if(isCoarseGridSolve) ret = domain->coarse_frequencies->front();
+      if(isCoarseGridSolve) {
+        ret = domain->coarse_frequencies->front();
+        ret = getSavedFreq();
+      }
       else ret = domain->frequencies->front();
     }
     else {

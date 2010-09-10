@@ -99,6 +99,7 @@ extern map<int,double > weightList;
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 //#include <Element.d/Rigid.d/RBE2.h>
+#include <Element.d/Rigid.d/RigidFourNodeShell.h>
 
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
@@ -356,6 +357,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 75:
        //else = new (ba) RBE2(nnodes,n);
        cerr  << "Error: Element type 75 is not supported\n"; exit(-1);
+       break;
+     case 76:
+       ele = new (ba) RigidFourNodeShell(n);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);

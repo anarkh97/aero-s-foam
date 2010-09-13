@@ -33,11 +33,14 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
  d_n = v_n = a_n = v_p = 0.0;
 
  // ... SET INITIAL VELOCITY
- int i;
- for(i = 0; i < numIVel; ++i) {
+ if(numIVelModal) {
+   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0)\n"); //HB
+   modeData.addMultY(numIVelModal, iVelModal, v_n, c_dsa);
+ }
+ for(int i = 0; i < numIVel; ++i) {
    int dof = c_dsa->locate(iVel[i].nnum, 1 << iVel[i].dofnum);
    if(dof >= 0)
-     v_n[dof] = iVel[i].val;
+     v_n[dof] += iVel[i].val;
  }
 
  // If zeroInitialDisp is set, then return as the displacement is
@@ -47,17 +50,19 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
    // ... SET INITIAL DISPLACEMENT FROM IDISP IF IDISP6 DOES NOT EXIST
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1 ) { // note: always use global num to do this check
-     // note: preprocessing of modal idis moved to Domain::setUpData
-     for(i = 0; i < numIDis; ++i) {
+     if(numIDisModal) {
+       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0)\n"); //HB
+       modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
+     }
+     for(int i = 0; i < numIDis; ++i) {
        int dof = c_dsa->locate(iDis[i].nnum, 1 << iDis[i].dofnum);
-       if(dof >= 0) d_n[dof] = iDis[i].val;
+       if(dof >= 0) d_n[dof] += iDis[i].val;
      }
    }
 
    // ... SET INITIAL DISPLACEMENT FROM IDISP6
-   if(domain->numInitDisp() == 0 || sinfo.gepsFlg == 0) {
-     //if(domain->numInitDisp6()) cerr << "In Domain::initDispVeloc: add IDISP6 to d_n\n"; //HB
-     for(i = 0; i < numIDis6; ++i) {
+   if((domain->numInitDisp() == 0 && domain->numInitDispModal() == 0) || sinfo.gepsFlg == 0) {
+     for(int i = 0; i < numIDis6; ++i) {
        int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
        if(dof >= 0)
          d_n[dof] = iDis6[i].val;

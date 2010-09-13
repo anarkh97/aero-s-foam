@@ -1424,15 +1424,16 @@ Mode:
 	{ domain->readInModes($2); }
 	;
 IDisp:
-	IDIS NewLine BCDataList
+        IDIS NewLine
+        { }
+        | IDIS ZERO NewLine
+        { domain->solInfo().zeroInitialDisp = 1; }
+	| IDIS NewLine BCDataList
 	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Idisplacements;
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
-	| IDIS ZERO NewLine
-	{ domain->solInfo().zeroInitialDisp = 1; }
-	| IDIS NewLine MODAL NewLine ModalValList
-	{ domain->solInfo().modalIDisp = true;
-          for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Idisplacements;
-          if(geoSource->setIDis($5->n, $5->d) < 0) return -1; }
+	| IDisp MODAL NewLine ModalValList
+	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1498,9 +1499,14 @@ IVel6Pita:
         }
         ;
 IVel:
-        IVEL NewLine BCDataList
+        IVEL NewLine
+        { }
+        | IVEL NewLine BCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Ivelocities;
           if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
+        | IVel MODAL NewLine ModalValList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
+          if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList

@@ -90,6 +90,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numDirichletFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
   numNeuman = 0;
   numIDis = 0;
+  numIDisModal = 0;
   numIDis6 = 0;
   numIVel = 0;
   numDampedModes = 0;
@@ -129,7 +130,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   dbc = 0;
   dbcFluid = 0;
   nbc = 0;
-  textDBC = dbc = textNBC = nbc = iDis = iDis6 = iVel = modalDamping = 0;
+  textDBC = dbc = textNBC = nbc = iDis = iDisModal = iDis6 = iVel = iVelModal = modalDamping = 0;
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
   surface_dbc = surface_nbc = surface_pres = 0;
@@ -1197,6 +1198,12 @@ int GeoSource::getIDis(BCond *&bc)
   return numIDis;
 }
 
+int GeoSource::getIDisModal(BCond *&bc)
+{
+  bc = iDisModal;
+  return numIDisModal;
+}
+
 int GeoSource::getIDis6(BCond *&bc)
 {
   bc = iDis6;
@@ -1207,6 +1214,12 @@ int GeoSource::getIVel(BCond *&bc)
 {
   bc = iVel;
   return numIVel;
+}
+
+int GeoSource::getIVelModal(BCond *&bc)
+{
+  bc = iVelModal;
+  return numIVelModal;
 }
 
 int GeoSource::getModalDamping(BCond *&damping)
@@ -1559,6 +1572,11 @@ void GeoSource::cleanAuxData()  {
   if (iVel) {
     delete [] iVel;
     iVel = 0;
+  }
+
+  if (iVelModal) {
+    delete [] iVelModal;
+    iVelModal = 0;
   }
 
 }
@@ -2537,6 +2555,39 @@ int GeoSource::setIDis(int _numIDis, BCond *_iDis)
 
 //-------------------------------------------------------------------
 
+int GeoSource::setIDisModal(int _numIDisModal, BCond *_iDisModal)
+{
+  if (iDisModal) {
+    // Allocate memory for correct number of iDisModal
+    BCond *nd = new BCond[numIDisModal+_numIDisModal];
+
+    // copy old iDisModal
+    for (int i = 0; i < numIDisModal; ++i)
+      nd[i] = iDisModal[i];
+
+    // copy new iDisModal
+    for (int i = 0; i < _numIDisModal; ++i)
+      nd[i+numIDisModal] = _iDisModal[i];
+
+    // set correct number of iDisModal
+    numIDisModal += _numIDisModal;
+
+    // delete old array of iDisModal
+    delete [] iDisModal;
+
+    // set new pointer to correct number of iDisModal
+    iDisModal = nd;
+  }
+  else {
+    numIDisModal = _numIDisModal;
+    iDisModal    = _iDisModal;
+  }
+
+  return 0;
+}
+
+//-------------------------------------------------------------------
+
 int GeoSource::setIVel(int _numIVel, BCond *_iVel)
 {
   if (iVel) {
@@ -2566,6 +2617,41 @@ int GeoSource::setIVel(int _numIVel, BCond *_iVel)
   else  {
     numIVel = _numIVel;
     iVel    = _iVel;
+  }
+  return 0;
+}
+
+//-------------------------------------------------------------------
+
+int GeoSource::setIVelModal(int _numIVelModal, BCond *_iVelModal)
+{
+  if (iVelModal) {
+
+    // Allocate memory for correct number of iVelModal
+    BCond *nd = new BCond[numIVelModal+_numIVelModal];
+
+    // copy old iVelModal
+    int i;
+    for (i = 0; i < numIVelModal; ++i)
+      nd[i] = iVelModal[i];
+
+    // copy new iVelModal
+    for ( i = 0; i < _numIVelModal; ++i)
+      nd[i+numIVelModal] = _iVelModal[i];
+
+    // set correct number of iVelModal
+    numIVelModal += _numIVelModal;
+
+    // delete old array of iVelModal
+    delete [] iVelModal;
+
+    // set new pointer to correct number of iVelModal
+    iVelModal = nd;
+
+  }
+  else  {
+    numIVelModal = _numIVelModal;
+    iVelModal    = _iVelModal;
   }
   return 0;
 }

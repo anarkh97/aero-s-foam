@@ -684,15 +684,33 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
  if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)) { // not required for explicit
-#ifdef USE_MUMPS
-   //cerr << "using mumps for initial acceleration\n";
-   GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
-#else
-   GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
+   switch(domain->solInfo().subtype) {
+     case 0 : {
+         GenSkyMatrix<double> *m = domain->constructSkyMatrix<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+     case 1 : default : {
+         GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
+         m->zeroAll();
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+#ifdef USE_SPOOLES
+       case 8 : {
+         GenSpoolesSolver<double> *m = domain->constructSpooles<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
 #endif
-   m->zeroAll();
-   allOps.Msolver = m;
-   dMat->Msolver = m;
+#ifdef USE_MUMPS
+     case 9 : {
+         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+#endif
+   }
  }
 
  Rbm *rigidBodyModes = 0;

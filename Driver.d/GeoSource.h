@@ -215,6 +215,9 @@ class GeoSource {
   int numIDis;                // number of Initial displacements
   BCond *iDis;  // set of those initial displacements
 
+  int numIDisModal;
+  BCond *iDisModal;
+
   int numIDis6;               // number of Initial displacements (6 column)
   BCond *iDis6; // set of those intitial displacements
 
@@ -229,6 +232,8 @@ class GeoSource {
 
   int numIVel;                // number of initial velocities
   BCond *iVel;  // set of those initial velocities
+  int numIVelModal;
+  BCond *iVelModal;
 
   int numComplexDirichlet;
   ComplexBCond *cdbc;
@@ -337,8 +342,10 @@ public:
   int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
   int  setNeuman(int, BCond *);
   int  setIDis(int, BCond *);
+  int  setIDisModal(int, BCond *);
   int  setIDis6(int, BCond *);
   int  setIVel(int, BCond *);
+  int  setIVelModal(int, BCond *);
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
   int  addSurfacePressure(int, BCond *);
@@ -436,8 +443,10 @@ public:
   int getNeumanBC(BCond *&);
   int getTextNeumanBC(BCond *&);
   int getIDis(BCond *&);
+  int getIDisModal(BCond *&);
   int getIDis6(BCond *&);
   int getIVel(BCond *&);
+  int getIVelModal(BCond *&);
   int getITemp(BCond *&);
   int getNumProps() { return numProps; }
   void setNumProps(int n) { numProps = n; }

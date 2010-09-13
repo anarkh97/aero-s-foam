@@ -91,7 +91,6 @@ struct SolverInfo {
    bool acoustic;       // true iff system is to be solved for acoustic time domain
    bool modifiedWaveEquation; // true if solving using the modified wave equation
    double modifiedWaveEquationCoef; // value for the coefficient (theoretically 12.0)
-   bool modalIDisp;     // true iff initial displacements are given in modal coord.
    int order;           // used for dynamics... 1: first order (heat), 2: second order (mech, acoustics)
    int timeIntegration; // type of time integration scheme
    int initialTimeIndex;// initial time index (either 0 or from restart)
@@ -241,7 +240,6 @@ struct SolverInfo {
                   alphaDamp = 0.0;
                   betaDamp = 0.0;
                   modal = false;
-                  modalIDisp = false;
                   lastIt = false;
                   mppFactor = 1.0;
 		 

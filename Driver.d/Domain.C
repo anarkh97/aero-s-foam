@@ -951,10 +951,26 @@ Domain::setIDis(int _numIDis, BCond *_iDis)
 }
 
 int
+Domain::setIDisModal(int _numIDisModal, BCond *_iDisModal)
+{
+ numIDisModal = _numIDisModal;
+ iDisModal    = _iDisModal;
+ return 0;
+}
+
+int
 Domain::setIVel(int _numIVel, BCond *_iVel)
 {
  numIVel = _numIVel;
  iVel    = _iVel;
+ return 0;
+}
+
+int
+Domain::setIVelModal(int _numIVelModal, BCond *_iVelModal)
+{
+ numIVelModal = _numIVelModal;
+ iVelModal    = _iVelModal;
  return 0;
 }
 
@@ -1042,15 +1058,9 @@ Domain::setUpData()
 
   // set initial displacements
   numBC = geoSource->getIDis(bc);
-  if(sinfo.modalIDisp && !domain->solInfo().modal) {
-    filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
-    numIDis = modeData.numNodes*6;
-    iDis = new BCond[numIDis];
-    modeData.addMultY(numBC, bc, iDis); // XXXX
-  }
-  else {
-    setIDis(numBC, bc);
-  }
+  setIDis(numBC, bc);
+  numBC = geoSource->getIDisModal(bc);
+  setIDisModal(numBC, bc);
 
   // set init disp6
   numBC = geoSource->getIDis6(bc);
@@ -1059,6 +1069,8 @@ Domain::setUpData()
   // set initial velocities
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
+  numBC = geoSource->getIVelModal(bc);
+  setIVelModal(numBC, bc);
 
   // set Control Law
   claw = geoSource->getControlLaw();
@@ -3024,13 +3036,13 @@ void
 Domain::initialize()
 {
  numdofs = 0; numDispDirichlet = 0; numContactPairs = 0;
- numIDis = 0; numIVel = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
+ numIDis = 0; numIDisModal = 0; numIVel = 0; numIVelModal = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
  numComplexDirichlet = 0; numComplexNeuman = 0; 
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
  numLMPC = 0; numYMTT = 0; numCTETT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; 
- iDis = 0; iVel = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
+ iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
@@ -3078,7 +3090,9 @@ Domain::~Domain()
  if(nbc) { delete [] nbc; nbc = 0; }
  //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
+ if(iDisModal) { delete [] iDisModal; iDisModal = 0; }
  if(iVel) { delete [] iVel; iVel = 0; }
+ if(iVelModal) { delete [] iVelModal; iVelModal = 0; }
  if(iDis6) { delete [] iDis6; iDis6 = 0; }
  if(cdbc) { delete [] cdbc; cdbc = 0; }
  if(cnbc) { delete [] cnbc; cnbc = 0; }

@@ -227,19 +227,16 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
   }
   else  {
 
-    if(domain->numInitDispModal() > 0 || domain->numInitVelocityModal() > 0)
-      cerr << " ... Processing modal initial displacements and/or initial velocities ...\n";
-    for(int j = 0; j <  domain->numInitDispModal(); ++j) {
-      dsp[domain->getInitDispModal()[j].nnum + idxOffset] += domain->getInitDispModal()[j].val;
-    }
-
     for(int j = 0; j <  domain->numInitVelocityModal(); ++j) {
       vel[domain->getInitVelocityModal()[j].nnum + idxOffset] += domain->getInitVelocityModal()[j].val;
     }
 
-    // NEW superimpose the non-modal initial displacements and velocities
-    if(domain->numInitDisp() > 0 || domain->numInitVelocity() > 0) {
-      cerr << " ... Processing non-modal initial displacements and/or initial velocities ...\n";
+    for(int j = 0; j <  domain->numInitDispModal(); ++j) {
+      dsp[domain->getInitDispModal()[j].nnum + idxOffset] += domain->getInitDispModal()[j].val;
+    }
+
+    // NEW superimpose the non-modal initial velocity and/or displacement
+    if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp != 0)) {
       double **tPhiM = new double*[numFlex+numRBM];
       for(int i = 0; i < numFlex+numRBM; ++i)
         tPhiM[i] = new double[domain->numdof()];
@@ -255,18 +252,9 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
       for(int i = 0 ; i<numFlex; ++i)
         allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
       delete allOps.M;
-   
-      if(domain->numInitDisp() > 0) {
-        Vector fullDsp(domain->numdof(), 0.0);
-        for(int j = 0; j <  domain->numInitDisp(); ++j) {
-          int k = domain->getCDSA()->locate(domain->getInitDisp()[j].nnum, 1 << domain->getInitDisp()[j].dofnum);
-          if(k > -1) fullDsp[k] = domain->getInitDisp()[j].val;
-        }
-        for(int j = 0; j < dsp.size(); ++j)
-          for(int k = 0; k < fullDsp.size(); ++k)
-            dsp[j] += tPhiM[j][k]*fullDsp[k];
-      }
+
       if(domain->numInitVelocity() > 0) {
+        filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n"); //PJSA
         Vector fullVel(domain->numdof(), 0.0);
         for(int j = 0; j <  domain->numInitVelocity(); ++j) {
           int k = domain->getCDSA()->locate(domain->getInitVelocity()[j].nnum, 1 << domain->getInitVelocity()[j].dofnum);
@@ -275,6 +263,30 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
         for(int j = 0; j < vel.size(); ++j)
           for(int k = 0; k < fullVel.size(); ++k)
             vel[j] += tPhiM[j][k]*fullVel[k];
+      }
+      if(sinfo.zeroInitialDisp == 0) {
+        if(domain->numInitDisp() > 0 && (domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1)) {
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+          Vector fullDsp(domain->numdof(), 0.0);
+          for(int j = 0; j <  domain->numInitDisp(); ++j) {
+            int k = domain->getCDSA()->locate(domain->getInitDisp()[j].nnum, 1 << domain->getInitDisp()[j].dofnum);
+            if(k > -1) fullDsp[k] = domain->getInitDisp()[j].val;
+          }
+          for(int j = 0; j < dsp.size(); ++j)
+            for(int k = 0; k < fullDsp.size(); ++k)
+              dsp[j] += tPhiM[j][k]*fullDsp[k];
+        }
+        if(domain->numInitDisp6() > 0 && ((domain->numInitDisp() == 0 && domain->numInitDispModal() == 0) || sinfo.gepsFlg == 0)) {
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+          Vector fullDsp(domain->numdof(), 0.0);
+          for(int j = 0; j <  domain->numInitDisp6(); ++j) {
+            int k = domain->getCDSA()->locate(domain->getInitDisp6()[j].nnum, 1 << domain->getInitDisp6()[j].dofnum);
+            if(k > -1) fullDsp[k] = domain->getInitDisp6()[j].val;
+          }
+          for(int j = 0; j < dsp.size(); ++j)
+            for(int k = 0; k < fullDsp.size(); ++k)
+              dsp[j] += tPhiM[j][k]*fullDsp[k];
+        }
       }
 
       for(int i = 0; i < numFlex+numRBM; ++i)

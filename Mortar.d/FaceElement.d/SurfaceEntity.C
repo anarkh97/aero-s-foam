@@ -92,6 +92,8 @@ SurfaceEntity::Initialize()
   NdNormals = 0;
 #endif
   ReverseNormals = false;
+  IsShellFace = false;
+  ShellThickness = 0.0;
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -129,9 +131,9 @@ void
 SurfaceEntity::UpdateNodeData(GeomState *geomState)
 {
   for(int inode=0; inode<nNodes; inode++) {
-    NodeSet->getNode(inode).x = geomState->getNodeState()[ gNodeIds[inode] ].x;
-    NodeSet->getNode(inode).y = geomState->getNodeState()[ gNodeIds[inode] ].y;
-    NodeSet->getNode(inode).z = geomState->getNodeState()[ gNodeIds[inode] ].z;
+    NodeSet->getNode(inode).x = (*geomState)[ gNodeIds[inode] ].x;
+    NodeSet->getNode(inode).y = (*geomState)[ gNodeIds[inode] ].y;
+    NodeSet->getNode(inode).z = (*geomState)[ gNodeIds[inode] ].z;
   }
 /*
   cerr << "in SurfaceEntity::UpdateNodeData \n";
@@ -151,9 +153,9 @@ SurfaceEntity::UpdateNodeData(DistrGeomState *geomState, SubDomain **sd)
     for(int j = 0; j < geomState->getNumSub(); ++j) {
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
-        NodeSet->getNode(inode).x = (*geomState)[j]->getNodeState()[locNode].x;
-        NodeSet->getNode(inode).y = (*geomState)[j]->getNodeState()[locNode].y;
-        NodeSet->getNode(inode).z = (*geomState)[j]->getNodeState()[locNode].z;
+        NodeSet->getNode(inode).x = (*(*geomState)[j])[locNode].x;
+        NodeSet->getNode(inode).y = (*(*geomState)[j])[locNode].y;
+        NodeSet->getNode(inode).z = (*(*geomState)[j])[locNode].z;
       }
     }
   }
@@ -335,6 +337,7 @@ SurfaceEntity::MakeACMEBlocksMap()
    int etype = ElemSet[iel]->GetFaceElemType();
    switch(etype)
    {
+     case FaceElement::SHELLQUADFACEL4: // DEBUG_ACME_SHELL
      case FaceElement::QUADFACEL4:
        IndexQuad4.push_back(iel);
        nQuad4++;
@@ -345,6 +348,7 @@ SurfaceEntity::MakeACMEBlocksMap()
        IndexQuad8.push_back(iel);
        nQuad8++;
        break;
+     case FaceElement::SHELLTRIFACEL3: // DEBUG_ACME_SHELL
      case FaceElement::TRIFACEL3:
        IndexTri3.push_back(iel);
        nTri3++;
@@ -472,6 +476,12 @@ void
 SurfaceEntity::SetReverseNormals(bool _ReverseNormals) { ReverseNormals = _ReverseNormals; }
 
 void
+SurfaceEntity::SetIsShellFace(bool _IsShellFace) { IsShellFace = _IsShellFace; }
+
+void
+SurfaceEntity::SetShellThickness(double _ShellThickness) { ShellThickness = _ShellThickness; }
+
+void
 SurfaceEntity::AddFaceElement(int num, int etype, int nnodes, int* nodes)
 {
   ElemSet.elemadd(ElemSet.last(), etype, nnodes, nodes); // PJSA 3-5-2007
@@ -503,6 +513,12 @@ SurfaceEntity::ID() { return(Id); }
 
 bool
 SurfaceEntity::GetReverseNormals() { return ReverseNormals; }
+
+bool
+SurfaceEntity::GetIsShellFace() { return IsShellFace; }
+
+double
+SurfaceEntity::GetShellThickness() { return ShellThickness; }
 
 FaceElemSet*
 SurfaceEntity::GetPtrFaceElemSet() { return(&ElemSet); }
@@ -693,12 +709,14 @@ SurfaceEntity::PrintFaceNormal(CoordSet& cs)
   for(int iel=0; iel<nElems; iel++){
     switch(ElemSet[iel]->GetFaceElemType()) // get center coordinates in paramatric domain
     {
+      case FaceElement::SHELLQUADFACEL4: // DEBUG_ACME_SHELL
       case FaceElement::QUADFACEL4:
       case FaceElement::QUADFACEQ8:
       case FaceElement::QUADFACEQ9:
       case FaceElement::QUADFACEC12:
         m[0] = m[1] = 0.0;
         break;
+      case FaceElement::SHELLTRIFACEL3: // DEBUG_ACME_SHELL
       case FaceElement::TRIFACEL3:
       case FaceElement::TRIFACEQ6:
       case FaceElement::TRIFACEC10:

@@ -1123,6 +1123,8 @@ TRAIL [a-zA-Z]*
 
 "REVERSE"[a-zA-Z]*|"reverse"[a-zA-Z]* { return REVERSENORMALS; }
 
+"SHELL_THICKNESS"|"shell_thickness" { return SHELLTHICKNESS; }
+
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
 
 "SEARCH_TOL"|"search_tol"          { return SEARCHTOL; }

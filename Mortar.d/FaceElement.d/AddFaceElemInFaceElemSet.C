@@ -39,12 +39,14 @@ FaceElemSet::elemadd(int num, int etype, int nnodes, int* nodes)
 
    switch(etype) 
    {
+     case FaceElement::SHELLQUADFACEL4: // DEBUG_ACME_SHELL
      case FaceElement::QUADFACEL4: 
        ele = new (ba) FaceQuad4(nodes);
        break;
      case FaceElement::QUADFACEQ8: 
        ele = new (ba) FaceQuad8(nodes);
        break;
+     case FaceElement::SHELLTRIFACEL3: // DEBUG_ACME_SHELL
      case FaceElement::TRIFACEL3: 
        ele = new (ba) FaceTri3(nodes);
        break;

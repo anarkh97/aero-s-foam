@@ -95,6 +95,7 @@
 #include <Element.d/Rigid.d/RigidEightNodeBrick.h>
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
+#include <Element.d/Rigid.d/RigidFourNodeShell.h>
 
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
@@ -1219,6 +1220,12 @@ PrioInfo
 RigidThreeNodeShell::examine(int sub, MultiFront *mf)
 {
   return examineTri3Shell(sub, mf, nn);
+}
+
+PrioInfo
+RigidFourNodeShell::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4Shell(sub, mf, nn);
 }
 
 PrioInfo

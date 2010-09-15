@@ -10,15 +10,20 @@
 
 namespace Pita {
 
+// Solves by a direct method the linear algebra problem of the form A * x = b
+// where A is a symmetric positive semi-definite matrix
+// with diagonal rescaling and using a Cholesky algorithm with complete pivoting.
+// Only the lower triangular part (in C indexing) of A is accessed.
+// The factorization has the form: P^T * S * A * S * P = U^T * U 
+// where U is upper triangular, P is a permutation and S is diagonal.
+
 class PivotedCholeskySolver : public RankDeficientSolver {
 public:
   EXPORT_PTRINTERFACE_TYPES(PivotedCholeskySolver);
 
-  // Accessors
   const FullSquareMatrix & choleskyFactor() const { return choleskyFactor_; } // Only lower triangular part is relevant
   virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
-  // Mutators
   void matrixIs(const SymFullMatrix & matrix);
   virtual void transposedMatrixIs(const FullSquareMatrix & matrix); // Use only lower triangular part of transposed matrix
   virtual void orderingIs(Ordering o);
@@ -35,7 +40,7 @@ protected:
 private:
   FullSquareMatrix choleskyFactor_;
 
-  DISALLOW_COPY_AND_ASSIGN(PivotedCholeskySolver);
+  SimpleBuffer<double> scaling_;
 }; 
 
 } // end namespace Pita

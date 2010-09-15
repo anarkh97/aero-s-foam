@@ -7,23 +7,23 @@
 
 namespace Pita {
 
+// Solves by a direct method the linear algebra problem of the form A * x = b
+// where A is a near-symmetric positive semi-definite matrix
+// (Such as the one obtained by forming explicitely A = V^T * Q * V with Q symmetric positive definite)
+// with diagonal rescaling and using Gaussian elimination with complete symmetric pivoting.
+// The factorization has the form: P^T * S * A * S * P = L * U 
+// where L is unit lower triangular, U is upper triangular, P is a permutation and S is diagonal.
+
 class NearSymmetricSolver : public RankDeficientSolver {
 public:
   EXPORT_PTRINTERFACE_TYPES(NearSymmetricSolver);
-
-  enum RescalingStatus {
-    NO_RESCALING,
-    ROW_RESCALING,
-    SYMMETRIC_RESCALING
-  };
-
-  const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; }
+  
+  const FullSquareMatrix & transposedMatrix() const { return transposedMatrix_; } // The whole matrix is used
+  virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
   virtual void toleranceIs(double tol);
   virtual void transposedMatrixIs(const FullSquareMatrix & tm); 
   virtual void orderingIs(Ordering o);
-
-  virtual const Vector & solution(Vector & rhs) const; // In-place solution: rhs modified
 
   static Ptr New(double tolerance) {
     return new NearSymmetricSolver(tolerance);
@@ -39,7 +39,6 @@ private:
 
   SimpleBuffer<int> pivots_;
 
-  RescalingStatus rescalingStatus_;
   SimpleBuffer<double> scaling_;
 };
 

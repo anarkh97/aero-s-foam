@@ -12,16 +12,17 @@ namespace Pita { namespace Hts {
 LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
                                        HalfTimeSlice::Manager * sliceMgr,
                                        ReducedCorrectionManager * redCorrMgr,
+                                       JumpConvergenceEvaluator * jumpCvgMgr,
                                        RemoteState::Manager * commMgr,
                                        LinSeedDifferenceEvaluator::Manager * jumpErrorMgr) :
   LocalNetwork(mapping, commMgr),
   jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
+  jumpCvgMgr_(jumpCvgMgr),
   sliceMgr_(sliceMgr),
   redCorrMgr_(redCorrMgr),
   jumpErrorMgr_(jumpErrorMgr),
   fullCorrectionBuilder_(mapping, redCorrMgr->fcpMgr(), commMgr, fullSeedGetter()),
-  reducedCorrectionBuilder_(mapping, redCorrMgr->rcpMgr(), commMgr, reducedSeedGetter()),
-  noCorrectionMgr_(NoCorrectionManager::New())
+  reducedCorrectionBuilder_(mapping, redCorrMgr->rcpMgr(), commMgr, reducedSeedGetter())
 {
   init();
   setStatus(ACTIVE);
@@ -36,9 +37,11 @@ LinearLocalNetwork::init() {
     HalfSliceRank dualSliceRank = primalSliceRank.next();
   
     buildForwardPropagation(primalSliceRank);
-    if (primalSliceRank != HalfSliceRank(0)) buildBackwardPropagation(dualSliceRank);
+    if (primalSliceRank != HalfSliceRank(0)) {
+      buildBackwardPropagation(dualSliceRank);
+      buildPrimalCorrectionNetwork(primalSliceRank);
+    }
 
-    buildPrimalCorrectionNetwork(primalSliceRank); 
     buildDualCorrectionNetwork(dualSliceRank);
   }
 }
@@ -70,19 +73,16 @@ LinearLocalNetwork::buildBackwardPropagation(HalfSliceRank sliceRank) {
 void
 LinearLocalNetwork::buildPrimalCorrectionNetwork(HalfSliceRank sliceRank) {
   // Parallel
-  if (sliceRank != HalfSliceRank(0)) {
-    buildPropagatedSeedRecv(sliceRank);
-    buildJumpAssembly(sliceRank);
-    if (jumpErrorMgr_) {
-      buildJumpEstimator(sliceRank);
-    }
+  buildPropagatedSeedRecv(sliceRank);
+  buildJumpAssembly(sliceRank);
+  if (jumpErrorMgr_) {
+    buildJumpEstimator(sliceRank);
   }
-
   buildJumpProjection(sliceRank);
 
   // Sequential
   buildCorrectionPropagator(sliceRank);
-  
+
   // Parallel
   buildCorrectionSynchronizationSend(sliceRank + HalfSliceCount(2));
   buildSeedUpdater(sliceRank);
@@ -146,6 +146,8 @@ LinearLocalNetwork::buildJumpAssembly(HalfSliceRank sliceRank) {
   task->actualSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
   task->seedJumpIs(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
 
+  jumpCvgMgr_->localJumpIs(sliceRank, fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
+
   jumpAssembler_[sliceRank.previous().value() % 2].insert(std::make_pair(sliceRank, task));
 }
 
@@ -178,9 +180,9 @@ LinearLocalNetwork::buildSeedUpdater(HalfSliceRank sliceRank) {
     task->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
     task->updatedSeedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank)));
     task->correctionComponentsIs(reducedSeedGet(SeedId(SEED_CORRECTION, sliceRank)));
-
-    noCorrectionMgr_->notifierIs(fullSeedGet(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
-    noCorrectionMgr_->notifierIs(reducedSeedGet(SeedId(SEED_CORRECTION, sliceRank)), fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
+   
+    reducedSeedCorrection_[sliceRank] = reducedSeedGet(SeedId(SEED_CORRECTION, sliceRank));
+    seedCorrection_[sliceRank] = fullSeedGet(SeedId(SEED_CORRECTION, sliceRank));
 
     seedAssembler_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
   }
@@ -229,11 +231,29 @@ LinearLocalNetwork::buildFullCorrectionPropagator(HalfSliceRank sliceRank) {
 /* Active tasks: LinearLocalNetwork */
 
 void
-LinearLocalNetwork::convergedSlicesInc() {
-  LocalNetwork::convergedSlicesInc();
-  
+LinearLocalNetwork::applyConvergenceStatus() {
   mainSeed_.erase(mainSeed_.begin(), mainSeed_.lower_bound(firstActiveSlice()));
+
+  // Deactivate full correction
+  {
+    SeedMap::iterator firstActiveCorrection = seedCorrection_.upper_bound(firstActiveSlice());
+    for (SeedMap::iterator it = seedCorrection_.begin(); it != firstActiveCorrection; ++it) {
+      log() << "Inactivate full " << it->second->name() << "\n";
+      it->second->statusIs(Seed::INACTIVE);
+    }
+    seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
+  }
   
+  // Deactivate reduced correction
+  {
+    ReducedSeedMap::iterator firstActiveCorrection = reducedSeedCorrection_.upper_bound(firstActiveSlice());
+    for (ReducedSeedMap::iterator it = reducedSeedCorrection_.begin(); it != firstActiveCorrection; ++it) {
+      log() << "Inactivate full " << it->second->name() << "\n";
+      it->second->statusIs(Seed::INACTIVE);
+    }
+    reducedSeedCorrection_.erase(reducedSeedCorrection_.begin(), firstActiveCorrection);
+  }
+
   eraseInactive(halfTimeSlice_[0]);
   eraseInactive(halfTimeSlice_[1]);
   

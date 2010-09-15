@@ -36,6 +36,7 @@ TrivialConvergenceEvaluator::TrivialConvergenceEvaluator(SliceMapping * mapping)
 void
 TrivialConvergenceEvaluator::iterationIs(IterationRank iter) {
   mapping_->convergedSlicesInc();
+  log() << "First active slice is " << mapping_->firstActiveSlice() << "\n";
   setIteration(iter);
 }
 
@@ -127,9 +128,15 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
   std::partial_sum(activeEstimateBegin, currentEstimate_.end(), activeEstimateBegin);
   
   if (jumpIter == IterationRank(0)) {
-    std::transform(currentEstimate_.begin() + 1, currentEstimate_.end(), // target is shifted back by one half-slice
-                   targetEstimate_.begin(),
-                   std::bind2nd(std::divides<double>(), targetRatio_));
+    std::vector<double>::iterator last;
+    last = std::transform(currentEstimate_.begin() + 1, // target is shifted back by one half-slice
+                          currentEstimate_.end(),
+                          targetEstimate_.begin(),
+                          std::bind2nd(std::divides<double>(), targetRatio_));
+    // TODO Replace HACK
+    if (last != targetEstimate_.end()) {
+      *last = *(last - 1) * 2.0 - *(last - 3);
+    }
   }
 
   log() << "rank: estimate/target =\n";

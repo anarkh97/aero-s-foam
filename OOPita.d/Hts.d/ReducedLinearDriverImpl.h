@@ -81,6 +81,7 @@ private:
 
   /* Other parameters */
   IterationRank lastIteration_;
+  double jumpCvgRatio_;
   double projectorTolerance_;
   double coarseRhoInfinity_;
   

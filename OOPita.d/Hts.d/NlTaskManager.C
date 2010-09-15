@@ -149,7 +149,7 @@ NlTaskManager::scheduleConvergence() {
 
 void
 NlTaskManager::applyConvergence() {
-  localNetwork_->convergedSlicesInc(); // TODO: bad naming
+  localNetwork_->applyConvergenceStatus();
   scheduleProjectionBuilding();
 }
 

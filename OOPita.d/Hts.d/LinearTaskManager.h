@@ -5,10 +5,11 @@
 
 #include "LinearLocalNetwork.h"
 
+#include "JumpConvergenceEvaluator.h"
 #include "LinearProjectionNetworkImpl.h"
 #include "../RemoteStateMpiImpl.h"
 
-#include<memory>
+#include <memory>
 
 namespace Pita { namespace Hts {
 
@@ -22,12 +23,14 @@ public:
 protected:
   LinearTaskManager(IterationRank initialIteration,
                     LinearLocalNetwork * network,
+                    JumpConvergenceEvaluator * jumpCvgMgr,
                     LinearProjectionNetworkImpl * correctionMgr,
                     RemoteState::MpiManager * commMgr);
 
   LinearLocalNetwork * network() { return network_.ptr(); }
   LinearProjectionNetworkImpl * correctionMgr() { return correctionMgr_.ptr(); }
   RemoteState::MpiManager * commMgr() { return commMgr_.ptr(); }
+  JumpConvergenceEvaluator * jumpCvgMgr() { return jumpCvgMgr_.ptr(); }
 
   typedef std::vector<Fwk::Ptr<Phase> > PhaseList;
   PhaseList & phases() { return phase_; } // TODO remove ?
@@ -83,6 +86,7 @@ protected:
 
 private:
   LinearLocalNetwork::Ptr network_;
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
   LinearProjectionNetworkImpl::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 

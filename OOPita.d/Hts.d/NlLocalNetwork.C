@@ -256,7 +256,7 @@ NlLocalNetwork::statusIs(Status s) {
 }
 
 void
-NlLocalNetwork::convergedSlicesInc() {
+NlLocalNetwork::applyConvergenceStatus() {
   for (int parity = 0; parity < 2; ++parity) {
     HalfSliceRank start = firstActiveSlice();
     finePropagators_[parity].erase(finePropagators_[parity].begin(), finePropagators_[parity].lower_bound(start));

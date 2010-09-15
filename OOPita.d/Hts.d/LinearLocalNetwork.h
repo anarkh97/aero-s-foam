@@ -15,6 +15,8 @@
 #include "../UpdatedSeedAssembler.h"
 #include "../CorrectionPropagator.h"
 
+#include "JumpConvergenceEvaluator.h"
+
 #include "../SeedDifferenceEvaluator.h"
 
 #include <map>
@@ -62,7 +64,6 @@ public:
   EXPORT_PTRINTERFACE_TYPES(LinearLocalNetwork);
  
   virtual void statusIs(Status s) { /* TODO */ }
-  virtual void convergedSlicesInc(); // overriden
 
   /* Local network elements */
   TaskList halfTimeSlices() const;
@@ -84,8 +85,11 @@ public:
   LinearLocalNetwork(SliceMapping * mapping,
                      HalfTimeSlice::Manager * sliceMgr,
                      ReducedCorrectionManager * redCorrMgr,
+                     JumpConvergenceEvaluator * jumpCvgMgr,
                      RemoteState::Manager * commMgr,
                      LinSeedDifferenceEvaluator::Manager * jumpErrorMgr);
+
+  void applyConvergenceStatus();
 
 protected:
   void init();
@@ -118,6 +122,7 @@ protected:
 private:
   HalfTimeSlice::Manager::Ptr sliceMgr_;
   JumpBuilder::Manager::Ptr jumpBuildMgr_;
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
   ReducedCorrectionManager::Ptr redCorrMgr_;
   
   TaskMap halfTimeSlice_[2];
@@ -132,14 +137,14 @@ private:
   TaskMap alternateCorrectionPropagator_[2];
   TaskMap alternateCorrectionSync_[2];
   
-  SeedMap mainSeed_; 
+  SeedMap mainSeed_;
+  SeedMap seedCorrection_;
+  ReducedSeedMap reducedSeedCorrection_;
 
   LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr_;
   
   CorrectionPropagatorBuilder<DynamState> fullCorrectionBuilder_;
   CorrectionPropagatorBuilder<Vector> reducedCorrectionBuilder_;
-
-  NoCorrectionManager::Ptr noCorrectionMgr_;
 
   DISALLOW_COPY_AND_ASSIGN(LinearLocalNetwork);
 };

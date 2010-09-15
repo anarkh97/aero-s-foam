@@ -36,7 +36,7 @@ public:
   EXPORT_PTRINTERFACE_TYPES(NlLocalNetwork);
 
   virtual void statusIs(Status s);
-  virtual void convergedSlicesInc(); // TODO: bad naming
+  void applyConvergenceStatus(); // TODO: bad naming
 
   NlLocalNetwork(SliceMapping * mapping,
                  RemoteState::MpiManager * commMgr,

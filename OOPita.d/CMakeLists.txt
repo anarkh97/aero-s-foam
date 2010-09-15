@@ -48,9 +48,12 @@ SimpleSeedInitializer.C
 TimedExecution.C
 UpdatedSeedAssemblerImpl.C
 UserProvidedSeedInitializer.C
-lev2pchol.f
-lev3pchol.f
-blas_dmax_val.f
+Lapack32.d/disnan.f
+Lapack32.d/dlaisnan.f
+Lapack32.d/dpstrf.f
+Lapack32.d/dpstf2.f
+Lapack32.d/dsyequb.f
+Lapack32.d/equilibrateSym.C
 Std.d/AffineBasisCollector.C
 Std.d/HomogeneousTaskManager.C
 Std.d/IncrementalPropagation.C

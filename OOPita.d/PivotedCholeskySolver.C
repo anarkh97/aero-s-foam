@@ -2,22 +2,16 @@
 #include <algorithm>
 
 // Kernel routines
+#include "Lapack32.d/dpstrf.h"
+#include "Lapack32.d/dsyequb.h"
 
 extern "C" {
-  // Pivoted Cholesky (Lapack 3.2 routine calling Blas level 3, also in lev3pchol.f)
-  void _FORTRAN(dpstrf)(const char* uplo, const int* n, double* a, const int* lda, int* piv,
-                        int* rank, const double* tol, double* work, int* info);
-
   // Blas: Backward/Forward substitution
   void _FORTRAN(dtrsv)(const char * uplo, const char * trans, const char * diag, const int * n,
                        const double * a, const int * lda, double * x, const int * incx);
   
   // Blas: Vector scaling
   void _FORTRAN(dscal)(const int* n, const double* da, double* dx, const int* incx);
-
-  // Lapack: Diagonal scaling
-  void _FORTRAN(dpoequ)(const int* n, const double* a, const int* lda,
-                        double* s, double* scond, double* amax, int* info);
 
   // Lapack: Perform symmetric scaling
   void _FORTRAN(dlaqsy)(const char* uplo, const int* n, double* a, const int* lda,
@@ -63,15 +57,19 @@ PivotedCholeskySolver::performFactorization() {
   setMatrixSize(choleskyFactor_.dim());
   
   const char upper = 'U';   // Lower triangular in C indexing == upper triangular in Fortran indexing 
+  SimpleBuffer<double> workspace(3 * matrixSize());
   
   // Rescale matrix
   scaling_.sizeIs(matrixSize());
   int info;
   double scond, amax;
-  _FORTRAN(dpoequ)(&getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
-                   scaling_.array(), &scond, &amax, &info);
-  assert(info == 0);
+  //_FORTRAN(dsyequb)(&upper, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
+  //                  scaling_.array(), &scond, &amax, workspace.array(), &info);
+  //assert(info == 0);
 
+  // Hand-made routine to replace dsyequb
+  equilibrateSym(getMatrixSize(), choleskyFactor_.data(), tolerance(), scaling_.array(), &scond, &amax);
+  
   char equed;
   _FORTRAN(dlaqsy)(&upper, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
                    scaling_.array(), &scond, &amax, &equed);
@@ -120,11 +118,10 @@ PivotedCholeskySolver::performFactorization() {
 
   // Perform factorization
   int numericalRank;
-  SimpleBuffer<double> workspace(2 * matrixSize());
 
   _FORTRAN(dpstrf)(&upper, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
                    getFactorPermutation().array(), &numericalRank, &absTol, workspace.array(), &info);
-  assert(info == 0);
+  assert(info >= 0);
 
   // Reorder scaling coefficients
   std::copy(scaling_.array(), scaling_.array() + matrixSize(), workspace.array());

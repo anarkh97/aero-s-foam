@@ -3,6 +3,7 @@
 #include <algorithm>
 
 // Kernel routines
+#include "Lapack32.d/dsyequb.h"
 
 extern "C" {
   // Blas: Rank-1 update A += alpha*x*y'
@@ -23,10 +24,6 @@ extern "C" {
 
   // Blas: Vector scaling
   void _FORTRAN(dscal)(const int* n, const double* da, double* dx, const int* incx);
-
-  // Lapack: Diagonal scaling
-  void _FORTRAN(dpoequ)(const int* n, const double* a, const int* lda,
-                        double* s, double* scond, double* amax, int* info);
 
   // Lapack: Perform scaling
   void _FORTRAN(dlaqge)(const int* m, const int* n, double* a, const int* lda,
@@ -54,11 +51,19 @@ NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
     
   // Rescale matrix
   scaling_.sizeIs(matrixSize());
-  int info;
+
   double scond, amax;
-  _FORTRAN(dpoequ)(&getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
-                   scaling_.array(), &scond, &amax, &info);
-  assert(info == 0);
+
+  //SimpleBuffer<double> workspace(3 * matrixSize());
+  //int info;
+  //const char upper = 'U';
+  //_FORTRAN(dsyequb)(&upper, &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
+  //                  scaling_.array(), &scond, &amax, workspace.array(), &info);
+  //assert(info == 0);*/
+
+  // Hand-made routine to replace dsyequb
+  equilibrateSym(getMatrixSize(), transposedMatrix_.data(), tolerance(), scaling_.array(), &scond, &amax);
+
   char equed;
   _FORTRAN(dlaqge)(&getMatrixSize(), &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
                    scaling_.array(), scaling_.array(), &scond, &scond, &amax, &equed); 

@@ -7,11 +7,9 @@
 #include <cmath>
 #include <algorithm>
 
-extern "C" {
-  // Pivoted Cholesky (LAPACK 3.2 routine calling BLAS level 3, also in lev3pchol.f)
-  void _FORTRAN(dpstrf)(const char* uplo, const int* n, double* a, const int* lda, int* piv,
-                        int* rank, const double* tol, double* work, int* info);
+#include "Lapack32.d/dpstrf.h"
 
+extern "C" {
   // LAPACK: Inverse a triangular matrix
   void _FORTRAN(dtrtri)(const char * uplo, const char * diag, const int * n, double * a, const int * lda, int * info);
   
@@ -107,7 +105,7 @@ CholeskyOrtho::inputValueIs(const DynamStateBasis & iv) {
     int info;
     _FORTRAN(dpstrf)(&uplo, &arraySize, normalMatrix.data(), &arraySize,
                      permutation.array(), &factorRank, &absEnergyTol, workspace.array(), &info);
-    assert(info == 0);
+    assert(info >= 0);
   }
 
   // Inverse Cholesky factor: U^{-1}

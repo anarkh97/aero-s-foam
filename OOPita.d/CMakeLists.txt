@@ -12,7 +12,6 @@ DynamStateReductor.C
 DynamTimeIntegrator.C
 FullCorrectionPropagatorImpl.C
 HierarchicalTimer.C
-HomogeneousGenAlphaIntegrator.C
 IncrementalPostProcessor.C
 InitialSeedTask.C
 IntegratorPropagator.C

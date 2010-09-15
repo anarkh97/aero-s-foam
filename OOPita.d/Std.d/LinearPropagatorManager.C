@@ -2,7 +2,7 @@
 
 namespace Pita { namespace Std {
 
-LinearPropagatorManager::LinearPropagatorManager(AffineGenAlphaIntegrator * sharedIntegrator,
+LinearPropagatorManager::LinearPropagatorManager(AffineDynamTimeIntegrator * sharedIntegrator,
                                                  PostProcessing::Manager * postProcessingMgr,
                                                  AffineBasisCollector * collector,
                                                  TimeStepCount timeSliceRatio,

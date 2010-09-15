@@ -89,15 +89,12 @@ LinearGenAlphaIntegrator::rhoInfinityIs(double r) {
   rhoInfinity_ = r;
 }
 
-void
-LinearGenAlphaIntegrator::externalForceStatusIs(LinearGenAlphaIntegrator::ExternalForceStatus efs) {
-  throw Fwk::RangeException();
-}
 
-// Protected functions
+// External force computation
 
+inline
 void
-LinearGenAlphaIntegrator::computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState) {
+LinearGenAlphaIntegrator::computeExternalForceImpl(Seconds forceEvalTime, SysState<VectorType> & currentState) {
   probDesc_->computeExtForce2(currentState, externalForce_, constForce_, timeStepCount().value(), forceEvalTime.value(), &aeroForce_, gamma_, alphaf_);
 }
 
@@ -211,7 +208,68 @@ LinearGenAlphaIntegrator::integrate(TimeStepCount s) {
 
     performNotification(&NotifieeConst::onCurrentCondition); 
   }
-} 
+}
 
 
+// Specific implementations
+LinearGenAlphaIntegratorImpl::LinearGenAlphaIntegratorImpl(
+    LinearDynamOps::Manager * dOpsMgr,
+    const GeneralizedAlphaParameter & param) :
+  LinearGenAlphaIntegrator(dOpsMgr, param, NONHOMOGENEOUS)
+{}
+
+void
+LinearGenAlphaIntegratorImpl::externalForceStatusIs(LinearGenAlphaIntegrator::ExternalForceStatus efs) {
+  if (efs != NONHOMOGENEOUS) {
+    throw Fwk::RangeException();
+  }
+}
+
+void
+LinearGenAlphaIntegratorImpl::computeExternalForce(
+    Seconds forceEvalTime,
+    SysState<VectorType> & currentState) {
+  computeExternalForceImpl(forceEvalTime, currentState);
+}
+
+HomogeneousGenAlphaIntegrator::HomogeneousGenAlphaIntegrator(
+    LinearDynamOps::Manager * dOpsMgr,
+    const GeneralizedAlphaParameter & param) :
+  LinearGenAlphaIntegrator(dOpsMgr, param, HOMOGENEOUS)
+{}
+
+void
+HomogeneousGenAlphaIntegrator::externalForceStatusIs(LinearGenAlphaIntegrator::ExternalForceStatus efs) {
+  if (efs != HOMOGENEOUS) {
+    throw Fwk::RangeException();
+  }
+}
+
+void
+HomogeneousGenAlphaIntegrator::computeExternalForce(
+    Seconds forceEvalTime,
+    SysState<VectorType> & currentState) { 
+  // Do nothing
+}
+
+AffineGenAlphaIntegrator::AffineGenAlphaIntegrator(
+    LinearDynamOps::Manager * dOpsMgr,
+    const GeneralizedAlphaParameter & param) :
+  LinearGenAlphaIntegrator(dOpsMgr, param, NONHOMOGENEOUS)
+{}
+
+void
+AffineGenAlphaIntegrator::externalForceStatusIs(AffineGenAlphaIntegrator::ExternalForceStatus efs) {
+  zeroExternalForce();
+  setExternalForceStatus(efs);
+}
+
+void
+AffineGenAlphaIntegrator::computeExternalForce(
+    Seconds forceEvalTime,
+    SysState<VectorType> & currentState) { 
+  if (externalForceStatus() == NONHOMOGENEOUS) {
+    computeExternalForceImpl(forceEvalTime, currentState);
+  }
+}
 } // end namespace Pita

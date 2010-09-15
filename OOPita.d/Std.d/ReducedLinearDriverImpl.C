@@ -18,7 +18,7 @@
 #include "../PostProcessingManager.h"
 #include "../IncrementalPostProcessor.h"
 
-#include "../HomogeneousGenAlphaIntegrator.h"
+#include "../LinearGenAlphaIntegrator.h"
 #include "LinearPropagatorManager.h"
 
 #include "LinearProjectionNetwork.h"
@@ -167,10 +167,17 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                                                            normalMatrixSolver.ptr());
   
   // Fine-grid time integration and feedback into correction
-  AffineGenAlphaIntegrator::Ptr fineIntegrator = new AffineGenAlphaIntegrator(dynamOpsMgr_.ptr(), fineIntegrationParam);
+  LinearGenAlphaIntegrator::Ptr fineIntegrator;
+  AffineDynamPropagator::ConstantTerm constTermStatus;
+  if (noForce_) {
+    fineIntegrator = new HomogeneousGenAlphaIntegrator(dynamOpsMgr_.ptr(), fineIntegrationParam);
+    constTermStatus = AffineDynamPropagator::HOMOGENEOUS;
+  } else {
+    fineIntegrator = new AffineGenAlphaIntegrator(dynamOpsMgr_.ptr(), fineIntegrationParam);
+    constTermStatus = AffineDynamPropagator::NONHOMOGENEOUS;
+  }
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(CpuRank(timeComm->myID()));
   AffineBasisCollector::Ptr collector = projectionMgr->collector();
-  AffineDynamPropagator::ConstantTerm constTermStatus = noForce_ ? AffineDynamPropagator::HOMOGENEOUS : AffineDynamPropagator::NONHOMOGENEOUS;
   LinearPropagatorManager::Ptr finePropagatorManager = LinearPropagatorManager::New(
       fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(),
       sliceRatio_, initialTime_, constTermStatus);

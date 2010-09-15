@@ -18,7 +18,7 @@ public:
   virtual void externalForceStatusIs(ExternalForceStatus efs) = 0;
 
 protected:
-  explicit AffineDynamTimeIntegrator(size_t vectorSize, ExternalForceStatus forceStatus = NONHOMOGENEOUS) :
+  explicit AffineDynamTimeIntegrator(size_t vectorSize, ExternalForceStatus forceStatus) :
     externalForceStatus_(forceStatus),
     DynamTimeIntegrator(vectorSize)
   {}

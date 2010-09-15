@@ -6,7 +6,7 @@
 
 #include "../LinearDynamOps.h"
 #include "../AffineIntegratorPropagator.h"
-#include "../HomogeneousGenAlphaIntegrator.h"
+#include "../AffineDynamTimeIntegrator.h"
 #include "../PostProcessingManager.h"
 #include "AffineBasisCollector.h"
 
@@ -22,7 +22,7 @@ public:
   virtual AffineIntegratorPropagator * instanceNew(const SliceRank & id);
   virtual void instanceDel(const SliceRank & id);
 
-  static Ptr New(AffineGenAlphaIntegrator * sharedIntegrator,
+  static Ptr New(AffineDynamTimeIntegrator * sharedIntegrator,
                  PostProcessing::Manager * postProcessingMgr,
                  AffineBasisCollector * collector,
                  TimeStepCount timeSliceRatio,
@@ -32,7 +32,7 @@ public:
   }
 
 protected:
-  LinearPropagatorManager(AffineGenAlphaIntegrator * sharedIntegrator,
+  LinearPropagatorManager(AffineDynamTimeIntegrator * sharedIntegrator,
                           PostProcessing::Manager * postProcessingMgr,
                           AffineBasisCollector * collector,
                           TimeStepCount timeSliceRatio,
@@ -42,7 +42,7 @@ protected:
   AffineIntegratorPropagator::Ptr createNewInstance(SliceRank rank);
 
 private:
-  AffineGenAlphaIntegrator::Ptr sharedIntegrator_;
+  AffineDynamTimeIntegrator::Ptr sharedIntegrator_;
   Seconds fineTimeStep_;
   TimeStepCount timeSliceRatio_;
   Seconds initialTime_;

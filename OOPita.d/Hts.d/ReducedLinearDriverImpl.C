@@ -12,7 +12,6 @@
 #include <Driver.d/Domain.h>
 
 #include "../LinearGenAlphaIntegrator.h"
-#include "../HomogeneousGenAlphaIntegrator.h"
 
 #include "../IntegratorPropagator.h"
 #include "../AffineIntegratorPropagator.h"

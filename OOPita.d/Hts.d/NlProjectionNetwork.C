@@ -1,7 +1,6 @@
 #include "NlProjectionNetwork.h"
 #include "../NearSymmetricSolver.h"
-
-#include <cmath>
+#include "../DynamStateOps.h"
 
 namespace Pita { namespace Hts {
 
@@ -21,7 +20,8 @@ NlProjectionNetwork::NlProjectionNetwork(PropagationDataSharing * sharing,
   corrRedMgr_(NULL),
   corrReconMgr_(NULL)
 {
-  condensMgr_ = new BasisCondensationManager(vectorSize, projectionTolerance, endBasisMgr_.ptr(), midBasisMgr_.ptr());
+  double condensationTolerance = projectionTolerance * 0.1; // TODO as parameter
+  condensMgr_ = new BasisCondensationManager(vectorSize, condensationTolerance, endBasisMgr_.ptr(), midBasisMgr_.ptr());
   projBuildMgr_ = new ProjectionBuildingFactory(dynamOps, endBasisMgr_.ptr(), projBasisMgr_.ptr(), solverMgr_.ptr()); 
 
   CorrectionReductor::Manager::OperatorManager::Ptr redMgr = ReductorManager::New(projBasisMgr_.ptr(), solverMgr_.ptr());
@@ -31,32 +31,6 @@ NlProjectionNetwork::NlProjectionNetwork(PropagationDataSharing * sharing,
   corrReconMgr_ = CorrectionReconstructor::Manager::New(reconMgr.ptr());
 }
 
-void
-BasisCopy::inputValueIs(const DynamStateBasis & iv) {
-  output()->stateBasisDel();
-  output()->lastStateBasisIs(&iv);
-}
-
-void
-BasisOrtho::inputValueIs(const DynamStateBasis & iv) {
-  output()->stateBasisDel();
-
-  for (DynamStateBasis::IteratorConst it = iv.state(); it; ++it) {
-    DynamState state = *it;
-    double initialNorm = std::sqrt(state * state);
-    
-    for (DynamStateBasis::IteratorConst jt = output()->state(); jt; ++jt) {
-      double dot = state * (*jt);
-      state.linAdd(-dot, *jt);
-    }
-
-    double finalNorm = std::sqrt(state * state);
-    if (finalNorm > initialNorm * tolerance_) {
-      state /= finalNorm;
-      output()->lastStateIs(state); 
-    }
-  }
-}
 
 BasisCondensation::BasisCondensation(const String & name,
                                      const DynamStateBasis * origin,
@@ -243,7 +217,7 @@ BasisCondensationManager::createNewInstance(const HalfSliceId & sliceId) {
     target = endBasisMgr_->instanceNew(sliceId);
   }
 
-  BasisTransform::Ptr operation = new BasisOrtho(vectorSize_, tolerance_);
+  BasisTransform::Ptr operation = new CholeskyOrtho(vectorSize_, tolerance_);
 
   return new BasisCondensation("Condense Basis " + toString(sliceId), origin.ptr(), target.ptr(), operation.ptr());
 }

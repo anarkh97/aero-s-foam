@@ -36,7 +36,6 @@ PitaNonLinDynam.C
 PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
-ProjectorPropagator.C
 ReducedCorrectionPropagatorImpl.C
 RemoteDynamPropagatorProxy.C
 RemoteDynamPropagatorServer.C

@@ -12,10 +12,9 @@
 #include <Driver.d/Domain.h>
 
 #include "SliceMapping.h"
+#include "../RemoteStateMpiImpl.h"
 
-#include "../Seed.h"
 #include "IncrementalPropagation.h"
-
 #include "../PostProcessingManager.h"
 #include "../IncrementalPostProcessor.h"
 
@@ -25,14 +24,10 @@
 #include "LinearProjectionNetwork.h"
 #include "../NearSymmetricSolver.h"
 
-#include "../JumpBuilder.h"
-#include "../JumpProjection.h"
-#include "../ReducedCorrectionPropagatorImpl.h"
-#include "../FullCorrectionPropagatorImpl.h"
-#include "../UpdatedSeedAssemblerImpl.h"
 #include "JumpConvergenceEvaluator.h"
-
 #include "../SeedDifferenceEvaluator.h"
+
+#include "../FullCorrectionPropagatorImpl.h"
 
 #include "../IntegratorSeedInitializer.h"
 #include "RemoteSeedInitializerServer.h"
@@ -43,10 +38,7 @@
 #include "NonHomogeneousTaskManager.h"
 #include "../TimedExecution.h"
 
-#include "../RemoteStateMpiImpl.h"
-
 #include "../CommSplitter.h"
-
 #include "../IntegratorPropagator.h"
 #include "../RemoteDynamPropagatorProxy.h"
 #include "RemoteCoarseCorrectionServer.h"
@@ -70,23 +62,14 @@ ReducedLinearDriverImpl::solve() {
   double tic = getTime(); // Total time
 
   preprocess();
+  log() << "\n";
 
-  /* Summarize problem and parameters */
-  log() << "\n"; 
-  log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-  log() << "dt = " << fineTimeStep_ << ", J = " << sliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*Dt = " << finalTime_ << "\n";
-  log() << "Iteration count = " << lastIteration_ << "\n"; 
-  if (jumpCvgRatio_ >= 0.0) { log() << "Jump-based convergence ratio = " << jumpCvgRatio_ << "\n"; }
-  if (noForce_) { log() << "No external force\n"; }
-  if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
-  if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
-  log() << "VectorSize = " << vectorSize_ << " dofs\n";
-  log() << "Projector tol = " << projectorTolerance_ << "\n";
+  printSummary();
+  log() << "\n";
 
-  // Determine process task
+  // Run process-specific tasks
   if (remoteCoarse_) {
     CommSplitter::Ptr commSplitter = CommSplitter::New(baseComm(), CpuCount(1)); // Specializes one cpu
-
     if (commSplitter->localGroup() == CommSplitter::STANDARD) {
       solveParallel(commSplitter->splitComm(), commSplitter->interComm());
     } else {
@@ -119,7 +102,7 @@ ReducedLinearDriverImpl::preprocess() {
   finalTime_ = Seconds(solverInfo()->tmax);
  
   SliceCount numSlices(static_cast<int>(ceil((finalTime_.value() - initialTime_.value()) / (sliceRatio_.value() * fineTimeStep_.value()))));
-  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * sliceRatio_.value()); // To have a whole number of full time-slices 
+  finalTime_ = fineTimeStep_ * Seconds(numSlices.value() * sliceRatio_.value()); // Must have only complete time-slices 
   
   // Main options 
   noForce_ = solverInfo()->pitaNoForce;
@@ -150,6 +133,18 @@ ReducedLinearDriverImpl::preprocess() {
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
+void
+ReducedLinearDriverImpl::printSummary() {
+  log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
+  log() << "dt = " << fineTimeStep_ << ", J = " << sliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*Dt = " << finalTime_ << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  if (jumpCvgRatio_ >= 0.0) { log() << "Jump-based convergence ratio = " << jumpCvgRatio_ << "\n"; }
+  if (noForce_) { log() << "No external force\n"; }
+  if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
+  if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
+  log() << "VectorSize = " << vectorSize_ << " dofs\n";
+  log() << "Projector tol = " << projectorTolerance_ << "\n";
+}
 
 void
 ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * coarseComm) {
@@ -158,30 +153,22 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
 
   double tic = getTime();
    
-  // Local process identity
-  CpuRank myCpu(timeComm->myID());
-
   // Linear operators
-  const double fineRhoInfinity = 1.0; // No damping for the time being
+  const double fineRhoInfinity = 1.0; // No numerical damping
   GeneralizedAlphaParameter fineIntegrationParam(fineTimeStep_, fineRhoInfinity);
-  LinearDynamOps::Ptr dynOps = dynamOpsMgr_->dynOpsNew(fineIntegrationParam); // Most expensive step 
+  LinearDynamOps::Ptr dynOps = dynamOpsMgr_->dynOpsNew(fineIntegrationParam); // Computationally expensive step
 
-  // Projection network
+  // Projection-based correction
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_);
   LinearProjectionNetwork::Ptr projectionMgr = new LinearProjectionNetwork(mapping_.ptr(),
                                                                            timeComm,
                                                                            dynOps.ptr(),
                                                                            vectorSize_,
                                                                            normalMatrixSolver.ptr());
-  // Correction operations
-  JumpProjection::Manager::Ptr jumpProjMgr = JumpProjection::Manager::New(projectionMgr->projectionBasis());
-  CorrectionPropagator<Vector>::Manager::Ptr corrPropMgr = ReducedCorrectionPropagatorImpl::Manager::New(
-      projectionMgr->reprojectionMatrix(), projectionMgr->normalMatrixSolver());
-  UpdatedSeedAssembler::Manager::Ptr seedUpMgr = UpdatedSeedAssemblerImpl::Manager::New(projectionMgr->propagatedBasis());
   
-  // Fine-grid time integration 
+  // Fine-grid time integration and feedback into correction
   AffineGenAlphaIntegrator::Ptr fineIntegrator = new AffineGenAlphaIntegrator(dynamOpsMgr_.ptr(), fineIntegrationParam);
-  PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(myCpu);
+  PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(CpuRank(timeComm->myID()));
   AffineBasisCollector::Ptr collector = projectionMgr->collector();
   LinearPropagatorManager::Ptr finePropagatorManager = LinearPropagatorManager::New(
       fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(), sliceRatio_, initialTime_);
@@ -203,37 +190,29 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
     jumpOutMgr = LinSeedDifferenceEvaluator::Manager::New(dynOps.ptr());
   }
 
-  // Tasks
+  // Generate tasks
   TaskManager::Ptr taskMgr;
   if (noForce_) {
     // Initial seed information on coarse time-grid
     SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm);
     taskMgr = new HomogeneousTaskManager(mapping_.ptr(),
-                                         myCpu,
                                          commMgr.ptr(),
-                                         seedInitializer.ptr(),
                                          finePropagatorManager.ptr(),
                                          projectionMgr.ptr(),
-                                         jumpProjMgr.ptr(),
-                                         corrPropMgr.ptr(),
-                                         seedUpMgr.ptr(),
                                          jumpCvgEval.ptr(),
-                                         jumpOutMgr.ptr());
+                                         jumpOutMgr.ptr(),
+                                         seedInitializer.ptr());
   } else {
     // Coarse time-grid propagator
     CorrectionPropagator<DynamState>::Manager::Ptr fullCorrPropMgr = buildCoarseCorrection(coarseComm);
     taskMgr = new NonHomogeneousTaskManager(mapping_.ptr(),
-                                            myCpu,
                                             commMgr.ptr(),
-                                            initialSeed(),
                                             finePropagatorManager.ptr(),
                                             projectionMgr.ptr(),
-                                            jumpProjMgr.ptr(),
-                                            corrPropMgr.ptr(),
-                                            fullCorrPropMgr.ptr(),
-                                            seedUpMgr.ptr(),
                                             jumpCvgEval.ptr(),
-                                            jumpOutMgr.ptr());
+                                            jumpOutMgr.ptr(),
+                                            initialSeed(),
+                                            fullCorrPropMgr.ptr());
   }
 
   TimedExecution::Ptr execution = TimedExecution::New(taskMgr.ptr());
@@ -242,14 +221,14 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   log() << "\n";
   log() << "Total initialization time = " << (toc - tic) / 1000.0 << " s\n";
   tic = toc;
-  
+ 
+  // Perform the algorithm 
   execution->targetIterationIs(lastIteration_);
 
   toc = getTime();
   log() << "\n";
   log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
 }
-
 
 void
 ReducedLinearDriverImpl::solveCoarse(Communicator * clientComm) {
@@ -296,7 +275,6 @@ ReducedLinearDriverImpl::buildPostProcessor(CpuRank localCpu) const {
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   return PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
 }
-
 
 SeedInitializer::Ptr
 ReducedLinearDriverImpl::buildSeedInitializer(Communicator * clientComm) const {
@@ -345,7 +323,7 @@ extern GeoSource * geoSource;
 extern Communicator * structCom;
 extern Domain * domain;
 
-/* Entrypoint */
+// Entrypoint
 Pita::LinearDriver::Ptr
 linearPitaDriverNew(SingleDomainDynamic * pbDesc) {
   return Pita::Std::ReducedLinearDriverImpl::New(pbDesc, geoSource, domain, &domain->solInfo(), structCom);

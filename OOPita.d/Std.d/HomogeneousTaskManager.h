@@ -35,10 +35,13 @@ public:
   virtual void phaseInc(); // overriden
   virtual void iterationInc(); // overriden
 
-  HomogeneousTaskManager(SliceMapping * mapping, CpuRank localCpu, RemoteState::MpiManager * commMgr,
-                         SeedInitializer * initializer, LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
-                         JumpProjection::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr, UpdatedSeedAssembler::Manager * seedUpMgr,
-                         JumpConvergenceEvaluator * jumpCvgEval, LinSeedDifferenceEvaluator::Manager * jumpOutMgr);
+  HomogeneousTaskManager(SliceMapping * mapping,
+                         RemoteState::MpiManager * commMgr,
+                         LinearPropagatorManager * propagatorMgr,
+                         LinearProjectionNetwork * projectionMgr,
+                         JumpConvergenceEvaluator * jumpCvgEval,
+                         LinSeedDifferenceEvaluator::Manager * jumpOutMgr,
+                         SeedInitializer * initializer);
 
 protected:
   // Initialization

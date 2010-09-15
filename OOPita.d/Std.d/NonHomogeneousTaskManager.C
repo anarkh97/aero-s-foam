@@ -6,29 +6,29 @@
 #include "IncrementalPropagation.h"
 #include "../RemoteStateTask.h"
 
+#include "../JumpProjection.h"
+#include "../ReducedCorrectionPropagatorImpl.h"
+#include "../UpdatedSeedAssemblerImpl.h"
+
 namespace Pita { namespace Std {
 
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
-                                                     CpuRank localCpu,
                                                      RemoteState::MpiManager * commMgr,
-                                                     DynamState initialState,
                                                      LinearPropagatorManager * propagatorMgr,
                                                      LinearProjectionNetwork * projectionMgr,
-                                                     JumpProjection::Manager * jumpProjMgr,
-                                                     CorrectionPropagator<Vector>::Manager * corrPropMgr,
-                                                     CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr,
-                                                     UpdatedSeedAssembler::Manager * seedUpMgr,
                                                      JumpConvergenceEvaluator * jumpCvgEval,
-                                                     LinSeedDifferenceEvaluator::Manager * jumpOutMgr) :
+                                                     LinSeedDifferenceEvaluator::Manager * jumpOutMgr,
+                                                     DynamState initialState,
+                                                     CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr) :
   TaskManager(IterationRank(-1)),
   mapping_(mapping),
-  localCpu_(localCpu),
+  localCpu_(commMgr->localCpu()),
   initializer_(SimpleSeedInitializer::New(initialState)),
   propagatorMgr_(propagatorMgr),
   projectionMgr_(projectionMgr),
-  jumpProjMgr_(jumpProjMgr),
-  seedUpMgr_(seedUpMgr),
-  corrPropMgr_(corrPropMgr),
+  jumpProjMgr_(JumpProjection::Manager::New(projectionMgr->projectionBasis())),
+  seedUpMgr_(UpdatedSeedAssemblerImpl::Manager::New(projectionMgr->propagatedBasis())),
+  corrPropMgr_(ReducedCorrectionPropagatorImpl::Manager::New(projectionMgr->reprojectionMatrix(), projectionMgr->normalMatrixSolver())),
   jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
   fullCorrPropMgr_(fullCorrPropMgr),
   seedMgr_(Seed::Manager::New()),

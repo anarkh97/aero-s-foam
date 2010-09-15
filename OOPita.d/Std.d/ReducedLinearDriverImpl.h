@@ -37,6 +37,7 @@ protected:
   ReducedLinearDriverImpl(SingleDomainDynamic *, GeoSource *, Domain *, SolverInfo *, Communicator *);
 
   void preprocess();
+  void printSummary();
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
   void solveCoarse(Communicator * clientComm);
   

@@ -30,6 +30,7 @@
 #include "../ReducedCorrectionPropagatorImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
 #include "../UpdatedSeedAssemblerImpl.h"
+#include "JumpConvergenceEvaluator.h"
 
 #include "../IntegratorSeedInitializer.h"
 #include "RemoteSeedInitializerServer.h"
@@ -176,6 +177,17 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   // Point-to-point communication
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
+  // Jump-based convergence policy
+  bool useCvg = true; // TODO Parser option
+  JumpConvergenceEvaluator::Ptr jumpCvgEval;
+  if (useCvg) {
+    const int schemeOrder = 2;
+    const double jumpCvgRatio = std::pow(static_cast<double>(sliceRatio_.value()), schemeOrder);
+    jumpCvgEval = new AccumulatedJumpConvergenceEvaluator(jumpCvgRatio, dynOps.ptr(), mapping_.ptr(), timeComm); 
+  } else {
+    jumpCvgEval = new TrivialConvergenceEvaluator(mapping_.ptr());
+  }
+
   // Tasks
   TaskManager::Ptr taskMgr;
   if (noForce_) {
@@ -189,7 +201,8 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                          projectionMgr.ptr(),
                                          jumpProjMgr.ptr(),
                                          corrPropMgr.ptr(),
-                                         seedUpMgr.ptr());
+                                         seedUpMgr.ptr(),
+                                         jumpCvgEval.ptr());
   } else {
     // Coarse time-grid propagator
     CorrectionPropagator<DynamState>::Manager::Ptr fullCorrPropMgr = buildCoarseCorrection(coarseComm);
@@ -202,7 +215,8 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                             jumpProjMgr.ptr(),
                                             corrPropMgr.ptr(),
                                             fullCorrPropMgr.ptr(),
-                                            seedUpMgr.ptr());
+                                            seedUpMgr.ptr(),
+                                            jumpCvgEval.ptr());
   }
 
   TimedExecution::Ptr execution = TimedExecution::New(taskMgr.ptr());

@@ -14,7 +14,8 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
                                                LinearProjectionNetwork * projectionMgr,
                                                JumpProjection::Manager * jumpProjMgr,
                                                CorrectionPropagator<Vector>::Manager * corrPropMgr,
-                                               UpdatedSeedAssembler::Manager * seedUpMgr) :
+                                               UpdatedSeedAssembler::Manager * seedUpMgr,
+                                               JumpConvergenceEvaluator * jumpCvgEval) :
   TaskManager(IterationRank(0)),
   mapping_(mapping),
   localCpu_(localCpu),
@@ -28,6 +29,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
   seedMgr_(Seed::Manager::New()),
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
+  jumpCvgEval_(jumpCvgEval),
   jumpEvalMgr_(LinSeedDifferenceEvaluator::Manager::New(projectionMgr->metric())), 
   phase_(NULL),
   continuation_(&HomogeneousTaskManager::noop)
@@ -107,12 +109,21 @@ HomogeneousTaskManager::scheduleProjectionBuilding() {
   projBuilding.push_back(projectionMgr_->projectionTaskNew());
   setPhase(phaseNew("Build Projection", projBuilding));
  
+  setContinuation(&HomogeneousTaskManager::scheduleConvergence);
+}
+
+void
+HomogeneousTaskManager::scheduleConvergence() {
+  TaskList checkCvg; 
+  checkCvg.push_back(jumpCvgEval_.ptr());
+  setPhase(phaseNew("Check Convergence", checkCvg));
+ 
   setContinuation(&HomogeneousTaskManager::scheduleJumpProjection);
 }
 
 void
 HomogeneousTaskManager::scheduleJumpProjection() {
-  checkConvergence();
+  applyConvergence();
 
   TaskList jumpProjection;
   fillTaskList(&SliceTasks::jumpProjection, jumpProjection);
@@ -141,9 +152,7 @@ HomogeneousTaskManager::scheduleSeedUpdate() {
 }
 
 void
-HomogeneousTaskManager::checkConvergence() {
-  mapping_->convergedSlicesInc();
-
+HomogeneousTaskManager::applyConvergence() {
   SliceRank firstActiveSlice = mapping_->firstActiveSlice();
   recurrentTasks_.erase(recurrentTasks_.begin(), recurrentTasks_.lower_bound(firstActiveSlice));
  
@@ -203,7 +212,7 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice].finePropagation = task;
   }
 
-  // Jump building
+  // Jump building and convergence
   if (slice > SliceRank(0)) {
     Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
     Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
@@ -216,13 +225,11 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     task->seedJumpIs(jump.ptr());
 
     recurrentTasks_[slice.previous()].jumpBuilding = task;
-  }
   
-  // Jump magnitude output
-  {
-    Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
-    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+    jumpCvgEval_->localJumpIs(slice, jump.ptr());
 
+    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+    
     LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
     eval->referenceSeedIs(propagatedSeed.ptr());
   }

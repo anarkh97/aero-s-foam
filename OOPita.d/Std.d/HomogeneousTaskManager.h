@@ -21,6 +21,8 @@
 
 #include "../RemoteStateMpiImpl.h"
 
+#include "JumpConvergenceEvaluator.h"
+
 #include <map>
 
 namespace Pita { namespace Std {
@@ -35,7 +37,8 @@ public:
 
   HomogeneousTaskManager(SliceMapping * mapping, CpuRank localCpu, RemoteState::MpiManager * commMgr,
                          SeedInitializer * initializer, LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
-                         JumpProjection::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr, UpdatedSeedAssembler::Manager * seedUpMgr);
+                         JumpProjection::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr, UpdatedSeedAssembler::Manager * seedUpMgr,
+                         JumpConvergenceEvaluator * jumpCvgEval);
 
 protected:
   // Initialization
@@ -55,14 +58,15 @@ protected:
   
   void scheduleInitialization();
   void scheduleFinePropagation();
-  void scheduleProjectionBuilding();
   void schedulePropagatedSeedSynchronization();
-  void scheduleCorrectionPropagation();
   void scheduleJumpBuilding();
+  void scheduleProjectionBuilding();
+  void scheduleConvergence();
   void scheduleJumpProjection();
+  void scheduleCorrectionPropagation();
   void scheduleSeedUpdate();
 
-  void checkConvergence();
+  void applyConvergence();
 
 private:
   SliceMapping::Ptr mapping_;
@@ -82,6 +86,8 @@ private:
   ReducedSeed::Manager::Ptr redSeedMgr_;
 
   RemoteState::MpiManager::Ptr commMgr_;
+
+  JumpConvergenceEvaluator::Ptr jumpCvgEval_;
 
   struct SliceTasks {
     NamedTask::Ptr propagatedSeedSynchronization;

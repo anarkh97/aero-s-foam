@@ -17,7 +17,8 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
                                                      JumpProjection::Manager * jumpProjMgr,
                                                      CorrectionPropagator<Vector>::Manager * corrPropMgr,
                                                      CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr,
-                                                     UpdatedSeedAssembler::Manager * seedUpMgr) :
+                                                     UpdatedSeedAssembler::Manager * seedUpMgr,
+                                                     JumpConvergenceEvaluator * jumpCvgEval) :
   TaskManager(IterationRank(-1)),
   mapping_(mapping),
   localCpu_(localCpu),
@@ -32,6 +33,7 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
   seedMgr_(Seed::Manager::New()),
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
+  jumpCvgEval_(jumpCvgEval),
   jumpEvalMgr_(LinSeedDifferenceEvaluator::Manager::New(projectionMgr->metric())), 
   phase_(NULL),
   continuation_(&NonHomogeneousTaskManager::noop)
@@ -112,7 +114,8 @@ NonHomogeneousTaskManager::scheduleTrivialJumpBuilding() {
 
 void
 NonHomogeneousTaskManager::scheduleCoarseCorrectionPropagation() {
-  checkConvergence();
+  mapping_->convergedSlicesInc();
+  applyConvergence();
   
   TaskList correctionPropagation;
  
@@ -208,14 +211,23 @@ void
 NonHomogeneousTaskManager::scheduleProjectionBuilding() {
   TaskList projBuilding; 
   projBuilding.push_back(projectionMgr_->projectionTaskNew());
-  setPhase(phaseNew("Jump Projection", projBuilding));
+  setPhase(phaseNew("Build Projection", projBuilding));
+ 
+  setContinuation(&NonHomogeneousTaskManager::scheduleConvergence);
+}
+
+void
+NonHomogeneousTaskManager::scheduleConvergence() {
+  TaskList checkCvg; 
+  checkCvg.push_back(jumpCvgEval_.ptr());
+  setPhase(phaseNew("Check Convergence", checkCvg));
  
   setContinuation(&NonHomogeneousTaskManager::scheduleJumpProjection);
 }
 
 void
 NonHomogeneousTaskManager::scheduleJumpProjection() {
-  checkConvergence();
+  applyConvergence();
 
   TaskList jumpProjection;
   fillTaskList(&SliceTasks::jumpProjection, jumpProjection);
@@ -244,9 +256,7 @@ NonHomogeneousTaskManager::scheduleSeedUpdate() {
 }
 
 void
-NonHomogeneousTaskManager::checkConvergence() {
-  mapping_->convergedSlicesInc();
-
+NonHomogeneousTaskManager::applyConvergence() {
   SliceRank firstActiveSlice = mapping_->firstActiveSlice();
   recurrentTasks_.erase(recurrentTasks_.begin(), recurrentTasks_.lower_bound(firstActiveSlice));
  
@@ -307,7 +317,7 @@ NonHomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice].finePropagation = task;
   }
 
-  // Jump building
+  // Jump building and convergence
   if (slice > SliceRank(0)) {
     Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
     Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
@@ -320,11 +330,9 @@ NonHomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     task->seedJumpIs(jump.ptr());
 
     recurrentTasks_[slice.previous()].jumpBuilding = task;
-  }
-
-  // Jump magnitude output
-  {
-    Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
+  
+    jumpCvgEval_->localJumpIs(slice, jump.ptr());
+    
     Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
 
     LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());

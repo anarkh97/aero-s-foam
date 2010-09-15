@@ -57,6 +57,7 @@ Lapack32.d/equilibrateSym.C
 Std.d/AffineBasisCollector.C
 Std.d/HomogeneousTaskManager.C
 Std.d/IncrementalPropagation.C
+Std.d/JumpConvergenceEvaluator.C
 Std.d/LinearPropagatorManager.C
 Std.d/LinearProjectionNetwork.C
 Std.d/NonHomogeneousTaskManager.C

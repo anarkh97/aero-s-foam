@@ -50,7 +50,7 @@ protected:
 
     explicit PhaseIterator(PhaseIteratorImpl * pimpl) : pimpl_(pimpl) {}
     PhaseIterator(const PhaseIterator & other) : pimpl_(other.pimpl_->clone()) {}
-    PhaseIterator & operator=(const PhaseIterator & other) { pimpl_.reset(other.pimpl_->clone()); }
+    PhaseIterator & operator=(const PhaseIterator & other) { pimpl_.reset(other.pimpl_->clone()); return *this; }
 
   private:
     std::auto_ptr<PhaseIteratorImpl> pimpl_;

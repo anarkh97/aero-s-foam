@@ -74,7 +74,7 @@ includedIn(const ActivationRange & a, const ActivationRange & inRange) {
 class ActivationRange::Inclusion : public std::unary_function<ActivationRange, bool> {
 public:
   bool operator()(const ActivationRange & a) const {
-    includedIn(a, inRange_);
+    return includedIn(a, inRange_);
   }
 
   explicit Inclusion(const ActivationRange & inRange) :

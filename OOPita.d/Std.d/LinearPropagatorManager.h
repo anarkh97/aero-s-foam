@@ -26,8 +26,9 @@ public:
                  PostProcessing::Manager * postProcessingMgr,
                  AffineBasisCollector * collector,
                  TimeStepCount timeSliceRatio,
-                 Seconds initialTime) {
-    return new LinearPropagatorManager(sharedIntegrator, postProcessingMgr, collector, timeSliceRatio, initialTime);
+                 Seconds initialTime,
+                 AffineDynamPropagator::ConstantTerm defaultMode) {
+    return new LinearPropagatorManager(sharedIntegrator, postProcessingMgr, collector, timeSliceRatio, initialTime, defaultMode);
   }
 
 protected:
@@ -35,7 +36,8 @@ protected:
                           PostProcessing::Manager * postProcessingMgr,
                           AffineBasisCollector * collector,
                           TimeStepCount timeSliceRatio,
-                          Seconds initialTime);
+                          Seconds initialTime,
+                          AffineDynamPropagator::ConstantTerm defaultMode);
 
   AffineIntegratorPropagator::Ptr createNewInstance(SliceRank rank);
 
@@ -44,6 +46,7 @@ private:
   Seconds fineTimeStep_;
   TimeStepCount timeSliceRatio_;
   Seconds initialTime_;
+  AffineDynamPropagator::ConstantTerm defaultMode_;
 
   PostProcessing::Manager::Ptr postProcessingMgr_;
   AffineBasisCollector * collector_;

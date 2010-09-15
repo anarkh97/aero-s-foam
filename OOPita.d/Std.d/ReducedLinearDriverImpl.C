@@ -170,8 +170,10 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   AffineGenAlphaIntegrator::Ptr fineIntegrator = new AffineGenAlphaIntegrator(dynamOpsMgr_.ptr(), fineIntegrationParam);
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(CpuRank(timeComm->myID()));
   AffineBasisCollector::Ptr collector = projectionMgr->collector();
+  AffineDynamPropagator::ConstantTerm constTermStatus = noForce_ ? AffineDynamPropagator::HOMOGENEOUS : AffineDynamPropagator::NONHOMOGENEOUS;
   LinearPropagatorManager::Ptr finePropagatorManager = LinearPropagatorManager::New(
-      fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(), sliceRatio_, initialTime_);
+      fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(),
+      sliceRatio_, initialTime_, constTermStatus);
 
   // Point-to-point communication
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);

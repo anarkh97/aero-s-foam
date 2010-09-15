@@ -101,7 +101,7 @@ activeIn(const ActivationRange & a, const ActivationRange & b) {
 template <typename S>
 class NoCorrection : public SharedState<S>::NotifieeConst {
 public:
-  virtual void onIteration(); //overriden
+  virtual void onStatus(); //overriden
 
   NoCorrection(const SharedState<S> * parent, SharedStateRoot * target) :
     SharedState<S>::NotifieeConst(parent),
@@ -120,8 +120,9 @@ private:
 
 template <typename S>
 void
-NoCorrection<S>::onIteration() {
+NoCorrection<S>::onStatus() {
   if (this->notifier()->status() == Seed::CONVERGED) {
+    log() << "Zero Correction " << target()->name() << "\n";
     target()->statusIs(Seed::INACTIVE);
     target()->iterationIs(this->notifier()->iteration());
   }

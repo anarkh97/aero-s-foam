@@ -15,7 +15,8 @@ namespace Pita { namespace Hts {
 
 NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                              NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
-                             PostProcessing::Manager * postProcessingMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
+                             PostProcessing::Manager * postProcessingMgr,
+                             JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                              double projectorTolerance, IterationRank lastIteration) :
   TaskManager(IterationRank(0)),
   mapping_(mapping),
@@ -23,6 +24,7 @@ NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * c
   propagatorMgr_(propagatorMgr),
   seedInitializer_(seedInitializer),
   postProcessingMgr_(postProcessingMgr),
+  jumpCvgMgr_(jumpCvgMgr),
   jumpEvaluatorMgr_(jumpEvaluatorMgr),
   projectorTolerance_(projectorTolerance),
   phase_(NULL),
@@ -74,6 +76,7 @@ NlTaskManager::initialize() {
                                      projectionNetwork_->corrReconMgr(),
                                      projectionNetwork_->condensMgr(),
                                      projectionNetwork_->projBuildMgr(),
+                                     jumpCvgMgr_.ptr(),
                                      jumpEvaluatorMgr_.ptr());
   localNetwork_->statusIs(LocalNetwork::ACTIVE);
 }
@@ -133,13 +136,20 @@ NlTaskManager::scheduleDataSharing() {
     dataSharing.push_back(sharing_);
   }
   setPhase(phaseNew("Data Sharing", dataSharing));
-  setContinuation(&NlTaskManager::checkConvergence);
+  setContinuation(&NlTaskManager::scheduleConvergence);
 }
 
 void
-NlTaskManager::checkConvergence() {
-  // TODO: Use jumps to check convergence
-  localNetwork_->convergedSlicesInc(); // Default convergence: First slice only
+NlTaskManager::scheduleConvergence() {
+  TaskList convergence;
+  convergence.push_back(jumpCvgMgr_);
+  setPhase(phaseNew("Convergence", convergence));
+  setContinuation(&NlTaskManager::applyConvergence);
+}
+
+void
+NlTaskManager::applyConvergence() {
+  localNetwork_->convergedSlicesInc(); // TODO: bad naming
   scheduleProjectionBuilding();
 }
 

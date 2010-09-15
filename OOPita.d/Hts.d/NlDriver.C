@@ -12,6 +12,7 @@
 #include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
+#include "JumpConvergenceEvaluator.h"
 #include "../SeedDifferenceEvaluator.h"
 
 #include "NlTaskManager.h"
@@ -76,6 +77,12 @@ NlDriver::preprocess() {
 
   // Other parameters
   lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
+  jumpCvgRatio_ = solverInfo()->pitaJumpCvgRatio;
+  if (jumpCvgRatio_ == 0.0) {
+    // Use default value
+    const int schemeOrder = 2;
+    jumpCvgRatio_ = std::pow(static_cast<double>(sliceRatio_.value()), schemeOrder);
+  }
   projectorTolerance_ = solverInfo()->pitaProjTol;
   userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
 
@@ -91,8 +98,9 @@ void
 NlDriver::summarizeParameters() const {
   log() << "\n"; 
   log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-  log() << "Iteration count = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  if (jumpCvgRatio_ >= 0.0) { log() << "Jump-based convergence ratio = " << jumpCvgRatio_ << "\n"; }
   if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
   log() << "VectorSize = " << vectorSize_ << " dofs\n";
   log() << "Projector tol = " << projectorTolerance_ << "\n";
@@ -119,10 +127,8 @@ NlDriver::solveParallel() {
   // Initial Seeds
   SeedInitializer::Ptr seedInitializer;
   if (userProvidedSeeds_) {
-    log() << "Initial seed information provided by user\n"; // TODO remove
     seedInitializer = UserProvidedSeedInitializer::New(vectorSize_, geoSource(), domain());
   } else {
-    log() << "Initial seed information from time-integration\n"; // TODO remove
     integrator->timeStepSizeIs(coarseTimeStep_);
     integrator->initialConditionIs(initState, initTime);
     seedInitializer = IntegratorSeedInitializer::New(integrator.ptr(), TimeStepCount(1));
@@ -130,6 +136,14 @@ NlDriver::solveParallel() {
   
   // Post-processing
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
+
+  // Convergence criterion
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr;
+  if (jumpCvgRatio_ >= 0.0) {
+    jumpCvgMgr = AccumulatedJumpConvergenceEvaluator::New(jumpCvgRatio_, mapping_.ptr(), baseComm());
+  } else {
+    jumpCvgMgr = TrivialConvergenceEvaluator::New(mapping_.ptr());
+  }
 
   // Jump evaluation (Output only)
   NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr;
@@ -143,7 +157,8 @@ NlDriver::solveParallel() {
   // Execute the algorithm 
   NlTaskManager::Ptr taskManager = new NlTaskManager(mapping_.ptr(), commMgr.ptr(),
                                                      propagatorMgr.ptr(), seedInitializer.ptr(),
-                                                     postProcessingMgr.ptr(), jumpEvalMgr.ptr(),
+                                                     postProcessingMgr.ptr(),
+                                                     jumpCvgMgr.ptr(), jumpEvalMgr.ptr(),
                                                      projectorTolerance_, lastIteration_);
   TimedExecution::Ptr execution = TimedExecution::New(taskManager.ptr()); 
   execution->targetIterationIs(lastIteration_);

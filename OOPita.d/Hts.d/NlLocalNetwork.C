@@ -11,6 +11,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                CorrectionReconstructor::Manager * corrReconMgr,
                                BasisCondensationManager * condensMgr,
                                ProjectionBuildingFactory * projBuildMgr,
+                               JumpConvergenceEvaluator * jumpCvgMgr,
                                NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr) :
   LocalNetwork(mapping, commMgr),
   htsMgr_(htsMgr),
@@ -20,6 +21,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
   corrReconMgr_(corrReconMgr),
   condensMgr_(condensMgr),
   projBuildMgr_(projBuildMgr),
+  jumpCvgMgr_(jumpCvgMgr),
   jumpEvalMgr_(jumpEvalMgr),
   noCorrectionMgr_(NoCorrectionManager::New())
 {}
@@ -133,6 +135,8 @@ NlLocalNetwork::addJumpBuilder(HalfSliceRank seedRank) {
 
   int iterParity = parity(seedRank.previous());
   jumpBuilders_[iterParity][seedRank] = task;
+
+  jumpCvgMgr_->localJumpIs(seedRank, fullSeedGet(SeedId(SEED_JUMP, seedRank)));
   
   if (jumpEvalMgr()) { 
     NonLinSeedDifferenceEvaluator::Ptr jumpEvaluator = jumpEvalMgr()->instanceNew(fullSeedGet(SeedId(SEED_JUMP, seedRank)));
@@ -236,7 +240,7 @@ NlLocalNetwork::addSeedUpdater(HalfSliceRank seedRank) {
 
 void
 NlLocalNetwork::addNoCorrection(HalfSliceRank seedRank) {
-  noCorrectionMgr_->notifierIs(fullSeedGet(SeedId(SEED_CORRECTION, seedRank)), fullSeedGet(SeedId(LEFT_SEED, seedRank)));
+  noCorrectionMgr_->notifierIs(fullSeedGet(SeedId(SEED_CORRECTION, seedRank)), fullSeedGet(SeedId(SEED_JUMP, seedRank)));
 }
 
 void
@@ -253,8 +257,6 @@ NlLocalNetwork::statusIs(Status s) {
 
 void
 NlLocalNetwork::convergedSlicesInc() {
-  LocalNetwork::convergedSlicesInc();
-
   for (int parity = 0; parity < 2; ++parity) {
     HalfSliceRank start = firstActiveSlice();
     finePropagators_[parity].erase(finePropagators_[parity].begin(), finePropagators_[parity].lower_bound(start));

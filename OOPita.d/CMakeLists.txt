@@ -72,6 +72,7 @@ Hts.d/CorrectionReconstructor.C
 Hts.d/CorrectionReductor.C
 Hts.d/HalfTimeSlice.C
 Hts.d/HomogeneousTaskManager.C
+Hts.d/JumpConvergenceEvaluator.C
 Hts.d/LinearTaskManager.C
 Hts.d/LinearProjectionNetworkImpl.C
 Hts.d/LinearLocalNetwork.C

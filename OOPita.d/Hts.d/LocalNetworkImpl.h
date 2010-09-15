@@ -8,7 +8,6 @@
 #include "../NamedTask.h"
 
 #include "../JumpBuilder.h"
-#include "../JumpProjector.h"
 
 #include "../SeedUpdater.h"
 #include "../UpdatedSeedAssembler.h"
@@ -217,7 +216,7 @@ public:
 template <typename T>
 class Decorator {
 public:
-  void operator()(HalfSliceRank sliceRank, JumpProjector * task) {}
+  void operator()(HalfSliceRank sliceRank, T * task) {}
 };
 
 template <typename T>
@@ -331,33 +330,6 @@ inline
 typename GenNamedTaskFactory<CorrectionPropagator<S> >::Ptr
 CorrectionPropagatorFactoryNew(typename CorrectionPropagator<S>::Manager * mgr, SeedGetter<S> sg) {
   return new GenNamedTaskFactory<CorrectionPropagator<S> >(mgr, sg);
-}
-
-
-// JumpProjector
-template <>
-class Decorator<JumpProjector> {
-public:
-  Decorator(FullSeedGetter fsg, ReducedSeedGetter rsg) :
-    delegate_(fsg), reducedSeed_(rsg)
-  {}
-
-  void operator()(HalfSliceRank sliceRank, JumpProjector * task) {
-    delegate_(sliceRank, task),
-    task->reducedSeedJumpIs(reducedSeed_(SeedId(SEED_JUMP, sliceRank)));
-  }
-
-private:
-  Decorator<JumpBuilder> delegate_;
-  ReducedSeedGetter reducedSeed_;
-};
-
-typedef GenNamedTaskFactory<JumpProjector> JumpProjectorFactory;
-
-inline
-JumpProjectorFactory::Ptr
-JumpProjectorFactoryNew(JumpProjector::Manager * mgr, FullSeedGetter fsg, ReducedSeedGetter rsg) {
-  return new JumpProjectorFactory(mgr, Decorator<JumpProjector>(fsg, rsg));
 }
 
 // UpdatedSeedAssembler

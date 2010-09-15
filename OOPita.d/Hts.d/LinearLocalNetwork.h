@@ -10,7 +10,8 @@
 #include "../RemoteState.h"
 
 #include "HalfTimeSlice.h"
-#include "../JumpProjector.h"
+#include "../JumpBuilder.h"
+#include "../JumpProjection.h"
 #include "../UpdatedSeedAssembler.h"
 #include "../CorrectionPropagator.h"
 
@@ -31,12 +32,12 @@ class ReducedCorrectionManager : public Fwk::PtrInterface<ReducedCorrectionManag
 public:
   EXPORT_PTRINTERFACE_TYPES(ReducedCorrectionManager);
 
-  JumpProjector::Manager * jumpProjMgr() const { return jumpProjMgr_.ptr(); }
+  JumpProjection::Manager * jumpProjMgr() const { return jumpProjMgr_.ptr(); }
   CorrectionPropagator<Vector>::Manager * rcpMgr() const { return rcpMgr_.ptr(); }
   CorrectionPropagator<DynamState>::Manager * fcpMgr() const { return fcpMgr_.ptr(); }
   UpdatedSeedAssembler::Manager * usaMgr() const { return usaMgr_.ptr(); }
   
-  ReducedCorrectionManager(JumpProjector::Manager * jumpProjMgr,
+  ReducedCorrectionManager(JumpProjection::Manager * jumpProjMgr,
                            CorrectionPropagator<Vector>::Manager * rcpMgr,
                            CorrectionPropagator<DynamState>::Manager * fcpMgr,  // can be NULL
                            UpdatedSeedAssembler::Manager * usaMgr) :
@@ -47,7 +48,7 @@ public:
   {}
 
 private:
-  JumpProjector::Manager::Ptr jumpProjMgr_;
+  JumpProjection::Manager::Ptr jumpProjMgr_;
   CorrectionPropagator<Vector>::Manager::Ptr rcpMgr_;
   CorrectionPropagator<DynamState>::Manager::Ptr fcpMgr_;
   UpdatedSeedAssembler::Manager::Ptr usaMgr_;
@@ -66,8 +67,9 @@ public:
   /* Local network elements */
   TaskList halfTimeSlices() const;
   TaskList activeHalfTimeSlices() const;
-  TaskList activeJumpProjectors() const;
+  TaskList activeJumpAssemblers() const;
   TaskList activeLeftSeedSyncs() const;
+  TaskList activeJumpProjectors() const;
   TaskList activeSeedAssemblers() const;
 
   TaskList activeFullTimeSlices() const;
@@ -100,7 +102,8 @@ protected:
   void buildPropagatedSeedSend(HalfSliceRank sliceRank);
   void buildPropagatedSeedRecv(HalfSliceRank sliceRank);
   void buildJumpEstimator(HalfSliceRank sliceRank);
-  void buildJumpBuilder(HalfSliceRank sliceRank);
+  void buildJumpAssembly(HalfSliceRank sliceRank);
+  void buildJumpProjection(HalfSliceRank sliceRank);
   void buildSeedUpdater(HalfSliceRank sliceRank);
   
   void buildReducedCorrectionPropagator(HalfSliceRank sliceRank);
@@ -114,9 +117,11 @@ protected:
 
 private:
   HalfTimeSlice::Manager::Ptr sliceMgr_;
+  JumpBuilder::Manager::Ptr jumpBuildMgr_;
   ReducedCorrectionManager::Ptr redCorrMgr_;
   
   TaskMap halfTimeSlice_[2];
+  TaskMap jumpAssembler_[2];
   TaskMap jumpProjector_[2];
   TaskMap seedAssembler_[2];
   TaskMap leftSeedSync_[2];

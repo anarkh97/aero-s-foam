@@ -18,7 +18,7 @@ InitialSeedTask.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
 JumpBuilder.C
-JumpProjectorImpl.C
+JumpProjection.C
 LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C

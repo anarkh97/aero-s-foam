@@ -7,7 +7,6 @@ public:
   void iterationIs(IterationRank i) {
     correctionMgr_->buildProjection();
     size_t reducedBasisSize = correctionMgr_->reducedBasisSize();
-    log() << "*** ReducedBasisSize = " << reducedBasisSize << "\n";
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
@@ -44,6 +43,8 @@ LinearTaskManager::scheduleNormalIteration() {
 void
 LinearTaskManager::scheduleFinePropagation() {
   schedulePhase("Fine propagation", network()->activeHalfTimeSlices());
+  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Evaluate Jumps", network()->activeJumpAssemblers());
 }
 
 void
@@ -54,8 +55,7 @@ LinearTaskManager::scheduleCorrection() {
   Phase::Ptr projectionBasis = phaseNew("Projection basis", taskList);
   phases().push_back(projectionBasis);
 
-  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
-  schedulePhase("Jumps", network()->activeJumpProjectors());
+  schedulePhase("Jump Projection", network()->activeJumpProjectors());
   schedulePhase("Correction", network()->activeFullTimeSlices());
   schedulePhase("Correction synchronization", network()->activeCorrectionSyncs());
   schedulePhase("Seed update", network()->activeSeedAssemblers());

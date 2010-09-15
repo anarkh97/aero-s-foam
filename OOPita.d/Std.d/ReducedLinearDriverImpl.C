@@ -26,7 +26,7 @@
 #include "../NearSymmetricSolver.h"
 
 #include "../JumpBuilder.h"
-#include "../JumpProjectorImpl.h"
+#include "../JumpProjection.h"
 #include "../ReducedCorrectionPropagatorImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
 #include "../UpdatedSeedAssemblerImpl.h"
@@ -161,7 +161,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                                                            vectorSize_,
                                                                            normalMatrixSolver.ptr());
   // Correction operations
-  JumpProjector::Manager::Ptr jumpProjMgr = JumpProjectorImpl::Manager::New(projectionMgr->projectionBasis());
+  JumpProjection::Manager::Ptr jumpProjMgr = JumpProjection::Manager::New(projectionMgr->projectionBasis());
   CorrectionPropagator<Vector>::Manager::Ptr corrPropMgr = ReducedCorrectionPropagatorImpl::Manager::New(
       projectionMgr->reprojectionMatrix(), projectionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr seedUpMgr = UpdatedSeedAssemblerImpl::Manager::New(projectionMgr->propagatedBasis());

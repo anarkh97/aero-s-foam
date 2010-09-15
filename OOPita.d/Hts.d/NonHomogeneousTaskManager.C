@@ -59,6 +59,8 @@ void
 NonHomogeneousTaskManager::schedulePreIteration() {
   scheduleBasicSeedInitialization();
   schedulePhase("Affine term precomputation", network()->halfTimeSlices());
+  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Trivial Jump Evaluation", network()->activeJumpAssemblers());
 }
 
 void
@@ -90,8 +92,6 @@ NonHomogeneousTaskManager::scheduleBasicSeedInitialization() {
 
 void
 NonHomogeneousTaskManager::scheduleIterationZero() {
-  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
-  schedulePhase("Jumps", network()->activeJumpProjectors());
   schedulePhase("Coarse propagation", network()->activeCoarseTimeSlices());
   schedulePhase("Correction synchronization", network()->activeFullCorrectionSyncs());
   schedulePhase("Seed update", network()->activeSeedAssemblers());

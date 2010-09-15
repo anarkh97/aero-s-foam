@@ -38,7 +38,7 @@
 #include "AffineHalfTimeSliceImpl.h"
 
 #include "../ReducedCorrectionPropagatorImpl.h"
-#include "../JumpProjectorImpl.h"
+#include "../JumpProjection.h"
 #include "../UpdatedSeedAssemblerImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
 
@@ -189,7 +189,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* HalfTimeSlices and other local tasks */
   HalfTimeSlice::Manager::Ptr hsMgr = buildHalfTimeSliceManager(fineIntegrationParam, postProcessingMgr.ptr(), collector.ptr());
 
-  JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
+  JumpProjection::Manager::Ptr jpMgr = JumpProjection::Manager::New(correctionMgr->projectionBasis());
   CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
 

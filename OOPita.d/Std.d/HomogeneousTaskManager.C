@@ -12,7 +12,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
                                                SeedInitializer * initializer,
                                                LinearPropagatorManager * propagatorMgr,
                                                LinearProjectionNetwork * projectionMgr,
-                                               JumpProjector::Manager * jumpProjMgr,
+                                               JumpProjection::Manager * jumpProjMgr,
                                                CorrectionPropagator<Vector>::Manager * corrPropMgr,
                                                UpdatedSeedAssembler::Manager * seedUpMgr) :
   TaskManager(IterationRank(0)),
@@ -21,6 +21,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
   initializer_(initializer),
   propagatorMgr_(propagatorMgr),
   projectionMgr_(projectionMgr),
+  jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
   jumpProjMgr_(jumpProjMgr),
   seedUpMgr_(seedUpMgr),
   corrPropMgr_(corrPropMgr),
@@ -79,15 +80,6 @@ HomogeneousTaskManager::scheduleFinePropagation() {
   fillTaskList(&SliceTasks::finePropagation, finePropagation);
   setPhase(phaseNew("Fine Propagation", finePropagation));
 
-  setContinuation(&HomogeneousTaskManager::scheduleNothing);
-}
-
-void
-HomogeneousTaskManager::scheduleProjectionBuilding() {
-  TaskList projBuilding; 
-  projBuilding.push_back(projectionMgr_->projectionTaskNew());
-  setPhase(phaseNew("Jump Projection", projBuilding));
- 
   setContinuation(&HomogeneousTaskManager::schedulePropagatedSeedSynchronization);
 }
 
@@ -97,6 +89,24 @@ HomogeneousTaskManager::schedulePropagatedSeedSynchronization() {
   fillTaskList(&SliceTasks::propagatedSeedSynchronization, propagatedSeedSynchronization);
   setPhase(phaseNew("Propagated Seed Synchronization", propagatedSeedSynchronization));
 
+  setContinuation(&HomogeneousTaskManager::scheduleJumpBuilding);
+}
+
+void
+HomogeneousTaskManager::scheduleJumpBuilding() {
+  TaskList jumpBuilding;
+  fillTaskList(&SliceTasks::jumpBuilding, jumpBuilding);
+  setPhase(phaseNew("Jump Evaluation", jumpBuilding));
+
+  setContinuation(&HomogeneousTaskManager::scheduleNothing);
+}
+
+void
+HomogeneousTaskManager::scheduleProjectionBuilding() {
+  TaskList projBuilding; 
+  projBuilding.push_back(projectionMgr_->projectionTaskNew());
+  setPhase(phaseNew("Build Projection", projBuilding));
+ 
   setContinuation(&HomogeneousTaskManager::scheduleJumpProjection);
 }
 
@@ -138,14 +148,13 @@ HomogeneousTaskManager::checkConvergence() {
   recurrentTasks_.erase(recurrentTasks_.begin(), recurrentTasks_.lower_bound(firstActiveSlice));
  
   String seedStr = toString(SeedId(SEED_CORRECTION, firstActiveSlice)); 
+  
   Seed::Ptr fullLeadingCorrection = seedMgr_->instance(seedStr);
-
   if (fullLeadingCorrection) {
     fullLeadingCorrection->statusIs(Seed::INACTIVE);
   }
   
   ReducedSeed::Ptr reducedLeadingCorrection = redSeedMgr_->instance(seedStr);
-  
   if (reducedLeadingCorrection) {
     reducedLeadingCorrection->statusIs(Seed::INACTIVE);
   }
@@ -154,7 +163,6 @@ HomogeneousTaskManager::checkConvergence() {
     recurrentTasks_[firstActiveSlice].correctionPropagation = NULL;
   }
 }
-
 
 void
 HomogeneousTaskManager::initialize() {
@@ -195,23 +203,21 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice].finePropagation = task;
   }
 
-  // Jump projection
-  {
+  // Jump building
+  if (slice > SliceRank(0)) {
     Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
     Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
     Seed::Ptr jump = seedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
-    ReducedSeed::Ptr redJump = redSeedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
 
-    JumpProjector::Ptr task = jumpProjMgr_->instanceNew(sliceStr);
+    JumpBuilder::Ptr task = jumpBuildMgr_->instanceNew(sliceStr);
 
     task->predictedSeedIs(seed.ptr());
     task->actualSeedIs(prevPropSeed.ptr());
     task->seedJumpIs(jump.ptr());
-    task->reducedSeedJumpIs(redJump.ptr());
 
-    recurrentTasks_[slice].jumpProjection = task;
+    recurrentTasks_[slice.previous()].jumpBuilding = task;
   }
-
+  
   // Jump magnitude output
   {
     Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
@@ -219,6 +225,19 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
 
     LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
     eval->referenceSeedIs(propagatedSeed.ptr());
+  }
+ 
+  // Jump projection
+  {
+    Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
+    ReducedSeed::Ptr redJump = redSeedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
+
+    JumpProjection::Ptr task = jumpProjMgr_->instanceNew(sliceStr);
+
+    task->seedJumpIs(jump.ptr());
+    task->reducedSeedJumpIs(redJump.ptr());
+
+    recurrentTasks_[slice].jumpProjection = task;
   }
 
   // Correction propagation
@@ -251,7 +270,7 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     task->correctionComponentsIs(reducedCorrection.ptr());
 
     recurrentTasks_[slice].seedUpdate = task;
-  } 
+  }
 }
 
 void

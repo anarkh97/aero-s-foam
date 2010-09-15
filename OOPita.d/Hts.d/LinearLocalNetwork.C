@@ -15,6 +15,7 @@ LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
                                        RemoteState::Manager * commMgr,
                                        LinSeedDifferenceEvaluator::Manager * jumpErrorMgr) :
   LocalNetwork(mapping, commMgr),
+  jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
   sliceMgr_(sliceMgr),
   redCorrMgr_(redCorrMgr),
   jumpErrorMgr_(jumpErrorMgr),
@@ -71,9 +72,13 @@ LinearLocalNetwork::buildPrimalCorrectionNetwork(HalfSliceRank sliceRank) {
   // Parallel
   if (sliceRank != HalfSliceRank(0)) {
     buildPropagatedSeedRecv(sliceRank);
+    buildJumpAssembly(sliceRank);
+    if (jumpErrorMgr_) {
+      buildJumpEstimator(sliceRank);
+    }
   }
-  buildJumpBuilder(sliceRank);
-  if (jumpErrorMgr_) buildJumpEstimator(sliceRank);
+
+  buildJumpProjection(sliceRank);
 
   // Sequential
   buildCorrectionPropagator(sliceRank);
@@ -107,7 +112,7 @@ LinearLocalNetwork::buildPropagatedSeedRecv(HalfSliceRank sliceRank) {
     if (writer) {
       String taskName = String("Receive Propagated Seed ") + toString(sliceRank);
       RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, writer.ptr());
-      leftSeedSync_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
+      leftSeedSync_[sliceRank.previous().value() % 2].insert(std::make_pair(sliceRank, task));
     }
   }
 }
@@ -126,25 +131,34 @@ LinearLocalNetwork::buildPropagatedSeedSend(HalfSliceRank sliceRank) {
       if (reader) {
         String taskName = String("Send Propagated Seed ") + toString(sliceRank);
         RemoteStateTask::Ptr task = RemoteStateTask::New(taskName, reader.ptr());
-        leftSeedSync_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
+        leftSeedSync_[sliceRank.previous().value() % 2].insert(std::make_pair(sliceRank, task));
       }
     }
   }
 }
 
 void
-LinearLocalNetwork::buildJumpBuilder(HalfSliceRank sliceRank) {
+LinearLocalNetwork::buildJumpAssembly(HalfSliceRank sliceRank) {
   String taskName = toString(sliceRank);
-  JumpProjector::Ptr task = redCorrMgr_->jumpProjMgr()->instanceNew(taskName);
+  JumpBuilder::Ptr task = jumpBuildMgr_->instanceNew(taskName);
 
   task->predictedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, sliceRank)));
   task->actualSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank)));
+  task->seedJumpIs(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
+
+  jumpAssembler_[sliceRank.previous().value() % 2].insert(std::make_pair(sliceRank, task));
+}
+
+void
+LinearLocalNetwork::buildJumpProjection(HalfSliceRank sliceRank) {
+  String taskName = toString(sliceRank);
+  JumpProjection::Ptr task = redCorrMgr_->jumpProjMgr()->instanceNew(taskName);
+
   task->seedJumpIs(fullSeedGet(SeedId(SEED_JUMP, sliceRank)));
   task->reducedSeedJumpIs(reducedSeedGet(SeedId(SEED_JUMP, sliceRank)));
 
   jumpProjector_[sliceRank.value() % 2].insert(std::make_pair(sliceRank, task));
 }
-
 
 void
 LinearLocalNetwork::buildJumpEstimator(HalfSliceRank sliceRank) {
@@ -225,6 +239,8 @@ LinearLocalNetwork::convergedSlicesInc() {
   
   eraseInactive(leftSeedSync_[0]);
   eraseInactive(leftSeedSync_[1]);
+  eraseInactive(jumpAssembler_[0]);
+  eraseInactive(jumpAssembler_[1]);
   eraseInactive(jumpProjector_[0]);
   eraseInactive(jumpProjector_[1]);
   
@@ -250,7 +266,6 @@ LinearLocalNetwork::halfTimeSlices() const {
   return result;
 }
 
-
 LinearLocalNetwork::TaskList
 LinearLocalNetwork::activeHalfTimeSlices() const {
   return getActive(halfTimeSlice_);
@@ -264,6 +279,11 @@ LinearLocalNetwork::activeFullTimeSlices() const {
 LinearLocalNetwork::TaskList
 LinearLocalNetwork::activeCoarseTimeSlices() const {
   return getActive(alternateCorrectionPropagator_);
+}
+
+LinearLocalNetwork::TaskList
+LinearLocalNetwork::activeJumpAssemblers() const {
+  return getActive(jumpAssembler_);
 }
 
 LinearLocalNetwork::TaskList

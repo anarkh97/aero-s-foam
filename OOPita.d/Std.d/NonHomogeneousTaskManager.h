@@ -10,7 +10,8 @@
 
 #include "LinearProjectionNetwork.h"
 
-#include "../JumpProjector.h"
+#include "../JumpBuilder.h"
+#include "../JumpProjection.h"
 #include "../CorrectionPropagator.h"
 #include "../UpdatedSeedAssembler.h"
 
@@ -34,7 +35,7 @@ public:
 
   NonHomogeneousTaskManager(SliceMapping * mapping, CpuRank localCpu, RemoteState::MpiManager * commMgr,
                             DynamState initialState, LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
-                            JumpProjector::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr,
+                            JumpProjection::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr,
                             CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr, UpdatedSeedAssembler::Manager * seedUpMgr);
 
 protected:
@@ -56,13 +57,14 @@ protected:
   void scheduleInitialization();
   void schedulePrecomputation();
   void scheduleAffineTermSynchronization();
-  void scheduleJumpBuilding();
+  void scheduleTrivialJumpBuilding();
   void scheduleCoarseCorrectionPropagation();
 
   void scheduleFinePropagation();
   void scheduleProjectionBuilding();
   void schedulePropagatedSeedSynchronization();
   void scheduleCorrectionPropagation();
+  void scheduleJumpBuilding();
   void scheduleJumpProjection();
   void scheduleSeedUpdate();
 
@@ -77,7 +79,7 @@ private:
   
   LinearProjectionNetwork::Ptr projectionMgr_;
   
-  JumpProjector::Manager::Ptr jumpProjMgr_;
+  JumpProjection::Manager::Ptr jumpProjMgr_;
   UpdatedSeedAssembler::Manager::Ptr seedUpMgr_;
   CorrectionPropagator<Vector>::Manager::Ptr corrPropMgr_;
   
@@ -91,6 +93,7 @@ private:
 
   struct SliceTasks {
     NamedTask::Ptr propagatedSeedSynchronization;
+    NamedTask::Ptr jumpBuilding;
     NamedTask::Ptr jumpProjection;
     NamedTask::Ptr correctionPropagation;
     NamedTask::Ptr seedUpdate;

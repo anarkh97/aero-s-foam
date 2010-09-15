@@ -79,6 +79,9 @@ NlDriver::preprocess() {
   projectorTolerance_ = solverInfo()->pitaProjTol;
   userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
 
+  // PITA-specific output
+  jumpMagnOutput_ = solverInfo()->pitaJumpMagnOutput;
+
   double toc = getTime();
   log() << "\n";
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
@@ -129,7 +132,10 @@ NlDriver::solveParallel() {
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor();
 
   // Jump evaluation (Output only)
-  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr = NonLinSeedDifferenceEvaluator::Manager::New(probDesc()); 
+  NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr;
+  if (jumpMagnOutput_) {
+    jumpEvalMgr = NonLinSeedDifferenceEvaluator::Manager::New(probDesc());
+  }
 
   // Communications
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(baseComm(), vectorSize_);

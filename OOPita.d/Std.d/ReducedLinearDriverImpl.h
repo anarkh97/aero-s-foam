@@ -68,8 +68,12 @@ private:
 
   /* Other parameters */
   IterationRank lastIteration_;
+  double jumpCvgRatio_;
   double projectorTolerance_;
   double coarseRhoInfinity_;
+
+  /* PITA-specific output */
+  bool jumpMagnOutput_;
 };
 
 } /* namespace Std */ } /* end namespace Pita */

@@ -18,7 +18,8 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
                                                      CorrectionPropagator<Vector>::Manager * corrPropMgr,
                                                      CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr,
                                                      UpdatedSeedAssembler::Manager * seedUpMgr,
-                                                     JumpConvergenceEvaluator * jumpCvgEval) :
+                                                     JumpConvergenceEvaluator * jumpCvgEval,
+                                                     LinSeedDifferenceEvaluator::Manager * jumpOutMgr) :
   TaskManager(IterationRank(-1)),
   mapping_(mapping),
   localCpu_(localCpu),
@@ -34,7 +35,7 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
   jumpCvgEval_(jumpCvgEval),
-  jumpEvalMgr_(LinSeedDifferenceEvaluator::Manager::New(projectionMgr->metric())), 
+  jumpOutMgr_(jumpOutMgr),
   phase_(NULL),
   continuation_(&NonHomogeneousTaskManager::noop)
 {
@@ -317,7 +318,7 @@ NonHomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice].finePropagation = task;
   }
 
-  // Jump building and convergence
+  // Jump building, convergence and output
   if (slice > SliceRank(0)) {
     Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
     Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
@@ -332,11 +333,12 @@ NonHomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice.previous()].jumpBuilding = task;
   
     jumpCvgEval_->localJumpIs(slice, jump.ptr());
-    
-    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
 
-    LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
-    eval->referenceSeedIs(propagatedSeed.ptr());
+    if (jumpOutMgr_) { 
+      Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+      LinSeedDifferenceEvaluator::Ptr eval = jumpOutMgr_->instanceNew(jump.ptr());
+      eval->referenceSeedIs(propagatedSeed.ptr());
+    }
   }
   
   // Jump projection

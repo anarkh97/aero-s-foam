@@ -32,6 +32,8 @@
 #include "../UpdatedSeedAssemblerImpl.h"
 #include "JumpConvergenceEvaluator.h"
 
+#include "../SeedDifferenceEvaluator.h"
+
 #include "../IntegratorSeedInitializer.h"
 #include "RemoteSeedInitializerServer.h"
 #include "../RemoteSeedInitializerProxy.h"
@@ -72,8 +74,9 @@ ReducedLinearDriverImpl::solve() {
   /* Summarize problem and parameters */
   log() << "\n"; 
   log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-  log() << "Iteration count = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J = " << sliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*Dt = " << finalTime_ << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  if (jumpCvgRatio_ >= 0.0) { log() << "Jump-based convergence ratio = " << jumpCvgRatio_ << "\n"; }
   if (noForce_) { log() << "No external force\n"; }
   if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
   if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
@@ -130,9 +133,18 @@ ReducedLinearDriverImpl::preprocess() {
 
   // Other parameters 
   lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
+  jumpCvgRatio_ = solverInfo()->pitaJumpCvgRatio;
+  if (jumpCvgRatio_ == 0.0) {
+    // Use default value
+    const int schemeOrder = 2;
+    jumpCvgRatio_ = std::pow(static_cast<double>(sliceRatio_.value()), schemeOrder);
+  }
   projectorTolerance_ = solverInfo()->pitaProjTol;
   coarseRhoInfinity_ = 1.0; // TODO Could be set in input file
- 
+
+  // PITA-specific output
+  jumpMagnOutput_ = solverInfo()->pitaJumpMagnOutput;
+
   double toc = getTime();
   log() << "\n";
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
@@ -178,14 +190,17 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   // Jump-based convergence policy
-  bool useCvg = true; // TODO Parser option
   JumpConvergenceEvaluator::Ptr jumpCvgEval;
-  if (useCvg) {
-    const int schemeOrder = 2;
-    const double jumpCvgRatio = std::pow(static_cast<double>(sliceRatio_.value()), schemeOrder);
-    jumpCvgEval = new AccumulatedJumpConvergenceEvaluator(jumpCvgRatio, dynOps.ptr(), mapping_.ptr(), timeComm); 
+  if (jumpCvgRatio_ >= 0.0) {
+    jumpCvgEval = AccumulatedJumpConvergenceEvaluator::New(jumpCvgRatio_, dynOps.ptr(), mapping_.ptr(), timeComm);
   } else {
-    jumpCvgEval = new TrivialConvergenceEvaluator(mapping_.ptr());
+    jumpCvgEval = TrivialConvergenceEvaluator::New(mapping_.ptr());
+  }
+ 
+  // Jump output
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpOutMgr;
+  if (jumpMagnOutput_) {
+    jumpOutMgr = LinSeedDifferenceEvaluator::Manager::New(dynOps.ptr());
   }
 
   // Tasks
@@ -202,7 +217,8 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                          jumpProjMgr.ptr(),
                                          corrPropMgr.ptr(),
                                          seedUpMgr.ptr(),
-                                         jumpCvgEval.ptr());
+                                         jumpCvgEval.ptr(),
+                                         jumpOutMgr.ptr());
   } else {
     // Coarse time-grid propagator
     CorrectionPropagator<DynamState>::Manager::Ptr fullCorrPropMgr = buildCoarseCorrection(coarseComm);
@@ -216,7 +232,8 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                             corrPropMgr.ptr(),
                                             fullCorrPropMgr.ptr(),
                                             seedUpMgr.ptr(),
-                                            jumpCvgEval.ptr());
+                                            jumpCvgEval.ptr(),
+                                            jumpOutMgr.ptr());
   }
 
   TimedExecution::Ptr execution = TimedExecution::New(taskMgr.ptr());

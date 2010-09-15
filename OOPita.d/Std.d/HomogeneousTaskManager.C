@@ -15,7 +15,8 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
                                                JumpProjection::Manager * jumpProjMgr,
                                                CorrectionPropagator<Vector>::Manager * corrPropMgr,
                                                UpdatedSeedAssembler::Manager * seedUpMgr,
-                                               JumpConvergenceEvaluator * jumpCvgEval) :
+                                               JumpConvergenceEvaluator * jumpCvgEval,
+                                               LinSeedDifferenceEvaluator::Manager * jumpOutMgr) :
   TaskManager(IterationRank(0)),
   mapping_(mapping),
   localCpu_(localCpu),
@@ -30,7 +31,7 @@ HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
   jumpCvgEval_(jumpCvgEval),
-  jumpEvalMgr_(LinSeedDifferenceEvaluator::Manager::New(projectionMgr->metric())), 
+  jumpOutMgr_(jumpOutMgr), 
   phase_(NULL),
   continuation_(&HomogeneousTaskManager::noop)
 {
@@ -212,7 +213,7 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
     recurrentTasks_[slice].finePropagation = task;
   }
 
-  // Jump building and convergence
+  // Jump building, convergence and output
   if (slice > SliceRank(0)) {
     Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
     Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
@@ -228,10 +229,11 @@ HomogeneousTaskManager::addLocalSlice(SliceRank slice) {
   
     jumpCvgEval_->localJumpIs(slice, jump.ptr());
 
-    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
-    
-    LinSeedDifferenceEvaluator::Ptr eval = jumpEvalMgr_->instanceNew(jump.ptr());
-    eval->referenceSeedIs(propagatedSeed.ptr());
+    if (jumpOutMgr_) { 
+      Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+      LinSeedDifferenceEvaluator::Ptr eval = jumpOutMgr_->instanceNew(jump.ptr());
+      eval->referenceSeedIs(propagatedSeed.ptr());
+    }
   }
  
   // Jump projection

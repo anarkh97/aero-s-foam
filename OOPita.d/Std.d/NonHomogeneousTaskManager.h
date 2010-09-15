@@ -39,7 +39,7 @@ public:
                             DynamState initialState, LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
                             JumpProjection::Manager * jumpProjMgr, CorrectionPropagator<Vector>::Manager * corrPropMgr,
                             CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr, UpdatedSeedAssembler::Manager * seedUpMgr,
-                            JumpConvergenceEvaluator * jumpCvgEval);
+                            JumpConvergenceEvaluator * jumpCvgEval, LinSeedDifferenceEvaluator::Manager * jumpOutMgr);
 
 protected:
   // Initialization
@@ -112,7 +112,7 @@ private:
 
   void fillTaskList(SliceTaskItem item, TaskList & target);
 
-  LinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpOutMgr_;
 
   Phase::Ptr phase_;
 

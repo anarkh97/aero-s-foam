@@ -146,7 +146,10 @@ ReducedLinearDriverImpl::preprocess() {
   lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
   projectorTolerance_ = solverInfo()->pitaProjTol;
   coarseRhoInfinity_ = 1.0; // TODO Could be set in input file
- 
+
+  /* PITA-specific output */
+  jumpMagnOutput_ = solverInfo()->pitaJumpMagnOutput;
+
   double toc = getTime();
   log() << "\n";
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
@@ -199,7 +202,10 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   /* Jump error */
-  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr;
+  if (jumpMagnOutput_) {
+    jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
+  }
 
   /* Local tasks */
   ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());

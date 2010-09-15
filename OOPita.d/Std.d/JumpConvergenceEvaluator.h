@@ -41,6 +41,11 @@ public:
 
   virtual void iterationIs(IterationRank iter); // overriden
 
+  static Ptr New(SliceMapping * mapping) {
+    return new TrivialConvergenceEvaluator(mapping);
+  }
+
+protected:
   explicit TrivialConvergenceEvaluator(SliceMapping * mapping);
 };
 
@@ -49,7 +54,14 @@ public:
   EXPORT_PTRINTERFACE_TYPES(AccumulatedJumpConvergenceEvaluator);
 
   virtual void iterationIs(IterationRank iter); // overriden
-  
+
+  static Ptr New(double targetRatio, const DynamOps * metric,
+                 SliceMapping * mapping, Communicator * timeComm) {
+      return new AccumulatedJumpConvergenceEvaluator(targetRatio, metric,
+                                                     mapping, timeComm);
+  }
+
+protected: 
   AccumulatedJumpConvergenceEvaluator(double targetRatio, const DynamOps * metric,
                                       SliceMapping * mapping, Communicator * timeComm);
 

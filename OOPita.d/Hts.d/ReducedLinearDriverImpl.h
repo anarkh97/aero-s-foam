@@ -83,6 +83,9 @@ private:
   IterationRank lastIteration_;
   double projectorTolerance_;
   double coarseRhoInfinity_;
+  
+  /* PITA-specific output */
+  bool jumpMagnOutput_;
 };
 
 } /* namespace Hts */ } /* end namespace Pita */

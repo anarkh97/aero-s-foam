@@ -56,19 +56,19 @@ public:
 
   virtual void iterationIs(IterationRank iter); // overriden
 
-  static Ptr New(double targetRatio, /*const DynamOps * metric,*/
+  static Ptr New(double targetRatio, const DynamOps * metric,
                  SliceMapping * mapping, Communicator * timeComm) {
-      return new AccumulatedJumpConvergenceEvaluator(targetRatio, /*metric,*/
+      return new AccumulatedJumpConvergenceEvaluator(targetRatio, metric,
                                                      mapping, timeComm);
   }
 
 protected: 
-  AccumulatedJumpConvergenceEvaluator(double targetRatio, /*const DynamOps * metric,*/
+  AccumulatedJumpConvergenceEvaluator(double targetRatio, const DynamOps * metric,
                                       SliceMapping * mapping, Communicator * timeComm);
 
 private:
   double targetRatio_;
-  /*DynamOps::PtrConst metric_;*/
+  DynamOps::PtrConst metric_;
   Communicator * timeCommunicator_;
 
   std::vector<double> targetEstimate_;

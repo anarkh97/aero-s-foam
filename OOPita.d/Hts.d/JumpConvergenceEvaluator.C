@@ -40,12 +40,12 @@ TrivialConvergenceEvaluator::iterationIs(IterationRank iter) {
 }
 
 AccumulatedJumpConvergenceEvaluator::AccumulatedJumpConvergenceEvaluator(double targetRatio,
-                                                                         /*const DynamOps * metric,*/
+                                                                         const DynamOps * metric,
                                                                          SliceMapping * mapping,
                                                                          Communicator * timeComm) :
   JumpConvergenceEvaluator("Accumulated Jump Convergence", mapping),
   targetRatio_(targetRatio),
-  /*metric_(metric),*/
+  metric_(metric),
   timeCommunicator_(timeComm),
   targetEstimate_(mapping->totalSlices().value(), 0.0),
   currentEstimate_(mapping->totalSlices().value(), 0.0),
@@ -97,7 +97,7 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
   for (JumpMap::const_iterator it = localJump_.begin(); it != localJump_.end(); ++it) {
     if (jumpIter == it->second->iteration() && it->second->status() != Seed::INACTIVE) {
       //log() << "Local Jump " << it->first << " at rank " << sliceToExchg[it->first] << "\n";
-      buffer_[sliceToExchg[it->first]] = std::sqrt(it->second->state() * it->second->state()); //std::sqrt(energy(metric_.ptr(), it->second->state()));
+      buffer_[sliceToExchg[it->first]] = /*std::sqrt(it->second->state() * it->second->state());*/ std::sqrt(energy(metric_.ptr(), it->second->state()));
     }
   }
 

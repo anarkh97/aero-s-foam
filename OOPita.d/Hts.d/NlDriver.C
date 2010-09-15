@@ -21,6 +21,8 @@
 #include <Timers.d/GetTime.h>
 #include <Driver.d/GeoSource.h>
 
+#include "../NlDynamOps.h"
+
 namespace Pita { namespace Hts {
 
 NlDriver::NlDriver(PitaNonLinDynamic * probDesc,
@@ -140,7 +142,8 @@ NlDriver::solveParallel() {
   // Convergence criterion
   JumpConvergenceEvaluator::Ptr jumpCvgMgr;
   if (jumpCvgRatio_ >= 0.0) {
-    jumpCvgMgr = AccumulatedJumpConvergenceEvaluator::New(jumpCvgRatio_, mapping_.ptr(), baseComm());
+    NlDynamOps::Ptr dirtyOps = NlDynamOps::New(probDesc());
+    jumpCvgMgr = AccumulatedJumpConvergenceEvaluator::New(jumpCvgRatio_, dirtyOps.ptr(), mapping_.ptr(), baseComm());
   } else {
     jumpCvgMgr = TrivialConvergenceEvaluator::New(mapping_.ptr());
   }

@@ -287,7 +287,6 @@ d_n.print("comment");
 void
 Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
 {
-  f.zero();
   // ... COMPUTE AEROELASTIC FORCE 
   getTimers().receiveFluidTime -= getTime();
 
@@ -308,7 +307,7 @@ Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t,
   }
 
   double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-  f.linAdd(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
   prevFrc.lastFluidLoad = tmpF;
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;

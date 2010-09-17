@@ -34,11 +34,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
 
  // ... SET INITIAL VELOCITY
  if(numIVelModal) {
-<<<<<<< /lustre/home/avery/hg/FEM/Driver.d/Dynam.C
-   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X*y0)\n"); //HB
-=======
    filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0) ... \n"); //HB
->>>>>>> /tmp/Dynam.C~other.Hcj4Xt
    modeData.addMultY(numIVelModal, iVelModal, v_n, c_dsa);
  }
  for(int i = 0; i < numIVel; ++i) {
@@ -55,11 +51,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
-<<<<<<< /lustre/home/avery/hg/FEM/Driver.d/Dynam.C
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X*y0)\n"); //HB
-=======
        filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
->>>>>>> /tmp/Dynam.C~other.Hcj4Xt
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
      }
      for(int i = 0; i < numIDis; ++i) {

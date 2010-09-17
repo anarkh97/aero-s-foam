@@ -2578,10 +2578,13 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         else
           geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
         break;
+      case OutputInfo::AcousticPressure:
+        tag = time;
+        if (dof==-1) dof = 7;
       case OutputInfo::EigenPressure:
       case OutputInfo::HelmholtzModes:
       case OutputInfo::Helmholtz:
-        if (dof==-1) dof = 7;
+        if (dof==-1) { dof = 7; tag = freq; }
      
         for (int iNode=0; iNode<numNodes; ++iNode) 
           globVal[iNode] = glDisp[iNode][dof];
@@ -2590,14 +2593,15 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
       case OutputInfo::EigenSlosh:
         if (success == 0)  {  
           if (dof == -1) dof = 10;
+          tag = freq;
           for (int iNode=0; iNode<numNodes; ++iNode)
             globVal[iNode] = glDisp[iNode][dof];
           success = 1;
         }
         if(oinfo.nodeNumber == -1)
-          geoSource->outputNodeScalars(i, globVal, numNodes, freq);
+          geoSource->outputNodeScalars(i, globVal, numNodes, tag);
         else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
+          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, tag);
         break;
       default:
         break;

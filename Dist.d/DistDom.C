@@ -172,7 +172,8 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 
   // compute current time (or frequency in the case of a helmholtz problem)
   double time;
-  if(geoSource->isShifted() && domain->probType() != SolverInfo::Modal) {
+  if(geoSource->isShifted() && domain->probType() != SolverInfo::Modal 
+                            && domain->probType() != SolverInfo::Dynamic) {
     time = domain->getFrequencyOrWavenumber();
     if(domain->solInfo().doFreqSweep) x = this->outFreqCount++;
   } else if(domain->probType() == SolverInfo::Modal) {
@@ -290,6 +291,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::TemperatureFirstTimeDerivative:
         if(distState) getPrimal(vels, masterVels, time, x, iOut, 1, 6);
         break;
+      case OutputInfo::AcousticPressure:
       case OutputInfo::EigenPressure:
       case OutputInfo::HelmholtzModes:
       case OutputInfo::Helmholtz:

@@ -968,9 +968,11 @@ TRAIL [a-zA-Z]*
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
-"ghelmhol"|"gacoustd"|"pressure"|"gacoupre"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+"ghelmhol"|"gacoustd"|"pressure"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
 
-"GHELMHOL"|"GACOUSTD"|"PRESSURE"|"GACOUPRE"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+"GHELMHOL"|"GACOUSTD"|"PRESSURE"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+
+"GACOUPRE"|"gacoupre"              { yylval.ival = OutputInfo::AcousticPressure; return STRESSID; }
 
 "aeroforx"|"AEROFORX"              { yylval.ival = OutputInfo::AeroXForce;   return STRESSID; }
 

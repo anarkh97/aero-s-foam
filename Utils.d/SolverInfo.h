@@ -74,18 +74,21 @@ struct SolverInfo {
    enum { Newmark, Qstatic };
 
    // Parameters for PITA
-   bool activatePita; 	    // Enables PITA (both linear and nonlinear problems)
-   bool mdPita;             // Enables time-space parallelism (linear problem only)
-   bool pitaNoForce;        // Enables NoForce optimization (linear problem only)
-   int pitaTimeGridRatio;   // Coarse/fine time-grid ratio (always required)  
-   int pitaMainIterMax;     // Maximum number of main iterations (always required)
+   bool activatePita; 	       // Enables PITA (both linear and nonlinear problems)
+   bool mdPita;                // Enables time-space parallelism (linear problem only)
+   bool pitaNoForce;           // Enables NoForce optimization (linear problem only)
+   int pitaTimeGridRatio;      // Coarse/fine time-grid ratio (always required)  
+   int pitaMainIterMax;        // Maximum number of main iterations (always required)
    int pitaProcessWorkloadMax; // Maximum number of active time-slices on each CPU (always required)
-   //int numSpaceMPIProc;     // Number of CPUs in the space domain (only when time-space parallelism is enabled)
-   int pitaBaseImprovement; // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
-   bool pitaRemoteCoarse;       // Coarse grid integrator on dedicated CPU 
-   double pitaProjTol;      // Tolerance used to build the projector
-   bool pitaTimeReversible; // true if PITA exploits the time-reversibility of the problem
-   bool pitaReadInitSeed;   // true if PITA uses provided initial seed information
+   //int numSpaceMPIProc;      // Number of CPUs in the space domain (only when time-space parallelism is enabled)
+   int pitaBaseImprovement;    // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
+   bool pitaRemoteCoarse;      // Coarse grid integrator on dedicated CPU 
+   double pitaProjTol;         // Tolerance used to build the projector
+   bool pitaTimeReversible;    // true if PITA exploits the time-reversibility of the problem
+   bool pitaReadInitSeed;      // true if PITA uses provided initial seed information
+   double pitaJumpCvgRatio;    // Accumulated jump-based convergence criterion
+                               // (0.0 = Use default value: pitaTimeGridRatio^2, -1.0 = Deactivated)
+   bool pitaJumpMagnOutput;    // Enables the output of the relative magnitude of the jumps
 
    bool modal;          // true iff system is to be solved in modal coordinates
    bool acoustic;       // true iff system is to be solved for acoustic time domain
@@ -256,6 +259,8 @@ struct SolverInfo {
                   pitaProjTol = 1.0e-6;
                   pitaTimeReversible = false;
                   pitaReadInitSeed = false;
+                  pitaJumpCvgRatio = -1.0;
+                  pitaJumpMagnOutput = false;
 
                   acoustic = false;
                   modifiedWaveEquation = false;

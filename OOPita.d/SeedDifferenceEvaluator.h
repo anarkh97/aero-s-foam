@@ -21,11 +21,8 @@ public:
   virtual void referenceSeedIs(const Seed * rs) { setReferenceSeed(rs); }
 
 protected:
-  SeedDifferenceEvaluator(const Seed * seedDifference, const Seed * referenceSeed) :
-    SharedState<DynamState>::NotifieeConst(seedDifference),
-    referenceSeed_(referenceSeed)
-  {}
-
+  SeedDifferenceEvaluator(const Seed * seedDifference, const Seed * referenceSeed);
+  
   void setReferenceSeed(const Seed * rs) { referenceSeed_ = rs; }
 
   virtual double getRefMagnitude() const = 0;
@@ -33,6 +30,7 @@ protected:
 
 private:
   Seed::PtrConst referenceSeed_;
+  double firstDiffMagnitude_;
 
   DISALLOW_COPY_AND_ASSIGN(SeedDifferenceEvaluator);
 };

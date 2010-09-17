@@ -2,17 +2,19 @@
 
 namespace Pita { namespace Std {
 
-LinearPropagatorManager::LinearPropagatorManager(AffineGenAlphaIntegrator * sharedIntegrator,
+LinearPropagatorManager::LinearPropagatorManager(AffineDynamTimeIntegrator * sharedIntegrator,
                                                  PostProcessing::Manager * postProcessingMgr,
                                                  AffineBasisCollector * collector,
                                                  TimeStepCount timeSliceRatio,
-                                                 Seconds initialTime) :
+                                                 Seconds initialTime,
+                                                 AffineDynamPropagator::ConstantTerm defaultMode) :
   sharedIntegrator_(sharedIntegrator),
   postProcessingMgr_(postProcessingMgr),
   collector_(collector),
   fineTimeStep_(sharedIntegrator->timeStepSize()),
   timeSliceRatio_(timeSliceRatio),
   initialTime_(initialTime),
+  defaultMode_(defaultMode),
   instance_()
 {}
 
@@ -56,6 +58,7 @@ LinearPropagatorManager::createNewInstance(SliceRank rank) {
   Seconds sliceInitialTime = initialTime_ + fineTimeStep_ * (rank.value() * timeSliceRatio_.value());
   newInstance->initialTimeIs(sliceInitialTime);
   newInstance->timeStepCountIs(timeSliceRatio_);
+  newInstance->constantTermIs(defaultMode_);
 
   // Data collection for correction
   if (collector_) {

@@ -19,6 +19,8 @@ public:
   SliceCount maxWorkload() const;
 
   SliceCount activeSlices() const;
+  SliceCount activeSlices(CpuRank cpu) const;
+
   SliceRank firstActiveSlice() const;
   SliceRank firstInactiveSlice() const;
 

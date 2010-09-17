@@ -1,25 +1,19 @@
-#include "JumpProjectorImpl.h"
+#include "JumpProjection.h"
 
 #include <cassert>
 
 namespace Pita {
 
-JumpProjectorImpl::JumpProjectorImpl(const String & name,
-                                     const JumpProjectorImpl::Manager * manager) :
-  JumpProjector(name),
+JumpProjection::JumpProjection(const String & name,
+                               const JumpProjection::Manager * manager) :
+  NamedTask(name),
   manager_(manager)
 {}
 
-size_t
-JumpProjectorImpl::reducedBasisSize() const {
-  return reducedBasis()->stateCount();
-}
-
 void
-JumpProjectorImpl::iterationIs(IterationRank ir) {
-  assert(actualSeed()->iteration().next() == ir); // Happens at the next iteration
+JumpProjection::iterationIs(IterationRank ir) {
+  assert(seedJump()->iteration().next() == ir); // Happens at the next iteration
 
-  updateJump();
   //log() << "seedJump()->state().vectorSize() = " << seedJump()->state().vectorSize() << "\n";
 
   Vector projectionResult(reducedBasisSize());
@@ -35,14 +29,14 @@ JumpProjectorImpl::iterationIs(IterationRank ir) {
   setIteration(ir); 
 }
 
-JumpProjectorImpl::Manager::Manager(const DynamStateBasis * drb) :
+JumpProjection::Manager::Manager(const DynamStateBasis * drb) :
   defaultReducedBasis_(drb)
 {}
 
-JumpProjectorImpl * 
-JumpProjectorImpl::Manager::createNewInstance(const String & key) {
-  String instanceName = String("JumpProjector ") + key;
-  return new JumpProjectorImpl(instanceName, this);
+JumpProjection * 
+JumpProjection::Manager::createNewInstance(const String & key) {
+  String instanceName = String("Project Jump ") + key;
+  return new JumpProjection(instanceName, this);
 }
 
 } // end namespace Pita

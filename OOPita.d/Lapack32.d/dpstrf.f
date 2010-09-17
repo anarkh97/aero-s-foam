@@ -1,8 +1,8 @@
-      SUBROUTINE DPSTRF( UPLO, N, A, LDA, PIV, RANK, TOL, WORK,
-     $                      INFO )
+      SUBROUTINE DPSTRF( UPLO, N, A, LDA, PIV, RANK, TOL, WORK, INFO )
 *
-*     Craig Lucas, University of Manchester. January, 2004
-*     Some code taken from LAPACK routine DPOTF2
+*  -- LAPACK routine (version 3.2.2) --
+*     Craig Lucas, University of Manchester / NAG Ltd.
+*     October, 2008  
 *
 *     .. Scalar Arguments ..
       DOUBLE PRECISION   TOL
@@ -53,11 +53,14 @@
 *          On exit, if INFO = 0, the factor U or L from the Cholesky
 *          factorization as above.
 *
+*  LDA     (input) INTEGER
+*          The leading dimension of the array A.  LDA >= max(1,N).
+*
 *  PIV     (output) INTEGER array, dimension (N)
 *          PIV is such that the nonzero entries are P( PIV(K), K ) = 1.
 *
 *  RANK    (output) INTEGER
-*          The rank of A given by the number of steps the algorithm 
+*          The rank of A given by the number of steps the algorithm
 *          completed.
 *
 *  TOL     (input) DOUBLE PRECISION
@@ -65,15 +68,15 @@
 *          will be used. The algorithm terminates at the (K-1)st step
 *          if the pivot <= TOL.
 *
-*  LDA     (input) INTEGER
-*          The leading dimension of the array A.  LDA >= max(1,N).
-*
-*  WORK    DOUBLE PRECISION array, dimension (2*N)
+*  WORK    (workspace) DOUBLE PRECISION array, dimension (2*N)
 *          Work space.
 *
 *  INFO    (output) INTEGER
-*          < 0: if INFO = -K, the K-th argument had an illegal value
-*          = 0  algorithm completed successfully.
+*          < 0: If INFO = -K, the K-th argument had an illegal value,
+*          = 0: algorithm completed successfully, and
+*          > 0: the matrix A is either rank deficient with computed rank
+*               as returned in RANK, or is indefinite.  See Section 7 of
+*               LAPACK Working Note #161 for further information.
 *
 *  =====================================================================
 *
@@ -82,23 +85,23 @@
       PARAMETER          ( ONE = 1.0D+0, ZERO = 0.0D+0 )
 *     ..
 *     .. Local Scalars ..
-      DOUBLE PRECISION   AJJ, DSTOP, DTEMP, U
-      INTEGER            ITEMP, J, JB, K, NB, P, PVT
+      DOUBLE PRECISION   AJJ, DSTOP, DTEMP
+      INTEGER            I, ITEMP, J, JB, K, NB, PVT
       LOGICAL            UPPER
 *     ..
 *     .. External Functions ..
-      REAL               DLAMCH
+      DOUBLE PRECISION   DLAMCH
       INTEGER            ILAENV
-      LOGICAL            LSAME
-      EXTERNAL           DLAMCH, ILAENV, LSAME
+      LOGICAL            LSAME, DISNAN
+      EXTERNAL           DLAMCH, ILAENV, LSAME, DISNAN
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           BLAS_DMAX_VAL, DGEMV, DSCAL, DSWAP, DSYRK,
-     $                   DPSTF2, XERBLA
+      EXTERNAL           DGEMV, DPSTF2, DSCAL, DSWAP, DSYRK, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          MAX, MIN, SQRT
+      INTRINSIC          MAX, MIN, SQRT, MAXLOC
 *     ..
+*     .. Executable Statements ..
 *
 *     Test the input parameters.
 *
@@ -129,34 +132,37 @@
 *        Use unblocked code
 *
          CALL DPSTF2( UPLO, N, A( 1, 1 ), LDA, PIV, RANK, TOL, WORK,
-     $                   INFO )
-         GO TO 110
+     $                INFO )
+         GO TO 200
 *
       ELSE
 *
 *     Initialize PIV
 *
-         DO 10 P = 1, N
-            PIV( P ) = P
-   10    CONTINUE
-*
-*     Get unit roundoff
-*
-         U = DLAMCH( 'E' )
+         DO 100 I = 1, N
+            PIV( I ) = I
+  100    CONTINUE
 *
 *     Compute stopping value
 *
-         CALL BLAS_DMAX_VAL( N, A( 1, 1 ), LDA+1, PVT, DTEMP )
+         PVT = 1
          AJJ = A( PVT, PVT )
-         IF( AJJ.EQ.ZERO ) THEN
+         DO I = 2, N
+            IF( A( I, I ).GT.AJJ ) THEN
+               PVT = I
+               AJJ = A( PVT, PVT )
+            END IF
+         END DO
+         IF( AJJ.EQ.ZERO.OR.DISNAN( AJJ ) ) THEN
             RANK = 0
-            GO TO 110
+            INFO = 1
+            GO TO 200
          END IF
 *
 *     Compute stopping value if not supplied
 *
          IF( TOL.LT.ZERO ) THEN
-            DSTOP = N*U*AJJ
+            DSTOP = N * DLAMCH( 'Epsilon' ) * AJJ
          ELSE
             DSTOP = TOL
          END IF
@@ -166,7 +172,7 @@
 *
 *           Compute the Cholesky factorization P' * A * P = U' * U
 *
-            DO 50 K = 1, N, NB
+            DO 140 K = 1, N, NB
 *
 *              Account for last block not being NB wide
 *
@@ -175,33 +181,32 @@
 *              Set relevant part of first half of WORK to zero,
 *              holds dot products
 *
-               DO 20 P = K, N
-                  WORK( P ) = 0
-   20          CONTINUE
+               DO 110 I = K, N
+                  WORK( I ) = 0
+  110          CONTINUE
 *
-               DO 40 J = K, K + JB - 1
+               DO 130 J = K, K + JB - 1
 *
 *              Find pivot, test for exit, else swap rows and columns
 *              Update dot products, compute possible pivots which are
 *              stored in the second half of WORK
 *
-                  DO 30 P = J, N
+                  DO 120 I = J, N
 *
                      IF( J.GT.K ) THEN
-                        WORK( P ) = WORK( P ) + A( J-1, P )**2
+                        WORK( I ) = WORK( I ) + A( J-1, I )**2
                      END IF
-                     WORK( N+P ) = A( P, P ) - WORK( P )
+                     WORK( N+I ) = A( I, I ) - WORK( I )
 *
-   30             CONTINUE
+  120             CONTINUE
 *
                   IF( J.GT.1 ) THEN
-                     CALL BLAS_DMAX_VAL( N-J+1, WORK( N+J ), 1, ITEMP,
-     $                                   DTEMP )
+                     ITEMP = MAXLOC( WORK( (N+J):(2*N) ), 1 )
                      PVT = ITEMP + J - 1
                      AJJ = WORK( N+PVT )
-                     IF( AJJ.LE.DSTOP ) THEN
+                     IF( AJJ.LE.DSTOP.OR.DISNAN( AJJ ) ) THEN
                         A( J, J ) = AJJ
-                        GO TO 100
+                        GO TO 190
                      END IF
                   END IF
 *
@@ -239,7 +244,7 @@
                      CALL DSCAL( N-J, ONE / AJJ, A( J, J+1 ), LDA )
                   END IF
 *
-   40          CONTINUE
+  130          CONTINUE
 *
 *              Update trailing matrix, J already incremented
 *
@@ -248,13 +253,13 @@
      $                        A( K, J ), LDA, ONE, A( J, J ), LDA )
                END IF
 *
-   50       CONTINUE
+  140       CONTINUE
 *
          ELSE
 *
 *        Compute the Cholesky factorization P' * A * P = L * L'
 *
-            DO 90 K = 1, N, NB
+            DO 180 K = 1, N, NB
 *
 *              Account for last block not being NB wide
 *
@@ -263,33 +268,32 @@
 *              Set relevant part of first half of WORK to zero,
 *              holds dot products
 *
-               DO 60 P = K, N
-                  WORK( P ) = 0
-   60          CONTINUE
+               DO 150 I = K, N
+                  WORK( I ) = 0
+  150          CONTINUE
 *
-               DO 80 J = K, K + JB - 1
+               DO 170 J = K, K + JB - 1
 *
 *              Find pivot, test for exit, else swap rows and columns
 *              Update dot products, compute possible pivots which are
 *              stored in the second half of WORK
 *
-                  DO 70 P = J, N
+                  DO 160 I = J, N
 *
                      IF( J.GT.K ) THEN
-                        WORK( P ) = WORK( P ) + A( P, J-1 )**2
+                        WORK( I ) = WORK( I ) + A( I, J-1 )**2
                      END IF
-                     WORK( N+P ) = A( P, P ) - WORK( P )
+                     WORK( N+I ) = A( I, I ) - WORK( I )
 *
-   70             CONTINUE
+  160             CONTINUE
 *
                   IF( J.GT.1 ) THEN
-                     CALL BLAS_DMAX_VAL( N-J+1, WORK( N+J ), 1, ITEMP,
-     $                                   DTEMP )
+                     ITEMP = MAXLOC( WORK( (N+J):(2*N) ), 1 )
                      PVT = ITEMP + J - 1
                      AJJ = WORK( N+PVT )
-                     IF( AJJ.LE.DSTOP ) THEN
+                     IF( AJJ.LE.DSTOP.OR.DISNAN( AJJ ) ) THEN
                         A( J, J ) = AJJ
-                        GO TO 100
+                        GO TO 190
                      END IF
                   END IF
 *
@@ -321,13 +325,13 @@
 *                 Compute elements J+1:N of column J.
 *
                   IF( J.LT.N ) THEN
-                     CALL DGEMV( 'No tran', N-J, J-K, -ONE, A( J+1, K ),
-     $                           LDA, A( J, K ), LDA, ONE, A( J+1, J ),
-     $                           1 )
+                     CALL DGEMV( 'No Trans', N-J, J-K, -ONE,
+     $                           A( J+1, K ), LDA, A( J, K ), LDA, ONE,
+     $                           A( J+1, J ), 1 )
                      CALL DSCAL( N-J, ONE / AJJ, A( J+1, J ), 1 )
                   END IF
 *
-   80          CONTINUE
+  170          CONTINUE
 *
 *              Update trailing matrix, J already incremented
 *
@@ -336,7 +340,7 @@
      $                        A( J, K ), LDA, ONE, A( J, J ), LDA )
                END IF
 *
-   90       CONTINUE
+  180       CONTINUE
 *
          END IF
       END IF
@@ -345,14 +349,16 @@
 *
       RANK = N
 *
-      GO TO 110
-  100 CONTINUE
+      GO TO 200
+  190 CONTINUE
 *
-*     Rank is the number of steps completed
+*     Rank is the number of steps completed.  Set INFO = 1 to signal
+*     that the factorization cannot be used to solve a system.
 *
       RANK = J - 1
+      INFO = 1
 *
-  110 CONTINUE
+  200 CONTINUE
       RETURN
 *
 *     End of DPSTRF

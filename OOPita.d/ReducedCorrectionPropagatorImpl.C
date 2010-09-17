@@ -28,7 +28,7 @@ ReducedCorrectionPropagatorImpl::iterationIs(IterationRank ir) {
   if (correction()->status() != Seed::INACTIVE) {
     const_cast<FullSquareMatrix *>(reprojectionMatrix())->multiply(
         const_cast<Vector &>(correction()->state()),
-        result,       
+        result,
         1.0,
         FullSquareMatrix::TRANSPOSED);
   }
@@ -53,7 +53,7 @@ ReducedCorrectionPropagatorImpl::Manager::Manager(const FullSquareMatrix * defau
 
 ReducedCorrectionPropagatorImpl *
 ReducedCorrectionPropagatorImpl::Manager::createNewInstance(const String & r) {
-  String instanceName(String("ReducedCorrectionPropagator ") + r);
+  String instanceName(String("Propagate Reduced Correction ") + r);
   return new ReducedCorrectionPropagatorImpl(instanceName, defaultReprojectionMatrix(), defaultProjectionSolver());
 }
 

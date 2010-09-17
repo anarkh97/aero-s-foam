@@ -1,29 +1,21 @@
 #include "JumpBuilder.h"
 
-#include <cassert>
-
 namespace Pita {
 
 void
 JumpBuilder::iterationIs(IterationRank ir) {
-  // assert(actualSeed()->iteration().next() == ir); // TODO: Reactivate when jump building schedule fixed
-  
-  updateJump();
-  setIteration(ir);
-} 
-
-void
-JumpBuilder::updateJump() {
-  assert(actualSeed()->iteration() == predictedSeed()->iteration() || actualSeed()->iteration() == predictedSeed()->iteration().next());
+  assert(actualSeed()->iteration() == ir);
   assert(actualSeed()->status() != Seed::INACTIVE);
   assert(actualSeed()->status() != Seed::SPECIAL);
+  assert(predictedSeed()->iteration() == ir);
 
   DynamState newJumpSeed = actualSeed()->state() - predictedSeed()->state();
-  
   seedJump()->statusIs(actualSeed()->status());
   seedJump()->stateIs(newJumpSeed);
   seedJump()->iterationIs(actualSeed()->iteration());
-}
+
+  setIteration(ir);
+} 
 
 JumpBuilder *
 JumpBuilder::ManagerImpl::createNewInstance(const String & key) {

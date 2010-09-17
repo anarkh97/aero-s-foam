@@ -48,7 +48,7 @@ UpdatedSeedAssemblerImpl::Manager::Manager(const DynamStateBasis * dcb) :
 
 UpdatedSeedAssemblerImpl *
 UpdatedSeedAssemblerImpl::Manager::createNewInstance(const String & key) {
-  String taskName = String("UpdatedSeedAssembler ") + key;
+  String taskName = String("Update Seed ") + key;
   std::auto_ptr<UpdatedSeedAssemblerImpl> newInstance(new UpdatedSeedAssemblerImpl(taskName, this));
   return newInstance.release();
 }

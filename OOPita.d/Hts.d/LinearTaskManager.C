@@ -7,7 +7,6 @@ public:
   void iterationIs(IterationRank i) {
     correctionMgr_->buildProjection();
     size_t reducedBasisSize = correctionMgr_->reducedBasisSize();
-    log() << "*** ReducedBasisSize = " << reducedBasisSize << "\n";
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
@@ -24,10 +23,12 @@ private:
 
 LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
                                      LinearLocalNetwork * network,
+                                     JumpConvergenceEvaluator * jumpCvgMgr,
                                      LinearProjectionNetworkImpl * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
   network_(network),
+  jumpCvgMgr_(jumpCvgMgr),
   correctionMgr_(correctionMgr),
   commMgr_(commMgr),
   phase_(),
@@ -35,8 +36,32 @@ LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
   phaseIt_(new HtsPhaseIteratorImpl(phase_))
 {}
 
+/*class ApplyConvergence : public NamedTask {
+public:
+  EXPORT_PTRINTERFACE_TYPES(ApplyConvergence);
+  virtual void iterationIs(IterationRank iter); // overriden
+
+  explicit ApplyConvergence(LinearLocalNetwork * network) :
+    NamedTask("Apply convergence"),
+    network_(network)
+  {}
+
+private:
+  LinearLocalNetwork::Ptr network_;
+};
+
+void
+ApplyConvergence::iterationIs(IterationRank iter) {
+  network_->convergedSlicesInc(); // TODO bad naming
+  setIteration(iter);
+}*/
+
 void
 LinearTaskManager::scheduleNormalIteration() {
+  log() << "Executing: " << jumpCvgMgr()->name() << "\n";
+  jumpCvgMgr()->iterationIs(iteration().next()); // TODO BETTER
+  network()->applyConvergenceStatus();
+
   scheduleCorrection();
   scheduleFinePropagation();
 }
@@ -44,18 +69,32 @@ LinearTaskManager::scheduleNormalIteration() {
 void
 LinearTaskManager::scheduleFinePropagation() {
   schedulePhase("Fine propagation", network()->activeHalfTimeSlices());
+  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Jump evaluation", network()->activeJumpAssemblers());
 }
+
+//void
+//LinearTaskManager::schedulePreCorrection() {
+  // Convergence
+  /*{
+    TaskList tasks;
+    tasks.push_back(jumpCvgMgr());
+    tasks.push_back(new ApplyConvergence(network()));
+    Phase::Ptr convergence = phaseNew("Convergence", tasks);
+    phases().push_back(convergence);
+  }*/
+//}
 
 void
 LinearTaskManager::scheduleCorrection() {
   // Projection Basis
-  TaskList taskList;
-  taskList.push_back(new ProjectionBasis(correctionMgr_.ptr(), commMgr_.ptr()));
-  Phase::Ptr projectionBasis = phaseNew("Projection basis", taskList);
-  phases().push_back(projectionBasis);
-
-  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
-  schedulePhase("Jumps", network()->activeJumpProjectors());
+  {
+    TaskList projectionBuilding;
+    projectionBuilding.push_back(new ProjectionBasis(correctionMgr_.ptr(), commMgr_.ptr()));
+    Phase::Ptr projectionBasis = phaseNew("Projection basis", projectionBuilding);
+    phases().push_back(projectionBasis);
+  }
+  schedulePhase("Jump Projection", network()->activeJumpProjectors());
   schedulePhase("Correction", network()->activeFullTimeSlices());
   schedulePhase("Correction synchronization", network()->activeCorrectionSyncs());
   schedulePhase("Seed update", network()->activeSeedAssemblers());

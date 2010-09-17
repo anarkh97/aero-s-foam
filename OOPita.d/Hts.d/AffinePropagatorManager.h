@@ -10,7 +10,7 @@
 #include "../PostProcessingManager.h"
 #include "BasisCollector.h"
 
-#include "../HomogeneousGenAlphaIntegrator.h"
+#include "../LinearGenAlphaIntegrator.h"
 
 namespace Pita { namespace Hts {
 

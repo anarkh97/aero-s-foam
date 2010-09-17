@@ -16,6 +16,7 @@ public:
 
   explicit HomogeneousTaskManager(LinearLocalNetwork * network,
                                   SeedInitializer * initializer,
+                                  JumpConvergenceEvaluator * jumpCvgMgr,
                                   LinearProjectionNetworkImpl * correctionMgr,
                                   RemoteState::MpiManager * commMgr);
 

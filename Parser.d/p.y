@@ -80,7 +80,7 @@
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6 
 %token QSTATIC QLOAD
-%token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED
+%token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
@@ -1043,14 +1043,20 @@ ParallelInTimeKeyWord:
         { domain->solInfo().pitaNoForce = true; }
         | LOCALBASES
         { domain->solInfo().pitaBaseImprovement = 1; }
-	      | TIMEREVERSIBLE
-	      { domain->solInfo().pitaTimeReversible = true; }
-	      | REMOTECOARSE
-	      { domain->solInfo().pitaRemoteCoarse = true; }
+        | TIMEREVERSIBLE
+        { domain->solInfo().pitaTimeReversible = true; }
+        | REMOTECOARSE
+        { domain->solInfo().pitaRemoteCoarse = true; }
         | ORTHOPROJTOL Float
         { domain->solInfo().pitaProjTol = $2; }
         | READINITSEED
         { domain->solInfo().pitaReadInitSeed = true; }
+        | JUMPCVG
+        { domain->solInfo().pitaJumpCvgRatio = 0.0; }
+        | JUMPCVG Float
+        { domain->solInfo().pitaJumpCvgRatio = $2; }
+        | JUMPOUTPUT
+        { domain->solInfo().pitaJumpMagnOutput = true; }
         ;
 DampInfo:
 	DAMPING Float Float NewLine

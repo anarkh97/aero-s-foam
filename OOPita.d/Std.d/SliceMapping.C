@@ -29,6 +29,11 @@ SliceMapping::activeSlices() const {
   return SliceCount(loadBalancer_->currentGlobalWorkload());
 }
 
+SliceCount
+SliceMapping::activeSlices(CpuRank cpu) const {
+  return SliceCount(loadBalancer_->currentWorkload(cpu.value()));
+}
+
 SliceRank
 SliceMapping::firstActiveSlice() const {
   return SliceRank(loadBalancer_->firstCurrentTask());

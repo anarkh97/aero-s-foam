@@ -506,6 +506,8 @@ class Element {
         virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
                                                  // notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics
                                                  //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
+        virtual void writeHistory(int) {}
+        virtual void readHistory(int) {}
 };
 
 // *****************************************************************

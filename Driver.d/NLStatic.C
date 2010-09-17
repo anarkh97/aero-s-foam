@@ -108,7 +108,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda;
-
+/*
+      double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
+      elementForce *= mfttFactor; // TODO consider
+*/
       // Include the "load stiffness matrix" in kel[iele]
       if(sinfo.newmarkBeta != 0.0)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
@@ -1441,10 +1444,10 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())){
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-
+     cerr << "here in NLStatic.C writeRestartFile\n";
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
      if(writeSize != sizeof(int))
@@ -1470,6 +1473,11 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
      if(int(writeSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
 
+     // PJSA 9-17-2010
+     int numEle = packedEset.last();
+     for(int i = 0; i < numEle; ++i)
+       packedEset[i]->writeHistory(fn);
+
      close(fn);
    } else {
       perror(" *** ERROR: Restart file could not be opened: ");
@@ -1483,7 +1491,6 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                         Vector &v_p, double *bcx, double *vcx,
                         GeomState &geomState)
 {
-
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  if(cinfo->lastRestartFile) {
    fprintf(stderr, " ... Restart From a Prev. Nonl. Run ...\n");
@@ -1518,41 +1525,46 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      if(int(readSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Inconsistent restart file 4\n");
      geomState.setRotations(rotations);
+
+     // PJSA 9-17-2010
+     int numEle = packedEset.last();
+     for(int i = 0; i < numEle; ++i) 
+       packedEset[i]->readHistory(fn);
+
      close(fn);
 
-     if(solInfo().aeroFlag >= 0) {
-       d_n.zero();
-       a_n.zero();
-       v_p.zero();
-       int i;
-       for(i=0; i<numNodes(); ++i) {
+     d_n.zero();
+     a_n.zero();
+     v_p.zero();
+     for(int i = 0; i < numNodes(); ++i) {
 
-         int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-         int xloc1 =   dsa->locate(i, DofSet::Xdisp );
+       int xloc  = c_dsa->locate(i, DofSet::Xdisp );
+       int xloc1 =   dsa->locate(i, DofSet::Xdisp );
 
-         if(xloc >= 0)
-           d_n[xloc]  = ( (geomState)[i].x - nodes[i]->x);
-         else if (xloc1 >= 0)
-           bcx[xloc1] = ( (geomState)[i].x - nodes[i]->x);
+       if(xloc >= 0)
+         d_n[xloc]  = ( (geomState)[i].x - nodes[i]->x);
+       else if (xloc1 >= 0)
+         bcx[xloc1] = ( (geomState)[i].x - nodes[i]->x);
 
-         int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-         int yloc1 =   dsa->locate(i, DofSet::Ydisp );
+       int yloc  = c_dsa->locate(i, DofSet::Ydisp );
+       int yloc1 =   dsa->locate(i, DofSet::Ydisp );
 
-         if(yloc >= 0)
-           d_n[yloc]  = ( (geomState)[i].y - nodes[i]->y);
-         else if (yloc1 >= 0)
-           bcx[yloc1] = ( (geomState)[i].y - nodes[i]->y);
+       if(yloc >= 0)
+         d_n[yloc]  = ( (geomState)[i].y - nodes[i]->y);
+       else if (yloc1 >= 0)
+         bcx[yloc1] = ( (geomState)[i].y - nodes[i]->y);
 
-         int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-         int zloc1 =   dsa->locate(i, DofSet::Zdisp);
+       int zloc  = c_dsa->locate(i, DofSet::Zdisp);
+       int zloc1 =   dsa->locate(i, DofSet::Zdisp);
 
-         if(zloc >= 0)
-           d_n[zloc]  = ( (geomState)[i].z - nodes[i]->z);
-         else if (zloc1 >= 0)
-           bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
-       }
-       aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
+       if(zloc >= 0)
+         d_n[zloc]  = ( (geomState)[i].z - nodes[i]->z);
+       else if (zloc1 >= 0)
+         bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
      }
+
+     if(solInfo().aeroFlag >= 0)
+       aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
 
    } else {
       perror(" *** ERROR: Restart file could not be opened: ");

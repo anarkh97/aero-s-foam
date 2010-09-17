@@ -132,10 +132,10 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &d_n,
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()){
+ if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-
+     cerr << "here in Dynam.C writeRestartFile\n";
      int vsize = d_n.size();
      int writeSize = write(fn, &vsize, sizeof(int));
      if(writeSize != sizeof(int))
@@ -398,7 +398,7 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
   // Current time stamp
   double time = tIndex*sinfo.getTimeStep();
    
-  if (sinfo.nRestart > 0 && !sinfo.modal) {
+  if(sinfo.nRestart > 0 && !sinfo.modal && probType() != SolverInfo::NonLinDynam) {
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
   }
   

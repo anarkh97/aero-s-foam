@@ -16,6 +16,10 @@
 
 //class CoordSet;
 class FFIPolygon;
+class DofSetArray;
+//class State;
+//class GeomState;
+struct InterpPoint;
 
 // ACME headers
 #ifdef USE_ACME
@@ -35,7 +39,7 @@ class FaceElement {
         // public data 
 	// ~~~~~~~~~~~	
 	//enum FaceElemType{QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6};
-	enum {QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6, QUADFACEQ9, QUADFACEC12, TRIFACEC10, POINTFACE};
+        enum {QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6, SHELLQUADFACEL4, SHELLTRIFACEL3, QUADFACEQ9, QUADFACEC12, TRIFACEC10, POINTFACE};
       
 	// Constructors 
 	// ~~~~~~~~~~~~
@@ -122,7 +126,14 @@ class FaceElement {
 	// Print, display ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 	virtual void print()=0;
-	
+
+        virtual int numDofs() {fprintf(stderr,"function numDofs() undefined for this type of element!\n"); return 0;}	
+        virtual int* dofs(DofSetArray &, int*) {fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0;}
+        virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*) {
+          fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
+        virtual void getFlLoad(CoordSet&, const InterpPoint&, double*, double*, GeomState*) {
+          fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
+ 
 	// FFI methods
 	// ~~~~~~~~~~~
 	//void AddPtrFFI(FFIPolygon*);

@@ -1270,10 +1270,6 @@ GenSubDomain<Scalar>::constructKww()
     memK += (Krw) ? Krw->size() : 0;
   }
 
-  coupledScaling = domain->coupledScaling;
-  cscale_factor  = domain->cscale_factor;
-  cscale_factor2 = domain->cscale_factor2;
-
   if(!neighbKww && numWIdof)
     neighbKww = new GenFsiSparse<Scalar>(domain->getFSI(), domain->getNumFSI(), glToLocalWImap);
 
@@ -1330,17 +1326,13 @@ GenSubDomain<Scalar>::scaleAndSplitKww()
    }
  }
 #endif
+ prev_cscale_factor = cscale_factor;
 }
 
 template<class Scalar>
 void
 GenSubDomain<Scalar>::reScaleAndReSplitKww()
 {
-  double prev_cscale_factor = cscale_factor;
-  coupledScaling = domain->coupledScaling;
-  cscale_factor  = domain->cscale_factor;
-  cscale_factor2 = domain->cscale_factor2;
-
   double rescale_factor =  cscale_factor/prev_cscale_factor;
 
   if (neighbKww!=0)
@@ -1356,6 +1348,7 @@ GenSubDomain<Scalar>::reScaleAndReSplitKww()
    if(KiiSparse) neighbKww->addLocalFsiToMatrix(KiiSparse, dsa, glToLocalNode);
  }
 #endif
+ prev_cscale_factor = cscale_factor;
 }
 
 

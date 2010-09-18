@@ -38,11 +38,8 @@ struct ComplexBCond;
 class HData 
 {
   public:
-//     double kappa;
-//     double omega;
-//     double fluidDensity, fluidCelerity;
      double fluidCelerity; // defines the ratio omega/k
-     double coupledScaling, cscale_factor, cscale_factor2;
+     static double coupledScaling, cscale_factor, cscale_factor2;
      int nffp;
      int limitffp;
      double *waveDirections;

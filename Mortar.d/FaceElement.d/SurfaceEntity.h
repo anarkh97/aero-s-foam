@@ -57,6 +57,8 @@ class SurfaceEntity {
         double (*NdNormals)[3];
 #endif
         bool ReverseNormals;
+        bool IsShellFace;
+        double ShellThickness;
 
   public:
 	// Constructors & destructor
@@ -105,6 +107,8 @@ class SurfaceEntity {
         void SetNodeCoordMap(std::map<int,Node> *_map) { NodeCoordMap = _map; };
         void SetPtrNodeSet(CoordSet* ndSet);
         void SetReverseNormals(bool);
+        void SetIsShellFace(bool);
+        void SetShellThickness(double);
 
 	// Get/Accessor methods
 	// ~~~~~~~~~~~~~~~~~~~~
@@ -139,6 +143,8 @@ class SurfaceEntity {
         double* ViewNodalNormals() { return(reinterpret_cast<double*>(NdNormals)); }
 #endif
         bool GetReverseNormals();
+        bool GetIsShellFace();
+        double GetShellThickness();
 
 	// Print, display, ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~

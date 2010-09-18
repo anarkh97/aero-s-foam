@@ -2,6 +2,8 @@
 #define _DOMAIN_H_
 
 #include <cassert>
+#include <set>
+#include <map>
 
 #include <Utils.d/resize_array.h>
 #include <Utils.d/SolverInfo.h>
@@ -170,10 +172,14 @@ class Domain : public HData {
      BCond* nbc;		// set of Neuman bc
      int numIDis;		// number of Initial displacements
      BCond *iDis;		// set of those initial displacements
+     int numIDisModal;
+     BCond *iDisModal;
      int numIDis6;		// number of Initial displacements (6 column)
      BCond* iDis6;              // set of those intitial displacements
      int numIVel;		// number of initial velocities
      BCond *iVel;		// set of those initial velocities
+     int numIVelModal;
+     BCond *iVelModal;
 
      DofSetArray *dsa;		// Dof set array
      DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
@@ -338,8 +344,10 @@ class Domain : public HData {
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
      virtual int  setNeuman(int,BCond *);
      int  setIDis6(int, BCond *);
+     int  setIDisModal(int, BCond *);
      int  setIDis(int, BCond *);
      int  setIVel(int, BCond *);
+     int  setIVelModal(int, BCond *);
      int  setIAcc(int, BCond *);
      int  setMFTT(MFTTData *);
      int  setMPTT(MFTTData *);
@@ -668,15 +676,19 @@ class Domain : public HData {
 
      // returns the number of initial displacements
      int numInitDisp()  { return numIDis;  }
+     int numInitDispModal() { return numIDisModal; }
      int numInitDisp6() { return numIDis6; }
 
      // returns a pointer to the initial displacement boundary condtions
      BCond* getInitDisp()  { return iDis;  }
+     BCond* getInitDispModal() { return iDisModal; }
      BCond* getInitDisp6() { return iDis6; }
 
      // returns a pointer to the initial velocities
      int    numInitVelocity() { return numIVel; }
      BCond* getInitVelocity() { return iVel; }
+     int    numInitVelocityModal() { return numIVelModal; }
+     BCond* getInitVelocityModal() { return iVelModal; }
 
      // returns the number of neumann bc
      int  nNeumann() { return numNeuman; }
@@ -796,10 +808,13 @@ class Domain : public HData {
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
      vector<int> contactSurfElems;
+     std::set<int> aeroEmbeddedSurfaceId;  //KW: Ids of wet surfaces
   public:
      int AddSurfaceEntity(SurfaceEntity*);
      int AddSurfaceEntity(SurfaceEntity*, int isurf);
      void PrintSurfaceEntities();
+
+     int AddAeroEmbedSurfaceId(int Id);
 
      int nMortarCond;
      int nContactSurfacePairs; 

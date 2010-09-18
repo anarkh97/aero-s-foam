@@ -208,7 +208,6 @@ GeoSource::writeNodeScalarToFile(DComplex *complexData, int numData, int glSub, 
                                  int iter, int numRes, double time, int numComponents, int *glNodeNums)
 {
   double *data = new double[numData];
-
   switch(oinfo[fileNumber].complexouttype) {
     default:
     case OutputInfo::realimag :

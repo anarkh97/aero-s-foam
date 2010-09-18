@@ -53,6 +53,8 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 {
+ filePrint(stderr," ... Building the Force             ...\n");
+
  times->formRhs -= getTime();
  execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
 

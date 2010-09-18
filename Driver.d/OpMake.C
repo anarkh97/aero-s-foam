@@ -165,7 +165,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement()) { // XXXX
-       if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0) {
+       if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //cerr << "adding C to Msolver\n";
          if(mat) mat->add(kel,(*allDOFs)[iele]);
        }
@@ -1634,7 +1634,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j)
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 
@@ -1803,7 +1803,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j) 
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 

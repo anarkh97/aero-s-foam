@@ -1663,10 +1663,11 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
 
     while (it != nodeGroup[group].end() )  {
 
-      int nodeNumber = *it;
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                nodeNumber+1, w,p,xyz[nodeNumber][0], w,p,xyz[nodeNumber][1], w,p,xyz[nodeNumber][2],
-                w,p,xyz[nodeNumber][3], w, p, xyz[nodeNumber][4], w, p, xyz[nodeNumber][5]);
+      int inode = *it;
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
+                w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
       it++;
     }
   }
@@ -1708,14 +1709,13 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
 
         while (it != nodeGroup[group].end() )  {
           int inode = *it;
-          filePrint(oinfo[fileNum].filptr, 
-            " %d % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n", 
-            inode+1, w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
-            w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
-            w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
-            w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
-            w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
-            w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
+          filePrint(oinfo[fileNum].filptr,
+            " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
+            inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+            w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(), w, p, xyz[inode][2].real(),
+            w, p, xyz[inode][3].real(), w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
+            w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(), w, p, xyz[inode][2].imag(),
+            w, p, xyz[inode][3].imag(), w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
           it++;
         }
       }
@@ -1768,15 +1768,15 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
 
         while (it != nodeGroup[group].end() )  {
           int inode = *it;
-            filePrint(oinfo[fileNum].filptr,
-            " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),   
-                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),  
-                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]), 
+          filePrint(oinfo[fileNum].filptr,
+            " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
+                  inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
+                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
+                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),
                   w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
                   w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
                   w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
-
           it++;
         }
       }
@@ -1863,10 +1863,11 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize,
 
     while (it != nodeGroup[group].end() )  {
 
-      int nodeNumber = *it;
+      int inode = *it;
 
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E\n", nodeNumber+1, 
-                w,p,glv[nodeNumber][0], w,p, glv[nodeNumber][1], w,p, glv[nodeNumber][2]);
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                w, p, glv[inode][0], w, p, glv[inode][1], w, p, glv[inode][2]);
       it++;
     }
 
@@ -1880,9 +1881,8 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize,
   fflush(oinfo[fileNum].filptr);
 }
 
-void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3],
-                int outputSize, double time)//DofSet::max_known_nonL_dof
-{
+void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSize, double time) {
+
   int i;
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -1904,10 +1904,11 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3],
 
         while (it != nodeGroup[group].end() )  {
 
-          int nodeNumber = *it;
-          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n", 
-              nodeNumber+1, w,p,glv[nodeNumber][0].real(), w,p,glv[nodeNumber][0].imag(), w,p,glv[nodeNumber][1].real(),
-              w,p,glv[nodeNumber][1].imag(), w,p,glv[nodeNumber][2].real(), w,p,glv[nodeNumber][2].imag());
+         int inode = *it;
+         filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
+              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+              w,p,glv[inode][0].real(), w,p,glv[inode][0].imag(), w,p,glv[inode][1].real(),
+              w,p,glv[inode][1].imag(), w,p,glv[inode][2].real(), w,p,glv[inode][2].imag());
           it++;
         }
 
@@ -1950,11 +1951,11 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3],
 
         while (it != nodeGroup[group].end() )  {
 
-          int nodeNumber = *it;
-          fprintf(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-                  nodeNumber+1, w,p,std::abs(glv[nodeNumber][0]), w,p,std::abs(glv[nodeNumber][1]), 
-                  w,p,std::abs(glv[nodeNumber][2]), w,p,arg(glv[nodeNumber][0]), 
-                  w,p,arg(glv[nodeNumber][1]), w,p,arg(glv[nodeNumber][2]));
+          int inode = *it;
+          fprintf(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
+              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z, w,p,
+              std::abs(glv[inode][0]), w,p,std::abs(glv[inode][1]), w,p,std::abs(glv[inode][2]),
+              w,p,arg(glv[inode][0]), w,p,arg(glv[inode][1]), w,p,arg(glv[inode][2]));
           it++;
         }
 
@@ -2026,8 +2027,9 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
     list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
-      int nodeNumber = *it;
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E\n", nodeNumber+1, w,p, data[nodeNumber]);
+      int inode = *it;
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n", inode+1, w,p,
+                nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z, w,p, data[inode]);
       it++;
     }
 
@@ -2040,9 +2042,8 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   fflush(oinfo[fileNum].filptr);
 }
 
-void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
-                                  int outputSize, double time)
-{
+void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, double time) {
+
   int i;
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -2063,9 +2064,10 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
         list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int nodeNumber = *it;
-          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n", nodeNumber+1, w, p,
-                    data[nodeNumber].real(), w, p, data[nodeNumber].imag());
+          int inode = *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", inode+1, w, p,
+                    nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z,
+                    w,p, data[inode].real(), w, p, data[inode].imag());
           it++;
         }
       }
@@ -2098,9 +2100,10 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data,
         list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int nodeNumber = *it;
-          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E\n", nodeNumber+1, w, p,
-                    std::abs(data[nodeNumber]), w, p, arg(data[nodeNumber]));
+          int inode = *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", inode+1, w, p,
+                    nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z,
+                    w, p, std::abs(data[inode]), w, p, arg(data[inode]));
           it++;
         }
       }
@@ -3584,7 +3587,7 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   if (avgnum == 1 || avgnum == 2)  {
     if (oinfo[fileNumber].groupNumber > 0)  {
       char ng[80];
-      sprintf(ng, "NODALGROUP %d: NODENUMBER RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
+      sprintf(ng, "NODALGROUP %d: NODENUMBER X0  Y0  Z0  RESULT-1 RESULT-2 ... RESULT-N", oinfo[fileNumber].groupNumber);
 
       sprintf(headDescrip, header[type], prbType, ng, nodeGroup[oinfo[fileNumber].groupNumber].size());
     }

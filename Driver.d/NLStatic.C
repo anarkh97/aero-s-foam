@@ -108,10 +108,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda;
-/*
+#ifdef PRESSURE_MFTT
       double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
       elementForce *= mfttFactor; // TODO consider
-*/
+#endif
       // Include the "load stiffness matrix" in kel[iele]
       if(sinfo.newmarkBeta != 0.0)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],

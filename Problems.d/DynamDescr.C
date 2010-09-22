@@ -80,7 +80,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vec
   
   this->fillBcxVcx(tIndex);
 
-  if(domain->solInfo().isNonLin()) {
+  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
     double t = double(tIndex)*domain->solInfo().getTimeStep(); // TODO check is this correct for restart?
     domain->writeRestartFile(t, tIndex, state.getVeloc(), geomState);
   }

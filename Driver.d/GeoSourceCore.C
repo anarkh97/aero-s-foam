@@ -93,6 +93,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numIDisModal = 0;
   numIDis6 = 0;
   numIVel = 0;
+  numIVelModal = 0;
   numDampedModes = 0;
   numComplexDirichlet = 0;
   numComplexNeuman = 0;

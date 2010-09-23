@@ -40,7 +40,7 @@ FullCorrectionPropagatorImpl::Manager::Manager(DynamPropagator * sharedPropagato
 
 FullCorrectionPropagatorImpl *
 FullCorrectionPropagatorImpl::Manager::createNewInstance(const String & key) {
-  return new FullCorrectionPropagatorImpl(String("CorrectionPropagator ") + key, sharedPropagator()); 
+  return new FullCorrectionPropagatorImpl(String("Propagate Correction ") + key, sharedPropagator()); 
 }
 
 } /* end namespace Pita */

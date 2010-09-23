@@ -73,8 +73,12 @@ private:
 
   /* Other parameters */
   IterationRank lastIteration_;
+  double jumpCvgRatio_;
   double projectorTolerance_;
   bool userProvidedSeeds_;
+  
+  /* PITA-specific output */
+  bool jumpMagnOutput_;
 };
 
 } /* end namespace Hts */ } /* end namespace Pita */

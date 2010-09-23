@@ -8,7 +8,6 @@
 #include "../NamedTask.h"
 
 #include "../JumpBuilder.h"
-#include "../JumpProjector.h"
 
 #include "../SeedUpdater.h"
 #include "../UpdatedSeedAssembler.h"
@@ -74,7 +73,7 @@ includedIn(const ActivationRange & a, const ActivationRange & inRange) {
 class ActivationRange::Inclusion : public std::unary_function<ActivationRange, bool> {
 public:
   bool operator()(const ActivationRange & a) const {
-    includedIn(a, inRange_);
+    return includedIn(a, inRange_);
   }
 
   explicit Inclusion(const ActivationRange & inRange) :
@@ -102,7 +101,7 @@ activeIn(const ActivationRange & a, const ActivationRange & b) {
 template <typename S>
 class NoCorrection : public SharedState<S>::NotifieeConst {
 public:
-  virtual void onIteration(); //overriden
+  virtual void onStatus(); //overriden
 
   NoCorrection(const SharedState<S> * parent, SharedStateRoot * target) :
     SharedState<S>::NotifieeConst(parent),
@@ -121,8 +120,9 @@ private:
 
 template <typename S>
 void
-NoCorrection<S>::onIteration() {
+NoCorrection<S>::onStatus() {
   if (this->notifier()->status() == Seed::CONVERGED) {
+    log() << "Zero Correction " << target()->name() << "\n";
     target()->statusIs(Seed::INACTIVE);
     target()->iterationIs(this->notifier()->iteration());
   }
@@ -217,7 +217,7 @@ public:
 template <typename T>
 class Decorator {
 public:
-  void operator()(HalfSliceRank sliceRank, JumpProjector * task) {}
+  void operator()(HalfSliceRank sliceRank, T * task) {}
 };
 
 template <typename T>
@@ -331,33 +331,6 @@ inline
 typename GenNamedTaskFactory<CorrectionPropagator<S> >::Ptr
 CorrectionPropagatorFactoryNew(typename CorrectionPropagator<S>::Manager * mgr, SeedGetter<S> sg) {
   return new GenNamedTaskFactory<CorrectionPropagator<S> >(mgr, sg);
-}
-
-
-// JumpProjector
-template <>
-class Decorator<JumpProjector> {
-public:
-  Decorator(FullSeedGetter fsg, ReducedSeedGetter rsg) :
-    delegate_(fsg), reducedSeed_(rsg)
-  {}
-
-  void operator()(HalfSliceRank sliceRank, JumpProjector * task) {
-    delegate_(sliceRank, task),
-    task->reducedSeedJumpIs(reducedSeed_(SeedId(SEED_JUMP, sliceRank)));
-  }
-
-private:
-  Decorator<JumpBuilder> delegate_;
-  ReducedSeedGetter reducedSeed_;
-};
-
-typedef GenNamedTaskFactory<JumpProjector> JumpProjectorFactory;
-
-inline
-JumpProjectorFactory::Ptr
-JumpProjectorFactoryNew(JumpProjector::Manager * mgr, FullSeedGetter fsg, ReducedSeedGetter rsg) {
-  return new JumpProjectorFactory(mgr, Decorator<JumpProjector>(fsg, rsg));
 }
 
 // UpdatedSeedAssembler

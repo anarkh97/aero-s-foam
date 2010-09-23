@@ -13,29 +13,26 @@ public:
   typedef Fwk::GenManagerInterface<JumpBuilder *, String> Manager;
   class ManagerImpl;
 
-  /* Overriden */
-  void iterationIs(IterationRank ir);
+  virtual void iterationIs(IterationRank ir); // overriden
 
-  /* Sources */
+  // Input
   const Seed * predictedSeed() const { return predictedSeed_.ptr(); }
   const Seed * actualSeed() const { return actualSeed_.ptr(); }
 
-  virtual void predictedSeedIs(const Seed * ps) { setPredictedSeed(ps); }
-  virtual void actualSeedIs(const Seed * as) { setActualSeed(as); }
+  void predictedSeedIs(const Seed * ps) { setPredictedSeed(ps); }
+  void actualSeedIs(const Seed * as) { setActualSeed(as); }
 
-  /* Results */
+  // Output
   const Seed * seedJump() const { return seedJump_.ptr(); }
   Seed * seedJump() { return seedJump_.ptr(); }
 
-  virtual void seedJumpIs(Seed * sj) { setSeedJump(sj); }
+  void seedJumpIs(Seed * sj) { setSeedJump(sj); }
 
 protected:
   explicit JumpBuilder(const String & name) :
     NamedTask(name)
   {}
  
-  void updateJump();
-
   void setPredictedSeed(const Seed * ps) { predictedSeed_ = ps; }
   void setActualSeed(const Seed * as) { actualSeed_ = as; }
   void setSeedJump(Seed * sj) { seedJump_ = sj; }

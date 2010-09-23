@@ -19,6 +19,7 @@
 
 #include "NlProjectionNetwork.h"
 
+#include "JumpConvergenceEvaluator.h"
 #include "../SeedDifferenceEvaluator.h"
 
 #include "LocalNetworkImpl.h"
@@ -35,7 +36,7 @@ public:
   EXPORT_PTRINTERFACE_TYPES(NlLocalNetwork);
 
   virtual void statusIs(Status s);
-  virtual void convergedSlicesInc();
+  void applyConvergenceStatus(); // TODO: bad naming
 
   NlLocalNetwork(SliceMapping * mapping,
                  RemoteState::MpiManager * commMgr,
@@ -44,6 +45,7 @@ public:
                  CorrectionReconstructor::Manager * corrReconMgr,
                  BasisCondensationManager * condensMgr,
                  ProjectionBuildingFactory * projBuildMgr,
+                 JumpConvergenceEvaluator * jumpCvgMgr,
                  NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr);
 
   MainSeedMap activeSeeds() const { return seeds_[activeParity()]; }
@@ -121,6 +123,8 @@ private:
 
   BasisCondensationManager::Ptr condensMgr_;
   ProjectionBuildingFactory::Ptr projBuildMgr_;
+
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
 
   NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
   NoCorrectionManager::Ptr noCorrectionMgr_;

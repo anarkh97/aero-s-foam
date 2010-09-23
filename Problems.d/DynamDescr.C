@@ -40,8 +40,8 @@ extern int verboseFlag;
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
-                                           StaticTimers *_times)
-{ domain = d; bcx = _bcx; vcx = _vcx; times = _times; }
+                                           StaticTimers *_times, GeomState *_geomState)
+{ domain = d; bcx = _bcx; vcx = _vcx; times = _times; geomState = _geomState; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -73,12 +73,18 @@ SDDynamPostProcessor::getKineticEnergy(Vector & vel, SparseMatrix * gMass) {
 }
 
 void
-SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state) {
+SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
+{
+  // PJSA 4-9-08 ext_f passed here may not be for the correct time
   startTimerMemory(times->output, times->memoryOutput);
   
   this->fillBcxVcx(tIndex);
 
-  // PJSA 4-9-08 ext_f passed here may not be for the correct time
+  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
+    double t = double(tIndex)*domain->solInfo().getTimeStep(); // TODO check is this correct for restart?
+    domain->writeRestartFile(t, tIndex, state.getVeloc(), geomState);
+  }
+
   domain->dynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx);
 
@@ -356,11 +362,11 @@ void
 SingleDomainDynamic::getInitState(SysState<Vector> &inState)
 {
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
-  //if(domain->solInfo().order == 1)
-  //  domain->initTempVector(inState.getDisp(), inState.getVeloc(), inState.getPrevVeloc());
-  //else
-    domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
-                          inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
+                        inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  if(domain->solInfo().isNonLin())
+    domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
+                            inState.getPrevVeloc(), bcx, vcx, *geomState);
 
   // if we have a user supplied function, give it the initial state at the sensors
   // .. first update bcx, vcx in case any of the sensors have prescribed displacements
@@ -866,7 +872,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain,bcx,vcx,times);
+  return new SDDynamPostProcessor(domain, bcx, vcx, times, geomState);
 }
 
 void

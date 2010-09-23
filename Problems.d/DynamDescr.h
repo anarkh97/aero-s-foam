@@ -31,10 +31,11 @@ class SDDynamPostProcessor {
     double *bcx;
     double *vcx;
     StaticTimers *times;
+    GeomState *geomState;
 
   public:
     SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
-                         StaticTimers *_times);
+                         StaticTimers *_times, GeomState *_geomState = 0);
 
     ~SDDynamPostProcessor();
 

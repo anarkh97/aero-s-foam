@@ -242,7 +242,7 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
   }
   // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
-  else if(gravflg == 2) {
+  else {
     //Node &nd1 = cs.getNode(nn[0]);
     //Node &nd2 = cs.getNode(nn[1]);
     //Node &nd3 = cs.getNode(nn[2]);
@@ -311,9 +311,6 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
       my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
       mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
     }
-  }
-  else {
-    for(i=0; i<3; ++i) grvfor[i]=0.0;
   }
 
   // set gravity force

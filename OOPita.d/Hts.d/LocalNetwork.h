@@ -31,6 +31,7 @@ public:
   typedef std::deque<NamedTask::Ptr> TaskList;
 
   typedef std::map<HalfSliceRank, Seed::Ptr> SeedMap;
+  typedef std::map<HalfSliceRank, ReducedSeed::Ptr> ReducedSeedMap;
   typedef std::map<SliceRank, Seed::Ptr> MainSeedMap;
  
   // Basic info
@@ -45,7 +46,7 @@ public:
   HalfSliceCount convergedSlices() const { return mapping_->convergedSlices(); }
 
   // Change computational state
-  virtual void convergedSlicesInc() { mapping_->convergedSlicesInc(); }
+  void convergedSlicesInc(HalfSliceCount inc) { mapping_->convergedSlicesInc(inc); }
 
 protected:
   LocalNetwork(SliceMapping * mapping, RemoteState::Manager * commMgr) :

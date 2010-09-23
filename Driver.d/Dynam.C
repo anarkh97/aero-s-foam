@@ -49,7 +49,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
  if(sinfo.zeroInitialDisp == 0) {
    // ... SET INITIAL DISPLACEMENT FROM IDISP IF IDISP6 DOES NOT EXIST
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
-   if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1 ) { // note: always use global num to do this check
+   if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
        filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
@@ -132,10 +132,10 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &d_n,
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()){
+ if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-
+     cerr << "here in Dynam.C writeRestartFile\n";
      int vsize = d_n.size();
      int writeSize = write(fn, &vsize, sizeof(int));
      if(writeSize != sizeof(int))
@@ -290,7 +290,7 @@ d_n.print("comment");
 }
 
 void
-Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
+Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
 {
   // ... COMPUTE AEROELASTIC FORCE 
   getTimers().receiveFluidTime -= getTime();
@@ -312,7 +312,7 @@ Domain::buildAeroelasticForce(Vector& f, PrevFrc& prevFrc, int tIndex, double t,
   }
 
   double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-  f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  aero_f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
   prevFrc.lastFluidLoad = tmpF;
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;
@@ -398,7 +398,7 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
   // Current time stamp
   double time = tIndex*sinfo.getTimeStep();
    
-  if (sinfo.nRestart > 0 && !sinfo.modal) {
+  if(sinfo.nRestart > 0 && !sinfo.modal && probType() != SolverInfo::NonLinDynam) {
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
   }
   

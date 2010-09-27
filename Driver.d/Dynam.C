@@ -67,6 +67,11 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
        if(dof >= 0)
          d_n[dof] = iDis6[i].val;
      }   
+     // also add any modal idisps set under IDISP
+     if(numIDisModal) {
+       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
+       modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
+     }
    }
  }
 

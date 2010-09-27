@@ -543,7 +543,8 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   double beta, gamma, alphaf, alpham;
   getNewmarkParameters(beta, gamma, alphaf, alpham);
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
-    domain->buildAeroelasticForce(rhs, *prevFrc, tIndex, t, gamma, alphaf);
+    domain->buildAeroelasticForce(aeroForce, *prevFrc, tIndex, t, gamma, alphaf);
+    rhs += aeroForce;
   }
 
   // add aerothermal fluxes from fluid dynamics code

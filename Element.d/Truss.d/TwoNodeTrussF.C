@@ -259,7 +259,8 @@ TwoNodeTrussF::getCorotator(CoordSet &cs, double *kel, int, int)
 {
  myCorot = new BarFCorotator(nn[0], nn[1], prop->E, prop->lambda, prop->A, 
 			prop->F_op, prop->F_h, prop->F_d, prop->F_Uc,
-			prop->F_Uf, prop->F_np, prop->F_Nf, preload, cs);
+			prop->F_Uf, prop->F_np, prop->F_Nf, prop->F_dlambda, 
+			prop->Seed, preload, cs);
  return myCorot;
 }
 

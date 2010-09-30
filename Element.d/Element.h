@@ -153,13 +153,13 @@ class StructProp {
 	double F_Uf; // Failure Stretch of the Yarn
      union {
 	double F_h; // Initial Height of the Yarn
-	double F_Estd; // Standard Deviation in E
+	double F_lam_y; // Lambda when E is zero (linear relationship)
 	};
      union {
 	double F_d; // Standard Deviation for the Fibril Inclination
-	double F_lamstd; // Standard Deviation in Lambda
+	double F_Estd; // Standard Deviation in E
 	};
-	double F_dlambda; // Change in Lambda as a function of E
+	double F_dlambda; // Standard Deviation in Lambda
 	int F_np; // Number of Points in Curve Fit for Lambda
 	int F_Nf; // Number of Fibrils in a Yarn
 	int Seed; // Seed for Random Number Generator

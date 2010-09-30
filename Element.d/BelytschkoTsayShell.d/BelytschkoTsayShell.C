@@ -33,7 +33,9 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;
-  ngqpt[0] = 1; ngqpt[1] = 1; ngqpt[2] = 3; // TODO get ngqpt[2] from input file, use 3 as default?
+  ngqpt[0] = 1; 
+  ngqpt[1] = 1; 
+  ngqpt[2] = 3;
   ngqpt4 = 3;
   // hourglass control parameters
   prmhgc[0] = 5e-2;

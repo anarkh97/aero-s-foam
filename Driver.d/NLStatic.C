@@ -1439,7 +1439,7 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
          bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
      }
 
-     if(solInfo().aeroFlag >= 0)
+     if(solInfo().aeroFlag >= 0 && solInfo().newmarkBeta != 0) // for nonlinear explicit aeroPreProcess is called in the main driver
        aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
 
    } else {

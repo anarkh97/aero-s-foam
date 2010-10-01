@@ -11,7 +11,7 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
 				   double _a0, 
 				int _op, double _h, double _d,
 				double _Uc, double _Uf,
-				int _np, int _Nf,
+				int _np, int _Nf, double _dlambda, int _Seed,
                            double _preload, CoordSet& cs)
 {
  n1 = _n1;	// Node 1
@@ -19,26 +19,12 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  op = _op;  // Material Option
  Ucrit = _Uc; // Stretch where Damage Initiates
  Uf = _Uf; // Failure Stretch for the Yarn
-   
  // Assign Material Values
  if (op == 1)
  {
    // Micro-Scale Simulation
    double h, d, lambda_g, ef;
    int np, Nf;
-
-   //long ltime;
-   //int stime;
-   //int rmax, rnd;
-   //double r;
-   //ltime = time(NULL);
-   //stime = (unsigned) ltime/2;
-   //srand(stime);
-   //rmax = RAND_MAX;
-   //rnd = rand();
-   //r = (double) rnd/(double) rmax;
-   //cerr << "stime = " << stime << " rand_max = " << rmax << " rand = " << rnd << " r = " << r << endl;
-   
    ef = _e;
    lambda_g = _lambda;
    h = _h;
@@ -50,6 +36,17 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  else if (op == 2)
  {
    // Define Using Distributions
+   double lam_mean, ey, de, dlambda, lam_slope, lam_intercept;
+   ey = _e;
+   de = _d;
+   // Calculate Young's Modulus
+   em = RndNorm(ey, de);
+   // Calculate Damage Parameter
+   lam_slope = _lambda;
+   lam_intercept = _h;
+   dlambda = _dlambda;
+   lam_mean = lam_slope*em + lam_intercept;
+   lambda = RndNorm(lam_mean, dlambda);
  }
  else
  {
@@ -74,12 +71,12 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  // Initialize Parameters
  damage = 1.0;
  //lambda = 150.0;
-
- // Display Material Values
- //cerr << "Young's Modulus = " << em << endl;
- //cerr << "Lambda = " << lambda << endl;
- //cerr << "Ucrit = " << Ucrit << endl;
- //cerr << "Uf = " << Uf << endl;
+  
+ if (_Seed == -1)
+ {
+   // Display Material Values
+   cerr << "Young's Modulus = " << em << "; Lambda = " << lambda << endl;
+ }
 }
 
 void BarFCorotator::AssignMicroScaleProp(double ef, 
@@ -181,7 +178,7 @@ BarFCorotator::MicroCalcLambda(int np, double *pDamage, double *pU_vec, double l
   lambda = lambda_g; // Initial Guess
   b = Uf - Ucrit;
   tol = 1e-8; // tolerance on newton iteration
-  k_max = 20; // maximum number of newton steps
+  k_max = 2*np; // maximum number of newton steps
   // Netwon steps
   for (k = 0; k < k_max; k++){
     dr = 0; // initialize sum

@@ -108,7 +108,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda;
-#define PRESSURE_MFTT
+//#define PRESSURE_MFTT
 #ifdef PRESSURE_MFTT
       double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
       elementForce *= mfttFactor; // TODO consider
@@ -1439,7 +1439,7 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
          bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
      }
 
-     if(solInfo().aeroFlag >= 0)
+     if(solInfo().aeroFlag >= 0 && solInfo().newmarkBeta != 0) // for nonlinear explicit aeroPreProcess is called in the main driver
        aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
 
    } else {

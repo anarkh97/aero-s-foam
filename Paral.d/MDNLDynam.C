@@ -592,9 +592,8 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     double alpha = 1.0-alphaf;
     if(prevIndex < 0) alpha = 1.0;
 
-    f.linAdd(alpha, *aeroForce, (1.0-alpha), *prevFrc);
-    aero_f.zero();
-    aero_f.linAdd(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+    aero_f.linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+    f += aero_f;
 
     *prevFrc = *aeroForce;
     prevTime = tFluid;

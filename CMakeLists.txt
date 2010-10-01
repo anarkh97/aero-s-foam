@@ -6,14 +6,14 @@ cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
 # pjsa trying to build statically linked executable
-set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
-set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
-set(CMAKE_SHARED_LIBRARY_C_FLAGS)         # remove -fPIC
-set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
-set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
-set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
-SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-SET(CMAKE_EXE_LINKER_FLAGS -static)
+#set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
+#set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
+#set(CMAKE_SHARED_LIBRARY_C_FLAGS)         # remove -fPIC
+#set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
+#set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
+#set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+#SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+#SET(CMAKE_EXE_LINKER_FLAGS -static)
 
 if(AERO)
    MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
@@ -331,7 +331,7 @@ SET_TARGET_PROPERTIES(femexecutable
                       RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
                       RELEASE_OUTPUT_NAME aeros
                       DEBUG_OUTPUT_NAME aeros.debug
-                      LINK_SEARCH_END_STATIC 1
+#                      LINK_SEARCH_END_STATIC 1
                       )
 
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})

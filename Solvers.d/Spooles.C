@@ -17,9 +17,9 @@ extern long totMemSpooles;
 /*************************************************************************************/
 #ifdef USE_SPOOLES
 
-//extern "C" {
+extern "C" {
 #include <MT/spoolesMT.h>
-//}
+}
 
 inline double DVTrace( DV &d )
 {

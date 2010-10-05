@@ -108,7 +108,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda;
-#define PRESSURE_MFTT
+//#define PRESSURE_MFTT
 #ifdef PRESSURE_MFTT
       double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
       elementForce *= mfttFactor; // TODO consider

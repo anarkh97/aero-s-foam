@@ -714,6 +714,9 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
           delete [] plot_data;
         } break;
+        case OutputInfo::ModeError: // don't print warning message since these are
+        case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
+          break;
 
         default:
           success = 0;

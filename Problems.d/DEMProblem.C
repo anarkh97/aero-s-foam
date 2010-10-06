@@ -336,9 +336,11 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
        kel *= (coupledScaling*coupledScaling);
      int *dofs = (*allDOFs)[iele];
 
+/*
      fprintf(stderr,"%d:",iele);
      for(int j=0;j<deme->numDofs();j++) fprintf(stderr," %d",(*allDOFs)[iele][j]);
      for(int j=0;j<deme->numDofs()*deme->numDofs();j++)  { if (j%deme->numDofs()==0) fprintf(stderr,"\n"); fprintf(stderr,"gaga %e %e\n",real(karray[j]),imag(karray[j])); }
+*/
 
      MK->add(kel,dofs);
    }
@@ -366,7 +368,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  fprintf(stderr,"Done assembling.\n");
 
 // Factorize
- K->print();
+// K->print();
 
  K->factor(); 
 
@@ -398,12 +400,12 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  }
  delete[] local;
 
- for(int i=0;i<dsa->size();i++)  fprintf(stderr,"rhs %e %e\n",real(rhs[i]),imag(rhs[i]));
+// for(int i=0;i<dsa->size();i++)  fprintf(stderr,"rhs %e %e\n",real(rhs[i]),imag(rhs[i]));
 
 // Solve
  K->solve(rhs,sol);
 
- for(int i=0;i<dsa->size();i++)  fprintf(stderr,"sol %e %e\n",real(sol[i]),imag(sol[i]));
+// for(int i=0;i<dsa->size();i++)  fprintf(stderr,"sol %e %e\n",real(sol[i]),imag(sol[i]));
 
 // Post-process
 
@@ -488,7 +490,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
       }
   }
   delete[] xyz;
-
+/*
  for(int i=0;i<d->numNode();i++) {
    double xyz[3];
    int nn = i;
@@ -499,6 +501,7 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
                                    real(nodalSol[i][2]),imag(nodalSol[i][2]),
                                    real(nodalSol[i][3]),imag(nodalSol[i][3]));
  }
+*/
 
  delete[] rhs;
  delete[] sol;

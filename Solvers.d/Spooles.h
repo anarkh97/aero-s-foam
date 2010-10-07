@@ -3,11 +3,11 @@
 
 // Spooles include files
 #ifdef USE_SPOOLES
-//extern "C" {
+extern "C" {
   #include <misc.h>
   #include <FrontMtx.h>
   #include <SymbFac.h>
-//}
+}
 #endif
 
 #include <Solvers.d/Solver.h>

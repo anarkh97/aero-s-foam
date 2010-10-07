@@ -93,7 +93,7 @@ void ModalDescr<Scalar>::getInitState(SysState<Vector> &state){
 template <class Scalar>
 void ModalDescr<Scalar>::getConstForce(Vector &constF){
 
-  domain->computeConstantForce(constF); // XXXX should also pass Kuc ?
+  domain->computeConstantForce(fullTmpGrav); 
 /*
   fullTmpGrav.zero();
 
@@ -221,7 +221,8 @@ void ModalDescr<Scalar>::computeExtForce2(SysState<Vector>& state, Vector &extF,
 */
   domain->template computeExtForce4<double>(fullTmpF, fullTmpGrav, time, 0);
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
-    domain->buildAeroelasticForce(fullTmpF, *prevFrc, tIndex, time, gamma, alphaf);
+    domain->buildAeroelasticForce(*aeroF, *prevFrc, tIndex, time, gamma, alphaf);
+    fullTmpF += *aeroF;
   }
   projectForce(fullTmpF, extF);
 }

@@ -65,7 +65,6 @@ void ModalBase::preProcessBase(){
   for(i = 0; i < numDofs; ++i) vcx[i] = 0.0;
 
   domain->make_bc(bc, bcx);
-//  domain->make_constrainedDSA(bc);
   domain->make_constrainedDSA(1);
   domain->makeAllDOFs();
 
@@ -228,12 +227,74 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
   }
   else  {
 
-    int j;
-    for(j = 0; j <  domain->numInitDisp(); ++j)
-      dsp[domain->getInitDisp()[j].nnum + idxOffset] += domain->getInitDisp()[j].val;
+    for(int j = 0; j <  domain->numInitVelocityModal(); ++j) {
+      vel[domain->getInitVelocityModal()[j].nnum + idxOffset] += domain->getInitVelocityModal()[j].val;
+    }
 
-    for(j = 0; j <  domain->numInitVelocity(); ++j)
-      vel[domain->getInitVelocity()[j].nnum + idxOffset] += domain->getInitVelocity()[j].val;
+    for(int j = 0; j <  domain->numInitDispModal(); ++j) {
+      dsp[domain->getInitDispModal()[j].nnum + idxOffset] += domain->getInitDispModal()[j].val;
+    }
+
+    // NEW superimpose the non-modal initial velocity and/or displacement
+    if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
+      double **tPhiM = new double*[numFlex+numRBM];
+      for(int i = 0; i < numFlex+numRBM; ++i)
+        tPhiM[i] = new double[domain->numdof()];
+
+      // construct and assemble full mass matrix
+      AllOps<double> allOps;
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0);
+
+      // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
+      for(int i = 0 ; i<numRBM; ++i)
+        allOps.M->mult(modesRB[i].data(), tPhiM[i]);
+      for(int i = 0 ; i<numFlex; ++i)
+        allOps.M->mult(modesFl[i].data(), tPhiM[numRBM+i]);
+      delete allOps.M;
+
+      if(domain->numInitVelocity() > 0) {
+        filePrint(stderr, " ... Compute initial velocity in generalized coordinate system ... \n"); //PJSA
+        Vector fullVel(domain->numdof(), 0.0);
+        for(int j = 0; j <  domain->numInitVelocity(); ++j) {
+          int k = domain->getCDSA()->locate(domain->getInitVelocity()[j].nnum, 1 << domain->getInitVelocity()[j].dofnum);
+          if(k > -1) fullVel[k] = domain->getInitVelocity()[j].val;
+        }
+        for(int j = 0; j < vel.size(); ++j)
+          for(int k = 0; k < fullVel.size(); ++k)
+            vel[j] += tPhiM[j][k]*fullVel[k];
+      }
+      if(sinfo.zeroInitialDisp == 0) {
+        if(domain->numInitDisp() > 0 && (domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1)) {
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+          Vector fullDsp(domain->numdof(), 0.0);
+          for(int j = 0; j <  domain->numInitDisp(); ++j) {
+            int k = domain->getCDSA()->locate(domain->getInitDisp()[j].nnum, 1 << domain->getInitDisp()[j].dofnum);
+            if(k > -1) fullDsp[k] = domain->getInitDisp()[j].val;
+          }
+          for(int j = 0; j < dsp.size(); ++j)
+            for(int k = 0; k < fullDsp.size(); ++k)
+              dsp[j] += tPhiM[j][k]*fullDsp[k];
+        }
+        if(domain->numInitDisp6() > 0 && ((domain->numInitDisp() == 0 && domain->numInitDispModal() == 0) || sinfo.gepsFlg == 0)) {
+          filePrint(stderr, " ... Compute initial displacement in generalized coordinate system ... \n"); //PJSA
+          Vector fullDsp(domain->numdof(), 0.0);
+          for(int j = 0; j <  domain->numInitDisp6(); ++j) {
+            int k = domain->getCDSA()->locate(domain->getInitDisp6()[j].nnum, 1 << domain->getInitDisp6()[j].dofnum);
+            if(k > -1) fullDsp[k] = domain->getInitDisp6()[j].val;
+          }
+          for(int j = 0; j < dsp.size(); ++j)
+            for(int k = 0; k < fullDsp.size(); ++k)
+              dsp[j] += tPhiM[j][k]*fullDsp[k];
+        }
+      }
+
+      for(int i = 0; i < numFlex+numRBM; ++i)
+        delete [] tPhiM[i];
+      delete [] tPhiM;
+    }
+
+    // TODO consider the case when both idisp and idisp6 are present
   }
 }
 
@@ -289,5 +350,3 @@ void ModalBase::outputModal(SysState<Vector>& state, Vector& extF, int tIndex){
     }
   }
 }
-
-//------------------------------------------------------------------------------

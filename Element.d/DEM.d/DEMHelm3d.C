@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include <algorithm>
 
 #ifndef SANDIA
@@ -187,6 +188,198 @@ public:
  }
 };
 
+static double sidelen(double x, double y, double z) {
+ return sqrt(x*x+y*y+z*z);
+}
+
+
+
+void DGMHelm3d::HelmDGMEMatricesExactFace3d(double *xyz,
+                    int ndir, complex<double> *dirs,
+                    int nldir, complex<double> *ldirs,
+                    double kappa,  int sflag,
+                    double *xsc,  double *xc, int faceindex,
+                    complex<double> *K, complex<double> *L) {
+
+
+ int nfc = nFaceCorners(faceindex);
+ if (nfc>4) {
+   fprintf(stderr,"Face with more than 4 vertices not supported in DGMHelm3d::HelmDGMEMatricesExactFace3d\n"); 
+   exit(-1);
+ }
+
+ int *corner = faceCornerI(faceindex);
+ double (*polyxyz)[3] = new double[nfc+1][3];
+ int orderc = nGeomNodes();
+
+ for(int j=0;j<nfc;j++) {
+   polyxyz[j][0] = xyz[0*orderc+corner[j]];
+   polyxyz[j][1] = xyz[1*orderc+corner[j]];
+   polyxyz[j][2] = xyz[2*orderc+corner[j]];
+ }
+ polyxyz[nfc][0] = polyxyz[0][0];
+ polyxyz[nfc][1] = polyxyz[0][1];
+ polyxyz[nfc][2] = polyxyz[0][2];
+ delete[] corner;
+
+ double xf[3],af[3],bf[3];
+ xf[0] = polyxyz[0][0];
+ xf[1] = polyxyz[0][1];
+ xf[2] = polyxyz[0][2];
+ af[0] = polyxyz[1][0] - xf[0]; 
+ af[1] = polyxyz[1][1] - xf[1]; 
+ af[2] = polyxyz[1][2] - xf[2]; 
+ bf[0] = polyxyz[2][0] - xf[0]; 
+ bf[1] = polyxyz[2][1] - xf[1]; 
+ bf[2] = polyxyz[2][2] - xf[2];
+ double area = 0.5*sidelen(af[1]*bf[2]-af[2]*bf[1],
+                     af[2]*bf[0]-af[0]*bf[2],af[0]*bf[1]-af[1]*bf[0]);
+
+ if (nfc==4) {
+   double cf[3];
+   cf[0] = polyxyz[3][0] - xf[0]; 
+   cf[1] = polyxyz[3][1] - xf[1]; 
+   cf[2] = polyxyz[3][2] - xf[2];
+   area += 0.5*sidelen(cf[1]*bf[2]-cf[2]*bf[1],
+                     cf[2]*bf[0]-cf[0]*bf[2],cf[0]*bf[1]-cf[1]*bf[0]);
+ }
+ double l1 = sidelen(af[0],af[1],af[2]);
+ af[0] /= l1; af[1] /= l1; af[2] /= l1;
+ double alpha = af[0]*bf[0]+af[1]*bf[1]+af[2]*bf[2];
+ bf[0] -= alpha*af[0];
+ bf[1] -= alpha*af[1];
+ bf[2] -= alpha*af[2];
+ double l2 = sidelen(bf[0],bf[1],bf[2]);
+ bf[0] /= l2; bf[1] /= l2; bf[2] /= l2;
+ double nf[3];
+ nf[0] = af[1]*bf[2]-af[2]*bf[1];
+ nf[1] = af[2]*bf[0]-af[0]*bf[2];
+ nf[2] = af[0]*bf[1]-af[1]*bf[0];
+
+ double tau[4][3];
+ double aftau[4];
+ double bftau[4];
+ double lentau[4];
+ for(int e=0;e<nfc;e++) {
+   tau[e][0] = polyxyz[e+1][0]-polyxyz[e][0];
+   tau[e][1] = polyxyz[e+1][1]-polyxyz[e][1];
+   tau[e][2] = polyxyz[e+1][2]-polyxyz[e][2];
+   lentau[e] = sidelen(tau[e][0],tau[e][1],tau[e][2]);
+   tau[e][0] /= lentau[e]; tau[e][1] /= lentau[e]; tau[e][2] /= lentau[e];
+   aftau[e]= tau[e][0]*af[0]+tau[e][1]*af[1]+tau[e][2]*af[2];
+   bftau[e]= tau[e][0]*bf[0]+tau[e][1]*bf[1]+tau[e][2]*bf[2];
+ }
+
+ complex<double> *edir = new complex<double>[ndir*nfc];
+ complex<double> *taudir = new complex<double>[ndir*nfc];
+ for(int j=0;j<nfc;j++)
+   for(int l=0;l<ndir;l++) {
+     edir[l*nfc+j] = exp(dirs[l*3+0]*(polyxyz[j][0]-xc[0])+
+		      dirs[l*3+1]*(polyxyz[j][1]-xc[1])+
+		      dirs[l*3+2]*(polyxyz[j][2]-xc[2]));
+     taudir[l*nfc+j] =
+       dirs[l*3+0]*tau[j][0]+dirs[l*3+1]*tau[j][1]+dirs[l*3+2]*tau[j][2];
+   }
+
+ complex<double> *diraf = new complex<double>[ndir];
+ complex<double> *dirbf = new complex<double>[ndir];
+ for(int l=0;l<ndir;l++) {
+   diraf[l] = dirs[l*3+0]*af[0]+dirs[l*3+1]*af[1]+dirs[l*3+2]*af[2];
+   dirbf[l] = dirs[l*3+0]*bf[0]+dirs[l*3+1]*bf[1]+dirs[l*3+2]*bf[2];
+ }
+
+ complex<double> *eldir = new complex<double>[nldir*nfc];
+ complex<double> *tauldir = new complex<double>[nldir*nfc];
+ for(int j=0;j<nfc;j++)
+   for(int l=0;l<nldir;l++) {
+     eldir[l*nfc+j] = exp(ldirs[l*3+0]*(polyxyz[j][0]-xsc[0])+
+		       ldirs[l*3+1]*(polyxyz[j][1]-xsc[1])+
+		       ldirs[l*3+2]*(polyxyz[j][2]-xsc[2]));
+     tauldir[l*nfc+j] =
+       ldirs[l*3+0]*tau[j][0]+ldirs[l*3+1]*tau[j][1]+ldirs[l*3+2]*tau[j][2];
+
+   }
+
+
+ complex<double> *ldiraf = new complex<double>[nldir];
+ complex<double> *ldirbf = new complex<double>[nldir];
+ for(int l=0;l<nldir;l++) {
+   ldiraf[l] = ldirs[l*3+0]*af[0]+ldirs[l*3+1]*af[1]+ldirs[l*3+2]*af[2];
+   ldirbf[l] = ldirs[l*3+0]*bf[0]+ldirs[l*3+1]*bf[1]+ldirs[l*3+2]*bf[2];
+ }
+
+
+ for(int kk=0;kk<nldir;kk++) {
+   for(int l=0;l<ndir;l++) {
+     complex<double> bt1 = diraf[l]+ldiraf[kk];
+     complex<double> bt2 = dirbf[l]+ldirbf[kk];
+     complex<double> betatau = std::norm(bt1)+std::norm(bt2);
+     if (abs(betatau)<1e-12) {
+       L[(kk)*ndir+l] +=area*edir[l*nfc+0]*eldir[kk*nfc+0];
+     } else {
+
+       for(int e=0;e<nfc;e++) {
+         complex<double> nbetatau =
+           (conj(bt1)* bftau[e] - conj(bt2)* aftau[e]) 
+             / betatau;
+         complex<double> ebetatau =
+            tauldir[kk*nfc+e]+taudir[l*nfc+e];
+         if (abs(ebetatau)<1e-6) {
+           L[kk*ndir+l] += nbetatau*lentau[e]*edir[l*nfc+e]*eldir[kk*nfc+e];
+         } else {
+           int ep1 = (e==nfc-1)?0:e+1;
+           L[kk*ndir+l] += nbetatau/ebetatau * 
+             (edir[l*nfc+ep1]*eldir[kk*nfc+ep1]-edir[l*nfc+e]*eldir[kk*nfc+e]);
+         }
+       }
+     }
+   }
+ }
+
+ for(int kk=0;kk<ndir;kk++) {
+   complex<double> C;
+   if (sflag==0)
+     C=dirs[kk*3+0]*nf[0]+dirs[kk*3+1]*nf[1]+dirs[kk*3+2]*nf[2];
+   else
+     C=dirs[kk*3+0]*nf[0]+dirs[kk*3+1]*nf[1]+dirs[kk*3+2]*nf[2] -
+       complex<double>(0.0,kappa);
+   for(int l=kk;l<ndir;l++) {
+     complex<double> bt1 = diraf[l]+diraf[kk];
+     complex<double> bt2 = dirbf[l]+dirbf[kk];
+     complex<double> betatau = std::norm(bt1)+std::norm(bt2);
+     if (abs(betatau)<1e-12) {
+       K[(kk)*ndir+l] += area*C*edir[kk*nfc+0]*edir[l*nfc+0];
+     } else {
+       for(int e=0;e<nfc;e++) {
+         complex<double> nbetatau =
+           (conj(bt1)* bftau[e] - conj(bt2)* aftau[e]) 
+             / betatau;
+         complex<double> ebetatau =
+            taudir[kk*nfc+e]+taudir[l*nfc+e];
+         if (abs(ebetatau)<1e-6)
+           K[(kk)*ndir+l] += C*nbetatau*lentau[e]*edir[kk*nfc+e]*edir[l*nfc+e];
+         else {
+           int ep1 = (e==nfc-1)?0:e+1;
+           complex<double> CC = C*nbetatau/ebetatau;
+           K [(kk)*ndir+l] += CC*
+             (edir[kk*nfc+ep1]*edir[l*nfc+ep1]-edir[kk*nfc+e]*edir[l*nfc+e]);
+         }
+       }
+     }
+   }
+ }
+
+ delete[] polyxyz;
+ delete[] eldir;
+ delete[] tauldir;
+ delete[] edir;
+ delete[] taudir;
+ delete[] diraf;
+ delete[] dirbf;
+ delete[] ldiraf;
+ delete[] ldirbf;
+}
+
 
 void DGMHelm3d::HelmDGMEMatrices3d(double *xyz,
                     int ndir, complex<double> *dirs,
@@ -194,7 +387,6 @@ void DGMHelm3d::HelmDGMEMatrices3d(double *xyz,
                     double kappa, int *sflags, double *xsc,
                     double *xc,
                     complex<double> *K, complex<double> *L) {
-
  
  int nldir = 0;
  int nf = nFaces();
@@ -202,51 +394,86 @@ void DGMHelm3d::HelmDGMEMatrices3d(double *xyz,
  for(int i=0;i<nldir*ndir;i++) L[i] = 0.0;
  for(int i=0;i<ndir*ndir;i++) K[i] = 0.0;
 
-// int os = ipu->getordersq();
-// double *fxyz = new double[os*3];
-// int *fi = new int[os];
+ int order = o;
+ IsoParamUtils ipu(order);
 
  int c = 0;
  for(int faceindex=1;faceindex<=nf;faceindex++) {
-//     ipu->faceindeces(faceindex,fi);
-//     for(int i=0;i<os;i++) {
-//       fxyz[i*3+0] = xyz[fi[i]*3+0];
-//       fxyz[i*3+1] = xyz[fi[i]*3+1];
-//       fxyz[i*3+2] = xyz[fi[i]*3+2];
-//     }
+     int isFlt = isFlatAndStraight(xyz,faceindex);
+     fprintf(stderr," FLAT  %i   \n",isFlt);
+     
+   if (!isFlt) {
+//#define TIME
+#ifdef TIME
+ struct timespec tp1;
+ struct timespec tp2;
+ clock_gettime(CLOCK_REALTIME, &tp1);
+#endif
      HelmDGMEMatricesFunction3d f(nGeomNodes(),kappa,ndir,dirs,
                   nldirs[faceindex-1],ldirs+c*3,
                   xsc + (faceindex-1)*3, xc, sflags[faceindex-1], faceindex,
                   K,L+c*ndir,0,0,0);
      surfInt3d(xyz, faceindex, f);
-     c += nldirs[faceindex-1];
-     
+#ifdef TIME
+ clock_gettime(CLOCK_REALTIME, &tp2);
+ fprintf(stderr,"gauss: %ld nanoseconds\n",tp2.tv_nsec-tp1.tv_nsec);
+#endif
+
+   } else {
+#ifdef TIME
+ struct timespec tp1;
+ struct timespec tp2;
+ clock_gettime(CLOCK_REALTIME, &tp1);
+#endif
+
+     HelmDGMEMatricesExactFace3d(xyz, ndir, dirs, nldirs[faceindex-1],ldirs+c*3,
+                    kappa,  sflags[faceindex-1],
+                    xsc+(faceindex-1)*3,  xc, faceindex,
+                    K, L+c*ndir);
+
+#ifdef TIME
+ clock_gettime(CLOCK_REALTIME, &tp2);
+ fprintf(stderr,"exact: %ld nanoseconds\n",tp2.tv_nsec-tp1.tv_nsec);
+#endif
+
 /*
-     HelmDGMEeMatrixFunction3d f(kappa,ndir,dirs,xc,K);
-//     ipu.surfSurfInt3d(fxyz, f);
-     ipu.surfInt3d(xyz, faceindex, f);
-     if (nldirs[faceindex-1]!=0) {
-       HelmDGMELMatrixFunction3d f(kappa,ndir,dirs,
-                  nldirs[faceindex-1],ldirs+c*3, xsc + (faceindex-1)*3, xc,
-                  L+c*ndir,faceindex);
-//       ipu.surfSurfInt3d(fxyz, f);
-       ipu.surfInt3d(xyz, faceindex, f);
-       c += nldirs[faceindex-1];
-     }
-     if (sflags[faceindex-1]!=0) {
-       HelmDGMSomEEMatrixFunction3d f(kappa,ndir,dirs,xc,K);
-//       ipu.surfSurfInt3d(fxyz, f);
-       ipu.surfInt3d(xyz, faceindex, f);
-     }
-*/
- }
+      complex<double>* KK = new complex<double>[ndir*ndir];
+      complex<double>* LL = new complex<double>[ndir*nldirs[faceindex-1]];
+      for(int i=0;i<nldirs[faceindex-1]*ndir;i++) LL[i] = 0.0;
+      for(int i=0;i<ndir*ndir;i++) KK[i] = 0.0;
+     HelmDGMEMatricesExactFace3d(xyz, ndir, dirs, nldirs[faceindex-1],ldirs+c*3,
+                    kappa,  sflags[faceindex-1],
+                    xsc+(faceindex-1)*3,  xc, faceindex,
+                    KK, LL);
+      complex<double>* KKK = new complex<double>[ndir*ndir];
+      complex<double>* LLL = new complex<double>[ndir*nldirs[faceindex-1]];
+      for(int i=0;i<nldirs[faceindex-1]*ndir;i++) LLL[i] = 0.0;
+      for(int i=0;i<ndir*ndir;i++) KKK[i] = 0.0;
+     HelmDGMEMatricesFunction3d f(nGeomNodes(),kappa,ndir,dirs,
+                  nldirs[faceindex-1],ldirs+c*3,
+                  xsc + (faceindex-1)*3, xc, sflags[faceindex-1], faceindex,
+                  KKK,LLL,0,0,0);
+     surfInt3d(xyz, faceindex, f);
+ for(int i=0;i<ndir;i++)
+ for(int j=0;j<ndir;j++)
+fprintf(stderr,"%d %d: %e %e  %e %e\n",i+1,j+1,
+real(KK[i*ndir+j]),imag(KK[i*ndir+j]),
+real(KKK[i*ndir+j]),imag(KKK[i*ndir+j]));
+      delete[] KK;
+      delete[] KKK;
+      delete[] LL;
+      delete[] LLL;*/
+   }
+   c += nldirs[faceindex-1];
+ } 
+
  for(int j=0;j<ndir;j++) {
    for(int i=0;i<j;i++)
      K[j*ndir+i] = K[i*ndir+j];
  }
-// delete[] fxyz;
-// delete[] fi;
+
 }
+
 
 class HelmDGMPMLEEMatrixFunction3d : public IntegFunctionV3d {
  double *pmldata;
@@ -546,6 +773,13 @@ void HexDGMElement3d::surftInt3d(double *xyz, int faceindex,
  ipu.surftInt3d(xyz, faceindex, f, gorder);
 }
 
+int HexDGMElement3d::isFlatAndStraight(double *xyz,int faceindex) {
+ IsoParamUtils ipu(o);
+ int flag = ipu.isFlat(xyz,faceindex);
+ for(int ei=0;ei<4;ei++) flag = flag && ipu.isStraight(xyz,faceindex,ei);
+ return flag;
+}
+
 
 TetraDGMElement3d::TetraDGMElement3d(int _n, int* nodenums) {
  init(_n,nodenums);
@@ -608,6 +842,12 @@ void TetraDGMElement3d::surfInt3d(double *xyz, int faceindex,
 void TetraDGMElement3d::surftInt3d(double *xyz, int faceindex,
                         IntegFunctionAt3d &f) {
  fprintf(stderr,"TetraDGMElement3d::surftInt3d is not implemented.\n");
+}
+
+int TetraDGMElement3d::isFlatAndStraight(double *xyz,int faceindex) {
+ IsoParamUtilsTetra ipu(o);
+// return ipu.isFlat(xyz,faceindex);
+ return 0;
 }
 
 
@@ -676,6 +916,12 @@ void PrismDGMElement3d::surftInt3d(double *xyz, int faceindex,
  fprintf(stderr,"PrismDGMElement3d::surftInt3d is not implemented.\n");
 }
 
+int PrismDGMElement3d::isFlatAndStraight(double *xyz,int faceindex) {
+ IsoParamUtilsPrism ipu(o);
+// return ipu.isFlat(xyz,faceindex);
+ return 0;
+}
+
 
 PyramidDGMElement3d::PyramidDGMElement3d(int _n, int* nodenums) {
  o = 2;
@@ -723,6 +969,12 @@ void PyramidDGMElement3d::surfInt3d(double *xyz, int faceindex,
 void PyramidDGMElement3d::surftInt3d(double *xyz, int faceindex,
                         IntegFunctionAt3d &f) {
  fprintf(stderr,"PyramidDGMElement3d::surftInt3d is not implemented.\n");
+}
+
+int PyramidDGMElement3d::isFlatAndStraight(double *xyz,int faceindex) {
+ IsoParamUtilsPyramid ipu(o);
+// return ipu.isFlat(xyz,faceindex);
+ return 0;
 }
 
 

@@ -555,7 +555,6 @@ int main(int argc, char** argv)
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
-
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
 #ifdef SOWER_SURFS
  else {

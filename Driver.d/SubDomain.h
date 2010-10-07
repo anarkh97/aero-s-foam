@@ -379,6 +379,7 @@ class BaseSub : virtual public Domain
   int *wiInternalMap;
   bool isMixedSub;
   int edgeQindex[2];
+  double prev_cscale_factor;
  public:
   Connectivity *nodeToSub;
   void setnodeToSubConnectivity(Connectivity *nTsubConn) { nodeToSub = nTsubConn; }

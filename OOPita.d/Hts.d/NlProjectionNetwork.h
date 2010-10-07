@@ -6,9 +6,9 @@
 #include "HalfTimeSlice.h"
 
 #include "../NlDynamOps.h"
-#include "../OrthoDynamStateBasis.h"
 #include "../DynamStatePlainBasis.h"
 #include "../NearSymmetricSolver.h"
+#include "../BasisTransform.h"
 #include "CorrectionReductor.h"
 #include "CorrectionReconstructor.h"
 
@@ -37,55 +37,6 @@ protected:
 
 private:
   DynamStateBasis::PtrConst commonBasis_;
-};
-
-// Basic Operations
-
-class BasisTransform : public Fwk::PtrInterface<BasisTransform> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(BasisTransform);
-
-  size_t vectorSize() const { return output_->vectorSize(); }
-  
-  virtual void inputValueIs(const DynamStateBasis & iv) = 0; // Pass-by-value
-
-  const DynamStatePlainBasis * output() const { return output_.ptr(); }
-  DynamStatePlainBasis * output() { return output_.ptr(); }
-  void outputIs(DynamStatePlainBasis * o) { output_ = o; }
-
-protected:
-  explicit BasisTransform(size_t vectorSize) :
-    output_(DynamStatePlainBasis::New(vectorSize))
-  {}
-
-private:
-  DynamStatePlainBasis::Ptr output_;
-};
-
-class BasisCopy : public BasisTransform {
-public:
-  EXPORT_PTRINTERFACE_TYPES(BasisCopy);
-
-  explicit BasisCopy(size_t vectorSize) :
-    BasisTransform(vectorSize)
-  {}
-
-  virtual void inputValueIs(const DynamStateBasis & iv);
-};
-
-
-class BasisOrtho : public BasisTransform {
-public:
-  EXPORT_PTRINTERFACE_TYPES(BasisOrtho);
-
-  explicit BasisOrtho(size_t vectorSize, double orthoTol) :
-    BasisTransform(vectorSize), tolerance_(orthoTol)
-  {}
-
-  virtual void inputValueIs(const DynamStateBasis & iv);
-
-private:
-  double tolerance_;
 };
 
 

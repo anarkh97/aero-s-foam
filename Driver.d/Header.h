@@ -43,6 +43,7 @@ static const char*header[] = {
 "Vector DISP6DOF under %s for %s\n%d\n",
 "Vector MODE6 under %s for %s\n%d\n",
 "Scalar AEROFORX under %s for %s\n%d\n",
+"Scalar PRESSURE under %s for %s\n%d\n",//PRESSURE is for HELMHOLTZ also
 "Scalar AEROFORY under %s for %s\n%d\n",
 "Scalar AEROFORZ under %s for %s\n%d\n",
 "Scalar AEROMOMX under %s for %s\n%d\n",

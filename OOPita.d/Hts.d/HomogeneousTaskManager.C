@@ -5,10 +5,10 @@ namespace Pita { namespace Hts {
 class InitialSeed : public NamedTask {
 public:
   void iterationIs(IterationRank i) {
-      targetSeed_->stateIs(initializer_->initialSeed(seedRank_));
-      targetSeed_->iterationIs(i);
-      targetSeed_->statusIs((seedRank_ == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE);
-    }
+    targetSeed_->stateIs(initializer_->initialSeed(seedRank_));
+    targetSeed_->iterationIs(i);
+    targetSeed_->statusIs((seedRank_ == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE);
+  }
 
   InitialSeed(SeedInitializer * initializer, SliceRank seedRank, Seed * targetSeed) :
     NamedTask(buildName(seedRank)),
@@ -31,9 +31,10 @@ private:
 
 HomogeneousTaskManager::HomogeneousTaskManager(LinearLocalNetwork * network,
                                                SeedInitializer * initializer,
+                                               JumpConvergenceEvaluator * jumpCvgMgr,
                                                LinearProjectionNetworkImpl * correctionMgr,
                                                RemoteState::MpiManager * commMgr) :
-  LinearTaskManager(IterationRank(0), network, correctionMgr, commMgr),
+  LinearTaskManager(IterationRank(0), network, jumpCvgMgr, correctionMgr, commMgr),
   initializer_(initializer)
 {
   scheduleIterationZero();
@@ -47,7 +48,6 @@ HomogeneousTaskManager::iterationInc() {
   IterationRank nextIteration = iteration().next();
   
   correctionMgr()->prepareProjection();
-  network()->convergedSlicesInc();
   scheduleNormalIteration();
   updatePhaseIt();
 

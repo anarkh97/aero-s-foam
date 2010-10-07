@@ -165,7 +165,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement()) { // XXXX
-       if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0) {
+       if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //cerr << "adding C to Msolver\n";
          if(mat) mat->add(kel,(*allDOFs)[iele]);
        }
@@ -1634,7 +1634,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j)
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 
@@ -1803,7 +1803,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
       for(int j=0; j<6; ++j) 
-        if(cdofs[j] > -1) force[cdofs[j]] *= domain->cscale_factor;
+        if(cdofs[j] > -1) force[cdofs[j]] *= cscale_factor;
     }
   }
 
@@ -2578,10 +2578,13 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         else
           geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
         break;
+      case OutputInfo::AcousticPressure:
+        tag = time;
+        if (dof==-1) dof = 7;
       case OutputInfo::EigenPressure:
       case OutputInfo::HelmholtzModes:
       case OutputInfo::Helmholtz:
-        if (dof==-1) dof = 7;
+        if (dof==-1) { dof = 7; tag = freq; }
      
         for (int iNode=0; iNode<numNodes; ++iNode) 
           globVal[iNode] = glDisp[iNode][dof];
@@ -2590,14 +2593,15 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
       case OutputInfo::EigenSlosh:
         if (success == 0)  {  
           if (dof == -1) dof = 10;
+          tag = freq;
           for (int iNode=0; iNode<numNodes; ++iNode)
             globVal[iNode] = glDisp[iNode][dof];
           success = 1;
         }
         if(oinfo.nodeNumber == -1)
-          geoSource->outputNodeScalars(i, globVal, numNodes, freq);
+          geoSource->outputNodeScalars(i, globVal, numNodes, tag);
         else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, freq);
+          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, tag);
         break;
       default:
         break;
@@ -2674,6 +2678,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         case OutputInfo::Farfield:
           outputFFP(sol, i);
           break;
+        case OutputInfo::ModeError:
+          break;  // This is handled in Problems.d/DynamDescr.C
         // The remaining cases are not officially supported in manual
         case OutputInfo::ElemToNode:
           if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);

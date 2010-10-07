@@ -12,7 +12,7 @@ class RankDeficientSolver : public Fwk::PtrInterface<RankDeficientSolver> {
 public:
   EXPORT_PTRINTERFACE_TYPES(RankDeficientSolver);
 
-  double tolerance() const { return tolerance_; }
+  double tolerance() const { return tolerance_; } // Relative tolerance
   int matrixSize() const { return matrixSize_; }
   int factorRank() const { return factorRank_; }
   
@@ -22,6 +22,14 @@ public:
     COMPACT = 0,
     PERMUTED
   };
+  
+  enum RescalingStatus {
+    NO_RESCALING,
+    ROW_RESCALING,
+    SYMMETRIC_RESCALING
+  };
+
+  RescalingStatus rescalingStatus() const { return rescalingStatus_; }
   
   Ordering ordering() const { return ordering_; }
   int factorPermutation(int index) const { return factorPermutation_[index] - 1; } // 0 <= index <= factorRank
@@ -38,7 +46,8 @@ protected:
     matrixSize_(0),
     factorRank_(0),
     ordering_(COMPACT),
-    factorPermutation_()
+    factorPermutation_(),
+    rescalingStatus_(NO_RESCALING)
   {}
 
   const double & getTolerance() const { return tolerance_; }
@@ -54,6 +63,7 @@ protected:
   void setFactorRank(int fr) { factorRank_ = fr; }
   void setVectorSize(int vs) { vectorSize_ = vs; }
   void setOrdering(Ordering ps) { ordering_ = ps; }
+  void setRescalingStatus(RescalingStatus rs) { rescalingStatus_ = rs; }
 
 private:
   double tolerance_;
@@ -64,6 +74,8 @@ private:
   Ordering ordering_;
   SimpleBuffer<int> factorPermutation_; // Indices starting at 1 (Fortran convention)
 
+  RescalingStatus rescalingStatus_;
+  
   DISALLOW_COPY_AND_ASSIGN(RankDeficientSolver);
 };
 

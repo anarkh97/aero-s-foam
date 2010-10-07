@@ -40,8 +40,8 @@ extern int verboseFlag;
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
-                                           StaticTimers *_times)
-{ domain = d; bcx = _bcx; vcx = _vcx; times = _times; }
+                                           StaticTimers *_times, GeomState *_geomState)
+{ domain = d; bcx = _bcx; vcx = _vcx; times = _times; geomState = _geomState; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -73,12 +73,18 @@ SDDynamPostProcessor::getKineticEnergy(Vector & vel, SparseMatrix * gMass) {
 }
 
 void
-SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state) {
+SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
+{
+  // PJSA 4-9-08 ext_f passed here may not be for the correct time
   startTimerMemory(times->output, times->memoryOutput);
   
   this->fillBcxVcx(tIndex);
 
-  // PJSA 4-9-08 ext_f passed here may not be for the correct time
+  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
+    double t = double(tIndex)*domain->solInfo().getTimeStep(); // TODO check is this correct for restart?
+    domain->writeRestartFile(t, tIndex, state.getVeloc(), geomState);
+  }
+
   domain->dynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx);
 
@@ -356,11 +362,11 @@ void
 SingleDomainDynamic::getInitState(SysState<Vector> &inState)
 {
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
-  //if(domain->solInfo().order == 1)
-  //  domain->initTempVector(inState.getDisp(), inState.getVeloc(), inState.getPrevVeloc());
-  //else
-    domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
-                          inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
+                        inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  if(domain->solInfo().isNonLin())
+    domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
+                            inState.getPrevVeloc(), bcx, vcx, *geomState);
 
   // if we have a user supplied function, give it the initial state at the sensors
   // .. first update bcx, vcx in case any of the sensors have prescribed displacements
@@ -684,15 +690,33 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
  if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)) { // not required for explicit
-#ifdef USE_MUMPS
-   //cerr << "using mumps for initial acceleration\n";
-   GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
-#else
-   GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
+   switch(domain->solInfo().subtype) {
+     case 0 : {
+         GenSkyMatrix<double> *m = domain->constructSkyMatrix<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+     case 1 : default : {
+         GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
+         m->zeroAll();
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+#ifdef USE_SPOOLES
+       case 8 : {
+         GenSpoolesSolver<double> *m = domain->constructSpooles<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
 #endif
-   m->zeroAll();
-   allOps.Msolver = m;
-   dMat->Msolver = m;
+#ifdef USE_MUMPS
+     case 9 : {
+         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
+         allOps.Msolver = m;
+         dMat->Msolver = m;
+       } break;
+#endif
+   }
  }
 
  Rbm *rigidBodyModes = 0;
@@ -848,7 +872,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain,bcx,vcx,times);
+  return new SDDynamPostProcessor(domain, bcx, vcx, times, geomState);
 }
 
 void
@@ -986,10 +1010,10 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
  
     BinFileHandler modefile("EIGENMODES" ,"r");
     modefile.read(&maxmode, 1);
-    fprintf(stderr,"Number of Modes = %d\n", maxmode);
+    //fprintf(stderr,"Number of Modes = %d\n", maxmode);
  
     modefile.read(&eigsize, 1);
-    fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
+    //fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
  
     eigmodes = new double*[maxmode];
     int i;
@@ -1010,7 +1034,7 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
 // Compute Transpose(Phi_i)*M once and for all
 // ===========================================
  
-   fprintf(stderr, "Preparing Transpose(Phi_i)*M\n");
+   if(verboseFlag) fprintf(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
  
    tPhiM =  new double*[maxmode];
      for (i=0; i<maxmode; ++i)
@@ -1019,8 +1043,8 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
    for (i = 0 ; i<maxmode; ++i)
      M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
                                       //   M*Phi_i instead of transpose(Phi_i)*M
-/*  DEBUG: UNCOMMENT FOR DEBUGGING
-
+//  DEBUG: UNCOMMENT FOR DEBUGGING
+/*
 // Verify that Phi_i*M*Phi_i = 1 and Phi_i*M*Phi_j = 0
 // ===================================================
 
@@ -1036,7 +1060,6 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
      }
      fprintf(stderr,"\n");
    }
-
 */
 
 //  Need eigmodes for error computation
@@ -1089,7 +1112,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
         } break;
 
         case OutputInfo::ModeError: {
-          //fprintf(stderr, "Computing relative error\n");
+          //fprintf(stderr, "Computing relative error, maxmode = %d\n", maxmode);
 
           if(!alfa) {
             alfa = new double[maxmode];
@@ -1121,6 +1144,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 
           for (j=0; j < ersize; ++j) {
             error[j] = d_n[j]-sumalfa[j];
+            //cerr << "j = " << j << ", d_n[j] = " << d_n[j] << ", sumalfa[j] = " << sumalfa[j] << ", error[j] = " << error[j] << endl;
             sumerror += error[j]*error[j];
             sumdisp += d_n[j]*d_n[j];
           }

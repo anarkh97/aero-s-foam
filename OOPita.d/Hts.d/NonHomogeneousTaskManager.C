@@ -26,10 +26,11 @@ private:
 };
 
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * network,
+                                                     JumpConvergenceEvaluator * jumpCvgMgr,
                                                      LinearProjectionNetworkImpl * correctionMgr,
                                                      RemoteState::MpiManager * commMgr,
                                                      DynamState initialCondition) :
-  LinearTaskManager(IterationRank(-1), network, correctionMgr, commMgr),
+  LinearTaskManager(IterationRank(-1), network, jumpCvgMgr, correctionMgr, commMgr),
   initialCondition_(initialCondition)
 {
   schedulePreIteration();
@@ -43,11 +44,9 @@ NonHomogeneousTaskManager::iterationInc() {
   IterationRank nextIteration = iteration().next();
 
   if (nextIteration == IterationRank(0)) {
-    network()->convergedSlicesInc();
     scheduleIterationZero();
   } else {
     correctionMgr()->prepareProjection();
-    network()->convergedSlicesInc();
     scheduleNormalIteration();
   }
 
@@ -59,6 +58,8 @@ void
 NonHomogeneousTaskManager::schedulePreIteration() {
   scheduleBasicSeedInitialization();
   schedulePhase("Affine term precomputation", network()->halfTimeSlices());
+  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
+  schedulePhase("Trivial jump evaluation", network()->activeJumpAssemblers());
 }
 
 void
@@ -90,8 +91,9 @@ NonHomogeneousTaskManager::scheduleBasicSeedInitialization() {
 
 void
 NonHomogeneousTaskManager::scheduleIterationZero() {
-  schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
-  schedulePhase("Jumps", network()->activeJumpProjectors());
+  network()->convergedSlicesInc(HalfSliceCount(1));
+  network()->applyConvergenceStatus();
+
   schedulePhase("Coarse propagation", network()->activeCoarseTimeSlices());
   schedulePhase("Correction synchronization", network()->activeFullCorrectionSyncs());
   schedulePhase("Seed update", network()->activeSeedAssemblers());

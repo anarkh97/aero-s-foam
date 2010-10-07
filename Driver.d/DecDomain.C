@@ -776,7 +776,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 
   // compute current time (or frequency in the case of a helmholtz problem)
   double time;
-  if(geoSource->isShifted() && domain->probType() != SolverInfo::Modal) {
+  if(geoSource->isShifted() && domain->probType() != SolverInfo::Modal      
+                            && domain->probType() != SolverInfo::Dynamic) {
     time = domain->getFrequencyOrWavenumber();
     if(domain->solInfo().doFreqSweep) x = outFreqCount++;
   } else if(domain->probType() == SolverInfo::Modal) {
@@ -825,6 +826,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::TemperatureFirstTimeDerivative:
           if(distState) getPrimalScalar(i, mergedVel, numNodes, 6, time);
           break;
+        case OutputInfo::AcousticPressure:
         case OutputInfo::EigenPressure:
         case OutputInfo::HelmholtzModes:
         case OutputInfo::Helmholtz:

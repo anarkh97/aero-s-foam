@@ -21,7 +21,7 @@ struct OutputInfo {
           StrainPR2,    StrainPR3,   InXForce,    InYForce,    InZForce,
           AXMoment,     AYMoment,    AZMoment,    Energies,    AeroForce,
           EigenPair,    StrainVM,    Helmholtz,   Disp6DOF,    EigenPair6, 
-          AeroXForce,
+          AeroXForce,   AcousticPressure, 
           AeroYForce,   AeroZForce,  AeroXMom,    AeroYMom,    AeroZMom,
           Velocity,     Acceleration,YModulus,    MDensity,    Thicknes,
           ShapeAtt,     ShapeStc,    Composit,    DispX,       DispY,

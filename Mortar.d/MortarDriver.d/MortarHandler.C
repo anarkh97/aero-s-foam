@@ -120,6 +120,8 @@
 #include <Threads.d/PHelper.h>
 #endif
 
+#define DEBUG_ACME_SHELL
+
 // External routines
 extern MortarElement* CreateMortarElement(FaceElement*, CoordSet&, bool);
 
@@ -1098,6 +1100,7 @@ MortarHandler::CreateACMEFFIData()
     int etype = (*FaceElSet)[iFFI]->GetFaceElemType();
     switch(etype)
     {
+     case FaceElement::SHELLQUADFACEL4:
      case FaceElement::QUADFACEL4:
        Slave_face_block_id[iFFI] = 1;
        Master_face_block_id[iFFI]= 5;
@@ -1280,7 +1283,6 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   int num_node_blocks = 1;
 
   int num_analytical_surfs     = 0; // required by ACME 2.2
-  double* face_lofting_factors = 0; // required by ACME 2.2
 
   ContactSearch::ContactNode_Type *node_block_types;
   node_block_types    = new ContactSearch::ContactNode_Type[1];
@@ -1321,14 +1323,35 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   // !! Assume all the face elements in a FaceElemSet are of 2 types: Tri3/Tri6 & Quad4/Quad8 !!
   FaceElemSet* MasterFaceElemSet = GetPtrMasterFaceElemSet(); 
   FaceElemSet* SlaveFaceElemSet  = GetPtrSlaveFaceElemSet(); 
+  double *face_block_shell_thickness = new double[number_face_blocks];
   // -> !!! UNDERLAYING LINEAR FACE ELEMENT TYPE !!!
-  face_block_types[0] = ContactSearch::QUADFACEL4; // slave Quad4 face els
+  if(PtrSlaveEntity->GetIsShellFace()) {
+    face_block_types[0] = ContactSearch::SHELLQUADFACEL4;
+    face_block_shell_thickness[0] = PtrSlaveEntity->GetShellThickness();
+  }
+  else
+    face_block_types[0] = ContactSearch::QUADFACEL4; // slave Quad4 face els
   face_block_types[1] = ContactSearch::QUADFACEL4; // slave Quad8 face els
-  face_block_types[2] = ContactSearch::TRIFACEL3;  // slave Tri3 face els
+  if(PtrSlaveEntity->GetIsShellFace()) {
+    face_block_types[2] = ContactSearch::SHELLTRIFACEL3;
+    face_block_shell_thickness[2] = PtrSlaveEntity->GetShellThickness();
+  }
+  else
+    face_block_types[2] = ContactSearch::TRIFACEL3;  // slave Tri3 face els
   face_block_types[3] = ContactSearch::TRIFACEL3;  // slave Tri6 face els
-  face_block_types[4] = ContactSearch::QUADFACEL4; // master Quad4 face els
+  if(PtrMasterEntity->GetIsShellFace()) {
+    face_block_types[4] = ContactSearch::SHELLQUADFACEL4;
+    face_block_shell_thickness[4] = PtrMasterEntity->GetShellThickness();
+  }
+  else
+    face_block_types[4] = ContactSearch::QUADFACEL4; // master Quad4 face els
   face_block_types[5] = ContactSearch::QUADFACEL4; // master Quad8 face els
-  face_block_types[6] = ContactSearch::TRIFACEL3;  // master Tri3 face els
+  if(PtrMasterEntity->GetIsShellFace()) {
+    face_block_types[6] = ContactSearch::SHELLTRIFACEL3;
+    face_block_shell_thickness[6] = PtrMasterEntity->GetShellThickness();
+   }
+  else
+    face_block_types[6] = ContactSearch::TRIFACEL3;  // master Tri3 face els
   face_block_types[7] = ContactSearch::TRIFACEL3;  // master Tri6 face els
 
   std::map<int, int> nVerticesPerFaceType;
@@ -1336,6 +1359,8 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   nVerticesPerFaceType[ContactSearch::QUADFACEQ8] = 4;
   nVerticesPerFaceType[ContactSearch::TRIFACEL3 ] = 3;
   nVerticesPerFaceType[ContactSearch::TRIFACEQ6 ] = 3;
+  nVerticesPerFaceType[ContactSearch::SHELLQUADFACEL4] = 4;
+  nVerticesPerFaceType[ContactSearch::SHELLTRIFACEL3] = 3;  
 
 #ifdef MORTAR_DEBUG
   std::cerr << " -> In MortarHandler::PerformACMEFFISearch(): " << std::endl;
@@ -1746,11 +1771,13 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
     switch(faceType) {
       case(ContactSearch::QUADFACEL4):
       case(ContactSearch::QUADFACEQ8):
+      case(ContactSearch::SHELLQUADFACEL4):
       case(FaceElement::QUADFACEC12):
         faceTopType = 2;
         break;
       case(ContactSearch::TRIFACEL3):
       case(ContactSearch::TRIFACEQ6):
+      case(ContactSearch::SHELLTRIFACEL3):
       case(FaceElement::TRIFACEC10):
         faceTopType = 4;
         break;
@@ -1790,6 +1817,11 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   filePrint(stderr,"    # nb elem blck         : %d\n",num_element_blocks);
   filePrint(stderr,"    # nb comm part.        : %d\n",num_comm_partners);
 #endif
+
+  int tot_num_faces = 0; 
+  for(int i = 0; i < number_face_blocks; ++i) tot_num_faces += number_faces_per_block[i];
+  double *face_lofting_factors = new double[tot_num_faces];
+  for(int i = 0; i < tot_num_faces; ++i) face_lofting_factors[i] = 0;
 
   // Build ACME search object
 #ifdef MORTAR_DEBUG
@@ -1886,14 +1918,43 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
     exit(error);
   }
 
+  // set face block attributes (shell thickness and lofting
+  for(int i = 0; i < number_face_blocks; i++) {
+    if(face_block_types[i] == ContactSearch::SHELLQUADFACEL4 || face_block_types[i] == ContactSearch::SHELLTRIFACEL3) {
+      double *attributes = new double[number_faces_per_block[i]];
+      for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = face_block_shell_thickness[i];
+      ContactSearch::ContactErrorCode error;
+      error = search_obj->Set_Face_Block_Attributes(ContactSearch::SHELL_THICKNESS, i+1, attributes);
+      if(error) {
+        std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
+        for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
+          std::cerr << search_obj->Error_Message(j) << std::endl;
+        exit(error);
+      }
+
+      for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = 0.5;
+      error = search_obj->Set_Face_Block_Attributes(ContactSearch::LOFTING_FACTOR, i+1, attributes);
+      if(error) {
+        std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
+        for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
+          std::cerr << search_obj->Error_Message(j) << std::endl;
+        exit(error);
+      }
+
+      delete [] attributes;
+    }
+  }
+
   if(node_block_types)       delete [] node_block_types;
   if(ACMENodesCoord)         delete [] ACMENodesCoord;
   if(face_block_types)       delete [] face_block_types;
   if(node_exodus_ids)        delete [] node_exodus_ids;
   if(face_connectivity)      delete [] face_connectivity;
-  if(face_global_ids)        delete [] face_global_ids; 
-  if(face_lofting_factors)   delete [] face_lofting_factors; 
+  if(face_global_ids)        delete [] face_global_ids;
+  if(face_lofting_factors)   delete [] face_lofting_factors;
   if(number_faces_per_block) delete [] number_faces_per_block;
+  if(face_block_shell_thickness) delete [] face_block_shell_thickness;
+
 #endif
 }
 
@@ -2156,8 +2217,8 @@ MortarHandler::set_node_constraints(int numDBC, BCond *dbc)
     }
     else if((it = master_entity->find(glnode)) != master_entity->end()) {
       locnode = it->second + nSlaveNodes;
-      //cerr << " *** WARNING: ContactSearch::Set_Node_Block_Kinematic_Constraints doesn't seem to work when constrained nodes are on master surface.\n"
-      //     << " ***          Try switching master and slave under TIEDSURFACES/CONTACTSURFACES\n";
+      cerr << " *** WARNING: Constrained nodes on master surface\n";
+      //If you see this message, try switching master and slave surface ids under TIEDSURFACES/CONTACTSURFACES
     }
     if(locnode != -1 && (dbc[i].dofnum == 0 || dbc[i].dofnum == 1 || dbc[i].dofnum == 2)) {
       switch(constraints_per_node[locnode]) {
@@ -2316,12 +2377,13 @@ MortarHandler::set_search_options()
     exit(error);
   }
 
-  // Activate normal smoothing
+#ifndef ACME_2_9 
+  // Activate normal smoothing TODO debug why this doesn't work for acme-2.9 
   data[1] = 0.5;
   data[2] = ContactSearch::USE_EDGE_BASED_NORMAL;  // ContactSearch::USE_NODE_NORMAL
   error = search_obj->Set_Search_Option(ContactSearch::NORMAL_SMOOTHING,
-                                       ContactSearch::ACTIVE,
-                                       &data[0]);
+                                        ContactSearch::ACTIVE,
+                                        &data[0]);
 
   if(error) {
     std::cerr << "Error in ACME ContactSearch::Set_Search_Option: error code = " << error << std::endl;   
@@ -2329,6 +2391,7 @@ MortarHandler::set_search_options()
       std::cerr << search_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+#endif
 #endif
 }
 

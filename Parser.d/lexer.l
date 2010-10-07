@@ -601,6 +601,10 @@ TRAIL [a-zA-Z]*
 
 "readinitseed"|"READINITSEED"      { return READINITSEED; }
 
+"jumpcvg"|"JUMPCVG"                { return JUMPCVG; }
+
+"jumpoutput"|"JUMPOUTPUT"          { return JUMPOUTPUT; }
+
 "heat"|"HEAT"                      { return HEAT; }
 
 "mech"|"MECH"                      { return MECH; }
@@ -844,6 +848,8 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
+"AEROEMBED"[a-zA-Z]*|"aeroembede"[a-zA-z]* { return AEROEMBED; }
+
 "displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 
 "displacy"|"DISPLACY"              { yylval.ival = OutputInfo::DispY;  return STRESSID; }
@@ -968,9 +974,11 @@ TRAIL [a-zA-Z]*
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
-"ghelmhol"|"gacoustd"|"pressure"|"gacoupre"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+"ghelmhol"|"gacoustd"|"pressure"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
 
-"GHELMHOL"|"GACOUSTD"|"PRESSURE"|"GACOUPRE"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+"GHELMHOL"|"GACOUSTD"|"PRESSURE"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
+
+"GACOUPRE"|"gacoupre"              { yylval.ival = OutputInfo::AcousticPressure; return STRESSID; }
 
 "aeroforx"|"AEROFORX"              { yylval.ival = OutputInfo::AeroXForce;   return STRESSID; }
 
@@ -1122,6 +1130,8 @@ TRAIL [a-zA-Z]*
 "surftopo"|"surfacetopo"           { return SURFACETOPOLOGY; }
 
 "REVERSE"[a-zA-Z]*|"reverse"[a-zA-Z]* { return REVERSENORMALS; }
+
+"SHELL_THICKNESS"|"shell_thickness" { return SHELLTHICKNESS; }
 
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
 

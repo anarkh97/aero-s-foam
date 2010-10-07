@@ -91,6 +91,9 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     PrioInfo examine(int sub, MultiFront* mf);
 
+    void writeHistory(int fn);
+    void readHistory(int fn);
+
 };
 #endif
 

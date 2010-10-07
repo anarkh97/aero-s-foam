@@ -550,12 +550,14 @@ GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 
             Scalar (*nodeDisp)[11] = (Scalar (*)[11]) disps.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             switch(ndof) {
-              case 6:
-                geoSource->outputNodeVectors6(fileNumber, nodeDisp + outNodes[iNode], 1, time);
-                break;
-              case 3:
-                geoSource->outputNodeVectors(fileNumber, nodeDisp + outNodes[iNode], 1, time);
-                break;
+              case 6: {
+                Scalar (*nodeDisp6)[6] = reinterpret_cast<Scalar (*)[6]>(nodeDisp);
+                geoSource->outputNodeVectors6(fileNumber, nodeDisp6 + outNodes[iNode], 1, time);
+                } break;
+              case 3: {
+                Scalar (*nodeDisp3)[3] = reinterpret_cast<Scalar (*)[3]>(nodeDisp);
+                geoSource->outputNodeVectors(fileNumber, nodeDisp3 + outNodes[iNode], 1, time);
+                } break;
               case 1:
                 geoSource->outputNodeScalars(fileNumber, nodeDisp[outNodes[iNode]]+startdof, 1, time);
                 break;

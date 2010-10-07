@@ -236,7 +236,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
     }
 
     // NEW superimpose the non-modal initial velocity and/or displacement
-    if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp != 0)) {
+    if(domain->numInitVelocity() > 0 || ((domain->numInitDisp() > 0 || domain->numInitDisp6() > 0) && sinfo.zeroInitialDisp == 0)) {
       double **tPhiM = new double*[numFlex+numRBM];
       for(int i = 0; i < numFlex+numRBM; ++i)
         tPhiM[i] = new double[domain->numdof()];

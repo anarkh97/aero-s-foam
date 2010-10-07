@@ -4,16 +4,35 @@
 #include "NlDynamOps.h"
 #include <Math.d/SparseMatrix.h>
 
+#include <cmath>
+
 namespace Pita {
+
+SeedDifferenceEvaluator::SeedDifferenceEvaluator(const Seed * seedDifference, const Seed * referenceSeed) :
+  SharedState<DynamState>::NotifieeConst(seedDifference),
+  referenceSeed_(referenceSeed),
+  firstDiffMagnitude_(-1.0)
+{}
 
 void
 SeedDifferenceEvaluator::onIteration() {
-  double refMagnitude = getRefMagnitude();
-  double magnitudeRatio = (refMagnitude != 0.0) ? (getDiffMagnitude() / refMagnitude) : -1.0;
+  if (seedDifference()->iteration() < IterationRank(0)) {
+    return;
+  }
   
-  // HACK, find a better outlet
+  double refMagnitude = getRefMagnitude();
+  double diffMagnitude = getDiffMagnitude();
+  
+  double magnitudeRatio = (refMagnitude != 0.0) ? (diffMagnitude / refMagnitude) : -1.0;
+ 
+  if (firstDiffMagnitude_ < 0.0) {
+    firstDiffMagnitude_ = diffMagnitude;
+  }
+
+  // TODO: Better outlet
   log() << "JUMP " << seedDifference()->name() << " at iter " << seedDifference()->iteration()
-        << " -- Relative error = " << magnitudeRatio << "\n";
+        << " -- Relative error = " << magnitudeRatio
+        << " -- Ratio with first = " << diffMagnitude / firstDiffMagnitude_  << "\n";
 }
 
 LinSeedDifferenceEvaluator::LinSeedDifferenceEvaluator(const DynamOps * metric, const Seed * seedDifference, const Seed * referenceSeed) :
@@ -23,12 +42,12 @@ LinSeedDifferenceEvaluator::LinSeedDifferenceEvaluator(const DynamOps * metric, 
 
 double
 LinSeedDifferenceEvaluator::getRefMagnitude() const {
-  return energy(metric(), referenceSeed()->state());
+  return std::sqrt(energy(metric(), referenceSeed()->state()));
 }
 
 double
 LinSeedDifferenceEvaluator::getDiffMagnitude() const {
-  return energy(metric(), seedDifference()->state());
+  return std::sqrt(energy(metric(), seedDifference()->state()));
 }
 
 LinSeedDifferenceEvaluator::Manager::Manager(const DynamOps * defaultMetric) :
@@ -57,14 +76,14 @@ NonLinSeedDifferenceEvaluator::getRefMagnitude() const {
 
   double refKineticEnergy = 0.5 * (dualVelocity * referenceSeed()->state().velocity());
   double refInternalEnergy = probDesc_->internalEnergy(referenceSeed()->state().displacement());
-  return refKineticEnergy + refInternalEnergy;
+  return std::sqrt(refKineticEnergy + refInternalEnergy);
 }
 
 double
 NonLinSeedDifferenceEvaluator::getDiffMagnitude() const {
   NlDynamOps::Ptr metric = NlDynamOps::New(probDesc_);
   metric->displacementIs(referenceSeed()->state().displacement(), refTime_);
-  return energy(metric.ptr(), seedDifference()->state());
+  return std::sqrt(energy(metric.ptr(), seedDifference()->state()));
 }
 
 NonLinSeedDifferenceEvaluator::Ptr

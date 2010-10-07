@@ -601,6 +601,10 @@ TRAIL [a-zA-Z]*
 
 "readinitseed"|"READINITSEED"      { return READINITSEED; }
 
+"jumpcvg"|"JUMPCVG"                { return JUMPCVG; }
+
+"jumpoutput"|"JUMPOUTPUT"          { return JUMPOUTPUT; }
+
 "heat"|"HEAT"                      { return HEAT; }
 
 "mech"|"MECH"                      { return MECH; }

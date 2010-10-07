@@ -543,7 +543,8 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   double beta, gamma, alphaf, alpham;
   getNewmarkParameters(beta, gamma, alphaf, alpham);
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
-    domain->buildAeroelasticForce(rhs, *prevFrc, tIndex, t, gamma, alphaf);
+    domain->buildAeroelasticForce(aeroForce, *prevFrc, tIndex, t, gamma, alphaf);
+    rhs += aeroForce;
   }
 
   // add aerothermal fluxes from fluid dynamics code
@@ -615,7 +616,9 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
     M->mult(localTemp, rhs);
     if(C) {
       localTemp.linC(-dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
-      C->multAdd(localTemp, rhs);
+      // this multAdd is not defined... need to use the scalar array version below
+      //C->multAdd(localTemp, rhs);
+      C->multAdd(localTemp.data(), rhs.data());
     }
     rhs.linAdd(dt*dt*beta, residual);
   }
@@ -642,7 +645,7 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     M->mult(localTemp, rhs);
     if(C) {
       localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
-      C->multAdd(localTemp, rhs);
+      C->multAdd(localTemp.data(), rhs.data());
     }
     rhs.linAdd(dt*dt*beta, residual);
   }

@@ -23,7 +23,7 @@ class BarFCorotator : public Corotator {
 			double lambda, double area, 
 			int op, double h, double d,
 			double Uc, double Uf,
-			int np, int Nf,
+			int np, int Nf, double dlambda, int Seed,
 			double preload, CoordSet &cs);
 
      double * getOriginalStiffness() { return (double*) 0; }

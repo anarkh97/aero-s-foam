@@ -58,6 +58,14 @@ public:
       NamedInterface(name),
       task_(taskList)
     {}
+    
+    // Pilfers the contents of taskList
+    Phase(const String & name, std::list<NamedTask::Ptr> & taskList) :
+      NamedInterface(name),
+      task_()
+    {
+      task_.swap(taskList);
+    }
 
     friend class TaskManager;
 
@@ -73,11 +81,16 @@ protected:
     iteration_(initialIter)
   {}
 
-  void setIteration(IterationRank i) { iteration_ = i; }
+  void setIteration(IterationRank iter) { iteration_ = iter; }
 
   typedef Phase::TaskList TaskList;
 
   static Phase * phaseNew(const String & name, const TaskList & taskList) {
+    return new Phase(name, taskList);
+  }
+
+  // Destructive version
+  static Phase * phaseNew(const String & name, TaskList & taskList) {
     return new Phase(name, taskList);
   }
 
@@ -86,7 +99,6 @@ private:
 
   DISALLOW_COPY_AND_ASSIGN(TaskManager);
 };
-
 
 } /* end namespace Pita */
 

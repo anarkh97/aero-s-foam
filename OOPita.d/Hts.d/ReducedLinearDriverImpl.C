@@ -12,7 +12,6 @@
 #include <Driver.d/Domain.h>
 
 #include "../LinearGenAlphaIntegrator.h"
-#include "../HomogeneousGenAlphaIntegrator.h"
 
 #include "../IntegratorPropagator.h"
 #include "../AffineIntegratorPropagator.h"
@@ -38,9 +37,10 @@
 #include "AffineHalfTimeSliceImpl.h"
 
 #include "../ReducedCorrectionPropagatorImpl.h"
-#include "../JumpProjectorImpl.h"
+#include "../JumpProjection.h"
 #include "../UpdatedSeedAssemblerImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
+#include "JumpConvergenceEvaluator.h"
 
 #include "../IntegratorSeedInitializer.h"
 #include "RemoteSeedInitializerServer.h"
@@ -83,8 +83,9 @@ ReducedLinearDriverImpl::solve() {
   /* Summarize problem and parameters */
   log() << "\n"; 
   log() << "Slices = " << mapping_->totalSlices() << ", MaxActive = " << mapping_->maxWorkload() << ", Cpus = " << mapping_->availableCpus() << "\n";
-  log() << "Iteration count = " << lastIteration_ << "\n"; 
   log() << "dt = " << fineTimeStep_ << ", J/2 = " << halfSliceRatio_ << ", Dt = J*dt = " << coarseTimeStep_ << ", Tf = Slices*(J/2)*dt = " << finalTime_ << "\n";
+  log() << "Iteration count = " << lastIteration_ << "\n"; 
+  if (jumpCvgRatio_ >= 0.0) { log() << "Jump-based convergence ratio = " << jumpCvgRatio_ << "\n"; }
   if (noForce_) { log() << "No external force\n"; }
   if (remoteCoarse_) { log() << "Remote coarse time-integration\n"; }
   if (userProvidedSeeds_) { log() << "Reading user-provided initial seed information\n"; }
@@ -144,9 +145,18 @@ ReducedLinearDriverImpl::preprocess() {
 
   /* Other parameters */ 
   lastIteration_ = IterationRank(solverInfo()->pitaMainIterMax);
+  jumpCvgRatio_ = solverInfo()->pitaJumpCvgRatio;
+  if (jumpCvgRatio_ == 0.0) {
+    // Use default value
+    const int schemeOrder = 2;
+    jumpCvgRatio_ = std::pow(static_cast<double>(sliceRatio_.value()), schemeOrder);
+  }
   projectorTolerance_ = solverInfo()->pitaProjTol;
   coarseRhoInfinity_ = 1.0; // TODO Could be set in input file
- 
+
+  /* PITA-specific output */
+  jumpMagnOutput_ = solverInfo()->pitaJumpMagnOutput;
+
   double toc = getTime();
   log() << "\n";
   log() << "Total preprocessing time = " << (toc - tic) / 1000.0 << " s\n";
@@ -189,7 +199,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* HalfTimeSlices and other local tasks */
   HalfTimeSlice::Manager::Ptr hsMgr = buildHalfTimeSliceManager(fineIntegrationParam, postProcessingMgr.ptr(), collector.ptr());
 
-  JumpProjector::Manager::Ptr jpMgr = JumpProjectorImpl::Manager::New(correctionMgr->projectionBasis());
+  JumpProjection::Manager::Ptr jpMgr = JumpProjection::Manager::New(correctionMgr->projectionBasis());
   CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
 
@@ -198,8 +208,19 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
 
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
+  // Convergence criterion
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr;
+  if (jumpCvgRatio_ >= 0.0) {
+    jumpCvgMgr = AccumulatedJumpConvergenceEvaluator::New(jumpCvgRatio_, dynamOps.ptr(), mapping_.ptr(), timeComm);
+  } else {
+    jumpCvgMgr = TrivialConvergenceEvaluator::New(mapping_.ptr());
+  }
+
   /* Jump error */
-  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
+  LinSeedDifferenceEvaluator::Manager::Ptr jumpErrorMgr;
+  if (jumpMagnOutput_) {
+    jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
+  }
 
   /* Local tasks */
   ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
@@ -207,6 +228,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       mapping_.ptr(),
       hsMgr.ptr(),
       reducedCorrMgr.ptr(),
+      jumpCvgMgr.ptr(),
       commMgr.ptr(),
       jumpErrorMgr.ptr());
 
@@ -224,11 +246,13 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
     taskManager = new HomogeneousTaskManager(
         network.ptr(),
         seedInitializer.ptr(),
+        jumpCvgMgr.ptr(),
         correctionMgr.ptr(),
         commMgr.ptr());
   } else {
     taskManager = new NonHomogeneousTaskManager(
         network.ptr(),
+        jumpCvgMgr.ptr(),
         correctionMgr.ptr(),
         commMgr.ptr(),
         initialSeed());

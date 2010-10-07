@@ -1084,10 +1084,14 @@ int IsoParamUtils::isFlat(double *xyz, int faceindex) {
  int flat = 1;
  int i;
  for(i=0;i<ordersq;i++) {
+   double len = sidelen(
+                        xyz[0*orderc+fi[i]] - xf[0],
+                        xyz[1*orderc+fi[i]] - xf[1],
+                        xyz[2*orderc+fi[i]] - xf[2]);
    if (fabs(
         nf[0]*(xyz[0*orderc+fi[i]] - xf[0])+
         nf[1]*(xyz[1*orderc+fi[i]] - xf[1])+
-        nf[2]*(xyz[2*orderc+fi[i]] - xf[2]))>1e-6) {
+        nf[2]*(xyz[2*orderc+fi[i]] - xf[2]))/len > 1e-6) {
           flat = 0;
           break;
    }

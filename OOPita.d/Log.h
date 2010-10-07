@@ -10,7 +10,9 @@ public:
   template <typename T> Log & operator<<(const T & t) {
     Fwk::OStream & os = outStream();
     os << t;
+#ifndef NDEBUG
     os.flush();
+#endif /* NDEBUG */
     return *this;
   }
   

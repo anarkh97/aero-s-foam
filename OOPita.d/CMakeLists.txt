@@ -1,5 +1,6 @@
 ADD_LIBRARY( pitadriver
 AffineIntegratorPropagator.C
+BasisTransform.C
 CommSplitter.C
 ConcurrentBasisManager.C
 DynamStateBasisWrapper.C
@@ -11,13 +12,12 @@ DynamStateReductor.C
 DynamTimeIntegrator.C
 FullCorrectionPropagatorImpl.C
 HierarchicalTimer.C
-HomogeneousGenAlphaIntegrator.C
 IncrementalPostProcessor.C
 InitialSeedTask.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
 JumpBuilder.C
-JumpProjectorImpl.C
+JumpProjection.C
 LeastSquareSolver.C
 LinearDriverImpl.C
 LinearDynamOps.C
@@ -31,12 +31,10 @@ NlDriverImpl.C
 NlDynamOps.C
 NlDynamTimeIntegrator.C
 NlPostProcessor.C
-OrthoDynamStateBasis.C
 PitaNonLinDynam.C
 PivotedCholeskySolver.C
 PostProcessingManager.C
 PostProcessor.C
-ProjectorPropagator.C
 ReducedCorrectionPropagatorImpl.C
 RemoteDynamPropagatorProxy.C
 RemoteDynamPropagatorServer.C
@@ -49,12 +47,16 @@ SimpleSeedInitializer.C
 TimedExecution.C
 UpdatedSeedAssemblerImpl.C
 UserProvidedSeedInitializer.C
-lev2pchol.f
-lev3pchol.f
-blas_dmax_val.f
+Lapack32.d/disnan.f
+Lapack32.d/dlaisnan.f
+Lapack32.d/dpstrf.f
+Lapack32.d/dpstf2.f
+Lapack32.d/dsyequb.f
+Lapack32.d/equilibrateSym.C
 Std.d/AffineBasisCollector.C
 Std.d/HomogeneousTaskManager.C
 Std.d/IncrementalPropagation.C
+Std.d/JumpConvergenceEvaluator.C
 Std.d/LinearPropagatorManager.C
 Std.d/LinearProjectionNetwork.C
 Std.d/NonHomogeneousTaskManager.C
@@ -69,6 +71,7 @@ Hts.d/CorrectionReconstructor.C
 Hts.d/CorrectionReductor.C
 Hts.d/HalfTimeSlice.C
 Hts.d/HomogeneousTaskManager.C
+Hts.d/JumpConvergenceEvaluator.C
 Hts.d/LinearTaskManager.C
 Hts.d/LinearProjectionNetworkImpl.C
 Hts.d/LinearLocalNetwork.C

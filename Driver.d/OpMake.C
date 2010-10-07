@@ -2678,6 +2678,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         case OutputInfo::Farfield:
           outputFFP(sol, i);
           break;
+        case OutputInfo::ModeError:
+          break;  // This is handled in Problems.d/DynamDescr.C
         // The remaining cases are not officially supported in manual
         case OutputInfo::ElemToNode:
           if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);

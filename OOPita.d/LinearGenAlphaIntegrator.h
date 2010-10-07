@@ -8,6 +8,7 @@ template <typename VectorType> class SysState;
 
 namespace Pita {
 
+// Shared implementation
 class LinearGenAlphaIntegrator : public AffineDynamTimeIntegrator {
 public:
   EXPORT_PTRINTERFACE_TYPES(LinearGenAlphaIntegrator);
@@ -22,7 +23,6 @@ public:
   virtual void initialConditionIs(const DynamState & initialState, Seconds initialTime = Seconds(0.0));
   virtual void currentTimeInc(Seconds timeIncrement);
   virtual void timeStepCountInc(TimeStepCount steps = TimeStepCount(1));
-  virtual void externalForceStatusIs(ExternalForceStatus efs);
   
   // Additional methods
   double rhoInfinity() const { return rhoInfinity_; }
@@ -33,11 +33,9 @@ public:
   void currentAccelerationIs(const VectorType & accel) { currentAcceleration_ = accel; }
   const VectorType & externalForce() const { return externalForce_; }
   const VectorType & previousVelocity() const { return previousVelocity_; }
-  const VectorType & aeroForce() const { return aeroForce_; } 
+  const VectorType & aeroForce() const { return aeroForce_; }
 
-  static LinearGenAlphaIntegrator::Ptr New(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param) {
-    return new LinearGenAlphaIntegrator(dOpsMgr, param, NONHOMOGENEOUS);
-  }
+  static LinearGenAlphaIntegrator::Ptr New(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
 
 protected:
   LinearGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param, ExternalForceStatus efs);
@@ -46,8 +44,9 @@ protected:
   ProblemDescriptor * probDesc() { return probDesc_; }
 
   void zeroExternalForce() { externalForce_.zero(); }
-    
-  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); 
+  
+  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState) = 0;  
+  void computeExternalForceImpl(Seconds forceEvalTime, SysState<VectorType> & currentState); 
 
 private:
   void getDynamOps(const GeneralizedAlphaParameter & param);
@@ -75,6 +74,49 @@ private:
   VectorType temp2_;
 };
 
+// Specific implementations with different treatment of the external force
+
+// Standard implementation (Non-nullable external force)
+class LinearGenAlphaIntegratorImpl : public LinearGenAlphaIntegrator {
+public:
+  EXPORT_PTRINTERFACE_TYPES(LinearGenAlphaIntegratorImpl);
+
+  virtual void externalForceStatusIs(ExternalForceStatus efs); // overriden
+  LinearGenAlphaIntegratorImpl(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
+
+protected:
+  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); // overriden
+};
+
+inline
+LinearGenAlphaIntegrator::Ptr
+New(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param) {
+  return new LinearGenAlphaIntegratorImpl(dOpsMgr, param);
+}
+
+// No external force
+class HomogeneousGenAlphaIntegrator : public LinearGenAlphaIntegrator {
+public:
+  EXPORT_PTRINTERFACE_TYPES(HomogeneousGenAlphaIntegrator);
+
+  virtual void externalForceStatusIs(ExternalForceStatus efs); // overriden
+  HomogeneousGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
+
+protected:
+  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); // overriden
+};
+
+// Nullable external force
+class AffineGenAlphaIntegrator : public LinearGenAlphaIntegrator {
+public:
+  EXPORT_PTRINTERFACE_TYPES(AffineGenAlphaIntegrator);
+
+  virtual void externalForceStatusIs(ExternalForceStatus efs); // overriden
+  AffineGenAlphaIntegrator(LinearDynamOps::Manager * dOpsMgr, const GeneralizedAlphaParameter & param);
+
+protected:
+  virtual void computeExternalForce(Seconds forceEvalTime, SysState<VectorType> & currentState); // overriden
+};
 
 } // end namespace Pita
 

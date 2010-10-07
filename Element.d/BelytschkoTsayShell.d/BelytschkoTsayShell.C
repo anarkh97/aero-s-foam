@@ -33,7 +33,9 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;
-  ngqpt[0] = 1; ngqpt[1] = 1; ngqpt[2] = 3;
+  ngqpt[0] = 1; 
+  ngqpt[1] = 1; 
+  ngqpt[2] = 3;
   ngqpt4 = 3;
   // hourglass control parameters
   prmhgc[0] = 5e-2;
@@ -493,3 +495,68 @@ BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 {
   cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
 }
+
+// New include files for Restart file
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+void
+BelytschkoTsayShell::writeHistory(int fn)
+{
+  // ---------------------------------------------------------------
+  // write history variables to file for restart
+  // ---------------------
+  int writeSize;
+
+  writeSize = write(fn, evar1, 5*mgqpt[0]*sizeof(double));
+  if(writeSize != 5*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.1\n");
+
+  writeSize = write(fn, evar2, 5*mgqpt[0]*sizeof(double));
+  if(writeSize != 5*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.2\n");
+
+  writeSize = write(fn, evoit1, 6*mgqpt[0]*sizeof(double));
+  if(writeSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.3\n");
+
+  writeSize = write(fn, evoit2, 6*mgqpt[0]*sizeof(double));
+  if(writeSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.4\n");
+
+  writeSize = write(fn, evoit3, 6*mgqpt[0]*sizeof(double));
+  if(writeSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+}
+
+void
+BelytschkoTsayShell::readHistory(int fn)
+{
+  // ---------------------------------------------------------------
+  // read history variables from file for restart
+  // ---------------------
+  int readSize;
+
+  readSize = read(fn, evar1, 5*mgqpt[0]*sizeof(double));
+  if(readSize != 5*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.1\n");
+
+  readSize = read(fn, evar2, 5*mgqpt[0]*sizeof(double));
+  if(readSize != 5*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.2\n");
+
+  readSize = read(fn, evoit1, 6*mgqpt[0]*sizeof(double));
+  if(readSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.3\n");
+
+  readSize = read(fn, evoit2, 6*mgqpt[0]*sizeof(double));
+  if(readSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.4\n");
+
+  readSize = read(fn, evoit3, 6*mgqpt[0]*sizeof(double));
+  if(readSize != 6*mgqpt[0]*sizeof(double))
+    fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+}
+

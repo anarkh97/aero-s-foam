@@ -11,6 +11,7 @@
 #include "../RemoteStateMpiImpl.h"
 #include "NlProjectionNetwork.h"
 #include "PropagationDataSharing.h"
+#include "JumpConvergenceEvaluator.h"
 
 #include "NlLocalNetwork.h"
 
@@ -28,7 +29,8 @@ public:
 
   NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                 NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
-                PostProcessing::Manager * postProcessingMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
+                PostProcessing::Manager * postProcessingMgr,
+                JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                 double projectorTolerance, IterationRank lastIteration);
 
 protected:
@@ -47,10 +49,11 @@ protected:
   void fillFirstProjectionBasis(); 
   void scheduleProjectionBasisCondensation();
   void scheduleFinePropagation();
-  void scheduleDataSharing();
-  void checkConvergence();
   void schedulePropagatedSeedSynchronization();
   void scheduleJumpEvaluation();
+  void scheduleDataSharing();
+  void scheduleConvergence();
+  void applyConvergence();
   void scheduleProjectionBuilding();
   void scheduleCorrectionPropagation();
   void scheduleSeedUpdate();
@@ -63,6 +66,7 @@ private:
   NlPropagatorManager::Ptr propagatorMgr_;
   SeedInitializer::Ptr seedInitializer_;
   PostProcessing::Manager::Ptr postProcessingMgr_;
+  JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
   NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvaluatorMgr_;
 
   double projectorTolerance_;

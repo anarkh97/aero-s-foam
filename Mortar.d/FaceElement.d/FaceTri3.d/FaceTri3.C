@@ -359,13 +359,13 @@ void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, doubl
     res[j] = gp[0]*xyz[0][j] + gp[1]*xyz[1][j] + (1.0-gp[0]-gp[1])*xyz[2][j]; //using ACME convention
 }
 
-void FaceTri3::getFlLoad(CoordSet&, const InterpPoint &ip, double *flF, double *resF, GeomState*) 
+void FaceTri3::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF, double *resF, GeomState*) 
 {
   const double *gp = ip.xy;
   for(int i = 0; i < 3; ++i) {
-  resF[i]    = gp[0] * flF[i]; //using ACME convention
-  resF[3+i]  = gp[1] * flF[i];
-  resF[6+i] = (1.0-gp[0]-gp[1]) * flF[i];
+    resF[i]    = gp[0] * flF[i]; //using ACME convention
+    resF[3+i]  = gp[1] * flF[i];
+    resF[6+i] = (1.0-gp[0]-gp[1]) * flF[i];
   }
 }
 

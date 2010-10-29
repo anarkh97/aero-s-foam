@@ -58,6 +58,12 @@ public:
                     double kappa, int *sflags, double *xsc,
                     double *xc,
                     complex<double> *K, complex<double> *L);
+ void HelmDGMEMatricesExactFace3d(double *xyz,
+                    int ndir, complex<double> *dirs,
+                    int nldir, complex<double> *ldirs,
+                    double kappa,  int sflag,
+                    double *xsc,  double *xc, int faceindex,
+                    complex<double> *K, complex<double> *L);
  void HelmDGMPMLEMatrices3d(double *xyz,
                     int ndir, complex<double> *dirs,
                     int *nldirs, complex<double> *ldirs,
@@ -98,6 +104,7 @@ public:
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f)=0;
  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f)=0;
  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f)=0;
+ virtual int isFlatAndStraight(double *xyz,int faceindex)=0;
 
 #ifndef SANDIA
  virtual int polyDofType() { return DofSet::Helm; }
@@ -123,6 +130,7 @@ public:
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
+ virtual int isFlatAndStraight(double *xyz,int faceindex);
 };
 
 
@@ -137,6 +145,7 @@ public:
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
+ virtual int isFlatAndStraight(double *xyz,int faceindex);
 };
 
 
@@ -151,6 +160,7 @@ public:
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
+ virtual int isFlatAndStraight(double *xyz,int faceindex);
 };
 
 
@@ -165,6 +175,7 @@ public:
  virtual void volumeInt3d(double *xyz, IntegFunctionV3d &f);
  virtual void surfInt3d(double *xyz, int faceindex, IntegFunctionA3d &f);
  virtual void surftInt3d(double *xyz, int faceindex, IntegFunctionAt3d &f);
+ virtual int isFlatAndStraight(double *xyz,int faceindex);
 };
 
 

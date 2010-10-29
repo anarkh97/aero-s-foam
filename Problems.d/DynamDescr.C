@@ -1010,10 +1010,10 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
  
     BinFileHandler modefile("EIGENMODES" ,"r");
     modefile.read(&maxmode, 1);
-    fprintf(stderr,"Number of Modes = %d\n", maxmode);
+    //fprintf(stderr,"Number of Modes = %d\n", maxmode);
  
     modefile.read(&eigsize, 1);
-    fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
+    //fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
  
     eigmodes = new double*[maxmode];
     int i;
@@ -1034,7 +1034,7 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
 // Compute Transpose(Phi_i)*M once and for all
 // ===========================================
  
-   fprintf(stderr, "Preparing Transpose(Phi_i)*M\n");
+   if(verboseFlag) fprintf(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
  
    tPhiM =  new double*[maxmode];
      for (i=0; i<maxmode; ++i)
@@ -1043,8 +1043,8 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
    for (i = 0 ; i<maxmode; ++i)
      M->mult(eigmodes[i], tPhiM[i]);  // taking advantage of symmetry of M and computing
                                       //   M*Phi_i instead of transpose(Phi_i)*M
-/*  DEBUG: UNCOMMENT FOR DEBUGGING
-
+//  DEBUG: UNCOMMENT FOR DEBUGGING
+/*
 // Verify that Phi_i*M*Phi_i = 1 and Phi_i*M*Phi_j = 0
 // ===================================================
 
@@ -1060,7 +1060,6 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
      }
      fprintf(stderr,"\n");
    }
-
 */
 
 //  Need eigmodes for error computation
@@ -1113,7 +1112,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
         } break;
 
         case OutputInfo::ModeError: {
-          //fprintf(stderr, "Computing relative error\n");
+          //fprintf(stderr, "Computing relative error, maxmode = %d\n", maxmode);
 
           if(!alfa) {
             alfa = new double[maxmode];
@@ -1145,6 +1144,7 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 
           for (j=0; j < ersize; ++j) {
             error[j] = d_n[j]-sumalfa[j];
+            //cerr << "j = " << j << ", d_n[j] = " << d_n[j] << ", sumalfa[j] = " << sumalfa[j] << ", error[j] = " << error[j] << endl;
             sumerror += error[j]*error[j];
             sumdisp += d_n[j]*d_n[j];
           }

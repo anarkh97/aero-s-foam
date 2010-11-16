@@ -341,68 +341,84 @@ subroutine matprd(nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
   ! ====================================
 
   ! initialize
-  matc(:,:)=0.0d0
+! PJSA
+!  matc(:,:)=0.0d0
 
   ! c=a.b
   ! -----
   if((itrna.eq.0).and.(itrnb.eq.0)) then
-     ! check compatibility
-     if(nac/=nbr) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ik.b_kj
-     do index=1, nar
-        do jndex=1, nbc
-           do kndex=1, nac
-              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(kndex,jndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nac/=nbr) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ik.b_kj
+!     do index=1, nar
+!        do jndex=1, nbc
+!           do kndex=1, nac
+!              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(kndex,jndex)
+!           end do
+!        end do
+!     end do
+!
+! PJSA
+    if(nbc.eq.1) then
+      call dgemv('n',nar,nac,1.0d0,mata,nar,matb,nbc,0.0d0,matc,ncc)
+    else
+      call dgemm('n','n',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
+    end if
 
   end if
 
   ! c=aT.b
   ! -------
   if((itrna.eq.1).and.(itrnb.eq.0)) then
-     ! check compatibility
-     if(nar/=nbr) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ki.b_kj
-     do index=1, nac
-        do jndex=1, nbc
-           do kndex=1, nar
-              matc(index,jndex)=matc(index,jndex)+mata(kndex,index)*matb(kndex,jndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nar/=nbr) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ki.b_kj
+!     do index=1, nac
+!        do jndex=1, nbc
+!           do kndex=1, nar
+!              matc(index,jndex)=matc(index,jndex)+mata(kndex,index)*matb(kndex,jndex)
+!           end do
+!        end do
+!     end do
+! PJSA
+    if(nbc.eq.1) then
+      call dgemv('t',nar,nac,1.0d0,mata,nar,matb,nbc,0.0d0,matc,ncc)
+    else
+      call dgemm('t','n',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
+    endif
 
   end if
 
   ! c=a.bT
   ! -------
   if((itrna.eq.0).and.(itrnb.eq.1)) then
-     ! check compatibility
-     if(nac/=nbc) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ik.b_jk
-     do index=1, nar
-        do jndex=1, nbr
-           do kndex=1, nac
-              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(jndex,kndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nac/=nbc) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ik.b_jk
+!     do index=1, nar
+!        do jndex=1, nbr
+!           do kndex=1, nac
+!              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(jndex,kndex)
+!           end do
+!        end do
+!     end do
+! PJSA
+    call dgemm('n','t',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
 
   end if
 
@@ -1548,7 +1564,6 @@ subroutine ludcmp(n, a, indx,d)
 
   ! initialize
   indx(:)=0
-
 
   d=1.0d0
   ! =========================================

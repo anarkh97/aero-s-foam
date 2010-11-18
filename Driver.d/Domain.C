@@ -3599,6 +3599,7 @@ int Domain::processOutput(OutputInfo::Type &type, Vector &d_n, double *bcx, int 
       break;
     case OutputInfo::StrainVM:
       getStressStrain(d_n,bcx,i,STRAINVON, time);
+      break;
     case OutputInfo::HeatFlXX:
       getHeatFlux(d_n, bcx, i, HFLX);
       break;

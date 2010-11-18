@@ -3,6 +3,6 @@
 #SET(CMAKE_INCLUDE_PATH /home/pavery/Codes/Acme/acme-2.9/search;/home/pavery/Codes/Acme/acme-2.9/enforcement)
 #SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/acme-2.9/lib)
 SET(CMAKE_INCLUDE_PATH /home/pavery/Codes/Acme/acme-2.5e/search;/home/pavery/Codes/Acme/acme-2.5e/enforcement;/home/pavery/Codes/Zoltan/include)
-SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/acme-2.5e/lib;/home/pavery/Codes/Zoltan/Obj_generic)
+SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/acme-2.5e/lib;/home/pavery/Codes/Zoltan/Obj_generic;/home/pavery/Codes/GotoBLAS2/lib-single-threaded)
 #SET(CMAKE_INCLUDE_PATH /home/pavery/Codes/Acme/myacme-1.3a/search;/home/pavery/Codes/Acme/myacme-1.3a/enforcement;/home/pavery/Codes/Acme/myacme-1.3a/drivers)
 #SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/myacme-1.3a/lib)

@@ -39,9 +39,9 @@ SuperElement::setPreLoad(double load, int &flg)
 }
 
 void
-SuperElement::setPressure(double pres)
+SuperElement::setPressure(double pres, MFTTData *mftt)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pres);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pres, mftt);
 }
 
 void

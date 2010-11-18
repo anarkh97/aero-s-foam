@@ -4,16 +4,15 @@
 !      type                  name                              arguement
 !      ----                  ----                              ---------
 ! 1.  subroutine          getgamma4nod                  (ecordloc, gamma)
-! 2.  subroutine          getgamma8nod                  (ecurn, gamma)
-! 3.  subroutine          gethgcbmat                    (ecord, hgcbmat)
-! 4.  real(8) function    vol3d8nod                     (ecord)
-! 5.  subroutine          getcijk3d8nod                 (cijk)
+! 2.  real(8) function    vol3d8nod                     (ecord)
+! 3.  subroutine          getcijk3d8nod                 (cijk)
 !
 ! =========================================================================================================
 
 
 
-subroutine getgamma4nod(ecordloc, gamma)
+
+subroutine getgamma4nod(ecordloc, area, gamma, zgamma)
   !=======================================================================
   !  getgamma4nod = compute gamma projection operator of 4 node quad. element
   !
@@ -40,21 +39,19 @@ subroutine getgamma4nod(ecordloc, gamma)
   ! ====================================
   ! subroutine argument
   ! ===================
-  real(8), dimension(2,4), intent(in) :: ecordloc
+  real(8), dimension(3,4), intent(in) :: ecordloc
+  real(8), intent(in) :: area
 
   real(8), dimension(4,1), intent(out) :: gamma
+  real(8), intent(out) :: zgamma
   ! ====================================
   ! local variable
   ! ==============
-  real(8) :: area, const
+  real(8) :: const
   real(8) :: x1,x2,x3,x4
   real(8) :: y1,y2,y3,y4
-
+  integer :: inode
   ! ====================================
-
-  ! initialize
-  gamma(:,:)= 0.0d0
-
 
   ! define components
   x1= ecordloc(1,1)
@@ -67,16 +64,6 @@ subroutine getgamma4nod(ecordloc, gamma)
   y3= ecordloc(2,3)
   y4= ecordloc(2,4)
 
-  ! compute area
-  area= 0.50d0 * ( ( x3 - x1 ) * ( y4 - y2 ) + ( x2 - x4 ) * ( y3 - y1 ) )
-
-  ! check current element configuration
-  if ( area <= 0.0d0 ) then
-     write(*,*) "current element has zero or negative area: getgamma4nod"
-     write(nout5,*) "current element has zero or negative area: getgamma4nod"
-     stop
-  end if
-
   ! compute constant
   const= 1.0d0 / ( 4.0d0 * area )
 
@@ -86,180 +73,14 @@ subroutine getgamma4nod(ecordloc, gamma)
   gamma(3,1)= const*( x4*(y1-y2) + x1*(y2-y4) + x2*(y4-y1) )
   gamma(4,1)= const*( x1*(y3-y2) + x2*(y1-y3) + x3*(y2-y1) )
 
-
+  ! compute gamma_i z_i
+  zgamma= 0.0d0 ! initialize
+  do inode=1, 4
+     zgamma= zgamma + ecordloc(3,inode)*gamma(inode,1)
+  end do
 
   return
 end subroutine getgamma4nod
-
-
-
-
-
-subroutine getgamma8nod(ecurn, gamma)
-  !=======================================================================
-  !  gethgcbmat = compute gamma projector for 3d 8 node hexahedron
-  !
-  !               note:
-  !               ----
-  !               john o holliquist, livermore softwear, 1993, ch. 3
-  !               ls-dyna3d theory manual
-  !
-  !               flanagan and belytschko, NJNME, 1981, vol.17 , pp. 683, eq.(22)
-  !               a univorm strain hexahedron and quadrilateral with orthogonal hourglas control
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  ecurn(3,8) : current element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  gamma(4,8) : gamma progector for 3d 8 node hexahedron
-  !                            
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(3,8), intent(in) :: ecurn
-
-  real(8), dimension(4,8), intent(out) :: gamma
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8), dimension(4,8) :: hgcbase
-  real(8), dimension(3,8) :: hgcbmat
-  real(8) :: vol3d8nod
-  real(8) :: const
-
-  real(8), dimension(8,8) :: temp1
-  real(8), dimension(8,4) :: temp2
-
-  ! loop index
-  integer :: ihgmod, inode
-  ! ====================================
-
-  ! initialize
-  gamma(:,:)= 0.0d0
-
-
-  ! set hourglass base vector: 3.7, table 3.1
-  data hgcbase /1.0d0,1.0d0,1.0d0,1.0d0,  -1.0d0,1.0d0,-1.0d0,-1.0d0, &
-                1.0d0,-1.0d0,-1.0d0,1.0d0,  -1.0d0,-1.0d0,1.0d0,-1.0d0, &
-                1.0d0,-1.0d0,-1.0d0,-1.0d0,  -1.0d0,-1.0d0,1.0d0,1.0d0, &
-                1.0d0,1.0d0,1.0d0,-1.0d0,  -1.0d0,1.0d0,-1.0d0,1.0d0 /
-
-  ! compute b matrix for hourglass control: pp. 683, eq.(22)
-  call gethgcbmat(ecurn, hgcbmat)
-     ! input : ecurn
-     ! output : hgcbmat
-
-  ! compute constant: 8 / volume
-  const= 8.0d0 / vol3d8nod(ecurn)
-
-  ! compute: temp1_IJ= b_iI ^t . x_iJ
-  ! -------
-  call matprd(3,8,1, 3,8,0, 8,8, hgcbmat,ecurn, temp1)
-     ! input : 3,8,1, 3,8,0, 8,8, hgcbmat,ecurn
-     ! output : temp1
-
-  ! compute: temp2_Ia= temp1_IJ . hgcbase_aJ ^t
-  ! -------
-  call matprd(8,8,0, 4,8,1, 8,4, temp1,hgcbase, temp2)
-     ! input : 8,8,0, 4,8,1, 8,4, temp1,hgcbase
-     ! output : temp2
-
-  ! compute gamma progector: gamma_aI= hgcbase_aI - const * temp2_Ia ^t : pp. 686, eq.(49)
-  ! -----------------------
-  do ihgmod=1, 4
-     do inode=1, 8
-
-        gamma(ihgmod,inode)= hgcbase(ihgmod,inode) - const * temp2(inode,ihgmod)
-
-     end do
-  end do
-
-
-
-  return
-end subroutine getgamma8nod
-
-
-
-
-
-subroutine gethgcbmat(ecord, hgcbmat)
-  !=======================================================================
-  !  gethgcbmat = compute b matrix for hourglass control
-  !
-  !               b_iI= a V / a x_iI
-  !
-  !               note:
-  !               ----
-  !               flanagan and belytschko, NJNME, 1981, vol.17 , pp. 683, eq.(22)
-  !               a univorm strain hexahedron and quadrilateral with orthogonal hourglas control
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  ecord(3,8) : element nodal coordinate data
-  !
-  !  output:
-  !  ------
-  !  hgcbmat(3,8) : b matrix for hourglass control
-  !                            
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(3,8), intent(in) :: ecord
-
-  real(8), dimension(3,8), intent(out) :: hgcbmat
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8), dimension(8,8,8) :: cijk
-
-  ! loop index
-  integer :: inode, jnode, knode
-  ! ====================================
-
-  ! initialize
-  hgcbmat(:,:)= 0.0d0
-
-
-  ! set c_ijk value: eq.(20)
-  call getcijk3d8nod(cijk)
-     ! output : cijk
-
-  ! loop over node
-  do inode=1, 8
-     do jnode=1, 8
-        do knode=1, 8
-
-           ! b_xi= y_j * z_k * c_ijk
-           hgcbmat(1,inode)= hgcbmat(1,inode) + ecord(2,jnode) * ecord(3,knode) * cijk(inode,jnode,knode)
-
-           ! b_yi= z_j * x_k * c_ijk
-           hgcbmat(2,inode)= hgcbmat(2,inode) + ecord(3,jnode) * ecord(1,knode) * cijk(inode,jnode,knode)
-
-           ! b_zi= x_j * y_k * c_ijk
-           hgcbmat(3,inode)= hgcbmat(3,inode) + ecord(1,jnode) * ecord(2,knode) * cijk(inode,jnode,knode)
-
-        end do
-     end do
-  end do
-
-
-
-  return
-end subroutine gethgcbmat
-
 
 
 
@@ -506,3 +327,4 @@ subroutine getcijk3d8nod(cijk)
 
   return
 end subroutine getcijk3d8nod
+

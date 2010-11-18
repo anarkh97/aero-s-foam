@@ -22,6 +22,7 @@
       real(8), parameter :: d2r= 0.017453292519940d0  ! degree to radian
       real(8), parameter :: r2d= 57.295779513082320d0 ! radian to degree
       real(8), parameter :: s2ms= 1.0e6 ! sec to micro sec
+      real(8), parameter :: onethird = ( 1.0d0 / 3.0d0 )
 
       ! global variable
       ! ---------------

@@ -1145,10 +1145,12 @@ void GeoSource::setElemTypeMap()
 
 void GeoSource::setElementPressure(int elemNum, double pressure)
 {
+ // FIXME for this to work the element topology and mftt must precede the pressure in the input file
+ // this dependence on ordering should be removed!!!
  prsflg = 1;
 
  if(elemSet[elemNum])
-   elemSet[elemNum]->setPressure(pressure);
+   elemSet[elemNum]->setPressure(pressure, domain->getMFTT());
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
 }

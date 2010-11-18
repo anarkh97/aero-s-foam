@@ -3,7 +3,6 @@
 ! =======================================
 !      type                  name                              arguement
 !      ----                  ----                              ---------
-! 1.  subroutine             pcwlnaprx2d     (optorg,optend,ndatapt,datapt,xval, yval,nflagend) ! piecewise linear approximation 
 ! 2.  subroutine             matprd          (nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
 ! 3.  real(8) function       area            (nvrtx,vrtx)
 ! 4.  logical function       chkcross        (ndime,line1,line2)
@@ -13,7 +12,6 @@
 ! 8.  real(8) function       hsign           (ndime, line, point)
 ! 9.  real(8) function       heavi           (xval)
 ! 10. real(8) function       angle           (ndime,point)
-! 11. subroutine             gettmftval      (opt,prmtft,time,tmax,dist, tmftval,nflagrmv)
 ! 12. subroutine             getparent2d     (optele,nnode,ecord,poinx,poiny, s,t)
 ! 13. subroutine             weightff        (opttyp,optpol,rmax,dist, weight)
 ! 14. subroutine             angfilter       (ndime,crpt, angle)
@@ -36,260 +34,8 @@
 ! 31. subroutine             mlsmmat         (npt,npol,pmat,wmat, mmat)
 ! 32. subroutine             elearea         (optele,ndime,ecord, earea)
 ! 33. subroutine             elehleng0       (optele,ndime,ecord, ehleng)
-! 34. subroutine             elehleng1       (ielem,optele,ndime,nnode,conec,coord, ehleng)
-! 35. subroutine             elehleng1a      (ielem,optele,mnode,ndime,nnode,conec,coord, ehleng)
-! 36. subroutine             getnod2ele      (npoin,nelem,nnode,conec, nod2ele)
 !
 ! =========================================================================================================
-
-
-
-subroutine pcwlnaprx2d(optorg,optend,ndatapt,datapt,xval, yval,nflagend)
-  !=======================================================================
-  !  pcwlnaprx2d= piecewise linear approximation with given data points set
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  optorg : origin option
-  !           optrog=0 : start with (0.0,0.0)
-  !           optorg=1 : start with 1st data point
-  !
-  !  optend : end region approximation option
-  !           optend= 0 : set constant value of the last y data set value
-  !           optend= 1 : extrapolation
-  !
-  !  ndatapt : number of given data points
-  !
-  !  datapt(2,ndatapt) : given data points set
-  !
-  !  xval : current x point coordinate
-  !
-  !  output:
-  !  ------
-  !  yval : corresponding y point coordinate
-  !
-  !  nflagend : out of data flag
-  !             nflagend= -1 : current x value is before given data points set          
-  !             nflagend= 0 : current x value is inside of given data points set
-  !             nflagend= 1 : current x value is out of given data points set
-  !
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: optorg, optend
-  integer, intent(in) :: ndatapt
-  real(8), dimension(2,*) :: datapt
-  real(8), intent(in) :: xval
-
-  real(8), intent(out) :: yval
-  integer, intent(out) :: nflagend
-  ! ====================================
-  ! local variable
-  ! ==============
-  integer :: npoin
-
-  real(8), dimension(:,:), allocatable :: datapt1
-
-  real(8) :: x1, y1, x2, y2
-
-  real(8), dimension(2,2) :: line
-  real(8) :: tpar
-  real(8), dimension(2,1) :: ptcord
-
-  ! loop index
-  integer :: ipoin
-  ! ====================================
-
-  ! initialize
-  yval= 0.0d0
-  nflagend= 0
-
-
-  ! ---------------------------------------------
-  ! set origin
-  if ( optorg == 0 ) then ! (0,0)
-     npoin= ndatapt+1 ! total number of points
-     allocate( datapt1(2,npoin) )
-
-     ! add origin and copy
-     datapt1(1:2,1)= 0.0d0
-     datapt1(1:2,2:npoin)= datapt(1:2,1:ndatapt)
-
-  else if ( optorg == 1 ) then
-     npoin= ndatapt
-     allocate( datapt1(2,npoin) )
-
-     ! copy
-     datapt1(1:2,1:npoin)= datapt(1:2,1:ndatapt)
-
-  end if
-
-
-  ! ---------------------------------------------
-  ! error check
-  if ( npoin < 2 ) then
-     write(*,*) "less than two data points: pcwlnaprx2d"
-     write(nout5,*) "less than two data points: pcwlnaprx2d"
-     stop
-
-  end if
-
-  do ipoin=1, npoin-1
-
-     x1= datapt1(1,ipoin)
-     x2= datapt1(1,ipoin+1)
-
-     ! check paramter
-     if ( x1 >= x2 ) then
-        write(*,*) "can not determine tpar: pcwlnaprx2d"
-        write(nout5,*) "can not determine tpar: pcwlnaprx2d"
-        stop
-
-     end if
-
-  end do
-
-
-  ! ---------------------------------------------
-  ! set tail
-  x1= datapt1(1,npoin-1)
-  y1= datapt1(2,npoin-1)
-
-  x2= datapt1(1,npoin)
-  y2= datapt1(2,npoin)
-
-  ! check range
-  if( x2 <= xval ) then
-
-     if ( optend == 0 ) then ! constant value
-        yval= y2
-
-     else if ( optend == 1 ) then ! extra polation
-        ! set start and end point of line
-        line(1,1)= x1
-        line(2,1)= y1
-
-        line(1,2)= x2
-        line(2,2)= y2
-
-        ! check paramter
-        tpar= (xval-x1)/(x2-x1)
-
-        ! compute corresponding time function value
-        call parline(2,line,tpar, ptcord)
-           ! input : 2(ndime),line,tpar
-           ! output : ptcord
-
-        ! set time function value
-        yval= ptcord(2,1)
-
-     end if
-
-     ! set end flag
-     nflagend= 1
-
-     goto 1000
-
-  end if
-
-
-  ! ---------------------------------------------
-  ! set head
-  x1= datapt1(1,1)
-  y1= datapt1(2,1)
-
-  x2= datapt1(1,2)
-  y2= datapt1(2,2)
-
-  ! check range
-  if( xval < x1 ) then
-
-     if ( optend == 0 ) then
-        yval= y1
-
-     else if ( optend == 1 ) then
-        ! set start and end point of line
-        line(1,1)= x2
-        line(2,1)= y2
-
-        line(1,2)= x1
-        line(2,2)= y1
-
-        ! check paramter
-        tpar= (xval-x2)/(x1-x2)
-
-        ! compute corresponding time function value
-        call parline(2,line,tpar, ptcord)
-           ! input : 2(ndime),line,tpar
-           ! output : ptcord
-
-        ! set time function value
-        yval= ptcord(2,1)
-
-     end if
-
-     ! set end flag
-     nflagend= -1
-
-     goto 1000
-
-  end if
-
-
-  ! ---------------------------------------------
-  ! inside of data
-  do ipoin=1, npoin-1
-
-     x1= datapt1(1,ipoin)
-     y1= datapt1(2,ipoin)
-
-     x2= datapt1(1,ipoin+1)
-     y2= datapt1(2,ipoin+1)
-
-     ! check range
-     if( x1 <= xval .and. xval < x2 ) then
-
-        ! set start and end point of line
-        line(1,1)= x1
-        line(2,1)= y1
-
-        line(1,2)= x2
-        line(2,2)= y2
-
-        ! line paramter
-        tpar= (xval-x1)/(x2-x1)
-
-        ! compute corresponding time function value
-        call parline(2,line,tpar, ptcord)
-           ! input : 2(ndime),line,tpar
-           ! output : ptcord
-
-        ! set time function value
-        yval= ptcord(2,1)
-
-        ! set flag
-        nflagend= 0
-
-        goto 1000
-
-     end if
-
-  end do
-
-
-1000 deallocate(datapt1)
-
-
-
-  return
-end subroutine pcwlnaprx2d
-
-
 
 
 
@@ -341,68 +87,84 @@ subroutine matprd(nar,nac,itrna,nbr,nbc,itrnb,ncr,ncc,mata,matb,matc)
   ! ====================================
 
   ! initialize
-  matc(:,:)=0.0d0
+! PJSA
+!  matc(:,:)=0.0d0
 
   ! c=a.b
   ! -----
   if((itrna.eq.0).and.(itrnb.eq.0)) then
-     ! check compatibility
-     if(nac/=nbr) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ik.b_kj
-     do index=1, nar
-        do jndex=1, nbc
-           do kndex=1, nac
-              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(kndex,jndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nac/=nbr) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ik.b_kj
+!     do index=1, nar
+!        do jndex=1, nbc
+!           do kndex=1, nac
+!              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(kndex,jndex)
+!           end do
+!        end do
+!     end do
+!
+! PJSA
+    if(nbc.eq.1) then
+      call dgemv('n',nar,nac,1.0d0,mata,nar,matb,nbc,0.0d0,matc,ncc)
+    else
+      call dgemm('n','n',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
+    end if
 
   end if
 
   ! c=aT.b
   ! -------
   if((itrna.eq.1).and.(itrnb.eq.0)) then
-     ! check compatibility
-     if(nar/=nbr) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ki.b_kj
-     do index=1, nac
-        do jndex=1, nbc
-           do kndex=1, nar
-              matc(index,jndex)=matc(index,jndex)+mata(kndex,index)*matb(kndex,jndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nar/=nbr) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ki.b_kj
+!     do index=1, nac
+!        do jndex=1, nbc
+!           do kndex=1, nar
+!              matc(index,jndex)=matc(index,jndex)+mata(kndex,index)*matb(kndex,jndex)
+!           end do
+!        end do
+!     end do
+! PJSA
+    if(nbc.eq.1) then
+      call dgemv('t',nar,nac,1.0d0,mata,nar,matb,nbc,0.0d0,matc,ncc)
+    else
+      call dgemm('t','n',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
+    endif
 
   end if
 
   ! c=a.bT
   ! -------
   if((itrna.eq.0).and.(itrnb.eq.1)) then
-     ! check compatibility
-     if(nac/=nbc) then
-        write(*,*) "incompatible matrix size: matprd"
-        write(nout5,*) "incompatible matrix size: matprd"
-        stop
-     end if
-
-     ! matrix mulitiplication: c_ij=a_ik.b_jk
-     do index=1, nar
-        do jndex=1, nbr
-           do kndex=1, nac
-              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(jndex,kndex)
-           end do
-        end do
-     end do
+!     ! check compatibility
+!     if(nac/=nbc) then
+!        write(*,*) "incompatible matrix size: matprd"
+!        write(nout5,*) "incompatible matrix size: matprd"
+!        stop
+!     end if
+!
+!     ! matrix mulitiplication: c_ij=a_ik.b_jk
+!     do index=1, nar
+!        do jndex=1, nbr
+!           do kndex=1, nac
+!              matc(index,jndex)=matc(index,jndex)+mata(index,kndex)*matb(jndex,kndex)
+!           end do
+!        end do
+!     end do
+! PJSA
+    call dgemm('n','t',nar,nbc,nac,1.0d0,mata,nar,matb,nbr,0.0d0,matc,ncr)
 
   end if
 
@@ -977,209 +739,6 @@ end function angle
 
 
 
-subroutine gettmftval(opt,prmtft,time,tmax,dist, tmftval,nflagrmv)
-  !=======================================================================
-  !  gettmftval = get time function value
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  opt : time function type option
-  !
-  !  prmtft(*) : time function parameters
-  !
-  !  time : current time
-  !
-  !  tmax : maximum time
-  !
-  !  dist : diatance
-  !
-  !  output:
-  !  ------
-  !  tmftvalue : return value of time function
-  !
-  !  nflagrmv : boundary condition removing
-  !             nflagrmv= 0 : bc is applied
-  !             nflagrmv= 1 : bc is not applied
-  ! 
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: opt
-  real(8), dimension(*), intent(in) :: prmtft
-  real(8), intent(in) :: time, tmax
-  real(8), intent(in) :: dist
-
-  real(8), intent(out) :: tmftval
-  integer, intent(out) :: nflagrmv
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8), dimension(2,5) :: datapt
-
-  ! ------------------------------------
-  ! piecewise linear function
-  integer :: nflagend
-  ! ------------------------------------
-  ! exponential decay function
-  real(8) :: p0, t0
-  ! ------------------------------------
-  ! remote detonation modelling function
-  real(8) :: vcj, pcj, xdeto, prd
-  real(8) :: tbar, xbar
-  real(8) :: tcj, tdcy, tfctr
-  ! ------------------------------------
-
-
-  ! loop index
-  integer :: idata
-  ! ====================================
-
-  ! initialize
-  tmftval=0.0d0
-  nflagrmv= 0
-
-
-  ! ------------------------------------
-  ! get time function parameter
-
-  ! copy original parameter to new array
-  do idata=1, 5
-     datapt(1,idata)= prmtft(idata)
-     datapt(2,idata)= prmtft(5+idata)
-  end do
-
-  if ( opt == 6 ) then ! exponential decay function
-     t0= datapt(1,1) ! decay time
-
-     p0= datapt(2,1) ! peak pressure
-
-  else if ( opt == 7 ) then ! remote detonation modelling function
-     tfctr= datapt(1,1) ! 1.0 pressure decay time factor
-
-     vcj= datapt(2,1)   ! 2390.0d0 ! m/s
-     pcj= datapt(2,2)   ! 6.20e6 ! Pa
-     xdeto= datapt(2,3) ! 1.520d0 ! m
-     prd= datapt(2,4)   ! residual pressure
-
-  end if
-  ! ------------------------------------
-
-  select case(opt)
-  case(0) ! step function
-     if ( 0.0d0 < time ) tmftval = datapt(2,1)
-
-  case(-5:-1, 1:5) ! piecewise linear function
-     !
-     !  optorg : origin option
-     !           optrog=0 : start with (0.0,0.0)
-     !           optorg=1 : start with 1st data point
-     !
-     !  optend : end region approximation option
-     !           optend= 0 : set constant value of the last y data set value
-     !           optend= 1 : extrapolation
-
-     ! compute piecewise linear approximation
-     call pcwlnaprx2d(0,0,abs(opt),datapt,time, tmftval,nflagend)
-        ! input : 0(optorg),0(optend),abs(opt),datapt,time, tmftval,nflagend
-
-     ! set bc condition removal flag
-     if ( opt < 0 .and. nflagend == 1 ) nflagrmv= 1
-
-  case(6) ! exponential decay function
-
-     !  pressure
-     !     ^
-     !     |
-     ! p0  |*
-     !     |*
-     !     |*
-     !     | *
-     !     |  *
-     !     |   *
-     !     |     *
-     !     |        *
-     !     |              *
-     !     |                      *
-     !     --------------------------|----------> time
-     !                               
-     !                         approx. 3-4 t0
-
-     ! set time function value
-     tmftval= p0 * exp( -time / t0 )
-
-  case(7) ! remote detonation function
-     !
-     !   |----> detonation wave
-     !                                   fe model
-     !                            |<------------------>|
-     !
-     !                            |---> dist
-     !   0------------------------0====================0
-     !   0                        0                    0
-     !   0------------------------0====================0
-     !   |<---------------------->|
-     !             xdeto
-     !
-     !   |----> xbar = xdeto + dist
-     !          tbar = xdeto / vcj + time
-
-     !  pressure
-     !     ^
-     !     |
-     ! pcj |*
-     !     |*
-     !     |*
-     !     | *
-     !     |  *
-     !     |   *
-     !     |     *
-     !     |        * 
-     !     |              *
-     ! prd |                        *         *         *
-     !     |
-     !     -------------------------|----------------------> time
-     !                               
-     !                         approx. 3-4 tdcy
-
-     ! compute real time and distance from the initial detonation point
-     tbar= xdeto / vcj + time
-     xbar= xdeto + dist
-
-     ! compute c-j and decay time
-     tcj= xbar / vcj
-     tdcy= ( tcj / 3.0d0 ) * tfctr
-
-     ! set time function value
-     if ( tbar < tcj ) then
-        tmftval= 0.0d0
-
-     else
-        tmftval= (pcj - prd) * exp( -(tbar-tcj) / tdcy ) + prd
-
-     end if
-
-  case default
-    write(*,*) "unavailable time function type: tmftval"
-    write(nout5,*) "unavailable time function type: tmftval"
-    stop
-
-  end select
-
-
-
-  return
-end subroutine gettmftval
-
-
-
-
-
-
 subroutine getparent2d(optele,nnode,ecord,poinx,poiny, s,t)
   ! =======================================================================
   !  getparent = compute parent coordinate corresponding to current physical coordinate
@@ -1548,7 +1107,6 @@ subroutine ludcmp(n, a, indx,d)
 
   ! initialize
   indx(:)=0
-
 
   d=1.0d0
   ! =========================================
@@ -3165,196 +2723,3 @@ subroutine elehleng0(optele,ndime,ecord, ehleng)
   return
 end subroutine elehleng0
 
-
-
-
-
-subroutine elehleng1(ielem,optele,ndime,nnode,conec,coord, ehleng)
-  !=======================================================================
-  !  elehleng1 = compute average element size h
-  !
-  !              2d triangular, quadrilateral
-  !              3d shell
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !
-  !  output:
-  !  ------
-  !  ehleng : characteristic element h length
-  ! 
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: ielem
-  integer, intent(in) :: optele
-  integer, intent(in) :: ndime, nnode
-  integer, dimension(nnode,*), intent(in) :: conec
-  real(8), dimension(ndime,*), intent(in) :: coord
-
-  real(8), intent(out) :: ehleng
-  ! ====================================
-  ! local variable
-  ! ==============
-  integer, dimension(nnode) :: econc
-  real(8), dimension(ndime,nnode) :: ecord
-
-  ! ====================================
-
-  ! initialize
-  ehleng= 0.0d0
-
-
-  ! get element nodal coordinates and connectivity
-  ! ----------------------------------------------
-  call geteledata1(ielem,ndime,nnode,conec,coord, econc,ecord) 
-     ! input : ielem,ndime,nnode,conec,coord
-     ! output : econc,ecord
-
-  ! compute characteristic h length
-  ! -------------------------------
-  call elehleng0(optele,ndime,ecord, ehleng)
-     ! input : optele,ndime,ecord
-     ! output : hleng
-
-
-
-  return
-end subroutine elehleng1
-
-
-
-
-
-subroutine elehleng1a(ielem,optele,mnode,ndime,nnode,conec,coord, ehleng)
-  !=======================================================================
-  !  elehleng1a = compute average element size h
-  !
-  !              2d triangular, quadrilateral
-  !              3d shell
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !
-  !  output:
-  !  ------
-  !  ehleng : characteristic element h length
-  ! 
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: ielem
-  integer, intent(in) :: optele
-  integer, intent(in) :: mnode, ndime, nnode
-  integer, dimension(mnode,*), intent(in) :: conec
-  real(8), dimension(ndime,*), intent(in) :: coord
-
-  real(8), intent(out) :: ehleng
-  ! ====================================
-  ! local variable
-  ! ==============
-  integer, dimension(nnode) :: econc
-  real(8), dimension(ndime,nnode) :: ecord
-
-  ! ====================================
-
-  ! initialize
-  ehleng= 0.0d0
-
-
-  ! get element nodal coordinates and connectivity
-  ! ----------------------------------------------
-  call geteledata1hybrid(ielem,mnode,ndime,nnode,conec,coord, econc,ecord)
-     ! input : ielem,mnode,ndime,nnode,conec,coord
-     ! output : econc,ecord
-
-  ! compute characteristic h length
-  ! -------------------------------
-  call elehleng0(optele,ndime,ecord, ehleng)
-     ! input : optele,ndime,ecord
-     ! output : hleng
-
-
-
-  return
-end subroutine elehleng1a
-
-
-
-
-
-subroutine getnod2ele(npoin,nelem,nnode,conec, nod2ele)
-  !=======================================================================
-  !  getnod2ele = get node to neighbour elements map
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  npoin : the total number of nodes
-  !
-  !  nelem : the total number of elements
-  !
-  !  nnode : nodes per element
-  !
-  !  conec(nnode,*) : connectivity matrix
-  !
-  !  output:
-  !  ------
-  !  nod2ele(npoin,10) : element list
-  !                      nod2ele(npoin,1:9) : neighbour element list
-  !                      nod2ele(npoin,10) : the total number of neighbour elements
-  ! 
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  integer, intent(in) :: npoin, nelem, nnode
-  integer, dimension(nnode,*), intent(in) :: conec
-
-  integer, dimension(npoin,10), intent(out) :: nod2ele
-  ! ====================================
-  ! local variable
-  ! ==============
-  integer :: jnode
-
-  ! loop index
-  integer :: ielem, inode
-  ! ====================================
-
-  ! initialize
-  nod2ele(:,:)= 0
-
-
-  ! loop over whole elements
-  do ielem=1, nelem
-     do inode=1, nnode
-
-        ! get node number
-        jnode= conec(inode,ielem)
-
-        ! increase counter
-        nod2ele(jnode,10)= nod2ele(jnode,10) + 1
-
-        ! set current element number to coressponding node array
-        nod2ele(jnode,nod2ele(jnode,10))= ielem
-
-     end do
-  end do
-
-
-
-  return
-end subroutine getnod2ele

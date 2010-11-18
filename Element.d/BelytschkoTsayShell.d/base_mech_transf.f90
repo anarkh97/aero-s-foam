@@ -297,14 +297,15 @@ subroutine glb2locnodv(ndime,nnode,ntrndof,locbvec,eglbnodv, elocnodv)
   ! local variable
   ! ==============
   real(8), dimension(ntrndof,1) :: glbvec, locvec
+  real(8), dimension(ntrndof,ntrndof) :: transmat !pjsa
 
   ! loop index
   integer :: inode
   ! ====================================
 
   ! initialize
-  elocnodv(:,:)= 0.0d0
-
+  !elocnodv(:,:)= 0.0d0
+  call gettransmat(ndime,ntrndof,locbvec, transmat) !pjsa
 
   ! convert global to local
   ! -----------------------
@@ -314,7 +315,8 @@ subroutine glb2locnodv(ndime,nnode,ntrndof,locbvec,eglbnodv, elocnodv)
      glbvec(1:ntrndof,1)= eglbnodv(1:ntrndof,inode)
 
      ! convert global to local
-     call glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
+     !call glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
+     call dgemv('n',ntrndof,ntrndof,1.0d0,transmat,ntrndof,glbvec,1,0.0d0,locvec,1) !pjsa
         ! input : ndime,ntrndof,locbvec,glbvec
         ! output : locvec
 
@@ -358,14 +360,15 @@ subroutine loc2glbnodv(ndime,nnode,ntrndof,locbvec,elocnodv, eglbnodv)
   ! local variable
   ! ==============
   real(8), dimension(ntrndof,1) :: glbvec, locvec
+  real(8), dimension(ntrndof,ntrndof) :: transmat
 
   ! loop index
   integer :: inode
   ! ====================================
 
   ! initialize
-  eglbnodv(:,:)= 0.0d0
-
+  !eglbnodv(:,:)= 0.0d0
+  call gettransmat(ndime,ntrndof,locbvec, transmat) !pjsa
 
   ! convert global to local
   ! -----------------------
@@ -375,7 +378,8 @@ subroutine loc2glbnodv(ndime,nnode,ntrndof,locbvec,elocnodv, eglbnodv)
      locvec(1:ntrndof,1)= elocnodv(1:ntrndof,inode)
 
      ! convert local to global
-     call loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
+     !call loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
+     call dgemv('t',ntrndof,ntrndof,1.0d0,transmat,ntrndof,locvec,1,0.0d0,glbvec,1) !pjsa
         ! input : ndime,ntrndof,locbvec,locvec
         ! output : glbvec
 
@@ -435,7 +439,7 @@ subroutine glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
   ! ====================================
 
   ! initialize
-  locvec(:,:)= 0.0d0
+  !locvec(:,:)= 0.0d0
 
   ! get transformation matrix
   call gettransmat(ndime,ntrndof,locbvec, transmat)
@@ -445,7 +449,8 @@ subroutine glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
 
   ! transform vector: global -> local : loc_vec = a * glb_vec
   ! ----------------
-  call matprd(ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec, locvec)
+  !call matprd(ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec, locvec)
+  call dgemv('n',ntrndof,ntrndof,1.0d0,transmat,ntrndof,glbvec,1,0.0d0,locvec,1)
      ! input : ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec
      ! output : locvec
 
@@ -501,7 +506,7 @@ subroutine loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
   ! ====================================
 
   ! initialize
-  glbvec(:,:)= 0.0d0
+  !glbvec(:,:)= 0.0d0
 
   ! get transformation matrix
   call gettransmat(ndime,ntrndof,locbvec, transmat)
@@ -510,7 +515,8 @@ subroutine loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
 
   ! transform vector: local -> global : glb_vec = a^t * loc_vec
   ! ----------------
-  call matprd(ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec, glbvec)
+  !call matprd(ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec, glbvec)
+  call dgemv('t',ntrndof,ntrndof,1.0d0,transmat,ntrndof,locvec,1,0.0d0,glbvec,1)
      ! input : ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec
      ! output : glbvec
 

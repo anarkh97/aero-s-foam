@@ -1572,7 +1572,7 @@ subroutine getdevtens(nndex,tens, devtens)
   ! ====================================
 
   ! initialize
-  devtens(:,:)= 0.0d0
+  !devtens(:,:)= 0.0d0
 
 
   ! compute trace of tensor: strs_kk= tr(strs)
@@ -1583,7 +1583,8 @@ subroutine getdevtens(nndex,tens, devtens)
   do i=1, nndex
      do j=1, nndex
 
-        devtens(i,j)= tens(i,j) - ( 1.0d0 / 3.0d0 ) * trsum * krodelt(i,j)
+        !devtens(i,j)= tens(i,j) - ( 1.0d0 / 3.0d0 ) * trsum * krodelt(i,j)
+        devtens(i,j)= tens(i,j) - onethird * trsum * krodelt(i,j)
 
      end do
   end do
@@ -1687,10 +1688,6 @@ subroutine geteffstrs(nndex,devstrstens, effstrs)
   real(8) :: sprdts, devdev
 
   ! ====================================
-
-  ! initialize
-  effstrs= 0.0d0
-
 
   ! compute scalar product between deviatoric stress tensor
   devdev= sprdts(0,nndex,devstrstens,devstrstens)

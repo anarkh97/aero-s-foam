@@ -368,11 +368,3 @@ void FaceTri3::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF, double
     resF[6+i] = (1.0-gp[0]-gp[1]) * flF[i];
   }
 }
-
-
-
-
-
-
-
-

@@ -1326,7 +1326,6 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
  if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-     cerr << "here in NLStatic.C writeRestartFile\n";
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
      if(writeSize != sizeof(int))

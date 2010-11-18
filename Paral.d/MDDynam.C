@@ -589,17 +589,25 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
                                                   alphaf, iscollocated);
     if(verboseFlag) filePrint(stderr," ... [E] Received fluid forces ...\n");
 
-    if (iscollocated == 0) {
-      if(prevIndex >= 0) {
-        *aeroForce *= (1/gamma);
-        aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
-      }
+    if(sinfo.aeroFlag == 20) {
+      if(prevIndex >= 0)
+        aero_f->linC(0.5,*aeroForce,0.5,*prevFrc);
+      else
+        *aero_f = *aeroForce;
     }
+    else {
+      if (iscollocated == 0) {
+        if(prevIndex >= 0) {
+          *aeroForce *= (1/gamma);
+          aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
+        }
+      }
 
-    double alpha = 1.0-alphaf;
-    if(prevIndex < 0) alpha = 1.0;
+      double alpha = 1.0-alphaf;
+      if(prevIndex < 0) alpha = 1.0;
 
-    aero_f->linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+      aero_f->linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+    }
     f += *aero_f;
 
     *prevFrc = *aeroForce;

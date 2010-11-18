@@ -1641,6 +1641,7 @@ int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
   return numValues;
 }
 
+/* templated and moved to GeoSource.C
 //-----------------------------------------------------------------
 void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
 	 			   int outputSize, double time)//DofSet::max_known_nonL_dof
@@ -1852,7 +1853,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
 
 // NOTE: This works only for 1 cluster
 
-void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize, double time)  {
+void GeoSource::outputNodeVectors(int fileNum, double (*glv)[], int outputSize, double time)  {
 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -2017,7 +2018,7 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSiz
 
   fflush(oinfo[fileNum].filptr);
 }
-
+*/
 //------------------------------------------------------------
 
 void GeoSource::outputNodeScalars(int fileNum, double *data,

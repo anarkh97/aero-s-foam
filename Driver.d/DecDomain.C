@@ -1127,38 +1127,26 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 template<class Scalar>
 void
 GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
-                                      int ndof, double time)//DofSet::max_known_nonL_dof
+                                      int ndof, double time)
 {
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber];
 
   int inode;
   if (ndof == 6) {
-    Scalar (*data)[6] = new Scalar[numNodes][6];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      for (int iDof = 0; iDof < 6; iDof++)
-        data[iNode][iDof] = xyz[iNode][iDof];
-   
     if (oinfo.nodeNumber == -1)
-      geoSource->outputNodeVectors6(fileNumber, data, numNodes, time);
+      geoSource->outputNodeVectors6(fileNumber, xyz, numNodes, time);
     else  {
       inode = oinfo.nodeNumber;
-      geoSource->outputNodeVectors6(fileNumber, data+inode, 1, time);
+      geoSource->outputNodeVectors6(fileNumber, xyz+inode, 1, time);
     }
-    delete [] data;
   }
   else {
-    Scalar (*data)[3] = new Scalar[numNodes][3];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      for (int iDof = 0; iDof < 3; iDof++)
-        data[iNode][iDof] = xyz[iNode][iDof];
     if (oinfo.nodeNumber == -1)
-      geoSource->outputNodeVectors(fileNumber, data, numNodes, time);
+      geoSource->outputNodeVectors(fileNumber, xyz, numNodes, time);
     else  {
       inode = oinfo.nodeNumber;
-      geoSource->outputNodeVectors(fileNumber, data+inode, 1, time);
+      geoSource->outputNodeVectors(fileNumber, xyz+inode, 1, time);
     }
-
-    delete [] data;
   }
 
 }

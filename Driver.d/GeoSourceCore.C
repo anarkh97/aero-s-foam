@@ -1656,7 +1656,7 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
- if (oinfo[fileNum].groupNumber > 0)  {
+ if (oinfo[fileNum].groupNumber > 0) {
 
    if (nodeGroup.find(oinfo[fileNum].groupNumber) == nodeGroup.end())
      return;
@@ -1673,12 +1673,17 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
       it++;
     }
-  }
-  else  {
-    for (int inode = 0; inode < outputSize; inode++)  {
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
-                w, p, xyz[inode][4], w, p, xyz[inode][5]);
+  } else {
+    if (outputSize == 1) {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+              w, p, xyz[0][0], w, p, xyz[0][1], w, p, xyz[0][2], w, p, xyz[0][3],
+              w, p, xyz[0][4], w, p, xyz[0][5]);
+    } else {
+      for (int inode = 0; inode < outputSize; inode++)  {
+        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                  w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
+                  w, p, xyz[inode][4], w, p, xyz[inode][5]);
+      }
     }
   }
 
@@ -1874,14 +1879,18 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize,
       it++;
     }
 
-  }
-  else  {
-    for (int i = 0; i < outputSize; i++) {
-      filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                                       w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
+  } else {
+    if (outputSize == 1) {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+              w, p, glv[0][0], w, p, glv[0][1], w, p, glv[0][2]);
+    } else {
+      for (int i = 0; i < outputSize; i++) {
+        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+                  w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
+      }
     }
+    fflush(oinfo[fileNum].filptr);
   }
-  fflush(oinfo[fileNum].filptr);
 }
 
 void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSize, double time) {
@@ -2036,12 +2045,15 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
       it++;
     }
 
+  } else {
+    if(outputSize == 1) {
+        fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[0]);
+    } else {
+      for (int i = 0; i < outputSize; i++) {
+        filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
+      }
+    }
   }
-  else
-    for (int i = 0; i < outputSize; i++) {
-      filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
-  }
-
   fflush(oinfo[fileNum].filptr);
 }
 

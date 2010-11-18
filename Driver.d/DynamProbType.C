@@ -284,7 +284,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Check stability time step
          if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
-         if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
+         if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); //e Se Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
+         else
+           if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
          if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
@@ -321,7 +323,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        
      // Quasi-Static
      case 1:
-
+       cerr << "here in Driver.d/DynamProbType.C #1\n";
        if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
@@ -815,6 +817,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   VecType &fint = workVec.get_fint();
   VecType &tmp1 = workVec.get_tmp1();
   VecType &tmp2 = workVec.get_tmp2();
+  VecType v_h_p(probDesc->solVecInfo());
+  v_h_p = 0.0;
 
   // project initial displacements in case of rbmfilter
   if(probDesc->getFilterFlag() > 0) {
@@ -925,7 +929,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       d_n.linAdd(dt, v_n_h);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n, a_n, v_n_h); // note: v_n, a_n haven't been updated yet!!!
+      //if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n, a_n, v_n_h); // note: v_n, a_n haven't been updated yet!!!
+      if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
       //t2 -= getTime();
@@ -980,6 +985,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       postProcessor->dynamOutput(n, dynOps, fext, aeroForce, curState);
 
       // Compute midpoint velocity: v^{n+1/2} = v^{n-1/2} + dt*a^n
+      v_h_p = v_n_h;
       v_n_h.linAdd(dt, a_n);
   
       // ... For A5 Algorithm, do one time step back if necessary

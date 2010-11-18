@@ -310,18 +310,29 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
                                             alphaf, iscollocated, geomState);
   if(verboseFlag) filePrint(stderr," ... [E] Received fluid load ...\n");
-  if(iscollocated == 0) {
-    if(prevFrc.lastTIndex >= 0) {
-      tmpF *= (1/gamma);
-      tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
-    }
-  }
 
-  double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-  aero_f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  if(sinfo.aeroFlag == 20) {
+    if(prevFrc.lastTIndex >= 0)
+      aero_f.linC(0.5,tmpF,0.5,prevFrc.lastFluidLoad);
+    else
+      aero_f = tmpF;
+  }
+  else {
+    if(iscollocated == 0) {
+      if(prevFrc.lastTIndex >= 0) {
+        tmpF *= (1/gamma);
+        tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
+      }
+    }
+
+    double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
+    aero_f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  }
   prevFrc.lastFluidLoad = tmpF;
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;
+
+  //fprintf(stderr,"... alpha = %e, gamma = %e, isCollocated = %d ...\n", alpha, gamma, iscollocated);
 
   delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
@@ -638,12 +649,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           }
         }
         break;
-
+       
         case OutputInfo::AeroXForce:  {
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-            data[iNode]  = (xloc >= 0) ? ext_f[xloc] : 0.0;
+            data[iNode]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -653,7 +664,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-            data[iNode]  = (yloc >= 0) ? ext_f[yloc] : 0.0;
+            data[iNode]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -663,7 +674,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-            data[iNode] = (zloc >= 0) ? ext_f[zloc] : 0.0;
+            data[iNode] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -673,7 +684,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-            data[iNode] = (xrot >= 0) ? ext_f[xrot] : 0.0;
+            data[iNode] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -683,7 +694,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-            data[iNode] = (yrot >= 0) ? ext_f[yrot] : 0.0;
+            data[iNode] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -693,7 +704,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-            data[iNode] = (zrot >= 0) ? ext_f[zrot] : 0.0;
+            data[iNode] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;

@@ -36,8 +36,6 @@ public:
   void integrate(int numSteps = 1);
 
 private:
-  void updateForce();
-
   NonLinDynamic & probDesc;
   const NLDynamPostProcessor * postProcessor_;
   GeomState * geomState;
@@ -50,7 +48,6 @@ private:
   VecType residual;
   VecType rhs;
   VecType aeroForce;
-  VecType prev_int_force;
   VecType external_force;
   VecType stateIncr;
   VecType dummyVp; 
@@ -78,7 +75,6 @@ NLDynamTimeIntegrator::setCurrentDisplacement(const NLDynamTimeIntegrator::VecTy
   *geomState = *refState;
   geomState->update(disp);
   *stepState = *geomState;
-  updateForce();
 }
 
 inline void

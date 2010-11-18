@@ -872,15 +872,15 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                              restartinc, sinfo.isCollocated, sinfo.alphas);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters and mode frequencies ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
                    modeData.modes, curState, sinfo.mppFactor);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent mode shapes ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
     }
     else {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters ...\n");
 
       if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
         flExchanger->initRcvParity(1);
@@ -891,7 +891,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
 
       flExchanger->sendDisplacements(curState);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent initial displacements ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
 
       if(sinfo.aeroFlag == 1) { // Ping pong only
         fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");

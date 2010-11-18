@@ -874,7 +874,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    if(aeroAlg < 0)
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
     //t1 -= getTime(); 
 
     if (fourthOrder) {

@@ -3140,8 +3140,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
   }
 #endif
 
-  cerr << "cpuToSub = \n"; cpuToSub->print();
-
   if(domain->solInfo().aeroFlag >= 0 || domain->solInfo().aeroheatFlag >= 0) {
     int numLocSub = 0;
 #ifdef USE_MPI
@@ -3216,7 +3214,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         for(int iR = 0; iR < numElemRanges; ++iR)
           //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
           for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
-            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain
+            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
           }
 
         int nConnects;

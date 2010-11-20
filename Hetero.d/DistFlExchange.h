@@ -18,6 +18,7 @@ template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class VecType> class SysState;
 class DistrGeomState;
+class SurfaceEntity;
 
 #define FL_NEGOT 10000
 
@@ -76,6 +77,10 @@ class DistFlExchanger {
   Vector *pVel; 
 
   CoordSet **cs;      	     // nodes in this mpi process
+
+  //PJSA (Nov.18,2010): FS Communication using Face Elements
+  SurfaceEntity *surface;
+  bool useFaceElem;
 
 public:
 

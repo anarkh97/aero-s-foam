@@ -2296,11 +2296,15 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
     packedEset[iele]->nodes(nodeNumbers);
 
     int iNode;
-    for(iNode=0; iNode<NodesPerElement; ++iNode) {
-      if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    if(packedEset[iele]->getProperty()) {
+      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
+        for(iNode=0; iNode<NodesPerElement; ++iNode) {
+          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+          else
+            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+        }
+      }
     }
 
     if(flag == 1) {
@@ -4028,12 +4032,18 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda)
 {
+  bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+  for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int l = scomm->mpcNb(i);
-    if(mpc[l]->getSource() == mpc::ContactSurfaces) {
-      mu[mpc[l]->lmpcnum] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
-    } else {
-      lambda.push_back( (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0 );
+    if(mpcFlag[l]) {
+      if(mpc[l]->getSource() == mpc::ContactSurfaces) {
+        mu[mpc[l]->lmpcnum] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
+      } else {
+        lambda.push_back( (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0 );
+      }
+      mpcFlag[l] = false;
     }
   }
 }
@@ -5564,8 +5574,17 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f)
 {
+  bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+  for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+
+  vector<double>::iterator it2 = lambda.begin();
+  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
+    int i = scomm->mpcNb(l);
+    if(!mpcFlag[i]) continue;
+/*
   vector<double>::iterator it2 = lambda.begin();
   for(int i = 0; i < numMPC; ++i) {
+*/
     if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
       map<int, double>::iterator it1 = mu.find(mpc[i]->lmpcnum);
       if(it1 != mu.end()) {
@@ -5589,6 +5608,7 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector
         it2++;
       }
     }
+    mpcFlag[i] = false;
   }
 }
 

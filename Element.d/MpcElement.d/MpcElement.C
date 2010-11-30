@@ -218,3 +218,11 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
   if(prop->lagrangeMult)
     f[nterms] = rhs.r_value;
 }
+
+void
+MpcElement::getNLVonMises(Vector& stress, Vector& weight,
+                          GeomState &, CoordSet &, int)
+{
+  stress.zero();
+  weight.zero();
+}

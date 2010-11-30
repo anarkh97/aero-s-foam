@@ -162,8 +162,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   for( ; step < maxStep; ++step) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time+dt, int(double(step+1)/double(maxStep)*100.0));
-    if(verboseFlag) cerr << endl;
+    if(aeroAlg < 0)
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time+dt, int(double(step+1)/double(maxStep)*100.0));
 
     if(aeroAlg == 5) {
       if(parity==0) //copy current state to backup state

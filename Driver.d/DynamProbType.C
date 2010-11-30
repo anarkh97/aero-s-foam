@@ -624,7 +624,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    char ch[4] = { '|', '/', '-', '\\' };
 
    for( ; t < tmax-0.01*dt; t += dt) {
-     filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+     if(aeroAlg < 0)
+       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
 
      // ... For Aeroelastic A5 Algorithm, Do restore and backup here
      if(aeroAlg == 5) probDesc->a5StatusRevise(parity, curState, *bkState);

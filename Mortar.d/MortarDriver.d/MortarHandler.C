@@ -2217,7 +2217,7 @@ MortarHandler::set_node_constraints(int numDBC, BCond *dbc)
     }
     else if((it = master_entity->find(glnode)) != master_entity->end()) {
       locnode = it->second + nSlaveNodes;
-      cerr << " *** WARNING: Constrained nodes on master surface\n";
+      //cerr << " *** WARNING: Constrained nodes on master surface\n";
       //If you see this message, try switching master and slave surface ids under TIEDSURFACES/CONTACTSURFACES
     }
     if(locnode != -1 && (dbc[i].dofnum == 0 || dbc[i].dofnum == 1 || dbc[i].dofnum == 2)) {

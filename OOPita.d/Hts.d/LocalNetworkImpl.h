@@ -19,6 +19,7 @@
 #include "SliceMapping.h"
 
 #include <map>
+#include <deque>
 #include <cassert>
 
 namespace Pita { namespace Hts {

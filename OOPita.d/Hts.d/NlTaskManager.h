@@ -10,7 +10,7 @@
 #include "../SeedDifferenceEvaluator.h"
 #include "../RemoteStateMpiImpl.h"
 #include "NlProjectionNetwork.h"
-#include "PropagationDataSharing.h"
+#include "GlobalStateSharing.h"
 #include "JumpConvergenceEvaluator.h"
 
 #include "NlLocalNetwork.h"
@@ -76,7 +76,7 @@ private:
 
   NlLocalNetwork::Ptr localNetwork_;
   
-  PropagationDataSharing::Ptr sharing_;
+  GlobalStateSharing::Ptr sharing_;
   NlProjectionNetwork::Ptr projectionNetwork_;
   IterationRank lastIteration_;
 };

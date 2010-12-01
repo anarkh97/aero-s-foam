@@ -622,7 +622,7 @@ C
       if ( (thetaF.lt.zero).or.(thetaF.gt.360.00D+00) ) then 
         irot = thetaF / 360.0D0
         thetaF = thetaF - real(irot) * 360.0D0
-        if (thetaF.lt.0.0D0) thetaF = 360.0D0 - thetaF
+        if (thetaF.lt.0.0D0) thetaF = 360.0D0 + thetaF
       endif
 C
 C.....TRANSFORM FROM DEGREE TO RADIAN THE ANGLE BETWEEN THE

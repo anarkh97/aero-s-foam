@@ -11,6 +11,8 @@ class ExpMat;
 
 class BelytschkoTsayShell : virtual public Element, public Corotator
 {
+  public:
+    static double t1, t2, t3, t4, t5, t6, t7;
   protected:
     // TODO most of this should belong to element property (and therefore be shared to save memory)
     int nn[4];
@@ -19,7 +21,9 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int optdmg; // damage model type (0 for no damage, 1 for lematire damage model, 2 for linear softening with scaling)
     int opthgc; // hourglass control (1 for perturbation type hourglass control)
     int optcri[2]; // crack criterion
+    int opttrc; // bc option (0 for pressure, 1 for traction, -1 for neither)
     int optdmp; // damping (0/1 for damping off/on)
+    int optcor[2]; // warping and/or shear correction on/off
     double prmhgc[10]; // hourglass control parameters
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
@@ -32,12 +36,15 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     int mgaus[3];
     int mgqpt[2];
+    double *gqpoin3;
+    double *gqweigt3;
     double *evar1; // effective strain and damage
     double *evar2; // effective stress
     double *evoit1; // voight form of hourglass control stress
     double *evoit2; // voight form of local cauchy stress
     double *evoit3; // strain (local)
     ExpMat *expmat;
+    MFTTData *mftt;
 
   public:
     BelytschkoTsayShell(int*);
@@ -45,6 +52,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     //void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
+    void setPressure(double, MFTTData* = 0);
+    double getPressure();
     Element *clone();
 
     void renum(int *);

@@ -9,7 +9,7 @@
 !  2.  subroutine         elefintj2bt0           (optcri,delt,ematpro,mgaus3,mgqpt1,gqpoin3,gqweigt3,ecord,edisp,evelo, &
 !                                                 evar1,evoit2,evoit3, &
 !                                                 evar2,efint)
-!  3.  subroutine         updj2strsbt            (delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
+!  3.  subroutine         updstrsbt              (delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
 !                                                 effpstrn,hardvar,sigvoitloc,strnvoitloc, &
 !                                                 effstrs)
 !  4.  subroutine         getsigj2bt1            (delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
@@ -18,11 +18,13 @@
 
 
 
-subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3,ecord,edisp,evelo, &
-                        evar1,evoit2,evoit3, &
-                        evar2,efint)
+subroutine elefintbt1(optctv,optdmg,optcri,opttrc,optcor,prmhgc, &
+                      delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3, &
+                      ecord,edisp,evelo,trac,tmftval, &
+                      evar1,evoit1,evoit2,evoit3, &
+                      evar2,efint)
   !=======================================================================
-  !  elefintj2bt1 = compute internal force matrix for bt shell
+  !  elefintj2bt1 = compute internal force matrix for bt shell, including hourglass force
   !
   !                 note:
   !                 ----
@@ -73,7 +75,11 @@ subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3
   ! ====================================
   ! subroutine argument
   ! ===================
+  integer, intent(in) :: optctv, optdmg
   integer, dimension(*), intent(in) :: optcri
+  integer, intent(in) :: opttrc
+  integer, dimension(2), intent(in) :: optcor
+  real(8), dimension(*), intent(in) :: prmhgc
   real(8), intent(in) :: delt
   real(8), dimension(20), intent(in) :: ematpro
   integer, intent(in) :: nndof,mgaus3,mgqpt1
@@ -82,10 +88,13 @@ subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3
   real(8), dimension(3,4), intent(in) :: ecord
   real(8), dimension(6,4), intent(in) :: edisp
   real(8), dimension(6,4), intent(in) :: evelo
+  real(8), dimension(3,1), intent(in) :: trac
+  real(8), intent(in) :: tmftval
 
   ! ------------------------------------
 
   real(8), dimension(5,mgqpt1), intent(inout) :: evar1
+  real(8), dimension(6,1), intent(inout) :: evoit1
   real(8), dimension(6,mgqpt1), intent(inout) :: evoit2
   real(8), dimension(6,mgqpt1), intent(inout) :: evoit3
 
@@ -102,35 +111,38 @@ subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3
   real(8), dimension(3,3) :: locbvec
   real(8), dimension(3,4) :: ecurn
   real(8) :: effpstrn, hardvar, effstrs
-  real(8), dimension(6,1) :: sigvoitloc, strnvoitloc
 
   real(8), dimension(3,1) :: sigvoit2d, strnvoit2d
   real(8) :: crival, criang
   real(8) :: etatri
 
-  real(8), dimension(24,1) :: gqfint
+  real(8), dimension(24,1) :: efintloc
 
   ! loop index
   integer :: igaus
+
+  !pjsa
+  real(8), dimension(3,4) :: ecurnloc
+  real(8), dimension(5,4) :: eveloloc
+  real(8), dimension(2,4) :: bmat1pt
+  real(8), dimension(2,4) :: bcmat1pt
+  real(8), dimension(2,3,4) :: bsmat1pt
+  real(8) :: area
+  real(8), dimension(4,1) :: gamma
+  real(8) :: zgamma
+  real(8), dimension(3,1) :: ipstrndot
+  real(8), dimension(2,1) :: tsstrndot
   ! ====================================
 
   ! initialize
-  evar2(:,:)= 0.0d0
-  efint(:,:)= 0.0d0
-
+  efintloc(:,:)= 0.0d0
 
   ! -------------------------------------------
   ! get fracture criterion parameters
   crityp= abs(optcri(1)) ! criterion type
 
-  ! initialize
-  crival= 0.0d0
-  criang= 0.0d0
-  ! -------------------------------------------
-
   ! get current nodal coordinate
   ecurn(1:3,1:4)= ecord(1:3,1:4) + edisp(1:3,1:4)
-
 
   ! compute co rotational local base vector: locbvec
   ! ---------------------------------------
@@ -138,55 +150,81 @@ subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3
      ! input : ecurn
      ! output : locbvec
 
+  !pjsa get local nodal coordinates and velocity
+  call dgemm('t','n',3,4,3,1.0d0,locbvec,3,ecurn,3,0.0d0,ecurnloc,3)
+  call dgemm('t','n',3,4,3,1.0d0,locbvec,3,evelo(1,1),6,0.0d0,eveloloc(1,1),5)
+  call dgemm('t','n',2,4,3,1.0d0,locbvec,3,evelo(4,1),6,0.0d0,eveloloc(4,1),5)
 
-  ! loop over gauss quadarture
+  ! compute area
+  area= 0.50d0*( (ecurnloc(1,3)-ecurnloc(1,1))*(ecurnloc(2,4)-ecurnloc(2,2)) &
+                +(ecurnloc(1,2)-ecurnloc(1,4))*(ecurnloc(2,3)-ecurnloc(2,1)) )
+
+  ! check current element configuration
+  if ( area <= 0.0d0 ) then
+     write(*,*) "current element has negative or zero area: elefintj2bt1"
+     write(nout5,*) "current element has negative or zero area: elefintj2bt1"
+     stop
+
+  end if
+
+  !compute b matrix: b matrix, b^c matrix, and b^s matrix
+  ! ----------------
+  ! compute b matrix: one point integration
+  call getbmat1pt(ecurnloc,area, bmat1pt)
+    ! input : ecurnloc,area
+    ! output : bmat1pt
+
+  ! compute b^c matrix: warping correction
+  call getgamma4nod(ecurnloc,area, gamma,zgamma)
+  if(optcor(1) > 0) then
+    call getbcmat1pt(ecurnloc,area,gamma,zgamma, bcmat1pt)
+  end if
+    ! input : ecurnloc,area,gamma,zgamma
+    ! output : bcmat1pt
+
+  ! compute b^s matrix: transverse shear projection
+  if(optcor(2) > 0) then
+    call getbsmat1pt(ecurnloc, bsmat1pt)
+  end if
+    ! input : ecurnloc
+    ! output : bsmat1pt
+
+  ! loop over gauss quadrature
   ! note: this loop is for through thickness integration
   !       in plane, we use 1 point rule
   do igaus=1, mgaus3 
 
-     ! -------------------------------------
-     ! get history variable
-     ! --------------------
-     ! effective plastic strain
-     effpstrn= evar1(1,igaus)
-
-     ! hardening variable
-     hardvar= evar1(2,igaus)
-
-     ! cauchy stress(local)
-     sigvoitloc(1:6,1)= evoit2(1:6,igaus)
-
-     ! strain(local)
-     strnvoitloc(1:6,1)= evoit3(1:6,igaus)
-     ! -------------------------------------
+     ! compute rates of deformation and update strain at gq
+     ! ----------------------------------------------------
+     call updstrnbt(optcor,delt,ematpro,gqpoin3(igaus),eveloloc,bmat1pt,bcmat1pt,bsmat1pt, &
+                    evoit3(1,igaus), &
+                    ipstrndot,tsstrndot)
 
      ! update hypo stresses at gq
      ! --------------------------
-     call updj2strsbt(delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),locbvec,ecurn,evelo, &
-                      effpstrn,hardvar,sigvoitloc,strnvoitloc, &
-                      effstrs)
+     call updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
+                    evar1(1,igaus),evar1(2,igaus),evoit2(1,igaus),evoit3(1,igaus), &
+                    evar2(1,igaus))
         ! input : delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),locbvec,ecurn,evelo
         ! inoutput : effpstrn,hardvar,sigvoitloc,strnvoitloc
         ! output : effstrs
 
      ! check fracture criterion
      ! ------------------------
-     etatri= 0.0d0 ! initialize
      if ( crityp /= 0 ) then
+        ! set 2d in-plane stress
+        sigvoit2d(1,1)= evoit2(1,igaus) ! sig_xx
+        sigvoit2d(2,1)= evoit2(2,igaus) ! sig_yy
+        sigvoit2d(3,1)= evoit2(6,igaus) ! sig_xy
 
         select case(crityp)
         case(2) ! critical effective plastic strain criterion
-           ! set 2d in-plane stress
-           sigvoit2d(1,1)= sigvoitloc(1,1) ! sig_xx
-           sigvoit2d(2,1)= sigvoitloc(2,1) ! sig_yy
-           sigvoit2d(3,1)= sigvoitloc(6,1) ! sig_xy
-
-           call chkeffstrcri2d(0,effpstrn,sigvoit2d, crival,criang)
+           call chkeffstrcri2d(0,evar1(1,igaus),sigvoit2d, evar2(2,igaus),evar2(3,igaus))
               ! input : 0(optstr:stress),effpstrn,sigvoit2d
               ! output : crival,criang
 
         case(5) ! xue-wierzbicki with mtps criterion for j2 plane stress
-           call chkxwj2pstrscri2d(0,effpstrn,sigvoit2d, crival,criang,etatri)
+           call chkxwj2pstrscri2d(0,evar1(1,igaus),sigvoit2d, evar2(2,igaus),evar2(3,igaus),evar2(4,igaus))
               ! input : 0(optstr:stress),effpstrn,sigvoit2d
               ! output : crival,criang,etatri
 
@@ -199,63 +237,55 @@ subroutine elefintj2bt1(optcri,delt,ematpro,nndof,mgaus3,mgqpt1,gqpoin3,gqweigt3
 
      end if
 
-
-     ! -------------------------------------
-     ! set history variable
-     ! --------------------
-     ! effective plastic strain
-     evar1(1,igaus)= effpstrn
-
-     ! hardening variable
-     evar1(2,igaus)= hardvar
-
-     ! cauchy stress( local )
-     evoit2(1:6,igaus)= sigvoitloc(1:6,1)
-
-     ! strain(local)
-     evoit3(1:6,igaus)= strnvoitloc(1:6,1)
-
-     ! --------------------
-     ! set effective stress
-     evar2(1,igaus)= effstrs
-
-     ! set fracture criterion
-     evar2(2,igaus)= crival
-
-     ! set fracture angle
-     evar2(3,igaus)= criang
-
-     ! set stress triaxiality parameter
-     evar2(4,igaus)= etatri
-     ! -------------------------------------
-
-     ! compute local nodal internal forces at gq
+     ! add local nodal internal forces at gq
      ! -----------------------------------------
-     call gqfintbt(delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),locbvec,ecurn,sigvoitloc, gqfint)
+     call gqfintbt(optcor,delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),area,evoit2(1,igaus), &
+                   bmat1pt, bcmat1pt, bsmat1pt, efintloc)
         ! input : delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),locbvec,ecurn,sigvoitloc
-        ! output : gqfint
-
-     ! sum on internal force
-     efint(1:24,1)= efint(1:24,1) + gqfint(1:24,1)
+        ! in/output : efintloc
 
   end do
 
+  ! -------------------------------------
+  ! update hourglass control stresses
+  ! ---------------------------------
+  call updhgcstrsbt(prmhgc,delt,ematpro,eveloloc,area,bmat1pt, &
+                    gamma,zgamma, evoit1)
+     ! input : prmhgc,delt,ematpro,eveloloc,area,bmat1pt,gamma,zgamma
+     ! inoutput : hgcvoitloc
+
+  ! add the hourglass control forces
+  ! --------------------------------------
+  call gqfhgcbt(gamma,zgamma,evoit1, efintloc)
+     ! input : gamma,zgamma,evoit1
+     ! inoutput : efintloc
+
+  ! --------------------------------------------------------------
+  ! subtract the local traction forces
+  ! -------------------------------------
+  if (opttrc >= 0) then
+    call elefbc3dbrkshl2opt(area,trac,tmftval, efintloc)
+       ! input : area,trac,tmftval
+       ! inoutput : efintloc
+  end if
+
+  ! --------------------------------------------------------------
+  ! convert local efintloc to global efint
+  ! -------------------------------------
+  call dgemm('n','n',3,8,3,1.0d0,locbvec,3,efintloc,3,0.0d0,efint,3)
 
 
   return
-end subroutine elefintj2bt1
+end subroutine elefintbt1
 
 
 
 
-
-
-
-subroutine updj2strsbt(delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
-                       effpstrn,hardvar,sigvoitloc,strnvoitloc, &
-                       effstrs)
+subroutine updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
+                     effpstrn,hardvar,sigvoitloc,strnvoitloc, &
+                     effstrs)
   !=======================================================================
-  !  updj2strsbt = update j2 cauchy stress of belytschko tsay element 
+  !  updstrsbt = update j2 (or hypoelas) cauchy stress of belytschko tsay element 
   !
   !
   !  arguments description
@@ -266,17 +296,11 @@ subroutine updj2strsbt(delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
   ! 
   !  ematpro(*) : material property
   !
-  !  gqpoin, gqweigt : through thickness gq point and weight
-  !
-  !  ecurn(3,4) : global current nodal coordinate
-  !
-  !  evelo(5,4) : global nodal velocity: v_x, v_y, v_z, theta_x, theta_y
-  !
   !  inoutput:
   !  --------
-  !  effpstrn : effective plastic strain
+  !  effpstrn : effective plastic strain (j2) or effective strain (hypoelas)
   !
-  !  hardvar : hardening variable
+  !  hardvar : hardening variable (j2) or damage (hypoelas)
   !
   !  sigvoitloc(6,1) : co-rotational cauchy stress
   !
@@ -292,12 +316,12 @@ subroutine updj2strsbt(delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
   ! ====================================
   ! subroutine argument
   ! ===================
+  integer, intent(in) :: optctv, optdmg
   real(8), intent(in) :: delt
   real(8), dimension(*), intent(in) :: ematpro
-  real(8), intent(in) :: gqpoin, gqweigt
-  real(8), dimension(3,3), intent(in) :: locbvec
-  real(8), dimension(3,4), intent(in) :: ecurn
-  real(8), dimension(6,4), intent(in) :: evelo
+  real(8), intent(in) :: area
+  real(8), dimension(3,1), intent(in) :: ipstrndot
+  real(8), dimension(2,1), intent(in) :: tsstrndot
 
   ! ------------------------------------
   real(8), intent(inout) :: effpstrn,hardvar
@@ -308,38 +332,14 @@ subroutine updj2strsbt(delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
   ! ====================================
   ! local variable
   ! ==============
-  real(8), dimension(3,4) :: ecurnloc
-  real(8), dimension(6,4) :: eveloloc0
-  real(8), dimension(5,4) :: eveloloc
-  real(8) :: zeta
-
   real(8), dimension(3,1) :: ipstrnloc, ipstrsloc
   real(8), dimension(2,1) :: tsstrslocdot
+  real(8) :: ehleng
   ! ====================================
 
-  ! initialize
-  effstrs= 0.0d0
-
   ! -------------------------------------------------------------------------------
-  ! convert global vector to local vector
-  ! -------------------------------------
-  ! get local nodal coordinate
-  call glb2locnodv(3,4,3,locbvec,ecurn, ecurnloc)
-     ! input : 3(ndime),4(nnode),3(ntrndof),locbvec,ecurn
-     ! output : ecurnloc
-
-  ! get local nodal velocity
-  call glb2locnodv(3,4,6,locbvec,evelo, eveloloc0)
-     ! input : 3(ndime),4(nnode),6(ntrndof),locbvec,evelo
-     ! output : eveloloc0
-
-  eveloloc(1:5,1:4)= eveloloc0(1:5,1:4)
-
-  ! -------------------------------------------------------------------------------
-  ! compute in plane stress rate, strain and update
+  ! update in plane stress 
   ! -----------------------------------------------
-  ! pseudo-thickness parameter
-  zeta= gqpoin
 
   ! extract in plane strain components
   ipstrnloc(1,1)= strnvoitloc(1,1)
@@ -351,89 +351,80 @@ subroutine updj2strsbt(delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo, &
   ipstrsloc(2,1)= sigvoitloc(2,1)
   ipstrsloc(3,1)= sigvoitloc(6,1)
 
+  select case(optctv)
+    case(1)
+    ! update hypoelastic in-plane stress of belytschko tsay shell element
+    ehleng= dsqrt(area)
+    call getsighypobt1(optdmg,delt,ematpro,ehleng,ipstrndot,ipstrnloc, &
+                       hardvar,ipstrsloc)
+     ! input : optdmg,delt,ematpro,ehleng,ipstrnloc
+     ! inoutput : damage,ipstrsloc
 
-  ! update j2 in-plane stress of belytschko tsay shell element
-  call getsigj2bt1(delt,ematpro,zeta,ecurnloc,eveloloc, &
-                   effpstrn,hardvar,ipstrnloc,ipstrsloc, &
+    case(5)
+    ! update j2 in-plane stress of belytschko tsay shell element
+    call updj2pexp(1,2,ematpro,delt,ipstrndot, &
+                   effpstrn,hardvar,ipstrsloc, &
                    effstrs)
-     ! input : delt,ematpro,zeta,ecurnloc,eveloloc
-     ! inoutput : effpstrn,hardvar,ipstrnloc,ipstrsloc
-     ! output : effstrs
+       ! input : 1(optpty:p-strs),2(ndime),ematpro,delt,ipstrndot
+       ! inoutput : effpstrn,hardvar,ipstrs
+       ! output : effstrs
 
-  ! set updated in plane strain components
-  strnvoitloc(1,1)= ipstrnloc(1,1) ! eps_x
-  strnvoitloc(2,1)= ipstrnloc(2,1) ! eps_y
-  strnvoitloc(6,1)= ipstrnloc(3,1) ! eps_xy
+    case default
+       write(*,*) "not implemented constitutive model: updstrsbt"
+       write(nout5,*) "not implemented constitutive model: updstrsbt"
+       stop
+
+  end select
 
   ! set updated in plane stress components
   sigvoitloc(1,1)= ipstrsloc(1,1) ! sig_x
   sigvoitloc(2,1)= ipstrsloc(2,1) ! sig_y
   sigvoitloc(6,1)= ipstrsloc(3,1) ! sig_xy
 
-
   ! -------------------------------------------------------------------------------
   ! compute tranverse shear stress rate and update
   ! ----------------------------------------------
   ! compute hypoelastic transverse shear stress rate of belytschko tsay shell element
-  call getsighypobt2(ematpro,ecurnloc,eveloloc, tsstrslocdot)
-     ! input : ematpro,ecurnloc,eveloloc
+  call getsighypobt2(ematpro,tsstrndot, tsstrslocdot)
+     ! input : ematpro,tsstrndot
      ! output : tsstrslocdot
 
-  ! update local cauchy stress
+  ! set updated transverse stress components
   sigvoitloc(3,1)= 0.0d0 ! sig_z (plane stress)
-
   sigvoitloc(4,1)= sigvoitloc(4,1) + tsstrslocdot(2,1) * delt ! sig_yz
   sigvoitloc(5,1)= sigvoitloc(5,1) + tsstrslocdot(1,1) * delt ! sig_xz
   ! -------------------------------------------------------------------------------
   
-  
-
   return
-end subroutine updj2strsbt
+end subroutine updstrsbt
 
 
-
-
-
-
-subroutine getsigj2bt1(delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
+subroutine updstrnbt(optcor,delt,ematpro,gqpoin,eveloloc,bmat1pt,bcmat1pt,bsmat1pt, &
+                     strnvoitloc, &
+                     ipstrndot,tsstrndot) 
   !=======================================================================
-  !  getsigj2bt1 = 
+  !  updstrsbt = update strain of belytschko tsay element 
   !
   !
   !  arguments description
   !  ---------------------
   !  input:
   !  -----
-  !  delt : integration time step
-  !
+  !  delt : time increment
+  ! 
   !  ematpro(*) : material property
   !
-  !  zeta : [-1, +1] : pseudo-thickness parameter
-  !
-  !  ecurnloc(3,4) : local current nodal coordinate
+  !  gqpoin, gqweigt : through thickness gq point and weight
   !
   !  eveloloc(5,4) : local nodal velocity: v_x, v_y, v_z, theta_x, theta_y
   !
   !  inoutput:
   !  --------
-  !  effpstrn : effective plastic strain
-  !
-  !  hardvar : hardening variable
-  !
-  !  ipstrn(3,1) : in plane strain
-  !                ipstrn(3,1)= strn_x
-  !                ipstrn(3,2)= strn_y
-  !                ipstrn(3,3)= strn_xy
-  !
-  !  ipstrs(3,1) : in plane stress
-  !                ipstrs(3,1)= sig_x
-  !                ipstrs(3,2)= sig_y
-  !                ipstrs(3,3)= sig_xy
+  !  strnvoitloc(6,1) : co-rotational strain
   !
   !  output:
   !  ------
-  !  effstrs : effective stress
+  !  ipstrndot(3,1), tsstrndot(2,1) : in plane and transverse shear rate of deformation
   !
   ! ======================================================================
 
@@ -441,57 +432,50 @@ subroutine getsigj2bt1(delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ips
   ! ====================================
   ! subroutine argument
   ! ===================
+  integer, dimension(2), intent(in) :: optcor
   real(8), intent(in) :: delt
   real(8), dimension(*), intent(in) :: ematpro
-  real(8), intent(in) :: zeta
-  real(8), dimension(3,4), intent(in) :: ecurnloc
-  real(8), dimension(5,4), intent(in) :: eveloloc
+  real(8), intent(in) :: gqpoin
+  real(8), dimension(6,4), intent(in) :: eveloloc
+  real(8), dimension(2,4), intent(in) :: bmat1pt
+  real(8), dimension(2,4), intent(in) :: bcmat1pt
+  real(8), dimension(2,3,4), intent(in) :: bsmat1pt
 
   ! ------------------------------------
-  real(8), intent(inout) :: effpstrn,hardvar
-  real(8), dimension(3,1), intent(inout) :: ipstrn, ipstrs
+  real(8), dimension(6,1), intent(inout) :: strnvoitloc
   ! ------------------------------------
 
-  real(8), intent(out) :: effstrs
+  real(8), dimension(3,1), intent(out) :: ipstrndot
+  real(8), dimension(2,1), intent(out) :: tsstrndot
   ! ====================================
-  ! local variable
-  ! ==============
-  real(8) :: thick
-  real(8), dimension(2,2) :: ltens2d
-  real(8), dimension(3,1) :: ipstrndot, ipstrndel
-
-  ! ====================================
-
-  ! initialize
-  effstrs= 0.0d0
-
-  ! ------------------------------------------------
-  ! get material properties
-  thick= ematpro(20)
-  ! ------------------------------------------------
-
 
   ! ----------------------------------------------------------------
-  ! compute rate of deformation
+  ! compute in plane rate of deformation
   ! ---------------------------
-  ! ltens2d= [ vx,y  vx,y ]     ipstrndot= [d_x, d_y, 2d_xy]
-  !          [ vy,x  vy,y ]
-  call getstrndotbt1(thick,zeta,ecurnloc,eveloloc, ltens2d,ipstrndot)
-     ! input : thick,zeta,ecurnloc,eveloloc
-     ! output : ltens2d,ipstrndot
+  ! ipstrndot= [d_x, d_y, 2d_xy]
+  call getstrndotbt1(optcor,ematpro(20),gqpoin,eveloloc,bmat1pt,bcmat1pt, ipstrndot)
+     ! input : optcor,thick,zeta,eveloloc,bmat1pt,bcmat1pt
+     ! output : ipstrndot
 
-  ! strain increment
-  ! ----------------
-  ipstrndel(1:3,1)= delt * ipstrndot(1:3,1)
+  ! -------------------------------------------------------------------------------
+  ! update in plane strain
+  ! -----------------------------------------------
+  strnvoitloc(1,1)= strnvoitloc(1,1) + delt*ipstrndot(1,1) ! eps_x
+  strnvoitloc(2,1)= strnvoitloc(2,1) + delt*ipstrndot(2,1) ! eps_y
+  strnvoitloc(6,1)= strnvoitloc(6,1) + delt*ipstrndot(3,1) ! eps_xy
 
+  ! ----------------------------------------------------------------
+  ! compute transverse shear rate of deformation
+  ! ---------------------------
+  ! tsstrndot= [2d_xz, 2dyz]
+  call getstrndotbt2(optcor,eveloloc,bmat1pt,bsmat1pt, tsstrndot)
+     ! input : optcor,eveloloc,bmat1pt,bsmat1pt
+     ! output : tsstrndot
 
-  ! calculate j2 plasticity
-  call updj2pexp(1,2,ematpro,ipstrndel, effpstrn,hardvar,ipstrn,ipstrs, effstrs) 
-     ! input : 1(optpty:p-strs),2(ndime),ematpro,ipstrndel
-     ! inoutput : effpstrn,hardvar,ipstrn,ipstrs
-     ! output : effstrs
-
-
-
+  ! -------------------------------------------------------------------------------
+  ! update transverse shear strain
+  ! -----------------------------------------------
+  ! TODO (currently this isn't used anywhere, except possibly for postprocessing
+  
   return
-end subroutine getsigj2bt1
+end subroutine updstrnbt

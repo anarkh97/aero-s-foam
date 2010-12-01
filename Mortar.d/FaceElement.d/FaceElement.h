@@ -20,6 +20,7 @@ class DofSetArray;
 //class State;
 //class GeomState;
 struct InterpPoint;
+class Connectivity;
 
 // ACME headers
 #ifdef USE_ACME
@@ -140,6 +141,10 @@ class FaceElement {
 	//int nFFIs();
 	//FFIPolygon* GetPtrFFI(int);
 	//void printFFI();
+
+        int findEle(Connectivity *nodeToElem, int *eleTouch,
+                    int *eleCount, int myNum, Elemset *eset, int it);
+
 };
 #endif
 

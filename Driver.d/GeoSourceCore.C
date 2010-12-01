@@ -1145,10 +1145,12 @@ void GeoSource::setElemTypeMap()
 
 void GeoSource::setElementPressure(int elemNum, double pressure)
 {
+ // FIXME for this to work the element topology and mftt must precede the pressure in the input file
+ // this dependence on ordering should be removed!!!
  prsflg = 1;
 
  if(elemSet[elemNum])
-   elemSet[elemNum]->setPressure(pressure);
+   elemSet[elemNum]->setPressure(pressure, domain->getMFTT());
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
 }
@@ -1639,6 +1641,7 @@ int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
   return numValues;
 }
 
+/* templated and moved to GeoSource.C
 //-----------------------------------------------------------------
 void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
 	 			   int outputSize, double time)//DofSet::max_known_nonL_dof
@@ -1850,7 +1853,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
 
 // NOTE: This works only for 1 cluster
 
-void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize, double time)  {
+void GeoSource::outputNodeVectors(int fileNum, double (*glv)[], int outputSize, double time)  {
 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -2015,7 +2018,7 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSiz
 
   fflush(oinfo[fileNum].filptr);
 }
-
+*/
 //------------------------------------------------------------
 
 void GeoSource::outputNodeScalars(int fileNum, double *data,
@@ -3155,7 +3158,22 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
     // PJSA 02-04-2010
     if(matchName != NULL) {
+      BinFileHandler connectivityFile(conName, "rb");
+      Connectivity *clusToSub = new Connectivity(connectivityFile, true);
+      //cerr << "totSub = " << totSub << endl;
+                   
+      // build global to cluster subdomain map
+      int *gl2ClSubMap = new int[totSub];
+      for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
+        int clusNum = 0;
+        for (int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
+          gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
+      }
+      //if(myID == 0) cerr << "clusToSub = \n"; clusToSub->print();
+      delete clusToSub;
+
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
+
         char fullDecName[32];
         sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
         BinFileHandler decFile(fullDecName, "rb");
@@ -3165,7 +3183,8 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         decFile.read(&numClusSub, 1);
         BinFileHandler::OffType curLoc = decFile.tell();
         int glSub = (*cpuToSub)[myID][locSub];
-        int clusSub = numSub-1-glSub; // only one cluster currently supported
+        int clusSub = gl2ClSubMap[glSub];
+        //cerr << "locSub = " << locSub << ", glSub = " << glSub << ", clusSub = " << clusSub << endl;
         decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
         BinFileHandler::OffType infoLoc;
         decFile.read(&infoLoc, 1);
@@ -3176,6 +3195,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         int (*elemRanges)[2];
         int numElemRanges;
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
+        //cerr << "numLocElems = " << numLocElems << endl;
 
         int minElemNum = elemRanges[0][0];
         int maxElemNum = 0;
@@ -3192,9 +3212,10 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           cl2LocElem[iElem] = -1;
         iElem = 0;
         for(int iR = 0; iR < numElemRanges; ++iR)
-          //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem)
-          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem)
-            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain
+          //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
+          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
+            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
+          }
 
         int nConnects;
         decFile.read(&nConnects, 1);
@@ -3225,7 +3246,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           char fullMatchName[32];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
-          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem);
+          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem); // PJSA
         }
         delete [] cl2LocElem;
       }
@@ -3234,6 +3255,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
       fprintf(stderr,"*** ERROR: Binary Match File not specified\n");
       exit (-1);
     }
+    delete [] gl2ClSubMap;
   }
 
   return numCPU;
@@ -4257,7 +4279,7 @@ GeoSource::getDecomposition()
     subToElem = new Connectivity(numSub,cx,connect);
     subToElem->renumberTargets(glToPckElems);  // PJSA: required if gaps in element numbering
 
-#ifdef DISTRIBUTED // PJSA 1-22-07
+#ifdef DISTRIBUTED
     int* ptr = new int[numSub+1];
     int* target = new int[numSub];
     ptr[0] = 0;
@@ -4271,7 +4293,6 @@ GeoSource::getDecomposition()
     numClusNodes = nGlobNodes;
     numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
 #endif
-
 
   }
   return subToElem;

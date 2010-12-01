@@ -125,7 +125,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         Connectivity(Elemset *, int, SommerElement**);
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1);
         Connectivity(int _size, int *_count);
-	Connectivity(BinFileHandler &);
+	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*);
 	Connectivity(int ns); //dec
 	size_t write(BinFileHandler& f);

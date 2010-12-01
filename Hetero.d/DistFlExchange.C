@@ -202,6 +202,7 @@ void DistFlExchanger::negotiate()  {
         int locSub = sndTable[sender][ipt].subNumber;
         int locElem = sndTable[sender][ipt].elemNum;
         Element *thisElement = (*eset[locSub])[locElem];
+        if(thisElement == NULL) cerr << " ERROR: DistFlExchanger::negotiate() cpu " << structCom->myID() << ", locSub = " << locSub << ", locElem = " << locElem << endl;
         int nDof = thisElement->numDofs();
         totalNDof += nDof;
         if (nDof > maxNDof) 

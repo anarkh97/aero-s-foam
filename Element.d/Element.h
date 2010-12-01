@@ -4,6 +4,7 @@
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/MFTT.h>
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -311,7 +312,7 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres) { pressure = pres; }
+	virtual void setPressure(double pres, MFTTData *mftt = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
         // By default ingore any element preload
@@ -324,7 +325,7 @@ class Element {
         // By default an element does not need a frame
         virtual void buildFrame(CoordSet&) {}
         virtual void setOffset(double*) {}
-	    virtual void setCompositeData(int _type, int nlays, double *lData,
+        virtual void setCompositeData(int _type, int nlays, double *lData,
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
                                            double *coefs, CoordSet &cs, double theta);

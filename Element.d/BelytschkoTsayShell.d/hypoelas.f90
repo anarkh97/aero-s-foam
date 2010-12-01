@@ -345,10 +345,10 @@ subroutine getelstens(nndex,lamd,mu, elstens)
   ! c_ijkl= lamd*( d_ij*d_kl ) + mu*( d_ik*d_jk + d_il*d_jk )
   do i=1, nndex
      do j=1, nndex
-	    do k=1, nndex
-		   do l=1, nndex
+        do k=1, nndex
+           do l=1, nndex
 
-		      elstens(i,j,k,l)= elscomp(lamd,mu, i,j,k,l)
+              elstens(i,j,k,l)= elscomp(lamd,mu, i,j,k,l)
 
            end do
         end do

@@ -131,7 +131,7 @@ end subroutine getj2dlambdaexp
 
 
 
-subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,strsvoit, effstrs) 
+subroutine updj2pexp(optpty,ndime,ematpro,delt,ipstrndot, effpstrn,hardvar,strsvoit, effstrs) 
   !=======================================================================
   !  updj2pexp = explicitly update j2 plasticity
   !
@@ -145,15 +145,15 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   !
   !  ematpro(*) : material properties
   !
-  !  dstrnvoit(nvoit,1) : total strain increment in voigt form
+  !  delt : time step
+  !
+  !  ipstrndot(nvoit,1) : strain rate
   !
   !  inoutput:
   !  --------
   !  effpstrn : effective plastic strain
   !
   !  hardvar : hardening variable
-  !
-  !  strnvoit(nvoit,1) : voight form strain
   !
   !  strsvoit(nvoit,1) : voight form stress
   !
@@ -170,12 +170,12 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   integer, intent(in) :: optpty
   integer, intent(in) :: ndime
   real(8), dimension(*), intent(in) :: ematpro
-  real(8), dimension(ndime*(ndime+1)/2,1), intent(in) :: dstrnvoit
+  real(8), intent(in) :: delt
+  real(8), dimension(ndime*(ndime+1)/2,1), intent(in) :: ipstrndot
   ! -------------------------------------
 
   real(8), intent(inout) :: effpstrn
   real(8), intent(inout) :: hardvar
-  real(8), dimension(ndime*(ndime+1)/2,1), intent(inout) :: strnvoit
   real(8), dimension(ndime*(ndime+1)/2,1), intent(inout) :: strsvoit
 
   ! -------------------------------------
@@ -186,6 +186,9 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   integer :: nvoit
 
   real(8) :: e, nu, rho, sigy, h
+
+  ! total strain increment in voigt form
+  real(8), dimension(ndime*(ndime+1)/2,1) :: dstrnvoit
 
   ! voight form
   real(8), dimension(ndime*(ndime+1)/2,ndime*(ndime+1)/2) :: elsvoit
@@ -207,12 +210,12 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   real(8), dimension(ndime*(ndime+1)/2,1) :: destrsvoit
   ! ====================================
 
-  ! initialize
-  effstrs= 0.0d0
-
-
   ! compute number of voight form components
   nvoit= ndime * ( ndime + 1 ) / 2
+
+  ! strain increment
+  ! ----------------
+  dstrnvoit(1:3,1)= delt * ipstrndot(1:3,1)
 
   ! --------------------------------------------------------------
   ! material properties
@@ -235,6 +238,10 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   end if
 
 
+  ! TODO better to compute the effective stress after updating
+  ! so we can use it for post processing. Then the effective
+  ! stress used in the yield condition check below should be
+  ! taken from evar1
   ! --------------------------------------------------------------
   ! compute effective stress
   ! ------------------------
@@ -292,7 +299,7 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   destrnvoit(1:nvoit,1)= dstrnvoit(1:nvoit,1) - dpstrnvoit(1:nvoit,1)
 
   ! elastic stress increment
-  call matprd(nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,destrnvoit, destrsvoit)
+  call dgemv('n',nvoit,nvoit,1.0d0,elsvoit,nvoit,destrnvoit,1,0.0d0,destrsvoit,1)
      ! input : nvoit,nvoit,0, nvoit,1,0, nvoit,1, elsvoit,destrnvoit
      ! output : destrsvoit
 
@@ -305,14 +312,9 @@ subroutine updj2pexp(optpty,ndime,ematpro,dstrnvoit, effpstrn,hardvar,strnvoit,s
   ! hardening variable
   hardvar= hardvar + h*dlambda
 
-  ! update strain
-  strnvoit(1:nvoit,1)= strnvoit(1:nvoit,1) + dstrnvoit(1:nvoit,1)
-
   ! update stress
   strsvoit(1:nvoit,1)= strsvoit(1:nvoit,1) + destrsvoit(1:nvoit,1)
   ! --------------------------------------------------------------
-
-
 
   return
 end subroutine updj2pexp

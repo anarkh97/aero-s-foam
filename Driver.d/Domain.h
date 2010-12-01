@@ -350,6 +350,7 @@ class Domain : public HData {
      int  setIVelModal(int, BCond *);
      int  setIAcc(int, BCond *);
      int  setMFTT(MFTTData *);
+     MFTTData * getMFTT() const { return mftval; }
      int  setMPTT(MFTTData *);
      int  setHFTT(MFTTData *);
      int  addYMTT(MFTTData *);

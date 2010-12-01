@@ -870,9 +870,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double totalTime = -getTime();
   char ch[4] = { '|', '/', '-', '\\' };
 
+  //double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    if(aeroAlg < 0)
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    //t1 -= getTime(); 
 
     if (fourthOrder) {
       // this is as in the previous release of the FEM code (before august 28th 2008)
@@ -930,13 +934,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
+      //t2 -= getTime();
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t+dt, aeroForce, 0.5, 0.0);
+      //t2 += getTime();
 
       // Compute the internal force at t^{n+1}
+      //t3 -= getTime();
       if(domain->solInfo().isNonLin()) probDesc->getInternalForce(d_n,fint,t+dt);
       else {
         dynOps.K->mult(d_n, fint);
       }
+      //t3 += getTime();
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
       if(dynOps.C) {
@@ -944,7 +952,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
+      //t4 -= getTime();
       dynOps.dynMat->reSolve(a_n);
+      //t4 += getTime();
       if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
         tmp1.linC(dt, v_n_h, dt*dt, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt*(v^{n+1/2} + dt*a^{n+1})
         probDesc->getContactForce(tmp1, tmp2);
@@ -983,6 +993,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // add n so that time index is wound back as well as t
       if(aeroAlg == 5) probDesc->a5TimeLoopCheck(parity, t, dt);
     } 
+    //t1 += getTime();
+    //filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete %e %e %e %e",
+    //          ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100), t1/1000/n, t2/1000/n, t3/1000/n, t4/1000/n);
   }
   filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 

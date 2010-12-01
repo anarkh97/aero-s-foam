@@ -24,17 +24,10 @@ BelytschkoTsayShell.d/base_mech_tens.f90
 BelytschkoTsayShell.d/hypoelas.f90
 BelytschkoTsayShell.d/damage.f90
 BelytschkoTsayShell.d/base_mhd_hgc.f90
-BelytschkoTsayShell.d/base_geo_gnr.f90
-BelytschkoTsayShell.d/base_data_gnr1.f90
-BelytschkoTsayShell.d/base_data_gnr.f90
-BelytschkoTsayShell.d/base_ea0607.f
-BelytschkoTsayShell.d/base_geo_tripack.f
 BelytschkoTsayShell.d/fint3dshl_hgc.f90
 BelytschkoTsayShell.d/massl3dshl.f90
 BelytschkoTsayShell.d/parseinp.f90
-BelytschkoTsayShell.d/fint3dshl_evp1.f90
 BelytschkoTsayShell.d/fint3dshl_j2exp.f90
-BelytschkoTsayShell.d/evp1.f90
 BelytschkoTsayShell.d/cri_effstr.f90
 BelytschkoTsayShell.d/j2.f90
 BelytschkoTsayShell.d/cri_mpts.f90

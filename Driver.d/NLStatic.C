@@ -54,7 +54,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 {
   for(int iele = 0; iele < numele; ++iele) {
 
-    elementForce.zero();
+    //elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele]) {
@@ -108,7 +108,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda;
-//#define PRESSURE_MFTT
+#define PRESSURE_MFTT
 #ifdef PRESSURE_MFTT
       double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
       elementForce *= mfttFactor; // TODO consider
@@ -173,7 +173,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
  
-  if(!solInfo().getNLInfo().unsymmetric)
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();
     
@@ -189,8 +189,10 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
 
   // Allocate the correct size for each elements stiffness matrix
   int iele;
-  for(iele = 0; iele<numele; ++iele)
+  for(iele = 0; iele<numele; ++iele) {
     kArray[iele].setSize(packedEset[iele]->numDofs());
+    kArray[iele].zero(); 
+  }
 }
 
 // used in nonlinear dynamics
@@ -209,6 +211,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  for(iele = 0; iele<numele; ++iele) {
    int dimension = packedEset[iele]->numDofs();
    kArray[iele].setSize(dimension);
+   kArray[iele].zero();
    mArray[iele].setSize(dimension);
  }
 
@@ -1323,7 +1326,6 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
  if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-     cerr << "here in NLStatic.C writeRestartFile\n";
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
      if(writeSize != sizeof(int))

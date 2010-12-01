@@ -672,7 +672,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       if (sinfo.probType == SolverInfo::NonLinDynam) {
         double dW=0.0, dWaero = 0.0, Wela=0.0, Wkin=0.0;
 
-        if(time==sinfo.initialTime) {
+        if(!previousExtForce) {
           Wext=0.0;
           Waero=0.0;
           Wdmp=0.0;
@@ -739,7 +739,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       pWela=Wela;
       pWkin=Wkin;
 
-      if(time==sinfo.initialTime) {
+      if(!previousDisp) {
         previousDisp = new Vector(sol);
       } else {
         (*previousExtForce) = force;

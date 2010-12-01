@@ -96,69 +96,6 @@ activeIn(const ActivationRange & a, const ActivationRange & b) {
   return includedIn(a, b) && isEven(a.baseSlice() - b.baseSlice());
 }*/
 
-/* Zero correction */
-
-template <typename S>
-class NoCorrection : public SharedState<S>::NotifieeConst {
-public:
-  virtual void onStatus(); //overriden
-
-  NoCorrection(const SharedState<S> * parent, SharedStateRoot * target) :
-    SharedState<S>::NotifieeConst(parent),
-    target_(target)
-  {}
-
-  SharedStateRoot * target() const { return target_.ptr(); }
-
-  void targetIs(SharedStateRoot * target) {
-    target_ = target;
-  }
-
-private:
-  SharedStateRoot::Ptr target_;
-};
-
-template <typename S>
-void
-NoCorrection<S>::onStatus() {
-  if (this->notifier()->status() == Seed::CONVERGED) {
-    log() << "Zero Correction " << target()->name() << "\n";
-    target()->statusIs(Seed::INACTIVE);
-    target()->iterationIs(this->notifier()->iteration());
-  }
-}
-
-
-template <typename S>
-struct NoCorrectionFactory : public Fwk::InstanceFactory<NoCorrection<S>, SharedStateRoot *> {
-  NoCorrection<S> * operator()(SharedStateRoot * key) const { 
-    return new NoCorrection<S>(NULL, key);
-  }
-};
-
-class NoCorrectionManager : public Fwk::PtrInterface<NoCorrectionManager> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(NoCorrectionManager);
-
-  void notifierIs(SharedStateRoot * target, Seed * notifier) {
-    NoCorrection<DynamState>::Ptr reactor = reactorMgr_.instance(target);
-    if (!reactor) {
-      reactor = reactorMgr_.instanceNew(target);
-    }
-    reactor->notifierIs(notifier);
-  }
-
-  static Ptr New() {
-    return new NoCorrectionManager;
-  }
-
-protected:
-  NoCorrectionManager() : reactorMgr_(NoCorrectionFactory<DynamState>()) {}
-
-private:
-  Fwk::FactoryManagerImpl<NoCorrectionFactory<DynamState> > reactorMgr_;
-};
-
 
 /* Seed getter functors */
 

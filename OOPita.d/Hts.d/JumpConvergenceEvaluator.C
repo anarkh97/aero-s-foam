@@ -153,7 +153,7 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
   }
 
   // 5) Apply to local jumps
-  HalfSliceRank newFirstActiveSlice(cvgFront); 
+  HalfSliceRank newFirstActiveSlice(cvgFront);
   
   for (JumpMap::iterator it = localJump_.begin(); it != localJump_.end(); ++it) {
     if (it->first > newFirstActiveSlice) {

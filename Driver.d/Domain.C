@@ -1060,7 +1060,21 @@ Domain::setUpData()
   numBC = geoSource->getIDis(bc);
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
-  setIDisModal(numBC, bc);
+  if(solInfo().modal) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+    setIDisModal(numBC, bc);
+  }
+  else { // for non-modal dynamics convert the modal idisp into non-modal idisp
+    if(numBC) {
+      filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
+      int numIDisModal = modeData.numNodes*6;
+      BCond *iDis_new = new BCond[numIDis+numIDisModal];
+      for(int i=0; i<numIDis; ++i) iDis_new[i] = iDis[i]; 
+      modeData.addMultY(numBC, bc, iDis_new+numIDis);
+      numIDis += numIDisModal;
+      delete [] iDis;
+      iDis = iDis_new;
+    }
+  }
 
   // set init disp6
   numBC = geoSource->getIDis6(bc);

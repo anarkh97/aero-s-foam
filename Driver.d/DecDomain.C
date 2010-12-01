@@ -482,8 +482,12 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     subToSub = subToNode->transcon(nodeToSub);
     mt.memorySubToNode += memoryUsed();
 
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0) { // sommerfeld, scatter, wet, distributed neum
-                                                                                         // PJSA 6/28/2010 multidomain mumps
+#ifdef USE_MPI
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || geoSource->binaryOutput == 0) {
+#else
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0) {
+#endif 
+      // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
       domain->nodeToElem = elemToNode->reverse();
       mt.memoryNodeToElem += memoryUsed();

@@ -143,11 +143,14 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   allNumClusElems = 0;
   binaryInput = false;
   binaryInputControlLeft = false;
+  binaryOutput = false;
+/*
 #ifdef DISTRIBUTED
   binaryOutput = true;
 #else
   binaryOutput = false;
 #endif
+*/
   subToClus = 0;
 
   mpcDirect = false;

@@ -106,7 +106,8 @@
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
 
-#include  <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
+#include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
+#include <Element.d/BelytschkoTsayShell.d/PressureElement.h> 
 
 PrioInfo
 examineBar2(int sub, MultiFront *mf, int *nn)
@@ -338,6 +339,11 @@ BelytschkoTsayShell::examine(int sub, MultiFront *mf)
   return examineQuad4(sub, mf, nn);
 }
 
+PrioInfo
+PressureElement::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
+}
 
 PrioInfo
 HelmAxiQuad::examine(int sub, MultiFront *mf)

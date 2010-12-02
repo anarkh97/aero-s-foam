@@ -714,3 +714,77 @@ subroutine getlocbvecbt(ecurn, locbvec)
 
   return
 end subroutine getlocbvecbt
+
+
+subroutine getlocbvectri(ecurn, locbvec)
+  !=======================================================================
+  !  getlocbvectri = compute co-rotational local base vector of tri shell
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ecurn(3,3) : current element nodal coordinate data
+  !               x= u + X
+  !
+  !  output:
+  !  ------
+  !  locbvec(3,3) : local base vector
+  !                            
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  real(8), dimension(3,3), intent(in) :: ecurn
+
+  real(8), dimension(3,3), intent(out) :: locbvec
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8), dimension(3,1) :: r12vec, r13vec
+
+  real(8), dimension(3,1) :: e1vec, e2vec, e3vec
+
+  ! loop index
+  integer :: inode, idime
+  ! ====================================
+
+  ! initialize
+  locbvec(:,:)= 0.0d0
+
+ 
+  ! edges
+  r12vec(1:3,1)= ecurn(1:3,2)-ecurn(1:3,1)
+  r13vec(1:3,1)= ecurn(1:3,3)-ecurn(1:3,1)
+
+
+  ! local 3 axis dir base vector: e3= r12 x r13 / ||r12 x r13|| 
+  ! ----------------------------
+  call crsprdt3d(1,r12vec,r13vec, e3vec)
+    ! input : 1(opt:normalize),r12vec,r13vec
+    ! output : e3vec
+
+  ! local 1 axis dir base vector: e1 
+  ! ----------------------------
+  call unitvec2(3,r12vec, e1vec)
+    ! input : 3(ndime),r42vec
+    ! output : e1vec
+
+  ! local 2 axis dir base vector: e2 
+  ! ----------------------------
+  call crsprdt3d(1,e3vec,e1vec, e2vec)
+    ! input : 1(opt:normalize),e3vec,e1vec
+    ! output : e2vec
+
+
+  ! set return result
+  locbvec(1:3,1)= e1vec(1:3,1)
+  locbvec(1:3,2)= e2vec(1:3,1)
+  locbvec(1:3,3)= e3vec(1:3,1)
+
+
+
+  return
+end subroutine getlocbvectri

@@ -844,6 +844,7 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 void
 MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
 {
+  // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   if(fetiSolver) {
     execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
@@ -856,6 +857,9 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
       domain->ExpComputeMortarLMPC(MortarHandler::CTC);
       domain->CreateMortarToMPC();
       decDomain->reProcessMPCs();
+      // FIXME there is some duplication of things done in reconstructMPCs and rebuild/refactor (eg buildCCt)
+      // I think all of the reconstruction of the solver should be done in rebuild/refactor
+      // consider the case of quasi-newton where the solver is NOT rebuild at every newton iteration
       fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
     }
     // set the gap for the linear constraints

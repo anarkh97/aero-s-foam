@@ -215,9 +215,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-      //cerr << "rhs*rhs = " << rhs*rhs << endl;
       solver->reSolve(rhs);
-      //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
       // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing

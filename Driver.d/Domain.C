@@ -3170,15 +3170,16 @@ Domain::ProcessSurfaceBCs()
           int nVertices = faceElemSet[iele]->nVertices();
           if(nVertices == 3 || nVertices == 4) {
              int *nodes = new int[nVertices];
-             for(int inode=0; inode<nVertices; ++inode) nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
-             int type = (nVertices == 3) ? 8 : 88;
-             geoSource->addElem(nEle, type, nVertices, nodes);
-             geoSource->setAttrib(nEle,-2); // make it a phantom
-             geoSource->setElementPressure(nEle, surface_pres[i].val);
-             nEle++;
+             for(int inode = 0; inode < nVertices; ++inode)
+               nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
+             int type = (nVertices == 3) ? 15 : 16;
+             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes);
              delete [] nodes;
           }
-          else { cerr << "can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << endl; continue; }
+          else {
+            cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << endl;
+            continue;
+          }
         }
       }
     }

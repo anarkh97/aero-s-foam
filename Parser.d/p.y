@@ -85,7 +85,7 @@
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SDISP SFORCE SPRESSURE SUBTYPE STEP SOWER SHELLTHICKNESS
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
@@ -103,10 +103,9 @@
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
 %type <axiMPC>   AxiLmpc
-%type <bclist>   DirichletBC NeumanBC BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
-%type <bclist>   TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
+%type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
+%type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
 %type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem //Added for HEV problem, EC, 20080512
-%type <bclist>   SurfaceDirichletBC SurfaceNeumanBC SurfacePressure
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -156,16 +155,10 @@ All:
 	;
 Component:
 	NodeSet 
-	| DirichletBC
-	{ if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
-	| NeumanBC
-	{ if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
-        | SurfaceDirichletBC
-        { if(geoSource->addSurfaceDirichlet($1->n,$1->d) < 0) return -1; }
-        | SurfaceNeumanBC
-        { if(geoSource->addSurfaceNeuman($1->n,$1->d) < 0) return -1; }
-        | SurfacePressure
-        { if(geoSource->addSurfacePressure($1->n,$1->d) < 0) return -1; }
+        | DirichletBC
+        { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
+        | NeumanBC
+        { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | LMPConstrain 
         | ComplexLMPConstrain 
 	| ElemSet
@@ -353,10 +346,6 @@ Random:
         | Random Integer RPROP Float Float NewLine
         { geoSource->setGroupRandomProperty($2-1,$3,$4,$5); }
         ; 
-//Shift:
-//        SHIFT Float NewLine
-//          { geoSource->setShift($2); }
-	;
 Impe:
         IMPE NewLine FREQ Float NewLine
           { geoSource->setImpe($4); }
@@ -393,38 +382,6 @@ FreqSweep:
         { domain->addFrequencies(2.0*PI*$2, $3); }
         ;
 ReconsInfo:
-/* deprecated
-        RECONS RECONSALG NewLine
-        { domain->solInfo().freqSweepMethod = $2; 
-          if($2 == 2) domain->solInfo().nFreqSweepRHS = 4; // pade2 for default l=3 m=4
-        }
-        | RECONS RECONSALG Integer NewLine 
-        { domain->solInfo().freqSweepMethod = $2; 
-          if($2 == 0) domain->solInfo().nFreqSweepRHS = $3+1; // taylor
-          else {  // pade1
-           domain->solInfo().padeL = $3/2;
-           domain->solInfo().padeM = $3-$3/2;
-           domain->solInfo().nFreqSweepRHS = $3+1;
-          }
-        }
-        | RECONS RECONSALG Integer Integer NewLine
-        { domain->solInfo().freqSweepMethod = $2;
-          domain->solInfo().padeL = $3;
-          domain->solInfo().padeM = $4; 
-          if($2 == 2)  domain->solInfo().nFreqSweepRHS = ($3 + $4 + 2)/2; // pade2 or 1-point PadeLanczos
-          else domain->solInfo().nFreqSweepRHS = $3 + $4 + 1;  // pade1
-        }
-        | RECONS RECONSALG Integer Integer Integer NewLine
-        { domain->solInfo().freqSweepMethod = $2;
-          domain->solInfo().padeN = $3;
-          domain->solInfo().padeL = $4;
-          domain->solInfo().padeM = $5;
-          domain->solInfo().nFreqSweepRHS = ceil(float($4+$5+1)/float($3)); 
-          if($2 == 5) { // fix PadeLanczos
-            
-          }
-        }
-*/
         RECONS RECONSALG Integer NewLine 
         { domain->solInfo().freqSweepMethod = $2; 
           int &l = domain->solInfo().padeL, &m = domain->solInfo().padeM, &n = domain->solInfo().padeN;
@@ -1133,12 +1090,29 @@ IComplexNeumannBC:
         }
         ;
 DirichletBC:
-        DISP NewLine BCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
-	;
-SurfaceDirichletBC:
-        SDISP NewLine BCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Displacements; $$ = $3; }
+/*
+        DISP NewLine
+        | DirichletBC BCDataList
+        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Displacements;
+          geoSource->setDirichlet($2->n,$2->d); }
+        | DirichletBC SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
+*/
+        DISP NewLine
+        { $$ = new BCList; }
+        | DirichletBC BC_Data
+        { $2.type = BCond::Displacements; $$->add($2); }
+        | DirichletBC Integer THRU Integer Integer Float NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Displacements); $$->add(bc); } }
+        | DirichletBC Integer THRU Integer STEP Integer Integer Float NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Displacements); $$->add(bc); } }
+        | DirichletBC SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          surf_bc[0].type = BCond::Displacements;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1542,12 +1516,29 @@ ITemp:
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
 NeumanBC:
-	FORCE NewLine BCDataList
-	{ for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
-	;
-SurfaceNeumanBC:
-        SFORCE NewLine BCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Forces; $$ = $3; }
+/*
+        FORCE NewLine
+        | NeumanBC BCDataList
+        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Forces; 
+          geoSource->setNeuman($2->n,$2->d); }
+        | NeumanBC SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          geoSource->addSurfaceNeuman(1,surf_bc); }
+*/
+        FORCE NewLine
+        { $$ = new BCList; }
+        | NeumanBC BC_Data
+        { $2.type = BCond::Forces; $$->add($2); }
+        | NeumanBC Integer THRU Integer Integer Float NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces); $$->add(bc); } }
+        | NeumanBC Integer THRU Integer STEP Integer Integer Float NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces); $$->add(bc); } }
+        | NeumanBC SURF BC_Data
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0] = $3;
+          surf_bc[0].type = BCond::Forces;
+          geoSource->addSurfaceNeuman(1,surf_bc); }
         ;
 BCDataList:
 	BC_Data
@@ -2191,29 +2182,11 @@ Pressure:
           for(i=$2; i<($3+1); ++i)
             geoSource->setElementPressure( i-1, $4 );  
         }
+        | Pressure SURF PBC_Data
+        { BCond *surf_pbc = new BCond[1];
+          surf_pbc[0] = $3;
+          geoSource->addSurfacePressure(1,surf_pbc); }
 	;
-SurfacePressure:
-        SPRESSURE NewLine PBCDataList
-        { $$ = $3; }
-        ;
-/* deprecated
-Consistent:
-        CONSISTENT NewLine MASS NewLine
-        { geoSource->setMRatio(1); }
-        | CONSISTENT NewLine MASS NewLine QLOAD NewLine
-        { geoSource->setMRatio(1); geoSource->setConsistentQFlag(); }
-        | CONSISTENT NewLine MASS NewLine PLOAD NewLine
-        { geoSource->setMRatio(1); geoSource->setConsistentPFlag(); }
-        | CONSISTENT NewLine MASS NewLine QLOAD NewLine PLOAD NewLine
-        { geoSource->setMRatio(1); geoSource->setConsistentQFlag(); geoSource->setConsistentPFlag(); }
-        | CONSISTENT NewLine QLOAD NewLine
-        { geoSource->setConsistentQFlag(); }
-        | CONSISTENT NewLine QLOAD NewLine PLOAD NewLine
-        { geoSource->setConsistentQFlag(); geoSource->setConsistentPFlag(); }
-        | CONSISTENT NewLine PLOAD NewLine
-        { geoSource->setConsistentPFlag(); }
-	;
-*/
 Lumped:
 	LUMPED NewLine
 	{ geoSource->setMRatio(0.0);

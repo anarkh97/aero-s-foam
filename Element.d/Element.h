@@ -36,11 +36,11 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
-  enum { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
+  enum BCType { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors } type;
-  void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; };
+         Sensors, Undefined } type;
+  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; };
 };
 
 // Complex Boundary Condition Structure

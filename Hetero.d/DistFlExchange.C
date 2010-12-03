@@ -105,7 +105,6 @@ void DistFlExchanger::negotiate()  {
 
   int iFluid;
   for (iFluid = 0; iFluid < numFl; ++iFluid) {
-
     int tag = FL_NEGOT;
     int nFlMatched;
     int buffLen = 1;

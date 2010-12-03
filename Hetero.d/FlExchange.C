@@ -64,8 +64,9 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
  int i,j,iDof;
 
  FaceElemSet *feset;
- if(useFaceElem)
+ if(useFaceElem) {
    feset = &(surface->GetFaceElemSet());
+ }
 
  Element     *thisElement;
  FaceElement *thisFaceElem;
@@ -98,6 +99,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
         aforce[2] += buffer[3*j+2];
      }
  }
+ fprintf(stderr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
 
  flipRcvParity();
 
@@ -136,8 +138,11 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
  //  fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
 
  FaceElemSet *feset;
- if(useFaceElem)
+ int         *fnId;
+ if(useFaceElem){
    feset = &(surface->GetFaceElemSet());
+   fnId  = surface->GetPtrGlNodeIds();
+ }
 
  Element     *thisElement;
  FaceElement *thisFaceElem;
@@ -156,7 +161,7 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
        thisElement->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState);
      } else {
        thisFaceElem = (*feset)[sndTable[i][j].elemNum];
-       thisFaceElem->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState);
+       thisFaceElem->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState, fnId);
      }
      pos += 6;
 
@@ -393,6 +398,7 @@ void FlExchanger::sendEmbeddedWetSurface()
   map<int,int>*  g2l = surface->GetPtrGlToLlNodeMap();
   int         nNodes = fnodes.size();
   int         nElems = surface->nFaceElements();
+  bool    renumbered = surface->IsRenumbered();
 
   // data preparation
   int    buf[2] = {nNodes, nElems};
@@ -403,12 +409,21 @@ void FlExchanger::sendEmbeddedWetSurface()
     nodes[3*i+1] = cs[fnId[i]]->y;
     nodes[3*i+2] = cs[fnId[i]]->z;
   }
-  for(int i=0; i<nElems; i++) {
-    FaceElement *ele = feset[i];
-    elems[3*i]   = (*g2l)[ele->GetNode(0)];
-    elems[3*i+1] = (*g2l)[ele->GetNode(1)];
-    elems[3*i+2] = (*g2l)[ele->GetNode(2)];
-  }
+
+  if(renumbered) 
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = ele->GetNode(0);
+      elems[3*i+1] = ele->GetNode(1);
+      elems[3*i+2] = ele->GetNode(2);
+    }
+  else
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = (*g2l)[ele->GetNode(0)];
+      elems[3*i+1] = (*g2l)[ele->GetNode(1)];
+      elems[3*i+2] = (*g2l)[ele->GetNode(2)];
+    }
 
   // send the package sizes
   fluidCom->sendTo(0, 555/*tag*/, buf, 2);
@@ -632,7 +647,7 @@ void FlExchanger::matchup() //comparable to matcher + read
       FaceElement *thisElement = feset[sndTable[i][j].elemNum];
       int nDof = thisElement->numDofs();
       sndTable[i][j].dofs = array;
-      thisElement->dofs(*dsa,array);
+      thisElement->dofs(*dsa,array,fnId); // XXXX
       array += nDof;
     }
   }

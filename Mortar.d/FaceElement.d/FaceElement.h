@@ -129,8 +129,8 @@ class FaceElement {
 	virtual void print()=0;
 
         virtual int numDofs() {fprintf(stderr,"function numDofs() undefined for this type of element!\n"); return 0;}	
-        virtual int* dofs(DofSetArray &, int*) {fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0;}
-        virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*) {
+        virtual int* dofs(DofSetArray &, int*, int*) {fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0;}
+        virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*, int*) {
           fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
         virtual void getFlLoad(CoordSet&, const InterpPoint&, double*, double*, GeomState*) {
           fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}

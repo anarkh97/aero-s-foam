@@ -338,22 +338,22 @@ FaceTri3::print()
 // -----------------------------------------------------------------------------------------------------
 //                                            FS COMMUNICATION (KW) 
 // -----------------------------------------------------------------------------------------------------
-int* FaceTri3::dofs(DofSetArray &dsa, int *p) 
+int* FaceTri3::dofs(DofSetArray &dsa, int *p, int *fnId) 
 {
   if(p == 0) p = new int[9];
-    dsa.number(Nodes[0], DofSet::XYZdisp, p);
-    dsa.number(Nodes[1], DofSet::XYZdisp, p+3);
-    dsa.number(Nodes[2], DofSet::XYZdisp, p+6);
+    dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);
+    dsa.number(fnId[Nodes[1]], DofSet::XYZdisp, p+3);
+    dsa.number(fnId[Nodes[2]], DofSet::XYZdisp, p+6);
     return p;
 }
 
-void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*) 
+void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId) 
 {
   const double *gp = ip.xy;
   double xyz[3][6];
-  state.getDV(Nodes[0], xyz[0], xyz[0]+3);
-  state.getDV(Nodes[1], xyz[1], xyz[1]+3);
-  state.getDV(Nodes[2], xyz[2], xyz[2]+3);
+  state.getDV(fnId[Nodes[0]], xyz[0], xyz[0]+3);
+  state.getDV(fnId[Nodes[1]], xyz[1], xyz[1]+3);
+  state.getDV(fnId[Nodes[2]], xyz[2], xyz[2]+3);
 
   for(int j=0; j<6; ++j)
     res[j] = gp[0]*xyz[0][j] + gp[1]*xyz[1][j] + (1.0-gp[0]-gp[1])*xyz[2][j]; //using ACME convention

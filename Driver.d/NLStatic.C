@@ -105,7 +105,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       // If there is a zero pressure defined, skip the element
       if(packedEset[iele]->getPressure() == 0) continue;
 
-      // Compute element pressure force in the local coordinates
+      // Compute (linear) element pressure force in the local coordinates
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
       elementForce *= lambda*mfttFactor;

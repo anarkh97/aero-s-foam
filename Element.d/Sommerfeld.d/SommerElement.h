@@ -12,6 +12,7 @@
 #include <Driver.d/Mpc.h>
 
 class Domain;
+class GeomState;
 
 class SommerElement : public Element {
 
@@ -93,7 +94,7 @@ public:
         virtual void ellipsoidBT2(CoordSet& cs, double a, double b, double k, ComplexD *d);
         virtual void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3] , double K[3], ComplexD *d);
 
-        virtual void neumVector(CoordSet&,Vector&, int pflag=0);
+        virtual void neumVector(CoordSet&, Vector&, int pflag=0, GeomState* = 0);
         virtual void neumVector(CoordSet&,ComplexVector&,
                                 double,double,double,double, int pflag=0);
 // RT: obsolete? and I need it for something else

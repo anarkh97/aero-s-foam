@@ -170,16 +170,35 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
                                                                      // for each node for all previous timesteps
 
     outfile.setf(ios_base::showpoint | ios_base::right | ios_base::scientific | ios_base::uppercase);
+    int glNode_prev = -1;
     if(glSub == 0) { // if first subdomain in cluster, write time
       outfile.seekp(timeOffset);
       outfile.width(3+oinfo[fileNumber].width);
       outfile << time << endl;
+      // NEW fix for gaps in node numbering
+      // the first subdomain writes zeros for all unasigned nodes
+      int counter = 0;
+      for(int i=0; i<nodes.size(); ++i) {
+        if(domain->getNodeToElem()->num(i) == 0) {
+          int glNode = i;
+          if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
+            long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
+            outfile.seekp(relativeOffset, ios_base::cur);
+          }
+          for(int j=0; j<numComponents; ++j) { 
+            outfile.width(2+oinfo[fileNumber].width);
+            outfile << double(0);
+          }
+          outfile << "\n";
+          glNode_prev = glNode;
+          counter++;
+        }
+      }
     }
     timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for endl
     if(glSub != 0) outfile.seekp(timeOffset);
   
     int k = 0;
-    int glNode_prev = -1;
     for(int i=0; i<numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
       int glNode = glNodeNums[k]; k++;

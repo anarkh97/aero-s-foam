@@ -143,11 +143,14 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   allNumClusElems = 0;
   binaryInput = false;
   binaryInputControlLeft = false;
+  binaryOutput = false;
+/*
 #ifdef DISTRIBUTED
   binaryOutput = true;
 #else
   binaryOutput = false;
 #endif
+*/
   subToClus = 0;
 
   mpcDirect = false;
@@ -933,14 +936,14 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if(ele) {
       if(!ele->isPhantomElement() && (!ele->isHEVFluidElement() || (!sinfo.HEV))) {
         packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
+        //packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;
       }
       else if(!ele->isPhantomElement() && ele->isHEVFluidElement()) {
         packedEsetFluid->elemadd(nElemFluid, ele);
-        (*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
+        //(*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
         nElemFluid++;
       }
       else
@@ -953,7 +956,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if (sinfo.ATDARBFlag != -2.0) {
       for (int i = 0; i < domain->numSommer; i++) {
         packedEset.elemadd(nElem,domain->sommer[i]);
-        packedEset[nElem]->setGlNum(numele+i);
+        //packedEset[nElem]->setGlNum(numele+i);
         if(packFlag)
           glToPckElems[numele+i] = nElem;
         nElem++;
@@ -979,7 +982,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if(ele) {
       if(ele->isPhantomElement()) {
         packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
+        //packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;
@@ -1093,7 +1096,7 @@ int GeoSource::getNonMpcElems(Elemset &eset)
     if(ele)  {
       if(!ele->isRigidElement() && !ele->isMpcElement())  {
         eset.elemadd(elecount, ele);
-        eset[nElem]->setGlNum(iEle);
+        //eset[nElem]->setGlNum(iEle);
         elecount++;
       }
       else mpccount++;

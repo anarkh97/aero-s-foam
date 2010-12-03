@@ -439,6 +439,7 @@ public:
   int getNumDirichlet()  { return numDirichlet; }
   int getNumDirichletFluid()  { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
   int getNumNeuman()  { return numNeuman; }
+  int getNumIDisModal() { return numIDisModal; }
   int getDirichletBC(BCond *&);
   int getDirichletBCFluid(BCond *&);
   int getTextDirichletBC(BCond *&);

@@ -31,6 +31,8 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
+#include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
+#include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -1293,21 +1295,42 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
   Vector elementPressureForce(maxNumDOFs);
   int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE
 
-  for(int iele = 0; iele < numele; ++iele) {
-    // If there is a zero pressure defined, skip it.
-    if(packedEset[iele]->getPressure() == 0.0) continue;
+  if(pressureFlag()) {
+    for(int iele = 0; iele < numele; ++iele) {
+      // If there is a zero pressure defined, skip it.
+      if(packedEset[iele]->getPressure() == 0.0) continue;
 
-    // Otherwise, compute element pressure force
-    elementPressureForce.zero();
-    packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
+      // Otherwise, compute element pressure force
+      elementPressureForce.zero();
+      packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
 
-    // Assemble element pressure forces into domain force vector
-    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
-      if(cn >= 0)
-        force[cn] += lambda*elementPressureForce[idof];
+      // Assemble element pressure forces into domain force vector
+      for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+        if(cn >= 0)
+          force[cn] += lambda*elementPressureForce[idof];
+      }
     }
   }
+
+  for(int iele = 0; iele < numNeum; ++iele) {
+    
+    if(dynamic_cast<QuadPressureBC*>(neum[iele]) == NULL && 
+       dynamic_cast<TrianglePressureBC*>(neum[iele]) == NULL) continue;
+
+    // Compute structural element distributed Neumann force
+    elementPressureForce.zero();
+    neum[iele]->neumVector(nodes, elementPressureForce);
+
+    // Assemble element force vector into domain force vector
+    int *dofs = neum[iele]->dofs(*c_dsa);
+    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
+      if(dofs[idof] >= 0)
+        force[dofs[idof]] += lambda*elementPressureForce[idof];
+    }
+    delete [] dofs;
+  }
+
 }
 
 template<class Scalar>
@@ -1325,7 +1348,8 @@ Domain::addAtddnbForce(GenVector<Scalar> &force, double lambda)
     // Assemble element force vector into domain force vector
     int *dofs = neum[iele]->dofs(*c_dsa);
     for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
-      force[dofs[idof]] += lambda*elementAtddnbForce[idof];
+      if(dofs[idof] >= 0)
+        force[dofs[idof]] += lambda*elementAtddnbForce[idof];
     }
     delete [] dofs;
   }
@@ -1346,7 +1370,8 @@ Domain::addAtdrobForce(GenVector<Scalar> &force, double lambda)
     // Assemble element force vector into domain force vector
     int *dofs = scatter[iele]->dofs(*c_dsa);
     for(int idof = 0; idof < scatter[iele]->numDofs(); ++idof) {
-      force[dofs[idof]] += lambda*elementAtdrobForce[idof];
+      if(dofs[idof] >= 0)
+        force[dofs[idof]] += lambda*elementAtdrobForce[idof];
     }
     delete [] dofs;
   }
@@ -1623,7 +1648,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(pressureFlag() && !sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
   if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
@@ -1770,7 +1795,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(pressureFlag() && !sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
@@ -2760,7 +2785,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT is present this term is not constant (see computeExtForce4)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(domain->pressureFlag() && !domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
+  if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // ... ADD RHS FROM LMPCs
   if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs(cnst_f);
@@ -2827,7 +2852,7 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(domain->pressureFlag() && domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+  if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM THERMOE
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)

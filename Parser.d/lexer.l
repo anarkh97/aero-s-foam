@@ -197,6 +197,8 @@ TRAIL [a-zA-Z]*
 
 "STEP"[a-zA-Z]*|"step"[a-zA-Z]*    { return STEP; }
 
+"SURFACE"|"surface"                { return SURF; }
+
 "LMPC"[a-zA-Z]*|"lmpc"[a-zA-Z]*    { return LMPC; }
 
 "HLMPC"[a-zA-Z]*|"hlmpc"[a-zA-Z]*  { return HLMPC; }
@@ -1151,10 +1153,8 @@ TRAIL [a-zA-Z]*
 
 "NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
 
-"SDISP"[a-zA-Z]*|"sdisp"[a-zA-Z]*  { return SDISP; }
-"SFORC"[a-zA-Z]*|"sforc"[a-zA-Z]*  { return SFORCE; }
-"SPRES"[a-zA-Z]*|"spres"[a-zA-Z]*  { return SPRESSURE; }
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
+
 "ffi_debug"                        { return FFIDEBUG; }
 
 "NONINPC" { return NONINPC; }

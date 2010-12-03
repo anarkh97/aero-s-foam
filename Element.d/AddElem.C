@@ -646,6 +646,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
    }
    ele->setElementType(etype);
+   ele->setGlNum(num);
    return ele;
 }
 

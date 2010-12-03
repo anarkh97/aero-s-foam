@@ -403,7 +403,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       }
     }
     double trac[3] = { 0, 0, pressure };
-    double tmftval = (mftt) ? mftt->getVal(time) : 1.0;
+    double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;
 
     // ---------------------------------------------------------------
     // internal force, hourglass control and pressure

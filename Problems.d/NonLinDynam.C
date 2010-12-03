@@ -1026,7 +1026,7 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
    // Measure time necessary to update the prescribed displacments
    times->timePresc -= getTime();
 
-   // note 1: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to initialize the displacement field"
+   // note 2: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to construct the geometric stiffness"
    if((domain->numInitDisp() > 0) && (domain->numInitDisp6() == 0))
      geomState->updatePrescribedDisplacement(domain->getInitDisp(), domain->numInitDisp());
    

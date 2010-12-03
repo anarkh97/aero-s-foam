@@ -17,6 +17,8 @@
 #include <Element.d/Sommerfeld.d/IsoParamTriSommer.h>
 #include <Element.d/Sommerfeld.d/IsoParamLineSommer.h>
 #include <Element.d/Sommerfeld.d/IsoParamTriLineSommer.h>
+#include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
+#include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
 #include <Driver.d/Domain.h>
 
@@ -1980,6 +1982,14 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
        addNeum(ele);
        break;
 #endif
+     case 15:
+       ele = new TrianglePressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
+     case 16:
+       ele = new QuadPressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
      default:
        return;
    }

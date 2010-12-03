@@ -54,7 +54,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 {
   for(int iele = 0; iele < numele; ++iele) {
 
-    //elementForce.zero();
+    elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele]) {
@@ -100,6 +100,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
+    double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
       if(packedEset[iele]->getPressure() == 0) continue;
@@ -107,12 +108,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       // Compute element pressure force in the local coordinates
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      elementForce *= lambda;
-#define PRESSURE_MFTT
-#ifdef PRESSURE_MFTT
-      double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
-      elementForce *= mfttFactor; // TODO consider
-#endif
+      elementForce *= lambda*mfttFactor;
+
       // Include the "load stiffness matrix" in kel[iele]
       if(sinfo.newmarkBeta != 0.0)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
@@ -126,6 +123,21 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(dofNum >= 0)
           residual[dofNum] += elementForce[idof];
+      }
+    }
+  }
+
+  // pressure using surfacetopo
+  int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
+  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
+  for(int iele = 0; iele < numNeum; ++iele) {
+    neum[iele]->dofs(*dsa, edofs);
+    elementForce.zero();
+    neum[iele]->neumVector(nodes, elementForce, 0, &geomState);
+    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
+      int cn = c_dsa->getRCN(edofs[idof]);
+      if(cn >= 0) {
+        residual[cn] += lambda*mfttFactor*elementForce[idof]; // TODO MFTT
       }
     }
   }

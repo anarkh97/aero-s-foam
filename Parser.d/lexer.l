@@ -98,7 +98,7 @@ TRAIL [a-zA-Z]*
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
-"SOWE"[a-zA-Z]*|"sowe"|"topology"  { return SOWER; }
+"SOWE"[a-zA-Z]*|"sowe"[a-zA-Z]*    { return SOWER; }
 
 "BINARY"|"binary"                  { return BINARY; }
 

@@ -127,8 +127,7 @@ FaceElemSet::WriteSower(BinFileHandler& file, int* ndMap)
 
 map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size) 
 {
-  map<int,locoord> exy;  //global  Node Id -> (iElem, (x,y))
-  map<int,locoord> exy2; //ElemSet Node Id -> (iElem, (x,y))
+  map<int,locoord> exy;  //Node Id -> (iElem, (x,y))
   map<int,locoord>::iterator it;
 
   for(int iel=0; iel<last(); iel++) {
@@ -141,13 +140,5 @@ map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size)
     }
   }
 
-  for(int i=0; i<size; i++)
-    exy2[i] = exy[fnId[i]];
-
-  return exy2;
+  return exy;
 }
-
-
-
-
-

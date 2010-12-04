@@ -94,7 +94,8 @@ class GenDecDomain
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
-  virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0);
+  virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
+                              GenDistrVector<Scalar> *aeroF = 0);
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs

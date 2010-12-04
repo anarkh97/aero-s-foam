@@ -1144,7 +1144,8 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
 template<class Scalar>
 void
-GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState)
+GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
+                                       GenDistrVector<Scalar> *aeroF)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1166,6 +1167,18 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   }
   if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
+
+  // initialize and merge aeroelastic forces
+  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> masterAeroF(masterInfo);
+  if(aeroF) {
+    aerof = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, aeroF->subData(iSub));
+    }
+    aerof.reduce(masterAeroF, masterFlag, numFlags);
+  }
 
   // initialize and merge velocities & accelerations
   DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
@@ -1415,6 +1428,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
                                            iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
           delete [] totMod;
         }
+        break;
+      case OutputInfo::AeroXForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 0);
+        break;
+      case OutputInfo::AeroYForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 1);
+        break;
+      case OutputInfo::AeroZForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 2);
+        break;
+      case OutputInfo::AeroXMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 3);
+        break;
+      case OutputInfo::AeroYMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 4);
+        break;
+      case OutputInfo::AeroZMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", iOut);

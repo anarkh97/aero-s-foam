@@ -745,7 +745,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     delete [] userDefineDisp; delete [] userDefineVel;
   }
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, aeroForce);
 }
 
 void

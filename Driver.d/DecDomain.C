@@ -1885,7 +1885,8 @@ GenDecDomain<Scalar>::outputPrimal(GenDistrVector<Scalar> &primal, int iter)
 template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot,
-                                     double x, SysState<GenDistrVector<Scalar> > *distState)  
+                                     double x, SysState<GenDistrVector<Scalar> > *distState,
+                                     GenDistrVector<Scalar> *aeroF)  
 {
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
@@ -1905,6 +1906,16 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   int isub;
   for(isub = 0; isub < numSub; ++isub)
     subDomain[isub]->mergeDisp(xyz,(*geomState)[isub]);
+
+  // intialize and merge aeroelastic forces from subdomains into global array
+  Scalar (*mergedAeroF)[6] = 0;
+  if(aeroF) {
+    mergedAeroF = new Scalar[numNodes][6];
+    for(i = 0; i < numNodes; ++i)
+      for(j=0; j<6; ++j) mergedAeroF[i][j] = 0.0;
+    for(iSub = 0; iSub < numSub; ++iSub)
+      subDomain[iSub]->mergeForces(mergedAeroF, aeroF->subData(iSub));
+  }
 
   // for nonlinear dynamics: initialize and merge velocities and accelerations from subdomains into global array
   GenDistrVector<Scalar> *v_n = 0, *a_n = 0;
@@ -2073,6 +2084,24 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        }
        geoSource->outputNodeScalars(i, globVal, numNodes, x);
        break;
+     case OutputInfo::AeroXForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 0, x);
+       break;
+     case OutputInfo::AeroYForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 1, x);
+       break;
+     case OutputInfo::AeroZForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 2, x);
+       break;
+     case OutputInfo::AeroXMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 3, x);
+       break;
+     case OutputInfo::AeroYMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 4, x);
+       break;
+     case OutputInfo::AeroZMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 5, x);
+       break;
      default:
        filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", i);
        break;
@@ -2080,6 +2109,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   }
  }
  if(globVal) delete [] globVal;
+ if(aeroF) delete [] mergedAeroF;
+ if(xyz) delete [] xyz;
+ if(mergedVel) delete [] mergedVel;
+ if(mergedAcc) delete [] mergedAcc;
 
  // --- Print Problem statistics -------------------------------------
 /*

@@ -99,7 +99,6 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
         aforce[2] += buffer[3*j+2];
      }
  }
- fprintf(stderr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
 
  flipRcvParity();
 

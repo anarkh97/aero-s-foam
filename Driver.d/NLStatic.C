@@ -799,12 +799,66 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double error = Wext+Wela+Wkin;
           geoSource->outputEnergies(iInfo,time,Wext, Waero, Wela,Wkin,0.0,error);
         }
+    } break;
+    case OutputInfo::AeroXForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+        data[iNode]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
       }
-        break;
-       default:
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroYForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+        data[iNode]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroZForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+        data[iNode] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroXMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+        data[iNode] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroYMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+        data[iNode] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroZMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+        data[iNode] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+
+    default:
          fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
 	 break;
-    }
+  }
 
 }
 

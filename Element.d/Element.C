@@ -209,8 +209,8 @@ Element::getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg)
   int *myNodes;
   int preAllocNodes[125];
   int nnd = numNodes()-numInternalNodes();
-  if(nnd > 125)
-    myNodes = new int[nnd];
+  if(numNodes() > 125)
+    myNodes = new int[numNodes()];
   else
     myNodes = preAllocNodes;
 
@@ -228,7 +228,7 @@ Element::getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg)
   xcg /= nnd;
   ycg /= nnd;
   zcg /= nnd;
-  if(nnd > 125)
+  if(numNodes() > 125)
     delete[] myNodes;
 }
 

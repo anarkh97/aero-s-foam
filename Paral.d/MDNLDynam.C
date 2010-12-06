@@ -252,6 +252,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   claw = 0; 
   userSupFunc = 0;
   mu = 0; lambda = 0;
+  aeroForce = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -285,16 +286,16 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
   // Check for divergence
   else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
 
-#ifdef PRINT_RESIDUALS
+//#ifdef PRINT_RESIDUALS
   double relEng = normEnergy/firstEng;
   if(verboseFlag) {
-    fprintf(stderr," Iteration # %d\n",iteration);
-    fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
-                   " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                     normRes,normDv,normEnergy,
-                     relRes,relDv,relEng);
+    filePrint(stderr," Iteration # %d\n",iteration);
+    filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+                     " rel. r = %e rel. dv = %e rel. energy = %e\n",
+                       normRes,normDv,normEnergy,
+                       relRes,relDv,relEng);
   }
-#endif
+//#endif
   totIter++;
 
   // Store residual norm and dv norm for output

@@ -3511,6 +3511,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
+   if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
  }
  res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices

@@ -410,15 +410,15 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
      }
 
      if(verboseFlag) {
-       fprintf(stderr," Iteration # %d\n",iteration);
-       fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
-                      " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                        normRes,normDv,normEnergy,
-                        relRes,relDv,relEng);
+       filePrint(stderr," Iteration # %d\n",iteration);
+       filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+                        " rel. r = %e rel. dv = %e rel. energy = %e\n",
+                          normRes,normDv,normEnergy,
+                          relRes,relDv,relEng);
      }
 
      totIter++;
-     fprintf(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
+     filePrint(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
      fflush(res);
 
      // Store residual norm and dv norm for output
@@ -931,7 +931,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
     domain->getFileExchanger()->sendDisplacements(state);
-    if(verboseFlag) fprintf(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
+    if(verboseFlag) filePrint(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
 
     domain->getTimers().sendFluidTime += getTime();
   }
@@ -964,7 +964,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
 
     State tempState(c_dsa, dsa, bcx, d_n, velocity, vp);
     domain->getFileExchanger()->sendTemperature(tempState);
-    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
 
     domain->getTimers().sendFluidTime += getTime();
   }
@@ -979,7 +979,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
       tempsent[iNode] = (*geomState)[iNode].x;
 
     domain->getFileExchanger()->sendStrucTemp(tempsent);
-    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
   

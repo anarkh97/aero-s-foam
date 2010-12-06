@@ -624,8 +624,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    char ch[4] = { '|', '/', '-', '\\' };
 
    for( ; t < tmax-0.01*dt; t += dt) {
-     if(aeroAlg < 0)
-       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+     if(aeroAlg < 0) {
+       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                 ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+     }
 
      // ... For Aeroelastic A5 Algorithm, Do restore and backup here
      if(aeroAlg == 5) probDesc->a5StatusRevise(parity, curState, *bkState);
@@ -756,7 +758,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      if(aeroAlg == 5) probDesc->a5TimeLoopCheck( parity, t, dt );
 
    }
-   filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+   if(aeroAlg < 0)
+     filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
    totalTime += getTime();
 #ifdef PRINT_TIMERS
@@ -875,8 +878,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    if(aeroAlg < 0)
-      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    if(aeroAlg < 0) {
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    }
     //t1 -= getTime(); 
 
     if (fourthOrder) {
@@ -998,7 +1003,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     //filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete %e %e %e %e",
     //          ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100), t1/1000/n, t2/1000/n, t3/1000/n, t4/1000/n);
   }
-  filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+  if(aeroAlg < 0)
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
   totalTime += getTime();
 #ifdef PRINT_TIMERS

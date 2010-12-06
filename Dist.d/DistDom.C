@@ -39,7 +39,8 @@ GenDistrDomain<Scalar>::initialize()
   nodeOffsets = 0; 
   elemNodeOffsets = 0; 
   nodePat = 0;
-  masterStress =0;
+  masterStress = 0;
+  elemOffsets = 0;
 }
 
 template<class Scalar>

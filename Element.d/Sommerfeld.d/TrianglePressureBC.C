@@ -16,7 +16,6 @@ TrianglePressureBC::TrianglePressureBC(int *_nn, double _pressure)
   nn[0] = _nn[0];
   nn[1] = _nn[1]; 
   nn[2] = _nn[2]; 
-  nn[3] = _nn[3]; 
   pressure = _pressure;
   dom = 0;
 }

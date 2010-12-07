@@ -6,6 +6,8 @@
 #include <Math.d/SparseMatrix.h>
 #include <Driver.d/GeoSource.h>
 
+//#def WITH_GLOBAL_ROT
+
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
  : X0(cs)
 /****************************************************************
@@ -90,12 +92,12 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
     }
     
   }
-
+#ifdef WITH_GLOBAL_ROT
   // Initialize Global Rotation Matrix to Identity
   double zeroRot[3] = {0.0, 0.0, 0.0};
   computeRotMat(zeroRot, gRot);
   computeCG(refCG);
-
+#endif
 }
 
 CoordSet emptyCoord;
@@ -155,10 +157,11 @@ GeomState::operator=(const GeomState &g2)
   for(i=0; i<numnodes; ++i)
     ns[i] = g2.ns[i];
 
+#ifdef WITH_GLOBAL_ROT
   for(i=0; i<3; ++i)
     for(j=0; j<3; ++j)
       gRot[i][j] = g2.gRot[i][j];
-
+#endif
   return *this;
 }
 
@@ -213,6 +216,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0)
     flag[i]= g2.flag[i];
   }
  
+#ifdef WITH_GLOBAL_ROT
   // Initialize Global Rotation Matrix & CG position // HB
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
@@ -220,6 +224,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0)
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
+#endif
 }
 
 void
@@ -275,8 +280,9 @@ GeomState::update(const Vector &v)
      //if(dtheta[0] == 0.0 && dtheta[1] == 0.0 && dtheta[2] == 0.0) continue; // XXXX
      inc_rottensor( dtheta, ns[i].R );
    }
-
- computeGlobalRotation();
+#ifdef WITH_GLOBAL_ROT
+  computeGlobalRotation();
+#endif
 }
 
 void
@@ -311,8 +317,9 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
      form_rottensor( theta, ns[i].R );
    }
  }
-
+#ifdef WITH_GLOBAL_ROT
  computeGlobalRotation();
+#endif
 }
 
 void
@@ -912,10 +919,14 @@ void GeomState::rotate(double R[3][3], double v[3])
 
 void GeomState::getGlobalRot(double R[3][3]) 
 {
+#ifdef WITH_GLOBAL_ROT
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       R[i][j] = gRot[i][j];
-
+#else
+  cerr << " *** ERROR: recompile code with -DWITH_GLOBAL_ROT for nonlinear spring\n";
+  exit(-1);
+#endif
 }
 
 double

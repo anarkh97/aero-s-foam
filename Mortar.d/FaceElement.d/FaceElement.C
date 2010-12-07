@@ -99,17 +99,13 @@ FaceElement::ViewRefCoords()
 
 int
 FaceElement::findEle(Connectivity *nodeToElem, int *eleTouch,
-                     int *eleCount, int myNum, Elemset *eset, int it)
+                     int *eleCount, int myNum, int *fnId)
 {
   int *nn = new int[nNodes()];
   GetNodes(nn);
   for(int i = 0; i<nNodes(); i++) {
-    for(int iele = 0; iele < nodeToElem->num(nn[i]); iele++) {
-      int eleNum = (*nodeToElem)[nn[i]][iele];
-      if(eset) {
-        if ((*eset)[eleNum]->isSommerElement()) continue;
-        if ((*eset)[eleNum]->isFsiElement()) continue;
-      }
+    for(int iele = 0; iele < nodeToElem->num(fnId[nn[i]]); iele++) {
+      int eleNum = (*nodeToElem)[fnId[nn[i]]][iele];
       if (eleTouch [eleNum] != myNum) {
         eleTouch [eleNum] = myNum;
         eleCount [eleNum] = 1;
@@ -123,7 +119,7 @@ FaceElement::findEle(Connectivity *nodeToElem, int *eleTouch,
       }
     }
   }
-  delete nn;
+  delete [] nn;
   return -1;
 }
 

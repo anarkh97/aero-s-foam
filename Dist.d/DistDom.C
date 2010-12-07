@@ -142,11 +142,13 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
+    GenDistrVector<Scalar> assembledAeroF(*aeroF);
+    this->ba->assemble(assembledAeroF);
     aerof = 0;
     for(iSub = 0; iSub < this->numSub; ++iSub) {
       Scalar (*mergedAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
-      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, aeroF->subData(iSub));
+      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, assembledAeroF.subData(iSub));
     }
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
@@ -203,7 +205,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].type == OutputInfo::Farfield) { 
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
         continue;
@@ -218,7 +220,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -465,6 +467,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         iOut_ffp = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
         //this->buildFFP(u,oinfo[iOut].filptr);
         break;
+      case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
       case OutputInfo::AeroXForce:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 0);
         break;
@@ -594,7 +597,7 @@ GenDistrDomain<Scalar>::getAeroForceScalar(DistSVec<Scalar, 6> &aerof, DistSVec<
         int *outIndex = this->subDomain[iSub]->getOutIndex();
         for(int iNode = 0; iNode < nOutNodes; iNode++)
           if(outIndex[iNode] == fileNumber)  {
-            Scalar (*nodeAeroF)[8] = (Scalar (*)[8]) aerof.subData(iSub);
+            Scalar (*nodeAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             geoSource->outputNodeScalars(fileNumber, nodeAeroF[outNodes[iNode]]+dof, 1, time);
           }
@@ -1172,11 +1175,13 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
+    GenDistrVector<Scalar> assembledAeroF(*aeroF);
+    this->ba->assemble(assembledAeroF);
     aerof = 0;
     for(iSub = 0; iSub < this->numSub; ++iSub) {
       Scalar (*mergedAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
-      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, aeroF->subData(iSub));
+      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, assembledAeroF.subData(iSub));
     }
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
@@ -1221,7 +1226,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) {
+        int oI = iInfo;
+        if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
+        continue;
+      }
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->setHeaderLen(iInfo);
       }
@@ -1231,7 +1241,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1430,6 +1440,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
           delete [] totMod;
         }
         break;
+      case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
       case OutputInfo::AeroXForce:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 0);
         break;

@@ -101,7 +101,7 @@ class FaceTri3: public FaceElement {
         int numDofs() {return 9;}
         int* dofs(DofSetArray &dsa, int *p, int *fnId); 
         void computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId); 
-        void getFlLoad(CoordSet&, const InterpPoint &ip, double *flF, double *resF, GeomState*); 
+        void getFlLoad(const InterpPoint &ip, double *flF, double *resF); 
 
 };
 

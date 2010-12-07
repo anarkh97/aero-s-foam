@@ -81,6 +81,7 @@ GenDecDomain<Scalar>::initialize()
   soweredInput = false;
   nodeVecInfo = 0;
   wiPat = 0;
+  ba = 0;
 } 
 
 template<class Scalar>
@@ -483,9 +484,9 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memorySubToNode += memoryUsed();
 
 #ifdef USE_MPI
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || geoSource->binaryOutput == 0) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
 #else
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1) {
 #endif 
       // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
@@ -692,7 +693,7 @@ GenDecDomain<Scalar>::preProcess()
 
  // free up some memory
  //delete nodeToSub; nodeToSub = 0;
- if(domain->solInfo().type != 0) {
+ if(domain->solInfo().type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
    if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
@@ -754,7 +755,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 
   // intialize and merge aeroelastic forces from subdomains into global array
   Scalar (*mergedAeroF)[6] = 0;
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
     mergedAeroF = new Scalar[numNodes][6];
     for(i = 0; i < numNodes; ++i)
       for(j=0; j<6; ++j) mergedAeroF[i][j] = 0.0;
@@ -1067,6 +1068,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           domain->nffp = oinfo[i].interval;
           buildFFP(u,oinfo[i].filptr);
           break;
+        case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
         case OutputInfo::AeroXForce:
           if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 0, time);
           break;
@@ -1909,7 +1911,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
 
   // intialize and merge aeroelastic forces from subdomains into global array
   Scalar (*mergedAeroF)[6] = 0;
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
     mergedAeroF = new Scalar[numNodes][6];
     for(i = 0; i < numNodes; ++i)
       for(j=0; j<6; ++j) mergedAeroF[i][j] = 0.0;
@@ -2084,6 +2086,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        }
        geoSource->outputNodeScalars(i, globVal, numNodes, x);
        break;
+     case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
      case OutputInfo::AeroXForce:
        if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 0, x);
        break;
@@ -3404,8 +3407,6 @@ void
 GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
                                Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti)
 {
- GenBasicAssembler<Scalar> *ba = 0;
-
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
@@ -3443,7 +3444,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
- if(domain->solInfo().inpc) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
    FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
                                                           FSCommPattern<Scalar>::CopyOnSend);
    for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
@@ -3451,7 +3452,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    ba = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
  }
 
- res.K   = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
  if(dgt.C[0]) {
@@ -3692,3 +3694,4 @@ GenDecDomain<Scalar>::getWiCommPattern()
   }
   return wiPat;
 }
+

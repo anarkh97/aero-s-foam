@@ -167,9 +167,9 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
     delete [] userDefineDisp; delete [] userDefineVel;
   }
 
-  // Send displacements to fluid code (except C0)
+  // Send displacements to fluid code (except explicit C0)
   SolverInfo& sinfo = domain->solInfo();
-  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20) {
+  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && !(sinfo.newmarkBeta == 0 && sinfo.aeroFlag == 20)) {
     // Send u + IDISP6 to fluid code.
     // IDISP6 is used to compute pre-stress effects.
     DistrVector d_n_aero(distState.getDisp());
@@ -1006,11 +1006,27 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   }
 
   // create distributed fluid exchanger
-  if(flag)
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo+iInfo);
-  else
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
-
+  OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
+  std::set<int> &aeroEmbeddedSurfaceId = domain->GetAeroEmbedSurfaceId();
+  if(aeroEmbeddedSurfaceId.size() != 0) {
+    int iSurf = -1;
+    for(int i = 0; i < domain->getNumSurfs(); i++)
+      if(aeroEmbeddedSurfaceId.find((*domain->viewSurfEntities())[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
+        iSurf = i;
+        break; //only allows one Surface.
+      }
+    if(iSurf<0) {
+      fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+      exit(-1);
+    }
+    distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
+                                          &domain->getNodes(), domain->getNodeToElem(),
+                                          decDomain->getElemToSub(), subdomain,
+                                          cdsa, dsa, oinfo_aero);
+  }
+  else {
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo_aero);
+  }
   mddPostPro->setPostProcessor(distFlExchanger);
   mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
 
@@ -1051,7 +1067,9 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     if(verboseFlag) filePrint(stderr,"... [E] Sent mode shapes ...\n");
   }
   else {
-    distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
+    double aero_tmax = sinfo.tmax;
+    if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
+    distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
                                sinfo.isCollocated, sinfo.alphas);
     if(verboseFlag) filePrint(stderr,"... [E] Sent parameters ...\n");
 

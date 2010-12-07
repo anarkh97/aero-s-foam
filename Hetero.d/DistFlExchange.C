@@ -8,6 +8,7 @@
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/SubDomain.h>
 
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Driver.d/DynamProbType.h>
@@ -16,6 +17,9 @@
 #include <Driver.d/SysState.h>
 
 #include <Corotational.d/DistrGeomState.h>
+
+#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
+#include <Mortar.d/FaceElement.d/FaceElement.h>
 
 //--------------------------------------------------------------------
 
@@ -30,32 +34,41 @@ int fromTemp = 3;
 //---------------------------------------------------------------------
 
 DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, 
-	DofSetArray **_cdsa, DofSetArray **_dsa,  OutputInfo *_oinfo) {
+	                         DofSetArray **_cdsa, DofSetArray **_dsa,
+                                 OutputInfo *_oinfo)
+ : cs(_cs), eset(_eset), cdsa(_cdsa), dsa(_dsa), oinfo(_oinfo),
+   tmpDisp(0), dsp(0), vel(0), acc(0), pVel(0)
+{
+  useFaceElem = false;
+}
 
-  cs = _cs;
-  cdsa   = _cdsa;
-  dsa = _dsa;
-  oinfo = _oinfo;
-  tmpDisp = 0;
+DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, SurfaceEntity *_surface, CoordSet *_globalCoords,
+                                 Connectivity *_nodeToElem, Connectivity *_elemToSub, SubDomain **_sd,
+                                 DofSetArray **_cdsa, DofSetArray **_dsa, OutputInfo *_oinfo)
+ : cs(_cs), eset(_eset), surface(_surface), globalCoords(_globalCoords), nodeToElem(_nodeToElem),
+   elemToSub(_elemToSub), sd(_sd), cdsa(_cdsa), dsa(_dsa), oinfo(_oinfo),
+   tmpDisp(0), dsp(0), vel(0), acc(0), pVel(0)
+{
+  useFaceElem = true;
+}
 
-  eset = _eset;
-
-  dsp = 0;
-  vel = 0;
-  acc = 0;
-  pVel = 0;
-
-
+DistFlExchanger::~DistFlExchanger()
+{
+  if(useFaceElem) {
+    for(int i = 0; i < geoSource->getCpuToSub()->numConnect(); ++i)
+      delete fnId2[i];
+    delete [] fnId2;
+  }
 }
 
 //---------------------------------------------------------------------
 
-MatchMap* DistFlExchanger::getMatchData()  {
-
+MatchMap*
+DistFlExchanger::getMatchData()
+{
   Connectivity *cpuToSub = geoSource->getCpuToSub();
   int myCPU = structCom->myID();
   int numSub = cpuToSub->num(myCPU);
-  int *numMatch = geoSource->getNumMatchData();
 
   MatchMap* globMatches = new MatchMap();
 
@@ -63,33 +76,92 @@ MatchMap* DistFlExchanger::getMatchData()  {
   int totSub = cpuToSub->numConnect();
   int *glToLocSubMap = new int[totSub];
  
-  int iSub;
-  for (iSub = 0; iSub < totSub; iSub++)
+  for(int iSub = 0; iSub < totSub; iSub++)
     glToLocSubMap[iSub] = -1;
 
-  for (iSub = 0; iSub < numSub; iSub++)
+  for(int iSub = 0; iSub < numSub; iSub++)
     glToLocSubMap[ (*cpuToSub)[myCPU][iSub] ] = iSub;
 
-  for (iSub = 0; iSub < numSub; iSub++)  {
 
-    int glSub = (*cpuToSub)[myCPU][iSub];
-    int locSub = glToLocSubMap[glSub];
-    if (locSub < 0)
-      fprintf(stderr,"*** ERROR: Bad Global to Local Sub Map\n");
+  if(!useFaceElem) {
+    for(int iSub = 0; iSub < numSub; iSub++) {
 
-    MatchData *matchData = geoSource->getMatchData(locSub);
+      int glSub = (*cpuToSub)[myCPU][iSub];
+      int locSub = glToLocSubMap[glSub];
+      if(locSub < 0)
+        fprintf(stderr,"*** ERROR: Bad Global to Local Sub Map\n");
 
-    for (int iMatch= 0; iMatch < numMatch[locSub]; iMatch++)  {
+      MatchData *matchData = geoSource->getMatchData(locSub);
+      int *numMatch = geoSource->getNumMatchData();
 
-      int gPos = matchData[iMatch].glPos;
-      InterpPoint iPoint;
-      iPoint.subNumber = iSub;
-      iPoint.elemNum = matchData[iMatch].elemNum;
-      iPoint.xy[0] = matchData[iMatch].xi;
-      iPoint.xy[1] = matchData[iMatch].eta;
-      (*globMatches)[gPos] = iPoint;
+      for(int iMatch = 0; iMatch < numMatch[locSub]; iMatch++) {
+        int gPos = matchData[iMatch].glPos;
+        InterpPoint iPoint;
+        iPoint.subNumber = iSub;
+        iPoint.elemNum = matchData[iMatch].elemNum;
+        iPoint.xy[0] = matchData[iMatch].xi;
+        iPoint.xy[1] = matchData[iMatch].eta;
+        iPoint.gap[0] = 0.0;
+        iPoint.gap[1] = 0.0;
+        iPoint.gap[2] = 0.0;
+        (*globMatches)[gPos] = iPoint;
+      }
     }
   }
+  else {
+    // info about surface
+    FaceElemSet& feset = surface->GetFaceElemSet();
+    CoordSet&   fnodes = surface->GetNodeSet();
+    int*          fnId = surface->GetPtrGlNodeIds();
+
+    // assign face elements to a subdomain 
+    int totele = elemToSub->csize();
+    int *eleTouch = new int[totele];
+    int *eleCount = new int[totele];
+    for(int j = 0; j < totele; j++) eleTouch[j] = -1;
+    int numFaceEle = feset.last();
+    int *faceElemToSub = new int[numFaceEle];
+    for(int j = 0; j < numFaceEle; ++j) {
+      int glEle = feset[j]->findEle(nodeToElem, eleTouch, eleCount, j, fnId);
+      int glSub = (*elemToSub)[glEle][0];
+      faceElemToSub[j] = glToLocSubMap[glSub];
+      
+    }
+    delete [] eleTouch;
+    delete [] eleCount;
+
+    // find node to elem connectivity and local coords. 
+    // local coords convention given in "Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.C"
+    map<int,locoord> exy = feset.computeNodeLocalCoords(fnId, fnodes.size());
+    map<int,locoord>::iterator it;
+    for(int j = 0; j < fnodes.size(); ++j) {
+      it = exy.find(j);
+      if(it==exy.end()) { fprintf(stderr,"Oh no!\n"); exit(-1); }
+
+      int faceElemNum = (it->second).first;
+      int subNumber = faceElemToSub[faceElemNum];
+      if(subNumber > -1) {
+        InterpPoint iPoint;
+        iPoint.subNumber = subNumber;
+        iPoint.elemNum = faceElemNum;
+        iPoint.xy[0] = (it->second).second.first;
+        iPoint.xy[1] = (it->second).second.second;
+        iPoint.gap[0] = 0.0;
+        iPoint.gap[1] = 0.0;
+        iPoint.gap[2] = 0.0; /*KW:no gap*/
+        (*globMatches)[j] = iPoint;
+      }
+    }
+    delete [] faceElemToSub;
+
+    fnId2 = new int * [numSub];
+    for(int i = 0; i < numSub; ++i) {
+      fnId2[i] = new int[fnodes.size()];
+      for(int j = 0; j < fnodes.size(); ++j) fnId2[i][j] = sd[i]->globalToLocal(fnId[j]);
+    }
+  }
+
+  delete [] glToLocSubMap;
 
   return globMatches;
 }
@@ -97,8 +169,13 @@ MatchMap* DistFlExchanger::getMatchData()  {
 //----------------------------------------------------------------------
 
 // This routine negotiate with the fluid codes which match points go where
-void DistFlExchanger::negotiate()  {
-
+void DistFlExchanger::negotiate()
+{
+  FaceElemSet *feset;
+  if(useFaceElem) {
+    feset = &(surface->GetFaceElemSet());
+    sendEmbeddedWetSurface();
+  }
   
   int numFl = fluidCom->remoteSize();  // number of fluid mpi processes
   int *flSize = new int[numFl];  // number of matches per fluid mpi 
@@ -138,7 +215,7 @@ void DistFlExchanger::negotiate()  {
   MatchMap* globMatches = getMatchData();
 
   // # of fluid mpi's receiving data from this mpi
-  numFluidNeighbors = 0;
+  nbrReceivingFromMe = 0;
 
   int *index = new int[maxSize];
   //fprintf(stderr,"struct %d allocating sndTable of size %d\n", structCom->myID(), nSender);
@@ -156,7 +233,7 @@ void DistFlExchanger::negotiate()  {
     RecInfo rInfo = fluidCom->recFrom(tag, index, bufferLen);
     int fromNd = rInfo.cpu;
     //int rsize = rInfo.len;
-    //int sender = consOrigin[fromNd];  // gives fluid mpi #
+    //int sender = consOrigin[fromNd];  // gives fluid mpi # TODO check if this is correct see FlExchange.C
     int sender = rInfo.cpu;
     
     //fprintf(stderr,"Struct cpu %d receives %d matches from fluid %d\n", structCom->myID(), nbSendTo[sender], sender); 
@@ -200,14 +277,25 @@ void DistFlExchanger::negotiate()  {
         // assign dofs to element 
         int locSub = sndTable[sender][ipt].subNumber;
         int locElem = sndTable[sender][ipt].elemNum;
-        Element *thisElement = (*eset[locSub])[locElem];
-        if(thisElement == NULL) cerr << " ERROR: DistFlExchanger::negotiate() cpu " << structCom->myID() << ", locSub = " << locSub << ", locElem = " << locElem << endl;
-        int nDof = thisElement->numDofs();
+        int nDof;
+
+        if(!useFaceElem) {
+          Element *thisElement = (*eset[locSub])[locElem];
+          if(thisElement == NULL) {
+            cerr << " ERROR: DistFlExchanger::negotiate() cpu " << structCom->myID() << ", locSub = " 
+                 << locSub << ", locElem = " << locElem << endl;
+          }
+          nDof = thisElement->numDofs();
+        }
+        else {
+          FaceElement *thisFaceElement = (*feset)[locElem];
+          nDof = thisFaceElement->numDofs();
+        }
         totalNDof += nDof;
         if (nDof > maxNDof) 
           maxNDof = nDof;
       }
-      numFluidNeighbors++;
+      nbrReceivingFromMe++;
     }
 /*
     else  {
@@ -224,11 +312,19 @@ void DistFlExchanger::negotiate()  {
 
         int locSub = sndTable[sender][iData].subNumber;
         int locElem = sndTable[sender][iData].elemNum;
-        Element *thisElement = (*eset[locSub])[locElem];
 
         sndTable[sender][iData].dofs = array;
-        thisElement->dofs(*(cdsa[locSub]), array);
-        array += thisElement->numDofs();;
+
+        if(!useFaceElem) {
+          Element *thisElement = (*eset[locSub])[locElem];
+          thisElement->dofs(*(cdsa[locSub]), array);
+          array += thisElement->numDofs();
+        }
+        else {
+          FaceElement *thisFaceElement = (*feset)[locElem];
+          thisFaceElement->dofs(*(cdsa[locSub]), array, fnId2[locSub]); // TODO fnId2 must map from embedded surface to locSub node numbers
+          array += thisFaceElement->numDofs();
+        }
 
     }
 
@@ -250,7 +346,7 @@ void DistFlExchanger::negotiate()  {
   localF = new double[maxNDof];
 
   // create list of fluid mpi's to send to
-  idSendTo = new int[numFluidNeighbors]; 
+  idSendTo = new int[nbrReceivingFromMe]; 
 
   int count = 0;
   for (iFluid = 0; iFluid < nSender; iFluid++)
@@ -278,14 +374,21 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
 
   *tmpDisp = dState.getDisp();
   tmpDisp->linAdd(dt*alpha[0], dState.getVeloc(), dt*alpha[1], dState.getPrevVeloc());
-
   //if(verboseFlag)
   //  filePrint(stderr, "Disp Norm %e Veloc Norm %e\n", (*tmpDisp)*(*tmpDisp), dState.getVeloc()*dState.getVeloc());
 
+  FaceElemSet *feset;
+  int         *fnId;
+  if(useFaceElem){
+    feset = &(surface->GetFaceElemSet());
+    fnId  = surface->GetPtrGlNodeIds();
+  }
+
+  Element     *thisElement;
+  FaceElement *thisFaceElem;
+
   double xxx = 0, yyy = 0;
   int pos = 0;
-
-
   // get the velocities, accelerations, and previous velocities
   if (dsp == 0)  {
     dsp = new Vector [numSub];
@@ -294,21 +397,21 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
     pVel = new Vector [numSub];
   }
 
-  for (int iSub = 0; iSub < numSub; iSub++)  {
+  for(int iSub = 0; iSub < numSub; iSub++) {
 
     dsp[iSub].setData(tmpDisp->subData(iSub), tmpDisp->subLen(iSub));
 
     vel[iSub].setData(dState.getVeloc().subData(iSub), 
-	      	     	   dState.getVeloc().subLen(iSub));
+                      dState.getVeloc().subLen(iSub));
 
     acc[iSub].setData(dState.getAccel().subData(iSub), 
-		       	   dState.getAccel().subLen(iSub));
+                      dState.getAccel().subLen(iSub));
 
     pVel[iSub].setData(dState.getPrevVeloc().subData(iSub), 
-		      	    dState.getPrevVeloc().subLen(iSub));
+                       dState.getPrevVeloc().subLen(iSub));
   }
 
-  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+  for(int iNeigh = 0; iNeigh < nbrReceivingFromMe; iNeigh++) {
 
     // get fluid mpi to send disps to
     int mpiNum = idSendTo[iNeigh];
@@ -316,27 +419,35 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
     int origPos = pos;
 
     // compute displacements for each match point
-    for (int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
+    for(int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
 
       int locSub = sndTable[mpiNum][iData].subNumber;
       int locElem = sndTable[mpiNum][iData].elemNum;
-      Element *thisElement = (*eset[locSub])[locElem];
 
       int iSub = locSub;
       State localState(cdsa[iSub], dsa[iSub], usrDefDisps[iSub],
-                        usrDefVels[iSub], dsp[iSub],
-                        vel[iSub], acc[iSub], pVel[iSub]);
+                       usrDefVels[iSub], dsp[iSub],
+                       vel[iSub], acc[iSub], pVel[iSub]);
       GeomState *geomState = (distrGeomState) ? (*distrGeomState)[iSub] : 0;
-      thisElement->computeDisp(*cs[locSub], localState,
-      			       sndTable[mpiNum][iData], buffer+pos, geomState);
-      pos += 6;
 
+      if(!useFaceElem) {
+        thisElement = (*eset[locSub])[locElem];
+        thisElement->computeDisp(*cs[locSub], localState,
+                                sndTable[mpiNum][iData], buffer+pos, geomState);
+      }
+      else {
+        thisFaceElem = (*feset)[locElem];
+        thisFaceElem->computeDisp(*cs[locSub], localState, sndTable[mpiNum][iData],
+                                  buffer+pos, geomState, fnId2[locSub]); // TODO fnId2 must map from embedded surface to locSub node numbers
+      }
+
+      pos += 6;
     }
   
     if(tag < 0) tag = STTOFLMT+( (sndParity > 0) ? 1 : 0);
 
     toFluid = 1;
-    for (int ip = origPos; ip < pos; ip += 6) {
+    for(int ip = origPos; ip < pos; ip += 6) {
       xxx += buffer[ip+0]*buffer[ip+0] + buffer[ip+1]*buffer[ip+1] +
              buffer[ip+2]*buffer[ip+2];
       yyy += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
@@ -347,9 +458,8 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
   }
   fluidCom->waitForAllReq();
   //if(verboseFlag)
-  //  filePrint(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, numFluidNeighbors);
+  //  filePrint(stderr, "Sending %e and %e to %d CPUs\n", xxx, yyy, nbrReceivingFromMe);
   flipSndParity();
-
 }
 
 //---------------------------------------------------------------------
@@ -425,16 +535,17 @@ DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex,
                               double time, double alphaf, int& iscollocated,
                               DistrGeomState* distrGeomState)
 {
-  aforce[0] = 0.0;
-  aforce[1] = 0.0;
-  aforce[2] = 0.0;
+  aforce[0] = aforce[1] = aforce[2] = 0.0;
 
-  //int zero = 0;
-  //Connectivity *cpuToSub = geoSource->getCpuToSub();
-  //int myCPU = structCom->myID();
-  //int numSub = cpuToSub->num(myCPU);
+  FaceElemSet *feset;
+  if(useFaceElem) {
+    feset = &(surface->GetFaceElemSet());
+  }
 
-  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+  Element     *thisElement;
+  FaceElement *thisFaceElem;
+
+  for(int iNeigh = 0; iNeigh < nbrReceivingFromMe; iNeigh++) {
 
     int tag =  FLTOSTMT + ((rcvParity > 0) ? 1 : 0) ;
     toFluid = 1;
@@ -443,20 +554,29 @@ DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex,
     // get fluid mpi process
     int mpiNum = rInfo.cpu;
 
-    for (int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
+    for(int iData = 0; iData < nbSendTo[mpiNum]; ++iData) {
 
       int locSub = sndTable[mpiNum][iData].subNumber;  
       int locElem = sndTable[mpiNum][iData].elemNum;
-      Element *thisElement = (*eset[locSub])[locElem];
-      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[locSub] : 0;
-      
-      thisElement->getFlLoad(*(cs[locSub]), sndTable[mpiNum][iData], 
-			     buffer+3*iData, localF, geomState);
 
-      int nDof = thisElement->numDofs();
+      GeomState *geomState = (distrGeomState) ? (*distrGeomState)[locSub] : 0;
+
+      int nDof;
+      if(!useFaceElem) {
+        thisElement = (*eset[locSub])[locElem];
+        thisElement->getFlLoad(*(cs[locSub]), sndTable[mpiNum][iData], 
+                               buffer+3*iData, localF, geomState);
+        nDof = thisElement->numDofs();
+      }
+      else {
+        thisFaceElem = (*feset)[locElem];
+        thisFaceElem->getFlLoad(sndTable[mpiNum][iData], buffer+3*iData, localF);
+        nDof = thisFaceElem->numDofs();
+      }
+
       int *dof = sndTable[mpiNum][iData].dofs;
-      for (int iDof = 0; iDof < nDof; ++iDof)
-        if (dof[iDof] >= 0)
+      for(int iDof = 0; iDof < nDof; ++iDof)
+        if(dof[iDof] >= 0)
           force.subData(locSub)[dof[iDof]] += localF[iDof];
          
       aforce[0] += buffer[3*iData];
@@ -471,15 +591,17 @@ DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex,
 
   // KHP
   if (oinfo) {
-    fprintf(oinfo->filptr,"%e   ",time);
-    fprintf(oinfo->filptr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
-    fflush(oinfo->filptr);
+    if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
+      structCom->reduce(3,aforce);
+      filePrint(oinfo->filptr,"%e   ",time);
+      filePrint(oinfo->filptr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
+      fflush(oinfo->filptr);
+    }
   }
 
-
   // ML & KP For 'corrected' aeroelastic force
- iscollocated = (isCollocated) ? 1 : 0;
- return (time+alphaf*dt);
+  iscollocated = (isCollocated) ? 1 : 0;
+  return (time+alphaf*dt);
 }
 
 //---------------------------------------------------------------------
@@ -672,7 +794,7 @@ DistFlExchanger::sendTemperature(SysState<DistrVector>& dState)
 		      	    dState.getPrevVeloc().subLen(iSub));
   }
 
-  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+  for (int iNeigh = 0; iNeigh < nbrReceivingFromMe; iNeigh++) {
 
     // get fluid mpi to send disps to
     int mpiNum = idSendTo[iNeigh];
@@ -705,7 +827,7 @@ DistFlExchanger::sendTemperature(SysState<DistrVector>& dState)
 double
 DistFlExchanger::getFluidFlux(DistrVector& flux, double time, double &bflux)
 {
-  for (int iNeigh = 0; iNeigh < numFluidNeighbors; iNeigh++) {
+  for (int iNeigh = 0; iNeigh < nbrReceivingFromMe; iNeigh++) {
 
     int tag =  FLTOSTHEAT;
     toFluid = 1;
@@ -733,5 +855,61 @@ DistFlExchanger::getFluidFlux(DistrVector& flux, double time, double &bflux)
   }
 
   return bflux;
+}
+
+//KW: send the embedded wet surface to fluid
+void
+DistFlExchanger::sendEmbeddedWetSurface()
+{
+  if(structCom->myID()!=0)
+    return; /* do nothing */
+  if(!useFaceElem) {
+    fprintf(stderr,"ERROR: Embedded Wet Surface undefined! Aborting...\n"); exit(-1);}
+
+  // info about surface
+  FaceElemSet& feset = surface->GetFaceElemSet();
+  CoordSet&   fnodes = surface->GetNodeSet();
+  int*          fnId = surface->GetPtrGlNodeIds();
+  map<int,int>*  g2l = surface->GetPtrGlToLlNodeMap();
+  int         nNodes = fnodes.size();
+  int         nElems = surface->nFaceElements();
+  bool    renumbered = surface->IsRenumbered();
+
+  // data preparation
+  int    buf[2] = {nNodes, nElems};
+  double nodes[3*nNodes];
+  int    elems[3*nElems];
+  for(int i=0; i<nNodes; i++) {
+    nodes[3*i]   = (*globalCoords)[fnId[i]]->x; // TODO do it without globalCoords
+    nodes[3*i+1] = (*globalCoords)[fnId[i]]->y;
+    nodes[3*i+2] = (*globalCoords)[fnId[i]]->z;
+  }
+
+  if(renumbered)
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = ele->GetNode(0);
+      elems[3*i+1] = ele->GetNode(1);
+      elems[3*i+2] = ele->GetNode(2);
+    }
+  else
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = (*g2l)[ele->GetNode(0)];
+      elems[3*i+1] = (*g2l)[ele->GetNode(1)];
+      elems[3*i+2] = (*g2l)[ele->GetNode(2)];
+    }
+
+  // send the package sizes
+  fluidCom->sendTo(0, 555/*tag*/, buf, 2);
+  fluidCom->waitForAllReq();
+
+  // send the node set
+  fluidCom->sendTo(0, 666/*tag*/, nodes, nNodes*3);
+  fluidCom->waitForAllReq();
+
+  // send the element set
+  fluidCom->sendTo(0, 888/*tag*/, elems, nElems*3);
+  fluidCom->waitForAllReq();
 }
 

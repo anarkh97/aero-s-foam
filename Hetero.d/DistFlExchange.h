@@ -19,20 +19,10 @@ typedef GenVector<double> Vector;
 template <class VecType> class SysState;
 class DistrGeomState;
 class SurfaceEntity;
+template <class Scalar> class GenSubDomain;
+typedef GenSubDomain<double> SubDomain;
 
 #define FL_NEGOT 10000
-
-// This is an inerpolation point. The element elemNum uses x and y to
-// compute the interpolated displacements/velocities
-
-/*
-struct InterpPoint {
-    int subNumber;
-    int elemNum;
-    double xy[2];
-    int *dofs;
-};
-*/
 
 typedef map<int, InterpPoint> MatchMap;
 
@@ -42,20 +32,13 @@ class DistFlExchanger {
   double *buffer, *buff;
   int bufferLen, buffLen;
 
-  //double *pArray;
-  //int     pArrayLen;
-
-  //int *nbData;
-  //int *senderId;
-
-  int numFluidNeighbors;   // number of fluid mpi's w/matches in this mpi
+  int nbrReceivingFromMe;   // number of fluid mpi's w/matches in this mpi
   int *idSendTo;  	   // list of fluid mpi's to sendTo
   int *nbSendTo;	   // num of match data per fluid neighbor
   //int *consOrigin; // reverse table of idSendTo
   InterpPoint **sndTable;  // match data by local subdomain in mpi
-  //InterpPoint *globMatches;// all match data from fluid mpi's
 
-  //int numWetElements;
+  CoordSet **cs;             // nodes in this mpi process
   Elemset **eset;
   DofSetArray **cdsa;
   DofSetArray **dsa;
@@ -76,16 +59,23 @@ class DistFlExchanger {
   Vector *acc; 
   Vector *pVel; 
 
-  CoordSet **cs;      	     // nodes in this mpi process
-
   //PJSA (Nov.18,2010): FS Communication using Face Elements
   SurfaceEntity *surface;
+  CoordSet *globalCoords;
+  Connectivity *nodeToElem, *elemToSub;
   bool useFaceElem;
+  SubDomain **sd;
+  int **fnId2;
 
 public:
 
   DistFlExchanger(CoordSet **, Elemset **, DofSetArray **, 
-		DofSetArray **, OutputInfo *oinfo = 0);
+                  DofSetArray **, OutputInfo *oinfo = 0);
+  DistFlExchanger(CoordSet **, Elemset **, SurfaceEntity *, CoordSet *,
+                  Connectivity *, Connectivity *, SubDomain **,
+                  DofSetArray **, DofSetArray **, OutputInfo *oinfo = 0);
+  ~DistFlExchanger();
+
   MatchMap* getMatchData();
   void negotiate();
   void thermoread(int);
@@ -113,8 +103,9 @@ public:
   void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
   void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
 
- int cmdCom(int);
+  int cmdCom(int);
 
+  void sendEmbeddedWetSurface();
 };
 
 #define FLTOSTMT 1000

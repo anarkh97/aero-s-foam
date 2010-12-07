@@ -3215,7 +3215,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           cl2LocElem[iElem] = -1;
         iElem = 0;
         for(int iR = 0; iR < numElemRanges; ++iR)
-          //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
           for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
             cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
           }
@@ -3253,12 +3252,14 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         }
         delete [] cl2LocElem;
       }
+      delete [] gl2ClSubMap;
     }
+/*
     else {
       fprintf(stderr,"*** ERROR: Binary Match File not specified\n");
       exit (-1);
     }
-    delete [] gl2ClSubMap;
+*/
   }
 
   return numCPU;

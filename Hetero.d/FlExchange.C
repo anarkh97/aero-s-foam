@@ -40,7 +40,7 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, Do
                          OutputInfo *_oinfo) : cs(_cs), surface(_surf), eset(_eset)
 { 
   dsa     = _dsa;
-  oinfo   = 0;
+  oinfo   = _oinfo;
   tmpDisp = 0;
   useFaceElem = true; 
 }
@@ -86,7 +86,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
           nDof = thisElement->numDofs();
         } else {
           thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
-          thisFaceElem->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF, geomState);
+          thisFaceElem->getFlLoad(sndTable[origin][j], buffer+3*j, localF);
           nDof = thisFaceElem->numDofs();
         }
         int *dof = sndTable[origin][j].dofs;
@@ -104,7 +104,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
 
  // KHP
  if(oinfo) {
-   if (tIndex % oinfo->interval == 0) {
+   if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
      fprintf(oinfo->filptr,"%e   ",time);
      fprintf(oinfo->filptr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
      fflush(oinfo->filptr);
@@ -488,7 +488,7 @@ void FlExchanger::matchup() //comparable to matcher + read
  int actualSenders = 0; // Actual number of fluid nodes sending to me
  int maxSender = 0; // number associated with the highest actual sender
  int maxPRec = 0;   // number associated with the highest fluid process
-     //   That receives from us
+                    //   That receives from us
  int maxrec=0;      // number of the highest element receiving a pressure
 
  // Let's look for the send list
@@ -1161,7 +1161,7 @@ FlExchanger::cmdComHeat( int commandFlag )
 void
 FlExchanger::negotiate()
 {
-
+  int thisNode = structCom->myID();
   int totSize = 0;
   int numFl = 0;
   // _FORTRAN(hetsize)(toFluid, numFl);

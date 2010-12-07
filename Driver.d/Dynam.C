@@ -413,8 +413,8 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
   }
   
-  // Send to fluid code (except C0)
-  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20)
+  // Send to fluid code (except explicit C0)
+  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && !(sinfo.newmarkBeta == 0 && sinfo.aeroFlag == 20))
     aeroSend(d_n, v_n, a_n, v_p, bcx, vcx);
 
   if(sinfo.aeroheatFlag >= 0 && tIndex != 0 )
@@ -643,7 +643,8 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           }
         }
         break;
-       
+
+        case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
@@ -800,6 +801,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
+    OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
     if(aeroEmbeddedSurfaceId.size()!=0) {
       int iSurf = -1;
       for(int i=0; i<nSurfEntity; i++)
@@ -811,13 +813,10 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa); //packedEset is not used, but flExchanger needs
-                                                                                    // to have a reference of it at construction.
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs
+                                                                                                // to have a reference of it at construction.
     } else {
-      if(flag)
-        flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
-      else
-        flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
     char *matchFile = geoSource->getMatchFileName();
@@ -872,7 +871,9 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
     }
     else {
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
+      double aero_tmax = sinfo.tmax;
+      if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas);
       if(verboseFlag) fprintf(stderr," ... [E] Sent parameters ...\n");
 

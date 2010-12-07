@@ -171,6 +171,7 @@ class BaseSub : virtual public Domain
   int renumberBC(int *);
   void makeGlobalToLocalNodeMap();  // PJSA
   void makeGlobalToLocalElemMap();  // YYY
+  int * getGlobalToLocalNodeMap() { return glToLocalNode; }
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
   int localToGlobal(int i)    { return glNums[i]; }
   int getGlobalNMax()         { return globalNMax; }

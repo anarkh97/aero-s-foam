@@ -2418,9 +2418,9 @@ GenSubDomain<Scalar>::mergeForces(Scalar (*mergedF)[6], Scalar *subF)
 {
  for(int inode = 0; inode < numnodes; ++inode) {
    for(int jdof = 0; jdof < 6; ++jdof) {
-     int cdof  = c_dsa->locate(inode, jdof);
+     int cdof  = c_dsa->locate(inode, 1 << jdof);
      if(cdof >= 0)
-       mergedF[glNums[inode]][jdof] = subF[cdof];  // free
+       mergedF[glNums[inode]][jdof] += subF[cdof]; // free: assemble into global array
      else
        mergedF[glNums[inode]][jdof] = 0.0;         // constrained or doesn't exist
    }
@@ -2433,7 +2433,7 @@ GenSubDomain<Scalar>::mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF)
 {
  for(int inode = 0; inode < numnodes; ++inode) {
    for(int jdof = 0; jdof < 6; ++jdof) {
-     int cdof  = c_dsa->locate(inode, jdof);
+     int cdof  = c_dsa->locate(inode, 1 << jdof);
      if(cdof >= 0)
        mergedF[inode][jdof] = subF[cdof];  // free
      else

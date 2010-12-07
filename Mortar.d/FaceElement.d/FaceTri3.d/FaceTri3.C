@@ -347,7 +347,8 @@ int* FaceTri3::dofs(DofSetArray &dsa, int *p, int *fnId)
     return p;
 }
 
-void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, GeomState*, int *fnId) 
+void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, 
+                           GeomState*, int *fnId) 
 {
   const double *gp = ip.xy;
   double xyz[3][6];
@@ -359,7 +360,7 @@ void FaceTri3::computeDisp(CoordSet&, State &state, const InterpPoint &ip, doubl
     res[j] = gp[0]*xyz[0][j] + gp[1]*xyz[1][j] + (1.0-gp[0]-gp[1])*xyz[2][j]; //using ACME convention
 }
 
-void FaceTri3::getFlLoad(CoordSet&cs, const InterpPoint &ip, double *flF, double *resF, GeomState*) 
+void FaceTri3::getFlLoad(const InterpPoint &ip, double *flF, double *resF) 
 {
   const double *gp = ip.xy;
   for(int i = 0; i < 3; ++i) {

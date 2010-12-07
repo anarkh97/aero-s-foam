@@ -800,6 +800,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           geoSource->outputEnergies(iInfo,time,Wext, Waero, Wela,Wkin,0.0,error);
         }
     } break;
+    case OutputInfo::AeroForce: break; // this is done in FlExchange.C
     case OutputInfo::AeroXForce:  {
       double *data = new double[nPrintNodes];
       for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {

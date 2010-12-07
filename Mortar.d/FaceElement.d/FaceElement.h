@@ -132,9 +132,9 @@ class FaceElement {
         virtual int* dofs(DofSetArray &, int*, int*) {fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0;}
         virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*, int*) {
           fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
-        virtual void getFlLoad(CoordSet&, const InterpPoint&, double*, double*, GeomState*) {
+        virtual void getFlLoad(const InterpPoint&, double*, double*) {
           fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
- 
+
 	// FFI methods
 	// ~~~~~~~~~~~
 	//void AddPtrFFI(FFIPolygon*);
@@ -143,7 +143,7 @@ class FaceElement {
 	//void printFFI();
 
         int findEle(Connectivity *nodeToElem, int *eleTouch,
-                    int *eleCount, int myNum, Elemset *eset, int it);
+                    int *eleCount, int myNum, int *fnId);
 
 };
 #endif

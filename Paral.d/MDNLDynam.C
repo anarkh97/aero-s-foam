@@ -583,17 +583,26 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
                                                   alphaf, iscollocated);
     if(verboseFlag) filePrint(stderr," ... [E] Received fluid forces ...\n");
-    if (iscollocated == 0) {
-      if(prevIndex >= 0) {
-        *aeroForce *= (1/gamma);
-        aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
-      }
+
+    if(sinfo.aeroFlag == 20) {
+      if(prevIndex >= 0)
+        aero_f.linC(0.5,*aeroForce,0.5,*prevFrc);
+      else
+        aero_f = *aeroForce;
     }
+    else {
+      if (iscollocated == 0) {
+        if(prevIndex >= 0) {
+          *aeroForce *= (1/gamma);
+          aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
+        }
+      }
 
-    double alpha = 1.0-alphaf;
-    if(prevIndex < 0) alpha = 1.0;
+      double alpha = 1.0-alphaf;
+      if(prevIndex < 0) alpha = 1.0;
 
-    aero_f.linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+      aero_f.linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+    }
     f += aero_f;
 
     *prevFrc = *aeroForce;
@@ -746,7 +755,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     delete [] userDefineDisp; delete [] userDefineVel;
   }
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState, aeroForce);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF);
 }
 
 void
@@ -1089,10 +1098,27 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   }
 
   // create distributed fluid exchanger
-  if(flag)
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo+iInfo);
-  else
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+  OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
+  std::set<int> &aeroEmbeddedSurfaceId = domain->GetAeroEmbedSurfaceId();
+  if(aeroEmbeddedSurfaceId.size() != 0) {
+    int iSurf = -1;
+    for(int i = 0; i < domain->getNumSurfs(); i++)
+      if(aeroEmbeddedSurfaceId.find((*domain->viewSurfEntities())[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
+        iSurf = i;
+        break; //only allows one Surface.
+      }
+    if(iSurf<0) {
+      fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+      exit(-1);
+    }
+    distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
+                                          &domain->getNodes(), domain->getNodeToElem(),
+                                          decDomain->getElemToSub(), subdomain,
+                                          cdsa, dsa, oinfo_aero);
+  }
+  else {
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo_aero);
+  }
 
   // negotiate with the fluid code
   distFlExchanger->negotiate();

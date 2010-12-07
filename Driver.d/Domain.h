@@ -816,6 +816,7 @@ class Domain : public HData {
      void PrintSurfaceEntities();
 
      int AddAeroEmbedSurfaceId(int Id);
+     std::set<int> & GetAeroEmbedSurfaceId() { return aeroEmbeddedSurfaceId; }
 
      int nMortarCond;
      int nContactSurfacePairs; 

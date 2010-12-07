@@ -233,6 +233,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    }
 
    aeroForce = (aeroAlg >= 0 || probDesc->getThermoeFlag() >= 0) ? new VecType(probDesc->solVecInfo()) : 0;
+   if(aeroForce) aeroForce->zero();
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
@@ -323,7 +324,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        
      // Quasi-Static
      case 1:
-       cerr << "here in Driver.d/DynamProbType.C #1\n";
        if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);

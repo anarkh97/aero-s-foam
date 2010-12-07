@@ -3017,6 +3017,8 @@ void
 Domain::checkLMPCs(Connectivity *nodeToSub)
 {
   if(numLMPC > 0) {
+    // TODO consider the case where there is an mpc involving a node/dof that is not connected to any other elements. For example this may
+    // be used to connect node with a force or a lumped mass to the structure
     for(int i=0; i < numLMPC; ++i) {
       for(int j=0; j < lmpc[i]->nterms; ++j) {
         int node = lmpc[i]->terms[j].nnum;

@@ -1029,6 +1029,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevIndex = -1;
   prevTime = 0;
 
@@ -1327,6 +1328,7 @@ MDNLDynamic::aeroheatPreProcess(DistrVector &disp, DistrVector &vel, DistrVector
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevIndex = -1;
   prevTime = 0;
 

@@ -936,6 +936,7 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevFrcBackup = new DistrVector(solVecInfo());
   prevIndex = -1;
   prevTime = 0;
@@ -1324,6 +1325,7 @@ MultiDomainDynam::aeroHeatPreProcess(DistrVector& disp, DistrVector& vel, DistrV
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevFrcBackup = new DistrVector(solVecInfo());
   prevIndex = -1;
   prevTime = 0;

@@ -34,7 +34,7 @@ MultiDomainSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 {
   Scalar *f_g = new Scalar[neq];
   multLT(f, f_g);
-  Scalar ret;
+  Scalar ret = 0;
   for(int i = 0; i < neq; ++i) ret += f_g[i]*f_g[i];
   delete [] f_g;
   return ScalarTypes::norm(ret);

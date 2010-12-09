@@ -57,7 +57,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Allocate Vectors to store external force, residual velocity 
   // and mid-point force
   VecType external_force(probDesc->solVecInfo());
-  VecType aeroForce(probDesc->solVecInfo());
+  VecType aeroForce(probDesc->solVecInfo()); aeroForce.zero();
   VecType rhs(probDesc->solVecInfo());
   VecType residual(probDesc->solVecInfo());
   VecType totalRes(probDesc->sysVecInfo());

@@ -1,37 +1,16 @@
 #include "NonHomogeneousTaskManager.h"
 
+#include "../InitialSeedTask.h"
+
 namespace Pita { namespace Hts {
 
-class SimpleInitialSeed : public NamedTask {
-public:
-  EXPORT_PTRINTERFACE_TYPES(SimpleInitialSeed);
-
-  virtual void iterationIs(IterationRank i) {
-    target_->stateIs(state_);
-    target_->statusIs(status_);
-    target_->iterationIs(i);
-  }
-
-  SimpleInitialSeed(Seed * target, DynamState state, Seed::Status status) :
-    NamedTask("Seed initialization " + toString(target->name())),
-    target_(target),
-    state_(state),
-    status_(status)
-  {}
-
-private:
-  Seed::Ptr target_;
-  DynamState state_;
-  Seed::Status status_;
-};
-
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * network,
+                                                     SeedInitializer * seedInit,
                                                      JumpConvergenceEvaluator * jumpCvgMgr,
                                                      LinearProjectionNetworkImpl * correctionMgr,
-                                                     RemoteState::MpiManager * commMgr,
-                                                     DynamState initialCondition) :
+                                                     RemoteState::MpiManager * commMgr) :
   LinearTaskManager(IterationRank(-1), network, jumpCvgMgr, correctionMgr, commMgr),
-  initialCondition_(initialCondition)
+  seedInit_(seedInit)
 {
   schedulePreIteration();
   updatePhaseIt();
@@ -66,26 +45,26 @@ void
 NonHomogeneousTaskManager::scheduleBasicSeedInitialization() {
   TaskList taskList;
 
-  DynamState zeroState(initialCondition_.vectorSize(), 0.0);
+  DynamState zeroState(seedInit_->vectorSize(), 0.0);
 
   LinearLocalNetwork::SeedMap mainSeeds = network()->mainSeeds();
   for (LinearLocalNetwork::SeedMap::iterator it = mainSeeds.begin();
       it != mainSeeds.end();
       ++it) {
   
-    Seed * target = it->second.ptr(); 
-    DynamState state = zeroState;
-    Seed::Status status = (it->first.value() % 2 == 0) ? Seed::ACTIVE : Seed::SPECIAL;
-
-    if (target->name() == "M0")  {
-      state = initialCondition_;
-      status = Seed::CONVERGED;
+    Seed * target = it->second.ptr();
+    if (it->first.value() % 2 == 0) {
+      SliceRank rank(it->first.value() / 2);
+      Seed::Status status = (rank == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
+      taskList.push_back(new InitialSeedTask(target, seedInit_.ptr(), rank, status));
+    } else {
+      target->stateIs(zeroState);
+      target->statusIs(Seed::SPECIAL);
+      target->iterationIs(iteration());
     }
-
-    taskList.push_back(new SimpleInitialSeed(target, state, status));
   }
 
-  Phase::Ptr zeroSeedInitialization = phaseNew("Basic seed initialization", taskList);
+  Phase::Ptr zeroSeedInitialization = phaseNew("Seed initialization", taskList);
   phases().push_back(zeroSeedInitialization);
 }
 

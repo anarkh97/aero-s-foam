@@ -1,33 +1,8 @@
 #include "HomogeneousTaskManager.h"
 
+#include "../InitialSeedTask.h"
+
 namespace Pita { namespace Hts {
-
-class InitialSeed : public NamedTask {
-public:
-  void iterationIs(IterationRank i) {
-    targetSeed_->stateIs(initializer_->initialSeed(seedRank_));
-    targetSeed_->iterationIs(i);
-    targetSeed_->statusIs((seedRank_ == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE);
-  }
-
-  InitialSeed(SeedInitializer * initializer, SliceRank seedRank, Seed * targetSeed) :
-    NamedTask(buildName(seedRank)),
-    initializer_(initializer),
-    seedRank_(seedRank),
-    targetSeed_(targetSeed)
-  {}
-
-protected:
-  static String buildName(SliceRank seedRank) {
-    return String("Initial Seed ") + toString(seedRank);
-  }
-
-private:
-  SeedInitializer::Ptr initializer_;
-  SliceRank seedRank_;
-  Seed::Ptr targetSeed_;
-};
-
 
 HomogeneousTaskManager::HomogeneousTaskManager(LinearLocalNetwork * network,
                                                SeedInitializer * initializer,
@@ -69,7 +44,9 @@ HomogeneousTaskManager::scheduleSeedInitialization() {
   for (LinearLocalNetwork::MainSeedMap::iterator it = mainSeeds.begin();
       it != mainSeeds.end();
       ++it) {
-    taskList.push_back(new InitialSeed(initializer_.ptr(), it->first, it->second.ptr()));
+    SliceRank slice = it->first;
+    Seed::Status initialSeedStatus = (slice == SliceRank(0)) ? Seed::CONVERGED : Seed::ACTIVE;
+    taskList.push_back(new InitialSeedTask(it->second.ptr(), initializer_.ptr(), slice, initialSeedStatus));
   }
   
   Phase::Ptr finePropagation = phaseNew("Seed initialization", taskList);

@@ -48,6 +48,10 @@ public:
   // Change computational state
   void convergedSlicesInc(HalfSliceCount inc) { mapping_->convergedSlicesInc(inc); }
 
+public: 
+  LocalNetworkImpl::SeedGetter<DynamState> fullSeedGetter() { return fullSeedGetter_; }
+  LocalNetworkImpl::SeedGetter<Vector> reducedSeedGetter() { return reducedSeedGetter_; }
+
 protected:
   LocalNetwork(SliceMapping * mapping, RemoteState::Manager * commMgr) :
     status_(EMPTY), mapping_(mapping), commMgr_(commMgr),
@@ -62,10 +66,7 @@ protected:
   RemoteState::Manager * commMgr() { return commMgr_.ptr(); }
   const RemoteState::Manager * commMgr() const { return commMgr_.ptr(); }
 
-  LocalNetworkImpl::SeedGetter<DynamState> fullSeedGetter() { return fullSeedGetter_; }
   SharedState<DynamState> * fullSeedGet(const SeedId & id) { return fullSeedGetter().operator()(id); }
-  
-  LocalNetworkImpl::SeedGetter<Vector> reducedSeedGetter() { return reducedSeedGetter_; }
   SharedState<Vector> * reducedSeedGet(const SeedId & id) { return reducedSeedGetter().operator()(id); }
 
   static int parity(HalfSliceRank sliceRank) { return sliceRank.value() % 2; } 

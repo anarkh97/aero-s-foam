@@ -236,19 +236,34 @@ LinearLocalNetwork::applyConvergenceStatus() {
 
   // Deactivate full correction
   {
+    int count = 0;
     SeedMap::iterator firstActiveCorrection = seedCorrection_.upper_bound(firstActiveSlice());
     for (SeedMap::iterator it = seedCorrection_.begin(); it != firstActiveCorrection; ++it) {
       log() << "Inactivate full " << it->second->name() << "\n";
       it->second->statusIs(Seed::INACTIVE);
+      ++count;
     }
     seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
+    
+    if (count % 2 == 0) {
+      // Convergence front has moved in a non-staggered fashion
+      // It should only happen when the complete active time-domain has converged
+      // The leading seed is used to create a 'fake' propagated seed to account for this exception
+      if (redCorrMgr_->usaMgr()->instance(toString(firstActiveSlice()))) {
+        Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
+        Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+        leadLeftSeed->stateIs(leadMainSeed->state());
+        leadLeftSeed->iterationIs(leadMainSeed->iteration());
+        leadLeftSeed->statusIs(Seed::CONVERGED);
+      }
+    }
   }
   
   // Deactivate reduced correction
   {
     ReducedSeedMap::iterator firstActiveCorrection = reducedSeedCorrection_.upper_bound(firstActiveSlice());
     for (ReducedSeedMap::iterator it = reducedSeedCorrection_.begin(); it != firstActiveCorrection; ++it) {
-      log() << "Inactivate full " << it->second->name() << "\n";
+      log() << "Inactivate reduced " << it->second->name() << "\n";
       it->second->statusIs(Seed::INACTIVE);
     }
     reducedSeedCorrection_.erase(reducedSeedCorrection_.begin(), firstActiveCorrection);

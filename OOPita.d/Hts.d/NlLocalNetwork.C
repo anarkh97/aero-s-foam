@@ -22,8 +22,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
   condensMgr_(condensMgr),
   projBuildMgr_(projBuildMgr),
   jumpCvgMgr_(jumpCvgMgr),
-  jumpEvalMgr_(jumpEvalMgr),
-  noCorrectionMgr_(NoCorrectionManager::New())
+  jumpEvalMgr_(jumpEvalMgr)
 {}
 
 void
@@ -40,8 +39,6 @@ NlLocalNetwork::init() {
     addSeedUpdater(endSeedRank);
     addCorrectionSend(endSeedRank);
     
-    addNoCorrection(endSeedRank);
-    
     addMainSeed(endSeedRank);
     addBackwardCondensation(sliceRank);
     addBackwardPropagation(sliceRank);
@@ -57,8 +54,6 @@ NlLocalNetwork::init() {
     addMainSeed(beginSeedRank);
     addForwardCondensation(sliceRank);
     addForwardPropagation(sliceRank);
-
-    addNoCorrection(beginSeedRank);
   }
 }
 
@@ -239,11 +234,6 @@ NlLocalNetwork::addSeedUpdater(HalfSliceRank seedRank) {
 }
 
 void
-NlLocalNetwork::addNoCorrection(HalfSliceRank seedRank) {
-  noCorrectionMgr_->notifierIs(fullSeedGet(SeedId(SEED_CORRECTION, seedRank)), fullSeedGet(SeedId(SEED_JUMP, seedRank)));
-}
-
-void
 NlLocalNetwork::statusIs(Status s) {
   if (status() == s) return;
 
@@ -257,6 +247,31 @@ NlLocalNetwork::statusIs(Status s) {
 
 void
 NlLocalNetwork::applyConvergenceStatus() {
+  // Deactivate correction
+  {
+    int count = 0;
+    SeedMap::iterator firstActiveCorrection = seedCorrection_.upper_bound(firstActiveSlice());
+    for (SeedMap::iterator it = seedCorrection_.begin(); it != firstActiveCorrection; ++it) {
+      log() << "Inactivate " << it->second->name() << "\n";
+      it->second->statusIs(Seed::INACTIVE);
+      ++count;
+    }
+    seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
+
+    if (count % 2 == 0) {
+      // Convergence front has moved in a non-staggered fashion
+      // It should only happen when the complete active time-domain has converged
+      // The leading seed is used to create a 'fake' propagated seed to account for this exception
+      if (seedUpdater(firstActiveSlice())) {
+        Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
+        Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+        leadLeftSeed->stateIs(leadMainSeed->state());
+        leadLeftSeed->iterationIs(leadMainSeed->iteration());
+        leadLeftSeed->statusIs(Seed::CONVERGED);
+      }
+    }
+  }
+
   for (int parity = 0; parity < 2; ++parity) {
     HalfSliceRank start = firstActiveSlice();
     finePropagators_[parity].erase(finePropagators_[parity].begin(), finePropagators_[parity].lower_bound(start));
@@ -424,6 +439,8 @@ NlLocalNetwork::seedUpdaterNew(HalfSliceRank seedRank) {
   result->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, seedRank)));
   result->correctionIs(fullSeedGet(SeedId(SEED_CORRECTION, seedRank)));
   result->updatedSeedIs(fullSeedGet(SeedId(MAIN_SEED, seedRank)));
+    
+  seedCorrection_[seedRank] = fullSeedGet(SeedId(SEED_CORRECTION, seedRank));
 
   return result;
 }

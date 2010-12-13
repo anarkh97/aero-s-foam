@@ -15,7 +15,7 @@ public:
                             LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
                             JumpConvergenceEvaluator * jumpCvgEval,
                             LinSeedDifferenceEvaluator::Manager * jumpOutMgr,
-                            DynamState initialState,
+                            SeedInitializer * seedInit,
                             CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr);
 
 protected:

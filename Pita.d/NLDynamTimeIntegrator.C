@@ -66,6 +66,10 @@ NLDynamTimeIntegrator::currentTimeIs(double newTime)
 void
 NLDynamTimeIntegrator::integrate(int numSteps)
 {
+  if (currStep == 0) {
+    postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, -1, external_force, aeroForce, acceleration);
+  }
+  
   // Begin time-marching
   for (int lastStep = currStep + numSteps; currStep < lastStep; ++currStep)
   {

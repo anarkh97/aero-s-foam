@@ -4,7 +4,7 @@
 
 namespace Pita { namespace Hts {
 
-NlProjectionNetwork::NlProjectionNetwork(PropagationDataSharing * sharing,
+NlProjectionNetwork::NlProjectionNetwork(GlobalStateSharing * sharing,
                                          NlDynamOps * dynamOps,
                                          size_t vectorSize, double projectionTolerance) :
   vectorSize_(vectorSize),

@@ -95,8 +95,6 @@ protected:
 
   void addSeedUpdater(HalfSliceRank seedRank);
 
-  void addNoCorrection(HalfSliceRank seedRank);
-
   NamedTask::Ptr forwardHalfSliceNew(HalfSliceRank sliceRank);
   NamedTask::Ptr backwardHalfSliceNew(HalfSliceRank sliceRank);
   
@@ -127,9 +125,9 @@ private:
   JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
 
   NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
-  NoCorrectionManager::Ptr noCorrectionMgr_;
   
   MainSeedMap seeds_[2];
+  SeedMap seedCorrection_;
 
   typedef std::map<ActivationRange, NamedTask::Ptr, ActivationRange::Comparator> TaskMap;
   TaskMap finePropagators_[2];

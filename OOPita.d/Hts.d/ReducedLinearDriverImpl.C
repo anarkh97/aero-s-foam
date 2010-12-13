@@ -46,6 +46,7 @@
 #include "RemoteSeedInitializerServer.h"
 #include "../RemoteSeedInitializerProxy.h"
 #include "../UserProvidedSeedInitializer.h"
+#include "../SimpleSeedInitializer.h"
 
 #include "../RemoteDynamPropagatorProxy.h"
 #include "RemoteCoarseCorrectionServer.h"
@@ -135,8 +136,8 @@ ReducedLinearDriverImpl::preprocess() {
   
   /* Main options */
   noForce_ = solverInfo()->pitaNoForce;
-  userProvidedSeeds_ = solverInfo()->pitaReadInitSeed && noForce_;
-  remoteCoarse_ = solverInfo()->pitaRemoteCoarse && (baseComm()->numCPUs() > 1) && !userProvidedSeeds_;
+  userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
+  remoteCoarse_ = solverInfo()->pitaRemoteCoarse && (baseComm()->numCPUs() > 1);
 
   /* Load balancing */ 
   CpuCount numCpus(baseComm()->numCPUs() - (remoteCoarse_ ? 1 : 0));
@@ -232,17 +233,16 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       commMgr.ptr(),
       jumpErrorMgr.ptr());
 
+  /* Seed initialization */
+  SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm); 
+  
   double toc = getTime();
   log() << "\n";
   log() << "Total initialization time = " << (toc - tic) / 1000.0 << " s\n";
   tic = toc;
   
-  IterationRank initialIteration;
   LinearTaskManager::Ptr taskManager;
-
   if (noForce_) {
-    SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm); 
-
     taskManager = new HomogeneousTaskManager(
         network.ptr(),
         seedInitializer.ptr(),
@@ -252,10 +252,10 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   } else {
     taskManager = new NonHomogeneousTaskManager(
         network.ptr(),
+        seedInitializer.ptr(),
         jumpCvgMgr.ptr(),
         correctionMgr.ptr(),
-        commMgr.ptr(),
-        initialSeed());
+        commMgr.ptr());
   }
 
   TimedExecution::Ptr timedExecution = TimedExecution::New(taskManager.ptr()); 
@@ -364,6 +364,10 @@ SeedInitializer::Ptr
 ReducedLinearDriverImpl::buildSeedInitializer(Communicator * timeComm) const {
   if (userProvidedSeeds_) {
     return UserProvidedSeedInitializer::New(vectorSize_, geoSource(), domain());
+  }
+
+  if (!noForce_) {
+    return SimpleSeedInitializer::New(initialSeed());
   }
 
   if (timeComm == NULL) {

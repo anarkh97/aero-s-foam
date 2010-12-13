@@ -2,6 +2,7 @@
 #define PITA_HTS_NONHOMOGENEOUSTASKMANAGER_H
 
 #include "LinearTaskManager.h"
+#include "../SeedInitializer.h"
 
 namespace Pita { namespace Hts {
 
@@ -12,10 +13,10 @@ public:
   virtual void iterationInc(); //overriden
 
   NonHomogeneousTaskManager(LinearLocalNetwork * network,
+                            SeedInitializer * seedInit,
                             JumpConvergenceEvaluator * jumpCvgMgr,
                             LinearProjectionNetworkImpl * correctionMgr,
-                            RemoteState::MpiManager * commMgr,
-                            DynamState initialCondition);
+                            RemoteState::MpiManager * commMgr);
 
 protected:
   void schedulePreIteration();
@@ -23,7 +24,7 @@ protected:
   void scheduleBasicSeedInitialization();
 
 private:
-  DynamState initialCondition_;
+  SeedInitializer::Ptr seedInit_;
 };
 
 } /* end namespace Hts */ } /* end namespace Pta */

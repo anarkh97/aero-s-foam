@@ -118,10 +118,10 @@ NLDynamTimeIntegrator::currentTimeStepNumber() const
 inline void
 NLDynamTimeIntegrator::currentTimeStepNumberIs(int newTimeStep)
 {
-  if (currStep == newTimeStep)
+  if (currStep == newTimeStep) {
     return;
+  }
   currStep = newTimeStep;
-  postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, newTimeStep - 1, external_force, aeroForce, acceleration);
 }
 
 inline const NLDynamPostProcessor &

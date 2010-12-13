@@ -582,8 +582,8 @@ int main(int argc, char** argv)
 #ifdef MORTAR_DEBUG
      domain->PrintSurfaceEntities();
      domain->PrintMortarConds();
+     domain->printLMPC();
 #endif
-     //domain->printLMPC();
      //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
    }
 #ifdef SOWER_SURFS

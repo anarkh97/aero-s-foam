@@ -312,6 +312,7 @@ GenSubDomain<Scalar>::mergeStress(Scalar *locStress,  Scalar *locWeight,
 {
  int inode;
  for(inode = 0; inode < numnodes; ++inode) {
+   if(glNums[inode] >= geoSource->numNode()) continue;
    globWeight[glNums[inode]] += locWeight[inode];
    globStress[glNums[inode]] += locStress[inode];
  }

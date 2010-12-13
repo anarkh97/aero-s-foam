@@ -1305,7 +1305,8 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
  execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
            stress, weight, gs, allCorot, &fileNumber, &Findex);
 
- int numNodes = geoSource->getNumGlobNodes();
+ int numNodes = geoSource->numNode();
+
  if(globalStress == 0) globalStress = new Scalar[numNodes]; 
  if(globalWeight == 0) globalWeight = new Scalar[numNodes];
 
@@ -1340,7 +1341,7 @@ void GenDecDomain<Scalar>::setsizeSfemStress(int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
 
-  if(avgnum == 1)  sizeSfemStress = geoSource->getNumGlobNodes();  // node-based output
+  if(avgnum == 1)  sizeSfemStress = geoSource->numNode();  // node-based output
   else if(avgnum == 0) {  // element-based output
    sizeSfemStress = 0;
 /*   Connectivity *elemToNode = new Connectivity(domain->getEset());
@@ -1362,7 +1363,7 @@ void GenDecDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
-  int numNodes = geoSource->getNumGlobNodes();
+  int numNodes = geoSource->numNode();
   if(avgnum == 1)  for (int i=0;i<numNodes;++i) globalStress[i] = str[i];
   else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl; // for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i]; // YYY DG
   else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
@@ -1411,7 +1412,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
 
 
   // allocate global stress and weight arrays 
-  int numNodes = geoSource->getNumGlobNodes();
+  int numNodes = geoSource->numNode();
   if(globalStress == 0) globalStress = new Scalar[numNodes]; 
   if(globalWeight == 0) globalWeight = new Scalar[numNodes];
 

@@ -174,7 +174,7 @@ void NLDistrTimeDecompSolver::getInitialSeeds()
 
 void NLDistrTimeDecompSolver::improveBases()
 {
-  if (probDesc->getBaseImprovementMethod() == 1)
+  if (probDesc->getBasisImprovementMethod() == 2)
     improveBasesWithLocalIncrements();
   else
     improveBasesWithAllSeeds();
@@ -185,18 +185,25 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
   probDesc->pitaTimers.start("Global Base Improvement");
   probDesc->pitaTimers.start("Global Data Exchange");
 
+  bool usePropagatedSeeds = (probDesc->getBasisImprovementMethod() == 1);
+  
   // Determine number of seeds to be exchanged -> buffer size
-  int numSeeds = sliceMap->numActiveSlices();
-  int bufferSize = 2 * numSeeds * getProbSize();
+  int seedPerSlice = usePropagatedSeeds ? 2 : 1;
+  int numSeeds = seedPerSlice * sliceMap->numActiveSlices(); // Main seeds + Propagated seeds
+  int dataPerSeed = 2 * getProbSize(); 
+  
+  int bufferSize = numSeeds * dataPerSeed;
   baseBuffer.size(bufferSize);
  
   // Setup parameters for global MPI communication
   int numCPUs = sliceMap->numCPUs();
+  int dataPerSlice = seedPerSlice * dataPerSeed;
+  
   int * recv_counts = new int[numCPUs];
   int * displacements = new int[numCPUs];
   for (int i = 0; i < numCPUs; ++i)
   {
-    recv_counts[i] = 2 * getProbSize() * sliceMap->numActiveSlicesOnCPU(i);
+    recv_counts[i] = dataPerSlice * sliceMap->numActiveSlicesOnCPU(i);
   }
   displacements[0] = 0;
   for (int i = 1; i < numCPUs; ++i)
@@ -209,7 +216,11 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
   for (sliceIterator it = firstActive; it != firstInactive; ++it)
   {
     it->seedState.getRaw(baseBuffer.array() + sliceShift);
-    sliceShift += 2 * getProbSize();
+    sliceShift += dataPerSeed;
+    if (usePropagatedSeeds) {
+      it->propState.getRaw(baseBuffer.array() + sliceShift);
+      sliceShift += dataPerSeed;
+    }
   }
  
   // Perform global communication
@@ -445,7 +456,7 @@ void NLDistrTimeDecompSolver::fineIntegrator(NLTimeSlice & timeSlice)
     seqIntegrator.integrate(1);
     probDesc->pitaTimers.swap("Base Propagation").collapseIterations(true);
     linIntegrator.stepLinearizedIntegrate(timeSlice.propBase);
-    if (probDesc->getBaseImprovementMethod() == 1)
+    if (probDesc->getBasisImprovementMethod() == 2)
     {
       probDesc->pitaTimers.swap("Save Increments");
       timeSlice.localBase.addState();

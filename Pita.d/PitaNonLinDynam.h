@@ -31,7 +31,7 @@ public:
   double getCoarseDt() const { return coarseDt; }
   double getCoarseDelta() const { return coarseDelta; }  
   const SparseMatrix * getStiffMatrix() const { return K; }
-  int getBaseImprovementMethod() const { return baseImprovementMethod; }
+  int getBasisImprovementMethod() const { return basisImprovementMethod; }
  
   // Added methods
   void reBuildCoarse(GeomState & geomState, int iter = 0);
@@ -77,7 +77,7 @@ protected:
   int kiter, Jratio, numTSonCPU; // PITA main parameters from input file
   int numTS;                     // Total number of time-slices 
   double coarseDt, coarseDelta;  // Coarse time parameters
-  int baseImprovementMethod;     // 0 = all seeds (global), 1 = increments only (local)
+  int basisImprovementMethod;     // 0 = all seeds (global), 1 = all seeds + all propagated seeds (global), 2 = increments only (local)
 
 private:
   PitaPostProcessor defaultPostProcessor_;

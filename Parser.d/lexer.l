@@ -593,6 +593,8 @@ TRAIL [a-zA-Z]*
 
 "NoForce"|"noforce"|"NOFORCE"      { return NOFORCE; }
 
+"globalbases"|"GlobalBases"|"GLOBALBASES" { return GLOBALBASES; }
+
 "localbases"|"LocalBases"|"LOCALBASES" { return LOCALBASES; }
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }

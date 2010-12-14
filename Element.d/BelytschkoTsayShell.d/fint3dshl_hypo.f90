@@ -1,15 +1,206 @@
 ! ==================================
 ! internal force: bt shell / hypo-elastic
 ! ==================================
-!      type                  name                              argument
+!      type                  name                              arguement
 !      ----                  ----                              ---------
-! 1.  subroutine        gqfintbt               (delt,ematpro,gqpoin,gqweigt,area,sigvoitloc,bmat1pt,bcmat1pt,bsmat1pt, gqfint)
+! 1.  subroutine        updstrsbt              (delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo,
+!                                               effpstrn,hardvar,sigvoitloc,strnvoitloc, effstrs)
+! 2.  subroutine        updstrn2bt             (delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ipstrn,ipstrs, effstrs)
+! 3.  subroutine        gqfintbt               (delt,ematpro,gqpoin,gqweigt,area,sigvoitloc,bmat1pt,bcmat1pt,bsmat1pt, gqfint)
 ! 4.  subroutine        getsighypobt1          (optdmg,delt,ematpro,ehleng,zeta,ecurnloc,eveloloc, damage,ipstrn, ipstrsdot)
 ! 5.  subroutine        getsighypobt2          (ematpro,ecurnloc,eveloloc, tsstrsdot)
 ! 6.  subroutine        getstrndotbt1          (thick,zeta,ecurnloc,eveloloc, ltens2d,ipstrndot)
 ! 7.  subroutine        getstrndotbt2          (ecurnloc,eveloloc, tsstrndot)
 !
 ! =========================================================================================================
+
+
+
+subroutine updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
+                     effpstrn,hardvar,sigvoitloc,strnvoitloc, &
+                     effstrs)
+  !=======================================================================
+  !  updstrsbt = update j2 (or hypoelas) cauchy stress of belytschko tsay element 
+  !
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  delt : time increment
+  ! 
+  !  ematpro(*) : material property
+  !
+  !  inoutput:
+  !  --------
+  !  effpstrn : effective plastic strain (j2) or effective strain (hypoelas)
+  !
+  !  hardvar : hardening variable (j2) or damage (hypoelas)
+  !
+  !  sigvoitloc(6,1) : co-rotational cauchy stress
+  !
+  !  strnvoitloc(6,1) : co-rotational strain
+  !
+  !  output:
+  !  ------
+  !  effstrs : effective stress
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, intent(in) :: optctv, optdmg
+  real(8), intent(in) :: delt
+  real(8), dimension(*), intent(in) :: ematpro
+  real(8), intent(in) :: area
+  real(8), dimension(3,1), intent(in) :: ipstrndot
+  real(8), dimension(2,1), intent(in) :: tsstrndot
+
+  ! ------------------------------------
+  real(8), intent(inout) :: effpstrn,hardvar
+  real(8), dimension(6,1), intent(inout) :: sigvoitloc, strnvoitloc
+  ! ------------------------------------
+
+  real(8), intent(out) :: effstrs
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8), dimension(3,1) :: ipstrnloc, ipstrsloc
+  real(8), dimension(2,1) :: tsstrslocdot
+  real(8) :: ehleng
+  ! ====================================
+
+  ! -------------------------------------------------------------------------------
+  ! update in plane stress 
+  ! -----------------------------------------------
+
+  ! extract in plane strain components
+  ipstrnloc(1,1)= strnvoitloc(1,1)
+  ipstrnloc(2,1)= strnvoitloc(2,1)
+  ipstrnloc(3,1)= strnvoitloc(6,1)
+
+  ! extract in plane stress components
+  ipstrsloc(1,1)= sigvoitloc(1,1)
+  ipstrsloc(2,1)= sigvoitloc(2,1)
+  ipstrsloc(3,1)= sigvoitloc(6,1)
+
+  ! update hypoelastic in-plane stress of belytschko tsay shell element
+  if(optctv .eq. 1) then
+    ehleng= dsqrt(area)
+    call getsighypobt1(optdmg,delt,ematpro,ehleng,ipstrndot,ipstrnloc, &
+                       hardvar,ipstrsloc)
+     ! input : optdmg,delt,ematpro,ehleng,ipstrnloc
+     ! inoutput : damage,ipstrsloc
+  end if
+
+  ! set updated in plane stress components
+  sigvoitloc(1,1)= ipstrsloc(1,1) ! sig_x
+  sigvoitloc(2,1)= ipstrsloc(2,1) ! sig_y
+  sigvoitloc(6,1)= ipstrsloc(3,1) ! sig_xy
+
+  ! -------------------------------------------------------------------------------
+  ! compute tranverse shear stress rate and update
+  ! ----------------------------------------------
+  ! compute hypoelastic transverse shear stress rate of belytschko tsay shell element
+  call getsighypobt2(ematpro,tsstrndot, tsstrslocdot)
+     ! input : ematpro,tsstrndot
+     ! output : tsstrslocdot
+
+  ! set updated transverse stress components
+  sigvoitloc(3,1)= 0.0d0 ! sig_z (plane stress)
+  sigvoitloc(4,1)= sigvoitloc(4,1) + tsstrslocdot(2,1) * delt ! sig_yz
+  sigvoitloc(5,1)= sigvoitloc(5,1) + tsstrslocdot(1,1) * delt ! sig_xz
+  ! -------------------------------------------------------------------------------
+  
+  return
+end subroutine updstrsbt
+
+
+subroutine updstrnbt(optcor,delt,ematpro,gqpoin,eveloloc,bmat1pt,bcmat1pt,bsmat1pt, &
+                     strnvoitloc, &
+                     ipstrndot,tsstrndot) 
+  !=======================================================================
+  !  updstrsbt = update strain of belytschko tsay element 
+  !
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  delt : time increment
+  ! 
+  !  ematpro(*) : material property
+  !
+  !  gqpoin, gqweigt : through thickness gq point and weight
+  !
+  !  eveloloc(5,4) : local nodal velocity: v_x, v_y, v_z, theta_x, theta_y
+  !
+  !  inoutput:
+  !  --------
+  !  strnvoitloc(6,1) : co-rotational strain
+  !
+  !  output:
+  !  ------
+  !  ipstrndot(3,1), tsstrndot(2,1) : in plane and transverse shear rate of deformation
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  integer, dimension(2), intent(in) :: optcor
+  real(8), intent(in) :: delt
+  real(8), dimension(*), intent(in) :: ematpro
+  real(8), intent(in) :: gqpoin
+  real(8), dimension(6,4), intent(in) :: eveloloc
+  real(8), dimension(2,4), intent(in) :: bmat1pt
+  real(8), dimension(2,4), intent(in) :: bcmat1pt
+  real(8), dimension(2,3,4), intent(in) :: bsmat1pt
+
+  ! ------------------------------------
+  real(8), dimension(6,1), intent(inout) :: strnvoitloc
+  ! ------------------------------------
+
+  real(8), dimension(3,1), intent(out) :: ipstrndot
+  real(8), dimension(2,1), intent(out) :: tsstrndot
+  ! ====================================
+
+  ! ----------------------------------------------------------------
+  ! compute in plane rate of deformation
+  ! ---------------------------
+  ! ipstrndot= [d_x, d_y, 2d_xy]
+  call getstrndotbt1(optcor,ematpro(20),gqpoin,eveloloc,bmat1pt,bcmat1pt, ipstrndot)
+     ! input : optcor,thick,zeta,eveloloc,bmat1pt,bcmat1pt
+     ! output : ipstrndot
+
+  ! -------------------------------------------------------------------------------
+  ! update in plane strain
+  ! -----------------------------------------------
+  strnvoitloc(1,1)= strnvoitloc(1,1) + delt*ipstrndot(1,1) ! eps_x
+  strnvoitloc(2,1)= strnvoitloc(2,1) + delt*ipstrndot(2,1) ! eps_y
+  strnvoitloc(6,1)= strnvoitloc(6,1) + delt*ipstrndot(3,1) ! eps_xy
+
+  ! ----------------------------------------------------------------
+  ! compute transverse shear rate of deformation
+  ! ---------------------------
+  ! tsstrndot= [2d_xz, 2dyz]
+  call getstrndotbt2(optcor,eveloloc,bmat1pt,bsmat1pt, tsstrndot)
+     ! input : optcor,eveloloc,bmat1pt,bsmat1pt
+     ! output : tsstrndot
+
+  ! -------------------------------------------------------------------------------
+  ! update transverse shear strain
+  ! -----------------------------------------------
+  ! note: previously this wasn't ever being computed TODO check
+  strnvoitloc(3,1)= 0.d0 ! eps_z
+  strnvoitloc(4,1)= strnvoitloc(4,1) + delt*tsstrndot(1,1) ! eps_xz
+  strnvoitloc(5,1)= strnvoitloc(5,1) + delt*tsstrndot(2,1) ! eps_yz
+  
+  return
+end subroutine updstrnbt
 
 
 
@@ -317,113 +508,6 @@ end subroutine getsighypobt1
 
 
 
-subroutine geteffstrsbt(sigvoitloc, effstrs)
-  !=======================================================================
-  !  geteffstrsbt = compute the effective (von-mises) of belytschko-tsay 
-  !                 local element element stress
-  !  -------------------------------------------------------------------------------
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  sigvoitloc : voight form of stress
-  !
-  !  output:
-  !  ------
-  !  effstrs : effective stress
-  !
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(6,1), intent(in) :: sigvoitloc
-
-  ! ------------------------------------
-
-  real(8), intent(out) :: effstrs
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8), dimension(2,2) :: strs2dloc
-  real(8), dimension(2,2) :: devstrs2d
-  ! ====================================
-
-  ! extract in plane stress components
-  strs2dloc(1,1)= sigvoitloc(1,1)
-  strs2dloc(1,2)= sigvoitloc(6,1)
-  strs2dloc(2,1)= sigvoitloc(6,1)
-  strs2dloc(2,2)= sigvoitloc(2,1)
-
-  ! compute deviatoric stress tensor
-  call getdevtens(2,strs2dloc, devstrs2d)
-     ! input : 2(nndex),strs2dloc
-     ! output : devstrs2d
-
-  ! compute effective stress  
-  call geteffstrs(2,devstrs2d, effstrs)
-     ! input : 2(nndex),devstrs2d
-     ! output : effstrs
-
- return
-end subroutine geteffstrsbt
-
-
-subroutine geteffstrnbt(strnvoitloc, effstrn)
-  !=======================================================================
-  !  geteffstrnbt = compute the effective (von-mises) of belytschko-tsay 
-  !                 local element element strain
-  !  -------------------------------------------------------------------------------
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  strnvoitloc : voight form of strain
-  !
-  !  output:
-  !  ------
-  !  effstrn : effective strain
-  !
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(6,1), intent(in) :: strnvoitloc
-
-  ! ------------------------------------
-
-  real(8), intent(out) :: effstrn
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8), dimension(2,2) :: strn2dloc
-  real(8), dimension(2,2) :: devstrn2d
-  ! ====================================
-
-  ! extract in plane strain components
-  strn2dloc(1,1)= strnvoitloc(1,1)
-  strn2dloc(1,2)= 0.50d0 * strnvoitloc(6,1)
-  strn2dloc(2,1)= 0.50d0 * strnvoitloc(6,1)
-  strn2dloc(2,2)= strnvoitloc(2,1)
-
-  ! compute deviatoric stress tensor
-  call getdevtens(2,strn2dloc, devstrn2d)
-     ! input : 2(nndex),strn2dloc
-     ! output : devstrn2d
-
-  ! compute effective strain
-  call geteffstrn(2,devstrn2d, effstrn)
-     ! input : 2(nndex),devstrn2d
-     ! output : effstrn
-
- return
-end subroutine geteffstrnbt
-
-
-
 subroutine getsighypobt2(ematpro,tsstrndot, tsstrsdot)
   !=======================================================================
   !  getsighypobt2 = compute rate of belytschko-tsay local element cauchy stress 
@@ -461,7 +545,7 @@ subroutine getsighypobt2(ematpro,tsstrndot, tsstrsdot)
   ! ====================================
   ! local variable
   ! ==============
-  real(8) :: young, poiss
+  real(8) :: young, poiss, rk
   real(8) :: mu
 
   ! ====================================
@@ -470,6 +554,7 @@ subroutine getsighypobt2(ematpro,tsstrndot, tsstrsdot)
   ! get material properties
   young= ematpro(1)
   poiss= ematpro(2)
+  rk= ematpro(19)     ! shear correction factor: 0.840d0
 
   ! ------------------------------------------------
 

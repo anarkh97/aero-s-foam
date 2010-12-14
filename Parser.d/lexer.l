@@ -1093,7 +1093,6 @@ TRAIL [a-zA-Z]*
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
 "effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EffPStrn; return STRESSID; }
-"hardvar"|"HARDVAR"                { yylval.ival = OutputInfo::HardVar; return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
@@ -1114,6 +1113,8 @@ TRAIL [a-zA-Z]*
 "hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
+"kk"|"KK"                                               { yylval.ival = 6; return OPTCTV; }
+"kkexp"[a-zA-Z]*|"KKEXP"[a-zA-Z]*                       { yylval.ival = 7; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
 

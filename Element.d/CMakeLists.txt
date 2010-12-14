@@ -27,9 +27,7 @@ BelytschkoTsayShell.d/base_mhd_hgc.f90
 BelytschkoTsayShell.d/fint3dshl_hgc.f90
 BelytschkoTsayShell.d/massl3dshl.f90
 BelytschkoTsayShell.d/parseinp.f90
-BelytschkoTsayShell.d/fint3dshl_j2exp.f90
 BelytschkoTsayShell.d/cri_effstr.f90
-BelytschkoTsayShell.d/j2.f90
 BelytschkoTsayShell.d/cri_mpts.f90
 BelytschkoTsayShell.d/cri_xw_j2pstrs.f90
 BelytschkoTsayShell.d/bc2_3d.f90

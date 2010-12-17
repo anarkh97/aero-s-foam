@@ -30,10 +30,11 @@ PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
   totalTime = numTS * coarseDt;
 
   basisImprovementMethod = d->solInfo().pitaGlobalBasisImprovement - 1;
-  
   if (d->solInfo().pitaLocalBasisImprovement) {
     basisImprovementMethod = 2;
   }
+
+  projTol = d->solInfo().pitaProjTol;
 }
 
 int PitaNonLinDynamic::getInitState(DynamState<double> & ds)

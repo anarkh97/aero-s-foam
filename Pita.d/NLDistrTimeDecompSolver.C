@@ -166,6 +166,7 @@ void NLDistrTimeDecompSolver::getInitialSeeds()
     reBuildLocalK(*it);
     probDesc->pitaTimers.swap("Orthogonalization");
     addStateSetToBase(*it, localSeedBase);
+    performOG(*it);
     probDesc->pitaTimers.stop();
     probDesc->pitaTimers.stop();
   }
@@ -246,6 +247,7 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
       //fprintf(stderr, "CPU #%d builds the base for slice #%d\n", myCPU, it->sliceRank);
       probDesc->pitaTimers.swap("Orthogonalization");
       addRawDataToBase(*it, baseBuffer.array(), numSeeds);
+      performOG(*it);
       probDesc->pitaTimers.stop();
     }
   }
@@ -295,6 +297,7 @@ void NLDistrTimeDecompSolver::improveBasesWithLocalIncrements()
       }
       probDesc->pitaTimers.start("Orthogonalization");
       addRawDataToBase(*it, baseBuffer.array(), numStatesToExchange);
+      performOG(*it);
       probDesc->pitaTimers.stop();
     }
 
@@ -446,7 +449,7 @@ void NLDistrTimeDecompSolver::fineIntegrator(NLTimeSlice & timeSlice)
   {
     fprintf(stderr, "\n**** Begin fine time-grid integration for TS %d - Initial time %e ****\n", timeSlice.sliceRank, timeSlice.initialTime);
   }
-  timeSlice.propBase = timeSlice.seedBase;
+
   timeSlice.localBase.clear();
   probDesc->defaultPostProcessor().sliceRank(timeSlice.sliceRank);
   initializeSeqIntegrator(timeSlice, probDesc->getDt());

@@ -32,7 +32,8 @@ public:
   double getCoarseDelta() const { return coarseDelta; }  
   const SparseMatrix * getStiffMatrix() const { return K; }
   int getBasisImprovementMethod() const { return basisImprovementMethod; }
- 
+  double getProjectionTolerance() const { return projTol; }
+
   // Added methods
   void reBuildCoarse(GeomState & geomState, int iter = 0);
   void reBuildFine(GeomState & geomState, int iter = 0);
@@ -77,7 +78,8 @@ protected:
   int kiter, Jratio, numTSonCPU; // PITA main parameters from input file
   int numTS;                     // Total number of time-slices 
   double coarseDt, coarseDelta;  // Coarse time parameters
-  int basisImprovementMethod;     // 0 = all seeds (global), 1 = all seeds + all propagated seeds (global), 2 = increments only (local)
+  int basisImprovementMethod;    // 0 = all seeds (global), 1 = all seeds + all propagated seeds (global), 2 = increments only (local)
+  double projTol;                // Relative tolerance for the projection
 
 private:
   PitaPostProcessor defaultPostProcessor_;

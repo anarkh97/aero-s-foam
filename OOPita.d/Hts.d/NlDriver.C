@@ -12,6 +12,8 @@
 #include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
+#include "NlBasisUpdate.h"
+
 #include "JumpConvergenceEvaluator.h"
 #include "../SeedDifferenceEvaluator.h"
 
@@ -87,6 +89,7 @@ NlDriver::preprocess() {
   }
   projectorTolerance_ = solverInfo()->pitaProjTol;
   userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
+  globalBasisEnrichment_ = solverInfo()->pitaGlobalBasisImprovement; // 1 => {M}, 2 => {L, R}, 3 => {M, L, R}
 
   // PITA-specific output
   jumpMagnOutput_ = solverInfo()->pitaJumpMagnOutput;
@@ -156,10 +159,19 @@ NlDriver::solveParallel() {
 
   // Communications
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(baseComm(), vectorSize_);
- 
+
+  // Basis update
+  const SeedType enrichmentTypes[3] = { MAIN_SEED, LEFT_SEED, RIGHT_SEED };
+  const GlobalStateSharing::Strategy globalUpdateStrategy(
+      enrichmentTypes + (globalBasisEnrichment_ == 2),
+      enrichmentTypes + 1 + 2 * (globalBasisEnrichment_ >= 2)); 
+  NlBasisUpdate::Ptr basisUpdateMgr = NlBasisUpdate::New(baseComm(), vectorSize_, globalUpdateStrategy);
+
   // Execute the algorithm 
   NlTaskManager::Ptr taskManager = new NlTaskManager(mapping_.ptr(), commMgr.ptr(),
-                                                     propagatorMgr.ptr(), seedInitializer.ptr(),
+                                                     propagatorMgr.ptr(),
+                                                     seedInitializer.ptr(),
+                                                     basisUpdateMgr.ptr(),
                                                      postProcessingMgr.ptr(),
                                                      jumpCvgMgr.ptr(), jumpEvalMgr.ptr(),
                                                      projectorTolerance_, lastIteration_);

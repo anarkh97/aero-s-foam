@@ -136,8 +136,10 @@ NlTaskManager::scheduleDataSharing() {
   if (iteration() < lastIteration_) { // TODO check condition
     dataSharing.push_back(sharing_);
     setPhase(phaseNew("Data Sharing", dataSharing));
+    setContinuation(&NlTaskManager::enrichProjectionBasis);
+  } else {
+    enrichProjectionBasis();
   }
-  setContinuation(&NlTaskManager::enrichProjectionBasis);
 }
 
 void

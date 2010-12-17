@@ -14,7 +14,6 @@ SeedUpdater::iterationIs(IterationRank ir) {
 void
 SeedUpdater::updateSeed() {
   assert(correction()->iteration() == propagatedSeed()->iteration() || correction()->status() == Seed::INACTIVE);
-  //assert(correction()->status() != Seed::INACTIVE || propagatedSeed()->status() == Seed::CONVERGED);
 
   DynamState newSeed = propagatedSeed()->state();
   if (correction()->status() != Seed::INACTIVE) {

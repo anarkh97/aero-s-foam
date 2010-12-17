@@ -249,22 +249,21 @@ void
 NlLocalNetwork::applyConvergenceStatus() {
   // Deactivate correction
   {
-    int count = 0;
     SeedMap::iterator firstActiveCorrection = seedCorrection_.upper_bound(firstActiveSlice());
     for (SeedMap::iterator it = seedCorrection_.begin(); it != firstActiveCorrection; ++it) {
       log() << "Inactivate " << it->second->name() << "\n";
       it->second->statusIs(Seed::INACTIVE);
-      ++count;
     }
     seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
 
-    if (count % 2 == 0) {
-      // Convergence front has moved in a non-staggered fashion
-      // It should only happen when the complete active time-domain has converged
-      // The leading seed is used to create a 'fake' propagated seed to account for this exception
-      if (seedUpdater(firstActiveSlice())) {
-        Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
-        Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+    if (seedUpdater(firstActiveSlice())) {
+      Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
+      Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+      if ((leadMainSeed->status() == Seed::ACTIVE || leadMainSeed->status() == Seed::CONVERGED) && leadMainSeed->iteration() > leadLeftSeed->iteration()) {
+        // The seed to be updated is more recent than the forward-propagated state.
+        // It may happen when the convergence front has moved in a non-staggered fashion,
+        // but only happen when the complete active time-domain has converged.
+        // The leading seed is used as a 'fake' propagated seed to account for this exception.
         leadLeftSeed->stateIs(leadMainSeed->state());
         leadLeftSeed->iterationIs(leadMainSeed->iteration());
         leadLeftSeed->statusIs(Seed::CONVERGED);

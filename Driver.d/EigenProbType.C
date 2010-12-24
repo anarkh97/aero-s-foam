@@ -977,14 +977,14 @@ EigenSolver< EigOps, VecType, VecSet,
 
 
 
-#ifdef USE_ARPACK //HB - 04/20/05
+#ifdef USE_ARPACK
 extern "C" {
-#if defined(DISTRIBUTED) && defined(USE_PARPACK) //CBM - 08/08/06
-void _FORTRAN(pdsaupd)(MPI_Comm *COMM, int* IDO, char* BMAT, int* N, char* WHICH, int* NEV, double* TOL,
+#ifdef DISTRIBUTED
+void _FORTRAN(pdsaupd)(MPI_Fint *COMM, int* IDO, char* BMAT, int* N, char* WHICH, int* NEV, double* TOL,
                        double* RESID, int* NCV, double* V, int* LDV, int* IPARAM, int* INPTR, double* WORKD,
                        double* WORKL, int* LWORKL, int* INFO);
 
-void  _FORTRAN(pdseupd)(MPI_Comm *COMM, const int& REC , char* HOWMMY , int* SELECT, double* D , double* Z,
+void  _FORTRAN(pdseupd)(MPI_Fint *COMM, const int& REC , char* HOWMMY , int* SELECT, double* D , double* Z,
                         int* LDZ, double* SIGMA, char* BMAT, int* N, char* WHICH, int* NEV, double* TOL, double* RESID,
                         int* NCV, double* V, int* LDV, int* IPARAM, int* INPTR, double* WORKD, double* WORKL,
                         int* LWORKL, int* INFO);
@@ -1188,10 +1188,12 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
     bool conv = false;
     while(!conv) {
-#if defined(DISTRIBUTED) && defined(USE_PARPACK)
-        _FORTRAN(pdsaupd)(structCom->getCommunicator(),&ido, bmat, &nloc, which, &nmodes, &tolEig, resid,
-                          &ncv, &LanVects[iram], &nloc, iparam, ipntr, workd, workl,
-                          &lworkl, &info);
+#ifdef DISTRIBUTED
+       MPI_Fint mpi_fint = MPI_Comm_c2f(*(structCom->getCommunicator()));
+        _FORTRAN(pdsaupd)(&mpi_fint,
+                         &ido, bmat, &nloc, which, &nmodes, &tolEig, resid,
+                         &ncv, &LanVects[iram], &nloc, iparam, ipntr, workd, workl,
+                         &lworkl, &info);
 #else
         _FORTRAN(dsaupd)(&ido, bmat, &nloc, which, &nmodes, &tolEig, resid,
                          &ncv, &LanVects[iram], &nloc, iparam, ipntr, workd, workl,
@@ -1288,11 +1290,13 @@ SymArpackSolver< EigOps, VecType, VecSet,
       for(i=0; i<ncv; i++) select[i] = 0;
       double* lambda = &(*this->eigVal)[nevold];
 
-#if defined(DISTRIBUTED) && defined(USE_PARPACK)
-        _FORTRAN(pdseupd)(structCom->getCommunicator(), 1, howmny, select, lambda, &RitzVects[iram], &nloc, &shift,
-                          bmat, &nloc, which, &nmodes, &tolEig,
-                          resid, &ncv, &LanVects[iram], &nloc, iparam, ipntr,
-                          workd, workl, &lworkl, &ierr);
+#ifdef DISTRIBUTED
+        MPI_Fint mpi_fint = MPI_Comm_c2f(*(structCom->getCommunicator()));
+        _FORTRAN(pdseupd)(&mpi_fint,
+                         1, howmny, select, lambda, &RitzVects[iram], &nloc, &shift,
+                         bmat, &nloc, which, &nmodes, &tolEig,
+                         resid, &ncv, &LanVects[iram], &nloc, iparam, ipntr,
+                         workd, workl, &lworkl, &ierr);
 #else
         _FORTRAN(dseupd)(1, howmny, select, lambda, &RitzVects[iram], &nloc, &shift,
                          bmat, &nloc, which, &nmodes, &tolEig,

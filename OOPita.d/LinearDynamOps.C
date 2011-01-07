@@ -5,48 +5,52 @@ namespace Pita {
 
 // LinearDynamOps implementation
 
-LinearDynamOps::LinearDynamOps(LinearDynamOps::DynOpsType * dMat) :
-  dynamMat_(dMat)
+LinearDynamOps::LinearDynamOps(LinearDynamOps::DynOpsType * allOps) :
+  allOps_(allOps)
 {}
+
+LinearDynamOps::~LinearDynamOps() {
+  delete allOps_;
+}
 
 const LinearDynamOps::MatrixType *
 LinearDynamOps::massMatrix() const {
-  return dynamMat_->M;
+  return allOps_->M;
 }
 
 const LinearDynamOps::MatrixType *
 LinearDynamOps::stiffnessMatrix() const {
-  return dynamMat_->K;
+  return allOps_->K;
 }
 
 const LinearDynamOps::MatrixType *
 LinearDynamOps::dampingMatrix() const {
-  return dynamMat_->C;
+  return allOps_->C;
 }
 
 const LinearDynamOps::SolverType *
 LinearDynamOps::dynamicMassSolver() const {
-  return dynamMat_->dynMat;
+  return allOps_->dynMat;
 }
 
 LinearDynamOps::MatrixType *
 LinearDynamOps::massMatrix() {
-  return dynamMat_->M;
+  return allOps_->M;
 }
 
 LinearDynamOps::MatrixType *
 LinearDynamOps::stiffnessMatrix() {
-  return dynamMat_->K;
+  return allOps_->K;
 }
 
 LinearDynamOps::MatrixType *
 LinearDynamOps::dampingMatrix() {
-  return dynamMat_->C;
+  return allOps_->C;
 }
 
 LinearDynamOps::SolverType *
 LinearDynamOps::dynamicMassSolver() {
-  return dynamMat_->dynMat;
+  return allOps_->dynMat;
 }
 
 // GeneralizedAlphaParameter implementation
@@ -70,7 +74,6 @@ GeneralizedAlphaParameter::rhoInfinityIs(double rhoInf) {
 void 
 GeneralizedAlphaParameter::timeStepSizeIs(Seconds dt) {
   timeStepSize_ = dt;
-  rhoInfinityIs(rhoInfinity_); // Recompute parameters in case timeStepSize has changed sign
 }
 
 bool
@@ -117,8 +120,8 @@ LinearDynamOps::Manager::dynOpsNew(const GeneralizedAlphaParameter & param) {
     double coefM = (1.0 - param.alpham()) / (1.0 - param.alphaf());
     double coefC = dt * param.gamma();
     double coefK = (dt * dt) * param.beta();
-    LinearDynamOps::DynOpsType * newDynamMat = probDesc_->buildOps(coefM, coefC, coefK); // Assemble + Factor
-    newDynOps = new LinearDynamOps(newDynamMat);
+    LinearDynamOps::DynOpsType * newAllOps = probDesc_->buildOps(coefM, coefC, coefK); // Assemble + Factor
+    newDynOps = new LinearDynamOps(newAllOps);
   }
 
   // Add new DynOps

@@ -34,12 +34,12 @@ public:
  
   const DynamOps * metric() const { return metric_.ptr(); }
 
-  static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
+  static Ptr New(size_t vSize, Communicator * timeComm,
                  const SliceMapping * mapping,
                  BasisCollectorImpl * collector,
                  const DynamOps * metric,
                  RankDeficientSolver * solver) {
-    return new LinearProjectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, solver);
+    return new LinearProjectionNetworkImpl(vSize, timeComm, mapping, collector, metric, solver);
   }
 
 
@@ -117,12 +117,11 @@ public:
 
 protected:
   LinearProjectionNetworkImpl(size_t vSize,
-                        Communicator * timeComm,
-                        CpuRank myCpu,
-                        const SliceMapping * mapping,
-                        BasisCollectorImpl * collector,
-                        const DynamOps * metric,
-                        RankDeficientSolver * solver);
+                              Communicator * timeComm,
+                              const SliceMapping * mapping,
+                              BasisCollectorImpl * collector,
+                              const DynamOps * metric,
+                              RankDeficientSolver * solver);
 
 private:
   size_t vectorSize_;

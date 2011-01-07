@@ -161,11 +161,11 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
 
   // Projection-based correction
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_);
-  LinearProjectionNetwork::Ptr projectionMgr = new LinearProjectionNetwork(mapping_.ptr(),
-                                                                           timeComm,
-                                                                           dynOps.ptr(),
-                                                                           vectorSize_,
-                                                                           normalMatrixSolver.ptr());
+  LinearProjectionNetwork::Ptr projectionMgr = LinearProjectionNetwork::New(mapping_.ptr(),
+                                                                            timeComm,
+                                                                            dynOps.ptr(),
+                                                                            vectorSize_,
+                                                                            normalMatrixSolver.ptr());
   
   // Fine-grid time integration and feedback into correction
   LinearGenAlphaIntegrator::Ptr fineIntegrator;

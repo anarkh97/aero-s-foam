@@ -1,5 +1,7 @@
 #include "LinearTaskManager.h"
 
+#include "ReducedCorrectionManager.h"
+
 namespace Pita { namespace Hts {
 
 class ProjectionBasis : public NamedTask {
@@ -22,12 +24,17 @@ private:
 };
 
 LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
-                                     LinearLocalNetwork * network,
+                                     SliceMapping * mapping,
+                                     AffinePropagatorManager * propMgr,
+                                     CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                                      JumpConvergenceEvaluator * jumpCvgMgr,
+                                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
                                      LinearProjectionNetworkImpl * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
-  network_(network),
+  network_(new LinearLocalNetwork(mapping, propMgr,
+           new ReducedCorrectionManager(correctionMgr, fullCorrMgr),
+           jumpCvgMgr, commMgr, jumpErrorMgr)),
   jumpCvgMgr_(jumpCvgMgr),
   correctionMgr_(correctionMgr),
   commMgr_(commMgr),

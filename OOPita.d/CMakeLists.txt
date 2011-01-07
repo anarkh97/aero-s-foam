@@ -83,6 +83,7 @@ Hts.d/NonHomogeneousBasisCollectorImpl.C
 Hts.d/NonHomogeneousTaskManager.C
 Hts.d/GlobalStateSharing.C
 Hts.d/AffinePropagatorManager.C
+Hts.d/ReducedCorrectionManager.C
 Hts.d/ReducedLinearDriverImpl.C
 Hts.d/RemoteCoarseCorrectionServer.C
 Hts.d/RemoteSeedInitializerServer.C

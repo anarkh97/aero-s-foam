@@ -22,8 +22,11 @@ public:
 
 protected:
   LinearTaskManager(IterationRank initialIteration,
-                    LinearLocalNetwork * network,
+                    SliceMapping * mapping,
+                    AffinePropagatorManager * propMgr,
+                    CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                     JumpConvergenceEvaluator * jumpCvgMgr,
+                    LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
                     LinearProjectionNetworkImpl * correctionMgr,
                     RemoteState::MpiManager * commMgr);
 

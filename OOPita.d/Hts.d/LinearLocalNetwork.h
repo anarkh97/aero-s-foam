@@ -10,14 +10,8 @@
 #include "../RemoteState.h"
 
 #include "AffinePropagatorManager.h"
-
-#include "../JumpBuilder.h"
-#include "../JumpProjection.h"
-#include "../UpdatedSeedAssembler.h"
-#include "../CorrectionPropagator.h"
-
+#include "ReducedCorrectionManager.h"
 #include "JumpConvergenceEvaluator.h"
-
 #include "../SeedDifferenceEvaluator.h"
 
 #include <map>
@@ -30,35 +24,6 @@
 namespace Pita { namespace Hts {
 
 using namespace LocalNetworkImpl;
-
-class ReducedCorrectionManager : public Fwk::PtrInterface<ReducedCorrectionManager> {
-public:
-  EXPORT_PTRINTERFACE_TYPES(ReducedCorrectionManager);
-
-  JumpProjection::Manager * jumpProjMgr() const { return jumpProjMgr_.ptr(); }
-  CorrectionPropagator<Vector>::Manager * rcpMgr() const { return rcpMgr_.ptr(); }
-  CorrectionPropagator<DynamState>::Manager * fcpMgr() const { return fcpMgr_.ptr(); }
-  UpdatedSeedAssembler::Manager * usaMgr() const { return usaMgr_.ptr(); }
-  
-  ReducedCorrectionManager(JumpProjection::Manager * jumpProjMgr,
-                           CorrectionPropagator<Vector>::Manager * rcpMgr,
-                           CorrectionPropagator<DynamState>::Manager * fcpMgr,  // can be NULL
-                           UpdatedSeedAssembler::Manager * usaMgr) :
-    jumpProjMgr_(jumpProjMgr),
-    rcpMgr_(rcpMgr),
-    fcpMgr_(fcpMgr),
-    usaMgr_(usaMgr)
-  {}
-
-private:
-  JumpProjection::Manager::Ptr jumpProjMgr_;
-  CorrectionPropagator<Vector>::Manager::Ptr rcpMgr_;
-  CorrectionPropagator<DynamState>::Manager::Ptr fcpMgr_;
-  UpdatedSeedAssembler::Manager::Ptr usaMgr_;
-
-  DISALLOW_COPY_AND_ASSIGN(ReducedCorrectionManager);
-};
-
 
 class LinearLocalNetwork : public LocalNetwork {
 public:

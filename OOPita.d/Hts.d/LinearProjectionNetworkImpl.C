@@ -13,14 +13,12 @@ namespace Pita { namespace Hts {
 
 LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
                                              Communicator * timeComm,
-                                             CpuRank myCpu,
                                              const SliceMapping * mapping,
                                              BasisCollectorImpl * collector,
                                              const DynamOps * metric,
                                              RankDeficientSolver * solver) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
-  localCpu_(myCpu),
   mapping_(mapping),
   metric_(metric),
   gBuffer_(),
@@ -51,11 +49,11 @@ LinearProjectionNetworkImpl::buildProjection() {
   double tic = getTime(), toc;
 #endif /* NDEBUG*/
 
-  int previousMatrixSize = normalMatrix_.dim();
+  const int previousMatrixSize = normalMatrix_.dim();
 
   // Build buffer
-  size_t stateSize = 2 * vectorSize_;
-  size_t targetBufferSize = stateSize * globalExchangeNumbering_.back()->stateCount();
+  const size_t stateSize = 2 * vectorSize_;
+  const size_t targetBufferSize = stateSize * globalExchangeNumbering_.back()->stateCount();
   if (gBuffer_.size() < targetBufferSize) {
     gBuffer_.sizeIs(targetBufferSize);
   }
@@ -70,12 +68,12 @@ LinearProjectionNetworkImpl::buildProjection() {
   // 1) Final states
   BasisCollectorImpl::CollectedState cs = collector_->firstForwardFinalState();
   while (cs.second.vectorSize() != 0) {
-    int inBufferRank = globalExchangeNumbering_.back()->globalIndex(HalfSliceId(cs.first, FORWARD));
+    const int inBufferRank = globalExchangeNumbering_.back()->globalIndex(HalfSliceId(cs.first, FORWARD));
     if (inBufferRank >= 0) {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       bufferStateCopy(cs.second, targetBuffer); 
       //log() << "Final state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
-      int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
+      const int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
       localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstForwardFinalStateDel();
@@ -85,7 +83,7 @@ LinearProjectionNetworkImpl::buildProjection() {
   // 2) Initial states
   cs = collector_->firstBackwardFinalState();
   while (cs.second.vectorSize() != 0) {
-    int inBufferRank = globalExchangeNumbering_.back()->globalIndex(HalfSliceId(cs.first, BACKWARD));
+    const int inBufferRank = globalExchangeNumbering_.back()->globalIndex(HalfSliceId(cs.first, BACKWARD));
     if (inBufferRank >= 0) {
       double * targetBuffer = gBuffer_.array() + (inBufferRank * stateSize);
       if (metric_) {
@@ -96,7 +94,7 @@ LinearProjectionNetworkImpl::buildProjection() {
         bufferStateCopy(cs.second, targetBuffer); 
       }
       //log() << "Metric state # " << inBufferRank << " disp[2] = " << targetBuffer[2] << "\n";
-      int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
+      const int accumulatedIndex = inBufferRank + (2 * previousMatrixSize);
       localBasis_.insert(std::make_pair(accumulatedIndex, cs.second));
     }
     collector_->firstBackwardFinalStateDel();
@@ -110,7 +108,7 @@ LinearProjectionNetworkImpl::buildProjection() {
 #endif /* NDEBUG*/
   
   // Setup parameters for global MPI communication
-  int numCpus = mapping_->availableCpus().value(); 
+  const int numCpus = mapping_->availableCpus().value(); 
   mpiParameters_.sizeIs(2 * numCpus);
   int * recv_counts = mpiParameters_.array();
   int * displacements = mpiParameters_.array() + numCpus;
@@ -124,7 +122,7 @@ LinearProjectionNetworkImpl::buildProjection() {
     displacements[i] = displacements[i-1] + recv_counts[i-1];
   }
 
-  int myCpu = localCpu_.value();
+  const int myCpu = timeCommunicator_->myID();
   //log() << "Allgatherv: " << recv_counts[myCpu]  << " / " << globalExchangeNumbering_->stateCount(CpuRank(myCpu)) * stateSize
   //      << " -> " << displacements[numCpus-1] + recv_counts[numCpus-1] << " / " << globalExchangeNumbering_->stateCount() * stateSize;
   timeCommunicator_->allGatherv(gBuffer_.array() + displacements[myCpu], recv_counts[myCpu], gBuffer_.array(), recv_counts, displacements);
@@ -166,12 +164,12 @@ LinearProjectionNetworkImpl::buildProjection() {
 #endif /* NDEBUG*/
  
   // Assemble normal and reprojection matrices in parallel (local rows)
-  int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(BACKWARD);
-  int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
+  const int matrixSizeIncrement = globalExchangeNumbering_.back()->stateCount(BACKWARD);
+  const int newMatrixSize = previousMatrixSize + matrixSizeIncrement;
  
   log() << "*** Matrix size: previous = " << previousMatrixSize << ", increment = " << matrixSizeIncrement << ", newSize = " << newMatrixSize << "\n";
   
-  size_t matrixBufferSize = (2 * newMatrixSize) * newMatrixSize; // For normalMatrix and reprojectionMatrix data
+  const size_t matrixBufferSize = (2 * newMatrixSize) * newMatrixSize; // For normalMatrix and reprojectionMatrix data
   if (mBuffer_.size() < matrixBufferSize) {
     mBuffer_.sizeIs(matrixBufferSize);
   }
@@ -236,9 +234,9 @@ LinearProjectionNetworkImpl::buildProjection() {
     // Loop on cpus
     for (int cpu = 0; cpu < numCpus; ++cpu) {
       //log() << "Cpu # " << cpu << "\n";
-      double * originBufferBegin = mBuffer_.array() + displacements[cpu]; // Position in AllgatherBuffer
+      const double * originBufferBegin = mBuffer_.array() + displacements[cpu]; // Position in AllgatherBuffer
       
-      int initialStateCountInIter = numbering->stateCount(CpuRank(cpu), BACKWARD);
+      const int initialStateCountInIter = numbering->stateCount(CpuRank(cpu), BACKWARD);
       //log() << "# initial states on cpu = " << initialStateCountInIter << "\n";
       for (int s = 0; s < initialStateCountInIter; ++s) {
         int rowIndex = (*jt_i).second + originRowIndex; // Row in target normal matrix
@@ -250,10 +248,10 @@ LinearProjectionNetworkImpl::buildProjection() {
         ++jt_i;
       }
 
-      int finalStateCountInIter = numbering->stateCount(CpuRank(cpu), FORWARD);
+      const int finalStateCountInIter = numbering->stateCount(CpuRank(cpu), FORWARD);
       //log() << "# final states on cpu = " << finalStateCountInIter << "\n";
       for (int s = 0; s < finalStateCountInIter; ++s) {
-        int rowIndex = (*jt_f).second + originRowIndex; // Row in target reprojection matrix
+        const int rowIndex = (*jt_f).second + originRowIndex; // Row in target reprojection matrix
         //log() << "Reprojection matrix row # = " << rowIndex << "\n";
         //log() << "Buffer row # = " << std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize << "\n";
         //log() << "State id = " << numbering->stateId(std::distance(mBuffer_.array(), originBufferBegin) / newMatrixSize) << "\n";
@@ -342,7 +340,7 @@ LinearProjectionNetworkImpl::buildProjection() {
   finalBasis_->stateBasisDel();
 
   for (int compactIndex = 0; compactIndex < solver_->factorRank(); ++compactIndex) {
-    int originalIndex = solver_->factorPermutation(compactIndex);
+    const int originalIndex = solver_->factorPermutation(compactIndex);
 
     for (int j = 0; j < solver_->factorRank(); ++j) {
       reprojectionMatrix_[compactIndex][j] = transmissionMatrix_[originalIndex][solver_->factorPermutation(j)];
@@ -439,8 +437,8 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(co
 void
 LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
   // Count only full timeslices
-  int fullSliceCount = std::max(0, (mapping->activeSlices().value() - 1) / 2);
-  int numCpus = mapping->availableCpus().value();
+  const int fullSliceCount = std::max(0, (mapping->activeSlices().value() - 1) / 2);
+  const int numCpus = mapping->availableCpus().value();
 
   // Avoid reallocations
   stateCount_.reserve(numCpus);
@@ -457,17 +455,23 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapp
   typedef std::vector<FullStateSet> TempMapping; 
   TempMapping currentStateMapping(mapping->availableCpus().value());
   
-  HalfSliceRank r = HalfSliceRank(1) + mapping->convergedSlices();
-  for (int fts = 0; fts < fullSliceCount; ++fts) {
-    // Initial states <=> Backward
-    CpuRank cpu = mapping->hostCpu(r);
-    currentStateMapping[cpu.value()].first.insert(r);
-    r = r + HalfSliceCount(1); 
+  {
+    HalfSliceRank r(HalfSliceRank(1) + mapping->convergedSlices());
+    for (int fts = 0; fts < fullSliceCount; ++fts) {
+      // Initial states <=> Backward
+      {
+        const CpuRank cpu = mapping->hostCpu(r);
+        currentStateMapping[cpu.value()].first.insert(r);
+        r = r + HalfSliceCount(1); 
+      }
 
-    // Initial states <=> Forward
-    cpu = mapping->hostCpu(r);
-    currentStateMapping[cpu.value()].second.insert(r);
-    r = r + HalfSliceCount(1); 
+      // Initial states <=> Forward
+      {
+        const CpuRank cpu = mapping->hostCpu(r);
+        currentStateMapping[cpu.value()].second.insert(r);
+        r = r + HalfSliceCount(1);
+      }
+    }
   }
 
   // Fill the member data structures
@@ -485,7 +489,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapp
 
     // Initial states
     for (HalfStateSet::const_iterator jt = it->first.begin(); jt != it->first.end(); ++jt) {
-      HalfSliceId stateId(*jt, BACKWARD);
+      const HalfSliceId stateId(*jt, BACKWARD);
       
       initialGlobalIndex_.insert(std::make_pair(stateId, currentInitialGlobalIndex++));
       globalIndex_.insert(std::make_pair(stateId, currentFullGlobalIndex++));
@@ -496,7 +500,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapp
     
     // Final states
     for (HalfStateSet::const_iterator jt = it->second.begin(); jt != it->second.end(); ++jt) {
-      HalfSliceId stateId(*jt, FORWARD);
+      const HalfSliceId stateId(*jt, FORWARD);
       
       finalGlobalIndex_.insert(std::make_pair(stateId, currentFinalGlobalIndex++));
       globalIndex_.insert(std::make_pair(stateId, currentFullGlobalIndex++));

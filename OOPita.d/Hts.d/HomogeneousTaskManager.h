@@ -14,11 +14,13 @@ public:
   // overriden
   virtual void iterationInc();
 
-  explicit HomogeneousTaskManager(LinearLocalNetwork * network,
-                                  SeedInitializer * initializer,
-                                  JumpConvergenceEvaluator * jumpCvgMgr,
-                                  LinearProjectionNetworkImpl * correctionMgr,
-                                  RemoteState::MpiManager * commMgr);
+  HomogeneousTaskManager(SliceMapping * mapping,
+                         RemoteState::MpiManager * commMgr,
+                         AffinePropagatorManager * propMgr,
+                         LinearProjectionNetworkImpl * correctionMgr,
+                         JumpConvergenceEvaluator * jumpCvgMgr,
+                         LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
+                         SeedInitializer * initializer);
 
 protected:
   void scheduleIterationZero();

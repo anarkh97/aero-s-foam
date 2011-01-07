@@ -71,9 +71,13 @@ public:
   
   void print_debug();
 
+  static Ptr New(const SliceMapping * mapping, Communicator * timeComm, const DynamOps * metric, size_t vecSize, RankDeficientSolver * solver) {
+    return new LinearProjectionNetwork(mapping, timeComm, metric, vecSize, solver);
+  }
+
+protected:
   LinearProjectionNetwork(const SliceMapping * mapping, Communicator * timeComm, const DynamOps * metric, size_t vecSize, RankDeficientSolver * solver);
  
-protected:
   // Numbering for Allgather 
   class StateExchgNumbering;
   class MatrixExchgNumbering;

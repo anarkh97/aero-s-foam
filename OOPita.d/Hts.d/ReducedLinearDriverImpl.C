@@ -35,9 +35,6 @@
 #include "LinearFineIntegratorManager.h"
 #include "AffinePropagatorManager.h"
 
-#include "../ReducedCorrectionPropagatorImpl.h"
-#include "../JumpProjection.h"
-#include "../UpdatedSeedAssemblerImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
 #include "JumpConvergenceEvaluator.h"
 
@@ -58,7 +55,6 @@
 #include "../TimedExecution.h"
 #include "HomogeneousTaskManager.h"
 #include "NonHomogeneousTaskManager.h"
-#include "LinearLocalNetwork.h"
 
 #include "../SeedDifferenceEvaluator.h"
 
@@ -190,7 +186,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   LinearProjectionNetworkImpl::Ptr correctionMgr = LinearProjectionNetworkImpl::New(
       vectorSize_,
       timeComm,
-      myCpu,
       mapping_.ptr(),
       collector.ptr(),
       dynamOps.ptr(),
@@ -206,14 +201,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       halfSliceRatio_,
       initialTime_);
 
-  /* Tasks for correction */
-  JumpProjection::Manager::Ptr jpMgr = JumpProjection::Manager::New(correctionMgr->projectionBasis());
-  CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
-  UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
-
-  /* Coarse time-integration */ 
-  CorrectionPropagator<DynamState>::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
-
+  /* Local communication */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   // Convergence criterion
@@ -230,16 +218,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
     jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
   }
 
-  /* Local tasks */
-  ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
-  LinearLocalNetwork::Ptr network = new LinearLocalNetwork(
-      mapping_.ptr(),
-      propagatorMgr.ptr(),
-      reducedCorrMgr.ptr(),
-      jumpCvgMgr.ptr(),
-      commMgr.ptr(),
-      jumpErrorMgr.ptr());
-
   /* Seed initialization */
   SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm); 
   
@@ -251,18 +229,24 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   LinearTaskManager::Ptr taskManager;
   if (noForce_) {
     taskManager = new HomogeneousTaskManager(
-        network.ptr(),
-        seedInitializer.ptr(),
-        jumpCvgMgr.ptr(),
+        mapping_.ptr(),
+        commMgr.ptr(),
+        propagatorMgr.ptr(),
         correctionMgr.ptr(),
-        commMgr.ptr());
+        jumpCvgMgr.ptr(),
+        jumpErrorMgr.ptr(),
+        seedInitializer.ptr());
   } else {
+    CorrectionPropagator<DynamState>::Manager::Ptr fullCorrPropMgr = buildCoarseCorrection(coarseComm);
     taskManager = new NonHomogeneousTaskManager(
-        network.ptr(),
-        seedInitializer.ptr(),
-        jumpCvgMgr.ptr(),
+        mapping_.ptr(),
+        commMgr.ptr(),
+        propagatorMgr.ptr(),
         correctionMgr.ptr(),
-        commMgr.ptr());
+        jumpCvgMgr.ptr(),
+        jumpErrorMgr.ptr(),
+        seedInitializer.ptr(),
+        fullCorrPropMgr.ptr());
   }
 
   TimedExecution::Ptr timedExecution = TimedExecution::New(taskManager.ptr()); 

@@ -3,6 +3,7 @@
 
 #include "Fwk.h"
 #include "Types.h"
+#include "HalfSliceId.h"
 
 #include "../AffineDynamPropagator.h"
 

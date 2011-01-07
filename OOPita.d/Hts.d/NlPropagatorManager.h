@@ -3,7 +3,7 @@
 
 #include "Fwk.h"
 #include "Types.h"
-#include "HalfTimeSlice.h"
+#include "HalfSliceId.h"
 
 #include "../IntegratorPropagator.h"
 #include "../PostProcessingManager.h"

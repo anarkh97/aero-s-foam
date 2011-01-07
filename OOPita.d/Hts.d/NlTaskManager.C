@@ -1,6 +1,5 @@
 #include "NlTaskManager.h"
 
-#include "BasicHalfTimeSliceImpl.h"
 #include "../JumpBuilder.h"
 #include "../ConcurrentBasisManager.h"
 #include "../NearSymmetricSolver.h"
@@ -67,12 +66,11 @@ NlTaskManager::initialize() {
   propagatorMgr_->postProcessingManagerIs(postProcessingMgr_.ptr());
   propagatorMgr_->concurrentBasisManagerIs(projectionNetwork_->concurrentMgr());
   propagatorMgr_->propagatedBasisManagerIs(projectionNetwork_->endBasisMgr());
-  BasicHalfTimeSliceImpl::Manager::Ptr htsMgr = BasicHalfTimeSliceImpl::Manager::New(propagatorMgr_.ptr());
 
   // Recurring tasks 
   localNetwork_ = new NlLocalNetwork(mapping_.ptr(),
                                      commMgr_.ptr(),
-                                     htsMgr.ptr(),
+                                     propagatorMgr_.ptr(),
                                      projectionNetwork_->corrRedMgr(),
                                      projectionNetwork_->corrReconMgr(),
                                      projectionNetwork_->condensMgr(),

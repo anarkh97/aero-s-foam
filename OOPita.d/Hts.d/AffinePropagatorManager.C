@@ -44,7 +44,7 @@ AffinePropagatorManager::instanceNew(const HalfSliceId & id) {
 
   // Set up propagator
   Seconds halfCoarseTimeStep = fineTimeStep_ * halfSliceRatio_.value();
-  HalfSliceRank initialSeedRank = (id.direction() == HalfTimeSlice::FORWARD) ? id.rank() : id.rank() + HalfSliceCount(1);
+  HalfSliceRank initialSeedRank = (id.direction() == FORWARD) ? id.rank() : id.rank() + HalfSliceCount(1);
   Seconds sliceInitialTime = initialTime_ + halfCoarseTimeStep * initialSeedRank.value();
 
   newPropagator->initialTimeIs(sliceInitialTime);

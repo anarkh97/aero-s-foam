@@ -58,8 +58,8 @@ BasisCollectorImpl::firstBackwardFinalStateDel() {
 
 void
 BasisCollectorImpl::finalStateIs(const HalfSliceId & sliceId, const DynamState & state) {
-  HalfTimeSlice::Direction dir = sliceId.direction();
-  StateContainer & stateContainer = (dir == HalfTimeSlice::FORWARD) ? forwardFinalState_ : backwardFinalState_;
+  Direction dir = sliceId.direction();
+  StateContainer & stateContainer = (dir == FORWARD) ? forwardFinalState_ : backwardFinalState_;
   stateContainer.push(make_pair(sliceId.rank(), state));
 }
 

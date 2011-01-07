@@ -3,10 +3,9 @@
 
 #include "Fwk.h"
 #include "Types.h"
+#include "HalfSliceId.h"
 
 #include "../DynamPropagator.h"
-
-#include "HalfTimeSlice.h"
 
 namespace Pita { namespace Hts {
 

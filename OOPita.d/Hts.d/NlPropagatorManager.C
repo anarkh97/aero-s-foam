@@ -23,7 +23,7 @@ NlPropagatorManager::createNewInstance(const HalfSliceId & id) {
   HalfSliceRank initialSeedRank = id.rank();
   Seconds timeStep = fineTimeStep_;
 
-  if (id.direction() == HalfTimeSlice::BACKWARD) {
+  if (id.direction() == BACKWARD) {
     initialSeedRank = initialSeedRank.next();
     timeStep = -timeStep;
   }

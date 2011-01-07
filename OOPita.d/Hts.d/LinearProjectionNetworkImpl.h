@@ -49,7 +49,7 @@ public:
 
     class IteratorConst {
     public:
-      std::pair<HalfTimeSlice::Direction, int> operator*() const { return std::make_pair(it_->first.direction(), it_->second); }
+      std::pair<Direction, int> operator*() const { return std::make_pair(it_->first.direction(), it_->second); }
       IteratorConst & operator++() { ++it_; return *this; }
       IteratorConst operator++(int) { IteratorConst tmp(*this); this->operator++(); return tmp; }
       operator bool() const { return it_ != endIt_; }
@@ -75,9 +75,9 @@ public:
    
     // State count
     size_t stateCount() const;
-    size_t stateCount(HalfTimeSlice::Direction d) const;
+    size_t stateCount(Direction d) const;
     size_t stateCount(CpuRank c) const;
-    size_t stateCount(CpuRank c, HalfTimeSlice::Direction d) const;
+    size_t stateCount(CpuRank c, Direction d) const;
     
     // Numbering for all states (both initial AND final)
     int globalIndex(const HalfSliceId & id) const;
@@ -86,8 +86,8 @@ public:
     
     // Numbering for initial OR final states
     int globalHalfIndex(const HalfSliceId & id) const;
-    IteratorConst globalHalfIndex(HalfTimeSlice::Direction d) const;
-    HalfSliceId stateId(int globalHalfIndex, HalfTimeSlice::Direction d) const;
+    IteratorConst globalHalfIndex(Direction d) const;
+    HalfSliceId stateId(int globalHalfIndex, Direction d) const;
 
     explicit GlobalExchangeNumbering(const SliceMapping * m);
 

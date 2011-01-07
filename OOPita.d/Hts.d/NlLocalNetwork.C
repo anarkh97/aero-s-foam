@@ -1,12 +1,13 @@
 #include "NlLocalNetwork.h"
 
+#include "../BasicPropagation.h"
 #include "../ReducedSeedWriterTask.h"
 
 namespace Pita { namespace Hts {
 
 NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                RemoteState::MpiManager * commMgr,
-                               HalfTimeSlice::Manager * htsMgr,
+                               NlPropagatorManager * propMgr,
                                CorrectionReductor::Manager * corrRedMgr,
                                CorrectionReconstructor::Manager * corrReconMgr,
                                BasisCondensationManager * condensMgr,
@@ -14,7 +15,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                JumpConvergenceEvaluator * jumpCvgMgr,
                                NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr) :
   LocalNetwork(mapping, commMgr),
-  htsMgr_(htsMgr),
+  propMgr_(propMgr),
   jumpMgr_(JumpBuilder::ManagerImpl::New()),
   seedUpMgr_(SeedUpdater::ManagerImpl::New()),
   corrRedMgr_(corrRedMgr),
@@ -289,7 +290,11 @@ NlLocalNetwork::applyConvergenceStatus() {
 
 NamedTask::Ptr
 NlLocalNetwork::forwardHalfSliceNew(HalfSliceRank sliceRank) {
-  HalfTimeSlice::Ptr result = htsMgr()->instanceNew(HalfSliceId(sliceRank, FORWARD));
+  const HalfSliceId id(sliceRank, FORWARD);
+
+  DynamPropagator::Ptr propagator = propMgr()->instanceNew(id);
+  const Fwk::String name = Fwk::String("Propagate ") + toString(id);
+  BasicPropagation::Ptr result = BasicPropagation::New(name, propagator.ptr());
 
   result->seedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank)));
   result->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank.next())));
@@ -299,7 +304,11 @@ NlLocalNetwork::forwardHalfSliceNew(HalfSliceRank sliceRank) {
 
 NamedTask::Ptr
 NlLocalNetwork::backwardHalfSliceNew(HalfSliceRank sliceRank) {
-  HalfTimeSlice::Ptr result = htsMgr()->instanceNew(HalfSliceId(sliceRank, BACKWARD));
+  const HalfSliceId id(sliceRank, BACKWARD);
+
+  DynamPropagator::Ptr propagator = propMgr()->instanceNew(id);
+  const Fwk::String name = Fwk::String("Propagate ") + toString(id);
+  BasicPropagation::Ptr result = BasicPropagation::New(name, propagator.ptr());
   
   result->seedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank.next())));
   result->propagatedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, sliceRank)));

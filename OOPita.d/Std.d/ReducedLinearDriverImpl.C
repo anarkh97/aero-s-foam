@@ -14,7 +14,7 @@
 #include "SliceMapping.h"
 #include "../RemoteStateMpiImpl.h"
 
-#include "IncrementalPropagation.h"
+#include "../IncrementalPropagation.h"
 #include "../PostProcessingManager.h"
 #include "../IncrementalPostProcessor.h"
 

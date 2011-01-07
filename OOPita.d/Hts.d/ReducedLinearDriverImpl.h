@@ -46,11 +46,6 @@ protected:
   void solveParallel(Communicator * timeComm, Communicator * coarseComm);
   void solveCoarse(Communicator * timeComm);
  
-  HalfTimeSlice::Manager::Ptr buildHalfTimeSliceManager(
-      GeneralizedAlphaParameter fineIntegrationParam,
-      PostProcessing::Manager * postProcessingMgr,
-      BasisCollector * collector) const;
-  
   PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
   BasisCollectorImpl::Ptr buildBasisCollector() const;
   CorrectionPropagator<DynamState>::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;

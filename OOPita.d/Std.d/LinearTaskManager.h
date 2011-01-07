@@ -20,7 +20,7 @@
 #include "../SeedInitializer.h"
 
 #include "../InitialSeedTask.h"
-#include "IncrementalPropagation.h"
+#include "../IncrementalPropagation.h"
 #include "../RemoteStateTask.h"
 
 #include <map>

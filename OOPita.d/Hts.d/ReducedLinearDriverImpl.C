@@ -34,7 +34,6 @@
 #include "../IncrementalPostProcessor.h"
 #include "LinearFineIntegratorManager.h"
 #include "AffinePropagatorManager.h"
-#include "AffineHalfTimeSliceImpl.h"
 
 #include "../ReducedCorrectionPropagatorImpl.h"
 #include "../JumpProjection.h"
@@ -197,9 +196,17 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       dynamOps.ptr(),
       normalMatrixSolver.ptr());
 
-  /* HalfTimeSlices and other local tasks */
-  HalfTimeSlice::Manager::Ptr hsMgr = buildHalfTimeSliceManager(fineIntegrationParam, postProcessingMgr.ptr(), collector.ptr());
+  /* Local fine propagation */
+  GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
+  AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
+      collector.ptr(),
+      fineIntegratorMgr.ptr(), 
+      postProcessingMgr.ptr(),
+      halfSliceRatio_,
+      initialTime_);
+
+  /* Tasks for correction */
   JumpProjection::Manager::Ptr jpMgr = JumpProjection::Manager::New(correctionMgr->projectionBasis());
   CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
   UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
@@ -227,7 +234,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
   LinearLocalNetwork::Ptr network = new LinearLocalNetwork(
       mapping_.ptr(),
-      hsMgr.ptr(),
+      propagatorMgr.ptr(),
       reducedCorrMgr.ptr(),
       jumpCvgMgr.ptr(),
       commMgr.ptr(),
@@ -297,23 +304,6 @@ ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
   toc = getTime();
   log() << "\n";
   log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
-}
-
-
-HalfTimeSlice::Manager::Ptr
-ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fineIntegrationParam,
-                                                   PostProcessing::Manager * postProcessingMgr,
-                                                   BasisCollector * collector) const {
-  GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
-
-  AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
-      collector,
-      fineIntegratorMgr.ptr(), 
-      postProcessingMgr,
-      halfSliceRatio_,
-      initialTime_);
-  
-  return AffineHalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
 }
 
 PostProcessing::Manager::Ptr

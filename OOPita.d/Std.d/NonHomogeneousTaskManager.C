@@ -2,14 +2,6 @@
 
 #include "../SeedInitializer.h"
 
-#include "../InitialSeedTask.h"
-#include "IncrementalPropagation.h"
-#include "../RemoteStateTask.h"
-
-#include "../JumpProjection.h"
-#include "../ReducedCorrectionPropagatorImpl.h"
-#include "../UpdatedSeedAssemblerImpl.h"
-
 namespace Pita { namespace Std {
 
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,

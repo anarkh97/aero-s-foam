@@ -9,7 +9,8 @@
 #include "../Seed.h"
 #include "../RemoteState.h"
 
-#include "HalfTimeSlice.h"
+#include "AffinePropagatorManager.h"
+
 #include "../JumpBuilder.h"
 #include "../JumpProjection.h"
 #include "../UpdatedSeedAssembler.h"
@@ -83,7 +84,7 @@ public:
   MainSeedMap activeMainSeeds() const;
 
   LinearLocalNetwork(SliceMapping * mapping,
-                     HalfTimeSlice::Manager * sliceMgr,
+                     AffinePropagatorManager * propMgr,
                      ReducedCorrectionManager * redCorrMgr,
                      JumpConvergenceEvaluator * jumpCvgMgr,
                      RemoteState::Manager * commMgr,
@@ -120,7 +121,7 @@ protected:
   static TaskList getAll(const TaskMap & task);
 
 private:
-  HalfTimeSlice::Manager::Ptr sliceMgr_;
+  AffinePropagatorManager::Ptr propMgr_;
   JumpBuilder::Manager::Ptr jumpBuildMgr_;
   JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
   ReducedCorrectionManager::Ptr redCorrMgr_;

@@ -12,14 +12,14 @@ public:
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
-  ProjectionBasis(LinearProjectionNetworkImpl * correctionMgr, RemoteState::MpiManager * commMgr) :
+  ProjectionBasis(LinearProjectionNetwork * correctionMgr, RemoteState::MpiManager * commMgr) :
     NamedTask("Projection building"),
     correctionMgr_(correctionMgr),
     commMgr_(commMgr)
   {}
 
 private:
-  LinearProjectionNetworkImpl::Ptr correctionMgr_;
+  LinearProjectionNetwork::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 };
 
@@ -29,7 +29,7 @@ LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
                                      CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                                      JumpConvergenceEvaluator * jumpCvgMgr,
                                      LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
-                                     LinearProjectionNetworkImpl * correctionMgr,
+                                     LinearProjectionNetwork * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
   network_(new LinearLocalNetwork(mapping, propMgr,

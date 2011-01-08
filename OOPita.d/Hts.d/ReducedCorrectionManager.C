@@ -4,11 +4,11 @@
 #include "../JumpProjection.h"
 #include "../UpdatedSeedAssemblerImpl.h"
 
-#include "LinearProjectionNetworkImpl.h"
+#include "LinearProjectionNetwork.h"
 
 namespace Pita { namespace Hts {
 
-ReducedCorrectionManager::ReducedCorrectionManager(LinearProjectionNetworkImpl * correctionMgr,
+ReducedCorrectionManager::ReducedCorrectionManager(LinearProjectionNetwork * correctionMgr,
                                                    CorrectionPropagator<DynamState>::Manager * fcpMgr) :
   jumpProjMgr_(JumpProjection::Manager::New(correctionMgr->projectionBasis())),
   rcpMgr_(ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver())),

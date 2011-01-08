@@ -1,4 +1,4 @@
-#include "LinearProjectionNetworkImpl.h"
+#include "LinearProjectionNetwork.h"
 
 #include "../DynamStateBasisWrapper.h"
 
@@ -11,11 +11,11 @@
 
 namespace Pita { namespace Hts {
 
-LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
-                                             Communicator * timeComm,
-                                             const SliceMapping * mapping,
-                                             const DynamOps * metric,
-                                             RankDeficientSolver * solver) :
+LinearProjectionNetwork::LinearProjectionNetwork(size_t vSize,
+                                                         Communicator * timeComm,
+                                                         const SliceMapping * mapping,
+                                                         const DynamOps * metric,
+                                                         RankDeficientSolver * solver) :
   vectorSize_(vSize),
   timeCommunicator_(timeComm),
   mapping_(mapping),
@@ -37,13 +37,13 @@ LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
 {}
 
 void
-LinearProjectionNetworkImpl::prepareProjection() {
+LinearProjectionNetwork::prepareProjection() {
   GlobalExchangeNumbering::Ptr numbering = new GlobalExchangeNumbering(mapping_.ptr());
   globalExchangeNumbering_.push_back(numbering);
 }
 
 void
-LinearProjectionNetworkImpl::buildProjection() {
+LinearProjectionNetwork::buildProjection() {
 #ifndef NDEBUG
   double tic = getTime(), toc;
 #endif /* NDEBUG*/
@@ -426,15 +426,15 @@ LinearProjectionNetworkImpl::buildProjection() {
   
 }
   
-// LinearProjectionNetworkImpl::GlobalExchangeNumbering
+// LinearProjectionNetwork::GlobalExchangeNumbering
 
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
+LinearProjectionNetwork::GlobalExchangeNumbering::GlobalExchangeNumbering(const SliceMapping * mapping)
 {
   this->initialize(mapping);
 }
 
 void
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
+LinearProjectionNetwork::GlobalExchangeNumbering::initialize(const SliceMapping * mapping) {
   // Count only full timeslices
   const int fullSliceCount = std::max(0, (mapping->activeSlices().value() - 1) / 2);
   const int numCpus = mapping->availableCpus().value();
@@ -513,12 +513,12 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::initialize(const SliceMapp
 }
 
 size_t
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount() const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateCount() const {
   return stateId_.size();
 }
 
 size_t
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(Direction d) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateCount(Direction d) const {
   switch (d) {
     case NO_DIRECTION:
       return 0;
@@ -527,11 +527,11 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(Direction d) co
     case BACKWARD:
       return initialStateId_.size();
   }
-  throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+  throw Fwk::InternalException("in LinearProjectionNetwork::GlobalExchangeNumbering::stateCount");
 }
 
 size_t
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateCount(CpuRank c) const {
   try {
     return stateCount_.at(c.value());
   } catch (std::out_of_range & e) {
@@ -541,7 +541,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c) cons
 }
 
 size_t
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, Direction d) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateCount(CpuRank c, Direction d) const {
   try {
     switch (d) {
       case NO_DIRECTION:
@@ -551,7 +551,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, Dire
       case BACKWARD:
         return initialStateCount_.at(c.value());
       default:
-        throw Fwk::InternalException("in LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount");
+        throw Fwk::InternalException("in LinearProjectionNetwork::GlobalExchangeNumbering::stateCount");
     }
   } catch (std::out_of_range & e) {
     // Do nothing
@@ -560,18 +560,18 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateCount(CpuRank c, Dire
 }
 
 int
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::globalIndex(const HalfSliceId & id) const {
   IndexMap::const_iterator it = globalIndex_.find(id);
   return (it != globalIndex_.end()) ? static_cast<int>(it->second) : -1; 
 }
 
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalIndex() const {
+LinearProjectionNetwork::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetwork::GlobalExchangeNumbering::globalIndex() const {
   return IteratorConst(this->globalIndex_.begin(), this->globalIndex_.end());
 }
 
 int
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::globalHalfIndex(const HalfSliceId & id) const {
   int result = -1;
   
   IndexMap::const_iterator it;
@@ -592,8 +592,8 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(const Half
   return result;
 }
 
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::IteratorConst
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(Direction d) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::IteratorConst
+LinearProjectionNetwork::GlobalExchangeNumbering::globalHalfIndex(Direction d) const {
   switch (d) {
     case NO_DIRECTION:
       break;
@@ -606,7 +606,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::globalHalfIndex(Direction 
 }
 
 HalfSliceId
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateId(int gfi) const {
   try {
     return stateId_.at(gfi);
   } catch (std::out_of_range & e) {
@@ -616,7 +616,7 @@ LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int gfi) const {
 }
 
 HalfSliceId
-LinearProjectionNetworkImpl::GlobalExchangeNumbering::stateId(int ghi, Direction d) const {
+LinearProjectionNetwork::GlobalExchangeNumbering::stateId(int ghi, Direction d) const {
   try {
     switch (d) {
       case NO_DIRECTION:

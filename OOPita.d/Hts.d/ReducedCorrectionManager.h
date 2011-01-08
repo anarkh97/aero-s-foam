@@ -11,7 +11,7 @@
 
 namespace Pita { namespace Hts {
 
-class LinearProjectionNetworkImpl;
+class LinearProjectionNetwork;
 
 class ReducedCorrectionManager : public Fwk::PtrInterface<ReducedCorrectionManager> {
 public:
@@ -22,7 +22,7 @@ public:
   CorrectionPropagator<DynamState>::Manager * fcpMgr() const { return fcpMgr_.ptr(); }
   UpdatedSeedAssembler::Manager * usaMgr() const { return usaMgr_.ptr(); }
   
-  ReducedCorrectionManager(LinearProjectionNetworkImpl * correctionMgr, CorrectionPropagator<DynamState>::Manager * fcpMgr);
+  ReducedCorrectionManager(LinearProjectionNetwork * correctionMgr, CorrectionPropagator<DynamState>::Manager * fcpMgr);
 
 private:
   JumpProjection::Manager::Ptr jumpProjMgr_;

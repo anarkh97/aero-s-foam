@@ -1,17 +1,18 @@
-#ifndef PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
-#define PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
+#ifndef PITA_HTS_LINEARPROJECTIONNETWORK_H
+#define PITA_HTS_LINEARPROJECTIONNETWORK_H
 
 #include "Fwk.h"
 #include "Types.h"
 
-#include "ProjectionNetwork.h"
+#include "../DynamStatePlainBasis.h"
+#include "../DynamOps.h"
+#include "../RankDeficientSolver.h"
 
 #include "SliceMapping.h"
-#include "../DynamOps.h"
 #include "AffineBasisCollector.h"
-#include "../DynamStatePlainBasis.h"
 
 #include "../SimpleBuffer.h"
+#include <Math.d/FullSquareMatrix.h>
 #include <list>
 #include <map>
 
@@ -19,18 +20,18 @@ class Communicator;
 
 namespace Pita { namespace Hts {
 
-class LinearProjectionNetworkImpl : public ProjectionNetwork {
+class LinearProjectionNetwork : public Fwk::PtrInterface<LinearProjectionNetwork> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(LinearProjectionNetworkImpl);
+  EXPORT_PTRINTERFACE_TYPES(LinearProjectionNetwork);
 
-  virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
+  size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
 
-  virtual AffineBasisCollector * collector() const { return collector_.ptr(); }
+  AffineBasisCollector * collector() const { return collector_.ptr(); }
   
-  virtual const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
-  virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
-  virtual const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
-  virtual const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
+  const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
+  const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
+  const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
+  const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
  
   const DynamOps * metric() const { return metric_.ptr(); }
 
@@ -38,7 +39,7 @@ public:
                  const SliceMapping * mapping,
                  const DynamOps * metric,
                  RankDeficientSolver * solver) {
-    return new LinearProjectionNetworkImpl(vSize, timeComm, mapping, metric, solver);
+    return new LinearProjectionNetwork(vSize, timeComm, mapping, metric, solver);
   }
 
 
@@ -115,11 +116,11 @@ public:
   void buildProjection();
 
 protected:
-  LinearProjectionNetworkImpl(size_t vSize,
-                              Communicator * timeComm,
-                              const SliceMapping * mapping,
-                              const DynamOps * metric,
-                              RankDeficientSolver * solver);
+  LinearProjectionNetwork(size_t vSize,
+                          Communicator * timeComm,
+                          const SliceMapping * mapping,
+                          const DynamOps * metric,
+                          RankDeficientSolver * solver);
 
 private:
   size_t vectorSize_;

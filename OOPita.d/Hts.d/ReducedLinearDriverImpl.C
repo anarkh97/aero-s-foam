@@ -23,7 +23,7 @@
 #include "../PivotedCholeskySolver.h"
 #include "../LeastSquareSolver.h"
 
-#include "LinearProjectionNetworkImpl.h"
+#include "LinearProjectionNetwork.h"
 
 #include "../Seed.h"
 
@@ -178,7 +178,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Correction */
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO Other solver implementations ?
   
-  LinearProjectionNetworkImpl::Ptr correctionMgr = LinearProjectionNetworkImpl::New(
+  LinearProjectionNetwork::Ptr correctionMgr = LinearProjectionNetwork::New(
       vectorSize_,
       timeComm,
       mapping_.ptr(),

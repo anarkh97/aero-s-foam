@@ -71,7 +71,7 @@ Hts.d/CorrectionReductor.C
 Hts.d/HomogeneousTaskManager.C
 Hts.d/JumpConvergenceEvaluator.C
 Hts.d/LinearTaskManager.C
-Hts.d/LinearProjectionNetworkImpl.C
+Hts.d/LinearProjectionNetwork.C
 Hts.d/LinearLocalNetwork.C
 Hts.d/NlBasisUpdate.C
 Hts.d/NlDriver.C

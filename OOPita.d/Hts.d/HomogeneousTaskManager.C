@@ -7,7 +7,7 @@ namespace Pita { namespace Hts {
 HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
                                                RemoteState::MpiManager * commMgr,
                                                AffinePropagatorManager * propMgr,
-                                               LinearProjectionNetworkImpl * correctionMgr,
+                                               LinearProjectionNetwork * correctionMgr,
                                                JumpConvergenceEvaluator * jumpCvgMgr,
                                                LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
                                                SeedInitializer * initializer) :

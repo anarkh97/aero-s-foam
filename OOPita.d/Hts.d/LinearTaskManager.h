@@ -6,7 +6,7 @@
 #include "LinearLocalNetwork.h"
 
 #include "JumpConvergenceEvaluator.h"
-#include "LinearProjectionNetworkImpl.h"
+#include "LinearProjectionNetwork.h"
 #include "../RemoteStateMpiImpl.h"
 
 #include <memory>
@@ -27,11 +27,11 @@ protected:
                     CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                     JumpConvergenceEvaluator * jumpCvgMgr,
                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
-                    LinearProjectionNetworkImpl * correctionMgr,
+                    LinearProjectionNetwork * correctionMgr,
                     RemoteState::MpiManager * commMgr);
 
   LinearLocalNetwork * network() { return network_.ptr(); }
-  LinearProjectionNetworkImpl * correctionMgr() { return correctionMgr_.ptr(); }
+  LinearProjectionNetwork * correctionMgr() { return correctionMgr_.ptr(); }
   RemoteState::MpiManager * commMgr() { return commMgr_.ptr(); }
   JumpConvergenceEvaluator * jumpCvgMgr() { return jumpCvgMgr_.ptr(); }
 
@@ -90,7 +90,7 @@ protected:
 private:
   LinearLocalNetwork::Ptr network_;
   JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
-  LinearProjectionNetworkImpl::Ptr correctionMgr_;
+  LinearProjectionNetwork::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 
   PhaseList phase_;

@@ -14,7 +14,6 @@ namespace Pita { namespace Hts {
 LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
                                              Communicator * timeComm,
                                              const SliceMapping * mapping,
-                                             BasisCollectorImpl * collector,
                                              const DynamOps * metric,
                                              RankDeficientSolver * solver) :
   vectorSize_(vSize),
@@ -33,7 +32,7 @@ LinearProjectionNetworkImpl::LinearProjectionNetworkImpl(size_t vSize,
   transmissionMatrix_(),
   reprojectionMatrix_(),
   solver_(solver),
-  collector_(collector),
+  collector_(AffineBasisCollector::New()),
   globalExchangeNumbering_()
 {}
 
@@ -66,7 +65,7 @@ LinearProjectionNetworkImpl::buildProjection() {
   
   // Collect data from time-slices
   // 1) Final states
-  BasisCollectorImpl::CollectedState cs = collector_->firstForwardFinalState();
+  AffineBasisCollector::CollectedState cs = collector_->firstForwardFinalState();
   while (cs.second.vectorSize() != 0) {
     const int inBufferRank = globalExchangeNumbering_.back()->globalIndex(HalfSliceId(cs.first, FORWARD));
     if (inBufferRank >= 0) {

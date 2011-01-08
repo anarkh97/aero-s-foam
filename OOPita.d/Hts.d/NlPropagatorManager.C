@@ -12,8 +12,7 @@ NlPropagatorManager::NlPropagatorManager(NlDynamTimeIntegrator * integrator,
   initialTime_(initialTime),
   postProcessingMgr_(NULL),
   concurrentBasisMgr_(NULL),
-  propagatedBasisMgr_(NULL),
-  collector_(NULL)
+  propagatedBasisMgr_(NULL)
 {}
 
 Fwk::Ptr<GenIntegratorPropagator<NlDynamTimeIntegrator> >
@@ -52,11 +51,6 @@ NlPropagatorManager::createNewInstance(const HalfSliceId & id) {
     if (concurrentBasisMgr_) {
       concurrentBasisMgr_->referencePropagatorIs(concurrentBasis.ptr(), result.ptr());
     }
-  }
-
-  // Attach collector
-  if (collector_) {
-    collector_->sourceIs(id, result.ptr());
   }
 
   return result;

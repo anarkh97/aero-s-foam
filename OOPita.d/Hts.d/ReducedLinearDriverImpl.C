@@ -23,8 +23,6 @@
 #include "../PivotedCholeskySolver.h"
 #include "../LeastSquareSolver.h"
 
-#include "BasisCollectorImpl.h"
-#include "NonHomogeneousBasisCollectorImpl.h"
 #include "LinearProjectionNetworkImpl.h"
 
 #include "../Seed.h"
@@ -177,9 +175,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Post processing */ 
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(myCpu);
 
-  /* Local Basis Collector */
-  BasisCollectorImpl::Ptr collector = buildBasisCollector(); 
-
   /* Correction */
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO Other solver implementations ?
   
@@ -187,7 +182,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       vectorSize_,
       timeComm,
       mapping_.ptr(),
-      collector.ptr(),
       dynamOps.ptr(),
       normalMatrixSolver.ptr());
 
@@ -195,11 +189,12 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
   AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
-      collector.ptr(),
+      correctionMgr->collector(),
       fineIntegratorMgr.ptr(), 
       postProcessingMgr.ptr(),
       halfSliceRatio_,
-      initialTime_);
+      initialTime_,
+      noForce_ ? AffineDynamPropagator::HOMOGENEOUS : AffineDynamPropagator::NONHOMOGENEOUS);
 
   /* Local communication */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
@@ -299,15 +294,6 @@ ReducedLinearDriverImpl::buildPostProcessor(CpuRank localCpu) const {
   IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource(), localFileId.size(), &localFileId[0], probDesc()->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   return PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
-}
-
-BasisCollectorImpl::Ptr
-ReducedLinearDriverImpl::buildBasisCollector() const {
-  if (noForce_) {
-    return BasisCollectorImpl::New();
-  }
-
-  return NonHomogeneousBasisCollectorImpl::New();
 }
 
 CorrectionPropagator<DynamState>::Manager::Ptr

@@ -57,17 +57,11 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(Direction directi
 template <typename GenAlphaIntegratorType>
 GenAlphaIntegratorType *
 LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(Direction direction) const {
-  switch (direction) {
-    case NO_DIRECTION:
-      return NULL;
-      break;
-    case FORWARD: // Fall through
-    case BACKWARD:
-      return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
-      break;
+  if (direction == NO_DIRECTION) {
+    return NULL;
   }
 
-  throw Fwk::InternalException("In LinearFineIntegratorManager::createFineIntegrator");
+  return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
 }
 
 

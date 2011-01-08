@@ -65,7 +65,7 @@ Std.d/ReducedLinearDriverImpl.C
 Std.d/RemoteCoarseCorrectionServer.C
 Std.d/RemoteSeedInitializerServer.C
 Std.d/SliceMapping.C
-Hts.d/BasisCollectorImpl.C
+Hts.d/AffineBasisCollector.C
 Hts.d/CorrectionReconstructor.C
 Hts.d/CorrectionReductor.C
 Hts.d/HomogeneousTaskManager.C
@@ -79,7 +79,6 @@ Hts.d/NlLocalNetwork.C
 Hts.d/NlProjectionNetwork.C
 Hts.d/NlPropagatorManager.C
 Hts.d/NlTaskManager.C
-Hts.d/NonHomogeneousBasisCollectorImpl.C
 Hts.d/NonHomogeneousTaskManager.C
 Hts.d/GlobalStateSharing.C
 Hts.d/AffinePropagatorManager.C

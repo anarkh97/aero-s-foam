@@ -10,7 +10,6 @@
 
 #include "../NlDynamTimeIntegrator.h"
 
-#include "BasisCollector.h"
 #include "../ConcurrentBasisManager.h"
 
 namespace Pita { namespace Hts {
@@ -43,7 +42,6 @@ public:
   void postProcessingManagerIs(PostProcessing::Manager * mgr) { postProcessingMgr_ = mgr; }
   void concurrentBasisManagerIs(ConcurrentBasis::Manager * mgr) { concurrentBasisMgr_ = mgr; }
   void propagatedBasisManagerIs(LocalBasisManager * mgr) { propagatedBasisMgr_ = mgr; }
-  void collectorIs(BasisCollector * collector) { collector_ = collector; }
 
 protected:
   NlPropagatorManager(NlDynamTimeIntegrator * integrator,
@@ -67,7 +65,6 @@ private:
   PostProcessing::Manager::Ptr postProcessingMgr_;
   ConcurrentBasis::Manager::Ptr concurrentBasisMgr_;
   LocalBasisManager::Ptr propagatedBasisMgr_;
-  BasisCollector::Ptr collector_;
 
   DISALLOW_COPY_AND_ASSIGN(NlPropagatorManager);
 };

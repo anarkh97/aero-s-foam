@@ -4,7 +4,7 @@
 #include "Fwk.h"
 #include "Types.h"
 
-#include "BasisCollector.h"
+#include "AffineBasisCollector.h"
 #include "../DynamStateBasis.h"
 #include "../RankDeficientSolver.h"
 #include <Math.d/FullSquareMatrix.h>
@@ -15,7 +15,7 @@ class ProjectionNetwork : public Fwk::PtrInterface<ProjectionNetwork> {
 public:
   virtual size_t reducedBasisSize() const = 0;
 
-  virtual BasisCollector * collector() const = 0;
+  virtual AffineBasisCollector * collector() const = 0;
 
   virtual const DynamStateBasis * projectionBasis() const = 0;
   virtual const DynamStateBasis * propagatedBasis() const = 0;

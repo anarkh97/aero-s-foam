@@ -6,29 +6,24 @@
 
 namespace Pita { namespace Hts {
 
-AffinePropagatorManager::AffinePropagatorManager(BasisCollector * collector,
+AffinePropagatorManager::AffinePropagatorManager(AffineBasisCollector * collector,
                                                  GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
                                                  PostProcessing::Manager * postProcessingMgr,
                                                  TimeStepCount halfSliceRatio,
-                                                 Seconds initialTime) :
+                                                 Seconds initialTime,
+                                                 AffineDynamPropagator::ConstantTerm defaultMode) :
   collector_(collector),
   integratorMgr_(integratorMgr),
   postProcessingMgr_(postProcessingMgr),
   fineTimeStep_(integratorMgr->fineTimeStepSize()),
   halfSliceRatio_(halfSliceRatio),
-  initialTime_(initialTime)
+  initialTime_(initialTime),
+  defaultMode_(defaultMode)
 {}
 
 AffineDynamPropagator *
 AffinePropagatorManager::instance(const HalfSliceId & id) const {
-  DynamPropagator * original = const_cast<DynamPropagator *>(collector_->source(id));
-  if (original) {
-    AffineDynamPropagator * downcasted = dynamic_cast<AffineDynamPropagator *>(original);
-    assert(downcasted);
-    return downcasted;
-  }
-
-  return NULL;
+  return const_cast<AffineDynamPropagator *>(collector_->source(id));
 }
 
 size_t
@@ -49,8 +44,9 @@ AffinePropagatorManager::instanceNew(const HalfSliceId & id) {
 
   newPropagator->initialTimeIs(sliceInitialTime);
   newPropagator->timeStepCountIs(halfSliceRatio_);
+  newPropagator->constantTermIs(defaultMode_);
   
-  // Attach BasisCollector Reactor 
+  // Attach AffineBasisCollector Reactor 
   collector_->sourceIs(id, newPropagator.ptr());
  
   // Attach PostProcessing Reactor

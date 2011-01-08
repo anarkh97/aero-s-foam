@@ -8,7 +8,7 @@
 
 #include "SliceMapping.h"
 #include "../DynamOps.h"
-#include "BasisCollectorImpl.h"
+#include "AffineBasisCollector.h"
 #include "../DynamStatePlainBasis.h"
 
 #include "../SimpleBuffer.h"
@@ -25,7 +25,7 @@ public:
 
   virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
 
-  virtual BasisCollector * collector() const { return collector_.ptr(); }
+  virtual AffineBasisCollector * collector() const { return collector_.ptr(); }
   
   virtual const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
   virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
@@ -36,10 +36,9 @@ public:
 
   static Ptr New(size_t vSize, Communicator * timeComm,
                  const SliceMapping * mapping,
-                 BasisCollectorImpl * collector,
                  const DynamOps * metric,
                  RankDeficientSolver * solver) {
-    return new LinearProjectionNetworkImpl(vSize, timeComm, mapping, collector, metric, solver);
+    return new LinearProjectionNetworkImpl(vSize, timeComm, mapping, metric, solver);
   }
 
 
@@ -119,7 +118,6 @@ protected:
   LinearProjectionNetworkImpl(size_t vSize,
                               Communicator * timeComm,
                               const SliceMapping * mapping,
-                              BasisCollectorImpl * collector,
                               const DynamOps * metric,
                               RankDeficientSolver * solver);
 
@@ -151,7 +149,7 @@ private:
   FullSquareMatrix reprojectionMatrix_;
   RankDeficientSolver::Ptr solver_;
   
-  BasisCollectorImpl::Ptr collector_;
+  AffineBasisCollector::Ptr collector_;
   
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;

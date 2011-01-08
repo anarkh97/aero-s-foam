@@ -12,7 +12,6 @@
 
 #include "../LinearGenAlphaIntegrator.h"
 #include "../PostProcessingManager.h"
-#include "BasisCollectorImpl.h"
 #include "../CorrectionPropagator.h"
 #include "../SeedInitializer.h"
 
@@ -47,7 +46,6 @@ protected:
   void solveCoarse(Communicator * timeComm);
  
   PostProcessing::Manager::Ptr buildPostProcessor(CpuRank localCpu) const;
-  BasisCollectorImpl::Ptr buildBasisCollector() const;
   CorrectionPropagator<DynamState>::Manager::Ptr buildCoarseCorrection(Communicator * coarseComm) const;
   LinearGenAlphaIntegrator::Ptr buildCoarseIntegrator() const; 
   DynamPropagator::Ptr buildCoarsePropagator(Communicator * coarseComm = NULL) const;

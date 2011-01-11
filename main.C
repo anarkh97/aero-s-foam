@@ -43,6 +43,7 @@ using namespace std;
 #include <Dec.d/dec.h>
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
+#include <Rom.d/SnapshotNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
@@ -1142,9 +1143,16 @@ int main(int argc, char** argv)
              dynaSolver.solve();
            }
            else { // implicit
-             NonLinDynamic nldynamic(domain);
-             NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
-             nldynamicSolver.solve();
+             if (!domain->solInfo().activatePodRom) {
+               NonLinDynamic nldynamic(domain);
+               NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             } else { // POD ROM
+               SnapshotNonLinDynamic nldynamic(domain);
+               NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
+                             GeomState, SnapshotIncrUpdater<SnapshotNonLinDynamic, Vector, GeomState> > nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             }
            }
          }
        }

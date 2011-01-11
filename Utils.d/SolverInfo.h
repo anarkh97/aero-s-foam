@@ -233,6 +233,8 @@ struct SolverInfo {
    bool lagrangeMult;
    double penalty;
 
+   bool activatePodRom;
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   NLInfo = 0; 
@@ -405,6 +407,8 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+
+                  activatePodRom = false;
                  }
 
    // Set RbmFilter level

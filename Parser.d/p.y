@@ -99,6 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
+%token PODROM
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -307,6 +308,7 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
+  | PodRom
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -3234,6 +3236,10 @@ Renumbering:
           domain->solInfo().setSparseRenum($5); 
           domain->solInfo().setSpoolesRenum($7); }
 	;
+PodRom:
+  PODROM NewLine
+  { domain->solInfo().activatePodRom = true; }
+  ;
 Integer:
 	IntConstant
 	{ $$ = $1; }

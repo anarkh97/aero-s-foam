@@ -1150,7 +1150,7 @@ int main(int argc, char** argv)
              } else { // POD ROM
                SnapshotNonLinDynamic nldynamic(domain);
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
-                             GeomState, SnapshotIncrUpdater<SnapshotNonLinDynamic, Vector, GeomState> > nldynamicSolver(&nldynamic);
+                             GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              }
            }

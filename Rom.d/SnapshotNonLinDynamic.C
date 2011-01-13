@@ -4,8 +4,6 @@
 
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
-#include <Corotational.d/GeomState.h>
-#include <Math.d/Vector.h>
 
 #include <cstddef>
 #include <algorithm>

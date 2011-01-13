@@ -13,6 +13,10 @@ public:
 
   int stateCount() const { return stateCount_; }
 
+  enum StateCountStatus { UP_TO_DATE, OUTDATED };
+  StateCountStatus stateCountStatus() const;
+  void updateStateCountStatus();
+
   void stateAdd(const double(*data)[6]);
 
 private:
@@ -21,12 +25,24 @@ private:
   const int width_;
   const int precision_;
 
-  FILE *stream_;
   int stateCount_;
+  
+  FILE *stream_;
+
+  static const int STATE_COUNT_LENGTH;
+  int stateCountOnFile_;
+  void writeStateCount();
+  void rewindAndWriteStateCount(); 
 
   // Disallow copy & assignment
   BasisOutputFile(const BasisOutputFile&);
   BasisOutputFile& operator=(const BasisOutputFile&);
 };
+
+inline
+BasisOutputFile::StateCountStatus
+BasisOutputFile::stateCountStatus() const {
+  return (stateCount_ == stateCountOnFile_) ? UP_TO_DATE : OUTDATED;
+}
 
 #endif /* ROM_BASISOUTPUTFILE_H */

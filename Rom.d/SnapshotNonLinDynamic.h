@@ -26,6 +26,7 @@ public:
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
 
+protected:
   // Interface to implementation
   class Impl {
   public:

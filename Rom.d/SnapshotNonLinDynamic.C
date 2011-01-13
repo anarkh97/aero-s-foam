@@ -13,41 +13,71 @@
 #include <cstddef>
 #include <algorithm>
 
-namespace {
+// Dummy class holding the implementation of SnapshotNonLinDynamic
+struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
+  class RawImpl : public Impl {
+  public:
+    virtual void stateSnapshotAdd(const GeomState &);
+    virtual void residualSnapshotAdd(const GenVector<double> &);
+    virtual void postProcess();
 
-class RawImpl : public SnapshotNonLinDynamic::Impl {
-public:
-  virtual void stateSnapshotAdd(const GeomState &);
-  virtual void residualSnapshotAdd(const GenVector<double> &);
-  virtual void postProcess();
+    int nodeCount() const { return domain_->numGlobalNodes(); }
+    int vectorSize() const { return domain_->numUncon(); }
 
-  virtual ~RawImpl();
+    virtual ~RawImpl();
 
-  explicit RawImpl(Domain *);
+    explicit RawImpl(Domain *);
 
-protected:
-  void fillSnapBuffer(const double *origin);
+  protected:
+    void fillSnapBuffer(const double *origin);
+  
+    typedef double (*NodeBuffer)[6];
+    const NodeBuffer snapBuffer() const { return snapBuffer_; }
 
-  Domain * domain_;
+  private:
+    Domain * domain_;
+    
+    NodeBuffer snapBuffer_;
+    int (*dofLocation_)[6];
 
-  double (*snapBuffer_)[6];
-  int (*dofLocation_)[6];
+  protected:
+    BasisOutputFile stateSnapFile_;
+    BasisOutputFile residualSnapFile_;
+  };
 
-  BasisOutputFile stateSnapFile_;
-  BasisOutputFile residualSnapFile_;
+  class SvdImpl : public RawImpl {
+  public:
+    virtual void stateSnapshotAdd(const GeomState &);
+    virtual void residualSnapshotAdd(const GenVector<double> &);
+    virtual void postProcess();
+
+    explicit SvdImpl(Domain *);
+
+    virtual ~SvdImpl();
+
+  private:
+    void orthoAndSave(const std::list<Vector> &, BasisOutputFile &);
+
+    std::list<Vector> stateSnapshot_;
+    std::list<Vector> residualSnapshot_;
+
+    const GeomState * refGeomState_;
+    Vector increment_;
+
+    SvdOrthogonalization svdSolver_;
+  };
 };
 
-RawImpl::RawImpl(Domain * domain) :
+SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain) :
   domain_(domain),
-  snapBuffer_(new double[domain->numGlobalNodes()][6]),
-  dofLocation_(new int[domain->numGlobalNodes()][6]),
-  stateSnapFile_("StateSnap", domain->numGlobalNodes()),      // TODO name
-  residualSnapFile_("ResidualSnap", domain->numGlobalNodes()) // TODO name
+  snapBuffer_(new double[nodeCount()][6]),
+  dofLocation_(new int[nodeCount()][6]),
+  stateSnapFile_("StateSnap", nodeCount()),      // TODO name
+  residualSnapFile_("ResidualSnap", nodeCount()) // TODO name
 {
   // Store location of each degree of freedom
-  const int nodeCount = domain_->numGlobalNodes();
   DofSetArray &cdsa = *(domain_->getCDSA());
-  for (int iNode = 0; iNode < nodeCount; ++iNode) {
+  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
     dofLocation_[iNode][0] = cdsa.locate(iNode, DofSet::Xdisp);
     dofLocation_[iNode][1] = cdsa.locate(iNode, DofSet::Ydisp);
     dofLocation_[iNode][2] = cdsa.locate(iNode, DofSet::Zdisp);
@@ -57,23 +87,22 @@ RawImpl::RawImpl(Domain * domain) :
   }
 }
 
-RawImpl::~RawImpl() {
+SnapshotNonLinDynamicDetail::RawImpl::~RawImpl() {
   delete[] dofLocation_;
   delete[] snapBuffer_;
 }
 
 void
-RawImpl::postProcess() {
+SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
   stateSnapFile_.updateStateCountStatus();
   residualSnapFile_.updateStateCountStatus();
 }
 
 void
-RawImpl::stateSnapshotAdd(const GeomState &snap) {
+SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   const CoordSet &refCoords = domain_->getNodes();
-  const int nodeCount = domain_->numGlobalNodes();
 
-  for (int iNode = 0; iNode < nodeCount; ++iNode) {
+  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
     // Translational dofs
     snapBuffer_[iNode][0] = snap[iNode].x - refCoords[iNode]->x;
     snapBuffer_[iNode][1] = snap[iNode].y - refCoords[iNode]->y;
@@ -89,16 +118,14 @@ RawImpl::stateSnapshotAdd(const GeomState &snap) {
 }
 
 void
-RawImpl::residualSnapshotAdd(const Vector &snap) {
+SnapshotNonLinDynamicDetail::RawImpl::residualSnapshotAdd(const Vector &snap) {
   fillSnapBuffer(snap.data());
   residualSnapFile_.stateAdd(snapBuffer_);
 }
 
 void
-RawImpl::fillSnapBuffer(const double *snap) {
-  const int nodeCount = domain_->numGlobalNodes();
-  
-  for (int iNode = 0; iNode < nodeCount; ++iNode) {
+SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const double *snap) {
+  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
     for (int iDof = 0; iDof < 6; ++iDof) {
       const int loc = dofLocation_[iNode][iDof];
       snapBuffer_[iNode][iDof] = (loc >= 0) ? snap[loc] : 0.0;
@@ -106,60 +133,38 @@ RawImpl::fillSnapBuffer(const double *snap) {
   }
 }
 
-class SvdImpl : public RawImpl {
-public:
-  virtual void stateSnapshotAdd(const GeomState &);
-  virtual void residualSnapshotAdd(const GenVector<double> &);
-  virtual void postProcess();
-
-  explicit SvdImpl(Domain *);
-
-  virtual ~SvdImpl();
-
-private:
-  void orthoAndSave(const std::list<Vector> &, BasisOutputFile &);
-
-  std::list<Vector> stateSnapshot_;
-  std::list<Vector> residualSnapshot_;
-
-  const GeomState * refGeomState_;
-  Vector increment_;
-
-  SvdOrthogonalization svdSolver_;
-};
-
-SvdImpl::SvdImpl(Domain * domain) :
+SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
   RawImpl(domain),
   refGeomState_(new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes())),
-  increment_(domain->numUncon())
+  increment_(vectorSize())
 {}
 
-SvdImpl::~SvdImpl() {
+SnapshotNonLinDynamicDetail::SvdImpl::~SvdImpl() {
   delete refGeomState_;
 }
 
 void
-SvdImpl::stateSnapshotAdd(const GeomState &snap) {
+SnapshotNonLinDynamicDetail::SvdImpl::stateSnapshotAdd(const GeomState &snap) {
   const_cast<GeomState &>(snap).diff(*refGeomState_, increment_);
   stateSnapshot_.push_back(increment_);
 }
 
 void
-SvdImpl::residualSnapshotAdd(const GenVector<double> &snap) {
+SnapshotNonLinDynamicDetail::SvdImpl::residualSnapshotAdd(const GenVector<double> &snap) {
   residualSnapshot_.push_back(snap);
 }
 
 void
-SvdImpl::postProcess() {
-  orthoAndSave(stateSnapshot_, stateSnapFile_);
-  orthoAndSave(residualSnapshot_, residualSnapFile_);
+SnapshotNonLinDynamicDetail::SvdImpl::postProcess() {
+  orthoAndSave(stateSnapshot_, this->stateSnapFile_);
+  orthoAndSave(residualSnapshot_, this->residualSnapFile_);
 
   RawImpl::postProcess();
 }
 
 void
-SvdImpl::orthoAndSave(const std::list<Vector> & snapshots, BasisOutputFile & out) {
-  svdSolver_.matrixSizeIs(domain->numUncon(), snapshots.size());
+SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::list<Vector> & snapshots, BasisOutputFile & out) {
+  svdSolver_.matrixSizeIs(vectorSize(), snapshots.size());
   
   int col = 0;
   for (std::list<Vector>::const_iterator it = snapshots.begin();
@@ -172,15 +177,11 @@ SvdImpl::orthoAndSave(const std::list<Vector> & snapshots, BasisOutputFile & out
   svdSolver_.solve();
   
   const int stateCount = svdSolver_.singularValueCount();
-  const int nodeCount = domain_->numGlobalNodes();
- 
   for (int iState = 0; iState < stateCount; ++iState) {
     fillSnapBuffer(svdSolver_.matrixCol(iState));
-    out.stateAdd(snapBuffer_, svdSolver_.singularValue(iState));
+    out.stateAdd(snapBuffer(), svdSolver_.singularValue(iState));
   }
 }
-
-} // end anonymous namespace
 
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
@@ -194,10 +195,10 @@ SnapshotNonLinDynamic::preProcess() {
 
   switch (outputBasisType_) {
   case RAW:
-    impl_.reset(new RawImpl(this->domain));
+    impl_.reset(new SnapshotNonLinDynamicDetail::RawImpl(this->domain));
     break;
   case ORTHOGONAL:
-    impl_.reset(new SvdImpl(this->domain));
+    impl_.reset(new SnapshotNonLinDynamicDetail::SvdImpl(this->domain));
     break;
   }
 }

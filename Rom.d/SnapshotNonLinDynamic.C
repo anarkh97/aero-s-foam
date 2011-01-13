@@ -1,4 +1,7 @@
-#include <Rom.d/SnapshotNonLinDynamic.h>
+#include "SnapshotNonLinDynamic.h"
+
+#include "SvdOrthogonalization.h"
+#include "BasisOutputFile.h"
 
 #include <Driver.d/Domain.h>
 
@@ -8,28 +11,38 @@
 #include <cstddef>
 #include <algorithm>
 
-SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
-  NonLinDynamic(domain),
-  snapBuffer_(NULL),
-  dofLocation_(NULL)
-{}
+namespace {
 
-SnapshotNonLinDynamic::~SnapshotNonLinDynamic() {
-  delete[] dofLocation_;
-  delete[] snapBuffer_;
-}
+class RawImpl : public SnapshotNonLinDynamic::Impl {
+public:
+  virtual void stateSnapshotAdd(const GeomState &);
+  virtual void residualSnapshotAdd(const GenVector<double> &);
+  virtual void postProcess();
 
-void
-SnapshotNonLinDynamic::preProcess() {
-  NonLinDynamic::preProcess();
- 
-  const int nodeCount = this->domain->numGlobalNodes();
+  virtual ~RawImpl();
 
-  snapBuffer_  = new double[nodeCount][6];
-  dofLocation_ = new int[nodeCount][6];
+  explicit RawImpl(Domain *);
 
+private:
+  Domain * domain_;
+
+  double (*snapBuffer_)[6];
+  int (*dofLocation_)[6];
+
+  BasisOutputFile stateSnapFile_;
+  BasisOutputFile residualSnapFile_;
+};
+
+RawImpl::RawImpl(Domain * domain) :
+  domain_(domain),
+  snapBuffer_(new double[domain->numGlobalNodes()][6]),
+  dofLocation_(new int[domain->numGlobalNodes()][6]),
+  stateSnapFile_("StateSnap", domain->numGlobalNodes()),      // TODO name
+  residualSnapFile_("ResidualSnap", domain->numGlobalNodes()) // TODO name
+{
   // Store location of each degree of freedom
-  DofSetArray &cdsa = *(this->domain->getCDSA());
+  const int nodeCount = domain_->numGlobalNodes();
+  DofSetArray &cdsa = *(domain_->getCDSA());
   for (int iNode = 0; iNode < nodeCount; ++iNode) {
     dofLocation_[iNode][0] = cdsa.locate(iNode, DofSet::Xdisp);
     dofLocation_[iNode][1] = cdsa.locate(iNode, DofSet::Ydisp);
@@ -38,15 +51,23 @@ SnapshotNonLinDynamic::preProcess() {
     dofLocation_[iNode][4] = cdsa.locate(iNode, DofSet::Yrot);
     dofLocation_[iNode][5] = cdsa.locate(iNode, DofSet::Zrot);
   }
+}
 
-  snapFile_[STATE_SNAP].reset(new BasisOutputFile("StateSnap", nodeCount)); // TODO name
-  snapFile_[RESIDUAL_SNAP].reset(new BasisOutputFile("ResidualSnap", nodeCount)); // TODO name
+RawImpl::~RawImpl() {
+  delete[] dofLocation_;
+  delete[] snapBuffer_;
 }
 
 void
-SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &snap) {
-  const CoordSet &refCoords = this->domain->getNodes();
-  const int nodeCount = this->domain->numGlobalNodes();
+RawImpl::postProcess() {
+  stateSnapFile_.updateStateCountStatus();
+  residualSnapFile_.updateStateCountStatus();
+}
+
+void
+RawImpl::stateSnapshotAdd(const GeomState &snap) {
+  const CoordSet &refCoords = domain_->getNodes();
+  const int nodeCount = domain_->numGlobalNodes();
 
   for (int iNode = 0; iNode < nodeCount; ++iNode) {
     // Translational dofs
@@ -60,12 +81,12 @@ SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &snap) {
     std::copy(rot, rot + 3, snapBuffer_[iNode] + 3);
   }
  
-  snapFile_[STATE_SNAP]->stateAdd(snapBuffer_);
+  stateSnapFile_.stateAdd(snapBuffer_);
 }
 
 void
-SnapshotNonLinDynamic::saveResidualSnapshot(const Vector &snap) {
-  const int nodeCount = this->domain->numGlobalNodes();
+RawImpl::residualSnapshotAdd(const Vector &snap) {
+  const int nodeCount = domain_->numGlobalNodes();
   
   for (int iNode = 0; iNode < nodeCount; ++iNode) {
     for (int iDof = 0; iDof < 6; ++iDof) {
@@ -74,5 +95,22 @@ SnapshotNonLinDynamic::saveResidualSnapshot(const Vector &snap) {
     }
   }
 
-  snapFile_[RESIDUAL_SNAP]->stateAdd(snapBuffer_); 
+  residualSnapFile_.stateAdd(snapBuffer_);
 }
+
+} // end anonymous namespace
+
+SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain, BasisType outputBasisType) :
+  NonLinDynamic(domain),
+  outputBasisType_(outputBasisType),
+  impl_(NULL)
+{}
+
+void
+SnapshotNonLinDynamic::preProcess() {
+  NonLinDynamic::preProcess();
+
+  // TODO: add case outputBasisType_ == ORTHOGONAL
+  impl_.reset(new RawImpl(this->domain));
+}
+

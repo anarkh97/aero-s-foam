@@ -1152,6 +1152,7 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
                              GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
+               nldynamic.postProcess();
              }
            }
          }

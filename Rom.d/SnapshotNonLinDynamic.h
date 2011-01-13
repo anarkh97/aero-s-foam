@@ -7,31 +7,50 @@ class Domain;
 #include <Corotational.d/GeomState.h>
 #include <Math.d/Vector.h>
 
-#include "BasisOutputFile.h"
-
 #include <memory>
 
 // Specialization of the non-linear dynamics problem enabling the collection the snapshots
 class SnapshotNonLinDynamic : public NonLinDynamic {
 public:
-  explicit SnapshotNonLinDynamic(Domain *);
-  virtual ~SnapshotNonLinDynamic();
+  enum BasisType { RAW, ORTHOGONAL };
 
+  explicit SnapshotNonLinDynamic(Domain * d, BasisType outputBasisType = RAW);
+
+  // Problem configuration 
+  BasisType outputBasisType() const { return outputBasisType_; }
+
+  // Required additional pre- and post-processing
   virtual void preProcess();
-
+  void postProcess() { impl_->postProcess(); }
+  
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
 
+  // Interface to implementation
+  class Impl {
+  public:
+    virtual void stateSnapshotAdd(const GeomState &) = 0;
+    virtual void residualSnapshotAdd(const GenVector<double> &) = 0;
+    virtual void postProcess() = 0;
+    
+    virtual ~Impl() {}
+
+  protected:
+    Impl() {}
+
+  private:
+    // Disallow copy and assigment
+    Impl(const Impl &);
+    Impl &operator=(const Impl &);
+  };
+
 private:
   // Snapshot collection 
-  void saveStateSnapshot(const GeomState &);
-  void saveResidualSnapshot(const GenVector<double> &);
-  
-  enum SnapshotType { STATE_SNAP = 0, RESIDUAL_SNAP = 1 };
-
-  std::auto_ptr<BasisOutputFile> snapFile_[2];
-  double (*snapBuffer_)[6];
-  int (*dofLocation_)[6];
+  void saveStateSnapshot(const GeomState & state) { impl_->stateSnapshotAdd(state); }
+  void saveResidualSnapshot(const GenVector<double> & residual) { impl_->residualSnapshotAdd(residual); }
+ 
+  BasisType outputBasisType_;
+  std::auto_ptr<Impl> impl_; 
 
   friend class Updater;
 };

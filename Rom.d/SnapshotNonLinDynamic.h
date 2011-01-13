@@ -14,7 +14,7 @@ class SnapshotNonLinDynamic : public NonLinDynamic {
 public:
   enum BasisType { RAW, ORTHOGONAL };
 
-  explicit SnapshotNonLinDynamic(Domain * d, BasisType outputBasisType = RAW);
+  explicit SnapshotNonLinDynamic(Domain * d);
 
   // Problem configuration 
   BasisType outputBasisType() const { return outputBasisType_; }

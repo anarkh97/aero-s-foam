@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM
+%token PODROM SVD
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3239,6 +3239,8 @@ Renumbering:
 PodRom:
   PODROM NewLine
   { domain->solInfo().activatePodRom = true; }
+  | PODROM NewLine SVD NewLine
+  { domain->solInfo().activatePodRom = true; domain->solInfo().svdPodRom = true; }
   ;
 Integer:
 	IntConstant

@@ -18,6 +18,7 @@ public:
   void updateStateCountStatus();
 
   void stateAdd(const double(*data)[6]);
+  void stateAdd(const double(*data)[6], double headValue);
 
 private:
   const std::string fileName_;

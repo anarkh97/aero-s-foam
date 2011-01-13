@@ -1176,6 +1176,8 @@ TRAIL [a-zA-Z]*
 
 "PODROM"|"PodRom"|"podrom" { return PODROM; }
 
+"SVD"|"Svd"|"svd"          { return SVD; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

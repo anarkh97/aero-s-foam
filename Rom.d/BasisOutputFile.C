@@ -43,10 +43,15 @@ BasisOutputFile::~BasisOutputFile() {
 
 void
 BasisOutputFile::stateAdd(const double(*data)[6]) {
+  stateAdd(data, static_cast<double>(stateCount_ + 1));
+}
+
+void
+BasisOutputFile::stateAdd(const double(*data)[6], double headValue) {
   const int w = width_;
   const int p = precision_;
 
-  std::fprintf(stream_, "  % *.*E\n", w, p, static_cast<double>(stateCount_ + 1));
+  std::fprintf(stream_, "  % *.*E\n", w, p, headValue);
   
   for (int iNode = 0; iNode < nodeCount_; iNode++)  {
     std::fprintf(stream_, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",

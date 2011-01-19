@@ -46,6 +46,7 @@ using namespace std;
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/GaussNewtonNonLinDynamic.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/BasisOrthoDriver.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
@@ -987,25 +988,32 @@ int main(int argc, char** argv)
      }
      case SolverInfo::Static:
        {
-         if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
-         if(domain->isComplex()) {
-           if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
-           SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
-             statProb(domain);
-           StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
-                        SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
-                        SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
-             statSolver(&statProb);
-           statSolver.solve();
-         }
-         else {
-           if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
-           SingleDomainStatic<double, Vector, Solver> statProb(domain);
-           StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
-	     	        SingleDomainPostProcessor<double, Vector, Solver>,
-		        SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
-             statSolver(&statProb);
-           statSolver.solve();
+         if (domain->solInfo().svdPodRom) { // POD ROM 
+           // Stand-alone SVD orthogonalization
+           filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+           BasisOrthoDriver svdortho(domain);
+           svdortho.solve(); 
+         } else {
+           if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
+           if(domain->isComplex()) {
+             if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
+             SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
+               statProb(domain);
+             StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
+                          SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
+                          SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
+               statSolver(&statProb);
+             statSolver.solve();
+           }
+           else {
+             if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
+             SingleDomainStatic<double, Vector, Solver> statProb(domain);
+             StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
+                  SingleDomainPostProcessor<double, Vector, Solver>,
+              SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
+               statSolver(&statProb);
+             statSolver.solve();
+           }
          }
        }
        break;
@@ -1151,12 +1159,14 @@ int main(int argc, char** argv)
                nldynamicSolver.solve();
              } else { // POD ROM
                if (!domain->solInfo().gaussNewtonPodRom) {
+                 filePrint(stderr, " ... POD: Snapshot collection       ...\n");
                  SnapshotNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
                                 GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                  nldynamic.postProcess();
                } else {
+                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  GaussNewtonNonLinDynamic nldynamic(domain);
                  NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
                                 GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);

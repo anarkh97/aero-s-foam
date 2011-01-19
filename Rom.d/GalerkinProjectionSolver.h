@@ -8,6 +8,8 @@
 
 #include <Math.d/FullSquareMatrix.h>
 
+#include "BasisOps.h"
+
 #include <memory>
 #include <cstddef>
 
@@ -136,20 +138,10 @@ template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
   assert(neqs() == rhs.size()); // TODO: Exception
-  
-  assert(basisSize() == reducedMatrix_.dim());
-  assert(basisSize() == reducedRhs_.size());
-  
-  for (int i = 0; i < basisSize(); ++i) {
-    reducedRhs_[i] = (*projectionBasis_)[i] * rhs;
-  }
 
+  reduce(*projectionBasis_, rhs, reducedRhs_); 
   solveReducedRhs();
-
-  rhs.zero();
-  for (int i = 0; i < basisSize(); ++i) {
-    rhs.linAdd(reducedRhs_[i], (*projectionBasis_)[i]);
-  }
+  expand(*projectionBasis_, reducedRhs_, rhs);
 }
 
 typedef GenGalerkinProjectionSolver<double> GalerkinProjectionSolver;

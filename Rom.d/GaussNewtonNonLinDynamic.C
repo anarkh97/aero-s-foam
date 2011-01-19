@@ -2,6 +2,8 @@
 
 #include "BasisInputFile.h"
 
+#include "BasisOps.h"
+
 #include <Driver.d/Domain.h>
 
 #include <stdexcept>
@@ -71,14 +73,8 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
 
 void
 GaussNewtonNonLinDynamic::computeAndSaveJacobianSnapshot() {
-  const GalerkinProjectionSolver *solver = getSolver();
-
-  Vector jacobianSnap(solVecInfo(), 0.0);
-  const int iEnd = solver->basisSize();
-  for (int i = 0; i < iEnd; ++i) {
-    jacobianSnap.linAdd(solver->lastReducedSolution()[i], solver->lastReducedMatrixAction()[i]);
-  }
-
+  Vector jacobianSnap(solVecInfo());
+  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), jacobianSnap);
   saveJacobianSnapshot(jacobianSnap);
 }
 

@@ -1,4 +1,5 @@
 ADD_LIBRARY( Rom
+  BasisInputFile.C
   BasisOutputFile.C
   GalerkinProjectionSolver.C
   GaussNewtonNonLinDynamic.C

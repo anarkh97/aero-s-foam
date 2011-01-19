@@ -14,7 +14,7 @@ class SnapshotNonLinDynamic : public NonLinDynamic {
 public:
   enum BasisType { RAW, ORTHOGONAL };
 
-  explicit SnapshotNonLinDynamic(Domain * d);
+  explicit SnapshotNonLinDynamic(Domain *);
 
   // Problem configuration 
   BasisType outputBasisType() const { return outputBasisType_; }
@@ -47,8 +47,8 @@ protected:
 
 private:
   // Snapshot collection 
-  void saveStateSnapshot(const GeomState & state) { impl_->stateSnapshotAdd(state); }
-  void saveResidualSnapshot(const GenVector<double> & residual) { impl_->residualSnapshotAdd(residual); }
+  void saveStateSnapshot(const GeomState &state) { impl_->stateSnapshotAdd(state); }
+  void saveResidualSnapshot(const GenVector<double> &residual) { impl_->residualSnapshotAdd(residual); }
  
   BasisType outputBasisType_;
   std::auto_ptr<Impl> impl_; 

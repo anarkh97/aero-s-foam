@@ -1,8 +1,12 @@
 #include "GaussNewtonNonLinDynamic.h"
 
+#include "BasisInputFile.h"
+
 #include <Driver.d/Domain.h>
 
 #include <stdexcept>
+
+#include <cstdio>
 
 GaussNewtonNonLinDynamic::GaussNewtonNonLinDynamic(Domain *d) :
   NonLinDynamic(d)
@@ -16,20 +20,34 @@ GaussNewtonNonLinDynamic::preProcess() {
     throw std::runtime_error("Solver must be a GalerkinProjectionSolver");
   }
 
-  // Testing hack
-  projectionBasis_.reset(new GenVectorSet<double>(solVecInfo(), solVecInfo(), 0.0));
-  for (int i = 0; i < solVecInfo(); ++i) {
-    (*projectionBasis_)[i][i] = 1.0;
-  }
-
-  getSolver()->projectionBasisIs(*projectionBasis_);
-  getSolver()->factor(); // Delayed factorization
-
+  // Input/output state conversion
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
   snapBuffer_.sizeIs(vecNodeDof6Conversion_->nodeCount());
 
-  residualSnapFile_.reset(new BasisOutputFile("RomResidualSnap", vecNodeDof6Conversion_->nodeCount())); //TODO name
-  jacobianSnapFile_.reset(new BasisOutputFile("RomJacobianSnap", vecNodeDof6Conversion_->nodeCount())); //TODO name
+  // Load projection basis
+  BasisInputFile projectionBasisInput("GaussNewtonBasis"); //TODO: file name
+  std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.stateCount());
+
+  projectionBasis_.reset(new GenVectorSet<double>(projectionBasisInput.stateCount(), solVecInfo()));
+  for (int i = 0; i < projectionBasis_->numVec(); ++i) {
+    assert(i == projectionBasisInput.currentStateIndex());
+    assert(snapBuffer_.size() == projectionBasisInput.nodeCount());
+    
+    projectionBasisInput.currentStateBuffer(snapBuffer_);
+    
+    assert(projectionBasis_->size() == vecNodeDof6Conversion_->vectorSize());
+    
+    vecNodeDof6Conversion_->vector(snapBuffer_, (*projectionBasis_)[i]);
+    projectionBasisInput.currentStateIndexInc();
+  }
+
+  // Setup solver
+  getSolver()->projectionBasisIs(*projectionBasis_);
+  getSolver()->factor(); // Delayed factorization
+  
+  // Snapshot output
+  residualSnapFile_.reset(new BasisOutputFile("RomResidualSnap", vecNodeDof6Conversion_->nodeCount())); //TODO file name
+  jacobianSnapFile_.reset(new BasisOutputFile("RomJacobianSnap", vecNodeDof6Conversion_->nodeCount())); //TODO file name
 }
 
 void

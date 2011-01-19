@@ -43,6 +43,10 @@ private:
   std::auto_ptr<BasisOutputFile> jacobianSnapFile_;
 
   friend class Updater;
+
+  // Disallow copy and assignment
+  GaussNewtonNonLinDynamic(const GaussNewtonNonLinDynamic &);
+  GaussNewtonNonLinDynamic &operator=(const GaussNewtonNonLinDynamic &);
 };
 
 #include <Driver.d/StateUpdater.h>

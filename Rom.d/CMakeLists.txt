@@ -4,4 +4,5 @@ ADD_LIBRARY( Rom
   GaussNewtonNonLinDynamic.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
+  VecNodeDof6Conversion.C
 )

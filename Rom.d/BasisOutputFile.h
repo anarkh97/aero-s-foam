@@ -15,8 +15,14 @@ public:
   StateCountStatus stateCountStatus() const;
   void updateStateCountStatus();
 
-  void stateAdd(const double(*data)[6]);
-  void stateAdd(const double(*data)[6], double headValue);
+  // NodeBufferType must implement double indexation ([i][j]) to yield doubles
+  // First dimension is nodeCount
+  // Second dimension is 6 (dofs per node)
+  // Note: (double *)[6] is a valid type
+  template <typename NodeBufferType>
+  void stateAdd(const NodeBufferType &data);
+  template <typename NodeBufferType>
+  void stateAdd(const NodeBufferType &data, double headValue);
   
   BasisOutputFile(const std::string &fileName, int nodeCount);
  
@@ -38,7 +44,8 @@ private:
   void rewindAndWriteStateCount(); 
 
   void writeNodeCount();
-  
+  void writeStateHeader(double value);
+
   // Disallow copy & assignment
   BasisOutputFile(const BasisOutputFile&);
   BasisOutputFile& operator=(const BasisOutputFile&);
@@ -47,7 +54,29 @@ private:
 inline
 BasisOutputFile::StateCountStatus
 BasisOutputFile::stateCountStatus() const {
-  return (stateCount_ == stateCountOnFile_) ? UP_TO_DATE : OUTDATED;
+  return (stateCount() == stateCountOnFile_) ? UP_TO_DATE : OUTDATED;
+}
+
+template <typename NodeBufferType>
+inline
+void
+BasisOutputFile::stateAdd(const NodeBufferType &data) {
+  stateAdd(data, static_cast<double>(stateCount() + 1));
+}
+
+template <typename NodeBufferType>
+void
+BasisOutputFile::stateAdd(const NodeBufferType &data, double headValue) {
+  writeStateHeader(headValue);
+  
+  for (int iNode = 0; iNode < nodeCount(); iNode++)  {
+    std::fprintf(stream_, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                 width_, precision_, data[iNode][0], width_, precision_, data[iNode][1],
+                 width_, precision_, data[iNode][2], width_, precision_, data[iNode][3],
+                 width_, precision_, data[iNode][4], width_, precision_, data[iNode][5]);
+  }
+
+  stateCount_++;
 }
 
 #endif /* ROM_BASISOUTPUTFILE_H */

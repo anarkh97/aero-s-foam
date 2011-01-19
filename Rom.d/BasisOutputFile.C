@@ -43,27 +43,6 @@ BasisOutputFile::~BasisOutputFile() {
 }
 
 void
-BasisOutputFile::stateAdd(const double(*data)[6]) {
-  stateAdd(data, static_cast<double>(stateCount_ + 1));
-}
-
-void
-BasisOutputFile::stateAdd(const double(*data)[6], double headValue) {
-  const int w = width_;
-  const int p = precision_;
-
-  std::fprintf(stream_, "  % *.*E\n", w, p, headValue);
-  
-  for (int iNode = 0; iNode < nodeCount_; iNode++)  {
-    std::fprintf(stream_, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-        w, p, data[iNode][0], w, p, data[iNode][1], w, p, data[iNode][2],
-        w, p, data[iNode][3], w, p, data[iNode][4], w, p, data[iNode][5]);
-  }
-
-  stateCount_++;
-}
-
-void
 BasisOutputFile::updateStateCountStatus() {
   if (stateCountStatus() == UP_TO_DATE) {
     return;
@@ -96,4 +75,9 @@ BasisOutputFile::writeStateCount() {
 void
 BasisOutputFile::writeNodeCount() {
   fprintf(stream_, "%d\n", nodeCount_);
+}
+
+void
+BasisOutputFile::writeStateHeader(double value) {
+  std::fprintf(stream_, "  % *.*E\n", width_, precision_, value);
 }

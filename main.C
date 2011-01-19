@@ -1158,7 +1158,8 @@ int main(int argc, char** argv)
                  nldynamic.postProcess();
                } else {
                  GaussNewtonNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
+                                GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                  nldynamic.postProcess();
                }

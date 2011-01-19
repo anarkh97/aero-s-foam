@@ -2,6 +2,9 @@
 #define ROM_GAUSSNEWTONNONLINDYNAMIC_H
 
 #include "GalerkinProjectionSolver.h"
+#include "VecNodeDof6Conversion.h"
+#include "NodeDof6Buffer.h"
+#include "BasisOutputFile.h"
 
 #include <Problems.d/NonLinDynam.h>
 #include <Math.d/VectorSet.h>
@@ -20,11 +23,43 @@ public:
 
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
- 
+
+  // Direct hook in NLDynamSolver (relies on function hiding)
+  int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time);
+
 private:
   virtual bool factorWhenBuilding() const; // Overriden
 
+  void computeAndSaveJacobianSnapshot();
+  void saveResidualSnapshot(const Vector &);
+  void saveJacobianSnapshot(const Vector &);
+
   std::auto_ptr<GenVectorSet<double> > projectionBasis_;
+
+  std::auto_ptr<VecNodeDof6Conversion> vecNodeDof6Conversion_;
+  NodeDof6Buffer snapBuffer_;
+  
+  std::auto_ptr<BasisOutputFile> residualSnapFile_;
+  std::auto_ptr<BasisOutputFile> jacobianSnapFile_;
+
+  friend class Updater;
 };
 
+#include <Driver.d/StateUpdater.h>
+
+// Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
+class GaussNewtonNonLinDynamic::Updater : public IncrUpdater<GaussNewtonNonLinDynamic, GenVector<double>, GeomState> {
+public:
+  static double formRHScorrector(GaussNewtonNonLinDynamic *pbd, GenVector<double> &inc_displac,
+                                 GenVector<double> &vel_n, GenVector<double> &accel,
+                                 GenVector<double> &residual, GenVector<double> &rhs,
+                                 GeomState *geomState) {
+    const double result = IncrUpdater<GaussNewtonNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
+        pbd, inc_displac, vel_n, accel, residual, rhs, geomState);
+
+    pbd->saveResidualSnapshot(rhs);
+
+    return result;
+  }
+};
 #endif /* ROM_GAUSSNEWTONNONLINDYNAMIC_H */

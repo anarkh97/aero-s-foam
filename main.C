@@ -44,6 +44,8 @@ using namespace std;
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
+#include <Rom.d/GaussNewtonNonLinDynamic.h>
+#include <Rom.d/GalerkinProjectionSolver.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
@@ -1148,11 +1150,18 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-               SnapshotNonLinDynamic nldynamic(domain);
-               NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
-                             GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-               nldynamicSolver.solve();
-               nldynamic.postProcess();
+               if (!domain->solInfo().gaussNewtonPodRom) {
+                 SnapshotNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
+                                GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+                 nldynamic.postProcess();
+               } else {
+                 GaussNewtonNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+                 nldynamic.postProcess();
+               }
              }
            }
          }

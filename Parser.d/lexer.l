@@ -1178,6 +1178,8 @@ TRAIL [a-zA-Z]*
 
 "SVD"|"Svd"|"svd"          { return SVD; }
 
+"GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

@@ -744,7 +744,7 @@ NonLinDynamic::preProcess()
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0); // don't use Rbm's to factor in dynamics
+ domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0, 0, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
@@ -1078,3 +1078,7 @@ NonLinDynamic::getResidualNorm(Vector &res)
   else return res.norm();
 }
 
+bool
+NonLinDynamic::factorWhenBuilding() const { 
+  return true;
+}

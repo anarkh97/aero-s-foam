@@ -82,6 +82,7 @@ typedef GenSubDOp<double> SubDOp;
 template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
+template <typename Scalar> class GenGalerkinProjectionSolver;
 
 // HB
 class SurfaceEntity;
@@ -448,6 +449,9 @@ class Domain : public HData {
 
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
+
+     template<class Scalar>
+       GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
 
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);

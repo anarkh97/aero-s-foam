@@ -34,6 +34,8 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
+#include <Rom.d/GalerkinProjectionSolver.h>
+
 extern Sfem* sfem;
 extern int verboseFlag;
 #ifdef DISTRIBUTED
@@ -816,6 +818,13 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
 }
 
 template<class Scalar>
+GenGalerkinProjectionSolver<Scalar> *
+Domain::constructGalerkinProjectionSolver()
+{
+  return new GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, bool factorize)
@@ -1168,6 +1177,14 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
+      break;
+    case 11:
+      filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
+      GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
+      spm = solver;
+      spm->zeroAll();
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      systemSolver = solver;
       break;
   }
 }

@@ -188,6 +188,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
+private:
+  virtual bool factorWhenBuilding() const;
 };
 
 inline double

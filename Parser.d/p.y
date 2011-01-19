@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SVD
+%token PODROM SVD GAUSSNEWTON
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3241,6 +3241,10 @@ PodRom:
   { domain->solInfo().activatePodRom = true; }
   | PODROM NewLine SVD NewLine
   { domain->solInfo().activatePodRom = true; domain->solInfo().svdPodRom = true; }
+  | PODROM NewLine GAUSSNEWTON NewLine
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().gaussNewtonPodRom = true; 
+    domain->solInfo().subtype = 11; }
   ;
 Integer:
 	IntConstant

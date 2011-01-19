@@ -8,9 +8,7 @@ class BasisOutputFile {
 public:
   const std::string &fileName() const { return fileName_; }
 
-  BasisOutputFile(const std::string &fileName, int nodeCount);
-  ~BasisOutputFile();
-
+  int nodeCount() const  { return nodeCount_;  }
   int stateCount() const { return stateCount_; }
 
   enum StateCountStatus { UP_TO_DATE, OUTDATED };
@@ -19,6 +17,10 @@ public:
 
   void stateAdd(const double(*data)[6]);
   void stateAdd(const double(*data)[6], double headValue);
+  
+  BasisOutputFile(const std::string &fileName, int nodeCount);
+ 
+  ~BasisOutputFile();
 
 private:
   const std::string fileName_;
@@ -35,6 +37,8 @@ private:
   void writeStateCount();
   void rewindAndWriteStateCount(); 
 
+  void writeNodeCount();
+  
   // Disallow copy & assignment
   BasisOutputFile(const BasisOutputFile&);
   BasisOutputFile& operator=(const BasisOutputFile&);

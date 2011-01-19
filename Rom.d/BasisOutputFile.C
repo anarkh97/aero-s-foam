@@ -26,6 +26,7 @@ BasisOutputFile::BasisOutputFile(const std::string &fileName, int nodeCount) :
   }
 
   writeStateCount();
+  writeNodeCount();
 }
 
 BasisOutputFile::~BasisOutputFile() {
@@ -90,4 +91,9 @@ BasisOutputFile::writeStateCount() {
   }
   std::fprintf(stream_, "\n");
   stateCountOnFile_ = stateCount_;
+}
+
+void
+BasisOutputFile::writeNodeCount() {
+  fprintf(stream_, "%d\n", nodeCount_);
 }

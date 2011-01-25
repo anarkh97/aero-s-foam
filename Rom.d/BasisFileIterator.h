@@ -41,7 +41,8 @@ private:
 
 class BasisInputRange::Copyer {
 public:
-  void operator()(double *targetBuffer) const {
+  template <typename BufferType>
+  void operator()(const BufferType &targetBuffer) const {
     parent_.converter_.vector(parent_.buffer_, targetBuffer);
   }
   
@@ -129,7 +130,8 @@ private:
 
 class BasisOutputRange::Copyer {
 public:
-  Copyer &operator=(const std::pair<double, const double *> &entry);
+  template <typename BufferType>
+  void operator=(const std::pair<double, BufferType> &entry);
 
 private:
   explicit Copyer(BasisOutputRange &parent) :
@@ -140,6 +142,13 @@ private:
 
   friend class BasisOutputRange::iterator;
 };
+
+template <typename BufferType>
+void
+BasisOutputRange::Copyer::operator=(const std::pair<double, BufferType> &entry) {
+  const NodeDof6Buffer &buffer = parent_.converter_.nodeDof6(entry.second, parent_.buffer_);
+  parent_.file_.stateAdd(buffer, entry.first);
+}
 
 class BasisOutputRange::iterator {
 public:

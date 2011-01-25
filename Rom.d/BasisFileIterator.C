@@ -38,11 +38,4 @@ BasisOutputRange::BasisOutputRange(const std::string &fileName, const VecNodeDof
   converter_(converter),
   buffer_(file_.nodeCount())
 {}
-  
-BasisOutputRange::Copyer &
-BasisOutputRange::Copyer::operator=(const std::pair<double, const double *> &entry) {
-  const NodeDof6Buffer &buffer = parent_.converter_.nodeDof6(entry.second, parent_.buffer_);
-  parent_.file_.stateAdd(buffer, entry.first);
 
-  return *this;
-}

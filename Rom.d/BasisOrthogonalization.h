@@ -39,7 +39,7 @@ BasisOrthogonalization::basisNew(InputRange &input, OutputIterator output) {
 
   OutputIterator it = output;
   for (int iVec = 0; iVec < solver_.singularValueCount(); ++iVec) {
-    *it = std::make_pair(solver_.singularValue(iVec), const_cast<const double *>(solver_.matrixCol(iVec)));
+    *it = std::make_pair(solver_.singularValue(iVec), solver_.matrixCol(iVec));
     ++it;
   }
 

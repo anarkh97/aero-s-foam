@@ -24,9 +24,9 @@ public:
   Communicator * communicator() const { return communicator_; }
   CpuRank localCpu() const;
 
-protected:
   MpiSeedReader(CpuRank targetCpu, Communicator * comm, SimpleBuffer<double> * buffer);
 
+protected:
   const SimpleBuffer<double> & stateBuffer() const { return *stateBuffer_; }
   SimpleBuffer<double> & stateBuffer() { return *stateBuffer_; }
 
@@ -49,9 +49,9 @@ public:
   size_t vectorSize() const { return vectorSize_; }
   void vectorSizeIs(size_t vSize) { vectorSize_ = vSize; }
 
-protected:
   MpiSeedWriter(CpuRank originCpu, Communicator * comm, size_t vSize, SimpleBuffer<double> * buffer);
 
+protected:
   const SimpleBuffer<double> & stateBuffer() const { return *stateBuffer_; }
   SimpleBuffer<double> & stateBuffer() { return *stateBuffer_; }
 
@@ -74,9 +74,9 @@ public:
   Communicator * communicator() const { return communicator_; }
   CpuRank localCpu() const;
 
-protected:
   MpiReducedSeedReader(CpuRank targetCpu, Communicator * comm, SimpleBuffer<double> * buffer);
   
+protected:
   const SimpleBuffer<double> & stateBuffer() const { return *stateBuffer_; }
   SimpleBuffer<double> & stateBuffer() { return *stateBuffer_; }
 
@@ -99,9 +99,9 @@ public:
   size_t reducedStateSize() const { return reducedStateSize_; }
   void reducedStateSizeIs(size_t rSize) { reducedStateSize_ = rSize; }
 
-protected:
   MpiReducedSeedWriter(CpuRank originCpu, Communicator * comm, size_t rSize, SimpleBuffer<double> * buffer);
 
+protected:
   const SimpleBuffer<double> & stateBuffer() const { return *stateBuffer_; }
   SimpleBuffer<double> & stateBuffer() { return *stateBuffer_; }
 

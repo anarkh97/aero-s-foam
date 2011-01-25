@@ -8,7 +8,7 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
 
-#include <list>
+#include <deque>
 
 #include <cstddef>
 #include <algorithm>
@@ -56,10 +56,10 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     virtual ~SvdImpl();
 
   private:
-    void orthoAndSave(const std::list<Vector> &, BasisOutputFile &);
+    void orthoAndSave(const std::deque<Vector> &, BasisOutputFile &);
 
-    std::list<Vector> stateSnapshot_;
-    std::list<Vector> residualSnapshot_;
+    std::deque<Vector> stateSnapshot_;
+    std::deque<Vector> residualSnapshot_;
 
     const GeomState * refGeomState_;
     Vector increment_;
@@ -169,12 +169,12 @@ SnapshotNonLinDynamicDetail::SvdImpl::postProcess() {
 }
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::list<Vector> & snapshots, BasisOutputFile & out) {
+SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & snapshots, BasisOutputFile & out) {
   svdSolver_.matrixSizeIs(vectorSize(), snapshots.size());
   
   int col = 0;
-  for (std::list<Vector>::const_iterator it = snapshots.begin();
-       it != snapshots.end(); ++it) {
+  const std::deque<Vector>::const_iterator itEnd = snapshots.end();
+  for (std::deque<Vector>::const_iterator it = snapshots.begin(); it != itEnd; ++it) {
     const Vector &v = *it;
     std::copy(v.data(), v.data() + v.size(), svdSolver_.matrixCol(col));
     ++col;

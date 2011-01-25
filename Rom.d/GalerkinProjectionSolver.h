@@ -4,7 +4,7 @@
 #include <Solvers.d/Solver.h>
 #include <Math.d/DBSparseMatrix.h>
 
-#include <Math.d/VectorSet.h>
+#include <Rom.d/VecBasis.h>
 
 #include <Math.d/FullSquareMatrix.h>
 
@@ -35,23 +35,23 @@ public:
 
   // Projection basis
   int basisSize() const { return basisSize_; }
-  const GenVectorSet<Scalar> &projectionBasis() const { return *projectionBasis_; }
-  void projectionBasisIs(const GenVectorSet<Scalar> &); // Passed object must be kept alive by owner
+  const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
+  void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed object must be kept alive by owner
 
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { return reducedRhs_; }
-  const GenVectorSet<Scalar> &lastReducedMatrixAction() const { return *matrixAction_; }
+  const GenVecBasis<Scalar> &lastReducedMatrixAction() const { return *matrixAction_; }
 
 private:
   void factorReducedMatrix();
   void solveReducedRhs();
 
   int basisSize_;
-  const GenVectorSet<Scalar> *projectionBasis_;
+  const GenVecBasis<Scalar> *projectionBasis_;
   
   GenFullSquareMatrix<Scalar> reducedMatrix_;
 
-  std::auto_ptr<GenVectorSet<Scalar> > matrixAction_;
+  std::auto_ptr<GenVecBasis<Scalar> > matrixAction_;
   GenVector<Scalar> reducedRhs_;
 
   // Disallow copy and assignment
@@ -67,7 +67,7 @@ GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *c
   basisSize_(0),
   projectionBasis_(NULL),
   reducedMatrix_(),
-  matrixAction_(new GenVectorSet<Scalar>()),
+  matrixAction_(new GenVecBasis<Scalar>(0, 0)),
   reducedRhs_(0)
 {
   projectionBasis_ = matrixAction_.get();
@@ -105,11 +105,11 @@ GenGalerkinProjectionSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass) {
 
 template <typename Scalar>
 void
-GenGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVectorSet<Scalar> &basis) {
+GenGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &basis) {
   assert(neqs() == basis.size()); // TODO: Exception
 
   const int newBasisSize = basis.numVec();
-  std::auto_ptr<GenVectorSet<Scalar> > newMatrixAction(new GenVectorSet<Scalar>(newBasisSize, neqs()));
+  std::auto_ptr<GenVecBasis<Scalar> > newMatrixAction(new GenVecBasis<Scalar>(newBasisSize, neqs()));
   GenVector<Scalar> newReducedRhs(newBasisSize);
 
   reducedMatrix_.setSize(newBasisSize);

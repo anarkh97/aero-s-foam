@@ -1,6 +1,6 @@
 #include "GaussNewtonNonLinDynamic.h"
 
-#include "BasisInputFile.h"
+#include "BasisFileIterator.h"
 
 #include "BasisOps.h"
 
@@ -27,20 +27,16 @@ GaussNewtonNonLinDynamic::preProcess() {
   snapBuffer_.sizeIs(vecNodeDof6Conversion_->nodeCount());
 
   // Load projection basis
-  BasisInputFile projectionBasisInput("GaussNewtonBasis"); //TODO: file name
-  std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.stateCount());
+  BasisInputRange projectionBasisInput("GaussNewtonBasis", *vecNodeDof6Conversion_); //TODO: file name
+  assert(projectionBasisInput.vectorSize() == solVecInfo());
+  std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.size());
 
-  projectionBasis_.reset(new GenVectorSet<double>(projectionBasisInput.stateCount(), solVecInfo()));
-  for (int i = 0; i < projectionBasis_->numVec(); ++i) {
-    assert(i == projectionBasisInput.currentStateIndex());
-    assert(snapBuffer_.size() == projectionBasisInput.nodeCount());
-    
-    projectionBasisInput.currentStateBuffer(snapBuffer_);
-    
-    assert(projectionBasis_->size() == vecNodeDof6Conversion_->vectorSize());
-    
-    vecNodeDof6Conversion_->vector(snapBuffer_, (*projectionBasis_)[i]);
-    projectionBasisInput.currentStateIndexInc();
+  projectionBasis_.reset(new GenVecBasis<double>(projectionBasisInput.size(), projectionBasisInput.vectorSize()));
+
+  GenVecBasis<double>::iterator jt = projectionBasis_->begin();
+  for (BasisInputRange::const_iterator it = projectionBasisInput.begin();
+      it != projectionBasisInput.end(); ++it) {
+    (*it)(*jt++);
   }
 
   // Setup solver

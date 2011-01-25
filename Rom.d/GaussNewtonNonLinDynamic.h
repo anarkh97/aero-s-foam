@@ -7,7 +7,7 @@
 #include "BasisOutputFile.h"
 
 #include <Problems.d/NonLinDynam.h>
-#include <Math.d/VectorSet.h>
+#include <Rom.d/VecBasis.h>
 
 #include <memory>
 
@@ -34,7 +34,7 @@ private:
   void saveResidualSnapshot(const Vector &);
   void saveJacobianSnapshot(const Vector &);
 
-  std::auto_ptr<GenVectorSet<double> > projectionBasis_;
+  std::auto_ptr<GenVecBasis<double> > projectionBasis_;
 
   std::auto_ptr<VecNodeDof6Conversion> vecNodeDof6Conversion_;
   NodeDof6Buffer snapBuffer_;

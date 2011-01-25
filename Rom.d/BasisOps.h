@@ -1,22 +1,19 @@
 #ifndef ROM_BASISOPS_H
 #define ROM_BASISOPS_H
 
-#include <Math.d/Vector.h>
-#include <Math.d/VectorSet.h>
-
 #include <cassert>
 
-template <typename Scalar>
+template <typename VecSetType, typename VecType>
 inline
 void
-checkDimensions(const GenVectorSet<Scalar> &basis, const GenVector<Scalar> &xFull, const GenVector<Scalar> &xReduced) {
+checkDimensions(const VecSetType &basis, const VecType &xFull, const VecType &xReduced) {
   assert(basis.size() == xFull.size());
   assert(basis.numVec() == xReduced.size());
 }
 
-template <typename Scalar>
-const GenVector<Scalar> &
-reduce(const GenVectorSet<Scalar> &basis, const GenVector<Scalar> &xFull, GenVector<Scalar> &xReduced) {
+template <typename VecSetType, typename VecType>
+const VecType &
+reduce(const VecSetType &basis, const VecType &xFull, VecType &xReduced) {
   checkDimensions(basis, xFull, xReduced);
 
   for (int i = 0; i < basis.size(); ++i) {
@@ -26,9 +23,9 @@ reduce(const GenVectorSet<Scalar> &basis, const GenVector<Scalar> &xFull, GenVec
   return xReduced;
 }
 
-template <typename Scalar>
-const GenVector<Scalar> &
-expand(const GenVectorSet<Scalar> &basis, const GenVector<Scalar> &xReduced, GenVector<Scalar> &xFull) {
+template <typename VecSetType, typename VecType>
+const VecType &
+expand(const VecSetType &basis, const VecType &xReduced, VecType &xFull) {
   checkDimensions(basis, xFull, xReduced);
 
   xFull.zero();

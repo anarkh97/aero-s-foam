@@ -66,6 +66,12 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
 
     SvdOrthogonalization svdSolver_;
   };
+
+private:
+  // Dummy constructor to avoid compilation failures
+  SnapshotNonLinDynamicDetail(Domain *d) :
+    SnapshotNonLinDynamic(d)
+  {}
 };
 
 SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain) :

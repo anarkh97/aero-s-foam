@@ -130,7 +130,8 @@ void
 GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber, 
                                  int iter, int numRes, double time, int numComponents, int *glNodeNums)
 {
-  if(binaryOutput) {
+  int group = oinfo[fileNumber].groupNumber;
+  if(binaryOutput && group == -1) { // group output is always ascii
     // get number of cluster files to write to
     int clusNum = (*subToClus)[glSub][0];
 
@@ -163,9 +164,12 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     outfile.open(oinfo[fileNumber].filename,  ios_base::in | ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
 
+    int numComponentsPlus = (group == -1) ? numComponents : numComponents + 4; // group output: allow for NODENUMBER, X0, Y0, Z0
+    int numNodesPlus = (group == -1) ? numNodes : nodeGroup[group].size();
+
     long timeOffset = headLen[fileNumber]  // header including endl
                       + (numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + endl for all previous timesteps
-                      + (numRes-1)*numNodes*(numComponents*(2+oinfo[fileNumber].width)+1);
+                      + (numRes-1)*numNodesPlus*(numComponentsPlus*(2+oinfo[fileNumber].width)+1);
                                                                      // 2 spaces + first_component + ... + 2 spaces + last_component + endl
                                                                      // for each node for all previous timesteps
 
@@ -175,23 +179,25 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       outfile.seekp(timeOffset);
       outfile.width(3+oinfo[fileNumber].width);
       outfile << time << endl;
-      // NEW fix for gaps in node numbering
+      // fix for gaps in node numbering (note: this isn't required for group output
       // the first subdomain writes zeros for all unasigned nodes
-      int counter = 0;
-      for(int i=0; i<nodes.size(); ++i) {
-        if(domain->getNodeToElem()->num(i) == 0) {
-          int glNode = i;
-          if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
-            long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
-            outfile.seekp(relativeOffset, ios_base::cur);
+      if(group == -1) {
+        int counter = 0;
+        for(int i=0; i<nodes.size(); ++i) {
+          if(domain->getNodeToElem()->num(i) == 0) {
+            int glNode = i;
+            if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
+              long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
+              outfile.seekp(relativeOffset, ios_base::cur);
+            }
+            for(int j=0; j<numComponents; ++j) { 
+              outfile.width(2+oinfo[fileNumber].width);
+              outfile << double(0);
+            }
+            outfile << "\n";
+            glNode_prev = glNode;
+            counter++;
           }
-          for(int j=0; j<numComponents; ++j) { 
-            outfile.width(2+oinfo[fileNumber].width);
-            outfile << double(0);
-          }
-          outfile << "\n";
-          glNode_prev = glNode;
-          counter++;
         }
       }
     }
@@ -199,22 +205,41 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     if(glSub != 0) outfile.seekp(timeOffset);
   
     int k = 0;
-    for(int i=0; i<numData/numComponents; ++i) {
+    for(int i = 0; i < numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
       int glNode = glNodeNums[k]; k++;
-      if(glNode >= nodes.size()) continue; // XXXX don't print "internal" nodes eg for rigid beams
+      if(glNode >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
+      if(group != -1) {
+        list<int>::iterator it = nodeGroup[group].begin();
+        int grNode = 0;
+        while(it != nodeGroup[group].end()) {
+          int inode = *it;
+          if(inode == glNode) break;
+          it++; grNode++;
+        }
+        if(it == nodeGroup[group].end()) continue;
+        else glNode = grNode;
+      }
       if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
         //long totalOffset = timeOffset + glNode*(numComponents*(2+oinfo[fileNumber].width) + 1);
         //outfile.seekp(totalOffset);
-        long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
+        long relativeOffset = (glNode-glNode_prev-1)*(numComponentsPlus*(2+oinfo[fileNumber].width) + 1);
         outfile.seekp(relativeOffset, ios_base::cur);
       }
-      for(int j=0; j<numComponents; ++j) { 
+      if(group != -1) { // print NODENUMBER, X0, Y0, Z0
+        outfile.width(2+oinfo[fileNumber].width);
+        outfile << glNodeNums[k-1];
+        outfile.width(2+oinfo[fileNumber].width);
+        outfile << nodes[glNodeNums[k-1]]->x;
+        outfile.width(2+oinfo[fileNumber].width);
+        outfile << nodes[glNodeNums[k-1]]->y;
+        outfile.width(2+oinfo[fileNumber].width);
+        outfile << nodes[glNodeNums[k-1]]->z;
+      }
+      for(int j = 0; j < numComponents; ++j) { 
         outfile.width(2+oinfo[fileNumber].width); 
-        //outfile << data[i*numComponents+j];
         outfile << data[i*numComponents+j];
       }
-      //outfile.close(); exit(-1);
       outfile << "\n";
       glNode_prev = glNode;
     }

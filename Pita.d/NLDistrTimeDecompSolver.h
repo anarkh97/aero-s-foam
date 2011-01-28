@@ -65,7 +65,7 @@ private:
 
   // Base Management
   void reBuildLocalK(const NLTimeSlice &);
-  void addStateToBase(NLTimeSlice &, State &);
+  void performOG(NLTimeSlice &);
   void addStateSetToBase(NLTimeSlice &, StateSet &);
   void addRawDataToBase(NLTimeSlice &, DataType *, int);
 
@@ -93,7 +93,7 @@ inline void NLDistrTimeDecompSolver::computeSliceUpdate(NLTimeSlice & timeSlice)
   // Convergence criterion to be figured out
   timeSlice.converged = false;
   //fprintf(stderr, "TS # %d : %d vectors in base\n", this->sliceRank, this->seedBase.numStates());
-  timeSlice.orthoBase.projectorOG(timeSlice.propBase, timeSlice.jumpState, timeSlice.nextSeedState);
+  timeSlice.projector.projection(timeSlice.propBase, timeSlice.jumpState, timeSlice.nextSeedState);
   //fprintf(stderr, "TS #%d, norm U(j) = %e, norm C(j+1) = %e\n", this->getRank(), localNorm(this->jumpState), localNorm(this->nextSeedState));
   timeSlice.nextSeedState += timeSlice.propState;
 }
@@ -105,19 +105,19 @@ inline void NLDistrTimeDecompSolver::trivialSliceUpdate(NLTimeSlice & timeSlice)
   timeSlice.nextSeedState = timeSlice.propState;
 }
 
-inline void NLDistrTimeDecompSolver::addStateToBase(NLTimeSlice & timeSlice, NLDistrTimeDecompSolver::State & state)
-{
-  timeSlice.seedBase.addStateAndOG(timeSlice.orthoBase, state, probDesc->getStiffMatrix(), probDesc->getMassMatrix());
-}
-
 inline void NLDistrTimeDecompSolver::addRawDataToBase(NLTimeSlice & timeSlice, NLDistrTimeDecompSolver::DataType * dataPtr, int numStates)
 {
-  timeSlice.seedBase.addRawSetAndOG(timeSlice.orthoBase, numStates, dataPtr, probDesc->getStiffMatrix(), probDesc->getMassMatrix());  
+  timeSlice.projector.lastStateSetIs(numStates, dataPtr);
 }
 
 inline void NLDistrTimeDecompSolver::addStateSetToBase(NLTimeSlice & timeSlice, NLDistrTimeDecompSolver::StateSet & stateSet)
 {
-  timeSlice.seedBase.addStateSetAndOG(timeSlice.orthoBase, stateSet, probDesc->getStiffMatrix(), probDesc->getMassMatrix());
+  timeSlice.projector.lastStateSetIs(stateSet);
+}
+
+inline void NLDistrTimeDecompSolver::performOG(NLTimeSlice & timeSlice)
+{
+  timeSlice.projector.metricIs(probDesc->getStiffMatrix(), probDesc->getMassMatrix(), timeSlice.propBase);
 }
 
 inline void NLDistrTimeDecompSolver::getIntegratorState(NLDistrTimeDecompSolver::State & state)

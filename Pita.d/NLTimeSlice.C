@@ -1,9 +1,14 @@
 #include <Pita.d/NLTimeSlice.h>
 #include <Pita.d/PitaNonLinDynam.h>
 
+NLTimeSlice::NLTimeSlice(const PitaNonLinDynamic & probDesc, int rank)
+  : projector(const_cast<PitaNonLinDynamic &>(probDesc).solVecInfo(), defaultTolerance)
+{
+  initialize(probDesc, rank);
+}
+
 void NLTimeSlice::initialize(const PitaNonLinDynamic & probDesc, int rank)
 {
-  //int Jratio = probDesc.getJratio();
   double sliceSpan = probDesc.getCoarseDt();
   int vectorSize = const_cast<PitaNonLinDynamic &>(probDesc).solVecInfo();
   
@@ -12,9 +17,11 @@ void NLTimeSlice::initialize(const PitaNonLinDynamic & probDesc, int rank)
   finalTime = initialTime + sliceSpan;
   converged = false;
   active = false;
-  seedBase.reset(vectorSize, 0);
+
+  projector.relativeToleranceIs(probDesc.getProjectionTolerance());
+  projector.vectorSizeIs(vectorSize);
+
   propBase.reset(vectorSize, 0);
-  orthoBase.reset(vectorSize, 0);
   localBase.reset(vectorSize, probDesc.getJratio() + 1);
   seedState.reset(vectorSize);
   propState.reset(vectorSize);
@@ -25,8 +32,7 @@ void NLTimeSlice::initialize(const PitaNonLinDynamic & probDesc, int rank)
 
 void NLTimeSlice::clearAllBases()
 {
-  seedBase.clear();
-  orthoBase.clear();
+  projector.stateDel();
   propBase.clear();
   localBase.clear();
 }

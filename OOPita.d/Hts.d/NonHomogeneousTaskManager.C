@@ -4,13 +4,16 @@
 
 namespace Pita { namespace Hts {
 
-NonHomogeneousTaskManager::NonHomogeneousTaskManager(LinearLocalNetwork * network,
-                                                     SeedInitializer * seedInit,
+NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
+                                                     RemoteState::MpiManager * commMgr,
+                                                     AffinePropagatorManager * propMgr,
+                                                     LinearProjectionNetwork * correctionMgr,
                                                      JumpConvergenceEvaluator * jumpCvgMgr,
-                                                     LinearProjectionNetworkImpl * correctionMgr,
-                                                     RemoteState::MpiManager * commMgr) :
-  LinearTaskManager(IterationRank(-1), network, jumpCvgMgr, correctionMgr, commMgr),
-  seedInit_(seedInit)
+                                                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
+                                                     SeedInitializer * initializer,
+                                                     CorrectionPropagator<DynamState>::Manager * fullCorrMgr) :
+  LinearTaskManager(IterationRank(-1), mapping, propMgr, fullCorrMgr, jumpCvgMgr, jumpErrorMgr, correctionMgr, commMgr),
+  seedInit_(initializer)
 {
   schedulePreIteration();
   updatePhaseIt();

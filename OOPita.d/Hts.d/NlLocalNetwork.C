@@ -1,12 +1,13 @@
 #include "NlLocalNetwork.h"
 
+#include "../BasicPropagation.h"
 #include "../ReducedSeedWriterTask.h"
 
 namespace Pita { namespace Hts {
 
 NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                RemoteState::MpiManager * commMgr,
-                               HalfTimeSlice::Manager * htsMgr,
+                               NlPropagatorManager * propMgr,
                                CorrectionReductor::Manager * corrRedMgr,
                                CorrectionReconstructor::Manager * corrReconMgr,
                                BasisCondensationManager * condensMgr,
@@ -14,7 +15,7 @@ NlLocalNetwork::NlLocalNetwork(SliceMapping * mapping,
                                JumpConvergenceEvaluator * jumpCvgMgr,
                                NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr) :
   LocalNetwork(mapping, commMgr),
-  htsMgr_(htsMgr),
+  propMgr_(propMgr),
   jumpMgr_(JumpBuilder::ManagerImpl::New()),
   seedUpMgr_(SeedUpdater::ManagerImpl::New()),
   corrRedMgr_(corrRedMgr),
@@ -249,22 +250,21 @@ void
 NlLocalNetwork::applyConvergenceStatus() {
   // Deactivate correction
   {
-    int count = 0;
     SeedMap::iterator firstActiveCorrection = seedCorrection_.upper_bound(firstActiveSlice());
     for (SeedMap::iterator it = seedCorrection_.begin(); it != firstActiveCorrection; ++it) {
       log() << "Inactivate " << it->second->name() << "\n";
       it->second->statusIs(Seed::INACTIVE);
-      ++count;
     }
     seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
 
-    if (count % 2 == 0) {
-      // Convergence front has moved in a non-staggered fashion
-      // It should only happen when the complete active time-domain has converged
-      // The leading seed is used to create a 'fake' propagated seed to account for this exception
-      if (seedUpdater(firstActiveSlice())) {
-        Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
-        Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+    if (seedUpdater(firstActiveSlice())) {
+      Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
+      Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+      if ((leadMainSeed->status() == Seed::ACTIVE || leadMainSeed->status() == Seed::CONVERGED) && leadMainSeed->iteration() > leadLeftSeed->iteration()) {
+        // The seed to be updated is more recent than the forward-propagated state.
+        // It may happen when the convergence front has moved in a non-staggered fashion,
+        // but only happen when the complete active time-domain has converged.
+        // The leading seed is used as a 'fake' propagated seed to account for this exception.
         leadLeftSeed->stateIs(leadMainSeed->state());
         leadLeftSeed->iterationIs(leadMainSeed->iteration());
         leadLeftSeed->statusIs(Seed::CONVERGED);
@@ -290,7 +290,11 @@ NlLocalNetwork::applyConvergenceStatus() {
 
 NamedTask::Ptr
 NlLocalNetwork::forwardHalfSliceNew(HalfSliceRank sliceRank) {
-  HalfTimeSlice::Ptr result = htsMgr()->instanceNew(HalfSliceId(sliceRank, FORWARD));
+  const HalfSliceId id(sliceRank, FORWARD);
+
+  DynamPropagator::Ptr propagator = propMgr()->instanceNew(id);
+  const Fwk::String name = Fwk::String("Propagate ") + toString(id);
+  BasicPropagation::Ptr result = BasicPropagation::New(name, propagator.ptr());
 
   result->seedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank)));
   result->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, sliceRank.next())));
@@ -300,7 +304,11 @@ NlLocalNetwork::forwardHalfSliceNew(HalfSliceRank sliceRank) {
 
 NamedTask::Ptr
 NlLocalNetwork::backwardHalfSliceNew(HalfSliceRank sliceRank) {
-  HalfTimeSlice::Ptr result = htsMgr()->instanceNew(HalfSliceId(sliceRank, BACKWARD));
+  const HalfSliceId id(sliceRank, BACKWARD);
+
+  DynamPropagator::Ptr propagator = propMgr()->instanceNew(id);
+  const Fwk::String name = Fwk::String("Propagate ") + toString(id);
+  BasicPropagation::Ptr result = BasicPropagation::New(name, propagator.ptr());
   
   result->seedIs(fullSeedGet(SeedId(MAIN_SEED, sliceRank.next())));
   result->propagatedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, sliceRank)));

@@ -23,9 +23,7 @@
 #include "../PivotedCholeskySolver.h"
 #include "../LeastSquareSolver.h"
 
-#include "BasisCollectorImpl.h"
-#include "NonHomogeneousBasisCollectorImpl.h"
-#include "LinearProjectionNetworkImpl.h"
+#include "LinearProjectionNetwork.h"
 
 #include "../Seed.h"
 
@@ -34,11 +32,7 @@
 #include "../IncrementalPostProcessor.h"
 #include "LinearFineIntegratorManager.h"
 #include "AffinePropagatorManager.h"
-#include "AffineHalfTimeSliceImpl.h"
 
-#include "../ReducedCorrectionPropagatorImpl.h"
-#include "../JumpProjection.h"
-#include "../UpdatedSeedAssemblerImpl.h"
 #include "../FullCorrectionPropagatorImpl.h"
 #include "JumpConvergenceEvaluator.h"
 
@@ -59,7 +53,6 @@
 #include "../TimedExecution.h"
 #include "HomogeneousTaskManager.h"
 #include "NonHomogeneousTaskManager.h"
-#include "LinearLocalNetwork.h"
 
 #include "../SeedDifferenceEvaluator.h"
 
@@ -182,31 +175,28 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   /* Post processing */ 
   PostProcessing::Manager::Ptr postProcessingMgr = buildPostProcessor(myCpu);
 
-  /* Local Basis Collector */
-  BasisCollectorImpl::Ptr collector = buildBasisCollector(); 
-
   /* Correction */
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_); // TODO Other solver implementations ?
   
-  LinearProjectionNetworkImpl::Ptr correctionMgr = LinearProjectionNetworkImpl::New(
+  LinearProjectionNetwork::Ptr correctionMgr = LinearProjectionNetwork::New(
       vectorSize_,
       timeComm,
-      myCpu,
       mapping_.ptr(),
-      collector.ptr(),
       dynamOps.ptr(),
       normalMatrixSolver.ptr());
 
-  /* HalfTimeSlices and other local tasks */
-  HalfTimeSlice::Manager::Ptr hsMgr = buildHalfTimeSliceManager(fineIntegrationParam, postProcessingMgr.ptr(), collector.ptr());
+  /* Local fine propagation */
+  GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
 
-  JumpProjection::Manager::Ptr jpMgr = JumpProjection::Manager::New(correctionMgr->projectionBasis());
-  CorrectionPropagator<Vector>::Manager::Ptr fsMgr = ReducedCorrectionPropagatorImpl::Manager::New(correctionMgr->reprojectionMatrix(), correctionMgr->normalMatrixSolver());
-  UpdatedSeedAssembler::Manager::Ptr usaMgr = UpdatedSeedAssemblerImpl::Manager::New(correctionMgr->propagatedBasis());
+  AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
+      correctionMgr->collector(),
+      fineIntegratorMgr.ptr(), 
+      postProcessingMgr.ptr(),
+      halfSliceRatio_,
+      initialTime_,
+      noForce_ ? AffineDynamPropagator::HOMOGENEOUS : AffineDynamPropagator::NONHOMOGENEOUS);
 
-  /* Coarse time-integration */ 
-  CorrectionPropagator<DynamState>::Manager::Ptr ctsMgr = buildCoarseCorrection(coarseComm);
-
+  /* Local communication */
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
 
   // Convergence criterion
@@ -223,16 +213,6 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
     jumpErrorMgr = LinSeedDifferenceEvaluator::Manager::New(dynamOps.ptr());
   }
 
-  /* Local tasks */
-  ReducedCorrectionManager::Ptr reducedCorrMgr = new ReducedCorrectionManager(jpMgr.ptr(), fsMgr.ptr(), ctsMgr.ptr(), usaMgr.ptr());
-  LinearLocalNetwork::Ptr network = new LinearLocalNetwork(
-      mapping_.ptr(),
-      hsMgr.ptr(),
-      reducedCorrMgr.ptr(),
-      jumpCvgMgr.ptr(),
-      commMgr.ptr(),
-      jumpErrorMgr.ptr());
-
   /* Seed initialization */
   SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm); 
   
@@ -244,18 +224,24 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
   LinearTaskManager::Ptr taskManager;
   if (noForce_) {
     taskManager = new HomogeneousTaskManager(
-        network.ptr(),
-        seedInitializer.ptr(),
-        jumpCvgMgr.ptr(),
+        mapping_.ptr(),
+        commMgr.ptr(),
+        propagatorMgr.ptr(),
         correctionMgr.ptr(),
-        commMgr.ptr());
+        jumpCvgMgr.ptr(),
+        jumpErrorMgr.ptr(),
+        seedInitializer.ptr());
   } else {
+    CorrectionPropagator<DynamState>::Manager::Ptr fullCorrPropMgr = buildCoarseCorrection(coarseComm);
     taskManager = new NonHomogeneousTaskManager(
-        network.ptr(),
-        seedInitializer.ptr(),
-        jumpCvgMgr.ptr(),
+        mapping_.ptr(),
+        commMgr.ptr(),
+        propagatorMgr.ptr(),
         correctionMgr.ptr(),
-        commMgr.ptr());
+        jumpCvgMgr.ptr(),
+        jumpErrorMgr.ptr(),
+        seedInitializer.ptr(),
+        fullCorrPropMgr.ptr());
   }
 
   TimedExecution::Ptr timedExecution = TimedExecution::New(taskManager.ptr()); 
@@ -299,23 +285,6 @@ ReducedLinearDriverImpl::solveCoarse(Communicator * timeComm) {
   log() << "Total solve time = " << (toc - tic) / 1000.0 << " s\n";
 }
 
-
-HalfTimeSlice::Manager::Ptr
-ReducedLinearDriverImpl::buildHalfTimeSliceManager(GeneralizedAlphaParameter fineIntegrationParam,
-                                                   PostProcessing::Manager * postProcessingMgr,
-                                                   BasisCollector * collector) const {
-  GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr fineIntegratorMgr = LinearFineIntegratorManager<AffineGenAlphaIntegrator>::New(dynamOpsMgr_.ptr(), fineIntegrationParam);
-
-  AffinePropagatorManager::Ptr propagatorMgr = AffinePropagatorManager::New(
-      collector,
-      fineIntegratorMgr.ptr(), 
-      postProcessingMgr,
-      halfSliceRatio_,
-      initialTime_);
-  
-  return AffineHalfTimeSliceImpl::Manager::New(propagatorMgr.ptr());
-}
-
 PostProcessing::Manager::Ptr
 ReducedLinearDriverImpl::buildPostProcessor(CpuRank localCpu) const {
   std::vector<int> localFileId;
@@ -325,15 +294,6 @@ ReducedLinearDriverImpl::buildPostProcessor(CpuRank localCpu) const {
   IncrementalPostProcessor::Ptr pitaPostProcessor = IncrementalPostProcessor::New(geoSource(), localFileId.size(), &localFileId[0], probDesc()->getPostProcessor());
   typedef PostProcessing::IntegratorReactorImpl<IncrementalPostProcessor> LinearIntegratorReactor;
   return PostProcessing::Manager::New(LinearIntegratorReactor::Builder::New(pitaPostProcessor.ptr()).ptr());
-}
-
-BasisCollectorImpl::Ptr
-ReducedLinearDriverImpl::buildBasisCollector() const {
-  if (noForce_) {
-    return BasisCollectorImpl::New();
-  }
-
-  return NonHomogeneousBasisCollectorImpl::New();
 }
 
 CorrectionPropagator<DynamState>::Manager::Ptr

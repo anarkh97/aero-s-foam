@@ -8,10 +8,11 @@
 
 namespace Pita { namespace Hts {
 
-GlobalStateSharing::GlobalStateSharing(Communicator * timeComm, size_t vectorSize) :
+GlobalStateSharing::GlobalStateSharing(Communicator * timeComm, size_t vectorSize, Strategy strategy) :
   NamedTask("Exchange Global Projection Basis"),
   timeComm_(timeComm),
   vectorSize_(vectorSize),
+  strategy_(strategy),
   seedGetter_(NULL),
   stateCount_(0),
   localStates_(),
@@ -29,34 +30,49 @@ GlobalStateSharing::localCpu() const {
 
 void
 GlobalStateSharing::mappingIs(const SliceMapping & mapping) {
-  // Allocate buffer
-  stateCount_ = mapping.activeSlices().value();
-
-  const int stateSize = 2 * vectorSize();
-  const size_t newBufferSize = stateCount_ * stateSize;
-  if (buffer_.size() < newBufferSize) {
-    buffer_.sizeIs(newBufferSize);
-  }
- 
   // Partition buffer
   const int cpuCount = mapping.availableCpus().value();
   bufferCounts_.sizeIs(cpuCount);
   bufferStrides_.sizeIs(cpuCount);
 
+  stateCount_ = 0;
+  const int stateSize = 2 * vectorSize();
   for (int cpu = 0; cpu < cpuCount; ++cpu) {
-    bufferCounts_[cpu] = mapping.activeSlices(CpuRank(cpu)).value() * stateSize;
+    int statesOnCpu = 0;
+    for (SliceMapping::SliceIterator it = mapping.hostedSlice(CpuRank(cpu)); it; ++it) {
+      const HalfSliceRank rank = *it;
+      
+      if (rank < mapping.firstActiveSlice()) {
+        continue;
+      }
+      if (rank >= mapping.firstInactiveSlice()) {
+        break;
+      }
+
+      const HalfSliceCount distance = rank - mapping.firstActiveSlice();
+      statesOnCpu += strategy_.stateCount(distance);
+    }
+
+    bufferCounts_[cpu] = statesOnCpu * stateSize;
+    stateCount_ += statesOnCpu;
   }
 
   bufferStrides_[0] = 0;
   std::partial_sum(bufferCounts_.array(),
                    bufferCounts_.array() + cpuCount - 1,
                    bufferStrides_.array() + 1);
+  
+  // Allocate buffer
+  const size_t newBufferSize = stateCount_ * stateSize;
+  if (buffer_.size() < newBufferSize) {
+    buffer_.sizeIs(newBufferSize);
+  }
 
   // Enqueue local seeds to be exchanged
   assert(localStates_.empty());
   
   for (SliceMapping::SliceIterator it = mapping.hostedSlice(localCpu()); it; ++it) {
-    HalfSliceRank rank = *it;
+    const HalfSliceRank rank = *it;
 
     if (rank < mapping.firstActiveSlice()) {
       continue;
@@ -65,10 +81,16 @@ GlobalStateSharing::mappingIs(const SliceMapping & mapping) {
       break;
     }
 
-    HalfSliceCount distance = rank - mapping.firstActiveSlice();
+    const HalfSliceCount distance = rank - mapping.firstActiveSlice();
 
-    SeedId id = (distance.value() % 2) ? SeedId(LEFT_SEED, rank.next()) : SeedId(RIGHT_SEED, rank);
-    localStates_.push(seedGetter_(id));
+    for (Strategy::ConstIterator jt = strategy_.sliceSeedTypeBegin(distance);
+         jt != strategy_.sliceSeedTypeEnd(distance);
+         ++jt) {
+      const SeedType type = *jt;
+      const HalfSliceRank seedRank = (type == RIGHT_SEED) ? rank : rank.next();
+      // log() << "Scheduling seed " << type << seedRank << "\n"; // Debug
+      localStates_.push(seedGetter_(SeedId(type, seedRank)));
+    }
   }
 }
 
@@ -98,6 +120,19 @@ GlobalStateSharing::iterationIs(IterationRank iter) {
   // Expose data
   consolidatedBasis_ = DynamStateBasisWrapper::New(vectorSize(), stateCount_, buffer_.array());
   setIteration(iter);
+}
+
+void
+GlobalStateSharing::Strategy::init() {
+  if (seedTypes_.find(MAIN_SEED) != seedTypes_.end()) {
+    sliceSeedTypes_[0].insert(MAIN_SEED);
+  }
+  if (seedTypes_.find(LEFT_SEED) != seedTypes_.end()) {
+    sliceSeedTypes_[0].insert(LEFT_SEED);
+  }
+  if (seedTypes_.find(RIGHT_SEED) != seedTypes_.end()) {
+    sliceSeedTypes_[1].insert(RIGHT_SEED);
+  }
 }
 
 } /* end namespace Hts */ } /* end namespace Pita */

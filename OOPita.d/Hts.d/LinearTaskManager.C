@@ -1,5 +1,7 @@
 #include "LinearTaskManager.h"
 
+#include "ReducedCorrectionManager.h"
+
 namespace Pita { namespace Hts {
 
 class ProjectionBasis : public NamedTask {
@@ -10,24 +12,29 @@ public:
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
-  ProjectionBasis(LinearProjectionNetworkImpl * correctionMgr, RemoteState::MpiManager * commMgr) :
+  ProjectionBasis(LinearProjectionNetwork * correctionMgr, RemoteState::MpiManager * commMgr) :
     NamedTask("Projection building"),
     correctionMgr_(correctionMgr),
     commMgr_(commMgr)
   {}
 
 private:
-  LinearProjectionNetworkImpl::Ptr correctionMgr_;
+  LinearProjectionNetwork::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 };
 
 LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
-                                     LinearLocalNetwork * network,
+                                     SliceMapping * mapping,
+                                     AffinePropagatorManager * propMgr,
+                                     CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                                      JumpConvergenceEvaluator * jumpCvgMgr,
-                                     LinearProjectionNetworkImpl * correctionMgr,
+                                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
+                                     LinearProjectionNetwork * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
-  network_(network),
+  network_(new LinearLocalNetwork(mapping, propMgr,
+           new ReducedCorrectionManager(correctionMgr, fullCorrMgr),
+           jumpCvgMgr, commMgr, jumpErrorMgr)),
   jumpCvgMgr_(jumpCvgMgr),
   correctionMgr_(correctionMgr),
   commMgr_(commMgr),

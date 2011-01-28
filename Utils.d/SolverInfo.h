@@ -81,7 +81,8 @@ struct SolverInfo {
    int pitaMainIterMax;        // Maximum number of main iterations (always required)
    int pitaProcessWorkloadMax; // Maximum number of active time-slices on each CPU (always required)
    //int numSpaceMPIProc;      // Number of CPUs in the space domain (only when time-space parallelism is enabled)
-   int pitaBaseImprovement;    // 0 = All seeds, 1 (default) = Local increments (nonlinear problem only) 
+   int pitaGlobalBasisImprovement;    // 1 (default) = Seeds only, 2 = Seeds and propagated seeds (nonlinear problem only)
+   int pitaLocalBasisImprovement;     // 0 (default) = Global only, 1 = Local increments only (nonlinear problem only)
    bool pitaRemoteCoarse;      // Coarse grid integrator on dedicated CPU 
    double pitaProjTol;         // Tolerance used to build the projector
    bool pitaTimeReversible;    // true if PITA exploits the time-reversibility of the problem
@@ -254,7 +255,8 @@ struct SolverInfo {
                   pitaMainIterMax = 0;
                   pitaProcessWorkloadMax = 1;
                   //numSpaceMPIProc = 1;
-                  pitaBaseImprovement = 0;
+                  pitaGlobalBasisImprovement = 1;
+                  pitaLocalBasisImprovement = 0;
                   pitaRemoteCoarse = false;
                   pitaProjTol = 1.0e-6;
                   pitaTimeReversible = false;

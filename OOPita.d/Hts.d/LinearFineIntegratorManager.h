@@ -13,7 +13,7 @@ public:
   EXPORT_PTRINTERFACE_TYPES(LinearFineIntegratorManager);
 
   LinearDynamOps::Manager * dynamOpsManager() const { return dynamOpsManager_.ptr(); }
-  const GeneralizedAlphaParameter & parameter(HalfTimeSlice::Direction direction) const;
+  const GeneralizedAlphaParameter & parameter(Direction direction) const;
 
   static Ptr New(LinearDynamOps::Manager * dynOpsMgr, const GeneralizedAlphaParameter & forwardParam) {
     return new LinearFineIntegratorManager(dynOpsMgr, forwardParam);
@@ -22,7 +22,7 @@ public:
 protected:
   LinearFineIntegratorManager(LinearDynamOps::Manager * dom, const GeneralizedAlphaParameter & fp);
 
-  virtual GenAlphaIntegratorType * createFineIntegrator(HalfTimeSlice::Direction direction) const; // Overriden
+  virtual GenAlphaIntegratorType * createFineIntegrator(Direction direction) const; // Overriden
 
 private:
   LinearDynamOps::Manager::Ptr dynamOpsManager_;
@@ -40,13 +40,13 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::LinearFineIntegratorManager
 
 template <typename GenAlphaIntegratorType>
 const GeneralizedAlphaParameter &
-LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(HalfTimeSlice::Direction direction) const {
+LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(Direction direction) const {
   switch (direction) {
-    case HalfTimeSlice::NO_DIRECTION: // Fall through
-    case HalfTimeSlice::FORWARD:
+    case NO_DIRECTION: // Fall through
+    case FORWARD:
       return forwardParameter_;
       break;
-    case HalfTimeSlice::BACKWARD:
+    case BACKWARD:
       return backwardParameter_; 
       break;
   }
@@ -56,18 +56,12 @@ LinearFineIntegratorManager<GenAlphaIntegratorType>::parameter(HalfTimeSlice::Di
 
 template <typename GenAlphaIntegratorType>
 GenAlphaIntegratorType *
-LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(HalfTimeSlice::Direction direction) const {
-  switch (direction) {
-    case HalfTimeSlice::NO_DIRECTION:
-      return NULL;
-      break;
-    case HalfTimeSlice::FORWARD: // Fall through
-    case HalfTimeSlice::BACKWARD:
-      return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
-      break;
+LinearFineIntegratorManager<GenAlphaIntegratorType>::createFineIntegrator(Direction direction) const {
+  if (direction == NO_DIRECTION) {
+    return NULL;
   }
 
-  throw Fwk::InternalException("In LinearFineIntegratorManager::createFineIntegrator");
+  return new GenAlphaIntegratorType(this->dynamOpsManager(), parameter(direction));
 }
 
 

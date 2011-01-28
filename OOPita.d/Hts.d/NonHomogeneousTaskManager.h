@@ -12,11 +12,14 @@ public:
 
   virtual void iterationInc(); //overriden
 
-  NonHomogeneousTaskManager(LinearLocalNetwork * network,
-                            SeedInitializer * seedInit,
+  NonHomogeneousTaskManager(SliceMapping * mapping,
+                            RemoteState::MpiManager * commMgr,
+                            AffinePropagatorManager * propMgr,
+                            LinearProjectionNetwork * correctionMgr,
                             JumpConvergenceEvaluator * jumpCvgMgr,
-                            LinearProjectionNetworkImpl * correctionMgr,
-                            RemoteState::MpiManager * commMgr);
+                            LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
+                            SeedInitializer * initializer,
+                            CorrectionPropagator<DynamState>::Manager * fullCorrMgr);
 
 protected:
   void schedulePreIteration();

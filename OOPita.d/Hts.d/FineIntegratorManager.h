@@ -2,7 +2,8 @@
 #define PITA_FINEINTEGRATORMANAGER_H
 
 #include "Fwk.h"
-#include "HalfTimeSlice.h"
+#include "HalfSliceId.h"
+
 #include "../DynamTimeIntegrator.h"
 
 namespace Pita { namespace Hts {
@@ -13,12 +14,12 @@ public:
   EXPORT_PTRINTERFACE_TYPES(GenFineIntegratorManager);
   
   Seconds fineTimeStepSize() const { return fineTimeStepSize_; }
-  IntegratorType * fineIntegrator(HalfTimeSlice::Direction direction) const;
+  IntegratorType * fineIntegrator(Direction direction) const;
 
 protected:
   explicit GenFineIntegratorManager(Seconds fineTimeStep);
 
-  virtual IntegratorType * createFineIntegrator(HalfTimeSlice::Direction direction) const = 0;
+  virtual IntegratorType * createFineIntegrator(Direction direction) const = 0;
 
 private:
   Seconds fineTimeStepSize_;
@@ -38,18 +39,18 @@ GenFineIntegratorManager<IntegratorType>::GenFineIntegratorManager(Seconds fineT
 
 template <typename IntegratorType>
 IntegratorType *
-GenFineIntegratorManager<IntegratorType>::fineIntegrator(HalfTimeSlice::Direction direction) const {
+GenFineIntegratorManager<IntegratorType>::fineIntegrator(Direction direction) const {
   IntegratorType * result;
   
   switch (direction) {
-    case HalfTimeSlice::FORWARD:
+    case FORWARD:
       if (!forwardFineIntegrator_) {
         forwardFineIntegrator_ = createFineIntegrator(direction);
       }
       result = forwardFineIntegrator_.ptr();
       break;
 
-    case HalfTimeSlice::BACKWARD:
+    case BACKWARD:
       if (!backwardFineIntegrator_) {
         backwardFineIntegrator_ = createFineIntegrator(direction);
       }

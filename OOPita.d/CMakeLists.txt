@@ -1,5 +1,6 @@
 ADD_LIBRARY( pitadriver
 AffineIntegratorPropagator.C
+BasicPropagation.C
 BasisTransform.C
 CommSplitter.C
 ConcurrentBasisManager.C
@@ -13,6 +14,7 @@ DynamTimeIntegrator.C
 FullCorrectionPropagatorImpl.C
 HierarchicalTimer.C
 IncrementalPostProcessor.C
+IncrementalPropagation.C
 InitialSeedTask.C
 IntegratorPropagator.C
 IntegratorSeedInitializer.C
@@ -55,7 +57,6 @@ Lapack32.d/dsyequb.f
 Lapack32.d/equilibrateSym.C
 Std.d/AffineBasisCollector.C
 Std.d/HomogeneousTaskManager.C
-Std.d/IncrementalPropagation.C
 Std.d/JumpConvergenceEvaluator.C
 Std.d/LinearPropagatorManager.C
 Std.d/LinearProjectionNetwork.C
@@ -64,26 +65,24 @@ Std.d/ReducedLinearDriverImpl.C
 Std.d/RemoteCoarseCorrectionServer.C
 Std.d/RemoteSeedInitializerServer.C
 Std.d/SliceMapping.C
-Hts.d/AffineHalfTimeSliceImpl.C
-Hts.d/BasicHalfTimeSliceImpl.C
-Hts.d/BasisCollectorImpl.C
+Hts.d/AffineBasisCollector.C
 Hts.d/CorrectionReconstructor.C
 Hts.d/CorrectionReductor.C
-Hts.d/HalfTimeSlice.C
 Hts.d/HomogeneousTaskManager.C
 Hts.d/JumpConvergenceEvaluator.C
 Hts.d/LinearTaskManager.C
-Hts.d/LinearProjectionNetworkImpl.C
+Hts.d/LinearProjectionNetwork.C
 Hts.d/LinearLocalNetwork.C
+Hts.d/NlBasisUpdate.C
 Hts.d/NlDriver.C
 Hts.d/NlLocalNetwork.C
 Hts.d/NlProjectionNetwork.C
 Hts.d/NlPropagatorManager.C
 Hts.d/NlTaskManager.C
-Hts.d/NonHomogeneousBasisCollectorImpl.C
 Hts.d/NonHomogeneousTaskManager.C
 Hts.d/GlobalStateSharing.C
 Hts.d/AffinePropagatorManager.C
+Hts.d/ReducedCorrectionManager.C
 Hts.d/ReducedLinearDriverImpl.C
 Hts.d/RemoteCoarseCorrectionServer.C
 Hts.d/RemoteSeedInitializerServer.C

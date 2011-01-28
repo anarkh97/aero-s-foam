@@ -4,11 +4,13 @@
 template <typename Scalar> class GenVector;
 
 #include <memory>
+#include <algorithm>
 
 template <typename Scalar, template <typename Scalar> class GenVecType = GenVector>
 class GenVecBasis : private std::allocator<GenVecType<Scalar> > {
 public:
   typedef GenVecType<Scalar> VecType;
+  typedef typename VecType::InfoType InfoType;
 
   // Immutable individual vector size (and compatibility aliases)
   int vectorSize() const { return vectorSize_; }
@@ -17,7 +19,7 @@ public:
   // Immutable vector count (and compatibility aliases)
   int vectorCount() const { return vectorCount_; }
   int numVec()      const { return vectorCount_; }
-  int numVectors()  const { return vectorCount_; } 
+  int numVectors()  const { return vectorCount_; }
 
   // Iteration
   typedef const VecType *const_iterator;
@@ -35,34 +37,94 @@ public:
   // (must take care to NOT reallocate underlying memory)
   VecType &operator[](int i) { return vectors_[i]; }
 
-  // Ctor and dtor
+  // Construction, assignment, destruction
+  GenVecBasis();
   GenVecBasis(int vCount, int vSize);
+  GenVecBasis(const GenVecBasis &);
+
+  void swap(GenVecBasis &);
+  GenVecBasis &operator=(const GenVecBasis &);
+  
   ~GenVecBasis();
 
 private:
   typedef std::allocator<VecType> Allocator;
+
+  void placeVectors();
+  void copyBufferContent(const GenVecBasis &other);
 
   int vectorSize_;
   int vectorCount_;
 
   Scalar *buffer_;
   VecType *vectors_;
-
-  // Disallow copy and assignment
-  GenVecBasis(const GenVecBasis &);
-  GenVecBasis &operator=(const GenVecBasis &);
 };
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+inline
+void
+GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
+  std::swap(vectorSize_,  other.vectorSize_);
+  std::swap(vectorCount_, other.vectorCount_);
+  std::swap(buffer_,      other.buffer_);
+  std::swap(vectors_,     other.vectors_);
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+inline
+void
+GenVecBasis<Scalar, GenVecType>::placeVectors() {
+  buffer_ = new Scalar[vectorSize_ * vectorCount_];
+  vectors_ = Allocator::allocate(vectorCount_);
+  for (int iVec = 0; iVec < vectorCount_; ++iVec) {
+    new(vectors_ + iVec) VecType(vectorSize_, buffer_ + (iVec * vectorSize_), false);
+  }
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+inline
+void
+GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
+  std::copy(other.buffer_, other.buffer_ + vectorSize_ * vectorCount_, buffer_);
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
+ vectorSize_(),
+ vectorCount_(0)
+{
+  placeVectors();
+}
 
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, int vSize) :
  vectorSize_(vSize),
- vectorCount_(vCount),
- buffer_(new Scalar[vectorSize_ * vectorCount_]),
- vectors_(Allocator::allocate(vectorCount_))
+ vectorCount_(vCount)
 {
-  for (int iVec = 0; iVec < vectorCount_; ++iVec) {
-    new(vectors_ + iVec) VecType(vectorSize_, buffer_ + (iVec * vectorSize_), false);
+  placeVectors();
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
+ vectorSize_(other.vectorSize_),
+ vectorCount_(other.vectorCount_)
+{
+  placeVectors();
+  copyBufferContent(other);
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+GenVecBasis<Scalar, GenVecType> &
+GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
+  if (this != &other) {
+    if (vectorCount_ == other.vectorCount_ && vectorSize_ == other.vectorSize_) {
+      copyBufferContent(other);
+    } else {
+      GenVecBasis temp(other);
+      swap(temp);
+    }
   }
+  return *this;
 }
 
 template <typename Scalar, template <typename Scalar> class GenVecType>

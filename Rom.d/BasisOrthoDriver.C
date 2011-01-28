@@ -3,11 +3,10 @@
 #include "BasisOrthogonalization.h"
 #include "VecNodeDof6Conversion.h"
 #include "BasisFileStream.h"
+#include "SimpleBuffer.h"
 
 #include <Driver.d/Domain.h>
 #include <Utils.d/dofset.h>
-
-#include <OOPita.d/SimpleBuffer.h>
 
 BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
   domain_(domain)
@@ -31,8 +30,8 @@ BasisOrthoDriver::preProcess() {
  
   // Build the constrained DofSetArray incorporating the boundary conditions 
   const int numdof = domain_->numdof();
-  ::Pita::SimpleBuffer<int> bc(numdof);
-  ::Pita::SimpleBuffer<double> bcx(numdof);
+  SimpleBuffer<int> bc(numdof);
+  SimpleBuffer<double> bcx(numdof);
 
   domain_->make_bc(bc.array(), bcx.array());
   domain_->make_constrainedDSA(bc.array());

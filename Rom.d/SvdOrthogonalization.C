@@ -52,7 +52,7 @@ SvdOrthogonalization::solve() {
   assert(info == 0);
 
   const int lwork = static_cast<int>(queryAns);
-  DoubleBuffer work(lwork); 
+  SimpleBuffer<double> work(lwork); 
   _FORTRAN(dgesvd)(&overwrite, &ignore,
                    &rowCount_, &colCount_, matrixBuffer_.array(), &lda,
                    sigmaBuffer_.array(), NULL, &dummy_ld, NULL, &dummy_ld,

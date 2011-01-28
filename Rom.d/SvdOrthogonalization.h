@@ -1,7 +1,7 @@
 #ifndef ROM_SVDORTHOGONALIZATION_H
 #define ROM_SVDORTHOGONALIZATION_H
 
-#include <OOPita.d/SimpleBuffer.h>
+#include "SimpleBuffer.h"
 
 class SvdOrthogonalization {
 public:
@@ -29,9 +29,8 @@ public:
 private:
   int rowCount_, colCount_, smallestDimension_;
 
-  typedef ::Pita::SimpleBuffer<double> DoubleBuffer;
-  DoubleBuffer matrixBuffer_;
-  DoubleBuffer sigmaBuffer_;
+  SimpleBuffer<double> matrixBuffer_;
+  SimpleBuffer<double> sigmaBuffer_;
 
   // Disallow copy and assignment
   SvdOrthogonalization(const SvdOrthogonalization &);

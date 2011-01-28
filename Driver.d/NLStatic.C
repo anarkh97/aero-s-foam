@@ -24,6 +24,8 @@
 
 #include <Driver.d/GeoSource.h>
 
+#include <algorithm>
+
 void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 		         Corotator **corotators, FullSquareMatrix *kel,
@@ -382,14 +384,18 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double (*data)[6] = new double[nPrintNodes][6];
       for (i=0; i < nPrintNodes; ++i) {
         int iNode = first_node+i;
-        data[i][0] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
-        data[i][1] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
-        data[i][2] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
-        double rot[3];
-        mat_to_vec((*geomState)[iNode].R,rot);
-        data[i][3] = rot[0];
-        data[i][4] = rot[1];
-        data[i][5] = rot[2];
+        if (iNode < geomState->numNodes()) {
+          if (nodes[iNode]) {
+            data[i][0] = (*geomState)[iNode].x - nodes[iNode]->x;
+            data[i][1] = (*geomState)[iNode].y - nodes[iNode]->y;
+            data[i][2] = (*geomState)[iNode].z - nodes[iNode]->z;
+          } else {
+            std::fill_n(&data[i][0], 3, 0.0);
+          }
+          mat_to_vec((*geomState)[iNode].R, &data[i][3]);
+        } else {
+          std::fill_n(&data[i][0], 6, 0.0);
+        }
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;

@@ -1,7 +1,10 @@
 #include "SnapshotNonLinDynamic.h"
 
 #include "SvdOrthogonalization.h"
+#include "VecNodeDof6Conversion.h"
 #include "BasisOutputFile.h"
+#include "BasisFileStream.h"
+#include "NodeDof6Buffer.h"
 
 #include <Driver.d/Domain.h>
 
@@ -12,6 +15,7 @@
 
 #include <cstddef>
 #include <algorithm>
+#include <memory>
 
 // Dummy class holding the implementation of SnapshotNonLinDynamic
 struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
@@ -24,21 +28,20 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     int nodeCount() const { return domain_->numGlobalNodes(); }
     int vectorSize() const { return domain_->numUncon(); }
 
-    virtual ~RawImpl();
-
     explicit RawImpl(Domain *);
 
   protected:
-    void fillSnapBuffer(const double *origin);
+    template <typename VecType>
+    void fillSnapBuffer(const VecType &origin);
   
-    typedef double (*NodeBuffer)[6];
-    const NodeBuffer snapBuffer() const { return snapBuffer_; }
+    const NodeDof6Buffer &snapBuffer() const { return snapBuffer_; }
+    const VecNodeDof6Conversion &converter() const { return converter_; }
 
   private:
     Domain * domain_;
-    
-    NodeBuffer snapBuffer_;
-    int (*dofLocation_)[6];
+
+    VecNodeDof6Conversion converter_;
+    NodeDof6Buffer snapBuffer_;
 
   protected:
     BasisOutputFile stateSnapFile_;
@@ -53,15 +56,13 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
 
     explicit SvdImpl(Domain *);
 
-    virtual ~SvdImpl();
-
   private:
     void orthoAndSave(const std::deque<Vector> &, BasisOutputFile &);
 
     std::deque<Vector> stateSnapshot_;
     std::deque<Vector> residualSnapshot_;
 
-    const GeomState * refGeomState_;
+    std::auto_ptr<const GeomState> refGeomState_;
     Vector increment_;
 
     SvdOrthogonalization svdSolver_;
@@ -76,32 +77,23 @@ private:
 
 SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain) :
   domain_(domain),
-  snapBuffer_(new double[nodeCount()][6]),
-  dofLocation_(new int[nodeCount()][6]),
+  converter_(*domain->getCDSA()),
+  snapBuffer_(nodeCount()),
   stateSnapFile_("StateSnap", nodeCount()),      // TODO name
   residualSnapFile_("ResidualSnap", nodeCount()) // TODO name
-{
-  // Store location of each degree of freedom
-  DofSetArray &cdsa = *(domain_->getCDSA());
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    dofLocation_[iNode][0] = cdsa.locate(iNode, DofSet::Xdisp);
-    dofLocation_[iNode][1] = cdsa.locate(iNode, DofSet::Ydisp);
-    dofLocation_[iNode][2] = cdsa.locate(iNode, DofSet::Zdisp);
-    dofLocation_[iNode][3] = cdsa.locate(iNode, DofSet::Xrot);
-    dofLocation_[iNode][4] = cdsa.locate(iNode, DofSet::Yrot);
-    dofLocation_[iNode][5] = cdsa.locate(iNode, DofSet::Zrot);
-  }
-}
-
-SnapshotNonLinDynamicDetail::RawImpl::~RawImpl() {
-  delete[] dofLocation_;
-  delete[] snapBuffer_;
-}
+{}
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
   stateSnapFile_.updateStateCountStatus();
   residualSnapFile_.updateStateCountStatus();
+}
+
+template <typename VecType>
+inline
+void
+SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const VecType &snap) {
+  converter_.nodeDof6(snap, snapBuffer_);
 }
 
 void
@@ -125,18 +117,8 @@ SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::residualSnapshotAdd(const Vector &snap) {
-  fillSnapBuffer(snap.data());
-  residualSnapFile_.stateAdd(snapBuffer_);
-}
-
-void
-SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const double *snap) {
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    for (int iDof = 0; iDof < 6; ++iDof) {
-      const int loc = dofLocation_[iNode][iDof];
-      snapBuffer_[iNode][iDof] = (loc >= 0) ? snap[loc] : 0.0;
-    }
-  }
+  fillSnapBuffer(snap);
+  residualSnapFile_.stateAdd(snapBuffer());
 }
 
 SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
@@ -144,10 +126,6 @@ SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
   refGeomState_(new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes())),
   increment_(vectorSize())
 {}
-
-SnapshotNonLinDynamicDetail::SvdImpl::~SvdImpl() {
-  delete refGeomState_;
-}
 
 void
 SnapshotNonLinDynamicDetail::SvdImpl::stateSnapshotAdd(const GeomState &snap) {

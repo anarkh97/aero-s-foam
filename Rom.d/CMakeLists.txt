@@ -1,5 +1,5 @@
 ADD_LIBRARY( Rom
-  BasisFileIterator.C
+  BasisFileStream.C
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
@@ -7,5 +7,6 @@ ADD_LIBRARY( Rom
   GaussNewtonNonLinDynamic.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
+  VecBasisFile.C
   VecNodeDof6Conversion.C
 )

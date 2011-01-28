@@ -8,8 +8,8 @@
 
 class BasisOrthogonalization {
 public:
-  template <typename InputRange, typename OutputIterator>
-  OutputIterator basisNew(InputRange &input, OutputIterator output);
+  template <typename InputRange, typename OutputRange>
+  OutputRange &basisNew(InputRange &input, OutputRange &output);
 
   BasisOrthogonalization() {}
 
@@ -21,29 +21,23 @@ private:
   BasisOrthogonalization &operator=(const BasisOrthogonalization &);
 };
 
-template <typename InputRange, typename OutputIterator>
-OutputIterator
-BasisOrthogonalization::basisNew(InputRange &input, OutputIterator output) {
+template <typename InputRange, typename OutputRange>
+OutputRange &
+BasisOrthogonalization::basisNew(InputRange &input, OutputRange &output) {
   solver_.matrixSizeIs(input.vectorSize(), input.size());
 
-  typedef typename InputRange::const_iterator InputIterator;
-  const InputIterator inputEnd = input.end();
-  
   int iCol = 0;
-  for (InputIterator it = input.begin(); it != inputEnd; ++it) {
-    (*it)(solver_.matrixCol(iCol));
-    ++iCol;
+  while (input) {
+    input >> solver_.matrixCol(iCol++);
   }
 
   solver_.solve();
 
-  OutputIterator it = output;
   for (int iVec = 0; iVec < solver_.singularValueCount(); ++iVec) {
-    *it = std::make_pair(solver_.singularValue(iVec), solver_.matrixCol(iVec));
-    ++it;
+    output << std::make_pair(solver_.singularValue(iVec), solver_.matrixCol(iVec));
   }
 
-  return it;
+  return output;
 }
 
 #endif /* ROM_BASISORTHOGONALIZATION_H */

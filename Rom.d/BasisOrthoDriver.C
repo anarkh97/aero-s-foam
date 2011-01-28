@@ -2,7 +2,7 @@
 
 #include "BasisOrthogonalization.h"
 #include "VecNodeDof6Conversion.h"
-#include "BasisFileIterator.h"
+#include "BasisFileStream.h"
 
 #include <Driver.d/Domain.h>
 #include <Utils.d/dofset.h>
@@ -18,11 +18,11 @@ BasisOrthoDriver::solve() {
   preProcess();
  
   VecNodeDof6Conversion converter(*domain_->getCDSA());
-  BasisInputRange input("RawBasis", converter); //TODO filename
-  BasisOutputRange output("OrthoBasis", converter); //TODO filename
+  BasisInputStream input("RawBasis", converter); //TODO filename
+  BasisOutputStream output("OrthoBasis", converter); //TODO filename
 
   BasisOrthogonalization solver;
-  solver.basisNew(input, output.begin());
+  solver.basisNew(input, output);
 }
 
 void

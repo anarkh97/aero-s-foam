@@ -4,7 +4,7 @@
 #include "GalerkinProjectionSolver.h"
 #include "VecNodeDof6Conversion.h"
 #include "NodeDof6Buffer.h"
-#include "BasisOutputFile.h"
+#include "BasisFileStream.h"
 
 #include <Problems.d/NonLinDynam.h>
 #include <Rom.d/VecBasis.h>
@@ -15,9 +15,8 @@ class GaussNewtonNonLinDynamic : public NonLinDynamic {
 public:
   explicit GaussNewtonNonLinDynamic(Domain *);
 
-  // Required additional pre- and post-processing
+  // Required additional pre-processing
   virtual void preProcess();
-  void postProcess();
 
   GalerkinProjectionSolver *getSolver(); // Hiding NonLinDynamic::getSolver
 
@@ -31,16 +30,15 @@ private:
   virtual bool factorWhenBuilding() const; // Overriden
 
   void computeAndSaveJacobianSnapshot();
-  void saveResidualSnapshot(const Vector &);
-  void saveJacobianSnapshot(const Vector &);
+  void saveResidualSnapshot(const Vector &snap) { *residualSnapFile_ << snap; }
 
-  std::auto_ptr<GenVecBasis<double> > projectionBasis_;
+  VecBasis projectionBasis_;
 
   std::auto_ptr<VecNodeDof6Conversion> vecNodeDof6Conversion_;
   NodeDof6Buffer snapBuffer_;
   
-  std::auto_ptr<BasisOutputFile> residualSnapFile_;
-  std::auto_ptr<BasisOutputFile> jacobianSnapFile_;
+  std::auto_ptr<BasisOutputStream> residualSnapFile_;
+  std::auto_ptr<BasisOutputStream> jacobianSnapFile_;
 
   friend class Updater;
 

@@ -1,7 +1,7 @@
 #include "GaussNewtonNonLinDynamic.h"
 
-#include "BasisFileIterator.h"
-
+#include "BasisFileStream.h"
+#include "VecBasisFile.h"
 #include "BasisOps.h"
 
 #include <Driver.d/Domain.h>
@@ -27,31 +27,18 @@ GaussNewtonNonLinDynamic::preProcess() {
   snapBuffer_.sizeIs(vecNodeDof6Conversion_->nodeCount());
 
   // Load projection basis
-  BasisInputRange projectionBasisInput("GaussNewtonBasis", *vecNodeDof6Conversion_); //TODO: file name
+  BasisInputStream projectionBasisInput("GaussNewtonBasis", *vecNodeDof6Conversion_); //TODO: file name
   assert(projectionBasisInput.vectorSize() == solVecInfo());
   std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.size());
-
-  projectionBasis_.reset(new GenVecBasis<double>(projectionBasisInput.size(), projectionBasisInput.vectorSize()));
-
-  GenVecBasis<double>::iterator jt = projectionBasis_->begin();
-  for (BasisInputRange::const_iterator it = projectionBasisInput.begin();
-      it != projectionBasisInput.end(); ++it) {
-    (*it)(*jt++);
-  }
+  projectionBasisInput >> projectionBasis_;
 
   // Setup solver
-  getSolver()->projectionBasisIs(*projectionBasis_);
+  getSolver()->projectionBasisIs(projectionBasis_);
   getSolver()->factor(); // Delayed factorization
   
   // Snapshot output
-  residualSnapFile_.reset(new BasisOutputFile("RomResidualSnap", vecNodeDof6Conversion_->nodeCount())); //TODO file name
-  jacobianSnapFile_.reset(new BasisOutputFile("RomJacobianSnap", vecNodeDof6Conversion_->nodeCount())); //TODO file name
-}
-
-void
-GaussNewtonNonLinDynamic::postProcess() {
-  residualSnapFile_->updateStateCountStatus();
-  jacobianSnapFile_->updateStateCountStatus();
+  residualSnapFile_.reset(new BasisOutputStream("RomResidualSnap", *vecNodeDof6Conversion_)); //TODO file name
+  jacobianSnapFile_.reset(new BasisOutputStream("RomJacobianSnap", *vecNodeDof6Conversion_)); //TODO file name
 }
 
 GalerkinProjectionSolver *
@@ -69,19 +56,9 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
 
 void
 GaussNewtonNonLinDynamic::computeAndSaveJacobianSnapshot() {
-  Vector jacobianSnap(solVecInfo());
-  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), jacobianSnap);
-  saveJacobianSnapshot(jacobianSnap);
-}
-
-void
-GaussNewtonNonLinDynamic::saveResidualSnapshot(const Vector &snap) {
-  residualSnapFile_->stateAdd(vecNodeDof6Conversion_->nodeDof6(snap, snapBuffer_));
-}
-
-void
-GaussNewtonNonLinDynamic::saveJacobianSnapshot(const Vector &snap) {
-  jacobianSnapFile_->stateAdd(vecNodeDof6Conversion_->nodeDof6(snap, snapBuffer_));
+  Vector snap(solVecInfo());
+  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
+  *jacobianSnapFile_ << snap;
 }
 
 bool

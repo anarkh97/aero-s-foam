@@ -9,11 +9,13 @@
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
 
+#ifdef USE_EIGEN2
 #include <Eigen/Core>
 #include <vector>
 
 using namespace Eigen;
 using std::vector;
+#endif
 
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
@@ -180,6 +182,7 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                                  Vector& elDisp, int strInd, int surface,
                                  double *ndTemps, double ylayer, double zlayer, int avgnum)
 { 
+#ifdef USE_EIGEN2
   // voight rule in xed3d code: [xx,yy,zz,yz,xz,xy]
   weight = 1.0;
   int j;
@@ -226,6 +229,10 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         break;
     }
   }
+#else
+  cerr << "USE_EIGEN2 is not defined here in BelytschkoTsayShell::getVonMises\n";
+  exit(-1);
+#endif
 }
 
 void
@@ -565,6 +572,7 @@ void
 BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, double *_evelo,
                                 double trac[3], double tmftval, double *_efint)
 {
+#ifdef USE_EIGEN2
   //=======================================================================
   //  elefintbt1 = compute internal force matrix for bt shell, including hourglass force
   //
@@ -751,4 +759,8 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // convert local efintloc to global efint
   // -------------------------------------
   efint = locbvec*efintloc;
+#else
+  cerr << "USE_EIGEN2 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
+  exit(-1);
+#endif
 }

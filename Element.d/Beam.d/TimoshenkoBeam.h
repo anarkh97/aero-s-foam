@@ -13,9 +13,10 @@ class TimoshenkoBeam : public Element {
   	double* iniOr;	
 	
 public:
-        TimoshenkoBeam(int*);
+  explicit TimoshenkoBeam(int*);
+  virtual ~TimoshenkoBeam();
 
-	Element *clone();
+	TimoshenkoBeam *clone();
 
 	void renum(int *);
 
@@ -49,7 +50,9 @@ public:
 
         int getMassType() { return 0; } // lumped only
 private:
-       
+        TimoshenkoBeam(const TimoshenkoBeam &);
+        TimoshenkoBeam &operator=(const TimoshenkoBeam &);
+
         void updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len);
 
 #ifdef STRUCTOPT

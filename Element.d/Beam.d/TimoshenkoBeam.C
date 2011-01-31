@@ -1,7 +1,3 @@
-#include	<stdio.h>
-#include	<stdlib.h>
-#include 	<math.h>
-
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
 #include	<Math.d/FullSquareMatrix.h>
 #include        <Corotational.d/BeamCorotator.h>
@@ -10,6 +6,10 @@
 #include 	<Utils.d/dofset.h>
 #include 	<Utils.d/linkfc.h>
 
+#include	<cstdio>
+#include	<cstddef>
+#include 	<cmath>
+#include  <cstring>
 
 extern "C"      {
 void _FORTRAN(modmstif7)(double*, double&, double&, double*, 
@@ -32,16 +32,34 @@ void _FORTRAN(transform)(double*, double*, double*, double*, double*, double*, d
 
 TimoshenkoBeam::TimoshenkoBeam(int* nodenums)
 {
-        elemframe = 0;
-        nn[0] = nodenums[0];
-        nn[1] = nodenums[1];
-        nn[2] = nodenums[2];
+  elemframe = 0;
+  nn[0] = nodenums[0];
+  nn[1] = nodenums[1];
+  nn[2] = nodenums[2];
+  iniOr = 0;
 }
 
-Element *
+TimoshenkoBeam::~TimoshenkoBeam() {
+  delete[] elemframe;
+  delete[] iniOr;
+}
+
+TimoshenkoBeam *
 TimoshenkoBeam::clone()
 {
- return new TimoshenkoBeam(*this);
+  TimoshenkoBeam *result = new TimoshenkoBeam(nn);
+
+  if (elemframe) {
+    result->elemframe = new EFrame[1];
+    std::memcpy(result->elemframe, elemframe, sizeof(elemframe[0]));
+  }
+
+  if (iniOr) {
+    result->iniOr = new double[3];
+    std::copy(iniOr, iniOr + 3, result->iniOr);
+  }
+
+  return result;
 }
 
 void
@@ -67,7 +85,7 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
 
   double len = iniOr[0]*iniOr[0]+iniOr[1]*iniOr[1]+iniOr[2]*iniOr[2];
   
-  len = sqrt(len);
+  len = std::sqrt(len);
 
   iniOr[0] = iniOr[0]/len;
   iniOr[1] = iniOr[1]/len;
@@ -90,6 +108,7 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
   else {
     Node &nd3 = cs.getNode(nn[2]);
 
+    delete[] elemframe;
     elemframe = new EFrame[1];
     EFrame &theFrame = *elemframe;
     theFrame[0][0] = nd2.x-nd1.x;
@@ -162,7 +181,7 @@ TimoshenkoBeam::getMass(CoordSet& cs)
         double dy = y[1] - y[0];
         double dz = z[1] - z[0];
 
-        double length = sqrt(dx*dx + dy*dy + dz*dz);
+        double length = std::sqrt(dx*dx + dy*dy + dz*dz);
 
         double mass = length*(prop->rho)*(prop->A);
 
@@ -196,7 +215,7 @@ TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 	   double dy = y[1] - y[0];
 	   double dz = z[1] - z[0];
 	     
-	   length = sqrt(dx*dx + dy*dy + dz*dz);
+	   length = std::sqrt(dx*dx + dy*dy + dz*dz);
 	     
            for(int i=0; i<3; ++i) {   
               for(int j=0; j<3; ++j) {
@@ -311,18 +330,18 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
 //                      Z_x, Z_y, Z_z
 
         if(prop->A == 0.0)
-          fprintf(stderr,"ERROR: Timoshenko beam has zero area. nodes %d %d\n",
+          std::fprintf(stderr,"ERROR: Timoshenko beam has zero area. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
-        if(sqrt((x[0]-x[1])*(x[0]-x[1])+(y[0]-y[1])*(y[0]-y[1])+(z[0]-z[1])*(z[0]-z[1]))==0.0)
-          fprintf(stderr,"ERROR: Timoshenko beam has zero lenth. nodes %d %d\n",
+        if(std::sqrt((x[0]-x[1])*(x[0]-x[1])+(y[0]-y[1])*(y[0]-y[1])+(z[0]-z[1])*(z[0]-z[1]))==0.0)
+          std::fprintf(stderr,"ERROR: Timoshenko beam has zero lenth. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
 
       // Check for the frame
       if(elemframe == 0)  {
-        fprintf(stderr," ****************************************************\n");
+        std::fprintf(stderr," ****************************************************\n");
         fprintf(stderr," *** ERROR: Timoshenko beam lacks a frame"
                        " (Nodes %d %d)\n",nn[0]+1,nn[1]+1);
-        fprintf(stderr," ****************************************************\n");
+        std::fprintf(stderr," ****************************************************\n");
         exit(-1);
       }
 
@@ -432,7 +451,7 @@ TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     double dy = y[1] - y[0];
     double dz = z[1] - z[0];
 
-    length = sqrt(dx*dx + dy*dy + dz*dz);
+    length = std::sqrt(dx*dx + dy*dy + dz*dz);
   } 
 
   double pressureForce = 0.5*pressure*length;
@@ -741,7 +760,7 @@ TimoshenkoBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3]
    double dy = xn[1][1] - xn[0][1];
    double dz = xn[1][2] - xn[0][2];
 
-   length = sqrt(dx*dx + dy*dy + dz*dz);
+   length = std::sqrt(dx*dx + dy*dy + dz*dz);
 
    rot[0]    = &(ns1.R); // rotation tensor of node state 1
    rot[1]    = &(ns2.R); // rotation tensor of node state 2

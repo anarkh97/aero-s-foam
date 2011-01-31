@@ -270,5 +270,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 #endif
 
   probDesc->printTimers(timeLoop);
+
+  delete stepState;
+  delete geomState;
 }
 

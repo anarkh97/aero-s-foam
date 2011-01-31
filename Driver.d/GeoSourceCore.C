@@ -156,6 +156,8 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   mpcDirect = false;
 
   mratio = 1.0; // consistent mass matrix
+
+  elemSet.setMyData(true);
 }
 
 //----------------------------------------------------------------------
@@ -202,7 +204,7 @@ int GeoSource::addElem(int en, int type, int nn, int *nodeNumbers)
 
 //----------------------------------------------------------------------
 
-int GeoSource::addMat(int nmat, StructProp &p)
+int GeoSource::addMat(int nmat, const StructProp &p)
 {
   if (numProps < nmat+1) // attempt to get numProps right -- Julien & Thomas
     numProps = nmat+1;
@@ -680,7 +682,7 @@ void GeoSource::setUpData()
     if(elemSet[i]) elemSet[i]->buildFrame(nodes);
 
   // Set up element attributes
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
     fprintf(stderr," **************************************\n");
     fprintf(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
@@ -696,8 +698,7 @@ void GeoSource::setUpData()
       hasAttr[attrib[i].nele] = true;
   }
   int dattr = maxattrib + 1;
-  StructProp *dprop = new StructProp(); 
-  addMat(dattr, *dprop);
+  addMat(dattr, StructProp());
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
       if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
@@ -915,7 +916,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
   //ADDED FOR HEV PROBLEM, EC, 20070820
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
 
@@ -3571,7 +3572,7 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   int dataType = 0;  // 1 for nodal, 2 for elemental
 
   // solver information structure
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
 
   char prbType[20];
   if(sinfo.probType == SolverInfo::Static) strcpy(prbType,"Static");

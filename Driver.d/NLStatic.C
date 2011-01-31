@@ -231,7 +231,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 
  // Form and store element mass matrices into an array
  for(iele=0; iele<numele; ++iele)
-   mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data());
+   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data()));
 
  // zero rotational degrees of freedom within element mass matrices
  int *dofType = dsa->makeDofTypeArray();

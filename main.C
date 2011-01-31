@@ -1023,15 +1023,15 @@ int main(int argc, char** argv)
              SingleDomainDynamic dynamProb(domain);
              Pita::LinearDriver::Ptr driver;
              if (!domain->solInfo().pitaTimeReversible) {
-                 fprintf(stderr," ... Linear PITA ...\n");
+                 filePrint(stderr," ... Linear PITA ...\n");
                  driver = linearPitaDriverNew(&dynamProb);
              } else {
-                 fprintf(stderr," ... Time-reversible linear PITA ...\n");
+                 filePrint(stderr," ... Time-reversible linear PITA ...\n");
                  driver = linearReversiblePitaDriverNew(&dynamProb);
              }
              driver->solve();
 #else
-             fprintf(stderr," ... PITA requires distributed version ...\n");
+             filePrint(stderr," ... PITA requires distributed version ...\n");
 #endif
 	  } else {
             if (domain->solInfo().ATDARBFlag>=1.5) {
@@ -1128,9 +1128,9 @@ int main(int argc, char** argv)
              NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
              pitaSolver.solve();
            }
-           fprintf(stderr, "End NlPita\n");
+           filePrint(stderr, "End NlPita\n");
 #else
-           fprintf(stderr," ... PITA requires distributed version ...\n");
+           filePrint(stderr," ... PITA requires distributed version ...\n");
 #endif
          }
          else {

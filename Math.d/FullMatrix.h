@@ -109,7 +109,7 @@ class GenFSFullMatrix {
    void Lm1Mult(Scalar *a, int nc, int lda, int *perm);
    void Um1Mult(Scalar *a, int nc, int lda, int *perm);
    void Um1TMult(Scalar *a, int nc, int lda, int *perm);
-   void solve(Scalar *rhs);    // perform forward/backward
+   //void solve(Scalar *rhs);    // perform forward/backward [Deactivated since buggy]
    void zero();                // zero all matrix entries
    void identity();            // set square full matrix to identity matrix
    void print(const char *msg = "",const char *msg2=""); // print the full matrix

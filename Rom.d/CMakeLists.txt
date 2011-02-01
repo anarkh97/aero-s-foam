@@ -5,6 +5,7 @@ ADD_LIBRARY( Rom
   BasisOrthoDriver.C
   GalerkinProjectionSolver.C
   GaussNewtonNonLinDynamic.C
+  LeastSquaresSolver.C
   NodalRestrictionMapping.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

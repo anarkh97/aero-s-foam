@@ -239,7 +239,6 @@ struct SolverInfo {
 
    // Constructor
    SolverInfo() { filterFlags = 0;
-                  NLInfo = 0; 
                   type = 0;     
                   soltyp = -1;
                   subtype = 0; // By default we use direct Skyline
@@ -440,15 +439,15 @@ struct SolverInfo {
    void setCondNumTol(double tolerance, int maxit) { condNumTolerance = tolerance; condNumMaxit = maxit; }
 
    // ... NON LINEAR SOLVER INFORMATION VARIABLES
-   NonlinearInfo *NLInfo;
-   void initNLInfo() { if(NLInfo == 0) NLInfo = new NonlinearInfo; }
-   NonlinearInfo & getNLInfo() { return *NLInfo; }
+   NonlinearInfo NLInfo;
+   const NonlinearInfo &getNLInfo() const { return NLInfo; }
+   NonlinearInfo &getNLInfo() { return NLInfo; }
 
-   bool unsym() { return NLInfo ? NLInfo->unsymmetric : false; }
+   bool unsym() { return NLInfo.unsymmetric; }
 
    int gepsFlg;         // Geometric pre-stress flag
    int buckling;        // Buckling analysis flag
-   void setGEPS() { if(NLInfo == 0) NLInfo = new NonlinearInfo; gepsFlg  = 1; }
+   void setGEPS() { gepsFlg  = 1; }
 
    // This could be a pointer to a FetiInfo type
    FetiInfo fetiInfo;
@@ -456,10 +455,10 @@ struct SolverInfo {
    FetiInfo &getFetiInfo() { return fetiInfo; }
 
    // KHP: MOVE TO NonlinearInfo
-   void setNewton(int n)     { if(NLInfo == 0) NLInfo = new NonlinearInfo; NLInfo->updateK    = n; }
-   void setKrylov()          { if(NLInfo == 0) NLInfo = new NonlinearInfo; NLInfo->kryflg     = 1; }
-   void setInitialization()  { if(NLInfo == 0) NLInfo = new NonlinearInfo; NLInfo->initflg    = 1; }
-   void setReOrtho()         { if(NLInfo == 0) NLInfo = new NonlinearInfo; NLInfo->reorthoflg = 1; }
+   void setNewton(int n)     { NLInfo.updateK    = n; }
+   void setKrylov()          { NLInfo.kryflg     = 1; }
+   void setInitialization()  { NLInfo.initflg    = 1; }
+   void setReOrtho()         { NLInfo.reorthoflg = 1; }
 
    // SET DYNAMIC VALUE FUNCTIONS
 
@@ -664,7 +663,6 @@ struct SolverInfo {
      return ((probType == Static) || (probType == NonLinStatic)
              || (probType == MatNonLinStatic) || (probType == ArcLength));
    }
-
 };
 
 #endif

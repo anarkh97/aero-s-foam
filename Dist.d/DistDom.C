@@ -357,9 +357,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::EffPStrn:
         getStressStrain(u, time, x, iOut, EFFPSTRN);
         break;
-      case OutputInfo::HardVar:
-        getStressStrain(u, time, x, iOut, HARDVAR);
-        break;
       case OutputInfo::StressPR1:
         getPrincipalStress(u, time, x, iOut, PSTRESS1);
         break;

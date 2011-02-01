@@ -1732,15 +1732,16 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
 #endif
   int* face_connectivity = new int[size_face_connectivity];
 
+  int offset;
 #ifdef DISTRIBUTED
   if(DIST_ACME == 1) {
-    int offset = (structCom->myID() == 0) ? PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true) : 0;
+    offset = (structCom->myID() == 0) ? PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true) : 0;
     offset += ((structCom->myID() == 0) ? PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true) : 0);
   } else
 #endif
   {
     // first: the slave face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
-    int offset = PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true);
+    offset = PtrSlaveEntity->FillACMEFaceBlocks(face_connectivity, SlaveNdIdsToACMENdIds, true);
     // second: the master face elements' connectivity (UNDERLAYING LINEAR FACE ELEMENT NODES)
     offset += PtrMasterEntity->FillACMEFaceBlocks(&face_connectivity[offset], MasterNdIdsToACMENdIds, true);
   }
@@ -2495,8 +2496,8 @@ MortarHandler::get_interactions(int interaction_type)
                                               Slave_face_procs,
                                               ACMEFFI_index,
                                               ACMEFFI_data);
-        //for(int i = 0; i < num_FFI; ++i) cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i]
-        //  << " " << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << ACMEFFI_index[i] << " " << endl;
+        //for(int i = 0; i < num_FFI; ++i) cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i] << " " 
+        //                                      << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << ACMEFFI_index[i] << " " << endl;
         //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) cerr << ACMEFFI_data[i] << " "; cerr << endl;
       } else {
 #ifdef MORTAR_DEBUG

@@ -1067,7 +1067,10 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
           restoreStep();
           nu *= this->fetiInfo->linesearch_tau;
         }
-        else if(this->myCPU == 0) cerr << " warning: linesearch did not converge\n";
+        else {
+          if(this->myCPU == 0) cerr << " warning: linesearch did not converge\n";
+          exit(-1);
+        }
       }
     }
   }
@@ -2948,7 +2951,9 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
      // used generalized proconditioner for mpcs, need to build and invert CC^t
      mpcPrecon = true;
      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::initMpcScaling);
+/* this is called in refactor
      buildCCt();
+*/
    }
  }
 

@@ -552,7 +552,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
 
  solveTime -= getTime();
 
- Scalar *temp     = new Scalar[numUncon];
+ Scalar *temp     = new Scalar[numUncon+1];
  Scalar *solution = new Scalar[numUncon];
 
  Tblkslv(nsuper, xsuper, xlindx, lindx, xlnz, lnz, defblk, numrbm, lbdef, def, 

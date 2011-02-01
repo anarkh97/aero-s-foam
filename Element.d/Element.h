@@ -526,7 +526,7 @@ class Elemset
     bool myData;
   public:
     Elemset(int = 256);
-    virtual ~Elemset() { /*deleteElems();*/ }
+    virtual ~Elemset() { deleteElems(); }
     Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap);
     int size() const { return emax; }
     int last() const;
@@ -538,7 +538,7 @@ class Elemset
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
     void list();
-    void deleteElems()  { if(elem) { if(myData) for(int i=0; i<last(); ++i) delete elem[i]; delete [] elem; elem = 0; emax = 0;} }
+    void deleteElems();
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }

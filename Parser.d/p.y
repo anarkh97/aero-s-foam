@@ -157,7 +157,7 @@ All:
 Component:
 	NodeSet 
         | DirichletBC
-        { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
+        { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; delete $1; }
         | NeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
         | LMPConstrain 
@@ -3036,7 +3036,6 @@ NLInfo:
             domain->solInfo().probType = SolverInfo::NonLinDynam;
             domain->solInfo().probType = SolverInfo::TempDynamic;
           }
-          domain->solInfo().initNLInfo();
           domain->solInfo().fetiInfo.type = FetiInfo::nonlinear; // XXXX
         }
         | NLInfo ARCLENGTH NewLine

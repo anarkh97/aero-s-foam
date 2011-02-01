@@ -4,6 +4,23 @@
 #include <queue>
 #include <Utils.d/Connectivity.h>
 
+void Elemset::deleteElems() 
+{
+  if (!elem) {
+    return;
+  }
+
+  if (myData) { 
+    for (int i = 0; i < size(); ++i) {
+      if (elem[i]) elem[i]->~Element();
+    }
+  }
+  
+  delete[] elem;
+  elem = 0;
+  emax = 0;
+}
+
 // Last returns the true last defined element
 int Elemset::last() const
 {

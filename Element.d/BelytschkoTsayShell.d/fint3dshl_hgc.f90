@@ -349,7 +349,6 @@ subroutine gethgconstbt(prmhgc,ematpro,area,bmat1pt, c1,c2,c3)
   ! -------------------------------------------------------------
 
 
-
   return
 end subroutine gethgconstbt
 

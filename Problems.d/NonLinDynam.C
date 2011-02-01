@@ -22,24 +22,61 @@
 #include <Element.d/State.h>
 #include <Driver.d/SysState.h>
 
+#include <cstddef>
+
 typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
-NonLinDynamic::NonLinDynamic(Domain *d)
-: domain(d),
-  res((FILE*) 0),
-  clawDofs(0),
+NonLinDynamic::NonLinDynamic(Domain *d) :
+  domain(d),
+  bcx(0),
+  vcx(0),
+  solver(NULL),
+  spm(NULL),
+  prec(NULL),
+  spp(NULL),
+  res(NULL),
+  clawDofs(NULL),
+  M(NULL),
+  C(NULL),
+  kuc(NULL),
+  allCorot(NULL),
+  localTemp(),
+  kelArray(NULL),
+  celArray(NULL),
+  melArray(NULL),
+  prevFrc(NULL),
   secondRes(0.0),
-  numSystems(0)
-{
-  claw = 0; userSupFunc = 0;
-}
+  numSystems(0),
+  times(NULL),
+  userSupFunc(NULL),
+  claw(NULL),
+  X(NULL),
+  Rmem(NULL)
+{}
 
 NonLinDynamic::~NonLinDynamic()
 {
-  if (res != (FILE*) 0)
-    fclose(res);
+  if (res) {
+    fclose(res); 
+  }
+  delete prevFrc;
+  delete[] bcx;
+  delete[] vcx;
+  delete M;
+  delete kuc;
+  delete[] kelArray;
+  delete[] melArray;
+  delete[] celArray;
+  if (allCorot) {
+    for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
+      delete allCorot[iElem];
+    }
+  }
+  delete[] allCorot;
+  delete solver; 
+  delete times;
 }
 
 void

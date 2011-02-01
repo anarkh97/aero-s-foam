@@ -83,6 +83,7 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 template <typename Scalar> class GenGalerkinProjectionSolver;
+template <typename Scalar> class GenGappyProjectionSolver;
 
 // HB
 class SurfaceEntity;
@@ -452,6 +453,9 @@ class Domain : public HData {
 
      template<class Scalar>
        GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
+     
+     template<class Scalar>
+       GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
 
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);

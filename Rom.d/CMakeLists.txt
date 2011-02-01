@@ -4,6 +4,7 @@ ADD_LIBRARY( Rom
   BasisOutputFile.C
   BasisOrthoDriver.C
   GalerkinProjectionSolver.C
+  GappyNonLinDynamic.C
   GaussNewtonNonLinDynamic.C
   LeastSquaresSolver.C
   NodalRestrictionMapping.C

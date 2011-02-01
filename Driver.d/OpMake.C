@@ -35,6 +35,7 @@
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
 #include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/GappyProjectionSolver.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -825,6 +826,13 @@ Domain::constructGalerkinProjectionSolver()
 }
 
 template<class Scalar>
+GenGappyProjectionSolver<Scalar> *
+Domain::constructGappyProjectionSolver()
+{
+  return new GenGappyProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, bool factorize)
@@ -1180,11 +1188,23 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
     case 11:
       filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
-      GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
-      spm = solver;
-      spm->zeroAll();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
-      systemSolver = solver;
+      {
+        GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
+      break;
+    case 12:
+      filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
+      {
+        GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
       break;
   }
 }

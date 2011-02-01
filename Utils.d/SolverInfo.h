@@ -236,6 +236,7 @@ struct SolverInfo {
    bool activatePodRom;
    bool svdPodRom;
    bool gaussNewtonPodRom;
+   bool gappyPodRom;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -412,6 +413,7 @@ struct SolverInfo {
                   activatePodRom = false;
                   svdPodRom = false;
                   gaussNewtonPodRom = false;
+                  gappyPodRom = false;
                  }
 
    // Set RbmFilter level

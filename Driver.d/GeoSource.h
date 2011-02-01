@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <list>
+#include <vector>
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
@@ -582,6 +583,17 @@ public:
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem
   void setGroupRandomProperty(int g, Rprop prop_type, double mean, double std_dev);
   void printGroups();
+
+  // POD-ROM sample nodes
+  int sampleNodeCount() const { return sampleNode_.size(); }
+  void sampleNodeAdd(int id) { sampleNode_.push_back(id); }
+
+  typedef std::vector<int> SampleNodeList; 
+  SampleNodeList::const_iterator sampleNodeBegin() const { return sampleNode_.begin(); }
+  SampleNodeList::const_iterator sampleNodeEnd()   const { return sampleNode_.end();   }
+
+private:
+  SampleNodeList sampleNode_;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

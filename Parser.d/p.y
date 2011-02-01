@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SVD GAUSSNEWTON
+%token PODROM SVD GAUSSNEWTON GAPPY SAMPLENODES
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -309,6 +309,7 @@ Component:
         | AcmeControls
         | Constraints
   | PodRom
+  | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -3239,11 +3240,21 @@ PodRom:
   PODROM NewLine
   { domain->solInfo().activatePodRom = true; }
   | PODROM NewLine SVD NewLine
-  { domain->solInfo().activatePodRom = true; domain->solInfo().svdPodRom = true; }
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().svdPodRom = true; }
   | PODROM NewLine GAUSSNEWTON NewLine
   { domain->solInfo().activatePodRom = true;
     domain->solInfo().gaussNewtonPodRom = true; 
     domain->solInfo().subtype = 11; }
+  | PODROM NewLine GAPPY NewLine
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().gappyPodRom = true; 
+    domain->solInfo().subtype = 12; }
+SampleNodeList:
+  SAMPLENODES NewLine
+  {}
+  | SampleNodeList Integer NewLine
+  { geoSource->sampleNodeAdd($2 - 1); }
   ;
 Integer:
 	IntConstant

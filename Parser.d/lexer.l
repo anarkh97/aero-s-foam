@@ -1181,6 +1181,10 @@ TRAIL [a-zA-Z]*
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
+"GAPPY"|"gappy"|"Gappy" { return GAPPY; }
+
+"SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

@@ -47,6 +47,7 @@ using namespace std;
 #include <Rom.d/GaussNewtonNonLinDynamic.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/BasisOrthoDriver.h>
+#include <Rom.d/GappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
@@ -1158,19 +1159,24 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-               if (!domain->solInfo().gaussNewtonPodRom) {
+               if (domain->solInfo().gaussNewtonPodRom) {
+                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
+                 GaussNewtonNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
+                                GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().gappyPodRom) {
+                 filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
+                 GappyNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else {
                  filePrint(stderr, " ... POD: Snapshot collection       ...\n");
                  SnapshotNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
                                 GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                  nldynamic.postProcess();
-               } else {
-                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
-                 GaussNewtonNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
-                                GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-                 nldynamicSolver.solve();
                }
              }
            }

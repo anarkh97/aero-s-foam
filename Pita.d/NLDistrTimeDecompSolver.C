@@ -194,7 +194,7 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
   int dataPerSeed = 2 * getProbSize(); 
   
   int bufferSize = numSeeds * dataPerSeed;
-  baseBuffer.size(bufferSize);
+  baseBuffer.sizeIs(bufferSize);
  
   // Setup parameters for global MPI communication
   int numCPUs = sliceMap->numCPUs();
@@ -263,7 +263,7 @@ void NLDistrTimeDecompSolver::improveBasesWithLocalIncrements()
   int numStatesToExchange = probDesc->getJratio() + 1;
   int halfBufferSize = 2 * getProbSize() * numStatesToExchange; 
   int bufferSize = 2 * halfBufferSize;
-  baseBuffer.size(bufferSize);
+  baseBuffer.sizeIs(bufferSize);
   
   RecInfo recInfo;
   sliceIterator it;
@@ -341,7 +341,7 @@ void NLDistrTimeDecompSolver::computeCorrection()
   probDesc->pitaTimers.start("Correction");
 
   int bufferSize = 2 * getProbSize();
-  seedBuffer.size(bufferSize);
+  seedBuffer.sizeIs(bufferSize);
   
   DynamState<DataType> currState(getProbSize());
   RecInfo recInfo;

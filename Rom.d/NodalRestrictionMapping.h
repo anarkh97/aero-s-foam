@@ -37,8 +37,6 @@ private:
   typedef int IndexType;
   std::vector<IndexType> originIndex_;
 
-  static const int DOF_ID[6];
-
   // Disallow copy and assignment
   NodalRestrictionMapping(const NodalRestrictionMapping &);
   NodalRestrictionMapping &operator=(const NodalRestrictionMapping &);

@@ -49,8 +49,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
  if(sinfo.zeroInitialDisp == 0) {
    // ... SET INITIAL DISPLACEMENT FROM IDISP IF IDISP6 DOES NOT EXIST
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
-   //if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
-   if(sinfo.gepsFlg == 1) { // note: always use global num to do this check
+   if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
        filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
@@ -68,11 +67,6 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
        if(dof >= 0)
          d_n[dof] = iDis6[i].val;
      }   
-     // also add any modal idisps set under IDISP
-     if(numIDisModal) {
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
-       modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
-     }
    }
  }
 
@@ -310,18 +304,29 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
                                             alphaf, iscollocated, geomState);
   if(verboseFlag) filePrint(stderr," ... [E] Received fluid load ...\n");
-  if(iscollocated == 0) {
-    if(prevFrc.lastTIndex >= 0) {
-      tmpF *= (1/gamma);
-      tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
-    }
-  }
 
-  double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
-  aero_f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  if(sinfo.aeroFlag == 20) {
+    if(prevFrc.lastTIndex >= 0)
+      aero_f.linC(0.5,tmpF,0.5,prevFrc.lastFluidLoad);
+    else
+      aero_f = tmpF;
+  }
+  else {
+    if(iscollocated == 0) {
+      if(prevFrc.lastTIndex >= 0) {
+        tmpF *= (1/gamma);
+        tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
+      }
+    }
+
+    double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
+    aero_f.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  }
   prevFrc.lastFluidLoad = tmpF;
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;
+
+  //fprintf(stderr,"... alpha = %e, gamma = %e, isCollocated = %d ...\n", alpha, gamma, iscollocated);
 
   delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
@@ -408,8 +413,8 @@ Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vect
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
   }
   
-  // Send to fluid code (except C0)
-  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && sinfo.aeroFlag != 20)
+  // Send to fluid code (except explicit C0)
+  if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && !(sinfo.newmarkBeta == 0 && sinfo.aeroFlag == 20))
     aeroSend(d_n, v_n, a_n, v_p, bcx, vcx);
 
   if(sinfo.aeroheatFlag >= 0 && tIndex != 0 )
@@ -639,11 +644,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         }
         break;
 
+        case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-            data[iNode]  = (xloc >= 0) ? ext_f[xloc] : 0.0;
+            data[iNode]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -653,7 +659,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-            data[iNode]  = (yloc >= 0) ? ext_f[yloc] : 0.0;
+            data[iNode]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -663,7 +669,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-            data[iNode] = (zloc >= 0) ? ext_f[zloc] : 0.0;
+            data[iNode] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -673,7 +679,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-            data[iNode] = (xrot >= 0) ? ext_f[xrot] : 0.0;
+            data[iNode] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -683,7 +689,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-            data[iNode] = (yrot >= 0) ? ext_f[yrot] : 0.0;
+            data[iNode] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -693,7 +699,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           double *data = new double[nNodes];
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-            data[iNode] = (zrot >= 0) ? ext_f[zrot] : 0.0;
+            data[iNode] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
           }
           geoSource->outputNodeScalars(i, data, nNodes, time);
           delete [] data;
@@ -795,6 +801,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
+    OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
     if(aeroEmbeddedSurfaceId.size()!=0) {
       int iSurf = -1;
       for(int i=0; i<nSurfEntity; i++)
@@ -806,13 +813,10 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa); //packedEset is not used, but flExchanger needs
-                                                                                    // to have a reference of it at construction.
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs
+                                                                                                // to have a reference of it at construction.
     } else {
-      if(flag)
-        flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo+iInfo);
-      else
-        flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
     char *matchFile = geoSource->getMatchFileName();
@@ -861,15 +865,17 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                              restartinc, sinfo.isCollocated, sinfo.alphas);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters and mode frequencies ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
                    modeData.modes, curState, sinfo.mppFactor);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent mode shapes ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
     }
     else {
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
+      double aero_tmax = sinfo.tmax;
+      if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent parameters ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters ...\n");
 
       if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
         flExchanger->initRcvParity(1);
@@ -880,7 +886,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
 
       flExchanger->sendDisplacements(curState);
-      if(verboseFlag) fprintf(stderr,"... [E] Sent initial displacements ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
 
       if(sinfo.aeroFlag == 1) { // Ping pong only
         fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");

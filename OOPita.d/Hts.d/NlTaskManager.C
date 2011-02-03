@@ -1,20 +1,19 @@
 #include "NlTaskManager.h"
 
-#include "BasicHalfTimeSliceImpl.h"
 #include "../JumpBuilder.h"
 #include "../ConcurrentBasisManager.h"
 #include "../NearSymmetricSolver.h"
 #include "../DynamStateReductor.h"
 #include "../DynamStateReconstructor.h"
-#include "NlProjectionNetwork.h"
-#include "PropagationDataSharing.h"
 
 #include "../InitialSeedTask.h"
 
 namespace Pita { namespace Hts {
 
 NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
-                             NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
+                             NlPropagatorManager * propagatorMgr,
+                             SeedInitializer * seedInitializer,
+                             NlBasisUpdate * basisUpdateMgr,
                              PostProcessing::Manager * postProcessingMgr,
                              JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                              double projectorTolerance, IterationRank lastIteration) :
@@ -30,7 +29,7 @@ NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * c
   phase_(NULL),
   continuation_(&NlTaskManager::noop),
   localNetwork_(NULL),
-  sharing_(NULL),
+  basisUpdateMgr_(basisUpdateMgr),
   projectionNetwork_(NULL),
   lastIteration_(lastIteration)
 {
@@ -41,7 +40,10 @@ NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * c
 void
 NlTaskManager::iterationInc() {
   setIteration(iteration().next());
-  scheduleDataSharing();
+  if (iteration() < lastIteration_) {
+    basisUpdateMgr_->globalUpdate()->mappingIs(*mapping_);
+  }
+  scheduleConvergence();
 }
 
 NlTaskManager::Phase *
@@ -57,21 +59,18 @@ NlTaskManager::phaseInc() {
 void
 NlTaskManager::initialize() {
   // Projection (global data sharing)
-  sharing_ = new PropagationDataSharing(mapping_.ptr(), commMgr_->localCpu(), commMgr_->communicator(), commMgr_->vectorSize());
   NlDynamOps::Ptr dynOps = propagatorMgr_->dynamOpsNew();
-  projectionNetwork_ = new NlProjectionNetwork(sharing_.ptr(), dynOps.ptr(), commMgr_->vectorSize(), projectorTolerance_);
+  projectionNetwork_ = new NlProjectionNetwork(basisUpdateMgr_->globalUpdate(), dynOps.ptr(), commMgr_->vectorSize(), projectorTolerance_);
 
   // Parallel time-integration
   propagatorMgr_->postProcessingManagerIs(postProcessingMgr_.ptr());
   propagatorMgr_->concurrentBasisManagerIs(projectionNetwork_->concurrentMgr());
   propagatorMgr_->propagatedBasisManagerIs(projectionNetwork_->endBasisMgr());
-  propagatorMgr_->collectorIs(sharing_->collector());
-  BasicHalfTimeSliceImpl::Manager::Ptr htsMgr = BasicHalfTimeSliceImpl::Manager::New(propagatorMgr_.ptr());
 
   // Recurring tasks 
   localNetwork_ = new NlLocalNetwork(mapping_.ptr(),
                                      commMgr_.ptr(),
-                                     htsMgr.ptr(),
+                                     propagatorMgr_.ptr(),
                                      projectionNetwork_->corrRedMgr(),
                                      projectionNetwork_->corrReconMgr(),
                                      projectionNetwork_->condensMgr(),
@@ -79,6 +78,8 @@ NlTaskManager::initialize() {
                                      jumpCvgMgr_.ptr(),
                                      jumpEvaluatorMgr_.ptr());
   localNetwork_->statusIs(LocalNetwork::ACTIVE);
+
+  basisUpdateMgr_->globalUpdate()->seedGetterIs(localNetwork_->fullSeedGetter());
 }
 
 
@@ -133,10 +134,13 @@ void
 NlTaskManager::scheduleDataSharing() {
   TaskList dataSharing;
   if (iteration() < lastIteration_) {
-    dataSharing.push_back(sharing_);
+    dataSharing.push_back(basisUpdateMgr_->globalUpdate());
+    setPhase(phaseNew("Data Sharing", dataSharing));
+    setContinuation(&NlTaskManager::enrichProjectionBasis);
+  } else {
+    projectionNetwork_->sharedProjectionBasis()->stateBasisDel();
+    scheduleProjectionBasisCondensation();
   }
-  setPhase(phaseNew("Data Sharing", dataSharing));
-  setContinuation(&NlTaskManager::scheduleConvergence);
 }
 
 void
@@ -185,16 +189,12 @@ void
 NlTaskManager::scheduleSeedUpdate() {
   LocalNetwork::TaskList oldStyleList = localNetwork_->activeSeedUpdaters();
   setPhase(phaseNew("Seed Update", TaskList(oldStyleList.begin(), oldStyleList.end())));
-  setContinuation(&NlTaskManager::enrichProjectionBasis);
+  setContinuation(&NlTaskManager::scheduleDataSharing);
 }
 
 void
 NlTaskManager::enrichProjectionBasis() {
-  if (iteration() == lastIteration_) { 
-    projectionNetwork_->sharedProjectionBasis()->stateBasisDel();
-  } else {
-    projectionNetwork_->sharedProjectionBasis()->firstStateBasisIs(sharing_->consolidatedBasis());
-  }
+  projectionNetwork_->sharedProjectionBasis()->firstStateBasisIs(basisUpdateMgr_->globalUpdate()->consolidatedBasis());
   scheduleProjectionBasisCondensation();
 }
 

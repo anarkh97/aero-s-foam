@@ -1,14 +1,6 @@
 #include "NonHomogeneousTaskManager.h"
 
-#include "../SimpleSeedInitializer.h"
-
-#include "../InitialSeedTask.h"
-#include "IncrementalPropagation.h"
-#include "../RemoteStateTask.h"
-
-#include "../JumpProjection.h"
-#include "../ReducedCorrectionPropagatorImpl.h"
-#include "../UpdatedSeedAssemblerImpl.h"
+#include "../SeedInitializer.h"
 
 namespace Pita { namespace Std {
 
@@ -18,9 +10,9 @@ NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
                                                      LinearProjectionNetwork * projectionMgr,
                                                      JumpConvergenceEvaluator * jumpCvgEval,
                                                      LinSeedDifferenceEvaluator::Manager * jumpOutMgr,
-                                                     DynamState initialState,
+                                                     SeedInitializer * seedInit,
                                                      CorrectionPropagator<DynamState>::Manager * fullCorrPropMgr) :
-  LinearTaskManager<NonHomogeneousTaskManager>(IterationRank(-1), mapping, commMgr, propagatorMgr, projectionMgr, jumpCvgEval, jumpOutMgr, SimpleSeedInitializer::New(initialState).ptr()),
+  LinearTaskManager<NonHomogeneousTaskManager>(IterationRank(-1), mapping, commMgr, propagatorMgr, projectionMgr, jumpCvgEval, jumpOutMgr, seedInit),
   fullCorrPropMgr_(fullCorrPropMgr)
 {
   setContinuation(&NonHomogeneousTaskManager::schedulePrecomputation);

@@ -1,22 +1,27 @@
-#ifndef PITA_HTS_BASISCOLLECTORIMPL_H
-#define PITA_HTS_BASISCOLLECTORIMPL_H
+#ifndef PITA_HTS_AFFINEBASISCOLLECTOR_H
+#define PITA_HTS_AFFINEBASISCOLLECTOR_H
 
-#include "BasisCollector.h"
+#include "Fwk.h"
+#include "Types.h"
+#include "HalfSliceId.h"
 
-#include "stack"
+#include "../DynamState.h"
+#include "../AffineDynamPropagator.h"
+
+#include <stack>
 
 namespace Pita { namespace Hts {
 
-class BasisCollectorImpl : public BasisCollector {
+class AffineBasisCollector : public Fwk::PtrInterface<AffineBasisCollector> {
 public: 
-  EXPORT_PTRINTERFACE_TYPES(BasisCollectorImpl);
+  EXPORT_PTRINTERFACE_TYPES(AffineBasisCollector);
   
-  // Overriden interface
-  virtual const DynamPropagator * source(const HalfSliceId & sliceId) const;
-  virtual size_t sourceCount() const;
-  virtual void sourceIs(const HalfSliceId & sliceId, const DynamPropagator * source);
+  // Data collection  
+  size_t sourceCount() const;
+  const AffineDynamPropagator * source(const HalfSliceId & sliceId) const;
+  void sourceIs(const HalfSliceId & sliceId, const AffineDynamPropagator * source);
 
-  // Specialized interface 
+  // Data access
   typedef std::pair<HalfSliceRank, DynamState> CollectedState;
 
   CollectedState firstForwardFinalState() const;
@@ -26,12 +31,12 @@ public:
   
   void finalStateIs(const HalfSliceId & sliceId, const DynamState & state); 
 
-  Ptr static New() {
-    return new BasisCollectorImpl();
+  static Ptr New() {
+    return new AffineBasisCollector();
   }
 
 protected:
-  BasisCollectorImpl();
+  AffineBasisCollector();
  
   class PropagationReactor; 
   typedef std::map<HalfSliceId, Fwk::Ptr<PropagationReactor> > PropagationReactorContainer;
@@ -40,7 +45,7 @@ protected:
     return propagationReactor_;
   }
 
-  virtual PropagationReactor * propagationReactorNew(const DynamPropagator * notifier,
+  virtual PropagationReactor * propagationReactorNew(const AffineDynamPropagator * notifier,
                                                      const HalfSliceId & id);
 
 private:
@@ -51,22 +56,22 @@ private:
   StateContainer backwardFinalState_;
 };
 
-class BasisCollectorImpl::PropagationReactor : public DynamPropagator::Notifiee {
+class AffineBasisCollector::PropagationReactor : public DynamPropagator::Notifiee {
 public:
   EXPORT_PTRINTERFACE_TYPES(PropagationReactor);
   
-  PropagationReactor(const DynamPropagator * notifier, const HalfSliceId & id, BasisCollectorImpl * parent);
+  PropagationReactor(const AffineDynamPropagator * notifier, const HalfSliceId & id, AffineBasisCollector * parent);
 
   virtual void onFinalState(); // Overriden
 
   const HalfSliceId & sliceId() const { return sliceId_; }
-  BasisCollectorImpl * parent() const { return parent_; }
+  AffineBasisCollector * parent() const { return parent_; }
 
 private:
   HalfSliceId sliceId_;
-  BasisCollectorImpl * parent_;
+  AffineBasisCollector * parent_;
 };
 
 } /* end notifier Hts */ } /* end namespace Pita */
 
-#endif /* PITA_HTS_BASISCOLLECTORIMPL_H */
+#endif /* PITA_HTS_AFFINEBASISCOLLECTOR_H */

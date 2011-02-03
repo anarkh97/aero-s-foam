@@ -3,7 +3,7 @@
 
 #include "Fwk.h"
 #include "Types.h"
-#include "HalfTimeSlice.h"
+#include "HalfSliceId.h"
 
 #include "../NlDynamOps.h"
 #include "../DynamStatePlainBasis.h"
@@ -13,7 +13,7 @@
 #include "CorrectionReconstructor.h"
 
 #include "../ConcurrentBasisManager.h"
-#include "PropagationDataSharing.h"
+#include "GlobalStateSharing.h"
 
 namespace Pita { namespace Hts {
 
@@ -249,7 +249,7 @@ public:
 
   // Data sharing (global only for the moment, TODO other)
   DynamStatePlainBasis * sharedProjectionBasis() { return sharedProjectionBasis_.ptr(); }
-  PropagationDataSharing * sharing() { return sharing_.ptr(); }
+  GlobalStateSharing * sharing() { return sharing_.ptr(); }
 
   // Concurrent propagation
   ConcurrentBasis::Manager * concurrentMgr() { return concurrentMgr_.ptr(); }
@@ -261,13 +261,13 @@ public:
   CorrectionReductor::Manager * corrRedMgr() { return corrRedMgr_.ptr(); }
   CorrectionReconstructor::Manager * corrReconMgr() { return corrReconMgr_.ptr(); }
 
-  NlProjectionNetwork(PropagationDataSharing * sharing,
+  NlProjectionNetwork(GlobalStateSharing * sharing,
                       NlDynamOps * dynamOps,
                       size_t vectorSize, double projectionTolerance);
 
 private:
   size_t vectorSize_;
-  PropagationDataSharing::Ptr sharing_;
+  GlobalStateSharing::Ptr sharing_;
   
   DynamStatePlainBasis::Ptr sharedProjectionBasis_;
   MidBasisManager::Ptr midBasisMgr_;

@@ -98,7 +98,7 @@ TRAIL [a-zA-Z]*
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
-"SOWE"[a-zA-Z]*|"sowe"|"topology"  { return SOWER; }
+"SOWE"[a-zA-Z]*|"sowe"[a-zA-Z]*    { return SOWER; }
 
 "BINARY"|"binary"                  { return BINARY; }
 
@@ -196,6 +196,8 @@ TRAIL [a-zA-Z]*
 "THRU"[a-zA-Z]*|"thru"[a-zA-Z]*    { return THRU; }
 
 "STEP"[a-zA-Z]*|"step"[a-zA-Z]*    { return STEP; }
+
+"SURFACE"|"surface"                { return SURF; }
 
 "LMPC"[a-zA-Z]*|"lmpc"[a-zA-Z]*    { return LMPC; }
 
@@ -591,6 +593,8 @@ TRAIL [a-zA-Z]*
 
 "NoForce"|"noforce"|"NOFORCE"      { return NOFORCE; }
 
+"globalbases"|"GlobalBases"|"GLOBALBASES" { return GLOBALBASES; }
+
 "localbases"|"LocalBases"|"LOCALBASES" { return LOCALBASES; }
 
 "remotecoarse"|"REMOTECOARSE"      { return REMOTECOARSE; }
@@ -848,7 +852,7 @@ TRAIL [a-zA-Z]*
 
 "C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
 
-"AEROEMBED"[a-zA-Z]*|"aeroembede"[a-zA-z]* { return AEROEMBED; }
+"EMBE"[a-zA-Z]*|"embe"[a-zA-z]*    { return AEROEMBED; }
 
 "displacx"|"DISPLACX"              { yylval.ival = OutputInfo::DispX;  return STRESSID; }
 
@@ -1091,7 +1095,6 @@ TRAIL [a-zA-Z]*
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
 "effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EffPStrn; return STRESSID; }
-"hardvar"|"HARDVAR"                { yylval.ival = OutputInfo::HardVar; return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
@@ -1112,6 +1115,8 @@ TRAIL [a-zA-Z]*
 "hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
+"kk"|"KK"                                               { yylval.ival = 6; return OPTCTV; }
+"kkexp"[a-zA-Z]*|"KKEXP"[a-zA-Z]*                       { yylval.ival = 7; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
 
@@ -1151,10 +1156,8 @@ TRAIL [a-zA-Z]*
 
 "NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
 
-"SDISP"[a-zA-Z]*|"sdisp"[a-zA-Z]*  { return SDISP; }
-"SFORC"[a-zA-Z]*|"sforc"[a-zA-Z]*  { return SFORCE; }
-"SPRES"[a-zA-Z]*|"spres"[a-zA-Z]*  { return SPRESSURE; }
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
+
 "ffi_debug"                        { return FFIDEBUG; }
 
 "NONINPC" { return NONINPC; }

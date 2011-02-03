@@ -12,15 +12,12 @@ namespace Pita {
  
 class LinearDynamOps : public DynamOps {
 public:
-  typedef Fwk::Ptr<LinearDynamOps> Ptr;
-  typedef Fwk::Ptr<const LinearDynamOps> PtrConst;
+  EXPORT_PTRINTERFACE_TYPES(LinearDynamOps);
 
   typedef double Scalar;
   typedef GenDynamMat<Scalar> DynOpsType;
   typedef ::GenSparseMatrix<Scalar> MatrixType;
   typedef GenSolver<Scalar> SolverType;
-
-  /* Not implemented // virtual size_t unconCount() const { return unconCount_; } */
 
   virtual const MatrixType * massMatrix()        const;
   virtual const MatrixType * stiffnessMatrix()   const;
@@ -32,17 +29,20 @@ public:
   MatrixType * dampingMatrix();
   SolverType * dynamicMassSolver();
 
-  const DynOpsType * dynamMat() const { return dynamMat_; }
+  // Handle to internal implementation, owned by the instance
+  const DynOpsType * dynamMat() const { return allOps_; }
 
   class Manager;
   friend class Manager;
 
 protected:
-  explicit LinearDynamOps(DynOpsType * dMat);
-
+  explicit LinearDynamOps(DynOpsType *);
+  virtual ~LinearDynamOps();
+  
 private:
-  DynOpsType * dynamMat_;
-  /* Not implemented // size_t unconCount_; */
+  DynOpsType * allOps_;
+
+  DISALLOW_COPY_AND_ASSIGN(LinearDynamOps);
 };
 
 

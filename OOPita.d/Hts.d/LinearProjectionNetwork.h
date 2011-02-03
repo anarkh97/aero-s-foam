@@ -1,17 +1,18 @@
-#ifndef PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
-#define PITA_HTS_LINEARPROJECTIONNETWORKIMPL_H
+#ifndef PITA_HTS_LINEARPROJECTIONNETWORK_H
+#define PITA_HTS_LINEARPROJECTIONNETWORK_H
 
 #include "Fwk.h"
 #include "Types.h"
 
-#include "ProjectionNetwork.h"
+#include "../DynamStatePlainBasis.h"
+#include "../DynamOps.h"
+#include "../RankDeficientSolver.h"
 
 #include "SliceMapping.h"
-#include "../DynamOps.h"
-#include "BasisCollectorImpl.h"
-#include "../DynamStatePlainBasis.h"
+#include "AffineBasisCollector.h"
 
 #include "../SimpleBuffer.h"
+#include <Math.d/FullSquareMatrix.h>
 #include <list>
 #include <map>
 
@@ -19,27 +20,26 @@ class Communicator;
 
 namespace Pita { namespace Hts {
 
-class LinearProjectionNetworkImpl : public ProjectionNetwork {
+class LinearProjectionNetwork : public Fwk::PtrInterface<LinearProjectionNetwork> {
 public:
-  EXPORT_PTRINTERFACE_TYPES(LinearProjectionNetworkImpl);
+  EXPORT_PTRINTERFACE_TYPES(LinearProjectionNetwork);
 
-  virtual size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
+  size_t reducedBasisSize() const { return metricBasis_->stateCount(); }
 
-  virtual BasisCollector * collector() const { return collector_.ptr(); }
+  AffineBasisCollector * collector() const { return collector_.ptr(); }
   
-  virtual const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
-  virtual const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
-  virtual const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
-  virtual const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
+  const DynamStateBasis * projectionBasis() const { return metricBasis_.ptr(); }
+  const DynamStateBasis * propagatedBasis() const { return finalBasis_.ptr(); }
+  const RankDeficientSolver * normalMatrixSolver() const { return solver_.ptr(); }
+  const FullSquareMatrix * reprojectionMatrix() const { return &reprojectionMatrix_; }
  
   const DynamOps * metric() const { return metric_.ptr(); }
 
-  static Ptr New(size_t vSize, Communicator * timeComm, CpuRank myCpu,
+  static Ptr New(size_t vSize, Communicator * timeComm,
                  const SliceMapping * mapping,
-                 BasisCollectorImpl * collector,
                  const DynamOps * metric,
                  RankDeficientSolver * solver) {
-    return new LinearProjectionNetworkImpl(vSize, timeComm, myCpu, mapping, collector, metric, solver);
+    return new LinearProjectionNetwork(vSize, timeComm, mapping, metric, solver);
   }
 
 
@@ -49,7 +49,7 @@ public:
 
     class IteratorConst {
     public:
-      std::pair<HalfTimeSlice::Direction, int> operator*() const { return std::make_pair(it_->first.direction(), it_->second); }
+      std::pair<Direction, int> operator*() const { return std::make_pair(it_->first.direction(), it_->second); }
       IteratorConst & operator++() { ++it_; return *this; }
       IteratorConst operator++(int) { IteratorConst tmp(*this); this->operator++(); return tmp; }
       operator bool() const { return it_ != endIt_; }
@@ -75,9 +75,9 @@ public:
    
     // State count
     size_t stateCount() const;
-    size_t stateCount(HalfTimeSlice::Direction d) const;
+    size_t stateCount(Direction d) const;
     size_t stateCount(CpuRank c) const;
-    size_t stateCount(CpuRank c, HalfTimeSlice::Direction d) const;
+    size_t stateCount(CpuRank c, Direction d) const;
     
     // Numbering for all states (both initial AND final)
     int globalIndex(const HalfSliceId & id) const;
@@ -86,8 +86,8 @@ public:
     
     // Numbering for initial OR final states
     int globalHalfIndex(const HalfSliceId & id) const;
-    IteratorConst globalHalfIndex(HalfTimeSlice::Direction d) const;
-    HalfSliceId stateId(int globalHalfIndex, HalfTimeSlice::Direction d) const;
+    IteratorConst globalHalfIndex(Direction d) const;
+    HalfSliceId stateId(int globalHalfIndex, Direction d) const;
 
     explicit GlobalExchangeNumbering(const SliceMapping * m);
 
@@ -116,13 +116,11 @@ public:
   void buildProjection();
 
 protected:
-  LinearProjectionNetworkImpl(size_t vSize,
-                        Communicator * timeComm,
-                        CpuRank myCpu,
-                        const SliceMapping * mapping,
-                        BasisCollectorImpl * collector,
-                        const DynamOps * metric,
-                        RankDeficientSolver * solver);
+  LinearProjectionNetwork(size_t vSize,
+                          Communicator * timeComm,
+                          const SliceMapping * mapping,
+                          const DynamOps * metric,
+                          RankDeficientSolver * solver);
 
 private:
   size_t vectorSize_;
@@ -152,7 +150,7 @@ private:
   FullSquareMatrix reprojectionMatrix_;
   RankDeficientSolver::Ptr solver_;
   
-  BasisCollectorImpl::Ptr collector_;
+  AffineBasisCollector::Ptr collector_;
   
   typedef std::list<GlobalExchangeNumbering::Ptr> NumberingList;
   NumberingList globalExchangeNumbering_;

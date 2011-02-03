@@ -10,8 +10,8 @@
 #include "../SeedDifferenceEvaluator.h"
 #include "../RemoteStateMpiImpl.h"
 #include "NlProjectionNetwork.h"
-#include "PropagationDataSharing.h"
 #include "JumpConvergenceEvaluator.h"
+#include "NlBasisUpdate.h"
 
 #include "NlLocalNetwork.h"
 
@@ -28,7 +28,9 @@ public:
   CpuRank localCpu() const { return commMgr_->localCpu(); }
 
   NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
-                NlPropagatorManager * propagatorMgr, SeedInitializer * seedInitializer,
+                NlPropagatorManager * propagatorMgr,
+                SeedInitializer * seedInitializer,
+                NlBasisUpdate * basisUpdateMgr,
                 PostProcessing::Manager * postProcessingMgr,
                 JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                 double projectorTolerance, IterationRank lastIteration);
@@ -76,7 +78,7 @@ private:
 
   NlLocalNetwork::Ptr localNetwork_;
   
-  PropagationDataSharing::Ptr sharing_;
+  NlBasisUpdate::Ptr basisUpdateMgr_;
   NlProjectionNetwork::Ptr projectionNetwork_;
   IterationRank lastIteration_;
 };

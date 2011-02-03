@@ -4,7 +4,7 @@
 
 namespace Pita { namespace Hts {
 
-NlProjectionNetwork::NlProjectionNetwork(PropagationDataSharing * sharing,
+NlProjectionNetwork::NlProjectionNetwork(GlobalStateSharing * sharing,
                                          NlDynamOps * dynamOps,
                                          size_t vectorSize, double projectionTolerance) :
   vectorSize_(vectorSize),
@@ -176,7 +176,7 @@ ProjectionBuildingFactory::ProjectionBuildingFactory(NlDynamOps * dynamOps,
 ProjectionBuilding *
 ProjectionBuildingFactory::instanceNew(HalfSliceRank key) {
   String taskName = "Projection Building " + toString(key);
-  HalfSliceId sliceId(key, HalfTimeSlice::BACKWARD);
+  HalfSliceId sliceId(key, BACKWARD);
 
   DynamStateBasis::PtrConst propagatedBasis = endBasisMgr_->instance(sliceId);
   if (!propagatedBasis) {

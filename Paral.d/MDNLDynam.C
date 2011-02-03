@@ -252,6 +252,7 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   claw = 0; 
   userSupFunc = 0;
   mu = 0; lambda = 0;
+  aeroForce = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -285,16 +286,16 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
   // Check for divergence
   else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
 
-#ifdef PRINT_RESIDUALS
+//#ifdef PRINT_RESIDUALS
   double relEng = normEnergy/firstEng;
   if(verboseFlag) {
-    fprintf(stderr," Iteration # %d\n",iteration);
-    fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
-                   " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                     normRes,normDv,normEnergy,
-                     relRes,relDv,relEng);
+    filePrint(stderr," Iteration # %d\n",iteration);
+    filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+                     " rel. r = %e rel. dv = %e rel. energy = %e\n",
+                       normRes,normDv,normEnergy,
+                       relRes,relDv,relEng);
   }
-#endif
+//#endif
   totIter++;
 
   // Store residual norm and dv norm for output
@@ -582,17 +583,26 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
                                                   alphaf, iscollocated);
     if(verboseFlag) filePrint(stderr," ... [E] Received fluid forces ...\n");
-    if (iscollocated == 0) {
-      if(prevIndex >= 0) {
-        *aeroForce *= (1/gamma);
-        aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
-      }
+
+    if(sinfo.aeroFlag == 20) {
+      if(prevIndex >= 0)
+        aero_f.linC(0.5,*aeroForce,0.5,*prevFrc);
+      else
+        aero_f = *aeroForce;
     }
+    else {
+      if (iscollocated == 0) {
+        if(prevIndex >= 0) {
+          *aeroForce *= (1/gamma);
+          aeroForce->linAdd(((gamma-1.0)/gamma),*prevFrc);
+        }
+      }
 
-    double alpha = 1.0-alphaf;
-    if(prevIndex < 0) alpha = 1.0;
+      double alpha = 1.0-alphaf;
+      if(prevIndex < 0) alpha = 1.0;
 
-    aero_f.linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+      aero_f.linC(alpha, *aeroForce, (1.0-alpha), *prevFrc);
+    }
     f += aero_f;
 
     *prevFrc = *aeroForce;
@@ -745,7 +755,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     delete [] userDefineDisp; delete [] userDefineVel;
   }
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF);
 }
 
 void
@@ -844,6 +854,7 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 void
 MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
 {
+  // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   if(fetiSolver) {
     execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
@@ -856,6 +867,9 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
       domain->ExpComputeMortarLMPC(MortarHandler::CTC);
       domain->CreateMortarToMPC();
       decDomain->reProcessMPCs();
+      // FIXME there is some duplication of things done in reconstructMPCs and rebuild/refactor (eg buildCCt)
+      // I think all of the reconstruction of the solver should be done in rebuild/refactor
+      // consider the case of quasi-newton where the solver is NOT rebuild at every newton iteration
       fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
     }
     // set the gap for the linear constraints
@@ -1015,6 +1029,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevIndex = -1;
   prevTime = 0;
 
@@ -1084,10 +1099,27 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   }
 
   // create distributed fluid exchanger
-  if(flag)
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo+iInfo);
-  else
-    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
+  OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
+  std::set<int> &aeroEmbeddedSurfaceId = domain->GetAeroEmbedSurfaceId();
+  if(aeroEmbeddedSurfaceId.size() != 0) {
+    int iSurf = -1;
+    for(int i = 0; i < domain->getNumSurfs(); i++)
+      if(aeroEmbeddedSurfaceId.find((*domain->viewSurfEntities())[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
+        iSurf = i;
+        break; //only allows one Surface.
+      }
+    if(iSurf<0) {
+      fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+      exit(-1);
+    }
+    distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
+                                          &domain->getNodes(), domain->getNodeToElem(),
+                                          decDomain->getElemToSub(), subdomain,
+                                          cdsa, dsa, oinfo_aero);
+  }
+  else {
+    distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo_aero);
+  }
 
   // negotiate with the fluid code
   distFlExchanger->negotiate();
@@ -1296,6 +1328,7 @@ MDNLDynamic::aeroheatPreProcess(DistrVector &disp, DistrVector &vel, DistrVector
   // Initialize previous force data
   // Reexamine for the case of restart
   prevFrc = new DistrVector(solVecInfo());
+  prevFrc->zero();
   prevIndex = -1;
   prevTime = 0;
 

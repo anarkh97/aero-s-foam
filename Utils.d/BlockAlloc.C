@@ -44,3 +44,9 @@ void operator delete(void *p, BlockAlloc &block)
   // this is only used for exception unwinding
   free(p);
 }
+
+void operator delete[](void *p, BlockAlloc &block)
+{
+  // this is only used for exception unwinding
+  free(p);
+}

@@ -143,16 +143,21 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   allNumClusElems = 0;
   binaryInput = false;
   binaryInputControlLeft = false;
+  binaryOutput = false;
+/*
 #ifdef DISTRIBUTED
   binaryOutput = true;
 #else
   binaryOutput = false;
 #endif
+*/
   subToClus = 0;
 
   mpcDirect = false;
 
   mratio = 1.0; // consistent mass matrix
+
+  elemSet.setMyData(true);
 }
 
 //----------------------------------------------------------------------
@@ -199,7 +204,7 @@ int GeoSource::addElem(int en, int type, int nn, int *nodeNumbers)
 
 //----------------------------------------------------------------------
 
-int GeoSource::addMat(int nmat, StructProp &p)
+int GeoSource::addMat(int nmat, const StructProp &p)
 {
   if (numProps < nmat+1) // attempt to get numProps right -- Julien & Thomas
     numProps = nmat+1;
@@ -677,7 +682,7 @@ void GeoSource::setUpData()
     if(elemSet[i]) elemSet[i]->buildFrame(nodes);
 
   // Set up element attributes
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
     fprintf(stderr," **************************************\n");
     fprintf(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
@@ -693,8 +698,7 @@ void GeoSource::setUpData()
       hasAttr[attrib[i].nele] = true;
   }
   int dattr = maxattrib + 1;
-  StructProp *dprop = new StructProp(); 
-  addMat(dattr, *dprop);
+  addMat(dattr, StructProp());
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
       if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
@@ -912,7 +916,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
   //ADDED FOR HEV PROBLEM, EC, 20070820
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
 
@@ -933,14 +937,14 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if(ele) {
       if(!ele->isPhantomElement() && (!ele->isHEVFluidElement() || (!sinfo.HEV))) {
         packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
+        //packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;
       }
       else if(!ele->isPhantomElement() && ele->isHEVFluidElement()) {
         packedEsetFluid->elemadd(nElemFluid, ele);
-        (*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
+        //(*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
         nElemFluid++;
       }
       else
@@ -953,7 +957,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if (sinfo.ATDARBFlag != -2.0) {
       for (int i = 0; i < domain->numSommer; i++) {
         packedEset.elemadd(nElem,domain->sommer[i]);
-        packedEset[nElem]->setGlNum(numele+i);
+        //packedEset[nElem]->setGlNum(numele+i);
         if(packFlag)
           glToPckElems[numele+i] = nElem;
         nElem++;
@@ -979,7 +983,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     if(ele) {
       if(ele->isPhantomElement()) {
         packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
+        //packedEset[nElem]->setGlNum(iEle);
         if(packFlag)
           glToPckElems[iEle] = nElem;
         nElem++;
@@ -1093,7 +1097,7 @@ int GeoSource::getNonMpcElems(Elemset &eset)
     if(ele)  {
       if(!ele->isRigidElement() && !ele->isMpcElement())  {
         eset.elemadd(elecount, ele);
-        eset[nElem]->setGlNum(iEle);
+        //eset[nElem]->setGlNum(iEle);
         elecount++;
       }
       else mpccount++;
@@ -1145,10 +1149,12 @@ void GeoSource::setElemTypeMap()
 
 void GeoSource::setElementPressure(int elemNum, double pressure)
 {
+ // FIXME for this to work the element topology and mftt must precede the pressure in the input file
+ // this dependence on ordering should be removed!!!
  prsflg = 1;
 
  if(elemSet[elemNum])
-   elemSet[elemNum]->setPressure(pressure);
+   elemSet[elemNum]->setPressure(pressure, domain->getMFTT());
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
 }
@@ -1639,6 +1645,7 @@ int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
   return numValues;
 }
 
+/* templated and moved to GeoSource.C
 //-----------------------------------------------------------------
 void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
 	 			   int outputSize, double time)//DofSet::max_known_nonL_dof
@@ -1654,7 +1661,7 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
   }
 
- if (oinfo[fileNum].groupNumber > 0)  {
+ if (oinfo[fileNum].groupNumber > 0) {
 
    if (nodeGroup.find(oinfo[fileNum].groupNumber) == nodeGroup.end())
      return;
@@ -1671,12 +1678,17 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
       it++;
     }
-  }
-  else  {
-    for (int inode = 0; inode < outputSize; inode++)  {
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
-                w, p, xyz[inode][4], w, p, xyz[inode][5]);
+  } else {
+    if (outputSize == 1) {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+              w, p, xyz[0][0], w, p, xyz[0][1], w, p, xyz[0][2], w, p, xyz[0][3],
+              w, p, xyz[0][4], w, p, xyz[0][5]);
+    } else {
+      for (int inode = 0; inode < outputSize; inode++)  {
+        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                  w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
+                  w, p, xyz[inode][4], w, p, xyz[inode][5]);
+      }
     }
   }
 
@@ -1845,7 +1857,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
 
 // NOTE: This works only for 1 cluster
 
-void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize, double time)  {
+void GeoSource::outputNodeVectors(int fileNum, double (*glv)[], int outputSize, double time)  {
 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -1872,14 +1884,18 @@ void GeoSource::outputNodeVectors(int fileNum, double (*glv)[3], int outputSize,
       it++;
     }
 
-  }
-  else  {
-    for (int i = 0; i < outputSize; i++) {
-      filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                                       w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
+  } else {
+    if (outputSize == 1) {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+              w, p, glv[0][0], w, p, glv[0][1], w, p, glv[0][2]);
+    } else {
+      for (int i = 0; i < outputSize; i++) {
+        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
+                  w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
+      }
     }
+    fflush(oinfo[fileNum].filptr);
   }
-  fflush(oinfo[fileNum].filptr);
 }
 
 void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSize, double time) {
@@ -2006,7 +2022,7 @@ void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSiz
 
   fflush(oinfo[fileNum].filptr);
 }
-
+*/
 //------------------------------------------------------------
 
 void GeoSource::outputNodeScalars(int fileNum, double *data,
@@ -2034,12 +2050,15 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
       it++;
     }
 
+  } else {
+    if(outputSize == 1) {
+        fprintf(oinfo[fileNum].filptr," % *.*E\n", w, p, data[0]);
+    } else {
+      for (int i = 0; i < outputSize; i++) {
+        filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
+      }
+    }
   }
-  else
-    for (int i = 0; i < outputSize; i++) {
-      filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i]);
-  }
-
   fflush(oinfo[fileNum].filptr);
 }
 
@@ -3143,7 +3162,22 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
     // PJSA 02-04-2010
     if(matchName != NULL) {
+      BinFileHandler connectivityFile(conName, "rb");
+      Connectivity *clusToSub = new Connectivity(connectivityFile, true);
+      //cerr << "totSub = " << totSub << endl;
+                   
+      // build global to cluster subdomain map
+      int *gl2ClSubMap = new int[totSub];
+      for (int iClus = 0; iClus < 1; iClus++)  { // only one cluster currently supported
+        int clusNum = 0;
+        for (int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
+          gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
+      }
+      //if(myID == 0) cerr << "clusToSub = \n"; clusToSub->print();
+      delete clusToSub;
+
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
+
         char fullDecName[32];
         sprintf(fullDecName, "%s1", decName); // only one cluster currently supported
         BinFileHandler decFile(fullDecName, "rb");
@@ -3153,7 +3187,8 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         decFile.read(&numClusSub, 1);
         BinFileHandler::OffType curLoc = decFile.tell();
         int glSub = (*cpuToSub)[myID][locSub];
-        int clusSub = numSub-1-glSub; // only one cluster currently supported
+        int clusSub = gl2ClSubMap[glSub];
+        //cerr << "locSub = " << locSub << ", glSub = " << glSub << ", clusSub = " << clusSub << endl;
         decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
         BinFileHandler::OffType infoLoc;
         decFile.read(&infoLoc, 1);
@@ -3164,6 +3199,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         int (*elemRanges)[2];
         int numElemRanges;
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
+        //cerr << "numLocElems = " << numLocElems << endl;
 
         int minElemNum = elemRanges[0][0];
         int maxElemNum = 0;
@@ -3180,9 +3216,9 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           cl2LocElem[iElem] = -1;
         iElem = 0;
         for(int iR = 0; iR < numElemRanges; ++iR)
-          //for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem)
-          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem)
-            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain
+          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
+            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
+          }
 
         int nConnects;
         decFile.read(&nConnects, 1);
@@ -3213,15 +3249,18 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           char fullMatchName[32];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
-          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem);
+          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem); // PJSA
         }
         delete [] cl2LocElem;
       }
+      delete [] gl2ClSubMap;
     }
+/*
     else {
       fprintf(stderr,"*** ERROR: Binary Match File not specified\n");
       exit (-1);
     }
+*/
   }
 
   return numCPU;
@@ -3533,7 +3572,7 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   int dataType = 0;  // 1 for nodal, 2 for elemental
 
   // solver information structure
-  SolverInfo sinfo = domain->solInfo();
+  SolverInfo &sinfo = domain->solInfo();
 
   char prbType[20];
   if(sinfo.probType == SolverInfo::Static) strcpy(prbType,"Static");
@@ -4245,7 +4284,7 @@ GeoSource::getDecomposition()
     subToElem = new Connectivity(numSub,cx,connect);
     subToElem->renumberTargets(glToPckElems);  // PJSA: required if gaps in element numbering
 
-#ifdef DISTRIBUTED // PJSA 1-22-07
+#ifdef DISTRIBUTED
     int* ptr = new int[numSub+1];
     int* target = new int[numSub];
     ptr[0] = 0;
@@ -4259,7 +4298,6 @@ GeoSource::getDecomposition()
     numClusNodes = nGlobNodes;
     numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
 #endif
-
 
   }
   return subToElem;

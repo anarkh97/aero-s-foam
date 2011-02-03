@@ -99,34 +99,31 @@ Connectivity::Connectivity(Elemset*els, int numSom, SommerElement **som)
   delete [] eleCount; eleCount = NULL;
 }
 
-//#define OLD_SOWER
-#ifndef OLD_SOWER
-Connectivity::Connectivity(BinFileHandler& f)
+Connectivity::Connectivity(BinFileHandler& f, bool oldSower)
 {
-  f.read(&size,1);
-  pointer = new int[size];
-  --size;
-  f.read(pointer,size+1);
-  f.read(&numtarget,1);
-  target = new int[numtarget];
-  f.read(target,numtarget);
-  removeable = 1;
-  weight    = 0;
+  if(!oldSower) {
+    f.read(&size,1);
+    pointer = new int[size];
+    --size;
+    f.read(pointer,size+1);
+    f.read(&numtarget,1);
+    target = new int[numtarget];
+    f.read(target,numtarget);
+    removeable = 1;
+    weight    = 0;
+  }
+  else {
+    //cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
+    removeable = 1;
+    f.read(&size, 1);
+    f.read(&numtarget, 1);
+    pointer = new int[size+1];
+    target = new int[numtarget];
+    weight = 0;
+    f.read(pointer, size+1);
+    f.read(target, numtarget);
+  }
 }
-#else
-Connectivity::Connectivity(BinFileHandler& f)
-{
-  //cerr << " *** WARNING: using OLD_SOWER ::Connectivity(BinFileHandler& f) \n";
-  removeable = 1;
-  f.read(&size, 1);
-  f.read(&numtarget, 1);
-  pointer = new int[size+1];
-  target = new int[numtarget];
-  weight = 0;
-  f.read(pointer, size+1);
-  f.read(target, numtarget);
-}
-#endif
 
 size_t Connectivity::write(BinFileHandler& f)
 {

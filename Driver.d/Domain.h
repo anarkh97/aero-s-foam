@@ -251,7 +251,7 @@ class Domain : public HData {
     bool sowering;
     bool output_match_in_top;
 
-    void writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber);
+    void writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber, int topFlag);
 
     Elemset elems_copy; // Needed for SFEM
     Elemset elems_fullcopy; // copy of the full elementset, needed for SFEM
@@ -350,6 +350,7 @@ class Domain : public HData {
      int  setIVelModal(int, BCond *);
      int  setIAcc(int, BCond *);
      int  setMFTT(MFTTData *);
+     MFTTData * getMFTT() const { return mftval; }
      int  setMPTT(MFTTData *);
      int  setHFTT(MFTTData *);
      int  addYMTT(MFTTData *);
@@ -815,6 +816,7 @@ class Domain : public HData {
      void PrintSurfaceEntities();
 
      int AddAeroEmbedSurfaceId(int Id);
+     std::set<int> & GetAeroEmbedSurfaceId() { return aeroEmbeddedSurfaceId; }
 
      int nMortarCond;
      int nContactSurfacePairs; 

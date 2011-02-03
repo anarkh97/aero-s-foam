@@ -34,8 +34,7 @@ struct Group;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
-      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EFFPSTRN=18,
-      HARDVAR=19};
+      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EFFPSTRN=18};
 enum {INX,INY,INZ,AXM,AYM,AZM};
 enum {YOUNG,MDENS,THICK};
 enum {PSTRESS1=0,PSTRESS2=1,PSTRESS3=2,
@@ -324,7 +323,7 @@ public:
   // Parser support Functions - Geometry
   int  addNode(int nd, double xyz[3]);
   int  addElem(int en, int type, int nn, int *nodeNumbers);
-  int  addMat(int, StructProp &);
+  int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
   int  addCoefInfo(int, CoefData &);
   CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
@@ -439,6 +438,7 @@ public:
   int getNumDirichlet()  { return numDirichlet; }
   int getNumDirichletFluid()  { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
   int getNumNeuman()  { return numNeuman; }
+  int getNumIDisModal() { return numIDisModal; }
   int getDirichletBC(BCond *&);
   int getDirichletBCFluid(BCond *&);
   int getTextDirichletBC(BCond *&);
@@ -485,12 +485,14 @@ public:
   void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag); // dec
 
   // Output Functions
-  void outputNodeVectors(int, double (*)[3], int, double time = -1.0);//DofSet::max_known_nonL_dof
-  void outputNodeVectors(int, DComplex (*)[3], int, double time = -1.0);
-  //void outputNodeVectors(int, double (*)[11], int, double time = -1.0){};
-  //void outputNodeVectors(int, DComplex (*)[11], int, double time = -1.0){};
-  void outputNodeVectors6(int, double (*)[6], int, double time = -1.0);
-  void outputNodeVectors6(int, DComplex (*)[6], int, double time = -1.0);
+  template<int bound>
+    void outputNodeVectors(int, double (*)[bound], int, double time = -1.0);//DofSet::max_known_nonL_dof
+  template<int bound>
+    void outputNodeVectors(int, DComplex (*)[bound], int, double time = -1.0);
+  template<int bound>
+    void outputNodeVectors6(int, double (*)[bound], int, double time = -1.0);
+  template<int bound>
+    void outputNodeVectors6(int, DComplex (*)[bound], int, double time = -1.0);
   //void outputNodeVectors6(int, double (*)[11], int, double time = -1.0) {};
   //void outputNodeVectors6(int, DComplex (*)[11], int, double time = -1.0) {};
   void outputNodeScalars(int, double *, int, double time = -1.0);

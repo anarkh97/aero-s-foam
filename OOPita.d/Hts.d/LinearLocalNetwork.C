@@ -1,5 +1,7 @@
 #include "LinearLocalNetwork.h"
 
+#include "../IncrementalPropagation.h"
+
 #include <algorithm>
 #include <iterator>
 
@@ -10,7 +12,7 @@ namespace Pita { namespace Hts {
 /* LinearLocalNetwork Constructor */
 
 LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
-                                       HalfTimeSlice::Manager * sliceMgr,
+                                       AffinePropagatorManager * propMgr,
                                        ReducedCorrectionManager * redCorrMgr,
                                        JumpConvergenceEvaluator * jumpCvgMgr,
                                        RemoteState::Manager * commMgr,
@@ -18,7 +20,7 @@ LinearLocalNetwork::LinearLocalNetwork(SliceMapping * mapping,
   LocalNetwork(mapping, commMgr),
   jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
   jumpCvgMgr_(jumpCvgMgr),
-  sliceMgr_(sliceMgr),
+  propMgr_(propMgr),
   redCorrMgr_(redCorrMgr),
   jumpErrorMgr_(jumpErrorMgr),
   fullCorrectionBuilder_(mapping, redCorrMgr->fcpMgr(), commMgr, fullSeedGetter()),
@@ -48,8 +50,12 @@ LinearLocalNetwork::init() {
 
 void
 LinearLocalNetwork::buildForwardPropagation(HalfSliceRank sliceRank) {
-  HalfSliceRank nextSliceRank = sliceRank.next();
-  HalfTimeSlice::Ptr forwardSlice = sliceMgr_->instanceNew(HalfSliceId(sliceRank, HalfTimeSlice::FORWARD));
+  const HalfSliceRank nextSliceRank = sliceRank.next();
+  const HalfSliceId id(sliceRank, FORWARD);
+
+  AffineDynamPropagator::Ptr propagator = propMgr_->instanceNew(id);
+  IncrementalPropagation::Ptr forwardSlice = IncrementalPropagation::New(Fwk::String("Propagate ") + toString(id), propagator.ptr());
+  
   Seed::Ptr mainSeed = fullSeedGet(SeedId(MAIN_SEED, sliceRank));
   forwardSlice->seedIs(mainSeed.ptr());
   forwardSlice->propagatedSeedIs(fullSeedGet(SeedId(LEFT_SEED, nextSliceRank)));
@@ -60,8 +66,12 @@ LinearLocalNetwork::buildForwardPropagation(HalfSliceRank sliceRank) {
 
 void
 LinearLocalNetwork::buildBackwardPropagation(HalfSliceRank sliceRank) {
-  HalfSliceRank previousSliceRank = sliceRank.previous();
-  HalfTimeSlice::Ptr backwardSlice = sliceMgr_->instanceNew(HalfSliceId(previousSliceRank, HalfTimeSlice::BACKWARD));
+  const HalfSliceRank previousSliceRank = sliceRank.previous();
+  const HalfSliceId id(previousSliceRank, BACKWARD);
+  
+  AffineDynamPropagator::Ptr propagator = propMgr_->instanceNew(id);
+  IncrementalPropagation::Ptr backwardSlice = IncrementalPropagation::New(Fwk::String("Propagate ") + toString(id), propagator.ptr());
+  
   Seed::Ptr mainSeed = fullSeedGet(SeedId(MAIN_SEED, sliceRank));
   backwardSlice->seedIs(mainSeed.ptr());
   backwardSlice->propagatedSeedIs(fullSeedGet(SeedId(RIGHT_SEED, previousSliceRank)));
@@ -242,13 +252,26 @@ LinearLocalNetwork::applyConvergenceStatus() {
       it->second->statusIs(Seed::INACTIVE);
     }
     seedCorrection_.erase(seedCorrection_.begin(), firstActiveCorrection);
+    
+    if (redCorrMgr_->usaMgr()->instance(toString(firstActiveSlice()))) {
+      Seed::PtrConst leadMainSeed = fullSeedGet(SeedId(MAIN_SEED, firstActiveSlice()));
+      Seed::Ptr leadLeftSeed = fullSeedGet(SeedId(LEFT_SEED, firstActiveSlice()));
+      if ((leadMainSeed->status() == Seed::ACTIVE || leadMainSeed->status() == Seed::CONVERGED) && leadMainSeed->iteration() > leadLeftSeed->iteration()) {
+        // Convergence front has moved in a non-staggered fashion
+        // It should only happen when the complete active time-domain has converged
+        // The leading seed is used to create a 'fake' propagated seed to account for this exception
+        leadLeftSeed->stateIs(leadMainSeed->state());
+        leadLeftSeed->iterationIs(leadMainSeed->iteration());
+        leadLeftSeed->statusIs(Seed::CONVERGED);
+      }
+    }
   }
   
   // Deactivate reduced correction
   {
     ReducedSeedMap::iterator firstActiveCorrection = reducedSeedCorrection_.upper_bound(firstActiveSlice());
     for (ReducedSeedMap::iterator it = reducedSeedCorrection_.begin(); it != firstActiveCorrection; ++it) {
-      log() << "Inactivate full " << it->second->name() << "\n";
+      log() << "Inactivate reduced " << it->second->name() << "\n";
       it->second->statusIs(Seed::INACTIVE);
     }
     reducedSeedCorrection_.erase(reducedSeedCorrection_.begin(), firstActiveCorrection);

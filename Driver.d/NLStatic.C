@@ -24,6 +24,8 @@
 
 #include <Driver.d/GeoSource.h>
 
+#include <algorithm>
+
 void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 		         Corotator **corotators, FullSquareMatrix *kel,
@@ -100,19 +102,16 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
+    double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
       if(packedEset[iele]->getPressure() == 0) continue;
 
-      // Compute element pressure force in the local coordinates
+      // Compute (linear) element pressure force in the local coordinates
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      elementForce *= lambda;
-//#define PRESSURE_MFTT
-#ifdef PRESSURE_MFTT
-      double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
-      elementForce *= mfttFactor; // TODO consider
-#endif
+      elementForce *= lambda*mfttFactor;
+
       // Include the "load stiffness matrix" in kel[iele]
       if(sinfo.newmarkBeta != 0.0)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
@@ -126,6 +125,21 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(dofNum >= 0)
           residual[dofNum] += elementForce[idof];
+      }
+    }
+  }
+
+  // pressure using surfacetopo
+  int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
+  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
+  for(int iele = 0; iele < numNeum; ++iele) {
+    neum[iele]->dofs(*dsa, edofs);
+    elementForce.zero();
+    neum[iele]->neumVector(nodes, elementForce, 0, &geomState);
+    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
+      int cn = c_dsa->getRCN(edofs[idof]);
+      if(cn >= 0) {
+        residual[cn] += lambda*mfttFactor*elementForce[idof]; // TODO MFTT
       }
     }
   }
@@ -173,7 +187,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
  
-  if(!solInfo().getNLInfo().unsymmetric)
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();
     
@@ -189,8 +203,10 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
 
   // Allocate the correct size for each elements stiffness matrix
   int iele;
-  for(iele = 0; iele<numele; ++iele)
+  for(iele = 0; iele<numele; ++iele) {
     kArray[iele].setSize(packedEset[iele]->numDofs());
+    kArray[iele].zero(); 
+  }
 }
 
 // used in nonlinear dynamics
@@ -209,12 +225,13 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  for(iele = 0; iele<numele; ++iele) {
    int dimension = packedEset[iele]->numDofs();
    kArray[iele].setSize(dimension);
+   kArray[iele].zero();
    mArray[iele].setSize(dimension);
  }
 
  // Form and store element mass matrices into an array
  for(iele=0; iele<numele; ++iele)
-   mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data());
+   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data()));
 
  // zero rotational degrees of freedom within element mass matrices
  int *dofType = dsa->makeDofTypeArray();
@@ -367,14 +384,18 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       double (*data)[6] = new double[nPrintNodes][6];
       for (i=0; i < nPrintNodes; ++i) {
         int iNode = first_node+i;
-        data[i][0] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
-        data[i][1] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
-        data[i][2] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
-        double rot[3];
-        mat_to_vec((*geomState)[iNode].R,rot);
-        data[i][3] = rot[0];
-        data[i][4] = rot[1];
-        data[i][5] = rot[2];
+        if (iNode < geomState->numNodes()) {
+          if (nodes[iNode]) {
+            data[i][0] = (*geomState)[iNode].x - nodes[iNode]->x;
+            data[i][1] = (*geomState)[iNode].y - nodes[iNode]->y;
+            data[i][2] = (*geomState)[iNode].z - nodes[iNode]->z;
+          } else {
+            std::fill_n(&data[i][0], 3, 0.0);
+          }
+          mat_to_vec((*geomState)[iNode].R, &data[i][3]);
+        } else {
+          std::fill_n(&data[i][0], 6, 0.0);
+        }
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -672,7 +693,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       if (sinfo.probType == SolverInfo::NonLinDynam) {
         double dW=0.0, dWaero = 0.0, Wela=0.0, Wkin=0.0;
 
-        if(time==sinfo.initialTime) {
+        if(!previousExtForce) {
           Wext=0.0;
           Waero=0.0;
           Wdmp=0.0;
@@ -739,7 +760,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       pWela=Wela;
       pWkin=Wkin;
 
-      if(time==sinfo.initialTime) {
+      if(!previousDisp) {
         previousDisp = new Vector(sol);
       } else {
         (*previousExtForce) = force;
@@ -784,12 +805,67 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double error = Wext+Wela+Wkin;
           geoSource->outputEnergies(iInfo,time,Wext, Waero, Wela,Wkin,0.0,error);
         }
+    } break;
+    case OutputInfo::AeroForce: break; // this is done in FlExchange.C
+    case OutputInfo::AeroXForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+        data[iNode]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
       }
-        break;
-       default:
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroYForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+        data[iNode]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroZForce:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+        data[iNode] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroXMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+        data[iNode] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroYMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+        data[iNode] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+    case OutputInfo::AeroZMom:  {
+      double *data = new double[nPrintNodes];
+      for (int iNode = 0; iNode < nPrintNodes; ++iNode)  {
+        int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+        data[iNode] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+      }
+      geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } break;
+
+    default:
          fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
 	 break;
-    }
+  }
 
 }
 
@@ -1323,7 +1399,6 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
  if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
    int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-     cerr << "here in NLStatic.C writeRestartFile\n";
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
      if(writeSize != sizeof(int))

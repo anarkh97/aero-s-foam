@@ -57,7 +57,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Allocate Vectors to store external force, residual velocity 
   // and mid-point force
   VecType external_force(probDesc->solVecInfo());
-  VecType aeroForce(probDesc->solVecInfo());
+  VecType aeroForce(probDesc->solVecInfo()); aeroForce.zero();
   VecType rhs(probDesc->solVecInfo());
   VecType residual(probDesc->solVecInfo());
   VecType totalRes(probDesc->sysVecInfo());
@@ -162,8 +162,11 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   for( ; step < maxStep; ++step) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((timeLoop + getTime())/250.)%4], time+dt, int(double(step+1)/double(maxStep)*100.0));
-    if(verboseFlag) cerr << endl;
+    if(aeroAlg < 0) {
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                ch[int((timeLoop + getTime())/250.)%4], time, int(double(step)/double(maxStep)*100.0));
+      if(verboseFlag) filePrint(stderr,"\n");
+    }
 
     if(aeroAlg == 5) {
       if(parity==0) //copy current state to backup state
@@ -215,9 +218,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-      //cerr << "rhs*rhs = " << rhs*rhs << endl;
       solver->reSolve(rhs);
-      //cerr << "sol*sol = " << rhs*rhs << endl;
 
       // Check for convergence
       // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing
@@ -247,7 +248,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();
-    if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
+    else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
       probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg);
     }
     probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration);
@@ -260,7 +261,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       parity = ( parity ? 0 : 1 );
     }
   }
-  if(!aeroAlg)
+  if(aeroAlg < 0)
     filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", time);
 
   timeLoop += getTime();
@@ -269,5 +270,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 #endif
 
   probDesc->printTimers(timeLoop);
+
+  delete stepState;
+  delete geomState;
 }
 

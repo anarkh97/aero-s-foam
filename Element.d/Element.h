@@ -4,6 +4,7 @@
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/MFTT.h>
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -35,11 +36,11 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
-  enum { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
+  enum BCType { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors } type;
-  void setData(int _nnum, int _dofnum, double _val) { nnum = _nnum; dofnum = _dofnum; val = _val; };
+         Sensors, Undefined } type;
+  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; };
 };
 
 // Complex Boundary Condition Structure
@@ -311,7 +312,7 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres) { pressure = pres; }
+	virtual void setPressure(double pres, MFTTData *mftt = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
         // By default ingore any element preload
@@ -324,7 +325,7 @@ class Element {
         // By default an element does not need a frame
         virtual void buildFrame(CoordSet&) {}
         virtual void setOffset(double*) {}
-	    virtual void setCompositeData(int _type, int nlays, double *lData,
+        virtual void setCompositeData(int _type, int nlays, double *lData,
                                       double *coefs, double *frame);
         virtual double * setCompositeData2(int _type, int nlays, double *lData,
                                            double *coefs, CoordSet &cs, double theta);
@@ -525,7 +526,7 @@ class Elemset
     bool myData;
   public:
     Elemset(int = 256);
-    virtual ~Elemset() { /*deleteElems();*/ }
+    virtual ~Elemset() { deleteElems(); }
     Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap);
     int size() const { return emax; }
     int last() const;
@@ -537,7 +538,7 @@ class Elemset
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
     void list();
-    void deleteElems()  { if(elem) { if(myData) for(int i=0; i<last(); ++i) delete elem[i]; delete [] elem; elem = 0; emax = 0;} }
+    void deleteElems();
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }

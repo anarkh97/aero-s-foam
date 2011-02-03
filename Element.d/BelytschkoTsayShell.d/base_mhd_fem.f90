@@ -1941,295 +1941,6 @@ end subroutine getb0mat3d
 
 
 
-
-subroutine getbmat1pt(ecordloc, bmat1pt)
-  !=======================================================================
-  !  getbmat1pt = compute b matrix of 4 node quad integrated with 1 point gq
-  !
-  !               note:
-  !               ----
-  !               belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
-  !               advances in one point quadrature shell elements
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  ecordloc(3,4) : local element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  bmat1pt(2,4) : b matrix of 4 node quad integrated with 1 point gq
-  !                            
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(3,4), intent(in) :: ecordloc
-
-  real(8), dimension(2,4), intent(out) :: bmat1pt
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8) :: area, const
-  real(8) :: x1,x2,x3,x4
-  real(8) :: y1,y2,y3,y4
-
-  ! loop index
-  integer :: inode
-  ! ====================================
-
-  ! initialize
-  bmat1pt(:,:)= 0.0d0
-
-  ! define components
-  x1= ecordloc(1,1)
-  x2= ecordloc(1,2)
-  x3= ecordloc(1,3)
-  x4= ecordloc(1,4)
-
-  y1= ecordloc(2,1)
-  y2= ecordloc(2,2)
-  y3= ecordloc(2,3)
-  y4= ecordloc(2,4)
-
-  ! compute area
-  area= 0.50d0*((x3-x1)*(y4-y2) + (x2-x4)*(y3-y1))
-
-  ! check current element configuration
-  if ( area <= 0.0d0 ) then
-     write(*,*) "current element has negative or zero area: getbmat1pt"
-     write(nout5,*) "current element has negative or zero area: getbmat1pt"
-     stop
-
-  end if
-
-  ! compute constant
-  const= 1.0d0 /( 2.0d0*area)
-
-  ! set b_x components
-  bmat1pt(1,1)= const*( y2-y4 ) 
-  bmat1pt(1,2)= const*( y3-y1 ) 
-  bmat1pt(1,3)= const*( y4-y2 ) 
-  bmat1pt(1,4)= const*( y1-y3 ) 
-
-  ! set b_y components
-  bmat1pt(2,1)= const*( x4-x2 ) 
-  bmat1pt(2,2)= const*( x1-x3 ) 
-  bmat1pt(2,3)= const*( x2-x4 ) 
-  bmat1pt(2,4)= const*( x3-x1 ) 
-
-
-
-  return
-end subroutine getbmat1pt
-
-
-
-subroutine getbcmat1pt(ecordloc, bcmat1pt)
-  !=======================================================================
-  !  getbcmat1pt = compute b^c matrix for warpping correction
-  !                with one point integration and local z method
-  !                for computational efficiency, explicit components form is used
-  !
-  !                note:
-  !                ----
-  !                belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
-  !                advances in one point quadrature shell elements
-  !                (see, eq (30))
-  !
-  !  arguments description
-  !  ---------------------
-  !  input:
-  !  -----
-  !  ecordloc(3,4) : local element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  bcmat1pt(2,4) : bmatrix for warping correction
-  !                            
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(3,4), intent(in) :: ecordloc
-
-  real(8), dimension(2,4), intent(out) :: bcmat1pt
-  ! ====================================
-  ! local variable
-  ! ==============
-  real(8) :: area, const
-  real(8) :: x1,x2,x3,x4
-  real(8) :: y1,y2,y3,y4
-
-  real(8), dimension(2,4) :: ecord2dloc
-  real(8), dimension(4,1) :: gamma
-  real(8) :: zgamma
-
-  ! loop index
-  integer :: inode
-  ! ====================================
-
-  ! initialize
-  bcmat1pt(:,:)= 0.0d0
-
-  ! define components
-  x1= ecordloc(1,1)
-  x2= ecordloc(1,2)
-  x3= ecordloc(1,3)
-  x4= ecordloc(1,4)
-
-  y1= ecordloc(2,1)
-  y2= ecordloc(2,2)
-  y3= ecordloc(2,3)
-  y4= ecordloc(2,4)
-
-  ! compute area
-  area= 0.50d0*((x3-x1)*(y4-y2) + (x2-x4)*(y3-y1))
-
-  ! check current element configuration
-  if ( area <= 0.0d0 ) then
-     write(*,*) "current element has negative or zero area: getbcmat1pt"
-     write(nout5,*) "current element has negative or zero area: getbcmat1pt"
-     stop
-
-  end if
-
-  ! set 2d coordinate only
-  ecord2dloc(1:2,1:4)= ecordloc(1:2,1:4)
-
-  ! compute gamma projection operator
-  call getgamma4nod(ecord2dloc, gamma)
-     ! input : ecord2dloc
-     ! output : gamma
-
-  ! compute gamma_i z_i
-  zgamma= 0.0d0 ! initialize
-  do inode=1, 4
-     zgamma= zgamma + ecordloc(3,inode)*gamma(inode,1)
-  end do
-
-  ! compute constant
-  const= (2.0d0*zgamma)/area**2
-
-  ! set b_x ^c components
-  bcmat1pt(1,1)= const*( x1-x3 ) 
-  bcmat1pt(1,2)= const*( x4-x2 ) 
-  bcmat1pt(1,3)= const*( x3-x1 ) 
-  bcmat1pt(1,4)= const*( x2-x4 ) 
-
-  ! set b_y ^c components
-  bcmat1pt(2,1)= const*( y1-y3 ) 
-  bcmat1pt(2,2)= const*( y4-y2 ) 
-  bcmat1pt(2,3)= const*( y3-y1 ) 
-  bcmat1pt(2,4)= const*( y2-y4 ) 
-
-
-
-  return
-end subroutine getbcmat1pt
-
-
-
-
-subroutine getbsmat1pt(ecordloc, bsmat1pt)
-  !=======================================================================
-  !  getbsmat1pt = compute b^s matrix for shear projection
-  !                with one point integration
-  !                for computational efficiency, explicit components form is used
-  !
-  !                note:
-  !                ----
-  !                belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
-  !                advances in one point quadrature shell elements
-  !                (see, eq(35))
-  !
-  !  arguments description
-  !  ---------------------
-  !  input
-  !  -----
-  !  ecordloc(3,4) : local element nodal coordinate
-  !
-  !  output:
-  !  ------
-  !  bsmat1pt(2,3,4) : b^s matrix for shear projection
-  !
-  ! ======================================================================
-
-  include 'preset.fi'
-  ! ====================================
-  ! subroutine argument
-  ! ===================
-  real(8), dimension(3,4), intent(in) :: ecordloc
-
-  real(8), dimension(2,3,4), intent(out) :: bsmat1pt
-  ! ====================================
-  ! local variable
-  ! ==============
-  integer, dimension(3,4) :: ijkndx
-
-  real(8) :: xi, xj, xk
-  real(8) :: yi, yj, yk
-  real(8) :: xji, yji, xik, yik
-  real(8) :: lji, lik
-
-  ! loop index
-  integer :: inode
-  ! ====================================
-
-  ! initialize
-  data ijkndx /1,2,4, 2,3,1, 3,4,2, 4,1,3/
-  bsmat1pt(:,:,:)= 0.0d0
-
-  
-  do inode=1, 4
-
-     ! extract current and neighbor nodal coordinate
-     xi= ecordloc(1,ijkndx(1,inode))
-     xj= ecordloc(1,ijkndx(2,inode))
-     xk= ecordloc(1,ijkndx(3,inode))
-
-     yi= ecordloc(2,ijkndx(1,inode))
-     yj= ecordloc(2,ijkndx(2,inode))
-     yk= ecordloc(2,ijkndx(3,inode))
-
-     ! compute relative nodal coordinate difference
-     xji= xj-xi
-     yji= yj-yi
-
-     xik= xi-xk
-     yik= yi-yk
-
-     ! compute edge length: l_ji, l_ik
-     lji= dsqrt( xji**2 + yji**2 )
-     lik= dsqrt( xik**2 + yik**2 )
-
-
-     ! set b_x ^s components
-     bsmat1pt(1,1,inode)= (1.0d0/2.0d0)*( xji/(lji**2) - xik/(lik**2) )
-     bsmat1pt(1,2,inode)= (1.0d0/4.0d0)*( xji*yji/(lji**2) + xik*yik/(lik**2) ) 
-     bsmat1pt(1,3,inode)= -(1.0d0/4.0d0)*( (xji/lji)**2 + (xik/lik)**2 ) 
-
-     ! set b_y ^s components
-     bsmat1pt(2,1,inode)= (1.0d0/2.0d0)*( yji/(lji**2) - yik/(lik**2) )
-     bsmat1pt(2,2,inode)= (1.0d0/4.0d0)*( (yji/lji)**2 + (yik/lik)**2 ) 
-     bsmat1pt(2,3,inode)= -(1.0d0/4.0d0)*( xji*yji/(lji**2) + xik*yik/(lik**2) ) 
-
-  end do
-
-
-
-  return
-end subroutine getbsmat1pt
-
-
-
-
-
 subroutine rotprojbt1(ecord,edisp,evelo, edisp0,evelo0)
   !=======================================================================
   !  rotprojbt1 = rotation projection: project 6 dof to 5 dof: nodal solution
@@ -2916,3 +2627,247 @@ subroutine getsqele(optele,nsqdim,nsqpt,msimp, sqpoin,sqweigt)
 
   return
 end subroutine getsqele
+
+
+
+
+
+subroutine getbmat1pt(ecordloc, area, bmat1pt)
+  !=======================================================================
+  !  getbmat1pt = compute b matrix of 4 node quad integrated with 1 point gq
+  !
+  !               note:
+  !               ----
+  !               belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
+  !               advances in one point quadrature shell elements
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ecordloc(3,4) : local element nodal coordinate
+  !
+  !  output:
+  !  ------
+  !  bmat1pt(2,4) : b matrix of 4 node quad integrated with 1 point gq
+  !                            
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  real(8), dimension(3,4), intent(in) :: ecordloc
+  real(8), intent(in) :: area
+
+  real(8), dimension(2,4), intent(out) :: bmat1pt
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8) :: const
+  real(8) :: x1,x2,x3,x4
+  real(8) :: y1,y2,y3,y4
+
+  ! ====================================
+
+  ! define components
+  x1= ecordloc(1,1)
+  x2= ecordloc(1,2)
+  x3= ecordloc(1,3)
+  x4= ecordloc(1,4)
+
+  y1= ecordloc(2,1)
+  y2= ecordloc(2,2)
+  y3= ecordloc(2,3)
+  y4= ecordloc(2,4)
+
+  ! compute constant
+  const= 1.0d0 /( 2.0d0*area)
+
+  ! set b_x components
+  bmat1pt(1,1)= const*( y2-y4 ) 
+  bmat1pt(1,2)= const*( y3-y1 ) 
+  bmat1pt(1,3)= const*( y4-y2 ) 
+  bmat1pt(1,4)= const*( y1-y3 ) 
+
+  ! set b_y components
+  bmat1pt(2,1)= const*( x4-x2 ) 
+  bmat1pt(2,2)= const*( x1-x3 ) 
+  bmat1pt(2,3)= const*( x2-x4 ) 
+  bmat1pt(2,4)= const*( x3-x1 ) 
+
+
+
+  return
+end subroutine getbmat1pt
+
+
+
+subroutine getbcmat1pt(ecordloc, area, gamma, zgamma, bcmat1pt)
+  !=======================================================================
+  !  getbcmat1pt = compute b^c matrix for warpping correction
+  !                with one point integration and local z method
+  !                for computational efficiency, explicit components form is used
+  !
+  !                note:
+  !                ----
+  !                belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
+  !                advances in one point quadrature shell elements
+  !                (see, eq (30))
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ecordloc(3,4) : local element nodal coordinate
+  !
+  !  output:
+  !  ------
+  !  bcmat1pt(2,4) : bmatrix for warping correction
+  !                            
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  real(8), dimension(3,4), intent(in) :: ecordloc
+  real(8), intent(in) :: area
+  real(8), dimension(4,1), intent(in) :: gamma
+  real(8), intent(in) :: zgamma
+
+  real(8), dimension(2,4), intent(out) :: bcmat1pt
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8) :: const
+  real(8) :: x1,x2,x3,x4
+  real(8) :: y1,y2,y3,y4
+
+  ! loop index
+  integer :: inode
+  ! ====================================
+
+  ! define components
+  x1= ecordloc(1,1)
+  x2= ecordloc(1,2)
+  x3= ecordloc(1,3)
+  x4= ecordloc(1,4)
+
+  y1= ecordloc(2,1)
+  y2= ecordloc(2,2)
+  y3= ecordloc(2,3)
+  y4= ecordloc(2,4)
+
+
+  ! compute constant
+  const= (2.0d0*zgamma)/area**2
+
+  ! set b_x ^c components
+  bcmat1pt(1,1)= const*( x1-x3 ) 
+  bcmat1pt(1,2)= const*( x4-x2 ) 
+  bcmat1pt(1,3)= const*( x3-x1 ) 
+  bcmat1pt(1,4)= const*( x2-x4 ) 
+
+  ! set b_y ^c components
+  bcmat1pt(2,1)= const*( y1-y3 ) 
+  bcmat1pt(2,2)= const*( y4-y2 ) 
+  bcmat1pt(2,3)= const*( y3-y1 ) 
+  bcmat1pt(2,4)= const*( y2-y4 ) 
+
+
+
+  return
+end subroutine getbcmat1pt
+
+
+
+
+subroutine getbsmat1pt(ecordloc, bsmat1pt)
+  !=======================================================================
+  !  getbsmat1pt = compute b^s matrix for shear projection
+  !                with one point integration
+  !                for computational efficiency, explicit components form is used
+  !
+  !                note:
+  !                ----
+  !                belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
+  !                advances in one point quadrature shell elements
+  !                (see, eq(35))
+  !
+  !  arguments description
+  !  ---------------------
+  !  input
+  !  -----
+  !  ecordloc(3,4) : local element nodal coordinate
+  !
+  !  output:
+  !  ------
+  !  bsmat1pt(2,3,4) : b^s matrix for shear projection
+  !
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  real(8), dimension(3,4), intent(in) :: ecordloc
+
+  real(8), dimension(2,3,4), intent(out) :: bsmat1pt
+  ! ====================================
+  ! local variable
+  ! ==============
+  integer, dimension(3,4) :: ijkndx
+
+  real(8) :: xi, xj, xk
+  real(8) :: yi, yj, yk
+  real(8) :: xji, yji, xik, yik
+  real(8) :: lji, lik
+
+  ! loop index
+  integer :: inode
+  ! ====================================
+
+  ! initialize
+  data ijkndx /1,2,4, 2,3,1, 3,4,2, 4,1,3/
+
+  
+  do inode=1, 4
+
+     ! extract current and neighbor nodal coordinate
+     xi= ecordloc(1,ijkndx(1,inode))
+     xj= ecordloc(1,ijkndx(2,inode))
+     xk= ecordloc(1,ijkndx(3,inode))
+
+     yi= ecordloc(2,ijkndx(1,inode))
+     yj= ecordloc(2,ijkndx(2,inode))
+     yk= ecordloc(2,ijkndx(3,inode))
+
+     ! compute relative nodal coordinate difference
+     xji= xj-xi
+     yji= yj-yi
+
+     xik= xi-xk
+     yik= yi-yk
+
+     ! compute edge length: l_ji, l_ik
+     lji= dsqrt( xji**2 + yji**2 )
+     lik= dsqrt( xik**2 + yik**2 )
+
+
+     ! set b_x ^s components
+     bsmat1pt(1,1,inode)= (1.0d0/2.0d0)*( xji/(lji**2) - xik/(lik**2) )
+     bsmat1pt(1,2,inode)= (1.0d0/4.0d0)*( xji*yji/(lji**2) + xik*yik/(lik**2) ) 
+     bsmat1pt(1,3,inode)= -(1.0d0/4.0d0)*( (xji/lji)**2 + (xik/lik)**2 ) 
+
+     ! set b_y ^s components
+     bsmat1pt(2,1,inode)= (1.0d0/2.0d0)*( yji/(lji**2) - yik/(lik**2) )
+     bsmat1pt(2,2,inode)= (1.0d0/4.0d0)*( (yji/lji)**2 + (yik/lik)**2 ) 
+     bsmat1pt(2,3,inode)= -(1.0d0/4.0d0)*( xji*yji/(lji**2) + xik*yik/(lik**2) ) 
+
+  end do
+
+
+
+  return
+end subroutine getbsmat1pt

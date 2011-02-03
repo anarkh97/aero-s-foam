@@ -8,6 +8,7 @@
 
 // FEM headers
 #include <Utils.d/resize_array.h>
+#include <Utils.d/Connectivity.h>
 
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
@@ -95,3 +96,30 @@ FaceElement::ViewRefCoords()
   }
 }
 */
+
+int
+FaceElement::findEle(Connectivity *nodeToElem, int *eleTouch,
+                     int *eleCount, int myNum, int *fnId)
+{
+  int *nn = new int[nNodes()];
+  GetNodes(nn);
+  for(int i = 0; i<nNodes(); i++) {
+    for(int iele = 0; iele < nodeToElem->num(fnId[nn[i]]); iele++) {
+      int eleNum = (*nodeToElem)[fnId[nn[i]]][iele];
+      if (eleTouch [eleNum] != myNum) {
+        eleTouch [eleNum] = myNum;
+        eleCount [eleNum] = 1;
+      }
+      else {
+        eleCount[eleNum]++;
+        if(eleCount[eleNum] == nNodes()) {
+          delete [] nn;
+          return eleNum;
+        }
+      }
+    }
+  }
+  delete [] nn;
+  return -1;
+}
+

@@ -76,7 +76,8 @@ private:
   double jumpCvgRatio_;
   double projectorTolerance_;
   bool userProvidedSeeds_;
-  
+  int globalBasisEnrichment_;
+
   /* PITA-specific output */
   bool jumpMagnOutput_;
 };

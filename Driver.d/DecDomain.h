@@ -76,6 +76,9 @@ class GenDecDomain
 
   int sizeSfemStress;
   bool firstOutput; 
+
+  GenBasicAssembler<Scalar> *ba;
+
  public:
   GenDecDomain(Domain *d);
   virtual ~GenDecDomain();
@@ -83,6 +86,7 @@ class GenDecDomain
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
   Connectivity * getSubToSub() { return subToSub; }
+  Connectivity * getElemToSub() { return elemToSub; }
   GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0, bool make_feti = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
@@ -94,7 +98,8 @@ class GenDecDomain
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
-  virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0);
+  virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
+                              GenDistrVector<Scalar> *aeroF = 0);
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs

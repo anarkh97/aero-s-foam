@@ -297,14 +297,15 @@ subroutine glb2locnodv(ndime,nnode,ntrndof,locbvec,eglbnodv, elocnodv)
   ! local variable
   ! ==============
   real(8), dimension(ntrndof,1) :: glbvec, locvec
+  real(8), dimension(ntrndof,ntrndof) :: transmat !pjsa
 
   ! loop index
   integer :: inode
   ! ====================================
 
   ! initialize
-  elocnodv(:,:)= 0.0d0
-
+  !elocnodv(:,:)= 0.0d0
+  call gettransmat(ndime,ntrndof,locbvec, transmat) !pjsa
 
   ! convert global to local
   ! -----------------------
@@ -314,7 +315,8 @@ subroutine glb2locnodv(ndime,nnode,ntrndof,locbvec,eglbnodv, elocnodv)
      glbvec(1:ntrndof,1)= eglbnodv(1:ntrndof,inode)
 
      ! convert global to local
-     call glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
+     !call glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
+     call dgemv('n',ntrndof,ntrndof,1.0d0,transmat,ntrndof,glbvec,1,0.0d0,locvec,1) !pjsa
         ! input : ndime,ntrndof,locbvec,glbvec
         ! output : locvec
 
@@ -358,14 +360,15 @@ subroutine loc2glbnodv(ndime,nnode,ntrndof,locbvec,elocnodv, eglbnodv)
   ! local variable
   ! ==============
   real(8), dimension(ntrndof,1) :: glbvec, locvec
+  real(8), dimension(ntrndof,ntrndof) :: transmat
 
   ! loop index
   integer :: inode
   ! ====================================
 
   ! initialize
-  eglbnodv(:,:)= 0.0d0
-
+  !eglbnodv(:,:)= 0.0d0
+  call gettransmat(ndime,ntrndof,locbvec, transmat) !pjsa
 
   ! convert global to local
   ! -----------------------
@@ -375,7 +378,8 @@ subroutine loc2glbnodv(ndime,nnode,ntrndof,locbvec,elocnodv, eglbnodv)
      locvec(1:ntrndof,1)= elocnodv(1:ntrndof,inode)
 
      ! convert local to global
-     call loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
+     !call loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
+     call dgemv('t',ntrndof,ntrndof,1.0d0,transmat,ntrndof,locvec,1,0.0d0,glbvec,1) !pjsa
         ! input : ndime,ntrndof,locbvec,locvec
         ! output : glbvec
 
@@ -435,7 +439,7 @@ subroutine glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
   ! ====================================
 
   ! initialize
-  locvec(:,:)= 0.0d0
+  !locvec(:,:)= 0.0d0
 
   ! get transformation matrix
   call gettransmat(ndime,ntrndof,locbvec, transmat)
@@ -445,7 +449,8 @@ subroutine glb2locv(ndime,ntrndof,locbvec,glbvec, locvec)
 
   ! transform vector: global -> local : loc_vec = a * glb_vec
   ! ----------------
-  call matprd(ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec, locvec)
+  !call matprd(ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec, locvec)
+  call dgemv('n',ntrndof,ntrndof,1.0d0,transmat,ntrndof,glbvec,1,0.0d0,locvec,1)
      ! input : ntrndof,ntrndof,0, ntrndof,1,0, ntrndof,1, transmat,glbvec
      ! output : locvec
 
@@ -501,7 +506,7 @@ subroutine loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
   ! ====================================
 
   ! initialize
-  glbvec(:,:)= 0.0d0
+  !glbvec(:,:)= 0.0d0
 
   ! get transformation matrix
   call gettransmat(ndime,ntrndof,locbvec, transmat)
@@ -510,7 +515,8 @@ subroutine loc2glbv(ndime,ntrndof,locbvec,locvec, glbvec)
 
   ! transform vector: local -> global : glb_vec = a^t * loc_vec
   ! ----------------
-  call matprd(ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec, glbvec)
+  !call matprd(ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec, glbvec)
+  call dgemv('t',ntrndof,ntrndof,1.0d0,transmat,ntrndof,locvec,1,0.0d0,glbvec,1)
      ! input : ntrndof,ntrndof,1, ntrndof,1,0, ntrndof,1, transmat,locvec
      ! output : glbvec
 
@@ -708,3 +714,77 @@ subroutine getlocbvecbt(ecurn, locbvec)
 
   return
 end subroutine getlocbvecbt
+
+
+subroutine getlocbvectri(ecurn, locbvec)
+  !=======================================================================
+  !  getlocbvectri = compute co-rotational local base vector of tri shell
+  !
+  !  arguments description
+  !  ---------------------
+  !  input:
+  !  -----
+  !  ecurn(3,3) : current element nodal coordinate data
+  !               x= u + X
+  !
+  !  output:
+  !  ------
+  !  locbvec(3,3) : local base vector
+  !                            
+  ! ======================================================================
+
+  include 'preset.fi'
+  ! ====================================
+  ! subroutine argument
+  ! ===================
+  real(8), dimension(3,3), intent(in) :: ecurn
+
+  real(8), dimension(3,3), intent(out) :: locbvec
+  ! ====================================
+  ! local variable
+  ! ==============
+  real(8), dimension(3,1) :: r12vec, r13vec
+
+  real(8), dimension(3,1) :: e1vec, e2vec, e3vec
+
+  ! loop index
+  integer :: inode, idime
+  ! ====================================
+
+  ! initialize
+  locbvec(:,:)= 0.0d0
+
+ 
+  ! edges
+  r12vec(1:3,1)= ecurn(1:3,2)-ecurn(1:3,1)
+  r13vec(1:3,1)= ecurn(1:3,3)-ecurn(1:3,1)
+
+
+  ! local 3 axis dir base vector: e3= r12 x r13 / ||r12 x r13|| 
+  ! ----------------------------
+  call crsprdt3d(1,r12vec,r13vec, e3vec)
+    ! input : 1(opt:normalize),r12vec,r13vec
+    ! output : e3vec
+
+  ! local 1 axis dir base vector: e1 
+  ! ----------------------------
+  call unitvec2(3,r12vec, e1vec)
+    ! input : 3(ndime),r42vec
+    ! output : e1vec
+
+  ! local 2 axis dir base vector: e2 
+  ! ----------------------------
+  call crsprdt3d(1,e3vec,e1vec, e2vec)
+    ! input : 1(opt:normalize),e3vec,e1vec
+    ! output : e2vec
+
+
+  ! set return result
+  locbvec(1:3,1)= e1vec(1:3,1)
+  locbvec(1:3,2)= e2vec(1:3,1)
+  locbvec(1:3,3)= e3vec(1:3,1)
+
+
+
+  return
+end subroutine getlocbvectri

@@ -22,24 +22,61 @@
 #include <Element.d/State.h>
 #include <Driver.d/SysState.h>
 
+#include <cstddef>
+
 typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
-NonLinDynamic::NonLinDynamic(Domain *d)
-: domain(d),
-  res((FILE*) 0),
-  clawDofs(0),
+NonLinDynamic::NonLinDynamic(Domain *d) :
+  domain(d),
+  bcx(0),
+  vcx(0),
+  solver(NULL),
+  spm(NULL),
+  prec(NULL),
+  spp(NULL),
+  res(NULL),
+  clawDofs(NULL),
+  M(NULL),
+  C(NULL),
+  kuc(NULL),
+  allCorot(NULL),
+  localTemp(),
+  kelArray(NULL),
+  celArray(NULL),
+  melArray(NULL),
+  prevFrc(NULL),
   secondRes(0.0),
-  numSystems(0)
-{
-  claw = 0; userSupFunc = 0;
-}
+  numSystems(0),
+  times(NULL),
+  userSupFunc(NULL),
+  claw(NULL),
+  X(NULL),
+  Rmem(NULL)
+{}
 
 NonLinDynamic::~NonLinDynamic()
 {
-  if (res != (FILE*) 0)
-    fclose(res);
+  if (res) {
+    fclose(res); 
+  }
+  delete prevFrc;
+  delete[] bcx;
+  delete[] vcx;
+  delete M;
+  delete kuc;
+  delete[] kelArray;
+  delete[] melArray;
+  delete[] celArray;
+  if (allCorot) {
+    for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
+      delete allCorot[iElem];
+    }
+  }
+  delete[] allCorot;
+  delete solver; 
+  delete times;
 }
 
 void
@@ -410,15 +447,15 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
      }
 
      if(verboseFlag) {
-       fprintf(stderr," Iteration # %d\n",iteration);
-       fprintf(stderr," r      = %e dv      = %e energy      = %e\n"
-                      " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                        normRes,normDv,normEnergy,
-                        relRes,relDv,relEng);
+       filePrint(stderr," Iteration # %d\n",iteration);
+       filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+                        " rel. r = %e rel. dv = %e rel. energy = %e\n",
+                          normRes,normDv,normEnergy,
+                          relRes,relDv,relEng);
      }
 
      totIter++;
-     fprintf(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
+     filePrint(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
      fflush(res);
 
      // Store residual norm and dv norm for output
@@ -931,7 +968,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
     domain->getFileExchanger()->sendDisplacements(state);
-    if(verboseFlag) fprintf(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
+    if(verboseFlag) filePrint(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
 
     domain->getTimers().sendFluidTime += getTime();
   }
@@ -964,7 +1001,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
 
     State tempState(c_dsa, dsa, bcx, d_n, velocity, vp);
     domain->getFileExchanger()->sendTemperature(tempState);
-    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
 
     domain->getTimers().sendFluidTime += getTime();
   }
@@ -979,7 +1016,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
       tempsent[iNode] = (*geomState)[iNode].x;
 
     domain->getFileExchanger()->sendStrucTemp(tempsent);
-    if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
   
@@ -1026,7 +1063,7 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
    // Measure time necessary to update the prescribed displacments
    times->timePresc -= getTime();
 
-   // note 1: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to initialize the displacement field"
+   // note 2: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to construct the geometric stiffness"
    if((domain->numInitDisp() > 0) && (domain->numInitDisp6() == 0))
      geomState->updatePrescribedDisplacement(domain->getInitDisp(), domain->numInitDisp());
    

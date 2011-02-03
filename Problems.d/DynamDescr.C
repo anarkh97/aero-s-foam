@@ -749,7 +749,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;
  if(decompFlag) {
-   fprintf(stderr," ... Modal decomposition requested ...\n");
+   filePrint(stderr," ... Modal decomposition requested ...\n");
    modeDecompPreProcess(allOps.M);
  }
 
@@ -762,7 +762,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  kuc          = allOps.Kuc;
  dMat->kuc    = allOps.Kuc;
  dMat->dynMat = allOps.sysSolver;
- if(dMat->Msolver) { cerr << " ... Factoring mass matrix for iacc "; dMat->Msolver->factor(); cerr << "...\n"; }
+ if(dMat->Msolver) { if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n"); dMat->Msolver->factor(); }
 
  if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M); 
 

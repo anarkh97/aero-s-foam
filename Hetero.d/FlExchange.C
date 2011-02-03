@@ -40,7 +40,7 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, Do
                          OutputInfo *_oinfo) : cs(_cs), surface(_surf), eset(_eset)
 { 
   dsa     = _dsa;
-  oinfo   = 0;
+  oinfo   = _oinfo;
   tmpDisp = 0;
   useFaceElem = true; 
 }
@@ -64,8 +64,9 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
  int i,j,iDof;
 
  FaceElemSet *feset;
- if(useFaceElem)
+ if(useFaceElem) {
    feset = &(surface->GetFaceElemSet());
+ }
 
  Element     *thisElement;
  FaceElement *thisFaceElem;
@@ -85,7 +86,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
           nDof = thisElement->numDofs();
         } else {
           thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
-          thisFaceElem->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF, geomState);
+          thisFaceElem->getFlLoad(sndTable[origin][j], buffer+3*j, localF);
           nDof = thisFaceElem->numDofs();
         }
         int *dof = sndTable[origin][j].dofs;
@@ -103,7 +104,7 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
 
  // KHP
  if(oinfo) {
-   if (tIndex % oinfo->interval == 0) {
+   if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
      fprintf(oinfo->filptr,"%e   ",time);
      fprintf(oinfo->filptr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
      fflush(oinfo->filptr);
@@ -136,8 +137,11 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
  //  fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
 
  FaceElemSet *feset;
- if(useFaceElem)
+ int         *fnId;
+ if(useFaceElem){
    feset = &(surface->GetFaceElemSet());
+   fnId  = surface->GetPtrGlNodeIds();
+ }
 
  Element     *thisElement;
  FaceElement *thisFaceElem;
@@ -156,7 +160,7 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
        thisElement->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState);
      } else {
        thisFaceElem = (*feset)[sndTable[i][j].elemNum];
-       thisFaceElem->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState);
+       thisFaceElem->computeDisp(cs, newState, sndTable[i][j], buffer+pos, geomState, fnId);
      }
      pos += 6;
 
@@ -393,6 +397,7 @@ void FlExchanger::sendEmbeddedWetSurface()
   map<int,int>*  g2l = surface->GetPtrGlToLlNodeMap();
   int         nNodes = fnodes.size();
   int         nElems = surface->nFaceElements();
+  bool    renumbered = surface->IsRenumbered();
 
   // data preparation
   int    buf[2] = {nNodes, nElems};
@@ -403,12 +408,21 @@ void FlExchanger::sendEmbeddedWetSurface()
     nodes[3*i+1] = cs[fnId[i]]->y;
     nodes[3*i+2] = cs[fnId[i]]->z;
   }
-  for(int i=0; i<nElems; i++) {
-    FaceElement *ele = feset[i];
-    elems[3*i]   = (*g2l)[ele->GetNode(0)];
-    elems[3*i+1] = (*g2l)[ele->GetNode(1)];
-    elems[3*i+2] = (*g2l)[ele->GetNode(2)];
-  }
+
+  if(renumbered) 
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = ele->GetNode(0);
+      elems[3*i+1] = ele->GetNode(1);
+      elems[3*i+2] = ele->GetNode(2);
+    }
+  else
+    for(int i=0; i<nElems; i++) {
+      FaceElement *ele = feset[i];
+      elems[3*i]   = (*g2l)[ele->GetNode(0)];
+      elems[3*i+1] = (*g2l)[ele->GetNode(1)];
+      elems[3*i+2] = (*g2l)[ele->GetNode(2)];
+    }
 
   // send the package sizes
   fluidCom->sendTo(0, 555/*tag*/, buf, 2);
@@ -474,7 +488,7 @@ void FlExchanger::matchup() //comparable to matcher + read
  int actualSenders = 0; // Actual number of fluid nodes sending to me
  int maxSender = 0; // number associated with the highest actual sender
  int maxPRec = 0;   // number associated with the highest fluid process
-     //   That receives from us
+                    //   That receives from us
  int maxrec=0;      // number of the highest element receiving a pressure
 
  // Let's look for the send list
@@ -632,7 +646,7 @@ void FlExchanger::matchup() //comparable to matcher + read
       FaceElement *thisElement = feset[sndTable[i][j].elemNum];
       int nDof = thisElement->numDofs();
       sndTable[i][j].dofs = array;
-      thisElement->dofs(*dsa,array);
+      thisElement->dofs(*dsa,array,fnId); // XXXX
       array += nDof;
     }
   }
@@ -1147,7 +1161,7 @@ FlExchanger::cmdComHeat( int commandFlag )
 void
 FlExchanger::negotiate()
 {
-
+  int thisNode = structCom->myID();
   int totSize = 0;
   int numFl = 0;
   // _FORTRAN(hetsize)(toFluid, numFl);

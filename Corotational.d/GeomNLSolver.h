@@ -6,7 +6,7 @@ template <class Scalar> class GenSolver;
 typedef GenSolver<double> Solver;
 
 class GeomNLSolver {
-   SolverInfo        sinfo;		// Contains Solver Information
+   const SolverInfo  &sinfo;		// Contains Solver Information
    Vector            force;		// external force
    Vector            residual; 		// external force - internal force
    Vector            pVec;

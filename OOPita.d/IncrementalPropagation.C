@@ -1,6 +1,6 @@
 #include "IncrementalPropagation.h"
 
-namespace Pita { namespace Std {
+namespace Pita {
 
 IncrementalPropagation::IncrementalPropagation(const Fwk::String & name,
                                                AffineDynamPropagator * propagator) :
@@ -11,9 +11,7 @@ IncrementalPropagation::IncrementalPropagation(const Fwk::String & name,
 
 void
 IncrementalPropagation::seedIs(const Seed * s) {
-  if (s->status() == Seed::ACTIVE) {
-    previousSeedState_ = s->state();
-  }
+  previousSeedState_ = (s->status() == Seed::ACTIVE) ? s->state() : DynamState();
   seed_ = s;
 }
 
@@ -51,4 +49,4 @@ IncrementalPropagation::iterationIs(IterationRank i) {
   propagatedSeed()->iterationIs(seed()->iteration());
 }
 
-} /* end namespace Std */ } /* end namespace Pita */
+} /* end namespace Pita */

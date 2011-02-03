@@ -3,7 +3,8 @@
 #include <math.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
-#include<Driver.d/Domain.h>
+#include <Driver.d/Domain.h>
+#include <Corotational.d/GeomState.h>
 
 bool SommerElement::first = true; //HB
 #include <Utils.d/DistHelper.h>
@@ -410,7 +411,7 @@ FullSquareMatrix SommerElement::interfMatrixLumped(CoordSet &cs, double *d) {
  return M;
 }
 
-void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag) {
+void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag, GeomState*) {
 
  if (numDofs()!=numNodes()) {
    fprintf(stderr,"SommerElement::neumVector called for a nonscalar element.\n"

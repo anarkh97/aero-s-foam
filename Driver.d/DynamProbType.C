@@ -233,6 +233,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    }
 
    aeroForce = (aeroAlg >= 0 || probDesc->getThermoeFlag() >= 0) ? new VecType(probDesc->solVecInfo()) : 0;
+   if(aeroForce) aeroForce->zero();
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
@@ -284,7 +285,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Check stability time step
          if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
-         if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
+         if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); //e Se Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
+         else
+           if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
          if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
          if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
@@ -321,7 +324,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        
      // Quasi-Static
      case 1:
-
        if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
@@ -622,7 +624,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    char ch[4] = { '|', '/', '-', '\\' };
 
    for( ; t < tmax-0.01*dt; t += dt) {
-     filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+     if(aeroAlg < 0) {
+       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                 ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+     }
 
      // ... For Aeroelastic A5 Algorithm, Do restore and backup here
      if(aeroAlg == 5) probDesc->a5StatusRevise(parity, curState, *bkState);
@@ -753,7 +758,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      if(aeroAlg == 5) probDesc->a5TimeLoopCheck( parity, t, dt );
 
    }
-   filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+   if(aeroAlg < 0)
+     filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
    totalTime += getTime();
 #ifdef PRINT_TIMERS
@@ -815,6 +821,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   VecType &fint = workVec.get_fint();
   VecType &tmp1 = workVec.get_tmp1();
   VecType &tmp2 = workVec.get_tmp2();
+  VecType v_h_p(probDesc->solVecInfo());
+  v_h_p = 0.0;
 
   // project initial displacements in case of rbmfilter
   if(probDesc->getFilterFlag() > 0) {
@@ -866,9 +874,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double totalTime = -getTime();
   char ch[4] = { '|', '/', '-', '\\' };
 
+  //double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    if(aeroAlg < 0) {
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100));
+    }
+    //t1 -= getTime(); 
 
     if (fourthOrder) {
       // this is as in the previous release of the FEM code (before august 28th 2008)
@@ -922,16 +936,21 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       d_n.linAdd(dt, v_n_h);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n, a_n, v_n_h); // note: v_n, a_n haven't been updated yet!!!
+      //if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n, a_n, v_n_h); // note: v_n, a_n haven't been updated yet!!!
+      if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
+      //t2 -= getTime();
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t+dt, aeroForce, 0.5, 0.0);
+      //t2 += getTime();
 
       // Compute the internal force at t^{n+1}
+      //t3 -= getTime();
       if(domain->solInfo().isNonLin()) probDesc->getInternalForce(d_n,fint,t+dt);
       else {
         dynOps.K->mult(d_n, fint);
       }
+      //t3 += getTime();
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
       if(dynOps.C) {
@@ -939,7 +958,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
+      //t4 -= getTime();
       dynOps.dynMat->reSolve(a_n);
+      //t4 += getTime();
       if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
         tmp1.linC(dt, v_n_h, dt*dt, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt*(v^{n+1/2} + dt*a^{n+1})
         probDesc->getContactForce(tmp1, tmp2);
@@ -971,14 +992,19 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       postProcessor->dynamOutput(n, dynOps, fext, aeroForce, curState);
 
       // Compute midpoint velocity: v^{n+1/2} = v^{n-1/2} + dt*a^n
+      v_h_p = v_n_h;
       v_n_h.linAdd(dt, a_n);
   
       // ... For A5 Algorithm, do one time step back if necessary
       // add n so that time index is wound back as well as t
       if(aeroAlg == 5) probDesc->a5TimeLoopCheck(parity, t, dt);
     } 
+    //t1 += getTime();
+    //filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete %e %e %e %e",
+    //          ch[int((totalTime + getTime())/250.)%4], t, int(t/(tmax-0.01*dt)*100), t1/1000/n, t2/1000/n, t3/1000/n, t4/1000/n);
   }
-  filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+  if(aeroAlg < 0)
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
   totalTime += getTime();
 #ifdef PRINT_TIMERS

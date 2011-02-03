@@ -35,7 +35,7 @@ struct OutputInfo {
           StressPR1Direc, StressPR2Direc, StressPR3Direc,
           StrainPR1Direc, StrainPR2Direc, StrainPR3Direc,
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
-          TDEnforcement, Damage, EffPStrn, HardVar,
+          TDEnforcement, Damage, EffPStrn, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative
          };
 
@@ -145,26 +145,9 @@ struct OutputInfo {
    };
 
  
- void copyParam(const OutputInfo& oI){
-  
+ void copyParam(const OutputInfo& oI) {
+    *this = oI;  
     filptr = 0;
-    
-    filename       = oI.filename;
-    type           = oI.type;
-    interval       = oI.interval;  
-    averageFlg     = oI.averageFlg;
-    surface        = oI.surface;
-    width          = oI.width;
-    precision      = oI.precision;
-    nodeNumber     = oI.nodeNumber;
-    dim            = oI.dim;
-    dataType       = oI.dataType;
-    ylayer         = oI.ylayer;
-    zlayer         = oI.zlayer;
-    complexouttype = oI.complexouttype;
-    ncomplexout    = oI.ncomplexout;     
-    timeSliceRank = oI.timeSliceRank; 
- 
  }
   
 };

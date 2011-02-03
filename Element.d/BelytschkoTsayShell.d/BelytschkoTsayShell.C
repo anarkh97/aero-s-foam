@@ -5,31 +5,60 @@
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
+#include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
+#include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
+#include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
+
+#ifdef USE_EIGEN2
+#include <Eigen/Core>
+#include <vector>
+
+using namespace Eigen;
+using std::vector;
+#endif
 
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
-  void _FORTRAN(elefinthypobt1)(int&, int*, double&, double*, int&, int&, int&,
-                                double*, double*, double*, double*, double*, double*,
-                                double*, double*, double*, double*);
-  void _FORTRAN(elefintevpbt1)(int*, double&, double*, int&, int&, int&, double*, double*,
-                               double*, double*, double*, double*, double*, double*, double*, double*, double*);
-  void _FORTRAN(elefintj2bt1)(int*, double&, double*, int&, int&, int&, double*, double*,
-                              double*, double*, double*, double*, double*, double*, double*, double*);
-  void _FORTRAN(elefhgcbt1)(double*, double&, double*, int&, double*, double*, double*,
-                            double*, double*);
   void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
-  void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
+
+  void _FORTRAN(getlocbvecbt)(double*, double*);
+  void _FORTRAN(getbmat1pt)(double*, double&, double*);
+  void _FORTRAN(getgamma4nod)(double*, double&, double*, double&);
+  void _FORTRAN(getbcmat1pt)(double*, double&, double*, double&, double*);
+  void _FORTRAN(getbsmat1pt)(double*, double*);
+  void _FORTRAN(updstrnbt)(int*, double&, double*, double&, double*,
+                           double*, double*, double*,
+                           double*, double*, double*);
+  void _FORTRAN(updstrsbt)(int&, int&, double&, double*, double&, double*,
+                           double*, double&, double&, double*,
+                           double*, double&);
+  void _FORTRAN(gqfintbt)(int*, double&, double*, double&, double&,
+                          double&, double*, double*, double*,
+                          double*, double*);
+  void _FORTRAN(updhgcstrsbt)(double*, double&, double*, double*, double&,
+                              double*, double*, double&, double*);
+  void _FORTRAN(gqfhgcbt)(double*, double&, double*, double*);
+  void _FORTRAN(elefbc3dbrkshl2opt)(double&, double*, double&, double*);
 }
+
+double BelytschkoTsayShell::t1 = 0;
+double BelytschkoTsayShell::t2 = 0;
+double BelytschkoTsayShell::t3 = 0;
+double BelytschkoTsayShell::t4 = 0;
+double BelytschkoTsayShell::t5 = 0;
+double BelytschkoTsayShell::t6 = 0;
+double BelytschkoTsayShell::t7 = 0;
 
 BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 {
-  optele = 3; // bt shell
-  optmhd = 0; // conventional fem
+  // TODO most of these should come from StructProp via MATERIAL
   optdmg = 0; // no damage
   opthgc = 1; // perturbation type hourglass control
-  optcri[0] = optcri[1] = 0; // criterion type = none, averaging type = none
+  opttrc = -1; // no pressure or traction
   optdmp = 0; // no damping
+  optcor[0] = 1; // was 1 // warping correction on
+  optcor[1] = 0; // was 0 // shear correction off
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;
@@ -38,9 +67,9 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   ngqpt[2] = 3;
   ngqpt4 = 3;
   // hourglass control parameters
-  prmhgc[0] = 5e-2;
-  prmhgc[1] = 5e-3;
-  prmhgc[2] = 5e-2;
+  prmhgc[0] = 2.5e-3;
+  prmhgc[1] = 2.5e-3;
+  prmhgc[2] = 2.5e-3;
   for(int i = 3; i < 10; ++i) prmhgc[i] = 0;
   // damping parameters
   prmdmp[0] = 4e-1;
@@ -53,9 +82,19 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   // ---------------------------------------------------------------
   // set gq size
   // -----------
+  int optmhd = 0, optele = 3;
   _FORTRAN(getgqsize)(optmhd, optele, ngqpt, mgaus, mgqpt);
      // input : optmhd,optele,ngqpt
      // output : mgaus,mgqpt
+
+  // ---------------------------------------------------------------
+  // get 1d gq rule: through thickness integration
+  // --------------
+  gqpoin3 = new double[mgaus[2]];
+  gqweigt3 = new double[mgaus[2]];
+  _FORTRAN(getgq1d)(mgaus[2], gqpoin3, gqweigt3);
+     // input : mgaus[2]
+     // output : gqpoin3,gqweigt3
 
   // ---------------------------------------------------------------
   // allocate and initialize history variables
@@ -70,10 +109,13 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
 
   expmat = 0;
+  mftt = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
 {
+  delete [] gqpoin3;
+  delete [] gqweigt3;
   delete [] evar1;
   delete [] evar2;
   delete [] evoit1;
@@ -81,28 +123,45 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit3;
 }
 
-/*
-void
-BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
-{
-  Element::setProp(p, _myProp);
-  ematpro[0] = prop->E;    // Young's modulus
-  ematpro[1] = prop->nu;   // Poisson's ratio
-  ematpro[2] = prop->rho;  // mass density
-  ematpro[3] = 0;          // yield stress (j2) or reference strain rate (evp)
-  ematpro[4] = 0;          // hardening modulus (j2) or rate sensitivity parameter (evp)
-  ematpro[5] = 0;          // yield stress (evp)
-  ematpro[6] = 0;          // yield strain (evp)
-  ematpro[7] = 0;          // strain hardening exponent (evp)
-  ematpro[18] = 0.833;     // shear correction factor
-  ematpro[19] = prop->eh;  // thickness
-}
-*/
-
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
   expmat = dynamic_cast<ExpMat *>(m);
+  if(expmat->optctv != 1) {
+    double E = expmat->ematpro[0], nu = expmat->ematpro[1];
+    double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
+    mat = new ElastoPlasticPlaneStressMaterial * [mgaus[2]];
+    for(int i=0; i<mgaus[2]; ++i) {
+      switch(expmat->optctv) {
+      case 5 :
+        mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);
+        break;
+      case 6 :
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);
+        break;
+      case 7 :
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu);
+      }
+    }
+  }
+}
+
+void
+BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt)
+{
+  pressure = _pressure;
+  mftt = _mftt;
+  opttrc = 0;
+}
+
+double
+BelytschkoTsayShell::getPressure()
+{
+  // the return value of this function is used to determine whether or not
+  // computePressureForce should be called. Since the pressure for this element
+  // in computed along with the internal force inside elefintbt1, it is
+  // not necessary to call that function, so we return 0 here
+  return double(0);
 }
 
 Element *
@@ -123,41 +182,57 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                                  Vector& elDisp, int strInd, int surface,
                                  double *ndTemps, double ylayer, double zlayer, int avgnum)
 { 
-  // voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
-  stress.zero();
+#ifdef USE_EIGEN2
+  // voight rule in xed3d code: [xx,yy,zz,yz,xz,xy]
   weight = 1.0;
+  int j;
+  switch(surface) {
+    case 1 : j = 0; break;              // upper
+    case 2 : j = (mgaus[2]-1)/2; break; // median (mgaus[2] is the number of gauss points through the thickness)
+    case 3 : j = mgaus[2]-1; break;     // lower
+  }
   int k[6] = { 0, 1, 2, 5, 3, 4 };
   for(int i = 0; i < nnode; ++i) {
-    for(int j = 0; j < mgqpt[0]; ++j) {
-      switch(strInd) {
-        case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : // sxx, syy, szz, sxy, syz, sxz
-          stress[i] += evoit2[6*j+k[strInd]];
-          break;
-        case 6 : // effective stress
-          stress[i] += evar2[5*j+0];
-          break;
-        case 7 : case 8 : case 9 : case 10: case 11: case 12: // exx, eyy, ezz, exy, eyz, exz
-          stress[i] += evoit1[6*j+k[strInd-7]];
-          break;
-        case 13 : // effective strain for hypoelas
-          if(expmat->optctv == 1)
-            stress[i] += evar1[5*j+0];
-          break;
-        case 17 : // damage for hypoelas
-          if(expmat->optctv == 1)
-            stress[i] += evar1[5*j+1];
-          break;
-        case 18 : // effective plastic strain for evp or j2
-          if(expmat->optctv  == 3 || expmat->optctv == 5)
-            stress[i] += evar1[5*j+0];
-          break;
-        case 19 : // hardening variable for j2
-          if(expmat->optctv == 5)
-            stress[i] += evar1[5*j+1];
-          break;
-      }
+    switch(strInd) {
+      case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : // sxx, syy, szz, sxy, syz, sxz
+        stress[i] = evoit2[6*j+k[strInd]];
+        break;
+      case 6 : { // effective stress
+        Matrix3d M; M << evoit2[6*j+k[0]], evoit2[6*j+k[3]], evoit2[6*j+k[5]],
+                         evoit2[6*j+k[3]], evoit2[6*j+k[1]], evoit2[6*j+k[4]],
+                         evoit2[6*j+k[5]], evoit2[6*j+k[4]], evoit2[6*j+k[2]];
+        // compute the deviatoric stress/strain tensor and it's second invariant
+        Matrix3d dev = M - (M.trace()/3)*Matrix3d::Identity();
+        double J2 = 0.5*(dev*dev).trace();
+        stress[i] = sqrt(3*J2);
+      } break;
+      case 7 : case 8 : case 9 : case 10: case 11: case 12: // exx, eyy, ezz, exy, eyz, exz
+        stress[i] = evoit1[6*j+k[strInd-7]];
+        break;
+      case 13 : { // effective strain
+        Matrix3d M; M << evoit3[6*j+k[0]], evoit3[6*j+k[3]], evoit3[6*j+k[5]],
+                         evoit3[6*j+k[3]], evoit3[6*j+k[1]], evoit3[6*j+k[4]],
+                         evoit3[6*j+k[5]], evoit3[6*j+k[4]], evoit3[6*j+k[2]];
+        // compute the deviatoric stress/strain tensor and it's second invariant
+        Matrix3d dev = M - (M.trace()/3)*Matrix3d::Identity();
+        double J2 = 0.5*(dev*dev).trace();
+        stress[i] = sqrt(3*J2);
+
+      } break;
+      case 17 : // damage for hypoelas
+        if(expmat->optctv == 1)
+          stress[i] = evar1[5*j+1];
+        break;
+      case 18 : // effective plastic strain for elasto plastic materials
+        if(expmat->optctv != 1)
+          stress[i] = mat[j]->GetMaterialEquivalentPlasticStrain();
+        break;
     }
   }
+#else
+  cerr << "USE_EIGEN2 is not defined here in BelytschkoTsayShell::getVonMises\n";
+  exit(-1);
+#endif
 }
 
 void
@@ -206,28 +281,8 @@ void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-/*
-  if(prop) {
-    int optdom = 0; // 0 : integrate over reference domain (TODO: check)
-                    // 1 : integrate over current domain
-    int opttrc = 1; // 0 : pressure
-                    // 1 : traction
-    double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
-    double* edisp = 0;
-    for(int i = 0; i < nnode; ++i) {
-      ecord[i*ndime+0] = cs[nn[i]]->x;
-      ecord[i*ndime+1] = cs[nn[i]]->y;
-      ecord[i*ndime+2] = cs[nn[i]]->z;
-    }
-    double trac[3];
-    for(int i = 0; i < 3; ++i) trac[i] = gravityAcceleration[i]*prop->rho*prop->eh;
-    double *efbc = gravityForce.data();
-
-    //_FORTRAN(elefbcbt2)(optdom, opttrc, nndof, ngqpt4, ecord, edisp, trac, efbc);
-  }
-  else
-*/
-    gravityForce.zero();
+  cerr << "BelytschkoTsayShell::getGravityForce not implemented\n";
+  gravityForce.zero();
 }
 
 FullSquareMatrix
@@ -317,17 +372,17 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 }
 
 void
-BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double)
+BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
 {
   //=======================================================================
-  //  compute internal force vector for Belytschko Tsay shell element
+  //  compute internal force vector including hourglass control, pressure
+  //  and damping for Belytschko Tsay shell element
   // 
   //  output:
   //  ------
   //  efint(24) : internal force
   //
   // ======================================================================
-  k.zero();
 
   if(prop) { // check for phantom
     // ---------------------------------------------------------------
@@ -336,79 +391,29 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
     double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // d^{n+1}
     double* evelo = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // v^{n+0.5}
-    double* eaccl = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // a^{n}
+    int iloc,jloc;
     for(int i = 0; i < nnode; ++i) {
-      ecord[i*ndime+0] = cs[nn[i]]->x;
-      ecord[i*ndime+1] = cs[nn[i]]->y;
-      ecord[i*ndime+2] = cs[nn[i]]->z;
-/*
-      edisp[i*nndof+0] = geomState[nn[i]].x - cs[nn[i]]->x;
-      edisp[i*nndof+1] = geomState[nn[i]].y - cs[nn[i]]->y;
-      edisp[i*nndof+2] = geomState[nn[i]].z - cs[nn[i]]->z;
-      mat_to_vec(geomState[nn[i]].R, edisp+i*nndof+3); // TODO check how rotations are updated in xfem code
-*/
-      for(int j = 0; j < nndof; ++j) edisp[i*nndof+j] = geomState[nn[i]].d[j];
-      for(int j = 0; j < nndof; ++j) evelo[i*nndof+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
-      for(int j = 0; j < nndof; ++j) eaccl[i*nndof+j] = geomState[nn[i]].a[j];
+      iloc = i*ndime;
+      ecord[iloc+0] = cs[nn[i]]->x;
+      ecord[iloc+1] = cs[nn[i]]->y;
+      ecord[iloc+2] = cs[nn[i]]->z;
+      for(int j = 0; j < nndof; ++j) {
+        jloc = i*nndof+j;
+        edisp[jloc] = geomState[nn[i]].d[j];
+        evelo[jloc] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
+      }
     }
+    double trac[3] = { 0, 0, pressure };
+    double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;
 
     // ---------------------------------------------------------------
-    // get 1d gq rule: through thickness integration
-    // --------------
-    double* gqpoin3 = (double*) dbg_alloca(sizeof(double)*mgaus[2]);
-    double* gqweigt3 = (double*) dbg_alloca(sizeof(double)*mgaus[2]);
-    _FORTRAN(getgq1d)(mgaus[2], gqpoin3, gqweigt3);
-       // input : mgaus[2]
-       // output : gqpoin3,gqweigt3
-
-    // ---------------------------------------------------------------
-    // constitutive model
+    // internal force, hourglass control and pressure
     // ------------------
-    switch(expmat->optctv) {
-      default:
-      case 1 : // hypoelastic
-        _FORTRAN(elefinthypobt1)(optdmg, optcri, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0],
-                                 gqpoin3, gqweigt3, ecord, edisp, evelo, evar1, evoit2, evoit3,
-                                 evar2, efint);
-           // input : optdmg,optcri
-           //         delt,ematpro,nndof,mgaus[2],mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo
-           // inoutput : evar1(1.eff.strn, 2.damage),evoit2(cauchy, local), evoit3(strain)
-           // output : evar2,efint
-        break;
-      case 2 : // thermo elasto viscoplastic 
-        cerr << " *** WARNING: thermo elasto viscoplastic constitutive model not supported for bt shell element"
-             << ", using elasto viscoplastic instead\n";
-      case 3 : // elasto viscoplastic
-        _FORTRAN(elefintevpbt1)(optcri, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
-                                ecord, edisp, evelo, eaccl, evar1, evoit2, evoit3, evar2, efint);
-           // input : optcri,delt,ematpro,nndof,mgaus[2],mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo,eaccl
-           // inoutput : evar1,evoit2,evoit3
-           // output : evar2,efint
-        break;
-      case 4: // gurson model
-        cerr << " *** WARNING: gurson constitutive model not supported for bt shell element, using j2 instead\n";
-      case 5: // j2 explicit
-        _FORTRAN(elefintj2bt1)(optcri, delt, expmat->ematpro, nndof, mgaus[2], mgqpt[0], gqpoin3, gqweigt3,
-                               ecord, edisp, evelo, evar1, evoit2, evoit3, evar2, efint);
-           // input : optcri,delt,ematpro,nndof,mgaus(3),mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo
-           // inoutput : evar1,evoit2,evoit3
-           // output : evar2,efint
-        break;
-    }
-  
-    // ---------------------------------------------------------------
-    // hourglass control force
-    // -----------------------
-    double* efhgc = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
-    for(int i = 0; i < nnode*nndof; ++i) efhgc[i] = 0;
-    _FORTRAN(elefhgcbt1)(prmhgc, delt, expmat->ematpro, nndof, ecord, edisp, evelo, evoit1, efhgc);
-       // input : prmhgc,delt,ematpro,nndof,ecord,edisp,evelo
-       // inoutput : evoit1(hgc local)
-       // output : efhgc
-  
-    // add hourglass control force to internal force
-    for(int i = 0; i < nnode*nndof; ++i) efint[i] += efhgc[i];
-
+    Elefintbt1(delt, ecord, edisp, evelo, trac, tmftval, efint);
+     // input : optctv,optdmb,opttrc,prmhgc,delt,ematpro,nndof,mgaus(3),mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo,trac,tmftval
+     // inoutput : evar1,evoit2,evoit3
+     // output : evar2,efint
+ 
     // ---------------------------------------------------------------
     // damping force
     // -----------------------
@@ -417,7 +422,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       double freq = prmdmp[1]; // frequency: 1.0d0 / cycle(time)
       double cnst = 2.0 * freq * dmpfctr;
       double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
-      _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl); // TODO: unnecessary recomputation
+      _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
       for(int i = 0; i < nnode*nndof; ++i) efint[i] += cnst*emasl[i]*evelo[i];
     }
   }
@@ -468,6 +473,7 @@ void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *geomState, int cflg)
 {
+/* now the pressure force is added in the same routine as the internal force
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
@@ -486,6 +492,7 @@ BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   for(int i = 0; i < nnode; ++i)
     for(int j = 0; j < ndime; ++j)
       elPressureForce[6*i+j] = efbc[3*i+j];
+*/
 }
 
 void
@@ -494,6 +501,7 @@ BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                                      GeomState *geomState)
 {
   cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
+  elThermalForce.zero();
 }
 
 // New include files for Restart file
@@ -560,3 +568,199 @@ BelytschkoTsayShell::readHistory(int fn)
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 }
 
+void
+BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, double *_evelo,
+                                double trac[3], double tmftval, double *_efint)
+{
+#ifdef USE_EIGEN2
+  //=======================================================================
+  //  elefintbt1 = compute internal force matrix for bt shell, including hourglass force
+  //
+  //               note:
+  //               ----
+  //               rotation projection for the drilling dof is considered
+  //
+  //  arguments description
+  //  ---------------------
+  //  input:
+  //  -----
+  //  delt : time increment
+  // 
+  //  ecord(3,4) : element nodal coordinate
+  //
+  //  edisp(nndof,4) : element nodal displacement data
+  //
+  //  evelo(nndof,4) : element nodal velocity: v_x, v_y, v_z, theta_x, theta_y, theta_z
+  //
+  //  output:
+  //  ------
+  //  efint(nndof*4,1) : element nodal internal force
+  //
+  // ======================================================================
+
+  Map<Matrix<double,3,4,ColMajor> > ecord(_ecord);
+  Map<Matrix<double,6,4,ColMajor> > edisp(_edisp);
+  Map<Matrix<double,6,4,ColMajor> > evelo(_evelo); // TODO use stride here to skip theta_z
+  Map<Matrix<double,3,8,ColMajor> > efint(_efint);
+
+  // ====================================
+  // local variable
+  // ==============
+  Matrix<double,3,3,ColMajor> locbvec; 
+  Matrix<double,3,4,ColMajor> ecurn;
+  Matrix<double,3,8,ColMajor> efintloc;
+  Matrix<double,3,4,ColMajor> ecurnloc;
+  Matrix<double,5,4,ColMajor> eveloloc;
+  double bmat1pt[8];  // dimension(2,4)
+  double bcmat1pt[8]; // dimension(2,4)
+  double bsmat1pt[24]; // dimension(2,3,4)
+  double area;
+  double gamma[4];
+  double zgamma;
+  double ipstrndot[3];
+  double tsstrndot[2];
+  // ====================================
+
+  // initialize
+  efintloc = Matrix<double,3,8,ColMajor>::Zero();
+
+  // get current nodal coordinate
+  ecurn = ecord + edisp.block<3,4>(0,0);
+
+  // compute co rotational local base vector
+  // ---------------------------------------
+  _FORTRAN(getlocbvecbt)(ecurn.data(),
+                         locbvec.data());
+        // input : ecurn
+        // output : locbvec
+
+  // get local nodal coordinates and velocity
+  // ----------------------------------------
+  ecurnloc = locbvec.transpose()*ecurn;
+  eveloloc.block<3,4>(0,0) = locbvec.transpose()*evelo.block<3,4>(0,0);
+  eveloloc.block<2,4>(3,0) = locbvec.block<3,2>(0,0).transpose()*evelo.block<3,4>(3,0);
+
+  // compute area
+  // ------------
+  area = 0.50*( (ecurnloc(0,2)-ecurnloc(0,0))*(ecurnloc(1,3)-ecurnloc(1,1)) 
+               +(ecurnloc(0,1)-ecurnloc(0,3))*(ecurnloc(1,2)-ecurnloc(1,0)) );
+
+  // check current element configuration
+  // -----------------------------------
+  if(area <= 0) {
+     cerr << " *** ERROR: in BelytschkoTsayShell::Elefintbt1 current element has negative or zero area: " << area << endl;
+     exit(-1);
+  }
+
+  //compute b matrix: b matrix, b^c matrix, and b^s matrix
+  // ----------------
+  // compute b matrix: one point integration
+  _FORTRAN(getbmat1pt)(ecurnloc.data(), area, bmat1pt);
+        // input : ecurnloc,area
+        // output : bmat1pt
+
+  // compute b^c matrix: warping correction
+  _FORTRAN(getgamma4nod)(ecurnloc.data(), area, gamma, zgamma);
+  if(optcor[0] > 0) {
+     _FORTRAN(getbcmat1pt)(ecurnloc.data(), area, gamma, zgamma, bcmat1pt);
+           // input : ecurnloc,area,gamma,zgamma
+           // output : bcmat1pt
+  }
+
+  // compute b^s matrix: transverse shear projection
+  if(optcor[1] > 0) {
+    _FORTRAN(getbsmat1pt)(ecurnloc.data(), bsmat1pt);
+      // input : ecurnloc
+      // output : bsmat1pt
+  }
+
+  // loop over gauss quadrature
+  // note: this loop is for through thickness integration
+  //       in plane, we use 1 point rule
+  for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
+
+    // compute rates of deformation and update strain at gq
+    // ----------------------------------------------------
+    _FORTRAN(updstrnbt)(optcor, delt, expmat->ematpro, gqpoin3[igaus], eveloloc.data(), bmat1pt, 
+                        bcmat1pt, bsmat1pt, evoit3+6*igaus, ipstrndot, tsstrndot);
+          // input : optcor,delt,ematpro,gqpoin3[igaus],eveloloc,bmat1pt,bcmat1pt,bsmat1pt
+          // inoutput : strnvoitloc
+          // output : ipstrndot, tsstrndot
+
+    // update hypo stresses at gq
+    // --------------------------
+    _FORTRAN(updstrsbt)(expmat->optctv, optdmg, delt, expmat->ematpro, area, ipstrndot, tsstrndot,
+                        evar1[5*igaus+0], evar1[5*igaus+1], evoit2+6*igaus, evoit3+6*igaus, evar2[5*igaus+0]);
+          // input : optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot
+          // inoutput : effpstrn,hardvar,sigvoitloc,strnvoitloc
+          // output : effstrs
+
+    // update elasto plastic stresses at gq
+    // ------------------------
+    if(expmat->optctv != 1) {
+      vector<double> F(9), CauchyStress(9);
+      // get Fnp1 from strnvoitloc, i.e. evoit3[6*igaus+0]
+      // note: voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
+      F[0] = 1+evoit3[6*igaus+0]; // xx
+      F[1] = 0.5*evoit3[6*igaus+5]; // xy
+      F[2] = 0.5*evoit3[6*igaus+4]; // xz
+      F[3] = 0.5*evoit3[6*igaus+5]; // yx
+      F[4] = 1+evoit3[6*igaus+1]; // yy
+      F[5] = 0.5*evoit3[6*igaus+3]; // yz
+      F[6] = 0.5*evoit3[6*igaus+4]; // zx
+      F[7] = 0.5*evoit3[6*igaus+3]; // zy
+      F[8] = 1+evoit3[6*igaus+2]; // zz
+      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
+        cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
+        exit(-1);
+      }
+      // copy CauchyStress into sigvoitloc, i.e. evoit2[6*igaus+0]
+      evoit2[6*igaus+0] = CauchyStress[0]; // xx
+      evoit2[6*igaus+1] = CauchyStress[4]; // yy
+      evoit2[6*igaus+2] = CauchyStress[8]; // zz
+      //evoit2[6*igaus+3] = CauchyStress[5]; // yz
+      //evoit2[6*igaus+4] = CauchyStress[2]; // xz
+      evoit2[6*igaus+5] = CauchyStress[1]; // xy
+    }
+
+    // add local nodal internal forces at gq
+    // -----------------------------------------
+    _FORTRAN(gqfintbt)(optcor, delt, expmat->ematpro, gqpoin3[igaus], gqweigt3[igaus], area, 
+                       evoit2+6*igaus, bmat1pt, bcmat1pt, bsmat1pt, efintloc.data());
+          // input : optcor,delt,ematpro,gqpoin3(igaus),gqweigt3(igaus),area,sigvoitloc,bmat1pt,bcmat1pt,bsmat1pt
+          // inoutput : efintloc
+  }
+
+  // update hourglass control stresses
+  // ---------------------------------
+  if(opthgc >= 0) {
+    _FORTRAN(updhgcstrsbt)(prmhgc, delt, expmat->ematpro, eveloloc.data(), area, bmat1pt,
+                           gamma, zgamma, evoit1);
+          // input : prmhgc,delt,ematpro,eveloloc,area,bmat1pt,gamma,zgamma
+          // inoutput : hgcvoitloc
+  }
+
+  // add the hourglass control forces
+  // --------------------------------------
+  if(opthgc >= 0) {
+    _FORTRAN(gqfhgcbt)(gamma, zgamma, evoit1, efintloc.data());
+          // input : gamma,zgamma,hgcvoitloc
+          // inoutput : efintloc
+  }
+
+  // subtract the local traction forces
+  // -------------------------------------
+  if(opttrc >= 0) {
+    _FORTRAN(elefbc3dbrkshl2opt)(area, trac, tmftval, efintloc.data());
+          // input : area,trac,tmftval
+          // inoutput : efintloc
+  }
+
+  // convert local efintloc to global efint
+  // -------------------------------------
+  efint = locbvec*efintloc;
+#else
+  cerr << "USE_EIGEN2 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
+  exit(-1);
+#endif
+}

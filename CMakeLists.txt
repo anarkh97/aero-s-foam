@@ -27,9 +27,9 @@ MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
 
 FIND_PACKAGE(OpenMP)
 if(OpenMP_FLAG_DETECTED)
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
-  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS})
-  set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} ${OpenMP_CXX_FLAGS})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_CXX_FLAGS}")
   add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 
@@ -96,7 +96,7 @@ IF(UNIX)
     ENDIF(NOT MPI_FOUND)
 
 # arpack
-    FIND_LIBRARY(ARPACK_arpack_LIBRARY NAMES arpack arpack_Linux arpack_Linux64 
+    FIND_LIBRARY(ARPACK_arpack_LIBRARY NAMES arpack_LINUX arpack
                  PATHS /usr/lib /usr/local/lib)
     IF(NOT MPI_FOUND)
       MARK_AS_ADVANCED(FORCE ARPACK_parpack_LIBRARY)
@@ -108,7 +108,7 @@ IF(UNIX)
       ENDIF(ARPACK_arpack_LIBRARY)
     ELSE(NOT MPI_FOUND)
       MARK_AS_ADVANCED(CLEAR ARPACK_parpack_LIBRARY)
-      FIND_LIBRARY(ARPACK_parpack_LIBRARY NAMES parpack parpack_Linux parpack_Linux64
+      FIND_LIBRARY(ARPACK_parpack_LIBRARY NAMES parpack_MPI-LINUX parpack
                    PATHS /usr/lib /usr/local/lib)
       IF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
         MESSAGE("-- A library with ARPACK API found.")

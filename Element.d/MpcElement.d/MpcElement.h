@@ -61,5 +61,11 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs, int cflg);
     int getTopNumber() { return 101; }
+
+    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
+                             int &nlflag) { nlflag = 2; }
+
+    void getNLVonMises(Vector&, Vector& weight,
+                       GeomState &, CoordSet &, int);
 };
 #endif

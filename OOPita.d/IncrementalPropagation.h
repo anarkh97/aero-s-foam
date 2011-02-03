@@ -1,15 +1,15 @@
-#ifndef PITA_STD_INCREMENTALPROPAGATION_H
-#define PITA_STD_INCREMENTALPROPAGATION_H
+#ifndef PITA_INCREMENTALPROPAGATION_H
+#define PITA_INCREMENTALPROPAGATION_H
 
 #include "Fwk.h"
 #include "Types.h"
 
-#include "../NamedTask.h"
+#include "NamedTask.h"
 
-#include "../Seed.h"
-#include "../AffineDynamPropagator.h" 
+#include "Seed.h"
+#include "AffineDynamPropagator.h" 
 
-namespace Pita { namespace Std {
+namespace Pita {
 
 class IncrementalPropagation : public NamedTask {
 public:
@@ -42,6 +42,6 @@ private:
   DISALLOW_COPY_AND_ASSIGN(IncrementalPropagation);
 };
 
-} /* end namespace Std */ } /* end namespace Pita */
+} /* end namespace Pita */
 
-#endif /* PITA_STD_INCREMENTALPROPAGATION_H */
+#endif /* PITA_INCREMENTALPROPAGATION_H */

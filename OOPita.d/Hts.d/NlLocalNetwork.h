@@ -11,7 +11,7 @@
 #include "../Seed.h"
 #include "../RemoteStateMpiImpl.h"
 
-#include "HalfTimeSlice.h"
+#include "NlPropagatorManager.h"
 #include "../JumpBuilder.h"
 #include "CorrectionReductor.h"
 #include "CorrectionReconstructor.h"
@@ -40,7 +40,7 @@ public:
 
   NlLocalNetwork(SliceMapping * mapping,
                  RemoteState::MpiManager * commMgr,
-                 HalfTimeSlice::Manager * htsMgr,
+                 NlPropagatorManager * propMgr,
                  CorrectionReductor::Manager * corrRedMgr,
                  CorrectionReconstructor::Manager * corrReconMgr,
                  BasisCondensationManager * condensMgr,
@@ -60,7 +60,7 @@ public:
   TaskList activeProjectionBuilders() const { return mapToDeque(projectionBuilders_[activeParity()]); }
 
 protected:
-  HalfTimeSlice::Manager * htsMgr() { return htsMgr_.ptr(); }
+  NlPropagatorManager * propMgr() { return propMgr_.ptr(); }
   JumpBuilder::Manager * jumpMgr() { return jumpMgr_.ptr(); }
   NonLinSeedDifferenceEvaluator::Manager * jumpEvalMgr() { return jumpEvalMgr_.ptr(); }
   SeedUpdater::Manager * seedUpMgr() { return seedUpMgr_.ptr(); }
@@ -95,8 +95,6 @@ protected:
 
   void addSeedUpdater(HalfSliceRank seedRank);
 
-  void addNoCorrection(HalfSliceRank seedRank);
-
   NamedTask::Ptr forwardHalfSliceNew(HalfSliceRank sliceRank);
   NamedTask::Ptr backwardHalfSliceNew(HalfSliceRank sliceRank);
   
@@ -115,7 +113,8 @@ protected:
   NamedTask::Ptr seedUpdaterNew(HalfSliceRank seedRank);
 
 private:
-  HalfTimeSlice::Manager::Ptr htsMgr_;
+  NlPropagatorManager::Ptr propMgr_;
+  
   JumpBuilder::Manager::Ptr jumpMgr_;
   SeedUpdater::Manager::Ptr seedUpMgr_;
   CorrectionReductor::Manager::Ptr corrRedMgr_;
@@ -127,9 +126,9 @@ private:
   JumpConvergenceEvaluator::Ptr jumpCvgMgr_;
 
   NonLinSeedDifferenceEvaluator::Manager::Ptr jumpEvalMgr_;
-  NoCorrectionManager::Ptr noCorrectionMgr_;
   
   MainSeedMap seeds_[2];
+  SeedMap seedCorrection_;
 
   typedef std::map<ActivationRange, NamedTask::Ptr, ActivationRange::Comparator> TaskMap;
   TaskMap finePropagators_[2];

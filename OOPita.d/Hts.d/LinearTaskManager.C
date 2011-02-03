@@ -1,5 +1,7 @@
 #include "LinearTaskManager.h"
 
+#include "ReducedCorrectionManager.h"
+
 namespace Pita { namespace Hts {
 
 class ProjectionBasis : public NamedTask {
@@ -10,24 +12,29 @@ public:
     commMgr_->reducedStateSizeIs(reducedBasisSize);
   }
 
-  ProjectionBasis(LinearProjectionNetworkImpl * correctionMgr, RemoteState::MpiManager * commMgr) :
+  ProjectionBasis(LinearProjectionNetwork * correctionMgr, RemoteState::MpiManager * commMgr) :
     NamedTask("Projection building"),
     correctionMgr_(correctionMgr),
     commMgr_(commMgr)
   {}
 
 private:
-  LinearProjectionNetworkImpl::Ptr correctionMgr_;
+  LinearProjectionNetwork::Ptr correctionMgr_;
   RemoteState::MpiManager::Ptr commMgr_;
 };
 
 LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
-                                     LinearLocalNetwork * network,
+                                     SliceMapping * mapping,
+                                     AffinePropagatorManager * propMgr,
+                                     CorrectionPropagator<DynamState>::Manager * fullCorrMgr,
                                      JumpConvergenceEvaluator * jumpCvgMgr,
-                                     LinearProjectionNetworkImpl * correctionMgr,
+                                     LinSeedDifferenceEvaluator::Manager * jumpErrorMgr,
+                                     LinearProjectionNetwork * correctionMgr,
                                      RemoteState::MpiManager * commMgr) :
   TaskManager(initialIteration),
-  network_(network),
+  network_(new LinearLocalNetwork(mapping, propMgr,
+           new ReducedCorrectionManager(correctionMgr, fullCorrMgr),
+           jumpCvgMgr, commMgr, jumpErrorMgr)),
   jumpCvgMgr_(jumpCvgMgr),
   correctionMgr_(correctionMgr),
   commMgr_(commMgr),
@@ -36,30 +43,9 @@ LinearTaskManager::LinearTaskManager(IterationRank initialIteration,
   phaseIt_(new HtsPhaseIteratorImpl(phase_))
 {}
 
-/*class ApplyConvergence : public NamedTask {
-public:
-  EXPORT_PTRINTERFACE_TYPES(ApplyConvergence);
-  virtual void iterationIs(IterationRank iter); // overriden
-
-  explicit ApplyConvergence(LinearLocalNetwork * network) :
-    NamedTask("Apply convergence"),
-    network_(network)
-  {}
-
-private:
-  LinearLocalNetwork::Ptr network_;
-};
-
-void
-ApplyConvergence::iterationIs(IterationRank iter) {
-  network_->convergedSlicesInc(); // TODO bad naming
-  setIteration(iter);
-}*/
-
 void
 LinearTaskManager::scheduleNormalIteration() {
-  log() << "Executing: " << jumpCvgMgr()->name() << "\n";
-  jumpCvgMgr()->iterationIs(iteration().next()); // TODO BETTER
+  jumpCvgMgr()->iterationIs(iteration().next()); // TODO Better
   network()->applyConvergenceStatus();
 
   scheduleCorrection();
@@ -72,18 +58,6 @@ LinearTaskManager::scheduleFinePropagation() {
   schedulePhase("Propagated seed synchronization", network()->activeLeftSeedSyncs());
   schedulePhase("Jump evaluation", network()->activeJumpAssemblers());
 }
-
-//void
-//LinearTaskManager::schedulePreCorrection() {
-  // Convergence
-  /*{
-    TaskList tasks;
-    tasks.push_back(jumpCvgMgr());
-    tasks.push_back(new ApplyConvergence(network()));
-    Phase::Ptr convergence = phaseNew("Convergence", tasks);
-    phases().push_back(convergence);
-  }*/
-//}
 
 void
 LinearTaskManager::scheduleCorrection() {

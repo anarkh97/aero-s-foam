@@ -39,7 +39,8 @@ GenDistrDomain<Scalar>::initialize()
   nodeOffsets = 0; 
   elemNodeOffsets = 0; 
   nodePat = 0;
-  masterStress =0;
+  masterStress = 0;
+  elemOffsets = 0;
 }
 
 template<class Scalar>
@@ -141,11 +142,13 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
+    GenDistrVector<Scalar> assembledAeroF(*aeroF);
+    this->ba->assemble(assembledAeroF);
     aerof = 0;
     for(iSub = 0; iSub < this->numSub; ++iSub) {
       Scalar (*mergedAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
-      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, aeroF->subData(iSub));
+      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, assembledAeroF.subData(iSub));
     }
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
@@ -202,7 +205,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].type == OutputInfo::Farfield) { 
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
         continue;
@@ -217,7 +220,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -354,9 +357,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::EffPStrn:
         getStressStrain(u, time, x, iOut, EFFPSTRN);
         break;
-      case OutputInfo::HardVar:
-        getStressStrain(u, time, x, iOut, HARDVAR);
-        break;
       case OutputInfo::StressPR1:
         getPrincipalStress(u, time, x, iOut, PSTRESS1);
         break;
@@ -464,6 +464,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         iOut_ffp = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
         //this->buildFFP(u,oinfo[iOut].filptr);
         break;
+      case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
       case OutputInfo::AeroXForce:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 0);
         break;
@@ -550,14 +551,12 @@ GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 
             Scalar (*nodeDisp)[11] = (Scalar (*)[11]) disps.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             switch(ndof) {
-              case 6: {
-                Scalar (*nodeDisp6)[6] = reinterpret_cast<Scalar (*)[6]>(nodeDisp);
-                geoSource->outputNodeVectors6(fileNumber, nodeDisp6 + outNodes[iNode], 1, time);
-                } break;
-              case 3: {
-                Scalar (*nodeDisp3)[3] = reinterpret_cast<Scalar (*)[3]>(nodeDisp);
-                geoSource->outputNodeVectors(fileNumber, nodeDisp3 + outNodes[iNode], 1, time);
-                } break;
+              case 6:
+                geoSource->outputNodeVectors6(fileNumber, nodeDisp + outNodes[iNode], 1, time);
+                break;
+              case 3:
+                geoSource->outputNodeVectors(fileNumber, nodeDisp + outNodes[iNode], 1, time);
+                break;
               case 1:
                 geoSource->outputNodeScalars(fileNumber, nodeDisp[outNodes[iNode]]+startdof, 1, time);
                 break;
@@ -595,7 +594,7 @@ GenDistrDomain<Scalar>::getAeroForceScalar(DistSVec<Scalar, 6> &aerof, DistSVec<
         int *outIndex = this->subDomain[iSub]->getOutIndex();
         for(int iNode = 0; iNode < nOutNodes; iNode++)
           if(outIndex[iNode] == fileNumber)  {
-            Scalar (*nodeAeroF)[8] = (Scalar (*)[8]) aerof.subData(iSub);
+            Scalar (*nodeAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
             int *outNodes = this->subDomain[iSub]->getOutputNodes();
             geoSource->outputNodeScalars(fileNumber, nodeAeroF[outNodes[iNode]]+dof, 1, time);
           }
@@ -1146,7 +1145,8 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
 template<class Scalar>
 void
-GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState)
+GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
+                                       GenDistrVector<Scalar> *aeroF)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1168,6 +1168,20 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   }
   if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
+
+  // initialize and merge aeroelastic forces
+  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> masterAeroF(masterInfo);
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
+    GenDistrVector<Scalar> assembledAeroF(*aeroF);
+    this->ba->assemble(assembledAeroF);
+    aerof = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedAeroF)[6] = (Scalar (*)[6]) aerof.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedForces(mergedAeroF, assembledAeroF.subData(iSub));
+    }
+    aerof.reduce(masterAeroF, masterFlag, numFlags);
+  }
 
   // initialize and merge velocities & accelerations
   DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
@@ -1209,7 +1223,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) {
+        int oI = iInfo;
+        if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
+        continue;
+      }
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->setHeaderLen(iInfo);
       }
@@ -1219,7 +1238,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1417,6 +1436,25 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
                                            iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
           delete [] totMod;
         }
+        break;
+      case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
+      case OutputInfo::AeroXForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 0);
+        break;
+      case OutputInfo::AeroYForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 1);
+        break;
+      case OutputInfo::AeroZForce:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 2);
+        break;
+      case OutputInfo::AeroXMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 3);
+        break;
+      case OutputInfo::AeroYMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 4);
+        break;
+      case OutputInfo::AeroZMom:
+        if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", iOut);

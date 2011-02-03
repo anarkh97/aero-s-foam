@@ -843,7 +843,7 @@ static const char* topMes[] = {
 " ... Writing renumbered material TOP File      ... \n"
 };
 
-void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber)
+void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber, int topFlag)
 {
   // ... WRITE ELEMENT CONNECTIVITY
  if(packedEset.last() > 0)  // PJSA: replaced numele with packedEset.last() to include phantoms
@@ -861,7 +861,8 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
      int numNodesPerElement = packedEset[iele]->numTopNodes();
      if(numNodesPerElement == 0) continue;
      int eletype = packedEset[iele]->getTopNumber();
-     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+     int eid = (topFlag == 1 || topFlag == 7) ? iele+1 : packedEset[iele]->getGlNum()+1; // only renumber for -T and -M
+     fprintf(cinfo->checkfileptr,"%6d  %4d ",eid,eletype);
      packedEset[iele]->nodes(nodeNumber);
      for(inode=0; inode<numNodesPerElement; ++inode)
        // Avoid to print nodes that are internally created
@@ -1084,7 +1085,7 @@ Domain::makeTopFile(int topFlag)
 
  // ... WRITE ELEMENT CONNECTIVITY
  // TG moved to this function as will need to be outputted in .top file for -m and -M as well.
- writeTopFileElementSets(cinfo, nodeTable, nodeNumber);
+ writeTopFileElementSets(cinfo, nodeTable, nodeNumber, topFlag);
  //
  // ElemSet creation happens in there
  // ElemSet_phantom, ElemSet_dimass and ElementSet_constraints aswell

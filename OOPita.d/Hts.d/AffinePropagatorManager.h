@@ -3,12 +3,13 @@
 
 #include "Fwk.h"
 #include "Types.h"
+#include "HalfSliceId.h"
 
 #include "../AffineDynamPropagator.h"
 
 #include "FineIntegratorManager.h"
 #include "../PostProcessingManager.h"
-#include "BasisCollector.h"
+#include "AffineBasisCollector.h"
 
 #include "../LinearGenAlphaIntegrator.h"
 
@@ -26,28 +27,31 @@ public:
   virtual AffineDynamPropagator * instanceNew(const HalfSliceId & id);
   virtual void instanceDel(const HalfSliceId & id);
 
-  static Ptr New(BasisCollector * collector,
+  static Ptr New(AffineBasisCollector * collector,
                  GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
                  PostProcessing::Manager * postProcessingMgr,
                  TimeStepCount halfSliceRatio,
-                 Seconds initialTime) {
-    return new AffinePropagatorManager(collector, integratorMgr, postProcessingMgr, halfSliceRatio, initialTime);
+                 Seconds initialTime,
+                 AffineDynamPropagator::ConstantTerm defaultMode) {
+    return new AffinePropagatorManager(collector, integratorMgr, postProcessingMgr, halfSliceRatio, initialTime, defaultMode);
   }
 
 protected:
-  AffinePropagatorManager(BasisCollector * collector,
+  AffinePropagatorManager(AffineBasisCollector * collector,
                           GenFineIntegratorManager<AffineGenAlphaIntegrator> * integratorMgr,
                           PostProcessing::Manager * postProcessingMgr,
                           TimeStepCount halfSliceRatio,
-                          Seconds initialTime);
+                          Seconds initialTime,
+                          AffineDynamPropagator::ConstantTerm defaultMode);
 
 private:
-  BasisCollector * collector_;
+  AffineBasisCollector * collector_;
   GenFineIntegratorManager<AffineGenAlphaIntegrator>::Ptr integratorMgr_;
   PostProcessing::Manager::Ptr postProcessingMgr_;
   Seconds fineTimeStep_;
   TimeStepCount halfSliceRatio_;
   Seconds initialTime_;
+  AffineDynamPropagator::ConstantTerm defaultMode_;
 
   DISALLOW_COPY_AND_ASSIGN(AffinePropagatorManager);
 };

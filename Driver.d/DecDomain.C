@@ -81,6 +81,7 @@ GenDecDomain<Scalar>::initialize()
   soweredInput = false;
   nodeVecInfo = 0;
   wiPat = 0;
+  ba = 0;
 } 
 
 template<class Scalar>
@@ -482,8 +483,12 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     subToSub = subToNode->transcon(nodeToSub);
     mt.memorySubToNode += memoryUsed();
 
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0) { // sommerfeld, scatter, wet, distributed neum
-                                                                                         // PJSA 6/28/2010 multidomain mumps
+#ifdef USE_MPI
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
+#else
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1) {
+#endif 
+      // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
       domain->nodeToElem = elemToNode->reverse();
       mt.memoryNodeToElem += memoryUsed();
@@ -688,7 +693,7 @@ GenDecDomain<Scalar>::preProcess()
 
  // free up some memory
  //delete nodeToSub; nodeToSub = 0;
- if(domain->solInfo().type != 0) {
+ if(domain->solInfo().type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
    if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
@@ -750,7 +755,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 
   // intialize and merge aeroelastic forces from subdomains into global array
   Scalar (*mergedAeroF)[6] = 0;
-  if(aeroF) {
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
     mergedAeroF = new Scalar[numNodes][6];
     for(i = 0; i < numNodes; ++i)
       for(j=0; j<6; ++j) mergedAeroF[i][j] = 0.0;
@@ -889,9 +894,6 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           break;
         case OutputInfo::EffPStrn:
           getStressStrain(u, i, EFFPSTRN, time);
-          break;
-        case OutputInfo::HardVar:
-          getStressStrain(u, i, HARDVAR, time);
           break;
         case OutputInfo::StressPR1:
           getPrincipalStress(u, i, PSTRESS1, time);
@@ -1063,6 +1065,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           domain->nffp = oinfo[i].interval;
           buildFFP(u,oinfo[i].filptr);
           break;
+        case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
         case OutputInfo::AeroXForce:
           if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 0, time);
           break;
@@ -1127,38 +1130,26 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 template<class Scalar>
 void
 GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
-                                      int ndof, double time)//DofSet::max_known_nonL_dof
+                                      int ndof, double time)
 {
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber];
 
   int inode;
   if (ndof == 6) {
-    Scalar (*data)[6] = new Scalar[numNodes][6];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      for (int iDof = 0; iDof < 6; iDof++)
-        data[iNode][iDof] = xyz[iNode][iDof];
-   
     if (oinfo.nodeNumber == -1)
-      geoSource->outputNodeVectors6(fileNumber, data, numNodes, time);
+      geoSource->outputNodeVectors6(fileNumber, xyz, numNodes, time);
     else  {
       inode = oinfo.nodeNumber;
-      geoSource->outputNodeVectors6(fileNumber, data+inode, 1, time);
+      geoSource->outputNodeVectors6(fileNumber, xyz+inode, 1, time);
     }
-    delete [] data;
   }
   else {
-    Scalar (*data)[3] = new Scalar[numNodes][3];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      for (int iDof = 0; iDof < 3; iDof++)
-        data[iNode][iDof] = xyz[iNode][iDof];
     if (oinfo.nodeNumber == -1)
-      geoSource->outputNodeVectors(fileNumber, data, numNodes, time);
+      geoSource->outputNodeVectors(fileNumber, xyz, numNodes, time);
     else  {
       inode = oinfo.nodeNumber;
-      geoSource->outputNodeVectors(fileNumber, data+inode, 1, time);
+      geoSource->outputNodeVectors(fileNumber, xyz+inode, 1, time);
     }
-
-    delete [] data;
   }
 
 }
@@ -1311,7 +1302,8 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
  execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
            stress, weight, gs, allCorot, &fileNumber, &Findex);
 
- int numNodes = geoSource->getNumGlobNodes();
+ int numNodes = geoSource->numNode();
+
  if(globalStress == 0) globalStress = new Scalar[numNodes]; 
  if(globalWeight == 0) globalWeight = new Scalar[numNodes];
 
@@ -1346,7 +1338,7 @@ void GenDecDomain<Scalar>::setsizeSfemStress(int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
 
-  if(avgnum == 1)  sizeSfemStress = geoSource->getNumGlobNodes();  // node-based output
+  if(avgnum == 1)  sizeSfemStress = geoSource->numNode();  // node-based output
   else if(avgnum == 0) {  // element-based output
    sizeSfemStress = 0;
 /*   Connectivity *elemToNode = new Connectivity(domain->getEset());
@@ -1368,7 +1360,7 @@ void GenDecDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
-  int numNodes = geoSource->getNumGlobNodes();
+  int numNodes = geoSource->numNode();
   if(avgnum == 1)  for (int i=0;i<numNodes;++i) globalStress[i] = str[i];
   else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl; // for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i]; // YYY DG
   else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
@@ -1417,7 +1409,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
 
 
   // allocate global stress and weight arrays 
-  int numNodes = geoSource->getNumGlobNodes();
+  int numNodes = geoSource->numNode();
   if(globalStress == 0) globalStress = new Scalar[numNodes]; 
   if(globalWeight == 0) globalWeight = new Scalar[numNodes];
 
@@ -1893,7 +1885,8 @@ GenDecDomain<Scalar>::outputPrimal(GenDistrVector<Scalar> &primal, int iter)
 template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot,
-                                     double x, SysState<GenDistrVector<Scalar> > *distState)  
+                                     double x, SysState<GenDistrVector<Scalar> > *distState,
+                                     GenDistrVector<Scalar> *aeroF)  
 {
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
@@ -1913,6 +1906,16 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   int isub;
   for(isub = 0; isub < numSub; ++isub)
     subDomain[isub]->mergeDisp(xyz,(*geomState)[isub]);
+
+  // intialize and merge aeroelastic forces from subdomains into global array
+  Scalar (*mergedAeroF)[6] = 0;
+  if(domain->solInfo().aeroFlag > -1 && aeroF) {
+    mergedAeroF = new Scalar[numNodes][6];
+    for(i = 0; i < numNodes; ++i)
+      for(j=0; j<6; ++j) mergedAeroF[i][j] = 0.0;
+    for(iSub = 0; iSub < numSub; ++iSub)
+      subDomain[iSub]->mergeForces(mergedAeroF, aeroF->subData(iSub));
+  }
 
   // for nonlinear dynamics: initialize and merge velocities and accelerations from subdomains into global array
   GenDistrVector<Scalar> *v_n = 0, *a_n = 0;
@@ -2081,6 +2084,25 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        }
        geoSource->outputNodeScalars(i, globVal, numNodes, x);
        break;
+     case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
+     case OutputInfo::AeroXForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 0, x);
+       break;
+     case OutputInfo::AeroYForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 1, x);
+       break;
+     case OutputInfo::AeroZForce:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 2, x);
+       break;
+     case OutputInfo::AeroXMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 3, x);
+       break;
+     case OutputInfo::AeroYMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 4, x);
+       break;
+     case OutputInfo::AeroZMom:
+       if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 5, x);
+       break;
      default:
        filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", i);
        break;
@@ -2088,6 +2110,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   }
  }
  if(globVal) delete [] globVal;
+ if(aeroF) delete [] mergedAeroF;
+ if(xyz) delete [] xyz;
+ if(mergedVel) delete [] mergedVel;
+ if(mergedAcc) delete [] mergedAcc;
 
  // --- Print Problem statistics -------------------------------------
 /*
@@ -3379,8 +3405,6 @@ void
 GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
                                Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti)
 {
- GenBasicAssembler<Scalar> *ba = 0;
-
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
@@ -3418,7 +3442,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
- if(domain->solInfo().inpc) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
    FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
                                                           FSCommPattern<Scalar>::CopyOnSend);
    for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
@@ -3426,7 +3450,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    ba = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
  }
 
- res.K   = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
  if(dgt.C[0]) {
@@ -3486,6 +3511,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
+   if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
  }
  res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
@@ -3666,3 +3692,4 @@ GenDecDomain<Scalar>::getWiCommPattern()
   }
   return wiPat;
 }
+

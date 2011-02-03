@@ -14,7 +14,7 @@
 #include "SliceMapping.h"
 #include "../RemoteStateMpiImpl.h"
 
-#include "IncrementalPropagation.h"
+#include "../IncrementalPropagation.h"
 #include "../PostProcessingManager.h"
 #include "../IncrementalPostProcessor.h"
 
@@ -33,6 +33,7 @@
 #include "RemoteSeedInitializerServer.h"
 #include "../RemoteSeedInitializerProxy.h"
 #include "../UserProvidedSeedInitializer.h"
+#include "../SimpleSeedInitializer.h"
 
 #include "HomogeneousTaskManager.h"
 #include "NonHomogeneousTaskManager.h"
@@ -106,8 +107,8 @@ ReducedLinearDriverImpl::preprocess() {
   
   // Main options 
   noForce_ = solverInfo()->pitaNoForce;
-  userProvidedSeeds_ = solverInfo()->pitaReadInitSeed && noForce_;
-  remoteCoarse_ = solverInfo()->pitaRemoteCoarse && (baseComm()->numCPUs() > 1) && !userProvidedSeeds_;
+  userProvidedSeeds_ = solverInfo()->pitaReadInitSeed;
+  remoteCoarse_ = solverInfo()->pitaRemoteCoarse && (baseComm()->numCPUs() > 1);
 
   // Load balancing 
   CpuCount numCpus(baseComm()->numCPUs() - (remoteCoarse_ ? 1 : 0));
@@ -160,11 +161,11 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
 
   // Projection-based correction
   RankDeficientSolver::Ptr normalMatrixSolver = NearSymmetricSolver::New(projectorTolerance_);
-  LinearProjectionNetwork::Ptr projectionMgr = new LinearProjectionNetwork(mapping_.ptr(),
-                                                                           timeComm,
-                                                                           dynOps.ptr(),
-                                                                           vectorSize_,
-                                                                           normalMatrixSolver.ptr());
+  LinearProjectionNetwork::Ptr projectionMgr = LinearProjectionNetwork::New(mapping_.ptr(),
+                                                                            timeComm,
+                                                                            dynOps.ptr(),
+                                                                            vectorSize_,
+                                                                            normalMatrixSolver.ptr());
   
   // Fine-grid time integration and feedback into correction
   LinearGenAlphaIntegrator::Ptr fineIntegrator;
@@ -199,11 +200,12 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
     jumpOutMgr = LinSeedDifferenceEvaluator::Manager::New(dynOps.ptr());
   }
 
+  // Initial seed information on coarse time-grid
+  SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm);
+  
   // Generate tasks
   TaskManager::Ptr taskMgr;
   if (noForce_) {
-    // Initial seed information on coarse time-grid
-    SeedInitializer::Ptr seedInitializer = buildSeedInitializer(coarseComm);
     taskMgr = new HomogeneousTaskManager(mapping_.ptr(),
                                          commMgr.ptr(),
                                          finePropagatorManager.ptr(),
@@ -220,7 +222,7 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
                                             projectionMgr.ptr(),
                                             jumpCvgEval.ptr(),
                                             jumpOutMgr.ptr(),
-                                            initialSeed(),
+                                            seedInitializer.ptr(),
                                             fullCorrPropMgr.ptr());
   }
 
@@ -289,6 +291,10 @@ SeedInitializer::Ptr
 ReducedLinearDriverImpl::buildSeedInitializer(Communicator * clientComm) const {
   if (userProvidedSeeds_) {
     return UserProvidedSeedInitializer::New(vectorSize_, geoSource(), domain());
+  }
+
+  if (!noForce_) {
+    return SimpleSeedInitializer::New(initialSeed());
   }
 
   if (clientComm == NULL) {

@@ -1,0 +1,108 @@
+#include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
+#include <Utils.d/dbg_alloca.h>
+#include <Corotational.d/GeomState.h>
+
+extern "C" {
+  void _FORTRAN(elefbc3dtri)(int&, int&, double*, double*, double*, double*);
+};
+
+
+TrianglePressureBC::TrianglePressureBC(int *_nn, double _pressure)
+{
+  nnode = 3;
+  nndof = 3;
+  ndime = 3;
+  optele = 3;
+  nn[0] = _nn[0];
+  nn[1] = _nn[1]; 
+  nn[2] = _nn[2]; 
+  pressure = _pressure;
+  dom = 0;
+}
+
+FullSquareMatrix
+TrianglePressureBC::sommerMatrix(CoordSet &cs, double *d)
+{
+  FullSquareMatrix sommerM(9,d);
+  sommerM.zero();
+
+  return sommerM;
+}
+
+void
+TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
+{
+  int opttrc = 0; // 0 : pressure
+                  // 1 : traction
+  double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
+  double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+  for(int i = 0; i < nnode; ++i) {
+    ecord[i*ndime+0] = cs[nn[i]]->x;
+    ecord[i*ndime+1] = cs[nn[i]]->y;
+    ecord[i*ndime+2] = cs[nn[i]]->z;
+    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (geomState != NULL) ? (*geomState)[nn[i]].d[j] : 0;
+  }
+  double trac[3] = { -pressure, 0, 0 };
+
+  _FORTRAN(elefbc3dtri)(opttrc, optele, ecord, edisp, trac, f.data());
+}
+
+#include<Driver.d/Domain.h>
+
+int*
+TrianglePressureBC::dofs(DofSetArray &dsa, int *p)
+{
+  if(p == 0) p = new int[nndof*nnode];
+
+  for(int i = 0; i < nnode; ++i)
+    dsa.number(nn[i], DofSet::XYZdisp, p+i*nndof);
+
+  return p;
+}
+
+int
+TrianglePressureBC::numDofs()
+{
+  return nndof*nnode;
+}
+
+void
+TrianglePressureBC::markDofs(DofSetArray &dsa)
+{
+  dsa.mark(nn, nnode,  DofSet::XYZdisp);
+}
+
+void
+TrianglePressureBC::getNormal(CoordSet &cs, double normal[3])
+{
+  Node nd1 = cs.getNode(nn[0]);
+  Node nd2 = cs.getNode(nn[1]);
+  Node nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double u1, u2, u3, v1, v2, v3, w1, w2, w3;
+  u1 = x[1]-x[0];
+  u2 = y[1]-y[0];
+  u3 = z[1]-z[0];
+
+  v1 = x[2]-x[0];
+  v2 = y[2]-y[0];
+  v3 = z[2]-z[0];
+
+  w1 = u2*v3-u3*v2;
+  w2 = u3*v1-u1*v3;
+  w3 = u1*v2-u2*v1;
+
+  double l = sqrt(w1*w1+w2*w2+w3*w3);
+
+  if (l == 0) l = 1.0;
+
+  normal[0] = w1/l;
+  normal[1] = w2/l;
+  normal[2] = w3/l;
+}
+

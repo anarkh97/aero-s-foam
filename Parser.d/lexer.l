@@ -1175,13 +1175,17 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
-"PODROM"|"PodRom"|"podrom" { return PODROM; }
+"PODROM"|"PodRom"|"podrom"                { return PODROM; }
 
-"SVD"|"Svd"|"svd"          { return SVD; }
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
-"GAPPY"|"gappy"|"Gappy" { return GAPPY; }
+"GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
+
+"SVD"|"Svd"|"svd"                         { return SVD; }
+
+"PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
 

@@ -989,7 +989,7 @@ int main(int argc, char** argv)
      }
      case SolverInfo::Static:
        {
-         if (domain->solInfo().svdPodRom) { // POD ROM 
+         if (domain->solInfo().activatePodRom) { // POD ROM 
            // Stand-alone SVD orthogonalization
            filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
            BasisOrthoDriver svdortho(domain);

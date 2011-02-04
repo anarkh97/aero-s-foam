@@ -54,6 +54,13 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
   return NonLinDynamic::checkConvergence(iteration, normRes, residual, dv, time); 
 }
 
+double
+GaussNewtonNonLinDynamic::getResidualNorm(const Vector &residual) const {
+  Vector reducedResidual(projectionBasis_.numVec());
+  reduce(projectionBasis_, residual, reducedResidual);
+  return reducedResidual.norm();
+}
+
 void
 GaussNewtonNonLinDynamic::computeAndSaveJacobianSnapshot() {
   Vector snap(solVecInfo());

@@ -32,6 +32,7 @@ private:
   VecBasis residualProjection_;
   
   void fillBasisFromInput(const std::string &, VecBasis &);
+  void fillRestrictedBasisFromInput(const std::string &, VecBasis &);
 
   // Disallow copy and assignment
   GappyNonLinDynamic(const GappyNonLinDynamic &);

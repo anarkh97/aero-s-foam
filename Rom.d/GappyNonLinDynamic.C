@@ -13,11 +13,25 @@ GappyNonLinDynamic::GappyNonLinDynamic(Domain * d) :
   NonLinDynamic(d)
 {}
 
-inline
 void
 GappyNonLinDynamic::fillBasisFromInput(const std::string &fileName, VecBasis &target) {
   BasisInputStream input(fileName, *vecNodeDof6Conversion_);
   input >> target;
+}
+
+void
+GappyNonLinDynamic::fillRestrictedBasisFromInput(const std::string &fileName, VecBasis &target) {
+  BasisInputStream input(fileName, *vecNodeDof6Conversion_);
+
+  VecBasis result(input.size(), restrictionMapping_->restrictedInfo());
+  Vector temp(restrictionMapping_->originInfo());
+
+  for (VecBasis::iterator vecIt = result.begin(); vecIt != result.end(); ++vecIt) {
+    input >> temp;
+    restrictionMapping_->restriction(temp, *vecIt);
+  }
+
+  target.swap(result);
 }
 
 void
@@ -36,8 +50,8 @@ GappyNonLinDynamic::preProcess() {
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
   
   fillBasisFromInput("GappyReducedBasis",  reducedBasis_);       // TODO filename
-  fillBasisFromInput("GappyJacobianBasis", jacobianProjection_); // TODO filename
-  fillBasisFromInput("GappyResidualBasis", residualProjection_); // TODO filename
+  fillRestrictedBasisFromInput("GappyJacobianBasis", jacobianProjection_); // TODO filename
+  fillRestrictedBasisFromInput("GappyResidualBasis", residualProjection_); // TODO filename
 
   // Setup solver
   getSolver()->systemApproximationIs(*restrictionMapping_,

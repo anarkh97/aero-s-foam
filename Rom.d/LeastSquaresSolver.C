@@ -72,7 +72,7 @@ LeastSquaresSolver<double>::solve() {
   const char no = 'N'; // not-transposed, non-unit
 
   _FORTRAN(dtrtrs)(&upper, &no, &no,
-                   &equationCount_, &rhsCount_,
+                   &unknownCount_, &rhsCount_,
                    matrixBuffer_.array(), &matrixLeadDim_,
                    rhsBuffer_.array(), &rhsLeadDim_, &info);
   assert(info == 0);

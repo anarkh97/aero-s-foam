@@ -16,7 +16,7 @@ const VecType &
 reduce(const VecSetType &basis, const VecType &xFull, VecType &xReduced) {
   checkDimensions(basis, xFull, xReduced);
 
-  for (int i = 0; i < basis.size(); ++i) {
+  for (int i = 0; i < basis.numVec(); ++i) {
     xReduced[i] = basis[i] * xFull;
   }
 
@@ -29,7 +29,7 @@ expand(const VecSetType &basis, const VecType &xReduced, VecType &xFull) {
   checkDimensions(basis, xFull, xReduced);
 
   xFull.zero();
-  for (int i = 0; i < basis.size(); ++i) {
+  for (int i = 0; i < basis.numVec(); ++i) {
     xFull.linAdd(xReduced[i], basis[i]);
   }
 

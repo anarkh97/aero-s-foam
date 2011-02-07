@@ -667,7 +667,7 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
 void GeoSource::setUpData()
 {
   int lastNode = numNodes = nodes.size();
-  int nMaxEle = elemSet.size();
+  const int nMaxEle = elemSet.last();
 
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
@@ -698,9 +698,13 @@ void GeoSource::setUpData()
       hasAttr[attrib[i].nele] = true;
   }
   int dattr = maxattrib + 1;
-  addMat(dattr, StructProp());
+  bool hasAddedDummy = false;
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
+      if (!hasAddedDummy) {
+        addMat(dattr, StructProp());
+        hasAddedDummy = true;
+      }
       if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
       else cerr << " *** WARNING: Element " << i+1 << " has no attribute defined\n";
     }

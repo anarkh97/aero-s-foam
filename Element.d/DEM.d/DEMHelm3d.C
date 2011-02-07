@@ -400,7 +400,7 @@ void DGMHelm3d::HelmDGMEMatrices3d(double *xyz,
  int c = 0;
  for(int faceindex=1;faceindex<=nf;faceindex++) {
      int isFlt = isFlatAndStraight(xyz,faceindex);
-     fprintf(stderr," FLAT  %i   \n",isFlt);
+//     fprintf(stderr," FLAT  %i   \n",isFlt);
      
    if (!isFlt) {
 //#define TIME

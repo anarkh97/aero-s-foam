@@ -4,14 +4,22 @@
 
 #include <Math.d/Vector.h>
 
+#include <algorithm>
+
 BasisInputStream &
 operator>>(BasisInputStream &in, VecBasis &sink) {
-  GenVecBasis<double> temp(in.size(), in.vectorSize());
+  GenVecBasis<double> temp(in.size() - in.currentVectorRank(), in.vectorSize());
+  readVectors(in, temp.begin(), temp.end());
+  sink.swap(temp);
 
-  GenVecBasis<double>::iterator itEnd = temp.end();
-  for (GenVecBasis<double>::iterator it = temp.begin(); it != itEnd; ++it) {
-    in >> *it;
-  }
+  return in;
+}
+
+BasisInputStream &
+readVectors(BasisInputStream &in, VecBasis &sink, int countMax) {
+  const int count = std::max(std::min(in.size() - in.currentVectorRank(), countMax), 0);
+  GenVecBasis<double> temp(count, in.vectorSize());
+  readVectors(in, temp.begin(), temp.end());
   sink.swap(temp);
 
   return in;
@@ -19,9 +27,11 @@ operator>>(BasisInputStream &in, VecBasis &sink) {
 
 BasisOutputStream &
 operator<<(BasisOutputStream &out, const VecBasis &source) {
-  VecBasis::const_iterator itEnd = source.end();
-  for (VecBasis::const_iterator it = source.begin(); it != itEnd; ++it) {
-    out << *it;
-  }
-  return out;
+  return writeVectors(out, source.begin(), source.end());
+}
+
+BasisOutputStream &
+writeVectors(BasisOutputStream &out, const VecBasis &source, int countMax) {
+  VecBasis::const_iterator last = std::min(source.end(), source.begin() + countMax);
+  return writeVectors(out, source.begin(), last);
 }

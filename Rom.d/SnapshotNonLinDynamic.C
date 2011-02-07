@@ -38,9 +38,11 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     const NodeDof6Buffer &snapBuffer() const { return snapBuffer_; }
     const VecNodeDof6Conversion &converter() const { return converter_; }
 
+    int maxSizePodRom() const { return domain_->solInfo().maxSizePodRom; }
+
   private:
     Domain * domain_;
-
+    
     VecNodeDof6Conversion converter_;
     NodeDof6Buffer snapBuffer_;
 
@@ -161,8 +163,11 @@ SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & sn
 
   svdSolver_.solve();
   
-  const int stateCount = svdSolver_.singularValueCount();
-  for (int iState = 0; iState < stateCount; ++iState) {
+  const int orthoBasisDim = maxSizePodRom() ?
+                            std::min(maxSizePodRom(), svdSolver_.singularValueCount()) :
+                            svdSolver_.singularValueCount();
+  
+  for (int iState = 0; iState < orthoBasisDim; ++iState) {
     fillSnapBuffer(svdSolver_.matrixCol(iState));
     out.stateAdd(snapBuffer(), svdSolver_.singularValue(iState));
   }

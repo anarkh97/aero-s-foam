@@ -6,10 +6,10 @@
 #include "BasisOps.h"
 
 #include <Driver.d/Domain.h>
+#include <Utils.d/DistHelper.h>
 
+#include <algorithm>
 #include <stdexcept>
-
-#include <cstdio>
 
 GaussNewtonNonLinDynamic::GaussNewtonNonLinDynamic(Domain *d) :
   NonLinDynamic(d)
@@ -31,9 +31,18 @@ GaussNewtonNonLinDynamic::preProcess() {
 
   // Load projection basis
   BasisInputStream projectionBasisInput(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::POD)), *vecNodeDof6Conversion_);
-  assert(projectionBasisInput.vectorSize() == solVecInfo());
-  std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.size());
-  projectionBasisInput >> projectionBasis_;
+
+  if (projectionBasisInput.vectorSize() != solVecInfo()) {
+    throw std::domain_error("Projection basis has incorrect #rows");
+  }
+
+  const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
+                                     std::min(domain->solInfo().maxSizePodRom, projectionBasisInput.size()) :
+                                     projectionBasisInput.size();
+  
+  readVectors(projectionBasisInput, projectionBasis_, projectionSubspaceSize);
+  
+  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionBasis_.vectorCount());
 
   // Setup solver
   getSolver()->projectionBasisIs(projectionBasis_);

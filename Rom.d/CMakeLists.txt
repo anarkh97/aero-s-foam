@@ -3,6 +3,7 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
   GaussNewtonNonLinDynamic.C

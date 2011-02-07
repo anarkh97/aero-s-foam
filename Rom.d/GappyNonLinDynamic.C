@@ -2,6 +2,7 @@
 
 #include "BasisFileStream.h"
 #include "VecBasisFile.h"
+#include "FileNameInfo.h"
 
 #include <Driver.d/GeoSource.h> 
 
@@ -48,10 +49,11 @@ GappyNonLinDynamic::preProcess() {
                                                         gs.sampleNodeBegin(), gs.sampleNodeEnd()));
   
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
-  
-  fillBasisFromInput("GappyReducedBasis",  reducedBasis_);       // TODO filename
-  fillRestrictedBasisFromInput("GappyJacobianBasis", jacobianProjection_); // TODO filename
-  fillRestrictedBasisFromInput("GappyResidualBasis", residualProjection_); // TODO filename
+
+  FileNameInfo fileInfo;  
+  fillBasisFromInput(fileInfo.fileName(BasisId(BasisId::STATE,    BasisId::GAPPY_POD)), reducedBasis_);
+  fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::GAPPY_POD)), residualProjection_);
+  fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::GAPPY_POD)), jacobianProjection_);
 
   // Setup solver
   getSolver()->systemApproximationIs(*restrictionMapping_,

@@ -2,6 +2,7 @@
 
 #include "BasisFileStream.h"
 #include "VecBasisFile.h"
+#include "FileNameInfo.h"
 #include "BasisOps.h"
 
 #include <Driver.d/Domain.h>
@@ -26,8 +27,10 @@ GaussNewtonNonLinDynamic::preProcess() {
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
   snapBuffer_.sizeIs(vecNodeDof6Conversion_->nodeCount());
 
+  FileNameInfo fileInfo; 
+
   // Load projection basis
-  BasisInputStream projectionBasisInput("GaussNewtonBasis", *vecNodeDof6Conversion_); //TODO: file name
+  BasisInputStream projectionBasisInput(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::POD)), *vecNodeDof6Conversion_);
   assert(projectionBasisInput.vectorSize() == solVecInfo());
   std::fprintf(stderr, "Gauss-Newton projection basis size = %d\n", projectionBasisInput.size());
   projectionBasisInput >> projectionBasis_;
@@ -37,8 +40,8 @@ GaussNewtonNonLinDynamic::preProcess() {
   getSolver()->factor(); // Delayed factorization
   
   // Snapshot output
-  residualSnapFile_.reset(new BasisOutputStream("RomResidualSnap", *vecNodeDof6Conversion_)); //TODO file name
-  jacobianSnapFile_.reset(new BasisOutputStream("RomJacobianSnap", *vecNodeDof6Conversion_)); //TODO file name
+  residualSnapFile_.reset(new BasisOutputStream(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::SNAPSHOTS)), *vecNodeDof6Conversion_));
+  jacobianSnapFile_.reset(new BasisOutputStream(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::SNAPSHOTS)), *vecNodeDof6Conversion_));
 }
 
 GalerkinProjectionSolver *

@@ -3,6 +3,7 @@
 #include "BasisOrthogonalization.h"
 #include "VecNodeDof6Conversion.h"
 #include "BasisFileStream.h"
+#include "FileNameInfo.h"
 #include "SimpleBuffer.h"
 
 #include <Driver.d/Domain.h>
@@ -17,11 +18,20 @@ BasisOrthoDriver::solve() {
   preProcess();
  
   VecNodeDof6Conversion converter(*domain_->getCDSA());
-  BasisInputStream input("RawBasis", converter); //TODO filename
-  BasisOutputStream output("OrthoBasis", converter); //TODO filename
-
+  FileNameInfo fileInfo;
   BasisOrthogonalization solver;
-  solver.basisNew(input, output);
+
+  std::vector<BasisId::Type> workload;
+  workload.push_back(BasisId::RESIDUAL);
+  workload.push_back(domain_->solInfo().gaussNewtonPodRom ? BasisId::JACOBIAN : BasisId::STATE);
+
+  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
+    BasisId::Type type = *it;
+    BasisInputStream input(fileInfo.fileName(BasisId(type, BasisId::SNAPSHOTS)), converter);
+    BasisOutputStream output(fileInfo.fileName(BasisId(type, BasisId::POD)), converter);
+
+    solver.basisNew(input, output);
+  }
 }
 
 void

@@ -5,6 +5,7 @@
 #include "BasisOutputFile.h"
 #include "BasisFileStream.h"
 #include "NodeDof6Buffer.h"
+#include "FileNameInfo.h"
 
 #include <Driver.d/Domain.h>
 
@@ -28,7 +29,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     int nodeCount() const { return domain_->numGlobalNodes(); }
     int vectorSize() const { return domain_->numUncon(); }
 
-    explicit RawImpl(Domain *);
+    explicit RawImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
 
   protected:
     template <typename VecType>
@@ -44,6 +45,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     NodeDof6Buffer snapBuffer_;
 
   protected:
+    FileNameInfo fileInfo_;
     BasisOutputFile stateSnapFile_;
     BasisOutputFile residualSnapFile_;
   };
@@ -75,12 +77,13 @@ private:
   {}
 };
 
-SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain) :
+SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
   converter_(*domain->getCDSA()),
   snapBuffer_(nodeCount()),
-  stateSnapFile_("StateSnap", nodeCount()),      // TODO name
-  residualSnapFile_("ResidualSnap", nodeCount()) // TODO name
+  fileInfo_(),
+  stateSnapFile_(fileInfo_.fileName(BasisId(BasisId::STATE, level)), nodeCount()),
+  residualSnapFile_(fileInfo_.fileName(BasisId(BasisId::RESIDUAL, level)), nodeCount())
 {}
 
 void
@@ -107,9 +110,7 @@ SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
     snapBuffer_[iNode][2] = snap[iNode].z - refCoords[iNode]->z;
     
     // Rotational dofs
-    double rot[3];
-    mat_to_vec(const_cast<double (*)[3]>(snap[iNode].R), rot);
-    std::copy(rot, rot + 3, snapBuffer_[iNode] + 3);
+    mat_to_vec(const_cast<double (*)[3]>(snap[iNode].R), &snapBuffer_[iNode][3]);
   }
  
   stateSnapFile_.stateAdd(snapBuffer_);
@@ -122,7 +123,7 @@ SnapshotNonLinDynamicDetail::RawImpl::residualSnapshotAdd(const Vector &snap) {
 }
 
 SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
-  RawImpl(domain),
+  RawImpl(domain, BasisId::POD),
   refGeomState_(new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes())),
   increment_(vectorSize())
 {}

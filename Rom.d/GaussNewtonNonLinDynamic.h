@@ -1,7 +1,7 @@
 #ifndef ROM_GAUSSNEWTONNONLINDYNAMIC_H
 #define ROM_GAUSSNEWTONNONLINDYNAMIC_H
 
-#include "GalerkinProjectionSolver.h"
+#include "GaussNewtonSolver.h"
 #include "VecNodeDof6Conversion.h"
 #include "NodeDof6Buffer.h"
 #include "BasisFileStream.h"
@@ -18,7 +18,9 @@ public:
   // Required additional pre-processing
   virtual void preProcess();
 
-  GalerkinProjectionSolver *getSolver(); // Hiding NonLinDynamic::getSolver
+  // Hiding NonLinDynamic::getSolve
+  GaussNewtonSolver *getSolver();
+  const GaussNewtonSolver *getSolver() const;
 
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;

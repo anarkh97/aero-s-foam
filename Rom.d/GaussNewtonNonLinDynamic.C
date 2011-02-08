@@ -19,8 +19,8 @@ void
 GaussNewtonNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
   
-  if (!dynamic_cast<GalerkinProjectionSolver *>(NonLinDynamic::getSolver())) {
-    throw std::runtime_error("Solver must be a GalerkinProjectionSolver");
+  if (!dynamic_cast<GaussNewtonSolver *>(NonLinDynamic::getSolver())) {
+    throw std::runtime_error("Solver must be a GaussNewtonSolver");
   }
 
   // Input/output state conversion
@@ -53,9 +53,15 @@ GaussNewtonNonLinDynamic::preProcess() {
   jacobianSnapFile_.reset(new BasisOutputStream(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::SNAPSHOTS)), *vecNodeDof6Conversion_));
 }
 
-GalerkinProjectionSolver *
+
+const GaussNewtonSolver *
+GaussNewtonNonLinDynamic::getSolver() const {
+  return static_cast<GaussNewtonSolver *>(const_cast<GaussNewtonNonLinDynamic *>(this)->NonLinDynamic::getSolver());
+}
+
+GaussNewtonSolver *
 GaussNewtonNonLinDynamic::getSolver() {
-  return static_cast<GalerkinProjectionSolver *>(NonLinDynamic::getSolver());
+  return const_cast<GaussNewtonSolver *>(const_cast<const GaussNewtonNonLinDynamic *>(this)->getSolver());
 }
 
 int
@@ -69,7 +75,7 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
 double
 GaussNewtonNonLinDynamic::getResidualNorm(const Vector &residual) const {
   Vector reducedResidual(projectionBasis_.numVec());
-  reduce(projectionBasis_, residual, reducedResidual);
+  reduce(getSolver()->lastReducedMatrixAction(), residual, reducedResidual);
   return reducedResidual.norm();
 }
 

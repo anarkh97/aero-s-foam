@@ -34,7 +34,7 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-#include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/GaussNewtonSolver.h>
 #include <Rom.d/GappyProjectionSolver.h>
 
 extern Sfem* sfem;
@@ -819,10 +819,10 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
 }
 
 template<class Scalar>
-GenGalerkinProjectionSolver<Scalar> *
-Domain::constructGalerkinProjectionSolver()
+GenGaussNewtonSolver<Scalar> *
+Domain::constructGaussNewtonSolver()
 {
-  return new GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+  return new GenGaussNewtonSolver<Scalar>(nodeToNode, dsa, c_dsa);
 }
 
 template<class Scalar>
@@ -1191,9 +1191,9 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 11:
-      filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
+      filePrint(stderr," ... POD-GN Solver is Selected...      \n");
       {
-        GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
+        GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);

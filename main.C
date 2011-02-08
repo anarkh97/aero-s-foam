@@ -45,7 +45,7 @@ using namespace std;
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/GaussNewtonNonLinDynamic.h>
-#include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/GaussNewtonSolver.h>
 #include <Rom.d/BasisOrthoDriver.h>
 #include <Rom.d/GappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
@@ -1162,7 +1162,7 @@ int main(int argc, char** argv)
                if (domain->solInfo().gaussNewtonPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  GaussNewtonNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <GalerkinProjectionSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
+                 NLDynamSolver <GaussNewtonSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
                                 GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().gappyPodRom) {

@@ -11,6 +11,7 @@ ADD_LIBRARY( Rom
   LeastSquaresSolver.C
   NodalRestrictionMapping.C
   MeshOutput.C
+  MeshSamplingDriver.C
   MeshUtils.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

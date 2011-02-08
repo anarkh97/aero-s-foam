@@ -47,6 +47,7 @@ using namespace std;
 #include <Rom.d/GaussNewtonNonLinDynamic.h>
 #include <Rom.d/GaussNewtonSolver.h>
 #include <Rom.d/BasisOrthoDriver.h>
+#include <Rom.d/MeshSamplingDriver.h>
 #include <Rom.d/GappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
@@ -989,11 +990,18 @@ int main(int argc, char** argv)
      }
      case SolverInfo::Static:
        {
-         if (domain->solInfo().activatePodRom) { // POD ROM 
-           // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
-           BasisOrthoDriver svdortho(domain);
-           svdortho.solve(); 
+         if (domain->solInfo().activatePodRom) { // POD ROM
+           if (!domain->solInfo().gappyPodRom) {
+             // Stand-alone SVD orthogonalization
+             filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+             BasisOrthoDriver svdortho(domain);
+             svdortho.solve(); 
+           } else {
+             // Offline gappy mesh construction
+             filePrint(stderr, " ... POD: Reduced Mesh Construction ...\n");
+             MeshSamplingDriver meshsampling(domain);
+             meshsampling.solve(); 
+           }
          } else {
            if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
            if(domain->isComplex()) {

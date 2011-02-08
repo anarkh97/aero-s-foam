@@ -7,6 +7,7 @@ ADD_LIBRARY( Rom
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
   GaussNewtonNonLinDynamic.C
+  QrPseudoInversion.C
   LeastSquaresSolver.C
   NodalRestrictionMapping.C
   MeshOutput.C
@@ -14,5 +15,6 @@ ADD_LIBRARY( Rom
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   VecBasisFile.C
+  VecBasisUtils.C
   VecNodeDof6Conversion.C
 )

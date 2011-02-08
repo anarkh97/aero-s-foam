@@ -9,6 +9,8 @@ ADD_LIBRARY( Rom
   GaussNewtonNonLinDynamic.C
   LeastSquaresSolver.C
   NodalRestrictionMapping.C
+  MeshOutput.C
+  MeshUtils.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   VecBasisFile.C

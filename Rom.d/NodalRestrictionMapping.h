@@ -5,6 +5,8 @@ class DofSetArray;
 
 #include <vector>
 
+#include <ostream>
+#include <algorithm>
 #include <cassert>
 
 class NodalRestrictionMapping {
@@ -16,6 +18,9 @@ public:
 
   template <typename VecType>
   const VecType &restriction(const VecType &origin, VecType &target) const;
+  
+  template <typename VecType>
+  const VecType &extension(const VecType &origin, VecType &target) const;
 
   template <typename VecType>
   typename VecType::DataType dotProduct(const VecType &originVec,
@@ -25,6 +30,8 @@ public:
   NodalRestrictionMapping(const DofSetArray &,
                           InputIterator sampleNodesBegin,
                           InputIterator sampleNodesEnd);
+  
+  friend std::ostream &operator<<(std::ostream &, const NodalRestrictionMapping &);
 
 private:
   static InfoType extractOriginalInfo(const DofSetArray &);
@@ -57,13 +64,30 @@ NodalRestrictionMapping::NodalRestrictionMapping(const DofSetArray &dsa,
 template <typename VecType>
 const VecType &
 NodalRestrictionMapping::restriction(const VecType &origin, VecType &target) const {
-  assert(origin.info() == originInfo());  
-  assert(target.info() == restrictedInfo());  
+  assert(origin.info() == originInfo());
+  assert(target.info() == restrictedInfo());
 
   typedef std::vector<IndexType>::const_iterator Iterator;
   int targetIdx = 0;
   for (Iterator it = originIndex_.begin(); it != originIndex_.end(); ++it) {
     target[targetIdx++] = origin[*it];
+  }
+
+  return target;
+}
+
+template <typename VecType>
+const VecType &
+NodalRestrictionMapping::extension(const VecType &origin, VecType &target) const {
+  assert(origin.info() == restrictedInfo());
+  assert(target.info() == originInfo());
+
+  target.zero();
+
+  typedef std::vector<IndexType>::const_iterator Iterator;
+  int targetIdx = 0;
+  for (Iterator it = originIndex_.begin(); it != originIndex_.end(); ++it) {
+    target[*it] = origin[targetIdx++];
   }
 
   return target;
@@ -85,5 +109,8 @@ NodalRestrictionMapping::dotProduct(const VecType &originVec, const VecType &res
 
   return result;
 }
+
+std::ostream &
+operator<<(std::ostream &, const NodalRestrictionMapping &);
 
 #endif /* ROM_NODALRESTRICTIONMAPPING_H */

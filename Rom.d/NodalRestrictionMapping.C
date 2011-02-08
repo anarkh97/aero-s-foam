@@ -20,3 +20,14 @@ NodalRestrictionMapping::addSampleNode(int iNode, const DofSetArray &dsa) {
   }
 }
 
+std::ostream &
+operator<<(std::ostream &out, const NodalRestrictionMapping &source) {
+  out << "NodalRestrictionMapping: " << source.originInfo() << "->" << source.restrictedInfo() << " :";
+  int index = 0;
+  typedef std::vector<NodalRestrictionMapping::IndexType>::const_iterator idx_it;
+  for (idx_it it = source.originIndex_.begin(); it != source.originIndex_.end(); ++it) {
+    out << " " << *it << "->" << index++;
+  }
+
+  return out;
+}

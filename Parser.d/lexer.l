@@ -1187,6 +1187,8 @@ TRAIL [a-zA-Z]*
 
 "PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 
+"ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
+
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }

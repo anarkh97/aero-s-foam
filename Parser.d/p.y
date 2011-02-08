@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SNAPSHOTS GAUSSNEWTON GAPPY SVD PODSIZEMAX SAMPLENODES
+%token PODROM SNAPSHOTS GAUSSNEWTON GAPPY SVD PODSIZEMAX ASPECTRATIO SAMPLENODES
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3237,28 +3237,25 @@ Renumbering:
           domain->solInfo().setSpoolesRenum($7); }
 	;
 PodRom:
-  PODROM PodRomMode PodSizeMax
+  PODROM PodRomMode NewLine
   { domain->solInfo().activatePodRom = true; }
+  | PodRom PodRomOption NewLine
 PodRomMode:
   SNAPSHOTS
   { }
-  | SNAPSHOTS SVD
-  { domain->solInfo().svdPodRom = true; }
   | GAUSSNEWTON 
   { domain->solInfo().gaussNewtonPodRom = true;
     domain->solInfo().subtype = 11; }
-  | GAUSSNEWTON SVD
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 11;
-    domain->solInfo().svdPodRom = true; }
-  | GAPPY 
+  | GAPPY
   { domain->solInfo().gappyPodRom = true;
     domain->solInfo().subtype = 12; }
-PodSizeMax:
-  NewLine
-  { domain->solInfo().maxSizePodRom = 0; }
-  | NewLine PODSIZEMAX Integer NewLine
-  { domain->solInfo().maxSizePodRom = $3; }
+PodRomOption:
+  SVD
+  { domain->solInfo().svdPodRom = true; }
+  | PODSIZEMAX Integer
+  { domain->solInfo().maxSizePodRom = $2; }
+  | ASPECTRATIO Float
+  { domain->solInfo().aspectRatioPodRom = $2; }
 SampleNodeList:
   SAMPLENODES NewLine
   {}

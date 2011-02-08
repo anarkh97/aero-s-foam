@@ -238,6 +238,7 @@ struct SolverInfo {
    bool gaussNewtonPodRom;
    bool gappyPodRom;
    int  maxSizePodRom;
+   double aspectRatioPodRom;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -415,7 +416,8 @@ struct SolverInfo {
                   svdPodRom = false;
                   gaussNewtonPodRom = false;
                   gappyPodRom = false;
-                  maxSizePodRom = -1;
+                  maxSizePodRom = 0;
+                  aspectRatioPodRom = 1.0;
                  }
 
    // Set RbmFilter level

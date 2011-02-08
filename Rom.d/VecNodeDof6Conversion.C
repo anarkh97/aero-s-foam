@@ -5,18 +5,30 @@
 VecNodeDof6Conversion::VecNodeDof6Conversion(const DofSetArray &dsa) :
   nodeCount_(const_cast<DofSetArray &>(dsa).numNodes()),
   vectorSize_(const_cast<DofSetArray &>(dsa).size()),
+  locationId_(vectorSize()),
   dofLocation_(new int[nodeCount()][6])
 {
-  DofSetArray &dsa_fix = const_cast<DofSetArray &>(dsa);
+  static const int DOF_ID[] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp,
+                                DofSet::Xrot,  DofSet::Yrot,  DofSet::Zrot  };
+
   for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    dofLocation_[iNode][0] = dsa_fix.locate(iNode, DofSet::Xdisp);
-    dofLocation_[iNode][1] = dsa_fix.locate(iNode, DofSet::Ydisp);
-    dofLocation_[iNode][2] = dsa_fix.locate(iNode, DofSet::Zdisp);
-    dofLocation_[iNode][3] = dsa_fix.locate(iNode, DofSet::Xrot);
-    dofLocation_[iNode][4] = dsa_fix.locate(iNode, DofSet::Yrot);
-    dofLocation_[iNode][5] = dsa_fix.locate(iNode, DofSet::Zrot);
+    for (int iDof = 0; iDof < 6; ++iDof) {
+      const NodeDof::DofType dofId = DOF_ID[iDof];
+      const int loc = const_cast<DofSetArray &>(dsa).locate(iNode, dofId);
+
+      dofLocation_[iNode][iDof] = loc;
+      if (loc >= 0) {
+        locationId_[loc] = NodeDof(iNode, dofId);
+      }
+    }
   }
 }
+
+NodeDof
+VecNodeDof6Conversion::nodeDof(int vecLoc) const {
+  assert(vecLoc >= 0 && vecLoc < vectorSize());
+  return locationId_[vecLoc]; 
+} 
 
 VecNodeDof6Conversion::~VecNodeDof6Conversion() {
   delete[] dofLocation_;

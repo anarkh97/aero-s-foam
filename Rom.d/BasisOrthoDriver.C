@@ -25,8 +25,12 @@ BasisOrthoDriver::solve() {
   SvdOrthogonalization solver;
 
   std::vector<BasisId::Type> workload;
-  workload.push_back(BasisId::RESIDUAL);
-  workload.push_back(domain_->solInfo().gaussNewtonPodRom ? BasisId::JACOBIAN : BasisId::STATE);
+  if (domain_->solInfo().gaussNewtonPodRom) {
+    workload.push_back(BasisId::RESIDUAL);
+    workload.push_back(BasisId::JACOBIAN);
+  } else {
+    workload.push_back(BasisId::STATE);
+  }
 
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;

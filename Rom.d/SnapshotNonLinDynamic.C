@@ -23,7 +23,6 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   class RawImpl : public Impl {
   public:
     virtual void stateSnapshotAdd(const GeomState &);
-    virtual void residualSnapshotAdd(const GenVector<double> &);
     virtual void postProcess();
 
     int nodeCount() const { return domain_->numGlobalNodes(); }
@@ -49,13 +48,11 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   protected:
     FileNameInfo fileInfo_;
     BasisOutputFile stateSnapFile_;
-    BasisOutputFile residualSnapFile_;
   };
 
   class SvdImpl : public RawImpl {
   public:
     virtual void stateSnapshotAdd(const GeomState &);
-    virtual void residualSnapshotAdd(const GenVector<double> &);
     virtual void postProcess();
 
     explicit SvdImpl(Domain *);
@@ -64,7 +61,6 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     void orthoAndSave(const std::deque<Vector> &, BasisOutputFile &);
 
     std::deque<Vector> stateSnapshot_;
-    std::deque<Vector> residualSnapshot_;
 
     std::auto_ptr<const GeomState> refGeomState_;
     Vector increment_;
@@ -84,14 +80,12 @@ SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level le
   converter_(*domain->getCDSA()),
   snapBuffer_(nodeCount()),
   fileInfo_(),
-  stateSnapFile_(fileInfo_.fileName(BasisId(BasisId::STATE, level)), nodeCount()),
-  residualSnapFile_(fileInfo_.fileName(BasisId(BasisId::RESIDUAL, level)), nodeCount())
+  stateSnapFile_(fileInfo_.fileName(BasisId(BasisId::STATE, level)), nodeCount())
 {}
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
   stateSnapFile_.updateStateCountStatus();
-  residualSnapFile_.updateStateCountStatus();
 }
 
 template <typename VecType>
@@ -118,12 +112,6 @@ SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   stateSnapFile_.stateAdd(snapBuffer_);
 }
 
-void
-SnapshotNonLinDynamicDetail::RawImpl::residualSnapshotAdd(const Vector &snap) {
-  fillSnapBuffer(snap);
-  residualSnapFile_.stateAdd(snapBuffer());
-}
-
 SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
   RawImpl(domain, BasisId::POD),
   refGeomState_(new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes())),
@@ -137,14 +125,8 @@ SnapshotNonLinDynamicDetail::SvdImpl::stateSnapshotAdd(const GeomState &snap) {
 }
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::residualSnapshotAdd(const GenVector<double> &snap) {
-  residualSnapshot_.push_back(snap);
-}
-
-void
 SnapshotNonLinDynamicDetail::SvdImpl::postProcess() {
   orthoAndSave(stateSnapshot_, this->stateSnapFile_);
-  orthoAndSave(residualSnapshot_, this->residualSnapFile_);
 
   RawImpl::postProcess();
 }

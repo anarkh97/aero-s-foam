@@ -31,7 +31,6 @@ protected:
   class Impl {
   public:
     virtual void stateSnapshotAdd(const GeomState &) = 0;
-    virtual void residualSnapshotAdd(const GenVector<double> &) = 0;
     virtual void postProcess() = 0;
     
     virtual ~Impl() {}
@@ -48,7 +47,6 @@ protected:
 private:
   // Snapshot collection 
   void saveStateSnapshot(const GeomState &state) { impl_->stateSnapshotAdd(state); }
-  void saveResidualSnapshot(const GenVector<double> &residual) { impl_->residualSnapshotAdd(residual); }
  
   BasisType outputBasisType_;
   std::auto_ptr<Impl> impl_; 
@@ -71,18 +69,6 @@ public:
     IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState>::midpointIntegrate(
         pbd, velN, delta, refState, geomState,
         dummy1, dummy2, dummy3, dummy4, acceleration);
-  }
-  
-  static double formRHScorrector(SnapshotNonLinDynamic *pbd, GenVector<double> &inc_displac,
-                                 GenVector<double> &vel_n, GenVector<double> &accel,
-                                 GenVector<double> &residual, GenVector<double> &rhs,
-                                 GeomState *geomState) {
-    const double result = IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
-        pbd, inc_displac, vel_n, accel, residual, rhs, geomState);
-
-    pbd->saveResidualSnapshot(rhs);
-
-    return result;
   }
 };
 

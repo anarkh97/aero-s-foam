@@ -10,9 +10,8 @@
 
 #include "BasisOps.h"
 
-#include <memory>
 #include <cstddef>
-
+#include <stdexcept>
 #include <cassert>
 
 template <typename Scalar>
@@ -32,6 +31,7 @@ public:
   // Solution
   virtual void factor();
   virtual void reSolve(GenVector<Scalar> &rhs);
+  double projectAndComputeNorm(const GenVector<Scalar> &rhs); // next reSolve must use same rhs
 
   // Reduced basis parameters
   int reducedBasisSize() const { return reducedBasisSize_; }       // n_y
@@ -57,6 +57,9 @@ private:
   const GenVecBasis<Scalar> *residualProjection_;
 
   GenLeastSquaresSolver<Scalar> lsSolver_;
+  
+  void fillRhsBuffer(const GenVector<Scalar> &);
+  void validateRhs(const GenVector<Scalar> &);
   
   // Disallow copy and assignment
   GenGappyProjectionSolver(const GenGappyProjectionSolver<Scalar> &);
@@ -136,6 +139,8 @@ GenGappyProjectionSolver<Scalar>::systemApproximationIs(const NodalRestrictionMa
 template <typename Scalar>
 void
 GenGappyProjectionSolver<Scalar>::factor() {
+  lsSolver_.statusIs(LeastSquares::READY);
+  
   GenVector<Scalar> matrixAction(sampleMapping_->originInfo());
   for (int col = 0; col < reducedBasisSize(); ++col) {
     GenDBSparseMatrix<Scalar>::mult((*reducedBasis_)[col], matrixAction);
@@ -148,19 +153,54 @@ GenGappyProjectionSolver<Scalar>::factor() {
 }
 
 template <typename Scalar>
+inline
 void
-GenGappyProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
-  assert(neqs() == rhs.size()); // TODO: Exception
-
+GenGappyProjectionSolver<Scalar>::fillRhsBuffer(const GenVector<Scalar> &rhs) {
   for (int row = 0; row < projectionBasisSize(); ++row) {
     lsSolver_.rhsEntry(row) = sampleMapping_->dotProduct(rhs, (*residualProjection_)[row]);
   }
+}
+
+template <typename Scalar>
+inline
+void
+GenGappyProjectionSolver<Scalar>::validateRhs(const GenVector<Scalar> &rhs) {
+  if (rhs.size() != neqs()) {
+    throw std::domain_error("Rhs has the wrong size");
+  }
+}
+
+template <typename Scalar>
+void
+GenGappyProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
+  validateRhs(rhs);
+
+  assert(lsSolver_.status() == LeastSquares::FACTORED ||
+         lsSolver_.status() == LeastSquares::PROJECTED);
+  
+  if (lsSolver_.status() == LeastSquares::FACTORED) {
+    fillRhsBuffer(rhs);
+  }
 
   lsSolver_.statusIs(LeastSquares::SOLVED);
-  GenVector<Scalar> reducedSolution(lsSolver_.unknownCount(), lsSolver_.rhsBuffer(), false);
-  lsSolver_.statusIs(LeastSquares::READY);
+  GenVector<Scalar> reducedSolution(lsSolver_.rhsBuffer(0), lsSolver_.unknownCount(), false);
+  lsSolver_.statusIs(LeastSquares::FACTORED);
   
   expand(*reducedBasis_, reducedSolution, rhs);
+}
+
+template <typename Scalar>
+double
+GenGappyProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
+  validateRhs(rhs);
+
+  assert(lsSolver_.status() == LeastSquares::FACTORED);
+
+  fillRhsBuffer(rhs);
+  lsSolver_.statusIs(LeastSquares::PROJECTED);
+
+  const GenVector<Scalar> components(lsSolver_.rhsBuffer(0), lsSolver_.unknownCount(), false);
+  return components.norm();
 }
 
 typedef GenGappyProjectionSolver<double> GappyProjectionSolver;

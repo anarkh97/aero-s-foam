@@ -68,6 +68,11 @@ GappyNonLinDynamic::getSolver() {
   return static_cast<GappyProjectionSolver *>(NonLinDynamic::getSolver());
 }
 
+double
+GappyNonLinDynamic::getResidualNorm(const Vector &residual) {
+  return getSolver()->projectAndComputeNorm(residual);
+}
+
 bool
 GappyNonLinDynamic::factorWhenBuilding() const {
   return false; // Delayed factorization

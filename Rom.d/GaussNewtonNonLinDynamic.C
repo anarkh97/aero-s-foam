@@ -73,10 +73,8 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
 }
 
 double
-GaussNewtonNonLinDynamic::getResidualNorm(const Vector &residual) const {
-  Vector reducedResidual(projectionBasis_.numVec());
-  reduce(getSolver()->lastReducedMatrixAction(), residual, reducedResidual);
-  return reducedResidual.norm();
+GaussNewtonNonLinDynamic::getResidualNorm(const Vector &residual) {
+  return getSolver()->projectAndComputeNorm(residual);
 }
 
 void

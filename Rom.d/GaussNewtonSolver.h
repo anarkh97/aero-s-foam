@@ -30,6 +30,7 @@ public:
   // Solution
   virtual void factor();
   virtual void reSolve(GenVector<Scalar> &rhs);
+  double projectAndComputeNorm(const GenVector<Scalar> &rhs); // next reSolve must use same rhs
 
   // Reduced basis parameters
   int basisSize() const { return basisSize_; }
@@ -47,7 +48,10 @@ private:
   
   GenVecBasis<Scalar> matrixAction_;
   GenVector<Scalar> reducedSolution_;
-  
+
+  void fillRhsBuffer(const GenVector<Scalar> &);
+  void validateRhs(const GenVector<Scalar> &);
+
   // Disallow copy and assignment
   GenGaussNewtonSolver(const GenGaussNewtonSolver<Scalar> &);
   GenGaussNewtonSolver<Scalar> &operator=(const GenGaussNewtonSolver<Scalar> &);
@@ -113,6 +117,8 @@ GenGaussNewtonSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reduc
 template <typename Scalar>
 void
 GenGaussNewtonSolver<Scalar>::factor() {
+  lsSolver_.statusIs(LeastSquares::READY);
+  
   for (int col = 0; col < lsSolver_.unknownCount(); ++col) {
     GenDBSparseMatrix<Scalar>::mult((*projectionBasis_)[col], matrixAction_[col]);
   }
@@ -125,19 +131,54 @@ GenGaussNewtonSolver<Scalar>::factor() {
 }
 
 template <typename Scalar>
+inline
 void
-GenGaussNewtonSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
+GenGaussNewtonSolver<Scalar>::fillRhsBuffer(const GenVector<Scalar> &rhs) {
+  std::copy(rhs.data(), rhs.data() + rhs.size(), lsSolver_.rhsBuffer(0));
+}
+
+template <typename Scalar>
+inline
+void
+GenGaussNewtonSolver<Scalar>::validateRhs(const GenVector<Scalar> &rhs) {
   if (rhs.size() != neqs()) {
     throw std::domain_error("Rhs has the wrong size");
   }
- 
-  std::copy(rhs.data(), rhs.data() + rhs.size(), lsSolver_.rhsBuffer(0));
+}
+
+template <typename Scalar>
+void
+GenGaussNewtonSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
+  validateRhs(rhs);
+
+  assert(lsSolver_.status() == LeastSquares::FACTORED ||
+         lsSolver_.status() == LeastSquares::PROJECTED);
+  
+  if (lsSolver_.status() == LeastSquares::FACTORED) {
+    fillRhsBuffer(rhs);
+  }
 
   lsSolver_.statusIs(LeastSquares::SOLVED);
-  std::copy(lsSolver_.rhsBuffer(0), lsSolver_.rhsBuffer(0) + lsSolver_.unknownCount(), reducedSolution_.data());
-  lsSolver_.statusIs(LeastSquares::READY);
+  std::copy(lsSolver_.rhsBuffer(0),
+            lsSolver_.rhsBuffer(0) + lsSolver_.unknownCount(),
+            reducedSolution_.data());
+  lsSolver_.statusIs(LeastSquares::FACTORED);
   
   expand(*projectionBasis_, reducedSolution_, rhs);
+}
+
+template <typename Scalar>
+double
+GenGaussNewtonSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
+  validateRhs(rhs);
+
+  assert(lsSolver_.status() == LeastSquares::FACTORED);
+
+  fillRhsBuffer(rhs);
+  lsSolver_.statusIs(LeastSquares::PROJECTED);
+
+  const GenVector<Scalar> components(lsSolver_.rhsBuffer(0), lsSolver_.unknownCount(), false);
+  return components.norm();
 }
 
 typedef GenGaussNewtonSolver<double> GaussNewtonSolver;

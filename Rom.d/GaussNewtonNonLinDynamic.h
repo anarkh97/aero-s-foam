@@ -27,7 +27,7 @@ public:
 
   // Direct hooks in NLDynamSolver (rely on function hiding)
   int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time);
-  double getResidualNorm(const Vector &) const;
+  double getResidualNorm(const Vector &);
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

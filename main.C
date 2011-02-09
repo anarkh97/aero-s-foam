@@ -1176,7 +1176,7 @@ int main(int argc, char** argv)
                } else if (domain->solInfo().gappyPodRom) {
                  filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
                  GappyNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else {
                  filePrint(stderr, " ... POD: Snapshot collection       ...\n");

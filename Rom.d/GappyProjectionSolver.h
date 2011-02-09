@@ -56,7 +56,7 @@ private:
   const GenVecBasis<Scalar> *jacobianProjection_;
   const GenVecBasis<Scalar> *residualProjection_;
 
-  LeastSquaresSolver<Scalar> lsSolver_;
+  GenLeastSquaresSolver<Scalar> lsSolver_;
   
   // Disallow copy and assignment
   GenGappyProjectionSolver(const GenGappyProjectionSolver<Scalar> &);
@@ -144,7 +144,7 @@ GenGappyProjectionSolver<Scalar>::factor() {
     }
   }
 
-  lsSolver_.factor();
+  lsSolver_.statusIs(LeastSquares::FACTORED);
 }
 
 template <typename Scalar>
@@ -156,9 +156,10 @@ GenGappyProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
     lsSolver_.rhsEntry(row) = sampleMapping_->dotProduct(rhs, (*residualProjection_)[row]);
   }
 
-  lsSolver_.solve();
-  
+  lsSolver_.statusIs(LeastSquares::SOLVED);
   GenVector<Scalar> reducedSolution(lsSolver_.unknownCount(), lsSolver_.rhsBuffer(), false);
+  lsSolver_.statusIs(LeastSquares::READY);
+  
   expand(*reducedBasis_, reducedSolution, rhs);
 }
 

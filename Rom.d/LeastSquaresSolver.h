@@ -5,8 +5,18 @@
 
 #include <stdexcept> 
 
+namespace LeastSquares {
+  // Describes the computational status of a LeastSquaresSolver
+  enum Status { READY, FACTORED, PROJECTED, SOLVED };
+
+  // READY     => Matrix & rhs buffers available for input
+  // FACTORED  => Matrix buffer used for factorization, rhs buffer available for input
+  // PROJECTED => Matrix buffer used for factorization, rhs buffer holds the projection Q^T * rhs
+  // SOLVED    => Matrix buffer used for factorization, rhs buffer holds the solution R^{-1} * Q^T * rhs
+}
+
 template <typename Scalar>
-class LeastSquaresSolver {
+class GenLeastSquaresSolver {
 public:
   // Problem size
   int equationCount()    const { return equationCount_;    }
@@ -37,12 +47,17 @@ public:
   Scalar * rhsBuffer(int rank);
   Scalar * rhsBuffer();
 
-  // Operations
-  void factor();
-  void solve();
+  // Algebraic operations:
+  // Complete cycle is: READY -> FACTORED -> PROJECTED -> SOLVED
+  // Several steps can be accomplished in one call to statusIs()
+  // Status must be READY before writing in the matrix buffer
+  // Status must be READY or FACTORED before writing in the rhs buffer
+  typedef LeastSquares::Status Status;
+  Status status() const { return status_; }
+  void statusIs(Status);
 
   // Ctor 
-  LeastSquaresSolver();
+  GenLeastSquaresSolver();
 
 private:
   static void assertOverdeterminedSystem(int eqnCount, int unknownCount);
@@ -51,15 +66,23 @@ private:
   int largestDimension_, rhsCount_;
   int matrixLeadDim_, rhsLeadDim_;
 
+  Status status_;
+
   typedef SimpleBuffer<Scalar> ScalarBuffer;
   
   ScalarBuffer matrixBuffer_;
   ScalarBuffer rhsBuffer_;
   ScalarBuffer tauBuffer_;
 
+  // Implementation
+  void factor();
+  void project();
+  void solve();
+  void unsolve();
+
   // Disallow copy and assignment
-  LeastSquaresSolver(const LeastSquaresSolver &);
-  LeastSquaresSolver &operator=(const LeastSquaresSolver &);
+  GenLeastSquaresSolver(const GenLeastSquaresSolver &);
+  GenLeastSquaresSolver &operator=(const GenLeastSquaresSolver &);
 };
 
 // Inline member functions
@@ -67,116 +90,117 @@ private:
 template <typename Scalar>
 inline
 const Scalar *
-LeastSquaresSolver<Scalar>::matrixBuffer() const {
+GenLeastSquaresSolver<Scalar>::matrixBuffer() const {
   return matrixBuffer_.array();
 } 
 
 template <typename Scalar>
 inline
 const Scalar *
-LeastSquaresSolver<Scalar>::matrixColBuffer(int col) const {
+GenLeastSquaresSolver<Scalar>::matrixColBuffer(int col) const {
   return matrixBuffer() + (col * matrixLeadDim_);
 }
 
 template <typename Scalar>
 inline
 Scalar
-LeastSquaresSolver<Scalar>::matrixEntry(int row, int col) const {
+GenLeastSquaresSolver<Scalar>::matrixEntry(int row, int col) const {
   return matrixColBuffer(col)[row];
 }
 
 template <typename Scalar>
 inline
 Scalar *
-LeastSquaresSolver<Scalar>::matrixBuffer() {
+GenLeastSquaresSolver<Scalar>::matrixBuffer() {
   return matrixBuffer_.array();
 } 
 
 template <typename Scalar>
 inline
 Scalar *
-LeastSquaresSolver<Scalar>::matrixColBuffer(int col) {
+GenLeastSquaresSolver<Scalar>::matrixColBuffer(int col) {
   return matrixBuffer() + (col * matrixLeadDim_);
 }
 
 template <typename Scalar>
 inline
 Scalar &
-LeastSquaresSolver<Scalar>::matrixEntry(int row, int col) {
+GenLeastSquaresSolver<Scalar>::matrixEntry(int row, int col) {
   return matrixColBuffer(col)[row];
 }
 
 template <typename Scalar>
 inline
 const Scalar *
-LeastSquaresSolver<Scalar>::rhsBuffer() const {
+GenLeastSquaresSolver<Scalar>::rhsBuffer() const {
   return rhsBuffer_.array();
 } 
 
 template <typename Scalar>
 inline
 const Scalar *
-LeastSquaresSolver<Scalar>::rhsBuffer(int rank) const {
+GenLeastSquaresSolver<Scalar>::rhsBuffer(int rank) const {
   return rhsBuffer() + (rank * rhsLeadDim_);
 }
 
 template <typename Scalar>
 inline
 Scalar
-LeastSquaresSolver<Scalar>::rhsEntry(int rank, int row) const {
+GenLeastSquaresSolver<Scalar>::rhsEntry(int rank, int row) const {
   return rhsBuffer(rank)[row];
 }
 
 template <typename Scalar>
 inline
 Scalar
-LeastSquaresSolver<Scalar>::rhsEntry(int row) const {
+GenLeastSquaresSolver<Scalar>::rhsEntry(int row) const {
   return rhsEntry(0, row);
 }
 
 template <typename Scalar>
 inline
 Scalar *
-LeastSquaresSolver<Scalar>::rhsBuffer() {
+GenLeastSquaresSolver<Scalar>::rhsBuffer() {
   return rhsBuffer_.array();
 } 
 
 template <typename Scalar>
 inline
 Scalar *
-LeastSquaresSolver<Scalar>::rhsBuffer(int rank) {
+GenLeastSquaresSolver<Scalar>::rhsBuffer(int rank) {
   return rhsBuffer() + (rank * rhsLeadDim_);
 }
 
 template <typename Scalar>
 inline
 Scalar &
-LeastSquaresSolver<Scalar>::rhsEntry(int rank, int row) {
+GenLeastSquaresSolver<Scalar>::rhsEntry(int rank, int row) {
   return rhsBuffer(rank)[row];
 }
 
 template <typename Scalar>
 inline
 Scalar &
-LeastSquaresSolver<Scalar>::rhsEntry(int row) {
+GenLeastSquaresSolver<Scalar>::rhsEntry(int row) {
   return rhsEntry(0, row);
 }
 
 // Implementation
 
 template <typename Scalar>
-LeastSquaresSolver<Scalar>::LeastSquaresSolver() :
+GenLeastSquaresSolver<Scalar>::GenLeastSquaresSolver() :
   equationCount_(0),
   unknownCount_(0),
   largestDimension_(0),
   rhsCount_(0),
   matrixLeadDim_(1),
-  rhsLeadDim_(1)
+  rhsLeadDim_(1),
+  status_(LeastSquares::READY)
 {}
 
 template <typename Scalar>
 void
-LeastSquaresSolver<Scalar>::problemSizeIs(int eqnCount, int unknownCount, int rhsCount) {
+GenLeastSquaresSolver<Scalar>::problemSizeIs(int eqnCount, int unknownCount, int rhsCount) {
   assertOverdeterminedSystem(eqnCount, unknownCount);
 
   equationCount_    = eqnCount;
@@ -190,11 +214,13 @@ LeastSquaresSolver<Scalar>::problemSizeIs(int eqnCount, int unknownCount, int rh
   matrixBuffer_.sizeIs(equationCount_ * unknownCount_);
   rhsBuffer_.sizeIs(largestDimension_ * rhsCount_);
   tauBuffer_.sizeIs(unknownCount_);
+
+  status_ = LeastSquares::READY;
 }
 
 template <typename Scalar>
 void
-LeastSquaresSolver<Scalar>::assertOverdeterminedSystem(int eqnCount, int unknownCount) {
+GenLeastSquaresSolver<Scalar>::assertOverdeterminedSystem(int eqnCount, int unknownCount) {
   if (eqnCount < unknownCount) {
     throw std::domain_error("Underdetermined system");
   }

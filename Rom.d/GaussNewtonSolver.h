@@ -43,7 +43,7 @@ public:
 private:
   int basisSize_;
   const GenVecBasis<Scalar> *projectionBasis_;
-  LeastSquaresSolver<Scalar> lsSolver_;
+  GenLeastSquaresSolver<Scalar> lsSolver_;
   
   GenVecBasis<Scalar> matrixAction_;
   GenVector<Scalar> reducedSolution_;
@@ -121,7 +121,7 @@ GenGaussNewtonSolver<Scalar>::factor() {
             &matrixAction_[0][0] + lsSolver_.equationCount() * lsSolver_.unknownCount(),
             lsSolver_.matrixBuffer());
 
-  lsSolver_.factor();
+  lsSolver_.statusIs(LeastSquares::FACTORED);
 }
 
 template <typename Scalar>
@@ -133,9 +133,10 @@ GenGaussNewtonSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
  
   std::copy(rhs.data(), rhs.data() + rhs.size(), lsSolver_.rhsBuffer(0));
 
-  lsSolver_.solve();
-
+  lsSolver_.statusIs(LeastSquares::SOLVED);
   std::copy(lsSolver_.rhsBuffer(0), lsSolver_.rhsBuffer(0) + lsSolver_.unknownCount(), reducedSolution_.data());
+  lsSolver_.statusIs(LeastSquares::READY);
+  
   expand(*projectionBasis_, reducedSolution_, rhs);
 }
 

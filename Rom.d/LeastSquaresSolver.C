@@ -20,13 +20,22 @@ extern "C" {
 
   // Solves R^{-1}
   void _FORTRAN(dtrtrs)(const char *uplo, const char *trans, const char* diag,
-                        const int *n, const int *nrhs, const double *a, const int *lda,
+                        const int *n, const int *nrhs,
+                        const double *a, const int *lda,
                         double *b, const int *ldb, int *info);
+  
+  // Multiplies by R
+  void _FORTRAN(dtrmm)(const char *side, const char *uplo, const char *transa, const char* diag,
+                       const int *m, const int *n,
+                       const double *alpha, const double *a, const int *lda,
+                       double *b, const int *ldb);
 }
+
+// Implementation specializations
 
 template <>
 void
-LeastSquaresSolver<double>::factor() {
+GenLeastSquaresSolver<double>::factor() {
   int info;
 
   const int lworkQuery = -1;
@@ -44,12 +53,12 @@ LeastSquaresSolver<double>::factor() {
 
 template <>
 void
-LeastSquaresSolver<double>::solve() {
-  int info;
-
+GenLeastSquaresSolver<double>::project() {
   const char left = 'L';
   const char trans = 'T';
 
+  int info;
+  
   const int lworkQuery = -1;
   double lworkAns;
   _FORTRAN(dormqr)(&left, &trans,
@@ -67,10 +76,16 @@ LeastSquaresSolver<double>::solve() {
                    rhsBuffer_.array(), &rhsLeadDim_,
                    workBuffer.array(), &lwork, &info);
   assert(info == 0);
+}
  
+template <>
+void
+GenLeastSquaresSolver<double>::solve() {
   const char upper = 'U';
   const char no = 'N'; // not-transposed, non-unit
 
+  int info;
+  
   _FORTRAN(dtrtrs)(&upper, &no, &no,
                    &unknownCount_, &rhsCount_,
                    matrixBuffer_.array(), &matrixLeadDim_,
@@ -80,13 +95,55 @@ LeastSquaresSolver<double>::solve() {
 
 template <>
 void
-LeastSquaresSolver<std::complex<double> >::factor() {
-  std::logic_error("Not implemented");
+GenLeastSquaresSolver<double>::unsolve() {
+  const char left = 'L';
+  const char upper = 'U';
+  const char no = 'N'; // not-transposed, non-unit
+  const double one = 1.0;
+
+  _FORTRAN(dtrmm)(&left, &upper, &no, &no,
+                  &unknownCount_, &rhsCount_,
+                  &one, matrixBuffer_.array(), &matrixLeadDim_,
+                  rhsBuffer_.array(), &rhsLeadDim_);
+}
+
+// Interface specializations
+
+using LeastSquares::READY;
+using LeastSquares::FACTORED;
+using LeastSquares::PROJECTED;
+using LeastSquares::SOLVED;
+
+template <>
+void
+GenLeastSquaresSolver<double>::statusIs(Status s) {
+  if (s > status()) {
+    while (status() != s) {
+      switch (status()) {
+        case READY:
+          factor(); break;
+        case FACTORED:
+          project(); break;
+        case PROJECTED:
+          solve(); break;
+        default:
+          throw std::logic_error("Internal error");
+      }
+
+      status_ = Status(status_ + 1);
+    }
+  } else {
+    if (status() == SOLVED && s == PROJECTED) {
+      unsolve();
+    }
+
+    status_ = s;
+  }
 }
 
 template <>
 void
-LeastSquaresSolver<std::complex<double> >::solve() {
+GenLeastSquaresSolver<std::complex<double> >::statusIs(Status) {
   std::logic_error("Not implemented");
 }
 

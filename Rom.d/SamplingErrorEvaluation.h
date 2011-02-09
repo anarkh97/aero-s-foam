@@ -18,7 +18,7 @@ public:
              typename std::iterator_traits<VecRandomIt>::value_type &result);
 
 private:
-  LeastSquaresSolver<double> solver_;
+  GenLeastSquaresSolver<double> solver_;
 };
 
 template <typename VecRandomIt, typename IndexRandomIt>
@@ -68,13 +68,14 @@ SamplingErrorEvaluation::operator()(VecRandomIt firstVec, VecRandomIt lastVec,
     }
 
     // Solve the minimization problem to determine the coefficients
-    solver_.factor();
-    solver_.solve();
+    solver_.statusIs(LeastSquares::SOLVED);
 
     // Substract the linear combination of all vectors except the last
     for (int iVec = 0; iVec != solver_.unknownCount(); ++iVec) {
       result.linAdd(-solver_.rhsEntry(iVec), firstVec[iVec]);
     }
+    
+    solver_.statusIs(LeastSquares::READY);
   }
 
   return result;

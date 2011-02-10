@@ -974,7 +974,7 @@ TRAIL [a-zA-Z]*
 
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
-"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::EigenPair6;   return STRESSID; }
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 

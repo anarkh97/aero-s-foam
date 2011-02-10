@@ -74,6 +74,17 @@ MeshSamplingDriver::determineSampleNodes() {
 
   std::vector<int> sampleNodes;
   std::vector<int> sampleLocations;
+
+  if (geoSource->sampleNodeCount() > 0) {  
+    // Add all the dofs attached to the user-specified nodes
+    std::cerr << "User-specified nodes: ";
+    for (std::vector<int>::const_iterator it = geoSource->sampleNodeBegin(); it != geoSource->sampleNodeEnd(); ++it) {
+      std::cerr << *it + 1 << " ";
+      sampleNodes.push_back(*it);
+      vecDofConversion.locations(*it, std::back_inserter(sampleLocations));
+    }
+    std::cerr << std::endl;
+  }
   
   std::vector<Vector> reconstructionError(2);
   SamplingErrorEvaluation errorEval;

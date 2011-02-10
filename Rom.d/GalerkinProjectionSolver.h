@@ -10,9 +10,7 @@
 
 #include "BasisOps.h"
 
-#include <memory>
 #include <cstddef>
-
 #include <cassert>
 
 template <typename Scalar>
@@ -40,7 +38,7 @@ public:
 
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { return reducedRhs_; }
-  const GenVecBasis<Scalar> &lastReducedMatrixAction() const { return *matrixAction_; }
+  const GenVecBasis<Scalar> &lastReducedMatrixAction() const { return matrixAction_; }
 
 private:
   void factorReducedMatrix();
@@ -51,7 +49,7 @@ private:
   
   GenFullSquareMatrix<Scalar> reducedMatrix_;
 
-  std::auto_ptr<GenVecBasis<Scalar> > matrixAction_;
+  GenVecBasis<Scalar> matrixAction_;
   GenVector<Scalar> reducedRhs_;
 
   // Disallow copy and assignment
@@ -67,10 +65,10 @@ GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *c
   basisSize_(0),
   projectionBasis_(NULL),
   reducedMatrix_(),
-  matrixAction_(new GenVecBasis<Scalar>(0, 0)),
+  matrixAction_(0, 0),
   reducedRhs_(0)
 {
-  projectionBasis_ = matrixAction_.get();
+  projectionBasis_ = &matrixAction_;
 }
 
 template <typename Scalar>
@@ -109,14 +107,14 @@ GenGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar>
   assert(neqs() == basis.size()); // TODO: Exception
 
   const int newBasisSize = basis.numVec();
-  std::auto_ptr<GenVecBasis<Scalar> > newMatrixAction(new GenVecBasis<Scalar>(newBasisSize, neqs()));
+  GenVecBasis<Scalar> newMatrixAction(newBasisSize, neqs());
   GenVector<Scalar> newReducedRhs(newBasisSize);
 
   reducedMatrix_.setSize(newBasisSize);
 
   basisSize_ = newBasisSize;
   projectionBasis_ = &basis;
-  matrixAction_ = newMatrixAction;
+  swap(matrixAction_, newMatrixAction);
   reducedRhs_.swap(newReducedRhs);
 }
 
@@ -124,7 +122,7 @@ template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::factor() {
   for (int row = 0; row < basisSize(); ++row) {
-    GenVector<Scalar> &action = (*matrixAction_)[row];
+    GenVector<Scalar> &action = matrixAction_[row];
     GenDBSparseMatrix<Scalar>::mult((*projectionBasis_)[row], action);
     for (int col = row; col < basisSize(); ++col) {
       reducedMatrix_[row][col] = action * (*projectionBasis_)[col];

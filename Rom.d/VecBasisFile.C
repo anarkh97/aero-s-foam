@@ -8,9 +8,8 @@
 
 BasisInputStream &
 operator>>(BasisInputStream &in, VecBasis &sink) {
-  GenVecBasis<double> temp(in.size() - in.currentVectorRank(), in.vectorSize());
-  readVectors(in, temp.begin(), temp.end());
-  sink.swap(temp);
+  sink.dimensionIs(in.size() - in.currentVectorRank(), in.vectorSize());
+  readVectors(in, sink.begin(), sink.end());
 
   return in;
 }
@@ -18,9 +17,8 @@ operator>>(BasisInputStream &in, VecBasis &sink) {
 BasisInputStream &
 readVectors(BasisInputStream &in, VecBasis &sink, int countMax) {
   const int count = std::max(std::min(in.size() - in.currentVectorRank(), countMax), 0);
-  GenVecBasis<double> temp(count, in.vectorSize());
-  readVectors(in, temp.begin(), temp.end());
-  sink.swap(temp);
+  sink.dimensionIs(count, in.vectorSize());
+  readVectors(in, sink.begin(), sink.end());
 
   return in;
 }

@@ -64,8 +64,12 @@ GenGaussNewtonSolver<Scalar>::GenGaussNewtonSolver(Connectivity *cn,
   GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa),
   basisSize_(0),
   projectionBasis_(NULL),
+  lsSolver_(),
+  matrixAction_(0, 0),
   reducedSolution_(0)
-{}
+{
+  projectionBasis_ = &matrixAction_;
+}
 
 template <typename Scalar>
 long
@@ -103,13 +107,14 @@ GenGaussNewtonSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reduc
   if (reducedBasis.vectorSize() != neqs()) {
     throw std::domain_error("Vectors of the reduced basis have the wrong size");
   }
-  
+
+  GenVecBasis<Scalar> newMatrixAction(reducedBasis.vectorCount(), reducedBasis.vectorSize());
+  GenVector<Scalar> newReducedSolution(reducedBasis.vectorCount(), Scalar());
+
   lsSolver_.problemSizeIs(reducedBasis.vectorSize(), reducedBasis.vectorCount());
   
-  GenVecBasis<Scalar> temp(reducedBasis.vectorCount(), reducedBasis.vectorSize());
-  temp.swap(matrixAction_);
-  reducedSolution_.reset(reducedBasis.vectorCount(), Scalar());
-
+  swap(matrixAction_, newMatrixAction);
+  reducedSolution_.swap(newReducedSolution);
   projectionBasis_ = &reducedBasis;
   basisSize_ = reducedBasis.vectorCount();
 }

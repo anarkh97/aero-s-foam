@@ -24,15 +24,13 @@ void
 GappyNonLinDynamic::fillRestrictedBasisFromInput(const std::string &fileName, VecBasis &target) {
   BasisInputStream input(fileName, *vecNodeDof6Conversion_);
 
-  VecBasis result(input.size(), restrictionMapping_->restrictedInfo());
+  target.dimensionIs(input.size(), restrictionMapping_->restrictedInfo());
   Vector temp(restrictionMapping_->originInfo());
 
-  for (VecBasis::iterator vecIt = result.begin(); vecIt != result.end(); ++vecIt) {
+  for (VecBasis::iterator vecIt = target.begin(); vecIt != target.end(); ++vecIt) {
     input >> temp;
     restrictionMapping_->restriction(temp, *vecIt);
   }
-
-  target.swap(result);
 }
 
 void

@@ -37,14 +37,18 @@ public:
   // (must take care to NOT reallocate underlying memory)
   VecType &operator[](int i) { return vectors_[i]; }
 
-  // Construction, assignment, destruction
+  // Constructors
   GenVecBasis();
   GenVecBasis(int vCount, int vSize);
+ 
+  // Copy, assignment and swap 
   GenVecBasis(const GenVecBasis &);
-
-  void swap(GenVecBasis &);
   GenVecBasis &operator=(const GenVecBasis &);
+  void swap(GenVecBasis &);
   
+  // Reshaping
+  void dimensionIs(int vCount, int vSize);
+
   ~GenVecBasis();
 
 private:
@@ -128,15 +132,32 @@ GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
 }
 
 template <typename Scalar, template <typename Scalar> class GenVecType>
+void
+GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, int vSize) {
+  if (vCount != vectorCount() || vSize != vectorSize()) {
+    GenVecBasis temp(vCount, vSize);
+    swap(temp);
+  }
+}
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::~GenVecBasis() {
-  for (int iVec = 0; iVec < vectorCount_; ++iVec) {
+  int iVec = vectorCount_;
+  while (iVec--) {
     Allocator::destroy(vectors_ + iVec);
   }
 
   Allocator::deallocate(vectors_, vectorCount_);
   delete[] buffer_;
 }
-  
+
+template <typename Scalar, template <typename Scalar> class GenVecType>
+inline
+void
+swap(GenVecBasis<Scalar, GenVecType> &a, GenVecBasis<Scalar, GenVecType> &b) {
+  a.swap(b);
+}
+
 typedef GenVecBasis<double> VecBasis;
 
 #endif /* ROM_VECBASIS_H */

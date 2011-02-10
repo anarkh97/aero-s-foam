@@ -1189,6 +1189,8 @@ TRAIL [a-zA-Z]*
 
 "ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
 
+"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }

@@ -8,9 +8,54 @@
 
 #include <Driver.d/Domain.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
 
 #include <utility>
 #include <algorithm>
+
+namespace { // anonymous
+
+template <typename VecType>
+class VectorTransform {
+public:
+  virtual void operator()(VecType &) const = 0;
+
+  virtual ~VectorTransform() {}
+};
+
+template <typename VecType>
+class NoOp : public VectorTransform<VecType> {
+public:
+  virtual void operator()(VecType &) const  { /* Nothing */ }
+};
+
+template <typename VecType>
+class RefSubstraction : public VectorTransform<VecType> {
+public:
+  virtual void operator()(VecType &v) const;
+
+  explicit RefSubstraction(const Domain *);
+private:
+  Vector ref_;
+};
+
+template <typename VecType>
+void
+RefSubstraction<VecType>::operator()(VecType &v) const {
+  for (int i = 0; i < ref_.size(); ++i) {
+    v[i] -= ref_[i];
+  }
+}
+
+template <typename VecType>
+RefSubstraction<VecType>::RefSubstraction(const Domain *domain) :
+  ref_(const_cast<Domain *>(domain)->numUncon())
+{
+  Vector dummy(const_cast<Domain *>(domain)->numUncon());
+  const_cast<Domain *>(domain)->initDispVeloc(ref_, dummy, dummy, dummy);
+}
+
+} // end anonymous namespace
 
 BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
   domain_(domain)
@@ -32,16 +77,25 @@ BasisOrthoDriver::solve() {
     workload.push_back(BasisId::STATE);
   }
 
+  typedef VectorTransform<double *> VecTrans;
+  std::auto_ptr<VecTrans> transform(domain_->solInfo().substractRefPodRom ?
+                                    static_cast<VecTrans *>(new RefSubstraction<double *>(domain_)) :
+                                    static_cast<VecTrans *>(new NoOp<double *>));
+
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
 
     {
       BasisInputStream input(fileInfo.fileName(BasisId(type, BasisId::SNAPSHOTS)), converter);
+      filePrint(stderr, "Orthogonalization of a basis with %d vectors\n", input.size());
+      
       solver.matrixSizeIs(input.vectorSize(), input.size());
 
       int iCol = 0;
       while (input) {
-        input >> solver.matrixCol(iCol++);
+        double *buffer = solver.matrixCol(iCol++);
+        input >> buffer;
+        (*transform)(buffer);
       }
     }
 

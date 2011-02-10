@@ -471,56 +471,30 @@ template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::invert()
 {
-/* PJSA 6-27-07 there is a bug in this code
- if(nrow != ncolumn) return GenFullM<Scalar>(1,1) ; //error
- GenFullM<Scalar> res(*this) ;
-  int i,j,k;
-  for(i = 0 ; i < nrow ; ++i)
-    for(j=i+1; j < nrow ; ++j) {
-       Scalar p = res[j][i] = -res[j][i]/res[i][i] ;
-       for(k = i+1; k < ncolumn; ++k)
-         res[j][k] += p*res[i][k] ;
-    }
- GenFullM<Scalar> inv(nrow,nrow) ;
- for(i = nrow-1 ; i >=0 ; --i)
-  for(j=0; j < nrow; ++j)
-   {
-    Scalar piv = 1.0/res[i][i] ;
-    if(j < i) inv[i][j] = res[i][j] ;
-    if(j == i) inv[i][j] = 1.0 ;
-    if(j > i) inv[i][j] = 0.0 ;
-
-    for(k = i+1; k <nrow; ++k)
-       inv[i][j] -= res[i][k]*inv[k][j] ;
-    inv[i][j] *= piv ;
-   }
- return inv ;
-*/
  if(nrow != ncolumn) { cerr << " *** ERROR: GenFullM<Scalar>::invert(), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
  GenFullM<Scalar> res(*this);
  res.factor();
- GenFullM<Scalar> inv(nrow,nrow);
+ GenFullM<Scalar> inv(nrow,nrow,0.0);
  for(int i = nrow-1 ; i >=0 ; --i) {
    inv[i][i] = 1.0;
    res.reSolve(inv[i]);
  }
- return inv;
+ return inv.transpose();
 }
 
 template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::Invert(double tol)
 {
-// PJSA 6-27-07 
  if(nrow != ncolumn) { cerr << " *** ERROR: GenFullM<Scalar>::Invert(double tol), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
  GenFullM<Scalar> res(*this);
  res.Factor(tol);
- GenFullM<Scalar> inv(nrow,nrow);
+ GenFullM<Scalar> inv(nrow,nrow,0.0);
  for(int i = nrow-1 ; i >=0 ; --i) {
    inv[i][i] = 1.0;
    res.ReSolve(inv[i]);
  }
- return inv;
+ return inv.transpose();
 }
 
 template<class Scalar> 

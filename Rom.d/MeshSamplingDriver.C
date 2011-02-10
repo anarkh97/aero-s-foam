@@ -298,7 +298,7 @@ MeshSamplingDriver::buildReducedMesh(const std::vector<int> &sampleNodes) {
 
   QrPseudoInversion()(jacobianProjection);
  
-  NodalRestrictionMapping reducedSampleMapping(reducedDsa, reducedSampleNodes.begin(), reducedSampleNodes.end());
+  NodalRestrictionMapping reducedSampleMapping(reducedCdsa, reducedSampleNodes.begin(), reducedSampleNodes.end());
   Vector buffer(reducedSampleMapping.originInfo());
 
   BasisOutputStream jacobianProjOutput(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::GAPPY_POD)), reducedVecDofConversion);

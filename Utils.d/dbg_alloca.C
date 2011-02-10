@@ -14,8 +14,8 @@
   #else
     // IMPORTANT: add -Xlinker --export-dynamic to use this functionality!!!
     #include <execinfo.h>
-    #include <stdlib.h>
-    #include <stdio.h>
+    #include <cstdlib>
+    #include <cstdio>
     #define NFRAMES 64
     void print_trace (void)
     {

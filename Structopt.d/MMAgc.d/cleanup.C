@@ -2,7 +2,7 @@
 
 #include "mma.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 void MMAgc::cleanup()
 {

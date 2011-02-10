@@ -1,7 +1,7 @@
 #ifndef _FETI_MPC_SPARSE_H_
 #define _FETI_MPC_SPARSE_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/SparseMatrix.h>
 #include <Driver.d/Mpc.h>
 #include <Utils.d/MyComplex.h>

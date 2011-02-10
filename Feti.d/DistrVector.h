@@ -1,7 +1,7 @@
 #ifndef _DISTRVECTOR_H_
 #define _DISTRVECTOR_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <Driver.d/Communicator.h>
 #include <Utils.d/MyComplex.h>
 

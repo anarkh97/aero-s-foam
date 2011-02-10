@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Driver.d/Domain.h>

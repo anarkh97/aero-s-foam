@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Material.d/Material.h>

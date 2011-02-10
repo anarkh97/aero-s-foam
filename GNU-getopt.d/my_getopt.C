@@ -24,8 +24,8 @@
  */
 
 #include <sys/types.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <string.h>
 #include "my_getopt.h"
 

@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 #include <Feti.d/DistrVector.h>
 #include <Utils.d/MyComplex.h>
 #include <HelmAxi.d/FetiHAxi.d/DistrComplexVector.h>
@@ -417,7 +417,7 @@ DistrComplexVector::operator ^ (DistrComplexVector&x)
 }
 
 
-#include <stdio.h>
+#include <cstdio>
 
 DistrComplexVector &
 DistrComplexVector::operator=(DistrComplexVector &x)
@@ -512,7 +512,7 @@ DistrComplexVector::linC( DComplex c1, DistrComplexVector &x, DComplex c2, Distr
 }
 
 
-#include <stdio.h>
+#include <cstdio>
 void
 DistrComplexVector::print() {
 

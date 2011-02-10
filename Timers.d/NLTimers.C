@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Timers.d/Timing.h>

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/matrix.h>
 #include <Math.d/SymFullMatrix.h>
 

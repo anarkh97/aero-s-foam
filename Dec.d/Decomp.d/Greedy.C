@@ -14,8 +14,8 @@
 //                                                                      //
 //////////////////////////////////////////////////////////////////////////
 
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <Utils.d/Connectivity.h>
 #include <Dec.d/Decomp.d/Decomp.h>
 

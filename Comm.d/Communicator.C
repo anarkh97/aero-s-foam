@@ -1,7 +1,7 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 
 template <class Type>
 Type 

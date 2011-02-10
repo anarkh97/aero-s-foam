@@ -103,7 +103,7 @@
 // Locally define flags
 #include <Mortar.d/MortarDriver.d/MortarHandlerDefs.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <vector>
 #include <map>
 

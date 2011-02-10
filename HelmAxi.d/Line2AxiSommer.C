@@ -1,6 +1,6 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 #include <HelmAxi.d/coefFourier.h>
 #include <HelmAxi.d/Line2AxiSommer.h>
 #include <Utils.d/MyComplex.h>

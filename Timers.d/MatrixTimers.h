@@ -1,6 +1,6 @@
 #ifndef _MATRIXTIMERS_H_
 #define _MATRIXTIMERS_H_
-#include <stdio.h>
+#include <cstdio>
 
 
 class MatrixTimers {

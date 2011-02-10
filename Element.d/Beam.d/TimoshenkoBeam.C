@@ -9,7 +9,7 @@
 #include	<cstdio>
 #include	<cstddef>
 #include 	<cmath>
-#include  <cstring>
+#include        <cstring>
 
 extern "C"      {
 void _FORTRAN(modmstif7)(double*, double&, double&, double*, 

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 typedef double Coord[3];
 typedef double Matrix33[3][3];

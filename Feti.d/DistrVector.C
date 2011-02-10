@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 
 #include <Threads.d/Paral.h>
 #include <Utils.d/MyComplex.h>
@@ -855,7 +855,7 @@ GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
 }
 
 
-#include <stdio.h>
+#include <cstdio>
 
 template<class Scalar>
 GenDistrVector<Scalar> &

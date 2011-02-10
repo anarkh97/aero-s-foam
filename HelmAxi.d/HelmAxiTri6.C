@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <Driver.d/PolygonSet.h>
 #include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>

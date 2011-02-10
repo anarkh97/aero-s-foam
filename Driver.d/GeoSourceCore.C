@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sstream>    //CRW
 #include <Utils.d/BlockAlloc.h>
 #include <Driver.d/GeoSource.h>

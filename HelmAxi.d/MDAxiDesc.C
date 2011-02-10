@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/Connectivity.h>
@@ -150,7 +150,7 @@ void MDAxiDesc::getDecomp(FILE *f) {
 
  for(isub=0; isub < numSub; ++isub) {
    int nele;
-   fscanf(f,"%d",&nele);
+   int toto = fscanf(f,"%d",&nele);
    cx[isub] = curEle;
    if(curEle + nele > NbEle) {
       fprintf(stderr," *** ERROR: This decomposition contains more "
@@ -159,7 +159,7 @@ void MDAxiDesc::getDecomp(FILE *f) {
    }
    int iele;
    for(iele=0; iele < nele; ++iele) {
-     fscanf(f,"%d",connect+curEle);
+     int toto = fscanf(f,"%d",connect+curEle);
      connect[curEle] -= 1;
      curEle++;
    }

@@ -1,6 +1,6 @@
-#include	<stdio.h>
-#include        <math.h>
-#include	<stdlib.h>
+#include	<cstdio>
+#include        <cmath>
+#include	<cstdlib>
 #include	<string.h>
 
 #include	<Element.d/Shell.d/ThreeNodeShell.h>

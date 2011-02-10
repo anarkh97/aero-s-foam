@@ -1,7 +1,7 @@
 #ifdef STRUCTOPT
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <string.h>
 
 #include <Driver.d/Domain.h>

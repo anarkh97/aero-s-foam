@@ -3,7 +3,7 @@
 
 #ifdef STRUCTOPT
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <Utils.d/resize_array.h>
 

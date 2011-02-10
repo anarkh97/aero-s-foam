@@ -1,7 +1,7 @@
 #ifndef _INTEGFUNCTION_H_
 #define _INTEGFUNCTION_H_
 
-#include <math.h>
+#include <cmath>
 #include <complex>
 using std::complex;
 

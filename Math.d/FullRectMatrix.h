@@ -1,7 +1,7 @@
 #ifndef	_FULLRECTMATRIX_H_
 #define	_FULLRECTMATRIX_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 class FullRectMatrix {
 

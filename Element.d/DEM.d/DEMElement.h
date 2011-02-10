@@ -1,7 +1,7 @@
 #ifndef _DEMELEMENT_H_
 #define _DEMELEMENT_H_
 
-#include <math.h>
+#include <cmath>
 
 #ifndef SANDIA
 

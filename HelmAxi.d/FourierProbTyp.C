@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Driver.d/Domain.h>
 #include <Math.d/Vector.h>
 #include <Math.d/matrix.h>

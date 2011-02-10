@@ -1,7 +1,7 @@
 #ifndef _SKYMATRIX_H_
 #define _SKYMATRIX_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>

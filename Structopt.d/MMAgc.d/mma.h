@@ -3,7 +3,7 @@
 
 #ifdef STRUCTOPT
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <Structopt.d/Optsol.h>
 //class OptalgNlpmma;

@@ -1,5 +1,5 @@
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <Utils.d/linkfc.h>
 #include <Threads.d/Paral.h>

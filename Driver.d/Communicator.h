@@ -1,7 +1,7 @@
 #ifndef _FS_COMMUNICATOR_H_
 #define _FS_COMMUNICATOR_H_
 #include <fstream>
-#include "Utils.d/Connectivity.h"
+#include <Utils.d/Connectivity.h>
 #include <complex>
 
 #include <algorithm>

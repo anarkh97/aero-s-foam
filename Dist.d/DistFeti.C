@@ -1,5 +1,5 @@
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 
 #include <sys/types.h>

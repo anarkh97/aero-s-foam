@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include <Solvers.d/ComplexSolver.h>
 #include <Math.d/ComplexVector.h>

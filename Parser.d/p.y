@@ -1,9 +1,9 @@
 %{
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <algorithm>
 #include <map>
-#include <stdlib.h>
+#include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
 #include <Sfem.d/Sfem.h>

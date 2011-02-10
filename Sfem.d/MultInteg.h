@@ -4,8 +4,8 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <alloca.h>
 #include <vector>
 #include <Math.d/Vector.h>

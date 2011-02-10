@@ -1,11 +1,11 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Element.d/Beam.d/EulerBeam.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
-#include <math.h>
+#include <cmath>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <Corotational.d/BeamCorotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>

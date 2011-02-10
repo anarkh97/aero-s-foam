@@ -1,7 +1,7 @@
 #ifdef STRUCTOPT
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 
 #include <Structopt.d/Optinp.h>
 #include <Structopt.d/Optpro.h>

@@ -1,7 +1,7 @@
 #ifndef _FILTEREDFILE_H_
 #define _FILTEREDFILE_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 class FilteredFile {
     FILE *file;

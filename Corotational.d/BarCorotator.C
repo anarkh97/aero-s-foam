@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include <Math.d/FullSquareMatrix.h>
 #include <Element.d/Element.h>

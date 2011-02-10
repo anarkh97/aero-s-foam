@@ -1,7 +1,7 @@
 #ifndef _NODE_SPACE_H_
 #define _NODE_SPACE_H_
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 
 

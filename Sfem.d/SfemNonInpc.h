@@ -2,8 +2,8 @@
 #define _SFEMNONINPC_H
 
 //#include <Element.d/Element.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <alloca.h>
 #include <vector>
 #include <Math.d/Vector.h>

@@ -16,8 +16,8 @@
 //          5             Phi[8] = (1/2).(1-x).(1-y.y) 
 // ----------------------------------------------------------------
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 
 // STL

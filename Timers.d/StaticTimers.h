@@ -1,7 +1,7 @@
 #ifndef _STATICTIMER_H_
 #define _STATICTIMER_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/resize_array.h>
 
 class Timings;

@@ -1,6 +1,6 @@
 #ifdef STRUCTOPT
 
-#include <stdio.h>
+#include <cstdio>
 #include <dlfcn.h>
 
 #include <Structopt.d/Structopt_sd.h>

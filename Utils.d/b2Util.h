@@ -7,7 +7,7 @@
  */
  
 /* compiler includes */
-#include <math.h>
+#include <cmath>
  
 /* function declarations */
 inline void   b2MatrixAddition      ( int k, int l, double cA, double cB,  

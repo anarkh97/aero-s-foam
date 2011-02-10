@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Driver.d/DecDomain.h>
 #include <Feti.d/Feti.h>
 #include <Paral.d/MDDynam.h>

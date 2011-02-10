@@ -1,5 +1,5 @@
-#include        <stdio.h>
-#include        <math.h>
+#include        <cstdio>
+#include        <cmath>
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>
 
 TriangleSommerBC::TriangleSommerBC(int n1, int n2, int n3, Element *_el, int eType):SommerElement(_el)

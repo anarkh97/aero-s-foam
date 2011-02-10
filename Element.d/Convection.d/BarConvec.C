@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include <Element.d/Convection.d/BarConvec.h>
 #include <Math.d/FullSquareMatrix.h>

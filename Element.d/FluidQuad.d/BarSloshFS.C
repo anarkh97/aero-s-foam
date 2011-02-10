@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include <Element.d/FluidQuad.d/BarSloshFS.h>
 #include <Math.d/FullSquareMatrix.h>

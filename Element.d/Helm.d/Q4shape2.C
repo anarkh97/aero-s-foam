@@ -6,7 +6,7 @@
   Version: 1.0 - last update Dec. 11th 1996
 */
 
-#include<math.h>
+#include<cmath>
 
 void Q4shape2
 (double jdet[4],double N[4][4],double dNX[4][4],double dNY[4][4],int nint,int element2, double *xx2, double *yy2, int **connection2)

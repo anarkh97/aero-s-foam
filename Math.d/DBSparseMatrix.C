@@ -1,6 +1,6 @@
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <Utils.d/linkfc.h>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>

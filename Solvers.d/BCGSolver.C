@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/Vector.h>
 #include <Timers.d/GetTime.h>
 

@@ -7,7 +7,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/linkfc.h>
 // #include <Math.d/FullMatrix.h>
 #include <Math.d/Vector.h>

@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
 #include <Element.d/NonLinearity.d/StrainDispEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>

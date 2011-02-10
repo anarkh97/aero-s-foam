@@ -83,6 +83,7 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 template <typename Scalar> class GenGaussNewtonSolver;
+template <typename Scalar> class GenGalerkinProjectionSolver;
 template <typename Scalar> class GenGappyProjectionSolver;
 
 // HB
@@ -453,6 +454,9 @@ class Domain : public HData {
 
      template<class Scalar>
        GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
+     
+     template<class Scalar>
+       GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
      
      template<class Scalar>
        GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();

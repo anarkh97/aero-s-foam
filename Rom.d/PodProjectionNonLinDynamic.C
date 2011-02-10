@@ -1,4 +1,4 @@
-#include "GaussNewtonNonLinDynamic.h"
+#include "PodProjectionNonLinDynamic.h"
 
 #include "BasisFileStream.h"
 #include "VecBasisFile.h"
@@ -11,16 +11,16 @@
 #include <algorithm>
 #include <stdexcept>
 
-GaussNewtonNonLinDynamic::GaussNewtonNonLinDynamic(Domain *d) :
+PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   NonLinDynamic(d)
 {}
 
 void
-GaussNewtonNonLinDynamic::preProcess() {
+PodProjectionNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
   
-  if (!dynamic_cast<GaussNewtonSolver *>(NonLinDynamic::getSolver())) {
-    throw std::runtime_error("Solver must be a GaussNewtonSolver");
+  if (!dynamic_cast<PodProjectionSolver *>(NonLinDynamic::getSolver())) {
+    throw std::runtime_error("Solver must be a PodProjectionSolver");
   }
 
   // Input/output state conversion
@@ -54,18 +54,18 @@ GaussNewtonNonLinDynamic::preProcess() {
 }
 
 
-const GaussNewtonSolver *
-GaussNewtonNonLinDynamic::getSolver() const {
-  return static_cast<GaussNewtonSolver *>(const_cast<GaussNewtonNonLinDynamic *>(this)->NonLinDynamic::getSolver());
+const PodProjectionSolver *
+PodProjectionNonLinDynamic::getSolver() const {
+  return static_cast<PodProjectionSolver *>(const_cast<PodProjectionNonLinDynamic *>(this)->NonLinDynamic::getSolver());
 }
 
-GaussNewtonSolver *
-GaussNewtonNonLinDynamic::getSolver() {
-  return const_cast<GaussNewtonSolver *>(const_cast<const GaussNewtonNonLinDynamic *>(this)->getSolver());
+PodProjectionSolver *
+PodProjectionNonLinDynamic::getSolver() {
+  return const_cast<PodProjectionSolver *>(const_cast<const PodProjectionNonLinDynamic *>(this)->getSolver());
 }
 
 int
-GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
+PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
   computeAndSaveJacobianSnapshot();
 
   // Forward to hidden base class function
@@ -73,18 +73,18 @@ GaussNewtonNonLinDynamic::checkConvergence(int iteration, double normRes, Vector
 }
 
 double
-GaussNewtonNonLinDynamic::getResidualNorm(const Vector &residual) {
+PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual) {
   return getSolver()->projectAndComputeNorm(residual);
 }
 
 void
-GaussNewtonNonLinDynamic::computeAndSaveJacobianSnapshot() {
+PodProjectionNonLinDynamic::computeAndSaveJacobianSnapshot() {
   Vector snap(solVecInfo());
   expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
   *jacobianSnapFile_ << snap;
 }
 
 bool
-GaussNewtonNonLinDynamic::factorWhenBuilding() const {
+PodProjectionNonLinDynamic::factorWhenBuilding() const {
   return false; // Delayed factorization
 }

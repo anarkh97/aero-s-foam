@@ -6,13 +6,13 @@ ADD_LIBRARY( Rom
   FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
-  GaussNewtonNonLinDynamic.C
   QrPseudoInversion.C
   LeastSquaresSolver.C
   NodalRestrictionMapping.C
   MeshOutput.C
   MeshSamplingDriver.C
   MeshUtils.C
+  PodProjectionNonLinDynamic.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   VecBasisFile.C

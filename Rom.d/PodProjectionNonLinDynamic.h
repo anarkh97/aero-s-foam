@@ -1,7 +1,7 @@
-#ifndef ROM_GAUSSNEWTONNONLINDYNAMIC_H
-#define ROM_GAUSSNEWTONNONLINDYNAMIC_H
+#ifndef ROM_PODPROJECTIONNONLINDYNAMIC_H
+#define ROM_PODPROJECTIONNONLINDYNAMIC_H
 
-#include "GaussNewtonSolver.h"
+#include "PodProjectionSolver.h"
 #include "VecNodeDof6Conversion.h"
 #include "NodeDof6Buffer.h"
 #include "BasisFileStream.h"
@@ -11,16 +11,16 @@
 
 #include <memory>
 
-class GaussNewtonNonLinDynamic : public NonLinDynamic {
+class PodProjectionNonLinDynamic : public NonLinDynamic {
 public:
-  explicit GaussNewtonNonLinDynamic(Domain *);
+  explicit PodProjectionNonLinDynamic(Domain *);
 
   // Required additional pre-processing
   virtual void preProcess();
 
   // Hiding NonLinDynamic::getSolve
-  GaussNewtonSolver *getSolver();
-  const GaussNewtonSolver *getSolver() const;
+  PodProjectionSolver *getSolver();
+  const PodProjectionSolver *getSolver() const;
 
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
@@ -46,20 +46,20 @@ private:
   friend class Updater;
 
   // Disallow copy and assignment
-  GaussNewtonNonLinDynamic(const GaussNewtonNonLinDynamic &);
-  GaussNewtonNonLinDynamic &operator=(const GaussNewtonNonLinDynamic &);
+  PodProjectionNonLinDynamic(const PodProjectionNonLinDynamic &);
+  PodProjectionNonLinDynamic &operator=(const PodProjectionNonLinDynamic &);
 };
 
 #include <Driver.d/StateUpdater.h>
 
 // Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
-class GaussNewtonNonLinDynamic::Updater : public IncrUpdater<GaussNewtonNonLinDynamic, GenVector<double>, GeomState> {
+class PodProjectionNonLinDynamic::Updater : public IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState> {
 public:
-  static double formRHScorrector(GaussNewtonNonLinDynamic *pbd, GenVector<double> &inc_displac,
+  static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,
                                  GenVector<double> &vel_n, GenVector<double> &accel,
                                  GenVector<double> &residual, GenVector<double> &rhs,
                                  GeomState *geomState) {
-    const double result = IncrUpdater<GaussNewtonNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
+    const double result = IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
         pbd, inc_displac, vel_n, accel, residual, rhs, geomState);
 
     pbd->saveResidualSnapshot(rhs);
@@ -67,4 +67,4 @@ public:
     return result;
   }
 };
-#endif /* ROM_GAUSSNEWTONNONLINDYNAMIC_H */
+#endif /* ROM_PODPROJECTIONNONLINDYNAMIC_H */

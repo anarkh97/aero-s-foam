@@ -1,145 +1,88 @@
 #ifndef ROM_GALERKINPROJECTIONSOLVER_H
 #define ROM_GALERKINPROJECTIONSOLVER_H
 
-#include <Solvers.d/Solver.h>
-#include <Math.d/DBSparseMatrix.h>
-
-#include <Rom.d/VecBasis.h>
+#include "PodProjectionSolver.h"
 
 #include <Math.d/FullSquareMatrix.h>
-
-#include "BasisOps.h"
 
 #include <cstddef>
 #include <cassert>
 
 template <typename Scalar>
-class GenGalerkinProjectionSolver : public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
+class GenGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar> {
 public:
   GenGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
 
-  // Pure virtual function implementations
-  virtual long size();
-  virtual int neqs();
-
-  // Full-order matrix assembly
-  virtual void zeroAll();
-  virtual void add(GenFullSquareMatrix<Scalar> &, int *);
-  virtual void addDiscreteMass(int, Scalar);
-
-  // Solution
-  virtual void factor();
-  virtual void reSolve(GenVector<Scalar> &rhs);
-
-  // Projection basis
-  int basisSize() const { return basisSize_; }
-  const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
-  void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed object must be kept alive by owner
-
-  // Data collection
-  const GenVector<Scalar> &lastReducedSolution() const { return reducedRhs_; }
-  const GenVecBasis<Scalar> &lastReducedMatrixAction() const { return matrixAction_; }
-
 private:
-  void factorReducedMatrix();
-  void solveReducedRhs();
-
-  int basisSize_;
-  const GenVecBasis<Scalar> *projectionBasis_;
-  
   GenFullSquareMatrix<Scalar> reducedMatrix_;
-
-  GenVecBasis<Scalar> matrixAction_;
-  GenVector<Scalar> reducedRhs_;
-
-  // Disallow copy and assignment
-  GenGalerkinProjectionSolver(const GenGalerkinProjectionSolver<Scalar> &);
-  GenGalerkinProjectionSolver<Scalar> &operator=(const GenGalerkinProjectionSolver<Scalar> &);
+  bool rhsIsprojected_;
+ 
+  // Overriden 
+  virtual void resetSolver(int vCount, int vSize);
+  virtual void assembleAndFactorReducedSystem();
+  virtual void projectRhs(const GenVector<Scalar> &);
+  virtual double getReducedRhsNorm() const;
+  virtual void solveReducedSystem(GenVector<Scalar> &);
+ 
+  // Implementation 
+  void performFactor();
+  void performSolve();
 };
 
 template <typename Scalar>
 GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *cn,
                                                                  DofSetArray *dsa,
                                                                  ConstrainedDSA *c_dsa):
-  GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa),
-  basisSize_(0),
-  projectionBasis_(NULL),
+  GenPodProjectionSolver<Scalar>(cn, dsa, c_dsa),
   reducedMatrix_(),
-  matrixAction_(0, 0),
-  reducedRhs_(0)
-{
-  projectionBasis_ = &matrixAction_;
-}
+  rhsIsprojected_(false)
+{}
 
 template <typename Scalar>
-long
-GenGalerkinProjectionSolver<Scalar>::size() {
-  return GenDBSparseMatrix<Scalar>::size();
-}
-
-template <typename Scalar>
-int
-GenGalerkinProjectionSolver<Scalar>::neqs() {
-  return GenDBSparseMatrix<Scalar>::neqs();
+void
+GenGalerkinProjectionSolver<Scalar>::resetSolver(int vCount, int) {
+  reducedMatrix_.setSize(vCount);
+  rhsIsprojected_ = false;
 }
 
 template <typename Scalar>
 void
-GenGalerkinProjectionSolver<Scalar>::zeroAll() {
-  GenDBSparseMatrix<Scalar>::zeroAll();
-}
-
-template <typename Scalar>
-void
-GenGalerkinProjectionSolver<Scalar>::add(GenFullSquareMatrix<Scalar> &elMat, int *dofs) {
-  GenDBSparseMatrix<Scalar>::add(elMat, dofs);
-}
-
-template <typename Scalar>
-void
-GenGalerkinProjectionSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass) {
-  GenDBSparseMatrix<Scalar>::addDiscreteMass(dof, dmass);
-}
-
-template <typename Scalar>
-void
-GenGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &basis) {
-  assert(neqs() == basis.size()); // TODO: Exception
-
-  const int newBasisSize = basis.numVec();
-  GenVecBasis<Scalar> newMatrixAction(newBasisSize, neqs());
-  GenVector<Scalar> newReducedRhs(newBasisSize);
-
-  reducedMatrix_.setSize(newBasisSize);
-
-  basisSize_ = newBasisSize;
-  projectionBasis_ = &basis;
-  swap(matrixAction_, newMatrixAction);
-  reducedRhs_.swap(newReducedRhs);
-}
-
-template <typename Scalar>
-void
-GenGalerkinProjectionSolver<Scalar>::factor() {
-  for (int row = 0; row < basisSize(); ++row) {
-    GenVector<Scalar> &action = matrixAction_[row];
-    GenDBSparseMatrix<Scalar>::mult((*projectionBasis_)[row], action);
-    for (int col = row; col < basisSize(); ++col) {
-      reducedMatrix_[row][col] = action * (*projectionBasis_)[col];
+GenGalerkinProjectionSolver<Scalar>::assembleAndFactorReducedSystem() {
+  for (int row = 0; row < this->basisSize(); ++row) {
+    const GenVector<Scalar> &action = this->lastReducedMatrixAction()[row];
+    for (int col = row; col < this->basisSize(); ++col) {
+      reducedMatrix_[row][col] = action * this->projectionBasis()[col];
     }
   }
 
-  factorReducedMatrix();
+  performFactor();
+  rhsIsprojected_ = false;
 }
 
 template <typename Scalar>
 void
-GenGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
-  assert(neqs() == rhs.size()); // TODO: Exception
+GenGalerkinProjectionSolver<Scalar>::projectRhs(const GenVector<Scalar> &rhs) {
+  reduce(this->projectionBasis(), rhs, this->getReducedSolution());
+  rhsIsprojected_ = true;
+}
 
-  reduce(*projectionBasis_, rhs, reducedRhs_); 
-  solveReducedRhs();
-  expand(*projectionBasis_, reducedRhs_, rhs);
+template <typename Scalar>
+double
+GenGalerkinProjectionSolver<Scalar>::getReducedRhsNorm() const {
+  return this->lastReducedSolution().norm();
+}
+
+template <typename Scalar>
+void
+GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) {
+  if (!rhsIsprojected_) {
+    reduce(this->projectionBasis(), rhs, this->getReducedSolution());
+  }
+
+  performSolve();
+  expand(this->projectionBasis(), this->lastReducedSolution(), rhs);
+  
+  rhsIsprojected_ = false;
 }
 
 typedef GenGalerkinProjectionSolver<double> GalerkinProjectionSolver;

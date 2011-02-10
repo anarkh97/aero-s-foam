@@ -18,22 +18,25 @@ extern "C" {
 
 template <>
 void
-GenGalerkinProjectionSolver<double>::factorReducedMatrix() {
+GenGalerkinProjectionSolver<double>::performFactor() {
+  const int basisDim = basisSize();
+
   int info;
-  _FORTRAN(dpotrf)("L", &basisSize_, reducedMatrix_.data(), &basisSize_, &info);
+  _FORTRAN(dpotrf)("L", &basisDim, reducedMatrix_.data(), &basisDim, &info);
 
   assert(info == 0);
 }
 
 template <>
 void
-GenGalerkinProjectionSolver<double>::solveReducedRhs() {
+GenGalerkinProjectionSolver<double>::performSolve() {
+  const int basisDim = basisSize();
   const int INT_ONE = 1;
   
   int info;
-  _FORTRAN(dpotrs)("L", &basisSize_, &INT_ONE,
-                   reducedMatrix_.data(), &basisSize_,
-                   reducedRhs_.data(), &basisSize_,
+  _FORTRAN(dpotrs)("L", &basisDim, &INT_ONE,
+                   reducedMatrix_.data(), &basisDim,
+                   getReducedSolution().data(), &basisDim,
                    &info);
   
   assert(info == 0);
@@ -41,12 +44,12 @@ GenGalerkinProjectionSolver<double>::solveReducedRhs() {
 
 template <>
 void
-GenGalerkinProjectionSolver<std::complex<double> >::factorReducedMatrix() {
+GenGalerkinProjectionSolver<std::complex<double> >::performFactor() {
   throw std::logic_error("Not implemented");
 }
 
 template <>
 void
-GenGalerkinProjectionSolver<std::complex<double> >::solveReducedRhs() {
+GenGalerkinProjectionSolver<std::complex<double> >::performSolve() {
   throw std::logic_error("Not implemented");
 }

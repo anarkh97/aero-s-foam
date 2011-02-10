@@ -44,8 +44,8 @@ using namespace std;
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
-#include <Rom.d/GaussNewtonNonLinDynamic.h>
-#include <Rom.d/GaussNewtonSolver.h>
+#include <Rom.d/PodProjectionNonLinDynamic.h>
+#include <Rom.d/PodProjectionSolver.h>
 #include <Rom.d/BasisOrthoDriver.h>
 #include <Rom.d/MeshSamplingDriver.h>
 #include <Rom.d/GappyNonLinDynamic.h>
@@ -1169,9 +1169,9 @@ int main(int argc, char** argv)
              } else { // POD ROM
                if (domain->solInfo().gaussNewtonPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
-                 GaussNewtonNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <GaussNewtonSolver, Vector, SDDynamPostProcessor, GaussNewtonNonLinDynamic,
-                                GeomState, GaussNewtonNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 PodProjectionNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <PodProjectionSolver, Vector, SDDynamPostProcessor, PodProjectionNonLinDynamic,
+                                GeomState, PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().gappyPodRom) {
                  filePrint(stderr, " ... POD: System-approximated ROM   ...\n");

@@ -36,6 +36,7 @@
 
 #include <Rom.d/GaussNewtonSolver.h>
 #include <Rom.d/GappyProjectionSolver.h>
+#include <Rom.d/GalerkinProjectionSolver.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -826,6 +827,13 @@ Domain::constructGaussNewtonSolver()
 }
 
 template<class Scalar>
+GenGalerkinProjectionSolver<Scalar> *
+Domain::constructGalerkinProjectionSolver()
+{
+  return new GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
 GenGappyProjectionSolver<Scalar> *
 Domain::constructGappyProjectionSolver()
 {
@@ -1191,7 +1199,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 11:
-      filePrint(stderr," ... POD-GN Solver is Selected...      \n");
+      filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
       {
         GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
         spm = solver;
@@ -1201,6 +1209,16 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       }
       break;
     case 12:
+      filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
+      {
+        GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
+      break;
+    case 13:
       filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
       {
         GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();

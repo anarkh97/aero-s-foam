@@ -1181,6 +1181,8 @@ TRAIL [a-zA-Z]*
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
+"GALERKIN"|"galerkin"|"Galerkin"          { return GALERKIN; }
+
 "GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
 
 "SVD"|"Svd"|"svd"                         { return SVD; }

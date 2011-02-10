@@ -13,11 +13,9 @@ GeomNLSolver::GeomNLSolver(int _numele, Connectivity* _allDOFs,
                            DofSetArray *_c_dsa, Vector &f,
  		           Corotator **_allCorot, Solver *_solver)
 
- : force(f), residual(numdofs), pVec(numdofs), 
+ : sinfo(_sinfo), force(f), residual(numdofs), pVec(numdofs), 
    arcLenResid(numdofs), elementInternalForce(_maxNumDof), nodes(_nodes)
 {
-
- sinfo     = _sinfo;		// solver information
  numele    = _numele;		// number of elements
  allCorot  = _allCorot;		// all Element Corotators
  kelArray  = _kelArray;		// element stiffness matrix array
@@ -51,10 +49,9 @@ GeomNLSolver::GeomNLSolver(int _numele, Domain &domain, CoordSet &_nodes,
 			   int numdofs, SolverInfo &_sinfo,
                            DofSetArray *_c_dsa, Vector &f, 
 			   Corotator **_allCorot) 
- : force(f), residual(numdofs), pVec(numdofs), 
+ : sinfo(_sinfo), force(f), residual(numdofs), pVec(numdofs), 
    arcLenResid(numdofs), elementInternalForce(domain.maxNumDOF()), nodes(_nodes)
 {
- sinfo    = _sinfo;
  numele   = _numele;
  allCorot = _allCorot;
 

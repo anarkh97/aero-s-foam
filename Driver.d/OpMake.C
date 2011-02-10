@@ -1064,6 +1064,10 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
       sinfo.freqSweepMethod == SolverInfo::QRGalProjection) {
      if (allOps.K)
        delete allOps.K;
+     if (allOps.M) delete allOps.M;
+     if (allOps.Muc) delete allOps.Muc;
+     if (allOps.C_deriv) if (allOps.C_deriv[0]) delete allOps.C_deriv[0];
+
      if(sinfo.isCoupled) allOps.K = constructNBSparseMatrix<Scalar>(); // unsymmetric
      else allOps.K = constructDBSparseMatrix<Scalar>(); // symmetric
    }

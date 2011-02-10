@@ -97,8 +97,8 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
    // Dimension of the problem
    int dim= domain->scatter[0]->dim();
    DComplex ffpCoef;
-   if(dim==3) ffpCoef = exp(DComplex(0.0,M_PI/4.0))/sqrt(8.0*M_PI*geoSource->kappa());
-   else ffpCoef = DComplex(0.25/M_PI, 0.0);
+   if(dim!=3) ffpCoef = exp(DComplex(0.0,M_PI/4.0))/sqrt(8.0*M_PI*geoSource->kappa())*geoSource->global_average_rhof;
+   else ffpCoef = DComplex(0.25/M_PI, 0.0)*geoSource->global_average_rhof;
 
    double (*ffpDir)[3];
    int numSamples;

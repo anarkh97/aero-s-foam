@@ -186,6 +186,7 @@ GenFSFullMatrix<Scalar>::reSize(int nr, int nc, Scalar initVal)
 {
  nrow    = nr;
  ncolumn = nc;
+ ld = nc;
  if(v) { 
    delete [] v;
    v = 0;
@@ -384,9 +385,8 @@ GenFSFullMatrix<Scalar>::symLuFactor()
  }
 }
 
-
-
-template<class Scalar> 
+// Deactivated since buggy
+/*template<class Scalar> 
 void
 GenFSFullMatrix<Scalar>::solve(Scalar *x)
 {
@@ -398,24 +398,24 @@ GenFSFullMatrix<Scalar>::solve(Scalar *x)
  }
 
  // Backward substitution
- for(i=nrow; i--; ) {
+ for(i=nrow; i--; ) { // BUG: the index i is out of bounds ! 
    for(j = i+1; j < nrow; ++j)
      x[i] -= (*this)[j][i]*x[j];
    x[i] *= (*this)[i][i];
  }
-}
+}*/
 
 template<class Scalar> 
 void
 GenFSFullMatrix<Scalar>::print(const char *msg, const char *msg2)
 {
- if(*msg) fprintf(stderr,"%s\n",msg);
+ if(*msg) cerr << msg << "\n";
  int i,j;
  for(i = 0 ; i < nrow ; ++i) {
    for(j=0; j < ncolumn ; ++j)
      cerr << msg2 << "(" << i+1 << "," << j+1 << ")" << (*this)[i][j] << endl;
      // fprintf(stderr,"%s(%d,%d) = % e;",msg2,i+1,j+1,(*this)[i][j]) ;
-   fprintf(stderr,"\n") ;
+   cerr << "\n";
  }
 }
 

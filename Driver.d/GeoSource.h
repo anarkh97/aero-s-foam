@@ -323,7 +323,7 @@ public:
   // Parser support Functions - Geometry
   int  addNode(int nd, double xyz[3]);
   int  addElem(int en, int type, int nn, int *nodeNumbers);
-  int  addMat(int, StructProp &);
+  int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
   int  addCoefInfo(int, CoefData &);
   CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }

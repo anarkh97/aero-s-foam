@@ -499,11 +499,43 @@ GenMumpsSolver<Scalar>::printStatistics()
 template<class Scalar>
 GenMumpsSolver<Scalar>::~GenMumpsSolver()
 {
+/*
   if(unonz) { delete [] unonz; unonz = 0; }
 #ifdef USE_MUMPS
   mumpsId.id.job = -2; // -2: destroys instance of mumps package
   Tmumps_c(mumpsId.id);
 #endif
+*/
+#ifdef USE_MUMPS
+ mpicomm->sync();
+
+  if(host) {
+    if(mumpsId.id.ICNTL(18) == 0) { // centralized matrix input
+      if((void*)mumpsId.id.a != (void*)unonz) {
+        if (mumpsId.id.a) delete[] mumpsId.id.a;
+        mumpsId.id.a = 0;
+      }
+    }
+  }
+
+  if(mumpsId.id.ICNTL(18) == 3) {
+    if((void*)mumpsId.id.a_loc != (void*)unonz) {
+      if (mumpsId.id.a_loc) delete[] mumpsId.id.a_loc;
+      mumpsId.id.a_loc = 0;
+    }
+  }
+
+  if(unonz) {
+    delete [] unonz;
+    unonz = 0;
+   }
+
+  mumpsId.id.job = -2; // -2: destroys instance of mumps package
+  Tmumps_c(mumpsId.id);
+
+#endif
+ mpicomm->sync();
+
 }
 
 template<>

@@ -1513,8 +1513,8 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
    int i, j;
 
    DComplex ffpCoef;
-   if(dim==3) ffpCoef = exp(DComplex(0.0,M_PI/4.0))/sqrt(8.0*M_PI*geoSource->kappa());
-   else ffpCoef = DComplex(0.25/M_PI, 0.0);
+   if(dim!=3) ffpCoef = exp(DComplex(0.0,M_PI/4.0))/sqrt(8.0*M_PI*geoSource->kappa())*geoSource->global_average_rhof;
+   else ffpCoef = DComplex(0.25/M_PI, 0.0)*geoSource->global_average_rhof;
   
    DComplex *p = new DComplex[numPhi*nsint];
    for(i=0;i<numPhi*nsint;i++) p[i] = complex<double>(0.0,0.0);

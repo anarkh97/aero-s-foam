@@ -16,13 +16,18 @@ class NLDynamSolver {
      typename StateUpdate::RefState *refState;
      typename StateUpdate::StateIncr *stateIncr;
 
-     FILE *vel;
      double beta, gamma, alphaf, alpham;
    public:
 
      // Constructor
-     NLDynamSolver(ProblemDescriptor *PrbD) 
-       { probDesc = PrbD; }
+     NLDynamSolver(ProblemDescriptor *PrbD) :
+       probDesc(PrbD), refState(0), stateIncr(0)
+     {} 
+
+     ~NLDynamSolver() {
+       delete refState;
+       delete stateIncr;
+     }
 
      void solve();
 };

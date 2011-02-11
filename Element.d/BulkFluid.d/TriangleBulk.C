@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/BulkFluid.d/TriangleBulk.h>

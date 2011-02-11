@@ -1,7 +1,7 @@
 #ifndef _CONNECTIVITY_H_
 #define _CONNECTIVITY_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <map>
 #include <iostream>
 using std::map;
@@ -123,7 +123,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         template <class A> Connectivity(SetAccess<A> &sa);
         Connectivity(Elemset *);
         Connectivity(Elemset *, int, SommerElement**);
-        Connectivity(int _size, int *_pointer, int *_target, int _removeable=1);
+        Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
         Connectivity(int _size, int *_count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*);
@@ -194,7 +194,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         double estimateCost(EqNumberer *eqn, double &cost, double &bandwidth,
                             double coef=400, int unroll=1);
 
-	template<typename A, class B> friend class BaseConnectivity;
+        //template<typename A, class B> friend class BaseConnectivity;
 };
 
 
@@ -280,14 +280,10 @@ template<typename A, class Accessor>
 Connectivity * 
 BaseConnectivity<A,Accessor>::reverse(float * w)
 {
- Connectivity *res = new Connectivity();
-
  // The reverse connectivity has the same size as the original
  int size = csize(); //Accessor::getSize(static_cast<A*>(this));
  int numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
- res->numtarget = numTarget;
- res->target = new int[numTarget];
- res->weight = w;
+ int *res_target = new int[numTarget];
 
  // Find the max of target
  int maxtarg = -1; // PJSA
@@ -297,26 +293,28 @@ BaseConnectivity<A,Accessor>::reverse(float * w)
    int *tg = Accessor::getData(static_cast<A*>(this), i);
    for(int j = 0; j < nTg; ++j) maxtarg = std::max(tg[j],maxtarg);
  }
- res->size = maxtarg+1;
- res->pointer = new int[res->size+1];
- for(i = 0; i <= res->size; ++i) res->pointer[i] = 0;
+ int res_size = maxtarg+1;
+ int *res_pointer = new int[res_size+1];
+ for(i = 0; i <= res_size; ++i) res_pointer[i] = 0;
 
- // Now do a first pass to fill in res->pointer
+ // Now do a first pass to fill in res_pointer
  for(i=0; i < size; ++i) {
    int nTg = Accessor::getNum(static_cast<A*>(this), i);
    int *tg = Accessor::getData(static_cast<A*>(this), i);
-   for(int j = 0; j < nTg; ++j) res->pointer[tg[j]]++;
+   for(int j = 0; j < nTg; ++j) res_pointer[tg[j]]++;
  }
 
- for(i = 1; i <= res->size; ++i) res->pointer[i] += res->pointer[i-1];
+ for(i = 1; i <= res_size; ++i) res_pointer[i] += res_pointer[i-1];
 
  // Second pass fills in target
  for(i=0; i < size; ++i) {
    int nTg = Accessor::getNum(static_cast<A*>(this), i);
    int *tg = Accessor::getData(static_cast<A*>(this), i);
    for(int j = 0; j < nTg; ++j)
-     res->target[--res->pointer[tg[j]]] = i;
+     res_target[--res_pointer[tg[j]]] = i;
  }
+
+ Connectivity *res = new Connectivity(res_size, res_pointer, res_target, 1, w);
  return res;
 }
 
@@ -378,13 +376,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc)
    }
  }
  delete [] flags;
- Connectivity *res = new Connectivity();
- res->size      = size;
- res->pointer   = np;
- res->numtarget = np[size];
- res->target    = ntg;
- res->weight    = 0;
- res->removeable = 1;
+ Connectivity *res = new Connectivity(size, np, ntg);
  return res;
 }
 
@@ -448,13 +440,7 @@ Connectivity* BaseConnectivity<A,Accessor>::transcon(BaseConnectivity<B,AB>* tc,
    }
  }
  delete [] flags;
- Connectivity *res = new Connectivity();
- res->size      = size;
- res->pointer   = np;
- res->numtarget = np[size];
- res->target    = ntg;
- res->weight    = 0;
- res->removeable = 1;
+ Connectivity *res = new Connectivity(size, np, ntg);
  return res;
 }
 
@@ -463,15 +449,11 @@ Connectivity *
 BaseConnectivity<A,Accessor>::altReverse(float * w)
 {
  // PJSA: 12-12-05 this version of reverse maintains the original ordering
- Connectivity *res = new Connectivity();
-                                                                                                                       
  // The reverse connectivity has the same size as the original
  int size = csize(); //Accessor::getSize(static_cast<A*>(this));
  int numTarget = getNumTarget(); //Accessor::getNumTarget(static_cast<A*>(this));
- res->numtarget = numTarget;
- res->target = new int[numTarget];
- res->weight = w;
-                                                                                                                       
+ int *res_target = new int[numTarget];
+
  // Find the max of target
  int maxtarg = 0;
  int i;
@@ -480,20 +462,20 @@ BaseConnectivity<A,Accessor>::altReverse(float * w)
    int *tg = Accessor::getData(static_cast<A*>(this), i);
    for(int j = 0; j < nTg; ++j) maxtarg = std::max(tg[j],maxtarg);
  }
- res->size = maxtarg+1;
- res->pointer = new int[res->size+1];
- for(i = 0; i <= res->size; ++i) res->pointer[i] = 0;
+ int res_size = maxtarg+1;
+ int *res_pointer = new int[res_size+1];
+ for(i = 0; i <= res_size; ++i) res_pointer[i] = 0;
                                                                                                                        
- // Now do a first pass to fill in res->pointer
+ // Now do a first pass to fill in res_pointer
  for(i=0; i < size; ++i) {
    int nTg = Accessor::getNum(static_cast<A*>(this), i);
    int *tg = Accessor::getData(static_cast<A*>(this), i);
-   for(int j = 0; j < nTg; ++j) res->pointer[tg[j]+1]++;
+   for(int j = 0; j < nTg; ++j) res_pointer[tg[j]+1]++;
  }
                                                                                                                        
- int *count = new int[res->size];
- for(i = 1; i <= res->size; ++i) {
-   res->pointer[i] += res->pointer[i-1];
+ int *count = new int[res_size];
+ for(i = 1; i <= res_size; ++i) {
+   res_pointer[i] += res_pointer[i-1];
    count[i-1] = 0;
  }
 
@@ -502,10 +484,11 @@ BaseConnectivity<A,Accessor>::altReverse(float * w)
    int nTg = Accessor::getNum(static_cast<A*>(this), i);
    int *tg = Accessor::getData(static_cast<A*>(this), i);
    for(int j = 0; j < nTg; ++j)
-     res->target[res->pointer[tg[j]] + count[tg[j]]++] = i;
+     res_target[res_pointer[tg[j]] + count[tg[j]]++] = i;
  }
  delete [] count;
 
+ Connectivity *res = new Connectivity(res_size, res_pointer, res_target, 1, w);
  return res;
 }
 
@@ -570,13 +553,7 @@ Connectivity* BaseConnectivity<A,Accessor>::altTranscon(BaseConnectivity<B,AB>* 
    }
  }
  delete [] flags;
- Connectivity *res = new Connectivity();
- res->size      = size;
- res->pointer   = np;
- res->numtarget = np[size];
- res->target    = ntg;
- res->weight    = 0;
- res->removeable = 1;
+ Connectivity *res = new Connectivity(size, np, ntg);
  return res;
 }
 

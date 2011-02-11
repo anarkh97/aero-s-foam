@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <Element.d/Helm.d/HelmLagQuadGal.h>
 #include <Math.d/matrix.h>
 #include <Math.d/FullSquareMatrix.h>

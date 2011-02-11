@@ -1,6 +1,6 @@
 #ifdef STRUCTOPT
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <Structopt.d/Optvar.h>
 #include <Structopt.d/Optcrit.h>

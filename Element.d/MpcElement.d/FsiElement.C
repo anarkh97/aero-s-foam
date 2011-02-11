@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
 
 #include <Element.d/MpcElement.d/FsiElement.h>
 #include <Driver.d/Domain.h>

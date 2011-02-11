@@ -1,7 +1,7 @@
 #ifndef _DEMHELM3D_H_
 #define _DEMHELM3D_H_
 
-#include <math.h>
+#include <cmath>
 #ifndef SANDIA
 #include <Element.d/DEM.d/DEMElement.h>
 #include <Element.d/Helm.d/IntegFunction.h>

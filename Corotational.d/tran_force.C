@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 void tran_force( double* force, double tmat[3][3], int num_nodes, int num_dofs_per_node )
 /*****************************************************************

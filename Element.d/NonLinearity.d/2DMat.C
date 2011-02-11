@@ -2,13 +2,13 @@
 // E[[1][2]= nu*E[1][1];
 // E[3][3]=1/2*E/(1+nu)
 // E[1][3]=E[2][3] = 0
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Math.d/TTensor.h>
-#include <stdio.h>
+#include <cstdio>
 
 ElaLinIsoMat2D::ElaLinIsoMat2D(StructProp *p)
 {

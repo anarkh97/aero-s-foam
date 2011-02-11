@@ -3,7 +3,7 @@
 #include        <Math.d/Vector.h>
 #include        <Utils.d/dofset.h>
 #include        <Utils.d/pstress.h>
-#include        <math.h>
+#include        <cmath>
 
 Triangle3::Triangle3(int* nodenums)
 {

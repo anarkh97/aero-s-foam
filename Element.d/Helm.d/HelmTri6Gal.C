@@ -4,7 +4,7 @@
 #include        <Math.d/Vector.h>
 #include        <Utils.d/dofset.h>
 #include        <Utils.d/linkfc.h>
-#include        <math.h>
+#include        <cmath>
 
 extern bool useFull;
 

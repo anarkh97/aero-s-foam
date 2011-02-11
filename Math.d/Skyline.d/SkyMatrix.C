@@ -1,7 +1,7 @@
 #ifndef _SKYMATRIX_C_    //CRW
 #define _SKYMATRIX_C_    //CRW
 
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/linkfc.h>

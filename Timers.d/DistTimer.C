@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Timers.d/DistTimer.h>
 #include <Math.d/mathUtility.h>
 #include <Comm.d/Communicator.h>

@@ -4,7 +4,7 @@
 // Shape fcts & derivatives for 15 nodes wedge element 
 // Serendipity finite element basis
 // Iso-parametric formulation
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 
 // HB (01-15-06): for given reference shape fct derivatives dShape & nodes coordinates (X.Y,Z), 

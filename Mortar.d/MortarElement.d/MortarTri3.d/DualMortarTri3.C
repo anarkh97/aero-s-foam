@@ -2,8 +2,8 @@
 // HB - 08/26/03
 // ----------------------------------------------------------------
 // Standard C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 
 // FEM headers

@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/types.h>
 
 #if defined(sgi) &&  !defined(USE_OPENMP)

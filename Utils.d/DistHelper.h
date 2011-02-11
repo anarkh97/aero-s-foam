@@ -1,7 +1,7 @@
 #ifndef DIST_HELPER_H_
 #define DIST_HELPER_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <stdarg.h>
 
 void filePrint(FILE *file, const char *format, ...);

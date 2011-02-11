@@ -1,7 +1,7 @@
 #include <Utils.d/linkfc.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
 #include<Driver.d/GeoSource.h>
 using std::map;

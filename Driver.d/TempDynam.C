@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Solver.h>

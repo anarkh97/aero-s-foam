@@ -2,7 +2,7 @@
 
 #include <Utils.d/dbg_alloca.h>
 #include <boost/scoped_array.hpp>
-#include <stdio.h>
+#include <cstdio>
 
 #include <Math.d/mathUtility.h>
 

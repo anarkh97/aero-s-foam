@@ -4,7 +4,7 @@
 #include <map>
 #include <memory>
 #include <boost/scoped_array.hpp>
-#include <stdio.h>
+#include <cstdio>
 #include <Driver.d/Domain.h>
 
 #ifdef STRUCTOPT

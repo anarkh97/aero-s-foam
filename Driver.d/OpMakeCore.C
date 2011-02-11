@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>

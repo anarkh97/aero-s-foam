@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Solvers.d/KProject.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/SparseMatrix.h>

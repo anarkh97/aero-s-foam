@@ -1,7 +1,7 @@
 #ifndef _DEMHELM2D_H_
 #define _DEMHELM2D_H_
 
-#include <math.h>
+#include <cmath>
 #include <Element.d/DEM.d/DEMElement.h>
 
 class DGMHelm2d_LM: public DEMLM {

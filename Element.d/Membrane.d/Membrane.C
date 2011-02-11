@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #include <Element.d/Membrane.d/Membrane.h>
 #include <Utils.d/dofset.h>

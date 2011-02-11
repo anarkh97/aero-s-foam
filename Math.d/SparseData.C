@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/SparseMatrix.h>
 #include <Utils.d/Connectivity.h>
 #include <Driver.d/Mpc.h>

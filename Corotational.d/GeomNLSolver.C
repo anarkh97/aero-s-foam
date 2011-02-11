@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>

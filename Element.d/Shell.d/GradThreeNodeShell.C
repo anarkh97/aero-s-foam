@@ -6,8 +6,8 @@
 #include	<Element.d/State.h>
 #include        <Utils.d/dofset.h>
 #include        <Utils.d/linkfc.h>
-#include        <math.h>
-#include	<stdlib.h>
+#include        <cmath>
+#include	<cstdlib>
 
 // tria3d - three node shell stiffness routine
 // mass8  - three node shell mass routine

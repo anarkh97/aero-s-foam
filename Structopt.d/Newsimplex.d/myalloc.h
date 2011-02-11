@@ -3,8 +3,8 @@
 /***    All Rights Reserved                                        ***/
 /*********************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <sys/types.h>
 #include <string.h>
 /*

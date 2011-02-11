@@ -1,7 +1,7 @@
 #ifdef STRUCTOPT
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string.h>
 
 #include <Structopt.d/Optsol.h>

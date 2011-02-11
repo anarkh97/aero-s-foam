@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/linkfc.h>

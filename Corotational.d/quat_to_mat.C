@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 #include <Corotational.d/utilities.h>
 
 void quat_to_mat( double q[4], double rten[3][3] )

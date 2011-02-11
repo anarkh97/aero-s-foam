@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>

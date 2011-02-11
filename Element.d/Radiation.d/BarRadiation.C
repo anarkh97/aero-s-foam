@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
 #include <Element.d/Radiation.d/BarRadiation.h>
 #include <Corotational.d/BarThermalCorotator.h>
 #include <Math.d/FullSquareMatrix.h>

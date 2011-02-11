@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/IsoParamTriSommer.h>
 #include <Element.d/Helm.d/HelmElement.h>

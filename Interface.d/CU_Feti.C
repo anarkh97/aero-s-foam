@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include <Interface.d/MpcLocal.h>
 #include <Interface.d/FetiValues.h>

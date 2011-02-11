@@ -715,7 +715,7 @@ BeamCorotator::gradDefDisp( double zVecL[][3], double xln[][3],
 
 }
 
-#include <math.h>
+#include <cmath>
 #include <Corotational.d/utilities.h>
 
 void

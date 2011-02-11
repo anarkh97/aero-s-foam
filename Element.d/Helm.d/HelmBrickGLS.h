@@ -1,7 +1,7 @@
 #ifndef _HELMBRICKGLS_H_
 #define _HELMBRICKGLS_H_
 
-#include <math.h>
+#include <cmath>
 #include <Element.d/Helm.d/HelmElement.h>
 
 class HelmBrickGLS: public HelmElement, public Element {

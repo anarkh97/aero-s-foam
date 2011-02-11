@@ -1,9 +1,9 @@
 #include <typeinfo>
-#include <stdio.h>
+#include <cstdio>
 #ifdef SUN10    //CRW
 #include <typeinfo.h>    //CRW
 #endif    //CRW
-#include <math.h>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
 #include <limits.h> //--- UH

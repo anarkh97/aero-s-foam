@@ -1,6 +1,6 @@
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <Feti.d/DistrVector.h>
 #include <HelmAxi.d/FetiHAxi.d/DistrComplexVector.h>
 #include <HelmAxi.d/FetiHAxi.d/GMRESDCV.h>

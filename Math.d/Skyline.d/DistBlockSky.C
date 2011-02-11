@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/Vector.h>
 
 #include <Comm.d/Communicator.h>

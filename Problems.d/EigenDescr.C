@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>

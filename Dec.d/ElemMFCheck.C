@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Element.d/Element.h>
 #include <Element.d/Beam.d/EulerBeam.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>

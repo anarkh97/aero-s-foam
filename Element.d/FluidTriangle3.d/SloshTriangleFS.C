@@ -2,7 +2,7 @@
 #include        <Math.d/FullSquareMatrix.h>
 #include        <Math.d/Vector.h>
 #include        <Utils.d/dofset.h>
-#include        <math.h>
+#include        <cmath>
 #include        <Element.d/State.h>
 
 SloshTriangleFS::SloshTriangleFS(int* nodenums)

@@ -389,8 +389,8 @@
 
 #ifdef STRUCTOPT
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <Structopt.d/Optinp.h>
 #include <Structopt.d/Optpro.h>
 #include <Structopt.d/Optsol.h>
@@ -483,7 +483,7 @@ typedef union YYSTYPE {
 #  define YYSTACK_FREE(Ptr) do { /* empty */; } while (0)
 # else
 #  if defined (__STDC__) || defined (__cplusplus)
-#   include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+#   include <cstdlib> /* INFRINGES ON USER NAME SPACE */
 #   define YYSIZE_T size_t
 #  endif
 #  define YYSTACK_ALLOC YYMALLOC
@@ -1480,7 +1480,7 @@ while (0)
 #if YYDEBUG
 
 # ifndef YYFPRINTF
-#  include <stdio.h> /* INFRINGES ON USER NAME SPACE */
+#  include <cstdio> /* INFRINGES ON USER NAME SPACE */
 #  define YYFPRINTF fprintf
 # endif
 

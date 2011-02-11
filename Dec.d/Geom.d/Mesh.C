@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Dec.d/Geom.d/Mesh.h>
 
 // static int cheat = 0;

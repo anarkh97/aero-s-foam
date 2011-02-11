@@ -1,6 +1,6 @@
 #include <Element.d/Helm.d/GaussRules.h>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #include <Utils.d/dbg_alloca.h>
 

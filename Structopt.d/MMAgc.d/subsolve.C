@@ -2,7 +2,7 @@
 
 #include "mma.h"
 
-#include <math.h>
+#include <cmath>
 
 void MMAgc::subsolve()
 {

@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 
 #include <Driver.d/Domain.h>
 #include <Hetero.d/FlExchange.h>

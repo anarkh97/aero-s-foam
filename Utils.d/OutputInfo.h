@@ -9,7 +9,7 @@
 // 4. add a header message in Driver.d/StructProp.h
 // 
 
-#include <stdio.h>
+#include <cstdio>
 
 struct OutputInfo {
    enum Type

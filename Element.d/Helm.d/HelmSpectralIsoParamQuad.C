@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <alloca.h>
 
 #include <Element.d/Helm.d/HelmSpectralIsoParamQuad.h>

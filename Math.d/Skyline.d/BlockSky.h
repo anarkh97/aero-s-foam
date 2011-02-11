@@ -24,7 +24,7 @@ typedef GenAssembledFullM<double> AssembledFullM;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 #include <Utils.d/MyComplex.h>

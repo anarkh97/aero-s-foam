@@ -3,7 +3,7 @@
 /***    All Rights Reserved                                        ***/
 /*********************************************************************/
 
-/* #include <stdio.h> */
+/* #include <cstdio> */
 #include "macros.h"
 /* #include <sigfpe.h> */
 

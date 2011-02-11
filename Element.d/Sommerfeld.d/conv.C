@@ -1,15 +1,15 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string.h>
 #include <complex.h>
-#include <math.h>
+#include <cmath>
 
 int main() {
 
  char *filename=(char*)"out";
  char buf[256];
  double k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13,k14,k15,k16;
- scanf("%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",&k1,&k2,&k3,&k4,&k5,&k6,&k7,&k8,&k9,&k10,&k11,&k12,&k13,&k14,&k15,&k16);
+ int toto = scanf("%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",&k1,&k2,&k3,&k4,&k5,&k6,&k7,&k8,&k9,&k10,&k11,&k12,&k13,&k14,&k15,&k16);
 
  int i;
  FILE *fin = fopen("pdep","r");
@@ -17,15 +17,15 @@ int main() {
  int indep[16];
  int ndep;
  int nindep;
- fscanf(fin,"%d",&nindep);
- for(i=0;i<nindep;i++) fscanf(fin,"%d",indep+i);
+ toto = fscanf(fin,"%d",&nindep);
+ for(i=0;i<nindep;i++) toto = fscanf(fin,"%d",indep+i);
  for(i=0;i<nindep;i++) indep[i]--;
- fscanf(fin,"%d",&ndep);
- for(i=0;i<ndep;i++) fscanf(fin,"%d",dep+i);
+ toto = fscanf(fin,"%d",&ndep);
+ for(i=0;i<ndep;i++) toto = fscanf(fin,"%d",dep+i);
  for(i=0;i<ndep;i++) dep[i]--;
  
  double *pdep = new double[(nindep+1)*ndep];
- for(i=0;i<(nindep+1)*ndep;i++) fscanf(fin,"%lf",pdep+i);
+ for(i=0;i<(nindep+1)*ndep;i++) toto = fscanf(fin,"%lf",pdep+i);
 
  strcpy(buf,filename);
  strcat(buf,".sgi");
@@ -39,7 +39,7 @@ int main() {
  int j;
  int nno=0;
  char buffer[1024];
- fgets(buffer,256,nodes);
+ char *toto2 = fgets(buffer,256,nodes);
  while (!feof(nodes)) {
    int dummy;
   char *p = fgets(buffer, 1024, nodes);
@@ -49,11 +49,11 @@ int main() {
   nno++;
  }
  fseek(nodes,0,0);
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
  double (*no)[3] = new double[nno][3];
  for(i=0; i<nno; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%lf%lf%lf", &dummy, &no[i][0],&no[i][1],&no[i][2]);
    if (st==0) break;
  }
@@ -61,8 +61,8 @@ int main() {
  fprintf(stderr,"Read %d nodes.\n",nno);
 
 
- fgets(buffer,256,nodes);
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nel=0;
  int offset = ftell(nodes);
@@ -79,7 +79,7 @@ int main() {
  int (*el)[4] = new int[nel][4];
  for(i=0; i<nel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d%d", &dummy, &dummy, &el[i][0], &el[i][1], &el[i][2],&el[i][3]);
    if (st==0) break;
    el[i][0]--;
@@ -91,8 +91,8 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", nel);
 
 
- fgets(buffer,256,nodes);
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nsubel=0;
  offset = ftell(nodes);
@@ -109,7 +109,7 @@ int main() {
  int (*subel)[3] = new int[nsubel][3];
  for(i=0; i<nsubel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &subel[i][0], &subel[i][1], &subel[i][2]);
    if (st==0) break;
    subel[i][0]--;
@@ -120,7 +120,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", nsubel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nextel=0;
  offset = ftell(nodes);
@@ -137,7 +137,7 @@ int main() {
  int (*extel)[3] = new int[nextel][3];
  for(i=0; i<nextel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &extel[i][0], &extel[i][1], &extel[i][2]);
    if (st==0) break;
    extel[i][0]--;
@@ -148,7 +148,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", nextel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int ncylel=0;
  offset = ftell(nodes);
@@ -165,7 +165,7 @@ int main() {
  int (*cylel)[3] = new int[ncylel][3];
  for(i=0; i<ncylel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &cylel[i][0], &cylel[i][1], &cylel[i][2]);
    if (st==0) break;
    cylel[i][0]--;
@@ -176,7 +176,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", ncylel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int ntailel=0;
  offset = ftell(nodes);
@@ -193,7 +193,7 @@ int main() {
  int (*tailel)[3] = new int[ntailel][3];
  for(i=0; i<ntailel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &tailel[i][0], &tailel[i][1], &tailel[i][2]);
    if (st==0) break;
    tailel[i][0]--;
@@ -204,7 +204,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", ntailel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nheadel=0;
  offset = ftell(nodes);
@@ -221,7 +221,7 @@ int main() {
  int (*headel)[3] = new int[nheadel][3];
  for(i=0; i<nheadel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &headel[i][0], &headel[i][1], &headel[i][2]);
    if (st==0) break;
    headel[i][0]--;
@@ -232,7 +232,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", nheadel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int ntowerel=0;
  offset = ftell(nodes);
@@ -249,7 +249,7 @@ int main() {
  int (*towerel)[3] = new int[ntowerel][3];
  for(i=0; i<ntowerel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &towerel[i][0], &towerel[i][1], &towerel[i][2]);
    if (st==0) break;
    towerel[i][0]--;
@@ -260,7 +260,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", ntowerel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nwingsel=0;
  offset = ftell(nodes);
@@ -277,7 +277,7 @@ int main() {
  int (*wingsel)[3] = new int[nwingsel][3];
  for(i=0; i<nwingsel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &wingsel[i][0], &wingsel[i][1], &wingsel[i][2]);
    if (st==0) break;
    wingsel[i][0]--;
@@ -288,7 +288,7 @@ int main() {
  fprintf(stderr,"Read %d elements.\n", nwingsel);
 
 
- fgets(buffer,256,nodes);
+ toto2 = fgets(buffer,256,nodes);
 
  int nttopel=0;
  offset = ftell(nodes);
@@ -305,7 +305,7 @@ int main() {
  int (*ttopel)[3] = new int[nttopel][3];
  for(i=0; i<nttopel; i++) {
    int dummy;
-   fgets(buffer, 1024, nodes);
+   toto2 = fgets(buffer, 1024, nodes);
    int st=sscanf(buffer, "%d%d%d%d%d", &dummy, &dummy, &ttopel[i][0], &ttopel[i][1], &ttopel[i][2]);
    if (st==0) break;
    ttopel[i][0]--;

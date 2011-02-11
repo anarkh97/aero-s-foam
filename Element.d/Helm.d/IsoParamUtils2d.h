@@ -1,7 +1,7 @@
 #ifndef _ISOPARAMUTILS2D_H_
 #define _ISOPARAMUTILS2D_H_
 
-#include <math.h>
+#include <cmath>
 #include <complex>
 #include <Element.d/Helm.d/IntegFunction.h>
 

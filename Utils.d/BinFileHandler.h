@@ -2,8 +2,8 @@
 #define _BIN_FILE_HANDLER_H_
 
 #include <cstring>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>

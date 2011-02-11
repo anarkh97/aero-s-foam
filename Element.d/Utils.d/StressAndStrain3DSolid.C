@@ -1,7 +1,7 @@
 // ------------------------------------------------------------
 // HB - 05-19-05
 // ------------------------------------------------------------
-#include <math.h>
+#include <cmath>
 
 //         ls    : array (of length 3*nnodes, see 3 dofs/nodes) defining the position of the
 //                 dofs of node i in the element displacement array U: 

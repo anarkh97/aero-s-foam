@@ -9,7 +9,7 @@ using namespace std;
 #include <map.h>
 #endif
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <Element.d/Element.h>
 #include <Utils.d/Connectivity.h>                                               

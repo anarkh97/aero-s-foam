@@ -1,7 +1,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <iostream>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 // #include <Problems.d/StaticDescr.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>

@@ -3,8 +3,8 @@
 
 #include <Utils.d/NonlinearInfo.h>
 #include <Feti.d/FetiInfo.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <algorithm>

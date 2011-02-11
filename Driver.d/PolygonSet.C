@@ -4,7 +4,7 @@
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
 #include <HelmAxi.d/LineAxiSommer.h>
 #include <Utils.d/dbg_alloca.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 
 PolyLine2::PolyLine2(Element *_el,int n1, int n2)

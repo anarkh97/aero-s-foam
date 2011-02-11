@@ -17,8 +17,8 @@
 //                        Phi[12] =       (1-x.x).(1-y.y) 
 // ----------------------------------------------------------------
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 
 // STL

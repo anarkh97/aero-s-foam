@@ -1,7 +1,7 @@
 #include	<mpi.h>
-#include	<stdio.h>
-#include	<stdlib.h>
-#include	<math.h>
+#include	<cstdio>
+#include	<cstdlib>
+#include	<cmath>
 #ifdef  DBL_R_NUM
 	#define		real_number_type  	double
 #else

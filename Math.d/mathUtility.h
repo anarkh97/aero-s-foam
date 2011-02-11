@@ -4,7 +4,6 @@
 // Template function declarations for max, min, and abs
 template <class T> inline T myMax(T a, T b);
 template <class T> inline T myMin(T a, T b);
-template <class T> inline T abs(T a);
 
 template <class T> inline void mySwap(T &a, T &b);
 

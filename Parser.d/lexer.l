@@ -235,6 +235,8 @@ TRAIL [a-zA-Z]*
 
 "FFPDIR"|"ffpdir"                  {return FFPDIR; }
 
+"KIRLOC"|"KIRLOC"                  {return KIRLOC; }
+
 "HSOM"[a-zA-Z]*|"hsom"[a-zA-Z]*    { return HSOMMERFELD; }
 
 "SCATT"[a-zA-Z]*|"scatt"[a-zA-Z]*  { return SCATTERER; }
@@ -1049,6 +1051,8 @@ TRAIL [a-zA-Z]*
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }
+
+"kirchhoff"|"KIRCHHOFF"            { yylval.ival = OutputInfo::Kirchhoff;    return STRESSID; }
 
 "geigpres"|"GEIGPRES"              { yylval.ival = OutputInfo::EigenPressure; return STRESSID; }
 

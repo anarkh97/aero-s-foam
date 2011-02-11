@@ -495,6 +495,58 @@ public:
  }
 };
 
+class KirchhoffGalFunction : public IntegFunctionAG3d {
+ int n;
+ double kappa;
+ int nffp;
+ double *ffploc;
+ complex<double> *sol;
+ complex<double>* v;
+public:
+ KirchhoffGalFunction(int _n, double _kappa, int _nffp, double *_ffploc,
+                      complex<double> *_sol, complex<double>* _v) {
+   n = _n; kappa = _kappa; nffp = _nffp; ffploc = _ffploc; sol = _sol; v = _v;
+ }
+ void evaluate(double *x, double *N, double (*dNdx)[3], double *cross,
+               double nsign, double w) {
+
+   int i;
+   complex<double> s(0.0,0.0);
+   complex<double> gs[3] = {0.0,0.0,0.0};
+   for(i=0;i<n;i++) {
+    s += N[i]*sol[i];
+    gs[0] +=  dNdx[i][0]*sol[i];
+    gs[1] +=  dNdx[i][1]*sol[i];
+    gs[2] +=  dNdx[i][2]*sol[i];
+   }
+
+   for(i=0;i<nffp;i++) {
+     double rv[3];
+     rv[0] = x[0] - ffploc[3*i+0];
+     rv[1] = x[1] - ffploc[3*i+1];
+     rv[2] = x[2] - ffploc[3*i+2];
+
+     double r = sqrt(rv[0]*rv[0] + rv[1]*rv[1] + rv[2]*rv[2]);
+
+     double gr[3];
+     gr[0] = rv[0]/r;
+     gr[1] = rv[1]/r;
+     gr[2] = rv[2]/r;
+
+     complex<double> we = - (nsign*w/(4.0*M_PI*r*r)) * exp(complex<double>(0.0, kappa*r));
+
+     complex<double> sikr = s * complex<double>(-1.0, kappa*r);
+
+     complex<double> f =
+      (r*gs[0] - sikr * gr[0])*cross[0]+
+      (r*gs[1] - sikr * gr[1])*cross[1]+
+      (r*gs[2] - sikr * gr[2])*cross[2];
+
+     v[i] += we*f;
+   }
+
+ }
+};
 
 class LENeumInterfaceBCGalFunction: public IntegFunctionA3d {
  int n;

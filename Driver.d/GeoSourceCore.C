@@ -3281,7 +3281,9 @@ void GeoSource::setMatchArrays(int numLocSub)  {
 void GeoSource::addOutput(OutputInfo &outputInfo)  {
 
   oinfo[numOutInfo++] = outputInfo;
-  if(outputInfo.type == OutputInfo::Farfield) domain->solInfo().farfield = true;
+  if(outputInfo.type == OutputInfo::Farfield ||
+     outputInfo.type == OutputInfo::Kirchhoff)
+    domain->solInfo().farfield = true;
 }
 
 //-----------------------------------------------------------------------

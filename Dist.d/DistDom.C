@@ -119,6 +119,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
   int iOut_ffp = -1;
+  int iOut_kir = -1;
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
@@ -205,7 +206,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) { 
+      if(oinfo[iInfo].type == OutputInfo::Farfield || 
+         oinfo[iInfo].type == OutputInfo::Kirchhoff || 
+         oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
         continue;
@@ -220,7 +223,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
+      if(oinfo[iInfo].nodeNumber == -1 && 
+         oinfo[iInfo].type != OutputInfo::Farfield && 
+         oinfo[iInfo].type != OutputInfo::Kirchhoff && 
+         oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -465,7 +471,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Farfield: 
         domain->nffp = oinfo[iOut].interval;
         iOut_ffp = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
-        //this->buildFFP(u,oinfo[iOut].filptr);
+        //this->buildFFP(u,oinfo[iOut].filptr,true);
+        break;
+      case OutputInfo::Kirchhoff:
+        domain->nffp = oinfo[iOut].interval;
+        iOut_kir = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
+        //this->buildFFP(u,oinfo[iOut].filptr,false);
         break;
       case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
       case OutputInfo::AeroXForce:
@@ -525,7 +536,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 }
 this->communicator->sync();
 #endif
-  if(iOut_ffp > -1) this->buildFFP(u,oinfo[iOut_ffp].filptr); // PJSA 3-1-2007 buildFFP doesn't work with serialized output
+  if(iOut_ffp > -1) this->buildFFP(u,oinfo[iOut_ffp].filptr,true); // PJSA 3-1-2007 buildFFP doesn't work with serialized output
+  if(iOut_kir > -1) this->buildFFP(u,oinfo[iOut_kir].filptr,false); // PJSA 3-1-2007 buildFFP doesn't work with serialized output
 }
 
 

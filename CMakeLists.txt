@@ -33,6 +33,7 @@ if(OpenMP_FLAG_DETECTED)
   add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 
+SET(BLA_VENDOR Generic)
 if(NOT LAPACK_FOUND)
  FIND_PACKAGE(LAPACK)
 endif(NOT LAPACK_FOUND)
@@ -203,9 +204,9 @@ IF(UNIX)
         SET(MUMPS_FOUND TRUE)
       endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
       # blacs is required for parallel mumps
-      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0 blacsF77
                    PATHS /usr/lib /usr/local/lib)
       if(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
         MESSAGE("-- A library with BLACS API found.")

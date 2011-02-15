@@ -48,6 +48,9 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   numFFPDirections = 0;
   ffpDirections = 0;
 
+  numKirchhoffLocations = 0;
+  kirchhoffLocations = 0;
+
   sommerfeldType = 0;
   curvatureFlag = 0;
   numWaveDirections = 0;
@@ -1503,8 +1506,11 @@ HData::getTau(double normal[3], double tau1[3], double tau2[3])
 void
 HData::outputFFP(ComplexVector& sol, int iInfo)
 {
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
 // RT new style
- if (numFFPDirections==0) {
+ if (oinfo[iInfo].type == OutputInfo::Farfield
+     && numFFPDirections==0) {
    
    OutputInfo *oinfo = geoSource->getOutputInfo();
    int dim= scatter[0]->dim();
@@ -1532,12 +1538,12 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
      }
    }
   
-   ffp(domain, numSample, p, vectorDir, sol.data());
+   ffp(domain, numSample, p, vectorDir, sol.data(), true);
 
    // OUTPUT result in FILE
    // 2D -> theta | real part | imaginary part | logarithmic value
    // 3D -> theta | phi | real part | imaginary | logarithmic value
-   if(numPhi==1) {
+   if(dim != 3) {
      for(i=0;i<nsint;i++) {
        p[i] *= ffpCoef; // PJSA
        //double y = 10.0 * log(2.0*M_PI*abs(p[i])*abs(p[i]))/log(10.0);
@@ -1583,7 +1589,29 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
    int *nds = (int*) alloca(domain->maxNumDOFs*sizeof(int));
    int *dofs = (int*) alloca(domain->maxNumDOFs*sizeof(int));
 
-   complex<double> *ffp = new complex<double>[numFFPDirections];
+   bool direction;
+   int numEvalDirLoc;
+   double *evalDirLoc;
+
+   switch (oinfo[iInfo].type) {
+   case OutputInfo::Farfield:
+     direction = true;
+     numEvalDirLoc = numFFPDirections;
+     evalDirLoc = ffpDirections;
+     break;
+
+   case OutputInfo::Kirchhoff:
+     direction = false;
+     numEvalDirLoc = numKirchhoffLocations;
+     evalDirLoc = kirchhoffLocations;
+     break;
+
+   default:
+     fprintf(stderr,"Error in HData:outputFFP\n");
+     exit(-1);
+   }
+
+   complex<double> *ffp = new complex<double>[numEvalDirLoc];
 
    int iele;
    for(iele=0; iele < numScatter; ++iele) {
@@ -1598,12 +1626,11 @@ HData::outputFFP(ComplexVector& sol, int iInfo)
        else if (hLoc1 >=0 ) uel[i] = c[domain->c_dsa->invRCN(hLoc1)];
        else fprintf(stderr,"Error in HData:outputFFP\n");
      }
-     scatter[iele]->ffp(domain->nodes,numFFPDirections,ffpDirections,uel,ffp);
+     scatter[iele]->ffp(domain->nodes,numEvalDirLoc,evalDirLoc,uel,ffp,direction);
    }
-   OutputInfo *oinfo = geoSource->getOutputInfo();
-   for(i=0;i<numFFPDirections;i++) {
+   for(i=0;i<numEvalDirLoc;i++) {
      fprintf(oinfo[iInfo].filptr,"%e %e %e   %e %e\n", 
-       ffpDirections[i*3+0],ffpDirections[i*3+1],ffpDirections[i*3+2],
+       evalDirLoc[i*3+0],evalDirLoc[i*3+1],evalDirLoc[i*3+2],
        real(ffp[i]),imag(ffp[i]));
    }
    delete[] ffp;
@@ -1656,6 +1683,21 @@ HData::setFFP(int _nffp, int _limitffp)
  limitffp = _limitffp;
 }
 
+void
+HData::setKirchhoffLocations(double x, double y, double z)
+{
+  if (numKirchhoffLocations%100 == 0) {
+     int i;
+     double *p = new double[(numKirchhoffLocations+100)*3];
+     for(i=0;i<numKirchhoffLocations*3;i++) p[i] = kirchhoffLocations[i];
+       if (numKirchhoffLocations!=0) delete kirchhoffLocations;
+       kirchhoffLocations = p;
+  }
+  kirchhoffLocations[numKirchhoffLocations*3  ] = x;
+  kirchhoffLocations[numKirchhoffLocations*3+1] = y;
+  kirchhoffLocations[numKirchhoffLocations*3+2] = z;
+  numKirchhoffLocations++;
+}
 
 void
 HData::setFFPDirections(double d1, double d2, double d3) 
@@ -2018,9 +2060,9 @@ HData::addhScatter(int n, double *d)
 }
 
 void 
-HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u)
+HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, bool direction)
 {
-  if(dom->numFFPDirections > 0) {
+  if(dom->numFFPDirections > 0 || !direction) {
     complex<double> *c;
     if(dom->numDirichlet+numComplexDirichlet > 0) 
       c = (complex<double> *) alloca((dom->numDirichlet+numComplexDirichlet)*sizeof(complex<double>));
@@ -2054,7 +2096,7 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u)
         else if (hLoc1 >=0 ) uel[i] = c[dom->c_dsa->invRCN(hLoc1)];
         else fprintf(stderr,"Error in HData:outputFFP\n");
       }
-      scatter[iele]->ffp(dom->nodes,dom->numFFPDirections,(double*)dir,uel,ffp);
+      scatter[iele]->ffp(dom->nodes,dom->numFFPDirections,(double*)dir,uel,ffp,direction);
     }
   }
   else {

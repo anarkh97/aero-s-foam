@@ -2831,7 +2831,9 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
     // if non-deterministic and NOT displacement
-    if(oinfo[i].interval == 1 || oinfo[i].type == OutputInfo::Farfield) {
+    if(oinfo[i].interval == 1 
+        || oinfo[i].type == OutputInfo::Farfield
+        || oinfo[i].type == OutputInfo::Kirchhoff) {
       dof = -1;
       int success = processDispTypeOutputs(oinfo[i], xyz, numNodes, i, time, freq);
       if (success) continue;
@@ -2846,7 +2848,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           geoSource->outputEnergies(i, freq, Wext, Waero, Wela, Wkin, Wdmp, error);
           }
           break;
-        case OutputInfo::Farfield:
+        case OutputInfo::Farfield: case OutputInfo::Kirchhoff:
           outputFFP(sol, i);
           break;
         case OutputInfo::ModeError:

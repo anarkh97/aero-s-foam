@@ -76,7 +76,7 @@ public:
                                                                 double*);
         virtual void wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd);
         virtual void ffp(CoordSet &cs, int numFFP, double *dirFFP,
-                         complex<double> *sol, complex<double> *ffpv);
+                         complex<double> *sol, complex<double> *ffpv, bool direction = true);
 
         virtual FullRectMatrix transferMatrix(CoordSet&, double *);
         virtual FullSquareMatrix turkelMatrix(CoordSet&, double *);

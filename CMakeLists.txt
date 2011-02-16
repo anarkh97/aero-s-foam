@@ -172,7 +172,7 @@ IF(UNIX)
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq
+      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq mpiseq_seq
                    PATHS /usr/lib /usr/local/lib)
       if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
         MESSAGE("-- A library with MUMPS API found.")

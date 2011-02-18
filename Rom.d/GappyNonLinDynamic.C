@@ -15,22 +15,15 @@ GappyNonLinDynamic::GappyNonLinDynamic(Domain * d) :
 {}
 
 void
-GappyNonLinDynamic::fillBasisFromInput(const std::string &fileName, VecBasis &target) {
+GappyNonLinDynamic::fillBasisFromInput(const std::string &fileName, VecBasis &target) const {
   BasisInputStream input(fileName, *vecNodeDof6Conversion_);
   input >> target;
 }
 
 void
-GappyNonLinDynamic::fillRestrictedBasisFromInput(const std::string &fileName, VecBasis &target) {
+GappyNonLinDynamic::fillRestrictedBasisFromInput(const std::string &fileName, VecBasis &target) const {
   BasisInputStream input(fileName, *vecNodeDof6Conversion_);
-
-  target.dimensionIs(input.size(), restrictionMapping_->restrictedInfo());
-  Vector temp(restrictionMapping_->originInfo());
-
-  for (VecBasis::iterator vecIt = target.begin(); vecIt != target.end(); ++vecIt) {
-    input >> temp;
-    restrictionMapping_->restriction(temp, *vecIt);
-  }
+  readRestrictedVectors(input, target, *restrictionMapping_);
 }
 
 void
@@ -48,10 +41,14 @@ GappyNonLinDynamic::preProcess() {
   
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
 
-  FileNameInfo fileInfo;  
-  fillBasisFromInput(fileInfo.fileName(BasisId(BasisId::STATE,    BasisId::GAPPY_POD)), reducedBasis_);
-  fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::GAPPY_POD)), residualProjection_);
-  fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::GAPPY_POD)), jacobianProjection_);
+  {
+    FileNameInfo fileInfo;
+
+    fillBasisFromInput(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::GAPPY_POD)), reducedBasis_);
+
+    fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::GAPPY_POD)), residualProjection_);
+    fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::GAPPY_POD)), jacobianProjection_);
+  }
 
   // Setup solver
   getSolver()->systemApproximationIs(*restrictionMapping_,

@@ -6,6 +6,18 @@
 
 extern GeoSource *geoSource;
 
+std::string
+toString(BasisId::Type t) {
+  static const std::string str[]  = { "state", "res", "jac" };
+  return str[t];
+}
+
+std::string
+toString(BasisId::Level l) {
+  static const std::string str[] = { "snap",  "pod", "gappy" };
+  return str[l];
+}
+
 inline
 std::string
 FileNameInfo::getPrefix(const std::string &str) {
@@ -22,14 +34,13 @@ FileNameInfo::FileNameInfo(const std::string &prefix) :
 
 std::string
 FileNameInfo::fileName(const BasisId &id) const {
-  static const std::string typeStr[]  = { "state", "res", "jac"   };
-  static const std::string levelStr[] = { "snap",  "pod", "gappy" };
-
   std::ostringstream builder;
-  builder << prefix()             << "."
-          << typeStr[id.type()]   << "."
-          << levelStr[id.level()] << "."
-          << "rob";
+
+  const char suffix[] = "rob";
+  builder << prefix()
+          << "." << toString(id.type())
+          << "." << toString(id.level())
+          << "." << suffix;
 
   return builder.str();
 }

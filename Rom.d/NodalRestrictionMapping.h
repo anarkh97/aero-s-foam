@@ -13,6 +13,8 @@ class NodalRestrictionMapping {
 public:
   typedef int InfoType;
 
+  int sampleNodeCount() const { return sampleNodeCount_; }
+
   const InfoType &originInfo()     const { return originInfo_;     }
   const InfoType &restrictedInfo() const { return restrictedInfo_; }
 
@@ -38,6 +40,8 @@ private:
 
   void addSampleNode(int, const DofSetArray &);
 
+  int sampleNodeCount_;
+
   InfoType originInfo_;
   InfoType restrictedInfo_;
 
@@ -53,10 +57,12 @@ template <typename InputIterator>
 NodalRestrictionMapping::NodalRestrictionMapping(const DofSetArray &dsa,
                                                  InputIterator snBegin,
                                                  InputIterator snEnd) :
+  sampleNodeCount_(0),
   originInfo_(extractOriginalInfo(dsa))
 {
   for (InputIterator itNode = snBegin; itNode != snEnd; ++itNode) {
     addSampleNode(*itNode, dsa);
+    ++sampleNodeCount_;
   }
   restrictedInfo_ = originIndex_.size();
 }

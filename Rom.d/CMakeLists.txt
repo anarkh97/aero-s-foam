@@ -13,6 +13,7 @@ ADD_LIBRARY( Rom
   MeshSamplingDriver.C
   MeshUtils.C
   PodProjectionNonLinDynamic.C
+  RenumberingUtils.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   VecBasisFile.C

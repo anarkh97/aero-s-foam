@@ -45,10 +45,9 @@ using namespace std;
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
-#include <Rom.d/PodProjectionSolver.h>
-#include <Rom.d/BasisOrthoDriver.h>
-#include <Rom.d/MeshSamplingDriver.h>
 #include <Rom.d/GappyNonLinDynamic.h>
+#include <Rom.d/PodProjectionSolver.h>
+#include <Rom.d/DriverInterface.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/PitaNonLinDynam.h>
   #include <Pita.d/NLDistrTimeDecompSolver.h>
@@ -991,17 +990,17 @@ int main(int argc, char** argv)
      case SolverInfo::Static:
        {
          if (domain->solInfo().activatePodRom) { // POD ROM
+           std::auto_ptr<RomDriverInterface> driver;
            if (!domain->solInfo().gappyPodRom) {
              // Stand-alone SVD orthogonalization
              filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
-             BasisOrthoDriver svdortho(domain);
-             svdortho.solve(); 
+             driver.reset(basisOrthoDriverNew(domain));
            } else {
              // Offline gappy mesh construction
              filePrint(stderr, " ... POD: Reduced Mesh Construction ...\n");
-             MeshSamplingDriver meshsampling(domain);
-             meshsampling.solve(); 
+             driver.reset(meshSamplingDriverNew(domain));
            }
+           driver->solve(); 
          } else {
            if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
            if(domain->isComplex()) {

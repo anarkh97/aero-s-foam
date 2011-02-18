@@ -34,8 +34,8 @@ private:
   VecBasis jacobianProjection_;
   VecBasis residualProjection_;
   
-  void fillBasisFromInput(const std::string &, VecBasis &);
-  void fillRestrictedBasisFromInput(const std::string &, VecBasis &);
+  void fillBasisFromInput(const std::string &, VecBasis &) const;
+  void fillRestrictedBasisFromInput(const std::string &, VecBasis &) const;
 
   // Disallow copy and assignment
   GappyNonLinDynamic(const GappyNonLinDynamic &);

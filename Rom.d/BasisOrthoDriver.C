@@ -125,3 +125,6 @@ BasisOrthoDriver::preProcess() {
   domain_->make_constrainedDSA(bc.array());
 }
 
+RomDriverInterface *basisOrthoDriverNew(Domain *domain) {
+  return new BasisOrthoDriver(domain);
+}

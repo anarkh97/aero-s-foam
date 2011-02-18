@@ -20,6 +20,9 @@ private:
   Level level_;
 };
 
+std::string toString(BasisId::Type);
+std::string toString(BasisId::Level);
+
 class FileNameInfo {
 public:
   std::string fileName(const BasisId &) const;

@@ -3,6 +3,50 @@
 
 #include <utility>
 #include <map>
+#include <vector>
+
+class Connectivity;
+
+class SampledMeshRenumbering {
+public:
+  typedef std::vector<int> Restriction;
+  typedef std::map<int, int> Extension;
+
+  const Restriction &sampleNodeIds() const { return sampleNodeIds_; }
+  const Restriction &reducedNodeIds() const { return reducedNodeIds_; }
+  const Restriction &reducedSampleNodeIds() const { return reducedSampleNodeIds_; }
+  const Extension &nodeRenumbering() const { return nodeRenumbering_; }
+
+  const Restriction &reducedElemIds() const { return reducedElemIds_; }
+  const Extension &elemRenumbering() const { return elemRenumbering_; }
+
+  template <typename IdxInIt>
+  SampledMeshRenumbering(IdxInIt firstSample, IdxInIt lastSample,
+                         const Connectivity &nodeToNode,
+                         const Connectivity &nodeToElem);
+
+private:
+  Restriction sampleNodeIds_;
+  Restriction reducedNodeIds_;
+  Restriction reducedSampleNodeIds_;
+  Extension nodeRenumbering_;
+  
+  Restriction reducedElemIds_;
+  Extension elemRenumbering_;
+
+  void init(const Connectivity &, const Connectivity &);
+};
+
+template <typename IdxInIt>
+SampledMeshRenumbering::SampledMeshRenumbering(IdxInIt firstSample,
+                                               IdxInIt lastSample,
+                                               const Connectivity &nodeToNode,
+                                               const Connectivity &nodeToElem) :
+  sampleNodeIds_(firstSample, lastSample)
+{
+  init(nodeToNode, nodeToElem);
+}
+
 
 template <typename InputIterator, typename OutputIterator>
 OutputIterator

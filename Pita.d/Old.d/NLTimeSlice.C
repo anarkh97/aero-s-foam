@@ -1,5 +1,7 @@
-#include <Pita.d/NLTimeSlice.h>
-#include <Pita.d/PitaNonLinDynam.h>
+#include "NLTimeSlice.h"
+#include "PitaNonLinDynam.h"
+
+namespace Pita { namespace Old {
 
 NLTimeSlice::NLTimeSlice(const PitaNonLinDynamic & probDesc, int rank)
   : projector(const_cast<PitaNonLinDynamic &>(probDesc).solVecInfo(), defaultTolerance)
@@ -37,3 +39,4 @@ void NLTimeSlice::clearAllBases()
   localBase.clear();
 }
 
+} /* end namespace Old */ } /* end namespace Pita */

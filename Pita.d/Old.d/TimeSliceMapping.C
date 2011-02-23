@@ -1,6 +1,10 @@
-#include <Pita.d/TimeSliceMapping.h>
+#include "TimeSliceMapping.h"
+
 #include <Utils.d/DistHelper.h>
+
 #include <algorithm>
+
+namespace Pita { namespace Old {
 
 TimeSliceMapping::TimeSliceMapping(int nTS, int nCPU, int nMaxActive)
 : numSlices_(nTS), numCPUs_(nCPU), numMaxActiveSlices_(nMaxActive), numCvgSlices_(0), firstInactiveSlice_(0), TStoCPU(NULL), CPUtoTS(NULL)
@@ -88,3 +92,5 @@ void TimeSliceMapping::print(std::ostream & out) const
     out << '\n';
   }
 }
+
+} /* end namespace Old */ } /* end namespace Pita */

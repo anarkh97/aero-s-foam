@@ -1,7 +1,8 @@
-#ifndef _NL_DYNAM_TIME_INTEGRATOR_H_
-#define _NL_DYNAM_TIME_INTEGRATOR_H_
+#ifndef PITA_OLD_NL_DYNAM_TIME_INTEGRATOR_H
+#define PITA_OLD_NL_DYNAM_TIME_INTEGRATOR_H
 
 class NonLinDynamic;
+
 #include <Problems.d/NonLinDynam.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/Vector.h>

@@ -44,11 +44,11 @@ using namespace std;
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
 #ifdef DISTRIBUTED
+  #include <Pita.d/Old.d/PitaNonLinDynam.h>
+  #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
   #include <Pita.d/PitaNonLinDynam.h>
-  #include <Pita.d/NLDistrTimeDecompSolver.h>
-  #include <OOPita.d/PitaNonLinDynam.h>
-  #include <OOPita.d/NlDriver.h>
-  #include <OOPita.d/LinearDriver.h>
+  #include <Pita.d/NlDriver.h>
+  #include <Pita.d/LinearDriver.h>
 #endif
 #include <Comm.d/Communicator.h>
 
@@ -1124,8 +1124,8 @@ int main(int argc, char** argv)
              pitaDriver->solve();
            } else {
              filePrint(stderr, " ... Nonlinear PITA ...\n");
-             PitaNonLinDynamic pitaProblem(domain);
-             NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
+             Pita::Old::PitaNonLinDynamic pitaProblem(domain);
+             Pita::Old::NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
              pitaSolver.solve();
            }
            filePrint(stderr, "End NlPita\n");

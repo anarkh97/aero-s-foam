@@ -1,6 +1,8 @@
 #include "RankDeficientProjection.h"
 
-#include <OOPita.d/NearSymmetricSolver.h>
+#include <Pita.d/NearSymmetricSolver.h>
+
+namespace Pita { namespace Old {
 
 RankDeficientProjection::RankDeficientProjection(int vectorSize, double relTol) :
   orthoStatus_(TO_DO),
@@ -134,3 +136,5 @@ RankDeficientProjection::projection(const StateSet & finalSet, const State & inp
 
   return outputState;
 }
+
+} /* end namespace Old */ } /* end namespace Pita */

@@ -1,11 +1,14 @@
-#ifndef _LINEARIZED_TIME_INTEGRATOR_H_
-#define _LINEARIZED_TIME_INTEGRATOR_H_
+#ifndef PITA_OLD_LINEARIZED_TIME_INTEGRATOR_H
+#define PITA_OLD_LINEARIZED_TIME_INTEGRATOR_H
+
+#include "DynamState.h"
+
+#include <Math.d/Vector.h>
+
+namespace Pita { namespace Old {
 
 class PitaNonLinDynamic;
 template <typename Scalar> class DynamStateSet;
-
-#include <Math.d/Vector.h>
-#include <Pita.d/DynamState.h>
 
 class LinearizedTimeIntegrator
 {
@@ -23,5 +26,7 @@ private:
   mutable VecType temp;
   mutable DynamState<Scalar> newState;
 };
+
+} /* end namespace Old */ } /* end namespace Pita */
 
 #endif

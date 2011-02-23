@@ -1,6 +1,8 @@
-#include <Pita.d/NLDynamTimeIntegrator.h>
+#include "NLDynamTimeIntegrator.h"
+
 #include <Problems.d/NonLinDynam.h>
 #include <Solvers.d/Solver.h>
+
 #include <cstdio>
 #include <cstdlib>
 

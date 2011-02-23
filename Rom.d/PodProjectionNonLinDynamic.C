@@ -30,7 +30,7 @@ PodProjectionNonLinDynamic::preProcess() {
   FileNameInfo fileInfo; 
 
   // Load projection basis
-  BasisInputStream projectionBasisInput(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::POD)), *vecNodeDof6Conversion_);
+  BasisInputStream projectionBasisInput(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), *vecNodeDof6Conversion_);
 
   if (projectionBasisInput.vectorSize() != solVecInfo()) {
     throw std::domain_error("Projection basis has incorrect #rows");
@@ -49,8 +49,8 @@ PodProjectionNonLinDynamic::preProcess() {
   getSolver()->factor(); // Delayed factorization
   
   // Snapshot output
-  residualSnapFile_.reset(new BasisOutputStream(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::SNAPSHOTS)), *vecNodeDof6Conversion_));
-  jacobianSnapFile_.reset(new BasisOutputStream(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::SNAPSHOTS)), *vecNodeDof6Conversion_));
+  residualSnapFile_.reset(new BasisOutputStream(BasisFileId(fileInfo, BasisId::RESIDUAL, BasisId::SNAPSHOTS), *vecNodeDof6Conversion_));
+  jacobianSnapFile_.reset(new BasisOutputStream(BasisFileId(fileInfo, BasisId::JACOBIAN, BasisId::SNAPSHOTS), *vecNodeDof6Conversion_));
 }
 
 

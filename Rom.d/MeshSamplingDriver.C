@@ -56,7 +56,7 @@ MeshSamplingDriver::solve() {
   const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
   const int podSizeMax = domain_->solInfo().maxSizePodRom;
   std::vector<VecBasis> projectionPodBases;
-  readPodOperators(fileInfo, vecDofConversion, projectionPodBases, podSizeMax);
+  readPodOperators(fileInfo, vecDofConversion, podSizeMax, projectionPodBases);
   const VecBasis &residualPod = projectionPodBases[0];
   const VecBasis &jacobianPod = projectionPodBases[1];
   
@@ -68,7 +68,7 @@ MeshSamplingDriver::solve() {
                   vecDofConversion,
                   domain_->solInfo().aspectRatioPodRom);
 
-  // Determine mapping between full and reduced mesh 
+  // Determine mapping between full and reduced mesh
   SampledMeshRenumbering meshRenumbering(sampleNodeIds.begin(), sampleNodeIds.end(),
                                          *domain_->getNodeToNode(),
                                          *domain_->getNodeToElem());
@@ -98,15 +98,15 @@ MeshSamplingDriver::solve() {
   const NodalRestrictionMapping reducedSampledMeshMapping(reducedCdsa,
                                                           meshRenumbering.reducedSampleNodeIds().begin(),
                                                           meshRenumbering.reducedSampleNodeIds().end());
-  outputReducedOperators(reducedSampledMeshMapping, fileInfo, reducedVecDofConversion, jacobianProjection, residualProjection);
+  outputReducedOperators(fileInfo, reducedVecDofConversion, reducedSampledMeshMapping, jacobianProjection, residualProjection);
 
   // Restrict state POD basis
   VecBasis statePod;
-  readPodBasis(statePod, BasisId::STATE, fileInfo, vecDofConversion, podSizeMax);
+  readPodBasis(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion, podSizeMax, statePod);
   const NodalRestrictionMapping reducedMeshMapping(*domain_->getCDSA(),
                                                    meshRenumbering.reducedNodeIds().begin(),
                                                    meshRenumbering.reducedNodeIds().end());
-  outputStatePodRestriction(reducedMeshMapping, fileInfo, reducedVecDofConversion, statePod);
+  outputRestrictedPod(BasisFileId(fileInfo, BasisId::STATE, BasisId::GAPPY_POD), reducedVecDofConversion, reducedMeshMapping, statePod);
 }
 
 void
@@ -128,7 +128,8 @@ MeshSamplingDriver::buildDomainCdsa() {
 void
 MeshSamplingDriver::readPodOperators(const FileNameInfo &fileInfo,
                                      const VecNodeDof6Conversion &conversion,
-                                     std::vector<VecBasis> &result, int podSizeMax) {
+                                     int maxDim,
+                                     std::vector<VecBasis> &result) {
   const BasisId::Type types[] = { BasisId::RESIDUAL, BasisId::JACOBIAN };
   const int basisCount = sizeof(types) / sizeof(types[0]);
 
@@ -137,17 +138,18 @@ MeshSamplingDriver::readPodOperators(const FileNameInfo &fileInfo,
       basisIt != result.end();
       ++basisIt) {
     const BasisId::Type t = types[std::distance(result.begin(), basisIt)];
-    readPodBasis(*basisIt, t, fileInfo, conversion, podSizeMax);
+    readPodBasis(BasisFileId(fileInfo, t, BasisId::POD), conversion, maxDim, *basisIt);
   }
 }
 
 void
-MeshSamplingDriver::readPodBasis(VecBasis &result,
-                                 BasisId::Type type, const FileNameInfo &fileInfo,
-                                 const VecNodeDof6Conversion &conversion, int maxDim) {
-  BasisInputStream in(fileInfo.fileName(BasisId(type, BasisId::POD)), conversion);
+MeshSamplingDriver::readPodBasis(const BasisFileId &basisId,
+                                 const VecNodeDof6Conversion &conversion,
+                                 int maxDim,
+                                 VecBasis &result) {
+  BasisInputStream in(basisId, conversion);
   const int vectorCount = maxDim ? std::min(maxDim, in.size()) : in.size();
-  printReadPodInfo(type, vectorCount);
+  printReadPodInfo(basisId.type(), vectorCount);
 
   result.dimensionIs(vectorCount, in.vectorSize());
   readVectors(in, result.begin(), result.end());
@@ -182,31 +184,30 @@ MeshSamplingDriver::buildCombinedRestrictedProjection(const NodalRestrictionMapp
 }
   
 void
-MeshSamplingDriver::outputReducedOperators(const NodalRestrictionMapping &restriction,
-                                           const FileNameInfo &fileInfo,
+MeshSamplingDriver::outputReducedOperators(const FileNameInfo &fileInfo,
                                            const VecNodeDof6Conversion &conversion,
+                                           const NodalRestrictionMapping &restriction,
                                            const VecBasis &jacobianProjection,
                                            const VecBasis &residualProjection) {
-  outputSampledPod(jacobianProjection, BasisId::JACOBIAN, fileInfo, conversion, restriction);
-  outputSampledPod(residualProjection, BasisId::RESIDUAL, fileInfo, conversion, restriction);
+  outputExtendedPod(BasisFileId(fileInfo, BasisId::JACOBIAN, BasisId::GAPPY_POD), conversion, restriction, jacobianProjection);
+  outputExtendedPod(BasisFileId(fileInfo, BasisId::RESIDUAL, BasisId::GAPPY_POD), conversion, restriction, residualProjection);
 }
 
 void
-MeshSamplingDriver::outputSampledPod(const VecBasis &basis,
-                                     BasisId::Type type, const FileNameInfo &fileInfo,
-                                     const VecNodeDof6Conversion &conversion,
-                                     const NodalRestrictionMapping &mapping) {
-  BasisOutputStream out(fileInfo.fileName(BasisId(type, BasisId::GAPPY_POD)), conversion);
-  writeExtendedVectors(out, basis, mapping);
+MeshSamplingDriver::outputExtendedPod(const BasisFileId &fileId,
+                                      const VecNodeDof6Conversion &conversion,
+                                      const NodalRestrictionMapping &restriction,
+                                      const VecBasis &basis) {
+  BasisOutputStream out(fileId, conversion);
+  writeExtendedVectors(out, basis, restriction);
 }
 
-  
 void
-MeshSamplingDriver::outputStatePodRestriction(const NodalRestrictionMapping &restriction,
-                                              const FileNameInfo &fileInfo,
-                                              const VecNodeDof6Conversion &conversion,
-                                              const VecBasis &basis) {
-  BasisOutputStream out(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::GAPPY_POD)), conversion);
+MeshSamplingDriver::outputRestrictedPod(const BasisFileId &fileId,
+                                        const VecNodeDof6Conversion &conversion,
+                                        const NodalRestrictionMapping &restriction,
+                                        const VecBasis &basis) {
+  BasisOutputStream out(fileId, conversion);
   writeRestrictedVectors(out, basis, restriction);
 }
 

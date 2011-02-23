@@ -44,10 +44,10 @@ GappyNonLinDynamic::preProcess() {
   {
     FileNameInfo fileInfo;
 
-    fillBasisFromInput(fileInfo.fileName(BasisId(BasisId::STATE, BasisId::GAPPY_POD)), reducedBasis_);
+    fillBasisFromInput(BasisFileId(fileInfo, BasisId::STATE, BasisId::GAPPY_POD), reducedBasis_);
 
-    fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::RESIDUAL, BasisId::GAPPY_POD)), residualProjection_);
-    fillRestrictedBasisFromInput(fileInfo.fileName(BasisId(BasisId::JACOBIAN, BasisId::GAPPY_POD)), jacobianProjection_);
+    fillRestrictedBasisFromInput(BasisFileId(fileInfo, BasisId::RESIDUAL, BasisId::GAPPY_POD), residualProjection_);
+    fillRestrictedBasisFromInput(BasisFileId(fileInfo, BasisId::JACOBIAN, BasisId::GAPPY_POD), jacobianProjection_);
   }
 
   // Setup solver

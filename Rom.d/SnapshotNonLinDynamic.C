@@ -80,7 +80,7 @@ SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level le
   converter_(*domain->getCDSA()),
   snapBuffer_(nodeCount()),
   fileInfo_(),
-  stateSnapFile_(fileInfo_.fileName(BasisId(BasisId::STATE, level)), nodeCount())
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), nodeCount())
 {}
 
 void

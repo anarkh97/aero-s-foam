@@ -86,7 +86,7 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
 
     {
-      BasisInputStream input(fileInfo.fileName(BasisId(type, BasisId::SNAPSHOTS)), converter);
+      BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
       filePrint(stderr, "Orthogonalization of a basis with %d vectors\n", input.size());
       
       solver.matrixSizeIs(input.vectorSize(), input.size());
@@ -101,7 +101,7 @@ BasisOrthoDriver::solve() {
 
     solver.solve();
 
-    BasisOutputStream output(fileInfo.fileName(BasisId(type, BasisId::POD)), converter);
+    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter);
     const int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
                               solver.singularValueCount();

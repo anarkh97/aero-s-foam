@@ -3175,6 +3175,7 @@ Domain::ProcessSurfaceBCs()
              for(int inode = 0; inode < nVertices; ++inode)
                nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
              int type = (nVertices == 3) ? 15 : 16;
+             //cerr << iele+1 << " " << type << " "; for(int inode = 0; inode < nVertices; ++inode) cerr << nodes[inode]+1 << " "; cerr << endl;
              addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes);
              delete [] nodes;
           }

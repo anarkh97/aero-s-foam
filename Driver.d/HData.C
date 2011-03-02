@@ -2284,7 +2284,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
    }
 //   else neg++;
  }
- // if (numNeum>0) fprintf(stderr,"Neumann bc had %d positive and %d negative normals.\n",pos,neg);
+// if (numNeum>0) fprintf(stderr,"Neumann bc had %d positive and %d negative normals.\n",pos,neg);
 
 // pos = neg = 0;
  for (i=0;i<totEle;i++) eleTouch[i] = -1;

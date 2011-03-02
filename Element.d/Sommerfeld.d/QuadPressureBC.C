@@ -6,7 +6,6 @@ extern "C" {
   void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
 };
 
-
 QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
 {
   nnode = 4;
@@ -70,7 +69,7 @@ QuadPressureBC::numDofs()
 void
 QuadPressureBC::markDofs(DofSetArray &dsa)
 {
-  dsa.mark(nn, nnode,  DofSet::XYZdisp);
+  dsa.mark(nn, nnode, DofSet::XYZdisp);
 }
 
 void

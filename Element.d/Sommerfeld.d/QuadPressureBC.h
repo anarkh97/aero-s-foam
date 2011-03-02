@@ -23,6 +23,10 @@ class QuadPressureBC : public SommerElement
 
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
     void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0);
+
+    int findAndSetEle(CoordSet& cs,Elemset &eset,
+        Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
+        int it = 0) { return 0; } // normals will never be flipped. TODO reconsider this
 };
 #endif
 

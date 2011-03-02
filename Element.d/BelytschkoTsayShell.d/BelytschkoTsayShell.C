@@ -751,6 +751,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // subtract the local traction forces
   // -------------------------------------
   if(opttrc >= 0) {
+    //cerr << "tmftval = " << tmftval << endl;
     _FORTRAN(elefbc3dbrkshl2opt)(area, trac, tmftval, efintloc.data());
           // input : area,trac,tmftval
           // inoutput : efintloc

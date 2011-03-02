@@ -669,6 +669,16 @@ void GeoSource::setUpData()
   int lastNode = numNodes = nodes.size();
   const int nMaxEle = elemSet.last();
 
+  // Set up element pressure load
+  for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
+    int elemNum = i->first;
+    if(elemSet[elemNum])
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT());
+   else
+     fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
+  }
+  eleprs.clear();
+
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
@@ -1153,14 +1163,8 @@ void GeoSource::setElemTypeMap()
 
 void GeoSource::setElementPressure(int elemNum, double pressure)
 {
- // FIXME for this to work the element topology and mftt must precede the pressure in the input file
- // this dependence on ordering should be removed!!!
  prsflg = 1;
-
- if(elemSet[elemNum])
-   elemSet[elemNum]->setPressure(pressure, domain->getMFTT());
- else
-   fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
+ eleprs.push_back(pair<int,double>(elemNum,pressure));
 }
 
 void GeoSource::setElementPreLoad(int elemNum, double preload)
@@ -1169,7 +1173,6 @@ void GeoSource::setElementPreLoad(int elemNum, double preload)
    elemSet[elemNum]->setPreLoad(preload,prlflg);
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
-
 }
 
 void GeoSource::setConsistentPFlag(int _constpflg)

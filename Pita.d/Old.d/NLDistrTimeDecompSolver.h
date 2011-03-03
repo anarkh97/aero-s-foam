@@ -1,19 +1,24 @@
-#ifndef _NLDISTRTIMEDECOMPSOLVER_H_
-#define _NLDISTRTIMEDECOMPSOLVER_H_
+#ifndef PITA_OLD_NLDISTRTIMEDECOMPSOLVER_H
+#define PITA_OLD_NLDISTRTIMEDECOMPSOLVER_H
 
-#include <Math.d/Vector.h>
-#include <Pita.d/NLTimeSlice.h>
-#include <Pita.d/TimeSliceMapping.h>
+#include "NLTimeSlice.h"
+#include "TimeSliceMapping.h"
+#include "PitaNonLinDynam.h"
+#include "NLDynamTimeIntegrator.h"
+#include "LinearizedTimeIntegrator.h"
+
 #include <Pita.d/SimpleBuffer.h>
-#include <Pita.d/PitaNonLinDynam.h>
-#include <Pita.d/NLDynamTimeIntegrator.h>
-#include <Pita.d/LinearizedTimeIntegrator.h>
+#include <Math.d/Vector.h>
+
 #include <vector>
+
+class Communicator;
+class Connectivity;
+
+namespace Pita { namespace Old {
 
 template <typename Scalar> class DynamState;
 template <typename Scalar> class DynamStateSet;
-class Communicator;
-class Connectivity;
 
 class NLDistrTimeDecompSolver
 {
@@ -131,5 +136,7 @@ inline void NLDistrTimeDecompSolver::setIntegratorState(const NLDistrTimeDecompS
   seqIntegrator.setCurrentVelocity(state.vel());
   seqIntegrator.setCurrentDisplacement(state.disp());
 }
+
+} /* end namespace Old */ } /* end namespace Pita */
 
 #endif

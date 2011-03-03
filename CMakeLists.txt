@@ -308,8 +308,7 @@ SET(ALLLIBS Parser
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
-  add_subdirectory(OOPita.d)
-  SET(ALLLIBS pita ${ALLLIBS} pitadriver )
+  SET(ALLLIBS Pita ${ALLLIBS} )
 ENDIF(MPI_FOUND)
 
 SET_TARGET_PROPERTIES(${ALLLIBS}

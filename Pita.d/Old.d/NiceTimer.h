@@ -1,10 +1,12 @@
-#ifndef _NICETIMER_H_
-#define _NICETIMER_H_
+#ifndef PITA_OLD_NICETIMER_H
+#define PITA_OLD_NICETIMER_H
 
 #include <deque>
 #include <map>
 #include <string>
 #include <ostream>
+
+namespace Pita { namespace Old {
 
 /* Class NiceTimerHandler: Hierarchical timer with a tree-like dynamic structure.
    The structure expands when a timer that does not exist yet is started.
@@ -104,5 +106,7 @@ inline NiceTimerHandler & NiceTimerHandler::stop(const char * name)
 {
   return stop(std::string(name));
 }
+
+} /* end namespace Old */ } /* end namespace Pita */
 
 #endif

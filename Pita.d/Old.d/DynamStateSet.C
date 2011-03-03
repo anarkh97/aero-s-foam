@@ -1,12 +1,13 @@
-#ifndef _DYNAMSTATESET_C_
-#define _DYNAMSTATESET_C_
+#include "DynamStateSet.h"
 
-#include <cstdio>
-#include <Pita.d/DynamStateSet.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 
+#include <cstdio>
+
 using std::fprintf;
+
+namespace Pita { namespace Old {
 
 // Memory management
 
@@ -46,4 +47,4 @@ void DynamStateSet<Scalar>::getRaw(Scalar * buffer) const
   }
 }
 
-#endif
+} /* end namespace Old */ } /* end namespace Pita */

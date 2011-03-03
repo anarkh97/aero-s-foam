@@ -1,10 +1,13 @@
-#ifndef _NLTIMESLICE_H_
-#define _NLTIMESLICE_H_
+#ifndef PITA_OLD_NLTIMESLICE_H
+#define PITA_OLD_NLTIMESLICE_H
+
+#include "DynamState.h"
+#include "DynamStateSet.h"
+#include "RankDeficientProjection.h"
 
 #include <Math.d/Vector.h>
-#include <Pita.d/DynamState.h>
-#include <Pita.d/DynamStateSet.h>
-#include <Pita.d/RankDeficientProjection.h>
+
+namespace Pita { namespace Old {
 
 class PitaNonLinDynamic;
 
@@ -40,5 +43,7 @@ struct NLTimeSlice
 
   static const double defaultTolerance = 1.0e-6;
 };
+
+} /* end namespace Old */ } /* end namespace Pita */
 
 #endif

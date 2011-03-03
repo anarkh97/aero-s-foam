@@ -1,6 +1,11 @@
+#ifndef PITA_OLD_TIMESLICEMAPPING_H
+#define PITA_OLD_TIMESLICEMAPPING_H
+
 #include <Utils.d/Connectivity.h>
 #include <algorithm>
 #include <iostream>
+
+namespace Pita { namespace Old {
 
 // Represents the mapping of time-slices on a set of available processors.
 class TimeSliceMapping
@@ -50,3 +55,7 @@ inline std::ostream & operator<<(std::ostream & out, const TimeSliceMapping & ts
   tsm.print(out);
   return out;
 }
+
+} /* end namespace Old */ } /* end namespace Pita */
+
+#endif /* PITA_OLD_TIMESLICEMAPPING_H */

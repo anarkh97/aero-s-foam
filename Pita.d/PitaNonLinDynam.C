@@ -1,89 +1,53 @@
-#include <Pita.d/PitaNonLinDynam.h>
-#include <Pita.d/DynamStateSet.h>
-#include <Control.d/ControlInterface.h>
+#include "PitaNonLinDynam.h"
+
 #include <Comm.d/Communicator.h>
 #include <Driver.d/Domain.h>
 #include <Timers.d/StaticTimers.h>
-#include <iostream>
+
+#include <sstream>
 
 extern Communicator* structCom;
 
-PitaNonLinDynamic::PitaNonLinDynamic(Domain *d) :
-  NonLinDynamic(d),
-  pitaTimers("NonLinear Pita"),
-  defaultPostProcessor_(*this)
-{ 
-  this->preProcess();
-  this->K = domain->constructDBSparseMatrix<double>();
-  
-  this->computeTimeInfo();
- 
-  kiter = d->solInfo().pitaMainIterMax;
-  Jratio = d->solInfo().pitaTimeGridRatio;
-  numTSonCPU = d->solInfo().pitaProcessWorkloadMax;
+namespace Pita {
 
-  coarseDt = this->getDt() * Jratio;
-  coarseDelta = this->getDelta() * Jratio;
+PitaNonLinDynamic::PitaNonLinDynamic(Domain *domain) :
+  NonLinDynamic(domain)
+{}
 
-  numTS = int( ceil( ( this->getTotalTime() / this->getDt() ) / Jratio) );
-
-  totalTime = numTS * coarseDt;
-
-  basisImprovementMethod = d->solInfo().pitaGlobalBasisImprovement - 1;
-  if (d->solInfo().pitaLocalBasisImprovement) {
-    basisImprovementMethod = 2;
-  }
-
-  projTol = d->solInfo().pitaProjTol;
+void
+PitaNonLinDynamic::preProcess() {
+  NonLinDynamic::preProcess();
+  Kt = domain->constructDBSparseMatrix<double>();
+  computeTimeInfo();
 }
 
-int PitaNonLinDynamic::getInitState(DynamState<double> & ds)
-{
-  // Dummy vectors: We do not need that information for PITA
-  GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-  GenVector<double> dummy_vp(this->solVecInfo(), 0.0);
-  return NonLinDynamic::getInitState(ds.disp(), ds.vel(), dummy_acc, dummy_vp);
-}
-
-int PitaNonLinDynamic::getInitSeed(DynamState<double> & ds, int sliceRank)
-{
-  domain->initDispVelocOnTimeSlice(ds.disp(), ds.vel(), sliceRank);
-  if (userSupFunc) // Get disp/velo when a user supplied control function has been specified
-  {
-    double sliceTime = domain->solInfo().getTimeStep() * domain->solInfo().pitaTimeGridRatio * sliceRank;
-    double *ctrdisp = (double *) alloca(sizeof(double)*claw->numSensor);
-    double *ctrvel  = (double *) alloca(sizeof(double)*claw->numSensor);
-    double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
-    GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
-    extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
-    userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
-  }  
-  return 0; // Default value for int aeroAlg
+bool
+PitaNonLinDynamic::getInitialAcceleration() const {
+  return domain->solInfo().iacc_switch;
 }
 
 // Rebuild dynamic mass matrix and stiffness matrix (fine time-grid)
-void PitaNonLinDynamic::reBuildKonly()
-{
+void
+PitaNonLinDynamic::reBuildKonly() {
   times->rebuild -= getTime();
 
-  K->zeroAll();
+  Kt->zeroAll();
 
   Connectivity *allDofs = domain->getAllDOFs();
   for (int iele = 0; iele < domain->numElements(); ++iele) {
-    K->add(kelArray[iele], (*allDofs)[iele]);
+    Kt->add(kelArray[iele], (*allDofs)[iele]);
   }
 
   times->rebuild += getTime();
 }
 
 // Set rotational displacements equal to zero.
-void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
-{
+void
+PitaNonLinDynamic::zeroRotDofs(VecType & vec) const {
   ConstrainedDSA & cdsa = *(domain->getCDSA());
   int numNodes = cdsa.numNodes(); 
   int dofPos;
-  for (int inode = 0; inode < numNodes; ++inode)
-  {
+  for (int inode = 0; inode < numNodes; ++inode) {
       dofPos = cdsa.locate(inode, DofSet::Xrot);
       if (dofPos >= 0)
         vec[dofPos] = 0.0;
@@ -96,93 +60,63 @@ void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
   }
 }
 
-double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)
-{
-  return sqrt(energyDot(disp, velo, disp, velo)); 
+double
+PitaNonLinDynamic::internalEnergy(const GeomState * configuration) const {
+  double result = 0.0;
+  for (int iele = 0; iele < domain->numElements(); ++iele) {
+    result += allCorot[iele]->getElementEnergy(const_cast<GeomState &>(*configuration), domain->getNodes());
+  }
+  return result;
 }
 
-double PitaNonLinDynamic::energyDot(const Vector &disp1, const Vector &velo1, const Vector &disp2, const Vector &velo2)
-{
-  Vector Kdisp(disp1.size());
-  Vector Mvelo(velo1.size());
-  K->mult(disp1, Kdisp);
-  M->mult(velo1, Mvelo);
-  return (Mvelo * velo2) + (Kdisp * disp2); 
+double
+PitaNonLinDynamic::internalEnergy(const VecType & displacement) const {
+  GeomState * configuration = const_cast<PitaNonLinDynamic *>(this)->createGeomState();
+  configuration->update(const_cast<VecType &>(displacement));
+
+  double result = internalEnergy(configuration);
+
+  delete configuration;
+  return result;
 }
 
-void PitaNonLinDynamic::openResidualFile()
-{
-  if (this->res != (FILE*) 0)
-    fclose(this->res);
-                                                                                                                                                   
+void
+PitaNonLinDynamic::openResidualFile() {
+  if (res != (FILE*) 0)
+    fclose(res);
+  
   int myCPU  = structCom->myID();
   
   std::stringstream s;
   s << "residuals." << myCPU;
-  this->res = fopen(s.str().c_str(), "wt");
-                                                                                                                                                   
-  if (this->res == (FILE *) 0)
+  res = fopen(s.str().c_str(), "wt");
+  
+  if (res == (FILE *) 0) {
     filePrint(stderr, " *** ERROR: Cannot open residual file for CPU # %d\n", myCPU);
+  }
 }
 
-// No Aero
 void
-PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vector& velocity,
-                                   Vector& vp, double time, int step, Vector& force, Vector &aeroF)
-{
+PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, VecType & velocity,
+                                   VecType & vp, double time, int step, VecType & force, VecType & aeroF,
+                                   VecType & acceleration) {
+  // Note: No Aero
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray);
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF,
+                             time, step, velocity.data(), vcx,
+                             allCorot, melArray, acceleration.data());
   times->output += getTime();
 }
 
 void
-PitaNonLinDynamic::openOutputFiles(int sliceRank)
-{
+PitaNonLinDynamic::openOutputFiles(int sliceRank) {
   geoSource->openOutputFilesForPita(sliceRank);
   //domain->printStatistics(); // Deactivated
 }
 
 void
-PitaNonLinDynamic::closeOutputFiles()
-{
+PitaNonLinDynamic::closeOutputFiles() {
   geoSource->closeOutputFiles();
 }
 
-void 
-PitaNonLinDynamic::printNLPitaTimerFile(int CPUid)
-{
-  std::string fileNameString(geoSource->getCheckFileInfo()->checkfile);
-  std::stringstream s;
-  s << ".pitaTiming." << CPUid;
-  fileNameString.append(s.str());
-  std::ofstream out(fileNameString.c_str());
-  if (out.fail())
-  {
-    fprintf(stderr, "Failed to open %s\n", fileNameString.c_str());
-    return;
-  }
-  out.precision(5);
-  out << std::fixed << pitaTimers;
-  out.close();
-}
-
-// class PitaNLDynamOutput
-PitaNonLinDynamic::PitaPostProcessor::PitaPostProcessor(PitaNonLinDynamic & probDesc) :
-  probDesc_(probDesc),
-  sliceRank_(-1)
-{
-}
-                                                                                                                                                                                                     
-PitaNonLinDynamic::PitaPostProcessor::~PitaPostProcessor()
-{
-  probDesc_.closeOutputFiles();
-}
-                                                                                                                                                                                                     
-void
-PitaNonLinDynamic::PitaPostProcessor::sliceRank(int rank)
-{
-  probDesc_.closeOutputFiles();
-  if (rank >= 0)
-    probDesc_.openOutputFiles(rank);
-  sliceRank_ = rank;
-}
+} /* end namespace Pita */

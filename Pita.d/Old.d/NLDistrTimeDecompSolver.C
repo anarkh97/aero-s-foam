@@ -1,5 +1,6 @@
-#include <Pita.d/NLDistrTimeDecompSolver.h>
-#include <Pita.d/DynamStateSet.h>
+#include "NLDistrTimeDecompSolver.h"
+#include "DynamStateSet.h"
+
 #include <Utils.d/Connectivity.h>
 #include <Comm.d/Communicator.h>
 #include <Driver.d/GeoSource.h>
@@ -7,6 +8,8 @@
 extern Communicator * structCom;
 extern int verboseFlag;
 extern GeoSource * geoSource;
+
+namespace Pita { namespace Old {
 
 NLDistrTimeDecompSolver::NLDistrTimeDecompSolver(PitaNonLinDynamic * pbdesc) :
   probDesc(pbdesc),
@@ -471,3 +474,5 @@ void NLDistrTimeDecompSolver::fineIntegrator(NLTimeSlice & timeSlice)
   getIntegratorState(timeSlice.propState);
   probDesc->pitaTimers.stop(); // End Fine Grid Integration
 }
+
+} /* end namespace Old */ } /* end namespace Pita */

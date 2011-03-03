@@ -6,4 +6,5 @@ SubDomainCore.C Domain.C SComm.C
 Eigen.C MPIComm.C SubDomainFactory.C
 PolygonSet.C NLMat.C Sower.C CornerMaker.C
 jacobi.f pade.f zpade.f
-BinaryOutput.C) 
+BinaryOutput.C
+DomainPita.C ) 

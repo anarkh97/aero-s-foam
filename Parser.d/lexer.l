@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
-#include "p.tab.H"
+#include "parser.hpp"
 #include <stack>
 //#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 int line_num = 1;

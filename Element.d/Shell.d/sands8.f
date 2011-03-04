@@ -283,7 +283,7 @@ C ... COMPUTE STRAINS AT TOP SURFACE
           stress(elm,6,2) = 2.0D0*str(6)
           stress(elm,6,3) = 2.0D0*str(6)
 
-          call straineq(rmx,rmy,rmxy,rnx,rny,rnxy,t,surface,ebar)
+          call straineq(rmx,rmy,rmxy,rnx,rny,rnxy,nu,surface,ebar)
 
           stress(elm,7,1) = ebar 
           stress(elm,7,2) = ebar

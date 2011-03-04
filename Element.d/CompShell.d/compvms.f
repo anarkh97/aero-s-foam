@@ -753,7 +753,7 @@ C
 101	  continue
 
           call straineq(elecrv(1),elecrv(2),elecrv(3),
-     &     elestr(1),elestr(2),elestr(3),thick,surface,ebar)
+     &     elestr(1),elestr(2),elestr(3),nu,surface,ebar)
 
           stress(elm,7,1) = ebar
           stress(elm,7,2) = ebar

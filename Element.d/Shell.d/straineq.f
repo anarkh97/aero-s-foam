@@ -1,4 +1,4 @@
-        subroutine straineq(rmx,rmy,rmxy,rnx,rny,rnxy,t,surface,ebar)
+        subroutine straineq(rmx,rmy,rmxy,rnx,rny,rnxy,nu,surface,ebar)
 ***************************************************************
 *       THIS ROUTINE CALCULATES THE EQUIVALENT VON MISES      *
 *       STRAIN FOR THE 3 NODE SHELL ELEMENT                   *
@@ -16,7 +16,7 @@
 *	rnx  = centroidal membrane strain   (exxc)            *
 *	rny  = centroidal membrane strain   (eyyc)            *
 *	rnxy = centroidal membrane strain   (exyc)            *
-*	t    = element thickness                              *
+*	nu   = Poisson's ratio                                *
 *	ebar = equivalent strain                              *
 *                                                             *
 ***************************************************************
@@ -27,31 +27,32 @@
 
 C ... ARGUMENTS
         integer surface
-        double precision rmx,rmy,rmxy,rnx,rny,rnxy,t,ebar
+        double precision rmx,rmy,rmxy,rnx,rny,rnxy,nu,ebar
 
 C ... LOCAL VARIABLES
-        double precision ex,ey,exy,etop,ebot,emid
-c       double precision th
+        double precision ex,ey,ez,exy,etop,ebot,emid
 
-C ... RETURN IF MEDIAN SURFACE IS REQUESTED
+C ... CALCULATE STRAINS AT MEDIAN SURFACE,
+C ... COMPUTE EQUIVALENT STRAIN AT MEDIAN SURFACE,
+C ... AND RETURN IF MEDIAN SURFACE IS REQUESTED
         if(surface .eq. 2) then
-c	  call equiv(rmx,rmy,rmxy,emid)
-          call equiv(rnx,rny,0.5*rnxy,emid)
+          ex  = rnx
+          ey  = rny
+          ez  = -nu/(1.0-nu)*(ex + ey)
+          exy = 0.5*rnxy
+          call equiv(ex,ey,ez,exy,emid)
           ebar = emid
           return
         endif
 
-C ... DIVIDE THICKNESS BY 2
-c 	th = 0.5*t
-
 C ... CALCULATE STRAINS AT TOP SURFACE
-        ex  =  rnx +  rmx
-        ey  =  rny +  rmy
-C Strain Tensor Versus Engineering Strain
+        ex  = rnx + rmx
+        ey  = rny + rmy
+        ez  = -nu/(1.0-nu)*(ex + ey)
         exy = 0.5*(rnxy + rmxy)
 
 C ... COMPUTE EQUIVALENT STRAIN AT TOP SURFACE
-        call equiv(ex,ey,exy,etop)
+        call equiv(ex,ey,ez,exy,etop)
 
 C ... RETURN IF TOP SURFACE VALUE IS REQUESTED
         if(surface .eq. 1) then
@@ -60,19 +61,19 @@ C ... RETURN IF TOP SURFACE VALUE IS REQUESTED
         endif
 
 C ... CALCULATE STRAINS AT BOTTOM SURFACE
-        ex   =  rnx -  rmx
-        ey   =  rny -  rmy
+        ex   = rnx - rmx
+        ey   = rny - rmy
+        ez   = -nu/(1.0-nu)*(ex + ey)
         exy  = 0.5*(rnxy - rmxy)
 
 C ... COMPUTE EQUIVALENT STRAIN AT BOTTOM SURFACE
-        call equiv(ex,ey,exy,ebot)
+        call equiv(ex,ey,ez,exy,ebot)
 
 C ... RETURN IF BOTTOM SURFACE VALUE IS REQUESTED
         if(surface .eq. 3) then
           ebar = ebot
           return
         endif
-
 
 C ... RETURN THE MAXIMUM EQUIVALENT STRAIN
         ebar = max(etop,ebot)
@@ -83,26 +84,23 @@ C ... RETURN THE MAXIMUM EQUIVALENT STRAIN
 C
 C ... SUBROUTINE TO CALCULATE EQUIVALENT STRAIN
 C
-        subroutine equiv(ex,ey,exy,eq)
+        subroutine equiv(ex,ey,ez,exy,eq)
 
 C ... ARGUMENTS
-        double precision ex,ey,exy,eq
+        double precision ex,ey,ez,exy,eq
 
 C ... LOCAL VARIABLES
         double precision e0,dex,dey,dez
         
 C ... COMPUTE MEAN HYDROSTATIC STRAIN
-        e0 = (ex + ey)/3.0d0
+        e0 = (ex + ey + ez)/3.0d0
 
 C ... COMPUTE DEVIATORIC STRAINS
         dex = ex - e0
         dey = ey - e0
-        dez =    - e0
+        dez = ez - e0
 
 C ... COMPUTE EQUIVALENT STRAIN
-C THIS COMPUTATION OF VON-MISES STRAIN MAKES NO SENSE
-C       eq = dsqrt((2.0d0/3.0d0)*dex*dex + dey*dey + dez*dez)
-C COMPUTE LIKE VM STRESS
         eq = ((dex*dex + dey*dey + dez*dez)/2.0d0) + (exy*exy)
         eq = dsqrt(3.0d0 * eq)
 

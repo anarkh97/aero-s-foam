@@ -55,8 +55,8 @@ class SDDynamPostProcessor {
                          int sliceRank, double time);
     double getKineticEnergy(Vector & vel, SparseMatrix * gMass);
 
-  protected:
-    void fillBcxVcx(int tIndex);
+  private:
+    void fillBcxVcx(double time);
 };
 
 

@@ -3,6 +3,8 @@
 
 #include <cassert>
 
+namespace Rom {
+
 template <typename VecSetType, typename VecType>
 inline
 void
@@ -35,5 +37,7 @@ expand(const VecSetType &basis, const VecType &xReduced, VecType &xFull) {
 
   return xFull; 
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_BASISOPS_H */

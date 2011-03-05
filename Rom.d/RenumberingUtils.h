@@ -7,6 +7,8 @@
 
 class Connectivity;
 
+namespace Rom {
+
 class SampledMeshRenumbering {
 public:
   typedef std::vector<int> Restriction;
@@ -73,5 +75,7 @@ renumber(const std::map<int, int> &renum, InputIterator first, InputIterator las
 
   return result;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_RENUMBERINGUTILS_H */

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+namespace Rom {
+
 // Input Iterator
 
 BasisInputStream::BasisInputStream(const std::string &fileName, const VecNodeDof6Conversion &converter) :
@@ -22,3 +24,4 @@ BasisOutputStream::BasisOutputStream(const std::string &fileName, const VecNodeD
   buffer_(file_.nodeCount())
 {}
 
+} /* end namespace Rom */

@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <memory>
 
+namespace Rom {
+
 // Dummy class holding the implementation of SnapshotNonLinDynamic
 struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   class RawImpl : public Impl {
@@ -175,3 +177,4 @@ SnapshotNonLinDynamic::preProcess() {
   }
 }
 
+} /* end namespace Rom */

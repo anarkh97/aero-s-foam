@@ -10,6 +10,8 @@
 
 extern GeoSource *geoSource;
 
+namespace Rom {
+
 GappyNonLinDynamic::GappyNonLinDynamic(Domain * d) :
   NonLinDynamic(d)
 {}
@@ -73,3 +75,4 @@ GappyNonLinDynamic::factorWhenBuilding() const {
   return false; // Delayed factorization
 }
  
+} /* end namespace Rom */

@@ -12,6 +12,8 @@
 #include <string>
 #include <memory>
 
+namespace Rom {
+
 class GappyNonLinDynamic : public NonLinDynamic {
 public:
   explicit GappyNonLinDynamic(Domain *);
@@ -41,5 +43,7 @@ private:
   GappyNonLinDynamic(const GappyNonLinDynamic &);
   GappyNonLinDynamic &operator=(const GappyNonLinDynamic &);
 };
+
+} /* end namespace Rom */
 
 #endif /* ROM_GAPPYNONLINDYNAMIC_H */

@@ -13,6 +13,8 @@ extern "C" {
                         double *work, const int *lwork, int *info);
 }
 
+namespace Rom {
+
 SvdOrthogonalization::SvdOrthogonalization() :
   rowCount_(0),
   colCount_(0),
@@ -59,3 +61,5 @@ SvdOrthogonalization::solve() {
                    work.array(), &lwork, &info);
   assert(info == 0);
 }
+
+} /* end namespace Rom */

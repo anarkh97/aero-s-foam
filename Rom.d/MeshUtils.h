@@ -8,13 +8,15 @@
 #include <iterator>
 #include <cstring>
 
-class SampledMeshRenumbering;
-
 class Domain;
 
 class EFrameData;
 class Attrib;
 class BCond;
+
+namespace Rom {
+
+class SampledMeshRenumbering;
 
 class MeshDesc {
 public:
@@ -173,5 +175,7 @@ value_iterator<MapIterator>
 make_value_iterator(MapIterator mapIt) {
   return value_iterator<MapIterator>(mapIt);
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_MESHUTILS_H */

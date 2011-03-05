@@ -7,6 +7,8 @@
 // Debug
 #include <iostream>
 
+namespace Rom {
+
 void
 SampledMeshRenumbering::init(const Connectivity &nodeToNode,
                              const Connectivity &nodeToElem) {
@@ -50,3 +52,5 @@ SampledMeshRenumbering::init(const Connectivity &nodeToNode,
   }
   std::cerr << std::endl;
 }
+
+} /* end namespace Rom */

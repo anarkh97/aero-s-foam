@@ -1,10 +1,12 @@
 #ifndef ROM_VECBASIS_H
 #define ROM_VECBASIS_H
 
-template <typename Scalar> class GenVector;
-
 #include <memory>
 #include <algorithm>
+
+template <typename Scalar> class GenVector;
+
+namespace Rom {
 
 template <typename Scalar, template <typename Scalar> class GenVecType = GenVector>
 class GenVecBasis : private std::allocator<GenVecType<Scalar> > {
@@ -159,5 +161,7 @@ swap(GenVecBasis<Scalar, GenVecType> &a, GenVecBasis<Scalar, GenVecType> &b) {
 }
 
 typedef GenVecBasis<double> VecBasis;
+
+} /* end namespace Rom */
 
 #endif /* ROM_VECBASIS_H */

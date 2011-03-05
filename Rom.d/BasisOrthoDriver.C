@@ -13,6 +13,8 @@
 #include <utility>
 #include <algorithm>
 
+namespace Rom {
+
 namespace { // anonymous
 
 template <typename VecType>
@@ -125,6 +127,8 @@ BasisOrthoDriver::preProcess() {
   domain_->make_constrainedDSA(bc.array());
 }
 
-RomDriverInterface *basisOrthoDriverNew(Domain *domain) {
-  return new BasisOrthoDriver(domain);
+} /* end namespace Rom */
+
+Rom::DriverInterface *basisOrthoDriverNew(Domain *domain) {
+  return new Rom::BasisOrthoDriver(domain);
 }

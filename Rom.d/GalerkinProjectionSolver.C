@@ -16,6 +16,8 @@ extern "C" {
                         double *b, const int *ldb, int *info);
 }
 
+namespace Rom {
+
 template <>
 void
 GenGalerkinProjectionSolver<double>::performFactor() {
@@ -53,3 +55,5 @@ void
 GenGalerkinProjectionSolver<std::complex<double> >::performSolve() {
   throw std::logic_error("Not implemented");
 }
+
+} /* end namespace Rom */

@@ -7,6 +7,8 @@
 #include <cassert>
 #include <algorithm>
 
+namespace Rom {
+
 template <typename Scalar>
 class GenGaussNewtonSolver : public GenPodProjectionSolver<Scalar> {
 public:
@@ -95,5 +97,7 @@ GenGaussNewtonSolver<Scalar>::getReducedRhsNorm() const {
 }
 
 typedef GenGaussNewtonSolver<double> GaussNewtonSolver;
+
+} /* end namespace Rom */
 
 #endif /* ROM_GAUSSNEWTONSOLVER_H */

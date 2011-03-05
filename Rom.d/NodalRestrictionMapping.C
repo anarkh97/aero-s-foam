@@ -2,6 +2,8 @@
 
 #include <Utils.d/dofset.h>
 
+namespace Rom {
+
 NodalRestrictionMapping::InfoType
 NodalRestrictionMapping::extractOriginalInfo(const DofSetArray &dsa) {
   return const_cast<DofSetArray &>(dsa).size();
@@ -31,3 +33,5 @@ operator<<(std::ostream &out, const NodalRestrictionMapping &source) {
 
   return out;
 }
+
+} /* end namespace Rom */

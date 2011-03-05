@@ -3,22 +3,26 @@
 
 class Domain;
 
-class RomDriverInterface {
+namespace Rom {
+
+class DriverInterface {
 public:
   virtual void solve() = 0;
-  virtual ~RomDriverInterface() {}
+  virtual ~DriverInterface() {}
 
 protected:
-  RomDriverInterface() {}
+  DriverInterface() {}
 
 private:
   // Disallow copy & assignment
-  RomDriverInterface(const RomDriverInterface &);
-  RomDriverInterface &operator=(const RomDriverInterface &);
+  DriverInterface(const DriverInterface &);
+  DriverInterface &operator=(const DriverInterface &);
 };
 
+} /* end namespace Rom */
+
 // Concrete class instantiation
-extern RomDriverInterface *basisOrthoDriverNew(Domain *);
-extern RomDriverInterface *meshSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *basisOrthoDriverNew(Domain *);
+extern Rom::DriverInterface *meshSamplingDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

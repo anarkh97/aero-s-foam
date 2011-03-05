@@ -6,6 +6,8 @@
 
 extern GeoSource *geoSource;
 
+namespace Rom {
+
 inline
 std::string
 FileNameInfo::getPrefix(const std::string &str) {
@@ -32,3 +34,5 @@ FileNameInfo::basisFileName(const BasisId &id) const {
 
   return builder.str();
 }
+
+} /* end namespace Rom */

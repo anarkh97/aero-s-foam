@@ -11,6 +11,8 @@
 
 #include <memory>
 
+namespace Rom {
+
 class PodProjectionNonLinDynamic : public NonLinDynamic {
 public:
   explicit PodProjectionNonLinDynamic(Domain *);
@@ -67,4 +69,7 @@ public:
     return result;
   }
 };
+
+} /* end namespace Rom */
+
 #endif /* ROM_PODPROJECTIONNONLINDYNAMIC_H */

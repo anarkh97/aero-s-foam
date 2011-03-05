@@ -18,6 +18,8 @@ extern "C" {
                        const double *beta, double *c, const int *ldc);
 }
 
+namespace Rom {
+
 namespace { // anonymous
 
   template <typename Scalar>
@@ -96,3 +98,4 @@ combine_projections<std::complex<double> >(const GenVecBasis<std::complex<double
   throw std::logic_error("Not implemented");
 }
 
+} /* end namespace Rom */

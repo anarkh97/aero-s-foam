@@ -3,6 +3,8 @@
 
 #include "VecBasis.h"
 
+namespace Rom {
+
 class BasisInputStream;
 class BasisOutputStream;
 
@@ -41,5 +43,7 @@ readExtendedVectors(BasisInputStream &, VecBasis &, const NodalRestrictionMappin
 // Reset basis with the restricted content of the stream (inverse of writeExtendedVectors)
 BasisInputStream &
 readRestrictedVectors(BasisInputStream &, VecBasis &, const NodalRestrictionMapping &);
+
+} /* end namespace Rom */
 
 #endif /* ROM_VECBASISFILE_H */

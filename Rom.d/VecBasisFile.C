@@ -8,6 +8,8 @@
 #include <cassert>
 #include <algorithm>
 
+namespace Rom {
+
 // Output
 BasisOutputStream &
 operator<<(BasisOutputStream &out, const VecBasis &source) {
@@ -88,3 +90,4 @@ readExtendedVectors(BasisInputStream &in, VecBasis &sink, const NodalRestriction
   return in;
 }
 
+} /* end namespace Rom */

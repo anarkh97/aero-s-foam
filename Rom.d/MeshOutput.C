@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 
+namespace Rom {
+
 // Atoms
 
 std::ostream &
@@ -148,3 +150,4 @@ InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
   }
 }
 
+} /* end namespace Rom */

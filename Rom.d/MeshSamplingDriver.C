@@ -28,6 +28,8 @@
 
 extern GeoSource *geoSource;
 
+namespace Rom {
+
 namespace { // anonymous
 
   template <typename T>
@@ -38,10 +40,6 @@ namespace { // anonymous
   }
 
 } // end anonymous namespace
-
-RomDriverInterface *meshSamplingDriverNew(Domain *domain) {
-  return new MeshSamplingDriver(domain);
-}
 
 MeshSamplingDriver::MeshSamplingDriver(Domain *domain) :
   domain_(domain)
@@ -228,4 +226,10 @@ MeshSamplingDriver::printGappyInfo(const std::vector<VecBasis> &podBases, const 
   const double aspectRatio = static_cast<double>(sampleLocationCount) / podDimensionMax;
   filePrint(stderr, "Gappy aspect ratio = Sampled dofs / POD dimension = %d / %d = %g\n",
                     sampleLocationCount, podDimensionMax, aspectRatio);
+}
+
+} /* end namespace Rom */
+
+Rom::DriverInterface *meshSamplingDriverNew(Domain *domain) {
+  return new Rom::MeshSamplingDriver(domain);
 }

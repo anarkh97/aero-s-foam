@@ -14,6 +14,8 @@
 #include <stdexcept>
 #include <cassert>
 
+namespace Rom {
+
 template <typename Scalar>
 class GenGappyProjectionSolver : public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
 public:
@@ -204,5 +206,7 @@ GenGappyProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> 
 }
 
 typedef GenGappyProjectionSolver<double> GappyProjectionSolver;
+
+} /* end namespace Rom */
 
 #endif /* ROM_GAPPYPROJECTIONSOLVER_H */

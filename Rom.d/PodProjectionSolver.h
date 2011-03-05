@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <stdexcept>
 
+namespace Rom {
+
 template <typename Scalar>
 class GenPodProjectionSolver : public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
 public:
@@ -158,5 +160,7 @@ GenPodProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &r
 }
 
 typedef GenPodProjectionSolver<double> PodProjectionSolver;
+
+} /* end namespace Rom */
 
 #endif /* ROM_PODPROJECTIONSOLVER_H */

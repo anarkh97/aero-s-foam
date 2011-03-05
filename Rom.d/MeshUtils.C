@@ -8,6 +8,8 @@
 
 #include <Driver.d/Domain.h>
 
+namespace Rom {
+
 MeshDesc::MeshDesc(Domain *domain,
                    const SPropContainer &prop, const AttribContainer &attrib,
                    const SampledMeshRenumbering &ren) :
@@ -86,3 +88,5 @@ MeshSectionTraits<Attrib>::renumbered_slot = &Attrib::nele;
 template <>
 int EFrameData::* const
 MeshSectionTraits<EFrameData>::renumbered_slot = &EFrameData::elnum;
+
+} /* end namespace Rom */

@@ -31,6 +31,8 @@ extern "C" {
                        double *b, const int *ldb);
 }
 
+namespace Rom {
+
 // Implementation specializations
 
 template <>
@@ -147,3 +149,4 @@ GenLeastSquaresSolver<std::complex<double> >::statusIs(Status) {
   std::logic_error("Not implemented");
 }
 
+} /* end namespace Rom */

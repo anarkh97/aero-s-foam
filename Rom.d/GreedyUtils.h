@@ -17,6 +17,8 @@
 // debug
 #include <iostream>
 
+namespace Rom {
+
 // Helper class: Allows the ordering of candidates
 template <typename V, typename W>
 struct SampleCandidate {
@@ -211,5 +213,7 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
 
   return result;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_GREEDYUTILS_H */

@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace Rom {
+
 PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   NonLinDynamic(d)
 {}
@@ -88,3 +90,5 @@ bool
 PodProjectionNonLinDynamic::factorWhenBuilding() const {
   return false; // Delayed factorization
 }
+
+} /* end namespace Rom */

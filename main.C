@@ -990,7 +990,7 @@ int main(int argc, char** argv)
      case SolverInfo::Static:
        {
          if (domain->solInfo().activatePodRom) { // POD ROM
-           std::auto_ptr<RomDriverInterface> driver;
+           std::auto_ptr<Rom::DriverInterface> driver;
            if (!domain->solInfo().gappyPodRom) {
              // Stand-alone SVD orthogonalization
              filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
@@ -1168,20 +1168,20 @@ int main(int argc, char** argv)
              } else { // POD ROM
                if (domain->solInfo().gaussNewtonPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
-                 PodProjectionNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <PodProjectionSolver, Vector, SDDynamPostProcessor, PodProjectionNonLinDynamic,
-                                GeomState, PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 Rom::PodProjectionNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().gappyPodRom) {
                  filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
-                 GappyNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 Rom::GappyNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else {
                  filePrint(stderr, " ... POD: Snapshot collection       ...\n");
-                 SnapshotNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, SnapshotNonLinDynamic,
-                                GeomState, SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 Rom::SnapshotNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::SnapshotNonLinDynamic,
+                                GeomState, Rom::SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                  nldynamic.postProcess();
                }

@@ -5,6 +5,8 @@
 
 #include <stdexcept> 
 
+namespace Rom {
+
 namespace LeastSquares {
   // Describes the computational status of a LeastSquaresSolver
   enum Status { READY, FACTORED, PROJECTED, SOLVED };
@@ -13,7 +15,7 @@ namespace LeastSquares {
   // FACTORED  => Matrix buffer used for factorization, rhs buffer available for input
   // PROJECTED => Matrix buffer used for factorization, rhs buffer holds the projection Q^T * rhs
   // SOLVED    => Matrix buffer used for factorization, rhs buffer holds the solution R^{-1} * Q^T * rhs
-}
+} /* end namespace LeastSquares */
 
 template <typename Scalar>
 class GenLeastSquaresSolver {
@@ -225,5 +227,7 @@ GenLeastSquaresSolver<Scalar>::assertOverdeterminedSystem(int eqnCount, int unkn
     throw std::domain_error("Underdetermined system");
   }
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_LEASTSQUARESSOLVER_H */

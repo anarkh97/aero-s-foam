@@ -3,11 +3,15 @@
 
 #include <Problems.d/NonLinDynam.h>
 
-class Domain;
 #include <Corotational.d/GeomState.h>
 #include <Math.d/Vector.h>
+#include <Driver.d/StateUpdater.h>
 
 #include <memory>
+
+class Domain;
+
+namespace Rom {
 
 // Specialization of the non-linear dynamics problem enabling the collection the snapshots
 class SnapshotNonLinDynamic : public NonLinDynamic {
@@ -54,8 +58,6 @@ private:
   friend class Updater;
 };
 
-#include <Driver.d/StateUpdater.h>
-
 // Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
 class SnapshotNonLinDynamic::Updater : public IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState> {
 public:
@@ -71,5 +73,7 @@ public:
         dummy1, dummy2, dummy3, dummy4, acceleration);
   }
 };
+
+} /* end namespace Rom */
 
 #endif /* ROM_SNAPSHOTNONLINDYNAMIC_H */

@@ -3,6 +3,8 @@
 
 #include "SimpleBuffer.h"
 
+namespace Rom {
+
 class SvdOrthogonalization {
 public:
   int rowCount()           const { return rowCount_; }
@@ -84,5 +86,7 @@ const double &
 SvdOrthogonalization::singularValue(int rank) const {
   return sigmaBuffer_[rank];
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_SVDORTHOGONALIZATION_H */

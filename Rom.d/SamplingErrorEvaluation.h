@@ -7,6 +7,8 @@
 #include <iterator>
 #include <stdexcept>
 
+namespace Rom {
+
 class SamplingErrorEvaluation {
 public:
   SamplingErrorEvaluation() {}
@@ -80,5 +82,7 @@ SamplingErrorEvaluation::operator()(VecRandomIt firstVec, VecRandomIt lastVec,
 
   return result;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_SAMPLINGERROREVALUATION_H */

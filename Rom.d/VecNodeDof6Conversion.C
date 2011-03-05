@@ -2,6 +2,8 @@
 
 #include <Utils.d/dofset.h>
 
+namespace Rom {
+
 VecNodeDof6Conversion::VecNodeDof6Conversion(const DofSetArray &dsa) :
   nodeCount_(const_cast<DofSetArray &>(dsa).numNodes()),
   vectorSize_(const_cast<DofSetArray &>(dsa).size()),
@@ -33,3 +35,5 @@ VecNodeDof6Conversion::nodeDof(int vecLoc) const {
 VecNodeDof6Conversion::~VecNodeDof6Conversion() {
   delete[] dofLocation_;
 }
+
+} /* end namespace Rom */

@@ -11,6 +11,8 @@
 #include <utility>
 #include <cstddef>
 
+namespace Rom {
+
 // Input Stream
 
 class BasisInputStream {
@@ -158,5 +160,7 @@ writeVectors(BasisOutputStream &out, InputIter first, InputIter last) {
   }
   return out;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_BASISFILEITERATOR_H */

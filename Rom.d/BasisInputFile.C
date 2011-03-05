@@ -5,6 +5,8 @@
 
 #include <cassert>
 
+namespace Rom {
+
 BasisInputFile::BasisInputFile(const std::string &fileName) :
   fileName_(fileName),
   nodeCount_(0),
@@ -72,3 +74,5 @@ BasisInputFile::positionAtStateStart() const {
     currentStateRead_ = false;
   }
 }
+
+} /* end namespace Rom */

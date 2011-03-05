@@ -9,6 +9,8 @@ class DofSetArray;
 #include <algorithm>
 #include <cassert>
 
+namespace Rom {
+
 class NodalRestrictionMapping {
 public:
   typedef int InfoType;
@@ -118,5 +120,7 @@ NodalRestrictionMapping::dotProduct(const VecType &originVec, const VecType &res
 
 std::ostream &
 operator<<(std::ostream &, const NodalRestrictionMapping &);
+
+} /* end namespace Rom */
 
 #endif /* ROM_NODALRESTRICTIONMAPPING_H */

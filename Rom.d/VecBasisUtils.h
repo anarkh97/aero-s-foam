@@ -4,6 +4,8 @@
 #include "VecBasis.h"
 #include "NodalRestrictionMapping.h"
 
+namespace Rom {
+
 template <typename Scalar>
 void
 restrict_basis(const NodalRestrictionMapping &mapping,
@@ -24,5 +26,7 @@ combine_projections(const GenVecBasis<Scalar> &targetPod,
                     const GenVecBasis<Scalar> &originPod,
                     const GenVecBasis<Scalar> &originProjection,
                     GenVecBasis<Scalar> &result);
+
+} /* end namespace Rom */
 
 #endif /* ROM_VECBASISUTILS_H */

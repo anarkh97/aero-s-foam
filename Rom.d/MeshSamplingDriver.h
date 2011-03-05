@@ -13,14 +13,15 @@
 #include <ostream>
 
 class Domain;
+
+namespace Rom {
+
 class VecNodeDof6Conversion;
 class NodalRestrictionMapping;
 class SampledMeshRenumbering;
 class MeshDesc;
 
-RomDriverInterface *meshSamplingDriverNew(Domain *);
-
-class MeshSamplingDriver : public RomDriverInterface {
+class MeshSamplingDriver : public DriverInterface {
 public:
   virtual void solve();
   
@@ -53,5 +54,9 @@ private:
 
   Domain *domain_;
 };
+
+} /* end namespace Rom */
+
+Rom::DriverInterface *meshSamplingDriverNew(Domain *);
 
 #endif /* ROM_MESHSAMPLINGDRIVER_H */

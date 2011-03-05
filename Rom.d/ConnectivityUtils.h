@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <cassert>
 
+namespace Rom {
+
 template <typename InputIterator, typename OutputIterator>
 OutputIterator
 neighborhood(const Connectivity &connectivity,
@@ -45,5 +47,7 @@ connections(const Connectivity &connectivity,
 
   return std::copy(found.begin(), found.end(), result);
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_CONNECTIVITYUTILS_H */

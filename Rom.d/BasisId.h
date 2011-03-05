@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace Rom {
+
 class BasisId {
 public:
   enum Type  { STATE,     RESIDUAL, JACOBIAN  };
@@ -22,5 +24,7 @@ private:
 
 std::string toString(BasisId::Type);
 std::string toString(BasisId::Level);
+
+} /* end namespace Rom */
 
 #endif /* ROM_BASISID_H */

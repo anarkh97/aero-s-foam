@@ -9,6 +9,8 @@
 #include <iterator>
 #include <string>
 
+namespace Rom {
+
 // Specific sections
 
 std::ostream &
@@ -95,5 +97,6 @@ make_section(InputIterator first, InputIterator last, TagType tag) {
   return InputFileSection<InputIterator, TagType>(first, last, tag);
 }
 
+} /* end namespace Rom */
 
 #endif /* ROM_MESHOUTPUT_H */

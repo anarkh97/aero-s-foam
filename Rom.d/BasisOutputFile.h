@@ -4,6 +4,8 @@
 #include <string>
 #include <cstdio>
 
+namespace Rom {
+
 class BasisOutputFile {
 public:
   const std::string &fileName() const { return fileName_; }
@@ -78,5 +80,7 @@ BasisOutputFile::stateAdd(const NodeBufferType &data, double headValue) {
 
   stateCount_++;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_BASISOUTPUTFILE_H */

@@ -5,6 +5,8 @@
 
 #include <string>
 
+namespace Rom {
+
 class FileNameInfo {
 public:
   std::string basisFileName(const BasisId &) const;
@@ -44,5 +46,7 @@ private:
   const BasisId id_;
   const std::string name_;
 };
+
+} /* end namespace Rom */
 
 #endif /* ROM_FILENAMEINFO_H */

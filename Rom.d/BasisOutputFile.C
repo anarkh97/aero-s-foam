@@ -7,6 +7,8 @@
 
 #include <cassert>
 
+namespace Rom {
+
 const int
 BasisOutputFile::STATE_COUNT_LENGTH = 10;
 
@@ -81,3 +83,5 @@ void
 BasisOutputFile::writeStateHeader(double value) {
   std::fprintf(stream_, "  % *.*E\n", width_, precision_, value);
 }
+
+} /* end namespace Rom */

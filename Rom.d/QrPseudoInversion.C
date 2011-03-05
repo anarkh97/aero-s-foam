@@ -18,6 +18,8 @@ extern "C" {
                        double *b, const int *ldb);
 }
 
+namespace Rom {
+
 // Computes (Phi^{+})^T = (Phi * R^{-1}) * R^{-T}
 const VecBasis &
 QrPseudoInversion::operator()(VecBasis &basis) const {
@@ -71,3 +73,4 @@ QrPseudoInversion::operator()(VecBasis &basis) const {
   return basis;
 }
 
+} /* end namespace Rom */

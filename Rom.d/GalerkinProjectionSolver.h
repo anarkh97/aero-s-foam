@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cassert>
 
+namespace Rom {
+
 template <typename Scalar>
 class GenGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar> {
 public:
@@ -86,5 +88,7 @@ GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) 
 }
 
 typedef GenGalerkinProjectionSolver<double> GalerkinProjectionSolver;
+
+} /* end namespace Rom */
 
 #endif /* ROM_GALERKINPROJECTIONSOLVER_H */

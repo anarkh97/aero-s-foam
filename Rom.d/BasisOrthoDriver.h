@@ -3,7 +3,9 @@
 
 #include "DriverInterface.h"
 
-class BasisOrthoDriver : public RomDriverInterface {
+namespace Rom {
+
+class BasisOrthoDriver : public DriverInterface {
 public:
   virtual void solve();
   
@@ -15,6 +17,8 @@ private:
   Domain *domain_;
 };
 
-RomDriverInterface *basisOrthoDriverNew(Domain *);
+} /* end namespace Rom */
+
+Rom::DriverInterface *basisOrthoDriverNew(Domain *);
 
 #endif /* ROM_BASIS_ORTHODRIVER_H */

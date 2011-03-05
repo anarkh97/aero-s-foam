@@ -1,10 +1,12 @@
 #ifndef ROM_VECNODEDOF6CONVERSION_H
 #define ROM_VECNODEDOF6CONVERSION_H
 
-class DofSetArray;
-
 #include <vector>
 #include <cassert>
+
+class DofSetArray;
+
+namespace Rom {
 
 struct NodeDof {
   typedef int DofType;
@@ -97,5 +99,7 @@ VecNodeDof6Conversion::locations(int nodeRank, IndexOut result) const {
 
   return result;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_VECNODEDOF6CONVERSION_H */

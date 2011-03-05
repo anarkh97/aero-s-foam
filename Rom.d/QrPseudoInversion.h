@@ -5,6 +5,8 @@
 
 #include "SimpleBuffer.h"
 
+namespace Rom {
+
 class QrPseudoInversion {
 public:
   // Overwrites the provided full-column-rank basis
@@ -20,5 +22,7 @@ private:
   QrPseudoInversion(const QrPseudoInversion &);
   QrPseudoInversion &operator=(const QrPseudoInversion &);
 };
+
+} /* end namespace Rom */
 
 #endif /* ROM_QRPSEUDOINVERSION_H */

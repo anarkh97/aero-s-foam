@@ -6,6 +6,8 @@
 
 #include <cassert>
 
+namespace Rom {
+
 class BasisInputFile {
 public:
   // Static parameters
@@ -65,5 +67,7 @@ BasisInputFile::currentStateBuffer(NodeDof6Type &target) const {
 
   return target;
 }
+
+} /* end namespace Rom */
 
 #endif /* ROM_BASISINPUTFILE_H */

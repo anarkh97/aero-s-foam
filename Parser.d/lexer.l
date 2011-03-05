@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
-#include "p.tab.H"
+#include "parser.hpp"
 #include <stack>
 //#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 int line_num = 1;
@@ -234,6 +234,8 @@ TRAIL [a-zA-Z]*
 "FFP"|"ffp"                        {return FFP; }
 
 "FFPDIR"|"ffpdir"                  {return FFPDIR; }
+
+"KIRLOC"|"KIRLOC"                  {return KIRLOC; }
 
 "HSOM"[a-zA-Z]*|"hsom"[a-zA-Z]*    { return HSOMMERFELD; }
 
@@ -1049,6 +1051,8 @@ TRAIL [a-zA-Z]*
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }
+
+"kirchhoff"|"KIRCHHOFF"            { yylval.ival = OutputInfo::Kirchhoff;    return STRESSID; }
 
 "geigpres"|"GEIGPRES"              { yylval.ival = OutputInfo::EigenPressure; return STRESSID; }
 

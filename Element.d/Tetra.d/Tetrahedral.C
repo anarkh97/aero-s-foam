@@ -143,12 +143,18 @@ Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
           stress[1] = elStress[1][strInd] - thermalStress[1];
           stress[2] = elStress[2][strInd] - thermalStress[2];
           stress[3] = elStress[3][strInd] - thermalStress[3];
-	} else {
+	} else if(strInd < 14) {
           stress[0] = elStrain[0][strInd-7];
           stress[1] = elStrain[1][strInd-7];
           stress[2] = elStrain[2][strInd-7];
           stress[3] = elStrain[3][strInd-7];
 	}
+        else {
+          stress[0] = 0;
+          stress[1] = 0;
+          stress[2] = 0;
+          stress[3] = 0;
+        } 
 }
 
 void

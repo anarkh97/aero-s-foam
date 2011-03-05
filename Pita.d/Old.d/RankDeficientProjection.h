@@ -1,10 +1,12 @@
 #ifndef RANKDEFICIENTPROJECTION_H
 #define RANKDEFICIENTPROJECTION_H
 
-#include <Pita.d/DynamStateSet.h>
-#include <OOPita.d/NearSymmetricSolver.h>
+#include "DynamStateSet.h"
 
+#include <Pita.d/NearSymmetricSolver.h>
 #include <Math.d/FullSquareMatrix.h>
+
+namespace Pita { namespace Old {
 
 class RankDeficientProjection {
 public:
@@ -59,5 +61,7 @@ private:
   FullSquareMatrix normalMatrix_;
   Pita::NearSymmetricSolver::Ptr solver_;
 };
+
+} /* end namespace Old */ } /* end namespace Pita */
 
 #endif /* RANKDEFICIENTPROJECTION_H */

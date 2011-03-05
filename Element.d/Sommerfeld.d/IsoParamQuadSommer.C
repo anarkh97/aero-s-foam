@@ -480,7 +480,8 @@ void IsoParamQuadSommer::wetInterfaceLMPC(CoordSet &cs, LMPCons *lmpc, int nd) {
 
 
 void IsoParamQuadSommer::ffp(CoordSet &cs, int numFFP, double *dirFFP,
-                         complex<double> *sol, complex<double> *ffpv) {
+                         complex<double> *sol, complex<double> *ffpv,
+                         bool direction) {
  if (el==0) { 
    fprintf(stderr,"IsoParamQuadSommer::ffp: adjacent element not defined.\n");
    exit(-1);
@@ -502,14 +503,19 @@ void IsoParamQuadSommer::ffp(CoordSet &cs, int numFFP, double *dirFFP,
 
  double kappa = el->getProperty()->kappaHelm;
 
- FFPGalFunction f(orderc,kappa,numFFP,dirFFP,sol,ffpv);
  int gorder = 7;
  if (order<=3) gorder = O3;
  else if (order<=4) gorder = O4;
- ipu.surfGInt3d(xyz, faceindex, f, gorder);
+
+ if (direction) {
+   FFPGalFunction f(orderc,kappa,numFFP,dirFFP,sol,ffpv);
+   ipu.surfGInt3d(xyz, faceindex, f, gorder);
+ } else {
+   KirchhoffGalFunction f(orderc,kappa,numFFP,dirFFP,sol,ffpv);
+   ipu.surfGInt3d(xyz, faceindex, f, gorder);
+ }
+
 }
-
-
 
 FullSquareMatrix IsoParamQuadSommer::turkelMatrix(CoordSet &cs, double *d) {
 

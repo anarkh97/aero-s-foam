@@ -72,7 +72,7 @@
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
-%token JACOBI KRYLOVTYPE
+%token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
@@ -249,6 +249,7 @@ Component:
         | Scatterer
         | FarFieldPattern
         | FarFieldPatternDirs
+        | KirchhoffLocations
         | HelmHoltzBC
         | EleHelmHoltzBC
         | EleScatterer
@@ -2982,6 +2983,14 @@ IncidenceList:
 IncidenceVector:
         Float Float Float NewLine
         { domain->setWaveDirections(0, $1, $2, $3); }
+        ;
+KirchhoffLocations:
+        KIRLOC NewLine Float Float Float NewLine{
+          domain->setKirchhoffLocations($3, $4, $5);
+        } 
+        | KirchhoffLocations Float Float Float NewLine {
+          domain->setKirchhoffLocations($2, $3, $4);
+        }
         ;
 FFPDirList:
         FFPDirVector

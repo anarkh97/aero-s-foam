@@ -1,10 +1,13 @@
-#ifndef _DYNAMSTATESET_H_
-#define _DYNAMSTATESET_H_
+#ifndef PITA_OLD_DYNAMSTATESET_H
+#define PITA_OLD_DYNAMSTATESET_H
 
-#include <Pita.d/DynamState.h>
+#include "DynamState.h"
+
 #include <vector>
 
 template <typename Scalar> class GenSparseMatrix;
+
+namespace Pita { namespace Old {
 
 template <typename Scalar>
 class DynamStateSet
@@ -54,10 +57,10 @@ class DynamStateSet
     void init_(int vectorSize, int maxNumStates);
 };
 
+} /* end namespace Old */ } /* end namespace Pita */
+
 #ifdef _TEMPLATE_FIX_
-#include <Pita.d/DynamStateSet.C>
+#include "DynamStateSet.C"
 #endif
 
 #endif
-
-

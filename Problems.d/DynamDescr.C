@@ -78,11 +78,12 @@ SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vec
   // PJSA 4-9-08 ext_f passed here may not be for the correct time
   startTimerMemory(times->output, times->memoryOutput);
   
-  this->fillBcxVcx(tIndex);
+  const double time = tIndex * domain->solInfo().getTimeStep();
+  this->fillBcxVcx(time);
 
   if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
-    double t = double(tIndex)*domain->solInfo().getTimeStep(); // TODO check is this correct for restart?
-    domain->writeRestartFile(t, tIndex, state.getVeloc(), geomState);
+    // TODO: Check if time is correct for restart
+    domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
   }
 
   domain->dynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
@@ -97,7 +98,7 @@ SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f,
 {
   startTimerMemory(times->output, times->memoryOutput);
 
-  this->fillBcxVcx(tIndex);
+  this->fillBcxVcx(time);
 
   // PJSA 4-9-08 ext_f passed here may not be for the correct time
   domain->pitaDynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
@@ -107,17 +108,15 @@ SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f,
   stopTimerMemory(times->output, times->memoryOutput);
 }
 
-// Update bcx for time dependent prescribed displacements and velocities (previously done in computeExtForce2)
+// Update bcx for time dependent prescribed displacements and velocities
 void
-SDDynamPostProcessor::fillBcxVcx(int tIndex) {
+SDDynamPostProcessor::fillBcxVcx(double time) {
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
-    double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
     double *userDefineVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
-    //cerr << "getting usdd at time " << t << " for dynamOutput\n";
-    userSupFunc->usd_disp(t,userDefineDisp,userDefineVel);
+    userSupFunc->usd_disp(time, userDefineDisp, userDefineVel);
     DofSetArray *dsa = domain->getDSA();
     for(int i = 0; i < claw->numUserDisp; ++i) {
       int dof = dsa->locate(claw->userDisp[i].nnum,1 << claw->userDisp[i].dofnum);

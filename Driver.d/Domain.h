@@ -595,11 +595,9 @@ class Domain : public HData {
      double computeConditionNumber(DynamMat&);
 
      //   Output Related functions
-     int processOutput(OutputInfo::Type &type, Vector &sol, double *bcx, int iInfo,
+     template<class Scalar>
+     int processOutput(OutputInfo::Type &type, GenVector<Scalar> &sol, Scalar *bcx, int iInfo,
                        double time, double freq = 0, int printFlag = 0);
-     int processOutput(OutputInfo::Type &type, ComplexVector &sol, DComplex *bcx, int iInfo,
-                       double time, double freq = 0, int printFlag = 0)  {
-                       cerr << "whoops Stress!\n";  return 0;}
 
      template<class Scalar>
      int processDispTypeOutputs(OutputInfo &oinfo, Scalar (*sol)[11], int iInfo,

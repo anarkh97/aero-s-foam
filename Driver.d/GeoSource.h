@@ -181,6 +181,7 @@ class GeoSource {
   int prsflg;
   int prlflg;
   int constpflg, constqflg; // consistent pressure and gravity
+  vector<pair<int,double> > eleprs;
 
   // Connectivities
   Connectivity *clusToSub;

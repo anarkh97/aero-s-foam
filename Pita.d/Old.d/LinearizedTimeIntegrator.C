@@ -1,16 +1,17 @@
-#include <Pita.d/LinearizedTimeIntegrator.h>
-#include <Pita.d/PitaNonLinDynam.h>
-#include <Pita.d/DynamStateSet.h>
+#include "LinearizedTimeIntegrator.h"
+#include "PitaNonLinDynam.h"
+#include "DynamStateSet.h"
 
-LinearizedTimeIntegrator::LinearizedTimeIntegrator(PitaNonLinDynamic & pbDesc) :
+namespace Pita { namespace Old {
+
+  LinearizedTimeIntegrator::LinearizedTimeIntegrator(PitaNonLinDynamic & pbDesc) :
   probDesc(pbDesc),
   delta(pbDesc.getDelta()),
   oneOverDelta(1.0 / pbDesc.getDelta()),
   midTimeDisp(pbDesc.solVecInfo()),
   temp(pbDesc.solVecInfo()),
   newState(pbDesc.solVecInfo())
-{
-}
+{}
 
 void
 LinearizedTimeIntegrator::stepLinearizedIntegrate(DynamStateSet<double> & base) const
@@ -33,3 +34,5 @@ LinearizedTimeIntegrator::stepLinearizedIntegrate(DynamStateSet<double> & base) 
     base[i] = newState;
   }
 }
+
+} /* end namespace Old */ } /* end namespace Pita */

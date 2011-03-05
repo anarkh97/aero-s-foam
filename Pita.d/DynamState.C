@@ -1,145 +1,166 @@
-#ifndef _DYNAMSTATE_C_
-#define _DYNAMSTATE_C_
+#include "DynamState.h"
 
-#include <Pita.d/DynamState.h>
-#include <Math.d/SparseMatrix.h>
+#include <functional>
+#include <algorithm>
 
-/* Constructors & destructor */
+namespace Pita {
 
-template <typename Scalar>
-DynamState<Scalar>::DynamState(const DynamState<Scalar> & ds, const GenSparseMatrix<Scalar> * K, const GenSparseMatrix<Scalar> * M)
-{
-  init(ds.vectorSize_);
-  const_cast<GenSparseMatrix<double>*>(K)->mult(ds.dataArray_, dataArray_); 
-  const_cast<GenSparseMatrix<double>*>(M)->mult(ds.dataArray_ + vectorSize_, dataArray_ + vectorSize_);
-}
+DynamState::Desc::Desc(size_t vectorSize, Scalar initValue) :
+  disp_(vectorSize, initValue),
+  vel_(vectorSize, initValue)
+{}
 
-/* Memory management */
+DynamState::Desc::Desc(size_t vectorSize) :
+  disp_(vectorSize),
+  vel_(vectorSize)
+{}
 
-template <typename Scalar>
-void DynamState<Scalar>::init(int vectorSize)
-{
-  if (vectorSize <= 0)
-  {
-    ownData_ = false;
-    vectorSize_ = 0;
-    dataArray_ = NULL;
-    disp_ = NULL;
-    vel_ = NULL;
-  }
-  else
-  {
-    ownData_ = true;
-    vectorSize_ = vectorSize;
-    dataArray_ = new Scalar[2 * vectorSize_];
-    disp_ = new VectorType(vectorSize_, dataArray_, false);
-    vel_ = new VectorType(vectorSize_, dataArray_ + vectorSize_, false);
-  }
-}
+DynamState::Desc::Desc(size_t vectorSize, const DynamState::Scalar * data) :
+  disp_(vectorSize, const_cast<Scalar *>(data), true),
+  vel_(vectorSize, const_cast<Scalar *>(data + vectorSize), true)
+{}
 
-template <typename Scalar>
-void DynamState<Scalar>::init(int vectorSize, Scalar * dataArray)
-{
-  ownData_ = false;
-  if (vectorSize <= 0)
-  {
-    vectorSize_ = 0;
-    dataArray_ = NULL;
-    disp_ = NULL;
-    vel_ = NULL;
-  }
-  else
-  {
-    vectorSize_ = vectorSize;
-    dataArray_ = dataArray;
-    disp_ = new VectorType(vectorSize_, dataArray_, false);
-    vel_ = new VectorType(vectorSize_, dataArray_ + vectorSize_, false);
-  }
-}
+DynamState::Desc::Desc(const GenVector<double> & disp, const GenVector<double> & vel) :
+  disp_(disp),
+  vel_(vel)
+{}
 
-template <typename Scalar>
-void DynamState<Scalar>::setState(const VectorType & disp, const VectorType & vel)
-{
-  if (vectorSize_ != disp.size() || vectorSize_ !=  vel.size())
-  {
-    std::cerr << "Warning -- In void DynamState<Scalar>::setState(const VectorType &, const VectorType &) : Non matching lenghts\n";
-    return;
-  }
-  disp_->copy(disp);
-  vel_->copy(vel);
-}
-
-template <typename Scalar>
-void DynamState<Scalar>::erase()
-{
-  if (vectorSize_ > 0)
-  {
-    delete vel_;
-    delete disp_;
-    if (ownData_)
-    {
-      delete[] dataArray_;
-    }
-  }
-}
-
-/* Operators */
-
-template <typename Scalar>
-DynamState<Scalar> & DynamState<Scalar>::operator=(Scalar value)
-{
-  std::fill(dataArray_, dataArray_ + 2 * vectorSize_, value);
+DynamState::Desc &
+DynamState::Desc::operator+=(const DynamState::Desc & dsd) {
+  disp_ += dsd.disp_;
+  vel_ += dsd.vel_;
   return *this;
 }
 
-
-template <typename Scalar>
-DynamState<Scalar> & DynamState<Scalar>::operator+=(const DynamState<Scalar> & ds)
-{
-  int imax = 2 * vectorSize_;
-  for (int i = 0; i < imax; ++i)
-  {
-    dataArray_[i] += ds.dataArray_[i];
-  }
+DynamState::Desc &
+DynamState::Desc::operator-=(const DynamState::Desc & dsd) {
+  disp_ -= dsd.disp_;
+  vel_ -= dsd.vel_;
   return *this;
 }
 
-template <typename Scalar>
-DynamState<Scalar> & DynamState<Scalar>::operator-=(const DynamState<Scalar> & ds)
-{
-  int imax = 2 * vectorSize_;
-  for (int i = 0; i < imax; ++i)
-  {
-    dataArray_[i] -= ds.dataArray_[i];
-  }
+DynamState::Desc &
+DynamState::Desc::operator*=(double coef) {
+  std::transform(disp_.data(), disp_.data() + disp_.size(), disp_.data(), std::bind2nd(std::multiplies<double>(), coef));
+  std::transform(vel_.data(), vel_.data() + vel_.size(), vel_.data(), std::bind2nd(std::multiplies<double>(), coef));
   return *this;
 }
 
-template <typename Scalar>
-DynamState<Scalar> & DynamState<Scalar>::operator*=(Scalar coef)
-{
-  int imax = 2 * vectorSize_;
-  for (int i = 0; i < imax; ++i)
-  {
-    dataArray_[i] *= coef;
-  }
+DynamState::Desc &
+DynamState::Desc::operator/=(double coef) {
+  std::transform(disp_.data(), disp_.data() + disp_.size(), disp_.data(), std::bind2nd(std::divides<double>(), coef));
+  std::transform(vel_.data(), vel_.data() + vel_.size(), vel_.data(), std::bind2nd(std::divides<double>(), coef));
   return *this;
 }
 
-template <typename Scalar>
-Scalar DynamState<Scalar>::operator*(const DynamState<Scalar> & ds) const 
-{
-  return ((*disp_) * (*(ds.disp_))) + ((*vel_) * (*(ds.vel_)));
+void
+DynamState::Desc::linAdd(double coef, const DynamState::Desc & dsd) {
+  disp_.linAdd(coef, dsd.disp_);
+  vel_.linAdd(coef, dsd.vel_);
 }
 
-template <typename Scalar>
-void DynamState<Scalar>::linAdd(Scalar coef, const DynamState<Scalar> & ds)
-{
-  int imax = 2 * vectorSize_;
-  for (int i = 0; i < imax; ++i)
-  {
-    dataArray_[i] += coef * ds.dataArray_[i];
-  }
+//--------------------
+  
+DynamState::DynamState(size_t vectorSize) :
+  desc_(new DynamState::Desc(vectorSize))
+{}
+
+DynamState::DynamState(size_t vectorSize, Scalar initialValue) :
+  desc_(new DynamState::Desc(vectorSize, initialValue))
+{}
+
+DynamState::DynamState(size_t vectorSize, const DynamState::Scalar * data) :
+  desc_(new DynamState::Desc(vectorSize, data))
+{}
+
+DynamState::DynamState(const GenVector<double> & disp, const GenVector<double> & vel) :
+  desc_(new DynamState::Desc(disp, vel))
+{}
+
+size_t
+DynamState::vectorSize() const {
+  return displacement().size(); 
 }
 
-#endif
+const DynamState::VectorType &
+DynamState::displacement() const {
+  return desc_->displacement();
+}
+
+const DynamState::VectorType &
+DynamState::velocity() const {
+  return desc_->velocity();
+}
+
+void
+DynamState::unshareDesc() {
+  if (desc_->references() > 1ul)
+    desc_ = new DynamState::Desc(desc_->displacement(), desc_->velocity());
+}
+
+DynamState::VectorType &
+DynamState::displacement() {
+  unshareDesc();
+  return desc_->displacement();
+}
+
+DynamState::VectorType &
+DynamState::velocity() {
+  unshareDesc();
+  return desc_->velocity();
+}
+
+DynamState &
+DynamState::operator+=(const DynamState & ds) {
+  unshareDesc();
+  *desc_ += *(ds.desc_);
+  return *this;
+}
+
+DynamState &
+DynamState::operator-=(const DynamState & ds) {
+  unshareDesc();
+  *desc_ -= *(ds.desc_);
+  return *this;
+}
+
+DynamState &
+DynamState::operator*=(double coef) {
+  unshareDesc();
+  *desc_ *= coef;
+  return *this;
+}
+
+DynamState &
+DynamState::operator/=(double coef) {
+  unshareDesc();
+  *desc_ /= coef;
+  return *this;
+}
+
+void
+DynamState::linAdd(double coef, const DynamState & ds) {
+  unshareDesc();
+  desc_->linAdd(coef, *ds.desc_);
+}
+
+const DynamState
+operator+(const DynamState & op1, const DynamState & op2) {
+  DynamState temp(op1);
+  temp += op2;
+  return temp;
+}
+
+const DynamState
+operator-(const DynamState & op1, const DynamState & op2) {
+  DynamState temp(op1);
+  temp -= op2;
+  return temp;
+}
+
+double
+operator*(const DynamState & op1, const DynamState & op2) {
+  return (op1.displacement() * op2.displacement()) + (op1.velocity() * op2.velocity());
+}
+
+} // end namespace Pita

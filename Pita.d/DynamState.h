@@ -1,74 +1,105 @@
-#ifndef _DYNAMSTATE_H_
-#define _DYNAMSTATE_H_
+#ifndef PITA_DYNAMSTATE_H
+#define PITA_DYNAMSTATE_H
 
-#include <algorithm>
+#include "Fwk.h"
+#include <Math.d/Vector.h>
 
-template <typename Scalar> class GenVector;
-template <typename Scalar> class GenSparseMatrix;
+namespace Pita {
 
-template <typename Scalar>
-class DynamState
-{
+class DynamState {
 public:
-  typedef Scalar DataType;
+  typedef double Scalar;
   typedef GenVector<Scalar> VectorType;
-
-  // Constructors & destructor
-  DynamState(int vectorSize = 0) { init(vectorSize); }
-  DynamState(int vectorSize, Scalar initValue) { init(vectorSize, initValue); }
-  DynamState(int vectorSize, Scalar * dataArray) { init(vectorSize, dataArray); }
-  DynamState(const DynamState<Scalar> & ds) { init(ds.vectorSize_); copyData(ds.dataArray_);  }
-  DynamState(const DynamState<Scalar> &, const GenSparseMatrix<Scalar> * K, const GenSparseMatrix<Scalar> * M);
-  ~DynamState() { erase(); }
-
-  // Global operations
-  void reset(int vectorSize = 0) { erase(); init(vectorSize); }
-  void reset(int vectorSize, Scalar initValue) { erase(); init(vectorSize, initValue); }
-  void reset(int vectorSize, Scalar * dataArray) { erase(); init(vectorSize, dataArray); }
-  void clear() { reset(0); }
-
-  // Accessors
-  const VectorType & disp() const { return *disp_; }
-  VectorType & disp() { return *disp_; }
-  const VectorType & vel() const { return *vel_; }
-  VectorType & vel() { return *vel_; }
-  int vectorSize() const { return vectorSize_; }
-  const Scalar * data() const { return dataArray_; }
     
-  // Mutator
-  void setState(const VectorType & disp, const VectorType & vel);
+  explicit DynamState(size_t vectorSize = 0);
+  DynamState(size_t vectorSize, Scalar initialValue);
+  DynamState(size_t vectorSize, const Scalar * data);
+  DynamState(const GenVector<double> & disp, const GenVector<double> & vel);
+  
+  DynamState(const DynamState & other) :
+    desc_(other.desc_)
+  {}
 
-  // Operators
-  DynamState<Scalar> & operator=(const DynamState<Scalar> & ds) { reset(ds.vectorSize_); copyData(ds.dataArray_); return *this; }
-  DynamState<Scalar> & operator=(Scalar);
-  DynamState<Scalar> & operator+=(const DynamState<Scalar> &);
-  DynamState<Scalar> & operator-=(const DynamState<Scalar> &);
-  DynamState<Scalar> & operator*=(Scalar);
-  Scalar operator*(const DynamState<Scalar> &) const;
-  void linAdd(Scalar, const DynamState<Scalar> &);
- 
-  // Raw data manipulation
-  Scalar * data() { return dataArray_; }
-  void setRaw(const Scalar * buffer) { copyData(buffer); }
-  void getRaw(Scalar * buffer) const { std::copy(dataArray_, dataArray_ + 2 * vectorSize_, buffer); }
+  DynamState & operator=(const DynamState & other) {
+    desc_ = other.desc_;
+    return *this;
+  }
+
+  size_t vectorSize() const;
+
+  const GenVector<Scalar> & displacement() const;
+  const GenVector<Scalar> & velocity() const;
+  
+  GenVector<Scalar> & displacement();
+  GenVector<Scalar> & velocity();
+
+  DynamState & operator+=(const DynamState & ds); 
+  DynamState & operator-=(const DynamState & ds);
+  DynamState & operator*=(double coef);
+  DynamState & operator/=(double coef);
+
+  void linAdd(double coef, const DynamState & ds);
 
 protected:
-  int vectorSize_;
-  Scalar * dataArray_;
-  VectorType * disp_;
-  VectorType * vel_;
-  bool ownData_;
+  class Desc : public PtrInterface<Desc> {
+  public:
+    EXPORT_PTRINTERFACE_TYPES(Desc);
 
-  // Memory management
-  void init(int vectorSize);
-  void init(int vectorSize, Scalar initValue) { init(vectorSize); operator=(initValue); }
-  void init(int vectorSize, Scalar * dataArray);
-  void copyData(const Scalar * dataArray) { std::copy(dataArray, dataArray + 2 * vectorSize_, dataArray_); }
-  void erase();
+    typedef double Scalar;
+    typedef GenVector<Scalar> VectorType;
+
+    explicit Desc(size_t vectorSize);
+    Desc(size_t vectorSize, Scalar initvalue);
+    Desc(size_t vectorSize, const Scalar * data);
+    Desc(const GenVector<double> & disp, const GenVector<double> & vel);
+
+    const VectorType & displacement() const { return disp_; }
+    const VectorType & velocity() const { return vel_; }
+
+    VectorType & displacement() { return disp_; }
+    VectorType & velocity() { return vel_; }
+
+    Desc & operator+=(const Desc & dsd);
+    Desc & operator-=(const Desc & dsd);
+    Desc & operator*=(double coef);
+    Desc & operator/=(double coef);
+
+    void linAdd(double coef, const Desc & dsd);
+
+  private:
+    VectorType disp_;
+    VectorType vel_;
+
+    DISALLOW_COPY_AND_ASSIGN(Desc);
+};
+  
+  void unshareDesc();
+  friend void unshare(DynamState & state);
+
+private:
+  DynamState::Desc::Ptr desc_;
 };
 
-#ifdef _TEMPLATE_FIX_
-#include <Pita.d/DynamState.C>
-#endif
+inline
+void
+unshare(DynamState & state) {
+  state.unshareDesc();
+}
+
+const DynamState operator+(const DynamState & op1, const DynamState & op2);
+const DynamState operator-(const DynamState & op1, const DynamState & op2);
+double operator*(const DynamState & op1, const DynamState & op2);
+
+template <typename StateType>
+void
+bufferStateCopy(const StateType & s, typename StateType::Scalar * buffer) {
+  typename StateType::Scalar * data = const_cast<typename StateType::VectorType &>(s.displacement()).getData();
+  std::copy(data, data + s.vectorSize(), buffer);
+  data = const_cast<typename StateType::VectorType &>(s.velocity()).getData();
+  std::copy(data, data + s.vectorSize(), buffer + s.vectorSize());
+}
+
+
+} // end namespace Pita
 
 #endif

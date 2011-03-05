@@ -1,7 +1,7 @@
 #ifndef ROM_SIMPLEBUFFER_H
 #define ROM_SIMPLEBUFFER_H
 
-#include <OOPita.d/SimpleBuffer.h>
+#include <Pita.d/SimpleBuffer.h>
 
 namespace Rom {
 

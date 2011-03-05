@@ -15,12 +15,6 @@ enable_language(Fortran)
 #SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 #SET(CMAKE_EXE_LINKER_FLAGS -static)
 
-if(AERO)
-   MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
-   MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
-   FIND_PACKAGE(MPI REQUIRED)
-endif(AERO)
-
 SITE_NAME(HOSTNAME)
 FIND_PACKAGE(LOCAL NAMES ${HOSTNAME} PATHS . QUIET)
 MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
@@ -33,13 +27,10 @@ if(OpenMP_FLAG_DETECTED)
   add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 
+SET(BLA_VENDOR Generic)
 if(NOT LAPACK_FOUND)
  FIND_PACKAGE(LAPACK)
 endif(NOT LAPACK_FOUND)
-#MESSAGE("BLAS_LIBRARIES = " ${BLAS_LIBRARIES})
-#MESSAGE("LAPACK_LIBRARIES = " ${LAPACK_LIBRARIES})
-MARK_AS_ADVANCED(CLEAR BLAS_LIBRARIES)
-MARK_AS_ADVANCED(CLEAR LAPACK_LIBRARIES)
 
 SET(INC_DIR .)
 SET(BINDIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -73,7 +64,7 @@ IF(UNIX)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI)
+        add_definitions(-DUSE_ACME -DACME_2_9 -DCONTACT_NO_MPI)
         SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
       ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
@@ -89,7 +80,7 @@ IF(UNIX)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5)
+        add_definitions(-DUSE_ACME -DACME_2_9)
         SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
       ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
@@ -175,7 +166,7 @@ IF(UNIX)
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq
+      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq mpiseq_seq
                    PATHS /usr/lib /usr/local/lib)
       if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
         MESSAGE("-- A library with MUMPS API found.")
@@ -207,9 +198,9 @@ IF(UNIX)
         SET(MUMPS_FOUND TRUE)
       endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
       # blacs is required for parallel mumps
-      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0 blacsF77
                    PATHS /usr/lib /usr/local/lib)
       if(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
         MESSAGE("-- A library with BLACS API found.")
@@ -318,8 +309,7 @@ SET(ALLLIBS Parser
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
-  add_subdirectory(OOPita.d)
-  SET(ALLLIBS pita ${ALLLIBS} pitadriver )
+  SET(ALLLIBS Pita ${ALLLIBS} )
 ENDIF(MPI_FOUND)
 
 SET_TARGET_PROPERTIES(${ALLLIBS}

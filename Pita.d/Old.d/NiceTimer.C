@@ -1,8 +1,12 @@
-#include <sstream>
-#include <Timers.d/GetTime.h>
-#include <Pita.d/NiceTimer.h>
+#include "NiceTimer.h"
 
-NiceTimerHandler::NiceTimerNode::NiceTimerNode(const std::string & n) :
+#include <Timers.d/GetTime.h>
+
+#include <sstream>
+
+namespace Pita { namespace Old {
+
+  NiceTimerHandler::NiceTimerNode::NiceTimerNode(const std::string & n) :
    name(n),
    timeData(1),
    iterative(false),
@@ -309,3 +313,5 @@ std::ostream & operator<<(std::ostream & out, const NiceTimerHandler & th)
   th.printAll(out);
   return out;
 }
+
+} /* end namespace Old */ } /* end namespace Pita */

@@ -1,19 +1,19 @@
 #ifndef _PARAL_H_
 #define _PARAL_H_
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 #include <ulocks.h>
 #endif
 
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
 #include <omp.h>
 #endif
 
 class ThreadLock {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
       ulock_t lockV;
 #endif
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
      omp_lock_t lockV;
 #endif
    public:
@@ -43,7 +43,7 @@ class OneSproc {
    TaskDescr **allTasks;
    int numTasks;
    int step;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
    usema_t *wait;
    usema_t *done;
 #endif
@@ -70,7 +70,7 @@ class ThreadManager {
         int single;
 	OneSproc *firstProc; 	// List of threads
         OneSproc *allProc;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
         ulock_t sprocListLock;
         usema_t *readyProc;
         usema_t *allDone;
@@ -93,7 +93,7 @@ class ThreadManager {
         long getLocalMem();
 	long memoryUsed();
         int numThr() { return numThreads; }
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
         barrier_t *getBarrier();
 #endif
         friend class OneSproc;

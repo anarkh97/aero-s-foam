@@ -392,7 +392,7 @@ int main(int argc, char** argv)
       case 'n':
         numThreads = atoi(optarg);
         if(numThreads <= 0) numThreads = 1;
-#ifdef USE_OPENMP
+#ifdef _OPENMP
         omp_set_dynamic(0);
         omp_set_num_threads(numThreads);
 #endif

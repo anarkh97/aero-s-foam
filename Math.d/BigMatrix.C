@@ -1,4 +1,4 @@
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 #endif
 #include <sys/types.h>
@@ -119,7 +119,7 @@ GenBigMatrix<Scalar>::rankUpdate(int iThread, int numThreads, int iBlock)
 
 }
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 template<class Scalar>
 void
 GenBigMatrix<Scalar>::subFactor(int iThread, int numThreads, barrier_t *bar)
@@ -133,18 +133,18 @@ GenBigMatrix<Scalar>::subFactor(int iThread, int numThreads)
  for(iBlock = 0; iBlock < numBlocks; ++iBlock) {
    // factor the diagonal block
    factorDiagonal(iThread, numThreads, iBlock);
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(bar, numThreads);
 #endif
    // LineUpdate
    lineUpdate(iThread, numThreads, iBlock);
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(bar, numThreads); 
 #endif
 
    // rank update
    rankUpdate(iThread, numThreads, iBlock);
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(bar, numThreads);
 #endif
  }
@@ -155,7 +155,7 @@ void
 GenBigMatrix<Scalar>::parallelFactor()
 {
  // create barrier using threadManager
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
  new_barrier = threadManager->getBarrier();
 
  // call subFactor in parallel using numThreads
@@ -203,16 +203,16 @@ GenBigMatrix<Scalar>::subReSolve(int iThread, int numThreads, Scalar *rhs)
  for(iBlock = 0; iBlock < numBlocks; ++iBlock) {
    // Forward substitute of block iBlock
    subForward(iBlock, iThread, numThreads, rhs);
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(new_barrier , numThreads);
 #endif
  }
  for(iBlock = numBlocks; iBlock--; ) {
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(new_barrier , numThreads);
 #endif
    diagSolve(iBlock, iThread, numThreads, rhs);
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier(new_barrier , numThreads);
 #endif
    subBackward(iBlock, iThread, numThreads, rhs);

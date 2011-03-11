@@ -29,7 +29,7 @@
 #include <HelmAxi.d/FetiHAxi.d/DistrComplexVector.h>
 
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 extern ulock_t allocLock;
 #endif
@@ -1229,7 +1229,7 @@ MDAxiDesc::ffpAxiNeum(int iT, DComplex *FFP, DComplex **u,
              vectorDir+kPhi*nsint, waveDirection, totalFourier);
      }
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
      ussetlock(allocLock);
      for (j=0; j<nsint; ++j) {
        FFP[kPhi*nsint+j] += bufferFFP[2*j];
@@ -1331,7 +1331,7 @@ MDAxiDesc::ffpAxiDir(int iT, DComplex *FFP, DComplex **u,
             vectorDir+kPhi*nsint, waveDirection, totalFourier);
      }
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
      ussetlock(allocLock);
      for (j=0; j<nsint; ++j) {
        FFP[kPhi*nsint+j] += bufferFFP[2*j];

@@ -185,7 +185,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, EqNumberer *eqnums,
  for(i = 0; i < blTop[nBlocks]; ++i)
    skyA[i] = 0.0;
 #else
- #ifdef USE_OPENMP
+ #ifdef _OPENMP
  #pragma omp parallel private(i)
  #endif
  {
@@ -286,7 +286,7 @@ GenBlockSky<Scalar>::GenBlockSky(Connectivity *nodeToNode, DofSetArray *eqnums,
  for(i = 0; i < blTop[nBlocks]; ++i)
    skyA[i] = 0.0;
 #else
- #ifdef USE_OPENMP
+ #ifdef _OPENMP
  #pragma omp parallel private(i)
  #endif
  {
@@ -476,7 +476,7 @@ template<class Scalar>
 void
 GenBlockSky<Scalar>::parallelFactor()
 {
-#if defined(sgi) && !defined(USE_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
   int avg = size() / neq;
   int maxCPU = (avg*avg)/20000;
 //if(maxCPU > 1 ) {
@@ -509,7 +509,7 @@ GenBlockSky<Scalar>::parallelFactor()
    origDiag[i] = skyA[dlp[i]];
  int iBlock;
 
- #ifdef USE_OPENMP
+ #ifdef _OPENMP
  #pragma omp parallel private(i,iBlock,j,iTop,jTop)
  #endif
  {
@@ -531,7 +531,7 @@ GenBlockSky<Scalar>::parallelFactor()
     iTop = fIDof - ldl;
     GenStackFSFullMatrix<Scalar> diagBlock(blWeight[iBlock], blWeight[iBlock], 
        blHeight[iBlock], skyA+blTop[iBlock]+ldl);
- #ifdef USE_OPENMP
+ #ifdef _OPENMP
  #pragma omp barrier
  #endif
     // Build the row of L corresponding to this block
@@ -560,7 +560,7 @@ GenBlockSky<Scalar>::parallelFactor()
       myFirstBlock += numThreads;
     }
 
-   #ifdef USE_OPENMP
+   #ifdef _OPENMP
    #pragma omp barrier
    #endif
    // Now update the iBlock row

@@ -21,7 +21,7 @@
 #include <HelmAxi.d/MPCData.h>
 #include <HelmAxi.d/MDAxiData.h>
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 extern ulock_t allocLock;
 #endif
@@ -490,7 +490,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
      for (mode=mstart; mode<mstop; ++mode) {
          KC[mode] = new SkyMatrixC(nodeToNode, dsa, c_dsa, sinfo.trbm);
          matSize = (KC[mode]) ? KC[mode]->size() : 0;
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
          __add_and_fetch(&totMemSky, matSize);
          __add_and_fetch(&memK, matSize);
 #else
@@ -502,7 +502,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
             KiiC[mode] = new SkyMatrixC(nodeToNode, dsa, sinfo.trbm,
                                         glInternalMap,0);
             matSize = KiiC[mode]->size();
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
             __add_and_fetch(&memPrec, matSize);
 #else
             memPrec += matSize;
@@ -515,7 +515,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
          KC[mode] = new BLKSparseMatrixC(nodeToNode, dsa, c_dsa,
                                          sinfo.trbm);
          matSize = (KC[mode]) ? KC[mode]->size() : 0;
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
          __add_and_fetch(&totMemSparse, matSize);
          __add_and_fetch(&memK, matSize);
 #else
@@ -527,7 +527,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
             KiiC[mode] = new BLKSparseMatrixC(nodeToNode,dsa,glInternalMap,
                              sinfo.trbm);
             matSize = KiiC[mode]->size();
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
             __add_and_fetch(&memPrec, matSize);
 #else
             memPrec += matSize;
@@ -541,7 +541,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
 
     KbbC[mode] = new DBComplexSparseMatrix(nodeToNode, dsa, glBoundMap);
     matSize = KbbC[mode]->size();
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
     __add_and_fetch(&memPrec, matSize);
 #else
     memPrec += matSize;
@@ -1454,7 +1454,7 @@ MDAxiData::assembleCKQSet(int Fourier, int jstart, int jstop, DComplex *QtKQ,
    else {
      // Update CKCt
      int colRight=iRHS-numCGridDofs;
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
      ussetlock(allocLock);
      for (iDof=0; iDof<=colRight; ++iDof) {
        (*CKCt)[iDof][colRight-iDof]+=QtKQ[iDof+numCGridDofs+(iRHS-jstart)*nRHS];

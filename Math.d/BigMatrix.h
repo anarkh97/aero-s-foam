@@ -1,7 +1,7 @@
 #ifndef _BIGMATRIX_H_
 #define _BIGMATRIX_H_
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 #endif
 
@@ -14,7 +14,7 @@ class GenBigMatrix : public GenFullM<Scalar> {
    int *blockIndex;
    int **kpvt;
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    barrier_t *new_barrier;
 
    void subFactor(int iThread, int numThreads, barrier_t *barrier);

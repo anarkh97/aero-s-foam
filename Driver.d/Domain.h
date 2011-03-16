@@ -83,6 +83,12 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
+namespace Rom {
+template <typename Scalar> class GenGaussNewtonSolver;
+template <typename Scalar> class GenGalerkinProjectionSolver;
+template <typename Scalar> class GenGappyProjectionSolver;
+} /* end namespace Rom */
+
 // HB
 class SurfaceEntity;
 
@@ -448,6 +454,15 @@ class Domain : public HData {
 
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
+
+     template<class Scalar>
+       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
+     
+     template<class Scalar>
+       Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
+     
+     template<class Scalar>
+       Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
 
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);

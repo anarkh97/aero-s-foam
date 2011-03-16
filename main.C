@@ -43,6 +43,11 @@ using namespace std;
 #include <Dec.d/dec.h>
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
+#include <Rom.d/SnapshotNonLinDynamic.h>
+#include <Rom.d/PodProjectionNonLinDynamic.h>
+#include <Rom.d/GappyNonLinDynamic.h>
+#include <Rom.d/PodProjectionSolver.h>
+#include <Rom.d/DriverInterface.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -984,25 +989,39 @@ int main(int argc, char** argv)
      }
      case SolverInfo::Static:
        {
-         if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
-         if(domain->isComplex()) {
-           if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
-           SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
-             statProb(domain);
-           StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
-                        SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
-                        SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
-             statSolver(&statProb);
-           statSolver.solve();
-         }
-         else {
-           if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
-           SingleDomainStatic<double, Vector, Solver> statProb(domain);
-           StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
-	     	        SingleDomainPostProcessor<double, Vector, Solver>,
-		        SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
-             statSolver(&statProb);
-           statSolver.solve();
+         if (domain->solInfo().activatePodRom) { // POD ROM
+           std::auto_ptr<Rom::DriverInterface> driver;
+           if (!domain->solInfo().gappyPodRom) {
+             // Stand-alone SVD orthogonalization
+             filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+             driver.reset(basisOrthoDriverNew(domain));
+           } else {
+             // Offline gappy mesh construction
+             filePrint(stderr, " ... POD: Reduced Mesh Construction ...\n");
+             driver.reset(meshSamplingDriverNew(domain));
+           }
+           driver->solve(); 
+         } else {
+           if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
+           if(domain->isComplex()) {
+             if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
+             SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
+               statProb(domain);
+             StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
+                          SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
+                          SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
+               statSolver(&statProb);
+             statSolver.solve();
+           }
+           else {
+             if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
+             SingleDomainStatic<double, Vector, Solver> statProb(domain);
+             StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
+                  SingleDomainPostProcessor<double, Vector, Solver>,
+              SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
+               statSolver(&statProb);
+             statSolver.solve();
+           }
          }
        }
        break;
@@ -1142,9 +1161,31 @@ int main(int argc, char** argv)
              dynaSolver.solve();
            }
            else { // implicit
-             NonLinDynamic nldynamic(domain);
-             NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
-             nldynamicSolver.solve();
+             if (!domain->solInfo().activatePodRom) {
+               NonLinDynamic nldynamic(domain);
+               NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+               nldynamicSolver.solve();
+             } else { // POD ROM
+               if (domain->solInfo().gaussNewtonPodRom) {
+                 filePrint(stderr, " ... POD: Reduced-order model       ...\n");
+                 Rom::PodProjectionNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().gappyPodRom) {
+                 filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
+                 Rom::GappyNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else {
+                 filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+                 Rom::SnapshotNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::SnapshotNonLinDynamic,
+                                GeomState, Rom::SnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+                 nldynamic.postProcess();
+               }
+             }
            }
          }
        }

@@ -99,6 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
+%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -308,6 +309,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
+  | PodRom
+  | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -3242,6 +3245,37 @@ Renumbering:
           domain->solInfo().setSparseRenum($5); 
           domain->solInfo().setSpoolesRenum($7); }
 	;
+PodRom:
+  PODROM PodRomMode NewLine
+  { domain->solInfo().activatePodRom = true; }
+  | PodRom PodRomOption NewLine
+PodRomMode:
+  SNAPSHOTS
+  { }
+  | GAUSSNEWTON 
+  { domain->solInfo().gaussNewtonPodRom = true;
+    domain->solInfo().subtype = 11; }
+  | GALERKIN
+  { domain->solInfo().gaussNewtonPodRom = true;
+    domain->solInfo().subtype = 12; }
+  | GAPPY
+  { domain->solInfo().gappyPodRom = true;
+    domain->solInfo().subtype = 13; }
+PodRomOption:
+  SVD
+  { domain->solInfo().svdPodRom = true; }
+  | PODSIZEMAX Integer
+  { domain->solInfo().maxSizePodRom = $2; }
+  | ASPECTRATIO Float
+  { domain->solInfo().aspectRatioPodRom = $2; }
+  | REFSUBSTRACT
+  { domain->solInfo().substractRefPodRom = true; }
+SampleNodeList:
+  SAMPLENODES NewLine
+  {}
+  | SampleNodeList Integer NewLine
+  { geoSource->sampleNodeAdd($2 - 1); }
+  ;
 Integer:
 	IntConstant
 	{ $$ = $1; }

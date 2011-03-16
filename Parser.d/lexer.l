@@ -1179,6 +1179,26 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
+"PODROM"|"PodRom"|"podrom"                { return PODROM; }
+
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+
+"GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
+
+"GALERKIN"|"galerkin"|"Galerkin"          { return GALERKIN; }
+
+"GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
+
+"SVD"|"Svd"|"svd"                         { return SVD; }
+
+"PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
+
+"ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
+
+"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+
+"SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

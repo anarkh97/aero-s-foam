@@ -34,6 +34,10 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
+#include <Rom.d/GaussNewtonSolver.h>
+#include <Rom.d/GappyProjectionSolver.h>
+#include <Rom.d/GalerkinProjectionSolver.h>
+
 extern Sfem* sfem;
 extern int verboseFlag;
 #ifdef DISTRIBUTED
@@ -816,6 +820,27 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
 }
 
 template<class Scalar>
+Rom::GenGaussNewtonSolver<Scalar> *
+Domain::constructGaussNewtonSolver()
+{
+  return new Rom::GenGaussNewtonSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
+Rom::GenGalerkinProjectionSolver<Scalar> *
+Domain::constructGalerkinProjectionSolver()
+{
+  return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
+Rom::GenGappyProjectionSolver<Scalar> *
+Domain::constructGappyProjectionSolver()
+{
+  return new Rom::GenGappyProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+
+template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, bool factorize)
@@ -1172,6 +1197,36 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
+      break;
+    case 11:
+      filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
+      {
+        Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
+      break;
+    case 12:
+      filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
+      {
+        Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
+      break;
+    case 13:
+      filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
+      {
+        Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
+        spm = solver;
+        spm->zeroAll();
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        systemSolver = solver;
+      }
       break;
   }
 }

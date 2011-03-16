@@ -20,7 +20,8 @@ public:
 	void renum(int *);
 
 	void setFrame(EFrame *ef) { elemframe = ef; }
-        void buildFrame(CoordSet&);
+  const EFrame *getFrame() const { return elemframe; }
+  void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet&, double *kel,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

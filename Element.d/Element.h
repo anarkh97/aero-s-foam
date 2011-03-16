@@ -7,9 +7,10 @@
 #include <Utils.d/MFTT.h>
 #include <iostream>
 #include <vector>
-#include <cassert>
+#include <cstddef>
 #include <complex>
 #include <set>
+
 
 // this is a fix to get around apparent template bug in solaris compiler
 inline double abs(std::complex<double> a)
@@ -323,6 +324,8 @@ class Element {
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame
+        virtual const EFrame *getFrame() const { return NULL; }
+        // By default, an element has no frame
         virtual void buildFrame(CoordSet&) {}
         virtual void setOffset(double*) {}
         virtual void setCompositeData(int _type, int nlays, double *lData,

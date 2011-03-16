@@ -318,7 +318,7 @@ NlLocalNetwork::backwardHalfSliceNew(HalfSliceRank sliceRank) {
 
 NamedTask::Ptr
 NlLocalNetwork::propagatedSeedSendNew(HalfSliceRank seedRank) {
-  cassertostCpu(seedRank.previous()) == localCpu());
+  assert(hostCpu(seedRank.previous()) == localCpu());
   CpuRank targetCpu(hostCpu(seedRank));
   
   RemoteStateTask::Ptr result = NULL;
@@ -332,7 +332,7 @@ NlLocalNetwork::propagatedSeedSendNew(HalfSliceRank seedRank) {
 
 NamedTask::Ptr
 NlLocalNetwork::propagatedSeedRecvNew(HalfSliceRank seedRank) {
-  cassertostCpu(seedRank) == localCpu());
+  assert(hostCpu(seedRank) == localCpu());
   CpuRank previousCpu = hostCpu(seedRank.previous());
 
   RemoteStateTask::Ptr result = NULL;

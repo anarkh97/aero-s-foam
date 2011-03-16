@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 // HB (06-19-05): for given reference shape fct derivatives dShape & nodes coordinates (X.Y,Z), 
 //                compute the jacobian & shape fcts derivative w.r.t to the global coordinate system.

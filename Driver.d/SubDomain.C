@@ -6,7 +6,7 @@
 #include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
-#include <limits.h> //--- UH
+#include <climits> //--- UH
 
 #include <Element.d/Element.h>
 #include <Utils.d/dofset.h>

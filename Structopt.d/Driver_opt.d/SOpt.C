@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <string.h>
+#include <cstring>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>

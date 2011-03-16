@@ -130,7 +130,7 @@ LinearLocalNetwork::buildPropagatedSeedRecv(HalfSliceRank sliceRank) {
 void
 LinearLocalNetwork::buildPropagatedSeedSend(HalfSliceRank sliceRank) {
   if (sliceRank < firstInactiveSlice()) {
-    assert(hostCpu(sliceRank.previous()) == localCpu());
+    cassertostCpu(sliceRank.previous()) == localCpu());
 
     CpuRank targetCpu(hostCpu(sliceRank));
 

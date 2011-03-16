@@ -12,7 +12,7 @@
 
 
 #include <cmath>
-#include <assert.h>
+#include <cassert>
 #include "exp-map.h"
 #include <iostream>
 

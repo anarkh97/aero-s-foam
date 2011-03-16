@@ -1,7 +1,7 @@
 #include	<cstdio>
 #include        <cmath>
 #include	<cstdlib>
-#include	<string.h>
+#include	<cstring>
 
 #include	<Element.d/Shell.d/ThreeNodeShell.h>
 #include        <Driver.d/PolygonSet.h>

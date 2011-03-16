@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <sys/types.h>
-#include <string.h>
+#include <cstring>
 /*
 #include <dmalloc.h>
 */

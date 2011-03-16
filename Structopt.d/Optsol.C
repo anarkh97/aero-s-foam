@@ -2,7 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
 
 #include <Structopt.d/Optsol.h>
 #include <Structopt.d/Optpro.h>

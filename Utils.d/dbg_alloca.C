@@ -46,7 +46,7 @@
 
 #endif
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 #include <cstdlib>
 using namespace std;

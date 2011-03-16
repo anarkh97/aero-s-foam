@@ -1411,7 +1411,7 @@ static const unsigned char yystos[] =
 #endif
 #if ! defined (YYSIZE_T)
 # if defined (__STDC__) || defined (__cplusplus)
-#  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+#  include <cstddef> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # endif
 #endif

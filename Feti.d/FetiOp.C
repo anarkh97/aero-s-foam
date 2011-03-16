@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <cstdlib>
-#include <limits.h> //--- UH
+#include <climits> //--- UH
 
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>

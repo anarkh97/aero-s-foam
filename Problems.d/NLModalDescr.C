@@ -1,5 +1,5 @@
 #include <cmath>
-#include <limits.h> //--- UH
+#include <climits> //--- UH
 
 #include <Driver.d/Domain.h>
 #include <Problems.d/NLModalDescr.h>

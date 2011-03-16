@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <time.h>
+#include <ctime>
 #include <algorithm>
 
 #ifndef SANDIA

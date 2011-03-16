@@ -4,7 +4,7 @@
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
 #else
- #include <limits.h>
+ #include <climits>
 #endif
 #include <float.h>
 

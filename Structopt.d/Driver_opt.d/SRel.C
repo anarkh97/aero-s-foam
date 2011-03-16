@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <string.h>
+#include <cstring>
 
 #include <Driver.d/Domain.h>
 #include <Structopt.d/Driver_opt.d/Domain_opt.h>

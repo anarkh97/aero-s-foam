@@ -2,8 +2,8 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string.h>
-#include <time.h>
+#include <cstring>
+#include <ctime>
 #include <cassert>
 
 #include <Structopt.d/Relsol.h>

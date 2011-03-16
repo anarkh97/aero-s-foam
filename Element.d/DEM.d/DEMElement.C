@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <alloca.h>
 #include <cmath>
-#include <time.h>
+#include <ctime>
 #include <complex>
 
 #ifndef SANDIA

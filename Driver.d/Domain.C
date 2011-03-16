@@ -2,7 +2,7 @@
 using std::ifstream;
 #include <sstream>
 using std::istringstream;
-#include <time.h>
+#include <ctime>
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>

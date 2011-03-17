@@ -5,6 +5,8 @@ PROJECT (FEM)
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
 #set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
@@ -130,14 +132,19 @@ IF(UNIX)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
 
-# eigen2
-    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
-                 PATHS /usr/include /usr/local/include .)
-    IF(EIGEN2_INCLUDE_PATH)
-      MESSAGE("-- A library with EIGEN2 API found.")
-      add_definitions(-DUSE_EIGEN2)
-      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
-    ENDIF(EIGEN2_INCLUDE_PATH)
+# eigen
+#    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
+#                 PATHS /usr/include /usr/local/include .)
+#    IF(EIGEN2_INCLUDE_PATH)
+#      MESSAGE("-- A library with EIGEN2 API found.")
+#      add_definitions(-DUSE_EIGEN2)
+#      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
+#    ENDIF(EIGEN2_INCLUDE_PATH)
+   find_package(Eigen3)
+   IF(EIGEN3_FOUND)
+     include_directories(EIGEN3_INCLUDE_DIR)
+     add_definitions(-DUSE_EIGEN2)
+   ENDIF(EIGEN3_FOUND)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis

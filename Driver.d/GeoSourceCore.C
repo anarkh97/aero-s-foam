@@ -484,7 +484,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   }
 }
 
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
 using namespace Eigen;
@@ -493,7 +493,7 @@ using namespace Eigen;
 int
 GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
   // create a unique integer ID for every DOF involved in the MPCs
   int nID = 0;
   map<pair<int,int>, int> dofID;

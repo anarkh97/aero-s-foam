@@ -142,8 +142,8 @@ IF(UNIX)
 #    ENDIF(EIGEN2_INCLUDE_PATH)
    find_package(Eigen3)
    IF(EIGEN3_FOUND)
-     include_directories(EIGEN3_INCLUDE_DIR)
-     add_definitions(-DUSE_EIGEN2)
+     include_directories(${EIGEN3_INCLUDE_DIR})
+     add_definitions(-DUSE_EIGEN3)
    ENDIF(EIGEN3_FOUND)
 
 # metis

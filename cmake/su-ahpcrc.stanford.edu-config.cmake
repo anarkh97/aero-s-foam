@@ -15,11 +15,12 @@ SET(CMAKE_LIBRARY_PATH /lustre/home/avery/code/arpack
                        /lustre/home/avery/code/acme-2.9/lib
                        /lustre/home/avery/code/Zoltan/Obj_generic)
 # blas and lapack
-SET(BLAS_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/blas_LINUX.a)
-SET(LAPACK_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/lapack_LINUX.a ${BLAS_LIBRARIES})
+#SET(BLAS_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/blas_LINUX.a)
+#SET(LAPACK_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/lapack_LINUX.a ${BLAS_LIBRARIES})
 ## having problems with mkl (try again when newer version is installed)
 #SET(LAPACK_LIBRARIES /opt/intel/mkl/10.0.1.014/lib/em64t/libmkl_lapack.so /opt/intel/mkl/10.0.1.014/lib/em64t/libmkl_intel_lp64.so /opt/intel/mkl/10.0.1.014/lib/em64t/libmkl_sequential.so /opt/intel/mkl/10.0.1.014/lib/em64t/libmkl_core.so /opt/intel/mkl/10.0.1.014/lib/em64t/libiomp5.so -lpthread CACHE STRING "Path to a library.")
-SET(LAPACK_FOUND true)
+#SET(LAPACK_FOUND true)
+
 # add anything missed by cmake auto-detection
 SET(EXTRALIB -lgfortran 
              CACHE STRING "Extra link parameters")

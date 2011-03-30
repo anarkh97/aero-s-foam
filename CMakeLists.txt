@@ -133,13 +133,6 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-#    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
-#                 PATHS /usr/include /usr/local/include .)
-#    IF(EIGEN2_INCLUDE_PATH)
-#      MESSAGE("-- A library with EIGEN2 API found.")
-#      add_definitions(-DUSE_EIGEN2)
-#      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
-#    ENDIF(EIGEN2_INCLUDE_PATH)
    find_package(Eigen3)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})

@@ -3233,6 +3233,7 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
       vcx[dof] = usrDefVel[locToGlUserDispMap[i]];
     }
   }
+  updateUsddInDbc(usrDefDisp, locToGlUserDispMap); // CHECK
 }
 
 template<class Scalar>

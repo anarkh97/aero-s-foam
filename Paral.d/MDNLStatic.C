@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include <Threads.d/Paral.h>
 #include <Driver.d/Domain.h>

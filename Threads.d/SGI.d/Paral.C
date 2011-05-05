@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/types.h>
 #include <sys/prctl.h>
 #include <ulocks.h>

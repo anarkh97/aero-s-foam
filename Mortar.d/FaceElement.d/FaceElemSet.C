@@ -2,10 +2,10 @@
 // HB - 06/25/03
 // ----------------------------------------------------------------
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 // STL

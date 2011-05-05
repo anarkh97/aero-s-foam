@@ -5,10 +5,10 @@
 // ------------------------------------------------------------
 
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 double
 computePenta6DShapeFct(double dShape[6][3], double X[6], double Y[6], double Z[6], double (*DShape)[3]=0)

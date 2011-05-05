@@ -1,7 +1,7 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/types.h>
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 #include <sys/prctl.h>
 #include <ulocks.h>
 #endif
@@ -25,7 +25,7 @@
 #include <Timers.d/DistTimer.h>
 #include <Timers.d/GetTime.h>
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 usptr_t * usPtr;
 
 // isParal = 0 sequential
@@ -56,7 +56,7 @@ int zeroFd = -1;
 long currentSizes = 0;
 
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 void *
 arenaGrow(size_t size, void *)
 {
@@ -91,7 +91,7 @@ bool loud = false;
 
 void * operator new(size_t size)
 {
-#if defined(sgi) && !defined(USE_OPENMP) && defined(NEWNEW)
+#if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
 // fprintf(stderr,"allocated %20d bytes  Running Total %14.3f Mb \n",
 //                 size, memoryUsed()/(1024.0*1024.0));
 
@@ -134,7 +134,7 @@ void * operator new(size_t size)
 long
 ThreadManager::getLocalMem()
 {
-#if defined(sgi) && !defined(USE_OPENMP) && defined(NEWNEW)
+#if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
  // get my process ID
  pid_t myPid = getpid();
  if(pproc == 0 || myPid == pproc)
@@ -156,7 +156,7 @@ ThreadManager::getLocalMem()
 
 void operator delete(void *p)
 {
-#if defined(sgi) && !defined(USE_OPENMP) && defined(NEWNEW)
+#if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
  pid_t myPid = getpid();
  if(myPid == pproc || pproc==0) {
     currentSizes -= amallocblksize(p,pparena);
@@ -184,10 +184,10 @@ void operator delete(void *p)
 void
 ThreadLock::lock()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  ussetlock(lockV);
 #endif
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
   omp_set_lock(&lockV);
 #endif
 }
@@ -195,10 +195,10 @@ ThreadLock::lock()
 void
 ThreadLock::unlock()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  usunsetlock(lockV);
 #endif
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
   omp_unset_lock(&lockV);
 #endif
 
@@ -207,19 +207,19 @@ ThreadLock::unlock()
 
 ThreadLock::ThreadLock()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  lockV = usnewlock(usPtr);
 #endif
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
   omp_init_lock(&lockV);
 #endif
 }
 
 ThreadLock::~ThreadLock()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 #endif
-#if defined(USE_OPENMP)
+#if defined(_OPENMP)
   omp_destroy_lock(&lockV);
 #endif
 }
@@ -227,7 +227,7 @@ ThreadLock::~ThreadLock()
 typedef void (*P)(void *, size_t);
 ThreadManager::ThreadManager(int nThr)
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  numThreads = nThr;
  // fprintf(stderr, "Creating %d threads\n", numThreads);
  
@@ -274,7 +274,7 @@ ThreadManager::ThreadManager(int nThr)
  }
  pproc = getpid();
  //filePrint(stderr," ... Setting Memory Arenas          ...\n");
-#elif defined(USE_OPENMP)
+#elif defined(_OPENMP)
  numThreads = nThr;
 // fprintf(stderr, "Forcing %d threads\n",numThreads);
  omp_set_dynamic(0);
@@ -289,7 +289,7 @@ ThreadManager::ThreadManager(int nThr)
 
 ThreadManager::~ThreadManager()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  int i;
  for(i = 0; i < numThreads-1; ++i)
    allProc[i].allTasks = 0;
@@ -307,7 +307,7 @@ long
 ThreadManager::memoryUsed()
 {
 //HB: decommented this
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  int i;
  long totSizes = currentSizes;
  for(i = 0; i < numThreads-1; ++i)
@@ -321,7 +321,7 @@ ThreadManager::memoryUsed()
 void
 ThreadManager::memUsage()
 {
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
  long totSizes = 0;
 
  long minMem = currentSizes;
@@ -344,7 +344,7 @@ ThreadManager::memUsage()
 #endif
 }
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 void
 OneSproc::run(void *p)
 {
@@ -396,7 +396,7 @@ void
 ThreadManager::execParal(int ntasks, TaskDescr **td)
 {
   timer = 0;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
   int i;
   if(isParal == 0)
     for(i=0; i < ntasks; ++i)
@@ -419,7 +419,7 @@ ThreadManager::execParal(int ntasks, TaskDescr **td)
   }
 #else
  int i;
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for schedule(static,1)
 #endif
  for(i=0; i < ntasks; ++i)
@@ -431,7 +431,7 @@ void
 ThreadManager::execParal(int ntasks, TaskDescr *td)
 {
   timer = 0;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
   int i;
   if(isParal == 0)
     for(i = 0; i < ntasks; ++i) {
@@ -455,7 +455,7 @@ ThreadManager::execParal(int ntasks, TaskDescr *td)
   }
 #else
  int i;
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for schedule(static,1)
 #endif
  for(i = 0; i < ntasks; ++i)
@@ -469,7 +469,7 @@ ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr **td)
 {
 
     timer = &thisTimer;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
     int i;
     for(i = 0; i < numThreads-1; ++i) {
       allProc[i].allTasks = td;
@@ -495,7 +495,7 @@ ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr **td)
  double initTime = getTime();
  long initMem  = threadManager->getLocalMem();
  int i;
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for schedule(static,1)
 #endif
  for(i=0; i < ntasks; ++i)
@@ -510,7 +510,7 @@ void
 ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr *td)
 {
     timer = &thisTimer;
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
     int i;
     for(i = 0; i < numThreads-1; ++i) {
        allProc[i].allTasks = &td;
@@ -537,7 +537,7 @@ ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr *td)
  long initMem = threadManager->getLocalMem();
 
  int i;
-#ifdef USE_OPENMP
+#ifdef _OPENMP
 #pragma omp parallel for schedule(static,1)
 #endif
  for(i = 0; i < ntasks; ++i)
@@ -549,7 +549,7 @@ ThreadManager::execTimedParal(DistTimer &thisTimer, int ntasks, TaskDescr *td)
 }
 
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 barrier_t *
 ThreadManager::getBarrier()
 {

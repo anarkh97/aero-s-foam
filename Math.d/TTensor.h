@@ -1,7 +1,7 @@
 #ifndef _TTENSOR_H_
 #define _TTENSOR_H_
 #include <Utils.d/NodeSpaceArray.h>
-#include <stdio.h>
+#include <cstdio>
 
 template <class T, int d>
 class CTD { // Chained Tensor Data

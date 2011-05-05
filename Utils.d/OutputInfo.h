@@ -9,7 +9,7 @@
 // 4. add a header message in Driver.d/StructProp.h
 // 
 
-#include <stdio.h>
+#include <cstdio>
 
 struct OutputInfo {
    enum Type
@@ -30,8 +30,8 @@ struct OutputInfo {
           NodeToNode,   AeroFlux,    HeatFlX,     GrdTemp,     Velocity6,
           Accel6,       ModeAlpha,   ModeError,   Reactions,   ModalDsp,
           ModalExF,     
-          ContactPressure, NodalMassMat, NodalStifMat, Farfield, EigenPressure,
-          FreqRespModes, HelmholtzModes,
+          ContactPressure, NodalMassMat, NodalStifMat, Farfield, Kirchhoff,
+          EigenPressure, FreqRespModes, HelmholtzModes,
           StressPR1Direc, StressPR2Direc, StressPR3Direc,
           StrainPR1Direc, StrainPR2Direc, StrainPR3Direc,
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,

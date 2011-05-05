@@ -3,7 +3,7 @@
 
 //#define HB_USE_MEMCPY
 #ifdef HB_USE_MEMCPY
-#include <string.h>
+#include <cstring>
 #endif
 
 //#define MAP_MIN_MEMORY

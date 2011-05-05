@@ -4,7 +4,7 @@
 #include <Element.d/Joint.d/DotConstraintType1.h>
 #include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
 
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
 using namespace Eigen;
@@ -33,7 +33,7 @@ RigidBeam::getMPCs()
 {
   int numLMPC = getNumMPCs();
   LMPCons **lmpc = SuperElement::getMPCs();
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
   using std::map;
   using std::pair;
   using std::vector;

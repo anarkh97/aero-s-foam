@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <alloca.h>
-#include <math.h>
-#include <time.h>
+#include <cmath>
+#include <ctime>
 #include <complex>
 
 #ifndef SANDIA

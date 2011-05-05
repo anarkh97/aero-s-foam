@@ -3,7 +3,7 @@
 #include        <Math.d/FullSquareMatrix.h>
 #include        <Utils.d/dofset.h>
 #include        <Utils.d/linkfc.h>
-#include 	<stdio.h>
+#include 	<cstdio>
 
 
 SloshTetra::SloshTetra(int* nodenums)

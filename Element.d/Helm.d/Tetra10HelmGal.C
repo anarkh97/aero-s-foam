@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #include <Element.d/Helm.d/Tetra10HelmGal.h>
 #include <Math.d/FullSquareMatrix.h>

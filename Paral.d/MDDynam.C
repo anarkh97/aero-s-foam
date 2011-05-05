@@ -154,7 +154,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
   if(!times) times = new StaticTimers;
   startTimerMemory(times->output, times->memoryOutput);
 
-  // PJSA 4-15-08: update bcx for time dependent prescribed displacements and velocities (previously done in computeExternalForce2)
+  // PJSA 4-15-08: update bcx for time dependent prescribed displacements and velocities 
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {

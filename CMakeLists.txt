@@ -5,6 +5,8 @@ PROJECT (FEM)
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
 #set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
@@ -15,12 +17,6 @@ enable_language(Fortran)
 #SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 #SET(CMAKE_EXE_LINKER_FLAGS -static)
 
-if(AERO)
-   MARK_AS_ADVANCED(CLEAR MPI_COMPILER)
-   MARK_AS_ADVANCED(CLEAR MPI_LIBRARY)
-   FIND_PACKAGE(MPI REQUIRED)
-endif(AERO)
-
 SITE_NAME(HOSTNAME)
 FIND_PACKAGE(LOCAL NAMES ${HOSTNAME} PATHS . QUIET)
 MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
@@ -30,16 +26,12 @@ if(OpenMP_FLAG_DETECTED)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_CXX_FLAGS}")
-  add_definitions(-DUSE_OPENMP)
 endif(OpenMP_FLAG_DETECTED)
 
+SET(BLA_VENDOR Generic)
 if(NOT LAPACK_FOUND)
  FIND_PACKAGE(LAPACK)
 endif(NOT LAPACK_FOUND)
-#MESSAGE("BLAS_LIBRARIES = " ${BLAS_LIBRARIES})
-#MESSAGE("LAPACK_LIBRARIES = " ${LAPACK_LIBRARIES})
-MARK_AS_ADVANCED(CLEAR BLAS_LIBRARIES)
-MARK_AS_ADVANCED(CLEAR LAPACK_LIBRARIES)
 
 SET(INC_DIR .)
 SET(BINDIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -75,7 +67,7 @@ IF(UNIX)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI)
+        add_definitions(-DUSE_ACME -DACME_2_9 -DCONTACT_NO_MPI)
         SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
       ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
@@ -91,7 +83,7 @@ IF(UNIX)
       IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with ACME API found.")
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5)
+        add_definitions(-DUSE_ACME -DACME_2_9)
         SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
       ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
@@ -135,21 +127,19 @@ IF(UNIX)
     IF(SPOOLES_FOUND)
       add_definitions(-DUSE_SPOOLES)
       if(SPOOLES_spoolesMT_LIBRARY)
-        SET(EXTRALIBRARIES ${SPOOLES_spooles_LIBRARY} ${SPOOLES_spoolesMT_LIBRARY} ${EXTRALIBRARIES})
+        SET(EXTRALIBRARIES ${SPOOLES_spoolesMT_LIBRARY} ${SPOOLES_spooles_LIBRARY} ${EXTRALIBRARIES})
       else(SPOOLES_spoolesMT_LIBRARY)
         SET(EXTRALIBRARIES ${SPOOLES_spooles_LIBRARY} ${EXTRALIBRARIES})
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
 
-# eigen2
-    FIND_PATH(EIGEN2_INCLUDE_PATH NAMES eigen2/Eigen/Core
-                 PATHS /usr/include /usr/local/include .)
-    IF(EIGEN2_INCLUDE_PATH)
-      MESSAGE("-- A library with EIGEN2 API found.")
-      add_definitions(-DUSE_EIGEN2)
-      SET(INC_DIR ${INC_DIR} ${EIGEN2_INCLUDE_PATH}/eigen2)
-    ENDIF(EIGEN2_INCLUDE_PATH)
+# eigen
+   find_package(Eigen3)
+   IF(EIGEN3_FOUND)
+     include_directories(${EIGEN3_INCLUDE_DIR})
+     add_definitions(-DUSE_EIGEN3)
+   ENDIF(EIGEN3_FOUND)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis
@@ -177,7 +167,7 @@ IF(UNIX)
                    PATHS /usr/lib /usr/local/lib)
       FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq
+      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq mpiseq_seq
                    PATHS /usr/lib /usr/local/lib)
       if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
         MESSAGE("-- A library with MUMPS API found.")
@@ -209,9 +199,9 @@ IF(UNIX)
         SET(MUMPS_FOUND TRUE)
       endif(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_LIBRARY AND MUMPS_zmumps_LIBRARY AND MUMPS_common_LIBRARY AND MUMPS_pord_LIBRARY)
       # blacs is required for parallel mumps
-      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_blacs_LIBRARY NAMES blacs blacs-openmpi blacs_MPI-LINUX-0 
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0
+      FIND_LIBRARY(BLACS_f77init_LIBRARY NAMES blacsF77init blacsF77init-openmpi blacsF77init_MPI-LINUX-0 blacsF77
                    PATHS /usr/lib /usr/local/lib)
       if(BLACS_blacs_LIBRARY AND BLACS_f77init_LIBRARY)
         MESSAGE("-- A library with BLACS API found.")
@@ -234,13 +224,13 @@ IF(UNIX)
     endif(NOT MPI_FOUND)
 
 # metis
-    FIND_LIBRARY(METIS_LIBRARY NAMES metis
-                 PATHS /usr/lib /usr/local/lib)
-    IF(METIS_LIBRARY)
-      MESSAGE("-- A library with METIS API found.")
-      add_definitions(-DUSE_METIS)
-      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
-    ENDIF(METIS_LIBRARY)
+#    FIND_LIBRARY(METIS_LIBRARY NAMES metis
+#                 PATHS /usr/lib /usr/local/lib)
+#    IF(METIS_LIBRARY)
+#      MESSAGE("-- A library with METIS API found.")
+#      add_definitions(-DUSE_METIS)
+#      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
+#    ENDIF(METIS_LIBRARY)
 
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
@@ -259,7 +249,7 @@ if(MPI_FOUND)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corotational Mortar Math Util Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                            PROPERTIES 
@@ -312,15 +302,15 @@ add_subdirectory(Problems.d)
 add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
 add_subdirectory(Material.d)
+add_subdirectory(Rom.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Util Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material getopt)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom getopt)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
-  add_subdirectory(OOPita.d)
-  SET(ALLLIBS pita ${ALLLIBS} pitadriver )
+  SET(ALLLIBS Pita ${ALLLIBS} )
 ENDIF(MPI_FOUND)
 
 SET_TARGET_PROPERTIES(${ALLLIBS}

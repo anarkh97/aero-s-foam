@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/CompositeInfo.h>
 #include <iostream>
 using namespace std;
@@ -107,7 +107,7 @@ LayInfo::zeroGrad()
 }
 
 //------------------------------------------------------------
-#include <math.h>
+#include <cmath>
 #define PI 3.14159265358979
 
 void 

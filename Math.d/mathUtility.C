@@ -8,9 +8,6 @@
   inline T myMin(T a, T b) { return a < b ? a : b; }
 
   template <class T>
-  inline T abs(T x) { return x > 0 ? x : -x;}
-
-  template <class T>
   inline void
   mySwap(T &a, T &b)
   {

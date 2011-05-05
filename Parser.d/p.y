@@ -1,9 +1,9 @@
 %{
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <algorithm>
 #include <map>
-#include <stdlib.h>
+#include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
 #include <Sfem.d/Sfem.h>
@@ -72,7 +72,7 @@
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
-%token JACOBI KRYLOVTYPE
+%token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
@@ -99,6 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
+%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -248,6 +249,7 @@ Component:
         | Scatterer
         | FarFieldPattern
         | FarFieldPatternDirs
+        | KirchhoffLocations
         | HelmHoltzBC
         | EleHelmHoltzBC
         | EleScatterer
@@ -307,6 +309,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
+  | PodRom
+  | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -1694,12 +1698,31 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.betaDamp = $17; sp.alphaDamp = $18;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
 	{ StructProp sp; 
 	  sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10; 
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
 	  sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.betaDamp = $21; sp.alphaDamp = $22;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
@@ -2980,6 +3003,14 @@ IncidenceVector:
         Float Float Float NewLine
         { domain->setWaveDirections(0, $1, $2, $3); }
         ;
+KirchhoffLocations:
+        KIRLOC NewLine Float Float Float NewLine{
+          domain->setKirchhoffLocations($3, $4, $5);
+        } 
+        | KirchhoffLocations Float Float Float NewLine {
+          domain->setKirchhoffLocations($2, $3, $4);
+        }
+        ;
 FFPDirList:
         FFPDirVector
         | FFPDirList FFPDirVector
@@ -3233,6 +3264,37 @@ Renumbering:
           domain->solInfo().setSparseRenum($5); 
           domain->solInfo().setSpoolesRenum($7); }
 	;
+PodRom:
+  PODROM PodRomMode NewLine
+  { domain->solInfo().activatePodRom = true; }
+  | PodRom PodRomOption NewLine
+PodRomMode:
+  SNAPSHOTS
+  { }
+  | GAUSSNEWTON 
+  { domain->solInfo().gaussNewtonPodRom = true;
+    domain->solInfo().subtype = 11; }
+  | GALERKIN
+  { domain->solInfo().gaussNewtonPodRom = true;
+    domain->solInfo().subtype = 12; }
+  | GAPPY
+  { domain->solInfo().gappyPodRom = true;
+    domain->solInfo().subtype = 13; }
+PodRomOption:
+  SVD
+  { domain->solInfo().svdPodRom = true; }
+  | PODSIZEMAX Integer
+  { domain->solInfo().maxSizePodRom = $2; }
+  | ASPECTRATIO Float
+  { domain->solInfo().aspectRatioPodRom = $2; }
+  | REFSUBSTRACT
+  { domain->solInfo().substractRefPodRom = true; }
+SampleNodeList:
+  SAMPLENODES NewLine
+  {}
+  | SampleNodeList Integer NewLine
+  { geoSource->sampleNodeAdd($2 - 1); }
+  ;
 Integer:
 	IntConstant
 	{ $$ = $1; }

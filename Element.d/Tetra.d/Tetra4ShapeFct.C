@@ -3,10 +3,10 @@
 // ------------------------------------------------------------
 
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 double
 computeTetra4DShapeFct(double dShape[4][3], double X[4], double Y[4], double Z[4], double (*DShape)[3]=0)

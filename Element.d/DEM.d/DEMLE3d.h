@@ -1,7 +1,7 @@
 #ifndef _DEMLE3D_H_
 #define _DEMLE3D_H_
 
-#include <math.h>
+#include <cmath>
 #include <Element.d/DEM.d/DEMElement.h>
 
 class DGMLE3d_LM: public DEMLM {

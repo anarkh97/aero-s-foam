@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 template<class Scalar>
 GenDiagMatrix<Scalar>::GenDiagMatrix(DofSetArray *_dsa)

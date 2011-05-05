@@ -1,7 +1,7 @@
-#include	<stdio.h>
-#include	<stdlib.h>
+#include	<cstdio>
+#include	<cstdlib>
 #include 	<Utils.d/dbg_alloca.h>
-#include 	<math.h>
+#include 	<cmath>
 
 #include	<Element.d/CompShell.d/Compo3NodeShell.h>
 #include        <Corotational.d/Shell3Corotator.h>

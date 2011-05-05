@@ -1,6 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
-//#include <stdlib.h>
+#include <cstdio>
+//#include <cstdlib>
 
 #ifndef TFLOP
 #ifndef WINDOWS 

@@ -1,7 +1,7 @@
 #ifndef DB_SPARSEMATRIX_H_
 #define DB_SPARSEMATRIX_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/MyComplex.h> 
 #include <Math.d/SparseMatrix.h>
 class FSCommunicator;

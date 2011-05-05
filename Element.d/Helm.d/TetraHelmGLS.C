@@ -1,5 +1,5 @@
-#include 	<stdio.h>
-#include 	<math.h>
+#include 	<cstdio>
+#include 	<cmath>
 
 #include	<Element.d/Helm.d/TetraHelmGLS.h>
 #include        <Math.d/matrix.h>

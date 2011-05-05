@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <Element.d/Helm.d/HelmElement.h>
 
 void

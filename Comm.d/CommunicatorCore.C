@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/dbg_alloca.h>

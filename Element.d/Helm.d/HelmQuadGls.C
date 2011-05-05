@@ -3,7 +3,7 @@
 #include        <Math.d/FullSquareMatrix.h>
 #include        <Utils.d/dofset.h>
 #include        <Utils.d/linkfc.h>
-#include	<math.h>
+#include	<cmath>
 
 extern "C"      {
 void  _FORTRAN(quad1dofm)(double*, double*, const int&, double*, const int&);

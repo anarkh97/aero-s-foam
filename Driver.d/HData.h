@@ -46,6 +46,8 @@ class HData
      int numWaveDirections;
      int numFFPDirections;
      double *ffpDirections;
+     int numKirchhoffLocations;
+     double *kirchhoffLocations;
      int numFrequencies;
      int iWaveDir;
      int iRHS;
@@ -89,7 +91,7 @@ class HData
 
      void make_bc(Domain *dom, int *bc, ComplexD *bcx);
      void makeKss(Domain*);
-     void ffp(Domain*, int ndir, ComplexD *ffp, double (*dir)[3], ComplexD *u);
+     void ffp(Domain*, int ndir, ComplexD *ffp, double (*dir)[3], ComplexD *u, bool direction);
      template<class Scalar>
        void wError(Domain*, double *l2err, double *h1err, double *l2, double *h1, Scalar *u);
      void addSommerElem(int en, int type, double cc, int nn, int *nodes);
@@ -138,6 +140,7 @@ class HData
      void   setFFP(int);
      void   setFFP(int,int);
      void   setFFPDirections(double d1, double d2, double d3);
+     void   setKirchhoffLocations(double x, double y, double z);
      void   addFrequencies1(double w0, double deltaw, int n_deltaw, bool minus_flag = true);
      void   addFrequencies2(double w0, double w1, int n_deltaw, bool first_flag = true);
      void   addFrequencies(double w_start, double w_end, int n_coarse, int n_fine);

@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
-#include <time.h>
+#include <ctime>
 
 #include <Timers.d/Timing.h>
 #include <Timers.d/StaticTimers.h>

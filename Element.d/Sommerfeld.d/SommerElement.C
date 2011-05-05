@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Driver.d/Domain.h>
@@ -792,11 +792,10 @@ SommerElement::wetInterfaceLMPC(CoordSet&, LMPCons*, int) {
 
 void
 SommerElement::ffp(CoordSet &cs, int numFFP, double *dirFFP,
-                   complex<double> *sol, complex<double> *ffpv)  {
+                   complex<double> *sol, complex<double> *ffpv, bool direction)  {
 
  fprintf(stderr," *** WARNING: Attempting to use SommerElement::ffp\n");
 }
-
 
 int SommerElement::numWetDofs() {
  fprintf(stderr," *** WARNING: Attempting to use SommerElement::numWetDofs\n");

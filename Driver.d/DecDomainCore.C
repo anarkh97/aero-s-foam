@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Driver.d/DecDomain.h>
 #include <Feti.d/Feti.h>
 #include <Paral.d/MDDynam.h>
@@ -67,7 +67,7 @@ GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
 template<>
 void
 GenDecDomain<double>::buildLocalFFP(int iSub, GenDistrVector<double> *u,
-                                    double **ffp, int *numSample, double (*dir)[3])
+                                    double **ffp, int *numSample, double (*dir)[3], bool direction)
 {
   fprintf(stderr, "WARNING: GenDecDomain<double>::buildLocalFFP not implemented \n");
 }
@@ -75,23 +75,23 @@ GenDecDomain<double>::buildLocalFFP(int iSub, GenDistrVector<double> *u,
 template<>
 void
 GenDecDomain<DComplex>::buildLocalFFP(int iSub, GenDistrVector<DComplex> *u,
-                                      DComplex **ffp, int *numSample, double (*dir)[3])
+                                      DComplex **ffp, int *numSample, double (*dir)[3], bool direction)
 {
- subDomain[iSub]->ffp(subDomain[iSub], *numSample, ffp[iSub], dir, u->subData(iSub));
+ subDomain[iSub]->ffp(subDomain[iSub], *numSample, ffp[iSub], dir, u->subData(iSub), direction);
 }
 
 template<>
 void
-GenDecDomain<double>::buildFFP(GenDistrVector<double> &u, FILE *fffp)
+GenDecDomain<double>::buildFFP(GenDistrVector<double> &u, FILE *fffp, bool direction)
 {
  fprintf(stderr, "WARNING: GenDecDomain<double>::buildFFP not implemented \n"); 
 }
 
 template<>
 void
-GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
+GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp, bool direction)
 {
- if(domain->numFFPDirections == 0) {
+ if(direction && domain->numFFPDirections == 0) {
    int i,j;
    int nsint = MAX(2, domain->nffp);
    // Dimension of the problem
@@ -133,7 +133,7 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
      }
    }
 
-   execParal(numSub, this, &GenDecDomain<DComplex>::buildLocalFFP, &u, localFFP, &numSamples, ffpDir);
+   execParal(numSub, this, &GenDecDomain<DComplex>::buildLocalFFP, &u, localFFP, &numSamples, ffpDir, direction);
 
    for(i=1; i<numSub; ++i) 
      for(j=0; j<numSamples; ++j)
@@ -173,7 +173,17 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
  else {
    // RT: new style input/output
    int i,j;
-   int numSamples = domain->numFFPDirections;
+   int numSamples;
+   double *evalDirLoc;
+
+   if (direction) {
+     numSamples = domain->numFFPDirections;
+     evalDirLoc = domain->ffpDirections;
+   } else {
+     numSamples = domain->numKirchhoffLocations;
+     evalDirLoc = domain->kirchhoffLocations;
+   }
+
    DComplex **localFFP = new DComplex * [numSub];
    for(i=0; i<numSub; ++i) {
      localFFP[i] = new DComplex[numSamples];
@@ -182,16 +192,15 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
      }
    }
 
-   double (*ffpDir)[3];
-   ffpDir = new double[numSamples][3];
+   double (*ffpDirLoc)[3] = new double[numSamples][3];
    for(i=0;i<numSamples;i++) {
-     ffpDir[i][0] = domain->ffpDirections[i*3+0];
-     ffpDir[i][1] = domain->ffpDirections[i*3+1];
-     ffpDir[i][2] = domain->ffpDirections[i*3+2];
+     ffpDirLoc[i][0] = evalDirLoc[i*3+0];
+     ffpDirLoc[i][1] = evalDirLoc[i*3+1];
+     ffpDirLoc[i][2] = evalDirLoc[i*3+2];
    }
 
    execParal(numSub, this, &GenDecDomain<DComplex>::buildLocalFFP, &u, localFFP,
-           &numSamples, ffpDir);
+           &numSamples, ffpDirLoc, direction);
 
    for(i=1; i<numSub; ++i)
      for(j=0; j<numSamples; ++j)
@@ -202,11 +211,11 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
    if(communicator->cpuNum() == 0) {
 #endif
 
-   for(i=0;i<domain->numFFPDirections;i++) {
+   for(i=0;i<numSamples;i++) {
      fprintf(fffp,"%e %e %e   %e %e\n",
-             domain->ffpDirections[i*3+0],
-             domain->ffpDirections[i*3+1],
-             domain->ffpDirections[i*3+2],
+             ffpDirLoc[i][0],
+             ffpDirLoc[i][1],
+             ffpDirLoc[i][2],
              real(localFFP[0][i]),imag(localFFP[0][i]));
    }
 #ifdef DISTRIBUTED
@@ -215,7 +224,7 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp)
 
    for(i=0; i<numSub; ++i) delete [] localFFP[i];
    delete [] localFFP;
-   delete [] ffpDir;
+   delete [] ffpDirLoc;
  }
 }
 

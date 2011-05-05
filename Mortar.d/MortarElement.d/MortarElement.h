@@ -5,7 +5,7 @@
 #ifndef _MORTARELEMENT_H_ 
 #define _MORTARELEMENT_H_ 
 
-#include <stdio.h>
+#include <cstdio>
 //#include <iostream.h> 
 //#include <Mortar.d/FaceElement.d/FaceElement.h>
 

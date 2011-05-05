@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Timers.d/GetTime.h>
 
 //#define DEBUG_NEWTON // use this to output at every newton iteration

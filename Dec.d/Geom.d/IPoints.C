@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Dec.d/Geom.d/IPoints.h>
 #include <Utils.d/Connectivity.h>
 

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <algorithm>
 using std::stable_sort;
@@ -18,14 +18,14 @@ using std::stable_sort;
 //    to use this optimization
 #define HB_RENUMBYCOMP_OPT
  
-Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeable) 
+Connectivity::Connectivity(int _size, int *_pointer, int *_target, int _removeable, float *_weight) 
 {
  size      = _size;
  pointer   = _pointer;
  target    = _target;
  numtarget = pointer[size];
  removeable = _removeable;
- weight    = 0;
+ weight    = _weight;
 }
 
 Connectivity::Connectivity(Elemset *els)

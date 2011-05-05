@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <Corotational.d/utilities.h>
 
 double fitalg3_3nodnew( double x0[3][3], double xn[3][3])

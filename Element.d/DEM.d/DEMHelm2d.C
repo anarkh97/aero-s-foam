@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include <Element.d/DEM.d/DEMHelm2d.h>
 #include <Element.d/Helm.d/IsoParamUtils2d.h>

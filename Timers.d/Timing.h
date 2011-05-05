@@ -1,9 +1,9 @@
 #ifndef _TIMING_H_
 #define _TIMING_H_
 
-#include <stdio.h>
+#include <cstdio>
 
-#if defined(sgi) &&  !defined(USE_OPENMP)
+#if defined(sgi) &&  !defined(_OPENMP)
 static const double oneMegaByte = (1024.0*1024.0); 
 #else
 static const double oneMegaByte = 1024.0;

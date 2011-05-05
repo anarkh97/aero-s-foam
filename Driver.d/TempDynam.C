@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Solver.h>
@@ -405,12 +405,12 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
   if(hftval)
     hfttFactor = hftval->getVal(t);
 
-  // ... COMPUTE TIME DEPENDENT EXTERNAL FORCE (and CONVECTIVE AND RADIATIVE FLUXES
+  // ... COMPUTE TIME DEPENDENT EXTERNAL FORCE
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
-      case(BCond::Flux) : f[dof] += hfttFactor*nbc[i].val;
+      case(BCond::Flux) : f[dof] += hfttFactor*nbc[i].val; break;
       default : f[dof] += nbc[i].val; 
     }
   }

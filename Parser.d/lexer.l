@@ -1,12 +1,12 @@
 %x incl
 
 %{
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
-#include "p.tab.H"
+#include "parser.hpp"
 #include <stack>
 //#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 int line_num = 1;
@@ -234,6 +234,8 @@ TRAIL [a-zA-Z]*
 "FFP"|"ffp"                        {return FFP; }
 
 "FFPDIR"|"ffpdir"                  {return FFPDIR; }
+
+"KIRLOC"|"KIRLOC"                  {return KIRLOC; }
 
 "HSOM"[a-zA-Z]*|"hsom"[a-zA-Z]*    { return HSOMMERFELD; }
 
@@ -974,7 +976,7 @@ TRAIL [a-zA-Z]*
 
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
-"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::EigenPair6;   return STRESSID; }
 
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
@@ -1049,6 +1051,8 @@ TRAIL [a-zA-Z]*
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }
+
+"kirchhoff"|"KIRCHHOFF"            { yylval.ival = OutputInfo::Kirchhoff;    return STRESSID; }
 
 "geigpres"|"GEIGPRES"              { yylval.ival = OutputInfo::EigenPressure; return STRESSID; }
 
@@ -1174,6 +1178,26 @@ TRAIL [a-zA-Z]*
 "MEAN"|"mean" { yylval.ival = 1; return NDTYPE; }
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
+
+"PODROM"|"PodRom"|"podrom"                { return PODROM; }
+
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+
+"GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
+
+"GALERKIN"|"galerkin"|"Galerkin"          { return GALERKIN; }
+
+"GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
+
+"SVD"|"Svd"|"svd"                         { return SVD; }
+
+"PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
+
+"ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
+
+"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+
+"SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

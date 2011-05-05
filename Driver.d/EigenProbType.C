@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 #include <Driver.d/Dynam.h>
 

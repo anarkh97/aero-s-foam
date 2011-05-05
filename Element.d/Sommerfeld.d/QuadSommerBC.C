@@ -1,5 +1,5 @@
-#include        <stdio.h>
-#include        <math.h>
+#include        <cstdio>
+#include        <cmath>
 #include        <Element.d/Sommerfeld.d/QuadSommerBC.h>
 #include        <Utils.d/linkfc.h>
 

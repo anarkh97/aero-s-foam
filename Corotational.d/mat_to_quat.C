@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <Corotational.d/utilities.h>
 #include <Math.d/mathUtility.h>
 #include <iostream>

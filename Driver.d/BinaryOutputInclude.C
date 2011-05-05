@@ -1,5 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 
 // ---------------------------------------------------------------------
 // PJSA: new binary output routines for double and DComplex

@@ -7,9 +7,10 @@
 #include <Utils.d/MFTT.h>
 #include <iostream>
 #include <vector>
-#include <cassert>
+#include <cstddef>
 #include <complex>
 #include <set>
+
 
 // this is a fix to get around apparent template bug in solaris compiler
 inline double abs(std::complex<double> a)
@@ -119,14 +120,8 @@ class StructProp {
 	double fc;      // Compressive strength -October 2001 - JMP
         double Ep;      // Hardening modulus
 	};
-     union {
         double Q;	// Specific heat coeffiecient
-        double betaDamp; // Rayleigh stiffness damping coefficient
-        };
-     union {
 	double W;	// Thermal expansion coefficient
-        double alphaDamp; // Rayleigh mass damping coefficient
-        };
         double P;	// Perimeter/circumference of thermal truss/beams
      union {
         double Ta;	// Ambient temperature
@@ -137,6 +132,9 @@ class StructProp {
 	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
 	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
 	double zmax;	// maximum height (> 0) for cross section of beam (local z-direction)
+
+        double betaDamp; // Rayleigh stiffness damping coefficient
+        double alphaDamp; // Rayleigh mass damping coefficient
 
         double kappaHelm; // wave number for Helmholtz proplem
         double kappaHelmImag; // imaginary part of the wavenumber for
@@ -180,7 +178,7 @@ class StructProp {
                        Iyy = 0.0; Izz = 0.0; c = 0.0; k = 0.0; Q = 0.0; W = 0.0;
                        P = 0.0; Ta = 0.0; sigma = 0.0;
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
-                       soundSpeed = 1.0;
+                       soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
                        lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0;
@@ -323,6 +321,8 @@ class Element {
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame
+        virtual const EFrame *getFrame() const { return NULL; }
+        // By default, an element has no frame
         virtual void buildFrame(CoordSet&) {}
         virtual void setOffset(double*) {}
         virtual void setCompositeData(int _type, int nlays, double *lData,

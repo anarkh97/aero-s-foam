@@ -50,6 +50,7 @@ class GeomState {
      virtual ~GeomState();
 
      NodeState & operator[](int i)  { return ns[i]; }
+     const NodeState & operator[](int i) const { return ns[i]; }
      NodeState *getNodeState() { return ns; }
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }

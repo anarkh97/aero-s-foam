@@ -1,12 +1,12 @@
 #ifndef _SKYMATRIX_H_
 #define _SKYMATRIX_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 #include <Utils.d/MyComplex.h>
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 #endif
 
@@ -159,7 +159,7 @@ protected:
    //HB
    double rmsBandwidth();
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
    void pfact(int, int, barrier_t *, Scalar *);
 #else
    void pfact(int, int, Scalar *);

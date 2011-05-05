@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include <Element.d/Truss.d/Therm2NodeBar.h>
 #include <Math.d/FullSquareMatrix.h>

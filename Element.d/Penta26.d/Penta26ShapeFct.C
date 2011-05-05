@@ -8,10 +8,10 @@
 // EXPERIMENTAL ...
 // ---------------------------------------------------------------------
 // Std C/C++ lib
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <Utils.d/linkfc.h>
 
 #define USE_NAVY_PENTA26  //HB: force using the shape function routines provided by the Navy ...

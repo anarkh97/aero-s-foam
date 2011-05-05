@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/IntFullM.h>
 
 IntFullM::IntFullM()

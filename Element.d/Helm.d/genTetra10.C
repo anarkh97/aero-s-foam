@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 /*
 n[1] := (1-r-s-t)*(2*(1-r-s-t)-1)
 n[2] := r*(2r-1)

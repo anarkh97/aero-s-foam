@@ -6,7 +6,7 @@
 // ------------------------------------------------------------
                                                                                                                                        
 // Std C/C++ lib
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/linkfc.h>
 
 extern "C" {

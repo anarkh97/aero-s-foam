@@ -83,6 +83,12 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
+namespace Rom {
+template <typename Scalar> class GenGaussNewtonSolver;
+template <typename Scalar> class GenGalerkinProjectionSolver;
+template <typename Scalar> class GenGappyProjectionSolver;
+} /* end namespace Rom */
+
 // HB
 class SurfaceEntity;
 
@@ -449,6 +455,15 @@ class Domain : public HData {
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
 
+     template<class Scalar>
+       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
+     
+     template<class Scalar>
+       Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
+     
+     template<class Scalar>
+       Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
+
      UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
      SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
      Rbm              *constructRbm(bool printFlag = true);
@@ -580,11 +595,9 @@ class Domain : public HData {
      double computeConditionNumber(DynamMat&);
 
      //   Output Related functions
-     int processOutput(OutputInfo::Type &type, Vector &sol, double *bcx, int iInfo,
+     template<class Scalar>
+     int processOutput(OutputInfo::Type &type, GenVector<Scalar> &sol, Scalar *bcx, int iInfo,
                        double time, double freq = 0, int printFlag = 0);
-     int processOutput(OutputInfo::Type &type, ComplexVector &sol, DComplex *bcx, int iInfo,
-                       double time, double freq = 0, int printFlag = 0)  {
-                       cerr << "whoops Stress!\n";  return 0;}
 
      template<class Scalar>
      int processDispTypeOutputs(OutputInfo &oinfo, Scalar (*sol)[11], int iInfo,

@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include <cstdio>
 //#include <fstream.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/linkfc.h>

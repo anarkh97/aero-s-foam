@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 
 template<>

@@ -7,7 +7,7 @@
 
 extern long currentSizes;
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
 extern pid_t * childProc;
 #endif
 
@@ -16,7 +16,7 @@ inline
 long
 memoryUsed()
 {
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
  if(childProc == 0)
    return currentSizes;
  else

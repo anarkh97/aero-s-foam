@@ -1,7 +1,7 @@
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 #include <Timers.d/GetTime.h> 
 #include <Utils.d/Memory.h>
 #include <Utils.d/DistHelper.h>

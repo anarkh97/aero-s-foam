@@ -4,7 +4,7 @@
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 
 #ifdef WINDOWS
-#include <math.h>
+#include <cmath>
 #endif
 
 class LineSommerBC: public SommerElement {

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Math.d/matrix.h>

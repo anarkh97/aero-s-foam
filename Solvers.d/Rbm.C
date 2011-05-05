@@ -1,6 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Rbm.h>

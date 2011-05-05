@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 #include <HelmAxi.d/coefFourier.h>
 
 
@@ -187,7 +187,7 @@ double besselj(int n, double x) {
 
  double result = jn(n, x);
 
-#if defined(sgi) && ! defined(USE_OPENMP)
+#if defined(sgi) && ! defined(_OPENMP)
  if (isnan(result)) {
    result = (double) jnl(n, (long double) x);
  }

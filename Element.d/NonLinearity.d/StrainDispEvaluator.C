@@ -1,7 +1,7 @@
 #include <Math.d/matrix.h> 
 #include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/StrainDispEvaluator.h>
-#include <stdio.h>
+#include <cstdio>
 
 LinearStrain linearStrain;
 GreenLagrangeStrain greenLagrangeStrain;

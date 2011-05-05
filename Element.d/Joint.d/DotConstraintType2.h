@@ -15,6 +15,7 @@ class DotConstraintType2 : public MpcElement
     void update(GeomState& gState, CoordSet& cs, double);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
     void setFrame(EFrame *);
+    const EFrame *getFrame() const { return &c0; }
 };
 
 #endif

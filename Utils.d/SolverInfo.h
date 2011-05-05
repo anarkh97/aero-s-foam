@@ -3,8 +3,8 @@
 
 #include <Utils.d/NonlinearInfo.h>
 #include <Feti.d/FetiInfo.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -233,6 +233,14 @@ struct SolverInfo {
    bool lagrangeMult;
    double penalty;
 
+   bool activatePodRom;
+   bool svdPodRom;
+   bool gaussNewtonPodRom;
+   bool gappyPodRom;
+   int  maxSizePodRom;
+   double aspectRatioPodRom;
+   bool substractRefPodRom;
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   type = 0;     
@@ -404,6 +412,14 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+
+                  activatePodRom = false;
+                  svdPodRom = false;
+                  gaussNewtonPodRom = false;
+                  gappyPodRom = false;
+                  maxSizePodRom = 0;
+                  aspectRatioPodRom = 1.0;
+                  substractRefPodRom = false;
                  }
 
    // Set RbmFilter level

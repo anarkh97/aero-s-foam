@@ -1,7 +1,7 @@
 #ifndef _SKYMATRIX_C_    //CRW
 #define _SKYMATRIX_C_    //CRW
 
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/linkfc.h>
@@ -542,7 +542,7 @@ GenSkyMatrix<Scalar>::Factor()
    delete [] w;
 }
 
-#if defined(sgi) && !defined(USE_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
 extern ulock_t allocLock;
 template<class Scalar>
 void
@@ -559,7 +559,7 @@ GenSkyMatrix<Scalar>::pfact(int me, int nprocs, Scalar *w)
 // Factor the matrix, sending a dummy rhs & dummy ZEM.
    int flag = 1, nops = 0;
    int numrbm = 0;
-#if defined(sgi) && !defined(USE_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
    Tpfact(skyA, dlp, lacol, dummyRHS, w, pivot, TOLERANCE, numUncon, flag,
           nops, numrbm, dummyZEM, me, nprocs, &bar, &allocLock);
    if(me == 0) nzem = numrbm;
@@ -588,7 +588,7 @@ GenSkyMatrix<Scalar>::parallelFactor()
   int flag = 1, nops = 0;
   int numrbm = 0;
 
-#if defined(sgi) && !defined(USE_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
   //int avg = size() / neqs();
   int avg1= int(rmsBandwidth()); //HB: better estimate of the avg. bandwidth
   //int maxCPU = (avg*avg)/2500;
@@ -607,7 +607,7 @@ GenSkyMatrix<Scalar>::parallelFactor()
      Tsvbu4b(skyA, dlp, lacol, dummyRHS, w, pivot,
              TOLERANCE, numUncon, flag, nops, numrbm, dummyZEM);
      nzem = numrbm;
-#if defined(sgi) && !defined(USE_OPENMP)
+#if defined(sgi) && !defined(_OPENMP)
    }
 #endif
   if(numrbm > 0 && this->print_nullity)

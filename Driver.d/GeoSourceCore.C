@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sstream>    //CRW
 #include <Utils.d/BlockAlloc.h>
 #include <Driver.d/GeoSource.h>
@@ -484,7 +484,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   }
 }
 
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
 using namespace Eigen;
@@ -493,7 +493,7 @@ using namespace Eigen;
 int
 GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
-#ifdef USE_EIGEN2
+#ifdef USE_EIGEN3
   // create a unique integer ID for every DOF involved in the MPCs
   int nID = 0;
   map<pair<int,int>, int> dofID;
@@ -668,6 +668,16 @@ void GeoSource::setUpData()
 {
   int lastNode = numNodes = nodes.size();
   const int nMaxEle = elemSet.last();
+
+  // Set up element pressure load
+  for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
+    int elemNum = i->first;
+    if(elemSet[elemNum])
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT());
+   else
+     fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
+  }
+  eleprs.clear();
 
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
@@ -1153,14 +1163,8 @@ void GeoSource::setElemTypeMap()
 
 void GeoSource::setElementPressure(int elemNum, double pressure)
 {
- // FIXME for this to work the element topology and mftt must precede the pressure in the input file
- // this dependence on ordering should be removed!!!
  prsflg = 1;
-
- if(elemSet[elemNum])
-   elemSet[elemNum]->setPressure(pressure, domain->getMFTT());
- else
-   fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
+ eleprs.push_back(pair<int,double>(elemNum,pressure));
 }
 
 void GeoSource::setElementPreLoad(int elemNum, double preload)
@@ -1169,7 +1173,6 @@ void GeoSource::setElementPreLoad(int elemNum, double preload)
    elemSet[elemNum]->setPreLoad(preload,prlflg);
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
-
 }
 
 void GeoSource::setConsistentPFlag(int _constpflg)
@@ -3286,7 +3289,9 @@ void GeoSource::setMatchArrays(int numLocSub)  {
 void GeoSource::addOutput(OutputInfo &outputInfo)  {
 
   oinfo[numOutInfo++] = outputInfo;
-  if(outputInfo.type == OutputInfo::Farfield) domain->solInfo().farfield = true;
+  if(outputInfo.type == OutputInfo::Farfield ||
+     outputInfo.type == OutputInfo::Kirchhoff)
+    domain->solInfo().farfield = true;
 }
 
 //-----------------------------------------------------------------------

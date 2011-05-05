@@ -1,12 +1,12 @@
 #include <typeinfo>
-#include <stdio.h>
+#include <cstdio>
 #ifdef SUN10    //CRW
 #include <typeinfo.h>    //CRW
 #endif    //CRW
-#include <math.h>
+#include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
-#include <limits.h> //--- UH
+#include <climits> //--- UH
 
 #include <Element.d/Element.h>
 #include <Utils.d/dofset.h>
@@ -3233,6 +3233,7 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
       vcx[dof] = usrDefVel[locToGlUserDispMap[i]];
     }
   }
+  updateUsddInDbc(usrDefDisp, locToGlUserDispMap); // CHECK
 }
 
 template<class Scalar>

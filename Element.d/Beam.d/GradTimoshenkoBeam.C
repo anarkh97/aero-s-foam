@@ -1,6 +1,6 @@
-#include	<stdio.h>
-#include	<stdlib.h>
-#include 	<math.h>
+#include	<cstdio>
+#include	<cstdlib>
+#include 	<cmath>
 
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
 #include	<Math.d/FullSquareMatrix.h>

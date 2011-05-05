@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
 
 #include <Element.d/Truss.d/TwoNodeTrussF.h>
 #include <Corotational.d/BarFCorotator.h>

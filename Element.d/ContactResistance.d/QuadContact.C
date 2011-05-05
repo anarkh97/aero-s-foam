@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
 #include <Element.d/ContactResistance.d/QuadContact.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>

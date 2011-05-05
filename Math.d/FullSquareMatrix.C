@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <cassert>
 #include <algorithm>
 
@@ -306,6 +306,13 @@ GenFullSquareMatrix<Scalar>::print(const char *msg, const char *msg2)
      fprintf(stderr,"\n");
    }
  }
+}
+
+template<>
+inline
+void
+GenFullSquareMatrix<std::complex<double> >::print(const char*, const char*) {
+  fprintf(stderr, "GenFullSquareMatrix<std::complex<double> >::print not implemented\n");
 }
 
 template<class Scalar>

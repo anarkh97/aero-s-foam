@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <iostream>
 
@@ -1063,7 +1063,11 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           break;
         case OutputInfo::Farfield: 
           domain->nffp = oinfo[i].interval;
-          buildFFP(u,oinfo[i].filptr);
+          buildFFP(u,oinfo[i].filptr, true);
+          break;
+        case OutputInfo::Kirchhoff:
+          domain->nffp = oinfo[i].interval;
+          buildFFP(u,oinfo[i].filptr, false);
           break;
         case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C
         case OutputInfo::AeroXForce:
@@ -3571,21 +3575,21 @@ GenDecDomain<Scalar>::getWError(int iSub, GenDistrVector<Scalar> *u,
 
 template<>
 void
-GenDecDomain<double>::buildFFP(GenDistrVector<double> &u, FILE *fffp);
+GenDecDomain<double>::buildFFP(GenDistrVector<double> &u, FILE *fffp, bool direction);
 
 template<>
 void
-GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp);
+GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp, bool direction);
 
 template<>
 void
 GenDecDomain<DComplex>::buildLocalFFP(int iSub, GenDistrVector<DComplex> *u,
-                                      DComplex **ffp, int *numSample, double (*dir)[3]);
+                                      DComplex **ffp, int *numSample, double (*dir)[3], bool direction);
 
 template<>
 void
 GenDecDomain<double>::buildLocalFFP(int iSub, GenDistrVector<double> *u,
-                                    double **ffp, int *numSample, double (*dir)[3]);
+                                    double **ffp, int *numSample, double (*dir)[3], bool direction);
 
 template<class Scalar>
 void

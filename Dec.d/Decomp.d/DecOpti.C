@@ -3,7 +3,7 @@
 #include <Utils.d/Connectivity.h>
 #include <Dec.d/Decomp.d/Decomp.h>
 #include <Threads.d/PHelper.h>
-#include <stdio.h>
+#include <cstdio>
 
 void
 DecOpti::minInterface(int sub)

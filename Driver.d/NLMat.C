@@ -289,6 +289,10 @@ NLMatProbDesc::integrate(NLState &sn, NLState &snp, Vector &du, Vector &resid,
               solver->numRBM());
      exit(-10);
   }
+
+  // pressure using surfacetopo
+  domain.addPressureForce(resid);
+
   return resid.norm();
 }
 

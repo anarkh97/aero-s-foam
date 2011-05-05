@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 template<class Scalar>
 GenSparseMatrix<Scalar>::~GenSparseMatrix() { } // empty destructor

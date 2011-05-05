@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <math.h>
+#include <cmath>
 
 #include <Threads.d/Paral.h>
 #include <Utils.d/MyComplex.h>
@@ -540,7 +540,7 @@ void ExprVecAssign<T,Scalar>::runFor(int threadNum) {
   int len = lhs.threadLen(threadNum);
   int offset = lhs.threadOffset(threadNum);
   for(int i = 0; i < len; i++)
-    lhs[offset+i] = rhs[i];
+    lhs[offset+i] = rhs[offset+i];
 }
 
 
@@ -559,7 +559,7 @@ void ExprVecIncr<T,Scalar>::runFor(int threadNum) {
   int len = lhs.threadLen(threadNum);
   int offset = lhs.threadOffset(threadNum);
   for(int i = 0; i < len; i++)
-    lhs[offset+i] += rhs[i];
+    lhs[offset+i] += rhs[offset+i];
 }
 
 
@@ -578,7 +578,7 @@ void ExprVecDecr<T,Scalar>::runFor(int threadNum) {
   int len = lhs.threadLen(threadNum);
   int offset = lhs.threadOffset(threadNum);
   for(int i = 0; i < len; i++)
-    lhs[offset+i] -= rhs[i];
+    lhs[offset+i] -= rhs[offset+i];
 }
 
 template<class Scalar>
@@ -855,7 +855,7 @@ GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
 }
 
 
-#include <stdio.h>
+#include <cstdio>
 
 template<class Scalar>
 GenDistrVector<Scalar> &

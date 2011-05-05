@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------
 // EXPERIMENTAL ...
 // ---------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <Element.d/Brick32.d/Brick32.h>
 #include <Math.d/FullSquareMatrix.h>

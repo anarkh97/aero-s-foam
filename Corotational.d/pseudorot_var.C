@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <Corotational.d/utilities.h>
 
 void pseudorot_var( double rvec[3], double varmat[3][3] )

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/CornerMaker.h>
 

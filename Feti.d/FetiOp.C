@@ -1,8 +1,8 @@
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <Utils.d/dbg_alloca.h>
-#include <stdlib.h>
-#include <limits.h> //--- UH
+#include <cstdlib>
+#include <climits> //--- UH
 
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>

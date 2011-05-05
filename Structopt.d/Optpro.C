@@ -1,6 +1,6 @@
 #ifdef STRUCTOPT
 
-#include <stdio.h>
+#include <cstdio>
 #include <cassert>
 
 #include <Structopt.d/Optpro.h>

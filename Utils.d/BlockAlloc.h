@@ -2,6 +2,7 @@
 #define _BLOCK_ALLOC_H_
 
 #include <cstdlib>
+#include <cstddef>
 #include <new>
 #include <sys/types.h>
 #include <Utils.d/resize_array.h>

@@ -1,5 +1,5 @@
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
 #include <Math.d/Vector.h>
 #include <Math.d/matrix.h>

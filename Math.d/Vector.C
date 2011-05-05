@@ -1,8 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <Math.d/mathUtility.h>
+
+#include <algorithm>
 
 template<class Scalar>
 GenVector<Scalar>::GenVector(const GenVector<Scalar> &v2)
@@ -447,18 +449,10 @@ template<class Scalar>
 void
 GenVector<Scalar>::swap(GenVector<Scalar> &v1)
 {
- int     lentmp;
- Scalar* dtmp;
-
- // First swap the lengths
- lentmp = v1.len;
- v1.len = len;
- len    = lentmp;
-
- // Next swap the pointers
- dtmp = v1.d;
- v1.d = d;
- d    = dtmp;
+ std::swap(len, v1.len);
+ std::swap(d, v1.d);
+ std::swap(myMemory, v1.myMemory);
+ std::swap(n, v1.n);
 }
 
 template<class Scalar>

@@ -1,4 +1,4 @@
-#include        <math.h>
+#include        <cmath>
 #include        <Element.d/Helm.d/HelmTri3Gls.h>
 #include        <Math.d/matrix.h>
 #include	<Math.d/FullSquareMatrix.h>

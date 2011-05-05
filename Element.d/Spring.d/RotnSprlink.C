@@ -1,5 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
-#include <stdio.h>
+#include <cstdio>
 #include <Element.d/Spring.d/RotnSprlink.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>

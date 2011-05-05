@@ -1,8 +1,8 @@
 #ifndef _MATRIX_H_
 #define _MATRIX_H_
 
-//#include <math.h>
-#include <stdio.h>    //CRW
+//#include <cmath>
+#include <cstdio>    //CRW
 #include <Utils.d/MyComplex.h>
 
 // FullM = Full Matrix class

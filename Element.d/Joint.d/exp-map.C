@@ -11,8 +11,8 @@
  */
 
 
-#include <math.h>
-#include <assert.h>
+#include <cmath>
+#include <cassert>
 #include "exp-map.h"
 #include <iostream>
 

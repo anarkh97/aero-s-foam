@@ -153,7 +153,7 @@ class GenDecDomain
   void makeMpcToMpc();
   void makeGlobalMpcToMpc(Connectivity *procMpcToMpc);
   void makeMpcToSub();
-  void buildFFP(GenDistrVector<Scalar> &u, FILE *fffp);
+  void buildFFP(GenDistrVector<Scalar> &u, FILE *fffp, bool direction);
   void makeCornerHandler(int iSub, SubCornerHandler **cornerHandler);
   void setLocalCorners(int iSub, SubCornerHandler **cornerHandler);
   void deleteMPCs();
@@ -205,7 +205,7 @@ class GenDecDomain
      int *sBoundFlag);
 //  void checkSommerTypeBC(int iSub);
   void buildLocalFFP(int iSub, GenDistrVector<Scalar> *u,
-                     Scalar **ffp, int *numSample, double (*dir)[3]);
+                     Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
   void getWError(int iSub, GenDistrVector<Scalar> *u,
                  double *l2err, double *h1err, double *l2, double *h1);
   // coupled_dph functions

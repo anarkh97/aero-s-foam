@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include <Feti.d/DistrVector.h>
 #include <HelmAxi.d/FetiHAxi.d/DistrComplexVectorSet.h>

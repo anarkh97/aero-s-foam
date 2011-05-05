@@ -1,8 +1,8 @@
 #ifndef _NL_DYNAMPROBTYPE_H_
 #define _NL_DYNAMPROBTYPE_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <Driver.d/StateUpdater.h>
 
 template < class OpSolver, 

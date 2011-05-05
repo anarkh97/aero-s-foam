@@ -1,5 +1,5 @@
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 #include <Feti.d/DistrVector.h>
 #include <HelmAxi.d/FetiHAxi.d/DistrComplexVector.h>
 #include <HelmAxi.d/FetiHAxi.d/GCRDCV.h>

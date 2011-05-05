@@ -1,5 +1,5 @@
 #include <cassert>
-#include <limits.h>
+#include <climits>
 #include <Structopt.d/Comm_opt.d/Comm_opt.h>
 #include <Utils.d/Connectivity.h>
 

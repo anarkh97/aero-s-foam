@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/linkfc.h>

@@ -1,8 +1,8 @@
 #ifdef STRUCTOPT
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>

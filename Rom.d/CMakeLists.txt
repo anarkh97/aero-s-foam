@@ -1,0 +1,23 @@
+ADD_LIBRARY( Rom
+  BasisId.C
+  BasisFileStream.C
+  BasisInputFile.C
+  BasisOutputFile.C
+  BasisOrthoDriver.C
+  FileNameInfo.C
+  GalerkinProjectionSolver.C
+  GappyNonLinDynamic.C
+  QrPseudoInversion.C
+  LeastSquaresSolver.C
+  NodalRestrictionMapping.C
+  MeshOutput.C
+  MeshSamplingDriver.C
+  MeshUtils.C
+  PodProjectionNonLinDynamic.C
+  RenumberingUtils.C
+  SnapshotNonLinDynamic.C
+  SvdOrthogonalization.C
+  VecBasisFile.C
+  VecBasisUtils.C
+  VecNodeDof6Conversion.C
+)

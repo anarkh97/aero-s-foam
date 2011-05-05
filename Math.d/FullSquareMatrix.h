@@ -1,7 +1,7 @@
 #ifndef	_FULLSQUAREMATRIX_H_
 #define	_FULLSQUAREMATRIX_H_
 #include <Utils.d/NodeSpaceArray.h>
-#include <stdio.h>
+#include <cstdio>
 #include <Utils.d/MyComplex.h>
 #include <Math.d/Vector.h>
 

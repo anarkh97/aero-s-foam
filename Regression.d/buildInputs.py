@@ -80,7 +80,7 @@ def buildInputs(params):
      
       command = "chmod +x " + runfilename
       os.system(command)
-      command = "cp /lustre/home/mpotts/regression/*.include ."
+      command = "cp ../*.include ."
       os.system(command)
 
       OUTPUT = ["gdisplac","stressvm","strainxx","strainxy","strainxz",\

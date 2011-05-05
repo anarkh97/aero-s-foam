@@ -149,7 +149,7 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
-        command = "run."+names+" >& /lustre/home/mpotts/reg.out"
+        command = "run."+names+" >& reg.out"
         os.system(command)
       os.chdir('../') 
       for infile in glob.glob( os.path.join(indir, '*.dat') ):
@@ -173,14 +173,14 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
-        command = "run."+indir+" >& /lustre/home/mpotts/reg.out"
+        command = "run."+indir+" >& reg.out"
         os.system(command)
       os.chdir('../') 
 
   result = 0
   
   for file in files:
-     basefile = "/lustre/home/mpotts/regression/baseline/"+file
+     basefile = "baseline/"+file
      p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
      newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
      p.wait() # some clean up

@@ -1,0 +1,36 @@
+echo aeros  tempstatics_sparse_gtempera.inp
+aeros  tempstatics_sparse_gtempera.inp
+echo aeros  tempstatics_skyline_gtempvel.inp
+aeros  tempstatics_skyline_gtempvel.inp
+echo aeros  tempstatics_mumps_heatflxx.inp
+aeros  tempstatics_mumps_heatflxx.inp
+echo aeros  tempstatics_spooles_heatflxy.inp
+aeros  tempstatics_spooles_heatflxy.inp
+echo aeros  tempstatics_gmres_heatflxz.inp
+aeros  tempstatics_gmres_heatflxz.inp
+echo aeros  tempstatics_direct_grdtempx.inp
+aeros  tempstatics_direct_grdtempx.inp
+echo aeros  tempstatics_spooles_pivot_grdtempy.inp
+aeros  tempstatics_spooles_pivot_grdtempy.inp
+echo aeros  tempstatics_mumps_pivot_grdtempz.inp
+aeros  tempstatics_mumps_pivot_grdtempz.inp
+echo aeros  tempstatics_frontal_gtempera.inp
+aeros  tempstatics_frontal_gtempera.inp
+echo aeros  tempstatics_pcg_gtempvel.inp
+aeros  tempstatics_pcg_gtempvel.inp
+echo aeros  tempstatics_bcg_heatflxx.inp
+aeros  tempstatics_bcg_heatflxx.inp
+echo aeros  tempstatics_cr_heatflxy.inp
+aeros  tempstatics_cr_heatflxy.inp
+echo aeros -n 2 --dec  tempstatics_FETI_heatflxz.inp
+aeros -n 2 --dec  tempstatics_FETI_heatflxz.inp
+echo aeros -n 2 --dec  tempstatics_FETI_1_grdtempx.inp
+aeros -n 2 --dec  tempstatics_FETI_1_grdtempx.inp
+echo aeros -n 2 --dec  tempstatics_FETI_2_OLD_grdtempy.inp
+aeros -n 2 --dec  tempstatics_FETI_2_OLD_grdtempy.inp
+echo aeros -n 2 --dec  tempstatics_FETI_2_NEW_grdtempz.inp
+aeros -n 2 --dec  tempstatics_FETI_2_NEW_grdtempz.inp
+echo aeros -n 2 --dec  tempstatics_FETI_DP_gtempera.inp
+aeros -n 2 --dec  tempstatics_FETI_DP_gtempera.inp
+echo aeros -n 2 --dec  tempstatics_FETI_DPH_gtempvel.inp
+aeros -n 2 --dec  tempstatics_FETI_DPH_gtempvel.inp

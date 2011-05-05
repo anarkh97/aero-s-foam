@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_skyline_gacceler
+1
+"nodeset"
+"elemset"
+*
+STATICS
+skyline
+include "feti.include"
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+gacceler nlstatics_skyline_gacceler.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

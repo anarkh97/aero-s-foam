@@ -1,0 +1,19 @@
+CONTROL
+impe_sparse_gvelocit
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+*
+STATICS
+sparse
+*
+OUTPUT
+gvelocit impe_sparse_gvelocit.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

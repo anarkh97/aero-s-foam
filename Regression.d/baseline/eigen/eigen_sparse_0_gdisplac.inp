@@ -1,0 +1,24 @@
+CONTROL
+eigen_sparse_0_gdisplac
+1
+"nodeset"
+"elemset"
+*
+STATICS
+sparse
+*
+EIGEN
+arpack
+nsbspv 20
+neigpa 12
+toleig 1.0e-10
+toljac 1.0e-05
+*
+SHIFT 0
+*
+OUTPUT
+gdisplac eigen_sparse_0_gdisplac.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

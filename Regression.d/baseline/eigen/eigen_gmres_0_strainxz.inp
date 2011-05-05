@@ -1,0 +1,24 @@
+CONTROL
+eigen_gmres_0_strainxz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+EIGEN
+arpack
+nsbspv 20
+neigpa 12
+toleig 1.0e-10
+toljac 1.0e-04
+*
+SHIFT 0
+*
+OUTPUT
+strainxz eigen_gmres_0_strainxz.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

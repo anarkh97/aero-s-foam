@@ -1,0 +1,24 @@
+CONTROL
+eigen_cr_1000_inxforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+cr
+*
+EIGEN
+arpack
+nsbspv 20
+neigpa 12
+toleig 1.0e-10
+toljac 1.0e-6
+*
+SHIFT 1000
+*
+OUTPUT
+inxforce eigen_cr_1000_inxforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -1,0 +1,15 @@
+CONTROL
+statics_FETI_2_OLD_axmoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI 2 OLD
+*
+OUTPUT
+axmoment statics_FETI_2_OLD_axmoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

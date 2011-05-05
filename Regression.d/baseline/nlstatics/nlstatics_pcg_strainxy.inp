@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_pcg_strainxy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+pcg
+include "feti.include"
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-6
+rebuild 1
+*
+OUTPUT
+strainxy nlstatics_pcg_strainxy.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

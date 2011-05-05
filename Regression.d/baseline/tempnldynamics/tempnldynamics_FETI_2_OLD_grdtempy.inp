@@ -1,0 +1,27 @@
+CONTROL
+tempnldynamics_FETI_2_OLD_grdtempy
+2
+"nodeset"
+"elemset"
+*
+STATICS
+FETI 2 OLD
+*
+DYNAMICS
+heat	0.5
+time	1.0	1.0	200.0
+newmark
+NONLINEAR
+maxitr 10
+nltol 1.0e-5
+rebuild 1
+*
+OUTPUT
+grdtempy tempnldynamics_FETI_2_OLD_grdtempy.dat 1
+*
+MATERIALS
+1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0
+*
+INCLUDE "mesh_temp.include"
+*
+END

@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_frontal_strainxx
+1
+"nodeset"
+"elemset"
+*
+STATICS
+frontal
+include "feti.include"
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-5
+rebuild 1
+*
+OUTPUT
+strainxx nlstatics_frontal_strainxx.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -1,0 +1,19 @@
+CONTROL
+impe_sparse_gdisplac
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+*
+STATICS
+sparse
+*
+OUTPUT
+gdisplac impe_sparse_gdisplac.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

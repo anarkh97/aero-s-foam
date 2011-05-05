@@ -1,0 +1,24 @@
+CONTROL
+eigen_FETI_2_NEW_1000_aymoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI 2 NEW
+*
+EIGEN
+arpack
+nsbspv 20
+neigpa 12
+toleig 1.0e-10
+toljac 1.0e-05
+*
+SHIFT 1000
+*
+OUTPUT
+aymoment eigen_FETI_2_NEW_1000_aymoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

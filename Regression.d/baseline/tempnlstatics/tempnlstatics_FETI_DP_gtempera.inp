@@ -1,0 +1,23 @@
+CONTROL
+tempnlstatics_FETI_DP_gtempera
+2
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+gtempera tempnlstatics_FETI_DP_gtempera.dat 1
+*
+MATERIALS
+1   0.0 0.0 0.0 0.0 0.0 202.4 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+*
+INCLUDE "mesh_temp.include"
+*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...
+END

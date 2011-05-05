@@ -1,0 +1,20 @@
+CONTROL
+dynamics_spooles_rotatmod
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles
+*
+DYNAMICS
+time	0.0	3.0e-5	3.0e-2
+newmark
+mech	0.25000	0.5000
+*	time step	total time
+OUTPUT
+rotatmod dynamics_spooles_rotatmod.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

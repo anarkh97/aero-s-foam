@@ -1,0 +1,19 @@
+CONTROL
+impe_gmres_strainxz
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+*
+STATICS
+gmres
+*
+OUTPUT
+strainxz impe_gmres_strainxz.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

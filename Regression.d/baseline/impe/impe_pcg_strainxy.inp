@@ -1,0 +1,19 @@
+CONTROL
+impe_pcg_strainxy
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+*
+STATICS
+pcg
+*
+OUTPUT
+strainxy impe_pcg_strainxy.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

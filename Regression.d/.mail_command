@@ -1,0 +1,1 @@
+mail -s "Regression Test Summary" mpotts@hpti.com < reg_test_summary

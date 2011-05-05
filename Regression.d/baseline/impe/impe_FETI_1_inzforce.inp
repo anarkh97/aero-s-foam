@@ -1,0 +1,19 @@
+CONTROL
+impe_FETI_1_inzforce
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+*
+STATICS
+FETI 1
+*
+OUTPUT
+inzforce impe_FETI_1_inzforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

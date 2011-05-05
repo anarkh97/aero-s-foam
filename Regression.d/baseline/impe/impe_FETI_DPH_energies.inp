@@ -1,0 +1,19 @@
+CONTROL
+impe_FETI_DPH_energies
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-5 1.0
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+energies impe_FETI_DPH_energies.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

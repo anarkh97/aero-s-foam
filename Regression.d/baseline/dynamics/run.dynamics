@@ -1,0 +1,46 @@
+echo aeros  dynamics_sparse_gdisplac.inp
+aeros  dynamics_sparse_gdisplac.inp
+echo aeros  dynamics_skyline_stressvm.inp
+aeros  dynamics_skyline_stressvm.inp
+echo aeros  dynamics_mumps_strainxx.inp
+aeros  dynamics_mumps_strainxx.inp
+echo aeros  dynamics_spooles_strainxy.inp
+aeros  dynamics_spooles_strainxy.inp
+echo aeros  dynamics_gmres_strainxz.inp
+aeros  dynamics_gmres_strainxz.inp
+echo aeros  dynamics_direct_strainxx.inp
+aeros  dynamics_direct_strainxx.inp
+echo aeros  dynamics_spooles_pivot_strainxy.inp
+aeros  dynamics_spooles_pivot_strainxy.inp
+echo aeros  dynamics_mumps_pivot_strainxz.inp
+aeros  dynamics_mumps_pivot_strainxz.inp
+echo aeros  dynamics_frontal_strainxx.inp
+aeros  dynamics_frontal_strainxx.inp
+echo aeros  dynamics_pcg_strainxy.inp
+aeros  dynamics_pcg_strainxy.inp
+echo aeros  dynamics_bcg_strainxz.inp
+aeros  dynamics_bcg_strainxz.inp
+echo aeros  dynamics_cr_inxforce.inp
+aeros  dynamics_cr_inxforce.inp
+echo aeros -n 2 --dec  dynamics_FETI_inyforce.inp
+aeros -n 2 --dec  dynamics_FETI_inyforce.inp
+echo aeros -n 2 --dec  dynamics_FETI_1_inzforce.inp
+aeros -n 2 --dec  dynamics_FETI_1_inzforce.inp
+echo aeros -n 2 --dec  dynamics_FETI_2_OLD_axmoment.inp
+aeros -n 2 --dec  dynamics_FETI_2_OLD_axmoment.inp
+echo aeros -n 2 --dec  dynamics_FETI_2_NEW_aymoment.inp
+aeros -n 2 --dec  dynamics_FETI_2_NEW_aymoment.inp
+echo aeros -n 2 --dec  dynamics_FETI_DP_azmoment.inp
+aeros -n 2 --dec  dynamics_FETI_DP_azmoment.inp
+echo aeros -n 2 --dec  dynamics_FETI_DPH_energies.inp
+aeros -n 2 --dec  dynamics_FETI_DPH_energies.inp
+echo aeros  dynamics_sparse_gvelocit.inp
+aeros  dynamics_sparse_gvelocit.inp
+echo aeros  dynamics_skyline_gacceler.inp
+aeros  dynamics_skyline_gacceler.inp
+echo aeros  dynamics_mumps_displmod.inp
+aeros  dynamics_mumps_displmod.inp
+echo aeros  dynamics_spooles_rotatmod.inp
+aeros  dynamics_spooles_rotatmod.inp
+echo aeros  dynamics_gmres_gdispmod.inp
+aeros  dynamics_gmres_gdispmod.inp

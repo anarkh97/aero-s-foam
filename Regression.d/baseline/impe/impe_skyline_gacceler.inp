@@ -1,0 +1,19 @@
+CONTROL
+impe_skyline_gacceler
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+*
+STATICS
+skyline
+*
+OUTPUT
+gacceler impe_skyline_gacceler.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

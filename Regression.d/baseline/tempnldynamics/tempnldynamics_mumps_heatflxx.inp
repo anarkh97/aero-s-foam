@@ -1,0 +1,27 @@
+CONTROL
+tempnldynamics_mumps_heatflxx
+2
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+DYNAMICS
+heat	0.5
+time	1.0	1.0	200.0
+newmark
+NONLINEAR
+maxitr 10
+nltol 1.0e-5
+rebuild 1
+*
+OUTPUT
+heatflxx tempnldynamics_mumps_heatflxx.dat 1
+*
+MATERIALS
+1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0
+*
+INCLUDE "mesh_temp.include"
+*
+END

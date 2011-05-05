@@ -1,0 +1,25 @@
+CONTROL
+nldynamics_skyline_stressvm
+1
+"nodeset"
+"elemset"
+*
+STATICS
+skyline
+*
+DYNAMICS
+time	0.0	1.0e-4	3.0e-2
+newmark
+mech	0.25000	0.5000
+*	time step	total time
+NONLINEAR
+maxitr 10
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+stressvm nldynamics_skyline_stressvm.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -1,0 +1,46 @@
+echo aeros  nlstatics_sparse_gdisplac.inp
+aeros  nlstatics_sparse_gdisplac.inp
+echo aeros  nlstatics_skyline_stressvm.inp
+aeros  nlstatics_skyline_stressvm.inp
+echo aeros  nlstatics_mumps_strainxx.inp
+aeros  nlstatics_mumps_strainxx.inp
+echo aeros  nlstatics_spooles_strainxy.inp
+aeros  nlstatics_spooles_strainxy.inp
+echo aeros  nlstatics_gmres_strainxz.inp
+aeros  nlstatics_gmres_strainxz.inp
+echo aeros  nlstatics_direct_strainxx.inp
+aeros  nlstatics_direct_strainxx.inp
+echo aeros  nlstatics_spooles_pivot_strainxy.inp
+aeros  nlstatics_spooles_pivot_strainxy.inp
+echo aeros  nlstatics_mumps_pivot_strainxz.inp
+aeros  nlstatics_mumps_pivot_strainxz.inp
+echo aeros  nlstatics_frontal_strainxx.inp
+aeros  nlstatics_frontal_strainxx.inp
+echo aeros  nlstatics_pcg_strainxy.inp
+aeros  nlstatics_pcg_strainxy.inp
+echo aeros  nlstatics_bcg_strainxz.inp
+aeros  nlstatics_bcg_strainxz.inp
+echo aeros  nlstatics_cr_inxforce.inp
+aeros  nlstatics_cr_inxforce.inp
+echo aeros -n 2 --dec  nlstatics_FETI_inyforce.inp
+aeros -n 2 --dec  nlstatics_FETI_inyforce.inp
+echo aeros -n 2 --dec  nlstatics_FETI_1_inzforce.inp
+aeros -n 2 --dec  nlstatics_FETI_1_inzforce.inp
+echo aeros -n 2 --dec  nlstatics_FETI_2_OLD_axmoment.inp
+aeros -n 2 --dec  nlstatics_FETI_2_OLD_axmoment.inp
+echo aeros -n 2 --dec  nlstatics_FETI_2_NEW_aymoment.inp
+aeros -n 2 --dec  nlstatics_FETI_2_NEW_aymoment.inp
+echo aeros -n 2 --dec  nlstatics_FETI_DP_azmoment.inp
+aeros -n 2 --dec  nlstatics_FETI_DP_azmoment.inp
+echo aeros -n 2 --dec  nlstatics_FETI_DPH_energies.inp
+aeros -n 2 --dec  nlstatics_FETI_DPH_energies.inp
+echo aeros  nlstatics_sparse_gvelocit.inp
+aeros  nlstatics_sparse_gvelocit.inp
+echo aeros  nlstatics_skyline_gacceler.inp
+aeros  nlstatics_skyline_gacceler.inp
+echo aeros  nlstatics_mumps_displmod.inp
+aeros  nlstatics_mumps_displmod.inp
+echo aeros  nlstatics_spooles_rotatmod.inp
+aeros  nlstatics_spooles_rotatmod.inp
+echo aeros  nlstatics_gmres_gdispmod.inp
+aeros  nlstatics_gmres_gdispmod.inp

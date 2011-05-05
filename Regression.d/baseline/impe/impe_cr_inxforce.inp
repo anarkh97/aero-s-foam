@@ -1,0 +1,19 @@
+CONTROL
+impe_cr_inxforce
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-5 1.0
+*
+STATICS
+cr
+*
+OUTPUT
+inxforce impe_cr_inxforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

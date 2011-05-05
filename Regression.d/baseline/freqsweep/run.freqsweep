@@ -1,0 +1,46 @@
+echo aeros  freqsweep_sparse_gdisplac.inp
+aeros  freqsweep_sparse_gdisplac.inp
+echo aeros  freqsweep_skyline_stressvm.inp
+aeros  freqsweep_skyline_stressvm.inp
+echo aeros  freqsweep_mumps_strainxx.inp
+aeros  freqsweep_mumps_strainxx.inp
+echo aeros  freqsweep_spooles_strainxy.inp
+aeros  freqsweep_spooles_strainxy.inp
+echo aeros  freqsweep_gmres_strainxz.inp
+aeros  freqsweep_gmres_strainxz.inp
+echo aeros  freqsweep_direct_strainxx.inp
+aeros  freqsweep_direct_strainxx.inp
+echo aeros  freqsweep_spooles_pivot_strainxy.inp
+aeros  freqsweep_spooles_pivot_strainxy.inp
+echo aeros  freqsweep_mumps_pivot_strainxz.inp
+aeros  freqsweep_mumps_pivot_strainxz.inp
+echo aeros  freqsweep_frontal_strainxx.inp
+aeros  freqsweep_frontal_strainxx.inp
+echo aeros  freqsweep_pcg_strainxy.inp
+aeros  freqsweep_pcg_strainxy.inp
+echo aeros  freqsweep_bcg_strainxz.inp
+aeros  freqsweep_bcg_strainxz.inp
+echo aeros  freqsweep_cr_inxforce.inp
+aeros  freqsweep_cr_inxforce.inp
+echo aeros -n 2 --dec  freqsweep_FETI_inyforce.inp
+aeros -n 2 --dec  freqsweep_FETI_inyforce.inp
+echo aeros -n 2 --dec  freqsweep_FETI_1_inzforce.inp
+aeros -n 2 --dec  freqsweep_FETI_1_inzforce.inp
+echo aeros -n 2 --dec  freqsweep_FETI_2_OLD_axmoment.inp
+aeros -n 2 --dec  freqsweep_FETI_2_OLD_axmoment.inp
+echo aeros -n 2 --dec  freqsweep_FETI_2_NEW_aymoment.inp
+aeros -n 2 --dec  freqsweep_FETI_2_NEW_aymoment.inp
+echo aeros -n 2 --dec  freqsweep_FETI_DP_azmoment.inp
+aeros -n 2 --dec  freqsweep_FETI_DP_azmoment.inp
+echo aeros -n 2 --dec  freqsweep_FETI_DPH_energies.inp
+aeros -n 2 --dec  freqsweep_FETI_DPH_energies.inp
+echo aeros  freqsweep_sparse_gvelocit.inp
+aeros  freqsweep_sparse_gvelocit.inp
+echo aeros  freqsweep_skyline_gacceler.inp
+aeros  freqsweep_skyline_gacceler.inp
+echo aeros  freqsweep_mumps_displmod.inp
+aeros  freqsweep_mumps_displmod.inp
+echo aeros  freqsweep_spooles_rotatmod.inp
+aeros  freqsweep_spooles_rotatmod.inp
+echo aeros  freqsweep_gmres_gdispmod.inp
+aeros  freqsweep_gmres_gdispmod.inp

@@ -1,0 +1,20 @@
+CONTROL
+tempdynamics_FETI_2_OLD_grdtempy
+2
+"nodeset"
+"elemset"
+*
+STATICS
+FETI 2 OLD
+*
+DYNAMICSmech	0.25	0.5
+newmark
+OUTPUT
+grdtempy tempdynamics_FETI_2_OLD_grdtempy.dat 1
+*
+MATERIALS
+1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0
+*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...
+INCLUDE "mesh_temp.include"
+*
+END

@@ -1,0 +1,20 @@
+CONTROL
+freqsweep_spooles_rotatmod
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+freqsweep 1. 3. 3 10
+recons pade 2 9 10
+OUTPUT
+rotatmod freqsweep_spooles_rotatmod.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

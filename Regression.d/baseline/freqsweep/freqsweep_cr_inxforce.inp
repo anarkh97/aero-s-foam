@@ -1,0 +1,20 @@
+CONTROL
+freqsweep_cr_inxforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+cr
+*
+IMPE
+freq 10.0
+damp 1e-5 1.0
+freqsweep 1. 3. 3 10
+recons pade 2 9 10
+OUTPUT
+inxforce freqsweep_cr_inxforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

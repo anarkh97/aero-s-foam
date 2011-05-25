@@ -200,7 +200,7 @@ class LinearElasticBase: public SimpleMaterial
   const std::string GetMaterialName() const { return "LinearElasticBase"; }
 
  protected:
-  virtual const double GetModuli(int i1, int i2, int i3, int i4) const = 0;
+  virtual double GetModuli(int i1, int i2, int i3, int i4) const = 0;
 
 };
 
@@ -225,7 +225,7 @@ class IsotropicLinearElastic: public LinearElasticBase
   const std::string GetMaterialName() const { return "IsotropicLinearElastic"; }
 
  protected:
-  const double GetModuli(int i1, int i2, int i3, int i4) const
+  double GetModuli(int i1, int i2, int i3, int i4) const
   { int delta[][3] = {{1,0,0},{0,1,0},{0,0,1}};
     return lambda*delta[i1][i2]*delta[i3][i4] + mu*(delta[i1][i3]*delta[i2][i4]+delta[i1][i4]*delta[i2][i3]); }
   

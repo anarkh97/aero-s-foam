@@ -190,10 +190,10 @@ UFront::~UFront()
   if(column) { delete [] column; column = 0; }
   if(order) { delete [] order; order = 0; }
   if(rowlen) { delete [] rowlen; rowlen = 0; }
-  if(savedFrontPos) { delete savedFrontPos; savedFrontPos = 0; }
-  if(savedDiagBlock) { delete savedDiagBlock; savedDiagBlock = 0; }
-  if(savedRHS) { delete savedRHS; savedRHS = 0; }
-  if(savedRows) { delete savedRows; savedRows = 0; }
+  if(savedFrontPos) { delete [] savedFrontPos; savedFrontPos = 0; }
+  if(savedDiagBlock) { delete [] savedDiagBlock; savedDiagBlock = 0; }
+  if(savedRHS) { delete [] savedRHS; savedRHS = 0; }
+  if(savedRows) { delete [] savedRows; savedRows = 0; }
 }
 
 int UFront::locate(int i)

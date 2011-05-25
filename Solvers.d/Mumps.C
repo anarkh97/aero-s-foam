@@ -2,8 +2,8 @@
 #include <map>
 
 #ifdef USE_MUMPS
-#include <dmumps_c.h> // double precision mumps header
-#include <zmumps_c.h> // complex double precision 
+//#include <dmumps_c.h> // double precision mumps header
+//#include <zmumps_c.h> // complex double precision 
 
 inline void Tmumps_c(DMUMPS_STRUC_C &id) { dmumps_c(&id); }
 inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }

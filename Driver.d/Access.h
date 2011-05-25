@@ -27,8 +27,8 @@ class BoffsetAccessor{
 	      ndr = new int(getNum(l,i));
 	      std ::cerr << "(W) warning : unefficient use of BoffsetAccessor" << std::endl;
 	    }
-	  for(int i = (l[i]).first;i <= (l[i]).last;++i,++j)
-	    ndr[j] = i;
+          for(int k = (l[i]).first; k <= (l[i]).last; ++k,++j)
+            ndr[j] = k;
 	  return ndr;
 	}
       else

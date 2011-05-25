@@ -32,7 +32,7 @@ extern "C" {
                            double*, double*, double*);
   void _FORTRAN(updstrsbt)(int&, int&, double&, double*, double&, double*,
                            double*, double&, double&, double*,
-                           double*, double&);
+                           double*);
   void _FORTRAN(gqfintbt)(int*, double&, double*, double&, double&,
                           double&, double*, double*, double*,
                           double*, double*);
@@ -690,10 +690,9 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
     // update hypo stresses at gq
     // --------------------------
     _FORTRAN(updstrsbt)(expmat->optctv, optdmg, delt, expmat->ematpro, area, ipstrndot, tsstrndot,
-                        evar1[5*igaus+0], evar1[5*igaus+1], evoit2+6*igaus, evoit3+6*igaus, evar2[5*igaus+0]);
+                        evar1[5*igaus+0], evar1[5*igaus+1], evoit2+6*igaus, evoit3+6*igaus);
           // input : optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot
           // inoutput : effpstrn,hardvar,sigvoitloc,strnvoitloc
-          // output : effstrs
 
     // update elasto plastic stresses at gq
     // ------------------------

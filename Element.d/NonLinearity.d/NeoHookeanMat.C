@@ -152,4 +152,6 @@ NeoHookeanMat::GetConstitutiveResponse(const std::vector<double> * strain,
             (*tangents)[ijkl] = lambda*Cinv[ij]*Cinv[kl]
               +coef*(Cinv[ik]*Cinv[jl]+Cinv[il]*Cinv[jk]);
   }
+
+  return true;
 }

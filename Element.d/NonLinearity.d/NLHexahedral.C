@@ -185,6 +185,7 @@ NLHexahedral::getStrainEvaluator()
     case 1: return &greenLagrangeStrain;
     case 2: return &deformationGradient;
   }
+  return &linearStrain; // default
 }
 
 NLMaterial *

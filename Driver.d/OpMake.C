@@ -2945,7 +2945,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
    firstOutput = false;
  }
 
- if (xyz) delete xyz;
+ if (xyz) delete [] xyz;
 }
 
 // XXXX this can and should be merged with buildRHSForce

@@ -16,6 +16,7 @@
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
 #include <Element.d/Quad4.d/Quad.h>
+#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Brick.d/EightNodeBrick.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -29,6 +30,7 @@
 #include <Element.d/CompShell.d/Compo4NodeShell.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Triangle3.d/ThermTriangle.h>
+#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/ThermQuad.d/ThermQuadGal.h>
 #include <Element.d/ThermQuad.d/Therm3DQuad.h>
 #include <Element.d/Brick.d/ThermBrick.h>
@@ -485,6 +487,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 126:
        ele = new (ba) RevoluteActuator(n);
+       break;
+     case 128:
+       ele = new (ba) FourNodeQuad3D(n);
+       break;
+     case 129:
+       ele = new (ba) ThreeNodeTri3D(n);
        break;
      case 201:
        ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure

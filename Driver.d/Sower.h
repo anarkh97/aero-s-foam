@@ -1065,6 +1065,8 @@ std::cerr << "Sower.h, readData, MFTTDataIO" << std::endl;
       s->read(jav,2,file); // id, np
       
       double* ntime, *value;
+      ntime = new double[jav[1]];
+      value = new double[jav[1]];
       s->read(ntime,jav[1],file);
       s->read(value,jav[1],file);
       MFTTData* li = new MFTTData(jav[0]);
@@ -1072,6 +1074,8 @@ std::cerr << "Sower.h, readData, MFTTDataIO" << std::endl;
 	li->add(ntime[i],value[i]);
 
       (*(obj->second))[localIndex]=li; 
+      delete [] ntime;
+      delete [] value;
     }
 };
 

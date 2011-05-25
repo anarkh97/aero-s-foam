@@ -38,6 +38,8 @@ class FourNodeQuad3D : virtual public Element
   int getTopNumber();
 
   PrioInfo examine(int sub, MultiFront *);
+
+  Corotator *getCorotator(CoordSet &, double *, int , int);
 };
 
 #endif

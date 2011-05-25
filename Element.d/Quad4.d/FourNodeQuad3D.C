@@ -6,6 +6,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
+#include <Corotational.d/PhantomCorotator.h>
 
 extern "C" {
 void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
@@ -170,3 +171,8 @@ FourNodeQuad3D::getTopNumber()
   return 102;
 }
 
+Corotator *
+FourNodeQuad3D::getCorotator(CoordSet &, double *, int , int)
+{
+  return new PhantomCorotator();
+}

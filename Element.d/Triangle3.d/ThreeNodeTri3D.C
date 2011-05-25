@@ -6,6 +6,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
+#include <Corotational.d/PhantomCorotator.h>
 
 extern "C" {
 void _FORTRAN(elefbc3dtri)(int&, int&, double*, double*, double*, double*);
@@ -163,5 +164,11 @@ int
 ThreeNodeTri3D::getTopNumber()
 {
   return 104;
+}
+
+Corotator *
+ThreeNodeTri3D::getCorotator(CoordSet &, double *, int , int)
+{
+  return new PhantomCorotator();
 }
 

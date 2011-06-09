@@ -38,6 +38,7 @@ SET(BINDIR ${CMAKE_CURRENT_BINARY_DIR}/bin)
 SET(LIBDIR ${CMAKE_CURRENT_BINARY_DIR}/lib)
 SET(EXTRALIB ${EXTRALIB} CACHE STRING "Extra link parameters")
 SET(EXEC_DIR ${CMAKE_CURRENT_BINARY_DIR}/Regression.d)
+SET(REG_SRC_DIR ${PROJECT_SOURCE_DIR}/Regression.d)
 SET(BASELINE $EXEC_DIR/baseline)
 
 if(AERO)
@@ -90,6 +91,7 @@ IF(UNIX)
     ENDIF(NOT MPI_FOUND)
 
 # arpack
+   IF(NOT WITH_ARPACK EQUAL 0)
     FIND_LIBRARY(ARPACK_arpack_LIBRARY NAMES arpack_LINUX arpack
                  PATHS /usr/lib /usr/local/lib)
     IF(NOT MPI_FOUND)
@@ -111,6 +113,10 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${ARPACK_parpack_LIBRARY} ${ARPACK_arpack_LIBRARY} ${EXTRALIBRARIES})
       ENDIF(ARPACK_arpack_LIBRARY AND ARPACK_parpack_LIBRARY)
     ENDIF(NOT MPI_FOUND)
+   ELSE(NOT WITH_ARPACK EQUAL 0)
+    SET(ARPACK_arpack_LIBRARY "ARPACK_arpack_LIBRARY-NOTFOUND")
+    SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND")
+   ENDIF(NOT WITH_ARPACK EQUAL 0)
 
 # spooles
     FIND_PATH(SPOOLES_INCLUDE_PATH FrontMtx.h
@@ -303,6 +309,7 @@ add_subdirectory(GNU-getopt.d)
 add_subdirectory(Hetero.d)
 add_subdirectory(Material.d)
 add_subdirectory(Rom.d)
+add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Util Driver
@@ -407,6 +414,7 @@ MARK_AS_ADVANCED(FORCE BISON_EXECUTABLE FLEX_EXECUTABLE MERCURIAL_EXECUTABLE CMA
 MARK_AS_ADVANCED(CLEAR CMAKE_CXX_COMPILER CMAKE_Fortran_COMPILER)
 ENABLE_TESTING()
 #ADD_TEST(buildInputs ${EXEC_DIR}/buildInputs.py -c ${BASELINE})
+ADD_TEST(copyfiles ${REG_SRC_DIR}/copy_files.pl ${REG_SRC_DIR} ${EXEC_DIR} )
 ADD_TEST(buildInputs ${EXEC_DIR}/buildInputs.py ALL)
 ADD_TEST(testStatics ${EXEC_DIR}/dataComp.py -l statics)
 ADD_TEST(testNLstatics ${EXEC_DIR}/dataComp.py -l nlstatics)
@@ -420,4 +428,5 @@ ADD_TEST(testTempNLStatics ${EXEC_DIR}/dataComp.py -l tempnlstatics)
 ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l tempdynamics)
 # use the -s flag to send results via email
 ADD_TEST(testTempNLDynamics ${EXEC_DIR}/dataComp.py -l -s tempnldynamics)
+
 

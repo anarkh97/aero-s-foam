@@ -11,6 +11,7 @@ import sys, os, re, glob
 
 def buildInputs(params):
   mycwd = os.getcwd()
+  print "at start, mycwd is %s \n"% mycwd
   if(mycwd.find("Regression.d") < 0):
     if(os.path.exists("Regression.d")==0):
       os.mkdir("Regression.d")  
@@ -221,7 +222,7 @@ def buildInputs(params):
           FILE.write("\n")
         FILE.write("END\n")
         FILE.close()
-        command = "aeros "
+        command = "../../bin/aeros "
         re.compile("FETI");
         if(idname.find("FETI") != -1 ):
           command = command + "-n 2 --dec "

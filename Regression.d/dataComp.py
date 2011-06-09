@@ -173,7 +173,9 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
+        print "current directory is %s\n"% os.getcwd()
         command = "run."+indir+" >& reg.out"
+        print "command is %s\n"% command
         os.system(command)
       os.chdir('../') 
 

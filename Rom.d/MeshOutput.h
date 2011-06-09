@@ -70,6 +70,8 @@ operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &so
     typedef typename InputFileSection<InputIterator, TagType>::ValueType ValueType;
     out << InputFileSectionHelper<ValueType, TagType>::transformation(*it) << "\n";
   }
+
+  return out;
 }
 
 struct EmptyTag {};

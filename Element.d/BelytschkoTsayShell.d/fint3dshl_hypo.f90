@@ -17,8 +17,7 @@
 
 
 subroutine updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
-                     effpstrn,hardvar,sigvoitloc,strnvoitloc, &
-                     effstrs)
+                     effpstrn,hardvar,sigvoitloc,strnvoitloc)
   !=======================================================================
   !  updstrsbt = update j2 (or hypoelas) cauchy stress of belytschko tsay element 
   !
@@ -41,10 +40,6 @@ subroutine updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
   !
   !  strnvoitloc(6,1) : co-rotational strain
   !
-  !  output:
-  !  ------
-  !  effstrs : effective stress
-  !
   ! ======================================================================
 
   include 'preset.fi'
@@ -61,9 +56,6 @@ subroutine updstrsbt(optctv,optdmg,delt,ematpro,area,ipstrndot,tsstrndot, &
   ! ------------------------------------
   real(8), intent(inout) :: effpstrn,hardvar
   real(8), dimension(6,1), intent(inout) :: sigvoitloc, strnvoitloc
-  ! ------------------------------------
-
-  real(8), intent(out) :: effstrs
   ! ====================================
   ! local variable
   ! ==============
@@ -122,7 +114,7 @@ subroutine updstrnbt(optcor,delt,ematpro,gqpoin,eveloloc,bmat1pt,bcmat1pt,bsmat1
                      strnvoitloc, &
                      ipstrndot,tsstrndot) 
   !=======================================================================
-  !  updstrsbt = update strain of belytschko tsay element 
+  !  updstrnbt = update strain of belytschko tsay element 
   !
   !
   !  arguments description

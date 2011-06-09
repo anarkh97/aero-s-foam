@@ -140,7 +140,7 @@ public:
    int getAeroheatFlag() { return domain.solInfo().aeroheatFlag; }
    void formRHSinitializer(Vector &, Vector &, Vector &, NLState &, Vector &);
    bool linesearch();
-   double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; }
+   double getEnergy(double, Vector&, NLState*) { cerr << "NLMatProbDesc::getEnergy is not implemented\n"; return 0; }
    void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham);
 
 };

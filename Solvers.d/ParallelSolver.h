@@ -20,7 +20,7 @@ class GenParallelSolver {
     virtual void getRBMs(GenDistrVectorSet<Scalar> &) = 0;
     virtual void reconstruct() {}
     virtual void refactor() {}
-    virtual double getFNormSq(GenDistrVector<Scalar> &f) { cerr << "GenParallelSolver::getSqNorm not implemented\n"; }
+    virtual double getFNormSq(GenDistrVector<Scalar> &f) { cerr << "GenParallelSolver::getSqNorm not implemented\n"; return 0; }
 };
 
 template<class Scalar>

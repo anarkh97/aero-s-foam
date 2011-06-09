@@ -120,12 +120,12 @@ void
 TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector &gravityForce,
                               int gravflg, GeomState *geomState)
 {
-        double fx,fy,fz;
-        double massPerNode = 0.5*getMass(cs);
+        // Consistent and lumped mass lead to same expression
+        const double massPerNode = 0.5 * getMass(cs);
 
-        fx = massPerNode*gravityAcceleration[0];
-        fy = massPerNode*gravityAcceleration[1];
-        fz = massPerNode*gravityAcceleration[2];
+        const double fx = massPerNode * gravityAcceleration[0];
+        const double fy = massPerNode * gravityAcceleration[1];
+        const double fz = massPerNode * gravityAcceleration[2];
 
         gravityForce[0] = fx;
         gravityForce[1] = fy;
@@ -133,27 +133,37 @@ TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector 
         gravityForce[3] = fx;
         gravityForce[4] = fy;
         gravityForce[5] = fz;
-
 }
 
 FullSquareMatrix
 TwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
-        double mass = getMass(cs);
-        double massPerNode = 0.5*mass;
+        FullSquareMatrix elementMassMatrix(6, mel);
+        elementMassMatrix.zero();
 
-        FullSquareMatrix elementMassMatrix(6,mel);
+        const double mass = getMass(cs);
 
-// zero the element mass matrix
-	elementMassMatrix.zero();
+        if (cmflg) {
+                // Consistent mass matrix
+                const double outDiagMass = mass / 6.0;
+                const double diagMass = 2.0 * outDiagMass;
 
-// set the diagonal elements 
-	int i;
-        for(i=0; i<6; ++i)
-           elementMassMatrix[i][i] = massPerNode;
+                for (int i = 0; i < 6; ++i) {
+                  elementMassMatrix[i][i] = diagMass;
+                }
+                for (int i = 0; i < 3; ++i) {
+                  const int j = i + 3;
+                  elementMassMatrix[i][j] = outDiagMass;
+                  elementMassMatrix[j][i] = outDiagMass;
+                }
+        } else {
+                // Lumped mass matrix
+                const double massPerNode = 0.5 * mass;
+                for (int i = 0; i < 6; ++i) {
+                  elementMassMatrix[i][i] = massPerNode;
+                }
+        }
 
-//        fprintf(stderr," ... Element Mass Matrix for Truss ...\n");
-//        elementMassMatrix.print();
         return elementMassMatrix;
 }
 

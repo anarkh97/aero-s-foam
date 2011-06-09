@@ -188,12 +188,16 @@ void Communicator::split(int color, int maxcolor, Communicator** c)
     c[i] = 0;
 
 #ifdef USE_MPI
-  int rank;
+  int rank = 0;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm comm1;
-  MPI_Comm_split(comm, color+1, rank, &comm1); //wrong should use color
+#ifdef __INTEL_COMPILER
+  MPI_Comm_split(comm, color + 1, 0, &comm1); //possible bug in openmpi1.4.3 compiled with intel compilerpro-12.0.2.137
   c[color] = new Communicator(comm1,stderr);
-
+#else
+  MPI_Comm_split(comm, color + 1, rank, &comm1); //wrong should use color
+  c[color] = new Communicator(comm1,stderr);
+#endif
   int* leaders = new int[maxcolor];
   int* newleaders = new int[maxcolor];
   for (i=0; i<maxcolor; ++i)

@@ -76,6 +76,8 @@ operator<<(std::ostream &out, const Elemset &source) {
     }
     out << "\n";
   }
+
+  return out;
 }
 
 std::ostream &

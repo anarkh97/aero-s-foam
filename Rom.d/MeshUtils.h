@@ -139,6 +139,8 @@ copy_eframes(const Elemset & elemSet, EFrameDataOutputIterator result) {
       *result++ = data;
     }
   }
+
+  return result;
 }
 
 // Map to sequence conversion

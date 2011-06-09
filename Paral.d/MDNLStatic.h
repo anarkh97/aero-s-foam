@@ -75,7 +75,7 @@ class MDNLStatic
 
     bool linesearch();
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
-      { cerr << "MDNLStatic::getEnergy is not implemented\n"; }
+      { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
     double getResidualNorm(DistrVector &vec);
 

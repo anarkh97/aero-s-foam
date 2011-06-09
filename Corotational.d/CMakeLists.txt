@@ -17,7 +17,8 @@ ADD_LIBRARY(Corotational  Corotator.C
        BrickCorotator.C 
        SuperCorotator.C 
        PentaCorotator.C BarFCorotator.C
-       QuadThermalCorotator.C TriangleThermalCorotator.C)
+       QuadThermalCorotator.C TriangleThermalCorotator.C
+       PhantomCorotator.C)
 
 
 SET(INC_DIR ..)

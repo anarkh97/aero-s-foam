@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <complex.h>
+#include <complex>
 #include <cmath>
 
 int main() {

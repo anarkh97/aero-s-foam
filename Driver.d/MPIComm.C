@@ -12,6 +12,7 @@
 
 #include <Comm.d/Communicator.h>
 
+/*
 #if !(defined(USE_MPI) && defined (RS6000_SYS) && defined(MPI_INTEGER))
 #define MPI_INTEGER MPI_INT
 #endif
@@ -20,6 +21,10 @@
 #endif
 
 #if (defined(USE_MPI) && defined(SUNOS)) || (defined(USE_MPI) && defined(HP_UX))
+#define MPI_INTEGER MPI_INT
+#endif
+*/
+#if (defined(USE_MPI) && !defined(MPI_INTEGER))
 #define MPI_INTEGER MPI_INT
 #endif
 

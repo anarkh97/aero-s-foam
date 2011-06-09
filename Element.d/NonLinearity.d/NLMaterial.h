@@ -26,7 +26,7 @@ class NLMaterial
                       double *staten, double *statenp, double dt = 0.0) = 0;
      virtual void initStates(double *) = 0;
 
-     virtual double getDensity() {} // PJSA
+     virtual double getDensity() { return 0; }
 };
 
 #endif

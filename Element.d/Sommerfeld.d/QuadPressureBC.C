@@ -47,7 +47,7 @@ QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
   _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, f.data());
 }
 
-#include<Driver.d/Domain.h>
+#include <Driver.d/Domain.h>
 
 int*
 QuadPressureBC::dofs(DofSetArray &dsa, int *p)

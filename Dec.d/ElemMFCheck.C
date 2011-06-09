@@ -2,8 +2,10 @@
 #include <Element.d/Element.h>
 #include <Element.d/Beam.d/EulerBeam.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
+#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
+#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/Membrane.d/Membrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
@@ -333,6 +335,12 @@ FourNodeQuad::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+FourNodeQuad3D::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
+}
+
+PrioInfo
 BelytschkoTsayShell::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
@@ -452,6 +460,12 @@ examineTri3(int sub, MultiFront *mf, int *nn)
 
 PrioInfo
 Triangle3::examine(int sub, MultiFront *mf)
+{
+  return examineTri3(sub, mf, nn);
+}
+
+PrioInfo
+ThreeNodeTri3D::examine(int sub, MultiFront *mf)
 {
   return examineTri3(sub, mf, nn);
 }

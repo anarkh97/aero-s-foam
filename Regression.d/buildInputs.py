@@ -168,7 +168,10 @@ def buildInputs(params):
       if(problem_type == "freqsweep"):
         NAMELIST = ["STATICS\n","IMPE\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,IMPE,OUTPUT,INCLUDE]
-        EXTRAS = ["*","freqsweep 1. 3. 3 10\nrecons pade 2 9 10","*","*","*"]
+        IMPE =    ["freqsweep 1. 3. 3 10\ndamp 1e-6 1.0",\
+                   "freqsweep 1. 3. 3 10\ndamp 1e-7 1.0",\
+                   "freqsweep 1. 3. 3 10\ndamp 1e-5 1.0"]
+        EXTRAS = ["*","recons pade 2 9 10","*","*","*"]
 
       if(problem_type == "nlstatics"):
         EXTRAS = ["include \"feti.include\"\n*","*","*","*","*"]

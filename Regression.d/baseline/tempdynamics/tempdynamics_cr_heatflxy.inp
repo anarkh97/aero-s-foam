@@ -7,7 +7,8 @@ tempdynamics_cr_heatflxy
 STATICS
 cr
 *
-DYNAMICStime	1.0	1.0	200.0
+DYNAMICS
+time	1.0	1.0	200.0
 newmark
 OUTPUT
 heatflxy tempdynamics_cr_heatflxy.dat 1

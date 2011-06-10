@@ -7,7 +7,8 @@ tempdynamics_FETI_1_grdtempx
 STATICS
 FETI 1
 *
-DYNAMICStime	1.0	1.0	200.0
+DYNAMICS
+time	1.0	1.0	200.0
 newmark
 OUTPUT
 grdtempx tempdynamics_FETI_1_grdtempx.dat 1

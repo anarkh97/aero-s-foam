@@ -139,7 +139,7 @@ def buildInputs(params):
         INCLUDE = ["\"mesh_temp.include\""]
         OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
         MATERIALS = ["1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0"]
-        NAMELIST = ["STATICS\n","DYNAMICS","OUTPUT\n","MATERIALS\n","INCLUDE "]
+        NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,MATERIALS,INCLUDE]
 
       if(problem_type == "tempstatics"):

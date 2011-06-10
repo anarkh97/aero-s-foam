@@ -86,7 +86,7 @@ def dComp(params):
       SUMMARY_FILE = open(summary_filename,"a")
   else:
     SUMMARY_FILE = open(summary_filename,"w")
-  outstring = "\n\nSummary of regression test run as:\n%s\n" % params
+  outstring = "\n\nSummary of regression test run as:\n%s\nfrom:%s" % (params,os.getcwd())
   SUMMARY_FILE.write(outstring)
   now = datetime.datetime.now()
   time_now = now.time()
@@ -160,8 +160,6 @@ def dComp(params):
     for indir in indirs:
       indirp = indir+"/"
       print "%s" % indir
-      for infile in glob.glob( os.path.join(indirp, '*.dat') ):
-        files.append(infile)
       os.chdir(indir)
       if(run == 1):
         qsubScript = "scp."+indir
@@ -178,6 +176,8 @@ def dComp(params):
         print "command is %s\n"% command
         os.system(command)
       os.chdir('../') 
+      for infile in glob.glob( os.path.join(indirp, '*.dat') ):
+        files.append(infile)
 
   result = 0
   

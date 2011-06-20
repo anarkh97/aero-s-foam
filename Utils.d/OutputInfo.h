@@ -63,6 +63,9 @@ struct OutputInfo {
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
                      // CDIRNORX, CDIRNORY, CDIRNORZ, CDIRTANX, CDIRTANY, CDIRTANZ, SLIP_MAG, NODAL_DISSIPATION,
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
+   int topFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
+                // compatible with top files generated using -T command line argument
+
    void initialize() {
      width = 10; 
      precision = 4;
@@ -81,6 +84,7 @@ struct OutputInfo {
      ncomplexout = 16;
      tdenforc_var = 3;
      matlab = false;
+     topFlag = 0;
    }
 
    void finalize(int numColumns) {

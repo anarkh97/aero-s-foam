@@ -2635,6 +2635,7 @@ Domain::initialize()
  output_match_in_top = false;//TG
  C_condensed = 0;
  nContactSurfacePairs = 0;
+ outFlag = 0;
 }
 
 Domain::~Domain()

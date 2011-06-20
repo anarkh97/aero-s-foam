@@ -106,6 +106,8 @@ TRAIL [a-zA-Z]*
 
 "BINARYOUTPUT"|"binaryoutput"      { return BINARYOUTPUT; }
 
+"OUTFLAG"|"outflag"                { return OUTFLAG; }
+
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }
 "YES"|"yes"|"Yes"                  { yylval.ival = 1; return SWITCH; }

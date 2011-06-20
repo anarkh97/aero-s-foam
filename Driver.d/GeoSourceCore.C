@@ -3640,12 +3640,14 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
 
       sprintf(headDescrip, header[type], prbType, ng, nodeGroup[oinfo[fileNumber].groupNumber].size());
     }
-    else
-      sprintf(headDescrip, header[type], prbType, cinfo->nodeSetName, numNodes); // PJSA 4-13-05
+    else {
+      int numNodesOut = (domain->outFlag) ? nodes.nnz() : numNodes;
+      sprintf(headDescrip, header[type], prbType, cinfo->nodeSetName, numNodesOut);
+    }
     dataType = 1;
   }
   else {
-    sprintf(headDescrip, ele_header[type], prbType, cinfo->elemSetName);  // PJSA 3-24-05
+    sprintf(headDescrip, ele_header[type], prbType, cinfo->elemSetName);
     dataType = 2;
   }
 

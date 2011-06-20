@@ -462,12 +462,13 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
   for (int i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
-  mergeDistributedDisp(glDisp, d_n.data(), bcx);
+  int realNodes = mergeDistributedDisp(glDisp, d_n.data(), bcx);
+  int numNodesOut = (outFlag) ? realNodes : numNodes;
 
   for (int i = firstRequest; i < lastRequest; ++i) {
     enum {YOUNG,MDENS,THICK};
-    int iNode;
-    int first_node, last_node;
+    int iNode, nodeI, realNode;
+    int first_node, last_node, last_node_out;
     
     OutputInfo *oinfo = geoSource->getOutputInfo();
     
@@ -475,16 +476,15 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     //    added to "clean" dynamOutput 
     bool get=false;
      
-    if (oinfo[i].nodeNumber == -1){first_node=0; last_node=numNodes;}           
-    else { first_node=oinfo[i].nodeNumber; last_node=first_node+1;}
-    //first_node=0; last_node=numNodes;     
+    if (oinfo[i].nodeNumber == -1) { first_node=0; last_node=numNodes; last_node_out=numNodesOut; }           
+    else { first_node=oinfo[i].nodeNumber; last_node=last_node_out=first_node+1; }
 
     if ((oinfo[i].interval != 0) && (tIndex % oinfo[i].interval == 0)) {
       int dof=-1;
       int w = oinfo[i].width;
       int p = oinfo[i].precision;
 
-      int success = processDispTypeOutputs(oinfo[i], glDisp, numNodes, i, time);
+      int success = processDispTypeOutputs(oinfo[i], glDisp, numNodesOut, i, time);
       if (success) continue;
       success = processOutput(oinfo[i].type, d_n, bcx, i, time);
       if (success) continue;
@@ -492,88 +492,97 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
 
       int nNodes = last_node-first_node;
+      int nNodesOut = last_node_out-first_node;
       switch(oinfo[i].type) {
 
         case OutputInfo::Velocity6: {
-
-          double (*data)[6] = new double[nNodes][6];
-
+          double (*data)[6] = new double[nNodesOut][6];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
+                                data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
 
-            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode], &DofSet::Xdisp,
-                                data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
-
-            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode]+3, &DofSet::Xrot,
-                                data[iNode]+4, &DofSet::Yrot, data[iNode]+5, &DofSet::Zrot);
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[nodeI]+3, &DofSet::Xrot,
+                                data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
           }
-          geoSource->outputNodeVectors6(i, data, nNodes, time);
+          geoSource->outputNodeVectors6(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::Velocity:  {
-
-          double (*data)[3] = new double[nNodes][3];
-
+          double (*data)[3] = new double[nNodesOut][3];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
-            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[iNode], &DofSet::Xdisp,
-                                data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
+                                data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
 
           }
-          geoSource->outputNodeVectors(i, data, nNodes, time);
+          geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::PressureFirstTimeDerivative: {
-
-          double *data = new double[nNodes];
-          for (iNode = 0; iNode < nNodes; ++iNode)
-            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+iNode, &DofSet::Helm, 0, 0, 0, 0);
-          
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode) {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+nodeI, &DofSet::Helm, 0, 0, 0, 0);
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
 
         } 
           break;
         case OutputInfo::TemperatureFirstTimeDerivative: {
-          double *data = new double[nNodes]; 
-          for (iNode = 0; iNode < nNodes; ++iNode)
-            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+iNode, &DofSet::Temp, 0,0,0,0);
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          double *data = new double[nNodesOut]; 
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode) {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data+nodeI, &DofSet::Temp, 0,0,0,0);
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::Accel6:  {
-          double (*data)[6] = new double[nNodes][6];
+          double (*data)[6] = new double[nNodesOut][6];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode],
-                                &DofSet::Xdisp, data[iNode]+1, &DofSet::Ydisp,
-                                data[iNode]+2, &DofSet::Zdisp);
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode]+3, 
-                                &DofSet::Xrot, data[iNode]+4, &DofSet::Yrot, data[iNode]+5, 
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI],
+                                &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp,
+                                data[nodeI]+2, &DofSet::Zdisp);
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI]+3, 
+                                &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, 
                                 &DofSet::Zrot);
           }
-          geoSource->outputNodeVectors6(i, data, nNodes, time);
+          geoSource->outputNodeVectors6(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::Acceleration:  {
-          // XXXX acx (prescribed accelerations not implemented)
-          double (*data)[3] = new double[nNodes][3];
-
+          double (*data)[3] = new double[nNodesOut][3];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[iNode], 
-            &DofSet::Xdisp, data[iNode]+1, &DofSet::Ydisp, data[iNode]+2, &DofSet::Zdisp);
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI], 
+                                &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
           }
-          geoSource->outputNodeVectors(i, data, nNodes, time);
+          geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::PressureSecondTimeDerivative: {
-          double *data = new double[nNodes];
-          for (iNode = 0; iNode < nNodes; ++iNode)
-            getOrAddDofForPrint(get, a_n, (double *) 0, first_node+iNode, data+iNode, &DofSet::Helm, 
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode) {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            getOrAddDofForPrint(get, a_n, (double *) 0, first_node+iNode, data+nodeI, &DofSet::Helm, 
                                 0, 0, 0, 0);
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
@@ -646,62 +655,74 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
         case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNodes = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-            data[iNode]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+            data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::AeroYForce:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-            data[iNode]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+            data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::AeroZForce:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-            data[iNode] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+            data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::AeroXMom:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-            data[iNode] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+            data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::AeroYMom:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-            data[iNode] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+            data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
         case OutputInfo::AeroZMom:  {
-          double *data = new double[nNodes];
+          double *data = new double[nNodesOut];
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-            data[iNode] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+            data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
           }
-          geoSource->outputNodeScalars(i, data, nNodes, time);
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
           delete [] data;
         }
           break;
@@ -709,6 +730,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           getCompositeData(i,time);
           break;          
         case OutputInfo::TDEnforcement: {
+          // TODO outFlag == 1
           double *plot_data = new double[numNodes];
           for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
           for(int iMortar=0; iMortar<nMortarCond; iMortar++) {

@@ -126,3 +126,11 @@ CoordSet::size()
 {
   return last;
 }
+
+int CoordSet::nnz()
+{
+  int ret = 0;
+  for(int i = 0; i < nmax; ++i)
+    if(nodes[i] != 0) ret++;
+  return ret;
+}

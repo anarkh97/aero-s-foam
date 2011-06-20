@@ -1070,6 +1070,7 @@ Domain::makeTopFile(int topFlag)
    fprintf(cinfo->checkfileptr,"%d\t % 14.6f\t% 14.6f\t % 14.6f\n",
                               nodeTable[inode],x,y,z);
  }
+ cerr << "here in Domain::makeTopFile, numnodes = " << numnodes << ", exactNumNdes = " << exactNumNodes << endl;
 
  // First find the maximum number of nodes per Element
  // this used to be done in the write element connectivity loop

@@ -762,6 +762,7 @@ class Domain : public HData {
 
      // function to get fluid exchanger
      FlExchanger * getFileExchanger() { return flExchanger; }
+     void makeNodeTable(int topFlag);
      void makeTopFile(int topFlag);
      void makeAxiTopFile(int topFlag,int numSlices);
 
@@ -938,6 +939,10 @@ class Domain : public HData {
      void updateUsddInDbc(double* userDefineDisp, int* map = 0);
      void updateUsdfInNbc(double* userDefineForce, int* map = 0, double* weight = 0);
      void updateActuatorsInNbc(double* actuatorsForce, int* map = 0, double* weight = 0);
+
+     int outFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
+                  // compatible with top files generated using -T command line argument
+                  // the default is 0, for compatibility with top files generated using -t command line argument
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -2636,6 +2636,7 @@ Domain::initialize()
  C_condensed = 0;
  nContactSurfacePairs = 0;
  outFlag = 0;
+ nodeTable = 0;
 }
 
 Domain::~Domain()
@@ -2705,6 +2706,7 @@ Domain::~Domain()
    if(MortarConds[i]) delete MortarConds[i];
  //for(int i=0; i<numLMPC; ++i) // HB
  //  if(lmpc[i]) delete lmpc[i];
+ if(nodeTable) delete [] nodeTable;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>

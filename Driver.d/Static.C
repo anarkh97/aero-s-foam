@@ -990,6 +990,40 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 }
 
 void
+Domain::makeNodeTable(int topFlag)
+{
+ long m4 = - memoryUsed();
+ nodeTable = new int[numnodes];
+ m4 += memoryUsed();
+ //fprintf(stderr," ... Node Table %14.3f Mb\n",m4/(1024.0*1024.0));
+
+ int inode;
+ for(inode=0; inode<numnodes; ++inode)
+   nodeTable[inode] = -1;
+
+ // if topFlag = 0, output a topdomdec file with all nodes
+ // including nodes that are not defined or used.
+
+ // if topFlag = 1, output a topdomdec file without gaps
+ // (nodes renumbered sequentially)
+
+ // if topFlag = 2, output a topdomdec file with each group of
+ // elements with the same material output as a separate element set.
+ // and with all nodes including nodes that are not defined or used.
+
+ // if topFlag = 7, output a topdomdec file with each group of
+ // elements with the same material output as a separate element set.
+ // and without gaps (nodes renumbered sequentially)
+
+ exactNumNodes = 0;
+ for(inode=0; inode<numnodes; ++inode) {
+   if(nodes[inode] == 0) continue;
+   exactNumNodes += 1;
+   nodeTable[inode] = ((topFlag == 1) || (topFlag == 7)) ? exactNumNodes : inode+1;
+ }
+}
+
+void
 Domain::makeTopFile(int topFlag)
 {
  //MODIFIED FOR HEV PROBLEM, EC, 20070820
@@ -1070,7 +1104,6 @@ Domain::makeTopFile(int topFlag)
    fprintf(cinfo->checkfileptr,"%d\t % 14.6f\t% 14.6f\t % 14.6f\n",
                               nodeTable[inode],x,y,z);
  }
- cerr << "here in Domain::makeTopFile, numnodes = " << numnodes << ", exactNumNdes = " << exactNumNodes << endl;
 
  // First find the maximum number of nodes per Element
  // this used to be done in the write element connectivity loop
@@ -1423,7 +1456,8 @@ void
 Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                         int stressIndex, double time, int printFlag)
 {
-  int numNodes = geoSource->numNode();  // PJSA 4-12-05 don't want to print displacements for internal nodes
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
 
   // allocate integer array to store node numbers
   int *nodeNumbers = new int[maxNumNodes];
@@ -1527,8 +1561,9 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       if(avgnum != 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
-          (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
-          (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
+          int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+          (*stress)[node] += (*elstress)[k];
+          (*weight)[node] += (*elweight)[k];
         }
       }
 
@@ -1592,7 +1627,8 @@ void
 Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                          int stressIndex, double time)
 {
-  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // set stress VS. strain for element subroutines
@@ -1690,10 +1726,11 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
 
     for(k = 0; k < NodesPerElement; ++k) {
+      int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
       for(j = 0; j < 6; ++j) {
-        (*p_stress)[(*elemToNode)[iele][k]][j] += (*p_elstress)[k][j];
+        (*p_stress)[node][j] += (*p_elstress)[k][j];
       }
-      (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
+      (*weight)[node] += (*elweight)[k];
     }
 
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED

@@ -1009,7 +1009,6 @@ void
 Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
                         int fileNumber, int stressIndex, double time)
 {
-
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // ... STRESSES ARE CALCULATED FOR EVERYTHING EXCEPT BARS & BEAMS, WHERE
@@ -1136,20 +1135,24 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
-   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
    if(avgnum == 1 || avgnum == 2) {
 
      if(oinfo[fileNumber].nodeNumber == -1) {
-       double *data = new double[numNodes];
+       if(outFlag && !nodeTable) makeNodeTable(outFlag);
+       int numNodes = geoSource->numNode();
+       int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
+       double *data = new double[numNodesOut];
        for(k=0; k<numNodes; ++k) {
+          int l = (outFlag) ? nodeTable[k]-1 : k;
+          if(l < 0) continue;
           if((*weight)[k] == 0.0)
-            data[k] = 0.0;
+            data[l] = 0.0;
             //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,0.0);
           else
-            data[k] = (*stress)[k]/=(*weight)[k];
+            data[l] = (*stress)[k]/=(*weight)[k];
             //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p, (*stress)[k]/=(*weight)[k]);
        }
-       geoSource->outputNodeScalars(fileNumber, data, numNodes, time);
+       geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
        delete [] data;
      } else {
        if((*weight)[oinfo[fileNumber].nodeNumber] == 0.0)
@@ -1306,8 +1309,12 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
 
     double svec[6], pvec[3];
     if(n == -1) {
+      int numNodes = geoSource->numNode();
+      int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
       double *globalPVec = new double[numnodes];
-      for(k=0; k<numnodes; ++k) {
+      for(k=0; k<numNodes; ++k) {
+        int l = (outFlag) ? nodeTable[k]-1 : k;
+        if(l < 0) continue;
         for (j=0; j<6; ++j) {
           svec[j] = (*p_stress)[k][j];
         }
@@ -1318,10 +1325,10 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
           svec[5] /= 2;
         }
         pstress(svec,pvec);
-        globalPVec[k] = pvec[strDir-1];
+        globalPVec[l] = pvec[strDir-1];
         //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,pvec[strDir-1]);
       }
-      geoSource->outputNodeScalars(fileNumber, globalPVec, numnodes, time);
+      geoSource->outputNodeScalars(fileNumber, globalPVec, numNodesOut, time);
     }
     else {
       for (j=0; j<6; ++j) {

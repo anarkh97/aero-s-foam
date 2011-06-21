@@ -83,7 +83,8 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
   // ADDED FOR SLOSHING PROBLEM, EC, 20070723
-
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
   // allocate integer array to store node numbers
   int *nodeNumbers = new int[maxNumNodes];
@@ -97,7 +98,7 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
   int p = oinfo[fileNumber].precision;
 
   // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
-  if(fluidDispSlosh == 0) fluidDispSlosh = new Vector(numnodes,0.0);
+  if(fluidDispSlosh == 0) fluidDispSlosh = new Vector(numNodes,0.0);
   if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
 
   int iele;
@@ -135,14 +136,16 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
 
 // ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
 
-     for(k=0; k<NodesPerElement; ++k)
-       (*fluidDispSlosh)[(*elemToNode)[iele][k]] += (*elFluidDispSlosh)[k];
+     for(k=0; k<NodesPerElement; ++k) {
+       int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+       (*fluidDispSlosh)[node] += (*elFluidDispSlosh)[k];
+     }
     }
 
 // ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
       
   if (oinfo[fileNumber].nodeNumber == -1)
-    geoSource->outputNodeScalars(fileNumber, fluidDispSlosh->data(), numnodes, time);
+    geoSource->outputNodeScalars(fileNumber, fluidDispSlosh->data(), numNodes, time);
   else  {
     geoSource->outputNodeScalars(fileNumber, fluidDispSlosh->data()+oinfo[fileNumber].nodeNumber, 1, time);
   }
@@ -154,7 +157,8 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
   // ADDED FOR SLOSHING PROBLEM, EC, 20081101
-
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
   // allocate integer array to store node numbers
   int *nodeNumbers = new int[maxNumNodes];
@@ -168,7 +172,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
   int p = oinfo[fileNumber].precision;
 
   // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
-  double (*fluidDispSloshAll)[3] = new double[numnodes][3];
+  double (*fluidDispSloshAll)[3] = new double[numNodes][3];
 
   if(elPotSlosh == 0) elPotSlosh = new Vector(maxNumDOFs,0.0);
 
@@ -204,14 +208,15 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
 
 // ... ASSEMBLE ELEMENT'S NODAL FLUID DISPLACEMENTS
      for(k=0; k<NodesPerElement; ++k) {
+        int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
         for(int j = 0; j<3; ++j)
-          fluidDispSloshAll[(*elemToNode)[iele][k]][j] += (*elFluidDispSloshAll)[3*k+j];
+          fluidDispSloshAll[node][j] += (*elFluidDispSloshAll)[3*k+j];
      }
   }
 
 // ... PRINT FLUID DISPLACEMENTS DEPENDING ON hgIndex
   if (oinfo[fileNumber].nodeNumber == -1)
-    geoSource->outputNodeVectors(fileNumber, fluidDispSloshAll, numnodes, time);
+    geoSource->outputNodeVectors(fileNumber, fluidDispSloshAll, numNodes, time);
   else
     geoSource->outputNodeVectors(fileNumber, fluidDispSloshAll+oinfo[fileNumber].nodeNumber, 1, time);
 

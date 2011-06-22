@@ -743,7 +743,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   Scalar *globVal = 0;  
-  int numNodes = geoSource->numNode(); 
+  if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
+  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode(); 
   int i, j, iSub, inode;
 
   // initialize and merge displacements from subdomains into global array
@@ -1306,7 +1307,7 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
  execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
            stress, weight, gs, allCorot, &fileNumber, &Findex);
 
- int numNodes = geoSource->numNode();
+ int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
 
  if(globalStress == 0) globalStress = new Scalar[numNodes]; 
  if(globalWeight == 0) globalWeight = new Scalar[numNodes];
@@ -1318,7 +1319,7 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
  int iSub;
  for(iSub=0; iSub<numSub; ++iSub)
    subDomain[iSub]->mergeStress(stress->subData(iSub), weight->subData(iSub),
-                                globalStress, globalWeight);
+                                globalStress, globalWeight, numNodes);
 
  for(i=0; i < numNodes; ++i)  {
    if(globalWeight[i] == 0.0)
@@ -1413,7 +1414,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
 
 
   // allocate global stress and weight arrays 
-  int numNodes = geoSource->numNode();
+  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
   if(globalStress == 0) globalStress = new Scalar[numNodes]; 
   if(globalWeight == 0) globalWeight = new Scalar[numNodes];
 
@@ -1427,7 +1428,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
     for(iSub=0; iSub < numSub; ++iSub) {
       if(Findex != 16) {
         subDomain[iSub]->mergeStress(stress->subData(iSub), weight->subData(iSub),
-                                     globalStress, globalWeight);
+                                     globalStress, globalWeight, numNodes);
       }
       else {
         subDomain[iSub]->computeContactPressure(globalStress, globalWeight); // PJSA
@@ -1500,8 +1501,8 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
   if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
 
   // stress storage
-  int n = domain->numnodes;
-  Scalar (*globalAllStress)[6] = new Scalar [n][6];
+  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
+  Scalar (*globalAllStress)[6] = new Scalar [numNodes][6];
 
   // Compute Each Required Stress (all 6) using same routines as for 
   // individual stresses
@@ -1516,16 +1517,16 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
     // each subdomain computes its stress vector
     execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
              stress, weight, gs, allCorot, &fileNumber, &Findex);	
-    Scalar *globalStress = new Scalar[domain->numnodes]; 
-    Scalar *globalWeight = new Scalar[domain->numnodes];
-    for(i = 0; i < domain->numnodes; ++i)
+    Scalar *globalStress = new Scalar[numNodes]; 
+    Scalar *globalWeight = new Scalar[numNodes];
+    for(i = 0; i < numNodes; ++i)
       globalStress[i] = globalWeight[i] = 0.0;
     int iSub;
     for(iSub=0; iSub<numSub; ++iSub)
       subDomain[iSub]->mergeStress(stress->subData(iSub),
                                    weight->subData(iSub),
-                                   globalStress,globalWeight);
-    for(i = 0; i < domain->numnodes; ++i)
+                                   globalStress,globalWeight,numNodes);
+    for(i = 0; i < numNodes; ++i)
       if(globalWeight[i] != 0.0)
         globalAllStress[i][str_loop] = globalStress[i]/globalWeight[i];
       else
@@ -1540,7 +1541,6 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
   Scalar *globalPVec = 0; 
   Scalar (*globalPDir)[3] = 0;//DofSet::max_known_nonL_dof 
   Scalar *pdir = 0;
-  int numNodes = domain->numNode();
   if(direction) {
     globalPDir = new Scalar[numNodes][3];//DofSet::max_known_nonL_dof 
     pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*3);
@@ -1769,8 +1769,8 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
   if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
 
   // stress storage
-  int n = domain->numnodes;
-  Scalar (*globalAllStress)[6] = new Scalar [n][6];
+  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
+  Scalar (*globalAllStress)[6] = new Scalar [numNodes][6];
 
   // Compute Each Required Stress (all 6) using same routines as for 
   // individual stresses
@@ -1785,16 +1785,16 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
     // each subdomain computes its stress vector
     execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
               stress, weight, &u, fileNumber, Findex);
-    Scalar *globalStress = new Scalar[domain->numnodes]; 
-    Scalar *globalWeight = new Scalar[domain->numnodes];
-    for(i = 0; i < domain->numnodes; ++i)
+    Scalar *globalStress = new Scalar[numNodes]; 
+    Scalar *globalWeight = new Scalar[numNodes];
+    for(i = 0; i < numNodes; ++i)
       globalStress[i] = globalWeight[i] = 0.0;
     int iSub;
     for(iSub=0; iSub<numSub; ++iSub)
       subDomain[iSub]->mergeStress(stress->subData(iSub),
                                    weight->subData(iSub),
-                                   globalStress,globalWeight);
-    for(i = 0; i < domain->numnodes; ++i)
+                                   globalStress,globalWeight,numNodes);
+    for(i = 0; i < numNodes; ++i)
       if(globalWeight[i] != 0.0)
         globalAllStress[i][str_loop] = globalStress[i]/globalWeight[i];
       else
@@ -1809,7 +1809,6 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
   Scalar *globalPVec = 0; 
   Scalar (*globalPDir)[3] = 0;//DofSet::max_known_nonL_dof 
   Scalar *pdir = 0;
-  int numNodes = domain->numNode();
   if(direction) {
     globalPDir = new Scalar[numNodes][3];//DofSet::max_known_nonL_dof 
     pdir = (Scalar *) dbg_alloca(sizeof(Scalar)*3);
@@ -1898,7 +1897,8 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   if(verboseFlag && numOutInfo && x == 0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
-  int numNodes = geoSource->numNode();
+  if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
+  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
   Scalar (*xyz)[11] = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
   Scalar *globVal = 0;  // for output
 
@@ -2108,7 +2108,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 5, x);
        break;
      default:
-       filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", i);
+       filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
        break;
    }
   }

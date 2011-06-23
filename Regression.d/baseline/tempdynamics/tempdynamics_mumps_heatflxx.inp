@@ -7,7 +7,8 @@ tempdynamics_mumps_heatflxx
 STATICS
 mumps
 *
-DYNAMICSmech	0.25	0.5
+DYNAMICS
+mech	0.25	0.5
 newmark
 OUTPUT
 heatflxx tempdynamics_mumps_heatflxx.dat 1

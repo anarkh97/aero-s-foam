@@ -7,7 +7,8 @@ tempdynamics_pcg_gtempvel
 STATICS
 pcg
 *
-DYNAMICStime	1.0	1.0	200.0
+DYNAMICS
+time	1.0	1.0	200.0
 newmark
 OUTPUT
 gtempvel tempdynamics_pcg_gtempvel.dat 1

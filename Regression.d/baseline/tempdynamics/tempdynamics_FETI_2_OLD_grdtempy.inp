@@ -7,7 +7,8 @@ tempdynamics_FETI_2_OLD_grdtempy
 STATICS
 FETI 2 OLD
 *
-DYNAMICSmech	0.25	0.5
+DYNAMICS
+mech	0.25	0.5
 newmark
 OUTPUT
 grdtempy tempdynamics_FETI_2_OLD_grdtempy.dat 1

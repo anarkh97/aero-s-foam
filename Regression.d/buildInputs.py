@@ -11,6 +11,7 @@ import sys, os, re, glob
 
 def buildInputs(params):
   mycwd = os.getcwd()
+  print "at start, mycwd is %s \n"% mycwd
   if(mycwd.find("Regression.d") < 0):
     if(os.path.exists("Regression.d")==0):
       os.mkdir("Regression.d")  
@@ -138,7 +139,7 @@ def buildInputs(params):
         INCLUDE = ["\"mesh_temp.include\""]
         OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
         MATERIALS = ["1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0"]
-        NAMELIST = ["STATICS\n","DYNAMICS","OUTPUT\n","MATERIALS\n","INCLUDE "]
+        NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,MATERIALS,INCLUDE]
 
       if(problem_type == "tempstatics"):
@@ -167,7 +168,10 @@ def buildInputs(params):
       if(problem_type == "freqsweep"):
         NAMELIST = ["STATICS\n","IMPE\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,IMPE,OUTPUT,INCLUDE]
-        EXTRAS = ["*","freqsweep 1. 3. 3 10\nrecons pade 2 9 10","*","*","*"]
+        IMPE =    ["freqsweep 1. 3. 3 10\ndamp 1e-6 1.0",\
+                   "freqsweep 1. 3. 3 10\ndamp 1e-7 1.0",\
+                   "freqsweep 1. 3. 3 10\ndamp 1e-5 1.0"]
+        EXTRAS = ["*","recons pade 2 9 10","*","*","*"]
 
       if(problem_type == "nlstatics"):
         EXTRAS = ["include \"feti.include\"\n*","*","*","*","*"]
@@ -221,7 +225,7 @@ def buildInputs(params):
           FILE.write("\n")
         FILE.write("END\n")
         FILE.close()
-        command = "aeros "
+        command = "../../bin/aeros "
         re.compile("FETI");
         if(idname.find("FETI") != -1 ):
           command = command + "-n 2 --dec "

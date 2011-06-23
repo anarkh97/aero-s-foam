@@ -1,36 +1,36 @@
-echo aeros  tempdynamics_sparse_gtempera.inp
-aeros  tempdynamics_sparse_gtempera.inp
-echo aeros  tempdynamics_skyline_gtempvel.inp
-aeros  tempdynamics_skyline_gtempvel.inp
-echo aeros  tempdynamics_mumps_heatflxx.inp
-aeros  tempdynamics_mumps_heatflxx.inp
-echo aeros  tempdynamics_spooles_heatflxy.inp
-aeros  tempdynamics_spooles_heatflxy.inp
-echo aeros  tempdynamics_gmres_heatflxz.inp
-aeros  tempdynamics_gmres_heatflxz.inp
-echo aeros  tempdynamics_direct_grdtempx.inp
-aeros  tempdynamics_direct_grdtempx.inp
-echo aeros  tempdynamics_spooles_pivot_grdtempy.inp
-aeros  tempdynamics_spooles_pivot_grdtempy.inp
-echo aeros  tempdynamics_mumps_pivot_grdtempz.inp
-aeros  tempdynamics_mumps_pivot_grdtempz.inp
-echo aeros  tempdynamics_frontal_gtempera.inp
-aeros  tempdynamics_frontal_gtempera.inp
-echo aeros  tempdynamics_pcg_gtempvel.inp
-aeros  tempdynamics_pcg_gtempvel.inp
-echo aeros  tempdynamics_bcg_heatflxx.inp
-aeros  tempdynamics_bcg_heatflxx.inp
-echo aeros  tempdynamics_cr_heatflxy.inp
-aeros  tempdynamics_cr_heatflxy.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
-aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
-aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
-aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
-aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
-aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
-echo aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp
-aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp
+echo ../../bin/aeros  tempdynamics_sparse_gtempera.inp
+../../bin/aeros  tempdynamics_sparse_gtempera.inp
+echo ../../bin/aeros  tempdynamics_skyline_gtempvel.inp
+../../bin/aeros  tempdynamics_skyline_gtempvel.inp
+echo ../../bin/aeros  tempdynamics_mumps_heatflxx.inp
+../../bin/aeros  tempdynamics_mumps_heatflxx.inp
+echo ../../bin/aeros  tempdynamics_spooles_heatflxy.inp
+../../bin/aeros  tempdynamics_spooles_heatflxy.inp
+echo ../../bin/aeros  tempdynamics_gmres_heatflxz.inp
+../../bin/aeros  tempdynamics_gmres_heatflxz.inp
+echo ../../bin/aeros  tempdynamics_direct_grdtempx.inp
+../../bin/aeros  tempdynamics_direct_grdtempx.inp
+echo ../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
+../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
+echo ../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
+../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
+echo ../../bin/aeros  tempdynamics_frontal_gtempera.inp
+../../bin/aeros  tempdynamics_frontal_gtempera.inp
+echo ../../bin/aeros  tempdynamics_pcg_gtempvel.inp
+../../bin/aeros  tempdynamics_pcg_gtempvel.inp
+echo ../../bin/aeros  tempdynamics_bcg_heatflxx.inp
+../../bin/aeros  tempdynamics_bcg_heatflxx.inp
+echo ../../bin/aeros  tempdynamics_cr_heatflxy.inp
+../../bin/aeros  tempdynamics_cr_heatflxy.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
+echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp
+../../bin/aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp

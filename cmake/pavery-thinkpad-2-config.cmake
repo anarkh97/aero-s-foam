@@ -4,3 +4,4 @@ SET(CMAKE_INCLUDE_PATH /home/avery/Codes/eigen;/home/avery/Codes/acme-2.9/search
 SET(CMAKE_LIBRARY_PATH /home/avery/Codes/acme-2.9/lib;/home/avery/Codes/Zoltan/Obj_generic)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")
+SET(ACME_VERSION "2_9")

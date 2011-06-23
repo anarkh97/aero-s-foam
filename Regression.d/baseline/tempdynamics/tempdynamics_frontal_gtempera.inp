@@ -7,7 +7,8 @@ tempdynamics_frontal_gtempera
 STATICS
 frontal
 *
-DYNAMICSmech	0.25	0.5
+DYNAMICS
+mech	0.25	0.5
 newmark
 OUTPUT
 gtempera tempdynamics_frontal_gtempera.dat 1

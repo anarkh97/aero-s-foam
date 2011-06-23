@@ -10,7 +10,6 @@ gmres
 IMPE
 freq 10.0
 damp 1e-7 1.0
-freqsweep 1. 3. 3 10
 recons pade 2 9 10
 OUTPUT
 strainxz freqsweep_gmres_strainxz.dat 1

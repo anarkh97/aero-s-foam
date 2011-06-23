@@ -7,7 +7,8 @@ tempdynamics_direct_grdtempx
 STATICS
 direct
 *
-DYNAMICStime	1.0	1.0	200.0
+DYNAMICS
+time	1.0	1.0	200.0
 newmark
 OUTPUT
 grdtempx tempdynamics_direct_grdtempx.dat 1

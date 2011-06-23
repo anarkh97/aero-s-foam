@@ -106,7 +106,11 @@ TRAIL [a-zA-Z]*
 
 "BINARYOUTPUT"|"binaryoutput"      { return BINARYOUTPUT; }
 
-"OUTFLAG"|"outflag"                { return OUTFLAG; }
+"XPOS"[a-zA-Z]*|"xpos"[a-zA-Z]*    { return XPOST; }
+"t"                                { yylval.ival = 0; return TOPFLAG; }                                
+"T"                                { yylval.ival = 1; return TOPFLAG; }
+"m"                                { yylval.ival = 0; return TOPFLAG; }
+"M"                                { yylval.ival = 1; return TOPFLAG; }
 
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }

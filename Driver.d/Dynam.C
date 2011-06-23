@@ -456,14 +456,15 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
                         double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
   int numNodeLim = myMax(numNodes,numnodes);
   double (*glDisp)[11] = new double[numNodeLim][11];//DofSet::max_known_nonL_dof
   for (int i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
-  int realNodes = mergeDistributedDisp(glDisp, d_n.data(), bcx);
-  int numNodesOut = (outFlag) ? realNodes : numNodes;
+  mergeDistributedDisp(glDisp, d_n.data(), bcx);
+  int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   for (int i = firstRequest; i < lastRequest; ++i) {
     enum {YOUNG,MDENS,THICK};
@@ -656,7 +657,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
           double *data = new double[nNodesOut];
-          realNodes = -1;
+          realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);

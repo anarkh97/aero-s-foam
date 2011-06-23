@@ -1456,7 +1456,6 @@ void
 Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
                         int stressIndex, double time, int printFlag)
 {
-  if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
 
   // allocate integer array to store node numbers
@@ -1627,7 +1626,6 @@ void
 Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                          int stressIndex, double time)
 {
-  if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 

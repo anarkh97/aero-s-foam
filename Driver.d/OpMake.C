@@ -2856,6 +2856,7 @@ template<class Scalar>
 void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,
                             int ndflag, int index, double time, double eigV)  {
 
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
   double freq;
   if (domain->probType() == SolverInfo::Modal) freq = eigV;
@@ -2878,8 +2879,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
-  int realNodes = mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
-  int numNodesOut = (outFlag) ? realNodes : numNodes;
+  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
+  int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   // Open files and write file headers in first time step
   if(firstOutput) geoSource->openOutputFiles();

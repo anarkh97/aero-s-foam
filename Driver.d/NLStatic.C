@@ -327,6 +327,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
                            double time, int step, double* velocity, double *vcx,
                            Corotator **allCorot, FullSquareMatrix *mel, double *acceleration, double *acx)
 {
+ if(outFlag && !nodeTable) makeNodeTable(outFlag);
  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
 
  //fprintf(stderr,"Running postPro in NLSTATIC\n");
@@ -408,6 +409,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     } 
       break;
     case OutputInfo::Velocity6: { 
+      if(!velocity) break;
       StackVector v_n(velocity, numUncon());
       double (*data)[6] = new double[nPrintNodes][6];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
@@ -422,6 +424,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Velocity:  {
+      if(!velocity) break;
       StackVector v_n(velocity, numUncon());
       double (*data)[3] = new double[nPrintNodes][3];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
@@ -434,6 +437,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     } 
       break;
     case OutputInfo::TemperatureFirstTimeDerivative: {
+      if(!velocity) break;
       StackVector v_n(velocity, numUncon());
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
@@ -445,6 +449,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     } 
       break;
     case OutputInfo::Accel6:  {
+      if(!acceleration) break;
       StackVector a_n(acceleration, numUncon());
       double (*data)[6] = new double[nPrintNodes][6];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
@@ -461,6 +466,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     }
       break;
     case OutputInfo::Acceleration: {
+      if(!acceleration) break;
       StackVector a_n(acceleration, numUncon()); // XXXX acceleration not passed
       double (*data)[3] = new double[nPrintNodes][3];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
@@ -1138,7 +1144,6 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
    if(avgnum == 1 || avgnum == 2) {
 
      if(oinfo[fileNumber].nodeNumber == -1) {
-       if(outFlag && !nodeTable) makeNodeTable(outFlag);
        int numNodes = geoSource->numNode();
        int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
        double *data = new double[numNodesOut];

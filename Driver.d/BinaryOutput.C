@@ -95,15 +95,17 @@ void GeoSource::outputRange(int fileNum, int *flag, int nData, int glSub, int of
       int range = 0;
       int rStart = 0;
       for(int iNode = 0; iNode < nData; iNode++)  {
-        if(domain->outFlag) flag2[iNode] = domain->nodeTable[flag[iNode]]-1;
-        if(flag[iNode] >= 0) range++;
+        if(domain->outFlag) flag2[iNode] = (flag[iNode] >=0) ? domain->nodeTable[flag[iNode]]-1 : flag[iNode];
+        if(flag[iNode] >= 0 && flag[iNode] < nodes.size()) range++; // now skipping internal nodes
         else {
-          file->write(flag2+rStart, range);
+          if(range > 0) {
+            file->write(flag2+rStart, range);
+            range = 0;
+          }
           rStart = iNode+1;
-          range = 0;
         }
       }
-      file->write(flag2+rStart, range);
+      if(range > 0) file->write(flag2+rStart, range);
       if(domain->outFlag) delete [] flag2;
     }
     else  {
@@ -210,8 +212,8 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     int k = 0;
     for(int i = 0; i < numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
+      if(glNodeNums[k] >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
-      if(glNode >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
       if(group != -1) {
         list<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;

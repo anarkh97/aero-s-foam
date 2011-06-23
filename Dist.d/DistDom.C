@@ -1471,7 +1471,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
       default:
-        filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", iOut);
+        filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;
     }
   }

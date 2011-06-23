@@ -91,17 +91,20 @@ void GeoSource::outputRange(int fileNum, int *flag, int nData, int glSub, int of
       fprintf(stderr," *** ERROR: Bad Data Type: %d\n", dataType);
 
     if(dataType == 1)  {
+      int *flag2 = (domain->outFlag) ? new int[nData] : flag;
       int range = 0;
       int rStart = 0;
       for(int iNode = 0; iNode < nData; iNode++)  {
+        if(domain->outFlag) flag2[iNode] = domain->nodeTable[flag[iNode]]-1;
         if(flag[iNode] >= 0) range++;
         else {
-          file->write(flag+rStart, range);
+          file->write(flag2+rStart, range);
           rStart = iNode+1;
           range = 0;
         }
       }
-      file->write(flag+rStart, range);
+      file->write(flag2+rStart, range);
+      if(domain->outFlag) delete [] flag2;
     }
     else  {
       file->write(flag, nData);

@@ -247,6 +247,8 @@ public:
         //Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
         Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
         Node *& operator[] (int i);
+
+        int nnz();
 };
 
 

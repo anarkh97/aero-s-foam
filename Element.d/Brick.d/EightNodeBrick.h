@@ -35,10 +35,12 @@ public:
 				     double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
         void             getAllStress(FullM &stress, Vector &weight,
-                                  CoordSet &cs, Vector &elDisp,
-                                  int strInd, int surface=0,
-                                  double *ndTemps=0);
+                                      CoordSet &cs, Vector &elDisp,
+                                      int strInd, int surface=0,
+                                      double *ndTemps=0);
 
+        void             getIntrnForce(Vector &elForce, CoordSet& cs,
+                                       double *elDisp, int forceIndex, double *ndTemps=0);
 
 	void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);

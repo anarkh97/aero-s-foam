@@ -1649,16 +1649,16 @@ void IsoParamUtils::surfGInt3d(double *xyz, int faceindex, IntegFunctionAG3d &f,
      else nsign = -1;
 
      double det = detj(J);
-     double j[3][3];
-     invj(J,det,j);
+     double ij[3][3];
+     invj(J,det,ij);
      int m;
      for(m=0;m<orderc;m++) {
        dNdx[m][0] =
-        j[0][0]*N[orderc+m]+j[0][1]*N[2*orderc+m]+j[0][2]*N[3*orderc+m];
+        ij[0][0]*N[orderc+m]+ij[0][1]*N[2*orderc+m]+ij[0][2]*N[3*orderc+m];
        dNdx[m][1] =
-        j[1][0]*N[orderc+m]+j[1][1]*N[2*orderc+m]+j[1][2]*N[3*orderc+m];
+        ij[1][0]*N[orderc+m]+ij[1][1]*N[2*orderc+m]+ij[1][2]*N[3*orderc+m];
        dNdx[m][2] =
-        j[2][0]*N[orderc+m]+j[2][1]*N[2*orderc+m]+j[2][2]*N[3*orderc+m];
+        ij[2][0]*N[orderc+m]+ij[2][1]*N[2*orderc+m]+ij[2][2]*N[3*orderc+m];
      }
 
      double x[3] = {0.0,0.0,0.0};
@@ -2733,16 +2733,16 @@ void IsoParamUtilsPrism::volumeInt3d(double *xyz, IntegFunctionV3d &f,
      if (det<0.0) fprintf(stderr,"Negative Jacobian: %f %f %f %f\n",
                           det,xyz[0],xyz[orderc+0],xyz[2*orderc+0]);
 
-     double j[3][3];
-     invj(J,det,j);
+     double ij[3][3];
+     invj(J,det,ij);
 
      for(int m=0;m<orderc;m++) {
        dNdx[m][0] = 
-        j[0][0]*N[orderc+m]+j[0][1]*N[2*orderc+m]+j[0][2]*N[3*orderc+m];
+        ij[0][0]*N[orderc+m]+ij[0][1]*N[2*orderc+m]+ij[0][2]*N[3*orderc+m];
        dNdx[m][1] = 
-        j[1][0]*N[orderc+m]+j[1][1]*N[2*orderc+m]+j[1][2]*N[3*orderc+m];
+        ij[1][0]*N[orderc+m]+ij[1][1]*N[2*orderc+m]+ij[1][2]*N[3*orderc+m];
        dNdx[m][2] = 
-        j[2][0]*N[orderc+m]+j[2][1]*N[2*orderc+m]+j[2][2]*N[3*orderc+m];
+        ij[2][0]*N[orderc+m]+ij[2][1]*N[2*orderc+m]+ij[2][2]*N[3*orderc+m];
      }
   
      double x[3] = {0.0,0.0,0.0};

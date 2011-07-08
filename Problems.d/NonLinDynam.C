@@ -71,7 +71,8 @@ NonLinDynamic::~NonLinDynamic()
   delete[] celArray;
   if (allCorot) {
     for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
-      delete allCorot[iElem];
+      if(allCorot[iElem] != dynamic_cast<Corotator*>(domain->getElementSet()[iElem]))
+        delete allCorot[iElem];
     }
   }
   delete[] allCorot;

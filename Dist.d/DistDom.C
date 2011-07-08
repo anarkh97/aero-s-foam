@@ -118,6 +118,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+  if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int iOut_ffp = -1;
   int iOut_kir = -1;
 
@@ -1162,6 +1163,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+  if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
@@ -1469,7 +1471,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
       default:
-        filePrint(stderr," *** WARNING: Output case %d not implemented for non-linear FETI\n", iOut);
+        filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;
     }
   }

@@ -99,71 +99,73 @@ GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u)//DofSet::max_kn
  // note: coupledScaling always has a default value of 1.0
  // xyz should be initialized to zero before being passed into this function
  // PJSA 9-22-06: u is already scaled
- int inode;
+ int inode, nodeI;
  for(inode = 0; inode < numnodes; ++inode){
+   nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
+
    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
    int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
 
    if(xLoc >= 0)
-     xyz[glNums[inode]][0] = u[xLoc];           // free
+     xyz[nodeI][0] = u[xLoc];           // free
    else if(xLoc1 >= 0)
-     xyz[glNums[inode]][0] = Bcx(xLoc1);	// constrained
+     xyz[nodeI][0] = Bcx(xLoc1);	// constrained
 
    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
    int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
 
    if(yLoc >= 0)
-     xyz[glNums[inode]][1] = u[yLoc];
+     xyz[nodeI][1] = u[yLoc];
    else if(yLoc1 >= 0)
-     xyz[glNums[inode]][1] = Bcx(yLoc1);
+     xyz[nodeI][1] = Bcx(yLoc1);
 
    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
    int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
 
    if(zLoc >= 0)
-     xyz[glNums[inode]][2] = u[zLoc];
+     xyz[nodeI][2] = u[zLoc];
    else if(zLoc1 >= 0)
-     xyz[glNums[inode]][2] = Bcx(zLoc1);
+     xyz[nodeI][2] = Bcx(zLoc1);
 
    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
    int xRot1 =   dsa->locate(inode, DofSet::Xrot);
 
    if(xRot >= 0)
-     xyz[glNums[inode]][3] = u[xRot];
+     xyz[nodeI][3] = u[xRot];
    else if(xRot1 >= 0)
-     xyz[glNums[inode]][3] = Bcx(xRot1);
+     xyz[nodeI][3] = Bcx(xRot1);
 
    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
    int yRot1 =   dsa->locate(inode, DofSet::Yrot);
 
    if(yRot >= 0)
-     xyz[glNums[inode]][4] = u[yRot];
+     xyz[nodeI][4] = u[yRot];
    else if(yRot1 >= 0)
-     xyz[glNums[inode]][4] = Bcx(yRot1);
+     xyz[nodeI][4] = Bcx(yRot1);
 
    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
    int zRot1 =   dsa->locate(inode, DofSet::Zrot);
 
    if(zRot >= 0)
-     xyz[glNums[inode]][5] = u[zRot];
+     xyz[nodeI][5] = u[zRot];
    else if(zRot1 >= 0)
-     xyz[glNums[inode]][5] = Bcx(zRot1);
+     xyz[nodeI][5] = Bcx(zRot1);
 
    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
    int xTemp1 =   dsa->locate(inode, DofSet::Temp);
 
    if(xTemp >= 0)
-     xyz[glNums[inode]][6] = u[xTemp];
+     xyz[nodeI][6] = u[xTemp];
    else if(xTemp1 >= 0)
-     xyz[glNums[inode]][6] = Bcx(xTemp1);
+     xyz[nodeI][6] = Bcx(xTemp1);
 
    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
    int xHelm1 =   dsa->locate(inode, DofSet::Helm);
 
    if(xHelm >= 0)
-     xyz[glNums[inode]][7] = u[xHelm];
+     xyz[nodeI][7] = u[xHelm];
    else if(xHelm1 >= 0)
-     xyz[glNums[inode]][7] = Bcx(xHelm1);
+     xyz[nodeI][7] = Bcx(xHelm1);
  }
 }
 
@@ -172,72 +174,74 @@ void
 GenSubDomain<Scalar>::mergeAllVeloc(Scalar (*xyz)[11], Scalar *v)//DofSet::max_known_nonL_dof
 {
  // xyz should be initialized to zero before being passed into this function
- int inode;
+ int inode, nodeI;
  for(inode = 0; inode < nodes.size(); ++inode){
    if(nodes[inode] == NULL) continue;
+   nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
+
    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
    int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
 
    if(xLoc >= 0)
-     xyz[glNums[inode]][0] = v[xLoc];           // free
+     xyz[nodeI][0] = v[xLoc];           // free
    else if(xLoc1 >= 0)
-     xyz[glNums[inode]][0] = vcx[xLoc1];        // constrained
+     xyz[nodeI][0] = vcx[xLoc1];        // constrained
 
    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
    int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
 
    if(yLoc >= 0)
-     xyz[glNums[inode]][1] = v[yLoc];
+     xyz[nodeI][1] = v[yLoc];
    else if(yLoc1 >= 0)
-     xyz[glNums[inode]][1] = vcx[yLoc1];
+     xyz[nodeI][1] = vcx[yLoc1];
 
    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
    int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
 
    if(zLoc >= 0)
-     xyz[glNums[inode]][2] = v[zLoc];
+     xyz[nodeI][2] = v[zLoc];
    else if(zLoc1 >= 0)
-     xyz[glNums[inode]][2] = vcx[zLoc1];
+     xyz[nodeI][2] = vcx[zLoc1];
 
    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
    int xRot1 =   dsa->locate(inode, DofSet::Xrot);
 
    if(xRot >= 0)
-     xyz[glNums[inode]][3] = v[xRot];
+     xyz[nodeI][3] = v[xRot];
    else if(xRot1 >= 0)
-     xyz[glNums[inode]][3] = vcx[xRot1];
+     xyz[nodeI][3] = vcx[xRot1];
 
    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
    int yRot1 =   dsa->locate(inode, DofSet::Yrot);
 
    if(yRot >= 0)
-     xyz[glNums[inode]][4] = v[yRot];
+     xyz[nodeI][4] = v[yRot];
    else if(yRot1 >= 0)
-     xyz[glNums[inode]][4] = vcx[yRot1];
+     xyz[nodeI][4] = vcx[yRot1];
 
    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
    int zRot1 =   dsa->locate(inode, DofSet::Zrot);
 
    if(zRot >= 0)
-     xyz[glNums[inode]][5] = v[zRot];
+     xyz[nodeI][5] = v[zRot];
    else if(zRot1 >= 0)
-     xyz[glNums[inode]][5] = vcx[zRot1];
+     xyz[nodeI][5] = vcx[zRot1];
 
    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
    int xTemp1 =   dsa->locate(inode, DofSet::Temp);
 
    if(xTemp >= 0)
-     xyz[glNums[inode]][6] = v[xTemp];
+     xyz[nodeI][6] = v[xTemp];
    else if(xTemp1 >= 0)
-     xyz[glNums[inode]][6] = vcx[xTemp1];
+     xyz[nodeI][6] = vcx[xTemp1];
 
    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
    int xHelm1 =   dsa->locate(inode, DofSet::Helm);
 
    if(xHelm >= 0)
-     xyz[glNums[inode]][7] = v[xHelm];
+     xyz[nodeI][7] = v[xHelm];
    else if(xHelm1 >= 0)
-     xyz[glNums[inode]][7] = vcx[xHelm1];
+     xyz[nodeI][7] = vcx[xHelm1];
  }
 }
 
@@ -246,40 +250,42 @@ void
 GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a)//DofSet::max_known_nonL_dof
 {
  // xyz should be initialized to zero before being passed into this function
- int inode;
+ int inode, nodeI;
  for(inode = 0; inode < nodes.size(); ++inode){
    if(nodes[inode] == NULL) continue;
+   nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
+
    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
    if(xLoc >= 0)
-     xyz[glNums[inode]][0] = a[xLoc];           // free
+     xyz[nodeI][0] = a[xLoc];           // free
 
    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
    if(yLoc >= 0)
-     xyz[glNums[inode]][1] = a[yLoc];
+     xyz[nodeI][1] = a[yLoc];
 
    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
    if(zLoc >= 0)
-     xyz[glNums[inode]][2] = a[zLoc];
+     xyz[nodeI][2] = a[zLoc];
 
    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
    if(xRot >= 0)
-     xyz[glNums[inode]][3] = a[xRot];
+     xyz[nodeI][3] = a[xRot];
 
    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
    if(yRot >= 0)
-     xyz[glNums[inode]][4] = a[yRot];
+     xyz[nodeI][4] = a[yRot];
 
    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
    if(zRot >= 0)
-     xyz[glNums[inode]][5] = a[zRot];
+     xyz[nodeI][5] = a[zRot];
 
    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
    if(xTemp >= 0)
-     xyz[glNums[inode]][6] = a[xTemp];
+     xyz[nodeI][6] = a[xTemp];
 
    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
    if(xHelm >= 0)
-     xyz[glNums[inode]][7] = a[xHelm];
+     xyz[nodeI][7] = a[xHelm];
  }
 }
 
@@ -308,13 +314,14 @@ void GenSubDomain<Scalar>::addCtrl(Scalar *force, Scalar *ctrfrc)
 template<class Scalar>
 void
 GenSubDomain<Scalar>::mergeStress(Scalar *locStress,  Scalar *locWeight,
-                                  Scalar *globStress, Scalar *globWeight)
+                                  Scalar *globStress, Scalar *globWeight, int glNumNodes)
 {
- int inode;
+ int inode, nodeI;
  for(inode = 0; inode < numnodes; ++inode) {
-   if(glNums[inode] >= geoSource->numNode()) continue;
-   globWeight[glNums[inode]] += locWeight[inode];
-   globStress[glNums[inode]] += locStress[inode];
+   nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
+   if(nodeI >= glNumNodes) continue;
+   globWeight[nodeI] += locWeight[inode];
+   globStress[nodeI] += locStress[inode];
  }
 }
 
@@ -329,20 +336,6 @@ void GenSubDomain<Scalar>::mergeElemStress(Scalar *locStress, Scalar *globStress
       int locOff = locOffset[iElem]+iNode;
       globStress[glOff] = locStress[locOff];
     }
-  }
-}
-
-template<class Scalar>
-void
-GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[3], Scalar *u)
-{
-  for(int inode = 0; inode < numnodes; ++inode){
-    int xLoc = c_dsa->locate(inode, DofSet::Xdisp);
-    if(xLoc >= 0) xyz[glNums[inode]][0] = u[xLoc];
-    int yLoc = c_dsa->locate(inode, DofSet::Ydisp);
-    if(yLoc >= 0) xyz[glNums[inode]][1] = u[yLoc];
-    int zLoc = c_dsa->locate(inode, DofSet::Zdisp);
-    if(zLoc >= 0) xyz[glNums[inode]][2] = u[zLoc];
   }
 }
 
@@ -2130,11 +2123,13 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
     }
 
     if(packedEset[iele]->getProperty()) {
-      for(int iNode=0; iNode<packedEset[iele]->numNodes(); ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
+        for(int iNode=0; iNode<packedEset[iele]->numNodes(); ++iNode) {
+          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+          else
+            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+        }
       }
     }
 
@@ -2377,18 +2372,20 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
- int i;
+ int i, nodeI;
  for(i = 0; i < numnodes; ++i) {
    if(!nodes[i]) continue;
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[glNums[i]][0] = (*u)[i].x; continue; }
-   xyz[glNums[i]][0] = ((*u)[i].x - nodes[i]->x);
-   xyz[glNums[i]][1] = ((*u)[i].y - nodes[i]->y);
-   xyz[glNums[i]][2] = ((*u)[i].z - nodes[i]->z);
+   nodeI = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
+
+   if(dynamic_cast<TemperatureState*>(u)) { xyz[nodeI][0] = (*u)[i].x; continue; }
+   xyz[nodeI][0] = ((*u)[i].x - nodes[i]->x);
+   xyz[nodeI][1] = ((*u)[i].y - nodes[i]->y);
+   xyz[nodeI][2] = ((*u)[i].z - nodes[i]->z);
    double rot[3];
    mat_to_vec((*u)[i].R,rot);
-   xyz[glNums[i]][3] = rot[0];
-   xyz[glNums[i]][4] = rot[1];
-   xyz[glNums[i]][5] = rot[2];
+   xyz[nodeI][3] = rot[0];
+   xyz[nodeI][4] = rot[1];
+   xyz[nodeI][5] = rot[2];
  }
 }
 
@@ -2418,12 +2415,13 @@ void
 GenSubDomain<Scalar>::mergeForces(Scalar (*mergedF)[6], Scalar *subF)
 {
  for(int inode = 0; inode < numnodes; ++inode) {
+   int nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
    for(int jdof = 0; jdof < 6; ++jdof) {
      int cdof  = c_dsa->locate(inode, 1 << jdof);
      if(cdof >= 0)
-       mergedF[glNums[inode]][jdof] += subF[cdof]; // free: assemble into global array
+       mergedF[nodeI][jdof] += subF[cdof]; // free: assemble into global array
      else
-       mergedF[glNums[inode]][jdof] = 0.0;         // constrained or doesn't exist
+       mergedF[nodeI][jdof] = 0.0;         // constrained or doesn't exist
    }
  }
 }
@@ -4002,7 +4000,7 @@ GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWei
     if(mpc[locMpcNb]->type == 1) { // inequality constraint
       for(int j=0; j<mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
-        int glNode = glNums[node];
+        int glNode = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
         globStress[glNode] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
         globWeight[glNode] += 1.0;
       }

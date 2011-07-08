@@ -305,6 +305,13 @@ Vector& elDisp, int strInd,int surface, double *ndTemps)
         }
 }
 
+void
+EightNodeBrick::getIntrnForce(Vector &elForce, CoordSet& cs,
+                               double *elDisp, int forceIndex, double *ndTemps)
+{
+  for(int i=0; i<8; ++i) elForce[i] = 0;
+}
+
 double
 EightNodeBrick::getMass(CoordSet& cs)
 {

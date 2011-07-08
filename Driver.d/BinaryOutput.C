@@ -91,17 +91,22 @@ void GeoSource::outputRange(int fileNum, int *flag, int nData, int glSub, int of
       fprintf(stderr," *** ERROR: Bad Data Type: %d\n", dataType);
 
     if(dataType == 1)  {
+      int *flag2 = (domain->outFlag) ? new int[nData] : flag;
       int range = 0;
       int rStart = 0;
       for(int iNode = 0; iNode < nData; iNode++)  {
-        if(flag[iNode] >= 0) range++;
+        if(domain->outFlag) flag2[iNode] = (flag[iNode] >=0) ? domain->nodeTable[flag[iNode]]-1 : flag[iNode];
+        if(flag[iNode] >= 0 && flag[iNode] < nodes.size()) range++; // now skipping internal nodes
         else {
-          file->write(flag+rStart, range);
+          if(range > 0) {
+            file->write(flag2+rStart, range);
+            range = 0;
+          }
           rStart = iNode+1;
-          range = 0;
         }
       }
-      file->write(flag+rStart, range);
+      if(range > 0) file->write(flag2+rStart, range);
+      if(domain->outFlag) delete [] flag2;
     }
     else  {
       file->write(flag, nData);
@@ -165,7 +170,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     outfile.precision(oinfo[fileNumber].precision);
 
     int numComponentsPlus = (group == -1) ? numComponents : numComponents + 4; // group output: allow for NODENUMBER, X0, Y0, Z0
-    int numNodesPlus = (group == -1) ? numNodes : nodeGroup[group].size();
+    int numNodesPlus = (group == -1) ? (domain->outFlag ? domain->exactNumNodes : numNodes) : nodeGroup[group].size();
 
     long timeOffset = headLen[fileNumber]  // header including endl
                       + (numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + endl for all previous timesteps
@@ -179,12 +184,12 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       outfile.seekp(timeOffset);
       outfile.width(3+oinfo[fileNumber].width);
       outfile << time << endl;
-      // fix for gaps in node numbering (note: this isn't required for group output
+      // fix for gaps in node numbering (note: this isn't required for group output or when domain->outFlag != 0)
       // the first subdomain writes zeros for all unasigned nodes
       if(group == -1) {
         int counter = 0;
         for(int i=0; i<nodes.size(); ++i) {
-          if(domain->getNodeToElem()->num(i) == 0) {
+          if(domain->getNodeToElem()->num(i) == 0 && domain->outFlag == 0) {
             int glNode = i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
               long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
@@ -207,8 +212,8 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     int k = 0;
     for(int i = 0; i < numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
-      int glNode = glNodeNums[k]; k++;
-      if(glNode >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
+      if(glNodeNums[k] >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
+      int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {
         list<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;

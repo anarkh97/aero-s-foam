@@ -541,9 +541,8 @@ class GenSubDomain : public BaseSub
   void assembleLocalComplexEls(GenSparseMatrix<Scalar> *Kas, GenSolver<Scalar> *smat = 0);
   void mergePrimalError(Scalar* error, Scalar* primal);
   void mergeStress(Scalar *stress, Scalar *weight,
-                   Scalar *globStress, Scalar *globWeight);
+                   Scalar *globStress, Scalar *globWeight, int glNumNodes);
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
-  void mergeDisp(Scalar (*xyz)[3], Scalar *locdisp);
   void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);//DofSet::max_known_nonL_dof
   void mergeAllDisp(Scalar (*xyz)[11], Scalar *locdisp);
   void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v);

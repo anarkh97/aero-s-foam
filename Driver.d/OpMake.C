@@ -1521,104 +1521,104 @@ template<class Scalar>
 int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//DofSet::max_known_nonL_dof
 {
   // PJSA 9-22-06 u is already scaled
-  int inode;
+  int inode, nodeI;
   int realNode = -1;
   for (inode = 0; inode < numnodes; ++inode){
 
     if(nodeToElem)
-      if(nodeToElem->num(inode) < 0) continue;
+      if(nodeToElem->num(inode) <= 0) continue;
     realNode++;
+    nodeI = (outFlag) ? realNode : inode;
+
     int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
     int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
 
     if (xLoc >= 0)
-      xyz[inode][0] = u[xLoc];          // free
+      xyz[nodeI][0] = u[xLoc];          // free
     else if (xLoc1 >= 0 && bcx)
-      xyz[inode][0] = bcx[xLoc1];       // constrained
+      xyz[nodeI][0] = bcx[xLoc1];       // constrained
     else
-      xyz[inode][0] = 0.0;
+      xyz[nodeI][0] = 0.0;
 
     int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
     int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
 
     if (yLoc >= 0)
-      xyz[inode][1] = u[yLoc];
+      xyz[nodeI][1] = u[yLoc];
     else if (yLoc1 >= 0 && bcx)
-      xyz[inode][1] = bcx[yLoc1];
+      xyz[nodeI][1] = bcx[yLoc1];
     else
-      xyz[inode][1] = 0.0;
+      xyz[nodeI][1] = 0.0;
 
     int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
     int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
 
     if (zLoc >= 0)
-      xyz[inode][2] = u[zLoc];
+      xyz[nodeI][2] = u[zLoc];
     else if (zLoc1 >= 0 && bcx)
-      xyz[inode][2] = bcx[zLoc1];
+      xyz[nodeI][2] = bcx[zLoc1];
     else
-      xyz[inode][2] = 0.0;
+      xyz[nodeI][2] = 0.0;
 
     int xRot  = c_dsa->locate(inode, DofSet::Xrot);
     int xRot1 =   dsa->locate(inode, DofSet::Xrot);
 
     if (xRot >= 0)
-      xyz[inode][3] = u[xRot];
+      xyz[nodeI][3] = u[xRot];
     else if(xRot1 >= 0 && bcx)
-      xyz[inode][3] = bcx[xRot1];
+      xyz[nodeI][3] = bcx[xRot1];
     else
-      xyz[inode][3] = 0.0;
+      xyz[nodeI][3] = 0.0;
 
     int yRot  = c_dsa->locate(inode, DofSet::Yrot);
     int yRot1 =   dsa->locate(inode, DofSet::Yrot);
 
     if (yRot >= 0)
-      xyz[inode][4] = u[yRot];
+      xyz[nodeI][4] = u[yRot];
     else if (yRot1 >= 0 && bcx)
-      xyz[inode][4] = bcx[yRot1];
+      xyz[nodeI][4] = bcx[yRot1];
     else
-      xyz[inode][4] = 0.0;
+      xyz[nodeI][4] = 0.0;
 
     int zRot  = c_dsa->locate(inode, DofSet::Zrot);
     int zRot1 =   dsa->locate(inode, DofSet::Zrot);
 
     if (zRot >= 0)
-      xyz[inode][5] = u[zRot];
+      xyz[nodeI][5] = u[zRot];
     else if (zRot1 >= 0 && bcx)
-      xyz[inode][5] = bcx[zRot1];
+      xyz[nodeI][5] = bcx[zRot1];
     else
-      xyz[inode][5] = 0.0;
+      xyz[nodeI][5] = 0.0;
 
     int xTemp  = c_dsa->locate(inode, DofSet::Temp);
     int xTemp1 =   dsa->locate(inode, DofSet::Temp);
 
     if (xTemp >= 0)
-      xyz[inode][6] = u[xTemp];
+      xyz[nodeI][6] = u[xTemp];
     else if (xTemp1 >= 0 && bcx)
-      xyz[inode][6] = bcx[xTemp1];
+      xyz[nodeI][6] = bcx[xTemp1];
     else
-      xyz[inode][6] = 0.0;
+      xyz[nodeI][6] = 0.0;
 
     int xHelm  = c_dsa->locate(inode, DofSet::Helm);
     int xHelm1 =   dsa->locate(inode, DofSet::Helm);
 
     if (xHelm >= 0)
-      xyz[inode][7] = u[xHelm];
+      xyz[nodeI][7] = u[xHelm];
     else if (xHelm1 >= 0 && bcx)
-      xyz[inode][7] = bcx[xHelm1];
+      xyz[nodeI][7] = bcx[xHelm1];
     else
-      xyz[inode][7] = 0.0;
+      xyz[nodeI][7] = 0.0;
 
     int xPot  = c_dsa->locate(inode, DofSet::Potential);
     int xPot1 =   dsa->locate(inode, DofSet::Potential);
 
     if (xPot >= 0)
-      xyz[inode][10] = u[xPot];
+      xyz[nodeI][10] = u[xPot];
     else if (xPot1 >= 0 && bcx)
-      xyz[inode][10] = bcx[xPot1];
+      xyz[nodeI][10] = bcx[xPot1];
     else
-      xyz[inode][10] = 0.0;
-
-
+      xyz[nodeI][10] = 0.0;
   }
 
   return ++realNode;
@@ -2567,6 +2567,7 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair:  {
       if (success == 0)
         tag = freq;
+/* this isn't necessary
       Scalar (*data)[3] = new Scalar[numNodes][3];
       for (int jj = 0; jj < numNodes; jj++)  {
         data[jj][0] = glDisp[jj][0]; 
@@ -2578,6 +2579,11 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
       else    // one node
         geoSource->outputNodeVectors(i, &(data[oinfo.nodeNumber]), 1, tag);
       delete [] data;
+*/
+      if (oinfo.nodeNumber == -1)  // all nodes
+        geoSource->outputNodeVectors(i, glDisp, numNodes, tag);
+      else    // one node
+        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
       success = 1;
     }
       break;
@@ -2587,6 +2593,7 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair6:  {
      if (success == 0)
         tag = freq;
+/* this isn't necessary
       Scalar (*data)[6] = new Scalar[numNodes][6];
       for (int jj = 0; jj < numNodes; jj++)  
         for (int kk = 0; kk < 6; kk++) 
@@ -2596,8 +2603,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         geoSource->outputNodeVectors6(i, data, numNodes, tag);
       else
         geoSource->outputNodeVectors6(i, &(data[oinfo.nodeNumber]), 1, tag);
-
       delete [] data;
+*/
+      if (oinfo.nodeNumber == -1)
+        geoSource->outputNodeVectors6(i, glDisp, numNodes, tag);
+      else
+        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
       success = 1;
     }
       break;
@@ -2845,6 +2856,7 @@ template<class Scalar>
 void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,
                             int ndflag, int index, double time, double eigV)  {
 
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
   double freq;
   if (domain->probType() == SolverInfo::Modal) freq = eigV;
@@ -2868,6 +2880,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
   mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
+  int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   // Open files and write file headers in first time step
   if(firstOutput) geoSource->openOutputFiles();
@@ -2890,7 +2903,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         || oinfo[i].type == OutputInfo::Farfield
         || oinfo[i].type == OutputInfo::Kirchhoff) {
       dof = -1;
-      int success = processDispTypeOutputs(oinfo[i], xyz, numNodes, i, time, freq);
+      int success = processDispTypeOutputs(oinfo[i], xyz, numNodesOut, i, time, freq);
       if (success) continue;
       success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
       if (success) continue;

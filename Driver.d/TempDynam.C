@@ -20,6 +20,8 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
 {
   // Postprocessing: Computes the NODAL heat fluxes or the temperature 
   //                 gradients of the QUAD element
+  if(outFlag && !nodeTable) makeNodeTable(outFlag);
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
   // allocate integer array to store node numbers
@@ -34,7 +36,7 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
   int p = oinfo[fileNumber].precision;
 
   // ... ALLOCATE VECTORS AND INITIALIZE TO ZERO
-  if(heatflux == 0) heatflux = new Vector(numnodes,0.0);
+  if(heatflux == 0) heatflux = new Vector(numNodes,0.0);
   if(elTemp == 0) elTemp = new Vector(maxNumDOFs,0.0);
 
   int iele;
@@ -73,7 +75,8 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
 // ... ASSEMBLE ELEMENT'S NODAL HEAT FLUXES OR TEMPERATURE GRADIENTS
 
      for(k=0; k<NodesPerElement; ++k) {
-       (*heatflux)[(*elemToNode)[iele][k]] += (*elheatflux)[k];
+       int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+       (*heatflux)[node] += (*elheatflux)[k];
      }
 
     }
@@ -81,7 +84,7 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
 // ... PRINT HEAT FLUXES OR TEMPERATURE GRADIENTS DEPENDING ON hgIndex
 
     if (oinfo[fileNumber].nodeNumber == -1)
-      geoSource->outputNodeScalars(fileNumber, heatflux->data(), numnodes, time);
+      geoSource->outputNodeScalars(fileNumber, heatflux->data(), numNodes, time);
     else
       geoSource->outputNodeScalars(fileNumber, heatflux->data()+oinfo[fileNumber].nodeNumber, 1, time);
 

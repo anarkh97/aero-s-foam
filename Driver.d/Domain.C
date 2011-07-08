@@ -1084,7 +1084,21 @@ Domain::setUpData()
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
-  setIVelModal(numBC, bc);
+  if(solInfo().modal) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+    setIVelModal(numBC, bc);
+  }
+  else {
+    if(numBC) {
+      filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
+      int numIVelModal = modeData.numNodes*3;
+      BCond *iVel_new = new BCond[numIVel+numIVelModal];
+      for(int i=0; i<numIVel; ++i) iVel_new[i] = iVel[i];
+      modeData.addMultY(numBC, bc, iVel_new+numIVel, 3);
+      numIVel += numIVelModal;
+      delete [] iVel;
+      iVel = iVel_new;
+    }
+  }
 
   // set Control Law
   claw = geoSource->getControlLaw();

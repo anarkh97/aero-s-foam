@@ -1172,7 +1172,7 @@ TRAIL [a-zA-Z]*
 
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }
-"GROUP"|"group" { return GROUP; }
+"GROU"[a-zA-Z]*|"grou"[a-zA-Z]* { return GROUP; }
 "N"|"n" { yylval.ival = OutputInfo::Nodal; return GROUPTYPE; }
 "A"|"a" { yylval.ival = OutputInfo::Attribute; return GROUPTYPE; }
 "NG"|"ng" { yylval.ival = OutputInfo::NodeGroup; return GROUPTYPE; }

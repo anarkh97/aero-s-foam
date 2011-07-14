@@ -2151,8 +2151,11 @@ ComplexBC_Data:
 	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.reval = $3; $$.imval = 0.0; }
 	;
 FrameDList:
+        EFRAMES NewLine
+/*
 	EFRAMES NewLine Frame
 	{ geoSource->setFrame($3.num,$3.d); }
+*/
 	| FrameDList Frame
 	{ geoSource->setFrame($2.num,$2.d); }
 	;

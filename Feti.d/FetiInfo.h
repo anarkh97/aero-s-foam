@@ -277,7 +277,7 @@ FetiInfo::FetiInfo()
   rescalef    = true;      // reassemble and apply scaling to f for every system, not just the first
   mpc_scaling = tscaling;  // default use t scaling
   fsi_scaling = tscaling;
-  version     = feti1;     // default use FETI
+  version     = feti1;     // default use FETI1
   feti2version= sparseCoarse;  // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs

@@ -1103,6 +1103,7 @@ Domain::setUpData()
             => otherwise conserve only a set of non-redundant MPC
         (D.Rixen 04-28-99)
 */
+
   stopTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
 }
@@ -3022,13 +3023,16 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
   if(numLMPC > 0) {
     // TODO consider the case where there is an mpc involving a node/dof that is not connected to any other elements. For example this may
     // be used to connect node with a force or a lumped mass to the structure
-    for(int i=0; i < numLMPC; ++i) {
-      for(int j=0; j < lmpc[i]->nterms; ++j) {
-        int node = lmpc[i]->terms[j].nnum;
-        if(node > -1 && nodeToSub->num(node) <= 0) // salinas mpcs can have node = -1 (indicates that node is not in any subdomains on this cpu)
-          fprintf(stderr," *** WARNING: MPC %d involves bad node %d \n", lmpc[i]->lmpcnum, node+1);
+    if(nodeToSub) {
+      for(int i=0; i < numLMPC; ++i) {
+        for(int j=0; j < lmpc[i]->nterms; ++j) {
+          int node = lmpc[i]->terms[j].nnum;
+          if(node > -1 && nodeToSub->num(node) <= 0) // salinas mpcs can have node = -1 (indicates that node is not in any subdomains on this cpu)
+            fprintf(stderr," *** WARNING: MPC %d involves bad node %d \n", lmpc[i]->lmpcnum, node+1);
+        }
       }
     }
+/* moved to GeoSource::checkLMPCs
     if(domain->solInfo().dbccheck) {
       if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
       for(int i=0; i < numLMPC; ++i) {
@@ -3061,6 +3065,7 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
         }
       }
     }
+*/
   }
 }
 

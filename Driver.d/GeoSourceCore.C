@@ -294,6 +294,50 @@ int GeoSource::addCFrame(int fn, double *f)  {
 }
 
 //----------------------------------------------------------------------
+bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+  if(!domain->solInfo().dbccheck) return 0; // skip check (from "check_mpc 0" in the input file)
+  if(verboseFlag && numLMPC) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+  // TODO this could be made more efficient using mpcToNode->transcon(nodeToDbc)
+  int count = 0; // number of inequality constraints to be enforced with lagrange multipliers
+  for(int i=0; i < numLMPC; ++i) {
+    if(lmpc[i]->type == 1 && ((lmpc[i]->lagrangeMult == 1) || (lmpc[i]->lagrangeMult == -1 && domain->solInfo().lagrangeMult))) count++;
+    for(int j=0; j < lmpc[i]->nterms; ++j) {
+      int mpc_node = lmpc[i]->terms[j].nnum;
+      int mpc_dof = lmpc[i]->terms[j].dofnum;
+      for(int k=0; k<numDirichlet; ++k) {
+        int dbc_node = dbc[k].nnum;
+        int dbc_dof = dbc[k].dofnum;
+        if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
+          if(!lmpc[i]->isComplex) {
+            lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
+            lmpc[i]->terms[j].coef.r_value = 0;
+          }
+          else {
+            lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
+            lmpc[i]->terms[j].coef.c_value = 0;
+          }
+        }
+      }
+      for(int k=0; k<numComplexDirichlet; ++k) {
+        int cdbc_node = cdbc[k].nnum;
+        int cdbc_dof = cdbc[k].dofnum;
+        if((cdbc_node == mpc_node) && (cdbc_dof == mpc_dof)) {
+          if(!lmpc[i]->isComplex) {
+            lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * cdbc[k].reval;
+            lmpc[i]->terms[j].coef.r_value = 0;
+          }
+          else {
+            lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * DComplex(cdbc[k].reval, cdbc[k].imval);
+            lmpc[i]->terms[j].coef.c_value = 0;
+          }
+        }
+      }
+     // note: could also eliminate the term from the mpc to simplify further instead of setting coef to zero
+    }
+  }
+  return (count > 0);
+}
 
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
@@ -2444,9 +2488,6 @@ int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
     numDirichlet = _numDirichlet;
     dbc          = _dbc;
   }
-
-  for(int i=0; i<numDirichlet; ++i) 
-    if(dbc[i].val != 0) domain->solInfo().dbccheck = true;
 
   return 0;
 }

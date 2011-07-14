@@ -595,6 +595,17 @@ int main(int argc, char** argv)
  }
 #endif
 
+ bool ctcflag = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+ if(ctcflag && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0) {
+   if(verboseFlag) {
+     filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
+     filePrint(stderr, " ***          Using FETI-DP instead.\n");
+   }
+   domain->solInfo().type = 2;
+   domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
+   domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
+   callDec = true;
+ }
  if(domain->solInfo().type != 2 && !geoSource->getDirectMPC())
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 

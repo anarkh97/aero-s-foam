@@ -362,7 +362,7 @@ struct SolverInfo {
                   isMatching = false; 
                   farfield = false;
 
-                  dbccheck = false;
+                  dbccheck = true;
                   contact_mode = 1;
 
                   nEig = 0;

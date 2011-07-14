@@ -106,8 +106,39 @@ GeomState::GeomState() : ns(NULL), numnodes(0), loc(NULL), X0(emptyCoord), numRe
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : ns(NULL), numnodes(0), loc(NULL), X0(cs), numReal(0), flag(NULL) 
+GeomState::GeomState(CoordSet &cs) : loc(NULL), X0(cs), numReal(0), flag(NULL) 
 {
+  numnodes = cs.size();                 // Number of nodes
+  ns       = new NodeState[numnodes];   // Array of Node States
+
+  for(int i = 0; i < numnodes; ++i) {
+    // Get Node i from the Coordinate (Node) set
+    Node *node_i = cs[i];
+
+    if (node_i)  {
+      // Set the ith node's coordinates
+      ns[i].x = node_i->x;
+      ns[i].y = node_i->y;
+      ns[i].z = node_i->z;
+    }
+    else  {
+      // HB: TEMPORARY BAD FIX FOR DEALING WITH LAGRANGE MULTIPLIERS (RIGID BAR) !!!
+      ns[i].x = 0.0;
+      ns[i].y = 0.0;
+      ns[i].z = 0.0;
+    }
+
+    // Set ith node's rotation tensor equal to identity
+    ns[i].R[0][0] = 1.0;
+    ns[i].R[0][1] = 0.0;
+    ns[i].R[0][2] = 0.0;
+    ns[i].R[1][0] = 0.0;
+    ns[i].R[1][1] = 1.0;
+    ns[i].R[1][2] = 0.0;
+    ns[i].R[2][0] = 0.0;
+    ns[i].R[2][1] = 0.0;
+    ns[i].R[2][2] = 1.0;
+  }
 }
 
 GeomState::~GeomState() {

@@ -146,8 +146,9 @@ MpcElement::markDofs(DofSetArray &dsa)
 }
 
 FullSquareMatrix
-MpcElement::stiffness(CoordSet&, double* karray, int)
+MpcElement::stiffness(CoordSet& c0, double* karray, int)
 {
+/*
   FullSquareMatrix ret(numDofs(), karray);
   ret.zero();
   if(prop->lagrangeMult) {
@@ -155,6 +156,35 @@ MpcElement::stiffness(CoordSet&, double* karray, int)
       ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
   }
   return ret;
+*/
+  // this function computes the constraint stiffness matrix for linear statics and dynamics
+  // see comments in ::getStiffAndForce (nonlinear version)
+  FullSquareMatrix ret(numDofs(), karray);
+  ret.zero();
+  if(prop->lagrangeMult || prop->penalty != 0) {
+    double lambda = 0;
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
+      if(prop->lagrangeMult) {
+        ret[nterms][nterms] = -1/prop->penalty;
+      }
+    }
+    else {
+      if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
+      GeomState c1(c0);
+      FullSquareMatrix H(nterms);
+      getHessian(c1, c0, H);
+      for(int i = 0; i < nterms; ++i) {
+        for(int j = 0; j < nterms; ++j) {
+          ret[i][j] = lambda*H[i][j];
+          if(prop->penalty != 0) ret[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
+        }
+        if(prop->lagrangeMult) ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
+      }
+    }
+  }
+
+  return ret;
+
 }
 
 Corotator*
@@ -168,8 +198,9 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 {
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
+  if(getSource() != mpc::ContactSurfaces)
   update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-
+/*
   // general augmented lagrangian implementation
   // penalty method is the particular case with prop->lagrangeMult is set to false
   // multipliers method is the particular case with prop->penalty set to 0
@@ -189,6 +220,35 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
       f[i] += lambda*terms[i].coef.r_value;
     }
     if(prop->lagrangeMult) f[nterms] = rhs.r_value;
+  }
+*/
+  // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
+  // NOTES:
+  //  1. penalty method is the particular case with prop->lagrangeMult is set to false
+  //  2. multipliers method is the particular case with prop->penalty set to 0
+  //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
+  if(prop->lagrangeMult || prop->penalty != 0.0) {
+    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) { //
+      if(prop->lagrangeMult) {
+        Ktan[nterms][nterms] = -1/prop->penalty;
+        f[nterms] = -lambda/prop->penalty;
+      }
+    }
+    else {
+      if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
+      FullSquareMatrix H(nterms);
+      getHessian(c1, c0, H);
+      for(int i = 0; i < nterms; ++i) {
+        for(int j = 0; j < nterms; ++j) {
+          Ktan[i][j] = lambda*H[i][j];
+          if(prop->penalty != 0) Ktan[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
+        }
+        if(prop->lagrangeMult) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
+        f[i] = lambda*terms[i].coef.r_value;
+      }
+      if(prop->lagrangeMult) f[nterms] = -rhs.r_value;
+    }
   }
 }
 
@@ -213,10 +273,30 @@ MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H)
 void
 MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
 {
+/*
   // this is only called for linear analysis
   for(int i = 0; i < nterms; ++i) f[i] = 0.0;
   if(prop->lagrangeMult)
     f[nterms] = rhs.r_value;
+*/
+  // this function computes the constraint force vector for linear statics and dynamics
+  // see comments in ::getStiffAndForce (nonlinear version)
+  f.zero();
+  if(prop->lagrangeMult || prop->penalty != 0.0) {
+    double lambda = 0;
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
+      if(prop->lagrangeMult) {
+        f[nterms] = lambda/prop->penalty;
+      }
+    }
+    else {
+      if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
+      for(int i = 0; i < nterms; ++i) {
+        f[i] = -lambda*terms[i].coef.r_value;
+      }
+      if(prop->lagrangeMult) f[nterms] = rhs.r_value;
+    }
+  }
 }
 
 void

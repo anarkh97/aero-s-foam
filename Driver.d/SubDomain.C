@@ -2545,8 +2545,8 @@ GenSubDomain<Scalar>::multKcc()
  Scalar *secondpointer = new Scalar [nRHS*totalInterfSize];
  Scalar *thirdpointer = new Scalar [nRHS*numEquations];
  Scalar **KrrKrc = (Scalar **) dbg_alloca(nRHS*sizeof(Scalar *));
- if(nRHS*numEquations == 0)
-   fprintf(stderr, "We have a zero size %d %d %d\n",numEquations,totalInterfSize,nRHS);
+ //if(nRHS*numEquations == 0)
+ //  fprintf(stderr, "We have a zero size %d %d %d\n",numEquations,totalInterfSize,nRHS);
 
  int iRHS, iDof;
  for(iRHS=0; iRHS < nRHS; ++iRHS) {

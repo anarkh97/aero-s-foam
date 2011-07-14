@@ -3031,7 +3031,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
     }
     if(domain->solInfo().dbccheck) {
       if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
-      bool xxx;
       for(int i=0; i < numLMPC; ++i) {
         for(int j=0; j < lmpc[i]->nterms; ++j) {
           int mpc_node = lmpc[i]->terms[j].nnum;
@@ -3041,7 +3040,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
             int dbc_dof = dbc[k].dofnum;
             if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
               if(!lmpc[i]->isComplex) {
-                //cerr << "warning: found an mpc with constrained term\n"; // XXXX seems to cause problem in feti-dpc
                 lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
               }
               else {

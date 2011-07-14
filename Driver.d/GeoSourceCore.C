@@ -2414,90 +2414,6 @@ int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
     domain->addDirichletLMPCs(_numDirichlet, _dbc);
     return 0;
   }
-  /*
-  // MODIFIED FOR HEV PROBLEM, EC, 20070820
-  if(domain->solInfo().HEV) {
-      int i;
-      int idbcFluid = 0;
-      int idbcOthers = 0;
-
-      BCond *nd_tmp = new BCond[_numDirichlet];
-      BCond *ndFluid_tmp = new BCond[_numDirichlet];
-
-      for(i=0;i<_numDirichlet;++i) {
-        fprintf(stderr," ... dofnum of BC %d is %d ...\n",i+1,_dbc[i].dofnum);
-        if(_dbc[i].dofnum == 10) {
-          fprintf(stderr," ... Found Fluid Dirichlet BC ...\n");
-          ndFluid_tmp[idbcFluid] = _dbc[i];
-          idbcFluid++;
-        }
-        else {
-          nd_tmp[idbcOthers] = _dbc[i];
-          idbcOthers++;
-        }
-      }
-      // Allocate memory for correct number of dbc
-      BCond *nd = new BCond[numDirichlet+idbcOthers];
-      BCond *ndFluid = new BCond[numDirichletFluid+idbcFluid];
-
-
-      // copy old dbcFluid
-      if (dbcFluid) {
-        for(i = 0; i<numDirichletFluid; ++i)
-          ndFluid[i] = dbcFluid[i];
-
-        // copy new dbcFluid
-        for(i = 0; i<idbcFluid; ++i)
-          ndFluid[i+numDirichletFluid] = ndFluid_tmp[i];
-
-        // set correct number of dbcFluid
-        numDirichletFluid += idbcFluid;
-
-        // delete old array of dbcFluid
-        delete [] dbcFluid;
-        delete [] ndFluid_tmp;
-
-        // set new pointer to correct number of dbcFluid
-        dbcFluid = ndFluid;
-      }
-      else {
-        for(i=0;i<idbcFluid;++i) {
-          ndFluid[i] = ndFluid_tmp[i];
-        }
-        delete [] ndFluid_tmp;
-        numDirichlet = idbcFluid;
-        dbcFluid = ndFluid;
-      }
-
-      if (dbc) {
-        for(i = 0; i < numDirichlet; ++i)
-           nd[i] = dbc[i];
-
-        // copy new dbc
-        for(i = 0; i<idbcOthers; ++i)
-          nd[i+numDirichlet] = nd_tmp[i];
-
-        // set correct number of dbc
-        numDirichlet += idbcOthers;
-
-        // delete old array of dbc
-        delete [] dbc;
-        delete [] nd_tmp;
-
-        // set new pointer to correct number of dbc
-        dbc = nd;
-      }
-      else {
-        for(i=0;i<idbcOthers;++i) {
-          nd[i] = nd_tmp[i];
-        }
-        delete [] nd_tmp;
-        numDirichlet = idbcOthers;
-        dbc          = nd;
-      }
-  }
-  else {
-  */
 
   if(dbc) {
 
@@ -2528,6 +2444,9 @@ int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
     numDirichlet = _numDirichlet;
     dbc          = _dbc;
   }
+
+  for(int i=0; i<numDirichlet; ++i) 
+    if(dbc[i].val != 0) domain->solInfo().dbccheck = true;
 
   return 0;
 }

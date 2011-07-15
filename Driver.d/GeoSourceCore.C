@@ -296,12 +296,13 @@ int GeoSource::addCFrame(int fn, double *f)  {
 //----------------------------------------------------------------------
 bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
-  if(!domain->solInfo().dbccheck) return 0; // skip check (from "check_mpc 0" in the input file)
-  if(verboseFlag && numLMPC) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
-  // TODO this could be made more efficient using mpcToNode->transcon(nodeToDbc)
+  if(verboseFlag && numLMPC && domain->solInfo().dbccheck) 
+    filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
   int count = 0; // number of inequality constraints to be enforced with lagrange multipliers
   for(int i=0; i < numLMPC; ++i) {
-    if(lmpc[i]->type == 1 && ((lmpc[i]->lagrangeMult == 1) || (lmpc[i]->lagrangeMult == -1 && domain->solInfo().lagrangeMult))) count++;
+    if(lmpc[i]->type == 1 && ((lmpc[i]->lagrangeMult == 1) 
+       || (lmpc[i]->lagrangeMult == -1 && domain->solInfo().lagrangeMult))) count++;
+    if(!domain->solInfo().dbccheck) continue;
     for(int j=0; j < lmpc[i]->nterms; ++j) {
       int mpc_node = lmpc[i]->terms[j].nnum;
       int mpc_dof = lmpc[i]->terms[j].dofnum;
@@ -317,6 +318,7 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
             lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
             lmpc[i]->terms[j].coef.c_value = 0;
           }
+          lmpc[i]->original_rhs = lmpc[i]->rhs;
         }
       }
       for(int k=0; k<numComplexDirichlet; ++k) {
@@ -331,6 +333,7 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
             lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * DComplex(cdbc[k].reval, cdbc[k].imval);
             lmpc[i]->terms[j].coef.c_value = 0;
           }
+          lmpc[i]->original_rhs = lmpc[i]->rhs;
         }
       }
      // note: could also eliminate the term from the mpc to simplify further instead of setting coef to zero

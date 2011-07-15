@@ -253,14 +253,32 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 }
 
 void 
-MpcElement::update(GeomState& c1, CoordSet& c2, double t) 
+MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
 { 
+/*
   rhs.r_value = 0;
   //rhs = original_rhs; // TODO check
   for(int i = 0; i < nterms; ++i) {
     double q[6] = { c1[terms[i].nnum].x, c1[terms[i].nnum].y, c1[terms[i].nnum].z, 0.0, 0.0, 0.0 };
     mat_to_vec(c1[terms[i].nnum].R, q+3);
     rhs.r_value += terms[i].coef.r_value*q[terms[i].dofnum];
+  }
+*/
+  // THIS is for a linear constraint. Nonlinear constraints must overload this function
+  rhs = original_rhs;
+  for(int i = 0; i < nterms; ++i) {
+    double u;
+    switch(terms[i].dofnum) {
+      case 0 : u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; break;
+      case 1 : u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y; break;
+      case 2 : u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z; break;
+      case 3 : case 4 : case 5 : {
+        double theta[3];
+        mat_to_vec(c1[terms[i].nnum].R, theta);
+        u = theta[terms[i].dofnum-3];
+      } break;
+    }
+    rhs.r_value -= terms[i].coef.r_value*u;
   }
 }
 
@@ -281,6 +299,7 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
 */
   // this function computes the constraint force vector for linear statics and dynamics
   // see comments in ::getStiffAndForce (nonlinear version)
+  //cerr << "here in MpcElement::computePressureForce, rhs = " << rhs.r_value << endl;
   f.zero();
   if(prop->lagrangeMult || prop->penalty != 0.0) {
     double lambda = 0;

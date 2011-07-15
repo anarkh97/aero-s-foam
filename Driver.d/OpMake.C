@@ -1474,8 +1474,8 @@ Domain::addMpcRhs(GenVector<Scalar> &force)
   Vector elementForce(maxNumDOFs);
 
   for(int iele = 0; iele < numele; ++iele) {
-    // If there is a zero pressure defined, skip it.
-    if(dynamic_cast<MpcElement*>(packedEset[iele]) == NULL) continue;
+    // If there is element is not a MpcElement, skip it.
+    if(!packedEset[iele]->isMpcElement()) continue; // this also works for superelements
 
     // Otherwise, compute element force due to mpc rhs
     packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0);
@@ -3003,8 +3003,8 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
   if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
-  // ... ADD RHS FROM LMPCs
-  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs(cnst_f);
+  // ... ADD RHS FROM LMPCs for linear statics
+  if(lmpc.max_size() && !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
@@ -3069,6 +3069,9 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
   if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+
+  // ... ADD RHS FROM LMPCs for linear dynamics
+  if(lmpc.max_size() && !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f);
 
   // COMPUTE FORCE FROM THERMOE
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)

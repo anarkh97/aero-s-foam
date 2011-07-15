@@ -3653,13 +3653,11 @@ template<class Scalar>
 void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
 {
   if(numDualMpc) {
-    GenDistrVector<Scalar> *cx = new GenDistrVector<Scalar>(fetiSolver->interfInfo());
-    GenDistrVector<Scalar> *x = new GenDistrVector<Scalar>(fetiSolver->localInfo());
-    execParal2R(numSub, this, &GenDecDomain<Scalar>::extractPosition, *geomState, *x);
-    ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(*x, *cx); // cx = C*x
-    (*cx) *= -1.0;
-    execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, *cx);
-    delete cx; delete x;
+    GenDistrVector<Scalar> cu(fetiSolver->interfInfo());
+    GenDistrVector<Scalar> u(fetiSolver->localInfo());
+    geomState->get_tot_displacement(u);
+    ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu); // cu = C*u
+    execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu);
   }
 }
 

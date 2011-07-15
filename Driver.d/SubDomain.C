@@ -3604,7 +3604,7 @@ GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec)
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces)
-      mpc[locMpcNb]->original_rhs = mpc[locMpcNb]->rhs = interfvec[scomm->mapT(SComm::mpc,i)];
+      mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
   }
 }
 

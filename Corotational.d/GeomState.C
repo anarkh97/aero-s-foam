@@ -523,6 +523,40 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
+GeomState::get_tot_displacement(Vector &totVec)
+{
+  //cerr << "here in GeomState::get_tot_displacement\n";
+  double x0, y0, z0, vec[3];
+
+  // Loop over all of the nodes
+  for(int i = 0; i < numnodes; ++i) {
+
+    // Insert total translational displacements of node i into totVec
+    if(loc[i][0] >= 0) {
+      x0 = (X0[i]) ? X0[i]->x : 0;
+      totVec[loc[i][0]] = ns[i].x - x0;
+    }
+    if(loc[i][1] >= 0) {
+      y0 = (X0[i]) ? X0[i]->y : 0;
+      totVec[loc[i][1]] = ns[i].y - y0;
+    }
+    if(loc[i][2] >= 0) {
+      z0 = (X0[i]) ? X0[i]->z : 0;
+      totVec[loc[i][2]] = ns[i].z - z0;
+    }
+
+    // Insert total rotational displacements of node i into totVec
+    if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+      mat_to_vec(ns[i].R, vec);
+
+      if(loc[i][3] >= 0) totVec[loc[i][3]] = vec[0];
+      if(loc[i][4] >= 0) totVec[loc[i][4]] = vec[1];
+      if(loc[i][5] >= 0) totVec[loc[i][5]] = vec[2];
+    }
+  }
+}
+
+void
 GeomState::zeroRotDofs(Vector& vec)
 {
   for(int inode = 0; inode < numnodes; ++inode) {

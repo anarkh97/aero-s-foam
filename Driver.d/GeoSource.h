@@ -253,6 +253,7 @@ class GeoSource {
 
   map<int, Group> group;
   map<int, list<int> > nodeGroup;
+  map<int, list<int> > surfaceGroup;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -580,6 +581,7 @@ public:
 // Group stuff
    void setGroupAttribute(int a, int g);
    void setNodeGroup(int nn, int id);
+   void setSurfaceGroup(int sn, int id);
 
 // Sfem stuff
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem

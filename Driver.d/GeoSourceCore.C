@@ -937,6 +937,19 @@ void GeoSource::setUpData()
   if(mpcDirect)
     makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
 
+  // preprocess the surface node groups
+  ResizeArray<SurfaceEntity*> *SurfEntities = domain->viewSurfEntities();
+  for(map<int, list<int> >::iterator i = surfaceGroup.begin(); i != surfaceGroup.end(); ++i) {
+    for(list<int>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
+      for(int k = 0; k < domain->getNumSurfs(); k++) {
+        if((*SurfEntities)[k]->ID()-1 == *j) {
+          for(int l = 0; l < (*SurfEntities)[k]->GetnNodes(); ++l) 
+            nodeGroup[i->first].push_back((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
+        }
+      }
+    }
+  }
+
   // verify node groups
   map<int, list<int> >::iterator ngIter = nodeGroup.begin();
 
@@ -4394,7 +4407,10 @@ void GeoSource::setNodeGroup(int nn, int id)  {
 
 //-------------------------------------------------------
 
+void GeoSource::setSurfaceGroup(int sn, int id)  {
 
+  surfaceGroup[id].push_back(sn);
+}
 
 void GeoSource::printGroups()
 {

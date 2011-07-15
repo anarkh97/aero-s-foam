@@ -345,6 +345,10 @@ Group:
           }
           else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
         }
+        | Group GROUPTYPE SURF Integer Integer NewLine
+        { if ($2 == OutputInfo::Nodal) geoSource->setSurfaceGroup($4-1, $5);
+          else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Surface Group Type: %d\n", $2);  exit(-1); }
+        }
         ;
 Random:
         RANDOM NewLine

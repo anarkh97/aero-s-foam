@@ -1211,11 +1211,12 @@ TempDirichletBC:
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }
         | TempDirichletBC SURF Integer Float NewLine
-        { BCond surf_bc;
-          surf_bc.nnum = $3-1;
-          surf_bc.dofnum = 6;
-          surf_bc.type = BCond::Temperatures;
-          geoSource->addSurfaceDirichlet(1,&surf_bc); }
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].val = $4;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].type = BCond::Temperatures;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
 	;
 TempNeumanBC:
         FLUX NewLine
@@ -1224,11 +1225,12 @@ TempNeumanBC:
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
         | TempNeumanBC SURF Integer Float NewLine
-        { BCond surf_bc;
-          surf_bc.nnum = $3-1;
-          surf_bc.dofnum = 6;
-          surf_bc.type = BCond::Flux;
-          geoSource->addSurfaceNeuman(1,&surf_bc); }
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].val = $4;
+          surf_bc[0].type = BCond::Flux;
+          geoSource->addSurfaceNeuman(1,surf_bc); }
 	;
 TempConvection:
         CONVECTION NewLine

@@ -15,8 +15,6 @@
 #include <Paral.d/SubDOp.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
-extern const char* problemTypeMessage[];
-
 extern FILE *debugFile;
 
 //#define SERIALIZED_OUTPUT

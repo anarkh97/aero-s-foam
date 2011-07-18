@@ -1211,7 +1211,7 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
     for(int i=0; i<int(NodalMortars.size()); i++){
       lmpcnum--;
       LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
-      if(MortarLMPC){ (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; numCTC++; }
+      if(MortarLMPC){ MortarLMPC->id.first = Id; (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; numCTC++; }
     }
   }
   else {

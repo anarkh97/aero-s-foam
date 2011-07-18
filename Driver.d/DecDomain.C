@@ -29,8 +29,6 @@ extern Connectivity *procMpcToMpc;
 
 #include <Driver.d/SubDomainFactory.h>
 
-extern const char* problemTypeMessage[];
-
 template<class Scalar>
 GenDecDomain<Scalar>::GenDecDomain(Domain *d)
  : mt(d->getTimers())
@@ -645,8 +643,7 @@ GenDecDomain<Scalar>::preProcess()
 
    domain->make_constrainedDSA();
    domain->makeAllDOFs();
- } else
-   filePrint(stderr, "%s", problemTypeMessage[domain->probType()]); 
+ }
  soweredInput = geoSource->binaryInput;
 
  if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");

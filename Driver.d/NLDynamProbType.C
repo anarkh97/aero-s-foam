@@ -47,7 +47,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
 
   // Get pointer to Solver
-  OpSolver *solver = probDesc->getSolver();
+  //OpSolver *solver = probDesc->getSolver();
 
   if(domain->solInfo().order == 1)
     filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
@@ -140,12 +140,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     if(domain->solInfo().order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
-      solver->reSolve(velocity_n);
+      probDesc->getSolver()->reSolve(velocity_n);
     }
     else {
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration);
-      solver->reSolve(acceleration);
+      probDesc->getSolver()->reSolve(acceleration);
     }
   }
 
@@ -218,7 +218,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       residual = rhs;
 
       // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-      solver->reSolve(rhs);
+      probDesc->getSolver()->reSolve(rhs);
 
       // Check for convergence
       // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing

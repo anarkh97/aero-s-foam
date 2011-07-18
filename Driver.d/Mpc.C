@@ -201,3 +201,19 @@ LMPCons::getTerm<DComplex>(int i)
   return ret;
 }
 
+void
+LMPCons::normalize()
+{
+  if(isComplex) {
+    cerr << " *** WARNING: LMPCons::normalize() not implemented for complex coefficients \n";
+    return;
+  }
+  double cnorm = 0.0;
+  for(int j=0; j<nterms; j++)
+    cnorm += terms[j].coef.r_value * terms[j].coef.r_value;
+  cnorm = sqrt(cnorm);
+  for(int j=0; j<nterms; j++)
+    terms[j].coef.r_value /= cnorm;
+  rhs.r_value /= cnorm;
+}
+

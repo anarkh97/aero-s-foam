@@ -54,7 +54,10 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   claw(NULL),
   X(NULL),
   Rmem(NULL)
-{}
+{
+  if(domain->GetnContactSurfacePairs())
+     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+}
 
 NonLinDynamic::~NonLinDynamic()
 {
@@ -352,6 +355,23 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
 
       delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
+  }
+
+  if(domain->GetnContactSurfacePairs()) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->UpdateContactSurfaceElements();
+
+    if(solver) delete solver;
+    if(prec) delete prec;
+    delete [] allCorot; allCorot = 0;  // memory leak?
+    delete [] kelArray; kelArray = 0;
+    delete [] melArray; melArray = 0;
+    if(celArray) { delete [] celArray; celArray = 0; }
+    preProcess();
+    elementInternalForce.initialize(domain->maxNumDOF());
   }
 
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t);
@@ -705,12 +725,12 @@ NonLinDynamic::preProcess()
 {
 
  // Allocate space for the Static Timers
- times = new StaticTimers;
+ if(!times) times = new StaticTimers;
 
  this->openResidualFile();
 
- totIter = 0;
- fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
+ //totIter = 0;
+ //fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
 
  // Set the nonlinear tolerance
  tolerance = domain->solInfo().getNLInfo().tolRes;
@@ -722,12 +742,12 @@ NonLinDynamic::preProcess()
  int numdof = domain->numdof();
 
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx      = new double[numdof];
+ if(!bcx) bcx      = new double[numdof];
 
  // vcx stores the prescribed velocities, which are associated
  // with prescribed displacements. If a user defined displacement
  // is used, then vcx will contain the user defined velocities also.
- vcx      = new double[numdof];
+ if(!vcx) vcx      = new double[numdof];
 
  int i;
  for(i=0; i<numdof; ++i)
@@ -829,7 +849,7 @@ NonLinDynamic::preProcess()
  // Check to see if there is a user supplied function
  // for displacements, forces or control law
  userSupFunc = domain->getUserSuppliedFunction();
- prevFrc = new PrevFrc(domain->numUncon());
+ if(!prevFrc) prevFrc = new PrevFrc(domain->numUncon());
 
  localTemp.initialize(solVecInfo());
 
@@ -841,7 +861,11 @@ NonLinDynamic::preProcess()
 
 void NonLinDynamic::openResidualFile()
 {
-  res = fopen("residuals", "w");
+  if(!res) {
+    res = fopen("residuals", "w");
+    totIter = 0;  
+    fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
+  }
 }
 
 Solver *

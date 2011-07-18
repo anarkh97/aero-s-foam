@@ -499,7 +499,7 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-  mu = new std::map<int,double>[decDomain->getNumSub()];
+  mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
   lambda = new std::vector<double>[decDomain->getNumSub()];
 
   times->memoryPreProcess -= threadManager->memoryUsed();

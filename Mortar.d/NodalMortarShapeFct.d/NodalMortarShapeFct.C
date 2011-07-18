@@ -365,6 +365,7 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
       else MortarLMPC->addterm(&MasterTerm);
     }
   }
+  if(MortarLMPC) MortarLMPC->normalize(); // this is useful to get consistent interpretation of the penalty parameter
 #ifdef MORTAR_WARNING
   if(!created){
     fprintf(stderr," ### WARNING: in NodalMortarShapeFct::CreateMortarLMPCons(...): no MortarLMPC has been created !!!\n");
@@ -419,6 +420,8 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
      }
    }
  }
+ if(MortarLMPC) MortarLMPC->id.second = SlaveLlToGlNodeMap[GetNodeId(0)];
+ if(MortarLMPC) MortarLMPC->normalize(); // this is useful to get consistent interpretation of the penalty parameter
 
  return MortarLMPC;
 }

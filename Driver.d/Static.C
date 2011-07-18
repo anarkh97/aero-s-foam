@@ -678,21 +678,29 @@ const char* problemTypeMessage[] = {
 " ... HelmholtzSO Analysis           ... \n"
 };
 
+const char* solverTypeMessage[] = {
+" ... Skyline Solver is Selected     ... \n",
+" ... Sparse Solver is Selected      ... \n",
+" ... SGI Sparse Solver is Selected  ... \n",
+" ... SGI Skyline Solver is Selected ... \n",
+"",
+" ... Frontal Solver is Selected     ... \n",
+"",
+"",
+" ... Spooles Solver is Selected     ... \n",
+" ... Mumps Solver is Selected       ... \n",
+"",
+" ... POD-GN Solver is Selected      ... \n",
+" ... POD-Galerkin Solver is Selected... \n",
+" ... Gappy-POD Solver is Selected   ... \n"
+};
+
 void
 Domain::preProcessing()
 {
- // ... PRINT PROBLEM TYPE
- filePrint(stderr, problemTypeMessage[sinfo.probType]);
-
- if(sinfo.gepsFlg == 1) {
-   if((sinfo.probType == 3) || ((sinfo.probType == 4) || (sinfo.probType == 5))) { // GEPS is not used for nonlinear
-     sinfo.gepsFlg = 0;
-   }
-   else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
- }
-
  // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
  matrixTimers->makeConnectivity -= getTime();
+ if(elemToNode) delete elemToNode;
  elemToNode = new Connectivity(&packedEset);
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(sinfo.HEV)  {
@@ -733,6 +741,7 @@ Domain::preProcessing()
 
  // ... CONSTRUCT DOF SET ARRAY
  matrixTimers->createDofs -= getTime();
+ if(dsa) delete dsa;
  dsa = new DofSetArray(numnodes, packedEset, rnum.renumb);
  if(sinfo.HEV) {
    dsaFluid = new DofSetArray(numnodesFluid, *(geoSource->getPackedEsetFluid()), rnumFluid->renumb);

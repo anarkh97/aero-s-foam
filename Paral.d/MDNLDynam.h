@@ -80,7 +80,7 @@ class MDNLDynamic
     DistrVector *aeroForce;
     DistrVector *nodalTemps;
 
-    std::map<int, double> *mu; // lagrange multipliers for the contact surfaces
+    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all other constraints
 
  public:

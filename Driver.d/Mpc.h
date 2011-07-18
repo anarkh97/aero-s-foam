@@ -108,6 +108,10 @@ class LMPCons
     int lagrangeMult;               // -1 (undefined) or 0/1 (multiplier on/off)
     double penalty;
 
+    std::pair<int,int> id;          // unique identifier
+                                    // currently defined for source == ContactSurfaces as follows:
+                                    //   id.first = mortar handler id, id.second = slave node global id
+
     // real constructor 
     LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);
 
@@ -139,6 +143,8 @@ class LMPCons
     mpc::ConstraintType getType() { return m_type; }
     void setSource(mpc::ConstraintSource _source) { m_source = _source; }
     mpc::ConstraintSource getSource() { return m_source; }
+
+    void normalize();
 };
 
 template<> double LMPCons::getRhs<double>();
@@ -173,6 +179,10 @@ class SubLMPCons
 
   int type;                       // 0: equality constraint
                                   // 1: inequality constraint (contact)
+
+  std::pair<int,int> id;          // unique identifier
+                                  // currently defined for source == ContactSurfaces as follows:
+                                  //   id.first = mortar handler id, id.second = slave node global id
 
   bool active;                    // defines active set, used for contact
                                   // in FETI-DP active means than the lagrange multiplier associated with the mpc is constrained to be zero (ie the dual constraint is active)

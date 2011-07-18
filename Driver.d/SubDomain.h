@@ -628,7 +628,7 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs(int iMPC);
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
-  void addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
+  void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
@@ -680,7 +680,7 @@ class GenSubDomain : public BaseSub
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
-  void getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda);
+  void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
   void setMpcRhs(Scalar *interfvec);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();

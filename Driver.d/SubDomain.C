@@ -30,8 +30,6 @@
 
 //#define DEBUG_MPC
 
-extern const char* problemTypeMessage[];
-
 extern int verboseFlag;
 extern int isFeti3;
 extern Domain * domain;
@@ -4030,7 +4028,7 @@ GenSubDomain<Scalar>::getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEq
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda)
+GenSubDomain<Scalar>::getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda)
 {
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
@@ -4039,7 +4037,7 @@ GenSubDomain<Scalar>::getConstraintMultipliers(std::map<int,double> &mu, std::ve
     int l = scomm->mpcNb(i);
     if(mpcFlag[l]) {
       if(mpc[l]->getSource() == mpc::ContactSurfaces) {
-        mu[mpc[l]->lmpcnum] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
+        mu[mpc[l]->id] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
       } else {
         lambda.push_back( (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0 );
       }
@@ -5003,12 +5001,11 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
 {
-  int i, iMPC = 0;
-
   // PASS 1 count number of local mpcs
-  for(iMPC=0; iMPC<glNumMPC; ++iMPC) {
+  numMPC = 0;
+  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
     if(lmpc[iMPC]->isPrimalMPC()) continue;
-    for(i=0; i<lmpc[iMPC]->nterms; ++i) {  // PJSA: 1-19-05
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
       if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
         numMPC++;
         break;
@@ -5018,16 +5015,16 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
   if(numMPC == 0) return;
 
   mpc = new SubLMPCons<Scalar> * [numMPC]; // PJSA & HB: use specific class for subdomain lmpcs
-  for(iMPC=0; iMPC<numMPC; ++iMPC) mpc[iMPC] = 0;
+  for(int iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC] = 0;
   localToGlobalMPC = new int[numMPC];
 
   // PASS 2: Get the mpc values
-  numMPC=0;
+  numMPC = 0;
   int count = 0;
-  for(iMPC=0; iMPC<glNumMPC; ++iMPC) {
+  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
     if(lmpc[iMPC]->isPrimalMPC()) continue;
-    int used=0;
-    for(i=0; i<lmpc[iMPC]->nterms; ++i) {
+    int used = 0;
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
       if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {  // PJSA
         //if(c_dsa->locate((lmpc[iMPC]->terms)[i].nnum, (1 << (lmpc[iMPC]->terms)[i].dofnum)) < 0) continue; // XXXX
         if(mpc[numMPC] == 0) {
@@ -5037,10 +5034,11 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
             if(lmpc[iMPC]->psub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? 0.707106781 :*/ 1.0;
             else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
           }
-          mpc[numMPC] = new SubLMPCons<Scalar>(/*numMPC*/ lmpc[iMPC]->lmpcnum, rhs, term0, lmpc[iMPC]->nterms, i); // XXXX PJSA changed numMPC to lmpcnum to preserve global id
+          mpc[numMPC] = new SubLMPCons<Scalar>(lmpc[iMPC]->lmpcnum, rhs, term0, lmpc[iMPC]->nterms, i);
           mpc[numMPC]->type = lmpc[iMPC]->type; // this is to be phased out
           mpc[numMPC]->setType(lmpc[iMPC]->getType());
           mpc[numMPC]->setSource(lmpc[iMPC]->getSource());
+          mpc[numMPC]->id = lmpc[iMPC]->id;
           used = 1;
         }
         else {
@@ -5060,7 +5058,7 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
 
 #ifdef DEBUG_MPC
   cerr << "DUAL MPCs: \n";
-  for(iMPC=0; iMPC<numMPC; ++iMPC) mpc[iMPC]->print();
+  for(int iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
 }
 
@@ -5079,12 +5077,11 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
 {
-  int i, iMPC = 0;
-
   // PASS 1 count number of local mpcs
-  for(iMPC=0; iMPC<glNumMPC; ++iMPC) {
+  numMPC_primal = 0;
+  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
     if(!lmpc[iMPC]->isPrimalMPC()) continue;
-    for(i=0; i<lmpc[iMPC]->nterms; ++i) {  // PJSA: 1-19-05
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {  // PJSA: 1-19-05
       if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
         numMPC_primal++;
         break;
@@ -5094,16 +5091,16 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
   if(numMPC_primal == 0) return;
 
   mpc_primal = new SubLMPCons<Scalar> * [numMPC_primal]; // PJSA & HB: use specific class for subdomain lmpcs
-  for(iMPC=0; iMPC<numMPC_primal; ++iMPC) mpc_primal[iMPC] = 0;
+  for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) mpc_primal[iMPC] = 0;
   localToGlobalMPC_primal = new int[numMPC_primal];
 
   // PASS 2: Get the mpc values
-  numMPC_primal=0;
+  numMPC_primal = 0;
   int count = 0;
-  for(iMPC=0; iMPC<glNumMPC; ++iMPC) {
+  for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
     if(!lmpc[iMPC]->isPrimalMPC()) continue;
-    int used=0;
-    for(i=0; i<lmpc[iMPC]->nterms; ++i) {
+    int used = 0;
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
       if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {  // PJSA
         if(mpc_primal[numMPC_primal] == 0) {
           Scalar rhs = lmpc[iMPC]->template getRhs<Scalar>();
@@ -5116,6 +5113,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
           mpc_primal[numMPC_primal]->type = lmpc[iMPC]->type;
           mpc_primal[numMPC_primal]->setType(lmpc[iMPC]->getType());
           mpc_primal[numMPC_primal]->setSource(lmpc[iMPC]->getSource());
+          mpc_primal[numMPC_primal]->id = lmpc[iMPC]->id;
           used = 1;
         }
         else {
@@ -5135,7 +5133,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
 
 #ifdef DEBUG_MPC
   cerr << "PRIMAL MPCs: \n";
-  for(iMPC=0; iMPC<numMPC_primal; ++iMPC) mpc_primal[iMPC]->print();
+  for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) mpc_primal[iMPC]->print();
 #endif
 }
 
@@ -5572,7 +5570,7 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double* R[], Scalar*
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f)
+GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f)
 {
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
@@ -5581,16 +5579,11 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector
   for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
     int i = scomm->mpcNb(l);
     if(!mpcFlag[i]) continue;
-/*
-  vector<double>::iterator it2 = lambda.begin();
-  for(int i = 0; i < numMPC; ++i) {
-*/
     if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
-      map<int, double>::iterator it1 = mu.find(mpc[i]->lmpcnum);
+      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id);
       if(it1 != mu.end()) {
         for(int j = 0; j < mpc[i]->nterms; ++j) {
-          int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
-                                  (1 << mpc[i]->terms[j].dofnum));
+          int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
           if(dof < 0) continue;
           f[dof] += mpc[i]->terms[j].coef*it1->second;
         }
@@ -5599,10 +5592,8 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<int, double> &mu, std::vector
     else {
       if(it2 != lambda.end()) {
         for(int j = 0; j < mpc[i]->nterms; ++j) {
-          int dof = c_dsa->locate(mpc[i]->terms[j].nnum,
-                                  (1 << mpc[i]->terms[j].dofnum));
+          int dof = c_dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
           if(dof < 0) continue;
-          
           f[dof] += mpc[i]->terms[j].coef*(*it2);
         }
         it2++;

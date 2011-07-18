@@ -1135,25 +1135,25 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
   switch(sinfo.subtype) {
     default:
     case 0:
-      filePrint(stderr," ... Skyline Solver is Selected     ...\n");
+      //filePrint(stderr," ... Skyline Solver is Selected     ...\n");
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 5:
-      filePrint(stderr," ... Frontal Solver is Selected     ...\n");
+      //filePrint(stderr," ... Frontal Solver is Selected     ...\n");
       makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm, kelArray);
       systemSolver = allOps.sysSolver;
       break;
     case 1:
-      filePrint(stderr," ... Sparse Solver is Selected      ...\n");
+      //filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
-      spm->zeroAll(); // PJSA
+      spm->zeroAll();
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
-      filePrint(stderr," ... SGI Sparse Solver is Selected  ...\n");
+      //filePrint(stderr," ... SGI Sparse Solver is Selected  ...\n");
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
@@ -1161,7 +1161,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
-      filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
+      //filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
       makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
@@ -1172,7 +1172,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #ifdef USE_SPOOLES
     case 8:
-      filePrint(stderr," ... Spooles Solver is Selected     ...\n");
+      //filePrint(stderr," ... Spooles Solver is Selected     ...\n");
       spm = constructSpooles<Scalar>(c_dsa, rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
@@ -1181,7 +1181,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 
 #ifdef USE_MUMPS
     case 9:
-      filePrint(stderr," ... Mumps Solver is Selected       ...\n");
+      //filePrint(stderr," ... Mumps Solver is Selected       ...\n");
 #ifdef DISTRIBUTED
       spm = constructMumps<Scalar>(c_dsa, rbm, new FSCommunicator(structCom));
 #else
@@ -1193,13 +1193,12 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #endif
     case 10:
       //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
-      //fprintf(stderr,"Warning, RBMs are not taken into account\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 11:
-      filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
+      //filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
       {
         Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
         spm = solver;
@@ -1209,7 +1208,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       }
       break;
     case 12:
-      filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
+      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
         Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
         spm = solver;
@@ -1219,7 +1218,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       }
       break;
     case 13:
-      filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
+      //filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
       {
         Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
         spm = solver;

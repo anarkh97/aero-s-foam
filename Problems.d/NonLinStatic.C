@@ -14,6 +14,19 @@
 
 extern int verboseFlag;
 
+NonLinStatic::NonLinStatic(Domain *d)
+{
+  domain = d;
+  kelArray = 0;
+  allCorot = 0;
+  bcx = 0;
+  solver = solver;
+  prec = 0;
+
+  if(domain->GetnContactSurfacePairs())
+     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+}
+
 int
 NonLinStatic::solVecInfo()
 {
@@ -32,6 +45,21 @@ NonLinStatic::getStiffAndForce(GeomState& geomState,
                          Vector &, double lambda)
 {
   times->buildStiffAndForce -= getTime();
+
+  if(domain->GetnContactSurfacePairs()) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->UpdateContactSurfaceElements();
+
+    if(solver) delete solver;
+    if(prec) delete prec;
+    if(allCorot) delete [] allCorot; allCorot = 0;  // memory leak?
+    if(kelArray) delete [] kelArray; kelArray = 0;
+    preProcess();
+    elementInternalForce.initialize(domain->maxNumDOF());
+  }
 
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
                            kelArray, residual, lambda);

@@ -114,7 +114,7 @@ void
 Domain::makeAllDOFs() // build the dof connectivity
 {
  // Test if allDOFs has been made already
- if(allDOFs) return;
+ //if(allDOFs) return;
 
  int numele = packedEset.last(); // PJSA 5-2-05: include phantoms here
 
@@ -130,6 +130,7 @@ Domain::makeAllDOFs() // build the dof connectivity
  int *targets = new int[ pointers[numele] ];
  for(iele=0; iele < numele; ++iele)
    packedEset[iele]->dofs(*dsa, targets + pointers[iele]);
+ if(allDOFs) delete allDOFs;
  allDOFs = new Connectivity(numele, pointers, targets);
 
  maxNumNodes = 0;
@@ -2392,7 +2393,7 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
       num_interactions += CurrentMortarCond->GetnFFI();
     }
   }
-  //cerr << "nMortarLMPCs = " << nMortarLMPCs << ", num_interactions = " << num_interactions << endl;
+  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
 #ifdef HB_ACME_FFI_DEBUG
   if(sinfo.ffi_debug && num_interactions > 0) {
     char fname[16];
@@ -3507,5 +3508,6 @@ Domain::UpdateContactSurfaceElements()
   }
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
+  numele = packedEset.last();
 }
 

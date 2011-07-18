@@ -428,7 +428,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   if(rebuildFlag) { filePrint(stderr," ... ||res|| = %e\n", residualNorm); }
 
   duds.zero(); 
-  solver->solve(force, duds);
+  probDesc->getSolver()->solve(force, duds);
 
   double m = 2*(dU*duds);
   double n = 2*w*deltaLambda*force.sqNorm();
@@ -517,11 +517,11 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     arcLenResid = residual;
 
     filePrint(stderr," ### First solve ###\n");
-    solver->reSolve(residual);
+    probDesc->getSolver()->reSolve(residual);
 
     //solver->resetOrthoSet(); // HB: force reseting orthoset 
     filePrint(stderr," ### Second solve ###\n");
-    solver->solve(force, pVec);
+    probDesc->getSolver()->solve(force, pVec);
 
     //HB
     //double mu = -1.0*( dU * residual ) / (w*deltaLambda + dU * pVec);

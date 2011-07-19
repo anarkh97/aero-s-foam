@@ -40,8 +40,8 @@ TimoshenkoBeam::TimoshenkoBeam(int* nodenums)
 }
 
 TimoshenkoBeam::~TimoshenkoBeam() {
-  delete[] elemframe;
-  delete[] iniOr;
+  //if(elemframe) delete[] elemframe;
+  if(iniOr) delete[] iniOr;
 }
 
 TimoshenkoBeam *

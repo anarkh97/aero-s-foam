@@ -29,7 +29,7 @@ class NLHexahedral : public GaussIntgElement
     NLMaterial *getMaterial();
 
   public:
-    NLHexahedral(int *nd, int);
+    NLHexahedral(int *nd, int = -1);
     int numNodes() { return 8; }
     int numDofs() { return 24; }
     PrioInfo examine(int sub, MultiFront *); // dec
@@ -37,11 +37,10 @@ class NLHexahedral : public GaussIntgElement
     void   markDofs(DofSetArray &);
     int*   dofs(DofSetArray &, int *p=0);
     int*   nodes(int * = 0);
-    void updateStates(Node *nodes, double *states, double *un, double *unp) {}
+    //void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setProp(StructProp *);
     void setMaterial(NLMaterial *);
     int getTopNumber();
-    FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
 };
 
 #endif

@@ -533,7 +533,7 @@ Corotator*
 EightNodeBrick::getCorotator(CoordSet &cs, double *kel, int , int )
 {
  if(mat) {
-    MatNLElement *ele = new NLHexahedral(nn,2); // FIXME
+    MatNLElement *ele = new NLHexahedral(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
     return new MatNLCorotator(ele);

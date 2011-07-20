@@ -180,15 +180,12 @@ NLHexahedral::getShapeFunction()
 StrainEvaluator *
 NLHexahedral::getStrainEvaluator()
 {
-/*
   switch(strainMeasure) {
     case 0: return &linearStrain;
     case 1: return &greenLagrangeStrain;
     case 2: return &deformationGradient;
   }
-  return &linearStrain; // default
-*/
-  return material->getStrainEvaluator();
+  return material->getStrainEvaluator(); // default
 }
 
 NLMaterial *
@@ -200,67 +197,5 @@ NLHexahedral::getMaterial()
 int NLHexahedral::getTopNumber()
 {
   return 117;
-}
-
-// PJSA: massMatrix copied from Element.d/Brick.d/EightNodeBrick.C
-double Hexa8ShapeFct(double Shape[8], double DShape[8][3], double m[3], double X[8], double Y[8], double Z[8]);
-void addNtDNtoM3DSolid(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, int* ls, double (*D)[3] = 0);
-
-FullSquareMatrix
-NLHexahedral::massMatrix(CoordSet& cs, double* k, int)
-{
-  FullSquareMatrix m(numDofs(), k);
-  //cerr << "GaussIntgElement::massMatrix not implemented\n"; exit(-1);
-
-  Node *nodes = (Node *) dbg_alloca(numNodes()*sizeof(Node));
-  int nnd = numNodes();
-  int *ndn = (int *)dbg_alloca(nnd*sizeof(int));
-  this->nodes(ndn); // PJSA 
-  for(int i = 0; i < nnd; ++i)
-    nodes[i] = *cs[ndn[i]];
-  int ndofs = numDofs();
-  double *disp = (double *)dbg_alloca(ndofs*sizeof(double));
-  for(int i = 0; i < ndofs; ++i)
-    disp[i] = 0;
-
-  ShapeFunction *shapeF = getShapeFunction();
-
-  // Obtain the material model
-  NLMaterial *material = getMaterial();
-
-  // Obtain the storage for gradU ( 3x3 )
-  Tensor &gradU = *shapeF->getGradUInstance();
-  // Obtain the storage for dgradUdqk ( ndof x3x3 )
-  Tensor &dgradUdqk = *shapeF->getDgradUDqkInstance();
-
-  // from EightNodeBrick
-  int ls[24] = {0,3,6,9,12,15,18,21,
-                1,4,7,10,13,16,19,22,
-                2,5,8,11,14,17,20,23};
-  double X[8], Y[8], Z[8];
-  cs.getCoordinates(ndn, nnd, X, Y, Z);
-  double Shape[8], DShape[8][3];
-  double wx, wy, wz, w;
-  double dOmega;
-
-  double rho = material->getDensity();
-  //fprintf(stderr,"Je suis dans massMatrix, rho = %f\n",rho);
-
-  int ngp = getNumGaussPoints();
-
-  m.zero();
-  for(int i = 0; i < ngp; i++) {
-
-    double point[3], weight, jacn;
-    StackVector dispVec(disp, ndofs);
-
-    getGaussPointAndWeight(i, point, weight);
-
-    dOmega = Hexa8ShapeFct(Shape, DShape, point, X, Y, Z); // from EightNodeBrick
-    addNtDNtoM3DSolid(m, Shape, fabs(dOmega)*weight*rho, nnd, ls);
-  }
-
-  //cerr << "M = "; m.print();
-  return m;
 }
 

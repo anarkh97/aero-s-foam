@@ -145,8 +145,9 @@ public:
   }
 
   void initIterState(ModalGeomState &mgs);
+  void updateStates(ModalGeomState *refState, ModalGeomState& geomState) {}
   double getStiffAndForce(ModalGeomState &mgs,
-    Vector &res, double midtime = -1);
+    Vector &res, double midtime = -1, ModalGeomState * = NULL);
   void reBuild(ModalGeomState &mgs, int iter = 0){ solver->mat.factor(); }
 
   void evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs);

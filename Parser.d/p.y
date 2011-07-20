@@ -93,7 +93,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ OPTCTV
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -3216,31 +3216,55 @@ NodalContact:
 	;
 MatSpec:
 	MATSPEC NewLine
-	| MatSpec Integer BILINPLAST Float Float Float Float Float NewLine
+	| MatSpec Integer BILINEARPLASTIC Float Float Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
              new BilinPlasKinHardMat($4, $5, $6, $7, $8) );
          }
-	| MatSpec Integer LINEAR Float Float Float NewLine
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
              new ElaLinIsoMat($4, $5, $6));
 	 }
+        | MatSpec Integer STVENANTKIRCHHOFF Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat($4, $5, $6));
+         }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat2D($4, $5, $6, $7));
          }
+        | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
+          {
+            double params[3] = { $4, $5, $6 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElastic>(params));
+          }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new NeoHookeanMat($4, $5, $6));
-         }
-        | MatSpec Integer SIMPLE Integer Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new SimpleMat($4, $5, $6, $7));
-         }
+          {
+            double params[3] = { $4, $5, $6 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<NeoHookean>(params));
+          }
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
+          {
+            double params[4] = { $4, $5, $6, $7 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<MooneyRivlin>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
+          {
+            double params[6] = { $4, $5, $6, $7, $8, $9 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,

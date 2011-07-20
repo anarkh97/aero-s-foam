@@ -8,13 +8,13 @@
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Math.d/TTensor.h>
-#include <cstdio>
 
 ElaLinIsoMat2D::ElaLinIsoMat2D(StructProp *p)
 {
   E = p->E;
   nu = p->nu;
   t = p->eh;
+  rho = p->rho;
 }
 
 ElaLinIsoMat2D::ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t)

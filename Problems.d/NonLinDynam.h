@@ -162,10 +162,12 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int getNumStages();
     int checkConvergence(int iter, double rN, Vector& residual, Vector& dv, double time);
 
+    void updateStates(GeomState *refState, GeomState& geomState);
+
     // getStiffAndForce forms element stiffness matrices and
     // returns the residual force = external - internal forces
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                            Vector& elementInternalForce, double midtime=-1);
+                            Vector& elementInternalForce, double midtime=-1, GeomState *refState = NULL);
 
 
     // reBuild assembles new dynamic stiffness matrix

@@ -77,7 +77,6 @@ subroutine elefbc3dbrkshl2(opttrc,optele,ecord3d,edisp3d,trac, efbc)
 
   end select
 
-
   ! ---------------------------------------------------------------------
   ! set element nodal force
   ! -----------------------

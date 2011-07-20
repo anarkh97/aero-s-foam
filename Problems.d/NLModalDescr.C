@@ -714,7 +714,7 @@ void NLModalDescr::initIterState(ModalGeomState &mgs){
 //------------------------------------------------------------------------------
 
 double NLModalDescr::getStiffAndForce(ModalGeomState &mgs,
-  Vector &res, double midtime){
+  Vector &res, double midtime, ModalGeomState*){
 /*PRE:
  POST:
 */

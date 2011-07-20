@@ -1,5 +1,5 @@
-#ifndef _STRAINDISPEVALUATOR_H_
-#define _STRAINDISPEVALUATOR_H_
+#ifndef _STRAINEVALUATOR_H_
+#define _STRAINEVALUATOR_H_
 #include <Math.d/Vector.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
@@ -15,7 +15,7 @@ class StrainEvaluator
     virtual Tensor *getStrainInstance() = 0;
     virtual Tensor *getBInstance(int numdofs) = 0;
     virtual Tensor *getDBInstance(int numdofs) = 0;
-    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, Tensor &gradU, Tensor &dgradUdqk) = 0;
+    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk) = 0;
     virtual void getE(Tensor &e, Tensor &gradU) = 0;
 };
 
@@ -29,7 +29,7 @@ class LinearStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, Tensor &gradU, Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -46,7 +46,7 @@ class GreenLagrangeStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, Tensor &gradU, Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -63,7 +63,7 @@ class DeformationGradient : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, Tensor &gradU, Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 

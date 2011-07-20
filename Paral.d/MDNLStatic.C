@@ -19,7 +19,8 @@
 
 void
 MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState, 
-                                DistrVector &res, DistrVector &elemIntForce, double lambda)
+                                DistrVector &res, DistrVector &elemIntForce, double lambda,
+                                DistrGeomState *refState)
 {
  SubDomain *sd = decDomain->getSubDomain(isub);
 
@@ -28,8 +29,9 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
  // eIF = element internal force
  StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
 
+ GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
-                      residual, lambda);
+                      residual, lambda, 0, subRefState);
 }
 
 double
@@ -168,14 +170,14 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 double
 MDNLStatic::getStiffAndForce(DistrGeomState& geomState, 
                              DistrVector& residual, DistrVector& elementInternalForce,
-                             DistrVector&, double _lambda)
+                             DistrVector&, double _lambda, DistrGeomState *refState)
 {
  times->buildStiffAndForce -= getTime();
 
  updateConstraintTerms(&geomState);
 
- execParal4R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
-             residual, elementInternalForce, _lambda);
+ execParal5R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
+             residual, elementInternalForce, _lambda, refState);
 
  times->buildStiffAndForce += getTime();
 

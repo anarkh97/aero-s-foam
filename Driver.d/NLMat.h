@@ -99,6 +99,7 @@ public:
    
    void updateStates(Vector *internStates, Vector *disp, Vector *prescDisp,
 		   Vector *du, Vector *prescDu = 0);
+   void updateStates(NLState *refState, NLState& geomState) {}
 
    // Functions for dynamics:
    void computeTimeInfo(); // maybe we need to do something??

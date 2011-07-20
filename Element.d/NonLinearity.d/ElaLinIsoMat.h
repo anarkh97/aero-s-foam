@@ -6,14 +6,12 @@
 #include <Utils.d/NodeSpaceArray.h>
 
 class StructProp;
-class SimpleMaterial;
 
 //Declaration of the material properties
 class ElaLinIsoMat : public NLMaterial
 {
   protected:
     double rho, E, nu;
-    SimpleMaterial *mat;
 
   public:
     ElaLinIsoMat(StructProp *p);
@@ -36,7 +34,20 @@ class ElaLinIsoMat : public NLMaterial
 
     void initStates(double *){};
 
-    double getDensity() { return rho; } // PJSA
+    double getDensity() { return rho; }
+
+    StrainEvaluator * getStrainEvaluator();
+};
+
+// same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator
+// (also known as St. Venant-Kirchhoff hyperelastic material
+class StVenantKirchhoffMat : public ElaLinIsoMat
+{
+  public:
+    StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
+    StVenantKirchhoffMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
+
+    StrainEvaluator * getStrainEvaluator();
 };
 
 #endif

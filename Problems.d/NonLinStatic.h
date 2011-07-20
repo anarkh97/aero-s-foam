@@ -51,7 +51,8 @@ class NonLinStatic {
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, Vector &, double lambda = 1);
+                            Vector& elementInternalForce, Vector &,
+                            double lambda = 1, GeomState *refState = NULL);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
 

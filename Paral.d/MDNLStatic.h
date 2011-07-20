@@ -69,7 +69,8 @@ class MDNLStatic
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
-                            DistrVector& elementInternalForce, DistrVector&gRes, double lambda = 1.0);
+                            DistrVector& elementInternalForce, DistrVector& gRes,
+                            double lambda = 1.0, DistrGeomState *refState = NULL);
 
     double getTolerance() { return tolerance*firstRes; }
 
@@ -81,7 +82,8 @@ class MDNLStatic
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce, double lambda);
+                             DistrVector &res, DistrVector &elemIntForce, double lambda,
+                             DistrGeomState *refState);
 
     void makeSubCorotators(int isub);
     void makeSubKelArrays(int isub);

@@ -142,10 +142,12 @@ class MDNLDynamic
     int getNumStages();
     int checkConvergence(int iter, double rN, DistrVector& residual, DistrVector& dv, double time);
 
+    void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
+
     // getStiffAndForce forms element stiffness matrices and
     // returns the residual force = external - internal forces
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                            DistrVector& elementInternalForce, double midtime=-1);
+                            DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
 
     // reBuild assembles new dynamic stiffness matrix
     void reBuild(DistrGeomState& geomState, int iter = 0);
@@ -174,7 +176,7 @@ class MDNLDynamic
     void makeSubElementArrays(int isub);
     void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce, double t);
+                             DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void addConstraintForces(int isub, DistrVector& rhs);
     void getConstraintMultipliers(int isub);
@@ -190,6 +192,7 @@ class MDNLDynamic
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
     void updateConstraintTerms(DistrGeomState* geomState);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
 };
 
 inline double

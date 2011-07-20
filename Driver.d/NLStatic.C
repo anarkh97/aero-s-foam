@@ -23,13 +23,15 @@
 #include <Timers.d/GetTime.h>
 
 #include <Driver.d/GeoSource.h>
+#include <Corotational.d/MatNLCorotator.h>
 
 #include <algorithm>
 
 void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
-		         Corotator **corotators, FullSquareMatrix *kel,
-                         Vector &residual, double lambda, double time)
+                         Corotator **corotators, FullSquareMatrix *kel,
+                         Vector &residual, double lambda, double time,
+                         GeomState *refState)
 /*******************************************************************
  *
  * Purpose :
@@ -60,7 +62,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele]) {
-      corotators[iele]->getStiffAndForce(geomState, nodes, kel[iele],
+      corotators[iele]->getStiffAndForce(refState, geomState, nodes, kel[iele],
                                          elementForce.data(), sinfo.getTimeStep(), time);
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
@@ -190,6 +192,17 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();
     
+}
+
+void
+Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
+{
+  for(int iele = 0; iele < numele; ++iele) {
+    MatNLCorotator *matnlcorot = dynamic_cast<MatNLCorotator *>(corotators[iele]);
+    if(matnlcorot) {
+      matnlcorot->updateStates(refState, geomState, nodes);
+    }
+  }
 }
 
 // used in nonlinear statics
@@ -975,7 +988,7 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
 
    times->timeGeom -= getTime();
-   geomState = new GeomState( *getDSA(), *getCDSA(), getNodes());
+   geomState = new GeomState( *getDSA(), *getCDSA(), getNodes(), &getElementSet() );
    times->timeGeom += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Build GeomState %29.5f s\n", times->timeGeom/1000.0);

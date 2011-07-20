@@ -318,9 +318,15 @@ NonLinDynamic::computeTimeInfo()
     userSupFunc->setDt(delta);
 }
 
+void
+NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateStates(refState, geomState, allCorot);
+}
+
 double
 NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
-                                Vector& elementInternalForce, double t)
+                                Vector& elementInternalForce, double t, GeomState *refState)
 {
   times->buildStiffAndForce -= getTime();
 
@@ -374,7 +380,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     elementInternalForce.initialize(domain->maxNumDOF());
   }
 
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);
 
   times->buildStiffAndForce +=  getTime();
  
@@ -497,7 +503,7 @@ NonLinDynamic::createGeomState()
   if(domain->solInfo().soltyp == 2)
     return new TemperatureState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
   else
-    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
+    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
 }
 
 GeomState*

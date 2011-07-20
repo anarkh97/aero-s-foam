@@ -1,6 +1,6 @@
 #include <Math.d/matrix.h> 
 #include <Element.d/Element.h>
-#include <Element.d/NonLinearity.d/StrainDispEvaluator.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <cstdio>
 
 LinearStrain linearStrain;
@@ -44,10 +44,10 @@ LinearStrain::getDBInstance(int numdofs)
 
 void 
 LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
-                         Tensor &_gradU, Tensor &_dgradUdqk)
+                         const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
-  Tensor_d0s2 & gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Tensor_d1s2_sparse & dgradUdqk = static_cast<Tensor_d1s2_sparse &>(_dgradUdqk);
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
   Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(bB);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
@@ -111,10 +111,10 @@ GreenLagrangeStrain::getDBInstance(int numdofs)
 }
 
 void 
-GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, Tensor &_gradU, Tensor &_dgradUdqk)
+GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
-  Tensor_d0s2 & gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Tensor_d1s2_sparse & dgradUdqk = static_cast<Tensor_d1s2_sparse &>(_dgradUdqk);
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
   Tensor_d2s2_Sd12s34_sparse & DB = static_cast<Tensor_d2s2_Sd12s34_sparse &>(_DB);
   Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
@@ -195,24 +195,20 @@ DeformationGradient::getDBInstance(int numdofs)
 }
 
 void 
-DeformationGradient::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, Tensor &_gradU, Tensor &_dgradUdqk)
+DeformationGradient::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
-  Tensor_d0s2 & gradU = static_cast<Tensor_d0s2 &>(_gradU);
-  Tensor_d1s2_sparse & dgradUdqk = static_cast<Tensor_d1s2_sparse &>(_dgradUdqk);
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
   Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(_B);
+  
   Tensor_d0s2 & e = static_cast<Tensor_d0s2 &>(_e);
-
-  Tensor_d0s2 tgradU;
-  gradU.getTranspose(tgradU);
 
   // e = gradU + identity (nonsymmetric)
   Tensor_d0s2 identity;
   identity[0] = identity[4] = identity[8] = 1;
   e = gradU + identity;
 
-  // XXXX the following may not be correct, need to check!!!
   B = dgradUdqk;
-  // DB is null 
 }
 
 void 

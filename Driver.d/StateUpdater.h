@@ -7,25 +7,25 @@ class IncrUpdater  {
 public:
 
   typedef VecType StateIncr;
-  typedef int RefState;
+  typedef GeomType RefState;
 
   static void update(RefState *, GeomType *unp, StateIncr *, VecType &du) { unp->update(du); }
-  static RefState *initRef(GeomType *)  { return 0; }
+  static RefState *initRef(GeomType *u)  { return new RefState(*u); }
   static StateIncr *initInc(GeomType *, VecType *v)  { return new VecType(*v); }
-  static void copyState(GeomType *, RefState *)  {};
+  static void copyState(GeomType *gn, RefState *gp)  { *gp = *gn; };
   static void zeroInc(StateIncr *du)  { du->zero(); }
-  static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
+  static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
     geomState->update(*du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState);
   }
-  static double integrate(ProbDescr *pbd, RefState *, GeomType *geomState,
+  static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime) {
     geomState->update(*du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
   }
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, GeomType *refState, 
@@ -74,7 +74,7 @@ class NLModalUpdater : public IncrUpdater< ProbDescr, VecType, GeomType> {
 public:
 
   typedef VecType StateIncr;
-  typedef int RefState;
+  typedef GeomType RefState;
 
   static double integrate(ProbDescr *pbd, RefState *rs, GeomType *geomState,
     StateIncr *du, VecType &residual, VecType &elementInternalForce,

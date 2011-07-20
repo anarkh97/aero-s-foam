@@ -188,7 +188,7 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
     //    fprintf(stderr, "%e ", temp2[kkk*9+i]);
     //  fprintf(stderr, "\n");
     //}
-    temp3 = (weight *abs(jac))*temp2;
+    temp3 = (weight * fabs(jac))*temp2;
     //fprintf(stderr, "K\n");
     //for(kkk = 0; kkk < 9; ++kkk) {
     //  for(int i=0; i < 9; ++i)
@@ -295,7 +295,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
           temp3[i*TensorType::ndofs+j] = kg[i][j];
         temp3 = temp3 + temp2;
       }
-      temp3 = (weight *abs(jac))*temp3;
+      temp3 = (weight * fabs(jac))*temp3;
       kTan += temp3;
 
       //Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(s);
@@ -399,8 +399,8 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
 
   for (a=0; a < ndofs; ++a)         
     for (b=0; b < ndofs; ++b) {
-      // diffcol[a]+=abs(kTan[a][b]-kTant[a][b]);
-      //col[a]+=abs(kTant[a][b])                   
+      // diffcol[a]+=fabs(kTan[a][b]-kTant[a][b]);
+      //col[a]+=fabs(kTant[a][b])                   
 
       diffsqNorm+=(kTan[a][b]-kTant[a][b])*(kTan[a][b]-kTant[a][b]);
       sqNorm+=kTant[a][b]*kTant[a][b];
@@ -542,7 +542,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
           temp3[i*TensorType::ndofs+j] = kg[i][j];
         temp2 = temp3 + temp2;
     }
-    temp3 = (weight *abs(jacnp))*temp2;
+    temp3 = (weight * fabs(jacnp))*temp2;
     kTan += temp3;
   }
 

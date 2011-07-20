@@ -1,5 +1,5 @@
 /*
- * NeoHookean.cpp
+ * MooneyRivlin.cpp
  * DG++
  *
  * Created by Adrian Lew on 10/24/06.
@@ -27,9 +27,11 @@
  */ 
 
 
-#include <Material.d/Material.h>
+#include "MooneyRivlin.h"
 #include <cmath>
 #include <iostream>
+
+
 
 
 static double matlib_determinant(double *A)
@@ -87,12 +89,12 @@ static void matlib_mults(double *A, double *B,double *C)
 
 
 
-bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
+bool MooneyRivlin::GetConstitutiveResponse(const std::vector<double> * strain,
 					 std::vector<double> * stress,
 					 std::vector<double> * tangents) const
 {
   int i,j,k,l,m,n,ij,jj,kl,jk,il,ik,im,jl,kj,kn,mj,nl,ijkl,indx;
-  double coef,defVol,detC,p,trace;
+  double coef,coef2,defVol,detC,p,trace;
   double F[]  = {1., 0., 0.,
 		 0., 1., 0.,
 		 0., 0., 1.};
@@ -113,32 +115,32 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
   detF = matlib_inverse(F,Finv);
 
   if (detC < 1.e-10) {
-    std::cerr << "NeoHookean::GetConstitutiveResponse:  close to negative jacobian\n";
+    std::cerr << "MooneyRivlin::GetConstitutiveResponse:  close to negative jacobian\n";
     return false;
   }
   
-  defVol = 0.5*log(detC);
-  p = Lambda*defVol;
-
   trace = C[0]+C[4]+C[8];
 
-  coef = p-Mu;
+  coef = Kappa*detC-Kappa*sqrt(detC) - Mu1 - 2.*Mu2;
 
   for (j=0,ij=0,jj=0; j < 3; j++,jj+=4) {
     for (i=0; i < 3; i++,ij++)
-      S[ij] = coef*Cinv[ij];
-    S[jj] += Mu;
+      S[ij] = 2.*(-Mu2*C[ij]+coef*Cinv[ij]);
+    S[jj] += 2.*(Mu1+Mu2*trace);
   }
 
 
   if (tangents) {
-    coef = Mu-p;
+    coef = 4.*Kappa*sqrt(detC)*(sqrt(detC)-0.5);
+    coef2 = -2.0*(Kappa*detC-Kappa*sqrt(detC)-Mu1-2.0*Mu2);	
     for (l=0,kl=0,ijkl=0; l < 3; l++)
       for (k=0,jk=0; k < 3; k++,kl++)
 	for (j=0,ij=0,jl=l*3; j < 3; j++,jk++,jl++)
-	  for (i=0,ik=k*3,il=l*3; i < 3; i++,ij++,ik++,il++,ijkl++)
-	    M[ijkl] = Lambda*Cinv[ij]*Cinv[kl]
-	      +coef*(Cinv[ik]*Cinv[jl]+Cinv[il]*Cinv[jk]);
+	  for (i=0,ik=k*3,il=l*3; i < 3; i++,ij++,ik++,il++,ijkl++) {
+	    double delta = 0.5*( ((i==k) && (j==l)) + ((i==l) && (j==k)) );//((i==k) && (j==l));
+	    M[ijkl] = coef*Cinv[ij]*Cinv[kl]
+	      +coef2*(Cinv[ik]*Cinv[jl]+Cinv[il]*Cinv[jk])+4.*Mu2*(((i==j) && (k==l))-delta );
+	  }
   }
   
   if(stress->size()!=9) stress->resize(9);

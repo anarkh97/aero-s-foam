@@ -241,6 +241,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
+    probDesc->updateStates(refState, *geomState);
 
     // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
     if(domain->solInfo().order != 1)

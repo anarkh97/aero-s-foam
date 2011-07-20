@@ -2,7 +2,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
-#include <Element.d/NonLinearity.d/StrainDispEvaluator.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/mathUtility.h>
 
@@ -79,7 +79,7 @@ GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
     temp2 =   B||temp1;
     temp3 = DB || s;
     temp3 = temp3 + temp2;
-    temp3 = (weight *abs(jac))*temp3;
+    temp3 = (weight * fabs(jac))*temp3;
 
     kTan += temp3;
   }
@@ -180,7 +180,7 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
     temp2 =   B||temp1;
     temp3 = DB || s;
     temp3 = temp3 + temp2;
-    temp3 = (weight *abs(jac))*temp3;
+    temp3 = (weight * fabs(jac))*temp3;
     kTan += temp3;
     temp3 = DB || s;
 
@@ -290,8 +290,8 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
 
   for (a=0; a < ndofs; ++a)         
     for (b=0; b < ndofs; ++b) {
-      // diffcol[a]+=abs(kTan[a][b]-kTant[a][b]);
-      //col[a]+=abs(kTant[a][b])                   
+      // diffcol[a]+=fabs(kTan[a][b]-kTant[a][b]);
+      //col[a]+=fabs(kTant[a][b])                   
 
       diffsqNorm+=(kTan[a][b]-kTant[a][b])*(kTan[a][b]-kTant[a][b]);
       sqNorm+=kTant[a][b]*kTant[a][b];
@@ -325,8 +325,8 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
   delete &D;
 }
 
-void
-GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *unp){}
+//void
+//GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *unp){}
 /*
 void
 GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *unp){
@@ -454,7 +454,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     //cerr << "DBnp = "; DBnp.print();
     temp3 = DBnp || s;
     temp3 = temp3 + temp2;
-    temp3 = (weight *abs(jacnp))*temp3;
+    temp3 = (weight * fabs(jacnp))*temp3;
     kTan += temp3;
 
 /*
@@ -462,7 +462,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     temp2 =   B||temp1;
     temp3 = DB || s;
     temp3 = temp3 + temp2;
-    temp3 = (weight *abs(jac))*temp3;
+    temp3 = (weight * fabs(jac))*temp3;
 
     kTan += temp3;
 */
@@ -498,3 +498,79 @@ GaussIntgElement::initStates(double *st)
   for(int i = 0; i < ngp; ++i)
     material->initStates(st+i*ninterns);
 }
+
+void
+GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double *dispnp)
+{
+  int ndofs = numDofs();
+  ShapeFunction *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  StrainEvaluator *strainEvaluator = getStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Obtain the storage for gradU ( 3x3 )
+  Tensor &gradUn = *shapeF->getGradUInstance();
+  Tensor &gradUnp = *shapeF->getGradUInstance();
+  // Obtain the storage for dgradUdqk ( ndof x3x3 )
+  Tensor &dgradUdqkn = *shapeF->getDgradUDqkInstance();
+  Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
+
+  // NDofsx3x3x-> 6xNDofs
+  Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
+  Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
+
+  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
+  Tensor &DBn = *strainEvaluator->getDBInstance(ndofs);
+  Tensor &DBnp = *strainEvaluator->getDBInstance(ndofs);
+
+  Tensor &Dnp = *strainEvaluator->getTMInstance();
+  Tensor &en = *strainEvaluator->getStrainInstance();
+  Tensor &enp = *strainEvaluator->getStrainInstance();
+  Tensor &s = *strainEvaluator->getStressInstance();
+
+  int nstatepgp = material->getNumStates();
+
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+
+    double point[3], weight, jacn, jacnp;
+    StackVector dispVecn(dispn, ndofs);
+    StackVector dispVecnp(dispnp, ndofs);
+
+    getGaussPointAndWeight(i, point, weight);
+
+    //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+    //shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
+    //strainEvaluator->getE(en, gradUn);
+    //strainEvaluator->getE(enp, gradUnp);  
+    shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
+    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+
+    //material->updateStates(en, enp, state + nstatepgp*i);
+    //material->getStress(&s, e, 0);       
+    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
+    double *state_copy = new double[nstatepgp];
+    for(int j = 0; j < nstatepgp; ++j) state_copy[j] = state[nstatepgp*i+j];
+    material->integrate(&s, &Dnp, en, enp,
+                        state_copy, state + nstatepgp*i, 0);
+    delete [] state_copy;
+  }
+
+  delete &gradUn;
+  delete &gradUnp;
+  delete &dgradUdqkn;
+  delete &dgradUdqknp;
+  delete &Bn;
+  delete &DBn;
+  delete &Bnp;
+  delete &DBnp;
+  delete &en;
+  delete &enp;
+  delete &s;
+  delete &Dnp;
+}
+

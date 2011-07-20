@@ -312,7 +312,7 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
 double
 MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                              DistrVector& elementInternalForce, double t) 
+                              DistrVector& elementInternalForce, double t, DistrGeomState *refState) 
 {
   times->buildStiffAndForce -= getTime();
 
@@ -327,8 +327,8 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
-  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
-              residual, elementInternalForce, t);
+  execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
+              residual, elementInternalForce, t, refState);
 
   if(t != -1.0) updateConstraintTerms(&geomState);
 
@@ -363,14 +363,16 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 
 void
 MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                                 DistrVector &res, DistrVector &elemIntForce, double t)
+                                 DistrVector &res, DistrVector &elemIntForce, double t,
+                                 DistrGeomState *refState)
 {
   // PJSA: 10-4-2007 copied from MDNLStatic
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector residual(res.subData(isub), res.subLen(isub));
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState);
 }
 
 void
@@ -1440,3 +1442,18 @@ MDNLDynamic::getAeroheatFlag()
 {
   return domain->solInfo().aeroheatFlag;
 }
+
+void
+MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState)
+{
+  execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState);
+}
+
+void
+MDNLDynamic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
+}
+

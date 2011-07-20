@@ -40,9 +40,8 @@ NonLinStatic::sysVecInfo()
 }
 
 double
-NonLinStatic::getStiffAndForce(GeomState& geomState, 
-                         Vector& residual, Vector& elementInternalForce, 
-                         Vector &, double lambda)
+NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
+                               Vector &, double lambda, GeomState *refState)
 {
   times->buildStiffAndForce -= getTime();
 
@@ -62,7 +61,7 @@ NonLinStatic::getStiffAndForce(GeomState& geomState,
   }
 
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda);
+                           kelArray, residual, lambda, 0, refState);
 
   times->buildStiffAndForce += getTime();
 
@@ -145,7 +144,7 @@ NonLinStatic::createGeomState()
  if(domain->solInfo().soltyp == 2) 
    geomState = (GeomState *) new TemperatureState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes());
  else
-   geomState = new GeomState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes()); 
+   geomState = new GeomState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes(),&domain->getElementSet()); 
 
  times->timeGeom += getTime();
 

@@ -8,7 +8,7 @@
 
 //#def WITH_GLOBAL_ROT
 
-GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
+GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)
 /****************************************************************
  *
@@ -98,15 +98,38 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs)
   computeRotMat(zeroRot, gRot);
   computeCG(refCG);
 #endif
+
+  numelems = 0;
+  if(elems) {
+    int last = elems->last();
+    for(int i = 0; i < last; ++i) {
+      if((*elems)[i]->numStates()) numelems++;
+    }
+    es = new ElemState[numelems];
+    numelems = 0;
+    for(int i = 0; i < last; ++i) {
+      int numStates = (*elems)[i]->numStates();
+      if(numStates > 0) {
+        es[numelems].numInternalStates = numStates;
+        es[numelems].internalStates = new double[numStates];
+        for(int j = 0; j < numStates; ++j) es[numelems].internalStates[j] = 0;
+        emap[(*elems)[i]->getGlNum()] = numelems;
+        numelems++;
+      }
+    }
+  }
+  else {
+    es = 0;
+  }
 }
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(NULL), numnodes(0), loc(NULL), X0(emptyCoord), numReal(0), flag(NULL) 
+GeomState::GeomState() : ns(NULL), numnodes(0), loc(NULL), X0(emptyCoord), numReal(0), flag(NULL), es(NULL), numelems(0) 
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : loc(NULL), X0(cs), numReal(0), flag(NULL) 
+GeomState::GeomState(CoordSet &cs) : loc(NULL), X0(cs), numReal(0), flag(NULL), es(NULL), numelems(0) 
 {
   numnodes = cs.size();                 // Number of nodes
   ns       = new NodeState[numnodes];   // Array of Node States
@@ -141,10 +164,12 @@ GeomState::GeomState(CoordSet &cs) : loc(NULL), X0(cs), numReal(0), flag(NULL)
   }
 }
 
-GeomState::~GeomState() {
-  delete[] flag;
-  delete[] loc;
-  delete[] ns;
+GeomState::~GeomState()
+{
+  if(flag) delete[] flag;
+  if(loc) delete[] loc;
+  if(ns) delete[] ns;
+  if(es) delete[] es;
 }
 
 void
@@ -188,6 +213,10 @@ GeomState::operator=(const GeomState &g2)
   for(i=0; i<numnodes; ++i)
     ns[i] = g2.ns[i];
 
+  for(int i = 0; i < numelems; ++i)
+    es[i] = g2.es[i];
+  emap = g2.emap;
+
 #ifdef WITH_GLOBAL_ROT
   for(i=0; i<3; ++i)
     for(j=0; j<3; ++j)
@@ -216,7 +245,7 @@ GeomState::extract(double *p)
   }
 }
 
-GeomState::GeomState(const GeomState &g2) : X0(g2.X0)
+GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
 {
   // Copy number of nodes
   numnodes = g2.numnodes;
@@ -246,6 +275,12 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0)
     ns[i]  = g2.ns[i];
     flag[i]= g2.flag[i];
   }
+
+  // now deal with element states
+  numelems = g2.numelems;
+  es = new ElemState[numelems];
+  for(int i = 0; i < numelems; ++i)
+    es[i] = g2.es[i];
  
 #ifdef WITH_GLOBAL_ROT
   // Initialize Global Rotation Matrix & CG position // HB
@@ -276,6 +311,26 @@ NodeState::operator=(const NodeState &node)
  this->R[2][0] = node.R[2][0];
  this->R[2][1] = node.R[2][1];
  this->R[2][2] = node.R[2][2];
+
+ // Copy the displacement, velocity and acceleration vectors
+ for(int i = 0; i < 6; ++i) {
+   d[i] = node.d[i];
+   v[i] = node.v[i];
+   a[i] = node.a[i];
+ }
+}
+
+void
+ElemState::operator=(const ElemState &elem)
+{
+  if(numInternalStates != elem.numInternalStates) {
+    if(internalStates) delete [] internalStates;
+    internalStates = 0;
+    numInternalStates = elem.numInternalStates;
+  }
+  if(internalStates == 0) internalStates = new double[numInternalStates];
+  for(int i = 0; i < numInternalStates; ++i)
+    internalStates[i] = elem.internalStates[i];
 }
 
 void

@@ -27,7 +27,7 @@ DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
  if(sd->solInfo().soltyp == 2)
    gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
  else
-   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)

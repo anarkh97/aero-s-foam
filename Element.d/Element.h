@@ -511,6 +511,8 @@ class Element {
                                                  //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
         virtual void writeHistory(int) {}
         virtual void readHistory(int) {}
+        virtual int numStates() { return 0; }
+        virtual void initStates(double *) {}
 };
 
 // *****************************************************************

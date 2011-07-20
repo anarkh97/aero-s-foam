@@ -180,12 +180,15 @@ NLHexahedral::getShapeFunction()
 StrainEvaluator *
 NLHexahedral::getStrainEvaluator()
 {
+/*
   switch(strainMeasure) {
     case 0: return &linearStrain;
     case 1: return &greenLagrangeStrain;
     case 2: return &deformationGradient;
   }
   return &linearStrain; // default
+*/
+  return material->getStrainEvaluator();
 }
 
 NLMaterial *

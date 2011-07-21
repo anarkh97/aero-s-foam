@@ -28,3 +28,4 @@ class MooneyRivlin: public SimpleMaterial
   double Mu2;
   double Kappa;
 };
+

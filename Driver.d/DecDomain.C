@@ -2384,7 +2384,8 @@ void GenDecDomain<Scalar>::distributeBCs()
   //int numIDis      = geoSource->getIDis(iDis);
   int numIDis = domain->numInitDisp(); iDis = domain->getInitDisp();
   int numIDis6     = geoSource->getIDis6(iDis6);
-  int numIVel      = geoSource->getIVel(iVel);
+  //int numIVel      = geoSource->getIVel(iVel);
+  int numIVel = domain->numInitVelocity(); iVel = domain->getInitVelocity();
 
   // Count the number of boundary conditions per subdomain
   int numDispDirichlet = 0; // number of displacement dirichlet BCs

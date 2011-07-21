@@ -315,7 +315,7 @@ FetiInfo::FetiInfo()
   contactPrintFlag = 0;
   gamma = 1.0;
   linesearch_tau = 0.6667; 
-  linesearch_maxit = 20;
+  linesearch_maxit = 100;
   cmpc = bmpc = dmpc = false;
 
   c_normalize = false;
@@ -327,7 +327,7 @@ FetiInfo::FetiInfo()
   cct_tol      = 1.0e-16;
   cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  rebuildcct   = 0; 
+  rebuildcct   = 1; 
   rebuildSbb   = 0; 
   geometric_gap = false;
 

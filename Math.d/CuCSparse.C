@@ -28,9 +28,10 @@ template<class Scalar>
 void
 GenCuCSparse<Scalar>::zeroAll()
 {
- int i;
- for(i=0; i<xunonz[numConstrained]; ++i)
-   ScalarTypes::initScalar(Kuc[i], 0.0, 0.0);
+ if(numConstrained > 0) {
+   for(int i=0; i<xunonz[numConstrained]; ++i)
+     ScalarTypes::initScalar(Kuc[i], 0.0, 0.0);
+ }
 }
 
 template<class Scalar> 

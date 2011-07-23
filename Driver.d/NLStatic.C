@@ -961,6 +961,22 @@ Domain::getGeometricStiffness(GeomState &geomState,Vector& elementInternalForce,
       if(!solInfo().getNLInfo().unsymmetric) geomKelArray[iele].symmetrize();
    }
 
+   if(domain->pressureFlag()) {
+     for(iele = 0; iele < numele;  ++iele) {
+       // If there is a zero pressure defined, skip the element
+       if(packedEset[iele]->getPressure() == 0) continue;
+ 
+       // Compute (linear) element pressure force in the local coordinates
+       elementInternalForce.zero();
+       packedEset[iele]->computePressureForce(nodes, elementInternalForce, &geomState, 1);
+       elementInternalForce *= -1.0;
+
+       // Include the "load stiffness matrix" in kel[iele]
+       allCorot[iele]->getDExternalForceDu(geomState, nodes, geomKelArray[iele],
+                                           elementInternalForce.data());
+     }
+   }
+
 }
 
 void

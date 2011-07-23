@@ -681,7 +681,7 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   // Take care of rotational degrees of freedom
   for(i=0; i<numnodes; ++i) {
     if(dth[i][0] == 0.0 && dth[i][1] == 0.0 && dth[i][2] == 0.0) continue;
-    // inc_rottensor( dth[i], ns[i].R );
+    //  inc_rottensor( dth[i], ns[i].R );
     form_rottensor( dth[i], ns[i].R );
   }
 

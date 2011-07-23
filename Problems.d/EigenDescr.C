@@ -166,6 +166,7 @@ SingleDomainEigen::reBuild( DynamMat &dMat )
  // watch: no rigid body modes assumed
 
  domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0);
+ cerr << "here in SingleDomainEigen::reBuild\n";
 }
 
 int SingleDomainEigen::getNumEigen()

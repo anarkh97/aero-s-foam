@@ -104,7 +104,8 @@ static const char*header[] = {
 "Scalar EFFPSTRN under %s for %s\n%d\n",
 "Scalar TEMPERATUREVEL under %s for %s\n%d\n",
 "Scalar PRESSUREVEL under %s for %s\n%d\n",
-"Scalar PRESSUREACC under %s for %s\n%d\n"
+"Scalar PRESSUREACC under %s for %s\n%d\n",
+"Scalar HEATREACTIONS under %s for %s\n%d\n"
 };
 
 static const char * ele_header[] = {

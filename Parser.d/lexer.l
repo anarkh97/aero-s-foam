@@ -1054,6 +1054,8 @@ TRAIL [a-zA-Z]*
 
 "reaction"[s]?|"REACTION"[s]?      { yylval.ival = OutputInfo::Reactions; return STRESSID; }
 
+"heatreac"|"HEATREAC"              { yylval.ival = OutputInfo::HeatReactions; return STRESSID; }
+
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }

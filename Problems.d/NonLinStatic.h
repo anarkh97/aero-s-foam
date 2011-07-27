@@ -41,7 +41,7 @@ class NonLinStatic {
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
     void getRHS(Vector &rhs); 
-    void preProcess();
+    void preProcess(bool factor = true);
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();
 

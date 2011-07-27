@@ -170,6 +170,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    else {
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement()) { // XXXX
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //cerr << "adding C to Msolver\n";
@@ -304,16 +305,19 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    if(isComplexF || (imag(kappa2) != 0)) {
      if(mat) mat->add(kcel,m_dofs);
      if(isShifted && ops.Kuc) ops.Kuc->add(kcel,(*allDOFs)[iele]);
+     if(isShifted && ops.Kcc) ops.Kcc->add(kcel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kcel,(*allDOFs)[iele]);
    }
    else {
      if(mat) mat->add(kel,m_dofs);
      if(isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]); // note: Kuc is [K-omega2*M]_{uc} for IMPE (TODO check eigen)
+     if(isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
      if(Kss) Kss->add(kel,(*allDOFs)[iele]); // for farfield output (TODO: check with Radek)
      if(isShifted && isDamped && isStructureElement(iele)) {
        if(mat) mat->addImaginary(izel,m_dofs);
        if(ops.Kuc) ops.Kuc->addImaginary(izel,(*allDOFs)[iele]);
+       if(ops.Kcc) ops.Kcc->addImaginary(izel,(*allDOFs)[iele]);
        if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
      }
    }
@@ -383,6 +387,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(matrixTimers) matrixTimers->assemble -= getTime();
      if(ops.K)   ops.K->add(kelC,(*allDOFs)[iele]);
      if(ops.Kuc) ops.Kuc->add(kelC,(*allDOFs)[iele]);
+     if(ops.Kcc) ops.Kcc->add(kelC,(*allDOFs)[iele]);
      if(ops.M)   ops.M->add(melC,(*allDOFs)[iele]);
      if(ops.Muc) ops.Muc->add(melC,(*allDOFs)[iele]);
      if(ops.Mcc) ops.Mcc->add(melC,(*allDOFs)[iele]);
@@ -434,6 +439,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      kel = packedEset[iele]->stiffness(nodes, karray);
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     if(ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      kel *= Kcoef;
      if(mat) mat->add(kel,m_dofs);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
@@ -442,6 +448,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      kel = packedEset[iele]->imStiffness(nodes, karray);
      if(ops.K) ops.K->addImaginary(kel,(*allDOFs)[iele]);
      if(ops.Kuc) ops.Kuc->addImaginary(kel,(*allDOFs)[iele]);
+     if(ops.Kcc) ops.Kcc->addImaginary(kel,(*allDOFs)[iele]);
      kel *= Kcoef;
      if(mat) mat->addImaginary(kel,m_dofs);
      if(ops.spp) ops.spp->addImaginary(kel,(*allDOFs)[iele]);
@@ -482,6 +489,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      kel = packedEset[iele]->stiffness(nodes, karray);
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
+     if(ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      kel *= Kcoef;
      if(mat) mat->add(kel,m_dofs);
      if(ops.spp) ops.spp->add(kel,(*allDOFs)[iele]);
@@ -1061,6 +1069,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  // ... Call necessary Operator's constructors
  allOps.Kuc = constructCuCSparse<Scalar>();
+ allOps.Kcc = constructCCSparse<Scalar>();
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
@@ -1721,8 +1730,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     }
   }
 
-  // COMPUTE NONHOMOGENEOUS FORCE CONTRIBUTION
-  // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
+  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
+  // IN THE CASE OF NONLINEAR, NON-HOMOGENEOUS (PRESCRIBED) FORCES
   // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
   // MODIFYING THE RHS VECTOR
   if(kuc && !sinfo.isNonLin()) {
@@ -1752,6 +1761,48 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
     }
 
     kuc->multSubtract(Vc, force);
+  }
+}
+
+template<class Scalar>
+void
+Domain::computeReactionForce(GenVector<Scalar> &fc, GenVector<Scalar> &Vu,
+                             GenSparseMatrix<Scalar> *_kuc, GenSparseMatrix<Scalar> *_kcc)
+{
+  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
+  GenCuCSparse<Scalar> *kuc = dynamic_cast<GenCuCSparse<Scalar> *>(_kuc);
+  if(kuc) kuc->transposeMultNew(Vu.data(), fc.data()); // fc = kuc^T * Vu
+  else fc.zero();
+
+  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
+  GenCuCSparse<Scalar> *kcc = dynamic_cast<GenCuCSparse<Scalar> *>(_kcc);
+  if(kcc) {
+    GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
+
+    // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
+    for(int i=0; i<numDirichlet; ++i) {
+      int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
+      if(dof < 0) continue;
+      dof = c_dsa->invRCN(dof);
+      if(dof >= 0) {
+        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
+        ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+      }
+    }
+
+    // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
+    ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
+    for(int i=0; i<numComplexDirichlet; ++i) {
+      int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
+      if(dof2 < 0) continue;
+      dof2 = c_dsa->invRCN(dof2);
+      if(dof2 >= 0) {
+        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
+        ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+      }
+    }
+
+    kcc->multAddNew(Vc.data(), fc.data());
   }
 }
 
@@ -1890,8 +1941,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     }
   }
 
-  // COMPUTE NONHOMOGENEOUS FORCE CONTRIBUTION
-  // IN THE CASE OF NONLINEAR, NONHOMOGENEOUS (PRESCRIBED) FORCES
+  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
+  // IN THE CASE OF NONLINEAR, NON-HOMOGENEOUS (PRESCRIBED) FORCES
   // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
   // MODIFYING THE RHS VECTOR
   if(probType() != SolverInfo::NonLinStatic &&
@@ -2511,6 +2562,7 @@ Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dof
       if(Z) Z->add(temp, dofs);
       if(ops && ops->spp) ops->spp->add(temp, dofs);
       if(ops && ops->Kuc) ops->Kuc->add(temp, dofs);
+      if(ops && ops->Kcc) ops->Kcc->add(temp, dofs);
     }
     if(imEl) {
       FullSquareMatrix temp(imEl->dim(),(double*)dbg_alloca(imEl->dim()*imEl->dim()*sizeof(double)));
@@ -2518,6 +2570,7 @@ Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dof
       if(Z) Z->addImaginary(*imEl, dofs);
       if(ops && ops->spp) ops->spp->addImaginary(temp, dofs);
       if(ops && ops->Kuc) ops->Kuc->addImaginary(temp, dofs);
+      if(ops && ops->Kcc) ops->Kcc->addImaginary(temp, dofs);
     }
   }
   else {
@@ -2525,11 +2578,13 @@ Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dof
       if(Z) Z->add(*reEl, dofs);
       if(ops && ops->spp) ops->spp->add(*reEl, dofs);
       if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
+      if(ops && ops->Kcc) ops->Kcc->add(*reEl, dofs);
     }
     if(imEl) {
       if(Z) Z->addImaginary(*imEl, dofs);
       if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
       if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
+      if(ops && ops->Kcc) ops->Kcc->addImaginary(*imEl, dofs);
     }
   }
 }
@@ -2853,7 +2908,8 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
 void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,
-                            int ndflag, int index, double time, double eigV)  {
+                            int ndflag, int index, double time, double eigV,
+                            GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *kcc) {
 
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
@@ -2930,6 +2986,42 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         case OutputInfo::NodeToNode:
           if(nodeToNode) nodeToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
           break;
+        case OutputInfo::Reactions: {
+          GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
+          computeReactionForce(fc, sol, kuc, kcc);
+          Scalar (*rxyz)[3] = new Scalar[numNodeLim][3];
+          DofSet dof[] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
+          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
+            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+            realNode++;
+            int nodeI = (outFlag) ? realNode : inode;
+            for(int k = 0; k < 3; ++k) {
+              int loc  = c_dsa->locate(inode, dof[k].list());
+              int loc1 =   dsa->locate(inode, dof[k].list());
+              rxyz[nodeI][k] = (loc < 0 && loc1 >= 0) ? fc[loc1] : 0;     // constrained
+            }
+          }
+          geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
+          delete [] rxyz;
+          } break;
+        case OutputInfo::HeatReactions: {
+          GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
+          computeReactionForce(fc, sol, kuc, kcc);
+          Scalar (*rxyz)[1] = new Scalar[numNodeLim][1];
+          DofSet dof[] = { DofSet::Temp };
+          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
+            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+            realNode++;
+            int nodeI = (outFlag) ? realNode : inode;
+            for(int k = 0; k < 1; ++k) {
+              int loc  = c_dsa->locate(inode, dof[k].list());
+              int loc1 =   dsa->locate(inode, dof[k].list());
+              rxyz[nodeI][k] = (loc < 0 && loc1 >= 0) ? fc[loc1] : 0;     // constrained
+            }
+          }
+          geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
+          delete [] rxyz;
+          } break;
         default:
           success = 0;
           break;

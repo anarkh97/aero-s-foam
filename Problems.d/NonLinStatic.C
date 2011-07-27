@@ -56,7 +56,7 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     if(prec) delete prec;
     if(allCorot) delete [] allCorot; allCorot = 0;  // memory leak?
     if(kelArray) delete [] kelArray; kelArray = 0;
-    preProcess();
+    preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
     elementInternalForce.initialize(domain->maxNumDOF());
   }
 
@@ -223,7 +223,7 @@ NonLinStatic::getRHS(Vector& rhs)
 }
 
 void
-NonLinStatic::preProcess()
+NonLinStatic::preProcess(bool factor)
 {
  // Allocate space for the Static Timers
  times = new StaticTimers;
@@ -266,7 +266,7 @@ NonLinStatic::preProcess()
                                                                        // since the nullity of the tangent stiffness matrix may be less than the nullity
                                                                        // of the number of rigid body modes
  
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) 0);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) 0, kelArray, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 

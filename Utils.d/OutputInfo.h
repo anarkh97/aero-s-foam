@@ -36,7 +36,8 @@ struct OutputInfo {
           StrainPR1Direc, StrainPR2Direc, StrainPR3Direc,
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
           TDEnforcement, Damage, EffPStrn, 
-          TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative
+          TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
+          HeatReactions
          };
 
    enum Group  { Nodal, Attribute, NodeGroup };

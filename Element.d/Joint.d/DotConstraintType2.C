@@ -83,7 +83,7 @@ DotConstraintType2::buildFrame(CoordSet& cs)
     terms[3+i].coef.r_value = d1[0]*d[0] + d1[1]*d[1] + d1[2]*d[2];
   }
 
-  rhs.r_value = c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2];
+  rhs.r_value = -(c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2]);
 }
 
 int 
@@ -127,7 +127,7 @@ DotConstraintType2::update(GeomState& gState, CoordSet& cs, double)
     terms[3+i].coef.r_value = d1[0]*d[0] + d1[1]*d[1] + d1[2]*d[2];
   }
 
-  rhs.r_value = c1[0]*d[0] + c1[1]*d[1] + c1[2]*d[2];
+  rhs.r_value = -(c1[0]*d[0] + c1[1]*d[1] + c1[2]*d[2]);
 }
 
 void

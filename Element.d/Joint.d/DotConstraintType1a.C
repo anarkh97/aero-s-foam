@@ -77,8 +77,9 @@ DotConstraintType1a::buildFrame(CoordSet& cs)
     terms[3+i].coef.r_value = c0[axis1][0]*d2[0] + c0[axis1][1]*d2[1] + c0[axis1][2]*d2[2];
   }
 
-  // values of constraint functions
-  rhs.r_value = c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2];
+  // -ve value of constraint function
+  rhs.r_value = ((prop) ? std::cos(prop->amplitude*std::sin(prop->phase)-M_PI/2) : 0)
+                -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
 }
 
 int 
@@ -118,9 +119,9 @@ DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
     terms[3+i].coef.r_value = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
   }
 
-  // values of constraint functions
-  rhs.r_value = -prop->amplitude*sin(prop->omega*t)
-                + c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2];
+  // -ve value of constraint function
+  rhs.r_value = std::cos(prop->amplitude*std::sin(prop->omega*t + prop->phase)-M_PI/2)
+                - (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
 }
 
 void

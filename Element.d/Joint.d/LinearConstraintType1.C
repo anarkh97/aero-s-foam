@@ -20,7 +20,7 @@ LinearConstraintType1::buildFrame(CoordSet& cs)
     }
   }
 
-  rhs.r_value = v[0] - v[1];
+  rhs.r_value = -(v[0] - v[1]);
 }
 
 int 

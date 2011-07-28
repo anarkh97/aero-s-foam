@@ -2025,7 +2025,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        getStressStrain(geomState, allCorot, i, VON, x, refState);
        break;
      case OutputInfo::StrainVM:
-       getStressStrain(geomState, allCorot,i,STRAINVON, x, refState);
+       getStressStrain(geomState, allCorot, i, STRAINVON, x, refState);
+       break;
+     case OutputInfo::EquivalentPlasticStrain:
+       getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
      case OutputInfo::StressPR1:
        getPrincipalStress(geomState, allCorot, i, PSTRESS1, x, refState);

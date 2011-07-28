@@ -1366,6 +1366,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::ContactPressure:
         getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
         break;
+      case OutputInfo::EquivalentPlasticStrain:
+        getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
+        break;
       case OutputInfo::StressPR1:
         getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS1, refState);
         break;

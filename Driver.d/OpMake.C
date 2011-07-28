@@ -2990,15 +2990,15 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar (*rxyz)[3] = new Scalar[numNodeLim][3];
-          DofSet dof[] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
+          DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
           for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
             if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 3; ++k) {
-              int loc  = c_dsa->locate(inode, dof[k].list());
-              int loc1 =   dsa->locate(inode, dof[k].list());
-              rxyz[nodeI][k] = (loc < 0 && loc1 >= 0) ? fc[loc1] : 0;     // constrained
+              int dof =   dsa->locate(inode, dofs[k].list());
+              int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
+              rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
           }
           geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
@@ -3008,15 +3008,15 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar (*rxyz)[1] = new Scalar[numNodeLim][1];
-          DofSet dof[] = { DofSet::Temp };
+          DofSet dofs[1] = { DofSet::Temp };
           for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
             if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 1; ++k) {
-              int loc  = c_dsa->locate(inode, dof[k].list());
-              int loc1 =   dsa->locate(inode, dof[k].list());
-              rxyz[nodeI][k] = (loc < 0 && loc1 >= 0) ? fc[loc1] : 0;     // constrained
+              int dof =   dsa->locate(inode, dofs[k].list());
+              int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
+              rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
           }
           geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);

@@ -20,10 +20,12 @@ class NLHexahedral : public GaussIntgElement
     int n[8];
     NLMaterial *material;
     int strainMeasure;
+    static const double nodeRefCoords[8][3];
 
   protected:
     int getNumGaussPoints();
     void getGaussPointAndWeight(int i, double *point, double &weight);
+    void getLocalNodalCoords(int i, double *coords);
     ShapeFunction *getShapeFunction();
     StrainEvaluator *getStrainEvaluator();
     NLMaterial *getMaterial();

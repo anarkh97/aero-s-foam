@@ -56,7 +56,7 @@ class MDNLStatic
     void printTimers();
 
     void staticOutput(DistrGeomState *geomState, double lambda, 
-                      DistrVector &force, DistrVector &glRes);
+                      DistrVector &force, DistrVector &glRes, DistrGeomState *refState);
 
     MultiDomainPostProcessor *getPostProcessor();
 

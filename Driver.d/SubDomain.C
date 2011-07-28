@@ -2245,7 +2245,8 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 template<class Scalar>
 void
 GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
-           int fileNumber, int stressIndex, Scalar *glStress, Scalar *glWeight)
+                                          int fileNumber, int stressIndex, Scalar *glStress, Scalar *glWeight,
+                                          GeomState *refState)
 {
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -2309,8 +2310,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
     }
     else if(flag == 2) {
       // USE NON-LINEAR STRESS ROUTINE
-      allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs,
-                                    nodes, stressIndex);
+      allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
+                                    nodes, stressIndex, surface,
+                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
     }
     else {
       // NO STRESS RECOVERY

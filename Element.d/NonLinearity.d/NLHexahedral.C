@@ -4,6 +4,10 @@
 #include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
 #include <Element.d/NonLinearity.d/3DShapeFunction.h>
 
+const double NLHexahedral::nodeRefCoords[8][3] =
+  {{-1.0,-1.0,-1.0},{1.0,-1.0,-1.0},{ 1.0,1.0,-1.0},{-1.0,1.0,-1.0},
+   {-1.0,-1.0, 1.0},{1.0,-1.0, 1.0},{ 1.0,1.0, 1.0},{-1.0,1.0, 1.0}};
+
 void
 HexahedralShapeFunction::getLocalDerivatives(Tensor *_localDerivatives, double xi[3])
 {
@@ -135,6 +139,13 @@ NLHexahedral::getGaussPointAndWeight(int n, double *point, double &weight)
     point[1] = xi[j];
     point[2] = xi[k];
   }
+}
+
+void
+NLHexahedral::getLocalNodalCoords(int i, double *coords)
+{
+  for(int j = 0; j < 3; ++j)
+    coords[j] = nodeRefCoords[i][j];
 }
 
 void

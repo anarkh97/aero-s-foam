@@ -79,7 +79,7 @@ public:
    void processLastOutput();
    void preProcess();
    int reBuild(int,int,NLState &);
-   void staticOutput(NLState *, double, Vector &f, Vector &glRes);
+   void staticOutput(NLState *, double, Vector &f, Vector &glRes, NLState *refState = NULL);
    void printTimers() {}
    void updatePrescribedDisplacement(NLState *, double = 1.0);
    void updatePrescribedDisplacement(NLState *, double, double);

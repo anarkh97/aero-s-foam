@@ -48,7 +48,7 @@ class NonLinStatic {
     int reBuild(int iter, int step, GeomState& geomState);
     GeomState* createGeomState();
 
-    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &);
+    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &, GeomState *refState);
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 

@@ -313,7 +313,8 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
 void
 Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
                        double time, int step, double* velocity, double *vcx,
-                       Corotator **allCorot, FullSquareMatrix *mel, double *acceleration, double *acx)
+                       Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
+                       double *acx, GeomState *refState)
 {
 
   if(time == sinfo.initialTime) {
@@ -329,7 +330,8 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
   int numOutInfo = geoSource->getNumOutInfo();
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo)
   {
-    postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx, allCorot, mel, acceleration, acx);
+    postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx,
+                       allCorot, mel, acceleration, acx, refState);
   }
 
 }
@@ -337,7 +339,8 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 void
 Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vector &aeroForce,
                            double time, int step, double* velocity, double *vcx,
-                           Corotator **allCorot, FullSquareMatrix *mel, double *acceleration, double *acx)
+                           Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
+                           double *acx, GeomState *refState)
 {
  if(outFlag && !nodeTable) makeNodeTable(outFlag);
  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
@@ -634,46 +637,46 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
          }
 */
     case OutputInfo::StressXX:
-      getStressStrain( *geomState, allCorot,  iInfo, SXX, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SXX, time, refState);
       break;
     case OutputInfo::StressYY:
-      getStressStrain( *geomState, allCorot,  iInfo, SYY, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SYY, time, refState);
       break;
     case OutputInfo::StressZZ:
-      getStressStrain( *geomState, allCorot,  iInfo, SZZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SZZ, time, refState);
       break;
     case OutputInfo::StressXY:
-      getStressStrain( *geomState, allCorot,  iInfo, SXY, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SXY, time, refState);
       break;
     case OutputInfo::StressYZ:
-      getStressStrain( *geomState, allCorot,  iInfo, SYZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SYZ, time, refState);
       break;
     case OutputInfo::StressXZ:
-      getStressStrain( *geomState, allCorot,  iInfo, SXZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, SXZ, time, refState);
       break;
     case OutputInfo::StrainXX:
-      getStressStrain( *geomState, allCorot,  iInfo, EXX, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EXX, time, refState);
       break;
     case OutputInfo::StrainYY:
-      getStressStrain( *geomState, allCorot,  iInfo, EYY, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EYY, time, refState);
       break;
     case OutputInfo::StrainZZ:
-      getStressStrain( *geomState, allCorot,  iInfo, EZZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EZZ, time, refState);
       break;
     case OutputInfo::StrainXY:
-      getStressStrain( *geomState, allCorot,  iInfo, EXY, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EXY, time, refState);
       break;
     case OutputInfo::StrainYZ:
-      getStressStrain( *geomState, allCorot,  iInfo, EYZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EYZ, time, refState);
       break;
     case OutputInfo::StrainXZ:
-      getStressStrain( *geomState, allCorot,  iInfo, EXZ, time);
+      getStressStrain(*geomState, allCorot,  iInfo, EXZ, time, refState);
       break;
     case OutputInfo::StressVM:
-      getStressStrain( *geomState, allCorot,  iInfo, VON, time);
+      getStressStrain(*geomState, allCorot,  iInfo, VON, time, refState);
       break;
     case OutputInfo::StrainVM:
-      getStressStrain( *geomState, allCorot,  iInfo, STRAINVON, time);
+      getStressStrain(*geomState, allCorot,  iInfo, STRAINVON, time, refState);
       break;
     case OutputInfo::StressPR1:
       getPrincipalStress(*geomState,allCorot,iInfo,PSTRESS1, time);
@@ -692,6 +695,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       break;
     case OutputInfo::StrainPR3:
       getPrincipalStress(*geomState,allCorot,iInfo,PSTRAIN3, time);
+      break;
+    case OutputInfo::EquivalentPlasticStrain:
+      getStressStrain(*geomState, allCorot,  iInfo, EQPLSTRN, time, refState);
       break;
     case OutputInfo::InXForce:
       getElementForces(*geomState, allCorot, iInfo, INX, time);
@@ -1041,7 +1047,8 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 
 void
 Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
-                        int fileNumber, int stressIndex, double time)
+                        int fileNumber, int stressIndex, double time,
+                        GeomState *refState)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
@@ -1137,12 +1144,15 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                    *elDisp, stressIndex, surface,
-				   elemNodeTemps.data(),ylayer,zlayer,avgnum);
+				   elemNodeTemps.data(), ylayer,
+                                   zlayer, avgnum);
 
      } else if (flag == 2) {
 // USE NON-LINEAR STRESS ROUTINE
      allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
-                                   nodes, stressIndex);
+                                   refState, nodes, stressIndex, surface,
+                                   elemNodeTemps.data(), ylayer, zlayer,
+                                   avgnum);
 
      } else {
 // NO STRESS RECOVERY

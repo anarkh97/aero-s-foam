@@ -359,8 +359,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::Damage:
         getStressStrain(u, time, x, iOut, DAMAGE);
         break;
-      case OutputInfo::EffPStrn:
-        getStressStrain(u, time, x, iOut, EFFPSTRN);
+      case OutputInfo::EquivalentPlasticStrain:
+        getStressStrain(u, time, x, iOut, EQPLSTRN);
         break;
       case OutputInfo::StressPR1:
         getPrincipalStress(u, time, x, iOut, PSTRESS1);
@@ -817,7 +817,7 @@ GenDistrDomain<Scalar>::getElementPrincipalStress(GenDistrVector<Scalar> &u, dou
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
-                                                  int x, int fileNumber, int strIndex)
+                                                  int x, int fileNumber, int strIndex, DistrGeomState *refState)
 {
   // PJSA: 3-23-05 Non-linear version
   // set stress VS. strain for element subroutines
@@ -858,8 +858,9 @@ GenDistrDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator 
       Findex = strDir[str_loop];
                                                                                                                                                            
       // compute stress vector
+      GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
       this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
-                                           Findex, elemAllStress[str_loop]);
+                                           Findex, elemAllStress[str_loop], (Scalar *) 0, subRefState);
     }
     // ... CALCULATE PRINCIPALS AT EACH NODE
     Scalar svec[6], pvec[3];
@@ -1157,7 +1158,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF)
+                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1321,67 +1322,67 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(distState) getPrimal(vels, masterVels, time, x, iOut, 1, 6);
         break;
       case OutputInfo::StressXX:
-        getStressStrain(geomState, allCorot, time, x, iOut, SXX);
+        getStressStrain(geomState, allCorot, time, x, iOut, SXX, refState);
         break;
       case OutputInfo::StressYY:
-        getStressStrain(geomState, allCorot, time, x, iOut, SYY);
+        getStressStrain(geomState, allCorot, time, x, iOut, SYY, refState);
         break;
       case OutputInfo::StressZZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, SZZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, SZZ, refState);
         break;
       case OutputInfo::StressXY:
-        getStressStrain(geomState, allCorot, time, x, iOut, SXY);
+        getStressStrain(geomState, allCorot, time, x, iOut, SXY, refState);
         break;
       case OutputInfo::StressYZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, SYZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, SYZ, refState);
         break;
       case OutputInfo::StressXZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, SXZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, SXZ, refState);
         break;
       case OutputInfo::StrainXX:
-        getStressStrain(geomState, allCorot, time, x, iOut, EXX);
+        getStressStrain(geomState, allCorot, time, x, iOut, EXX, refState);
         break;
       case OutputInfo::StrainYY:
-        getStressStrain(geomState, allCorot, time, x, iOut, EYY);
+        getStressStrain(geomState, allCorot, time, x, iOut, EYY, refState);
         break;
       case OutputInfo::StrainZZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, EZZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, EZZ, refState);
         break;
       case OutputInfo::StrainXY:
-        getStressStrain(geomState, allCorot, time, x, iOut, EXY);
+        getStressStrain(geomState, allCorot, time, x, iOut, EXY, refState);
         break;
       case OutputInfo::StrainYZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, EYZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, EYZ, refState);
         break;
       case OutputInfo::StrainXZ:
-        getStressStrain(geomState, allCorot, time, x, iOut, EXZ);
+        getStressStrain(geomState, allCorot, time, x, iOut, EXZ, refState);
         break;
       case OutputInfo::StressVM:
-        getStressStrain(geomState, allCorot, time, x, iOut, VON);
+        getStressStrain(geomState, allCorot, time, x, iOut, VON, refState);
         break;
       case OutputInfo::StrainVM:
-        getStressStrain(geomState, allCorot, time, x, iOut, STRAINVON);
+        getStressStrain(geomState, allCorot, time, x, iOut, STRAINVON, refState);
         break;
       case OutputInfo::ContactPressure:
-        getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS);
+        getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
         break;
       case OutputInfo::StressPR1:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS1);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS1, refState);
         break;
       case OutputInfo::StressPR2:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS2);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS2, refState);
         break;
       case OutputInfo::StressPR3:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS3);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS3, refState);
         break;
       case OutputInfo::StrainPR1:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN1);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN1, refState);
         break;
       case OutputInfo::StrainPR2:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN2);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN2, refState);
         break;
       case OutputInfo::StrainPR3:
-        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN3);
+        getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRAIN3, refState);
         break;
       case OutputInfo::DispX:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 0);
@@ -1484,13 +1485,13 @@ this->communicator->sync();
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot, double time,
-                                        int x, int fileNumber, int Findex)
+                                        int x, int fileNumber, int Findex, DistrGeomState *refState)
 {
   // non-linear version of getStressStrain
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber];
 
   if(oinfo.averageFlg == 0) {
-    getElementStressStrain(gs, allCorot, time, x, fileNumber, Findex);
+    getElementStressStrain(gs, allCorot, time, x, fileNumber, Findex, refState);
     return;
   }
 
@@ -1504,8 +1505,9 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
 
   // each subdomain computes its stress vector
   for (iSub = 0; iSub < this->numSub; ++iSub) {
+    GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
     this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
-                                         Findex, stress.subData(iSub), weight.subData(iSub));
+                                         Findex, stress.subData(iSub), weight.subData(iSub), subRefState);
   }
 
   paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &stress);
@@ -1538,13 +1540,14 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot, double time,
-                                               int iter, int fileNumber, int Findex)
+                                               int iter, int fileNumber, int Findex, DistrGeomState *refState)
 {
   // non-linear version of getElementStressStrain
   for(int iSub = 0; iSub < this->numSub; iSub++)  {
     int numElemNodes = this->subDomain[iSub]->countElemNodes();
     Scalar *elemStress = new Scalar[numElemNodes];
-    this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber, Findex, elemStress);
+    GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
+    this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber, Findex, elemStress, (Scalar *) 0, subRefState);
     geoSource->writeElemScalarToFile(elemStress, numElemNodes, this->localSubToGl[iSub], elemNodeOffsets[iSub], fileNumber, iter,
                                      numRes[fileNumber], time, this->elemToNode->numConnect(), this->subDomain[iSub]->getGlElems());
     delete [] elemStress;
@@ -1554,11 +1557,11 @@ GenDistrDomain<Scalar>::getElementStressStrain(DistrGeomState *gs, Corotator ***
 template<class Scalar>
 void 
 GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,  
-                                           int x, int fileNumber, int strIndex)  
+                                           int x, int fileNumber, int strIndex, DistrGeomState *refState)
 {
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber];
   if(oinfo.averageFlg == 0) {
-    getElementPrincipalStress(gs, allCorot, time, x, fileNumber, strIndex);
+    getElementPrincipalStress(gs, allCorot, time, x, fileNumber, strIndex, refState);
     return;
   }
 
@@ -1605,8 +1608,9 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
     weight = 0;
 
     for(iSub = 0; iSub < this->numSub; ++iSub) {
+      GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
       this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber, 
-                Findex, stress[str_loop]->subData(iSub), weight.subData(iSub));
+                Findex, stress[str_loop]->subData(iSub), weight.subData(iSub), subRefState);
     }
 
     paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>,

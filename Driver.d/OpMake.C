@@ -2830,8 +2830,8 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
     case OutputInfo::Damage:
       getStressStrain(d_n,bcx,i,DAMAGE, time);
       break;
-    case OutputInfo::EffPStrn:
-      getStressStrain(d_n, bcx, i, EFFPSTRN, time);
+    case OutputInfo::EquivalentPlasticStrain:
+      getStressStrain(d_n, bcx, i, EQPLSTRN, time);
       break;
     case OutputInfo::StressPR1:
       getPrincipalStress(d_n,bcx,i,PSTRESS1,time);

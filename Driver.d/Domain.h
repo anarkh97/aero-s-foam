@@ -267,7 +267,8 @@ class Domain : public HData {
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
-                            Corotator **, FullSquareMatrix *, double *acceleration = 0, double *acx = 0);
+                            Corotator **, FullSquareMatrix *, double *acceleration = 0,
+                            double *acx = 0, GeomState *refState=0);
 
   public:
      Domain(int iniSize = 16);
@@ -312,7 +313,8 @@ class Domain : public HData {
      void getElementForces( GeomState &geomState, Corotator **allCorot,
                             int fileNumber, int forceIndex, double time);
      void getStressStrain(GeomState &geomState, Corotator **allCorot,
-                          int fileNumber, int stressIndex, double time);
+                          int fileNumber, int stressIndex, double time, 
+                          GeomState *refState = NULL);
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
                           int fileNumber, int stressIndex, double time);
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
@@ -534,7 +536,8 @@ class Domain : public HData {
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
                          int step=0, double *velocity=0, double *vcx=0,
-                         Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0, double *acx=0);
+                         Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0,
+                         double *acx=0, GeomState *refState=0);
 
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,

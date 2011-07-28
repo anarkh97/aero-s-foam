@@ -101,7 +101,7 @@ static const char*header[] = {
 "Scalar SLOSHING_DISPLACEMENTS under %s for %s\n%d\n",
 "Scalar TDENFORCEMENT under %s for %s\n%d\n",
 "Scalar DAMAGE under %s for %s\n%d\n",
-"Scalar EFFPSTRN under %s for %s\n%d\n",
+"Scalar EQPLSTRN under %s for %s\n%d\n",
 "Scalar TEMPERATUREVEL under %s for %s\n%d\n",
 "Scalar PRESSUREVEL under %s for %s\n%d\n",
 "Scalar PRESSUREACC under %s for %s\n%d\n",

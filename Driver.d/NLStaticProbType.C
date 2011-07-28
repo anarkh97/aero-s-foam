@@ -51,7 +51,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  // Output structure initial configuration
  if(deltaLambda != maxLambda)
-   probDesc->staticOutput(geomState, lambda, force, totalRes);
+   probDesc->staticOutput(geomState, lambda, force, totalRes, refState);
 
  int numIter = 0;
 
@@ -86,7 +86,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
                    numIter);
      filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
 #ifndef DEBUG_NEWTON
-     probDesc->staticOutput( geomState, time, force, totalRes);
+     probDesc->staticOutput( geomState, time, force, totalRes, refState);
 #endif
      break;
    } 
@@ -103,7 +103,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    fflush(stderr);
 #ifndef DEBUG_NEWTON
    // Output current load step results
-   probDesc->staticOutput(geomState, time, force, totalRes);
+   probDesc->staticOutput(geomState, time, force, totalRes, refState);
 #endif
 
    // increment load parameter
@@ -164,7 +164,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  refState = StateUpdate::initRef(geomState);
 
  // ... Output initial configuration
- probDesc->staticOutput(u0, 0.0, force, totRes);
+ probDesc->staticOutput(u0, 0.0, force, totRes, refState);
 
  // ... DEFINE deltaLambda0
  double deltaLambda0 = probDesc->getDeltaLambda0();
@@ -221,7 +221,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // ... COMPUTE TRAJECTORY (EQUILIBRIUM) PATH
  for(iter=0; iter<maxNumTrajectory; ++iter) {
 
-   probDesc->staticOutput(u, lambda, force, totRes);
+   probDesc->staticOutput(u, lambda, force, totRes, refState);
 
    // Compute: dU = nu*(u - u0);
    u->diff(*u0, dU);
@@ -287,7 +287,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  newton(force, residual, totRes, elementInternalForce, solver, refState, u, numIter, lambda, step);
 
  // CALL POST PROCESSING OF DISPLACEMENTS
- probDesc->staticOutput(u, lambda, force, totRes);
+ probDesc->staticOutput(u, lambda, force, totRes, refState);
  
 }
 
@@ -387,7 +387,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     converged = probDesc->checkConvergence(iter, normDv, residualNorm);
 
 #ifdef DEBUG_NEWTON
-    probDesc->staticOutput( geomState, double(iter), force, totalRes);
+    probDesc->staticOutput( geomState, double(iter), force, totalRes, refState);
 #endif
 
     // If converged, break out of loop

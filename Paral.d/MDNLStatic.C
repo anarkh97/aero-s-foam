@@ -350,10 +350,11 @@ MDNLStatic::getPostProcessor()
 
 void
 MDNLStatic::staticOutput(DistrGeomState *geomState, double lambda,
-                         DistrVector &Force, DistrVector &)
+                         DistrVector &Force, DistrVector &, DistrGeomState *refState)
 {
   startTimerMemory(times->output, times->memoryOutput);
-  decDomain->postProcessing(geomState, allCorot, lambda);
+  decDomain->postProcessing(geomState, allCorot, lambda, (SysState<GenDistrVector<double> > *) 0,
+                            (GenDistrVector<double> *) 0, refState);
   stopTimerMemory(times->output, times->memoryOutput);
 }
 

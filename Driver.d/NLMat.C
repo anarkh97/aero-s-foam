@@ -447,7 +447,7 @@ NLMatProbDesc::checkConvergence(int it, double, double resNorm)
 }
 
 void
-NLMatProbDesc::staticOutput(NLState *state, double t, Vector &f, Vector &totRes)
+NLMatProbDesc::staticOutput(NLState *state, double t, Vector &f, Vector &totRes, NLState *)
 {
   domain.postProcessing<double>(state->disp,state->prescDisp.data(), f, 0, outIndex, t);
   domain.resProcessing(totRes, outIndex, t);

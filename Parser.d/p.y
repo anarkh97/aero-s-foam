@@ -71,7 +71,7 @@
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
@@ -82,13 +82,13 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RHEONOMIC
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
-%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
+%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
@@ -1128,6 +1128,16 @@ DirichletBC:
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Displacements;
           geoSource->addSurfaceDirichlet(1,surf_bc); }
+        | DirichletBC SURF Integer Integer Float USING LMPC NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
+          surf_bc[0].type = BCond::Lmpc;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
+        | DirichletBC SURF Integer Integer Float USING RHEONOMIC LMPC NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
+          surf_bc[0].type = BCond::RheonomicLmpc;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1637,16 +1647,23 @@ MPCList:
 	;
 MPCHeader:
         Integer NewLine
-        { $$ = new LMPCons($1, 0.0); }
+        { $$ = new LMPCons($1, 0.0); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float NewLine
-        { $$ = new LMPCons($1, $2); }
+        { $$ = new LMPCons($1, $2); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float MODE Integer NewLine
         { $$ = new LMPCons($1, $2);
-          $$->type = $4; }
+          $$->type = $4; 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float ConstraintOptionsData NewLine
         { $$ = new LMPCons($1, $2);
           $$->lagrangeMult = $3.lagrangeMult;
-          $$->penalty = $3.penalty; }
+          $$->penalty = $3.penalty; 
+          $$->setSource(mpc::Lmpc); }
+        | Integer RHEONOMIC Float NewLine
+        { $$ = new LMPCons($1, $3); 
+          $$->setSource(mpc::RheonomicLmpc); }
 	;
 MPCLine:
         Integer Integer Float NewLine

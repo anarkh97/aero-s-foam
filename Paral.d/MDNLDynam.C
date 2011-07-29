@@ -330,7 +330,7 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce, t, refState);
 
-  if(t != -1.0) updateConstraintTerms(&geomState);
+  if(t != -1.0) updateConstraintTerms(&geomState,t);
 
   // add the ACTUATOR forces
   if(claw && userSupFunc) {
@@ -854,7 +854,7 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 }
 
 void
-MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
+MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
 {
   // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
@@ -875,7 +875,7 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
       fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
     }
     // set the gap for the linear constraints
-    decDomain->setConstraintGap(geomState, fetiSolver);
+    decDomain->setConstraintGap(geomState, fetiSolver, t);
   }
 }
 

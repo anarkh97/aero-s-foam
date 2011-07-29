@@ -681,7 +681,7 @@ class GenSubDomain : public BaseSub
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
-  void setMpcRhs(Scalar *interfvec);
+  void setMpcRhs(Scalar *interfvec, double t);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
 

@@ -3659,14 +3659,16 @@ void GenDecDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver)
+void GenDecDomain<Scalar>::setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetiSolver, 
+                                            double t)
 {
+  // note: for nonlinear statics t is pseudo time (i.e. load factor)
   if(numDualMpc) {
     GenDistrVector<Scalar> cu(fetiSolver->interfInfo());
     GenDistrVector<Scalar> u(fetiSolver->localInfo());
     geomState->get_tot_displacement(u);
     ((GenFetiDPSolver<Scalar> *)fetiSolver)->multC(u, cu); // cu = C*u
-    execParal(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu);
+    execParal2R(this->numSub, this, &GenDecDomain<Scalar>::setMpcRhs, cu, t);
   }
 }
 
@@ -3679,9 +3681,9 @@ GenDecDomain<Scalar>::extractPosition(int iSub, DistrGeomState &geomState, GenDi
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::setMpcRhs(int iSub, GenDistrVector<Scalar> &cu)
+GenDecDomain<Scalar>::setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t)
 {
-  subDomain[iSub]->setMpcRhs(cu.subData(subDomain[iSub]->localSubNum()));
+  subDomain[iSub]->setMpcRhs(cu.subData(subDomain[iSub]->localSubNum()), t);
 }
 
 template<class Scalar>

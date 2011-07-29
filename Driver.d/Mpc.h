@@ -77,7 +77,7 @@ class GenLMPCTerm
 
 namespace mpc {
   enum ConstraintType { Equality, Inequality };
-  enum ConstraintSource { Lmpc, NodalContact, TiedSurfaces, ContactSurfaces, Rigid, Joint, FetiPrimal, FetiDual, Undefined };
+  enum ConstraintSource { Lmpc, NodalContact, TiedSurfaces, ContactSurfaces, Rigid, Joint, FetiPrimal, FetiDual, RheonomicLmpc, Undefined };
 }
 
 /** Linear Multi-Point Constraint class */

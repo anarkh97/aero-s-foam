@@ -191,7 +191,7 @@ class MDNLDynamic
     void subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distrGeomState,
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
-    void updateConstraintTerms(DistrGeomState* geomState);
+    void updateConstraintTerms(DistrGeomState* geomState, double t);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
 };
 

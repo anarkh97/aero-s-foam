@@ -3151,11 +3151,36 @@ Domain::ProcessSurfaceBCs()
       if(SurfId-1 == surface_dbc[i].nnum) {
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
-        BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; bc[k].type = surface_dbc[i].type; }
-        int numDirichlet_copy = geoSource->getNumDirichlet();
-        geoSource->setDirichlet(nNodes, bc);
-        if(numDirichlet_copy != 0) delete [] bc;
+        switch(surface_dbc[i].type) {
+          case BCond::Displacements : {
+            BCond *bc = new BCond[nNodes];
+            for(int k=0; k<nNodes; ++k) { 
+              bc[k].nnum = glNodes[k];
+              bc[k].dofnum = surface_dbc[i].dofnum;
+              bc[k].val = surface_dbc[i].val; 
+              bc[k].type = surface_dbc[i].type;
+            }
+            int numDirichlet_copy = geoSource->getNumDirichlet();
+            geoSource->setDirichlet(nNodes, bc);
+            if(numDirichlet_copy != 0) delete [] bc;
+          } break;
+          case BCond::Lmpc : {
+            for(int k=0; k<nNodes; ++k) {
+              LMPCTerm term(glNodes[k], surface_dbc[i].dofnum, 1);
+              LMPCons *lmpc = new LMPCons(-1,surface_dbc[i].val,&term);
+              lmpc->setSource(mpc::Lmpc);
+              addLMPC(lmpc,false);
+            }
+          } break;
+          case BCond::RheonomicLmpc : {
+            for(int k=0; k<nNodes; ++k) {
+              LMPCTerm term(glNodes[k], surface_dbc[i].dofnum, 1);
+              LMPCons *lmpc = new LMPCons(-1,surface_dbc[i].val,&term);
+              lmpc->setSource(mpc::RheonomicLmpc);
+              addLMPC(lmpc,false);
+            }
+          } break;
+        }
       }
     }
   }

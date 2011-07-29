@@ -125,7 +125,7 @@ class GenDecDomain
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
-  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
+  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
 
  protected:
@@ -158,7 +158,7 @@ class GenDecDomain
   void setLocalCorners(int iSub, SubCornerHandler **cornerHandler);
   void deleteMPCs();
   void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
-  virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu);
+  virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
  public:
   void printLMPC();
 

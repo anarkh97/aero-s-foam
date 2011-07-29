@@ -92,7 +92,7 @@ class MDNLStatic
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
-    void updateConstraintTerms(DistrGeomState* geomState);
+    void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
 };
 
 #endif

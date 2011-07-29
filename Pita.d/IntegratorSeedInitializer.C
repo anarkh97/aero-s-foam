@@ -26,10 +26,8 @@ IntegratorSeedInitializer::IntegratorSeedInitializer(DynamTimeIntegrator * i,
 DynamState
 IntegratorSeedInitializer::initialSeed(SliceRank rank) const {
   if (rank > lastSlice()) { // State is not in cache
-    // Deactivated since it is too unefficient
-    // However the integrator must not be changed externally 
-    //integrator_->timeStepSizeIs(timeStepSize_);
-    //integrator_->initialConditionIs(seed_->state(lastSlice()), lastStateTime_);
+    // Resetting the initial condition and/or the time-step would be too inefficient:
+    // Therefore, it is assumed that the integrator has not been changed externally
 
     // Fails if the integrator has obviously been modified externally
     assert(integrator_->timeStepSize() == timeStepSize_);

@@ -28,10 +28,10 @@ IncrementalPostProcessor::outputNew(FileSetId fileSetId, const LinearGenAlphaInt
 
   ConstantTermMap::iterator kt = jt->second.lower_bound(oi->timeStepCount());
   if (kt != jt->second.end() && kt->first == oi->timeStepCount()) {
-    //log() << "Use state " << (forwardIntegration ? 'F' : 'B') << " " << oi->timeStepCount() << "\n";
+    // Add reference state 
     kt->second += oi->currentState();
   } else {
-    //log() << "New state " << (forwardIntegration ? 'F' : 'B') << " " << oi->timeStepCount() << "\n";
+    // New reference state
     kt = jt->second.insert(kt, std::make_pair(oi->timeStepCount(), oi->currentState()));
   }
 

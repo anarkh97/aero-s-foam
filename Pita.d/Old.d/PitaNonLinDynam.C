@@ -143,7 +143,6 @@ void
 PitaNonLinDynamic::openOutputFiles(int sliceRank)
 {
   geoSource->openOutputFilesForPita(sliceRank);
-  //domain->printStatistics(); // Deactivated
 }
 
 void
@@ -170,18 +169,17 @@ PitaNonLinDynamic::printNLPitaTimerFile(int CPUid)
   out.close();
 }
 
-// class PitaNLDynamOutput
 PitaNonLinDynamic::PitaPostProcessor::PitaPostProcessor(PitaNonLinDynamic & probDesc) :
   probDesc_(probDesc),
   sliceRank_(-1)
 {
 }
-                                                                                                                                                                                                     
+
 PitaNonLinDynamic::PitaPostProcessor::~PitaPostProcessor()
 {
   probDesc_.closeOutputFiles();
 }
-                                                                                                                                                                                                     
+
 void
 PitaNonLinDynamic::PitaPostProcessor::sliceRank(int rank)
 {

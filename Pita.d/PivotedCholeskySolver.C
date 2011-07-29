@@ -63,9 +63,6 @@ PivotedCholeskySolver::performFactorization() {
   scaling_.sizeIs(matrixSize());
   int info;
   double scond, amax;
-  //_FORTRAN(dsyequb)(&upper, &getMatrixSize(), choleskyFactor_.data(), &getMatrixSize(),
-  //                  scaling_.array(), &scond, &amax, workspace.array(), &info);
-  //assert(info == 0);
 
   // Hand-made routine to replace dsyequb
   equilibrateSym(getMatrixSize(), choleskyFactor_.data(), tolerance(), scaling_.array(), &scond, &amax);

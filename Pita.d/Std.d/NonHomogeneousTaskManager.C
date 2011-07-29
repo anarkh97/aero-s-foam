@@ -5,7 +5,7 @@
 namespace Pita { namespace Std {
 
 NonHomogeneousTaskManager::NonHomogeneousTaskManager(SliceMapping * mapping,
-                                                     RemoteState::MpiManager * commMgr,
+                                                     RemoteState::Manager * commMgr,
                                                      LinearPropagatorManager * propagatorMgr,
                                                      LinearProjectionNetwork * projectionMgr,
                                                      JumpConvergenceEvaluator * jumpCvgEval,
@@ -34,19 +34,7 @@ NonHomogeneousTaskManager::iterationInc() {
 void
 NonHomogeneousTaskManager::schedulePrecomputation() {
   setRecurrentPhase("Affine Term Precomputation", &SliceTasks::finePropagation);
-  setContinuation(&NonHomogeneousTaskManager::scheduleAffineTermSynchronization);
-}
-
-void
-NonHomogeneousTaskManager::scheduleAffineTermSynchronization() {
-  setRecurrentPhase("Affine Term Synchronization", &SliceTasks::propagatedSeedSynchronization);
-  setContinuation(&NonHomogeneousTaskManager::scheduleTrivialJumpBuilding);
-}
-
-void
-NonHomogeneousTaskManager::scheduleTrivialJumpBuilding() {
-  setRecurrentPhase("Trivial Jump Evaluation", &SliceTasks::jumpBuilding);
-  setContinuation(&NonHomogeneousTaskManager::scheduleNothing);
+  setContinuation(&NonHomogeneousTaskManager::schedulePropagatedSeedSynchronization);
 }
 
 void

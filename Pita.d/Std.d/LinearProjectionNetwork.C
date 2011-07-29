@@ -12,12 +12,18 @@
 namespace Pita { namespace Std {
 
 inline
-OStream & operator<<(OStream & out, GenId<LinearProjectionNetwork::Kind> si) {
-  return out << si.rank() << si.type();
+OStream & operator<<(OStream & out, LinearProjectionNetwork::Kind k) {
+  char c = (k == LinearProjectionNetwork::INITIAL) ? 'i' : 'f';
+  return out << c;
 }
 
 inline
-OStream & operator<<(OStream & out, LinearProjectionNetwork::StateId si) {
+OStream & operator<<(OStream & out, const LinearProjectionNetwork::IterStateId & isi) {
+  return out << isi.rank() << isi.type();
+}
+
+inline
+OStream & operator<<(OStream & out, const LinearProjectionNetwork::StateId & si) {
   return out << "{" << si.iteration() << "," << si.slice() << si.type() << "}";
 }
 
@@ -335,39 +341,42 @@ LinearProjectionNetwork::MatrixExchgNumbering::stateCount(CpuRank c, Kind k) con
   return stateCount(c) / 2; 
 }
 
+OStream &
+operator<<(OStream & out, const LinearProjectionNetwork & n) {
+  n.print(out);
+  return out;
+}
 
-// Debug
 void
-LinearProjectionNetwork::print_debug() {
-  log() << "Mapping:\n" << *mapping_;
+LinearProjectionNetwork::print(OStream & out) const {
+  out << "Mapping:\n" << *mapping_;
   
   const StateExchgNumbering * numbering = numbering_->lastIterNumbering();
-  log() << "State Numbering:\n";
-  log() << "State count: Total = " << numbering->stateCount() << " / ";
+  out << "State Numbering:\n";
+  out << "State count: Total = " << numbering->stateCount() << " / ";
   for (CpuRank c(0); c < CpuRank(0) + mapping_->availableCpus(); c = c + CpuCount(1)) {
-    log() << numbering->stateCount(c) << " ";
+    out << numbering->stateCount(c) << " ";
   }
-  log() << "\n";
+  out << "\n";
 
-  log() << "Exchange indices (I and F):\n";
+  out << "Exchange indices (I and F):\n";
   for (SliceRank sr = mapping_->firstActiveSlice(); sr < mapping_->firstInactiveSlice(); sr = sr.next()) {
-    log() << IterStateId(INITIAL, sr) << ":" << numbering->index(IterStateId(INITIAL, sr)) << " "
-          << IterStateId(FINAL, sr)   << ":" << numbering->index(IterStateId(FINAL, sr))   << " ";
+    out << IterStateId(INITIAL, sr) << ":" << numbering->index(IterStateId(INITIAL, sr)) << " "
+        << IterStateId(FINAL, sr)   << ":" << numbering->index(IterStateId(FINAL, sr))   << " ";
   }
-  log() << "\n";
+  out << "\n";
 
-  log() << "Matrix Numbering:\n";
-  log() << "State count: Total = " << numbering_->stateCount() << " / ";
+  out << "Matrix Numbering:\n";
+  out << "State count: Total = " << numbering_->stateCount() << " / ";
   for (CpuRank c(0); c < CpuRank(0) + mapping_->availableCpus(); c = c + CpuCount(1)) {
-    log() << numbering_->stateCount(c) << " ";
+    out << numbering_->stateCount(c) << " ";
   }
-  log() << "\n";
-  log() << "Exchange indices (I and F):\n";
+  out << "\n";
+  out << "Exchange indices (I and F):\n";
   for (int index = 0; index < numbering_->stateCount(); ++index) {
-    log() << numbering_->stateId(index) << ":" << numbering_->index(numbering_->stateId(index)) << " ";
+    out << numbering_->stateId(index) << ":" << numbering_->index(numbering_->stateId(index)) << " ";
   }
-  log() << "\n";
-
+  out << "\n";
 }
 
 // Constructor
@@ -415,7 +424,7 @@ LinearProjectionNetwork::buildProjection() {
 
   size_t stateSize = 2 * vectorSize_;
   size_t targetBufferSize = stateSize * iterNumbering->stateCount();
-  SimpleBuffer<double> stateBuffer(targetBufferSize); // TODO member
+  SimpleBuffer<double> stateBuffer(targetBufferSize);
 
   AffineBasisCollector::CollectedState cs;
 
@@ -425,15 +434,12 @@ LinearProjectionNetwork::buildProjection() {
     IterStateId iterState(INITIAL, cs.sliceId);
     int inBufferRank = iterNumbering->index(iterState);
     assert(inBufferRank >= 0);
-    //log() << "Initial state # " << inBufferRank << " disp[0] = " << cs.state.displacement()[0] << ", disp[1] = " << cs.state.displacement()[1] << "\n";
     double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
     if (metric_) {
       mult(metric_.ptr(), cs.state, inBufferAddrBegin);
     } else {
-      //log() << "Warning, no metric\n";
       bufferStateCopy(cs.state, inBufferAddrBegin);
     }
-    //log() << "Metric state # " << inBufferRank << " disp[0] = " << inBufferAddrBegin[0] << ", disp[1] = " << inBufferAddrBegin[1] << "\n";
     StateId id(iteration, iterState);
     localState_.insert(std::make_pair(id, cs.state));
     collector_->firstInitialStateDel();
@@ -448,7 +454,6 @@ LinearProjectionNetwork::buildProjection() {
     assert(inBufferRank >= 0);
     double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
     bufferStateCopy(cs.state, inBufferAddrBegin);
-    //log() << "Final state # " << inBufferRank << " disp[0] = " << inBufferAddrBegin[0] << ", disp[1] = " << inBufferAddrBegin[1] << "\n";
     StateId id(iteration, iterState);
     localState_.insert(std::make_pair(id, cs.state));
     collector_->firstFinalStateDel();
@@ -459,8 +464,8 @@ LinearProjectionNetwork::buildProjection() {
 #ifndef NDEBUG
   log() << "^^ Consolidating new local states\n";
 #endif /* NDEBUG */
-  SimpleBuffer<int> recvs_counts(cpuCount); // TODO member
-  SimpleBuffer<int> displacements(cpuCount); // TODO member
+  SimpleBuffer<int> recvs_counts(cpuCount);
+  SimpleBuffer<int> displacements(cpuCount);
  
   for (int cpu = 0; cpu < cpuCount; ++cpu) {
     recvs_counts[cpu] = iterNumbering->stateCount(CpuRank(cpu)) * stateSize;
@@ -471,8 +476,6 @@ LinearProjectionNetwork::buildProjection() {
                    displacements.array() + 1);
 
   int myCpu = timeCommunicator_->myID();
-  //log() << "Allgatherv: " << recvs_counts[myCpu]  << " / " << iterNumbering->stateCount(CpuRank(myCpu)) * stateSize
-  //      << " -> " << displacements[cpuCount-1] + recvs_counts[cpuCount-1] << " / " << iterNumbering->stateCount() * stateSize << "\n";
   timeCommunicator_->allGatherv(stateBuffer.array() + displacements[myCpu],
                                 recvs_counts[myCpu],
                                 stateBuffer.array(),
@@ -483,10 +486,6 @@ LinearProjectionNetwork::buildProjection() {
       vectorSize_,
       iterNumbering->stateCount(),
       stateBuffer.array());
- 
-  //for (int i = 0; i < iterNumbering->stateCount(); ++i) {
-  //  log() << "Received State # " << i << " disp[0] = " << receivedStates->state(i).displacement()[0] << "\n";
-  //}
 
   // Get in-iteration exchange indices by increasing SliceRank / Kind
   for (StateExchgNumbering::IndexIterator it = iterNumbering->index(); it; ++it) {
@@ -497,14 +496,6 @@ LinearProjectionNetwork::buildProjection() {
                                          originalPropagatedBasis_.ptr();
     targetBasis->lastStateIs(receivedStates->state(index));
   }
-
-  //for (int i = 0; i < originalPropagatedBasis_->stateCount(); ++i) {
-  //  log() << "Final State # " << i << " disp[0] = " << originalPropagatedBasis_->state(i).displacement()[0] << "\n";
-  //}
-
-  //for (int i = 0; i < originalProjectionBasis_->stateCount(); ++i) {
-  //  log() << "Metric State # " << i << " disp[0] = " << originalProjectionBasis_->state(i).displacement()[0] << "\n";
-  //}
 
   // 3) Assemble [new] local ROWS of the TRANSPOSED reduced operators
 #ifndef NDEBUG
@@ -518,7 +509,7 @@ LinearProjectionNetwork::buildProjection() {
         << ", newSize = " << newMatrixSize << "\n";
 
   size_t matrixBufferSize = 2 * (newMatrixSize * newMatrixSize); // Buffer covers 2 matrices
-  SimpleBuffer<double> matrixBuffer(matrixBufferSize); // TODO member
+  SimpleBuffer<double> matrixBuffer(matrixBufferSize);
   
   // Fill buffer with dot products:
   // -> Row ordering = allgather-exchange (cpu / kind / slice)
@@ -528,13 +519,10 @@ LinearProjectionNetwork::buildProjection() {
        row_it != localState_.end();
        ++row_it) {
     int row_index = numbering_->index(row_it->first);
-    //log() << numbering_->stateId(row_index) << " at " << row_index << ": ";
     double * inBufferAddrBegin = matrixBuffer.array() + (row_index * newMatrixSize);
     for (DynamStatePlainBasis::IteratorConst col_it = originalProjectionBasis_->state(); col_it; ++col_it) {
-      //log() << (*col_it) * row_it->second << " ";
       *inBufferAddrBegin++ = (*col_it) * row_it->second;
     }
-    //log() << "\n";
   }
 
   // 4) Consolidate [new] rows of reduced operators
@@ -555,13 +543,6 @@ LinearProjectionNetwork::buildProjection() {
                                 matrixBuffer.array(),
                                 recvs_counts.array(), 
                                 displacements.array());
-
-  //log() << "Buffer is\n";
-  //for (int i = 0; i < newMatrixSize; ++i) {
-  //  for (int j = 0; j < 2 * newMatrixSize; ++j) {
-  //    log() << "[" << i << "," << j << "] " << matrixBuffer[i * newMatrixSize + j] << "\n";
-  //  }
-  //}
 
   // 5) Assemble rank-deficient operators
 #ifndef NDEBUG
@@ -622,6 +603,9 @@ LinearProjectionNetwork::buildProjection() {
   }
 
   normalMatrixSolver_->orderingIs(RankDeficientSolver::COMPACT);
+  
+  // Perform notification
+  notifierDelegate_.lastNotificationIs(&NotifieeConst::onProjectionOperators);
 }
 
 class LinearProjectionNetwork::Task : public NamedTask {

@@ -13,7 +13,7 @@ GlobalStateSharing::GlobalStateSharing(Communicator * timeComm, size_t vectorSiz
   timeComm_(timeComm),
   vectorSize_(vectorSize),
   strategy_(strategy),
-  seedGetter_(NULL),
+  seedMgr_(NULL),
   stateCount_(0),
   localStates_(),
   buffer_(),
@@ -88,8 +88,10 @@ GlobalStateSharing::mappingIs(const SliceMapping & mapping) {
          ++jt) {
       const SeedType type = *jt;
       const HalfSliceRank seedRank = (type == RIGHT_SEED) ? rank : rank.next();
-      // log() << "Scheduling seed " << type << seedRank << "\n"; // Debug
-      localStates_.push(seedGetter_(SeedId(type, seedRank)));
+      Seed::Ptr seed = seedMgr_->instance(toString(SeedId(type, seedRank)));
+      if (seed) {
+        localStates_.push(seed);
+      }
     }
   }
 }

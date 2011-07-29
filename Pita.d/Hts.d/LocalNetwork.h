@@ -49,14 +49,17 @@ public:
   void convergedSlicesInc(HalfSliceCount inc) { mapping_->convergedSlicesInc(inc); }
 
 public: 
-  LocalNetworkImpl::SeedGetter<DynamState> fullSeedGetter() { return fullSeedGetter_; }
-  LocalNetworkImpl::SeedGetter<Vector> reducedSeedGetter() { return reducedSeedGetter_; }
+  Seed::Manager * seedManager() { return fullSeedGetter_.stateMgr(); }
+  ReducedSeed::Manager * reducedSeedManager() { return reducedSeedGetter_.stateMgr(); }
 
 protected:
   LocalNetwork(SliceMapping * mapping, RemoteState::Manager * commMgr) :
     status_(EMPTY), mapping_(mapping), commMgr_(commMgr),
     fullSeedGetter_(Seed::Manager::New()), reducedSeedGetter_(ReducedSeed::Manager::New())
   {}
+  
+  LocalNetworkImpl::SeedGetter<DynamState> fullSeedGetter() { return fullSeedGetter_; }
+  LocalNetworkImpl::SeedGetter<Vector> reducedSeedGetter() { return reducedSeedGetter_; }
 
   void setStatus(Status s) { status_ = s; }
 
@@ -66,8 +69,8 @@ protected:
   RemoteState::Manager * commMgr() { return commMgr_.ptr(); }
   const RemoteState::Manager * commMgr() const { return commMgr_.ptr(); }
 
-  SharedState<DynamState> * fullSeedGet(const SeedId & id) { return fullSeedGetter().operator()(id); }
-  SharedState<Vector> * reducedSeedGet(const SeedId & id) { return reducedSeedGetter().operator()(id); }
+  SharedState<DynamState> * fullSeedGet(const SeedId & id) { return fullSeedGetter_.operator()(id); }
+  SharedState<Vector> * reducedSeedGet(const SeedId & id) { return reducedSeedGetter_.operator()(id); }
 
   static int parity(HalfSliceRank sliceRank) { return sliceRank.value() % 2; } 
   int activeParity() const { return parity(firstActiveSlice()); } 

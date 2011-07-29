@@ -11,11 +11,11 @@
 #include "../RemoteStateMpiImpl.h"
 #include "NlProjectionNetwork.h"
 #include "JumpConvergenceEvaluator.h"
-#include "NlBasisUpdate.h"
-
-#include "NlLocalNetwork.h"
+#include "GlobalStateSharing.h"
 
 namespace Pita { namespace Hts {
+
+class NlLocalNetwork;
 
 class NlTaskManager : public TaskManager {
 public:
@@ -30,7 +30,7 @@ public:
   NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                 NlPropagatorManager * propagatorMgr,
                 SeedInitializer * seedInitializer,
-                NlBasisUpdate * basisUpdateMgr,
+                GlobalStateSharing * basisUpdateMgr,
                 PostProcessing::Manager * postProcessingMgr,
                 JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                 double projectorTolerance, IterationRank lastIteration);
@@ -61,6 +61,12 @@ protected:
   void scheduleSeedUpdate();
   void enrichProjectionBasis();
 
+  static Phase * phaseNew(const String & name, const TaskList & tmpList) {
+    TaskList newList(tmpList);
+    return TaskManager::phaseNew(name, newList);
+  }
+  using TaskManager::phaseNew; 
+
 private:
   SliceMapping::Ptr mapping_;
   RemoteState::MpiManager::Ptr commMgr_;
@@ -76,9 +82,9 @@ private:
   Phase::Ptr phase_;
   Continuation continuation_;
 
-  NlLocalNetwork::Ptr localNetwork_;
+  Fwk::Ptr<NlLocalNetwork> localNetwork_;
   
-  NlBasisUpdate::Ptr basisUpdateMgr_;
+  GlobalStateSharing::Ptr basisUpdateMgr_;
   NlProjectionNetwork::Ptr projectionNetwork_;
   IterationRank lastIteration_;
 };

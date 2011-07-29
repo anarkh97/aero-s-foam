@@ -3007,7 +3007,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         case OutputInfo::HeatReactions: {
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
-          Scalar (*rxyz)[1] = new Scalar[numNodeLim][1];
+          Scalar *rxyz = new Scalar[numNodeLim];
           DofSet dofs[1] = { DofSet::Temp };
           for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
             if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
@@ -3016,10 +3016,10 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
             for(int k = 0; k < 1; ++k) {
               int dof =   dsa->locate(inode, dofs[k].list());
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
-              rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
+              rxyz[nodeI] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
           }
-          geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
+          geoSource->outputNodeScalars(i, rxyz, numNodesOut, time);
           delete [] rxyz;
           } break;
         default:

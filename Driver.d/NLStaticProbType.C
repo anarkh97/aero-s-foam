@@ -39,7 +39,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  GeomType *geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
  
- refState = StateUpdate::initRef(geomState);
+ refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
  double lambda = 0.0;
 
@@ -66,7 +66,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    filePrint(stderr," --------------------------------------\n");
    filePrint(stderr," ... Newton : Start Step #%d --- Lambda = %e\n",step, lambda);
 
-   StateUpdate::copyState(geomState, refState);
+   if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
    probDesc->updatePrescribedDisplacement(geomState, lambda);
 
 

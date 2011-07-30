@@ -2,8 +2,7 @@
 
 #include "SvdOrthogonalization.h"
 #include "VecNodeDof6Conversion.h"
-#include "BasisOutputFile.h"
-#include "BasisFileStream.h"
+#include "BasisBinaryFile.h"
 #include "NodeDof6Buffer.h"
 #include "FileNameInfo.h"
 
@@ -49,7 +48,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
 
   protected:
     FileNameInfo fileInfo_;
-    BasisOutputFile stateSnapFile_;
+    BasisBinaryOutputFile stateSnapFile_;
   };
 
   class SvdImpl : public RawImpl {
@@ -60,7 +59,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     explicit SvdImpl(Domain *);
 
   private:
-    void orthoAndSave(const std::deque<Vector> &, BasisOutputFile &);
+    void orthoAndSave(const std::deque<Vector> &, BasisBinaryOutputFile &);
 
     std::deque<Vector> stateSnapshot_;
 
@@ -134,7 +133,7 @@ SnapshotNonLinDynamicDetail::SvdImpl::postProcess() {
 }
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & snapshots, BasisOutputFile & out) {
+SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & snapshots, BasisBinaryOutputFile & out) {
   svdSolver_.matrixSizeIs(vectorSize(), snapshots.size());
   
   int col = 0;

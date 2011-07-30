@@ -1,8 +1,7 @@
 #ifndef ROM_BASISFILEITERATOR_H
 #define ROM_BASISFILEITERATOR_H
 
-#include "BasisInputFile.h"
-#include "BasisOutputFile.h"
+#include "BasisBinaryFile.h"
 #include "VecNodeDof6Conversion.h"
 
 #include "NodeDof6Buffer.h"
@@ -45,7 +44,7 @@ private:
   template <typename VectorBufferType>
   void performInput(std::pair<double, VectorBufferType> &);
 
-  BasisInputFile file_;
+  BasisBinaryInputFile file_;
   bool isValid_;
   const VecNodeDof6Conversion &converter_;
   NodeDof6Buffer buffer_;
@@ -144,7 +143,7 @@ private:
   template <typename VectorBufferType>
   const NodeDof6Buffer &convert(const VectorBufferType &);
 
-  BasisOutputFile file_;
+  BasisBinaryOutputFile file_;
   const VecNodeDof6Conversion &converter_;
 
   NodeDof6Buffer buffer_;

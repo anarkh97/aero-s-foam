@@ -4175,6 +4175,7 @@ GenSubDomain<Scalar>::deleteMPCs()
     delete [] mpc; mpc = 0;
   }
   if(localToGlobalMPC) { delete [] localToGlobalMPC; localToGlobalMPC = 0; }
+  deleteG();
   numMPC = 0;
   scomm->deleteTypeSpecificList(SComm::mpc);
 

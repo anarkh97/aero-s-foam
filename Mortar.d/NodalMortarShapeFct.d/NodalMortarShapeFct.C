@@ -421,7 +421,7 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
    }
  }
  if(MortarLMPC) MortarLMPC->id.second = SlaveLlToGlNodeMap[GetNodeId(0)];
- //if(MortarLMPC) MortarLMPC->normalize(); // TODO: consider
+ //if(MortarLMPC) MortarLMPC->normalize(); // TODO: reconsider
 
  return MortarLMPC;
 }

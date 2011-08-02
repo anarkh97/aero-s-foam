@@ -937,6 +937,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    } 
  
    if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
+     cerr << "ngrbms = " << ngrbms << endl;
      kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
      KccSolver->getNullSpace(kccrbms);
      if(this->fetiInfo->nullSpaceFilterTol > 0.0) {

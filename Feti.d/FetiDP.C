@@ -1052,7 +1052,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
       p.linC(1.0/nu, lambda, -1.0/nu, lambda_k); // reduced search direction p = (lambda-lambda_copy)/nu
       localSolveAndJump(p, dur, duc, Fp); // recompute Fp using reduced search direction
     }
-    r.linAdd(nu, Fp); // note: r += nu*Fp is not thread-safe
+    r.linAdd(nu, Fp); 
 
     if(i == 0 && !dualStatusChange) break; // CG step
     else { // gradient projection step

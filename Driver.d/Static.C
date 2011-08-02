@@ -79,7 +79,7 @@ Domain::initNodalTemperatures()
     for(i = 0; i < numDirichlet; ++i)
       if((1 << dbc[i].dofnum) == DofSet::Temp) {
         temprcvd[dbc[i].nnum] = dbc[i].val;
-        // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
+        //fprintf(stderr," Temp %f\n", temprcvd[dbc[i].nnum]);
       }
   }
 }

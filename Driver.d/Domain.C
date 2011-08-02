@@ -3152,6 +3152,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         switch(surface_dbc[i].type) {
+          default:
           case BCond::Displacements : {
             BCond *bc = new BCond[nNodes];
             for(int k=0; k<nNodes; ++k) { 

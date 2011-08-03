@@ -15,6 +15,7 @@ template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
 template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
+template <typename Scalar> class GenFullSquareMatrix;
 template <class Scalar> class GenSubDOp;
 typedef GenSubDOp<double> SubDOp;
 class Domain;
@@ -22,6 +23,11 @@ class Rbm;
 
 template <typename T> class SysState;
 template <typename T> class GenParallelSolver;
+
+class ControlLawInfo;
+class Corotator;
+class DistrInfo;
+class DistrGeomState;
 
 template<class Scalar>
 class GenMDDynamMat {
@@ -99,7 +105,7 @@ class MultiDomainDynam
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
 
-    FullSquareMatrix **kelArray;
+    GenFullSquareMatrix<double> **kelArray;
     Corotator ***allCorot;
     DistrGeomState *geomState;
     DistrVector *dprev;

@@ -2137,7 +2137,6 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
       elemForce[elemToNode->offset(iele) + k] = elForce[k];
   }
   delete [] nodeNumbers;
-  if(nodalTemperatures) delete [] nodalTemperatures;
 }
 
 template<class Scalar>
@@ -2230,7 +2229,6 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   }
 
   delete [] nodeNumbers;
-  if(nodalTemperatures) delete [] nodalTemperatures;
   delete elstress;
   delete elweight;
   delete elDisp;

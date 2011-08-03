@@ -1451,6 +1451,7 @@ Domain::addThermalForce(GenVector<Scalar> &force)
   if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
   Vector elementTemp(maxNumNodes);
   Vector elementThermalForce(maxNumDOFs);
+  if(!elemToNode) elemToNode = new Connectivity(&packedEset);
 
   for(int iele = 0; iele < numele;  ++iele) {
     // By convention phantom elements do not have thermal load

@@ -2179,7 +2179,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == NULL) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    //GtGtilda->setPrintNullity(false);
+    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG);

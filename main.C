@@ -577,11 +577,22 @@ int main(int argc, char** argv)
          if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
            domain->InitializeStaticContactSearch(MortarHandler::TIED);
            domain->PerformStaticContactSearch(MortarHandler::TIED);
-           domain->ExpComputeMortarLMPC(MortarHandler::TIED);
+           domain->ExpComputeMortarLMPC(MortarHandler::TIED); // TODO thermal and acoustic (see below)
            domain->CreateMortarToMPC();
          }
          else {
-           domain->ComputeMortarLMPC();
+           switch(domain->solInfo().soltyp) { // TODO: acoustic etc...
+             case 2 : { // thermal mortar
+               int dofs[1] = { 6 };
+               domain->ComputeMortarLMPC(1,dofs);
+               break;
+             } 
+             default :
+             case 1 :
+               int dofs[3] = { 0, 1, 2 };
+               domain->ComputeMortarLMPC(3, dofs);
+               break;
+           }
            domain->computeMatchingWetInterfaceLMPC();
            domain->CreateMortarToMPC();
          }

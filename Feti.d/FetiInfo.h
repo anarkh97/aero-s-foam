@@ -267,9 +267,9 @@ FetiInfo::FetiInfo()
   noCoarse    = 0;         // default use coarse problem
   precno      = dirichlet;    // default use lumped preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-  solvertype  = sparse;   // default use skyline subdomain solver
-  gtgSolver   = sparse;   // default use skyline GtG solver
-  auxCoarseSolver = sparse;
+  solvertype  = sparse;   // default use sparse subdomain solver
+  gtgSolver   = sparse;   // default use sparse GtG solver for FETI1
+  auxCoarseSolver = skyline; // use skyline GtG solver for FETI-DPC
   cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;

@@ -247,16 +247,19 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data()));
 
  // zero rotational degrees of freedom within element mass matrices
- int *dofType = dsa->makeDofTypeArray();
+ // TODO this should be done before mel is added to Msolver for initial acceleration calculation
+ if(sinfo.zeroRot) {
+   int *dofType = dsa->makeDofTypeArray();
 
- int i,j;
- for(iele=0; iele<numele; ++iele) {
-   for(i=0; i<mArray[iele].dim(); ++i)
-     for(j=0; j<mArray[iele].dim(); ++j)
-        if( dofType[ (*allDOFs)[iele][i] ] == 1 ||
-            dofType[ (*allDOFs)[iele][j] ] == 1) {
-           mArray[iele][i][j] = 0.0;
-        }
+   int i,j;
+   for(iele=0; iele<numele; ++iele) {
+     for(i=0; i<mArray[iele].dim(); ++i)
+       for(j=0; j<mArray[iele].dim(); ++j)
+          if( dofType[ (*allDOFs)[iele][i] ] == 1 ||
+              dofType[ (*allDOFs)[iele][j] ] == 1) {
+             mArray[iele][i][j] = 0.0;
+          }
+   }
  }
 
 }
@@ -298,17 +301,18 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  }
 
  // zero rotational degrees of freedom within element mass matrices and damping matrices
- int *dofType = dsa->makeDofTypeArray();
- for(iele=0; iele<numele; ++iele) {
-   for(i=0; i<mArray[iele].dim(); ++i)
-     for(j=0; j<mArray[iele].dim(); ++j)
-        if( dofType[ (*allDOFs)[iele][i] ] == 1 ||
-            dofType[ (*allDOFs)[iele][j] ] == 1) {
-           mArray[iele][i][j] = 0.0;
-           cArray[iele][i][j] = 0.0;
-        }
+ if(sinfo.zeroRot) {
+   int *dofType = dsa->makeDofTypeArray();
+   for(iele=0; iele<numele; ++iele) {
+     for(i=0; i<mArray[iele].dim(); ++i)
+       for(j=0; j<mArray[iele].dim(); ++j)
+          if( dofType[ (*allDOFs)[iele][i] ] == 1 ||
+              dofType[ (*allDOFs)[iele][j] ] == 1) {
+             mArray[iele][i][j] = 0.0;
+             cArray[iele][i][j] = 0.0;
+         }
+   } 
  }
-
 }
 
 void

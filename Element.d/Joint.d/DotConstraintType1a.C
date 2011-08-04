@@ -5,28 +5,32 @@
 DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2)
  : MpcElement(2, DofSet::XYZrot, _nn)
 {
-  elemframe = 0;
+  c0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
-  t = 0;
+}
+
+DotConstraintType1a::~DotConstraintType1a()
+{
+  if(c0) delete [] c0;
 }
 
 void
-DotConstraintType1a::setFrame(EFrame *_elemframe) 
+DotConstraintType1a::setFrame(EFrame *elemframe) 
 { 
-  elemframe = _elemframe; 
+  c0 = new double[3][3];
+  for(int i = 0; i < 3; ++i)
+    for(int j = 0; j < 3; ++j) 
+      c0[i][j] = (*elemframe)[i][j];  
 }
 
 void 
 DotConstraintType1a::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
-  if(elemframe) {
-    for(int i = 0; i < 3; ++i) 
-      for(int j = 0; j < 3; ++j) 
-        c0[i][j] = (*elemframe)[i][j];
-  }
-  else {
+  if(!c0) {
+    c0 = new double[3][3];
+
     Node &nd1 = cs.getNode(nn[0]);
     Node &nd2 = cs.getNode(nn[1]);
 
@@ -82,12 +86,6 @@ DotConstraintType1a::buildFrame(CoordSet& cs)
                 -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
 }
 
-int 
-DotConstraintType1a::getTopNumber() 
-{ 
-  return 106; 
-}
-
 void 
 DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
 {
@@ -121,7 +119,7 @@ DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
 
   // -ve value of constraint function
   rhs.r_value = std::cos(prop->amplitude*std::sin(prop->omega*t + prop->phase)-M_PI/2)
-                - (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
+                -(c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
 }
 
 void

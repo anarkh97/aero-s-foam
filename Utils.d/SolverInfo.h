@@ -223,6 +223,7 @@ struct SolverInfo {
                      //            false --> a^0 = 0
                      // heat: true --> compute consistent initial first time derivative ie, v^0 = M^{-1}(fext^0 - fint^0) for a first order differential equation (ie heat)
                      //       false --> v^0 = 0
+   bool zeroRot;
 
    int dist_acme; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                   // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
@@ -405,6 +406,7 @@ struct SolverInfo {
                   maxvecsize = 0; 
 
                   iacc_switch = true;
+                  zeroRot = true;
 
                   dist_acme = 0;
                   allproc_acme = true;

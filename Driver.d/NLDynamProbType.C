@@ -201,17 +201,19 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              acceleration, midtime);
 
       // Assemble global tangent stiffness
-      probDesc->reBuild(*geomState, iter);
+      //probDesc->reBuild(*geomState, iter);
 
       // Compute incremental displacements
-      geomState->get_inc_displacement(inc_displac, *stepState);
+      geomState->get_inc_displacement(inc_displac, *stepState, domain->solInfo().zeroRot);
 
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
-      resN = probDesc->getResidualNorm(rhs); // addMpcForces called
 
-      //filePrint(stderr,"2 NORMS: fext*fext %e %e residual*residual %e\n", external_force*external_force, resN*resN);
+      //filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
+
+      // Assemble global tangent stiffness
+      probDesc->reBuild(*geomState, iter);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
@@ -242,10 +244,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
     probDesc->updateStates(refState, *geomState);
-
-    // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
-    if(domain->solInfo().order != 1)
-      acceleration.linC(-(1-gamma)/gamma, acceleration, -1/(2*delta*gamma), v_p, 1/(2*delta*gamma), velocity_n);
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();

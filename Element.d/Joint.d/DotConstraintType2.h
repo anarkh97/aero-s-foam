@@ -5,17 +5,16 @@
 
 class DotConstraintType2 : public MpcElement
 {
-    EFrame *elemframe;
+    double (*c0)[3]; // initial frame (axes stored row-wise)
     int axis;
-    double c0[3][3]; // initial frame (axes stored row-wise)
+
   public:
     DotConstraintType2(int*, int);
+    ~DotConstraintType2();
+    void setFrame(EFrame *);
     void buildFrame(CoordSet&);
-    int getTopNumber();
     void update(GeomState& gState, CoordSet& cs, double);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
-    void setFrame(EFrame *);
-    const EFrame *getFrame() const { return &c0; }
 };
 
 #endif

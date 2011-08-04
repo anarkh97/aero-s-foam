@@ -830,6 +830,8 @@ DynamInfo:
         { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
+        | DynamInfo ZERO SWITCH NewLine
+        { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
 	;

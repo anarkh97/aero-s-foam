@@ -1,7 +1,6 @@
 #include <Corotational.d/utilities.h>
 #include <cmath>
 
-
 void vec_to_mat( double rvec[3], double rten[3][3] )
 
 /*****************************************************************
@@ -16,6 +15,7 @@ void vec_to_mat( double rvec[3], double rten[3][3] )
  *  Coded by Bjorn Haugen
  *****************************************************************/
 {
+
    double q[4];
 
    vec_to_quat( rvec, q );

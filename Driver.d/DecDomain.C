@@ -397,7 +397,7 @@ GenDecDomain<Scalar>::preProcessMPCs()
 #endif
   if(domain->solInfo().fetiInfo.bmpc) addBMPCs();
   if(domain->getNumLMPC() > 0) {
-    if(verboseFlag) filePrint(stderr, " ... Applying the Multi-Point Constraints");
+    if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
     // check for mpcs involving bad nodes and constrained DOFs
     if(nodeToSub) domain->checkLMPCs(nodeToSub);
     // select which mpcs are to be included in the coarse problem
@@ -411,7 +411,6 @@ GenDecDomain<Scalar>::preProcessMPCs()
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::locateMpcDofs);
     // make mpcToMpc connectivity
     makeMpcToMpc(); // this should be in the Feti-DP constructor
-    if(verboseFlag) filePrint(stderr, " ...\n");
   }
   else domain->solInfo().getFetiInfo().mpcflag = 0;
 }

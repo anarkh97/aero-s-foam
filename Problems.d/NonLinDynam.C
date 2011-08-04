@@ -714,7 +714,8 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linAdd(dt*dt*beta, residual);
   }
   times->correctorTime += getTime();
-  return rhs.norm();
+  resN = getResidualNorm(rhs);
+  return resN;
 }
 
 void

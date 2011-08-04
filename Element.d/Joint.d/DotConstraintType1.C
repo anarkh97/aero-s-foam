@@ -5,27 +5,32 @@
 DotConstraintType1::DotConstraintType1(int* _nn, int _axis1, int _axis2)
  : MpcElement(2, DofSet::XYZrot, _nn)
 {
-  elemframe = 0;
+  c0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
 }
 
+DotConstraintType1::~DotConstraintType1()
+{
+  if(c0) delete [] c0;
+}
+
 void
-DotConstraintType1::setFrame(EFrame *_elemframe) 
+DotConstraintType1::setFrame(EFrame *elemframe) 
 { 
-  elemframe = _elemframe; 
+  c0 = new double[3][3];
+  for(int i = 0; i < 3; ++i)
+    for(int j = 0; j < 3; ++j) 
+      c0[i][j] = (*elemframe)[i][j]; 
 }
 
 void 
 DotConstraintType1::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
-  if(elemframe) {
-    for(int i = 0; i < 3; ++i) 
-      for(int j = 0; j < 3; ++j) 
-        c0[i][j] = (*elemframe)[i][j];
-  }
-  else {
+  if(!c0) {
+    c0 = new double[3][3];
+
     Node &nd1 = cs.getNode(nn[0]);
     Node &nd2 = cs.getNode(nn[1]);
 
@@ -33,7 +38,7 @@ DotConstraintType1::buildFrame(CoordSet& cs)
     double dy = nd2.y - nd1.y;
     double dz = nd2.z - nd1.z;
 
-    double l0 = sqrt( dx*dx + dy*dy + dz*dz );
+    double l0 = std::sqrt( dx*dx + dy*dy + dz*dz );
 
     if(l0 == 0.0) {
       cerr << " *** ERROR: division by zero in DotConstraintType1::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
@@ -44,8 +49,8 @@ DotConstraintType1::buildFrame(CoordSet& cs)
     c0[0][1] = dy/l0;
     c0[0][2] = dz/l0;
 
-    double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
-    double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
+    double N1 = std::sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
+    double N2 = std::sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
 
     if (N1 > N2) {
       c0[1][0] = -c0[0][1]/N1;
@@ -78,12 +83,6 @@ DotConstraintType1::buildFrame(CoordSet& cs)
 
   // -ve value of constraint function
   rhs.r_value = -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
-}
-
-int 
-DotConstraintType1::getTopNumber() 
-{ 
-  return 106; 
 }
 
 void 

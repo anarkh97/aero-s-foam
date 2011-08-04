@@ -136,9 +136,8 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
     rhs.linAdd(dt*dt*beta, residual);
   }
 
-  double resN = sqrt(solver->getFNormSq(rhs));
   times->correctorTime += getTime();
-  return resN;
+  return getResidualNorm(rhs);
 }
 
 void

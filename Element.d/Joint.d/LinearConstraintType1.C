@@ -23,12 +23,6 @@ LinearConstraintType1::buildFrame(CoordSet& cs)
   rhs.r_value = -(v[0] - v[1]);
 }
 
-int 
-LinearConstraintType1::getTopNumber() 
-{ 
-  return 106; 
-}
-
 void 
 LinearConstraintType1::update(GeomState& gState, CoordSet& cs, double)
 {
@@ -47,6 +41,6 @@ LinearConstraintType1::update(GeomState& gState, CoordSet& cs, double)
     }
   }
 
-  rhs.r_value = v[0] - v[1];
+  rhs.r_value = -(v[0] - v[1]);
 }
 

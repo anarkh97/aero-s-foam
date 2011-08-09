@@ -75,6 +75,8 @@ private:
 
   /* PITA-specific output */
   bool jumpMagnOutput_;
+
+  class BasisSizeReactor;
 };
 
 } /* namespace Std */ } /* end namespace Pita */

@@ -1,4 +1,5 @@
 ADD_LIBRARY( Rom
+  BasisBinaryFile.C
   BasisId.C
   BasisFileStream.C
   BasisInputFile.C

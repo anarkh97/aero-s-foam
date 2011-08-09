@@ -48,6 +48,29 @@
 
 namespace Pita { namespace Std {
 
+class ReducedLinearDriverImpl::BasisSizeReactor : public LinearProjectionNetwork::NotifieeConst {
+public:
+  EXPORT_PTRINTERFACE_TYPES(BasisSizeReactor);
+
+  virtual void onProjectionOperators();
+
+  BasisSizeReactor(const LinearProjectionNetwork * notifier, RemoteState::MpiManager * target);
+
+private:
+  RemoteState::MpiManager::Ptr target_;
+};
+
+ReducedLinearDriverImpl::BasisSizeReactor::BasisSizeReactor(const LinearProjectionNetwork * notifier,
+                                                            RemoteState::MpiManager * target) :
+  LinearProjectionNetwork::NotifieeConst(notifier),
+  target_(target)
+{}
+
+void
+ReducedLinearDriverImpl::BasisSizeReactor::onProjectionOperators() {
+  target_->reducedStateSizeIs(notifier()->reducedBasisSize());
+}
+
 ReducedLinearDriverImpl::ReducedLinearDriverImpl(SingleDomainDynamic * pbDesc,
                                                  GeoSource * geoSource,
                                                  Domain * domain,
@@ -183,8 +206,9 @@ ReducedLinearDriverImpl::solveParallel(Communicator * timeComm, Communicator * c
       fineIntegrator.ptr(), postProcessingMgr.ptr(), collector.ptr(),
       sliceRatio_, initialTime_, constTermStatus);
 
-  // Point-to-point communication
+  // MPI-based point-to-point communication
   RemoteState::MpiManager::Ptr commMgr = RemoteState::MpiManager::New(timeComm, vectorSize_);
+  BasisSizeReactor::PtrConst basisSizeReactor = new BasisSizeReactor(projectionMgr.ptr(), commMgr.ptr());
 
   // Jump-based convergence policy
   JumpConvergenceEvaluator::Ptr jumpCvgEval;

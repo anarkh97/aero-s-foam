@@ -400,7 +400,7 @@ void FlExchanger::sendEmbeddedWetSurface()
   bool    renumbered = surface->IsRenumbered();
 
   // data preparation
-  int    buf[2] = {nNodes, nElems};
+  int    buf[4] = {3/*triangular elements*/, 0/*no cracking*/, nNodes, nElems};
   double nodes[3*nNodes];
   int    elems[3*nElems];
   for(int i=0; i<nNodes; i++) {
@@ -425,7 +425,7 @@ void FlExchanger::sendEmbeddedWetSurface()
     }
 
   // send the package sizes
-  fluidCom->sendTo(0, 555/*tag*/, buf, 2);
+  fluidCom->sendTo(0, 555/*tag*/, buf, 4);
   fluidCom->waitForAllReq();
 
   // send the node set

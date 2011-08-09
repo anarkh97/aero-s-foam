@@ -2,6 +2,8 @@
 #include "../NearSymmetricSolver.h"
 #include "../DynamStateOps.h"
 
+#include <cassert>
+
 namespace Pita { namespace Hts {
 
 NlProjectionNetwork::NlProjectionNetwork(GlobalStateSharing * sharing,
@@ -59,6 +61,9 @@ DynamStateReductor *
 ReductorManager::instance(const HalfSliceRank & key) const {
   DynamStatePlainBasis::Ptr basis = basisMgr_->instance(keyToKey(key));
   RankDeficientSolver::Ptr solver = solverMgr_->instance(keyToKey(key));
+  
+  assert(basis);
+  assert(solver);
 
   return new DynamStateReductor(basis.ptr(), solver.ptr());
 }
@@ -70,9 +75,17 @@ ReductorManager::instanceCount() const {
 
 DynamStateReductor *
 ReductorManager::instanceNew(const HalfSliceRank & key) {
+  HalfSliceId id = keyToKey(key);
 
-  DynamStatePlainBasis::Ptr basis = basisMgr_->instanceNew(keyToKey(key));
-  RankDeficientSolver::Ptr solver = solverMgr_->instanceNew(keyToKey(key));
+  DynamStatePlainBasis::Ptr basis = basisMgr_->instance(id);
+  if (!basis) {
+    basis = basisMgr_->instanceNew(id);
+  }
+
+  RankDeficientSolver::Ptr solver = solverMgr_->instance(id);
+  if (!solver) {
+    solver = solverMgr_->instanceNew(id);
+  }
 
   return new DynamStateReductor(basis.ptr(), solver.ptr());
 }
@@ -96,7 +109,13 @@ ReconstructorManager::instanceCount() const {
 
 DynamStateReconstructor *
 ReconstructorManager::instanceNew(const HalfSliceRank & key) {
-  DynamStatePlainBasis::Ptr basis = basisMgr_->instanceNew(keyToKey(key));
+  HalfSliceId id = keyToKey(key);
+
+  DynamStatePlainBasis::Ptr basis = basisMgr_->instance(id);
+  if (!basis) {
+    basis =  basisMgr_->instanceNew(id);
+  }
+
   return new DynamStateReconstructor(basis.ptr());
 }
 

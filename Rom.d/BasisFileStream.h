@@ -1,8 +1,7 @@
 #ifndef ROM_BASISFILEITERATOR_H
 #define ROM_BASISFILEITERATOR_H
 
-#include "BasisInputFile.h"
-#include "BasisOutputFile.h"
+#include "BasisBinaryFile.h"
 #include "VecNodeDof6Conversion.h"
 
 #include "NodeDof6Buffer.h"
@@ -37,36 +36,58 @@ public:
   friend BasisInputStream &operator>>(BasisInputStream &, std::pair<double, VectorBufferType> &);
   
 private:
-  template <typename VectorBufferType>
-  void performInput(VectorBufferType &);
-  
+  template <typename VectorBufferType> void performInput(VectorBufferType &);
+  template <typename VectorBufferType> void performUncheckedInput(VectorBufferType &);
+ 
+  void checkInput();
+
   template <typename VectorBufferType>
   void performInput(std::pair<double, VectorBufferType> &);
 
-  BasisInputFile file_;
+  BasisBinaryInputFile file_;
+  bool isValid_;
   const VecNodeDof6Conversion &converter_;
   NodeDof6Buffer buffer_;
 };
 
 inline
 BasisInputStream::operator const void*() const {
-  return file_.validCurrentState() ? this : NULL;
+  return isValid_ ? this : NULL;
+}
+
+inline
+void
+BasisInputStream::checkInput() {
+  isValid_ = file_.validCurrentState();
+}
+
+template <typename VectorBufferType>
+inline
+void
+BasisInputStream::performUncheckedInput(VectorBufferType &target) {
+  converter_.vector(file_.currentStateBuffer(buffer_), target);
+  file_.currentStateIndexInc();
 }
 
 template <typename VectorBufferType>
 inline
 void
 BasisInputStream::performInput(VectorBufferType &target) {
-  converter_.vector(file_.currentStateBuffer(buffer_), target);
-  file_.currentStateIndexInc();
+  checkInput();
+  if (isValid_) {
+    performUncheckedInput(target);
+  }
 }
  
 template <typename VectorBufferType>
 inline
 void
 BasisInputStream::performInput(std::pair<double, VectorBufferType> &target) {
-  target.first = file_.currentStateHeaderValue();
-  performInput(target.second);
+  checkInput();
+  if (isValid_) {
+    target.first = file_.currentStateHeaderValue();
+    performUncheckedInput(target.second);
+  }
 }
 
 // Input operations
@@ -96,8 +117,8 @@ template <typename FwdIter>
 BasisInputStream &
 readVectors(BasisInputStream &in, FwdIter first, FwdIter last) {
   FwdIter it = first;
-  while (it != last && in) {
-    in >> *it++;
+  while (it != last && in >> *it++) {
+    // Nothing to do
   }
   return in;
 }
@@ -122,7 +143,7 @@ private:
   template <typename VectorBufferType>
   const NodeDof6Buffer &convert(const VectorBufferType &);
 
-  BasisOutputFile file_;
+  BasisBinaryOutputFile file_;
   const VecNodeDof6Conversion &converter_;
 
   NodeDof6Buffer buffer_;

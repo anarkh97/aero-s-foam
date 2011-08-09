@@ -12,7 +12,7 @@
 #include "../UserProvidedSeedInitializer.h"
 
 #include "../RemoteStateMpiImpl.h"
-#include "NlBasisUpdate.h"
+#include "GlobalStateSharing.h"
 
 #include "JumpConvergenceEvaluator.h"
 #include "../SeedDifferenceEvaluator.h"
@@ -165,7 +165,7 @@ NlDriver::solveParallel() {
   const GlobalStateSharing::Strategy globalUpdateStrategy(
       enrichmentTypes + (globalBasisEnrichment_ == 2),
       enrichmentTypes + 1 + 2 * (globalBasisEnrichment_ >= 2)); 
-  NlBasisUpdate::Ptr basisUpdateMgr = NlBasisUpdate::New(baseComm(), vectorSize_, globalUpdateStrategy);
+  GlobalStateSharing::Ptr basisUpdateMgr = new GlobalStateSharing(baseComm(), vectorSize_, globalUpdateStrategy);
 
   // Execute the algorithm 
   NlTaskManager::Ptr taskManager = new NlTaskManager(mapping_.ptr(), commMgr.ptr(),

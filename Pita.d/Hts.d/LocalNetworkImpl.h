@@ -26,78 +26,6 @@ namespace Pita { namespace Hts {
 
 namespace LocalNetworkImpl {
 
-/* Task activity range */
-class ActivationRange {
-public:
-  HalfSliceRank baseSlice() const { return baseSlice_; }
-  HalfSliceCount extent() const { return extent_; }
-  HalfSliceRank extentSlice() const { return baseSlice() + extent(); }
-
-  // Implicit conversion from HalfSliceRank
-  ActivationRange(HalfSliceRank baseSlice, HalfSliceCount extent = HalfSliceCount(0)) :
-    baseSlice_(baseSlice), extent_(extent)
-  {}
-
-  struct Comparator;
-  class Inclusion;
-private:
-  HalfSliceRank baseSlice_;
-  HalfSliceCount extent_;
-};
-
-// Complete ordering
-inline
-bool
-activatedBefore(const ActivationRange & a, const ActivationRange & b) {
-  return (a.baseSlice() == b.baseSlice()) ? (a.extent() < b.extent()) : (a.baseSlice() < b.baseSlice());  
-}
-
-struct ActivationRange::Comparator : public std::binary_function<ActivationRange, ActivationRange, bool> {
-  bool operator()(const ActivationRange & a, const ActivationRange & b) const {
-    return activatedBefore(a, b);
-  }
-};
-
-// Activation check
-inline
-bool
-includedIn(HalfSliceRank slice, const ActivationRange & b) {
-  return (slice <= b.baseSlice() && slice >= b.extentSlice()) || (slice >= b.baseSlice() && slice <= b.extentSlice());
-}
-
-inline
-bool
-includedIn(const ActivationRange & a, const ActivationRange & inRange) {
-  return includedIn(a.baseSlice(), inRange) && includedIn(a.extentSlice(), inRange);
-}
-
-class ActivationRange::Inclusion : public std::unary_function<ActivationRange, bool> {
-public:
-  bool operator()(const ActivationRange & a) const {
-    return includedIn(a, inRange_);
-  }
-
-  explicit Inclusion(const ActivationRange & inRange) :
-    inRange_(inRange)
-  {}
-
-private:
-  ActivationRange inRange_;
-};
-
-/*inline
-bool
-isEven(HalfSliceCount a) {
-  return a.value() % 2 == 0;
-}
-
-inline
-bool
-activeIn(const ActivationRange & a, const ActivationRange & b) {
-  return includedIn(a, b) && isEven(a.baseSlice() - b.baseSlice());
-}*/
-
-
 /* Seed getter functors */
 
 template <typename S>
@@ -113,7 +41,6 @@ public:
   SharedState<S> * operator()(const SeedId & id);
   SharedState<S> * operator()(const SeedId & id) const;
 
-protected:
   StateManager * stateMgr() { return stateMgr_.ptr(); }
   const StateManager * stateMgr() const { return stateMgr_.ptr(); }
 
@@ -438,20 +365,6 @@ CorrectionPropagatorBuilder<S>::buildCorrectionSyncSend(
       synchronization.insert(synchronization.end(), std::make_pair(sliceRank + HalfSliceCount(2), task));
     }
   }
-}
-
-template <typename Key, typename Value, typename Comparator>
-std::deque<Value>
-mapToDeque(const std::map<Key, Value, Comparator> & m) {
-  std::deque<Value> result;
-
-  typedef typename std::map<Key, Value, Comparator>::const_iterator MapIt;
-  MapIt it_end = m.end();
-  for (MapIt it = m.begin(); it != it_end; ++it) {
-    result.push_back(it->second);
-  }
-
-  return result;
 }
 
 } /* end namespace LocalNetworkImpl */

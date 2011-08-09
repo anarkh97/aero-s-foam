@@ -4,13 +4,11 @@ namespace Pita { namespace Hts {
 
 void
 CorrectionReconstructor::iterationIs(IterationRank ir) {
-  //if (correction()->iteration() < correctionComponents()->iteration()) {
-    if (correctionComponents()->status() != Seed::INACTIVE) {
-      correction()->stateIs(reconstructor_->result(correctionComponents()->state()));
-    }
-    correction()->statusIs(correctionComponents()->status());
-    correction()->iterationIs(correctionComponents()->iteration());
-  //}
+  if (correctionComponents()->status() != Seed::INACTIVE) {
+    correction()->stateIs(reconstructor_->result(correctionComponents()->state()));
+  }
+  correction()->statusIs(correctionComponents()->status());
+  correction()->iterationIs(correctionComponents()->iteration());
 }
 
 CorrectionReconstructor::Manager::Manager(OperatorManager * reconstructorManager) :

@@ -11,7 +11,6 @@
 #include <Comm.d/Communicator.h>
 
 #include "SliceMapping.h"
-#include "NlLocalNetwork.h"
 
 #include "../PostProcessingManager.h"
 

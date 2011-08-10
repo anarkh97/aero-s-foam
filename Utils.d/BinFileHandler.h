@@ -71,8 +71,8 @@ template <class Scalar>
 void BinFileHandler::read(Scalar *p, int nobjs)
 {
 
-  if (file) int ret = fread(p, sizeof(Scalar), nobjs, file);
-  else int ret = ::read(fileid, p, nobjs*sizeof(Scalar));
+  if (file) fread(p, sizeof(Scalar), nobjs, file);
+  else ::read(fileid, p, nobjs*sizeof(Scalar));
 
   cpos += nobjs*sizeof(Scalar);
 
@@ -89,7 +89,7 @@ void BinFileHandler::write(Scalar *p, int nobjs)
   if (swapBytes) swapVector(p, nobjs);
 
   if (file) fwrite(p, sizeof(Scalar), nobjs, file);
-  else int ret = ::write(fileid, p, nobjs*sizeof(Scalar)); 
+  else ::write(fileid, p, nobjs*sizeof(Scalar)); 
 
   cpos += nobjs*sizeof(Scalar);
 
@@ -140,7 +140,7 @@ inline
 BinFileHandler::OffType BinFileHandler::tell() 
 { 
 
-  int pos;
+  OffType pos;
 
   if (file) 
     pos = ftell(file);

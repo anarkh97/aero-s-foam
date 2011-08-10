@@ -327,8 +327,8 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
     outfile.precision(oinfo[fileNumber].precision);
 
     long timeOffset = headLen[fileNumber]  // header including endl
-                      + (numRes-1)*(3 + oinfo[fileNumber].width + 1) 
-                      + (numRes-1)*(totData*(2+oinfo[fileNumber].width)+nElem);
+                      + long(numRes-1)*(3 + oinfo[fileNumber].width + 1) 
+                      + long(numRes-1)*(long(totData)*(2+oinfo[fileNumber].width)+nElem);
 
     outfile.setf(ios_base::showpoint | ios_base::right | ios_base::scientific | ios_base::uppercase);
     if(glSub == 0) { // if first subdomain in cluster, write time
@@ -345,7 +345,7 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
     int k = 0;
     for(int i=0; i<numData/numNodesPerElem; ++i) {
       int glElem = glElemNums[i]; 
-      long totalOffset = timeOffset + glElem*((2+oinfo[fileNumber].width)*numNodesPerElem + 1);
+      long totalOffset = timeOffset + long(glElem)*((2+oinfo[fileNumber].width)*numNodesPerElem + 1);
       outfile.seekp(totalOffset);
       for(int j=0; j<numNodesPerElem; ++j) { outfile.width(2+oinfo[fileNumber].width); outfile << data[k++]; }
       outfile << endl;

@@ -8,12 +8,14 @@
 
 #include "../InitialSeedTask.h"
 
+#include "NlLocalNetwork.h"
+
 namespace Pita { namespace Hts {
 
 NlTaskManager::NlTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
                              NlPropagatorManager * propagatorMgr,
                              SeedInitializer * seedInitializer,
-                             NlBasisUpdate * basisUpdateMgr,
+                             GlobalStateSharing * basisUpdateMgr,
                              PostProcessing::Manager * postProcessingMgr,
                              JumpConvergenceEvaluator * jumpCvgMgr, NonLinSeedDifferenceEvaluator::Manager * jumpEvaluatorMgr,
                              double projectorTolerance, IterationRank lastIteration) :
@@ -41,7 +43,7 @@ void
 NlTaskManager::iterationInc() {
   setIteration(iteration().next());
   if (iteration() < lastIteration_) {
-    basisUpdateMgr_->globalUpdate()->mappingIs(*mapping_);
+    basisUpdateMgr_->mappingIs(*mapping_);
   }
   scheduleConvergence();
 }
@@ -60,7 +62,7 @@ void
 NlTaskManager::initialize() {
   // Projection (global data sharing)
   NlDynamOps::Ptr dynOps = propagatorMgr_->dynamOpsNew();
-  projectionNetwork_ = new NlProjectionNetwork(basisUpdateMgr_->globalUpdate(), dynOps.ptr(), commMgr_->vectorSize(), projectorTolerance_);
+  projectionNetwork_ = new NlProjectionNetwork(basisUpdateMgr_.ptr(), dynOps.ptr(), commMgr_->vectorSize(), projectorTolerance_);
 
   // Parallel time-integration
   propagatorMgr_->postProcessingManagerIs(postProcessingMgr_.ptr());
@@ -77,11 +79,9 @@ NlTaskManager::initialize() {
                                      projectionNetwork_->projBuildMgr(),
                                      jumpCvgMgr_.ptr(),
                                      jumpEvaluatorMgr_.ptr());
-  localNetwork_->statusIs(LocalNetwork::ACTIVE);
 
-  basisUpdateMgr_->globalUpdate()->seedGetterIs(localNetwork_->fullSeedGetter());
+  basisUpdateMgr_->seedMgrIs(localNetwork_->seedManager());
 }
-
 
 void
 NlTaskManager::scheduleNothing() {
@@ -93,7 +93,7 @@ void
 NlTaskManager::scheduleInitialSeed() {
   TaskList initialSeedInformation;
 
-  typedef LocalNetwork::MainSeedMap MainSeedMap;
+  typedef NlLocalNetwork::MainSeedMap MainSeedMap;
   MainSeedMap primalSeeds = localNetwork_->activeSeeds();
   for (MainSeedMap::iterator it = primalSeeds.begin(); it != primalSeeds.end(); ++it) {
     Seed::Ptr targetSeed = it->second;
@@ -118,24 +118,20 @@ NlTaskManager::fillFirstProjectionBasis() {
 
 void
 NlTaskManager::scheduleProjectionBasisCondensation() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeCondensations();
-  setPhase(phaseNew("Projection Basis Condensation", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Projection Basis Condensation", localNetwork_->activeCondensations()));
   setContinuation(&NlTaskManager::scheduleFinePropagation);
 }
 
 void
 NlTaskManager::scheduleFinePropagation() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeFinePropagators();
-  setPhase(phaseNew("Parallel Fine Propagation", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Parallel Fine Propagation", localNetwork_->activeFinePropagators()));
   setContinuation(&NlTaskManager::schedulePropagatedSeedSynchronization);
 }
 
 void
 NlTaskManager::scheduleDataSharing() {
-  TaskList dataSharing;
   if (iteration() < lastIteration_) {
-    dataSharing.push_back(basisUpdateMgr_->globalUpdate());
-    setPhase(phaseNew("Data Sharing", dataSharing));
+    setPhase(phaseNew("Data Sharing", basisUpdateMgr_));
     setContinuation(&NlTaskManager::enrichProjectionBasis);
   } else {
     projectionNetwork_->sharedProjectionBasis()->stateBasisDel();
@@ -145,9 +141,7 @@ NlTaskManager::scheduleDataSharing() {
 
 void
 NlTaskManager::scheduleConvergence() {
-  TaskList convergence;
-  convergence.push_back(jumpCvgMgr_);
-  setPhase(phaseNew("Convergence", convergence));
+  setPhase(phaseNew("Convergence", jumpCvgMgr_));
   setContinuation(&NlTaskManager::applyConvergence);
 }
 
@@ -159,42 +153,37 @@ NlTaskManager::applyConvergence() {
 
 void
 NlTaskManager::schedulePropagatedSeedSynchronization() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activePropagatedSeedSyncs();
-  setPhase(phaseNew("Propagated Seed Synchronization", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Propagated Seed Synchronization", localNetwork_->activePropagatedSeedSyncs()));
   setContinuation(&NlTaskManager::scheduleJumpEvaluation);
 }
 
 void
 NlTaskManager::scheduleJumpEvaluation() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeJumpBuilders();
-  setPhase(phaseNew("Jump Evaluation", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Jump Evaluation", localNetwork_->activeJumpBuilders()));
   setContinuation(&NlTaskManager::scheduleNothing);
 }
 
 void
 NlTaskManager::scheduleProjectionBuilding() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeProjectionBuilders();
-  setPhase(phaseNew("Projection Building", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Projection Building", localNetwork_->activeProjectionBuilders()));
   setContinuation(&NlTaskManager::scheduleCorrectionPropagation);
 }
 
 void
 NlTaskManager::scheduleCorrectionPropagation() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeCorrectionPropagators();
-  setPhase(phaseNew("Correction Propagation", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Correction Propagation", localNetwork_->activeCorrectionPropagators()));
   setContinuation(&NlTaskManager::scheduleSeedUpdate);
 }
 
 void
 NlTaskManager::scheduleSeedUpdate() {
-  LocalNetwork::TaskList oldStyleList = localNetwork_->activeSeedUpdaters();
-  setPhase(phaseNew("Seed Update", TaskList(oldStyleList.begin(), oldStyleList.end())));
+  setPhase(phaseNew("Seed Update", localNetwork_->activeSeedUpdaters()));
   setContinuation(&NlTaskManager::scheduleDataSharing);
 }
 
 void
 NlTaskManager::enrichProjectionBasis() {
-  projectionNetwork_->sharedProjectionBasis()->firstStateBasisIs(basisUpdateMgr_->globalUpdate()->consolidatedBasis());
+  projectionNetwork_->sharedProjectionBasis()->firstStateBasisIs(basisUpdateMgr_->consolidatedBasis());
   scheduleProjectionBasisCondensation();
 }
 

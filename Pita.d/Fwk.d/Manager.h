@@ -23,32 +23,6 @@ public:
   // Mutators
   virtual PtrT instanceNew(const K & key) = 0;
   virtual void instanceDel(const K & key) = 0;
-
-  // Notification support
-  /*class NotifieeConst : public BaseNotifiee<const GenManagerInterface, NotifieeConst> {
-  public:
-    typedef Fwk::Ptr<NotifieeConst> Ptr;
-    typedef Fwk::Ptr<const NotifieeConst> PtrConst;
-
-    virtual void onInstanceNew(const K & key) {}
-    virtual void onInstanceDel(const K & key) {}
-
-  protected:
-    explicit NotifieeConst(const GenManagerInterface<PtrT, K> * notifier) :
-      BaseNotifiee<const GenManagerInterface<PtrT, K> >(notifier)
-    {}
-  };
-
-  NotifieeConst * lastNotifiee() const { return notifiee_; }
-  virtual void lastNotifieeIs(NotifieeConst * n) { setNotifiee(n); }
-
-protected:
-  GenManagerInterface() : notifiee_() {}
-
-  void setNotifiee(NotifieeConst * n) { notifiee_ = n; }
-
-private:
-  NotifieeConst * notifiee_;*/
 };
 
 template <typename PtrT, typename K, typename Base>
@@ -76,18 +50,7 @@ public:
   typedef typename InstanceMap::const_iterator IteratorConst;
   typedef typename InstanceMap::iterator Iterator;
   typedef typename InstanceMap::value_type Pair;
-
-  /*class IteratorConst {
-  public:
-    const Pair & operator*() const { return *it_; }
-    const Pair * operator->() const { return it_.operator->(); }
-    IteratorConst & operator++() { ++it_; return *this; }
-    IteratorConst operator++(int) { IteratorConst tmp(*this); ++(*this); return tmp; }
-
-  private:
-    typename InstanceMap::const_iterator it_;
-  };*/
-
+  
   T * instance(const K & key) const;
   InstanceCount instanceCount() const { return instance_.size(); }
   

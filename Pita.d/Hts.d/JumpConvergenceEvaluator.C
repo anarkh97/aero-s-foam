@@ -71,24 +71,19 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
   for (int cpu = 0; cpu < cpuCount; ++cpu) {
     for (SliceMapping::SliceIterator s_it = mapping_->hostedSlice(CpuRank(cpu)); s_it; ++s_it) {
       HalfSliceRank rank = *s_it;
-      //log() << "Global Jump " << rank;
       if (rank >= mapping_->firstInactiveSlice()) {
-        //log() << " has already converged\n";
         break;
       }
       if (rank <= mapping_->firstActiveSlice()) { 
-        //log() << " is not active\n";
         continue;
       }
       if ((rank.value() - firstJumpRank.value()) % 2 == 1) {
-        //log() << " is on the dual grid\n";
         currentEstimate_[rank.value()] = 0.0; 
       } else {
         ++recvs_counts[cpu];
         *i_it = rank;
         sliceToExchg[rank] = std::distance(exchgToSlice.begin(), i_it);
         ++i_it;
-        //log() << " at rank " << sliceToExchg[rank] << "\n";
       }
     }
   }
@@ -97,8 +92,7 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
   IterationRank jumpIter(iter.value() - 1);
   for (JumpMap::const_iterator it = localJump_.begin(); it != localJump_.end(); ++it) {
     if (jumpIter == it->second->iteration() && it->second->status() != Seed::INACTIVE) {
-      //log() << "Local Jump " << it->first << " at rank " << sliceToExchg[it->first] << "\n";
-      buffer_[sliceToExchg[it->first]] = /*std::sqrt(it->second->state() * it->second->state());*/ std::sqrt(energy(metric_.ptr(), it->second->state()));
+      buffer_[sliceToExchg[it->first]] = std::sqrt(energy(metric_.ptr(), it->second->state()));
     }
   }
 

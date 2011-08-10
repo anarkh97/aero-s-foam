@@ -54,13 +54,6 @@ NearSymmetricSolver::transposedMatrixIs(const FullSquareMatrix & tm) {
 
   double scond, amax;
 
-  //SimpleBuffer<double> workspace(3 * matrixSize());
-  //int info;
-  //const char upper = 'U';
-  //_FORTRAN(dsyequb)(&upper, &getMatrixSize(), transposedMatrix_.data(), &getMatrixSize(),
-  //                  scaling_.array(), &scond, &amax, workspace.array(), &info);
-  //assert(info == 0);*/
-
   // Hand-made routine to replace dsyequb
   equilibrateSym(getMatrixSize(), transposedMatrix_.data(), tolerance(), scaling_.array(), &scond, &amax);
 

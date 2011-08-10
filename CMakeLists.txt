@@ -345,13 +345,22 @@ endif(MPI_FOUND)
 target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 
+add_executable(robcodec Rom.d/RobCodec.C)
+set_target_properties(robcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME rob
+                      DEBUG_OUTPUT_NAME rob.debug)
+
+target_link_libraries(robcodec Rom)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets femexecutable)
+SET(AllTargets femexecutable robcodec)
 IF(MPI_FOUND AND NOT APPLE)
   SET(AllTargets ${AllTargets} femlib)
 ENDIF(MPI_FOUND AND NOT APPLE)
@@ -360,6 +369,7 @@ INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
+
 
 MESSAGE("")
 MESSAGE("=================================================")

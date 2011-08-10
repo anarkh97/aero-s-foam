@@ -98,7 +98,7 @@ class GenDistrVector {
     double norm();
     double infNorm();
     double sqNorm() { return ScalarTypes::norm((*this) * (*this)); }
-    GenDistrVector &operator=(GenDistrVector<Scalar> &);
+    GenDistrVector &operator=(const GenDistrVector<Scalar> &);
     GenDistrVector &operator=(Scalar c);
     GenDistrVector &operator*=(Scalar c);
     GenDistrVector &operator/=(Scalar c);

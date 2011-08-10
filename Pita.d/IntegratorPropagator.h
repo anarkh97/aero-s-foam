@@ -18,18 +18,9 @@ public:
   Seconds timeStepSize() const { return timeStepSize_; }
   
   virtual void initialStateIs(const DynamState & initialState);
-  //void integratorIs(DynamTimeIntegrator * integrator) { integrator_ = integrator; }
   void initialTimeIs(Seconds t0) { initialTime_ = t0; }
   void timeStepCountIs(TimeStepCount timeStepCount) { timeStepCount_ = timeStepCount; }
   void timeStepSizeIs(Seconds tss) { timeStepSize_ = tss; }
-
-  // HACK
-  //SliceRank sliceRank() const { return sliceRank_; }
-  //void sliceRankIs(SliceRank slice) { sliceRank_ = slice; }
-  
-  /*static IntegratorPropagator::Ptr New(DynamTimeIntegrator * integrator) {
-    return new IntegratorPropagator(integrator);
-  }*/
   
 protected:
   explicit IntegratorPropagatorRoot(DynamTimeIntegrator * integrator);
@@ -41,9 +32,6 @@ private:
   Seconds initialTime_;
   TimeStepCount timeStepCount_;
   Seconds timeStepSize_;
-
-  // HACK
-  //SliceRank sliceRank_;
 };
 
 

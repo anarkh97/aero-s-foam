@@ -39,37 +39,24 @@ public:
   // Execution
   NamedTask::Ptr projectionTaskNew();
 
-  enum Kind {
-    INITIAL = 0,
-    FINAL = 1
-  };
-
-  typedef GenId<Kind> IterStateId;
-  
-  class StateId {
+  // Notification
+  class NotifieeConst : public Fwk::BaseMultiNotifiee<const LinearProjectionNetwork, NotifieeConst> {
   public:
-    IterationRank iteration() const { return iteration_; }
-    SliceRank slice() const { return inIterId_.rank(); }
-    Kind type() const { return inIterId_.type(); }
+    EXPORT_PTRINTERFACE_TYPES(NotifieeConst);
 
-    StateId(IterationRank iter, IterStateId inIterId) :
-      iteration_(iter), inIterId_(inIterId)
+    virtual void onProjectionOperators() {}
+
+  protected:
+    explicit NotifieeConst(const LinearProjectionNetwork * notifier = NULL) :
+      Fwk::BaseMultiNotifiee<const LinearProjectionNetwork, NotifieeConst>(notifier)
     {}
-
-    bool operator==(const StateId & other) const {
-      return iteration() == other.iteration() && inIterId_ == other.inIterId_;
-    }
-
-    bool operator<(const StateId & other) const {
-      return iteration() == other.iteration() ? inIterId_ < other.inIterId_ : iteration() < other.iteration();
-    }
-
-  private:
-    IterationRank iteration_;
-    IterStateId inIterId_;
   };
-  
-  void print_debug();
+
+  void lastNotifieeIs(NotifieeConst * notifiee) const { notifierDelegate().lastNotifieeIs(notifiee); }
+  void notifieeDel(NotifieeConst * notifiee) const { notifierDelegate().notifieeDel(notifiee); }
+
+  // Debug
+  friend OStream & operator<<(OStream &, const LinearProjectionNetwork &);
 
   static Ptr New(const SliceMapping * mapping, Communicator * timeComm, const DynamOps * metric, size_t vecSize, RankDeficientSolver * solver) {
     return new LinearProjectionNetwork(mapping, timeComm, metric, vecSize, solver);
@@ -82,6 +69,9 @@ protected:
   class StateExchgNumbering;
   class MatrixExchgNumbering;
 
+  // Notification
+  GenNotifierDelegate<NotifieeConst> & notifierDelegate() const { return const_cast<LinearProjectionNetwork *>(this)->notifierDelegate_; }
+  
   // Execution
   class Task;
   friend class Task;
@@ -111,18 +101,53 @@ private:
 
   // Local data collection
   AffineBasisCollector::Ptr collector_;
+  
+  enum Kind {
+    INITIAL = 0,
+    FINAL = 1
+  };
+  friend OStream & operator<<(OStream &, LinearProjectionNetwork::Kind);
+
+  typedef GenId<Kind> IterStateId;
+  friend OStream & operator<<(OStream &, const LinearProjectionNetwork::IterStateId &);
+  
+  class StateId {
+  public:
+    IterationRank iteration() const { return iteration_; }
+    SliceRank slice() const { return inIterId_.rank(); }
+    Kind type() const { return inIterId_.type(); }
+
+    StateId(IterationRank iter, IterStateId inIterId) :
+      iteration_(iter), inIterId_(inIterId)
+    {}
+
+    bool operator==(const StateId & other) const {
+      return iteration() == other.iteration() && inIterId_ == other.inIterId_;
+    }
+
+    bool operator<(const StateId & other) const {
+      return iteration() == other.iteration() ? inIterId_ < other.inIterId_ : iteration() < other.iteration();
+    }
+
+  private:
+    IterationRank iteration_;
+    IterStateId inIterId_;
+  };
+  friend OStream & operator<<(OStream &, const LinearProjectionNetwork::StateId &);
+  
   typedef std::map<StateId, DynamState> LocalStateMap;
   LocalStateMap localState_; // Accumulated index to local state
 
+  void print(OStream &) const;
+  
+  // Notifier implementation
+  GenNotifierDelegate<NotifieeConst> notifierDelegate_;
+
   DISALLOW_COPY_AND_ASSIGN(LinearProjectionNetwork);
 };
-
-
-inline
-OStream & operator<<(OStream & out, LinearProjectionNetwork::Kind k) {
-  char c = (k == LinearProjectionNetwork::INITIAL) ? 'i' : 'f';
-  return out << c;
-}
+  
+OStream &
+operator<<(OStream &, const LinearProjectionNetwork &);
 
 } /* end namespace Std */ } /* end namespace Pita */
 

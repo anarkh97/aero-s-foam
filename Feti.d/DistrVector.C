@@ -859,13 +859,13 @@ GenDistrVector<Scalar>::operator ^ (GenDistrVector<Scalar> &x)
 
 template<class Scalar>
 GenDistrVector<Scalar> &
-GenDistrVector<Scalar>::operator=(GenDistrVector<Scalar> &x)
+GenDistrVector<Scalar>::operator=(const GenDistrVector<Scalar> &x)
 {
  if(x.len != len) {
   fprintf(stderr, "Length error in = %d not equal to %d\n",x.len, len);
  }
- GenVecOp<Scalar> assign(&GenVecOp<Scalar>::assign,this, &x);
- threadManager->execParal(nT, &assign);
+ GenVecOp<Scalar> assignOp(&GenVecOp<Scalar>::assign, this, const_cast<GenDistrVector<Scalar> *>(&x));
+ threadManager->execParal(nT, &assignOp);
  return *this;
 }
 

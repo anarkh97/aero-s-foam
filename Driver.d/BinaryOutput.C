@@ -172,9 +172,9 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     int numComponentsPlus = (group == -1) ? numComponents : numComponents + 4; // group output: allow for NODENUMBER, X0, Y0, Z0
     int numNodesPlus = (group == -1) ? (domain->outFlag ? domain->exactNumNodes : numNodes) : nodeGroup[group].size();
 
-    long timeOffset = headLen[fileNumber]  // header including endl
-                      + (numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + endl for all previous timesteps
-                      + (numRes-1)*numNodesPlus*(numComponentsPlus*(2+oinfo[fileNumber].width)+1);
+    long timeOffset = long(headLen[fileNumber])  // header including endl
+                      + long(numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + endl for all previous timesteps
+                      + long(numRes-1)*long(numNodesPlus)*(numComponentsPlus*(2+oinfo[fileNumber].width)+1);
                                                                      // 2 spaces + first_component + ... + 2 spaces + last_component + endl
                                                                      // for each node for all previous timesteps
 
@@ -192,7 +192,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
           if(domain->getNodeToElem()->num(i) == 0 && domain->outFlag == 0) {
             int glNode = i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
-              long relativeOffset = (glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
+              long relativeOffset = long(glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
               outfile.seekp(relativeOffset, ios_base::cur);
             }
             for(int j=0; j<numComponents; ++j) { 
@@ -228,7 +228,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
         //long totalOffset = timeOffset + glNode*(numComponents*(2+oinfo[fileNumber].width) + 1);
         //outfile.seekp(totalOffset);
-        long relativeOffset = (glNode-glNode_prev-1)*(numComponentsPlus*(2+oinfo[fileNumber].width) + 1);
+        long relativeOffset = long(glNode-glNode_prev-1)*(numComponentsPlus*(2+oinfo[fileNumber].width) + 1);
         outfile.seekp(relativeOffset, ios_base::cur);
       }
       if(group != -1) { // print NODENUMBER, X0, Y0, Z0

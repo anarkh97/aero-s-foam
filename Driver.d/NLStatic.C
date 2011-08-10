@@ -956,8 +956,8 @@ Domain::createCorotators(Corotator **allCorot)
 }
 
 void
-Domain::getGeometricStiffness(GeomState &geomState,Vector& elementInternalForce,
-                          Corotator **allCorot, FullSquareMatrix *&geomKelArray)
+Domain::getGeometricStiffness(GeomState &geomState, Vector& elementInternalForce,
+                              Corotator **allCorot, FullSquareMatrix *&geomKelArray)
 {
 
    // Get Geometric Stiffness

@@ -82,7 +82,7 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RHEONOMIC
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
@@ -106,7 +106,7 @@
 %type <axiMPC>   AxiLmpc
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
-%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem //Added for HEV problem, EC, 20080512
+%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -310,8 +310,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
-  | PodRom
-  | SampleNodeList
+        | PodRom
+        | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -1107,16 +1107,6 @@ IComplexNeumannBC:
         }
         ;
 DirichletBC:
-/*
-        DISP NewLine
-        | DirichletBC BCDataList
-        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Displacements;
-          geoSource->setDirichlet($2->n,$2->d); }
-        | DirichletBC SURF BC_Data
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0] = $3;
-          geoSource->addSurfaceDirichlet(1,surf_bc); }
-*/
         DISP NewLine
         { $$ = new BCList; }
         | DirichletBC BC_Data
@@ -1130,16 +1120,12 @@ DirichletBC:
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Displacements;
           geoSource->addSurfaceDirichlet(1,surf_bc); }
-        | DirichletBC SURF Integer Integer Float USING LMPC NewLine
+/* TODO | DirichletBC SURF Integer Integer Float USING ConstraintOptionsData NewLine
         { BCond *surf_bc = new BCond[1];
           surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
           surf_bc[0].type = BCond::Lmpc;
           geoSource->addSurfaceDirichlet(1,surf_bc); }
-        | DirichletBC SURF Integer Integer Float USING RHEONOMIC LMPC NewLine
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
-          surf_bc[0].type = BCond::RheonomicLmpc;
-          geoSource->addSurfaceDirichlet(1,surf_bc); }
+*/
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1663,9 +1649,6 @@ MPCHeader:
           $$->lagrangeMult = $3.lagrangeMult;
           $$->penalty = $3.penalty; 
           $$->setSource(mpc::Lmpc); }
-        | Integer RHEONOMIC Float NewLine
-        { $$ = new LMPCons($1, $3); 
-          $$->setSource(mpc::RheonomicLmpc); }
 	;
 MPCLine:
         Integer Integer Float NewLine

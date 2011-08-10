@@ -105,7 +105,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   GeomType *geomState = probDesc->createGeomState();
 
   stateIncr = StateUpdate::initInc(geomState, &residual);
-  refState = StateUpdate::initRef(geomState);
+  refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
   if(aeroAlg == 5) {
     bkRefState = StateUpdate::initRef(geomState);
@@ -186,7 +186,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     int converged;
 
     // Initialize states
-    StateUpdate::copyState(geomState, refState);
+    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
     StateUpdate::zeroInc(stateIncr);
 
     // Iteration loop
@@ -236,14 +236,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                 time, maxit, initialRes, currentRes, probDesc->getTolerance());
 
-    StateUpdate::copyState(geomState, refState);
+    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
 
     // Step Update (updates state which includes displacement and velocity, but not acceleration) 
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
-    probDesc->updateStates(refState, *geomState);
+    if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();

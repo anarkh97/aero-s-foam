@@ -464,7 +464,7 @@ class GenSubDomain : public BaseSub
   Scalar* CCtval;
   Scalar *bcx_scalar;
   int *mpcStatus;
-  bool *mpcStatus1;
+  bool *mpcStatus1, *mpcStatus2;
 
   // templated RBMs
   GenFullM<Scalar> Rstar;
@@ -668,12 +668,13 @@ class GenSubDomain : public BaseSub
   void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
   void setMpcCommSize(FSCommPattern<int> *mpcPat);
   void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
-  void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag);
+  void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange);
   void printMpcStatus();
   void initMpcStatus();
   void saveMpcStatus();
   void restoreMpcStatus();
   void saveMpcStatus1();
+  void saveMpcStatus2();
   void cleanMpcData();
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);

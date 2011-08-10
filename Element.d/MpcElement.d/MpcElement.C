@@ -240,10 +240,7 @@ void
 MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
 { 
   // THIS is for a linear constraint. Nonlinear constraints must overload this function
-  if(getSource() == mpc::RheonomicLmpc)
-    rhs.r_value = original_rhs.r_value*t; // note: t is load factor for nonlinear statics
-  else
-    rhs = original_rhs;
+  rhs = original_rhs;
 
   for(int i = 0; i < nterms; ++i) {
     double u;

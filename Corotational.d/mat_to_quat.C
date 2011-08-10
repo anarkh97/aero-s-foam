@@ -125,7 +125,7 @@ void mat_to_quat( double rten[3][3], double q[4] )
       //for(int l=0; l<4; ++l) q[l] /= norm;
 */
 #endif
-/* TODO: consider
+/*
   // always return the positive quaternion.
   if(q[0] < 0) {
     //cerr << "negative quaternion in mat_to_quat\n";

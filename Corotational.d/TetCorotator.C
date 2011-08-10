@@ -413,11 +413,6 @@ double TetCorotator::computeShapeGrad(CoordSet &nodes, double nGrad[4][3])
   return dOmega;
 
 }
-void
-TetCorotator::formGeometricStiffness(GeomState &gs, CoordSet &cs,
-                             FullSquareMatrix &elk, double *f)
-{
-}
 
 void
 TetCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 

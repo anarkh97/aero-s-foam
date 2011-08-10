@@ -1102,7 +1102,7 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
    if(domain->numInitDisp6() > 0) 
      geomState->updatePrescribedDisplacement(domain->getInitDisp6(), domain->numInitDisp6());
    
-   if(domain->nDirichlet() > 0) 
+   if(domain->nDirichlet() > 0)
      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
 
    times->timePresc += getTime();

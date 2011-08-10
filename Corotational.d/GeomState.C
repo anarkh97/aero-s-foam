@@ -336,7 +336,6 @@ ElemState::operator=(const ElemState &elem)
 void
 GeomState::update(const Vector &v)
 {
- //if(v*v == 0.0) return; // XXXX
  // v = incremental displacement vector
 
  double dtheta[3];
@@ -363,7 +362,6 @@ GeomState::update(const Vector &v)
      ns[i].z += dz;
 
      // Increment rotation tensor R = R(dtheta)Ra
-     //if(dtheta[0] == 0.0 && dtheta[1] == 0.0 && dtheta[2] == 0.0) continue; // XXXX
      inc_rottensor( dtheta, ns[i].R );
    }
 #ifdef WITH_GLOBAL_ROT
@@ -479,18 +477,17 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       acc_n[loc[i][2]] = avcoef*(vel_n[loc[i][2]] - v_n) + aacoef*a_n;
     }
 
-    // Update rotational velocities and accelerations TODO check
+    // Update rotational velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
-      double vec[3], dR[3][3], vec_p[3], toto[3];
-      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T
-      //orthonorm3( dR );
-      mat_to_vec(dR, vec);                   // (i.e. ns[i].R = dR * ss[i].R)
+      double dtheta[3], dR[3][3];
+      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
+      mat_to_vec(dR, dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
           double v_n = vel_n[loc[i][3+j]];
           double a_n = acc_n[loc[i][3+j]];
-          vel_n[loc[i][3+j]] = vdcoef*vec[j] + vvcoef*v_n + vacoef*acc_n[loc[i][3+j]];
-          acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]]-v_n) + aacoef*a_n;
+          vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
+          acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
         }
       }
     }
@@ -504,30 +501,30 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);
   }
 
-  // Update step rotational tensor TODO why is the rotation increment here defined as rotation from the right ? cf. get_inc_displacement and update
+  // Update step rotational tensor 
   double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
-    //if(alphaf == 0.0) {  // NEW still need to copy the state into the reference state
-    //  for(int j = 0; j < 3; ++j)
-    //    for(int k = 0; k < 3; ++k)
-    //      ss[i].R[j][k] = ns[i].R[j][k];
-    //}
-    //else {
+    if(alphaf == 0.0) {
+      for(int j = 0; j < 3; ++j)
+        for(int k = 0; k < 3; ++k)
+          ss[i].R[j][k] = ns[i].R[j][k];
+    }
+    else {
       mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R
-      //if(alphaf != 0.5) {
+      if(alphaf != 0.5) {
         mat_to_vec(result2, rotVec);
         rotVec[0] *= rcoef;
         rotVec[1] *= rcoef;
         rotVec[2] *= rcoef;
         vec_to_mat(rotVec, result2);
-      //}
+      }
       mat_mult_mat(ns[i].R, result2, result, 0); // result = ns[i].R * result2
 
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
           ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
-    //}
+    }
   }
 }
 

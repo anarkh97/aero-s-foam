@@ -161,7 +161,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  GeomType *geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
 
- refState = StateUpdate::initRef(geomState);
+ refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
  // ... Output initial configuration
  probDesc->staticOutput(u0, 0.0, force, totRes, refState);

@@ -268,7 +268,7 @@ FetiInfo::FetiInfo()
   precno      = dirichlet;    // default use lumped preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
   solvertype  = sparse;   // default use sparse subdomain solver
-  gtgSolver   = sparse;   // default use sparse GtG solver for FETI1
+  gtgSolver   = sparse;   // default use sparse GtG solver for FETI1 and Kcc^* solver for FETI-DP
   auxCoarseSolver = skyline; // use skyline GtG solver for FETI-DPC
   cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
@@ -345,7 +345,7 @@ FetiInfo::FetiInfo()
   fsi_corner = 2;
   complex_hermitian = false;
   nullSpaceFilterTol = 0.0;
-  dual_proj_tol = primal_proj_tol = 1.0e-16;
+  dual_proj_tol = primal_proj_tol = 0.0;
   dual_plan_tol = primal_plan_tol = 0.0;
   dual_plan_maxit = primal_plan_maxit = 20;
 }

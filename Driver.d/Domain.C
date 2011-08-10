@@ -3173,14 +3173,6 @@ Domain::ProcessSurfaceBCs()
               addLMPC(lmpc,false);
             }
           } break;
-          case BCond::RheonomicLmpc : {
-            for(int k=0; k<nNodes; ++k) {
-              LMPCTerm term(glNodes[k], surface_dbc[i].dofnum, 1);
-              LMPCons *lmpc = new LMPCons(-1,surface_dbc[i].val,&term);
-              lmpc->setSource(mpc::RheonomicLmpc);
-              addLMPC(lmpc,false);
-            }
-          } break;
         }
       }
     }

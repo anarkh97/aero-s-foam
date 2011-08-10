@@ -207,8 +207,6 @@ TRAIL [a-zA-Z]*
 
 "LMPC"[a-zA-Z]*|"lmpc"[a-zA-Z]*    { return LMPC; }
 
-"RHEO"[a-zA-Z]*|"rheo"[a-zA-Z]*    { return RHEONOMIC; }
-
 "HLMPC"[a-zA-Z]*|"hlmpc"[a-zA-Z]*  { return HLMPC; }
 
 "USING"|"using"                    { return USING; }

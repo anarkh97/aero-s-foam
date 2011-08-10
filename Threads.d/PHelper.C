@@ -337,6 +337,13 @@ void execParal3R(int n, TA *target, void (TB::*f)(int, TC, TD*, TE*), TC c, TD *
 }
 
 template <class TA, class TB, class TC, class TD, class TE>
+void execParal3R(int n, TA *target, void (TB::*f)(int, TC*, TD, TE*), TC* c, TD d, TE *e)
+{
+ ThreeArgExecuter<TA,TB,TC*,TD,TE*> oe(target,f,c,d,e);
+ threadManager->execParal(n, &oe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE>
 void timedParal3(DistTimer &timer, int n, TA *target, void (TB::*f)(int, TC*, TD*, TE), TC *c, TD *d, TE e)
 {
  ThreeArgExecuter<TA,TB,TC*,TD*, TE> fe(target,f,c,d,e);

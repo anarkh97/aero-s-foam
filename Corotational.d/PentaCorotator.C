@@ -452,12 +452,6 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
 }
 
 void
-PentaCorotator::formGeometricStiffness(GeomState &gs, CoordSet &cs,
-                             FullSquareMatrix &elk, double *f)
-{
-}
-
-void
 PentaCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
                                   double *vld, int &nlflag)
 {

@@ -1,10 +1,25 @@
 #include <Corotational.d/Corotator.h>
+#include <Corotational.d/GeomState.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <iostream>
 
 void 
-Corotator::formGeometricStiffness(GeomState&, CoordSet&, FullSquareMatrix&, double*) 
+Corotator::formGeometricStiffness(GeomState& gs, CoordSet& cs, FullSquareMatrix& Kg, double* f) 
 { 
-  std::cerr << " *** WARNING: Corotator::formGeometricStiffness(GeomState&, CoordSet&, FullSquareMatrix&, double*) is not implemented\n";
+  // default implementation
+  GeomState gs0(cs); // TODO 
+  double t = 0, dt = 0;
+  int n = Kg.dim();
+
+  FullSquareMatrix K(n);
+  getStiffAndForce(gs0, cs, K, f, dt, t);
+
+  FullSquareMatrix Kt(n);
+  getStiffAndForce(gs, cs, Kt, f, dt, t);  
+
+  for(int i=0; i<n; ++i)
+    for(int j=0; j<n; ++j)
+      Kg[i][j] = Kt[i][j] - K[i][j];
 }
 
 double* 

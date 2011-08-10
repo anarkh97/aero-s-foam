@@ -3602,8 +3602,7 @@ GenSubDomain<Scalar>::setMpcRhs(Scalar *interfvec, double _t)
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpc[locMpcNb]->getSource() != mpc::ContactSurfaces) {
-      double t = (mpc[locMpcNb]->getSource() == mpc::RheonomicLmpc) ? _t : 1.0;
-      mpc[locMpcNb]->rhs = t*mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
+      mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs - interfvec[scomm->mapT(SComm::mpc,i)];
     }
   }
 }
@@ -3796,7 +3795,7 @@ GenSubDomain<Scalar>::sendMpcStatus(FSCommPattern<int> *mpcPat, int flag)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag)
+GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange)
 {
  // PJSA: this function is to make sure that the status of an mpc is the same in all subdomains which share it
  // needed to due to possible roundoff error
@@ -3820,12 +3819,14 @@ GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag)
  }
 
  bool print_debug = false;
+ statusChange = false;
  for(i = 0; i < numMPC; ++i) {
    if(solInfo().getFetiInfo().contactPrintFlag && mpcMaster[i]) {
      if(!mpc[i]->active && !tmpStatus[i]) { cerr << "-"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
      else if(mpc[i]->active && tmpStatus[i]) { cerr << "+"; if(print_debug) cerr << " recvMpcStatus: sub = " << subNumber << ", mpc = " << localToGlobalMPC[i] << endl; }
    }
    mpc[i]->active = !tmpStatus[i];
+   if(mpcStatus2[i] == mpc[i]->active) statusChange = true;
  }
 }
 
@@ -3883,10 +3884,19 @@ GenSubDomain<Scalar>::saveMpcStatus1()
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::saveMpcStatus2()
+{
+  if(!mpcStatus2) mpcStatus2 = new bool[numMPC];
+  for(int i = 0; i < numMPC; ++i) mpcStatus2[i] = !mpc[i]->active;
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::cleanMpcData()
 {
   if(mpcStatus) { delete [] mpcStatus; mpcStatus = 0; }
   if(mpcStatus1) { delete [] mpcStatus1; mpcStatus1 = 0; }
+  if(mpcStatus2) { delete [] mpcStatus2; mpcStatus2 = 0; }
 }
 
 template<class Scalar>
@@ -4071,7 +4081,7 @@ GenSubDomain<Scalar>::initialize()
   precNodeToNode = 0;
 #endif
   weightPlus = 0;
-  mpcStatus = 0; mpcStatus1 = 0;
+  mpcStatus = 0; mpcStatus1 = 0; mpcStatus2 = 0;
   G = 0; neighbG = 0;
   sharedRstar_g = 0; tmpRstar_g = 0;
   l2g = 0;
@@ -4147,6 +4157,7 @@ GenSubDomain<Scalar>::~GenSubDomain()
   if(weightPlus) { delete [] weightPlus; weightPlus = 0; }
   if(mpcStatus) { delete [] mpcStatus; mpcStatus = 0; }
   if(mpcStatus1) { delete [] mpcStatus1; mpcStatus1 = 0; }
+  if(mpcStatus2) { delete [] mpcStatus2; mpcStatus2 = 0; }
 
   if(sharedRstar_g) { delete sharedRstar_g; sharedRstar_g = 0; }
   if(tmpRstar_g) { delete tmpRstar_g; tmpRstar_g = 0; }
@@ -4179,6 +4190,8 @@ GenSubDomain<Scalar>::deleteMPCs()
 
   scomm->deleteTypeSpecificList(SComm::all);
   if(mpcStatus) { delete [] mpcStatus; mpcStatus = 0; }
+  if(mpcStatus1) { delete [] mpcStatus1; mpcStatus1 = 0; }
+  if(mpcStatus2) { delete [] mpcStatus2; mpcStatus2 = 0; }
   if(deltaFmpc) { delete [] deltaFmpc; deltaFmpc = 0; }
   //if(mpcForces) { delete [] mpcForces; mpcForces = 0; }
   if(diagCCt) { delete [] diagCCt; diagCCt = 0; }
@@ -5912,6 +5925,7 @@ GenSubDomain<Scalar>::updateActiveSet(Scalar *v, double tol, int flag, bool &sta
     }
   }
 
+  statusChange = false;
   for(int i = 0; i < numMPC; ++i) {
     if(chgstatus[i] > -1) {
       statusChange = true;

@@ -2,8 +2,9 @@
 #include <Corotational.d/utilities.h>
 #include <cmath>
 #include <iostream>
+#include <limits>
 
-const double epsilon = 1.0e-15;
+const double epsilon = std::numeric_limits<double>::epsilon();
 
 void mat_to_vec(double rten[3][3] ,double rvec[3] )
 /*****************************************************************
@@ -22,16 +23,16 @@ void mat_to_vec(double rten[3][3] ,double rvec[3] )
 
       mat_to_quat( rten, q );
 
-      double sthh = sqrt( q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+      double sthh = std::sqrt( q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
 
       double cthh = q[0];
 
-      if ( sthh < 0.707106781 )
-        th = 2.0*asin( sthh );
+      if ( sthh < 0.7 )
+        th = 2.0*std::asin( sthh );
       else
-        th = 2.0*acos( cthh );
+        th = 2.0*std::acos( cthh );
 
-      if ( sthh < epsilon )
+      if ( sthh <= epsilon )
         coef = 2.0;
       else {
         if ( sthh > 1.0 ) sthh = 1.0;

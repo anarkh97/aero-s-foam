@@ -63,10 +63,16 @@ class Corotator {
                                   FullSquareMatrix &elk, double *f, double dt, double t)
       { getStiffAndForce(curState, c0, elk, f, dt, t); }
 
-    virtual void getNLVonMises(Vector& stress, Vector& weight, GeomState& curState,
-                               GeomState *refState, CoordSet& c0, int strIndex,
-                               int surface, double *ndTemps, double ylayer, 
-                               double zlayer, int avgnum, int measure)
+    virtual void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                               double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
+                               int avgnum = 0, int measure = -1)
+      { getNLVonMises(stress, weight, curState, c0, strIndex); }
+
+    virtual void getNLVonMises(ComplexVector& stress, Vector& weight, GeomState &curState,
+                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                               double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
+                               int avgnum = 0, int measure = -1)
       { getNLVonMises(stress, weight, curState, c0, strIndex); }
 
     virtual ~Corotator() {/*TODO*/}

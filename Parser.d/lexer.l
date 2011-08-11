@@ -209,6 +209,8 @@ TRAIL [a-zA-Z]*
 
 "HLMPC"[a-zA-Z]*|"hlmpc"[a-zA-Z]*  { return HLMPC; }
 
+"USING"|"using"                    { return USING; }
+
 "CRHS"|"crhs"                      { return CRHS; }
 
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
@@ -1054,6 +1056,8 @@ TRAIL [a-zA-Z]*
 
 "reaction"[s]?|"REACTION"[s]?      { yylval.ival = OutputInfo::Reactions; return STRESSID; }
 
+"heatreac"|"HEATREAC"              { yylval.ival = OutputInfo::HeatReactions; return STRESSID; }
+
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }
@@ -1104,7 +1108,7 @@ TRAIL [a-zA-Z]*
 "gap_old"|"GAP_OLD"                                  { yylval.ival = 16; return TDENFORC; }
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
-"effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EffPStrn; return STRESSID; }
+"eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 

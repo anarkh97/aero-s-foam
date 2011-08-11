@@ -60,8 +60,8 @@ ConstantDistanceConstraint::update(GeomState& gState, CoordSet& cs, double)
     terms[3+i].coef.r_value = d[i]/l;
   }
 
-  // values of constraint functions
-  rhs.r_value = l - l0;
+  // -ve value of constraint function
+  rhs.r_value = -(l - l0);
 }
 
 void

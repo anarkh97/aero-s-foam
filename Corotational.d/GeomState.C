@@ -336,7 +336,6 @@ ElemState::operator=(const ElemState &elem)
 void
 GeomState::update(const Vector &v)
 {
- //if(v*v == 0.0) return; // XXXX
  // v = incremental displacement vector
 
  double dtheta[3];
@@ -363,7 +362,6 @@ GeomState::update(const Vector &v)
      ns[i].z += dz;
 
      // Increment rotation tensor R = R(dtheta)Ra
-     //if(dtheta[0] == 0.0 && dtheta[1] == 0.0 && dtheta[2] == 0.0) continue; // XXXX
      inc_rottensor( dtheta, ns[i].R );
    }
 #ifdef WITH_GLOBAL_ROT
@@ -424,6 +422,7 @@ void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss,
                                 double beta, double gamma, double alphaf, double alpham)
 {
+/*
  // note: delta = dt/2
  double coef = 1/(1-alphaf);
  double dcoef = gamma/(2*delta*beta);
@@ -444,32 +443,88 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
    if(loc[i][2] >= 0)
      vel_n[loc[i][2]] = coef*(dcoef*(ns[i].z - ss.ns[i].z) + vcoef*vel_n[loc[i][2]] + acoef*acc_n[loc[i][2]]);
  }
+*/
+  double dt = 2.0*delta;
+  double vdcoef, vvcoef, vacoef, avcoef, aacoef;
+  vdcoef = (gamma/(dt*beta))/(1-alphaf);
+  vvcoef = ((1-(1-alphaf)*gamma/beta)-alphaf)/(1-alphaf);
+  vacoef = dt*(2*beta-gamma)/(2*beta);
+  avcoef = 1/(dt*gamma);
+  aacoef = -(1-gamma)/gamma;
 
-  // Update step translational displacements
+  // Update translational velocity and accelerations
   for(int i = 0; i < numnodes; ++i) {
-    ss.ns[i].x = ns[i].x = coef*(ns[i].x - alphaf*ss.ns[i].x);
-    ss.ns[i].y = ns[i].y = coef*(ns[i].y - alphaf*ss.ns[i].y);
-    ss.ns[i].z = ns[i].z = coef*(ns[i].z - alphaf*ss.ns[i].z);
+
+    // Update translational velocities and accelerations
+    if(loc[i][0] >= 0) {
+      double v_n = vel_n[loc[i][0]];
+      double a_n = acc_n[loc[i][0]];
+      vel_n[loc[i][0]] = vdcoef*(ns[i].x - ss[i].x) + vvcoef*v_n + vacoef*a_n;
+      acc_n[loc[i][0]] = avcoef*(vel_n[loc[i][0]] - v_n) + aacoef*a_n;
+    }
+
+    if(loc[i][1] >= 0) {
+      double v_n = vel_n[loc[i][1]];
+      double a_n = acc_n[loc[i][1]];
+      vel_n[loc[i][1]] = vdcoef*(ns[i].y - ss[i].y) + vvcoef*v_n + vacoef*a_n;
+      acc_n[loc[i][1]] = avcoef*(vel_n[loc[i][1]] - v_n) + aacoef*a_n;
+    }
+
+    if(loc[i][2] >= 0) {
+      double v_n = vel_n[loc[i][2]];
+      double a_n = acc_n[loc[i][2]];
+      vel_n[loc[i][2]] = vdcoef*(ns[i].z - ss[i].z) + vvcoef*v_n + vacoef*a_n;
+      acc_n[loc[i][2]] = avcoef*(vel_n[loc[i][2]] - v_n) + aacoef*a_n;
+    }
+
+    // Update rotational velocities and accelerations
+    if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+      double dtheta[3], dR[3][3];
+      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
+      mat_to_vec(dR, dtheta);
+      for(int j = 0; j < 3; ++j) {
+        if(loc[i][3+j] >= 0) {
+          double v_n = vel_n[loc[i][3+j]];
+          double a_n = acc_n[loc[i][3+j]];
+          vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
+          acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
+        }
+      }
+    }
   }
 
-  // Update step rotational tensor
+  // Update step translational displacements
+  double tcoef = 1/(1-alphaf);
+  for(int i = 0; i < numnodes; ++i) {
+    ss.ns[i].x = ns[i].x = tcoef*(ns[i].x - alphaf*ss.ns[i].x);
+    ss.ns[i].y = ns[i].y = tcoef*(ns[i].y - alphaf*ss.ns[i].y);
+    ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);
+  }
+
+  // Update step rotational tensor 
+  double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
-    if(alphaf == 0.0) continue; // nothing to do in this case
-
-    mat_mult_mat(ss.ns[i].R, ns[i].R, result2, 1);
-    if(alphaf != 0.5) {
-      mat_to_vec(result2, rotVec);
-      rotVec[0] *= rcoef;
-      rotVec[1] *= rcoef;
-      rotVec[2] *= rcoef;
-      vec_to_mat(rotVec, result2);
+    if(alphaf == 0.0) {
+      for(int j = 0; j < 3; ++j)
+        for(int k = 0; k < 3; ++k)
+          ss[i].R[j][k] = ns[i].R[j][k];
     }
-    mat_mult_mat(ns[i].R, result2, result, 0);
+    else {
+      mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R
+      if(alphaf != 0.5) {
+        mat_to_vec(result2, rotVec);
+        rotVec[0] *= rcoef;
+        rotVec[1] *= rcoef;
+        rotVec[2] *= rcoef;
+        vec_to_mat(rotVec, result2);
+      }
+      mat_mult_mat(ns[i].R, result2, result, 0); // result = ns[i].R * result2
 
-    for(int j = 0; j < 3; ++j)
-      for(int k = 0; k < 3; ++k)
-        ss.ns[i].R[j][k] = ns[i].R[j][k] = result[j][k];
+      for(int j = 0; j < 3; ++j)
+        for(int k = 0; k < 3; ++k)
+          ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
+    }
   }
 }
 

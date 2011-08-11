@@ -56,7 +56,7 @@ class MDNLStatic
     void printTimers();
 
     void staticOutput(DistrGeomState *geomState, double lambda, 
-                      DistrVector &force, DistrVector &glRes);
+                      DistrVector &force, DistrVector &glRes, DistrGeomState *refState);
 
     MultiDomainPostProcessor *getPostProcessor();
 
@@ -92,7 +92,7 @@ class MDNLStatic
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
-    void updateConstraintTerms(DistrGeomState* geomState);
+    void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
 };
 
 #endif

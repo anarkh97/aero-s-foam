@@ -256,12 +256,6 @@ SpringCorotator::getStiffAndForce(GeomState &geomState, CoordSet & cs,
 }
 
 //----------------------------------------------------------------------
-void
-SpringCorotator::formGeometricStiffness(GeomState
-                      &, CoordSet &, FullSquareMatrix &, double *)
-{
-  cerr << "SpringCorotator::formGeometricStiffness is not implemented\n";
-}
 
 void
 SpringCorotator::extractDeformations(GeomState & geomState, 

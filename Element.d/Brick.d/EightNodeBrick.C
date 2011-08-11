@@ -632,7 +632,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
   //cerr<<" -------------------------"<<endl;
   //for(int i=0; i<24; i++) 
-   //cerr<<" eelementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
+  //cerr<<" elementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
 }
 
 //---------------------------------------------------------------------------------

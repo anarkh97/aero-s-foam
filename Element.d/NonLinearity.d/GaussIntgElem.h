@@ -17,6 +17,7 @@ class GaussIntgElement : public MatNLElement
   protected:
     virtual int getNumGaussPoints() = 0;
     virtual void getGaussPointAndWeight(int, double *, double &) = 0;
+    virtual void getLocalNodalCoords(int, double *) = 0;
     virtual ShapeFunction *getShapeFunction() = 0;
     virtual StrainEvaluator *getStrainEvaluator() = 0;
     virtual NLMaterial *getMaterial() = 0;
@@ -41,8 +42,16 @@ class GaussIntgElement : public MatNLElement
       NLMaterial *mat = getMaterial();
       int nsGP = mat->getNumStates(); 
       return nGP*nsGP;
-    } // PJSA 10-20-08, this function was previously not returning anything
+    }
     void initStates(double *);
+    // the following functions return result for postprocessing at every node
+    void getStrainTens(Node *nodes, double *dispnp, double (*result)[9]);
+    void getVonMisesStrain(Node *nodes, double *dispnp, double *result);
+    void getStressTens(Node *nodes, double *dispn, double *staten,
+                       double *dispnp, double *statenp, double (*result)[9]);
+    void getVonMisesStress(Node *nodes, double *dispn, double *staten,
+                           double *dispnp, double *statenp, double *result);
+    void getEquivPlasticStrain(double *statenp, double *result);
 };
 
 template <class TensorTypes>

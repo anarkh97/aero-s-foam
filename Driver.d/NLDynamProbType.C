@@ -105,7 +105,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   GeomType *geomState = probDesc->createGeomState();
 
   stateIncr = StateUpdate::initInc(geomState, &residual);
-  refState = StateUpdate::initRef(geomState);
+  refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
   if(aeroAlg == 5) {
     bkRefState = StateUpdate::initRef(geomState);
@@ -186,7 +186,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     int converged;
 
     // Initialize states
-    StateUpdate::copyState(geomState, refState);
+    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
     StateUpdate::zeroInc(stateIncr);
 
     // Iteration loop
@@ -201,17 +201,19 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              acceleration, midtime);
 
       // Assemble global tangent stiffness
-      probDesc->reBuild(*geomState, iter);
+      //probDesc->reBuild(*geomState, iter);
 
       // Compute incremental displacements
-      geomState->get_inc_displacement(inc_displac, *stepState);
+      geomState->get_inc_displacement(inc_displac, *stepState, domain->solInfo().zeroRot);
 
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
-      resN = probDesc->getResidualNorm(rhs); // addMpcForces called
 
-      //filePrint(stderr,"2 NORMS: fext*fext %e %e residual*residual %e\n", external_force*external_force, resN*resN);
+      //filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
+
+      // Assemble global tangent stiffness
+      probDesc->reBuild(*geomState, iter);
 
       currentRes = resN;
       if(iter == 0) initialRes = resN;
@@ -234,18 +236,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                 time, maxit, initialRes, currentRes, probDesc->getTolerance());
 
-    StateUpdate::copyState(geomState, refState);
+    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
 
     // Step Update (updates state which includes displacement and velocity, but not acceleration) 
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
-    probDesc->updateStates(refState, *geomState);
-
-    // Update the acceleration: a^{n+1} = (v^{n+1}-v^n)/delta - a^n
-    if(domain->solInfo().order != 1)
-      acceleration.linC(-(1-gamma)/gamma, acceleration, -1/(2*delta*gamma), v_p, 1/(2*delta*gamma), velocity_n);
+    if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();

@@ -27,6 +27,7 @@ class NonLinStatic {
     double firstDv;
     double tolerance;
     StaticTimers *times;
+
  public:
     // Constructor
     NonLinStatic(Domain *d);
@@ -40,14 +41,14 @@ class NonLinStatic {
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
     void getRHS(Vector &rhs); 
-    void preProcess();
+    void preProcess(bool factor = true);
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();
 
     int reBuild(int iter, int step, GeomState& geomState);
     GeomState* createGeomState();
 
-    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &);
+    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &, GeomState *refState);
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 

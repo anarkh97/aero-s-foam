@@ -265,6 +265,7 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  domain->template getSolverAndKuc<T>(allOps, kelArray);  // PJSA 10-5-04 for freq sweep compatibility
  solver = allOps.sysSolver;                              // also need M, Muc, C and Cuc (in allOps)
  kuc = allOps.Kuc;
+ kcc = allOps.Kcc;
 
  Rbm *rigidBodyModes = 0;
  int useProjector=domain->solInfo().filterFlags;
@@ -324,7 +325,7 @@ template<class T, class VectorType, class SolverType>
 SingleDomainPostProcessor<T, VectorType, SolverType> *
 SingleDomainStatic<T, VectorType, SolverType>::getPostProcessor()
 {
- return new SingleDomainPostProcessor<T,VectorType,SolverType>(domain,bcx,times,solver);
+ return new SingleDomainPostProcessor<T,VectorType,SolverType>(domain,bcx,times,solver,kuc,kcc);
 }
 
 // ... The next function is the only one needed for Statics and FAcoustics
@@ -338,13 +339,7 @@ SingleDomainPostProcessor<T, VectorType, SolverType>::staticOutput(VectorType &s
  if(structCom->myID() != 0) return; // used for parallel mumps, only one process should write the output file
 #endif
  startTimerMemory(times->output, times->memoryOutput);
-
- if(domain->solInfo().inpc||domain->solInfo().noninpc) {
-   domain->template postProcessing<T>(sol,bcx,force,ndflag);
- }
- else 
-   domain->template postProcessing<T>(sol,bcx,force);
-
+ domain->template postProcessing<T>(sol,bcx,force,ndflag,0,0,0,kuc,kcc);
  stopTimerMemory(times->output, times->memoryOutput);
 
  long memoryUsed = 0;
@@ -433,7 +428,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs, double om
 { 
   VectorType *vec = new VectorType(solVecInfo());
   domain->template buildRHSForce<T>(rhs, *vec, kuc, allOps.Muc, allOps.Cuc_deriv,
-                             omega, deltaomega);
+                                    omega, deltaomega);
   delete vec;
 }
 

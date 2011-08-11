@@ -28,7 +28,7 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
                         GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                         SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
     void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                        GenDistrVector<Scalar> *aeroF = 0);
+                        GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0);
     void setsizeSfemStress(int fileNumber);  // YYY DG implementation incomplete: do the element stresses 
     int getsizeSfemStress() { return this->sizeSfemStress; } // YYY DG for both node- and element-based ?
     Scalar * getSfemStress(int fileNumber); // YYY DG implementation incomplete: do the element stresses 
@@ -55,13 +55,13 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     void getElementForce(GenDistrVector<Scalar> &, double, int, int, int);
     void getElementAttr(int, int, double);
     void getStressStrain(DistrGeomState *gs, Corotator ***allCorot, double time,
-                         int x, int fileNumber, int Findex);
+                         int x, int fileNumber, int Findex, DistrGeomState *refState);
     void getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot, double time,
-                                int iter, int fileNumber, int Findex);
+                                int iter, int fileNumber, int Findex, DistrGeomState *refState);
     void getPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
-                            int x, int fileNumber, int strIndex);
+                            int x, int fileNumber, int strIndex, DistrGeomState *refState);
     void getElementPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
-                                   int x, int fileNumber, int strIndex);
+                                   int x, int fileNumber, int strIndex, DistrGeomState *refState);
     void unify(DistSVec<Scalar, 11> &vec);
 
 };

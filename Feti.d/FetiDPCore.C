@@ -62,7 +62,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::makeGtG()
 {
-  filePrint(stderr, " ... Build G matrix and GtG solver  ...\n");
+  if(verboseFlag) filePrint(stderr, " ... Build G matrix and GtG solver  ...\n");
   startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
   // 0. delete previous G if it exists

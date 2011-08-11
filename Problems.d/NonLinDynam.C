@@ -714,7 +714,8 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linAdd(dt*dt*beta, residual);
   }
   times->correctorTime += getTime();
-  return rhs.norm();
+  resN = getResidualNorm(rhs);
+  return resN;
 }
 
 void
@@ -1102,7 +1103,7 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
    if(domain->numInitDisp6() > 0) 
      geomState->updatePrescribedDisplacement(domain->getInitDisp6(), domain->numInitDisp6());
    
-   if(domain->nDirichlet() > 0) 
+   if(domain->nDirichlet() > 0)
      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
 
    times->timePresc += getTime();

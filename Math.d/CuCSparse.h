@@ -50,7 +50,7 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
     void zeroAll();
     int  dim()    { return numConstrained; }
     int  neqs()   { return numConstrained; }
-    int  numRow() { return neq; }
+    int  numRow() { return neq-numConstrained; }
     int  numCol() { return numConstrained; }
     void print();
     long size();

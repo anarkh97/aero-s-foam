@@ -16,9 +16,6 @@ class BrickCorotator : public Corotator {
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f, double dt, double t);
 
-     void   formGeometricStiffness(GeomState &gs, CoordSet &cs, 
-                                   FullSquareMatrix &elk, double *f);
-
      void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                               int &nlflag);
 

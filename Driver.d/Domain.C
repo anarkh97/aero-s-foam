@@ -1273,55 +1273,56 @@ Renumber
 Domain::getRenumbering()
 {
  // create node to element connectivity from element to node connectivity
- if(nodeToElem == 0)
-   nodeToElem = elemToNode->reverse();
+ if(nodeToElem) delete nodeToElem;
+ nodeToElem = elemToNode->reverse();
 
  // create node to node connectivity
- if(nodeToNode == 0)
-   if(geoSource->getDirectMPC()) {
-     // MPC Connectivity treatment in direct way.
-     std::multimap<int, int> mpcConnect;
-     std::multimap<int, int>::iterator it;
-     std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
-     int ndMax = nodeToElem->csize();
-     for(int i = 0; i < this->numLMPC; ++i) {
-       for(int j = 1; j < lmpc[i]->nterms; ++j)
-         if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
+ if(nodeToNode) delete nodeToNode;
 
-           ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
-           bool found = false;
-           for(it = ret.first; it != ret.second; ++it)
-             if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
+ if(geoSource->getDirectMPC()) {
+   // MPC Connectivity treatment in direct way.
+   std::multimap<int, int> mpcConnect;
+   std::multimap<int, int>::iterator it;
+   std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
+   int ndMax = nodeToElem->csize();
+   for(int i = 0; i < this->numLMPC; ++i) {
+     for(int j = 1; j < lmpc[i]->nterms; ++j)
+       if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
 
-           if(!found)
-             mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
-         }
-     }
+         ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
+         bool found = false;
+         for(it = ret.first; it != ret.second; ++it)
+           if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
 
-     int *ptr = new int[ndMax+1];
-     for(int i = 0; i < ndMax; ++i)
-       ptr[i] = 1;
+         if(!found)
+           mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+       }
+   }
+
+   int *ptr = new int[ndMax+1];
+   for(int i = 0; i < ndMax; ++i)
+     ptr[i] = 1;
      
-     ptr[ndMax] = 0;
-     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-       ptr[it->first]++;
-     for(int i = 0; i < ndMax; ++i)
-       ptr[i+1] += ptr[i];
-     int *tg = new int[ptr[ndMax]];
+   ptr[ndMax] = 0;
+   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+     ptr[it->first]++;
+   for(int i = 0; i < ndMax; ++i)
+     ptr[i+1] += ptr[i];
+   int *tg = new int[ptr[ndMax]];
 
-     for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-       tg[--ptr[it->first]] = it->second;
-     for(int i = 0; i < ndMax; ++i)
-       tg[--ptr[i]] = i;
+   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+     tg[--ptr[it->first]] = it->second;
+   for(int i = 0; i < ndMax; ++i)
+     tg[--ptr[i]] = i;
 
-     Connectivity renumToNode(ndMax, ptr, tg);
-     Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
-     Connectivity *renumToElem = elemToRenum->reverse();
-     nodeToNode = renumToElem->transcon(elemToRenum);
-     delete renumToElem;
-     delete elemToRenum;
-   } else
-     nodeToNode = nodeToElem->transcon(elemToNode);
+   Connectivity renumToNode(ndMax, ptr, tg);
+   Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
+   Connectivity *renumToElem = elemToRenum->reverse();
+   nodeToNode = renumToElem->transcon(elemToRenum);
+   delete renumToElem;
+   delete elemToRenum;
+ } else
+   nodeToNode = nodeToElem->transcon(elemToNode);
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
@@ -1338,10 +1339,12 @@ Domain::getRenumbering()
 
  if(solInfo().type == 0 || solInfo().type == 1) makeNodeToNode_sommer(); // single domain solvers
 
+ // delete any previously allocated memory
+ if(renumb.order) { delete [] renumb.order; renumb.order=0; }
+ if(renumb.renum) { delete [] renumb.renum; renumb.renum=0; }
+ if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
+
  // renumber the nodes
-#ifdef TFLOP
- dbg_alloca(0);
-#endif
  renumb = nodeToNode->renumByComponent(sinfo.renum);
 
  int *order = new int[numnodes];
@@ -1362,26 +1365,19 @@ Domain::getRenumbering()
  ret.renumb   = renumb.renum;
  renumb.order = order;
 
- // Just for Gnu dbg_alloca function
-#ifdef TFLOP
- dbg_alloca(0);
-#endif
-
  return ret;
-
 }
 
 Renumber*
 Domain::getRenumberingFluid()
 {
  // create node to element connectivity from element to node connectivity
- if(nodeToElemFluid == 0)
-   nodeToElemFluid = elemToNodeFluid->reverse();
+ if(nodeToElemFluid) delete nodeToElemFluid;
+ nodeToElemFluid = elemToNodeFluid->reverse();
 
  // create node to node connectivity
- if(nodeToNodeFluid == 0) {
-   nodeToNodeFluid = nodeToElemFluid->transcon(elemToNodeFluid);
- }
+ if(nodeToNodeFluid) delete nodeToNodeFluid;
+ nodeToNodeFluid = nodeToElemFluid->transcon(elemToNodeFluid);
 
  // get number of nodes
  numnodesFluid = nodeToNodeFluid->csize();
@@ -3155,11 +3151,29 @@ Domain::ProcessSurfaceBCs()
       if(SurfId-1 == surface_dbc[i].nnum) {
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
-        BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_dbc[i].dofnum; bc[k].val = surface_dbc[i].val; bc[k].type = surface_dbc[i].type; }
-        int numDirichlet_copy = geoSource->getNumDirichlet();
-        geoSource->setDirichlet(nNodes, bc);
-        if(numDirichlet_copy != 0) delete [] bc;
+        switch(surface_dbc[i].type) {
+          default:
+          case BCond::Displacements : {
+            BCond *bc = new BCond[nNodes];
+            for(int k=0; k<nNodes; ++k) { 
+              bc[k].nnum = glNodes[k];
+              bc[k].dofnum = surface_dbc[i].dofnum;
+              bc[k].val = surface_dbc[i].val; 
+              bc[k].type = surface_dbc[i].type;
+            }
+            int numDirichlet_copy = geoSource->getNumDirichlet();
+            geoSource->setDirichlet(nNodes, bc);
+            if(numDirichlet_copy != 0) delete [] bc;
+          } break;
+          case BCond::Lmpc : {
+            for(int k=0; k<nNodes; ++k) {
+              LMPCTerm term(glNodes[k], surface_dbc[i].dofnum, 1);
+              LMPCons *lmpc = new LMPCons(-1,surface_dbc[i].val,&term);
+              lmpc->setSource(mpc::Lmpc);
+              addLMPC(lmpc,false);
+            }
+          } break;
+        }
       }
     }
   }

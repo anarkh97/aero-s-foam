@@ -31,7 +31,7 @@ ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm)
   tm.setZero();
 
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double lambdadivnu = lambda/nu;
+  double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
   (tm)[0][0] = lambdadivnu*(1-nu);
   (tm)[1][1] = lambdadivnu*(1-2*nu)/2;
@@ -84,7 +84,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
   if(statenp == 0) {
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-    double lambdadivnu = lambda/nu;
+    double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
     Tensor_d0s4_Ss12s34 *tm = static_cast<Tensor_d0s4_Ss12s34 *>(_tm); 
     Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);

@@ -56,8 +56,7 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     if(prec) delete prec;
     if(allCorot) delete [] allCorot; allCorot = 0;  // memory leak?
     if(kelArray) delete [] kelArray; kelArray = 0;
-
-    preProcess();
+    preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
     elementInternalForce.initialize(domain->maxNumDOF());
   }
 
@@ -268,7 +267,7 @@ NonLinStatic::preProcess()
                                                                        // of the number of rigid body modes
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                          (FullSquareMatrix *) NULL, true);
+                          (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 

@@ -71,7 +71,7 @@
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
@@ -88,7 +88,7 @@
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
-%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
+%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
@@ -106,7 +106,7 @@
 %type <axiMPC>   AxiLmpc
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
-%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem //Added for HEV problem, EC, 20080512
+%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -310,8 +310,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
-  | PodRom
-  | SampleNodeList
+        | PodRom
+        | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -834,6 +834,8 @@ DynamInfo:
         { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
+        | DynamInfo ZERO SWITCH NewLine
+        { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
 	;
@@ -1109,16 +1111,6 @@ IComplexNeumannBC:
         }
         ;
 DirichletBC:
-/*
-        DISP NewLine
-        | DirichletBC BCDataList
-        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Displacements;
-          geoSource->setDirichlet($2->n,$2->d); }
-        | DirichletBC SURF BC_Data
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0] = $3;
-          geoSource->addSurfaceDirichlet(1,surf_bc); }
-*/
         DISP NewLine
         { $$ = new BCList; }
         | DirichletBC BC_Data
@@ -1132,6 +1124,12 @@ DirichletBC:
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Displacements;
           geoSource->addSurfaceDirichlet(1,surf_bc); }
+/* TODO | DirichletBC SURF Integer Integer Float USING ConstraintOptionsData NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
+          surf_bc[0].type = BCond::Lmpc;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
+*/
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1641,16 +1639,20 @@ MPCList:
 	;
 MPCHeader:
         Integer NewLine
-        { $$ = new LMPCons($1, 0.0); }
+        { $$ = new LMPCons($1, 0.0); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float NewLine
-        { $$ = new LMPCons($1, $2); }
+        { $$ = new LMPCons($1, $2); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float MODE Integer NewLine
         { $$ = new LMPCons($1, $2);
-          $$->type = $4; }
+          $$->type = $4; 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float ConstraintOptionsData NewLine
         { $$ = new LMPCons($1, $2);
           $$->lagrangeMult = $3.lagrangeMult;
-          $$->penalty = $3.penalty; }
+          $$->penalty = $3.penalty; 
+          $$->setSource(mpc::Lmpc); }
 	;
 MPCLine:
         Integer Integer Float NewLine

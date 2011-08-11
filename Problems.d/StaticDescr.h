@@ -29,7 +29,9 @@ class SingleDomainPostProcessor {
     T *bcx;
     StaticTimers *times;
     SolverType *solver;
+    GenSparseMatrix<T> *kuc, *kcc;
   public:
+/*
     SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx)
       { domain = d; bcx = _bcx; }
 
@@ -41,6 +43,11 @@ class SingleDomainPostProcessor {
                                                          StaticTimers *_times,
                                                          SolverType *_solver)
       { domain = d; bcx = _bcx; times = _times; solver = _solver; }
+*/
+    SingleDomainPostProcessor(Domain *_domain, T *_bcx, 
+                             StaticTimers *_times = NULL, SolverType *_solver = NULL,
+                              GenSparseMatrix<T> *_kuc = NULL, GenSparseMatrix<T> *_kcc = NULL)
+     : domain(_domain), bcx(_bcx), times(_times), solver(_solver), kuc(_kuc), kcc(_kcc) {}
 
     void staticOutput(VectorType &solution, VectorType &rhs, bool printTimers = true, int ndflag =0);
     void staticOutput(GeomState& gs, double time = 0.0);
@@ -66,7 +73,7 @@ class SingleDomainStatic
     Domain *domain;
     T *bcx;
     DComplex *bcxC;
-    GenSparseMatrix<T> *kuc;
+    GenSparseMatrix<T> *kuc, *kcc;
     AllOps<T> allOps;
     SolverType *solver;
     StaticTimers *times; 

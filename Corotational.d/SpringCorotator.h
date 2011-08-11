@@ -30,9 +30,6 @@ class SpringCorotator : public Corotator {
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f, double dt, double t);
 
-     void formGeometricStiffness(GeomState
-                      &, CoordSet &, FullSquareMatrix &, double *);
-
      double * getOriginalStiffness() { return origK.data(); }
 
      void extractDeformations(GeomState &,

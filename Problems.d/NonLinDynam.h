@@ -98,6 +98,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double *Rmem;        // global rigid body modes (numdof X 6)
     int numR;            // number of rigid body modes
 
+    double resN;
+
  public:
     // Constructor
     NonLinDynamic(Domain *d);

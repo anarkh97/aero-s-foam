@@ -1,46 +1,46 @@
-echo aeros  eigen_sparse_0_gdisplac.inp
-aeros  eigen_sparse_0_gdisplac.inp
-echo aeros  eigen_skyline_10_stressvm.inp
-aeros  eigen_skyline_10_stressvm.inp
-echo aeros  eigen_mumps_100_strainxx.inp
-aeros  eigen_mumps_100_strainxx.inp
-echo aeros  eigen_spooles_1000_strainxy.inp
-aeros  eigen_spooles_1000_strainxy.inp
-echo aeros  eigen_gmres_0_strainxz.inp
-aeros  eigen_gmres_0_strainxz.inp
-echo aeros  eigen_direct_10_strainxx.inp
-aeros  eigen_direct_10_strainxx.inp
-echo aeros  eigen_spooles_pivot_100_strainxy.inp
-aeros  eigen_spooles_pivot_100_strainxy.inp
-echo aeros  eigen_mumps_pivot_1000_strainxz.inp
-aeros  eigen_mumps_pivot_1000_strainxz.inp
-echo aeros  eigen_frontal_0_strainxx.inp
-aeros  eigen_frontal_0_strainxx.inp
-echo aeros  eigen_pcg_10_strainxy.inp
-aeros  eigen_pcg_10_strainxy.inp
-echo aeros  eigen_bcg_100_strainxz.inp
-aeros  eigen_bcg_100_strainxz.inp
-echo aeros  eigen_cr_1000_inxforce.inp
-aeros  eigen_cr_1000_inxforce.inp
-echo aeros -n 2 --dec  eigen_FETI_0_inyforce.inp
-aeros -n 2 --dec  eigen_FETI_0_inyforce.inp
-echo aeros -n 2 --dec  eigen_FETI_1_10_inzforce.inp
-aeros -n 2 --dec  eigen_FETI_1_10_inzforce.inp
-echo aeros -n 2 --dec  eigen_FETI_2_OLD_100_axmoment.inp
-aeros -n 2 --dec  eigen_FETI_2_OLD_100_axmoment.inp
-echo aeros -n 2 --dec  eigen_FETI_2_NEW_1000_aymoment.inp
-aeros -n 2 --dec  eigen_FETI_2_NEW_1000_aymoment.inp
-echo aeros -n 2 --dec  eigen_FETI_DP_0_azmoment.inp
-aeros -n 2 --dec  eigen_FETI_DP_0_azmoment.inp
-echo aeros -n 2 --dec  eigen_FETI_DPH_10_energies.inp
-aeros -n 2 --dec  eigen_FETI_DPH_10_energies.inp
-echo aeros  eigen_sparse_100_gvelocit.inp
-aeros  eigen_sparse_100_gvelocit.inp
-echo aeros  eigen_skyline_1000_gacceler.inp
-aeros  eigen_skyline_1000_gacceler.inp
-echo aeros  eigen_mumps_0_displmod.inp
-aeros  eigen_mumps_0_displmod.inp
-echo aeros  eigen_spooles_10_rotatmod.inp
-aeros  eigen_spooles_10_rotatmod.inp
-echo aeros  eigen_gmres_100_gdispmod.inp
-aeros  eigen_gmres_100_gdispmod.inp
+echo ../../bin/aeros  eigen_sparse_0_gdisplac.inp
+../../bin/aeros  eigen_sparse_0_gdisplac.inp
+echo ../../bin/aeros  eigen_skyline_10_stressvm.inp
+../../bin/aeros  eigen_skyline_10_stressvm.inp
+echo ../../bin/aeros  eigen_mumps_100_strainxx.inp
+../../bin/aeros  eigen_mumps_100_strainxx.inp
+echo ../../bin/aeros  eigen_spooles_1000_strainxy.inp
+../../bin/aeros  eigen_spooles_1000_strainxy.inp
+echo ../../bin/aeros  eigen_gmres_0_strainxz.inp
+../../bin/aeros  eigen_gmres_0_strainxz.inp
+echo ../../bin/aeros  eigen_direct_10_strainxx.inp
+../../bin/aeros  eigen_direct_10_strainxx.inp
+echo ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
+../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
+echo ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
+../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
+echo ../../bin/aeros  eigen_frontal_0_strainxx.inp
+../../bin/aeros  eigen_frontal_0_strainxx.inp
+echo ../../bin/aeros  eigen_pcg_10_strainxy.inp
+../../bin/aeros  eigen_pcg_10_strainxy.inp
+echo ../../bin/aeros  eigen_bcg_100_strainxz.inp
+../../bin/aeros  eigen_bcg_100_strainxz.inp
+echo ../../bin/aeros  eigen_cr_1000_inxforce.inp
+../../bin/aeros  eigen_cr_1000_inxforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_0_inyforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_0_inyforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1_10_inzforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1_10_inzforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_OLD_100_axmoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_OLD_100_axmoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_NEW_1000_aymoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_NEW_1000_aymoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_azmoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_azmoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_energies.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_energies.inp
+echo ../../bin/aeros  eigen_sparse_100_gvelocit.inp
+../../bin/aeros  eigen_sparse_100_gvelocit.inp
+echo ../../bin/aeros  eigen_skyline_1000_gacceler.inp
+../../bin/aeros  eigen_skyline_1000_gacceler.inp
+echo ../../bin/aeros  eigen_mumps_0_displmod.inp
+../../bin/aeros  eigen_mumps_0_displmod.inp
+echo ../../bin/aeros  eigen_spooles_10_rotatmod.inp
+../../bin/aeros  eigen_spooles_10_rotatmod.inp
+echo ../../bin/aeros  eigen_gmres_100_gdispmod.inp
+../../bin/aeros  eigen_gmres_100_gdispmod.inp

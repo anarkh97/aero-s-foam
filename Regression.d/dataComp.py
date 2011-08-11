@@ -149,7 +149,7 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
-        command = "run."+names+" >& reg.out"
+        command = "./run."+names+" >& reg.out"
         os.system(command)
       os.chdir('../') 
       for infile in glob.glob( os.path.join(indir, '*.dat') ):
@@ -172,7 +172,7 @@ def dComp(params):
           time.sleep(10)
       if(lrun == 1):
         print "current directory is %s\n"% os.getcwd()
-        command = "run."+indir+" >& reg.out"
+        command = "./run."+indir+" >& reg.out"
         print "command is %s\n"% command
         os.system(command)
       os.chdir('../') 

@@ -56,7 +56,7 @@ IF(UNIX)
 # acme
     IF(NOT ACME_VERSION)
       #MESSAGE("ACME_VERSION is not defined")
-      SET(ACME_VERSION "2_9")
+      SET(ACME_VERSION "2_5")
     ENDIF(NOT ACME_VERSION)
     FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
               PATHS /usr/include /usr/local/include)

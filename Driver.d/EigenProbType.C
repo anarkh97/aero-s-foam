@@ -1150,7 +1150,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
     double shift = geoSource->shiftVal();
 
-    if(printInfo){
+    if(printInfo) {
       if(shift != 0.0 && newShift == 0.0) filePrint(stderr," ... shift = %e\n",shift);
       if(reortho)     filePrint(stderr," ... Re-orthogonalization enabled (CGS -> ICGS)\n");
       if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6\n");
@@ -1174,8 +1174,11 @@ SymArpackSolver< EigOps, VecType, VecSet,
     for(i=0; i<11; ++i) ipntr[i]  = 0;
     iparam[0] = 1;    // "exact" shift
     iparam[2] = (domain->solInfo().maxArnItr) ? domain->solInfo().maxArnItr :  nsmax; // maxitr
-    //filePrint(stderr,"IPARAM(3) = %d\n",iparam[2]);
-    iparam[6] = 3;    // Mode = 3 => A symmetrix & M symmetric positive semi-definie (see ARPACK manual)
+    iparam[6] = domain->solInfo().arpack_mode;  // Mode = 3 (default) shift-invert mode
+                                                //          => A symmetric & M symmetric positive semi-definite
+                                                // Mode = 4 buckling mode
+    // note: for buckling mode, the geometric stiffness matrix KG takes the place of M and this can be indefinite.
+    // for mode 4: OP = inv(K-sigma*KG)*K. The shift sigma must be non-zero
 
     for(i=0 ; i <= nloc ; i++) resid[i] = 0.0;
     for(i=0 ; i < 3*nloc; i++) workd[i] = 0.0;

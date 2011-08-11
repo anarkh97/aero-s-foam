@@ -228,7 +228,7 @@ def buildInputs(params):
         command = "../../bin/aeros "
         re.compile("FETI");
         if(idname.find("FETI") != -1 ):
-          command = command + "-n 2 --dec "
+          command = command + "-n 2 --dec --nsub 4"
         print "Creating %s" % filename
         MPIFILE.write("echo mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))
         MPIFILE.write("mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))

@@ -4443,6 +4443,9 @@ bool GeoSource::elemOutput()
 {
   for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
     if(oinfo[iInfo].averageFlg == 0) return true;
+    if(oinfo[iInfo].type == OutputInfo::InXForce || oinfo[iInfo].type == OutputInfo::InYForce || oinfo[iInfo].type == OutputInfo::InZForce ||
+       oinfo[iInfo].type == OutputInfo::AXMoment || oinfo[iInfo].type == OutputInfo::AYMoment || oinfo[iInfo].type == OutputInfo::AZMoment)
+      return true;
   }
   return false;
 }

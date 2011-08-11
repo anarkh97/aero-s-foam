@@ -2338,7 +2338,7 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
  if(isFeti2) preProcessCorners();
  
  int glNumSub = subToSub->csize();
- int glNumMpc = mpcToSub->csize();
+ int glNumMpc = (mpcToSub) ? mpcToSub->csize() : 0;
 
  Connectivity *coarseToSub = getCoarseToSubConnect();
  Connectivity *subToCoarse = coarseToSub->reverse();

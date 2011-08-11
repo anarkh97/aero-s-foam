@@ -19,10 +19,11 @@ def newBaseline(params):
   else:
     PROBLEM_NAMES = [params[1]]
 
+  os.system("cp ../.hg/*.cache baseline")
   for problem_type in PROBLEM_NAMES:
     command = "cp " + problem_type +"/* baseline/" + problem_type
-    os.system(command)
     print "%s" % command
+    os.system(command)
     
 if __name__ == "__main__":
 

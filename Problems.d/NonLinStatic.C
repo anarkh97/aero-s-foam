@@ -223,7 +223,7 @@ NonLinStatic::getRHS(Vector& rhs)
 }
 
 void
-NonLinStatic::preProcess()
+NonLinStatic::preProcess(bool factor)
 {
  // Allocate space for the Static Timers
  times = new StaticTimers;
@@ -322,11 +322,12 @@ NonLinStatic::printTimers()
 
 void
 NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
-                           Vector &)
+                           Vector &, GeomState *refState)
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot);
+  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot,
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
   times->output += getTime();
 }
 

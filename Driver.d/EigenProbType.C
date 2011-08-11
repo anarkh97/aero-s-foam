@@ -836,7 +836,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 }
 
 extern "C"      {
-void _FORTRAN(jacobi)(double *,double *,double *, double *,int&,double&,int &);
+void _FORTRAN(cfjacobi)(double *,double *,double *, double *,int&,double&,int &);
 void _FORTRAN(dspgv)(const int &, const char &, const char &,
                      const int &N, double *AP, double *BP, double *W,
                      double *Z, const int &LDZ, double *work, int &info);
@@ -865,7 +865,7 @@ EigenSolver< EigOps, VecType, VecSet,
   switch(subType) {
     case 0 : {
       double *work = new double[3*subSpaceSize];
-     // _FORTRAN(jacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
+      //_FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
       _FORTRAN(dspgv)(1, 'V', 'U', subSpaceSize, kappa, mu, eigVal, xx[0],
                       xx.dim(), work, info);
       if(info !=0) {
@@ -919,8 +919,8 @@ EigenSolver< EigOps, VecType, VecSet,
                       xx.dim(), work, 8*N, info);
       if(info !=0)
         filePrint(stderr, "Error in ddgev: %d\n", info);
-      for(i=0; i<N; ++i) cerr << "i = " << i << ", alphar = " << eigVal[i] << ", alphai = "
-                              << alphai[i] << ", beta = " << beta[i] << endl;
+      //for(i=0; i<N; ++i) cerr << "i = " << i << ", alphar = " << eigVal[i] << ", alphai = "
+      //                        << alphai[i] << ", beta = " << beta[i] << endl;
       for(i=0; i<N; ++i) eigVal[i] /= beta[i];
       delete [] a; delete [] b; delete [] work; delete [] alphai; delete [] beta;
     }

@@ -732,9 +732,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    rigidBodyModes = domain->constructHzem();
 
  if((getTimeIntegration() == 1) && (useGrbm || useHzem)) // only use for quasistatics
-   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray);
+   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray, (FullSquareMatrix *) NULL, true);
  else
-   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray);
+   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, (FullSquareMatrix *) NULL, true);
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");

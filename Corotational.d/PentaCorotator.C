@@ -455,6 +455,7 @@ void
 PentaCorotator::formGeometricStiffness(GeomState &gs, CoordSet &cs,
                              FullSquareMatrix &elk, double *f)
 {
+  cerr << "PentaCorotator::formGeometricStiffness is not implemented\n";
 }
 
 void

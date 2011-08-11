@@ -417,6 +417,7 @@ void
 TetCorotator::formGeometricStiffness(GeomState &gs, CoordSet &cs,
                              FullSquareMatrix &elk, double *f)
 {
+  cerr << "TetCorotator::formGeometricStiffness is not implemented\n";
 }
 
 void

@@ -260,6 +260,7 @@ void
 SpringCorotator::formGeometricStiffness(GeomState
                       &, CoordSet &, FullSquareMatrix &, double *)
 {
+  cerr << "SpringCorotator::formGeometricStiffness is not implemented\n";
 }
 
 void

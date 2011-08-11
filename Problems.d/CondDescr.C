@@ -55,7 +55,8 @@ SingleDomainCond::buildCondOps()
  allOps.K = domain->constructDBSparseMatrix<double>();
 
  // ... Build K and a Solver
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
+                          (FullSquareMatrix *) NULL, true);
 
  DynamMat dMat;
 

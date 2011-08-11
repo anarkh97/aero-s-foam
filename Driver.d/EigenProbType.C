@@ -919,8 +919,6 @@ EigenSolver< EigOps, VecType, VecSet,
                       xx.dim(), work, 8*N, info);
       if(info !=0)
         filePrint(stderr, "Error in ddgev: %d\n", info);
-      for(i=0; i<N; ++i) cerr << "i = " << i << ", alphar = " << eigVal[i] << ", alphai = "
-                              << alphai[i] << ", beta = " << beta[i] << endl;
       for(i=0; i<N; ++i) eigVal[i] /= beta[i];
       delete [] a; delete [] b; delete [] work; delete [] alphai; delete [] beta;
     }
@@ -1151,6 +1149,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     // Implicit Restarted Arnoldi Method (IRAM) loop using Arpack for solving A.x = lambda.M.x
 
     double shift = geoSource->shiftVal();
+    //if(domain->solInfo().arpack_mode == 4 && domain->solInfo().buckling) shift += 1.0; // TODO check or is it -1
 
     if(printInfo){
       if(shift != 0.0 && newShift == 0.0) filePrint(stderr," ... shift = %e\n",shift);
@@ -1176,8 +1175,11 @@ SymArpackSolver< EigOps, VecType, VecSet,
     for(i=0; i<11; ++i) ipntr[i]  = 0;
     iparam[0] = 1;    // "exact" shift
     iparam[2] = (domain->solInfo().maxArnItr) ? domain->solInfo().maxArnItr :  nsmax; // maxitr
-    //filePrint(stderr,"IPARAM(3) = %d\n",iparam[2]);
-    iparam[6] = 3;    // Mode = 3 => A symmetrix & M symmetric positive semi-definie (see ARPACK manual)
+    iparam[6] = domain->solInfo().arpack_mode;  // Mode = 3 (default) shift-invert mode
+                                                //          => A symmetric & M symmetric positive semi-definie (see ARPACK manual)
+                                                // Mode = 4 buckling mode
+    // note: for buckling, the geometric stiffness matrix KG takes the place of M and this can be indefinite.
+    // for mode 4: OP = inv(K-sigma*KG)*K and B = K. The shift sigma must be non-zero
 
     for(i=0 ; i <= nloc ; i++) resid[i] = 0.0;
     for(i=0 ; i < 3*nloc; i++) workd[i] = 0.0;
@@ -1354,6 +1356,13 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
         for (i=0; i<convEig; i++) { // save converged eigenvalues and eigenvectors
           if(filterEigen) { if((*this->eigVal)[i]<0 || fabs((*this->eigVal)[i])<1.E-6 ) { (*this->eigVal)[i] = 0.0; filtered++; } }
+/*
+          if(domain->solInfo().arpack_mode == 4) { // TOTO: buckling mode
+            cerr << "i = " << i << ", theta = " << (*this->eigVal)[i] << ", shift = " << shift; 
+            (*this->eigVal)[i] = (1+shift)*(*this->eigVal)[i]/((*this->eigVal)[i]-1);
+            cerr << ", lambda = " << (*this->eigVal)[i] << endl;
+          }
+*/
           if (domain->solInfo().doEigSweep) 
              TotEigVal.push_back((*this->eigVal)[i]);
           (*this->eigVec)[i] = (*Z)[i];
@@ -1426,7 +1435,7 @@ void
 SymArpackSolver< EigOps, VecType, VecSet,
                  PostProcessor, ProblemDescriptor>::rebuildSolver(double newShift)
 {
-
+  //if(domain->solInfo().arpack_mode == 4 && domain->solInfo().buckling) newShift += 1; // this is because kelArray stores (K - KG)
   filePrint(stderr,"\n ... Rebuilding LHS with shift = %e ... \n", newShift);
   geoSource->setShift(newShift);  // set new shift
 

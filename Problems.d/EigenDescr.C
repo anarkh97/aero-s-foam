@@ -89,8 +89,10 @@ SingleDomainEigen::preProcess()
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
                                      geomKelArray);
 
-   if(domain->solInfo().buckling == 1) kelArray = 0; //HB: is there any memory leak here ? It seems to me that
-                                                     //kelArray was allocated in domain->computeGeometricPreStress
+   if(domain->solInfo().buckling == 1 /*&& domain->solInfo().arpack_mode != 4*/) { // TOTO
+     //delete [] kelArray;
+     kelArray = 0; 
+   }
  }
 
  times->preProcess += getTime();
@@ -133,7 +135,8 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  }
 
  // build stiffness and mass matrices
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray);
+ melArray = (domain->solInfo().arpack_mode == 4) ? geomKelArray : 0; // TOTO
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray, true); // TOTO
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
 
@@ -148,8 +151,16 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
    Connectivity *allDOFs = domain->getAllDOFs();
    dMat.M->zeroAll();
    int iele;
+   int size = sizeof(double)*domain->maxNumDOF()*domain->maxNumDOF();
+   double *karray = (double *) dbg_alloca(size);
    for(iele=0; iele<domain->numElements(); ++iele) {
-     dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
+     if(domain->solInfo().arpack_mode == 4) {
+       FullSquareMatrix kel  = domain->getElementSet()[iele]->stiffness(domain->getNodes(), karray);
+       dMat.M->add(kel,(*domain->getAllDOFs())[iele]);
+       //dMat.M->add(kelArray[iele],(*allDOFs)[iele]); // TOTO
+     }
+     else
+       dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
    }
  }
 }
@@ -165,8 +176,7 @@ SingleDomainEigen::reBuild( DynamMat &dMat )
  // rebuild stiffness and mass matrices
  // watch: no rigid body modes assumed
 
- domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0);
- cerr << "here in SingleDomainEigen::reBuild\n";
+ domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray, melArray, true);
 }
 
 int SingleDomainEigen::getNumEigen()

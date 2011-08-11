@@ -244,7 +244,7 @@ void ModalBase::initStateBase(Vector& dsp, Vector& vel,
       // construct and assemble full mass matrix
       AllOps<double> allOps;
       allOps.M = domain->constructDBSparseMatrix<double>();
-      domain->makeSparseOps(allOps, 0, 0, 0);
+      domain->makeSparseOps(allOps, 0, 0, 0, (SparseMatrix *) NULL, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 
       // taking advantage of symmetry of M and computing M*Phi_i instead of transpose(Phi_i)*M
       for(int i = 0 ; i<numRBM; ++i)

@@ -969,7 +969,8 @@ Domain::getGeometricStiffness(GeomState &geomState,Vector& elementInternalForce,
        // Compute (linear) element pressure force in the local coordinates
        elementInternalForce.zero();
        packedEset[iele]->computePressureForce(nodes, elementInternalForce, &geomState, 1);
-       elementInternalForce *= -1.0;
+       elementInternalForce *= -1.0; // due to IDISP6 -1
+       //cerr << "iele = " << iele << ", elementInternalForce =\n"; elementInternalForce.print();
 
        // Include the "load stiffness matrix" in kel[iele]
        allCorot[iele]->getDExternalForceDu(geomState, nodes, geomKelArray[iele],
@@ -1035,6 +1036,20 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
    if(geomKelArray) {
      Vector elementInternalForce(maxNumDOF(), 0.0);
      getGeometricStiffness(*geomState, elementInternalForce, allCorot, geomKelArray);
+/*
+     int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
+     double *karray = (double *) dbg_alloca(size);
+     for(int iele=0; iele < numele; ++iele) {
+        FullSquareMatrix kel = packedEset[iele]->stiffness(nodes, karray);
+        //cerr << "k = \n"; kel.print();
+        //cerr << "kt = \n"; kelArray[iele].print();
+        //cerr << "kg = \n"; geomKelArray[iele].print();
+        //FullSquareMatrix k1(kel); k1 -= kelArray[iele]; cerr << "k-kt = \n"; k1.print();
+        //kelArray[iele] = kel;
+        //geomKelArray[iele] = kelArray[iele]; geomKelArray[iele] -= kel; 
+        geomKelArray[iele] = kel; geomKelArray[iele] -= kelArray[iele];
+     }
+*/
    }
 }
 

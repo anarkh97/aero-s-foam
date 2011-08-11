@@ -206,8 +206,6 @@ Therm3DQuad::computeHeatFluxes(Vector& heatflux, CoordSet &cs, Vector& elTemp,
    char ESCM[7] = "DIRECT"; // ... DIRECT Heat Fluxes CALCULATION
    //char ESCM[7] = "EXTRAP";   // ... EXTRAPOLATION FROM GAUSS POINTS
 
-//   elTemp.print();
-
    _FORTRAN(htsas2)(ESCM, xl, yl, k, elTemp.data(), (double*)elGradTemp,
                     (double*)elHeatFlux, maxgus, maxstr, elm, numel);
 

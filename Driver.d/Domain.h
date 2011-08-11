@@ -394,30 +394,32 @@ class Domain : public HData {
   */
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                     Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
+                     Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
+                     bool factor);
 
      template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0);
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
 
      template<class Scalar>
        void makeDynamicOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0);
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *mel);
 
      template<class Scalar>
        void rebuildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-	  	       Rbm* rbm=0, FullSquareMatrix *kelArray=0, bool factorize=true);
+	  	       Rbm* rbm, FullSquareMatrix *kelArray, FullSquareMatrix *mel,
+                       bool factor);
 
      template<class Scalar>
        void makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
-	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
-                          FullSquareMatrix *kelArray=0, FullSquareMatrix *melArray=0);
+	 		  double Ccoef, GenSparseMatrix<Scalar> *mat,
+                          FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
 
      template<class Scalar>
        void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm=0, FullSquareMatrix *kelArray=0);
+                           Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,

@@ -149,6 +149,7 @@ struct SolverInfo {
                           "LM" - undefined for shift-invert on generalized eigenvalue problem
                           "SM" - undefined for shift-invert on generalzied eigenvalue problem
                           "BE" - compute eigenvalues to either side of sigma */
+   int arpack_mode;     // 3 is shift-invert, 4 is buckling mode
    double lbound;       // lower bound of a set or range of eigenvalues to be computed by ARPACK
    double ubound;       // upper bound of a set or range of eigenvalues to be computed by ARPACK
    int nshifts;         // number of shifts to be used by ARPACK when computing neigenpa eigenvalues
@@ -369,6 +370,7 @@ struct SolverInfo {
                   nEig = 0;
                   eigenSolverSubType = 0;
                   which = "";
+                  arpack_mode = 3;
                   // CBM: new stuff
                   lbound = 0.0;
                   ubound = 0.0;

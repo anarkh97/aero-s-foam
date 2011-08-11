@@ -775,6 +775,10 @@ DynInfo:
         | ARPACK FNAME NewLine
         { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
           domain->solInfo().which = $2; }
+        | ARPACK FNAME Integer NewLine
+        { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
+          domain->solInfo().which = $2; 
+          domain->solInfo().arpack_mode = $3; }
         | ARPACK Float Float NewLine
         { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
           domain->setEigenValue($2, int($3)); }

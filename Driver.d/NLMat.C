@@ -82,7 +82,8 @@ NLMatProbDesc::preProcess()
 */
     AllOps<double> allOps;
 
-    domain.buildOps<double>(allOps, 1.0, 0.0, 0.0);
+    domain.buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
+                            (FullSquareMatrix *) NULL, true);
 
     solver = allOps.sysSolver;
     spm = allOps.spm;
@@ -101,7 +102,8 @@ NLMatProbDesc::preProcess()
    double Mcoef = 1.0;
    double Ccoef = 0.0;
 
-   domain.buildOps<double>(allOps, Kcoef, Mcoef, Ccoef);
+   domain.buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, (FullSquareMatrix *) NULL,
+                           (FullSquareMatrix *) NULL, true);
 
    M      = allOps.M;
    Mcc    = allOps.Mcc;
@@ -883,7 +885,7 @@ NLMatProbDesc::reBuild(int iteration, int, NLState &)
 */
    spm->zeroAll();
    AllOps<double> ops;
-   domain.makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray);
+   domain.makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
    solver->factor();
  }
 

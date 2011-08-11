@@ -980,7 +980,7 @@ Domain::getGeometricStiffness(GeomState &geomState, Vector& elementInternalForce
        // Compute (linear) element pressure force in the local coordinates
        elementInternalForce.zero();
        packedEset[iele]->computePressureForce(nodes, elementInternalForce, &geomState, 1);
-       elementInternalForce *= -1.0;
+       elementInternalForce *= -1.0; // due to IDISP6 -1
 
        // Include the "load stiffness matrix" in kel[iele]
        allCorot[iele]->getDExternalForceDu(geomState, nodes, geomKelArray[iele],

@@ -919,8 +919,6 @@ EigenSolver< EigOps, VecType, VecSet,
                       xx.dim(), work, 8*N, info);
       if(info !=0)
         filePrint(stderr, "Error in ddgev: %d\n", info);
-      //for(i=0; i<N; ++i) cerr << "i = " << i << ", alphar = " << eigVal[i] << ", alphai = "
-      //                        << alphai[i] << ", beta = " << beta[i] << endl;
       for(i=0; i<N; ++i) eigVal[i] /= beta[i];
       delete [] a; delete [] b; delete [] work; delete [] alphai; delete [] beta;
     }

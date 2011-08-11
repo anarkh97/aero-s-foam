@@ -851,7 +851,7 @@ Domain::constructGappyProjectionSolver()
 template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
-                 Rbm *rbm, FullSquareMatrix *kelArray, bool factorize)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, bool factorize)
 {
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
@@ -886,11 +886,11 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                     systemSolver, allOps.spm, rbm, kelArray); // also used for eigen
+                                     systemSolver, allOps.spm, rbm, kelArray, melArray); // also used for eigen
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                      systemSolver, allOps.spm, rbm, kelArray);
+                                      systemSolver, allOps.spm, rbm, kelArray, melArray);
       break;
    }
    if(sinfo.inpc) {
@@ -899,7 +899,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
        GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
        prec_solver->zeroAll();
        AllOps<Scalar> allOps_tmp;
-       makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray);
+       makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray);
        prec_solver->factor();
        sfbm->setMeanSolver(prec_solver);
      }
@@ -950,7 +950,8 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 template<class Scalar>
 void
 Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
-                   Rbm *rbm, FullSquareMatrix *kelArray, bool factorize)
+                   Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
+                   bool factorize)
 {
  GenSolver<Scalar> *systemSolver;
  GenSparseMatrix<Scalar> *spm;
@@ -965,26 +966,26 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        case 0: { //case 1:
          spm = (GenSkyMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
          systemSolver  = (GenSkyMatrix<Scalar>*) spm;
        }
        break;
        case 5: { //case 2:
-	 makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray);
+	 makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
          systemSolver = allOps.sysSolver;
        }
        break;
        case 1: { //case 3:
          spm = (GenBLKSparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
          systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
        }
        break;
        case 2: { //case 4:
          spm = (GenSGISparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
          systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
        }
        break;
@@ -992,7 +993,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 #ifdef NO_COMPLEX
 	 spm = dynamic_cast<SGISky*>(allOps.sysSolver);
 	 spm->zeroAll();
-	 makeSparseOps(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+	 makeSparseOps(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
 	 systemSolver   = dynamic_cast<SGISky*>(spm);
 #else
 	 fprintf(stderr,"ERROR: templated SGISkyMatrix class is not implemeted \n");
@@ -1003,7 +1004,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        case 8: { //case 8:
          spm =(GenSpoolesSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
          systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
        }
        break;
@@ -1132,33 +1133,33 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // ... Build stiffness matrix K and Kuc, etc...
- buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, factorize);
+ buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix *) NULL, factorize);
 }
 
 template<class Scalar>
 void
 Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
 {
   switch(sinfo.subtype) {
     default:
     case 0:
       //filePrint(stderr," ... Skyline Solver is Selected     ...\n");
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 5:
       //filePrint(stderr," ... Frontal Solver is Selected     ...\n");
-      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm, kelArray);
+      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
       systemSolver = allOps.sysSolver;
       break;
     case 1:
       //filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
       spm->zeroAll();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
@@ -1166,14 +1167,14 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
       //filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
-      makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (SGISky*) spm;
 #else
       fprintf(stderr,"ERROR: templated SGISkyMatrix class is not implemeted \n");
@@ -1183,7 +1184,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
     case 8:
       //filePrint(stderr," ... Spooles Solver is Selected     ...\n");
       spm = constructSpooles<Scalar>(c_dsa, rbm);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
       break;
 #endif
@@ -1196,14 +1197,14 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #else
       spm = constructMumps<Scalar>(c_dsa, rbm);
 #endif
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenMumpsSolver<Scalar>*) spm;
       break;
 #endif
     case 10:
       //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 11:
@@ -1212,7 +1213,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
         systemSolver = solver;
       }
       break;
@@ -1222,7 +1223,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
         systemSolver = solver;
       }
       break;
@@ -1232,7 +1233,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
         systemSolver = solver;
       }
       break;
@@ -1243,7 +1244,7 @@ template<class Scalar>
 void
 Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
 {
   switch(sinfo.iterSubtype) {
     case 2:
@@ -1264,7 +1265,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       allOps.spp = (GenSparseMatrix<Scalar> *) diag;
       break;
   }
-  makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray);
+  makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
   if(allOps.prec) allOps.prec->factor();
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
@@ -1275,7 +1276,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
         prec_solver->zeroAll();
         AllOps<Scalar> allOps_tmp;
-        makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray);
+        makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray);
         prec_solver->factor();
         spm->setMeanSolver(prec_solver);
       }

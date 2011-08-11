@@ -1,4 +1,4 @@
-        subroutine trithmfr(x,y,z,t,a,e,nu,h,alpha,f,globalflag)
+        subroutine trithmfr(x,y,z,t,a,e,nu,h,alpha,f,globflag)
 c
 c----------------------------------------------------------------------*
 c
@@ -15,28 +15,29 @@ c	a  = coefficent of thermal expansion
 c	e  = Young's modulus
 c	nu = Poisson's ratio
 c       h  = shell thickness
-c       globalflag = flag to return to global coordinates
+c       globflag = flag to return to global coordinates
 c
 c output variables:
 c	f  = thermally induced mechanical force
 c
 c----------------------------------------------------------------------
 C
-        real*8 t,a,e,nu,h,alpha
-        real*8 x(3),y(3),z(3),f(18)
-        real*8 xp(3),yp(3),zp(3),xlp(3),ylp(3),zlp(3)
-        real*8 str(3),temp(3),ftemp(9)
-        real*8 dm(3,3),p(9,3),rot(3,3)
-        real*8 v1n(3),v2n(3),v3n(3)
-        real*8 x21,y21,z21,x32,y32,z32,x13,y13,z13
-        real*8 x12,y12,x23,y23,x31,y31
-        real*8 cb,rlr,area2,coef1,coef2
-c       real*8 rlb,bpr,area
-        real*8 xlcg,ylcg,zlcg,ylr,zlr,xcg,ycg,zcg
-        data v1n/1.0,0.0,0.0/
-        data v2n/0.0,1.0,0.0/
-        data v3n/0.0,0.0,1.0/
-        integer i,j,globalflag
+        double precision t,a,e,nu,h,alpha
+        double precision x(*),y(*),z(*),f(*)
+        double precision xp(3),yp(3),zp(3),xlp(3),ylp(3),zlp(3)
+        double precision str(3),temp(3),ftemp(9)
+        double precision dm(3,3),p(9,3),rot(3,3)
+        double precision v1n(3),v2n(3),v3n(3)
+        double precision x21,y21,z21,x32,y32,z32,x13,y13,z13
+        double precision x12,y12,x23,y23,x31,y31
+        double precision cb,rlr,area2,coef1,coef2
+c       double precision rlb,bpr,area
+        double precision xlcg,ylcg,zlcg,ylr,zlr,xcg,ycg,zcg
+        integer i,j,globflag
+        data v1n/1.0d0,0.0d0,0.0d0/
+        data v2n/0.0d0,1.0d0,0.0d0/
+        data v3n/0.0d0,0.0d0,1.0d0/
+c        integer i,j,globflag
 C
 C dimension variables
 C
@@ -78,18 +79,19 @@ C Y'
         yp(2) = yp(2)/ylr
         yp(3) = yp(3)/ylr
 C compute center of gravity
-        xcg = (x(1) + x(2) + x(3))/3.0d+00
-        ycg = (y(1) + y(2) + y(3))/3.0d+00
-        zcg = (z(1) + z(2) + z(3))/3.0d+00
+        xcg = (x(1) + x(2) + x(3))/3.0d0
+        ycg = (y(1) + y(2) + y(3))/3.0d0
+        zcg = (z(1) + z(2) + z(3))/3.0d0
 C compute local coordinates 
-        do  i=1,3
+        do 10, i=1,3
           xlcg   = x(i) - xcg
           ylcg   = y(i) - ycg
           zlcg   = z(i) - zcg
           xlp(i) = xp(1) * xlcg + xp(2) * ylcg + xp(3) * zlcg
           ylp(i) = yp(1) * xlcg + yp(2) * ylcg + yp(3) * zlcg
           zlp(i) = zp(1) * xlcg + zp(2) * ylcg + zp(3) * zlcg
-        end do
+10      continue
+c        end do
 c
 c  dimension variables in local coordinates
 c		
@@ -109,36 +111,36 @@ c
 c
 c membrane elastic matrix
 c
-      cb=e*(h/2)/(1.0-(nu*nu))
+      cb=e*(h/2.0d0)/(1.0d0-(nu*nu))
       dm(1,1) =    cb
       dm(1,2) = nu*cb
-      dm(1,3) = 0.0
+      dm(1,3) = 0.0d0
       dm(2,1) = dm(1,2)
       dm(2,2) = cb
-      dm(2,3) = 0.0
-      dm(3,1) = 0.0
-      dm(3,2) = 0.0
-      dm(3,3) = ((1.0-nu)/2.0)*cb
+      dm(2,3) = 0.0d0
+      dm(3,1) = 0.0d0
+      dm(3,2) = 0.0d0
+      dm(3,3) = ((1.0d0-nu)/2.0d0)*cb
 c
 c  create strain vector
 c
       str(1) = a*t 
       str(2) = a*t 
-      str(3) = 0.0d+00
+      str(3) = 0.0d0
 c
 c  create strain-displacement matrix p (assign half and dV terms to cb)
 c
       p(1,1) =   y23
-      p(2,1) =   0.0
+      p(2,1) =   0.0d0
       p(3,1) =   y31
-      p(4,1) =   0.0
+      p(4,1) =   0.0d0
       p(5,1) =   y12
-      p(6,1) =   0.0
-      p(1,2) =   0.0
+      p(6,1) =   0.0d0
+      p(1,2) =   0.0d0
       p(2,2) =   x32
-      p(3,2) =   0.0
+      p(3,2) =   0.0d0
       p(4,2) =   x13
-      p(5,2) =   0.0
+      p(5,2) =   0.0d0
       p(6,2) =   x21
       p(1,3) =   x32
       p(2,3) =   y23
@@ -146,8 +148,8 @@ c
       p(4,3) =   y31
       p(5,3) =   x21
       p(6,3) =   y12
-      coef1  = alpha/6.0
-      coef2  = alpha/3.0
+      coef1  = alpha/6.0d0
+      coef2  = alpha/3.0d0
       p(7,1) =  y23*(y13-y21)*coef1
       p(7,2) =  x32*(x31-x12)*coef1
       p(7,3) =  (x31*y13-x12*y21)*coef2
@@ -160,36 +162,37 @@ c
 c
 c create vector = p'*D*str
 c            
-        do i=1,3
-           temp(i) = dm(i,1)*str(1) + dm(i,2)*str(2) + dm(i,3)*str(3)
-        end do
-        do j=1,9
-           ftemp(j) = p(j,1)*temp(1) + p(j,2)*temp(2) + p(j,3)*temp(3)
-        end do
+      do 20, i=1,3
+        temp(i) = dm(i,1)*str(1) + dm(i,2)*str(2) + dm(i,3)*str(3)
+20    continue
+      do 30, j=1,9
+        ftemp(j) = p(j,1)*temp(1) + p(j,2)*temp(2) + p(j,3)*temp(3)
+30    continue
 c
-      if (globalflag .eq. 0) then
+      if (globflag .eq. 0) then
 c transform to global coordinates	
 c	first create the transformation matrix which rot,
 c	next carry out this multipication node by node which has 
 c       forces [flx fly mz] 
         call rotation(xp,yp,zp,v1n,v2n,v3n,rot)
-        do i =1,3
+        do 40, i =1,3
            f(i*6-5) =  rot(1,1)*ftemp(i*2-1) + rot(1,2)*ftemp(i*2)
            f(i*6-4) =  rot(2,1)*ftemp(i*2-1) + rot(2,2)*ftemp(i*2)
            f(i*6-3) =  rot(3,1)*ftemp(i*2-1) + rot(3,2)*ftemp(i*2)
            f(i*6-2) =  rot(1,3)*ftemp(6+i)
            f(i*6-1) =  rot(2,3)*ftemp(6+i)
            f(i*6  ) =  rot(3,3)*ftemp(6+i)
-        end do
+40      continue
       else 
-         do i=1,3
+         do 50, i=1,3
            f(i*6-5) = ftemp(i*2-1)
            f(i*6-4) = ftemp(i*2  )
            f(i*6-3) = 0
            f(i*6-2) = 0
            f(i*6-1) = 0
            f(i*6  ) = ftemp(6+i)
-         end do
+50       continue
       end if 
+      return
       end 
-           
+

@@ -22,18 +22,18 @@ echo ../../bin/aeros  freqsweep_bcg_strainxz.inp
 ../../bin/aeros  freqsweep_bcg_strainxz.inp
 echo ../../bin/aeros  freqsweep_cr_inxforce.inp
 ../../bin/aeros  freqsweep_cr_inxforce.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_inyforce.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_inyforce.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_1_inzforce.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_1_inzforce.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_2_OLD_axmoment.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_2_OLD_axmoment.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_2_NEW_aymoment.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_2_NEW_aymoment.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_DP_azmoment.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_DP_azmoment.inp
-echo ../../bin/aeros -n 2 --dec  freqsweep_FETI_DPH_energies.inp
-../../bin/aeros -n 2 --dec  freqsweep_FETI_DPH_energies.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_inyforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_inyforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_1_inzforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_1_inzforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_2_OLD_axmoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_2_OLD_axmoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_2_NEW_aymoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_2_NEW_aymoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_DP_azmoment.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_DP_azmoment.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_DPH_energies.inp
+../../bin/aeros -n 2 --dec --nsub 4 freqsweep_FETI_DPH_energies.inp
 echo ../../bin/aeros  freqsweep_sparse_gvelocit.inp
 ../../bin/aeros  freqsweep_sparse_gvelocit.inp
 echo ../../bin/aeros  freqsweep_skyline_gacceler.inp

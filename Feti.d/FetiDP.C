@@ -1202,18 +1202,14 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  
  // Compute initial lagrange multipliers: lambda^0 = P * lambda^00 - G*(G^T*G)^-1 * e, where e = R^T*f ... also gamma = G^T*lambda+e
  // also for feti-dpc: expand active set and re-compute initial lagrange multipliers if lambda^0 is not feasible
- cerr << "here in GenFetiDPSolver::solverCG #1\n";
  computeL0(lambda, f); 
- cerr << "here in GenFetiDPSolver::solverCG #2\n";
 
  // Compute initial residual: r^0 = F*lambda^0 + d ... also uc = Kcc^-1(fc+Krr^-1*Krc^T*lambda), ur = Krr^-1*(fr-Br^T*lambda-Krc*uc)
  localSolveAndJump(fr, lambda, ur, fc, uc, r, fw); 
 
  // Compute initial projected residual: w^0 = P^T * r^0 
  // also for feti-dpc: contract active set if w^0 is not proportional (primal planing)
- cerr << "here in GenFetiDPSolver::solverCG #3\n";
  ww0 = ww = tProject(r, w); 
- cerr << "here in GenFetiDPSolver::solverCG #4\n";
  if(verboseFlag) filePrint(stderr," ... Initial residual norm %e\n", sqrt(ww0));
 
  //if(ww == 0.0) { 

@@ -1355,13 +1355,6 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
         for (i=0; i<convEig; i++) { // save converged eigenvalues and eigenvectors
           if(filterEigen) { if((*this->eigVal)[i]<0 || fabs((*this->eigVal)[i])<1.E-6 ) { (*this->eigVal)[i] = 0.0; filtered++; } }
-/*
-          if(domain->solInfo().arpack_mode == 4) { // TOTO: buckling mode
-            cerr << "i = " << i << ", theta = " << (*this->eigVal)[i] << ", shift = " << shift; 
-            (*this->eigVal)[i] = (1+shift)*(*this->eigVal)[i]/((*this->eigVal)[i]-1);
-            cerr << ", lambda = " << (*this->eigVal)[i] << endl;
-          }
-*/
           if (domain->solInfo().doEigSweep) 
              TotEigVal.push_back((*this->eigVal)[i]);
           (*this->eigVec)[i] = (*Z)[i];

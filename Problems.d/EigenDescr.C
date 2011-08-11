@@ -50,10 +50,8 @@ SingleDomainEigen::preProcess()
  int numdof  = domain->numdof();
 
  times->makeBCs -= getTime();
- //int *bc  = (int *)    dbg_alloca(sizeof(int)*numdof);
- //bcx = (double *) dbg_alloca(sizeof(double)*numdof);
- int *bc  = new int[numdof]; //HB
- bcx = new double[numdof]; //HB
+ int *bc  = new int[numdof];
+ bcx = new double[numdof];
 
  // ... make boundary conditions
  domain->make_bc(bc,bcx);
@@ -136,7 +134,7 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 
  // build stiffness and mass matrices
  melArray = (domain->solInfo().arpack_mode == 4) ? geomKelArray : 0;
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray, true);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
 
@@ -176,7 +174,7 @@ SingleDomainEigen::reBuild( DynamMat &dMat )
  // rebuild stiffness and mass matrices
  // watch: no rigid body modes assumed
 
- domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray, melArray, true);
+ domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray, melArray);
 }
 
 int SingleDomainEigen::getNumEigen()

@@ -398,32 +398,32 @@ class Domain : public HData {
   */
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                     Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
-                     bool factor);
+                     Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
+                     bool factor = true);
 
      template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        void makeDynamicOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *mel);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0);
 
      template<class Scalar>
        void rebuildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-	  	       Rbm* rbm, FullSquareMatrix *kelArray, FullSquareMatrix *mel,
-                       bool factor);
+	  	       Rbm* rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0,
+                       bool factor = true);
 
      template<class Scalar>
        void makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
-	 		  double Ccoef, GenSparseMatrix<Scalar> *mat,
-                          FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
+	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
+                          FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray);
+                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,

@@ -2707,7 +2707,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     if(i > 0) {
       double resnorm = (eflag && ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << endl;
-      if(resnorm <= this->fetiInfo->dual_proj_tol || !status_change) break;
+      if(/*resnorm <= this->fetiInfo->dual_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->dual_plan_maxit)) {
         if(this->myCPU == 0) cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << endl;
         // note: if we break the loop here then y will not be feasible wrt the equality constraints (i.e. G^T*y != e)
@@ -2769,7 +2769,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     if(i > 0) {
       double resnorm = (ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal planing: iteration " << i << ", residual = " << resnorm << endl;
-      if(resnorm <= this->fetiInfo->primal_proj_tol || !status_change) break;
+      if(/*resnorm <= this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->primal_plan_maxit)) {
         if(this->myCPU == 0) cerr << "warning: primal planing did not converge after " << i << " iterations. " << endl;
         break;

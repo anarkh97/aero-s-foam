@@ -174,7 +174,7 @@ class FetiInfo {
     int    nlPrecFlg;
     int    numLoadSteps;
 
-    enum Preconditioner { noPrec, lumped, dirichlet, identity } precno;
+    enum Preconditioner { noPrec=0, lumped, dirichlet, identity } precno;
     enum PreconditionerType { nonshifted, shifted } prectype;
     enum MpcPreconditioner { noMpcPrec=0, diagCCt, globalCCt, blockDiagCCt, subBlockDiagCCt, superBlockDiagCCt, autoSelectCCt } mpc_precno;
     enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block;

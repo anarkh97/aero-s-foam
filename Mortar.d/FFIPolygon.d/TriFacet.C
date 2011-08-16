@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
 
@@ -439,7 +440,7 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      double dA = GetIsoParamMappingNormalAndJacobianOnFaceEl(Normal, m, cs);
      //cerr << " # dA = " << dA << endl;
      // PJSA is the -ve of the normal?
-     //cerr << " # normal = " << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
+     //cerr << " # normal = " << std::setprecision(12) << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
 
      // Get local coord. on each face element
      // -> for the mortar elem. (see the NOTE section)

@@ -452,7 +452,7 @@ QuadFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, QuadFacet
      // Jacobian on the face element supporting the CURRENT triangular facet
      double dA = GetIsoParamMappingNormalAndJacobianOnFaceEl(Normal, m, cs);
      //cerr << " # dA = " << dA << endl;
-     //cerr << " # normal = " << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
+     //cerr << " # normal = " << setprecision(10) << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
 
      // Get local coord. on each face element
      // -> for the mortar elem. (see the NOTE section)

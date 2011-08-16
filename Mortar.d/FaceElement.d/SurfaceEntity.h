@@ -22,6 +22,8 @@
 #include <Utils.d/BinFileHandler.h>
 #endif
 
+#define HB_NODALNORMAL
+
 class FaceElement;
 class CoordSet;
 class Connectivity;

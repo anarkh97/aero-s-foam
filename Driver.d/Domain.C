@@ -2922,6 +2922,12 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  // using the nodal coordinates
  int mode = (_mode > -1) ? _mode : domain->solInfo().contact_mode;  // 0 -> normal tied + tangents free, 1 -> normal contact + tangents free
                                                                     // 2 -> normal+tangents tied, 3 -> normal contact + tied tangents
+/*CoordSet &cs = geoSource->GetNodes();
+ double normal[3] = { cs[n2]->x - cs[n1]->x, cs[n2]->y - cs[n1]->y, cs[n2]->z - cs[n1]->z };
+ double gap = std::sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]);
+ normalize(normal);
+ cerr << n1+1 << " " << n2+1 << "  " << std::setprecision(12) << -normal[0] << " " << -normal[1] << " " << -normal[2] << " GAP " << std::setprecision(2) << -gap << endl;
+*/
  int lmpcnum = 0;
 
  // normal constraint

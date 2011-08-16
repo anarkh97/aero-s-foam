@@ -5,9 +5,10 @@
 #include "VecNodeDof6Conversion.h"
 #include "NodeDof6Buffer.h"
 #include "BasisFileStream.h"
+#include "VecBasis.h"
 
 #include <Problems.d/NonLinDynam.h>
-#include <Rom.d/VecBasis.h>
+#include <Driver.d/StateUpdater.h>
 
 #include <memory>
 
@@ -51,8 +52,6 @@ private:
   PodProjectionNonLinDynamic(const PodProjectionNonLinDynamic &);
   PodProjectionNonLinDynamic &operator=(const PodProjectionNonLinDynamic &);
 };
-
-#include <Driver.d/StateUpdater.h>
 
 // Provides hooks to be used in NLDynamSolver to call the snapshot collection functions
 class PodProjectionNonLinDynamic::Updater : public IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState> {

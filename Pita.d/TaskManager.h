@@ -85,13 +85,13 @@ protected:
 
   typedef Phase::TaskList TaskList;
 
-  static Phase * phaseNew(const String & name, const TaskList & taskList) {
+  static Phase * phaseNew(const String & name, TaskList & taskList) {
     return new Phase(name, taskList);
   }
 
-  // Destructive version
-  static Phase * phaseNew(const String & name, TaskList & taskList) {
-    return new Phase(name, taskList);
+  static Phase * phaseNew(const String & name, NamedTask::Ptr task) {
+    TaskList taskList(1, task);
+    return phaseNew(name, taskList);
   }
 
 private:

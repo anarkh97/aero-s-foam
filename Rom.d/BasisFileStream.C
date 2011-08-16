@@ -8,6 +8,7 @@ namespace Rom {
 
 BasisInputStream::BasisInputStream(const std::string &fileName, const VecNodeDof6Conversion &converter) :
   file_(fileName),
+  isValid_(true),
   converter_(converter),
   buffer_(file_.nodeCount())
 {

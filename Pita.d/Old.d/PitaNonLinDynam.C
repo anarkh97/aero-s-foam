@@ -135,7 +135,7 @@ PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, Vect
                                    Vector& vp, double time, int step, Vector& force, Vector &aeroF)
 {
   times->output -= getTime();
-  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step, velocity.data(), vcx, allCorot, melArray);
+  domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF, time, step + 1, velocity.data(), vcx, allCorot, melArray);
   times->output += getTime();
 }
 
@@ -143,7 +143,6 @@ void
 PitaNonLinDynamic::openOutputFiles(int sliceRank)
 {
   geoSource->openOutputFilesForPita(sliceRank);
-  //domain->printStatistics(); // Deactivated
 }
 
 void
@@ -170,18 +169,17 @@ PitaNonLinDynamic::printNLPitaTimerFile(int CPUid)
   out.close();
 }
 
-// class PitaNLDynamOutput
 PitaNonLinDynamic::PitaPostProcessor::PitaPostProcessor(PitaNonLinDynamic & probDesc) :
   probDesc_(probDesc),
   sliceRank_(-1)
 {
 }
-                                                                                                                                                                                                     
+
 PitaNonLinDynamic::PitaPostProcessor::~PitaPostProcessor()
 {
   probDesc_.closeOutputFiles();
 }
-                                                                                                                                                                                                     
+
 void
 PitaNonLinDynamic::PitaPostProcessor::sliceRank(int rank)
 {

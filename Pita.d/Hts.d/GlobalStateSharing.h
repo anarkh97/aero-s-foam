@@ -12,8 +12,6 @@
 #include "../DynamState.h"
 #include "../Seed.h"
 
-#include "LocalNetworkImpl.h"
-
 class Communicator;
 
 #include "../SimpleBuffer.h"
@@ -65,9 +63,8 @@ public:
   };
 
   // Input
-  typedef LocalNetworkImpl::SeedGetter<DynamState> SeedGetter;
-  const SeedGetter & seedGetter() const { return seedGetter_; }
-  void seedGetterIs(SeedGetter sg) { seedGetter_ = sg; }
+  const Seed::Manager * seedMgr() const { return seedMgr_.ptr(); }
+  void seedMgrIs(Seed::Manager * sg) { seedMgr_ = sg; }
 
   // Output
   const DynamStateBasis * consolidatedBasis() const { return consolidatedBasis_.ptr(); }
@@ -85,7 +82,7 @@ private:
   size_t vectorSize_;
   Strategy strategy_;
 
-  SeedGetter seedGetter_;
+  Seed::Manager::Ptr seedMgr_;
 
   std::queue<Seed::PtrConst> localStates_;
   int stateCount_;

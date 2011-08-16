@@ -1330,7 +1330,10 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
      globalStress[i] = globalStress[i]/globalWeight[i];
  }
 
- geoSource->outputNodeScalars(fileNumber, globalStress, numNodes, time);
+ if(oinfo.nodeNumber == -1)
+   geoSource->outputNodeScalars(fileNumber, globalStress, numNodes, time);
+ else
+   geoSource->outputNodeScalars(fileNumber, globalStress+oinfo.nodeNumber, 1, time);
 
  delete [] globalWeight; globalWeight=0;
  delete [] globalStress; globalStress=0;
@@ -1445,7 +1448,12 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
 
   }
 
-  if(printFlag != 1) geoSource->outputNodeScalars(fileNumber, globalStress, numNodes, time); // YYY DG Probably the only printing function
+  if(printFlag != 1) {
+    if(oinfo.nodeNumber == -1)
+      geoSource->outputNodeScalars(fileNumber, globalStress, numNodes, time);
+    else
+      geoSource->outputNodeScalars(fileNumber, globalStress+oinfo.nodeNumber, 1, time);
+  }
 
   delete stress; stress = 0;
   delete weight; weight = 0;

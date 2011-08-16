@@ -22,7 +22,7 @@ public:
   Seconds timeStepSize() const { return timeStepSize_; }
   TimeStepCount timeStepsBetweenSeeds() const { return timeStepsBetweenSeeds_; }
 
-  // integrator must not be modified externally and must be correctly initialized (initialCondition, timeStepSize).
+  // integrator must have initialCondition and timeStepSize correctly initialized must not be modified externally
   static Ptr New(DynamTimeIntegrator * integrator,
                  TimeStepCount timeStepsBetweenSeeds) {
     return new IntegratorSeedInitializer(integrator, integrator->timeStepSize(), timeStepsBetweenSeeds, integrator->currentState(), integrator->currentTime());

@@ -28,12 +28,9 @@ IncrementalPropagation::iterationIs(IterationRank i) {
 
   // Perform propagation
   if (previousSeedState_.vectorSize() != 0) {
-    //log() << "Reuse state\n";
     propagator()->constantTermIs(AffineDynamPropagator::HOMOGENEOUS);
-    //log() << "External force flagged off\n"; 
     propagator()->initialStateIs(seed()->state() - previousSeedState_);
   } else {
-    //log() << "New state\n";
     propagator()->initialStateIs(seed()->state());
   }
  
@@ -44,7 +41,7 @@ IncrementalPropagation::iterationIs(IterationRank i) {
     propagatedSeed()->stateIs(propagator()->finalState());
   }
 
-  previousSeedState_ = seed()->state(); 
+  previousSeedState_ = seed()->state();
 
   propagatedSeed()->iterationIs(seed()->iteration());
 }

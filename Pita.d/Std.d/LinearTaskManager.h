@@ -14,7 +14,7 @@
 #include "../ReducedCorrectionPropagatorImpl.h"
 #include "../UpdatedSeedAssemblerImpl.h"
 
-#include "../RemoteStateMpiImpl.h"
+#include "../RemoteState.h"
 #include "../SeedDifferenceEvaluator.h"
 
 #include "../SeedInitializer.h"
@@ -45,7 +45,7 @@ public:
 protected:
   LinearTaskManager(IterationRank initialIteration,
                     SliceMapping * mapping,
-                    RemoteState::MpiManager * commMgr,
+                    RemoteState::Manager * commMgr,
                     LinearPropagatorManager * propagatorMgr,
                     LinearProjectionNetwork * projectionMgr,
                     JumpConvergenceEvaluator * jumpCvgEval,
@@ -78,13 +78,15 @@ protected:
   void scheduleSeedUpdate();
 
   void applyConvergence();
+  void updateRecurrentTasks(SliceRank convergenceFront);
+  void deactivateLeadingCorrection(SliceRank convergenceFront);
 
 private:
   SliceMapping::Ptr mapping_;
   CpuRank localCpu_;
 
   LinearPropagatorManager::Ptr propagatorMgr_;
-  LinearProjectionNetwork::Ptr projectionMgr_;
+  NamedTask::Ptr projectionAssembly_;
   JumpConvergenceEvaluator::Ptr jumpCvgEval_;
  
   JumpBuilder::Manager::Ptr jumpBuildMgr_; 
@@ -95,7 +97,7 @@ private:
 protected:
   Seed::Manager::Ptr seedMgr_;
   ReducedSeed::Manager::Ptr redSeedMgr_;
-  RemoteState::MpiManager::Ptr commMgr_;
+  RemoteState::Manager::Ptr commMgr_;
 
 private:
   LinSeedDifferenceEvaluator::Manager::Ptr jumpOutMgr_;
@@ -107,12 +109,12 @@ private:
  
 protected: 
   struct SliceTasks {
-    NamedTask::Ptr propagatedSeedSynchronization;
-    NamedTask::Ptr jumpBuilding;
     NamedTask::Ptr jumpProjection;
     NamedTask::Ptr correctionPropagation;
     NamedTask::Ptr seedUpdate;
     NamedTask::Ptr finePropagation;
+    NamedTask::Ptr propagatedSeedSynchronization;
+    NamedTask::Ptr jumpBuilding;
   };
   typedef NamedTask::Ptr SliceTasks::*SliceTaskItem;
 
@@ -129,7 +131,7 @@ protected:
 template <typename Impl>
 LinearTaskManager<Impl>::LinearTaskManager(IterationRank initialIteration,
                                            SliceMapping * mapping,
-                                           RemoteState::MpiManager * commMgr,
+                                           RemoteState::Manager * commMgr,
                                            LinearPropagatorManager * propagatorMgr,
                                            LinearProjectionNetwork * projectionMgr,
                                            JumpConvergenceEvaluator * jumpCvgEval,
@@ -140,7 +142,6 @@ LinearTaskManager<Impl>::LinearTaskManager(IterationRank initialIteration,
   localCpu_(commMgr->localCpu()),
   initializer_(initializer),
   propagatorMgr_(propagatorMgr),
-  projectionMgr_(projectionMgr),
   jumpBuildMgr_(JumpBuilder::ManagerImpl::New()),
   jumpProjMgr_(JumpProjection::Manager::New(projectionMgr->projectionBasis())),
   seedUpMgr_(UpdatedSeedAssemblerImpl::Manager::New(projectionMgr->propagatedBasis())),
@@ -148,6 +149,7 @@ LinearTaskManager<Impl>::LinearTaskManager(IterationRank initialIteration,
   seedMgr_(Seed::Manager::New()),
   redSeedMgr_(ReducedSeed::Manager::New()),
   commMgr_(commMgr),
+  projectionAssembly_(projectionMgr->projectionTaskNew()),
   jumpCvgEval_(jumpCvgEval),
   jumpOutMgr_(jumpOutMgr), 
   phase_(NULL),
@@ -156,6 +158,161 @@ LinearTaskManager<Impl>::LinearTaskManager(IterationRank initialIteration,
   initialize();
   scheduleInitialization();
 }
+
+// Setup recurrent tasks
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::initialize() {
+  for (SliceMapping::SliceIterator sl_it = mapping_->hostedSlice(localCpu_); sl_it; ++sl_it) {
+    SliceRank slice = *sl_it;
+
+    SliceRank previousSlice = slice.previous();
+    if (previousSlice >= mapping_->firstActiveSlice() && mapping_->hostCpu(previousSlice) != localCpu_) {
+      addPrecedingRemoteSlice(previousSlice);
+    }
+
+    addLocalSlice(slice);
+
+    SliceRank nextSlice = slice.next();
+    if (nextSlice < mapping_->firstInactiveSlice() && mapping_->hostCpu(nextSlice) != localCpu_) {
+      addFollowingRemoteSlice(nextSlice);
+    }
+  }
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::addLocalSlice(SliceRank slice) {
+  String sliceStr = toString(slice);
+
+  // 1) Fine propagation
+  {
+    Seed::Ptr seed = seedMgr_->instanceNew(toString(SeedId(MAIN_SEED, slice))); 
+    Seed::Ptr propSeed = seedMgr_->instanceNew(toString(SeedId(PROPAGATED_SEED, slice.next())));
+
+    AffineDynamPropagator::Ptr propagator = propagatorMgr_->instanceNew(slice);
+    IncrementalPropagation::Ptr task = IncrementalPropagation::New(String("Propagate ") + sliceStr, propagator.ptr());
+    task->seedIs(seed.ptr());
+    task->propagatedSeedIs(propSeed.ptr());
+
+    recurrentTasks_[slice].finePropagation = task;
+  }
+
+  // 2) Jump building, convergence and output
+  if (slice > SliceRank(0)) {
+    Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
+    Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+    Seed::Ptr jump = seedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
+
+    JumpBuilder::Ptr task = jumpBuildMgr_->instanceNew(sliceStr);
+
+    task->predictedSeedIs(seed.ptr());
+    task->actualSeedIs(prevPropSeed.ptr());
+    task->seedJumpIs(jump.ptr());
+
+    recurrentTasks_[slice.previous()].jumpBuilding = task;
+  
+    jumpCvgEval_->localJumpIs(slice, jump.ptr());
+
+    if (jumpOutMgr_) { 
+      Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+      LinSeedDifferenceEvaluator::Ptr eval = jumpOutMgr_->instanceNew(jump.ptr());
+      eval->referenceSeedIs(propagatedSeed.ptr());
+    }
+  }
+ 
+  // 3) Jump projection
+  {
+    Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
+    ReducedSeed::Ptr redJump = redSeedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
+
+    JumpProjection::Ptr task = jumpProjMgr_->instanceNew(sliceStr);
+
+    task->seedJumpIs(jump.ptr());
+    task->reducedSeedJumpIs(redJump.ptr());
+
+    recurrentTasks_[slice].jumpProjection = task;
+  }
+
+  // 4) Correction propagation
+  {
+    ReducedSeed::Ptr redJump = redSeedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
+    ReducedSeed::Ptr correction = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
+    ReducedSeed::Ptr nextCorrection = redSeedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice.next())));
+
+    CorrectionPropagator<Vector>::Ptr task = corrPropMgr_->instanceNew(sliceStr);
+
+    task->jumpIs(redJump.ptr());
+    task->correctionIs(correction.ptr());
+    task->nextCorrectionIs(nextCorrection.ptr());
+
+    recurrentTasks_[slice].correctionPropagation = task;
+  }
+
+  // 5) Seed update
+  {
+    Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice)));
+    Seed::Ptr fullCorrection = seedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice)));
+    Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
+
+    UpdatedSeedAssembler::Ptr task = seedUpMgr_->instanceNew(sliceStr);
+
+    task->updatedSeedIs(seed.ptr());
+    task->propagatedSeedIs(prevPropSeed.ptr());
+    task->correctionIs(fullCorrection.ptr());
+    task->correctionComponentsIs(reducedCorrection.ptr());
+
+    recurrentTasks_[slice].seedUpdate = task;
+  }
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::addPrecedingRemoteSlice(SliceRank slice) {
+  CpuRank peer = mapping_->hostCpu(slice);
+  
+  // 1) Receive Prop seed sync from previous
+  {
+    Seed::Ptr propagatedSeed = seedMgr_->instanceNew(toString(SeedId(PROPAGATED_SEED, slice.next())));
+    RemoteState::Writer<DynamState>::Ptr activity = commMgr_->writerNew(propagatedSeed.ptr(), peer);
+    RemoteStateTask::Ptr task = RemoteStateTask::New("Receive " + propagatedSeed->name(), activity.ptr());
+    recurrentTasks_[slice].propagatedSeedSynchronization = task;
+  }
+
+  // 2) Receive Correction from previous (requires a special treatment to get convergence right)
+  {
+    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice.next())));
+    RemoteState::Writer<Vector>::Ptr activity = commMgr_->writerNew(reducedCorrection.ptr(), peer);
+    RemoteStateTask::Ptr task = RemoteStateTask::New("Receive " + reducedCorrection->name(), activity.ptr());
+    recurrentTasks_[slice].correctionPropagation = task;
+  }
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::addFollowingRemoteSlice(SliceRank slice) {
+  CpuRank peer = mapping_->hostCpu(slice);
+  
+  // 1) Send Prop seed sync to next
+  {
+    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
+    RemoteState::Reader<DynamState>::Ptr activity = commMgr_->readerNew(propagatedSeed.ptr(), peer);
+    RemoteStateTask::Ptr task = RemoteStateTask::New("Send " + propagatedSeed->name(), activity.ptr());
+    recurrentTasks_[slice.previous()].propagatedSeedSynchronization = task;
+  }
+
+  // 2) Send Correction to next
+  {
+    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
+    RemoteState::Reader<Vector>::Ptr activity = commMgr_->readerNew(reducedCorrection.ptr(), peer);
+    RemoteStateTask::Ptr task = RemoteStateTask::New("Send " + reducedCorrection->name(), activity.ptr());
+    recurrentTasks_[slice].correctionPropagation = task;
+  }
+}
+
+// Execution control flow
 
 template <typename Impl>
 void
@@ -201,48 +358,16 @@ LinearTaskManager<Impl>::scheduleInitialization() {
 }
 
 template <typename Impl>
-inline
-void
-LinearTaskManager<Impl>::setRecurrentPhase(const String & name, SliceTaskItem item) {
-  TaskList tasksInPhase;
-  fillTaskList(item, tasksInPhase);
-  setPhase(phaseNew(name, tasksInPhase));
-}
-
-template <typename Impl>
-void
-LinearTaskManager<Impl>::scheduleFinePropagation() {
-  setRecurrentPhase("Fine Propagation", &SliceTasks::finePropagation);
-  setContinuation(&Impl::schedulePropagatedSeedSynchronization);
-}
-
-template <typename Impl>
-void
-LinearTaskManager<Impl>::schedulePropagatedSeedSynchronization() {
-  setRecurrentPhase("Propagated Seed Synchronization", &SliceTasks::propagatedSeedSynchronization);
-  setContinuation(&Impl::scheduleJumpBuilding);
-}
-
-template <typename Impl>
-void
-LinearTaskManager<Impl>::scheduleJumpBuilding() {
-  setRecurrentPhase("Jump Evaluation", &SliceTasks::jumpBuilding);
-  setContinuation(&Impl::scheduleNothing);
-}
-
-template <typename Impl>
 void
 LinearTaskManager<Impl>::scheduleProjectionBuilding() {
-  TaskList projBuilding(1, projectionMgr_->projectionTaskNew());
-  setPhase(phaseNew("Build Projection", projBuilding));
+  setPhase(phaseNew("Build Projection", projectionAssembly_));
   setContinuation(&Impl::scheduleConvergence);
 }
 
 template <typename Impl>
 void
 LinearTaskManager<Impl>::scheduleConvergence() {
-  TaskList checkCvg(1, jumpCvgEval_); 
-  setPhase(phaseNew("Check Convergence", checkCvg));
+  setPhase(phaseNew("Check Convergence", jumpCvgEval_));
   setContinuation(&Impl::scheduleJumpProjection);
 }
 
@@ -258,8 +383,6 @@ LinearTaskManager<Impl>::scheduleJumpProjection() {
 template <typename Impl>
 void
 LinearTaskManager<Impl>::scheduleCorrectionPropagation() {
-  commMgr_->reducedStateSizeIs(projectionMgr_->reducedBasisSize());
-
   setRecurrentPhase("Correction Propagation", &SliceTasks::correctionPropagation);
   setContinuation(&Impl::scheduleSeedUpdate);
 }
@@ -273,178 +396,32 @@ LinearTaskManager<Impl>::scheduleSeedUpdate() {
 
 template <typename Impl>
 void
-LinearTaskManager<Impl>::applyConvergence() {
-  SliceRank firstActiveSlice = mapping_->firstActiveSlice();
-  recurrentTasks_.erase(recurrentTasks_.begin(), recurrentTasks_.lower_bound(firstActiveSlice));
- 
-  String seedStr = toString(SeedId(SEED_CORRECTION, firstActiveSlice)); 
-  
-  Seed::Ptr fullLeadingCorrection = seedMgr_->instance(seedStr);
-  if (fullLeadingCorrection) {
-    fullLeadingCorrection->statusIs(Seed::INACTIVE);
-  }
-  
-  ReducedSeed::Ptr reducedLeadingCorrection = redSeedMgr_->instance(seedStr);
-  if (reducedLeadingCorrection) {
-    reducedLeadingCorrection->statusIs(Seed::INACTIVE);
-  }
-  
-  if (localCpu_ == mapping_->hostCpu(firstActiveSlice.previous()) && localCpu_ != mapping_->hostCpu(firstActiveSlice)) {
-    recurrentTasks_[firstActiveSlice].correctionPropagation = NULL;
-  }
+LinearTaskManager<Impl>::scheduleFinePropagation() {
+  setRecurrentPhase("Fine Propagation", &SliceTasks::finePropagation);
+  setContinuation(&Impl::schedulePropagatedSeedSynchronization);
 }
 
 template <typename Impl>
 void
-LinearTaskManager<Impl>::initialize() {
-  commMgr_->vectorSizeIs(initializer_->vectorSize());
-
-  for (SliceMapping::SliceIterator sl_it = mapping_->hostedSlice(localCpu_); sl_it; ++sl_it) {
-    SliceRank slice = *sl_it;
-    SliceRank previousSlice = slice.previous();
-    SliceRank nextSlice = slice.next();
-
-    if (previousSlice >= mapping_->firstActiveSlice() && mapping_->hostCpu(previousSlice) != localCpu_) {
-      addPrecedingRemoteSlice(previousSlice);
-    }
-
-    addLocalSlice(slice);
-
-    if (nextSlice < mapping_->firstInactiveSlice() && mapping_->hostCpu(nextSlice) != localCpu_) {
-      addFollowingRemoteSlice(nextSlice);
-    }
-  }
+LinearTaskManager<Impl>::schedulePropagatedSeedSynchronization() {
+  setRecurrentPhase("Propagated Seed Sharing", &SliceTasks::propagatedSeedSynchronization);
+  setContinuation(&Impl::scheduleJumpBuilding);
 }
 
 template <typename Impl>
 void
-LinearTaskManager<Impl>::addLocalSlice(SliceRank slice) {
-  String sliceStr = toString(slice);
-
-  // Fine propagation
-  {
-    Seed::Ptr seed = seedMgr_->instanceNew(toString(SeedId(MAIN_SEED, slice))); 
-    Seed::Ptr propSeed = seedMgr_->instanceNew(toString(SeedId(PROPAGATED_SEED, slice.next())));
-
-    AffineDynamPropagator::Ptr propagator = propagatorMgr_->instanceNew(slice);
-    IncrementalPropagation::Ptr task = IncrementalPropagation::New(String("Propagate ") + sliceStr, propagator.ptr());
-    task->seedIs(seed.ptr());
-    task->propagatedSeedIs(propSeed.ptr());
-
-    recurrentTasks_[slice].finePropagation = task;
-  }
-
-  // Jump building, convergence and output
-  if (slice > SliceRank(0)) {
-    Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice))); 
-    Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
-    Seed::Ptr jump = seedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
-
-    JumpBuilder::Ptr task = jumpBuildMgr_->instanceNew(sliceStr);
-
-    task->predictedSeedIs(seed.ptr());
-    task->actualSeedIs(prevPropSeed.ptr());
-    task->seedJumpIs(jump.ptr());
-
-    recurrentTasks_[slice.previous()].jumpBuilding = task;
-  
-    jumpCvgEval_->localJumpIs(slice, jump.ptr());
-
-    if (jumpOutMgr_) { 
-      Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
-      LinSeedDifferenceEvaluator::Ptr eval = jumpOutMgr_->instanceNew(jump.ptr());
-      eval->referenceSeedIs(propagatedSeed.ptr());
-    }
-  }
- 
-  // Jump projection
-  {
-    Seed::Ptr jump = seedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
-    ReducedSeed::Ptr redJump = redSeedMgr_->instanceNew(toString(SeedId(SEED_JUMP, slice)));
-
-    JumpProjection::Ptr task = jumpProjMgr_->instanceNew(sliceStr);
-
-    task->seedJumpIs(jump.ptr());
-    task->reducedSeedJumpIs(redJump.ptr());
-
-    recurrentTasks_[slice].jumpProjection = task;
-  }
-
-  // Correction propagation
-  {
-    ReducedSeed::Ptr redJump = redSeedMgr_->instance(toString(SeedId(SEED_JUMP, slice)));
-    ReducedSeed::Ptr correction = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
-    ReducedSeed::Ptr nextCorrection = redSeedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice.next())));
-
-    CorrectionPropagator<Vector>::Ptr task = corrPropMgr_->instanceNew(sliceStr);
-
-    task->jumpIs(redJump.ptr());
-    task->correctionIs(correction.ptr());
-    task->nextCorrectionIs(nextCorrection.ptr());
-
-    recurrentTasks_[slice].correctionPropagation = task;
-  }
-
-  // Seed update
-  {
-    Seed::Ptr seed = seedMgr_->instance(toString(SeedId(MAIN_SEED, slice)));
-    Seed::Ptr fullCorrection = seedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice)));
-    Seed::Ptr prevPropSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
-    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
-
-    UpdatedSeedAssembler::Ptr task = seedUpMgr_->instanceNew(sliceStr);
-
-    task->updatedSeedIs(seed.ptr());
-    task->propagatedSeedIs(prevPropSeed.ptr());
-    task->correctionIs(fullCorrection.ptr());
-    task->correctionComponentsIs(reducedCorrection.ptr());
-
-    recurrentTasks_[slice].seedUpdate = task;
-  }
+LinearTaskManager<Impl>::scheduleJumpBuilding() {
+  setRecurrentPhase("Jump Evaluation", &SliceTasks::jumpBuilding);
+  setContinuation(&Impl::scheduleNothing);
 }
 
 template <typename Impl>
+inline
 void
-LinearTaskManager<Impl>::addPrecedingRemoteSlice(SliceRank slice) {
-  CpuRank peer = mapping_->hostCpu(slice);
-  
-  // 1) Receive Prop seed sync from previous
-  {
-    Seed::Ptr propagatedSeed = seedMgr_->instanceNew(toString(SeedId(PROPAGATED_SEED, slice.next())));
-    RemoteState::Writer<DynamState>::Ptr activity = commMgr_->writerNew(propagatedSeed.ptr(), peer);
-    RemoteStateTask::Ptr task = RemoteStateTask::New("Receive " + propagatedSeed->name(), activity.ptr());
-    recurrentTasks_[slice].propagatedSeedSynchronization = task;
-  }
-
-  // 2) Receive Correction from previous
-  {
-    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instanceNew(toString(SeedId(SEED_CORRECTION, slice.next())));
-    RemoteState::Writer<Vector>::Ptr activity = commMgr_->writerNew(reducedCorrection.ptr(), peer);
-    RemoteStateTask::Ptr task = RemoteStateTask::New("Receive " + reducedCorrection->name(), activity.ptr());
-    recurrentTasks_[slice].correctionPropagation = task;
-  }
-}
-
-template <typename Impl>
-void
-LinearTaskManager<Impl>::addFollowingRemoteSlice(SliceRank slice) {
-  CpuRank peer = mapping_->hostCpu(slice);
-  
-  // 1) Send Prop seed sync to next
-  {
-    Seed::Ptr propagatedSeed = seedMgr_->instance(toString(SeedId(PROPAGATED_SEED, slice)));
-    RemoteState::Reader<DynamState>::Ptr activity = commMgr_->readerNew(propagatedSeed.ptr(), peer);
-    RemoteStateTask::Ptr task = RemoteStateTask::New("Send " + propagatedSeed->name(), activity.ptr());
-    recurrentTasks_[slice.previous()].propagatedSeedSynchronization = task;
-  }
-
-  // 2) Send Correction to next
-  {
-    ReducedSeed::Ptr reducedCorrection = redSeedMgr_->instance(toString(SeedId(SEED_CORRECTION, slice)));
-    RemoteState::Reader<Vector>::Ptr activity = commMgr_->readerNew(reducedCorrection.ptr(), peer);
-    RemoteStateTask::Ptr task = RemoteStateTask::New("Send " + reducedCorrection->name(), activity.ptr());
-    recurrentTasks_[slice].correctionPropagation = task;
-  }
+LinearTaskManager<Impl>::setRecurrentPhase(const String & name, SliceTaskItem item) {
+  TaskList tasksInPhase;
+  fillTaskList(item, tasksInPhase);
+  setPhase(phaseNew(name, tasksInPhase));
 }
 
 template <typename Impl>
@@ -456,6 +433,41 @@ LinearTaskManager<Impl>::fillTaskList(SliceTaskItem item, TaskList & target) {
     if (task) {
       target.push_back(task);
     }
+  }
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::applyConvergence() {
+  SliceRank convergenceFront = mapping_->firstActiveSlice();
+
+  updateRecurrentTasks(convergenceFront);
+  deactivateLeadingCorrection(convergenceFront);
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::updateRecurrentTasks(SliceRank convergenceFront) {
+  recurrentTasks_.erase(recurrentTasks_.begin(), recurrentTasks_.lower_bound(convergenceFront));
+  if (localCpu_ == mapping_->hostCpu(convergenceFront.previous()) && localCpu_ != mapping_->hostCpu(convergenceFront)) {
+    // Deactivate Receive Correction from previous
+    recurrentTasks_[convergenceFront].correctionPropagation = NULL;
+  }
+}
+
+template <typename Impl>
+void
+LinearTaskManager<Impl>::deactivateLeadingCorrection(SliceRank convergenceFront) {
+  String id = toString(SeedId(SEED_CORRECTION, convergenceFront)); 
+
+  Seed::Ptr fullLeadingCorrection = seedMgr_->instance(id);
+  if (fullLeadingCorrection) {
+    fullLeadingCorrection->statusIs(Seed::INACTIVE);
+  }
+
+  ReducedSeed::Ptr reducedLeadingCorrection = redSeedMgr_->instance(id);
+  if (reducedLeadingCorrection) {
+    reducedLeadingCorrection->statusIs(Seed::INACTIVE);
   }
 }
 

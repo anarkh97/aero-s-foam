@@ -1792,7 +1792,8 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
         globalPVec[k] = pvec[strDir-1];
       }
       geoSource->outputNodeScalars(fileNumber, globalPVec, numNodes, time);
-    } else {
+    }
+    else {
       for (j=0; j<6; ++j)
         svec[j] = (*p_stress)[n][j];
 
@@ -1803,7 +1804,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
         svec[5] /= 2;
       }
       pstress(svec,pvec);
-      geoSource->outputNodeScalars(fileNumber, pvec+strDir-1, 1);
+      geoSource->outputNodeScalars(fileNumber, pvec+strDir-1, 1, time);
     }
 
   }

@@ -22,15 +22,15 @@ echo ../../bin/aeros  tempdynamics_bcg_heatflxx.inp
 ../../bin/aeros  tempdynamics_bcg_heatflxx.inp
 echo ../../bin/aeros  tempdynamics_cr_heatflxy.inp
 ../../bin/aeros  tempdynamics_cr_heatflxy.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_heatflxz.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_1_grdtempx.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_OLD_grdtempy.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_2_NEW_grdtempz.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_DP_gtempera.inp
-echo ../../bin/aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp
-../../bin/aeros -n 2 --dec  tempdynamics_FETI_DPH_gtempvel.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxz.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxz.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_1_grdtempx.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_1_grdtempx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_OLD_grdtempy.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_OLD_grdtempy.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_NEW_grdtempz.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_NEW_grdtempz.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_gtempvel.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_gtempvel.inp

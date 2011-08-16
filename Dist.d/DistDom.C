@@ -716,10 +716,26 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
   
 
   if(printFlag != 1) {
-    // write to file
-    for (iSub = 0; iSub < this->numSub; ++iSub) {
-      geoSource->writeNodeScalarToFile(masterStress->subData(iSub), masterStress->subSize(iSub), this->localSubToGl[iSub],
-                                       nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]);
+    if(oinfo.nodeNumber == -1) { // output binary or ascii data for all nodes or node group
+      for(iSub = 0; iSub < this->numSub; ++iSub) {
+        geoSource->writeNodeScalarToFile(masterStress->subData(iSub), masterStress->subSize(iSub), this->localSubToGl[iSub],
+                                         nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]);
+      }
+    }
+    else { // output ascii data for one node
+      for(iSub = 0; iSub < this->numSub; ++iSub) {
+        int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+        if(nOutNodes) {
+          int *outIndex = this->subDomain[iSub]->getOutIndex();
+          for(int iNode = 0; iNode < nOutNodes; iNode++) {
+            if(outIndex[iNode] == fileNumber) {
+              Scalar *nodeStress = (Scalar *) stress.subData(iSub);
+              int *outNodes = this->subDomain[iSub]->getOutputNodes();
+              geoSource->outputNodeScalars(fileNumber, nodeStress+outNodes[iNode], 1, time);
+            }
+          }
+        }
+      }
     }
   }
 
@@ -998,10 +1014,26 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
   DistVec<Scalar> masterPVec(masterInfo);
   allPVec.reduce(masterPVec, masterFlag, numFlags);
 
-  // print out data
-  for (iSub = 0; iSub < this->numSub; ++iSub)  {
-    geoSource->writeNodeScalarToFile(masterPVec.subData(iSub), masterPVec.subSize(iSub), this->localSubToGl[iSub],
-                                     nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+  if(oinfo.nodeNumber == -1) { // output binary or ascii data for all nodes or node group
+    for(iSub = 0; iSub < this->numSub; ++iSub)  {
+      geoSource->writeNodeScalarToFile(masterPVec.subData(iSub), masterPVec.subSize(iSub), this->localSubToGl[iSub],
+                                       nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+    }
+  }
+  else { // output ascii data for one node
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+      if(nOutNodes) {
+        int *outIndex = this->subDomain[iSub]->getOutIndex();
+        for(int iNode = 0; iNode < nOutNodes; iNode++) {
+          if(outIndex[iNode] == fileNumber) {
+            Scalar *nodeStress = (Scalar *) allPVec.subData(iSub);
+            int *outNodes = this->subDomain[iSub]->getOutputNodes();
+            geoSource->outputNodeScalars(fileNumber, nodeStress+outNodes[iNode], 1, time);
+          }
+        }
+      }
+    }
   }
 }
 
@@ -1534,10 +1566,28 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
   stress.reduce(masterStress, masterFlag, numFlags);
 
   // write to file
-  for (iSub = 0; iSub < this->numSub; ++iSub) {
-    geoSource->writeNodeScalarToFile(masterStress.subData(iSub), masterStress.subSize(iSub), this->localSubToGl[iSub],
-                                     nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+  if(oinfo.nodeNumber == -1) { // output binary or ascii data for all nodes or node group
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      geoSource->writeNodeScalarToFile(masterStress.subData(iSub), masterStress.subSize(iSub), this->localSubToGl[iSub],
+                                       nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+    }
   }
+  else { // output ascii data for one node
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+      if(nOutNodes) {
+        int *outIndex = this->subDomain[iSub]->getOutIndex();
+        for(int iNode = 0; iNode < nOutNodes; iNode++) {
+          if(outIndex[iNode] == fileNumber) {
+            Scalar *nodeStress = (Scalar *) stress.subData(iSub);
+            int *outNodes = this->subDomain[iSub]->getOutputNodes();
+            geoSource->outputNodeScalars(fileNumber, nodeStress+outNodes[iNode], 1, time);
+          }
+        }
+      }
+    }
+  }
+
 }
   
 template<class Scalar>
@@ -1665,9 +1715,26 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
   allPVec.reduce(masterPVec, masterFlag, numFlags);
 
   // print out data
-  for(iSub = 0; iSub < this->numSub; ++iSub) {
-    geoSource->writeNodeScalarToFile(masterPVec.subData(iSub), masterPVec.subSize(iSub), this->localSubToGl[iSub],
-                                     nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+  if(oinfo.nodeNumber == -1) { // output binary or ascii data for all nodes or node group
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      geoSource->writeNodeScalarToFile(masterPVec.subData(iSub), masterPVec.subSize(iSub), this->localSubToGl[iSub],
+                                       nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]); 
+    }
+  }
+  else { // output ascii data for one node
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+      if(nOutNodes) {
+        int *outIndex = this->subDomain[iSub]->getOutIndex();
+        for(int iNode = 0; iNode < nOutNodes; iNode++) {
+          if(outIndex[iNode] == fileNumber) {
+            Scalar *nodeStress = (Scalar *) allPVec.subData(iSub);
+            int *outNodes = this->subDomain[iSub]->getOutputNodes();
+            geoSource->outputNodeScalars(fileNumber, nodeStress+outNodes[iNode], 1, time);
+          }
+        }
+      }
+    }
   }
 }
 
@@ -1743,11 +1810,10 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
   props.reduce(masterVec, masterFlag, numFlags);
   
   // print out data
-  for(int iSub = 0; iSub < this->numSub; ++iSub)  
-    {
-      geoSource->writeNodeScalarToFile(masterVec.subData(iSub),
-				       masterVec.subSize(iSub), this->localSubToGl[iSub],
-				       nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]);
-    }
+  for(int iSub = 0; iSub < this->numSub; ++iSub) {
+    geoSource->writeNodeScalarToFile(masterVec.subData(iSub),
+                                     masterVec.subSize(iSub), this->localSubToGl[iSub],
+                                     nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]);
+  }
   return;
 }

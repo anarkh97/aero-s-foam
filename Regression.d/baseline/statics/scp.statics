@@ -3,49 +3,49 @@
 #PBS -l nodes=1:ppn=8,walltime=1:00:00
 
 cd /lustre/home/mpotts/FEM/Regression.d/statics
-echo mpirun -n 4 aeros  statics_sparse_gdisplac.inp
-mpirun -n 4 aeros  statics_sparse_gdisplac.inp
-echo mpirun -n 4 aeros  statics_skyline_stressvm.inp
-mpirun -n 4 aeros  statics_skyline_stressvm.inp
-echo mpirun -n 4 aeros  statics_mumps_strainxx.inp
-mpirun -n 4 aeros  statics_mumps_strainxx.inp
-echo mpirun -n 4 aeros  statics_spooles_strainxy.inp
-mpirun -n 4 aeros  statics_spooles_strainxy.inp
-echo mpirun -n 4 aeros  statics_gmres_strainxz.inp
-mpirun -n 4 aeros  statics_gmres_strainxz.inp
-echo mpirun -n 4 aeros  statics_direct_strainxx.inp
-mpirun -n 4 aeros  statics_direct_strainxx.inp
-echo mpirun -n 4 aeros  statics_spooles_pivot_strainxy.inp
-mpirun -n 4 aeros  statics_spooles_pivot_strainxy.inp
-echo mpirun -n 4 aeros  statics_mumps_pivot_strainxz.inp
-mpirun -n 4 aeros  statics_mumps_pivot_strainxz.inp
-echo mpirun -n 4 aeros  statics_frontal_strainxx.inp
-mpirun -n 4 aeros  statics_frontal_strainxx.inp
-echo mpirun -n 4 aeros  statics_pcg_strainxy.inp
-mpirun -n 4 aeros  statics_pcg_strainxy.inp
-echo mpirun -n 4 aeros  statics_bcg_strainxz.inp
-mpirun -n 4 aeros  statics_bcg_strainxz.inp
-echo mpirun -n 4 aeros  statics_cr_inxforce.inp
-mpirun -n 4 aeros  statics_cr_inxforce.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_inyforce.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_inyforce.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_1_inzforce.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_1_inzforce.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_2_OLD_axmoment.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_2_OLD_axmoment.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_2_NEW_aymoment.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_2_NEW_aymoment.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_DP_azmoment.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_DP_azmoment.inp
-echo mpirun -n 4 aeros -n 2 --dec  statics_FETI_DPH_energies.inp
-mpirun -n 4 aeros -n 2 --dec  statics_FETI_DPH_energies.inp
-echo mpirun -n 4 aeros  statics_sparse_gvelocit.inp
-mpirun -n 4 aeros  statics_sparse_gvelocit.inp
-echo mpirun -n 4 aeros  statics_skyline_gacceler.inp
-mpirun -n 4 aeros  statics_skyline_gacceler.inp
-echo mpirun -n 4 aeros  statics_mumps_displmod.inp
-mpirun -n 4 aeros  statics_mumps_displmod.inp
-echo mpirun -n 4 aeros  statics_spooles_rotatmod.inp
-mpirun -n 4 aeros  statics_spooles_rotatmod.inp
-echo mpirun -n 4 aeros  statics_gmres_gdispmod.inp
-mpirun -n 4 aeros  statics_gmres_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  statics_sparse_gdisplac.inp
+mpirun -n 4 ../../bin/aeros  statics_sparse_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros  statics_skyline_stressvm.inp
+mpirun -n 4 ../../bin/aeros  statics_skyline_stressvm.inp
+echo mpirun -n 4 ../../bin/aeros  statics_mumps_strainxx.inp
+mpirun -n 4 ../../bin/aeros  statics_mumps_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  statics_spooles_strainxy.inp
+mpirun -n 4 ../../bin/aeros  statics_spooles_strainxy.inp
+echo mpirun -n 4 ../../bin/aeros  statics_gmres_strainxz.inp
+mpirun -n 4 ../../bin/aeros  statics_gmres_strainxz.inp
+echo mpirun -n 4 ../../bin/aeros  statics_direct_strainxx.inp
+mpirun -n 4 ../../bin/aeros  statics_direct_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  statics_spooles_pivot_strainxy.inp
+mpirun -n 4 ../../bin/aeros  statics_spooles_pivot_strainxy.inp
+echo mpirun -n 4 ../../bin/aeros  statics_mumps_pivot_strainxz.inp
+mpirun -n 4 ../../bin/aeros  statics_mumps_pivot_strainxz.inp
+echo mpirun -n 4 ../../bin/aeros  statics_frontal_strainxx.inp
+mpirun -n 4 ../../bin/aeros  statics_frontal_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  statics_pcg_strainxy.inp
+mpirun -n 4 ../../bin/aeros  statics_pcg_strainxy.inp
+echo mpirun -n 4 ../../bin/aeros  statics_bcg_strainxz.inp
+mpirun -n 4 ../../bin/aeros  statics_bcg_strainxz.inp
+echo mpirun -n 4 ../../bin/aeros  statics_cr_inxforce.inp
+mpirun -n 4 ../../bin/aeros  statics_cr_inxforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_inyforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_inyforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_1_inzforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_1_inzforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_2_OLD_axmoment.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_2_OLD_axmoment.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_2_NEW_aymoment.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_2_NEW_aymoment.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_DP_azmoment.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_DP_azmoment.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_DPH_energies.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_DPH_energies.inp
+echo mpirun -n 4 ../../bin/aeros  statics_sparse_gvelocit.inp
+mpirun -n 4 ../../bin/aeros  statics_sparse_gvelocit.inp
+echo mpirun -n 4 ../../bin/aeros  statics_skyline_gacceler.inp
+mpirun -n 4 ../../bin/aeros  statics_skyline_gacceler.inp
+echo mpirun -n 4 ../../bin/aeros  statics_mumps_displmod.inp
+mpirun -n 4 ../../bin/aeros  statics_mumps_displmod.inp
+echo mpirun -n 4 ../../bin/aeros  statics_spooles_rotatmod.inp
+mpirun -n 4 ../../bin/aeros  statics_spooles_rotatmod.inp
+echo mpirun -n 4 ../../bin/aeros  statics_gmres_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  statics_gmres_gdispmod.inp

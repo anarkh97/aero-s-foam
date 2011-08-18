@@ -97,9 +97,7 @@ inline void NLDistrTimeDecompSolver::computeSliceUpdate(NLTimeSlice & timeSlice)
   
   // Convergence criterion to be figured out
   timeSlice.converged = false;
-  //fprintf(stderr, "TS # %d : %d vectors in base\n", this->sliceRank, this->seedBase.numStates());
   timeSlice.projector.projection(timeSlice.propBase, timeSlice.jumpState, timeSlice.nextSeedState);
-  //fprintf(stderr, "TS #%d, norm U(j) = %e, norm C(j+1) = %e\n", this->getRank(), localNorm(this->jumpState), localNorm(this->nextSeedState));
   timeSlice.nextSeedState += timeSlice.propState;
 }
 

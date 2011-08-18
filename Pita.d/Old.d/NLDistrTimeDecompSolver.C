@@ -44,7 +44,6 @@ void NLDistrTimeDecompSolver::solve()
   initialize();
   probDesc->pitaTimers.start("Driver Solve");  
   // 1) (Sequential) Initial seeds on coarse grid + (Parallel) Local base initialization
-  //fprintf(stderr, "Initialization -- CPU #%d starting coarse grid initialization\n", myCPU);
   getInitialSeeds();
   int maxMainIter = probDesc->getKiter();
   if (maxMainIter > 0)
@@ -58,21 +57,17 @@ void NLDistrTimeDecompSolver::solve()
       while(true)
       {
         //   a) (Parallel) Fine grid computation
-        //fprintf(stderr, "Iter #%d -- CPU #%d starting fine grid computation\n", mainIter, myCPU);
         fineGridComputation();
         //   b) (Sequential) Correction
-        //fprintf(stderr, "Iter #%d -- CPU #%d starting correction\n", mainIter, myCPU);
         computeCorrection();
         probDesc->pitaTimers.newIteration();
         if (++mainIter >= maxMainIter)
           break;
         //   c) (Sequential/Parallel) Local base improvement
-        //fprintf(stderr, "Iter #%d -- CPU #%d starting base improvement\n", mainIter, myCPU);
         improveBases();
       }
     }
     clearBases(); // Last iteration : No correction needed
-    //fprintf(stderr, "Iter #%d -- CPU # %d --  starting fine grid computation\n", mainIter, myCPU);
     fineGridComputation();
     probDesc->pitaTimers.stop();
   }
@@ -245,9 +240,7 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
     else
     {
       probDesc->pitaTimers.start("Rebuild Stiffness Matrix");
-      //fprintf(stderr, "CPU #%d builds K for slice #%d\n", myCPU, it->sliceRank);
       reBuildLocalK(*it);
-      //fprintf(stderr, "CPU #%d builds the base for slice #%d\n", myCPU, it->sliceRank);
       probDesc->pitaTimers.swap("Orthogonalization");
       addRawDataToBase(*it, baseBuffer.array(), numSeeds);
       performOG(*it);
@@ -255,13 +248,11 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
     }
   }
   probDesc->pitaTimers.stop();
-  //fprintf(stderr, "CPU #%d ends Allgather\n", myCPU);
 }
 
 void NLDistrTimeDecompSolver::improveBasesWithLocalIncrements()
 {
   probDesc->pitaTimers.start("Local Base Improvement");
-  //fprintf(stderr, "CPU # %d starts local base improvement\n", myCPU);
  
   int numStatesToExchange = probDesc->getJratio() + 1;
   int halfBufferSize = 2 * getProbSize() * numStatesToExchange; 
@@ -289,7 +280,7 @@ void NLDistrTimeDecompSolver::improveBasesWithLocalIncrements()
         probDesc->pitaTimers.stop();
       }
       probDesc->pitaTimers.start("Orthogonalization");
-      addStateSetToBase(*it, it->localBase); //it->addLocalIncrementsToBase();
+      addStateSetToBase(*it, it->localBase);
       probDesc->pitaTimers.stop();
       if (sliceMap->numCPU(currSliceRank - 1) != myCPU)
       {
@@ -319,7 +310,6 @@ void NLDistrTimeDecompSolver::improveBasesWithLocalIncrements()
   }
 
   timeCom->waitForAllReq();  
-  //fprintf(stderr, "CPU # %d ends local base improvement after time = %e s\n", myCPU, probDesc->pitaTimers.time() * 1.0e-3);
   probDesc->pitaTimers.stop();
 }
 
@@ -400,7 +390,6 @@ void NLDistrTimeDecompSolver::computeCorrection()
     {
       // Send final value
       currState.getRaw(seedBuffer.array());
-      //fprintf(stderr, "CPU #%d is sending to CPU #%d the seed of TS #%d\n", myCPU, sliceMap->numCPU(currSliceRank), currSliceRank);
       timeCom->sendTo<DataType>(sliceMap->numCPU(currSliceRank), currSliceRank, seedBuffer.array(), bufferSize);
     }
 

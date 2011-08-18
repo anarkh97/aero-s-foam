@@ -73,7 +73,6 @@ Hts.d/JumpConvergenceEvaluator.C
 Hts.d/LinearTaskManager.C
 Hts.d/LinearProjectionNetwork.C
 Hts.d/LinearLocalNetwork.C
-Hts.d/NlBasisUpdate.C
 Hts.d/NlDriver.C
 Hts.d/NlLocalNetwork.C
 Hts.d/NlProjectionNetwork.C

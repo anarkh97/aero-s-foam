@@ -94,9 +94,10 @@ BasisOrthoDriver::solve() {
       solver.matrixSizeIs(input.vectorSize(), input.size());
 
       int iCol = 0;
-      while (input) {
-        double *buffer = solver.matrixCol(iCol++);
+      for (int iCol = 0; iCol < solver.colCount(); ++iCol) {
+        double *buffer = solver.matrixCol(iCol);
         input >> buffer;
+        assert(input);
         (*transform)(buffer);
       }
     }

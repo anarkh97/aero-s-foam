@@ -114,7 +114,6 @@ UpdateProjectorImpl::reducedBasisSize() const {
 
 void
 UpdateProjectorImpl::jumpIs(const Seed * j) {
-  //jumpReactor_->notifierIs(j);
   setJump(j);
 }
 

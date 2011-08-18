@@ -3,7 +3,7 @@
 namespace Pita { namespace Std {
 
 HomogeneousTaskManager::HomogeneousTaskManager(SliceMapping * mapping,
-                                               RemoteState::MpiManager * commMgr,
+                                               RemoteState::Manager * commMgr,
                                                LinearPropagatorManager * propagatorMgr,
                                                LinearProjectionNetwork * projectionMgr,
                                                JumpConvergenceEvaluator * jumpCvgEval,

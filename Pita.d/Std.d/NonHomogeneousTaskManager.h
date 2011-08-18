@@ -11,7 +11,7 @@ public:
 
   virtual void iterationInc(); // overriden
 
-  NonHomogeneousTaskManager(SliceMapping * mapping, RemoteState::MpiManager * commMgr,
+  NonHomogeneousTaskManager(SliceMapping * mapping, RemoteState::Manager * commMgr,
                             LinearPropagatorManager * propagatorMgr, LinearProjectionNetwork * projectionMgr,
                             JumpConvergenceEvaluator * jumpCvgEval,
                             LinSeedDifferenceEvaluator::Manager * jumpOutMgr,
@@ -20,8 +20,6 @@ public:
 
 protected:
   void schedulePrecomputation();
-  void scheduleAffineTermSynchronization();
-  void scheduleTrivialJumpBuilding();
   void scheduleCoarseCorrectionPropagation();
 
 private:

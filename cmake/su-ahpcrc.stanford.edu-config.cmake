@@ -26,4 +26,4 @@ SET(EXTRALIB -lgfortran
              CACHE STRING "Extra link parameters")
 SET(EXTRALIB_MPI /usr/mpi/gcc/openmpi-1.2.6/lib64/libmpi_f77.so
                  CACHE STRING "Extra MPI link parameters")
-
+SET(ACME_VERSION "2_9")

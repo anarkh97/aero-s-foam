@@ -111,7 +111,6 @@ PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, VecT
 void
 PitaNonLinDynamic::openOutputFiles(int sliceRank) {
   geoSource->openOutputFilesForPita(sliceRank);
-  //domain->printStatistics(); // Deactivated
 }
 
 void

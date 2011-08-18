@@ -553,7 +553,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if(iNode < geomState->numNodes()) {
           double rot[3];
-          mat_to_vec((*geomState)[i].R,rot);
+          mat_to_vec((*geomState)[iNode].R,rot);
           data[nodeI] = rot[1];
         }
         else data[nodeI] = 0;
@@ -569,7 +569,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if(iNode < geomState->numNodes()) {
           double rot[3];
-          mat_to_vec((*geomState)[i].R,rot);
+          mat_to_vec((*geomState)[iNode].R,rot);
           data[i] = rot[2];
         } 
         else data[nodeI] = 0;
@@ -583,9 +583,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        double x = (nodes[i] && i < geomState->numNodes()) ? (*geomState)[i].x - nodes[i]->x : 0;
-        double y = (nodes[i] && i < geomState->numNodes()) ? (*geomState)[i].y - nodes[i]->y : 0;
-        double z = (nodes[i] && i < geomState->numNodes()) ? (*geomState)[i].z - nodes[i]->z : 0;
+        double x = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
+        double y = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
+        double z = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
         data[nodeI] = sqrt(x*x+y*y+z*z);
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
@@ -599,7 +599,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if(iNode < geomState->numNodes()) {
           double rot[3];
-          mat_to_vec((*geomState)[i].R,rot);
+          mat_to_vec((*geomState)[iNode].R,rot);
           data[nodeI] = sqrt(rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
         }
         else data[nodeI] = 0;
@@ -618,7 +618,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         double z = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
         double rot[3];
         if(iNode < geomState->numNodes()) 
-          mat_to_vec((*geomState)[i].R,rot);
+          mat_to_vec((*geomState)[iNode].R,rot);
         else {
           rot[0] = rot[1] = rot[2] = 0;
         }

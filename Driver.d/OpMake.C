@@ -2919,7 +2919,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   if (domain->probType() == SolverInfo::Modal) freq = eigV;
   else freq = domain->getFrequencyOrWavenumber();
 
-  if (geoSource->isShifted()) time = freq;
+  if (geoSource->isShifted() || domain->probType() == SolverInfo::Modal) time = freq;
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();

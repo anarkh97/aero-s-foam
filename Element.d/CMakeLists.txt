@@ -181,6 +181,7 @@ Joint.d/OrientJoint.C
 Joint.d/UniversalJoint.C
 Joint.d/DotConstraintType1a.C
 Joint.d/RevoluteActuator.C
+Joint.d/PointLineDistanceConstraint.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f

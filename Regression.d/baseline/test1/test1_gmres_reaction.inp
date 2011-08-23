@@ -1,0 +1,15 @@
+CONTROL
+test1_gmres_reaction
+1
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+OUTPUT
+reaction test1_gmres_reaction.dat 1 NG 1
+*
+INCLUDE test1.include
+*
+END

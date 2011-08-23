@@ -1,0 +1,15 @@
+CONTROL
+test31_skyline_strainvm
+1
+"nodeset"
+"elemset"
+*
+STATICS
+skyline
+*
+OUTPUT
+strainvm test31_skyline_strainvm.dat 1
+*
+INCLUDE test31.include
+*
+END

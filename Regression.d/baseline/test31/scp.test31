@@ -1,0 +1,31 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/test31
+echo mpirun -n 4 ../../bin/aeros  test31_sparse_stressvm.inp
+mpirun -n 4 ../../bin/aeros  test31_sparse_stressvm.inp
+echo mpirun -n 4 ../../bin/aeros  test31_skyline_strainvm.inp
+mpirun -n 4 ../../bin/aeros  test31_skyline_strainvm.inp
+echo mpirun -n 4 ../../bin/aeros  test31_mumps_stressp1.inp
+mpirun -n 4 ../../bin/aeros  test31_mumps_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  test31_spooles_stressp2.inp
+mpirun -n 4 ../../bin/aeros  test31_spooles_stressp2.inp
+echo mpirun -n 4 ../../bin/aeros  test31_gmres_stressp3.inp
+mpirun -n 4 ../../bin/aeros  test31_gmres_stressp3.inp
+echo mpirun -n 4 ../../bin/aeros  test31_direct_strainp1.inp
+mpirun -n 4 ../../bin/aeros  test31_direct_strainp1.inp
+echo mpirun -n 4 ../../bin/aeros  test31_spooles_pivot_strainp2.inp
+mpirun -n 4 ../../bin/aeros  test31_spooles_pivot_strainp2.inp
+echo mpirun -n 4 ../../bin/aeros  test31_mumps_pivot_strainp3.inp
+mpirun -n 4 ../../bin/aeros  test31_mumps_pivot_strainp3.inp
+echo mpirun -n 4 ../../bin/aeros  test31_pcg_stressvm.inp
+mpirun -n 4 ../../bin/aeros  test31_pcg_stressvm.inp
+echo mpirun -n 4 ../../bin/aeros  test31_bcg_strainvm.inp
+mpirun -n 4 ../../bin/aeros  test31_bcg_strainvm.inp
+echo mpirun -n 4 ../../bin/aeros  test31_cr_stressp1.inp
+mpirun -n 4 ../../bin/aeros  test31_cr_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test31_FETI_DP_stressp2.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test31_FETI_DP_stressp2.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test31_FETI_DPH_stressp3.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test31_FETI_DPH_stressp3.inp

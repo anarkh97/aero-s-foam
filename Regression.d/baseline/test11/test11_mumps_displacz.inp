@@ -1,0 +1,20 @@
+CONTROL
+test11_mumps_displacz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+displacz test11_mumps_displacz.dat 1
+*
+INCLUDE test11.include
+*
+END

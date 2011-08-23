@@ -1,0 +1,15 @@
+CONTROL
+test1_bcg_reaction
+1
+"nodeset"
+"elemset"
+*
+STATICS
+bcg
+*
+OUTPUT
+reaction test1_bcg_reaction.dat 1 NG 2
+*
+INCLUDE test1.include
+*
+END

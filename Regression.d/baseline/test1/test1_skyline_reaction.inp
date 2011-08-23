@@ -1,0 +1,15 @@
+CONTROL
+test1_skyline_reaction
+1
+"nodeset"
+"elemset"
+*
+STATICS
+skyline
+*
+OUTPUT
+reaction test1_skyline_reaction.dat 1 NG 2
+*
+INCLUDE test1.include
+*
+END

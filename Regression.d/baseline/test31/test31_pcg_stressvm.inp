@@ -1,0 +1,15 @@
+CONTROL
+test31_pcg_stressvm
+1
+"nodeset"
+"elemset"
+*
+STATICS
+pcg
+*
+OUTPUT
+stressvm test31_pcg_stressvm.dat 1
+*
+INCLUDE test31.include
+*
+END

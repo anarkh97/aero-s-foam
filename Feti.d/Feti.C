@@ -101,7 +101,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
  fetiInfo = _fetiInfo;	// Feti solver information
  fetiCom  = _fetiCom;
  subToSub = _subToSub;	// subdomain to subdomain connectivity
- mpcToSub = _mpcToSub;  // multiple point constraint to subdomain connectivity
+ mpcToSub = (_mpcToSub) ? _mpcToSub : new Connectivity();  // multiple point constraint to subdomain connectivity
  cpuToSub = _cpuToSub;
  myCPU = 0; numCPUs = 1;
 

@@ -15,7 +15,7 @@ def newBaseline(params):
     os.chdir("Regression.d")  
 
   if(params[1] == 'ALL'):
-    PROBLEM_NAMES=['statics','nlstatics','eigen','freqsweep','dynamics','nldynamics','impe','tempstatics','tempdynamics','tempnldynamics','tempnlstatics']
+    PROBLEM_NAMES=['statics','nlstatics','eigen','freqsweep','dynamics','nldynamics','impe','tempstatics','tempdynamics','tempnldynamics','tempnlstatics','test1','test11','test31']
   else:
     PROBLEM_NAMES = [params[1]]
 

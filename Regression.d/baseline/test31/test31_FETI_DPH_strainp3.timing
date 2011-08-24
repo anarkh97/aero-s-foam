@@ -1,4 +1,4 @@
- ... Wed Aug 24 11:52:46 2011
+ ... Wed Aug 24 09:02:12 2011
 
 *******************************************************************************
  ... Linear Static Problem Information ... 
@@ -43,56 +43,56 @@
          Non-linear Krylov acceleration    =            off
 
 *******************************************************************************
- ... Timing Statistics for 1 Threads and 4 Subdomains ...
+ ... Timing Statistics for 4 Threads and 4 Subdomains ...
 *******************************************************************************
 
-1. Total Read Input Files              time:        0.03995 s          0.053 Mb
-         Read Mesh                     time:        0.03995 s
+1. Total Read Input Files              time:        0.01896 s          0.211 Mb
+         Read Mesh                     time:        0.01882 s
          Read Mesh Partition           time:        0.00000 s
 
-2. Total Preprocessing                 time:        0.02011 s          0.086 Mb
-         Process Input Data            time:        0.00009 s          0.006 Mb
-         Make Subdomains               time:        0.01864 s          0.080 Mb
+2. Total Preprocessing                 time:        0.01265 s          0.105 Mb
+         Process Input Data            time:        0.00013 s          0.023 Mb
+         Make Subdomains               time:        0.00192 s          0.082 Mb
             Element to Node Connectivity   :                           0.000 Mb
             Sub. to Node Connectivity      :                           0.000 Mb
             Node to Sub. Connectivity      :                           0.000 Mb
             Sub. to Element Connectivity   :                           0.000 Mb
-         Distribute BCs                time:        0.00002 s          0.000 Mb
-         Make Connectivities           time:        0.00005 s          0.000 Mb
-         Make Interface                time:        0.00008 s          0.000 Mb
+         Distribute BCs                time:        0.00001 s          0.000 Mb
+         Make Connectivities           time:        0.00003 s          0.000 Mb
+         Make Interface                time:        0.00007 s          0.000 Mb
          Make Internal Information     time:        0.00000 s          0.000 Mb
 
 3. Total Subdomain Matrices Processing time:        0.00000 s         -0.005 Mb
 
 4. Total Subdomain RHS Processing      time:        0.00000 s          0.000 Mb
 
-5. Total Solver                        time:        0.00267 s          0.035 Mb
+5. Total Solver                        time:        0.00317 s          0.073 Mb
 
-         Factor Subdomain Matrices     time:        0.00028 s          0.008 Mb
+         Factor Subdomain Matrices     time:        0.00027 s          0.008 Mb
 
-         Total Building Coarse Pbs.    time:        0.00047 s          0.013 Mb
-         Total Paral. Fac. Coarse Pbs. time:        0.00001 s          0.000 Mb
-         Total Solve loop              time:        0.00053 s          0.015 Mb
-               Project 1st Level       time:        0.00003 s          0.000 Mb
-               Precondition            time:        0.00009 s          0.005 Mb
-               Local Solve             time:        0.00019 s          0.000 Mb
-               Reorthogonalize         time:        0.00000 s          0.010 Mb
+         Total Building Coarse Pbs.    time:        0.00056 s          0.021 Mb
+         Total Paral. Fac. Coarse Pbs. time:        0.00008 s          0.000 Mb
+         Total Solve loop              time:        0.00069 s          0.044 Mb
+               Project 1st Level       time:        0.00010 s          0.000 Mb
+               Precondition            time:        0.00008 s          0.005 Mb
+               Local Solve             time:        0.00021 s          0.000 Mb
+               Reorthogonalize         time:        0.00000 s          0.039 Mb
 
-6. Write Output Files                  time:        0.00503 s          0.076 Mb
+6. Write Output Files                  time:        0.00336 s          0.021 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.06775 s          0.245 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.03814 s          0.406 Mb
 
 *******************************************************************************
  ... FETI-DPH Monitoring ... 
 *******************************************************************************
 
-1. Total Amount of Requested Memory        =          0.407 Mb
+1. Total Amount of Requested Memory        =          0.836 Mb
 
-2. FETI Solver Amount of Requested Memory  =          0.036 Mb
+2. FETI Solver Amount of Requested Memory  =          0.070 Mb
 
 3. Number of Iterations for Convergence    =              1
 
-4. Relative Primal Error Reached           =      9.489e-17
+4. Relative Primal Error Reached           =      5.607e-15
 
 5. Relative Dual Error Reached             =      1.000e+00
 
@@ -109,11 +109,11 @@ TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.06775 s          0.245 Mb
 
                                              minimum      average      maximum
 
-1. Total Read Input Files             :       0.0399       0.0399       0.0399
+1. Total Read Input Files             :       0.0181       0.0187       0.0190
 
-2. Total Preprocessing                :       0.0201       0.0201       0.0201
-         Process Input Data           :       0.0001       0.0001       0.0001
-         Make Subdomains              :       0.0186       0.0186       0.0186
+2. Total Preprocessing                :       0.0049       0.0074       0.0126
+         Process Input Data           :       0.0001       0.0001       0.0002
+         Make Subdomains              :       0.0019       0.0019       0.0019
          Distribute BCs               :       0.0000       0.0000       0.0000
          Make Connectivities          :       0.0000       0.0000       0.0000
          Make Interface               :       0.0001       0.0001       0.0001
@@ -123,21 +123,21 @@ TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.06775 s          0.245 Mb
 
 4. Total Subdomain RHS Processing     :       0.0000       0.0000       0.0000
 
-5. Total Solver                       :       0.0008       0.0010       0.0013
+5. Total Solver                       :       0.0010       0.0013       0.0016
 
-         Factor Subdomain Matrices    :       0.0003       0.0003       0.0003
+         Factor Subdomain Matrices    :       0.0002       0.0002       0.0003
 
-         Total Building Coarse Pbs.   :       0.0005       0.0005       0.0005
-         Total Paral. Fac. Coarse Pbs.:       0.0000       0.0000       0.0000
-         Total Solve loop             :       0.0003       0.0004       0.0005
-               Project 1st Level      :       0.0000       0.0000       0.0000
+         Total Building Coarse Pbs.   :       0.0005       0.0005       0.0006
+         Total Paral. Fac. Coarse Pbs.:       0.0000       0.0001       0.0001
+         Total Solve loop             :       0.0005       0.0006       0.0007
+               Project 1st Level      :       0.0001       0.0001       0.0001
                Precondition           :       0.0000       0.0000       0.0001
                Local Solve            :       0.0001       0.0001       0.0002
                Reorthogonalize        :       0.0000       0.0000       0.0000
 
-6. Write Output Files                 :       0.0050       0.0050       0.0050
+6. Write Output Files                 :       0.0028       0.0028       0.0028
 
-TOTAL SIMULATION (1+2+3+4+5+6)        :       0.0659       0.0661       0.0664
+TOTAL SIMULATION (1+2+3+4+5+6)        :       0.0269       0.0302       0.0360
 
 *******************************************************************************
  ...  Detailed Memory Statistics (Megabytes)
@@ -147,26 +147,26 @@ TOTAL SIMULATION (1+2+3+4+5+6)        :       0.0659       0.0661       0.0664
 
 1. Total Read Input Files             :       0.0527       0.0527       0.0527
 
-2. Total Preprocessing                :       0.0859       0.0859       0.0859
+2. Total Preprocessing                :       0.0264       0.0264       0.0264
 
-3. Total Subdomain Matrices Processing:      -0.0049      -0.0049      -0.0049
+3. Total Subdomain Matrices Processing:      -0.0020      -0.0010      -0.0010
 
 4. Total Subdomain RHS Processing     :       0.0000       0.0000       0.0000
 
-5. Total Solver                       :       0.0352       0.0352       0.0352
+5. Total Solver                       :       0.0166       0.0176       0.0195
 
-         Factor Subdomain Matrices    :       0.0078       0.0078       0.0078
+         Factor Subdomain Matrices    :       0.0020       0.0020       0.0020
 
-         Total Building  Coarse Pbs.  :       0.0127       0.0127       0.0127
+         Total Building  Coarse Pbs.  :       0.0039       0.0049       0.0068
          Total Paral. Fac. Coarse Pbs.:       0.0000       0.0000       0.0000
          Total Solve loop             :       0.0000       0.0000       0.0000
                Project 1st Level      :       0.0000       0.0000       0.0000
-               Precondition           :       0.0049       0.0049       0.0049
+               Precondition           :       0.0010       0.0010       0.0020
                Local Solve            :       0.0000       0.0000       0.0000
                Reorthogonalize        :       0.0098       0.0098       0.0098
 
-6. Write Output Files                 :       0.0762       0.0762       0.0762
+6. Write Output Files                 :       0.0137       0.0156       0.0215
 
-TOTAL SIMULATION (1+2+3+4+5+6)        :       0.2393       0.2393       0.2393
+TOTAL SIMULATION (1+2+3+4+5+6)        :       0.1016       0.1055       0.1133
 
 *******************************************************************************

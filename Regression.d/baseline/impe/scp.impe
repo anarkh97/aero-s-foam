@@ -19,33 +19,33 @@ echo mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_strainxy.inp
 mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_strainxy.inp
 echo mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_strainxz.inp
 mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  impe_frontal_strainxx.inp
-mpirun -n 4 ../../bin/aeros  impe_frontal_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  impe_pcg_strainxy.inp
-mpirun -n 4 ../../bin/aeros  impe_pcg_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  impe_bcg_strainxz.inp
-mpirun -n 4 ../../bin/aeros  impe_bcg_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  impe_cr_inxforce.inp
-mpirun -n 4 ../../bin/aeros  impe_cr_inxforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inyforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inyforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_1_inzforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_1_inzforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_2_OLD_axmoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_2_OLD_axmoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_2_NEW_aymoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_2_NEW_aymoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_azmoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_azmoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_energies.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_energies.inp
-echo mpirun -n 4 ../../bin/aeros  impe_sparse_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  impe_sparse_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  impe_skyline_gacceler.inp
-mpirun -n 4 ../../bin/aeros  impe_skyline_gacceler.inp
-echo mpirun -n 4 ../../bin/aeros  impe_mumps_displmod.inp
-mpirun -n 4 ../../bin/aeros  impe_mumps_displmod.inp
-echo mpirun -n 4 ../../bin/aeros  impe_spooles_rotatmod.inp
-mpirun -n 4 ../../bin/aeros  impe_spooles_rotatmod.inp
-echo mpirun -n 4 ../../bin/aeros  impe_gmres_gdispmod.inp
-mpirun -n 4 ../../bin/aeros  impe_gmres_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  impe_pcg_strainxx.inp
+mpirun -n 4 ../../bin/aeros  impe_pcg_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  impe_bcg_strainxy.inp
+mpirun -n 4 ../../bin/aeros  impe_bcg_strainxy.inp
+echo mpirun -n 4 ../../bin/aeros  impe_cr_strainxz.inp
+mpirun -n 4 ../../bin/aeros  impe_cr_strainxz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
+echo mpirun -n 4 ../../bin/aeros  impe_sparse_axmoment.inp
+mpirun -n 4 ../../bin/aeros  impe_sparse_axmoment.inp
+echo mpirun -n 4 ../../bin/aeros  impe_skyline_aymoment.inp
+mpirun -n 4 ../../bin/aeros  impe_skyline_aymoment.inp
+echo mpirun -n 4 ../../bin/aeros  impe_mumps_azmoment.inp
+mpirun -n 4 ../../bin/aeros  impe_mumps_azmoment.inp
+echo mpirun -n 4 ../../bin/aeros  impe_spooles_energies.inp
+mpirun -n 4 ../../bin/aeros  impe_spooles_energies.inp
+echo mpirun -n 4 ../../bin/aeros  impe_gmres_gvelocit.inp
+mpirun -n 4 ../../bin/aeros  impe_gmres_gvelocit.inp
+echo mpirun -n 4 ../../bin/aeros  impe_direct_gacceler.inp
+mpirun -n 4 ../../bin/aeros  impe_direct_gacceler.inp
+echo mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_displmod.inp
+mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_displmod.inp
+echo mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_rotatmod.inp
+mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_rotatmod.inp
+echo mpirun -n 4 ../../bin/aeros  impe_pcg_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  impe_pcg_gdispmod.inp

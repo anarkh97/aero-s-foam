@@ -14,23 +14,15 @@ echo ../../bin/aeros  tempstatics_spooles_pivot_grdtempy.inp
 ../../bin/aeros  tempstatics_spooles_pivot_grdtempy.inp
 echo ../../bin/aeros  tempstatics_mumps_pivot_grdtempz.inp
 ../../bin/aeros  tempstatics_mumps_pivot_grdtempz.inp
-echo ../../bin/aeros  tempstatics_frontal_gtempera.inp
-../../bin/aeros  tempstatics_frontal_gtempera.inp
-echo ../../bin/aeros  tempstatics_pcg_gtempvel.inp
-../../bin/aeros  tempstatics_pcg_gtempvel.inp
-echo ../../bin/aeros  tempstatics_bcg_heatflxx.inp
-../../bin/aeros  tempstatics_bcg_heatflxx.inp
-echo ../../bin/aeros  tempstatics_cr_heatflxy.inp
-../../bin/aeros  tempstatics_cr_heatflxy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxz.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_1_grdtempx.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_1_grdtempx.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_2_OLD_grdtempy.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_2_OLD_grdtempy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_2_NEW_grdtempz.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_2_NEW_grdtempz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_gtempera.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_gtempera.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DPH_gtempvel.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DPH_gtempvel.inp
+echo ../../bin/aeros  tempstatics_pcg_gtempera.inp
+../../bin/aeros  tempstatics_pcg_gtempera.inp
+echo ../../bin/aeros  tempstatics_bcg_gtempvel.inp
+../../bin/aeros  tempstatics_bcg_gtempvel.inp
+echo ../../bin/aeros  tempstatics_cr_heatflxx.inp
+../../bin/aeros  tempstatics_cr_heatflxx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxy.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxy.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_heatflxz.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_heatflxz.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DPH_grdtempx.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DPH_grdtempx.inp

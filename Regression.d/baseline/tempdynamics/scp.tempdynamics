@@ -19,23 +19,15 @@ echo mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
 mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
 echo mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
 mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_frontal_gtempera.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_frontal_gtempera.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempvel.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempvel.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_heatflxx.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_heatflxx.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxy.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxy.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_1_grdtempx.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_1_grdtempx.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_OLD_grdtempy.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_OLD_grdtempy.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_NEW_grdtempz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_2_NEW_grdtempz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_gtempvel.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_gtempvel.inp
+echo mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempera.inp
+mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_gtempvel.inp
+mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_gtempvel.inp
+echo mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxx.inp
+mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxx.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxy.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxy.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_heatflxz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_heatflxz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_grdtempx.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_grdtempx.inp

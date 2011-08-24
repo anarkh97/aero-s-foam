@@ -9,6 +9,7 @@ FETI DP
 *
 OUTPUT
 stressp2 test31_FETI_DP_stressp2.dat 1
+stressvm stressvm.dat 2
 *
 INCLUDE test31.include
 *

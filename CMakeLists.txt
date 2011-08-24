@@ -440,9 +440,9 @@ ADD_TEST(testFreqSweep ${EXEC_DIR}/dataComp.py -l freqsweep)
 ADD_TEST(testTempStatics ${EXEC_DIR}/dataComp.py -l tempstatics)
 ADD_TEST(testTempNLStatics ${EXEC_DIR}/dataComp.py -l tempnlstatics)
 ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l tempdynamics)
-ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l test1)
-ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l test11)
-ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l test31)
+ADD_TEST(testRtest1 ${EXEC_DIR}/dataComp.py -l test1)
+ADD_TEST(testRtest11 ${EXEC_DIR}/dataComp.py -l test11)
+ADD_TEST(testRtest31 ${EXEC_DIR}/dataComp.py -l test31)
 # use the -s flag to send results via email
 ADD_TEST(testTempNLDynamics ${EXEC_DIR}/dataComp.py -l -s tempnldynamics)
 

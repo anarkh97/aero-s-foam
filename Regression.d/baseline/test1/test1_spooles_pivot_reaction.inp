@@ -8,7 +8,8 @@ STATICS
 spooles pivot
 *
 OUTPUT
-reaction test1_spooles_pivot_reaction.dat 1 NG 1
+reaction test1_spooles_pivot_reaction_1.dat 1 NG 1
+reaction test1_spooles_pivot_reaction_2.dat 1 NG 2
 *
 INCLUDE test1.include
 *

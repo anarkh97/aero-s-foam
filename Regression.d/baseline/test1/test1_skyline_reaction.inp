@@ -8,7 +8,8 @@ STATICS
 skyline
 *
 OUTPUT
-reaction test1_skyline_reaction.dat 1 NG 2
+reaction test1_skyline_reaction_1.dat 1 NG 1
+reaction test1_skyline_reaction_2.dat 1 NG 2
 *
 INCLUDE test1.include
 *

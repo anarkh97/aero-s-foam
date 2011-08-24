@@ -42,24 +42,25 @@ def directComp(basefile,file,SUMMARY_FILE):
     return result
    
   for i in range(len(BASE)):
-    BASE[i].replace(","," ");
-    COMP[i].replace(","," ");
-    BASE[i].strip()
-    COMP[i].strip()
-    basewords = BASE[i].split()
-    compwords = COMP[i].split()
-    if(len(basewords) != len(compwords)):
-      print "WARNING--Different line lengths at line %d of %f!!" %(i,file)
-      result = 1
-    else:
-      for j in range(len(basewords)):
-        if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
-          diff = float(basewords[j]) - float(compwords[j])
-          if(math.fabs(diff) > MaxDiff):
-            MaxDiff = math.fabs(diff)
-            MaxDiffLine = i
-            MaxDiffLoc = j
-            MaxDiffVals = (basewords[j],compwords[j])
+    if(i > 0):
+      BASE[i].replace(","," ");
+      COMP[i].replace(","," ");
+      BASE[i].strip()
+      COMP[i].strip()
+      basewords = BASE[i].split()
+      compwords = COMP[i].split()
+      if(len(basewords) != len(compwords)):
+        print "WARNING--Different line lengths at line %d of %f!!" %(i,file)
+        result = 1
+      else:
+        for j in range(len(basewords)):
+          if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
+            diff = float(basewords[j]) - float(compwords[j])
+            if(math.fabs(diff) >= MaxDiff):
+              MaxDiff = math.fabs(diff)
+              MaxDiffLine = i
+              MaxDiffLoc = j
+              MaxDiffVals = (basewords[j],compwords[j])
 
 
   print bcolors.OKBLUE + "\t\t\t\tMax diff is %e on line %d at location %d" %(MaxDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC

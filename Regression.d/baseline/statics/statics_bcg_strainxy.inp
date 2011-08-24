@@ -1,0 +1,15 @@
+CONTROL
+statics_bcg_strainxy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+bcg
+*
+OUTPUT
+strainxy statics_bcg_strainxy.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

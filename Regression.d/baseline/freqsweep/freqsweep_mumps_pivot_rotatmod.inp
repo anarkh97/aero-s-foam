@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_mumps_pivot_rotatmod
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps pivot
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+recons pade 2 9 10
+OUTPUT
+rotatmod freqsweep_mumps_pivot_rotatmod.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

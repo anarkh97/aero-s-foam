@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_direct_gacceler
+1
+"nodeset"
+"elemset"
+*
+STATICS
+direct
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+recons pade 2 9 10
+OUTPUT
+gacceler freqsweep_direct_gacceler.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

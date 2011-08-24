@@ -1,0 +1,15 @@
+CONTROL
+statics_FETI_DPH_inzforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+inzforce statics_FETI_DPH_inzforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

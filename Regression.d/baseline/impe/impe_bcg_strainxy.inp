@@ -1,0 +1,19 @@
+CONTROL
+impe_bcg_strainxy
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+*
+STATICS
+bcg
+*
+OUTPUT
+strainxy impe_bcg_strainxy.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

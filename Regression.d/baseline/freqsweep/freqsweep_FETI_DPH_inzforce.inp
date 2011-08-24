@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_FETI_DPH_inzforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+recons pade 2 9 10
+OUTPUT
+inzforce freqsweep_FETI_DPH_inzforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -1,0 +1,19 @@
+CONTROL
+impe_skyline_aymoment
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+*
+STATICS
+skyline
+*
+OUTPUT
+aymoment impe_skyline_aymoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_FETI_DP_inyforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+recons pade 2 9 10
+OUTPUT
+inyforce freqsweep_FETI_DP_inyforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

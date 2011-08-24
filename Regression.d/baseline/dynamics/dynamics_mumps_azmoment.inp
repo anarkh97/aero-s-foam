@@ -1,0 +1,20 @@
+CONTROL
+dynamics_mumps_azmoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+DYNAMICS
+time	0.0	1.0e-4	3.0e-2
+newmark
+mech	0.25000	0.5000
+*	time step	total time
+OUTPUT
+azmoment dynamics_mumps_azmoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

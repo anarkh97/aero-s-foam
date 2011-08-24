@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_sparse_axmoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+sparse
+*
+IMPE
+freq 10.0
+damp 1e-5 1.0
+recons pade 2 9 10
+OUTPUT
+axmoment freqsweep_sparse_axmoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

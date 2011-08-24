@@ -1,0 +1,20 @@
+CONTROL
+dynamics_gmres_gvelocit
+1
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+DYNAMICS
+time	0.0	3.0e-5	3.0e-2
+newmark
+mech	0.25000	0.5000
+*	time step	total time
+OUTPUT
+gvelocit dynamics_gmres_gvelocit.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

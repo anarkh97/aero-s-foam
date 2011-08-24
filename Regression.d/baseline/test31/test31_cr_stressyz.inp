@@ -1,0 +1,15 @@
+CONTROL
+test31_cr_stressyz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+cr
+*
+OUTPUT
+stressyz test31_cr_stressyz.dat 1
+*
+INCLUDE test31.include
+*
+END

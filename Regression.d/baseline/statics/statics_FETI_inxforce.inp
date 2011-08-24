@@ -1,0 +1,15 @@
+CONTROL
+statics_FETI_inxforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI
+*
+OUTPUT
+inxforce statics_FETI_inxforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -61,7 +61,7 @@ def buildInputs(params):
         os.system(command)
   else:
     if(params[1] == 'ALL'):
-      PROBLEM_NAMES=['statics','nlstatics','eigen','freqsweep','dynamics','nldynamics','impe','tempstatics','tempdynamics','tempnldynamics','tempnlstatics']
+      PROBLEM_NAMES=['statics','nlstatics','eigen','freqsweep','dynamics','nldynamics','impe','tempstatics','tempdynamics','tempnldynamics','tempnlstatics','test1','test11','test31']
     else:
       PROBLEM_NAMES = [params[1]]
 
@@ -91,9 +91,8 @@ def buildInputs(params):
                 "displmod","rotatmod","gdispmod"]
 
       STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
-                 "spooles pivot","mumps pivot",\
-                 "frontal","pcg","bcg","cr","FETI",\
-                 "FETI 1","FETI 2 OLD","FETI 2 NEW","FETI DP","FETI DPH"]
+                 "spooles pivot","mumps pivot","pcg","bcg","cr","FETI",\
+                 "FETI DP","FETI DPH"]
 
       INCLUDE = ["\"mesh.include\""]
 
@@ -114,6 +113,40 @@ def buildInputs(params):
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-6"]
 
       SHIFT = ["0","10","100","1000"]
+
+      if(problem_type == "test31"):
+        OUTPUT = ["stressvm","strainvm","strainxx","sp3direc",\
+                "stressp3","ep3direc","stressxx","strainp3"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
+                   "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                   "FETI DP","FETI DPH"]
+#        STATICS = ["sparse","mumps","spooles",\
+#                 "spooles pivot","mumps pivot",\
+#                 "FETI DP","FETI DPH"]
+        INCLUDE = ["test31.include"]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","*","*"]
+
+      if(problem_type == "test11"):
+        OUTPUT = ["gdisplac","displacz"]
+        NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","mumps","spooles",\
+                 "spooles pivot","mumps pivot",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE = ["test11.include"]
+        OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
+        EXTRAS = ["*","*","*","*"]
+
+      if(problem_type == "test1"):
+        OUTPUT = ["reaction"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
+                   "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                   "FETI DP","FETI DPH"]
+        INCLUDE = ["test1.include"]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","*","*"]
 
       if(problem_type == "tempnlstatics"):
         EXTRAS = ["*","*","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*"]
@@ -202,8 +235,13 @@ def buildInputs(params):
 
         idname = idname.replace(" ","_",10)
   
-        OUTPUT_FILENAME = idname+".dat" + " 1"
-   
+
+        if(problem_type == "test1"): 
+          OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
+          OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
+        else:
+          OUTPUT_FILENAME = idname+".dat" + " 1"
+ 
         filename = idname+".inp"
         FILE = open(filename,"w")
         FILE.write("CONTROL\n");

@@ -3,17 +3,17 @@
 #PBS -l nodes=1:ppn=8,walltime=1:00:00
 
 cd /lustre/home/mpotts/FEM/Regression.d/test11
-echo mpirun -n 4 ../../bin/aeros  test11_sparse_gdisplac.inp
-mpirun -n 4 ../../bin/aeros  test11_sparse_gdisplac.inp
-echo mpirun -n 4 ../../bin/aeros  test11_mumps_displacz.inp
-mpirun -n 4 ../../bin/aeros  test11_mumps_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  test11_spooles_gdisplac.inp
-mpirun -n 4 ../../bin/aeros  test11_spooles_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros  test11_sparse_displmod.inp
+mpirun -n 4 ../../bin/aeros  test11_sparse_displmod.inp
+echo mpirun -n 4 ../../bin/aeros  test11_mumps_gdisplac.inp
+mpirun -n 4 ../../bin/aeros  test11_mumps_gdisplac.inp
 echo mpirun -n 4 ../../bin/aeros  test11_spooles_pivot_displacz.inp
 mpirun -n 4 ../../bin/aeros  test11_spooles_pivot_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  test11_mumps_pivot_gdisplac.inp
-mpirun -n 4 ../../bin/aeros  test11_mumps_pivot_gdisplac.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DP_displacz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DP_displacz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DPH_gdisplac.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DPH_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros  test11_mumps_pivot_displmod.inp
+mpirun -n 4 ../../bin/aeros  test11_mumps_pivot_displmod.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DP_gdisplac.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DP_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DPH_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 test11_FETI_DPH_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  test11_spooles_displmod.inp
+mpirun -n 4 ../../bin/aeros  test11_spooles_displmod.inp

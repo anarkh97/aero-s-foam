@@ -27,7 +27,9 @@ class bcolors:
 def directComp(basefile,file,SUMMARY_FILE):
   COMP = list(open(file).read().splitlines())
   BASE = list(open(basefile,"r").read().splitlines())
-
+  if(file.find("eigen") != -1):
+    BASE.sort()
+    COMP.sort()
   MaxDiff = 0.0
   MaxDiffLine = -1
   MaxDiffLoc = -1

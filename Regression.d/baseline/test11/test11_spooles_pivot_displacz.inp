@@ -8,12 +8,12 @@ STATICS
 spooles pivot
 *
 NONLINEAR
-maxitr 10
+maxitr 40
 nltol 1.0e-6
 rebuild 1
 *
 OUTPUT
-displacz test11_spooles_pivot_displacz.dat 1
+displacz test11_spooles_pivot_displacz.dat 1 5
 *
 INCLUDE test11.include
 *

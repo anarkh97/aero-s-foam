@@ -129,11 +129,13 @@ def buildInputs(params):
         EXTRAS = ["*","*","*"]
 
       if(problem_type == "test11"):
-        OUTPUT = ["gdisplac","displacz"]
+        OUTPUT = ["displmod","gdisplac","displacz"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","mumps","spooles",\
+        STATICS = ["sparse","mumps",\
                  "spooles pivot","mumps pivot",\
-                 "FETI DP","FETI DPH"]
+                 "FETI DP","FETI DPH","spooles"]
+        NONLINEAR = ["maxitr 40\nnltol 1.0e-6\nrebuild 1",\
+                   "maxitr 10\nnltol 1.0e-5\nrebuild 1"]
         INCLUDE = ["test11.include"]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
         EXTRAS = ["*","*","*","*"]
@@ -239,6 +241,8 @@ def buildInputs(params):
         if(problem_type == "test1"): 
           OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
           OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
+        elif(problem_type == "test11"): 
+          OUTPUT_FILENAME = idname+".dat 1 5" 
         else:
           OUTPUT_FILENAME = idname+".dat" + " 1"
  

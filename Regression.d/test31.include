@@ -1,5 +1,9 @@
-*Test Case 31 (2-D)
-*A long, rectangular bar assembly is fixed at one of the faces and the opposite face is subjected to a compressive force. Find the maximum equivalent stress for the whole assembly.
+** Ansys Workbench Verification Manual Test Case 31
+** Long Bar with Uniform Force and Stress Tool - Plane Stress Model
+** A long, rectangular bar assembly is fixed at one of the faces and the opposite face is subjected to a com-
+** pressive force.
+** Find the maximum equivalent stress for the whole assembly and safety factor, safety margin, and safety ratio
+** for the first and last part using the maximum equivalent stress theory with Tensile Yield Limit.
 *
 NODES 
 1 0.00000000e+00 0.00000000e+00 0.00000000e+00

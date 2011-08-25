@@ -2,31 +2,29 @@
 *
 *                        mesh - structured 0.5 inch cubes
 *
-*       Description: An assembly of 3 prismatic bars is fixed at both end
-*               faces and is axially loaded with forces F1 and F2.  Force F1 is
-*               applied on the face between parts 2 and 3 and F2 is applied on
-*               the face between parts 1 and 2.
+*	Description: An assembly of 3 prismatic bars is fixed at both end
+*		faces and is axially loaded with forces F1 and F2.  Force F1 is
+*		applied on the face between parts 2 and 3 and F2 is applied on
+*		the face between parts 1 and 2.
 *
 *       Material properties:     |  Geometry:  
-*       E -   2.9008e7 psi       |  3 parts all with 1x1" cross in x-z plane 
-*       nu -  0.3                |  assembled with length in y direction from 
-*       rho - 0.28383 lbm/in^3   |  part 1 at the base to part 3 at the top
-*                                |      part 1 - Lenght = 4"
-*                                |      part 2 and 3 - Lenght = 3"
+*	E -   2.9008e7 psi       |  3 parts all with 1x1" cross in x-z plane 
+*	nu -  0.3                |  assembled with length in y direction from 
+*	rho - 0.28383 lbm/in^3   |  part 1 at the base to part 3 at the top
+*	                         |      part 1 - Length = 4"
+*				 |      part 2 and 3 - Length = 3"
 *       ----------------------------------------------------------------------------
-*       Loading:                 |  Determine reaction forces in the y direction
-*       F1 = -1000 lbf           |  at the fixed supports.
-*       F2 = -500 lbf            |  
-*       (y+ from bottom to top)  |           Exact   |   Ansys DS   |    % error
-*                                |  ------------------------------------------------
+*       Loading:		 |  Determine reaction forces in the y direction
+*	F1 = -1000 lbf   	 |  at the fixed supports.
+*	F2 = -500 lbf		 |  
+*	(y+ from bottom to top)	 |           Exact   |   Ansys DS   |    % error
+*				 |  ------------------------------------------------
 *                                |  Top       900    |    901.14    |     0.127
 *                                |  ------------------------------------------------
 *                                |  Bottom    600    |    598.86    |    -0.190
 *
 GROUPS
-*group 1 - fixed surface 1
 N surface 3 1
-*group 1 - fixed surface 1
 N surface 4 2
 *
 NODES 
@@ -385,16 +383,9 @@ ATTRBUTES
 80 7
 *
 MATERIAL 
-1 0 0 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-2 0 0 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-3 0 0 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-4 0 0 0 0 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
 5 0 2.901e+07 0.3 0.28383 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
 6 0 2.901e+07 0.3 0.28383 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
 7 0 2.901e+07 0.3 0.28383 0.0 0 0 0.0 0 0 0.0 0 0 0 0 0 0 0
-*
-CFRAMES 
-1  1.0 0.0 0.0  0.0 1.0 0.0  0.0 0.0 1.0 
 *
 DISP 
 166 1 0
@@ -471,28 +462,29 @@ FORCE
 79 2 -31.25
 80 2 -62.5
 81 2 -31.25
-* force 1
+*
 SURFTOPO 1
 478 1 112 113 115 114 
 479 1 114 115 117 116 
 480 1 113 133 134 115 
 481 1 115 134 135 117 
-* force 2
+*
 SURFTOPO 2
 474 1 49 51 52 50 
 475 1 51 53 54 52 
 476 1 50 52 80 79 
 477 1 52 54 81 80 
-* support 1
+*
 SURFTOPO 3
 530 1 166 168 169 167 
 531 1 168 170 171 169 
 532 1 167 169 188 187 
 533 1 169 171 189 188 
-* support 2
+*
 SURFTOPO 4
 414 1 1 2 6 5 
 415 1 5 6 10 9 
 416 1 2 55 57 6 
 417 1 6 57 59 10 
 *
+

@@ -1,0 +1,20 @@
+CONTROL
+test11_FETI_DP_gdisplac
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+*
+NONLINEAR
+maxitr 40
+nltol 1.0e-6
+rebuild 1
+*
+OUTPUT
+gdisplac test11_FETI_DP_gdisplac.dat 1 5
+*
+INCLUDE test11.include
+*
+END

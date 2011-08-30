@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm11
+echo mpirun -n 4 ../../bin/aeros  dsvm11_sparse_displmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm11_sparse_displmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm11_mumps_gdisplac.inp
+mpirun -n 4 ../../bin/aeros  dsvm11_mumps_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm11_spooles_pivot_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm11_spooles_pivot_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm11_mumps_pivot_displmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm11_mumps_pivot_displmod.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm11_FETI_DP_gdisplac.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm11_FETI_DP_gdisplac.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm11_FETI_DPH_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm11_FETI_DPH_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm11_spooles_displmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm11_spooles_displmod.inp

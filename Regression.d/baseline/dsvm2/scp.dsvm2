@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm2
+echo mpirun -n 4 ../../bin/aeros  dsvm2_sparse_stressxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_sparse_stressxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_mumps_pivot_strainxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_mumps_pivot_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_mumps_stressxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_mumps_stressxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_spooles_strainxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_spooles_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_spooles_pivot_stressxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_spooles_pivot_stressxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_pcg_strainxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_pcg_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_bcg_stressxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_bcg_stressxx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm2_cr_strainxx.inp
+mpirun -n 4 ../../bin/aeros  dsvm2_cr_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DP_stressxx.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DP_stressxx.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DPH_strainxx.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DPH_strainxx.inp

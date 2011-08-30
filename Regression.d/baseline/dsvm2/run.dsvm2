@@ -1,0 +1,20 @@
+echo ../../bin/aeros  dsvm2_sparse_stressxx.inp
+../../bin/aeros  dsvm2_sparse_stressxx.inp
+echo ../../bin/aeros  dsvm2_mumps_pivot_strainxx.inp
+../../bin/aeros  dsvm2_mumps_pivot_strainxx.inp
+echo ../../bin/aeros  dsvm2_mumps_stressxx.inp
+../../bin/aeros  dsvm2_mumps_stressxx.inp
+echo ../../bin/aeros  dsvm2_spooles_strainxx.inp
+../../bin/aeros  dsvm2_spooles_strainxx.inp
+echo ../../bin/aeros  dsvm2_spooles_pivot_stressxx.inp
+../../bin/aeros  dsvm2_spooles_pivot_stressxx.inp
+echo ../../bin/aeros  dsvm2_pcg_strainxx.inp
+../../bin/aeros  dsvm2_pcg_strainxx.inp
+echo ../../bin/aeros  dsvm2_bcg_stressxx.inp
+../../bin/aeros  dsvm2_bcg_stressxx.inp
+echo ../../bin/aeros  dsvm2_cr_strainxx.inp
+../../bin/aeros  dsvm2_cr_strainxx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DP_stressxx.inp
+../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DP_stressxx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DPH_strainxx.inp
+../../bin/aeros -n 2 --dec --nsub 4 dsvm2_FETI_DPH_strainxx.inp

@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm25
+echo mpirun -n 4 ../../bin/aeros  dsvm25_sparse_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_sparse_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_spooles_pivot_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_spooles_pivot_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_skyline_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_skyline_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_spooles_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_spooles_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_direct_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_direct_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_pcg_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_pcg_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_bcg_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_bcg_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm25_cr_stressp1.inp
+mpirun -n 4 ../../bin/aeros  dsvm25_cr_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DP_stressp1.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DP_stressp1.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DPH_stressp1.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DPH_stressp1.inp

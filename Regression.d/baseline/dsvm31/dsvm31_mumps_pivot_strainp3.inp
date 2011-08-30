@@ -1,0 +1,15 @@
+CONTROL
+dsvm31_mumps_pivot_strainp3
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps pivot
+*
+OUTPUT
+strainp3 dsvm31_mumps_pivot_strainp3.dat 1
+*
+INCLUDE dsvm31.include
+*
+END

@@ -1,0 +1,15 @@
+CONTROL
+dsvm2_FETI_DPH_strainxx
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+strainxx dsvm2_FETI_DPH_strainxx.dat 1 NG 1
+*
+INCLUDE ../dsvm2.include
+*
+END

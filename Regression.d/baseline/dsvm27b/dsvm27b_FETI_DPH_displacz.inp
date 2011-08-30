@@ -1,0 +1,15 @@
+CONTROL
+dsvm27b_FETI_DPH_displacz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+displacz dsvm27b_FETI_DPH_displacz.dat 1
+*
+INCLUDE ../dsvm27b.include
+*
+END

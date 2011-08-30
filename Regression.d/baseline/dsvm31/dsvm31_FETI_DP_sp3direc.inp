@@ -1,0 +1,15 @@
+CONTROL
+dsvm31_FETI_DP_sp3direc
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+*
+OUTPUT
+sp3direc dsvm31_FETI_DP_sp3direc.dat 1
+*
+INCLUDE dsvm31.include
+*
+END

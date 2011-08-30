@@ -1,0 +1,20 @@
+CONTROL
+dsvm20_FETI_DPH_gdispmod
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+EIGEN
+arpack
+nsbspv 8
+neigpa 4
+*
+OUTPUT
+gdispmod dsvm20_FETI_DPH_gdispmod.dat 1
+*
+INCLUDE ../dsvm20.include
+*
+END

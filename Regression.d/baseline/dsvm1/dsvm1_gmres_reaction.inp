@@ -1,0 +1,15 @@
+CONTROL
+dsvm1_gmres_reaction
+1
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+OUTPUT
+reaction dsvm1_gmres_reaction.dat 1
+*
+INCLUDE ../dsvm1.include
+*
+END

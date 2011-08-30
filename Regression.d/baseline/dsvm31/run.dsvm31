@@ -1,0 +1,26 @@
+echo ../../bin/aeros  dsvm31_sparse_stressvm.inp
+../../bin/aeros  dsvm31_sparse_stressvm.inp
+echo ../../bin/aeros  dsvm31_skyline_strainvm.inp
+../../bin/aeros  dsvm31_skyline_strainvm.inp
+echo ../../bin/aeros  dsvm31_mumps_strainxx.inp
+../../bin/aeros  dsvm31_mumps_strainxx.inp
+echo ../../bin/aeros  dsvm31_spooles_sp3direc.inp
+../../bin/aeros  dsvm31_spooles_sp3direc.inp
+echo ../../bin/aeros  dsvm31_gmres_stressp3.inp
+../../bin/aeros  dsvm31_gmres_stressp3.inp
+echo ../../bin/aeros  dsvm31_direct_ep3direc.inp
+../../bin/aeros  dsvm31_direct_ep3direc.inp
+echo ../../bin/aeros  dsvm31_spooles_pivot_stressxx.inp
+../../bin/aeros  dsvm31_spooles_pivot_stressxx.inp
+echo ../../bin/aeros  dsvm31_mumps_pivot_strainp3.inp
+../../bin/aeros  dsvm31_mumps_pivot_strainp3.inp
+echo ../../bin/aeros  dsvm31_pcg_stressvm.inp
+../../bin/aeros  dsvm31_pcg_stressvm.inp
+echo ../../bin/aeros  dsvm31_bcg_strainvm.inp
+../../bin/aeros  dsvm31_bcg_strainvm.inp
+echo ../../bin/aeros  dsvm31_cr_strainxx.inp
+../../bin/aeros  dsvm31_cr_strainxx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm31_FETI_DP_sp3direc.inp
+../../bin/aeros -n 2 --dec --nsub 4 dsvm31_FETI_DP_sp3direc.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm31_FETI_DPH_stressp3.inp
+../../bin/aeros -n 2 --dec --nsub 4 dsvm31_FETI_DPH_stressp3.inp

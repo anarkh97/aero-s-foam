@@ -1,0 +1,15 @@
+CONTROL
+dsvm1_mumps_pivot_reaction
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps pivot
+*
+OUTPUT
+reaction dsvm1_mumps_pivot_reaction.dat 1
+*
+INCLUDE ../dsvm1.include
+*
+END

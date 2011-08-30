@@ -1,0 +1,29 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm22
+echo mpirun -n 4 ../../bin/aeros  dsvm22_sparse_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_sparse_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_spooles_pivot_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_spooles_pivot_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_mumps_pivot_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_mumps_pivot_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_skyline_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_skyline_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_mumps_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_mumps_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_spooles_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_spooles_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_direct_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_direct_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_pcg_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_pcg_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_bcg_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_bcg_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm22_cr_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm22_cr_displacz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm22_FETI_DP_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm22_FETI_DP_displacz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm22_FETI_DPH_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm22_FETI_DPH_displacz.inp

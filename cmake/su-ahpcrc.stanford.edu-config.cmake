@@ -14,6 +14,7 @@ SET(CMAKE_LIBRARY_PATH /lustre/home/avery/code/arpack
                        /lustre/home/avery/code/metis-4.0.1
                        /lustre/home/avery/code/acme-2.9/lib
                        /lustre/home/avery/code/Zoltan/Obj_generic)
+SET(ACME_VERSION "2_9")
 # blas and lapack
 #SET(BLAS_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/blas_LINUX.a)
 #SET(LAPACK_LIBRARIES /lustre/home/avery/code/lapack-3.2.1/lapack_LINUX.a ${BLAS_LIBRARIES})

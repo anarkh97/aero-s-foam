@@ -1,0 +1,15 @@
+CONTROL
+test31_sparse_stressvm
+1
+"nodeset"
+"elemset"
+*
+STATICS
+sparse
+*
+OUTPUT
+stressvm test31_sparse_stressvm.dat 1
+*
+INCLUDE test31.include
+*
+END

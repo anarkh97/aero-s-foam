@@ -1,0 +1,15 @@
+CONTROL
+test31_mumps_pivot_stressxy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps pivot
+*
+OUTPUT
+stressxy test31_mumps_pivot_stressxy.dat 1
+*
+INCLUDE test31.include
+*
+END

@@ -136,9 +136,8 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
     rhs.linAdd(dt*dt*beta, residual);
   }
 
-  double resN = sqrt(solver->getFNormSq(rhs));
   times->correctorTime += getTime();
-  return resN;
+  return getResidualNorm(rhs);
 }
 
 void
@@ -312,7 +311,7 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
 double
 MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                              DistrVector& elementInternalForce, double t) 
+                              DistrVector& elementInternalForce, double t, DistrGeomState *refState) 
 {
   times->buildStiffAndForce -= getTime();
 
@@ -327,10 +326,10 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
-  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
-              residual, elementInternalForce, t);
+  execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
+              residual, elementInternalForce, t, refState);
 
-  if(t != -1.0) updateConstraintTerms(&geomState);
+  if(t != -1.0) updateConstraintTerms(&geomState,t);
 
   // add the ACTUATOR forces
   if(claw && userSupFunc) {
@@ -363,14 +362,16 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 
 void
 MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                                 DistrVector &res, DistrVector &elemIntForce, double t)
+                                 DistrVector &res, DistrVector &elemIntForce, double t,
+                                 DistrGeomState *refState)
 {
   // PJSA: 10-4-2007 copied from MDNLStatic
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector residual(res.subData(isub), res.subLen(isub));
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState);
 }
 
 void
@@ -499,7 +500,7 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-  mu = new std::map<int,double>[decDomain->getNumSub()];
+  mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
   lambda = new std::vector<double>[decDomain->getNumSub()];
 
   times->memoryPreProcess -= threadManager->memoryUsed();
@@ -852,7 +853,7 @@ MDNLDynamic::getConstraintMultipliers(int isub)
 }
 
 void
-MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
+MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
 {
   // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
@@ -873,7 +874,7 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState)
       fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);
     }
     // set the gap for the linear constraints
-    decDomain->setConstraintGap(geomState, fetiSolver);
+    decDomain->setConstraintGap(geomState, fetiSolver, t);
   }
 }
 
@@ -1440,3 +1441,18 @@ MDNLDynamic::getAeroheatFlag()
 {
   return domain->solInfo().aeroheatFlag;
 }
+
+void
+MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState)
+{
+  execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState);
+}
+
+void
+MDNLDynamic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
+}
+

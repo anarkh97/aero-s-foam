@@ -1,0 +1,15 @@
+CONTROL
+statics_pcg_strainxx
+1
+"nodeset"
+"elemset"
+*
+STATICS
+pcg
+*
+OUTPUT
+strainxx statics_pcg_strainxx.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

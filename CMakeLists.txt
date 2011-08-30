@@ -171,13 +171,13 @@ IF(UNIX)
                        MUMPS_common_LIBRARY MUMPS_pord_LIBRARY)
       FIND_LIBRARY(MUMPS_dmumps_seq_LIBRARY NAMES dmumps_seq SEQ/libdmumps.a
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq
+      FIND_LIBRARY(MUMPS_zmumps_seq_LIBRARY NAMES zmumps_seq SEQ/libzmumps.a
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_common_seq_LIBRARY NAMES mumps_common_seq
+      FIND_LIBRARY(MUMPS_common_seq_LIBRARY NAMES mumps_common_seq SEQ/libmumps_common.a
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq
+      FIND_LIBRARY(MUMPS_pord_seq_LIBRARY NAMES pord_seq SEQ/libpord.a
                    PATHS /usr/lib /usr/local/lib)
-      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq mpiseq_seq
+      FIND_LIBRARY(MUMPS_mpiseq_LIBRARY NAMES mpiseq mpiseq_seq SEQ/libmpiseq.a
                    PATHS /usr/lib /usr/local/lib)
       if(MUMPS_INCLUDE_PATH AND MUMPS_dmumps_seq_LIBRARY AND MUMPS_zmumps_seq_LIBRARY AND MUMPS_common_seq_LIBRARY AND MUMPS_pord_seq_LIBRARY AND MUMPS_mpiseq_LIBRARY)
         MESSAGE("-- A library with MUMPS API found.")
@@ -440,6 +440,9 @@ ADD_TEST(testFreqSweep ${EXEC_DIR}/dataComp.py -l freqsweep)
 ADD_TEST(testTempStatics ${EXEC_DIR}/dataComp.py -l tempstatics)
 ADD_TEST(testTempNLStatics ${EXEC_DIR}/dataComp.py -l tempnlstatics)
 ADD_TEST(testTempDynamics ${EXEC_DIR}/dataComp.py -l tempdynamics)
+ADD_TEST(testRtest1 ${EXEC_DIR}/dataComp.py -l test1)
+ADD_TEST(testRtest11 ${EXEC_DIR}/dataComp.py -l test11)
+ADD_TEST(testRtest31 ${EXEC_DIR}/dataComp.py -l test31)
 # use the -s flag to send results via email
 ADD_TEST(testTempNLDynamics ${EXEC_DIR}/dataComp.py -l -s tempnldynamics)
 

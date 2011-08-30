@@ -113,13 +113,14 @@ struct AllOps
   GenSparseMatrix<Scalar> *Kuc;	 // constrained to unconstrained stiffness
   GenSparseMatrix<Scalar> *Muc;	 // constrained to unconstrained mass matrix
   GenSparseMatrix<Scalar> *Cuc;	 // constrained to unconstrained damping matrix
+  GenSparseMatrix<Scalar> *Kcc;  // constrained to constrained stiffness matrix
   GenSparseMatrix<Scalar> *Mcc;	 // constrained to constrained mass matrix
   GenSparseMatrix<Scalar> **C_deriv;    // derivatives of damping matrix for higher order sommerfeld
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -127,6 +128,7 @@ struct AllOps
                if(Kuc) Kuc->zeroAll();
                if(Muc) Muc->zeroAll();
                if(Cuc) Cuc->zeroAll();
+               if(Kcc) Kcc->zeroAll();
                if(Mcc) Mcc->zeroAll();
              }
 };
@@ -265,7 +267,8 @@ class Domain : public HData {
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
-                            Corotator **, FullSquareMatrix *, double *acceleration = 0, double *acx = 0);
+                            Corotator **, FullSquareMatrix *, double *acceleration = 0,
+                            double *acx = 0, GeomState *refState=0);
 
   public:
      Domain(int iniSize = 16);
@@ -310,12 +313,15 @@ class Domain : public HData {
      void getElementForces( GeomState &geomState, Corotator **allCorot,
                             int fileNumber, int forceIndex, double time);
      void getStressStrain(GeomState &geomState, Corotator **allCorot,
-                          int fileNumber, int stressIndex, double time);
+                          int fileNumber, int stressIndex, double time, 
+                          GeomState *refState = NULL);
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
                           int fileNumber, int stressIndex, double time);
+     void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
 			   Corotator **allCorot, FullSquareMatrix *kel,
-                           Vector &residual, double lambda = 1.0, double time = 0.0);
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
@@ -392,30 +398,32 @@ class Domain : public HData {
   */
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                     Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, bool factorize=true);
+                     Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
+                     bool factor = true);
 
      template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        void makeDynamicOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0);
 
      template<class Scalar>
        void rebuildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-	  	       Rbm* rbm=0, FullSquareMatrix *kelArray=0, bool factorize=true);
+	  	       Rbm* rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0,
+                       bool factor = true);
 
      template<class Scalar>
        void makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
-                          FullSquareMatrix *kelArray=0, FullSquareMatrix *melArray=0);
+                          FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm=0, FullSquareMatrix *kelArray=0);
+                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
@@ -495,6 +503,10 @@ class Domain : public HData {
        void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc = 0);
 
      template<class Scalar>
+       void computeReactionForce(GenVector<Scalar> &fu, GenVector<Scalar> &Vu,
+                                 GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *kcc = 0);
+
+     template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
                                    GenSparseMatrix<Scalar> **cuc_deriv, int iRHS, double omega);
      template<class Scalar>
@@ -518,14 +530,16 @@ class Domain : public HData {
      // static & freq response post processing function
      template<class Scalar>
      void postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force, 
-                         int ndflag=0, int index = 0, double time = 0, double eigV=0.0);
+                         int ndflag = 0, int index = 0, double time = 0, double eigV = 0.0,
+                         GenSparseMatrix<Scalar> *kuc = NULL, GenSparseMatrix<Scalar> *kcc = NULL);
 
      void resProcessing(Vector &, int index=0, double t=0);
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
                          int step=0, double *velocity=0, double *vcx=0,
-                         Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0, double *acx=0);
+                         Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0,
+                         double *acx=0, GeomState *refState=0);
 
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,

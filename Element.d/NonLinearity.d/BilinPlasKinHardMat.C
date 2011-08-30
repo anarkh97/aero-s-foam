@@ -1,12 +1,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <Math.d/mathUtility.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
-#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+//#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <limits>
 
-BilinPlasKinHardMat::BilinPlasKinHardMat(StructProp *p)
+
+template<int e>
+ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
 {
   E = p->E;
   nu = p->nu;
@@ -14,19 +16,22 @@ BilinPlasKinHardMat::BilinPlasKinHardMat(StructProp *p)
   sigE = p->sigE;     // Yield equivalent stress
 }
 
+template<int e>
 void
-BilinPlasKinHardMat::getStress(Tensor *stress, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state)
 {
-
+  std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStress is not implemented\n";
 }
 
+template<int e>
 void 
-BilinPlasKinHardMat::getElasticity(Tensor *_tm)
+ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm)
 {
   Tensor_d0s4_Ss12s34 &tm = static_cast<Tensor_d0s4_Ss12s34 &>(*_tm);
+  tm.setZero();
 
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-  double lambdadivnu = lambda/nu;
+  double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
   (tm)[0][0] = lambdadivnu*(1-nu);
   (tm)[1][1] = lambdadivnu*(1-2*nu)/2;
@@ -42,36 +47,35 @@ BilinPlasKinHardMat::getElasticity(Tensor *_tm)
   (tm)[5][3] = lambdadivnu*nu;
 }
 
+template<int e>
 void 
-BilinPlasKinHardMat::getTangentMaterial(Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state)
 {
-
+  std::cerr << "WARNING: ElasPlasKinHardMat<e>::getTangentMaterial is not implemented\n";
 }
 
+template<int e>
 void 
-BilinPlasKinHardMat::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state)
 {
-
+  std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStressAndTangentMaterial is not implemented\n";
 }
 
+template<int e>
 void 
-BilinPlasKinHardMat::updateStates(Tensor en, Tensor enp, double *state)
+ElasPlasKinHardMat<e>::updateStates(Tensor en, Tensor enp, double *state)
 {
-
+  std::cerr << "WARNING: ElasPlasKinHardMat<e>::updateStates is not implemented\n";
 }
 
+template<int e>
 void
-BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
+ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
                                double *staten, double *statenp, double)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
   //////////////////////////////////////////////////////////////////////////////
-  // PJSA note: the presentation of this algorithm in Simo and Hughes is for
-  // infintesimal strain, i.e. nonlinear material but still geometrically linear
-  // I'm not sure if it is valid to simply replace the infintesimal strain with
-  // the Green-Lagrange strain and use the same constitutive law.
-  
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
   // hardening
@@ -80,7 +84,7 @@ BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor
   if(statenp == 0) {
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
-    double lambdadivnu = lambda/nu;
+    double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
     Tensor_d0s4_Ss12s34 *tm = static_cast<Tensor_d0s4_Ss12s34 *>(_tm); 
     Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
@@ -111,7 +115,7 @@ BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double mu = E/(2*(1+nu));
     double bulk = lambda + (2./3)*mu;
-    double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : numeric_limits<double>::max();
+    double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max();
 
     Tensor_d0s2_Ss12 betan;
     Tensor_d0s2_Ss12 edevnp;
@@ -132,7 +136,7 @@ BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor
 
     double xitrialnpnorm = sqrt(2*(xitrialnp.secondInvariant()));
 
-    double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]);//Yield Criterion
+    double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
 
     if (trialyieldnp <= 0) {
  
@@ -147,7 +151,6 @@ BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor
 
       temp = (enp - eplastn);
       (stress) = (tm) || temp;
-
     }
     else {
       //fprintf(stderr, "je suis en dehors de la yield surface\n");
@@ -179,9 +182,26 @@ BilinPlasKinHardMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor
   }
 }
 
+template<int e>
 void 
-BilinPlasKinHardMat::initStates(double *st)
+ElasPlasKinHardMat<e>::initStates(double *st)
 {
   for (int i=0; i<13; ++i)
     st[i] = 0;
 }
+
+extern LinearStrain linearStrain;
+extern GreenLagrangeStrain greenLagrangeStrain;
+
+template<int e>
+StrainEvaluator *
+ElasPlasKinHardMat<e>::getStrainEvaluator()
+{
+  //return &linearStrain;
+  //return &greenLagrangeStrain;
+  switch(e) {
+    case 0: return &linearStrain; break;
+    case 1: return &greenLagrangeStrain; break;
+  }
+} 
+

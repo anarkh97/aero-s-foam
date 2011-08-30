@@ -3,7 +3,7 @@
 #include <cmath>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
-#include <Material.d/Material.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 
 ElaLinIsoMat::ElaLinIsoMat(StructProp *p)
 {
@@ -77,7 +77,7 @@ ElaLinIsoMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &
 
 void 
 ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                        double *staten, double *statenp, double)
+                        double *, double *, double)
 {
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double lambdadivnu = lambda/nu;
@@ -101,3 +101,20 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
 
   (*stress) = (*tm)||enp;
 }
+
+extern LinearStrain linearStrain;
+
+StrainEvaluator *
+ElaLinIsoMat::getStrainEvaluator()
+{
+  return &linearStrain;
+}
+
+extern GreenLagrangeStrain greenLagrangeStrain;
+
+StrainEvaluator *
+StVenantKirchhoffMat::getStrainEvaluator()
+{
+  return &greenLagrangeStrain;
+}
+

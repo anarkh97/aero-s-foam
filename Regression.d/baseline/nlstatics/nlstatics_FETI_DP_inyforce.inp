@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_FETI_DP_inyforce
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+include "feti.include"
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-6
+rebuild 1
+*
+OUTPUT
+inyforce nlstatics_FETI_DP_inyforce.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -149,6 +149,7 @@ struct SolverInfo {
                           "LM" - undefined for shift-invert on generalized eigenvalue problem
                           "SM" - undefined for shift-invert on generalzied eigenvalue problem
                           "BE" - compute eigenvalues to either side of sigma */
+   int arpack_mode;     // 3 is shift-invert, 4 is buckling mode
    double lbound;       // lower bound of a set or range of eigenvalues to be computed by ARPACK
    double ubound;       // upper bound of a set or range of eigenvalues to be computed by ARPACK
    int nshifts;         // number of shifts to be used by ARPACK when computing neigenpa eigenvalues
@@ -223,6 +224,7 @@ struct SolverInfo {
                      //            false --> a^0 = 0
                      // heat: true --> compute consistent initial first time derivative ie, v^0 = M^{-1}(fext^0 - fint^0) for a first order differential equation (ie heat)
                      //       false --> v^0 = 0
+   bool zeroRot;
 
    int dist_acme; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                   // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
@@ -362,12 +364,13 @@ struct SolverInfo {
                   isMatching = false; 
                   farfield = false;
 
-                  dbccheck = false;
+                  dbccheck = true;
                   contact_mode = 1;
 
                   nEig = 0;
                   eigenSolverSubType = 0;
                   which = "";
+                  arpack_mode = 3;
                   // CBM: new stuff
                   lbound = 0.0;
                   ubound = 0.0;
@@ -405,6 +408,7 @@ struct SolverInfo {
                   maxvecsize = 0; 
 
                   iacc_switch = true;
+                  zeroRot = true;
 
                   dist_acme = 0;
                   allproc_acme = true;

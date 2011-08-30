@@ -14,33 +14,33 @@ echo ../../bin/aeros  nldynamics_spooles_pivot_strainxy.inp
 ../../bin/aeros  nldynamics_spooles_pivot_strainxy.inp
 echo ../../bin/aeros  nldynamics_mumps_pivot_strainxz.inp
 ../../bin/aeros  nldynamics_mumps_pivot_strainxz.inp
-echo ../../bin/aeros  nldynamics_frontal_strainxx.inp
-../../bin/aeros  nldynamics_frontal_strainxx.inp
-echo ../../bin/aeros  nldynamics_pcg_strainxy.inp
-../../bin/aeros  nldynamics_pcg_strainxy.inp
-echo ../../bin/aeros  nldynamics_bcg_strainxz.inp
-../../bin/aeros  nldynamics_bcg_strainxz.inp
-echo ../../bin/aeros  nldynamics_cr_inxforce.inp
-../../bin/aeros  nldynamics_cr_inxforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_inyforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_inyforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_1_inzforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_1_inzforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_2_OLD_axmoment.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_2_OLD_axmoment.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_2_NEW_aymoment.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_2_NEW_aymoment.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DP_azmoment.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DP_azmoment.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DPH_energies.inp
-../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DPH_energies.inp
-echo ../../bin/aeros  nldynamics_sparse_gvelocit.inp
-../../bin/aeros  nldynamics_sparse_gvelocit.inp
-echo ../../bin/aeros  nldynamics_skyline_gacceler.inp
-../../bin/aeros  nldynamics_skyline_gacceler.inp
-echo ../../bin/aeros  nldynamics_mumps_displmod.inp
-../../bin/aeros  nldynamics_mumps_displmod.inp
-echo ../../bin/aeros  nldynamics_spooles_rotatmod.inp
-../../bin/aeros  nldynamics_spooles_rotatmod.inp
-echo ../../bin/aeros  nldynamics_gmres_gdispmod.inp
-../../bin/aeros  nldynamics_gmres_gdispmod.inp
+echo ../../bin/aeros  nldynamics_pcg_strainxx.inp
+../../bin/aeros  nldynamics_pcg_strainxx.inp
+echo ../../bin/aeros  nldynamics_bcg_strainxy.inp
+../../bin/aeros  nldynamics_bcg_strainxy.inp
+echo ../../bin/aeros  nldynamics_cr_strainxz.inp
+../../bin/aeros  nldynamics_cr_strainxz.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_inxforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_inxforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DP_inyforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DP_inyforce.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DPH_inzforce.inp
+../../bin/aeros -n 2 --dec --nsub 4 nldynamics_FETI_DPH_inzforce.inp
+echo ../../bin/aeros  nldynamics_sparse_axmoment.inp
+../../bin/aeros  nldynamics_sparse_axmoment.inp
+echo ../../bin/aeros  nldynamics_skyline_aymoment.inp
+../../bin/aeros  nldynamics_skyline_aymoment.inp
+echo ../../bin/aeros  nldynamics_mumps_azmoment.inp
+../../bin/aeros  nldynamics_mumps_azmoment.inp
+echo ../../bin/aeros  nldynamics_spooles_energies.inp
+../../bin/aeros  nldynamics_spooles_energies.inp
+echo ../../bin/aeros  nldynamics_gmres_gvelocit.inp
+../../bin/aeros  nldynamics_gmres_gvelocit.inp
+echo ../../bin/aeros  nldynamics_direct_gacceler.inp
+../../bin/aeros  nldynamics_direct_gacceler.inp
+echo ../../bin/aeros  nldynamics_spooles_pivot_displmod.inp
+../../bin/aeros  nldynamics_spooles_pivot_displmod.inp
+echo ../../bin/aeros  nldynamics_mumps_pivot_rotatmod.inp
+../../bin/aeros  nldynamics_mumps_pivot_rotatmod.inp
+echo ../../bin/aeros  nldynamics_pcg_gdispmod.inp
+../../bin/aeros  nldynamics_pcg_gdispmod.inp

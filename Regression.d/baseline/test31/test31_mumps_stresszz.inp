@@ -1,0 +1,15 @@
+CONTROL
+test31_mumps_stresszz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+OUTPUT
+stresszz test31_mumps_stresszz.dat 1
+*
+INCLUDE test31.include
+*
+END

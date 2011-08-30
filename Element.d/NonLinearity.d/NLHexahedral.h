@@ -4,7 +4,7 @@
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
 #include <Element.d/NonLinearity.d/3DShapeFunction.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
-#include <Element.d/NonLinearity.d/StrainDispEvaluator.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 
 class HexahedralShapeFunction : public ShapeFunction
 {
@@ -20,16 +20,18 @@ class NLHexahedral : public GaussIntgElement
     int n[8];
     NLMaterial *material;
     int strainMeasure;
+    static const double nodeRefCoords[8][3];
 
   protected:
     int getNumGaussPoints();
     void getGaussPointAndWeight(int i, double *point, double &weight);
+    void getLocalNodalCoords(int i, double *coords);
     ShapeFunction *getShapeFunction();
     StrainEvaluator *getStrainEvaluator();
     NLMaterial *getMaterial();
 
   public:
-    NLHexahedral(int *nd, int);
+    NLHexahedral(int *nd, int = -1);
     int numNodes() { return 8; }
     int numDofs() { return 24; }
     PrioInfo examine(int sub, MultiFront *); // dec
@@ -37,11 +39,10 @@ class NLHexahedral : public GaussIntgElement
     void   markDofs(DofSetArray &);
     int*   dofs(DofSetArray &, int *p=0);
     int*   nodes(int * = 0);
-    void updateStates(Node *nodes, double *states, double *un, double *unp) {}
+    //void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setProp(StructProp *);
     void setMaterial(NLMaterial *);
     int getTopNumber();
-    FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
 };
 
 #endif

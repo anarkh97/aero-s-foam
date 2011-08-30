@@ -365,6 +365,7 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
       else MortarLMPC->addterm(&MasterTerm);
     }
   }
+  //if(MortarLMPC) MortarLMPC->normalize(); // TODO consider
 #ifdef MORTAR_WARNING
   if(!created){
     fprintf(stderr," ### WARNING: in NodalMortarShapeFct::CreateMortarLMPCons(...): no MortarLMPC has been created !!!\n");
@@ -402,13 +403,16 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
     }
   }
 
+ //double maxcoefnorm = -1; int maxnode; // DEBUG
  LMPCTerm MasterTerm;
  for(int i = 0; i < int(LinkedMasterNodes.size()); i++) {
+   //double coefnorm = 0; // DEBUG
    for(int idof = 0; idof < 3; idof++){
      if(std::abs<double>(MasterMPCCoeffs[3*i+idof]) > tol) {
        MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
        MasterTerm.dofnum = dofs[idof];
        MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof];
+       //coefnorm += MasterMPCCoeffs[3*i+idof]*MasterMPCCoeffs[3*i+idof]; // DEBUG
        if(MortarLMPC == NULL){
          MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
          MortarLMPC->type = 1; // this is to be phased out
@@ -418,7 +422,11 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
          MortarLMPC->addterm(&MasterTerm);
      }
    }
+   //if(coefnorm > maxcoefnorm) { maxcoefnorm = coefnorm; maxnode = MasterTerm.nnum; } // DEBUG
  }
+ if(MortarLMPC) MortarLMPC->id.second = SlaveLlToGlNodeMap[GetNodeId(0)];
+ //cerr << SlaveTerm.nnum+1 << " " << maxnode+1 << "  1 0 0 " << endl; // DEBUG
+ //if(MortarLMPC) MortarLMPC->normalize(); // TODO: reconsider
 
  return MortarLMPC;
 }

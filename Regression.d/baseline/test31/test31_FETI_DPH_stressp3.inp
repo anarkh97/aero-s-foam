@@ -1,0 +1,15 @@
+CONTROL
+test31_FETI_DPH_stressp3
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+stressp3 test31_FETI_DPH_stressp3.dat 1
+*
+INCLUDE test31.include
+*
+END

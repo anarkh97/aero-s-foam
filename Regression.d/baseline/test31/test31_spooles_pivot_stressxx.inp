@@ -1,0 +1,15 @@
+CONTROL
+test31_spooles_pivot_stressxx
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles pivot
+*
+OUTPUT
+stressxx test31_spooles_pivot_stressxx.dat 1
+*
+INCLUDE test31.include
+*
+END

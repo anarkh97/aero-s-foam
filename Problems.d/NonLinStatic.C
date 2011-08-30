@@ -14,6 +14,19 @@
 
 extern int verboseFlag;
 
+NonLinStatic::NonLinStatic(Domain *d)
+{
+  domain = d;
+  kelArray = 0;
+  allCorot = 0;
+  bcx = 0;
+  solver = solver;
+  prec = 0;
+
+  if(domain->GetnContactSurfacePairs())
+     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+}
+
 int
 NonLinStatic::solVecInfo()
 {
@@ -27,14 +40,28 @@ NonLinStatic::sysVecInfo()
 }
 
 double
-NonLinStatic::getStiffAndForce(GeomState& geomState, 
-                         Vector& residual, Vector& elementInternalForce, 
-                         Vector &, double lambda)
+NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
+                               Vector &, double lambda, GeomState *refState)
 {
   times->buildStiffAndForce -= getTime();
 
+  if(domain->GetnContactSurfacePairs()) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->UpdateContactSurfaceElements();
+
+    if(solver) delete solver;
+    if(prec) delete prec;
+    if(allCorot) delete [] allCorot; allCorot = 0;  // memory leak?
+    if(kelArray) delete [] kelArray; kelArray = 0;
+    preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
+    elementInternalForce.initialize(domain->maxNumDOF());
+  }
+
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda);
+                           kelArray, residual, lambda, 0, refState);
 
   times->buildStiffAndForce += getTime();
 
@@ -117,7 +144,7 @@ NonLinStatic::createGeomState()
  if(domain->solInfo().soltyp == 2) 
    geomState = (GeomState *) new TemperatureState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes());
  else
-   geomState = new GeomState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes()); 
+   geomState = new GeomState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes(),&domain->getElementSet()); 
 
  times->timeGeom += getTime();
 
@@ -139,7 +166,7 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
      spp->zeroAll();
      ops.spp = spp;
    }
-   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray);
+   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
    solver->factor();
    if(prec) prec->factor();
    rebuildFlag = 1;
@@ -196,7 +223,7 @@ NonLinStatic::getRHS(Vector& rhs)
 }
 
 void
-NonLinStatic::preProcess()
+NonLinStatic::preProcess(bool factor)
 {
  // Allocate space for the Static Timers
  times = new StaticTimers;
@@ -239,7 +266,8 @@ NonLinStatic::preProcess()
                                                                        // since the nullity of the tangent stiffness matrix may be less than the nullity
                                                                        // of the number of rigid body modes
  
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) 0);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
+                          (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
@@ -294,11 +322,12 @@ NonLinStatic::printTimers()
 
 void
 NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
-                           Vector &)
+                           Vector &, GeomState *refState)
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot);
+  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot,
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
   times->output += getTime();
 }
 

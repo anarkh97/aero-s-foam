@@ -631,7 +631,8 @@ SingleDomainDynamic::preProcess()
     // for linear+geps only it updates geomState with IDISP6 and computes the element stiffness matrices using this updated geomState
     domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray);
   }
-  else if(domain->tdenforceFlag()) geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
+  else if(domain->tdenforceFlag()) 
+    geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet());
 
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
     // for nonlinear explicit we only need to initialize geomState with the constant constrained displacements (DISP).

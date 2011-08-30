@@ -524,13 +524,6 @@ BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
 }
 
 void
-BrickCorotator::formGeometricStiffness(GeomState &gs, CoordSet &cs,
-                             FullSquareMatrix &elk, double *f)
-{
-  cerr << "BrickCorotator::formGeometricStiffness is not implemented\n";
-}
-
-void
 BrickCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
                                   double *vld, int &nlflag)
 {

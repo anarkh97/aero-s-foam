@@ -104,7 +104,7 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
   leftmult_rotvar( 3, 1, rotvar, elK);
   rightmult_rotvar( 3, 0, rotvar, elK); 
- 
+
  double fe[18];
 
  for(inode=0; inode<3; ++inode)
@@ -382,7 +382,8 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
  //
 
- formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
+ //formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
+ formCorrectGeometricStiffness(rotvar,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe,t0n);
 
  int j;
  for(i=0; i<18; ++i)

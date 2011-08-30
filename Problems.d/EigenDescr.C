@@ -50,10 +50,8 @@ SingleDomainEigen::preProcess()
  int numdof  = domain->numdof();
 
  times->makeBCs -= getTime();
- //int *bc  = (int *)    dbg_alloca(sizeof(int)*numdof);
- //bcx = (double *) dbg_alloca(sizeof(double)*numdof);
- int *bc  = new int[numdof]; //HB
- bcx = new double[numdof]; //HB
+ int *bc  = new int[numdof];
+ bcx = new double[numdof];
 
  // ... make boundary conditions
  domain->make_bc(bc,bcx);
@@ -89,8 +87,10 @@ SingleDomainEigen::preProcess()
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
                                      geomKelArray);
 
-   if(domain->solInfo().buckling == 1) kelArray = 0; //HB: is there any memory leak here ? It seems to me that
-                                                     //kelArray was allocated in domain->computeGeometricPreStress
+   if(domain->solInfo().buckling == 1) {
+     //delete [] kelArray;
+     kelArray = 0; 
+   }
  }
 
  times->preProcess += getTime();
@@ -128,12 +128,13 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
 
  // construct rigid body modes for sloshing problems if necessary
  if(domain->solInfo().slzemFlag) { 
-   //filePrint(stderr, " ... Constructing Sloshing RBMs in EigenDescr.C  ... \n");
+   //filePrint(stderr, " ... Constructing Sloshing RBMs     ... \n");
    dMat.rigidBodyModes = domain->constructSlzem();
  }
 
  // build stiffness and mass matrices
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray);
+ melArray = (domain->solInfo().arpack_mode == 4) ? geomKelArray : 0;
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
 
@@ -148,8 +149,16 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
    Connectivity *allDOFs = domain->getAllDOFs();
    dMat.M->zeroAll();
    int iele;
+   int size = sizeof(double)*domain->maxNumDOF()*domain->maxNumDOF();
+   double *karray = (double *) dbg_alloca(size);
    for(iele=0; iele<domain->numElements(); ++iele) {
-     dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
+     if(domain->solInfo().arpack_mode == 4) {
+       // this is an unnecessary recalculation of Element::stiffness but it will do for now
+       FullSquareMatrix kel  = domain->getElementSet()[iele]->stiffness(domain->getNodes(), karray);
+       dMat.M->add(kel,(*domain->getAllDOFs())[iele]);
+     }
+     else
+       dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
    }
  }
 }
@@ -165,7 +174,7 @@ SingleDomainEigen::reBuild( DynamMat &dMat )
  // rebuild stiffness and mass matrices
  // watch: no rigid body modes assumed
 
- domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0);
+ domain->rebuildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray, melArray);
 }
 
 int SingleDomainEigen::getNumEigen()

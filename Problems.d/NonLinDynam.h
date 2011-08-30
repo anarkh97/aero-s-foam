@@ -98,6 +98,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double *Rmem;        // global rigid body modes (numdof X 6)
     int numR;            // number of rigid body modes
 
+    double resN;
+
  public:
     // Constructor
     NonLinDynamic(Domain *d);
@@ -162,10 +164,12 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int getNumStages();
     int checkConvergence(int iter, double rN, Vector& residual, Vector& dv, double time);
 
+    void updateStates(GeomState *refState, GeomState& geomState);
+
     // getStiffAndForce forms element stiffness matrices and
     // returns the residual force = external - internal forces
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                            Vector& elementInternalForce, double midtime=-1);
+                            Vector& elementInternalForce, double midtime=-1, GeomState *refState = NULL);
 
 
     // reBuild assembles new dynamic stiffness matrix

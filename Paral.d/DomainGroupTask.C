@@ -240,7 +240,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
-  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray);
+  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, (FullSquareMatrix *) NULL);
 
   if(allMats) delete allMats;
 }

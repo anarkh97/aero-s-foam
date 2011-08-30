@@ -464,7 +464,7 @@ class GenSubDomain : public BaseSub
   Scalar* CCtval;
   Scalar *bcx_scalar;
   int *mpcStatus;
-  bool *mpcStatus1;
+  bool *mpcStatus1, *mpcStatus2;
 
   // templated RBMs
   GenFullM<Scalar> Rstar;
@@ -558,7 +558,7 @@ class GenSubDomain : public BaseSub
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
   void computeStressStrain(GeomState *gs, Corotator **allCorot,
-                           int, int Findex, Scalar *glStress, Scalar *glWeight = 0);
+                           int, int Findex, Scalar *glStress, Scalar *glWeight = 0, GeomState *refState = NULL);
   void initScaling();
   void sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar> *vPat);
   void collectScaling(FSCommPattern<Scalar> *vPat);
@@ -628,7 +628,7 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs(int iMPC);
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
-  void addConstraintForces(std::map<int, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
+  void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
@@ -668,20 +668,21 @@ class GenSubDomain : public BaseSub
   void collectMpcScaling(FSCommPattern<Scalar> *mpcPat);
   void setMpcCommSize(FSCommPattern<int> *mpcPat);
   void sendMpcStatus(FSCommPattern<int> *mpcPat, int flag);
-  void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag);
+  void recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange);
   void printMpcStatus();
   void initMpcStatus();
   void saveMpcStatus();
   void restoreMpcStatus();
   void saveMpcStatus1();
+  void saveMpcStatus2();
   void cleanMpcData();
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
-  void getConstraintMultipliers(std::map<int,double> &mu, std::vector<double> &lambda);
-  void setMpcRhs(Scalar *interfvec);
+  void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
+  void setMpcRhs(Scalar *interfvec, double t);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
 

@@ -1,5 +1,5 @@
 ADD_LIBRARY(Material Material.cpp LinearElasticMaterial.cpp 
-            NeoHookean.cpp 
+            NeoHookean.cpp MooneyRivlin.cpp
             IsotropicLinearElasticJ2PlasticMaterial.cpp
             IsotropicLinearElasticJ2PlasticPlaneStressMaterial.cpp
             KorkolisKyriakidesPlaneStressMaterial.cpp

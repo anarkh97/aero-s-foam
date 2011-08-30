@@ -79,7 +79,7 @@ public:
    void processLastOutput();
    void preProcess();
    int reBuild(int,int,NLState &);
-   void staticOutput(NLState *, double, Vector &f, Vector &glRes);
+   void staticOutput(NLState *, double, Vector &f, Vector &glRes, NLState *refState = NULL);
    void printTimers() {}
    void updatePrescribedDisplacement(NLState *, double = 1.0);
    void updatePrescribedDisplacement(NLState *, double, double);
@@ -99,6 +99,7 @@ public:
    
    void updateStates(Vector *internStates, Vector *disp, Vector *prescDisp,
 		   Vector *du, Vector *prescDu = 0);
+   void updateStates(NLState *refState, NLState& geomState) {}
 
    // Functions for dynamics:
    void computeTimeInfo(); // maybe we need to do something??

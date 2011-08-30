@@ -6,6 +6,9 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/BrickCorotator.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
 
 //#define BRICK8_DEBUG
 
@@ -62,6 +65,8 @@ EightNodeBrick::EightNodeBrick(int* nodenums)
 
   cFrame = 0; 
   cCoefs = 0;
+
+  mat = 0;
 }
 
 Element *
@@ -527,7 +532,14 @@ EightNodeBrick::markDofs(DofSetArray &dsa)
 Corotator*
 EightNodeBrick::getCorotator(CoordSet &cs, double *kel, int , int )
 {
-  return(new BrickCorotator(nn, prop->E, prop->nu, cs));
+ if(mat) {
+    MatNLElement *ele = new NLHexahedral(nn);
+    ele->setMaterial(mat);
+    ele->setGlNum(glNum);
+    return new MatNLCorotator(ele);
+  }
+  else
+    return new BrickCorotator(nn, prop->E, prop->nu, cs);
 }
 
 //  HB (09-23-03): implement thermal force 
@@ -620,7 +632,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
   //cerr<<" -------------------------"<<endl;
   //for(int i=0; i<24; i++) 
-   //cerr<<" eelementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
+  //cerr<<" elementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
 }
 
 //---------------------------------------------------------------------------------
@@ -801,6 +813,17 @@ EightNodeBrick::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
     for(int j=0; j<3; ++j) 
       stress[i][j+6] = pvec[j];
 }
-                                                                                     
-                    
+
+void
+EightNodeBrick::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+EightNodeBrick::numStates()
+{
+  int numGaussPoints = 8;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
 

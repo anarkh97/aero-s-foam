@@ -5,7 +5,6 @@
 
 class ConstantDistanceConstraint : public MpcElement
 {
-    EFrame *elemframe;
     double l0;       // initial length
   public:
     ConstantDistanceConstraint(int*);

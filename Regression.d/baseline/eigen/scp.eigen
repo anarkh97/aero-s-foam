@@ -19,33 +19,33 @@ echo mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
 mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
 echo mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
 mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_frontal_0_strainxx.inp
-mpirun -n 4 ../../bin/aeros  eigen_frontal_0_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_pcg_10_strainxy.inp
-mpirun -n 4 ../../bin/aeros  eigen_pcg_10_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_bcg_100_strainxz.inp
-mpirun -n 4 ../../bin/aeros  eigen_bcg_100_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_cr_1000_inxforce.inp
-mpirun -n 4 ../../bin/aeros  eigen_cr_1000_inxforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_0_inyforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_0_inyforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1_10_inzforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1_10_inzforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_OLD_100_axmoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_OLD_100_axmoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_NEW_1000_aymoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_2_NEW_1000_aymoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_azmoment.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_azmoment.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_energies.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_energies.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_sparse_100_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  eigen_sparse_100_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_gacceler.inp
-mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_gacceler.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_mumps_0_displmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_mumps_0_displmod.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_spooles_10_rotatmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_spooles_10_rotatmod.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gdispmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_pcg_0_strainxx.inp
+mpirun -n 4 ../../bin/aeros  eigen_pcg_0_strainxx.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_bcg_10_strainxy.inp
+mpirun -n 4 ../../bin/aeros  eigen_bcg_10_strainxy.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_cr_100_strainxz.inp
+mpirun -n 4 ../../bin/aeros  eigen_cr_100_strainxz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_sparse_100_axmoment.inp
+mpirun -n 4 ../../bin/aeros  eigen_sparse_100_axmoment.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_aymoment.inp
+mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_aymoment.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_mumps_0_azmoment.inp
+mpirun -n 4 ../../bin/aeros  eigen_mumps_0_azmoment.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_spooles_10_energies.inp
+mpirun -n 4 ../../bin/aeros  eigen_spooles_10_energies.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gvelocit.inp
+mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gvelocit.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_direct_1000_gacceler.inp
+mpirun -n 4 ../../bin/aeros  eigen_direct_1000_gacceler.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
+mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
+mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
+echo mpirun -n 4 ../../bin/aeros  eigen_pcg_100_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  eigen_pcg_100_gdispmod.inp

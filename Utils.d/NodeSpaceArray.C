@@ -5,13 +5,13 @@
 
 
 Contraction
-Tensor::operator | (Tensor &b) 
+Tensor::operator | (const Tensor &b) const
 {
   return Contraction(*this, b);
 }
 
 DoubleContraction 
-Tensor::operator || (Tensor &b) 
+Tensor::operator || (const Tensor &b) const
 {
   return DoubleContraction(*this, b);
 }
@@ -61,7 +61,6 @@ operator * (double scal, const Tensor_d0s2 &tens)
 Tensor_d0s2 &
 Tensor_d0s2::operator = (const Tensor_d0s2 &t)
 {
-  // PJSA
   for(int i = 0; i < 9; ++i)
     v[i] = t.v[i];
   return *this;
@@ -70,7 +69,6 @@ Tensor_d0s2::operator = (const Tensor_d0s2 &t)
 Tensor_d0s2 &
 Tensor_d0s2::operator = (const Tensor_d0s2_Ss12 &t)
 {
-  // PJSA
   for(int i = 0; i < 3; ++i)
     for(int j = 0; j < 3; ++j)
       v[3*i+j] = t(i,j);
@@ -189,7 +187,7 @@ Tensor_d0s2::getInverse(Tensor_d0s2 &t)
 }
 
 void 
-Tensor_d0s2::getTranspose(Tensor_d0s2 &t)
+Tensor_d0s2::getTranspose(Tensor_d0s2 &t) const
 {
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
@@ -207,7 +205,6 @@ Tensor_d0s2::convertToSym(Tensor_d0s2_Ss12 &t)
 void
 Tensor_d0s2::dblContractInto(const Tensor &b, Tensor *result) const
 {
-  // PJSA XXXX
   const Tensor_d1s2_full &tens = static_cast<const Tensor_d1s2_full &>(b);
   Tensor_d1s0 &t = static_cast<Tensor_d1s0 &>(*result);
   int size = tens.getSize();
@@ -398,7 +395,6 @@ Tensor_d1s2_full::splContractInto(const Tensor &b, Tensor *result) const
 void
 Tensor_d1s2_full::dblContractInto(const Tensor &b, Tensor *result) const
 {
-  // PJSA
   const Tensor_d1s2_full &tens = static_cast<const Tensor_d1s2_full &>(b);
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
   for (int m = 0; m < size; m++)
@@ -438,7 +434,6 @@ Tensor_d1s2_full::operator = (const Tensor_d1s2_full &t)
 Tensor_d1s2_full &
 Tensor_d1s2_full::operator = (const Tensor_d1s2_Ss23 &t)
 {
-  // PJSA
   if(size != t.getSize()) {
     if(v) delete[] v;
     size = t.getSize();
@@ -452,9 +447,6 @@ Tensor_d1s2_full::operator = (const Tensor_d1s2_Ss23 &t)
 Tensor_d1s2_full &
 Tensor_d1s2_full::operator = (const Tensor_d1s2_sparse &t)
 {
-  // PJSA
-  //std::cerr << "Tensor_d1s2_full::operator = (const Tensor_d1s2_sparse &t) not implemented\n";
-  //exit(-1);
   if(size != t.getSize()) {
     if(v) delete[] v;
     size = t.getSize();
@@ -468,7 +460,7 @@ Tensor_d1s2_full::operator = (const Tensor_d1s2_sparse &t)
 }
 
 void
-Tensor_d1s2_full::getSpaceTranspose(Tensor_d1s2_full &t)
+Tensor_d1s2_full::getSpaceTranspose(Tensor_d1s2_full &t) const
 {
   for (int k = 0; k < size; k++)
     for (int i = 0; i < 3; i++)
@@ -486,7 +478,7 @@ Tensor_d1s2_full::convertToSym(Tensor_d1s2_Ss23 &t)
 } 
 
 Tensor_d1s2_Ss23
-Tensor_d1s2_full::symPart()
+Tensor_d1s2_full::symPart() const
 {
   Tensor_d1s2_Ss23 t(size);
   for (int m = 0; m < size; m++)
@@ -572,56 +564,70 @@ Tensor_d1s2_sparse::splContractInto(const Tensor &b, Tensor *result) const
     }
 }
 
+inline double
+Tensor_d1s2_sparse::operator()(int n, int I, int J) const
+{
+  if(n >= size) { throw "first index out of range\n"; }
+
+  for (int i = (n%3); i < 3; i++) 
+    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
+  for (int j = 0; j < (n%3)+1; j++) 
+    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
+
+  return 0;
+}
+
+inline double &
+Tensor_d1s2_sparse::operator()(int n, int I, int J)
+{
+  if(n >= size) { throw "first index out of range\n"; }
+
+  for (int i = (n%3); i < 3; i++)   
+    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
+  for (int j = 0; j < (n%3)+1; j++)   
+    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
+
+  throw "Error : the tensor is sparse ! Check the constructor.\n";
+}
+
 Tensor_d1s2_Ss23 
-Tensor_d1s2_sparse::symPart()
+Tensor_d1s2_sparse::symPart() const
 {
   Tensor_d1s2_Ss23 t(size);
   for (int n = 0; n < size; n++) {
-    for (int i = (n%3); i < 3; i++)
-      t[n][(n%3)*(5-(n%3))/2+i] += (1./2) * v[(n-(n%3))/3][3*(n%3)+i];
-    for (int j = 0; j < (n%3)+1; j++)
-      t[n][j*(5-j)/2+(n%3)] += (1./2) * v[(n-(n%3))/3][3*(n%3)+j];
+    for (int i = (n%3); i < 3; i++) {
+      t[n][(n%3)*(5-(n%3))/2+i] += (1./2) * v[(n-(n%3))/3][3*(n%3)+i]; // t[n](I,J) += 1/2*v[N](I,J) where I=n%3 and J=i
+    }
+    for (int j = 0; j < (n%3)+1; j++) {
+      t[n][j*(5-j)/2+(n%3)] += (1./2) * v[(n-(n%3))/3][3*(n%3)+j];     // t[n](I,J) += 1/2*v[N](J,I) where I=j and J=n%3
+    }
   } 
   return t;
 }
 
 void
-Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t)
+Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) const
 {
-  // PJSA
-  for (int m = 0; m < size; m++)
-    for (int n = m; n < size; n++)
-      if (((n-m)%3) == 0) {
-        for (int i = 0; i < 3; i++)
-          for (int j = i; j < 3; j++)
-            t[size*m+n][3*i+j] = t[size*n+m][3*i+j] = t[size*m+n][3*j+i] = t[size*n+m][3*j+i] = v[(m-(m%3))/3][3*(m%3)+j] * v[(n-(n%3))/3][3*(n%3)+i];
-      }
-      else { 
-        for (int i = 0; i < 3; i++)
-          for (int j = i; j < 3; j++)
-            t[size*m+n][3*i+j] = t[size*n+m][3*i+j] = t[size*m+n][3*j+i] = t[size*n+m][3*j+i] = 0;
-      }
+  std::cerr << "Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) is not implemented\n";
 }
 
 void 
-Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_dense &t)
+Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_dense &t) const
 {
-  for (int m = 0; m < size; m++)
-    for (int i = 0; i < 3; i++)
-      for (int j = i; j < 3; j++)
-        t[m*(2*size-m-1)/2+m][i*(5-i)/2+j] = v[(m-(m%3))/3][3*(m%3)+j] * v[(m-(m%3))/3][3*(m%3)+i];
+  std::cerr << "Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) is not implemented\n";
 }
 
 void 
-Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_sparse &t)
+Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_sparse &t) const
 {
   for (int m = 0; m < size; m++)
     for (int n = m; n < size; n++)  
       if (((n-m)%3) == 0) {
         for (int i = 0; i < 3; i++)
-          for (int j = i; j < 3; j++)
+          for (int j = i; j < 3; j++) {
             t[(size*(size+3)-(size-m+m%3)*(size-m-m%3+3)+2*(n-m))/6][i*(5-i)/2+j] 
-              = v[(m-(m%3))/3][3*(m%3)+j] * v[(n-(n%3))/3][3*(n%3)+i];
+              = 0.5*(v[(m-(m%3))/3][3*(m%3)+j] * v[(n-(n%3))/3][3*(n%3)+i] + v[(m-(m%3))/3][3*(m%3)+i] * v[(n-(n%3))/3][3*(n%3)+j]);
+          }
       }	           
 }
 
@@ -766,19 +772,38 @@ Tensor_d2s2::convertToSym(Tensor_d2s2_Sd12s34_dense &t)
           t[i*(2*size-i-1)/2+j][k*(5-k)/2+l] = v[i*size+j][3*k+l];
 }     
 
+#include <typeinfo>
 void
 Tensor_d2s2::dblContractInto(const Tensor &b, Tensor *result) const
 {
-  // PJSA XXXX
-  const Tensor_d0s2 &tens = static_cast<const Tensor_d0s2 &>(b);
-  Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
-  for (int i = 0; i < size; i++)
-    for (int j = 0; j < size; j++) {
-      t[i*size+j] = 0.0;
-      for (int k = 0; k < 3; k++)
-        for (int l = 0; l < 3; l++)
-          t[i*size+j] += tens[3*k+l] * v[i*size+j][3*k+l];
-    }
+  try {
+    const Tensor_d0s2 &tens = dynamic_cast<const Tensor_d0s2 &>(b);
+    Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+    for (int i = 0; i < size; i++)
+      for (int j = 0; j < size; j++) {
+        t[i*size+j] = 0.0;
+        for (int k = 0; k < 3; k++)
+          for (int l = 0; l < 3; l++)
+            t[i*size+j] += tens[3*k+l] * v[i*size+j][3*k+l];
+      }
+  }
+  catch(std::bad_cast e) {}
+
+  try {
+    const Tensor_d0s2_Ss12 &tens = dynamic_cast<const Tensor_d0s2_Ss12 &>(b);
+    Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+    for (int i = 0; i < size; i++)
+      for (int j = 0; j < size; j++) {
+        t[i*size+j] = 0.0;
+        for (int k = 0; k < 3; k++) {
+          for (int l = 0; l < k; l++)
+            t[i*size+j] += tens[l*(5-l)/2+k] * v[i*size+j][3*k+l]; // t(i,j) += tens(l,k)*v(i,j,k,l)
+          for (int l = k; l < 3; l++)
+            t[i*size+j] += tens[k*(5-k)/2+l] * v[i*size+j][3*k+l];
+        }
+      }
+  }
+  catch(std::bad_cast e) {}
 }
 
 Tensor_d2s2_Sd12s34_null::Tensor_d2s2_Sd12s34_null(const Tensor_d2s2_Sd12s34_null &t)
@@ -875,20 +900,20 @@ Tensor_d2s2_Sd12s34_sparse::dblContractInto(const Tensor &b, Tensor *result) con
 {
   const Tensor_d0s2_Ss12 &tens = static_cast<const Tensor_d0s2_Ss12 &>(b);
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+
   int i,j;
- 
   for (i = 0; i < size; i++)
     for (j = i; j < size; j++) {
       t[i*size+j] = 0;
       if(((j-i)%3) == 0) {
-        for (int k = 0; k < 3; k++){       
+        for (int k = 0; k < 3; k++) {       
           t[i*size+j] += -tens[k*(5-k)/2+k] * v[(size*(size+3)-(size-i+i%3)*(size-i-i%3+3)+2*(j-i))/6][k*(5-k)/2+k];
           for (int n = k; n < 3; n++)                       
             t[i*size+j] += 2*tens[k*(5-k)/2+n] * v[(size*(size+3)-(size-i+i%3)*(size-i-i%3+3)+2*(j-i))/6][k*(5-k)/2+n];
+        }
       }
+      t[j*size+i] = t[i*size+j];           
     }
-    t[j*size+i] = t[i*size+j];           
-  }
 }
 
 /*
@@ -1047,7 +1072,7 @@ Tensor_d0s2_Ss12::getTrace()
 }
 
 void
-Tensor_d0s4::print()
+Tensor_d0s4::print() const
 {
   for(int i = 0; i < 81; ++i) std::cerr << v[i] << " "; std::cerr << std::endl;
 }
@@ -1055,7 +1080,6 @@ Tensor_d0s4::print()
 void
 Tensor_d0s4::dblContractInto(const Tensor &b, Tensor *result) const
 {
-  // PJSA XXXX
   const Tensor_d0s2 *tens = dynamic_cast<const Tensor_d0s2 *>( &b);
   if(tens)
   {
@@ -1116,7 +1140,7 @@ Tensor_d0s4_Ss12s34::operator || (const Tensor_d0s2_Ss12 &tens) const
 */
 
 void
-Tensor_d0s4_Ss12s34::print()
+Tensor_d0s4_Ss12s34::print() const
 {
   int I, J, K, L;
   for(int i = 0; i < 3; ++i)
@@ -1134,8 +1158,6 @@ Tensor_d0s4_Ss12s34::print()
 void
 Tensor_d0s4_Ss12s34::dblContractInto(const Tensor &b, Tensor *result) const
 {
-  // PJSA previously this was not a double contraction, it was implied that a factor of 2
-  // was already applied to to off diagonals of *this
   const Tensor_d0s2_Ss12 *tens = dynamic_cast<const Tensor_d0s2_Ss12 *>( &b);
   if(tens)
   {

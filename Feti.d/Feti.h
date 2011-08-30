@@ -399,7 +399,8 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
 
     void subtractMpcRhs(int iSub, GenDistrVector<Scalar> &dv1);
     bool updateActiveSet(GenDistrVector<Scalar> &v, int flag, double tol = 0.0);
-    void subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &v, double tol, int flag, bool &statusChange);
+    void subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &v, double tol, int flag, bool *statusChange);
+    void subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange);
 
     void projectActiveIneq(GenDistrVector<Scalar> &x, GenDistrVector<Scalar> &y);
     void subProjectActiveIneq(int iSub, GenDistrVector<Scalar> &v);

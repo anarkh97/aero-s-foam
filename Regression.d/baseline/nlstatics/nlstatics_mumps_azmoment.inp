@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_mumps_azmoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+include "feti.include"
+*
+NONLINEAR
+maxitr 10
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+azmoment nlstatics_mumps_azmoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

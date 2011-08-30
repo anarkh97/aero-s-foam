@@ -187,7 +187,7 @@ ThermBrick::markDofs(DofSetArray &dsa)
 int
 ThermBrick::getTopNumber()
 {
-  return 151;//3;
+  return 117;//151;//3;
 }
 
 

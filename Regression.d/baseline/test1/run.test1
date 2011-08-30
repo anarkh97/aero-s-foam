@@ -1,0 +1,26 @@
+echo ../../bin/aeros  test1_sparse_reaction.inp
+../../bin/aeros  test1_sparse_reaction.inp
+echo ../../bin/aeros  test1_skyline_reaction.inp
+../../bin/aeros  test1_skyline_reaction.inp
+echo ../../bin/aeros  test1_mumps_reaction.inp
+../../bin/aeros  test1_mumps_reaction.inp
+echo ../../bin/aeros  test1_spooles_reaction.inp
+../../bin/aeros  test1_spooles_reaction.inp
+echo ../../bin/aeros  test1_gmres_reaction.inp
+../../bin/aeros  test1_gmres_reaction.inp
+echo ../../bin/aeros  test1_direct_reaction.inp
+../../bin/aeros  test1_direct_reaction.inp
+echo ../../bin/aeros  test1_spooles_pivot_reaction.inp
+../../bin/aeros  test1_spooles_pivot_reaction.inp
+echo ../../bin/aeros  test1_mumps_pivot_reaction.inp
+../../bin/aeros  test1_mumps_pivot_reaction.inp
+echo ../../bin/aeros  test1_pcg_reaction.inp
+../../bin/aeros  test1_pcg_reaction.inp
+echo ../../bin/aeros  test1_bcg_reaction.inp
+../../bin/aeros  test1_bcg_reaction.inp
+echo ../../bin/aeros  test1_cr_reaction.inp
+../../bin/aeros  test1_cr_reaction.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 test1_FETI_DP_reaction.inp
+../../bin/aeros -n 2 --dec --nsub 4 test1_FETI_DP_reaction.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 test1_FETI_DPH_reaction.inp
+../../bin/aeros -n 2 --dec --nsub 4 test1_FETI_DPH_reaction.inp

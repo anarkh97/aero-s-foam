@@ -6,27 +6,36 @@
 #include <Utils.d/NodeSpaceArray.h>
 
 //Declaration of the material properties
+class StrainEvaluator;
 
 class NLMaterial
 {
    public:
      NLMaterial() {}  
+
      virtual int getNumStates() = 0;  
 
-     virtual void getTangentMaterial(Tensor *tm,Tensor &strain, double *state) = 0;
+     virtual void getTangentMaterial(Tensor *tm, Tensor &strain, double *state) = 0;
 
      virtual void getElasticity(Tensor *tm) = 0;
 
-     virtual void getStress(Tensor *stress,Tensor &strain, double *state)=0;
+     virtual void getStress(Tensor *stress, Tensor &strain, double *state) = 0;
 
-     virtual void getStressAndTangentMaterial(Tensor *stress,Tensor *tm, Tensor &strain, double *state)= 0;
+     virtual void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *state) = 0;
 
-     virtual void updateStates(Tensor en, Tensor enp, double *state)=0;
+     virtual void updateStates(Tensor en, Tensor enp, double *state) = 0;
+
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                      double *staten, double *statenp, double dt = 0.0) = 0;
+                            double *staten, double *statenp, double dt = 0.0) = 0;
+
      virtual void initStates(double *) = 0;
 
-     virtual double getDensity() { return 0; }
+     virtual double getDensity() { return 0; } // PJSA
+
+     virtual StrainEvaluator * getStrainEvaluator() = 0; // return default strain evaluator 
+                                                         // note: some materials can be used with strain evaluators other than the default one
+
+     virtual double getEquivPlasticStrain(double *statenp) { return 0; }
 };
 
 #endif

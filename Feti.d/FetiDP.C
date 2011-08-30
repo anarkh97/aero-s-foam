@@ -1007,26 +1007,49 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
 {
   // flag = 0 dual planing
   // flag = 1 primal planing
-  bool status_change = false;
-  execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::subUpdateActiveSet, v, tol, flag, status_change);
+  paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::saveMpcStatus2);
+
+  bool *local_status_change = new bool[this->nsub];
+  execParal4R(this->nsub, this, &GenFetiDPSolver<Scalar>::subUpdateActiveSet, v, tol, flag, local_status_change);
+  bool status_change1 = false;
+  for(int i=0; i<this->nsub; ++i) if(local_status_change[i]) { status_change1 = true; break; }
 #ifdef DISTRIBUTED
-  status_change = this->fetiCom->globalMax((int) status_change);
+  status_change1 = this->fetiCom->globalMax((int) status_change1);
 #endif
-  if(status_change) {
+  
+  if(status_change1) {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcStatus, mpcPat, flag);
     mpcPat->exchange();
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::recvMpcStatus, mpcPat, flag);
-    if(ngrbms) rebuildGtGtilda();
+    //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::recvMpcStatus, mpcPat, flag);
+    execParal3R(this->nsub, this, &GenFetiDPSolver<Scalar>::subRecvMpcStatus, mpcPat, flag, local_status_change);
+    bool status_change2 = false;
+    for(int i=0; i<this->nsub; ++i) if(local_status_change[i]) { status_change2 = true; break; }
+#ifdef DISTRIBUTED
+    status_change2 = this->fetiCom->globalMax((int) status_change2);
+#endif
+    if(status_change2 && ngrbms) rebuildGtGtilda();
     if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << " ";
+    delete [] local_status_change;
+    return status_change2;
   }
-  return status_change;
+  else {
+    delete [] local_status_change;
+    return false;
+  }
 }
 
 template<class Scalar>
 void
-GenFetiDPSolver<Scalar>::subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &lambda, double tol, int flag, bool &statusChange)
+GenFetiDPSolver<Scalar>::subUpdateActiveSet(int iSub, GenDistrVector<Scalar> &lambda, double tol, int flag, bool *statusChange)
 {
-  this->sd[iSub]->updateActiveSet(lambda.subData(this->sd[iSub]->localSubNum()), tol, flag, statusChange);
+  this->sd[iSub]->updateActiveSet(lambda.subData(this->sd[iSub]->localSubNum()), tol, flag, statusChange[iSub]);
+}
+
+template<class Scalar>
+void
+GenFetiDPSolver<Scalar>::subRecvMpcStatus(int iSub, FSCommPattern<int> *mpcPat, int flag, bool *statusChange)
+{
+  this->sd[iSub]->recvMpcStatus(mpcPat, flag, statusChange[iSub]);
 }
 
 template<class Scalar>
@@ -1052,7 +1075,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
       p.linC(1.0/nu, lambda, -1.0/nu, lambda_k); // reduced search direction p = (lambda-lambda_copy)/nu
       localSolveAndJump(p, dur, duc, Fp); // recompute Fp using reduced search direction
     }
-    r.linAdd(nu, Fp); // note: r += nu*Fp is not thread-safe
+    r.linAdd(nu, Fp); 
 
     if(i == 0 && !dualStatusChange) break; // CG step
     else { // gradient projection step
@@ -2179,7 +2202,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == NULL) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    //GtGtilda->setPrintNullity(false);
+    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG);
@@ -2684,7 +2707,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     if(i > 0) {
       double resnorm = (eflag && ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << endl;
-      if(/*resnorm < this->fetiInfo->dual_proj_tol ||*/!status_change) break;
+      if(/*resnorm <= this->fetiInfo->dual_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->dual_plan_maxit)) {
         if(this->myCPU == 0) cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << endl;
         // note: if we break the loop here then y will not be feasible wrt the equality constraints (i.e. G^T*y != e)
@@ -2746,7 +2769,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     if(i > 0) {
       double resnorm = (ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal planing: iteration " << i << ", residual = " << resnorm << endl;
-      if(/*resnorm < this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
+      if(/*resnorm <= this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->primal_plan_maxit)) {
         if(this->myCPU == 0) cerr << "warning: primal planing did not converge after " << i << " iterations. " << endl;
         break;

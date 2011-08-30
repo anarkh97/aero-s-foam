@@ -294,6 +294,53 @@ int GeoSource::addCFrame(int fn, double *f)  {
 }
 
 //----------------------------------------------------------------------
+bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+  if(verboseFlag && numLMPC && domain->solInfo().dbccheck) 
+    filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
+  int count = 0; // number of inequality constraints to be enforced with lagrange multipliers
+  for(int i=0; i < numLMPC; ++i) {
+    if(lmpc[i]->type == 1 && ((lmpc[i]->lagrangeMult == 1) 
+       || (lmpc[i]->lagrangeMult == -1 && domain->solInfo().lagrangeMult))) count++;
+    if(!domain->solInfo().dbccheck) continue;
+    for(int j=0; j < lmpc[i]->nterms; ++j) {
+      int mpc_node = lmpc[i]->terms[j].nnum;
+      int mpc_dof = lmpc[i]->terms[j].dofnum;
+      for(int k=0; k<numDirichlet; ++k) {
+        int dbc_node = dbc[k].nnum;
+        int dbc_dof = dbc[k].dofnum;
+        if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
+          if(!lmpc[i]->isComplex) {
+            lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
+            lmpc[i]->terms[j].coef.r_value = 0;
+          }
+          else {
+            lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
+            lmpc[i]->terms[j].coef.c_value = 0;
+          }
+          lmpc[i]->original_rhs = lmpc[i]->rhs;
+        }
+      }
+      for(int k=0; k<numComplexDirichlet; ++k) {
+        int cdbc_node = cdbc[k].nnum;
+        int cdbc_dof = cdbc[k].dofnum;
+        if((cdbc_node == mpc_node) && (cdbc_dof == mpc_dof)) {
+          if(!lmpc[i]->isComplex) {
+            lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * cdbc[k].reval;
+            lmpc[i]->terms[j].coef.r_value = 0;
+          }
+          else {
+            lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * DComplex(cdbc[k].reval, cdbc[k].imval);
+            lmpc[i]->terms[j].coef.c_value = 0;
+          }
+          lmpc[i]->original_rhs = lmpc[i]->rhs;
+        }
+      }
+     // note: could also eliminate the term from the mpc to simplify further instead of setting coef to zero
+    }
+  }
+  return (count > 0);
+}
 
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
@@ -889,6 +936,19 @@ void GeoSource::setUpData()
 
   if(mpcDirect)
     makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+
+  // preprocess the surface node groups
+  ResizeArray<SurfaceEntity*> *SurfEntities = domain->viewSurfEntities();
+  for(map<int, list<int> >::iterator i = surfaceGroup.begin(); i != surfaceGroup.end(); ++i) {
+    for(list<int>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
+      for(int k = 0; k < domain->getNumSurfs(); k++) {
+        if((*SurfEntities)[k]->ID()-1 == *j) {
+          for(int l = 0; l < (*SurfEntities)[k]->GetnNodes(); ++l) 
+            nodeGroup[i->first].push_back((*SurfEntities)[k]->GetPtrGlNodeIds()[l]);
+        }
+      }
+    }
+  }
 
   // verify node groups
   map<int, list<int> >::iterator ngIter = nodeGroup.begin();
@@ -2414,90 +2474,6 @@ int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
     domain->addDirichletLMPCs(_numDirichlet, _dbc);
     return 0;
   }
-  /*
-  // MODIFIED FOR HEV PROBLEM, EC, 20070820
-  if(domain->solInfo().HEV) {
-      int i;
-      int idbcFluid = 0;
-      int idbcOthers = 0;
-
-      BCond *nd_tmp = new BCond[_numDirichlet];
-      BCond *ndFluid_tmp = new BCond[_numDirichlet];
-
-      for(i=0;i<_numDirichlet;++i) {
-        fprintf(stderr," ... dofnum of BC %d is %d ...\n",i+1,_dbc[i].dofnum);
-        if(_dbc[i].dofnum == 10) {
-          fprintf(stderr," ... Found Fluid Dirichlet BC ...\n");
-          ndFluid_tmp[idbcFluid] = _dbc[i];
-          idbcFluid++;
-        }
-        else {
-          nd_tmp[idbcOthers] = _dbc[i];
-          idbcOthers++;
-        }
-      }
-      // Allocate memory for correct number of dbc
-      BCond *nd = new BCond[numDirichlet+idbcOthers];
-      BCond *ndFluid = new BCond[numDirichletFluid+idbcFluid];
-
-
-      // copy old dbcFluid
-      if (dbcFluid) {
-        for(i = 0; i<numDirichletFluid; ++i)
-          ndFluid[i] = dbcFluid[i];
-
-        // copy new dbcFluid
-        for(i = 0; i<idbcFluid; ++i)
-          ndFluid[i+numDirichletFluid] = ndFluid_tmp[i];
-
-        // set correct number of dbcFluid
-        numDirichletFluid += idbcFluid;
-
-        // delete old array of dbcFluid
-        delete [] dbcFluid;
-        delete [] ndFluid_tmp;
-
-        // set new pointer to correct number of dbcFluid
-        dbcFluid = ndFluid;
-      }
-      else {
-        for(i=0;i<idbcFluid;++i) {
-          ndFluid[i] = ndFluid_tmp[i];
-        }
-        delete [] ndFluid_tmp;
-        numDirichlet = idbcFluid;
-        dbcFluid = ndFluid;
-      }
-
-      if (dbc) {
-        for(i = 0; i < numDirichlet; ++i)
-           nd[i] = dbc[i];
-
-        // copy new dbc
-        for(i = 0; i<idbcOthers; ++i)
-          nd[i+numDirichlet] = nd_tmp[i];
-
-        // set correct number of dbc
-        numDirichlet += idbcOthers;
-
-        // delete old array of dbc
-        delete [] dbc;
-        delete [] nd_tmp;
-
-        // set new pointer to correct number of dbc
-        dbc = nd;
-      }
-      else {
-        for(i=0;i<idbcOthers;++i) {
-          nd[i] = nd_tmp[i];
-        }
-        delete [] nd_tmp;
-        numDirichlet = idbcOthers;
-        dbc          = nd;
-      }
-  }
-  else {
-  */
 
   if(dbc) {
 
@@ -4431,7 +4407,10 @@ void GeoSource::setNodeGroup(int nn, int id)  {
 
 //-------------------------------------------------------
 
+void GeoSource::setSurfaceGroup(int sn, int id)  {
 
+  surfaceGroup[id].push_back(sn);
+}
 
 void GeoSource::printGroups()
 {
@@ -4464,6 +4443,9 @@ bool GeoSource::elemOutput()
 {
   for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
     if(oinfo[iInfo].averageFlg == 0) return true;
+    if(oinfo[iInfo].type == OutputInfo::InXForce || oinfo[iInfo].type == OutputInfo::InYForce || oinfo[iInfo].type == OutputInfo::InZForce ||
+       oinfo[iInfo].type == OutputInfo::AXMoment || oinfo[iInfo].type == OutputInfo::AYMoment || oinfo[iInfo].type == OutputInfo::AZMoment)
+      return true;
   }
   return false;
 }

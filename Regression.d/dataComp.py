@@ -27,7 +27,9 @@ class bcolors:
 def directComp(basefile,file,SUMMARY_FILE):
   COMP = list(open(file).read().splitlines())
   BASE = list(open(basefile,"r").read().splitlines())
-
+  if(file.find("eigen") != -1):
+    BASE.sort()
+    COMP.sort()
   MaxDiff = 0.0
   MaxDiffLine = -1
   MaxDiffLoc = -1
@@ -38,26 +40,29 @@ def directComp(basefile,file,SUMMARY_FILE):
     print len(COMP)
     outstring = "\tBaseline file length = %d, New file length = %d\n" %(len(BASE),len(COMP))
     SUMMARY_FILE.write(outstring)
-    return  
+    result = 1
+    return result
    
   for i in range(len(BASE)):
-    BASE[i].replace(","," ");
-    COMP[i].replace(","," ");
-    BASE[i].strip()
-    COMP[i].strip()
-    basewords = BASE[i].split()
-    compwords = COMP[i].split()
-    if(len(basewords) != len(compwords)):
-      print "WARNING--Different line lengths at line %d of %f!!" %(i,file)
-    else:
-      for j in range(len(basewords)):
-        if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
-          diff = float(basewords[j]) - float(compwords[j])
-          if(math.fabs(diff) > MaxDiff):
-            MaxDiff = math.fabs(diff)
-            MaxDiffLine = i
-            MaxDiffLoc = j
-            MaxDiffVals = (basewords[j],compwords[j])
+    if(i > 0):
+      BASE[i].replace(","," ");
+      COMP[i].replace(","," ");
+      BASE[i].strip()
+      COMP[i].strip()
+      basewords = BASE[i].split()
+      compwords = COMP[i].split()
+      if(len(basewords) != len(compwords)):
+        print "WARNING--Different line lengths at line %d of %f!!" %(i,file)
+        result = 1
+      else:
+        for j in range(len(basewords)):
+          if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
+            diff = float(basewords[j]) - float(compwords[j])
+            if(math.fabs(diff) >= MaxDiff):
+              MaxDiff = math.fabs(diff)
+              MaxDiffLine = i
+              MaxDiffLoc = j
+              MaxDiffVals = (basewords[j],compwords[j])
 
 
   print bcolors.OKBLUE + "\t\t\t\tMax diff is %e on line %d at location %d" %(MaxDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC
@@ -67,6 +72,11 @@ def directComp(basefile,file,SUMMARY_FILE):
   print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (MaxDiffVals,) + bcolors.ENDC
   outstring = "\tvals were %s \n" % (MaxDiffVals,)
   SUMMARY_FILE.write(outstring)
+  if(MaxDiff > 1.0e-8):
+    result = 1
+  else:
+    result = 0
+  return result
 
 def dComp(params):
   import time, glob
@@ -136,7 +146,7 @@ def dComp(params):
     
     PROBLEM_NAMES=['statics','nlstatics','eigen','dynamics','nldynamics',\
                    'freqsweep','impe','tempstatics','tempnlstatics',\
-                   'tempdynamics','tempnldynamics']
+                   'tempdynamics','tempnldynamics','test1','test11','test31']
     for names in PROBLEM_NAMES:
       indir = names+"/"
       os.chdir(indir)
@@ -204,8 +214,7 @@ def dComp(params):
        print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
        outstring = "\tDiscrepancy " + file + "\n"
        SUMMARY_FILE.write(outstring)
-       directComp(basefile,file,SUMMARY_FILE)
-       result = 1
+       result = directComp(basefile,file,SUMMARY_FILE)
   outstring = "%d exact matches found out of %d total cases\n" %(exactMatches,Total)
   SUMMARY_FILE.write(outstring)
   now = datetime.datetime.now()

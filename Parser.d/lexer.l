@@ -209,6 +209,8 @@ TRAIL [a-zA-Z]*
 
 "HLMPC"[a-zA-Z]*|"hlmpc"[a-zA-Z]*  { return HLMPC; }
 
+"USING"|"using"                    { return USING; }
+
 "CRHS"|"crhs"                      { return CRHS; }
 
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
@@ -1054,6 +1056,8 @@ TRAIL [a-zA-Z]*
 
 "reaction"[s]?|"REACTION"[s]?      { yylval.ival = OutputInfo::Reactions; return STRESSID; }
 
+"heatreac"|"HEATREAC"              { yylval.ival = OutputInfo::HeatReactions; return STRESSID; }
+
 "conpress"|"CONPRESS"              { yylval.ival = OutputInfo::ContactPressure; return STRESSID; }
 
 "farfield"|"FARFIELD"              { yylval.ival = OutputInfo::Farfield;     return STRESSID; }
@@ -1104,7 +1108,7 @@ TRAIL [a-zA-Z]*
 "gap_old"|"GAP_OLD"                                  { yylval.ival = 16; return TDENFORC; }
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
-"effpstrn"|"EFFPSTRN"              { yylval.ival = OutputInfo::EffPStrn; return STRESSID; }
+"eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
@@ -1112,15 +1116,23 @@ TRAIL [a-zA-Z]*
 
 "MATUSAGE"|"matusage"              { return MATUSAGE; }
 
-"bilinearplastic"|"BILINEARPLASTIC"                     { return BILINPLAST; }
+"bili"[a-zA-Z]*|"BILI"[a-zA-Z]*|"BiLi"[a-zA-Z]*         { return BILINEARPLASTIC; }
 
-"linearplanestress"|"LINEARPLANESTRESS"                 { return LINPLSTRESS; }
+"fini"[a-zA-Z]*|"FINI"[a-zA-Z]*|"Fini"[a-zA-Z]*         { return FINITESTRAINPLASTIC; }
 
-"linear"|"LINEAR"                                       { return LINEAR; }
+"linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
-"neohookean"|"NEOHOOKEAN"                               { return NEOHOOKEAN; }
+"linear"|"LINEAR"                                       { return LINEARELASTIC; }
 
-"simple"[a-zA-Z]*|"SIMPLE"[a-zA-Z]*                     { return SIMPLE; }
+"isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
+
+"stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
+
+"neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }
+
+"moon"[a-zA-Z]*|"MOON"[a-zA-Z]*|"Moon"[a-zA-Z]*         { return MOONEYRIVLIN; }
+
+"isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
 "hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
@@ -1173,7 +1185,7 @@ TRAIL [a-zA-Z]*
 
 "NONINPC" { return NONINPC; }
 "INPC" { return INPC; }
-"GROUP"|"group" { return GROUP; }
+"GROU"[a-zA-Z]*|"grou"[a-zA-Z]* { return GROUP; }
 "N"|"n" { yylval.ival = OutputInfo::Nodal; return GROUPTYPE; }
 "A"|"a" { yylval.ival = OutputInfo::Attribute; return GROUPTYPE; }
 "NG"|"ng" { yylval.ival = OutputInfo::NodeGroup; return GROUPTYPE; }

@@ -41,6 +41,9 @@ class ExpMat : public NLMaterial
     void initStates(double *) {}
 
     double getDensity() { return ematpro[2]; } 
+
+    StrainEvaluator * getStrainEvaluator()
+      { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; }
 };
 
 #endif

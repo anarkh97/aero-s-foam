@@ -39,7 +39,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  GeomType *geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
  
- refState = StateUpdate::initRef(geomState);
+ refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
  double lambda = 0.0;
 
@@ -51,7 +51,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  // Output structure initial configuration
  if(deltaLambda != maxLambda)
-   probDesc->staticOutput(geomState, lambda, force, totalRes);
+   probDesc->staticOutput(geomState, lambda, force, totalRes, refState);
 
  int numIter = 0;
 
@@ -66,7 +66,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    filePrint(stderr," --------------------------------------\n");
    filePrint(stderr," ... Newton : Start Step #%d --- Lambda = %e\n",step, lambda);
 
-   StateUpdate::copyState(geomState, refState);
+   if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
    probDesc->updatePrescribedDisplacement(geomState, lambda);
 
 
@@ -86,7 +86,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
                    numIter);
      filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
 #ifndef DEBUG_NEWTON
-     probDesc->staticOutput( geomState, time, force, totalRes);
+     probDesc->staticOutput( geomState, time, force, totalRes, refState);
 #endif
      break;
    } 
@@ -103,7 +103,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    fflush(stderr);
 #ifndef DEBUG_NEWTON
    // Output current load step results
-   probDesc->staticOutput(geomState, time, force, totalRes);
+   probDesc->staticOutput(geomState, time, force, totalRes, refState);
 #endif
 
    // increment load parameter
@@ -161,10 +161,10 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  GeomType *geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
 
- refState = StateUpdate::initRef(geomState);
+ refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
  // ... Output initial configuration
- probDesc->staticOutput(u0, 0.0, force, totRes);
+ probDesc->staticOutput(u0, 0.0, force, totRes, refState);
 
  // ... DEFINE deltaLambda0
  double deltaLambda0 = probDesc->getDeltaLambda0();
@@ -221,7 +221,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // ... COMPUTE TRAJECTORY (EQUILIBRIUM) PATH
  for(iter=0; iter<maxNumTrajectory; ++iter) {
 
-   probDesc->staticOutput(u, lambda, force, totRes);
+   probDesc->staticOutput(u, lambda, force, totRes, refState);
 
    // Compute: dU = nu*(u - u0);
    u->diff(*u0, dU);
@@ -287,7 +287,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  newton(force, residual, totRes, elementInternalForce, solver, refState, u, numIter, lambda, step);
 
  // CALL POST PROCESSING OF DISPLACEMENTS
- probDesc->staticOutput(u, lambda, force, totRes);
+ probDesc->staticOutput(u, lambda, force, totRes, refState);
  
 }
 
@@ -387,7 +387,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     converged = probDesc->checkConvergence(iter, normDv, residualNorm);
 
 #ifdef DEBUG_NEWTON
-    probDesc->staticOutput( geomState, double(iter), force, totalRes);
+    probDesc->staticOutput( geomState, double(iter), force, totalRes, refState);
 #endif
 
     // If converged, break out of loop
@@ -428,7 +428,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   if(rebuildFlag) { filePrint(stderr," ... ||res|| = %e\n", residualNorm); }
 
   duds.zero(); 
-  solver->solve(force, duds);
+  probDesc->getSolver()->solve(force, duds);
 
   double m = 2*(dU*duds);
   double n = 2*w*deltaLambda*force.sqNorm();
@@ -517,11 +517,11 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     arcLenResid = residual;
 
     filePrint(stderr," ### First solve ###\n");
-    solver->reSolve(residual);
+    probDesc->getSolver()->reSolve(residual);
 
     //solver->resetOrthoSet(); // HB: force reseting orthoset 
     filePrint(stderr," ### Second solve ###\n");
-    solver->solve(force, pVec);
+    probDesc->getSolver()->solve(force, pVec);
 
     //HB
     //double mu = -1.0*( dU * residual ) / (w*deltaLambda + dU * pVec);

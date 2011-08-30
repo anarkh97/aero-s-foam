@@ -27,7 +27,7 @@ DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
  if(sd->solInfo().soltyp == 2)
    gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
  else
-   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)
@@ -82,7 +82,7 @@ DistrGeomState::midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n,
 }
 
 void
-DistrGeomState::subInc_update(int isub,DistrVector &inc_vec, DistrGeomState &ss, bool zeroRot)
+DistrGeomState::subInc_get(int isub,DistrVector &inc_vec, DistrGeomState &ss, bool zeroRot)
 {
  StackVector v(inc_vec.subData(isub),inc_vec.subLen(isub));
  gs[isub]->get_inc_displacement(v,*ss[isub],zeroRot);
@@ -91,9 +91,21 @@ DistrGeomState::subInc_update(int isub,DistrVector &inc_vec, DistrGeomState &ss,
 void
 DistrGeomState::get_inc_displacement(DistrVector &inc_vec, DistrGeomState &ss, bool zeroRot)
 {
- execParal3R(numSub,this,&DistrGeomState::subInc_update, inc_vec, ss, zeroRot);
+ execParal3R(numSub,this,&DistrGeomState::subInc_get, inc_vec, ss, zeroRot);
 }
 
+void
+DistrGeomState::subTot_get(int isub, DistrVector &tot_vec)
+{
+ StackVector v(tot_vec.subData(isub), tot_vec.subLen(isub));
+ gs[isub]->get_tot_displacement(v);
+}
+
+void
+DistrGeomState::get_tot_displacement(DistrVector &tot_vec)
+{
+ execParal1R(numSub, this, &DistrGeomState::subTot_get, tot_vec);
+}
 
 void
 DistrGeomState::subInterp(int isub, double &alpha, DistrGeomState &u,

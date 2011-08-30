@@ -34,7 +34,7 @@ class MDNLStatic
     int numSystems;
     double deltaLambda;
 
-    std::map<int, double> *mu; // lagrange multipliers for the contact surfaces
+    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
  public:
@@ -56,7 +56,7 @@ class MDNLStatic
     void printTimers();
 
     void staticOutput(DistrGeomState *geomState, double lambda, 
-                      DistrVector &force, DistrVector &glRes);
+                      DistrVector &force, DistrVector &glRes, DistrGeomState *refState);
 
     MultiDomainPostProcessor *getPostProcessor();
 
@@ -69,7 +69,8 @@ class MDNLStatic
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
-                            DistrVector& elementInternalForce, DistrVector&gRes, double lambda = 1.0);
+                            DistrVector& elementInternalForce, DistrVector& gRes,
+                            double lambda = 1.0, DistrGeomState *refState = NULL);
 
     double getTolerance() { return tolerance*firstRes; }
 
@@ -81,7 +82,8 @@ class MDNLStatic
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce, double lambda);
+                             DistrVector &res, DistrVector &elemIntForce, double lambda,
+                             DistrGeomState *refState);
 
     void makeSubCorotators(int isub);
     void makeSubKelArrays(int isub);
@@ -90,7 +92,7 @@ class MDNLStatic
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
-    void updateConstraintTerms(DistrGeomState* geomState);
+    void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
 };
 
 #endif

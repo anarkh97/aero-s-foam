@@ -99,7 +99,7 @@ class GenDecDomain
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                              GenDistrVector<Scalar> *aeroF = 0);
+                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0);
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs
@@ -125,7 +125,7 @@ class GenDecDomain
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
   void reProcessMPCs();
-  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver);
+  void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
 
  protected:
@@ -158,7 +158,7 @@ class GenDecDomain
   void setLocalCorners(int iSub, SubCornerHandler **cornerHandler);
   void deleteMPCs();
   void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
-  virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu);
+  virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
  public:
   void printLMPC();
 
@@ -173,9 +173,9 @@ class GenDecDomain
   void getElementAttr(int, int, double);
   void getPrincipalStress(GenDistrVector<Scalar>&, int, int, double);
   void getElementPrincipalStress(GenDistrVector<Scalar> &u, int, int, double);
-  void getStressStrain(DistrGeomState *u, Corotator ***, int, int, double);
-  void getPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double);
-  void getElementPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double);
+  void getStressStrain(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
+  void getPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
+  void getElementPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
   void computeSubdElemForce(int iSub, Scalar *globForce,
                             GenDistrVector<Scalar> *u, int Findex);
   void computeSubdStress(int, GenDistrVector<Scalar>*, GenDistrVector<Scalar>*,
@@ -183,12 +183,12 @@ class GenDecDomain
   void computeSubdElemStress(int, Scalar *, GenDistrVector<Scalar> *, int, int);
   void computeSubdStress(int iSub, GenDistrVector<Scalar> *globStress,
                          GenDistrVector<Scalar> *globWeight, DistrGeomState *u,
-                         Corotator ***allCorot, int *, int *Findex);
+                         Corotator ***allCorot, int *, int *Findex, DistrGeomState *refState);
   void getElementStressStrain(DistrGeomState *gs, Corotator ***allCorot,
-                              int fileNumber, int Findex, double time);
+                              int fileNumber, int Findex, double time, DistrGeomState *refState);
   void computeSubdElemStress(int iSub, Scalar *glElemStress,
                              DistrGeomState *u, Corotator ***allCorot,
-                             int fileNumber, int Findex);
+                             int fileNumber, int Findex, DistrGeomState *refState);
   void outputPrimal(GenDistrVector<Scalar>& primal, int iter);
   void getPrimalVector(int fileNumber, Scalar (*xyz)[11], int numNodes,
                        int ndof, double time);//DofSet::max_known_nonL_dof

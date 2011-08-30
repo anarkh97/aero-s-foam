@@ -35,7 +35,7 @@ struct Group;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
-      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EFFPSTRN=18};
+      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EQPLSTRN=18};
 enum {INX,INY,INZ,AXM,AYM,AZM};
 enum {YOUNG,MDENS,THICK};
 enum {PSTRESS1=0,PSTRESS2=1,PSTRESS3=2,
@@ -253,6 +253,7 @@ class GeoSource {
 
   map<int, Group> group;
   map<int, list<int> > nodeGroup;
+  map<int, list<int> > surfaceGroup;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -565,6 +566,7 @@ public:
 
   void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   bool setDirectMPC(bool mode) { return mpcDirect = mode; }
@@ -579,6 +581,7 @@ public:
 // Group stuff
    void setGroupAttribute(int a, int g);
    void setNodeGroup(int nn, int id);
+   void setSurfaceGroup(int sn, int id);
 
 // Sfem stuff
   enum Rprop { A, E, NU, RHO, T, KX, KY, KZ }; // sfem

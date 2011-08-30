@@ -181,6 +181,7 @@ Joint.d/OrientJoint.C
 Joint.d/UniversalJoint.C
 Joint.d/DotConstraintType1a.C
 Joint.d/RevoluteActuator.C
+Joint.d/PointLineDistanceConstraint.C
 Membrane.d/mass8.f
 Membrane.d/Membrane.C
 Membrane.d/sands19.f
@@ -191,14 +192,11 @@ MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/3DShapeFunction.C
-NonLinearity.d/BilinPlasKinHardMat.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
 NonLinearity.d/NLMembrane.C
-NonLinearity.d/StrainDispEvaluator.C
-NonLinearity.d/NeoHookeanMat.C
-NonLinearity.d/SimpleMat.C
+NonLinearity.d/StrainEvaluator.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C

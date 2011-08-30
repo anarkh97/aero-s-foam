@@ -130,6 +130,9 @@ Communicator *structCom = 0;
 Communicator *heatStructCom;
 Communicator *fluidCom;
 
+extern const char* problemTypeMessage[];
+extern const char* solverTypeMessage[];
+
 // ... main program
 
 #ifdef CREATE_DSO
@@ -574,11 +577,22 @@ int main(int argc, char** argv)
          if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
            domain->InitializeStaticContactSearch(MortarHandler::TIED);
            domain->PerformStaticContactSearch(MortarHandler::TIED);
-           domain->ExpComputeMortarLMPC(MortarHandler::TIED);
+           domain->ExpComputeMortarLMPC(MortarHandler::TIED); // TODO thermal and acoustic (see below)
            domain->CreateMortarToMPC();
          }
          else {
-           domain->ComputeMortarLMPC();
+           switch(domain->solInfo().soltyp) { // TODO: acoustic etc...
+             case 2 : { // thermal mortar
+               int dofs[1] = { 6 };
+               domain->ComputeMortarLMPC(1,dofs);
+               break;
+             } 
+             default :
+             case 1 :
+               int dofs[3] = { 0, 1, 2 };
+               domain->ComputeMortarLMPC(3, dofs);
+               break;
+           }
            domain->computeMatchingWetInterfaceLMPC();
            domain->CreateMortarToMPC();
          }
@@ -595,6 +609,18 @@ int main(int argc, char** argv)
  }
 #endif
 
+ bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+ bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
+ if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0) {
+   if(verboseFlag) {
+     filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
+     filePrint(stderr, " ***          Using FETI-DP instead.\n");
+   }
+   domain->solInfo().type = 2;
+   domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
+   domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
+   callDec = true;
+ }
  if(domain->solInfo().type != 2 && !geoSource->getDirectMPC())
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
@@ -686,6 +712,17 @@ int main(int argc, char** argv)
    filePrint(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
    filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
+
+ // ... PRINT PROBLEM TYPE
+ filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+ if(domain->solInfo().gepsFlg == 1) {
+   if(domain->solInfo().isNonLin()) { // GEPS is not used for nonlinear
+     domain->solInfo().gepsFlg = 0;
+   }
+   else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
+ }
+ if(domain->solInfo().type == 0)
+   filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods

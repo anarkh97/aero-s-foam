@@ -1,0 +1,15 @@
+CONTROL
+statics_spooles_energies
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles
+*
+OUTPUT
+energies statics_spooles_energies.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

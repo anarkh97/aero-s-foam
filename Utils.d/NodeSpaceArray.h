@@ -11,31 +11,33 @@ class Contraction;
 class Tensor
 {
   public:
-    Contraction operator | (Tensor &);
-    DoubleContraction operator || (Tensor &);
+    Contraction operator | (const Tensor &) const;
+    DoubleContraction operator || (const Tensor &) const;
     virtual void dblContractInto(const Tensor &, Tensor *) const;
     virtual void splContractInto(const Tensor &, Tensor *) const;
     Tensor &operator = (const DoubleContraction &);
     Tensor &operator = (const Contraction &);
     virtual ~Tensor() {}
-    virtual void print() {}
+    virtual void print() const {} 
 };
 
 class Contraction
 {
-   Tensor &a, &b;
+   const Tensor &a;
+   const Tensor &b;
 
  public:
-   Contraction(Tensor &_a,Tensor &_b) : a(_a), b(_b) {}
+   Contraction(const Tensor &_a, const Tensor &_b) : a(_a), b(_b) {}
    void assignTo(Tensor *result) const { a.splContractInto(b, result); }
 };    
 
 class DoubleContraction
 {
-   Tensor &a, &b;
+   const Tensor &a;
+   const Tensor &b;
 
  public:
-   DoubleContraction(Tensor &_a,Tensor &_b) : a(_a), b(_b) {}
+   DoubleContraction(const Tensor &_a, const Tensor &_b) : a(_a), b(_b) {}
    void assignTo(Tensor *result) const { a.dblContractInto(b, result); }
 };
 
@@ -119,11 +121,11 @@ class Tensor_d0s2 : public Tensor
     double operator() (int i, int j) const { return v[3*i+j]; }
     void getDeterminant(double &det);
     void getInverse(Tensor_d0s2 &t);
-    void getTranspose(Tensor_d0s2 &t);
+    void getTranspose(Tensor_d0s2 &t) const;
     void convertToSym(Tensor_d0s2_Ss12 &t);
     friend Tensor_d0s2 operator * (double d, const Tensor_d0s2 &t);
-    void print() { for(int i = 0; i < 9; ++i) std::cerr << v[i] << " ";
-                   std::cerr << std::endl; }
+    void print() const { for(int i = 0; i < 9; ++i) std::cerr << v[i] << " ";
+                         std::cerr << std::endl; }
 };
  
 Tensor_d0s2 operator * (double, const Tensor_d0s2 &);
@@ -152,7 +154,7 @@ class Tensor_d0s4 : public Tensor
     double operator[] (int i) const { return v[i]; }
     Tensor_d0s4 operator + (Tensor_d0s4 &);
     Tensor_d0s4 operator + (const Tensor_d0s4 &) const;
-    void print();
+    void print() const;
 };
 
 class Tensor_d1s0 : public Tensor
@@ -164,6 +166,7 @@ class Tensor_d1s0 : public Tensor
     Tensor_d1s0() { size = 0; v = 0; }
     Tensor_d1s0(int _size);
     Tensor_d1s0(const Tensor_d1s0 &t);
+    virtual ~Tensor_d1s0() { if(v) delete [] v; }
     double &operator[] (int i) { return v[i]; }
     double operator[] (int i) const { return v[i]; }
     double &operator() (int i) { return v[i]; }
@@ -173,7 +176,7 @@ class Tensor_d1s0 : public Tensor
     Tensor_d1s0 &operator = (const DoubleContraction &);
     int getSize() const { return size; }
     friend Tensor_d1s0 operator * (double d, const Tensor_d1s0 &t);
-    void print() { for(int i = 0; i < size; ++i) std::cerr << v[i] << " ";
+    void print() const { for(int i = 0; i < size; ++i) std::cerr << v[i] << " ";
                    std::cerr << std::endl; }
 };
 
@@ -227,7 +230,7 @@ class Tensor_d1s2 : public Tensor
   protected:
     int size;
   public:
-    virtual Tensor_d1s2_Ss23 symPart() = 0;
+    virtual Tensor_d1s2_Ss23 symPart() const = 0;
 };
 
 class Tensor_d1s2_full : public Tensor_d1s2
@@ -254,22 +257,23 @@ class Tensor_d1s2_full : public Tensor_d1s2
     void splContractInto(const Tensor &b, Tensor *result) const;
     void dblContractInto(const Tensor &b, Tensor *result) const;
     Tensor_d0s2 operator % (const Tensor_d1s0 &) const;
-    void getSpaceTranspose(Tensor_d1s2_full &t);
+    void getSpaceTranspose(Tensor_d1s2_full &t) const;
     void convertToSym(Tensor_d1s2_Ss23 &t);
-    Tensor_d1s2_Ss23 symPart();
+    Tensor_d1s2_Ss23 symPart() const;
     int getSize() const { return size; }
-    void print();
+    void print() const;
     friend Tensor_d1s2_full operator * (double d, const Tensor_d1s2_full &t);
 };
 
 inline void
-Tensor_d1s2_full::print()
+Tensor_d1s2_full::print() const
 {
-  for(int i = 0; i < size; ++i)
+  for(int i = 0; i < size; ++i) {
     for(int j = 0; j < 3; ++j)
       for(int k = 0; k < 3; ++k)
         std::cerr << v[i][3*j+k] << " ";
-  std::cerr << std::endl;
+    std::cerr << std::endl;
+  }
 }
 
 inline double 
@@ -311,52 +315,32 @@ class Tensor_d1s2_sparse : public Tensor_d1s2
     Tensor_d1s2_sparse operator + (const Tensor_d1s2_sparse &) const;
     Tensor_d0s2 &operator[] (int i) { return v[i]; }
     Tensor_d0s2 operator[] (int i) const { return v[i]; }
-    double &operator() (int i, int j, int k);
     double operator() (int i, int j, int k) const;
+    double &operator() (int i, int j, int k);
     Tensor_d1s2_sparse &operator= (const Tensor_d1s2_sparse &);
     Tensor_d1s2_sparse &operator= (const Contraction &);
     //Tensor_d1s2_sparse operator | (const Tensor_d0s2 &) const;
     void splContractInto(const Tensor &b, Tensor *result) const;
     Tensor_d0s2 operator % (const Tensor_d1s0 &) const;
-    Tensor_d1s2_Ss23 symPart();
-    void getTranspose(Tensor_d1s2_full &);
-    void getSymSquare(Tensor_d2s2 &t);
-    void getSymSquare(Tensor_d2s2_Sd12s34_dense &t);
-    void getSymSquare(Tensor_d2s2_Sd12s34_sparse &t);
+    Tensor_d1s2_Ss23 symPart() const;
+    void getTranspose(Tensor_d1s2_full &) const;
+    void getSymSquare(Tensor_d2s2 &t) const;
+    void getSymSquare(Tensor_d2s2_Sd12s34_dense &t) const;
+    void getSymSquare(Tensor_d2s2_Sd12s34_sparse &t) const;
     int getSize() const {return size;}
     friend Tensor_d1s2_sparse operator* (double d, const Tensor_d1s2_sparse &t);
-    void print();
+    void print() const;
 };
 
 inline void
-Tensor_d1s2_sparse::print()
+Tensor_d1s2_sparse::print() const
 {
-  for(int i = 0; i < size; ++i)
+  for(int i = 0; i < size; ++i) {
     for(int j = 0; j < 3; ++j)
       for(int k = 0; k < 3; ++k)
-         if((j-k)%3 == 0) std::cerr << v[(i-(i%3))/3][3*(i%3)+k] << " ";
-         else std::cerr << "0 ";
-   std::cerr << std::endl;
-}
-
-inline double 
-Tensor_d1s2_sparse::operator()(int i, int j, int k) const
-{
-#ifdef DEBUG
-  if(i >= size) { throw "first index out of range\n"; } 
-#endif
-  if((j-k)%3 == 0) return v[(i-(i%3))/3][3*(i%3)+k];
-  else return 0;
-}
-
-inline double& 
-Tensor_d1s2_sparse::operator()(int i, int j, int k)
-{
-#ifdef DEBUG
-  if(i >= size) { throw "first index out of range\n"; } 
-#endif
-  if((j-k)%3 == 0) return v[(i-(i%3))/3][3*(i%3)+k];
-  else { throw "Error : the tensor is sparse ! Check the constructor.\n"; }
+        std::cerr << (*this)(i,j,k) << " ";
+    std::cerr << std::endl;
+  }
 }
 
 Tensor_d1s2_sparse operator * (double d, const Tensor_d1s2_sparse &t);
@@ -391,7 +375,7 @@ class Tensor_d2s2 : public Tensor
     void convertToSym(Tensor_d2s2_Sd12s34_dense &t);
     void dblContractInto(const Tensor &, Tensor *) const;
     friend Tensor_d2s2 operator *(double d, const Tensor_d2s2 &t);
-    void print() { for(int i = 0; i < size;++i) for(int j = 0; j < size;++j)
+    void print() const { for(int i = 0; i < size;++i) for(int j = 0; j < size;++j)
                      for(int k = 0; k < 3; ++k) for(int l = 0; l < 3; ++l)
                        std::cerr << (*this)(i,j,k,l) << " ";
                    std::cerr << std::endl; }
@@ -435,7 +419,7 @@ class Tensor_d2s0 : public Tensor
     Tensor_d2s0 &operator=(const Tensor_d2s0 &);
     Tensor_d2s0 &operator=(const DoubleContraction &);
     int getSize() const {return size;}
-    void print() { for(int i = 0; i < size*size; ++i) std::cerr << v[i] << " ";
+    void print() const { for(int i = 0; i < size*size; ++i) std::cerr << v[i] << " ";
                      std::cerr << std::endl; }
     friend Tensor_d2s0 operator * (double d, const Tensor_d2s0 &t);
 };
@@ -507,20 +491,13 @@ class Tensor_d0s2_Ss12 : public Tensor
 
     void dblContractInto(const Tensor &, Tensor *) const;
     friend Tensor_d0s2_Ss12 operator *(double d, const Tensor_d0s2_Ss12 &t);
-    void print() { for(int i = 0; i < 3; ++i) for(int j = 0; j < 3; ++j)
+    void print() const { for(int i = 0; i < 3; ++i) for(int j = 0; j < 3; ++j)
                      std::cerr << (*this)(i,j) << " "; std::cerr << std::endl; }
 };
 
 inline double 
 Tensor_d0s2_Ss12::operator()(int i, int j) const 
 {
-/*
-#ifdef DEBUG
-  if(j >= i) { return v[i*(5-i)/2+j]; }
-#endif
-  return v[j*(5-j)/2+i];
-*/
-  // PJSA I think this is correct now
   if(j >= i) return v[i*(5-i)/2+j];
   else return v[j*(5-j)/2+i];
 }
@@ -528,13 +505,6 @@ Tensor_d0s2_Ss12::operator()(int i, int j) const
 inline double&
 Tensor_d0s2_Ss12::operator()(int i, int j)
 {
-/*
-#ifdef DEBUG
-  if(i > j) { throw "Error : symetric tensor indices are triangular\n"; }
-#endif
-  return v[i*(5-i)/2+j];
-*/
-  // PJSA I think this is correct now
   if(j >= i) return v[i*(5-i)/2+j];
   else return v[j*(5-j)/2+i];
 }
@@ -553,8 +523,9 @@ class Tensor_d0s4_Ss12s34 : public Tensor
   protected:  
     double v[6][6];
   public:
-    Tensor_d0s4_Ss12s34() { for(int i = 0; i < 6; i++) 
-                              for(int j = 0; j < 6; j++) v[i][j] = 0; }
+    Tensor_d0s4_Ss12s34() { setZero(); } 
+    void setZero() { for(int i = 0; i < 6; i++)
+                       for(int j = 0; j < 6; j++) v[i][j] = 0; }
     //Tensor_d1s2_Ss23  operator || (const Tensor_d1s2_Ss23 &) const;
     //Tensor_d0s2_Ss12  operator || (const Tensor_d0s2_Ss12 &) const;
     void dblContractInto(const Tensor &, Tensor *) const;
@@ -562,7 +533,7 @@ class Tensor_d0s4_Ss12s34 : public Tensor
     double *operator[] (int i) { return v[i]; }
     double &operator() (int i, int j, int k, int l);
     double operator() (int i, int j, int k, int l) const;
-    void print();
+    void print() const;
 };
 
 inline double 
@@ -681,11 +652,11 @@ class Tensor_d2s2_Sd12s34_sparse : public Tensor_d2s2_Sd12s34
     void dblContractInto(const Tensor &, Tensor *) const;
     int getSize() { return size; }
     int getSize() const { return size; }
-    void print();
+    void print() const;
 };
 
 inline void
-Tensor_d2s2_Sd12s34_sparse::print()
+Tensor_d2s2_Sd12s34_sparse::print() const
 {
   for(int m = 0; m < size; ++m)
     for(int n = 0; n < size; ++n)
@@ -812,7 +783,7 @@ class Tensor_d1s2_Ss23 : public Tensor
       Tensor_d1s2_Ss23 operator + (const Tensor_d1s2_Ss23 &) const;
       Tensor_d1s2_Ss23 &operator=(const Tensor_d1s2_Ss23&);
       int getSize() const { return size; }
-      void print() { for(int i = 0; i < size; ++i) v[i].print(); }
+      void print() const { for(int i = 0; i < size; ++i) v[i].print(); }
 };
 
 inline double 

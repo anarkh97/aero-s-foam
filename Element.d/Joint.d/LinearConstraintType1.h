@@ -8,7 +8,6 @@ class LinearConstraintType1 : public MpcElement
   public:
     LinearConstraintType1(int*, DofSet*);
     void buildFrame(CoordSet&);
-    int getTopNumber();
     void update(GeomState& gState, CoordSet& cs, double);
 };
 

@@ -31,9 +31,6 @@
 #include <cmath>
 #include <iostream>
 
-//use the following directives to return PK2 and material elasticity tensor
-//#define PJSA_RETURN_PK2
-//#define PJSA_RETURN_M
 
 static double matlib_determinant(double *A)
 {
@@ -125,37 +122,15 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
 
   trace = C[0]+C[4]+C[8];
 
-#ifdef PJSA_RETURN_PK2
   coef = p-Mu;
-  if(stress->size()!=9) stress->resize(9);
-  for (j=0,ij=0,jj=0; j < 3; j++,jj+=4) {
-    for (i=0; i < 3; i++,ij++)
-      (*stress)[ij] = coef*Cinv[ij];
-    (*stress)[jj] += Mu;
-  }
-#endif
-#ifdef PJSA_RETURN_M 
-  if (tangents) {
-    if(tangents->size()!=81) tangents->resize(81);
-    coef = Mu-p;
-    for (l=0,kl=0,ijkl=0; l < 3; l++)
-      for (k=0,jk=0; k < 3; k++,kl++)
-        for (j=0,ij=0,jl=l*3; j < 3; j++,jk++,jl++)
-          for (i=0,ik=k*3,il=l*3; i < 3; i++,ij++,ik++,il++,ijkl++)
-            (*tangents)[ijkl] = Lambda*Cinv[ij]*Cinv[kl]
-              +coef*(Cinv[ik]*Cinv[jl]+Cinv[il]*Cinv[jk]);
-  }
-#endif
-#ifndef PJSA_RETURN_PK2
-  coef = p-Mu;
-  if(stress->size()!=9) stress->resize(9);
+
   for (j=0,ij=0,jj=0; j < 3; j++,jj+=4) {
     for (i=0; i < 3; i++,ij++)
       S[ij] = coef*Cinv[ij];
     S[jj] += Mu;
   }
-#endif
-#ifndef PJSA_RETURN_M
+
+
   if (tangents) {
     coef = Mu-p;
     for (l=0,kl=0,ijkl=0; l < 3; l++)
@@ -165,8 +140,7 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
 	    M[ijkl] = Lambda*Cinv[ij]*Cinv[kl]
 	      +coef*(Cinv[ik]*Cinv[jl]+Cinv[il]*Cinv[jk]);
   }
-#endif
-#ifndef PJSA_RETURN_PK2 
+  
   if(stress->size()!=9) stress->resize(9);
 
   /* PK2 -> PK1 */
@@ -176,8 +150,8 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
       for (k=0,ik=i,kj=j*3; k < 3; k++,ik+=3,kj++)
 	(*stress)[ij] += F[ik]*S[kj];
     }
-#endif
-#ifndef PJSA_RETURN_M
+
+
   if (tangents) {
     if(tangents->size()!=81) tangents->resize(81);
 
@@ -200,6 +174,6 @@ bool NeoHookean::GetConstitutiveResponse(const std::vector<double> * strain,
 	      (*tangents)[ijkl] += S[jl];
 	  }
   }
-#endif
+
   return true;
 }

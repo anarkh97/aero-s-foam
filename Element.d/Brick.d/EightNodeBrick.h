@@ -4,6 +4,7 @@
 #include <Element.d/Element.h>
 
 class BrickCorotator;
+class NLMaterial;
 
 class EightNodeBrick: virtual public Element {
  protected:
@@ -12,7 +13,7 @@ class EightNodeBrick: virtual public Element {
         BrickCorotator *brickCorotator;
         double  *cCoefs;  // PJSA 3-20-05
         double  *cFrame;  // PJSA 3-20-05
-
+        NLMaterial *mat;
 
 public:
 	EightNodeBrick(int*);
@@ -79,6 +80,8 @@ public:
 		               Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
 
 
+        void setMaterial(NLMaterial *m);
+        int numStates();
 };
 #endif
 

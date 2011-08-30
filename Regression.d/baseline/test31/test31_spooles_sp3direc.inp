@@ -1,0 +1,15 @@
+CONTROL
+test31_spooles_sp3direc
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles
+*
+OUTPUT
+sp3direc test31_spooles_sp3direc.dat 1
+*
+INCLUDE test31.include
+*
+END

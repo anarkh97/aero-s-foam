@@ -79,7 +79,7 @@ Domain::initNodalTemperatures()
     for(i = 0; i < numDirichlet; ++i)
       if((1 << dbc[i].dofnum) == DofSet::Temp) {
         temprcvd[dbc[i].nnum] = dbc[i].val;
-        // fprintf(stderr," Temp %f\n", nodalTemperatures[i]);
+        //fprintf(stderr," Temp %f\n", temprcvd[dbc[i].nnum]);
       }
   }
 }
@@ -678,27 +678,33 @@ const char* problemTypeMessage[] = {
 " ... HelmholtzSO Analysis           ... \n"
 };
 
+const char* solverTypeMessage[] = {
+" ... Skyline Solver is Selected     ... \n",
+" ... Sparse Solver is Selected      ... \n",
+" ... SGI Sparse Solver is Selected  ... \n",
+" ... SGI Skyline Solver is Selected ... \n",
+"",
+" ... Frontal Solver is Selected     ... \n",
+"",
+"",
+" ... Spooles Solver is Selected     ... \n",
+" ... Mumps Solver is Selected       ... \n",
+"",
+" ... POD-GN Solver is Selected      ... \n",
+" ... POD-Galerkin Solver is Selected... \n",
+" ... Gappy-POD Solver is Selected   ... \n"
+};
+
 void
 Domain::preProcessing()
 {
- // ... PRINT PROBLEM TYPE
- filePrint(stderr, problemTypeMessage[sinfo.probType]);
-
- if(sinfo.gepsFlg == 1) {
-   if((sinfo.probType == 3) || ((sinfo.probType == 4) || (sinfo.probType == 5))) { // GEPS is not used for nonlinear
-     sinfo.gepsFlg = 0;
-   }
-   else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
- }
-
  // ... CONSTRUCT DOMAIN ELEMENT TO NODE CONNECTIVITY
  matrixTimers->makeConnectivity -= getTime();
+ if(elemToNode) delete elemToNode;
  elemToNode = new Connectivity(&packedEset);
- //ADDED FOR HEV PROBLEM, EC, 20070820
- if(sinfo.HEV)  {
+ if(sinfo.HEV) {
+   if(elemToNodeFluid) delete elemToNodeFluid;
    elemToNodeFluid = new Connectivity(geoSource->getPackedEsetFluid());
- } else  {
-   elemToNodeFluid = 0;
  }
  matrixTimers->makeConnectivity += getTime();
 
@@ -733,6 +739,7 @@ Domain::preProcessing()
 
  // ... CONSTRUCT DOF SET ARRAY
  matrixTimers->createDofs -= getTime();
+ if(dsa) delete dsa;
  dsa = new DofSetArray(numnodes, packedEset, rnum.renumb);
  if(sinfo.HEV) {
    dsaFluid = new DofSetArray(numnodesFluid, *(geoSource->getPackedEsetFluid()), rnumFluid->renumb);
@@ -780,10 +787,7 @@ Domain::preProcessing()
 void
 Domain::make_constrainedDSA()
 {
- //fprintf(stderr," ... printing dsa ...\n");
- //dsa->print();
- //fprintf(stderr," ... numDirichlet is %d ...\n",numDirichlet);
-
+ if(c_dsa) delete c_dsa;
  c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if (solInfo().HEV)  {
@@ -816,6 +820,7 @@ Domain::make_constrainedDSA(int *bc)
                               //numComplexDirichlet, bc);
    fprintf(stderr," *** c_dsaFluid NOT built in this version of constructor! ***\n");
  }
+ if(c_dsa) delete c_dsa;
  c_dsa = new ConstrainedDSA(*dsa, dbc, numDirichlet, cdbc,
                             numComplexDirichlet, bc);
 }
@@ -825,6 +830,7 @@ Domain::make_constrainedDSA(int fake)
 { // make a fake constrainedDSA if fake !=0; ie lie to the code by telling
   //   it that there are noconstraints
   if(fake){
+    if(c_dsa) delete c_dsa;
     c_dsa = new ConstrainedDSA(*dsa, 0, dbc);
   }
   else{

@@ -71,7 +71,7 @@
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC 
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
@@ -88,12 +88,12 @@
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
-%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC
+%token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINPLAST LINEAR LINPLSTRESS NEOHOOKEAN SIMPLE READ OPTCTV
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -106,7 +106,7 @@
 %type <axiMPC>   AxiLmpc
 %type <bclist>   BCDataList IDisp6 TBCDataList PBCDataList AtdDirScatterer AtdNeuScatterer IDisp6Pita IVel6Pita
 %type <bclist>   DirichletBC NeumanBC TempDirichletBC TempNeumanBC TempConvection TempRadiation ModalValList
-%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem //Added for HEV problem, EC, 20080512
+%type <bclist>   HEVDirichletBC HEVDBCDataList HEVFRSBCList HEVFRSBC HEVFRSBCElem 
 %type <bcval>    BC_Data TBC_Data ModalVal PBC_Data HEVDBC_Data
 %type <coefdata> CoefList
 %type <cxbcval>  ComplexBC_Data ComplexMPCHeader
@@ -310,8 +310,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
-  | PodRom
-  | SampleNodeList
+        | PodRom
+        | SampleNodeList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -344,6 +344,10 @@ Group:
               geoSource->setNodeGroup(i-1, $5);
           }
           else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Group Type: %d\n", $2);  exit(-1); }
+        }
+        | Group GROUPTYPE SURF Integer Integer NewLine
+        { if ($2 == OutputInfo::Nodal) geoSource->setSurfaceGroup($4-1, $5);
+          else  {  fprintf(stderr, " ### AS.ERR: Unrecognized Surface Group Type: %d\n", $2);  exit(-1); }
         }
         ;
 Random:
@@ -771,6 +775,10 @@ DynInfo:
         | ARPACK FNAME NewLine
         { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
           domain->solInfo().which = $2; }
+        | ARPACK FNAME Integer NewLine
+        { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
+          domain->solInfo().which = $2; 
+          domain->solInfo().arpack_mode = $3; }
         | ARPACK Float Float NewLine
         { domain->solInfo().eigenSolverType = SolverInfo::Arpack;
           domain->setEigenValue($2, int($3)); }
@@ -826,6 +834,8 @@ DynamInfo:
         { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
+        | DynamInfo ZERO SWITCH NewLine
+        { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
 	;
@@ -1101,16 +1111,6 @@ IComplexNeumannBC:
         }
         ;
 DirichletBC:
-/*
-        DISP NewLine
-        | DirichletBC BCDataList
-        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Displacements;
-          geoSource->setDirichlet($2->n,$2->d); }
-        | DirichletBC SURF BC_Data
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0] = $3;
-          geoSource->addSurfaceDirichlet(1,surf_bc); }
-*/
         DISP NewLine
         { $$ = new BCList; }
         | DirichletBC BC_Data
@@ -1124,6 +1124,12 @@ DirichletBC:
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Displacements;
           geoSource->addSurfaceDirichlet(1,surf_bc); }
+/* TODO | DirichletBC SURF Integer Integer Float USING ConstraintOptionsData NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
+          surf_bc[0].type = BCond::Lmpc;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
+*/
         ;
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1206,6 +1212,13 @@ TempDirichletBC:
         | TempDirichletBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }
+        | TempDirichletBC SURF Integer Float NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].val = $4;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].type = BCond::Temperatures;
+          geoSource->addSurfaceDirichlet(1,surf_bc); }
 	;
 TempNeumanBC:
         FLUX NewLine
@@ -1213,6 +1226,13 @@ TempNeumanBC:
         | TempNeumanBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
+        | TempNeumanBC SURF Integer Float NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $3-1;
+          surf_bc[0].dofnum = 6;
+          surf_bc[0].val = $4;
+          surf_bc[0].type = BCond::Flux;
+          geoSource->addSurfaceNeuman(1,surf_bc); }
 	;
 TempConvection:
         CONVECTION NewLine
@@ -1619,16 +1639,20 @@ MPCList:
 	;
 MPCHeader:
         Integer NewLine
-        { $$ = new LMPCons($1, 0.0); }
+        { $$ = new LMPCons($1, 0.0); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float NewLine
-        { $$ = new LMPCons($1, $2); }
+        { $$ = new LMPCons($1, $2); 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float MODE Integer NewLine
         { $$ = new LMPCons($1, $2);
-          $$->type = $4; }
+          $$->type = $4; 
+          $$->setSource(mpc::Lmpc); }
         | Integer Float ConstraintOptionsData NewLine
         { $$ = new LMPCons($1, $2);
           $$->lagrangeMult = $3.lagrangeMult;
-          $$->penalty = $3.penalty; }
+          $$->penalty = $3.penalty; 
+          $$->setSource(mpc::Lmpc); }
 	;
 MPCLine:
         Integer Integer Float NewLine
@@ -2151,8 +2175,11 @@ ComplexBC_Data:
 	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.reval = $3; $$.imval = 0.0; }
 	;
 FrameDList:
+        EFRAMES NewLine
+/*
 	EFRAMES NewLine Frame
 	{ geoSource->setFrame($3.num,$3.d); }
+*/
 	| FrameDList Frame
 	{ geoSource->setFrame($2.num,$2.d); }
 	;
@@ -3195,31 +3222,55 @@ NodalContact:
 	;
 MatSpec:
 	MATSPEC NewLine
-	| MatSpec Integer BILINPLAST Float Float Float Float Float NewLine
+	| MatSpec Integer BILINEARPLASTIC Float Float Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
              new BilinPlasKinHardMat($4, $5, $6, $7, $8) );
          }
-	| MatSpec Integer LINEAR Float Float Float NewLine
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
              new ElaLinIsoMat($4, $5, $6));
 	 }
+        | MatSpec Integer STVENANTKIRCHHOFF Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat($4, $5, $6));
+         }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat2D($4, $5, $6, $7));
          }
+        | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
+          {
+            double params[3] = { $4, $5, $6 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElastic>(params));
+          }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new NeoHookeanMat($4, $5, $6));
-         }
-        | MatSpec Integer SIMPLE Integer Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new SimpleMat($4, $5, $6, $7));
-         }
+          {
+            double params[3] = { $4, $5, $6 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<NeoHookean>(params));
+          }
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
+          {
+            double params[4] = { $4, $5, $6, $7 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<MooneyRivlin>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
+          {
+            double params[6] = { $4, $5, $6, $7, $8, $9 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,

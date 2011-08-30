@@ -1,0 +1,15 @@
+CONTROL
+test31_gmres_stressp3
+1
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+OUTPUT
+stressp3 test31_gmres_stressp3.dat 1
+*
+INCLUDE test31.include
+*
+END

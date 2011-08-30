@@ -124,6 +124,19 @@ double IsotropicLinearElasticJ2PlasticMaterial::GetShearModulus() const
 { return Mu; }
 
 
+// Set the plastic strain in the material
+void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
+{ for(int i = 0; i < 9; ++i) EPSplastic[i] = iEPSplastic[i]; }
+
+// Set the equivalent plastic strain in the material
+void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialEquivalentPlasticStrain(double iEquivEPSplastic)
+{ equivEPSplastic = iEquivEPSplastic; }
+
+// Set the back stress in the material
+void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialBackStress(const std::vector<double> &iBackStress)
+{ for(int i = 0; i < 9; ++i) BackStress[i] = iBackStress[i]; }
+
+
 // Compute linear elastic response
 bool IsotropicLinearElasticJ2PlasticMaterial::
 ComputeElasticConstitutiveResponse(const std::vector<double> &EPS, 

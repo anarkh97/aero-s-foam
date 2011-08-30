@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_mumps_azmoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+IMPE
+freq 10.0
+damp 1e-7 1.0
+recons pade 2 9 10
+OUTPUT
+azmoment freqsweep_mumps_azmoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

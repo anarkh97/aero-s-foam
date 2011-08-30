@@ -30,8 +30,8 @@ void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,
 void _FORTRAN(sands8)(double*,double*,double*,double&,double&,double*,
                       double*,double*, const int&, const int&, const int&, 
                       const int&, const int&,const int&, double&);
-void  _FORTRAN(trithmfr)(double*, double*, double*, double&, double&, double&,
- 			 double&, double&, double&, double*, int&);
+void _FORTRAN(trithmfr)(double*, double*, double*, const double&, const double&, const double&,
+                        const double&, const double&, const double&, double*, const int&);
 }
 
 ThreeNodeShell::ThreeNodeShell(int* nodenums, double _w)
@@ -706,7 +706,7 @@ void
 ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 				Vector &elThermalForce,int glflag, 
 				GeomState *geomState)
- {
+{
    int i;
    
    double Tref = prop->Ta;
@@ -747,9 +747,8 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
    
       double alpha = 1.5;
      
-     
    //Call FORTRAN routine to determine elemental thermal force vector from
-   //membranre effects -- returned in global coordinates if glflag = 0
+   //membrane effects -- returned in global coordinates if glflag = 0
    _FORTRAN(trithmfr)(x, y, z, meant, prop->W, prop->E, prop->nu,
 		      prop->eh, alpha, (double *)elThermalForce.data(), 
                       glflag);

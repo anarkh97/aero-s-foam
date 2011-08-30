@@ -1,0 +1,19 @@
+CONTROL
+impe_spooles_energies
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 10.0
+damp 1e-5 1.0
+*
+STATICS
+spooles
+*
+OUTPUT
+energies impe_spooles_energies.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

@@ -40,7 +40,7 @@ struct BCond {
   enum BCType { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors, Undefined } type;
+         Sensors, Undefined, Lmpc } type;
   void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; };
 };
 
@@ -143,7 +143,7 @@ class StructProp {
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
         double penalty; // penalty parameter for mpc type elements
-        double amplitude, omega; // amplitude and circular frequency of forcing term for some mpc type elements
+        double amplitude, omega, phase; // amplitude and circular frequency of forcing term for some mpc type elements
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
 
 	// Fabric Material Options
@@ -181,7 +181,7 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0;
+                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0;
                        type = Undefined; } 
 
 };
@@ -511,6 +511,8 @@ class Element {
                                                  //        (b) is getMassType returns 1 then lumping is done using diagonal scaling if required (default)
         virtual void writeHistory(int) {}
         virtual void readHistory(int) {}
+        virtual int numStates() { return 0; }
+        virtual void initStates(double *) {}
 };
 
 // *****************************************************************

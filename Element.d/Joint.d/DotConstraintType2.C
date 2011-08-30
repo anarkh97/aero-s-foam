@@ -6,25 +6,30 @@ DotConstraintType2::DotConstraintType2(int* _nn, int _axis)
  : MpcElement(2, DofSet::XYZdisp | DofSet::XYZrot, _nn)
 {
   axis = _axis;
-  elemframe = 0;
+  c0 = 0;
+}
+
+DotConstraintType2::~DotConstraintType2()
+{
+  if(c0) delete [] c0;
 }
 
 void
-DotConstraintType2::setFrame(EFrame *_elemframe)
+DotConstraintType2::setFrame(EFrame *elemframe)
 {
-  elemframe = _elemframe;
+  c0 = new double[3][3];
+  for(int i = 0; i < 3; ++i)
+    for(int j = 0; j < 3; ++j) 
+      c0[i][j] = (*elemframe)[i][j];
 }
 
 void 
 DotConstraintType2::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
-  if(false /*elemframe*/) {
-    for(int i = 0; i < 3; ++i)
-      for(int j = 0; j < 3; ++j)
-        c0[i][j] = (*elemframe)[i][j];
-  }
-  else {
+  if(!c0) { 
+    c0 = new double[3][3];
+
     Node &nd1 = cs.getNode(nn[0]);
     Node &nd2 = cs.getNode(nn[1]);
 
@@ -83,13 +88,7 @@ DotConstraintType2::buildFrame(CoordSet& cs)
     terms[3+i].coef.r_value = d1[0]*d[0] + d1[1]*d[1] + d1[2]*d[2];
   }
 
-  rhs.r_value = c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2];
-}
-
-int 
-DotConstraintType2::getTopNumber() 
-{ 
-  return 106; 
+  rhs.r_value = -(c0[axis][0]*d[0] + c0[axis][1]*d[1] + c0[axis][2]*d[2]);
 }
 
 void 
@@ -127,7 +126,7 @@ DotConstraintType2::update(GeomState& gState, CoordSet& cs, double)
     terms[3+i].coef.r_value = d1[0]*d[0] + d1[1]*d[1] + d1[2]*d[2];
   }
 
-  rhs.r_value = c1[0]*d[0] + c1[1]*d[1] + c1[2]*d[2];
+  rhs.r_value = -(c1[0]*d[0] + c1[1]*d[1] + c1[2]*d[2]);
 }
 
 void

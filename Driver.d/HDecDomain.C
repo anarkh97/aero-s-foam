@@ -26,9 +26,6 @@
 #include <Feti.d/DistrVector.h>
 #include <Feti.d/Feti.h>
 
-
-extern const char* problemTypeMessage[];
-
 #ifdef DISTRIBUTED
 extern FILE *debugFile;
 #endif

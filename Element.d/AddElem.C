@@ -111,6 +111,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PrismaticJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
+#include <Element.d/Joint.d/PointLineDistanceConstraint.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -362,6 +363,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 76:
        ele = new (ba) RigidFourNodeShell(n);
+       break;
+     case 77:
+       ele = new (ba) PointLineDistanceConstraint(n);
        break;
      case 80:
        ele = new (ba) ConnectedTri(n);

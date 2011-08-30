@@ -33,6 +33,8 @@ class ElaLinIsoMat2D : public NLMaterial
                     double *staten, double *statenp, double);
 
      void initStates(double *) {};
+
+     StrainEvaluator * getStrainEvaluator() { return 0; }
 };
 
 #endif

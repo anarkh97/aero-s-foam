@@ -1,6 +1,8 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
+#include<map>
+
 class DofSetArray;
 class CoordSet;
 template <class Scalar> class GenVector;
@@ -8,7 +10,7 @@ typedef GenVector<double> Vector;
 class ControlLawInfo;
 class BCond;
 class Node;
-
+class Elemset;
 
 class NodeState {
 //  private:
@@ -23,6 +25,14 @@ class NodeState {
     NodeState() { for(int i = 0; i < 6; ++ i) d[i] = v[i] = a[i] = 0; }
 };
 
+class ElemState {
+  public:
+    int numInternalStates;
+    double *internalStates;
+    ElemState() : numInternalStates(0), internalStates(0) {}
+    ~ElemState() { if(internalStates) delete [] internalStates; }
+    void operator=(const ElemState &);
+};
 
 class GeomState {
   public:
@@ -35,14 +45,17 @@ class GeomState {
      const CoordSet &X0;
      int    numReal;    // number of 'real' nodes
      bool  *flag; 	// signifies if node is connected to element
-   public:
+     int numelems;
+     ElemState *es;
+     std::map<int,int> emap;
 
+   public:
      // Default Constructor
      GeomState();
      GeomState(CoordSet &cs);
 
      // Constructor
-     GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs);
+     GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems = 0);
 
      // Copy Constructor
      GeomState(const GeomState &);
@@ -52,6 +65,9 @@ class GeomState {
      NodeState & operator[](int i)  { return ns[i]; }
      const NodeState & operator[](int i) const { return ns[i]; }
      NodeState *getNodeState() { return ns; }
+
+     double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
+     int getNumElemStates(int glNum) { return (numelems > 0) ? es[emap[glNum]].numInternalStates : 0; }
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }
      int numNodes() { return numnodes; }
@@ -75,6 +91,7 @@ class GeomState {
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
+     virtual void get_tot_displacement(Vector &totVec);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);

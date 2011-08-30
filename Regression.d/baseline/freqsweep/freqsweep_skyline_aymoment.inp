@@ -1,0 +1,19 @@
+CONTROL
+freqsweep_skyline_aymoment
+1
+"nodeset"
+"elemset"
+*
+STATICS
+skyline
+*
+IMPE
+freq 10.0
+damp 1e-6 1.0
+recons pade 2 9 10
+OUTPUT
+aymoment freqsweep_skyline_aymoment.dat 1
+*
+INCLUDE "mesh.include"
+*
+END

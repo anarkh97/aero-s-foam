@@ -54,7 +54,10 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   claw(NULL),
   X(NULL),
   Rmem(NULL)
-{}
+{
+  if(domain->GetnContactSurfacePairs())
+     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+}
 
 NonLinDynamic::~NonLinDynamic()
 {
@@ -315,9 +318,15 @@ NonLinDynamic::computeTimeInfo()
     userSupFunc->setDt(delta);
 }
 
+void
+NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateStates(refState, geomState, allCorot);
+}
+
 double
 NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
-                                Vector& elementInternalForce, double t)
+                                Vector& elementInternalForce, double t, GeomState *refState)
 {
   times->buildStiffAndForce -= getTime();
 
@@ -354,7 +363,24 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     }
   }
 
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t);
+  if(domain->GetnContactSurfacePairs()) {
+    domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
+    domain->PerformStaticContactSearch(MortarHandler::CTC);
+    domain->deleteSomeLMPCs(mpc::ContactSurfaces);
+    domain->ExpComputeMortarLMPC(MortarHandler::CTC);
+    domain->UpdateContactSurfaceElements();
+
+    if(solver) delete solver;
+    if(prec) delete prec;
+    delete [] allCorot; allCorot = 0;  // memory leak?
+    delete [] kelArray; kelArray = 0;
+    delete [] melArray; melArray = 0;
+    if(celArray) { delete [] celArray; celArray = 0; }
+    preProcess();
+    elementInternalForce.initialize(domain->maxNumDOF());
+  }
+
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);
 
   times->buildStiffAndForce +=  getTime();
  
@@ -477,7 +503,7 @@ NonLinDynamic::createGeomState()
   if(domain->solInfo().soltyp == 2)
     return new TemperatureState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
   else
-    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
+    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
 }
 
 GeomState*
@@ -688,7 +714,8 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linAdd(dt*dt*beta, residual);
   }
   times->correctorTime += getTime();
-  return rhs.norm();
+  resN = getResidualNorm(rhs);
+  return resN;
 }
 
 void
@@ -705,12 +732,12 @@ NonLinDynamic::preProcess()
 {
 
  // Allocate space for the Static Timers
- times = new StaticTimers;
+ if(!times) times = new StaticTimers;
 
  this->openResidualFile();
 
- totIter = 0;
- fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
+ //totIter = 0;
+ //fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
 
  // Set the nonlinear tolerance
  tolerance = domain->solInfo().getNLInfo().tolRes;
@@ -722,12 +749,12 @@ NonLinDynamic::preProcess()
  int numdof = domain->numdof();
 
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx      = new double[numdof];
+ if(!bcx) bcx      = new double[numdof];
 
  // vcx stores the prescribed velocities, which are associated
  // with prescribed displacements. If a user defined displacement
  // is used, then vcx will contain the user defined velocities also.
- vcx      = new double[numdof];
+ if(!vcx) vcx      = new double[numdof];
 
  int i;
  for(i=0; i<numdof; ++i)
@@ -782,7 +809,8 @@ NonLinDynamic::preProcess()
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) 0, 0, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
+ domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, (FullSquareMatrix *) NULL,
+                          (FullSquareMatrix *) NULL, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
@@ -829,7 +857,7 @@ NonLinDynamic::preProcess()
  // Check to see if there is a user supplied function
  // for displacements, forces or control law
  userSupFunc = domain->getUserSuppliedFunction();
- prevFrc = new PrevFrc(domain->numUncon());
+ if(!prevFrc) prevFrc = new PrevFrc(domain->numUncon());
 
  localTemp.initialize(solVecInfo());
 
@@ -841,7 +869,11 @@ NonLinDynamic::preProcess()
 
 void NonLinDynamic::openResidualFile()
 {
-  res = fopen("residuals", "w");
+  if(!res) {
+    res = fopen("residuals", "w");
+    totIter = 0;  
+    fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
+  }
 }
 
 Solver *
@@ -1071,7 +1103,7 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
    if(domain->numInitDisp6() > 0) 
      geomState->updatePrescribedDisplacement(domain->getInitDisp6(), domain->numInitDisp6());
    
-   if(domain->nDirichlet() > 0) 
+   if(domain->nDirichlet() > 0)
      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
 
    times->timePresc += getTime();

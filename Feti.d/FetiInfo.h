@@ -174,7 +174,7 @@ class FetiInfo {
     int    nlPrecFlg;
     int    numLoadSteps;
 
-    enum Preconditioner { noPrec, lumped, dirichlet, identity } precno;
+    enum Preconditioner { noPrec=0, lumped, dirichlet, identity } precno;
     enum PreconditionerType { nonshifted, shifted } prectype;
     enum MpcPreconditioner { noMpcPrec=0, diagCCt, globalCCt, blockDiagCCt, subBlockDiagCCt, superBlockDiagCCt, autoSelectCCt } mpc_precno;
     enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block;
@@ -267,9 +267,9 @@ FetiInfo::FetiInfo()
   noCoarse    = 0;         // default use coarse problem
   precno      = dirichlet;    // default use lumped preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-  solvertype  = sparse;   // default use skyline subdomain solver
-  gtgSolver   = sparse;   // default use skyline GtG solver
-  auxCoarseSolver = sparse;
+  solvertype  = sparse;   // default use sparse subdomain solver
+  gtgSolver   = sparse;   // default use sparse GtG solver for FETI1 and Kcc^* solver for FETI-DP
+  auxCoarseSolver = skyline; // use skyline GtG solver for FETI-DPC
   cctSolver   = sparse;   // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
@@ -277,7 +277,7 @@ FetiInfo::FetiInfo()
   rescalef    = true;      // reassemble and apply scaling to f for every system, not just the first
   mpc_scaling = tscaling;  // default use t scaling
   fsi_scaling = tscaling;
-  version     = feti1;     // default use FETI
+  version     = feti1;     // default use FETI1
   feti2version= sparseCoarse;  // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
@@ -315,7 +315,7 @@ FetiInfo::FetiInfo()
   contactPrintFlag = 0;
   gamma = 1.0;
   linesearch_tau = 0.6667; 
-  linesearch_maxit = 20;
+  linesearch_maxit = 100;
   cmpc = bmpc = dmpc = false;
 
   c_normalize = false;
@@ -327,7 +327,7 @@ FetiInfo::FetiInfo()
   cct_tol      = 1.0e-16;
   cctScaled    = false;      // XXXX no scaling used in the CCt solver (ONLY for skyline)
   mpcBlkOverlap= 0;         // zero/minimal overlap in mortar block CCt preconditionner
-  rebuildcct   = 0; 
+  rebuildcct   = 1; 
   rebuildSbb   = 0; 
   geometric_gap = false;
 
@@ -345,7 +345,7 @@ FetiInfo::FetiInfo()
   fsi_corner = 2;
   complex_hermitian = false;
   nullSpaceFilterTol = 0.0;
-  dual_proj_tol = primal_proj_tol = 1.0e-16;
+  dual_proj_tol = primal_proj_tol = 0.0;
   dual_plan_tol = primal_plan_tol = 0.0;
   dual_plan_maxit = primal_plan_maxit = 20;
 }

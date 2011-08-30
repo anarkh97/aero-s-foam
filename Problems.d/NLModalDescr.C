@@ -295,7 +295,8 @@ void NLModalDescr::preProcess(){
   // build the finite element mass matrix
   AllOps<double> allOps;
   allOps.M = domain->constructDBSparseMatrix<double>();
-  domain->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0); // NULL, NULL);
+  domain->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0, (SparseMatrix *) NULL,
+                                (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL);
 
   GenSparseMatrix<double> *massMat = allOps.M;
 
@@ -714,7 +715,7 @@ void NLModalDescr::initIterState(ModalGeomState &mgs){
 //------------------------------------------------------------------------------
 
 double NLModalDescr::getStiffAndForce(ModalGeomState &mgs,
-  Vector &res, double midtime){
+  Vector &res, double midtime, ModalGeomState*){
 /*PRE:
  POST:
 */

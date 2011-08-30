@@ -27,9 +27,10 @@ class NonLinStatic {
     double firstDv;
     double tolerance;
     StaticTimers *times;
+
  public:
     // Constructor
-    NonLinStatic(Domain *d) { domain = d; kelArray = 0; allCorot = 0;  bcx = 0;}
+    NonLinStatic(Domain *d);
     ~NonLinStatic() { if(kelArray) delete [] kelArray; if(allCorot) delete [] allCorot; if(bcx) delete [] bcx; }
 
     int  solVecInfo();
@@ -40,18 +41,19 @@ class NonLinStatic {
     double getDeltaLambda0(); // only nlstatic
     double getMaxLambda();    // only maxlambda
     void getRHS(Vector &rhs); 
-    void preProcess();
+    void preProcess(bool factor = true);
     Solver *getSolver();
     SingleDomainPostProcessor<double,Vector,Solver> *getPostProcessor();
 
     int reBuild(int iter, int step, GeomState& geomState);
     GeomState* createGeomState();
 
-    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &);
+    void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &, GeomState *refState);
     int checkConvergence(int iter, double normDv, double residualNorm);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                          Vector& elementInternalForce, Vector &, double lambda = 1);
+                            Vector& elementInternalForce, Vector &,
+                            double lambda = 1, GeomState *refState = NULL);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
 

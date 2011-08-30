@@ -35,8 +35,9 @@ struct OutputInfo {
           StressPR1Direc, StressPR2Direc, StressPR3Direc,
           StrainPR1Direc, StrainPR2Direc, StrainPR3Direc,
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
-          TDEnforcement, Damage, EffPStrn, 
-          TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative
+          TDEnforcement, Damage, EquivalentPlasticStrain, 
+          TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
+          HeatReactions, Reactions6
          };
 
    enum Group  { Nodal, Attribute, NodeGroup };
@@ -92,6 +93,7 @@ struct OutputInfo {
      else if(numColumns == 6 && (type == EigenPair)) type = EigenPair6;
      else if(numColumns == 6 && (type == Velocity)) type = Velocity6;
      else if(numColumns == 6 && (type == Acceleration)) type = Accel6;
+     else if(numColumns == 6 && (type == Reactions)) type = Reactions6;
 
      if (averageFlg == 1 || averageFlg == 3)
        dataType = 1;
@@ -107,6 +109,7 @@ struct OutputInfo {
 
        case EigenPair:
        case Displacement:
+       case Reactions:
          dim = 3;
          break;
   
@@ -116,6 +119,7 @@ struct OutputInfo {
 
        case Disp6DOF:
        case EigenPair6:
+       case Reactions6:
          dim = 6;
          break;
 

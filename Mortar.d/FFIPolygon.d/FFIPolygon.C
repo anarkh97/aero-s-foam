@@ -422,7 +422,7 @@ FFIPolygon::IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* MortarEl
    int nMortarShapeFct = MortarEl->nNodes();
    int nMasterShapeFct = MasterFace->nNodes();
 
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterNormalShapeFctProduct" << endl;
    //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
    //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
    //cerr << " -> ngp             = " << ngp << endl;
@@ -453,7 +453,7 @@ FFIPolygon::IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl,
 {
    int nMortarShapeFct = MortarEl->nNodes();
    int nSlaveShapeFct  = SlaveFace->nNodes();                                                                                                                                          
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << "In FFIPolygon::IntegrateOnSlave_SlaveNormalShapeFctProduct" << endl;
    //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
    //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
    //cerr << " -> ngp             = " << ngp << endl;
@@ -506,7 +506,7 @@ FFIPolygon::IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement* Mort
    int nMortarShapeFct = MortarEl->nNodes();
    int nMasterShapeFct = MasterFace->nNodes();
 
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterGradNormalShapeFctProduct" << endl;
    //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
    //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
    //cerr << " -> ngp             = " << ngp << endl;
@@ -538,7 +538,7 @@ FFIPolygon::IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement* Morta
    int nMortarShapeFct = MortarEl->nNodes();
    int nSlaveShapeFct  = SlaveFace->nNodes();
 
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterShapeFctProduct" << endl;
+   //cerr << "In FFIPolygon::IntegrateOnSlave_SlaveGradNormalShapeFctProduct" << endl;
    //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
    //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
    //cerr << " -> ngp             = " << ngp << endl;

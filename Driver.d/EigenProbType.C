@@ -836,7 +836,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 }
 
 extern "C"      {
-void _FORTRAN(jacobi)(double *,double *,double *, double *,int&,double&,int &);
+void _FORTRAN(cfjacobi)(double *,double *,double *, double *,int&,double&,int &);
 void _FORTRAN(dspgv)(const int &, const char &, const char &,
                      const int &N, double *AP, double *BP, double *W,
                      double *Z, const int &LDZ, double *work, int &info);
@@ -865,7 +865,7 @@ EigenSolver< EigOps, VecType, VecSet,
   switch(subType) {
     case 0 : {
       double *work = new double[3*subSpaceSize];
-     // _FORTRAN(jacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
+      //_FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
       _FORTRAN(dspgv)(1, 'V', 'U', subSpaceSize, kappa, mu, eigVal, xx[0],
                       xx.dim(), work, info);
       if(info !=0) {
@@ -919,8 +919,6 @@ EigenSolver< EigOps, VecType, VecSet,
                       xx.dim(), work, 8*N, info);
       if(info !=0)
         filePrint(stderr, "Error in ddgev: %d\n", info);
-      for(i=0; i<N; ++i) cerr << "i = " << i << ", alphar = " << eigVal[i] << ", alphai = "
-                              << alphai[i] << ", beta = " << beta[i] << endl;
       for(i=0; i<N; ++i) eigVal[i] /= beta[i];
       delete [] a; delete [] b; delete [] work; delete [] alphai; delete [] beta;
     }
@@ -1152,7 +1150,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
     double shift = geoSource->shiftVal();
 
-    if(printInfo){
+    if(printInfo) {
       if(shift != 0.0 && newShift == 0.0) filePrint(stderr," ... shift = %e\n",shift);
       if(reortho)     filePrint(stderr," ... Re-orthogonalization enabled (CGS -> ICGS)\n");
       if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6\n");
@@ -1176,8 +1174,11 @@ SymArpackSolver< EigOps, VecType, VecSet,
     for(i=0; i<11; ++i) ipntr[i]  = 0;
     iparam[0] = 1;    // "exact" shift
     iparam[2] = (domain->solInfo().maxArnItr) ? domain->solInfo().maxArnItr :  nsmax; // maxitr
-    //filePrint(stderr,"IPARAM(3) = %d\n",iparam[2]);
-    iparam[6] = 3;    // Mode = 3 => A symmetrix & M symmetric positive semi-definie (see ARPACK manual)
+    iparam[6] = domain->solInfo().arpack_mode;  // Mode = 3 (default) shift-invert mode
+                                                //          => A symmetric & M symmetric positive semi-definite
+                                                // Mode = 4 buckling mode
+    // note: for buckling mode, the geometric stiffness matrix KG takes the place of M and this can be indefinite.
+    // for mode 4: OP = inv(K-sigma*KG)*K. The shift sigma must be non-zero
 
     for(i=0 ; i <= nloc ; i++) resid[i] = 0.0;
     for(i=0 ; i < 3*nloc; i++) workd[i] = 0.0;

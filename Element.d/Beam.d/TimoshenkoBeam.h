@@ -7,6 +7,7 @@ class GeomState;
 
 class TimoshenkoBeam : public Element {
         EFrame *elemframe;
+        bool myElemFrame;
 
         int nn[3];
 
@@ -20,7 +21,7 @@ public:
 
 	void renum(int *);
 
-        void setFrame(EFrame *ef) { elemframe = ef; }
+        void setFrame(EFrame *ef) { elemframe = ef; myElemFrame = false; }
         void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet& cs, double *kel, int flg = 1);

@@ -79,7 +79,7 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=1:ppn=8,walltime=1:00:00\n\n")
+      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=1:ppn=8,walltime=3:00:00\n\n")
       MPIFILE.write("cd %s\n" % dirname)
      
       command = "chmod +x " + runfilename
@@ -262,8 +262,8 @@ def buildInputs(params):
         OUTPUT_EXTRAS = ["1 38046","1 37735"]
         IMPE =    ["freqsweep 0 500 11 50\nrecons pade 2 4 5"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["spooles pivot","sparse","mumps pivot","skyline",\
-                   "mumps","spooles","direct","pcg","bcg","cr",\
+        STATICS = ["spooles pivot","sparse","mumps pivot",\
+                   "mumps","spooles","pcg","bcg","cr",\
                    "FETI DP","FETI DPH"]
         INCLUDE = ["../dsvm15.include"]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]

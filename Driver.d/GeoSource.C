@@ -813,8 +813,8 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[bound],
               w, p, xyz[0][4], w, p, xyz[0][5]);
     } else {
       for (int inode = 0; inode < outputSize; inode++)  {
-        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                  w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                  inode+1, w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
                   w, p, xyz[inode][4], w, p, xyz[inode][5]);
       }
     }

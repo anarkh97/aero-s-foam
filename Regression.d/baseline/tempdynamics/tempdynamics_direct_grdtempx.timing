@@ -1,0 +1,65 @@
+
+***********************************************************
+ ... Linear Dynamic Problem Information ... 
+***********************************************************
+
+1. Number of Nodes                         =            189
+
+2. Number of Elements                      =             80
+
+3. Number of Degrees of Freedom            =            189
+         Number of Constrained Dofs        =              9
+         Number of Unconstrained Dofs      =            180
+
+4. Number of Applied Loads                 =              9
+
+5. Number of Output Files                  =              1
+
+6. Renumbering                             =           None
+
+***********************************************************
+ ... Solver Information ... 
+***********************************************************
+
+1. Skyline    
+
+***********************************************************
+ ... Timing Statistics for 1 Thread  ...
+***********************************************************
+
+1. Total Read Input Files              time:        0.03111 s        0.029 Mb
+         Read Mesh                     time:        0.03111 s
+
+2. Total Preprocessing                 time:        0.00038 s        0.026 Mb
+         Process Input Data            time:        0.00010 s 
+         Connectivity                  time:        0.00001 s 
+         Renumbering                   time:        0.00015 s 
+         Create DOFs                   time:        0.00002 s 
+         Make Constrained DOFs         time:        0.00005 s 
+         Make Boundary Conditions      time:        0.00001 s 
+
+3. Total Matrix Processing             time:        0.00112 s        0.010 Mb
+         Form Element Matrices         time:        0.00068 s
+         Assemble Element Matrices     time:        0.00044 s
+
+
+4. Total RHS Processing                time:        0.00060 s        0.000 Mb
+
+5. Total Solve Loop                    time:        0.21933 s        0.036 Mb
+         Factor Matrix                 time:        0.00006 s 
+         Solve (Forward/Backward)      time:        0.00335 s 
+
+6. Write Output Files                  time:        0.20606 s        3.338 Mb
+
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.45860 s        3.434 Mb
+
+***********************************************************
+ ... Solution Information ...
+***********************************************************
+
+1. Total Amount of Requested Memory        =          3.533 Mb
+
+2. Solver Amount of Requested Memory       =          0.036 Mb
+
+***********************************************************
+

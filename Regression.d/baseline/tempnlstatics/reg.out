@@ -1,0 +1,530 @@
+../../bin/aeros tempnlstatics_sparse_gtempera.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Sparse Solver is Selected      ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.235836e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 9.48e-02 s
+ ... Total Memory Used    = 2.90e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_skyline_gtempvel.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Skyline Solver is Selected     ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.339850e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.48e-02 s
+ ... Total Memory Used    = 2.48e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_mumps_heatflxx.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Mumps Solver is Selected       ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 8.330792e-12)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.56e-02 s
+ ... Total Memory Used    = 3.23e+00 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_spooles_heatflxy.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Spooles Solver is Selected     ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.042203e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 1.04e-01 s
+ ... Total Memory Used    = 2.89e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_gmres_heatflxz.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Dof Based Sparse Matrix        ...
+ ... GMRES Solver is Selected       ...
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 7.865131e-07)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 1.41e-01 s
+ ... Total Memory Used    = 9.45e+00 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_direct_grdtempx.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Skyline Solver is Selected     ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.339850e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.94e-02 s
+ ... Total Memory Used    = 2.48e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_spooles_pivot_grdtempy.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Spooles Solver is Selected     ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.238930e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 9.55e-02 s
+ ... Total Memory Used    = 2.86e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_mumps_pivot_grdtempz.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Mumps Solver is Selected       ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 1.059645e-11)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.48e-02 s
+ ... Total Memory Used    = 3.23e+00 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_pcg_gtempera.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Dof Based Sparse Matrix        ...
+ ... CG Solver is Selected          ...
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
+ ... Iteration #  1	 Two norm = 333.479	 Rel. residual = 0.889279
+ ... Iteration #  2	 Two norm = 430.946	 Rel. residual = 1.14919
+ ... Iteration #  3	 Two norm = 341.483	 Rel. residual = 0.910621
+ ... Iteration #  4	 Two norm = 316.239	 Rel. residual = 0.843304
+ ... Iteration #  5	 Two norm = 440.271	 Rel. residual = 1.17406
+ ... Iteration #  6	 Two norm = 340.738	 Rel. residual = 0.908634
+ ... Iteration #  7	 Two norm = 319.928	 Rel. residual = 0.853141
+ ... Iteration #  8	 Two norm = 462.95	 Rel. residual = 1.23453
+ ... Iteration #  9	 Two norm = 295.578	 Rel. residual = 0.788209
+ ... Iteration #  10	 Two norm = 395.629	 Rel. residual = 1.05501
+ ... Iteration #  11	 Two norm = 409.512	 Rel. residual = 1.09203
+ ... Iteration #  12	 Two norm = 289.407	 Rel. residual = 0.771753
+ ... Iteration #  13	 Two norm = 482.688	 Rel. residual = 1.28717
+ ... Iteration #  14	 Two norm = 328.092	 Rel. residual = 0.874912
+ ... Iteration #  15	 Two norm = 328.136	 Rel. residual = 0.87503
+ ... Iteration #  16	 Two norm = 491.692	 Rel. residual = 1.31118
+ ... Iteration #  17	 Two norm = 284.42	 Rel. residual = 0.758454
+ ... Iteration #  18	 Two norm = 406.538	 Rel. residual = 1.0841
+ ... Iteration #  19	 Two norm = 406.325	 Rel. residual = 1.08353
+ ... Iteration #  20	 Two norm = 294.624	 Rel. residual = 0.785665
+ ... Iteration #  21	 Two norm = 469.846	 Rel. residual = 1.25292
+ ... Iteration #  22	 Two norm = 280.814	 Rel. residual = 0.748837
+ ... Iteration #  23	 Two norm = 223.849	 Rel. residual = 0.59693
+ ... Iteration #  24	 Two norm = 186.566	 Rel. residual = 0.497509
+ ... Iteration #  25	 Two norm = 34.7885	 Rel. residual = 0.0927693
+ ... Iteration #  26	 Two norm = 21.7928	 Rel. residual = 0.0581141
+ ... Iteration #  27	 Two norm = 9.08464	 Rel. residual = 0.0242257
+ ... Iteration #  28	 Two norm = 2.57651	 Rel. residual = 0.00687069
+ ... Iteration #  29	 Two norm = 2.14991	 Rel. residual = 0.0057331
+ ... Iteration #  30	 Two norm = 0.826482	 Rel. residual = 0.00220395
+ ... Iteration #  31	 Two norm = 0.279055	 Rel. residual = 0.000744148
+ ... Iteration #  32	 Two norm = 0.0686639	 Rel. residual = 0.000183104
+ ... Iteration #  33	 Two norm = 0.0292283	 Rel. residual = 7.7942e-05
+ ... Iteration #  34	 Two norm = 0.0168087	 Rel. residual = 4.48232e-05
+ ... Iteration #  35	 Two norm = 0.00209197	 Rel. residual = 5.57858e-06
+ ... Iteration #  36	 Two norm = 0.00136876	 Rel. residual = 3.65001e-06
+ ... Iteration #  37	 Two norm = 0.000406911	 Rel. residual = 1.0851e-06
+ ... Iteration #  38	 Two norm = 0.000115446	 Rel. residual = 3.07855e-07
+ ... Iteration #  39	 Two norm = 2.91699e-05	 Rel. residual = 7.77863e-08
+ ... Iteration #  40	 Two norm = 1.31078e-05	 Rel. residual = 3.49541e-08
+ ... Iteration #  41	 Two norm = 8.11112e-06	 Rel. residual = 2.16297e-08
+ ... Iteration #  42	 Two norm = 7.91988e-07	 Rel. residual = 2.11197e-09
+ ... Total # Iterations =            42        0.00372 s
+ ...     Final Two norm = 7.91988e-07
+ ...     Final residual = 6.27245e-13
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 7.919882e-07)
+in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
+ ... Iteration #  1	 Two norm = 5.46433e-07	 Rel. residual = 0.689951
+ ... Iteration #  2	 Two norm = 1.63066e-07	 Rel. residual = 0.205895
+ ... Iteration #  3	 Two norm = 5.84558e-08	 Rel. residual = 0.0738089
+ ... Iteration #  4	 Two norm = 1.88681e-08	 Rel. residual = 0.0238237
+ ... Iteration #  5	 Two norm = 6.05886e-09	 Rel. residual = 0.00765018
+ ... Iteration #  6	 Two norm = 4.53962e-09	 Rel. residual = 0.00573193
+ ... Iteration #  7	 Two norm = 4.21446e-10	 Rel. residual = 0.000532136
+ ... Iteration #  8	 Two norm = 2.56539e-10	 Rel. residual = 0.000323918
+ ... Iteration #  9	 Two norm = 8.772e-11	 Rel. residual = 0.000110759
+ ... Iteration #  10	 Two norm = 2.27396e-11	 Rel. residual = 2.8712e-05
+ ... Iteration #  11	 Two norm = 9.03238e-12	 Rel. residual = 1.14047e-05
+ ... Iteration #  12	 Two norm = 2.29072e-12	 Rel. residual = 2.89236e-06
+ ... Iteration #  13	 Two norm = 1.8117e-12	 Rel. residual = 2.28754e-06
+ ... Iteration #  14	 Two norm = 6.43879e-13	 Rel. residual = 8.12991e-07
+ ... Iteration #  15	 Two norm = 8.59808e-13	 Rel. residual = 1.08563e-06
+ ... Iteration #  16	 Two norm = 1.63183e-12	 Rel. residual = 2.06043e-06
+ ... Iteration #  17	 Two norm = 2.18281e-12	 Rel. residual = 2.75612e-06
+ ... Iteration #  18	 Two norm = 1.51528e-12	 Rel. residual = 1.91326e-06
+ ... Iteration #  19	 Two norm = 2.18905e-12	 Rel. residual = 2.76399e-06
+ ... Iteration #  20	 Two norm = 1.71218e-12	 Rel. residual = 2.16187e-06
+ ... Iteration #  21	 Two norm = 1.70034e-12	 Rel. residual = 2.14693e-06
+ ... Iteration #  22	 Two norm = 1.93586e-12	 Rel. residual = 2.44431e-06
+ ... Iteration #  23	 Two norm = 2.07726e-12	 Rel. residual = 2.62284e-06
+ ... Iteration #  24	 Two norm = 1.45128e-12	 Rel. residual = 1.83245e-06
+ ... Iteration #  25	 Two norm = 1.17711e-12	 Rel. residual = 1.48627e-06
+ ... Iteration #  26	 Two norm = 1.15753e-12	 Rel. residual = 1.46155e-06
+ ... Iteration #  27	 Two norm = 1.94995e-12	 Rel. residual = 2.46209e-06
+ ... Iteration #  28	 Two norm = 1.4538e-12	 Rel. residual = 1.83563e-06
+ ... Iteration #  29	 Two norm = 9.73794e-13	 Rel. residual = 1.22956e-06
+ ... Iteration #  30	 Two norm = 9.30584e-13	 Rel. residual = 1.175e-06
+ ... Iteration #  31	 Two norm = 9.4165e-13	 Rel. residual = 1.18897e-06
+ ... Iteration #  32	 Two norm = 7.9021e-13	 Rel. residual = 9.97755e-07
+ ... Iteration #  33	 Two norm = 1.00916e-12	 Rel. residual = 1.27421e-06
+ ... Iteration #  34	 Two norm = 6.58248e-13	 Rel. residual = 8.31134e-07
+ ... Iteration #  35	 Two norm = 5.11189e-13	 Rel. residual = 6.4545e-07
+ ... Iteration #  36	 Two norm = 4.99653e-13	 Rel. residual = 6.30884e-07
+ ... Iteration #  37	 Two norm = 3.65467e-13	 Rel. residual = 4.61455e-07
+ ... Iteration #  38	 Two norm = 1.41791e-13	 Rel. residual = 1.79032e-07
+ ... Iteration #  39	 Two norm = 1.0971e-13	 Rel. residual = 1.38525e-07
+ ... Iteration #  40	 Two norm = 6.50995e-14	 Rel. residual = 8.21975e-08
+ ... Iteration #  41	 Two norm = 2.96769e-14	 Rel. residual = 3.74713e-08
+ ... Iteration #  42	 Two norm = 1.59909e-14	 Rel. residual = 2.01908e-08
+ ... Iteration #  43	 Two norm = 1.17451e-14	 Rel. residual = 1.48299e-08
+ ... Iteration #  44	 Two norm = 5.38033e-15	 Rel. residual = 6.79345e-09
+ ... Total # Iterations =            44        0.00387 s
+ ...     Final Two norm = 5.38033e-15
+ ...     Final residual = 2.8948e-29
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.71e-02 s
+ ... Total Memory Used    = 2.33e-01 Mb
+ ... Total Newton Iterations =    1 
+ --------------------------------------
+../../bin/aeros tempnlstatics_bcg_gtempvel.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Dof Based Sparse Matrix        ...
+ ... Bi-CG Solver is Selected       ...
+Selected Solver does not implement factor() .
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+Selected Solver does not implement factor() .
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 3.922018e+04)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #3 --- Rebuild Tangent Stiffness (res = 6.610655e+06)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #4 --- Rebuild Tangent Stiffness (res = 1.318551e+09)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #5 --- Rebuild Tangent Stiffness (res = 3.117469e+11)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #6 --- Rebuild Tangent Stiffness (res = 8.262584e+13)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #7 --- Rebuild Tangent Stiffness (res = 2.304309e+16)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #8 --- Rebuild Tangent Stiffness (res = 6.546595e+18)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #9 --- Rebuild Tangent Stiffness (res = 1.872258e+21)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #10 --- Rebuild Tangent Stiffness (res = 5.369124e+23)
+Selected reSolve(Scalar*) not supported
+ ... Newton : Step #1 diverged after 10 iterations
+ ... Newton : analysis interrupted by divergence
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 8.32e-02 s
+ ... Total Memory Used    = 3.02e-01 Mb
+ ... Total Newton Iterations =   10 
+ --------------------------------------
+../../bin/aeros tempnlstatics_cr_heatflxx.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Dof Based Sparse Matrix        ...
+ ... CR Solver is Selected          ...
+Selected Solver does not implement factor() .
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+Selected Solver does not implement factor() .
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 3.922018e+04)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #3 --- Rebuild Tangent Stiffness (res = 6.610655e+06)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #4 --- Rebuild Tangent Stiffness (res = 1.318551e+09)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #5 --- Rebuild Tangent Stiffness (res = 3.117469e+11)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #6 --- Rebuild Tangent Stiffness (res = 8.262584e+13)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #7 --- Rebuild Tangent Stiffness (res = 2.304309e+16)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #8 --- Rebuild Tangent Stiffness (res = 6.546595e+18)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #9 --- Rebuild Tangent Stiffness (res = 1.872258e+21)
+Selected reSolve(Scalar*) not supported
+Selected Solver does not implement factor() .
+ ... Newton : Iter #10 --- Rebuild Tangent Stiffness (res = 5.369124e+23)
+Selected reSolve(Scalar*) not supported
+ ... Newton : Step #1 diverged after 10 iterations
+ ... Newton : analysis interrupted by divergence
+ *** WARNING: Output case 0 not implemented for non-linear direct solver 
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =     180 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =     189 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 7.12e-02 s
+ ... Total Memory Used    = 3.02e-01 Mb
+ ... Total Newton Iterations =   10 
+ --------------------------------------
+../../bin/aeros -n 2 --dec --nsub 4 tempnlstatics_FETI_heatflxy.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Parallel processing: Forking 2 Threads ...
+ ... FETI-DP Solver is Selected     ...
+ ... Factor Subdomain Matrices      ... 
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+./run.tempnlstatics: line 24:  5935 Segmentation fault      ../../bin/aeros -n 2 --dec --nsub 4 tempnlstatics_FETI_heatflxy.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempnlstatics_FETI_DP_heatflxz.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Parallel processing: Forking 2 Threads ...
+ ... FETI-DP Solver is Selected     ...
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 2.571041e-10)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ ... Postprocessing                 ...
+ *** WARNING: Output case 0 not implemented
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =       0 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =      -1 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 1.04e-01 s
+ ... Total Memory Used    = 1.09e+00 Mb
+ ... Total Newton Iterations =    1 
+ ... Total Krylov Iterations =    3 
+ --------------------------------------
+../../bin/aeros -n 2 --dec --nsub 4 tempnlstatics_FETI_DPH_grdtempx.inp
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Static Analysis      ... 
+ ... Parallel processing: Forking 2 Threads ...
+ ... FETI-DP Solver is Selected     ...
+ --------------------------------------
+ ... Newton : Start Step #1 --- Lambda = 1.000000e+00
+ ... Newton : Iter #1 --- Rebuild Tangent Stiffness (res = 3.750000e+02)
+ ... Newton : Iter #2 --- Rebuild Tangent Stiffness (res = 2.571041e-10)
+ ... Newton : Step #1 converged after 2 iterations
+ ... Newton : End   Step #1 --- Max Steps = 1
+ --------------------------------------
+ ... Postprocessing                 ...
+ *** WARNING: Output case 0 not implemented
+
+ ---------- PROBLEM PARAMETERS --------
+ ... # Nodes              =     189 ...
+ ... # Elements           =      80 ...
+ ... # Unconstrained dofs =       0 ...
+ ... # Constrained dofs   =       9 ...
+ ... Total # dofs         =      -1 ...
+ ... # Loaded dofs        =       9 ...
+ ... # Output Files       =       1 ...
+ --------------------------------------
+ --------------------------------------
+ ... Total Time           = 1.03e-01 s
+ ... Total Memory Used    = 1.07e+00 Mb
+ ... Total Newton Iterations =    1 
+ ... Total Krylov Iterations =    3 
+ --------------------------------------

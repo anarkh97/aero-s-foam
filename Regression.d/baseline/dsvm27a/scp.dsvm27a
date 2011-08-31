@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm27a
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_sparse_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_sparse_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_spooles_pivot_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_spooles_pivot_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_skyline_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_skyline_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_spooles_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_spooles_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_direct_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_direct_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_pcg_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_pcg_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_bcg_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_bcg_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27a_cr_gtempera.inp
+mpirun -n 4 ../../bin/aeros  dsvm27a_cr_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27a_FETI_DP_gtempera.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27a_FETI_DP_gtempera.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27a_FETI_DPH_gtempera.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27a_FETI_DPH_gtempera.inp

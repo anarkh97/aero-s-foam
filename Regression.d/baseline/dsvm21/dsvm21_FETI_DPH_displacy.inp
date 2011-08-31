@@ -1,0 +1,23 @@
+CONTROL
+dsvm21_FETI_DPH_displacy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+EIGEN
+arpack
+nsbspv 3
+neigpa 1
+*
+OUTPUT
+displacy dsvm21_FETI_DPH_displacy.dat 1
+*
+GEPS
+BUCKLE
+*
+INCLUDE ../dsvm21.include
+*
+END

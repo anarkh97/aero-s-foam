@@ -1,0 +1,19 @@
+CONTROL
+dsvm24_skyline_displacz
+1
+"nodeset"
+"elemset"
+*
+IMPE
+freq 500.0
+damp 3.18309886e-5 0
+*
+STATICS
+skyline
+*
+OUTPUT
+displacz dsvm24_skyline_displacz.dat  1 NG 1
+*
+INCLUDE ../dsvm24.include
+*
+END

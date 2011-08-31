@@ -33,7 +33,6 @@ void _FORTRAN(transform)(double*, double*, double*, double*, double*, double*, d
 TimoshenkoBeam::TimoshenkoBeam(int* nodenums)
 {
   elemframe = 0;
-  myElemFrame = false;
   nn[0] = nodenums[0];
   nn[1] = nodenums[1];
   nn[2] = nodenums[2];
@@ -41,8 +40,8 @@ TimoshenkoBeam::TimoshenkoBeam(int* nodenums)
 }
 
 TimoshenkoBeam::~TimoshenkoBeam() {
-  if (myElemFrame) delete[] elemframe;
-  delete[] iniOr;
+  //if(elemframe) delete[] elemframe;
+  if(iniOr) delete[] iniOr;
 }
 
 TimoshenkoBeam *
@@ -52,7 +51,6 @@ TimoshenkoBeam::clone()
 
   if (elemframe) {
     result->elemframe = new EFrame[1];
-    result->myElemFrame = true;
     std::memcpy(result->elemframe, elemframe, sizeof(elemframe[0]));
   }
 
@@ -112,7 +110,6 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
 
     delete[] elemframe;
     elemframe = new EFrame[1];
-    myElemFrame = true;
     EFrame &theFrame = *elemframe;
     theFrame[0][0] = nd2.x-nd1.x;
     theFrame[0][1] = nd2.y-nd1.y;

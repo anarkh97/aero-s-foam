@@ -1,0 +1,15 @@
+CONTROL
+dsvm31_direct_ep3direc
+1
+"nodeset"
+"elemset"
+*
+STATICS
+direct
+*
+OUTPUT
+ep3direc dsvm31_direct_ep3direc.dat 1
+*
+INCLUDE dsvm31.include
+*
+END

@@ -146,7 +146,8 @@ def dComp(params):
     
     PROBLEM_NAMES=['statics','nlstatics','eigen','dynamics','nldynamics',\
                    'freqsweep','impe','tempstatics','tempnlstatics',\
-                   'tempdynamics','tempnldynamics','test1','test11','test31']
+                   'tempdynamics','tempnldynamics','dsvm1','dsvm11','dsvm31',
+                   'dsvm2','dsvm13','dsvm15']
     for names in PROBLEM_NAMES:
       indir = names+"/"
       os.chdir(indir)
@@ -163,6 +164,7 @@ def dComp(params):
       if(lrun == 1):
         os.system("rm *.dat")
         command = "./run."+names+" >& reg.out"
+#       command = "sh ./scp."+names+" >& reg.out"
         os.system(command)
       os.chdir('../') 
       for infile in glob.glob( os.path.join(indir, '*.dat') ):
@@ -188,6 +190,7 @@ def dComp(params):
         os.system("rm *.dat")
         print "current directory is %s\n"% os.getcwd()
         command = "./run."+indir+" >& reg.out"
+#       command = "sh ./scp."+indir+" >& reg.out"
         print "command is %s\n"% command
         os.system(command)
       os.chdir('../') 

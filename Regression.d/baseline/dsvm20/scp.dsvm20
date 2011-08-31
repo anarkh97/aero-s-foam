@@ -1,0 +1,29 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm20
+echo mpirun -n 4 ../../bin/aeros  dsvm20_sparse_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_sparse_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_spooles_pivot_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_spooles_pivot_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_mumps_pivot_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_mumps_pivot_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_skyline_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_skyline_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_mumps_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_mumps_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_spooles_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_spooles_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_direct_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_direct_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_pcg_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_pcg_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_bcg_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_bcg_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm20_cr_gdispmod.inp
+mpirun -n 4 ../../bin/aeros  dsvm20_cr_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DP_gdispmod.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DP_gdispmod.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DPH_gdispmod.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DPH_gdispmod.inp

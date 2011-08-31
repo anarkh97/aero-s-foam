@@ -1,0 +1,22 @@
+CONTROL
+dsvm22_mumps_displacz
+1
+"nodeset"
+"elemset"
+*
+STATICS
+mumps
+*
+constraints penalty 1e12
+*
+OUTPUT
+displacz dsvm22_mumps_displacz.dat  1 NG 1
+displacz dsvm22_mumps_displacz_2.dat  1 NG 2
+stresszz dsvm22_mumps_displacz_3.dat  1 NG 1
+stresszz dsvm22_mumps_displacz_4.dat  1 NG 2
+*
+INCLUDE ../dsvm22.include
+*
+INCLUDE ../dsvm22.contact1
+*
+END

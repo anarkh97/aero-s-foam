@@ -8,4 +8,3 @@ SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/acme-2.9/lib;/home/pavery/Codes/Z
 #SET(CMAKE_LIBRARY_PATH /home/pavery/Codes/Acme/myacme-1.3a/lib)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")
-SET(ACME_VERSION "2_9")

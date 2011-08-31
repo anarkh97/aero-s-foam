@@ -1,0 +1,15 @@
+CONTROL
+dsvm31_pcg_stressvm
+1
+"nodeset"
+"elemset"
+*
+STATICS
+pcg
+*
+OUTPUT
+stressvm dsvm31_pcg_stressvm.dat 1
+*
+INCLUDE dsvm31.include
+*
+END

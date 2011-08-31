@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=1:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm27b
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_sparse_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_sparse_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_spooles_pivot_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_spooles_pivot_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_skyline_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_skyline_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_spooles_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_spooles_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_direct_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_direct_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_pcg_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_pcg_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_bcg_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_bcg_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm27b_cr_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm27b_cr_displacz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DP_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DP_displacz.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DPH_displacz.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DPH_displacz.inp

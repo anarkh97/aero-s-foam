@@ -17,10 +17,14 @@ def newBaseline(params):
   if(params[1] == 'ALL'):
     PROBLEM_NAMES=['statics','nlstatics','eigen','freqsweep','dynamics','nldynamics','impe','tempstatics','tempdynamics','tempnldynamics','tempnlstatics','test1','test11','test31']
   else:
-    PROBLEM_NAMES = [params[1]]
+    del params[0]
+    PROBLEM_NAMES = params
 
   os.system("cp ../.hg/*.cache baseline")
   for problem_type in PROBLEM_NAMES:
+    baselinepath = "baseline/"+problem_type
+    if(os.path.exists(baselinepath) == 0):
+      os.mkdir(baselinepath)
     command = "cp " + problem_type +"/* baseline/" + problem_type
     print "%s" % command
     os.system(command)

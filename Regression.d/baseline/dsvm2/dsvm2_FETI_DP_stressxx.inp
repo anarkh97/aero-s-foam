@@ -1,0 +1,15 @@
+CONTROL
+dsvm2_FETI_DP_stressxx
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DP
+*
+OUTPUT
+stressxx dsvm2_FETI_DP_stressxx.dat 1 NG 1
+*
+INCLUDE ../dsvm2.include
+*
+END

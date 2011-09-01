@@ -10,17 +10,17 @@
 ** Find the y directional Deformation Frequency Response of the system at 70 Hz on each of the vertices
 ** for the frequency range of 0 to 500 Hz using Pade Reconstruction. Use Solution intervals = 50.
 *
-IMPEDANCE
+*IMPEDANCE
 *freq 70
-freqsweep 0 500 11 50
-recons pade 2 4 5
+*freqsweep 0 500 11 50
+*recons pade 2 4 5
 *
-STATICS
-spooles pivot
+*STATICS
+*spooles pivot
 *
-OUTPUT
-displacy "displacy.vertexA" 1 38046
-displacy "displacy.vertexB" 1 37735
+*OUTPUT
+*displacy "displacy.vertexA" 1 38046
+*displacy "displacy.vertexB" 1 37735
 *
 NODES 
 1 0.00000000e+00 0.00000000e+00 -2.80000000e+02

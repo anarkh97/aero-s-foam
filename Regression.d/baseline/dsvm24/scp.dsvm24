@@ -9,14 +9,10 @@ echo mpirun -n 4 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp
 mpirun -n 4 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_pivot_displacz.inp
 mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_pivot_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_skyline_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_skyline_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_spooles_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_spooles_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_direct_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_direct_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm24_mumps_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm24_mumps_displacz.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_spooles_displacz.inp
+mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_spooles_displacz.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm24_pcg_displacz.inp
 mpirun -n 4 ../../bin/aeros  dsvm24_pcg_displacz.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_bcg_displacz.inp

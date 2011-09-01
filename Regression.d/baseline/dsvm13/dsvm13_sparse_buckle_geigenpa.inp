@@ -20,6 +20,6 @@ buckle
 OUTPUT
 geigenpa dsvm13_sparse_buckle_geigenpa.dat 1
 *
-INCLUDE dsvm13.include
+INCLUDE ../dsvm13.include
 *
 END

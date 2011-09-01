@@ -366,6 +366,10 @@ def buildInputs(params):
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
   
       if(problem_type == "nldynamics"):
+        STATICS = ["sparse","spooles","spooles pivot","pcg",\
+                   "FETI DP","FETI DPH"]
+        OUTPUT = ["gdisplac","stressvm","strainxx","strainxz",\
+                  "stressxx","stressxz","inzforce","axmoment",  "energies" ]
         EXTRAS = ["*","newmark\nmech\t0.25000\t0.5000\n*\ttime step\ttotal time","*","*","*","*","*"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,NONLINEAR,OUTPUT,INCLUDE]

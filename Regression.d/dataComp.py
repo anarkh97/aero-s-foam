@@ -39,7 +39,7 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
     print len(BASE)
     print len(COMP)
     outstring.append( "\tBaseline file length = %d, New file length = %d\n" %(len(BASE),len(COMP)))
-    SUMMARY_FILE.write(outstring)
+    SUMMARY_FILE.write(outstring[0])
     result = 1
     return result
    

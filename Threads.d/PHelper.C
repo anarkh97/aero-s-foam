@@ -758,9 +758,9 @@ TD _d, TE _e, TF _f, TG _g, TH _h, TI _i)
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI>
 void
-EightArgExecuter<TA,TB,TC,TD,TE,TF,TG,TH,TI>::runFor(int i)
+EightArgExecuter<TA,TB,TC,TD,TE,TF,TG,TH,TI>::runFor(int _i)
 {
-  (target->*fct)(i, b, c, d, e, f, g, h, i);
+  (target->*fct)(_i, b, c, d, e, f, g, h, i);
 }
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI>
@@ -770,10 +770,37 @@ void execParal8R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF&
  threadManager->execParal(n, &fe);
 }
 
-template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI>
-void execParal8R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF, TG, TH, TI), TB &b, TC &c, TD &d, TE &e, TF f, TG g, TH h, TI i)
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI, class TJ>
+class NineArgExecuter: public TaskDescr {
+    TA *target;
+    void (TA::*fct)(int, TB, TC, TD, TE, TF, TG, TH, TI, TJ);
+    TB b;
+    TC c;
+    TD d;
+    TE e;
+    TF f;
+    TG g;
+    TH h;
+    TI i;
+    TJ j;
+  public:
+    NineArgExecuter(TA *t, void (TA::*_fc)(int, TB, TC, TD, TE, TF, TG, TH, TI, TJ), TB _b, TC _c,
+TD _d, TE _e, TF _f, TG _g, TH _h, TI _i, TJ _j)
+     : target(t), b(_b), c(_c), d(_d), e(_e), f(_f), g(_g), h(_h), i(_i), j(_j) { fct = _fc; }
+    void runFor(int);
+};
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI, class TJ>
+void
+NineArgExecuter<TA,TB,TC,TD,TE,TF,TG,TH,TI,TJ>::runFor(int _i)
 {
- EightArgExecuter<TA,TB&,TC&,TD&,TE&,TF,TG,TH,TI> fe(target,fct, b, c, d, e, f, g, h, i);
+  (target->*fct)(_i, b, c, d, e, f, g, h, i, j);
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH, class TI, class TJ>
+void execParal9R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF, TG, TH, TI, TJ), TB &b, TC &c, TD &d, TE &e, TF f, TG g, TH h, TI i, TJ j)
+{
+ NineArgExecuter<TA,TB&,TC&,TD&,TE&,TF,TG,TH,TI,TJ> fe(target,fct, b, c, d, e, f, g, h, i, j);
  threadManager->execParal(n, &fe);
 }
 

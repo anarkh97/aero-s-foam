@@ -65,12 +65,12 @@ public:
                                 double delta, GeomState *refState, 
                                 GeomState *geomState, GenVector<double> *dummy1,
                                 GenVector<double> &dummy2, GenVector<double> &dummy3,
-                                GenVector<double> &dummy4, GenVector<double> &acceleration) {
+                                GenVector<double> &dummy4, GenVector<double> &acceleration, bool zeroRot) {
     pbd->saveStateSnapshot(*geomState);
 
     IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState>::midpointIntegrate(
         pbd, velN, delta, refState, geomState,
-        dummy1, dummy2, dummy3, dummy4, acceleration);
+        dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
   }
 };
 

@@ -677,7 +677,6 @@ void GeoSource::setUpData()
    else
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
-  eleprs.clear();
 
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
@@ -3801,12 +3800,10 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
 
 //----------------------------------------------------------------------
 
-int GeoSource::glToPackElem(int i)
+int GeoSource::glToPackElem(int i) const
 {
-  if(glToPckElems.find(i) != glToPckElems.end())
-    return glToPckElems[i];
-  else
-    return -1;
+  const std::map<int, int>::const_iterator it = glToPckElems.find(i);
+  return (it != glToPckElems.end()) ? it->second : -1;
 }
 
 //-----------------------------------------------------------------------

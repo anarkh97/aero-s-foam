@@ -1,7 +1,7 @@
 #include "MeshSamplingDriver.h"
 
 #include "RenumberingUtils.h"
-#include "MeshUtils.h"
+#include "MeshDesc.h"
 #include "VecBasisUtils.h"
 #include "GreedyUtils.h"
 #include "QrPseudoInversion.h"
@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <string>
 #include <cassert>
+#include <memory>
 
 extern GeoSource *geoSource;
 
@@ -67,9 +68,13 @@ MeshSamplingDriver::solve() {
                   domain_->solInfo().aspectRatioPodRom);
 
   // Determine mapping between full and reduced mesh
+  std::auto_ptr<Connectivity> elemToNode(new Connectivity(geoSource->getElemSet()));
+  std::auto_ptr<Connectivity> nodeToElem(elemToNode->reverse());
+  std::auto_ptr<Connectivity> nodeToNode(nodeToElem->transcon(elemToNode.get()));
+
   SampledMeshRenumbering meshRenumbering(sampleNodeIds.begin(), sampleNodeIds.end(),
-                                         *domain_->getNodeToNode(),
-                                         *domain_->getNodeToElem());
+                                         *nodeToNode, *nodeToElem);
+
   const NodalRestrictionMapping sampledMeshMapping(*domain_->getCDSA(),
                                                    meshRenumbering.sampleNodeIds().begin(),
                                                    meshRenumbering.sampleNodeIds().end());
@@ -84,7 +89,7 @@ MeshSamplingDriver::solve() {
   buildCombinedRestrictedProjection(sampledMeshMapping, residualPod, jacobianPod, residualProjection);
 
   // Assemble and output reduced mesh
-  const MeshDesc reducedMesh(domain_, geoSource->getStructProps(), geoSource->getAttributes(), meshRenumbering);
+  const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering);
   outputMeshFile(fileInfo, reducedMesh);
  
   // Output sampled jacobian & residual POD bases

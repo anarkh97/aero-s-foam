@@ -134,6 +134,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int    getMaxit();
     double getDeltaLambda();
 
+    bool getZeroRot() const;
+
     void getConstForce(Vector& constantForce);
 
     void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,

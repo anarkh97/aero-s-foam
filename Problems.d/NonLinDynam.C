@@ -578,6 +578,11 @@ NonLinDynamic::getDeltaLambda()
  return domain->solInfo().getNLInfo().dlambda;
 }
 
+bool
+NonLinDynamic::getZeroRot() const {
+  return domain->solInfo().zeroRot;
+}
+
 void
 NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, double t, 
                                 GeomState* geomState, Vector& elemNonConForce, 

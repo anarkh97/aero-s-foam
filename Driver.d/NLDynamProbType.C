@@ -242,7 +242,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
-                                   elementInternalForce, totalRes, acceleration); // note: stateIncr is not used in this function except for the TotalUpdater
+                                   elementInternalForce, totalRes, acceleration,
+                                   domain->solInfo().zeroRot);
     if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
 
     // Output results at current time

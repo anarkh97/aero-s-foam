@@ -65,20 +65,20 @@ DistrGeomState::subSetVelocity(int isub, DistrVector &d, DistrVector &v, DistrVe
 void
 DistrGeomState::subStep_update(int isub, DistrVector &v_n, DistrVector &a_n, 
                                double &delta, DistrGeomState &ss,
-                               double beta, double gamma, double alphaf, double alpham)
+                               double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
  StackVector vel(v_n.subData(isub),v_n.subLen(isub));
  StackVector acc(a_n.subData(isub),a_n.subLen(isub));
  GeomState &step = *ss[isub];
- gs[isub]->midpoint_step_update(vel,acc,delta,step,beta,gamma,alphaf,alpham);
+ gs[isub]->midpoint_step_update(vel,acc,delta,step,beta,gamma,alphaf,alpham,zeroRot);
 }
 
 void
 DistrGeomState::midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n,
                                      double &delta, DistrGeomState &ss,
-                                     double beta, double gamma, double alphaf, double alpham)
+                                     double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
- execParal8R(numSub,this,&DistrGeomState::subStep_update,veloc_n,accel_n,delta,ss,beta,gamma,alphaf,alpham);
+ execParal9R(numSub,this,&DistrGeomState::subStep_update,veloc_n,accel_n,delta,ss,beta,gamma,alphaf,alpham,zeroRot);
 }
 
 void

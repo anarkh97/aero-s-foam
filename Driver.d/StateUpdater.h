@@ -31,10 +31,11 @@ public:
                   VecType &velN, double delta, GeomType *refState, 
                   GeomType *geomState,
 		  StateIncr *, VecType &, 
-		  VecType &, VecType &, VecType &acceleration) {
+		  VecType &, VecType &, VecType &acceleration, bool zeroRot) {
      double beta, gamma, alphaf, alpham;
      pbd->getNewmarkParameters(beta, gamma, alphaf, alpham);
-     geomState->midpoint_step_update(velN, acceleration, delta, *refState, beta, gamma, alphaf, alpham);
+     geomState->midpoint_step_update(velN, acceleration, delta, *refState, beta, gamma, alphaf, alpham,
+                                     zeroRot);
   }
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 
@@ -101,7 +102,7 @@ public:
 
   static void midpointIntegrate(ProbDescr *pbd, VecType &vel_n, double delta,
     GeomType *stepState, GeomType *geomState, StateIncr *, VecType &,
-    VecType &, VecType &, VecType &accel) {
+    VecType &, VecType &, VecType &accel, bool) {
     geomState->midpoint_step_update(delta, *stepState);
   }
 
@@ -158,7 +159,7 @@ public:
                   VecType &velN, double delta, RefState *sn, 
                   GeomType *snp,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &totalRes, VecType &acceleration) {
+		  VecType &elementInternalForce, VecType &totalRes, VecType &acceleration, bool) {
      snp->midpoint_step_update(velN, delta, *sn, acceleration);
      
      pbd->integrate(*sn, *snp, *du, residual, 

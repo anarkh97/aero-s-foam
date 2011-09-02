@@ -420,7 +420,7 @@ GeomState::setVelocity(const Vector &d, const Vector &v, const Vector &a)
 
 void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss,
-                                double beta, double gamma, double alphaf, double alpham)
+                                double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
 /*
  // note: delta = dt/2
@@ -478,16 +478,23 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     }
 
     // Update rotational velocities and accelerations
-    if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
-      double dtheta[3], dR[3][3];
-      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
-      mat_to_vec(dR, dtheta);
-      for(int j = 0; j < 3; ++j) {
-        if(loc[i][3+j] >= 0) {
-          double v_n = vel_n[loc[i][3+j]];
-          double a_n = acc_n[loc[i][3+j]];
-          vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
-          acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
+    // Currently we don't update rotational velocity and acceleration when zeroRot is true
+    // because the global mass and damping matrices do not have the rotational blocks correctly
+    // set to zero. The element mass and damping matrices do have the rotational blocks set to
+    // zero but this is done AFTER the global mass and damping matrices are assembled.
+    // For now, if you want to output the rotational velocity and/or acceleration use "zero off" under DYNAMIC
+    if(!zeroRot) {
+      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+        double dtheta[3], dR[3][3];
+        mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
+        mat_to_vec(dR, dtheta);
+        for(int j = 0; j < 3; ++j) {
+          if(loc[i][3+j] >= 0) {
+            double v_n = vel_n[loc[i][3+j]];
+            double a_n = acc_n[loc[i][3+j]];
+            vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
+            acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
+          }
         }
       }
     }

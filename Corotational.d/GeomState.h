@@ -89,8 +89,9 @@ class GeomState {
                                        ControlLawInfo* claw,
                                        CoordSet &cs );
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
-                                       double beta, double gamma, double alphaf, double alpham);
-     virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot = true);
+                                       double beta, double gamma, double alphaf, double alpham,
+                                       bool zeroRot);
+     virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot);
      virtual void get_tot_displacement(Vector &totVec);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);

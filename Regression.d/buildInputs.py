@@ -263,8 +263,7 @@ def buildInputs(params):
         IMPE =    ["freqsweep 0 500 11 50\nrecons pade 2 4 5"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["spooles pivot","sparse","mumps pivot",\
-                   "mumps","spooles","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "mumps","spooles","FETI DP","FETI DPH"]
         INCLUDE = ["../dsvm15.include"]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]
         EXTRAS = ["*","*","*","*"]

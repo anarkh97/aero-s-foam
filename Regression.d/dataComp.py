@@ -148,7 +148,8 @@ def dComp(params):
     PROBLEM_NAMES=['statics','nlstatics','eigen','dynamics','nldynamics',\
                    'freqsweep','impe','tempstatics','tempnlstatics',\
                    'tempdynamics','tempnldynamics','dsvm1','dsvm11','dsvm31',
-                   'dsvm2','dsvm13','dsvm15']
+                   'dsvm2','dsvm13','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
+                   'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30']
     for names in PROBLEM_NAMES:
       indir = names+"/"
       os.chdir(indir)

@@ -28,3 +28,4 @@ SET(EXTRALIB -lgfortran CACHE STRING "Extra MPI link parameters")
 #                 CACHE STRING "Extra MPI link parameters")
 #
 #SET(BLA_VENDOR Intel10_64lp)
+SET(ACME_VERSION "2_9")

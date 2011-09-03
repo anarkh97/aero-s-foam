@@ -8,7 +8,7 @@ RigidSolid::RigidSolid(int _nnodes, int* _nn)
     cerr << " *** ERROR: minimum number of nodes is 3 for rigid solid. Exiting...\n";
     exit(-1);
   }
-  nnodes = nnodes;
+  nnodes = _nnodes;
   nn = new int[nnodes];
   for(int i = 0; i < nnodes; ++i) nn[i] = _nn[i];
 }
@@ -67,7 +67,7 @@ RigidSolid::buildFrame(CoordSet& cs)
 
   // Restraining the rest of the nodes
   for(int i = 0; i < nnodes; ++i) {
-    if(nn[i] == best[0] || nn[i] == best[1] || nn[i] == best[2]) continue;
+    if(i == best[0] || i == best[1] || i == best[2]) continue;
     for(int j = 0; j < 3; ++j) {
       int indices[2] = { i, best[j] };
       subElems[index++] = new ConstantDistanceConstraint(indices);

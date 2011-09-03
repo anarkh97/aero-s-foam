@@ -143,7 +143,7 @@ NlDynamTimeIntegrator::integrate(int steps) {
       residual_ = externalForce_;
       probDesc_->getStiffAndForce(*geomState_, residual_, elementInternalForce_, midTime_); // Update elementary tangential stiffness & residual force (force imbalance) at equilibrium time
       probDesc_->reBuild(*geomState_, iter, localDelta_); // Assemble and factor Mdyn
-      geomState_->get_inc_displacement(incDisplac_, *stepState_); // Compute incremental displacement
+      geomState_->get_inc_displacement(incDisplac_, *stepState_, probDesc()->getZeroRot()); // Compute incremental displacement
       lastResNorm = probDesc_->formRHScorrector(incDisplac_, velocity_n, acceleration_, residual_, rhs_, localDelta_); // Assemble residual (in rhs) 
       if (iter == 0) {
         initialResNorm = lastResNorm;
@@ -167,7 +167,7 @@ NlDynamTimeIntegrator::integrate(int steps) {
 
     // Update internal state
     previousVelocity_ = velocity_n;
-    geomState_->midpoint_step_update(velocity_n, acceleration_, localDelta_, *stepState_, beta_, gamma_, alphaf_, alpham_);
+    geomState_->midpoint_step_update(velocity_n, acceleration_, localDelta_, *stepState_, beta_, gamma_, alphaf_, alpham_, probDesc()->getZeroRot());
     acceleration_.linC(-(1-gamma_)/gamma_, acceleration_, -1/(localDt_*gamma_), previousVelocity_, 1/(localDt_*gamma_), velocity_n);
 
     // Update attributes 

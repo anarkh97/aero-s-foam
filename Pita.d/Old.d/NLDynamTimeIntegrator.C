@@ -92,7 +92,7 @@ NLDynamTimeIntegrator::integrate(int numSteps)
       residual = external_force;
       probDesc.getStiffAndForce(*geomState, residual, elementInternalForce, midTime); // Update elementary matrices & residual force
       probDesc.reBuild(*geomState, iter, localDelta); // Assemble [Kt] and factor ([M] + delta^2 * [Kt])
-      geomState->get_inc_displacement(inc_displac, *stepState); // Compute incremental displacement
+      geomState->get_inc_displacement(inc_displac, *stepState, probDesc.getZeroRot()); // Compute incremental displacement
       resN = probDesc.formRHScorrector(inc_displac, velocity, acceleration, residual, rhs, localDelta); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
       if (iter == 0)
       {
@@ -118,7 +118,7 @@ NLDynamTimeIntegrator::integrate(int numSteps)
       fprintf(stderr," *** WARNING: Newton solver did not reach convergence after %d iterations (res = %e, target = %e)\n", maxNumIter, currentRes, probDesc.getTolerance());
     }
 
-    geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState, beta, gamma, alphaf, alpham);
+    geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState, beta, gamma, alphaf, alpham, probDesc.getZeroRot());
 
     postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, currStep, external_force, aeroForce, acceleration);
   }

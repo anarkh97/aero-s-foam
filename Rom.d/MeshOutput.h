@@ -5,9 +5,15 @@
 #include <Driver.d/EFrameData.h>
 #include <Element.d/Element.h>
 
+class NLMaterial;
+class ExpMat;
+
 #include <ostream>
 #include <iterator>
 #include <string>
+#include <sstream>
+#include <utility>
+#include <stdexcept>
 
 namespace Rom {
 
@@ -33,9 +39,13 @@ operator<<(std::ostream &, const BCond &);
 std::ostream &
 operator<<(std::ostream &, const EFrameData &);
 
+std::ostream &
+operator<<(std::ostream &, const ExpMat &);
+
 // Sections from atoms
 
-template <typename ValueType, typename TagType> struct InputFileSectionHelper {
+template <typename ValueType, typename TagType>
+struct InputFileSectionHelper {
   static const std::string &header(TagType);
   static ValueType transformation(const ValueType &v) { return v; }
 };
@@ -74,6 +84,7 @@ operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &so
   return out;
 }
 
+
 struct EmptyTag {};
 
 struct SampleNodeTag {};
@@ -84,6 +95,37 @@ int
 InputFileSectionHelper<int, SampleNodeTag>::transformation(const int &v) {
   return v + 1;
 }
+
+template <typename TagType>
+struct InputFileSectionHelper<std::pair<const int, typename TagType::SecondType>, TagType> {
+  typedef std::pair<const int, typename TagType::SecondType> ValueType;
+  static const std::string &header(TagType);
+  static std::string transformation(const ValueType &);
+};
+
+template <typename TagType>
+std::string
+InputFileSectionHelper<std::pair<const int, typename TagType::SecondType>, TagType>::transformation(const ValueType &p) {
+  std::ostringstream result;
+  result << p.first + 1 << " " << TagType::valueTransformation(p.second);
+  return result.str();
+}
+
+struct ElementPressureTag {
+  typedef double SecondType;
+  static double valueTransformation(double x) { return x; }
+};
+
+struct MatUsageTag {
+  typedef int SecondType;
+  static int valueTransformation(int i) { return i + 1; }
+};
+
+struct MatLawTag {
+  typedef NLMaterial* SecondType;
+  static const ExpMat &valueTransformation(const NLMaterial *);
+};
+
 
 // Convenience functions
 

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <list>
 #include <vector>
+#include <map>
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
@@ -142,7 +143,7 @@ class GeoSource {
   int phantomFlag;
 
   int *elemTypeNumNodesMap;
-  map<int, int> glToPckElems;  // glElemNum  -> packedElem Num
+  std::map<int, int> glToPckElems;  // glElemNum  -> packedElem Num
 
   // Match Data
   int *numMatchData;
@@ -181,7 +182,8 @@ class GeoSource {
   int prsflg;
   int prlflg;
   int constpflg, constqflg; // consistent pressure and gravity
-  vector<pair<int,double> > eleprs;
+  typedef std::vector<pair<int,double> > ElemPressureContainer;
+  ElemPressureContainer eleprs;
 
   // Connectivities
   Connectivity *clusToSub;
@@ -415,7 +417,7 @@ public:
   int  totalNumNodes() { return numNodes + numInternalNodes; }
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
-  int  glToPackElem(int i);
+  int  glToPackElem(int i) const;
   Connectivity *getClusToSub()  { return clusToSub; }
   Connectivity *getSubToClus()  { return subToClus; }
   Connectivity *getSubToSub()  { return subToSub; }
@@ -424,13 +426,16 @@ public:
   Connectivity *getSubToNode()  { return subToNode; }
 
   LayInfo *getLayerInfo(int num)  { return layInfo[num]; }
-  SPropContainer &getStructProps()  { return sProps; }
+  SPropContainer &getStructProps() { return sProps; }
+  const std::map<int, NLMaterial *> &getMaterialLaws() const { return materials; }
+  const std::map<int, int> &getMaterialLawMapping() const { return matUsage; }
   EFrameData *getEframes()  { return efd+0; }
   double **getCframes()  { return cframes+0; }
   LayInfo **getLayInfo() { return layInfo+0; }
   int getNumLayInfo() { return numLayInfo; }
   int getNumEframes() { return numEframes; }
   int getNumCframes() { return numCframes; }
+  const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
   int preloadFlag() { return prlflg; }
   int consistentPFlag() { return constpflg; }

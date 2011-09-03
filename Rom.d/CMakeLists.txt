@@ -13,7 +13,7 @@ ADD_LIBRARY( Rom
   NodalRestrictionMapping.C
   MeshOutput.C
   MeshSamplingDriver.C
-  MeshUtils.C
+  MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
   SnapshotNonLinDynamic.C

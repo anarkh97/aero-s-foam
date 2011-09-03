@@ -49,12 +49,12 @@ SampledMeshRenumbering::SampledMeshRenumbering(IdxInIt firstSample,
   init(nodeToNode, nodeToElem);
 }
 
-
+// Precondition: The range [first, last] must not contain duplicate elements
 template <typename InputIterator, typename OutputIterator>
 OutputIterator
 inverse_numbering(InputIterator first, InputIterator last,
-                  OutputIterator result, int firstIndex = 0) {
-  int index = firstIndex;
+                  OutputIterator result) {
+  int index = 0;
 
   for (InputIterator it = first; it != last; ++it) {
     *result++ = std::pair<const int, int>(*it, index++);

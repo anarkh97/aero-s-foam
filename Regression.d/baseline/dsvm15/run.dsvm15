@@ -4,14 +4,10 @@ echo ../../bin/aeros  dsvm15_sparse_displacy.inp
 ../../bin/aeros  dsvm15_sparse_displacy.inp
 echo ../../bin/aeros  dsvm15_mumps_pivot_displacy.inp
 ../../bin/aeros  dsvm15_mumps_pivot_displacy.inp
-echo ../../bin/aeros  dsvm15_skyline_displacy.inp
-../../bin/aeros  dsvm15_skyline_displacy.inp
 echo ../../bin/aeros  dsvm15_mumps_displacy.inp
 ../../bin/aeros  dsvm15_mumps_displacy.inp
 echo ../../bin/aeros  dsvm15_spooles_displacy.inp
 ../../bin/aeros  dsvm15_spooles_displacy.inp
-echo ../../bin/aeros  dsvm15_direct_displacy.inp
-../../bin/aeros  dsvm15_direct_displacy.inp
 echo ../../bin/aeros  dsvm15_pcg_displacy.inp
 ../../bin/aeros  dsvm15_pcg_displacy.inp
 echo ../../bin/aeros  dsvm15_bcg_displacy.inp

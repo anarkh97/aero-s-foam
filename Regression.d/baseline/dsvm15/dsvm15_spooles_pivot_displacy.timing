@@ -13,11 +13,11 @@
 
 4. Number of Applied Loads                 =            276
 
-5. Number of Output Files                  =              4
+5. Number of Output Files                  =              2
 
 6. Renumbering                             =           None
 
-7. Number of Frequencies                   =           1002
+7. Number of Frequencies                   =            501
 
 8. Number of RHS solves                   =              5
 
@@ -31,40 +31,40 @@
  ... Timing Statistics for 1 Thread  ...
 ***********************************************************
 
-1. Total Read Input Files              time:        0.59599 s       11.053 Mb
-         Read Mesh                     time:        0.59599 s
+1. Total Read Input Files              time:        0.59675 s       11.053 Mb
+         Read Mesh                     time:        0.59675 s
 
-2. Total Preprocessing                 time:        0.12297 s       14.606 Mb
-         Process Input Data            time:        0.03731 s 
-         Connectivity                  time:        0.09986 s 
-         Renumbering                   time:        0.96403 s 
-         Create DOFs                   time:        0.11603 s 
-         Make Constrained DOFs         time:        0.02750 s 
-         Make Boundary Conditions      time:        0.00109 s 
+2. Total Preprocessing                 time:        0.13417 s       14.606 Mb
+         Process Input Data            time:        0.03921 s 
+         Connectivity                  time:        0.06151 s 
+         Renumbering                   time:        0.47411 s 
+         Create DOFs                   time:        0.06707 s 
+         Make Constrained DOFs         time:        0.03170 s 
+         Make Boundary Conditions      time:        0.00140 s 
 
-3. Total Matrix Processing             time:       44.51866 s        2.105 Mb
-         Form Element Matrices         time:       18.60593 s
-         Assemble Element Matrices     time:       25.91272 s
+3. Total Matrix Processing             time:       22.13667 s        1.053 Mb
+         Form Element Matrices         time:        9.44580 s
+         Assemble Element Matrices     time:       12.69087 s
 
 
-4. Total RHS Processing                time:        0.11137 s        6.220 Mb
+4. Total RHS Processing                time:        0.18926 s        6.220 Mb
 
-5. Total Solver                        time:      518.88891 s    11528.387 Mb
-         Factor Matrix                 time:      518.88891 s 
+5. Total Solver                        time:      269.35706 s     5764.193 Mb
+         Factor Matrix                 time:      269.35706 s 
          Solve (Forward/Backward)      time:        0.00000 s 
          Freq Sweep Series Expansion   time:        0.00000 s 
 
-6. Write Output Files                  time:       21.18231 s     4361.244 Mb
+6. Write Output Files                  time:        9.75077 s     1886.230 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:      585.42021 s    15922.158 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:      302.16468 s     7681.898 Mb
 
 ***********************************************************
  ... Solution Information ...
 ***********************************************************
 
-1. Total Amount of Requested Memory        =      17597.219 Mb
+1. Total Amount of Requested Memory        =       8569.073 Mb
 
-2. Solver Amount of Requested Memory       =      11528.387 Mb
+2. Solver Amount of Requested Memory       =       5764.193 Mb
 
 ***********************************************************
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=1:00:00
+#PBS -l nodes=1:ppn=8,walltime=3:00:00
 
 cd /lustre/home/mpotts/FEM/Regression.d/dsvm15
 echo mpirun -n 4 ../../bin/aeros  dsvm15_spooles_pivot_displacy.inp
@@ -9,14 +9,10 @@ echo mpirun -n 4 ../../bin/aeros  dsvm15_sparse_displacy.inp
 mpirun -n 4 ../../bin/aeros  dsvm15_sparse_displacy.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm15_mumps_pivot_displacy.inp
 mpirun -n 4 ../../bin/aeros  dsvm15_mumps_pivot_displacy.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm15_skyline_displacy.inp
-mpirun -n 4 ../../bin/aeros  dsvm15_skyline_displacy.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm15_mumps_displacy.inp
 mpirun -n 4 ../../bin/aeros  dsvm15_mumps_displacy.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm15_spooles_displacy.inp
 mpirun -n 4 ../../bin/aeros  dsvm15_spooles_displacy.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm15_direct_displacy.inp
-mpirun -n 4 ../../bin/aeros  dsvm15_direct_displacy.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm15_pcg_displacy.inp
 mpirun -n 4 ../../bin/aeros  dsvm15_pcg_displacy.inp
 echo mpirun -n 4 ../../bin/aeros  dsvm15_bcg_displacy.inp

@@ -3,6 +3,8 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
+#include <cstddef>
+
 class ExpMat : public NLMaterial
 {
   public:
@@ -43,7 +45,7 @@ class ExpMat : public NLMaterial
     double getDensity() { return ematpro[2]; } 
 
     StrainEvaluator * getStrainEvaluator()
-      { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; }
+      { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; return NULL; }
 };
 
 #endif

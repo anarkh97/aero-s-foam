@@ -1,11 +1,11 @@
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/StrainEvaluator.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
-//#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
-#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <limits>
-
+#include <cstddef>
 
 template<int e>
 ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
@@ -197,11 +197,10 @@ template<int e>
 StrainEvaluator *
 ElasPlasKinHardMat<e>::getStrainEvaluator()
 {
-  //return &linearStrain;
-  //return &greenLagrangeStrain;
   switch(e) {
     case 0: return &linearStrain; break;
     case 1: return &greenLagrangeStrain; break;
   }
+  return NULL;
 } 
 

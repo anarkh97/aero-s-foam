@@ -31,6 +31,9 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
     BASE.sort()
     COMP.sort()
   MaxDiff = 0.0
+  RelDiff = 0.0
+  TotDiff = 0.0
+  nSample = 0
   MaxDiffLine = -1
   MaxDiffLoc = -1
   MaxDiffVals = (-1,-1)
@@ -59,6 +62,11 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
         for j in range(len(basewords)):
           if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
             diff = float(basewords[j]) - float(compwords[j])
+            TotDiff = math.fabs(diff) + TotDiff
+            nSample = nSample + 1
+            if((0.5*(float(basewords[j]) + float(compwords[j])))!= 0.0):
+              if(MaxDiff/(0.5*(float(basewords[j]) + float(compwords[j])))> RelDiff):
+                RelDiff = MaxDiff/(0.5*(float(basewords[j]) + float(compwords[j])))
             if(math.fabs(diff) >= MaxDiff):
               MaxDiff = math.fabs(diff)
               MaxDiffLine = i
@@ -66,14 +74,16 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
               MaxDiffVals = (basewords[j],compwords[j])
 
 
-# print bcolors.OKBLUE + "\t\t\t\tMax diff is %e on line %d at location %d" %(MaxDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC
-  outstring.append( "\tMax diff is %e on line %d at location %d\n" %(MaxDiff,MaxDiffLine,MaxDiffLoc))
+#  print bcolors.OKBLUE + "\t\t\t\tRel diff is %e on line %d at location %d" %(RelDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC
+  outstring.append( "\tRel diff is %e on line %d at location %d\n" %(RelDiff,MaxDiffLine,MaxDiffLoc))
 # SUMMARY_FILE.write(outstring[0])
 
-# print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (MaxDiffVals,) + bcolors.ENDC
+#  print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (MaxDiffVals,) + bcolors.ENDC
   outstring.append( "\tvals were %s \n" % (MaxDiffVals,))
 # SUMMARY_FILE.write(outstring[0])
-  if(MaxDiff > 1.0e-8):
+  if((MaxDiff > 1.0e-8)&(RelDiff > 1.0e-3)):
+#   TotDiff = TotDiff/nSample
+#   print "Average Difference = %e %e %d \n" % (TotDiff,TotDiff/nSample,nSample)
     result = 1
   else:
     result = 0

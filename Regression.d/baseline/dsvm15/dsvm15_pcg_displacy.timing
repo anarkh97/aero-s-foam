@@ -33,32 +33,32 @@
  ... Timing Statistics for 1 Thread  ...
 ***********************************************************
 
-1. Total Read Input Files              time:        0.44214 s       11.053 Mb
-         Read Mesh                     time:        0.44214 s
+1. Total Read Input Files              time:        0.46261 s       11.053 Mb
+         Read Mesh                     time:        0.46261 s
 
-2. Total Preprocessing                 time:        0.13326 s       14.606 Mb
-         Process Input Data            time:        0.03889 s 
-         Connectivity                  time:        0.08571 s 
-         Renumbering                   time:        0.53143 s 
-         Create DOFs                   time:        0.08308 s 
-         Make Constrained DOFs         time:        0.03140 s 
-         Make Boundary Conditions      time:        0.00135 s 
+2. Total Preprocessing                 time:        0.12900 s       14.606 Mb
+         Process Input Data            time:        0.03953 s 
+         Connectivity                  time:        0.09037 s 
+         Renumbering                   time:        0.51876 s 
+         Create DOFs                   time:        0.08058 s 
+         Make Constrained DOFs         time:        0.02972 s 
+         Make Boundary Conditions      time:        0.00114 s 
 
-3. Total Matrix Processing             time:       22.47657 s        1.053 Mb
-         Form Element Matrices         time:        9.43007 s
-         Assemble Element Matrices     time:       13.04651 s
+3. Total Matrix Processing             time:       22.39861 s        1.053 Mb
+         Form Element Matrices         time:        9.46093 s
+         Assemble Element Matrices     time:       12.93768 s
 
 
-4. Total RHS Processing                time:        0.20718 s        6.220 Mb
+4. Total RHS Processing                time:        0.19642 s        6.220 Mb
 
-5. Total Solver                        time:      391.92660 s      553.738 Mb
+5. Total Solver                        time:      377.10870 s      553.738 Mb
          Factor Matrix                 time:        0.00002 s 
-         Solve (Forward/Backward)      time:      391.92658 s 
+         Solve (Forward/Backward)      time:      377.10868 s 
          Freq Sweep Series Expansion   time:        0.00000 s 
 
-6. Write Output Files                  time:        9.98611 s     1886.230 Mb
+6. Write Output Files                  time:       10.19069 s     1886.230 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:      425.17186 s     2471.443 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:      410.48603 s     2471.443 Mb
 
 ***********************************************************
  ... Solution Information ...

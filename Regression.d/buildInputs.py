@@ -63,7 +63,7 @@ def buildInputs(params):
                      'tempnlstatics','dsvm1','dsvm11','dsvm31','dsvm13',\
                      'dsvm2','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
                      'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
-                     'dsvm31','dsvm32','dsvm34','dsvm35','dsvm37','dsvm38',\
+                     'dsvm31','dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38',\
                      'dsvm39','dsvm40']
     else:
       PROBLEM_NAMES = [params[1]]
@@ -118,6 +118,111 @@ def buildInputs(params):
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-6"]
 
       SHIFT = ["0","10","100","1000"]
+
+      if(problem_type == "dsvm40"):
+        OUTPUT = ["displacy"]
+        OUTPUT_EXTRAS = [" 1 2"]
+        FORCES = ["2 2 -1000\n3 2 -1000","2 2 -1000\n3 2 1000"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","FORCES\n","INCLUDE "]
+        STATICS = ["sparse","mumps","skyline","gmres",\
+                 "direct","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,FORCES,INCLUDE]
+        EXTRAS = ["*","*","*","*"]
+
+      if(problem_type == "dsvm39"):
+        OUTPUT = ["displacx"]
+        OUTPUT2 = ["displacx"]
+        OUTPUT_EXTRAS = [" 10 371"," 10 1100"]
+        NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        DYNAMICS = ["time\t0.0\t5.0e-3\t3.0"]
+        STATICS = ["sparse","mumps","spooles",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","newmark\nmech 0.5 0.0 0.0\n*","*","*"]
+
+      if(problem_type == "dsvm38"):
+        OUTPUT = ["gvelocit"]
+        OUTPUT2 = ["gvelocit"]
+        OUTPUT_EXTRAS = [" 1 18"," 1 586"]
+        NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        DYNAMICS = ["time\t0.0\t0.5e-5\t1.0"]
+        STATICS = ["sparse","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","newmark\nmech 0.8\n*","*","*"]
+
+      if(problem_type == "dsvm37"):
+        OUTPUT = ["gtempera"]
+        OUTPUT_EXTRAS = ["1 42619"]
+        NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        DYNAMICS = ["time\t21.6\t0\t21600"]
+        STATICS = ["sparse","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","newmark\nheat 0.5\n*","*","*"]
+
+      if(problem_type == "dsvm35b"):
+        OUTPUT = ["strainp1"]
+        OUTPUT2 = ["displacz","stresszz"]
+        OUTPUT_EXTRAS = [" 1"," 1"," 1"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","*","*","*"]
+
+      if(problem_type == "dsvm35a"):
+        OUTPUT = ["gtempera"]
+        OUTPUT2 = ["gtempera"]
+        OUTPUT_EXTRAS = ["1 NG 1","1 NG 4"]
+        NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        NONLINEAR = ["maxitr 100\nnltol 1.0e-10\nrebuild 1"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
+        EXTRAS = ["*\nTRBM\n1e-8\n*","*","*","*"]
+
+      if(problem_type == "dsvm34"):
+        OUTPUT = ["displmod"]
+        OUTPUT_EXTRAS = [" 200"]
+        NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","spooles","spooles pivot"]
+        NONLINEAR = ["maxitr 20\nnltol 1.0e-6\ndlambda 0.005\t 1.0"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
+        EXTRAS = ["constraints multipliers\n*","*","*","*"]
+
+      if(problem_type == "dsvm32"):
+        OUTPUT = ["gtempera"]
+        OUTPUT2 = ["gtempera"]
+        OUTPUT_EXTRAS = ["1 NG 2","1 NG 2"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP","FETI DPH"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","*","*","*"]
 
       if(problem_type == "dsvm30"):
         OUTPUT = ["displmod"]

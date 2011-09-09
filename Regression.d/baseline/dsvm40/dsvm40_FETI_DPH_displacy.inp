@@ -1,0 +1,19 @@
+CONTROL
+dsvm40_FETI_DPH_displacy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+FETI DPH
+*
+OUTPUT
+displacy dsvm40_FETI_DPH_displacy.dat  1 2
+*
+FORCES
+2 2 -1000
+3 2 -1000
+*
+INCLUDE ../dsvm40.include
+*
+END

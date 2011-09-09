@@ -1,0 +1,16 @@
+CONTROL
+dsvm32_gmres_gtempera
+2
+"nodeset"
+"elemset"
+*
+STATICS
+gmres
+*
+OUTPUT
+gtempera dsvm32_gmres_gtempera.dat 1 NG 2
+gtempera dsvm32_gmres_gtempera_2.dat 1 NG 2
+*
+INCLUDE ../dsvm32.include
+*
+END

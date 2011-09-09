@@ -1,0 +1,19 @@
+CONTROL
+dsvm40_cr_displacy
+1
+"nodeset"
+"elemset"
+*
+STATICS
+cr
+*
+OUTPUT
+displacy dsvm40_cr_displacy.dat  1 2
+*
+FORCES
+2 2 -1000
+3 2 -1000
+*
+INCLUDE ../dsvm40.include
+*
+END

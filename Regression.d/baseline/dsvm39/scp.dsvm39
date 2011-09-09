@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -N test
+#PBS -l nodes=1:ppn=8,walltime=3:00:00
+
+cd /lustre/home/mpotts/FEM/Regression.d/dsvm39
+echo mpirun -n 4 ../../bin/aeros  dsvm39_sparse_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_sparse_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_mumps_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_mumps_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_spooles_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_spooles_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_gmres_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_gmres_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_pcg_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_pcg_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_bcg_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_bcg_displacx.inp
+echo mpirun -n 4 ../../bin/aeros  dsvm39_cr_displacx.inp
+mpirun -n 4 ../../bin/aeros  dsvm39_cr_displacx.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
+echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp
+mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp

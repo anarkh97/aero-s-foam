@@ -159,7 +159,9 @@ def dComp(params):
                    'freqsweep','impe','tempstatics','tempnlstatics',\
                    'tempdynamics','tempnldynamics','dsvm1','dsvm11','dsvm31',
                    'dsvm2','dsvm13','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
-                   'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30']
+                   'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
+                   'dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38','dsvm39',\
+                   'dsvm40']
     for names in PROBLEM_NAMES:
       indir = names+"/"
       os.chdir(indir)
@@ -234,12 +236,14 @@ def dComp(params):
          SUMMARY_FILE.write(outstring)
          SUMMARY_FILE.write(compstring[0])
        else:
+         exactMatches += 1
          print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
          print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
          outstring = "\tclose match " + file + "\n"
          SUMMARY_FILE.write(outstring)
          SUMMARY_FILE.write(compstring[0])
-  outstring = "%d exact matches found out of %d total cases\n" %(exactMatches,Total)
+  outstring = "%s--%d matches found out of %d total cases\n" %(indir,exactMatches,Total)
+  print outstring
   SUMMARY_FILE.write(outstring)
   now = datetime.datetime.now()
   time = now.time()

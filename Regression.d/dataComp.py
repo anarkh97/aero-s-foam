@@ -152,16 +152,24 @@ def dComp(params):
     lrun = 0 
 
   files = [] 
-  if(params[1] == 'ALL'):
-    del params[0:1]
-    
-    PROBLEM_NAMES=['statics','nlstatics','eigen','dynamics','nldynamics',\
+  if((params[1] == 'ALL')|(params[1] == 'short')):
+     
+    if(params[1] == 'ALL'):
+      PROBLEM_NAMES=['statics','nlstatics','eigen','dynamics','nldynamics',\
                    'freqsweep','impe','tempstatics','tempnlstatics',\
                    'tempdynamics','tempnldynamics','dsvm1','dsvm11','dsvm31',
                    'dsvm2','dsvm13','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
                    'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
                    'dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38','dsvm39',\
                    'dsvm40']
+    else:
+      PROBLEM_NAMES=['nlstatics','freqsweep','impe','tempstatics','tempnlstatics',\
+                   'tempdynamics','tempnldynamics','dsvm1','dsvm31',
+                   'dsvm20','dsvm21','dsvm22',\
+                   'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm30',\
+                   'dsvm35b','dsvm40']
+    del params[0:1]
+
     for names in PROBLEM_NAMES:
       indir = names+"/"
       os.chdir(indir)

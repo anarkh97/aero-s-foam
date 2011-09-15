@@ -329,6 +329,18 @@ void Communicator::allGatherv(complex<double> *send_data, int send_count, comple
 } 
 
 template <>
+void Communicator::allGather(complex<double> *recv_data, int recv_count)
+{
+  cerr << "ERROR: Communicator::allGather called with complex data\n";
+}
+
+template <>
+void Communicator::allGatherv(complex<double> *recv_data, int recv_counts[], int displacements[])
+{ 
+  cerr << "ERROR: Communicator::allGatherv called with complex data\n";
+} 
+
+template <>
 void
 Communicator::reduce(int num, complex<double> *data, int root, MPI_Op mpi_op)
 {

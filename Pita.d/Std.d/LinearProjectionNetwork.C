@@ -475,10 +475,7 @@ LinearProjectionNetwork::buildProjection() {
                    recvs_counts.array() + cpuCount - 1,
                    displacements.array() + 1);
 
-  int myCpu = timeCommunicator_->myID();
-  timeCommunicator_->allGatherv(stateBuffer.array() + displacements[myCpu],
-                                recvs_counts[myCpu],
-                                stateBuffer.array(),
+  timeCommunicator_->allGatherv(stateBuffer.array(),
                                 recvs_counts.array(),
                                 displacements.array());
 
@@ -538,9 +535,7 @@ LinearProjectionNetwork::buildProjection() {
                    recvs_counts.array() + cpuCount - 1,
                    displacements.array() + 1);
 
-  timeCommunicator_->allGatherv(matrixBuffer.array() + displacements[myCpu],
-                                recvs_counts[myCpu],
-                                matrixBuffer.array(),
+  timeCommunicator_->allGatherv(matrixBuffer.array(),
                                 recvs_counts.array(), 
                                 displacements.array());
 

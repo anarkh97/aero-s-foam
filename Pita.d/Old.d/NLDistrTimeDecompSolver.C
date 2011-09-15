@@ -223,7 +223,7 @@ void NLDistrTimeDecompSolver::improveBasesWithAllSeeds()
   }
  
   // Perform global communication
-  timeCom->allGatherv<DataType>(baseBuffer.array() + displacements[myCPU], recv_counts[myCPU], baseBuffer.array(), recv_counts, displacements);
+  timeCom->allGatherv<DataType>(baseBuffer.array(), recv_counts, displacements);
   
   // Garbage collection
   delete[] displacements;

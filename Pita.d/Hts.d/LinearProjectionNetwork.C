@@ -119,8 +119,7 @@ LinearProjectionNetwork::buildProjection() {
     displacements[i] = displacements[i-1] + recv_counts[i-1];
   }
 
-  const int myCpu = timeCommunicator_->myID();
-  timeCommunicator_->allGatherv(gBuffer_.array() + displacements[myCpu], recv_counts[myCpu], gBuffer_.array(), recv_counts, displacements);
+  timeCommunicator_->allGatherv(gBuffer_.array(), recv_counts, displacements);
   
 #ifndef NDEBUG
   toc = getTime();
@@ -169,6 +168,7 @@ LinearProjectionNetwork::buildProjection() {
   }
   
   // TODO Better efficiency: Do not recompute every coefs
+  const int myCpu = timeCommunicator_->myID();
   double * rowBuffer = mBuffer_.array() + displacements[myCpu];
   for (LocalBasis::const_iterator it = localBasis_.begin();
       it != localBasis_.end(); ++it) {
@@ -185,7 +185,7 @@ LinearProjectionNetwork::buildProjection() {
 #endif /* NDEBUG*/
 
   // Exchange normal/reprojection matrix data  
-  timeCommunicator_->allGatherv(mBuffer_.array() + displacements[myCpu], recv_counts[myCpu], mBuffer_.array(), recv_counts, displacements);
+  timeCommunicator_->allGatherv(mBuffer_.array(), recv_counts, displacements);
   
 #ifndef NDEBUG
   toc = getTime();

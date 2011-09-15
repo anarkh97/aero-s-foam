@@ -9,6 +9,31 @@ import sys, os, re, glob
 #import argparse
 
 
+def checkFilename(filename,MyList):
+# for line in open("/lustre/home/mpotts/FEM/CMakeCache.txt.test"):
+  for line in open("../../CMakeCache.txt"):
+    if(("MUMPS_common" in line) & ("NOTFOUND" in line) & ("mumps" in filename)):
+      return(0)
+    if(("SPOOLES_spooles_LIBRARY" in line) & ("NOTFOUND" in line) & ("spooles" in filename)):
+      return(0)
+    if(("ARPACK_arpack_LIBRARY" in line) & ("NOTFOUND" in line) ):
+      for list in MyList:
+        for item in list:
+          if("arpack" in item):
+             return(0)
+  return(1) 
+
+def filterInputs(MyList):
+  for i in range(len(MyList)):
+    for j in range(len(MyList[i])):
+      if(("arpack" in MyList[i][j])&(not("*arpack" in MyList[i][j]))):
+        item = MyList[i][j]
+        stext = "arpack"
+        rtext = "*arpack"
+        item = item.replace(stext,rtext)
+        MyList[i][j] = item
+        break
+
 def buildInputs(params):
   mycwd = os.getcwd()
   print "at start, mycwd is %s \n"% mycwd
@@ -79,8 +104,9 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=1:ppn=8,walltime=3:00:00\n\n")
+      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
       MPIFILE.write("cd %s\n" % dirname)
+      MPIFILE.write("../create_mfiles.pl\n" )
      
       command = "chmod +x " + runfilename
       os.system(command)
@@ -505,7 +531,8 @@ def buildInputs(params):
         EXTRAS = ["*","*","*","*","*","*"]
         NAMELIST = ["STATICS\n","EIGEN\n","SHIFT ","OUTPUT\n","INCLUDE "]
         OPTIONSLIST=[STATICS,EIGEN,SHIFT,OUTPUT,INCLUDE]
-  
+ 
+ 
       options = 0
       for i in range(len(OPTIONSLIST)):
         if(len(OPTIONSLIST[i]) >  options):
@@ -527,44 +554,51 @@ def buildInputs(params):
           OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
           OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
         OUTPUT_FILENAME = idname+".dat" 
- 
+
+#       filterInputs(OPTIONSLIST) 
         filename = idname+".inp"
-        FILE = open(filename,"w")
-        FILE.write("CONTROL\n");
-        FILE.write(idname);
-        if(idname.find("temp") != -1):
-          FILE.write("\n2\n\"nodeset\"\n\"elemset\"\n*\n");
-        else:
-          FILE.write("\n1\n\"nodeset\"\n\"elemset\"\n*\n");
-        for j in range(len(OPTIONSLIST)):
-          FILE.write(NAMELIST[j])
-          FILE.write(OPTIONSLIST[j][i  % len(OPTIONSLIST[j])])
-          if(NAMELIST[j].find("OUTPUT") != -1 ):
-            FILE.write(" %s" % OUTPUT_FILENAME)
-            FILE.write(" %s" % OUTPUT_EXTRAS[0])
-            if(OUTPUT2 != ""):
-              for jj in range(len(OUTPUT2)):
-                FILE.write("\n")
-                OUTPUT_FILENAME = idname + "_" + "%d.dat" % ( jj + 2)
-                FILE.write("%s %s" % (OUTPUT2[jj],OUTPUT_FILENAME))
-                FILE.write(" %s" % OUTPUT_EXTRAS[jj+1])
-          FILE.write("\n")
-          if(NAMELIST[j].find("FETI") != -1):
-            FILE.write("include \"../feti.include\"\n*")
+        if(checkFilename(filename,OPTIONSLIST)): 
+          FILE = open(filename,"w")
+          FILE.write("CONTROL\n");
+          FILE.write(idname);
+          if(idname.find("temp") != -1):
+            FILE.write("\n2\n\"nodeset\"\n\"elemset\"\n*\n");
           else:
-            FILE.write(EXTRAS[j])
-          FILE.write("\n")
-        FILE.write("END\n")
-        FILE.close()
-        command = "../../bin/aeros "
-        re.compile("FETI");
-        if(idname.find("FETI") != -1 ):
-          command = command + "-n 2 --dec --nsub 4"
-        print "Creating %s" % filename
-        MPIFILE.write("echo mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))
-        MPIFILE.write("mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))
-        RUNFILE.write("echo %s %s\n" % (command,filename.replace(" ","_")))
-        RUNFILE.write("%s %s\n" % (command,filename.replace(" ","_")))
+            FILE.write("\n1\n\"nodeset\"\n\"elemset\"\n*\n");
+          for j in range(len(OPTIONSLIST)):
+            FILE.write(NAMELIST[j])
+            FILE.write(OPTIONSLIST[j][i  % len(OPTIONSLIST[j])])
+            if(NAMELIST[j].find("OUTPUT") != -1 ):
+              FILE.write(" %s" % OUTPUT_FILENAME)
+              FILE.write(" %s" % OUTPUT_EXTRAS[0])
+              if(OUTPUT2 != ""):
+                for jj in range(len(OUTPUT2)):
+                  FILE.write("\n")
+                  OUTPUT_FILENAME = idname + "_" + "%d.dat" % ( jj + 2)
+                  FILE.write("%s %s" % (OUTPUT2[jj],OUTPUT_FILENAME))
+                  FILE.write(" %s" % OUTPUT_EXTRAS[jj+1])
+            FILE.write("\n")
+            if(NAMELIST[j].find("FETI") != -1):
+              FILE.write("include \"../feti.include\"\n*")
+            else:
+              FILE.write(EXTRAS[j])
+            FILE.write("\n")
+          FILE.write("END\n")
+          FILE.close()
+          command = "../../bin/aeros "
+          re.compile("FETI");
+          if(idname.find("FETI") != -1 ):
+            command = command + "-n 2 --dec --nsub 4"
+          print "Creating %s" % filename
+          MPIFILE.write("echo mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))
+          MPIFILE.write("mpirun -n 4 --machinefile host.%d %s %s &\n" % (i,command,filename.replace(" ","_")))
+          RUNFILE.write("echo %s %s\n" % (command,filename.replace(" ","_")))
+          RUNFILE.write("%s %s\n" % (command,filename.replace(" ","_")))
+      MPIFILE.write("wait ")
+      for ii in range(options):
+        MPIFILE.write("%")
+        MPIFILE.write("%d " %(ii+1))
+      MPIFILE.write("\n")
       os.chdir('../')
 
 if __name__ == "__main__":

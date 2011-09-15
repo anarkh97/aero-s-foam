@@ -1,27 +1,29 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=3:00:00
+#PBS -l nodes=8:ppn=8,walltime=3:00:00
 
 cd /lustre/home/mpotts/FEM/Regression.d/dsvm38
-echo mpirun -n 4 ../../bin/aeros  dsvm38_sparse_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_sparse_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_mumps_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_mumps_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_spooles_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_spooles_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_gmres_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_gmres_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_spooles_pivot_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_spooles_pivot_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_mumps_pivot_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_mumps_pivot_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_pcg_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_pcg_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_bcg_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_bcg_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm38_cr_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  dsvm38_cr_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DP_gvelocit.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DP_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DPH_gvelocit.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DPH_gvelocit.inp
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  dsvm38_sparse_gvelocit.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  dsvm38_sparse_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_mumps_gvelocit.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  dsvm38_mumps_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_spooles_gvelocit.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros  dsvm38_spooles_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_gmres_gvelocit.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  dsvm38_gmres_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_spooles_pivot_gvelocit.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  dsvm38_spooles_pivot_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_mumps_pivot_gvelocit.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros  dsvm38_mumps_pivot_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_pcg_gvelocit.inp
+mpirun -n 2 --machinefile host.6 ../../bin/aeros  dsvm38_pcg_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_bcg_gvelocit.inp
+mpirun -n 2 --machinefile host.7 ../../bin/aeros  dsvm38_bcg_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm38_cr_gvelocit.inp
+mpirun -n 2 --machinefile host.8 ../../bin/aeros  dsvm38_cr_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DP_gvelocit.inp
+mpirun -n 2 --machinefile host.9 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DP_gvelocit.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DPH_gvelocit.inp
+mpirun -n 2 --machinefile host.10 ../../bin/aeros -n 2 --dec --nsub 4 dsvm38_FETI_DPH_gvelocit.inp &
+wait %1 %2 %3 %4 %5 %6 %7 %8 %9 %10 %11 

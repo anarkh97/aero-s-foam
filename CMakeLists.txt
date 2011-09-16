@@ -468,4 +468,13 @@ ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
 # use the -s flag to send results via email
 ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l -s dsvm40)
 
+SET (COPY_FILES ${REG_SRC_DIR}/copy_files.pl ${REG_SRC_DIR} ${EXEC_DIR} )
+SET (TEST_SHORT ${EXEC_DIR}/dataComp.py -l short)
+SET (BUILD_SHORT ${EXEC_DIR}/buildInputs.py ALL)
+
+ADD_CUSTOM_TARGET(test-short
+  COMMAND ${COPY_FILES}
+  COMMAND ${BUILD_SHORT}
+  COMMAND ${TEST_SHORT}
+)
 

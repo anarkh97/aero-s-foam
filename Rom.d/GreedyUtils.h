@@ -1,7 +1,7 @@
 #ifndef ROM_GREEDYUTILS_H
 #define ROM_GREEDYUTILS_H
 
-#include "VecNodeDof6Conversion.h"
+#include "VecNodeDof6Map.h"
 #include "SamplingErrorEvaluation.h"
 
 #include "SimpleBuffer.h"
@@ -133,7 +133,7 @@ template <typename BasisRanIt, typename IndexRanIt, typename IndexOutIt>
 IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
                            IndexRanIt sampleFirst, IndexRanIt sampleLast,
                            IndexOutIt result,
-                           const VecNodeDof6Conversion &conversion,
+                           const VecNodeDof6Map &nodeDofMap,
                            double aspectRatio) {
   if (podFirst == podLast) {
     throw std::domain_error("Must have at least one pod basis");
@@ -152,7 +152,7 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
     for (std::vector<int>::const_iterator it = sampleFirst; it != sampleLast; ++it) {
       std::cerr << *it + 1 << " ";
       *result++ = *it;
-      conversion.locations(*it, std::back_inserter(sampleLocations));
+      nodeDofMap.locations(*it, std::back_inserter(sampleLocations));
     }
     std::cerr << std::endl;
   }
@@ -198,7 +198,7 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
 
     std::set<int> selectedNodes; // To ensure unicity, since several locations can correspond to one node
     for (std::vector<int>::const_iterator it = selectedLocations.begin(); it != selectedLocations.end(); ++it) {
-      selectedNodes.insert(conversion.nodeDof(*it).nodeRank);
+      selectedNodes.insert(nodeDofMap.nodeDof(*it).nodeRank);
     }
 
     // Add all the dofs attached to the newly selected nodes
@@ -206,7 +206,7 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
     for (std::set<int>::const_iterator it = selectedNodes.begin(); it != selectedNodes.end(); ++it) {
       std::cerr << *it + 1 << " ";
       *result++ = *it; // Newly selected nodes are not already selected
-      conversion.locations(*it, std::back_inserter(sampleLocations));
+      nodeDofMap.locations(*it, std::back_inserter(sampleLocations));
     }
     std::cerr << std::endl;
   }

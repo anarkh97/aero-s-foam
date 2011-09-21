@@ -6,6 +6,7 @@
 #include "GreedyUtils.h"
 #include "QrPseudoInversion.h"
 
+#include "VecNodeDof6Map.h"
 #include "VecNodeDof6Conversion.h"
 #include "NodalRestrictionMapping.h"
 
@@ -60,11 +61,12 @@ MeshSamplingDriver::solve() {
   const VecBasis &jacobianPod = projectionPodBases[1];
   
   // Perform greedy selection of sample nodes
+  VecNodeDof6Map vecDofMap(*domain_->getCDSA());
   std::vector<int> sampleNodeIds;
   greedy_sampling(projectionPodBases.begin(), projectionPodBases.end(),
                   geoSource->sampleNodeBegin(), geoSource->sampleNodeEnd(),
                   std::back_inserter(sampleNodeIds),
-                  vecDofConversion,
+                  vecDofMap,
                   domain_->solInfo().aspectRatioPodRom);
 
   // Determine mapping between full and reduced mesh

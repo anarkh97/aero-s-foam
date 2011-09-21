@@ -21,4 +21,6 @@ ADD_LIBRARY( Rom
   VecBasisFile.C
   VecBasisUtils.C
   VecNodeDof6Conversion.C
+  VecNodeDof6Map.C
+  DofSetUtils.C
 )

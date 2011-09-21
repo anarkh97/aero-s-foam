@@ -37,12 +37,32 @@ private:
   BinFileHandler binHandler_;
 
   void writeStateHeader(double headValue);
+  
+  template <typename Dof6Type>
+  void writeCurrentNode(const Dof6Type &buffer);
+
+  void writeCurrentNode(const double *buffer); 
+  
   void incrementStateCount();
 
   // Disallow copy & assignment
   BasisBinaryOutputFile(const BasisBinaryOutputFile&);
   BasisBinaryOutputFile& operator=(const BasisBinaryOutputFile&);
 };
+
+template <typename Dof6Type>
+void
+BasisBinaryOutputFile::writeCurrentNode(const Dof6Type &buffer) {
+  for (int iDof = 0; iDof < 6; ++iDof) {
+    binHandler_.write(&buffer[iDof], 1);
+  }
+}
+
+inline
+void
+BasisBinaryOutputFile::writeCurrentNode(const double *buffer) {
+  binHandler_.write(buffer, 6);
+}
 
 template <typename NodeBufferType>
 void
@@ -51,9 +71,7 @@ BasisBinaryOutputFile::stateAdd(const NodeBufferType &data, double headValue) {
 
   // Write values
   for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    for (int iDof = 0; iDof < 6; ++iDof) {
-      binHandler_.write(&data[iNode][iDof], 1);
-    }
+    writeCurrentNode(data[iNode]);
   }
 
   incrementStateCount();
@@ -88,7 +106,16 @@ public:
   // Ctor & dtor
   explicit BasisBinaryInputFile(const std::string &fileName);
 
-  //~BasisBinaryInputFile();
+protected:
+  template <typename Dof6Type>
+  void readCurrentNode(Dof6Type &buffer);
+
+  void readCurrentNode(double *buffer); 
+  
+  void seekNextState();
+  void seekCurrentState();
+  void seekNode(int iNode);
+  void validateNextOffset();
 
 private:
   const std::string fileName_;
@@ -103,13 +130,18 @@ private:
   BinFileHandler::OffType savedOffset_;
   mutable bool validNextOffset_;
 
-  void seekNextState();
-  void seekCurrentState();
-
   // Disallow copy & assignment
   BasisBinaryInputFile(const BasisBinaryInputFile&);
   BasisBinaryInputFile& operator=(const BasisBinaryInputFile&);
 };
+
+template <typename Dof6Type>
+void
+BasisBinaryInputFile::readCurrentNode(Dof6Type &target) {
+  for (int iDof = 0; iDof < 6; ++iDof) {
+    binHandler_.read(&target[iDof], 1);
+  }
+}
 
 template <typename NodeDof6Type>
 const NodeDof6Type &
@@ -118,12 +150,10 @@ BasisBinaryInputFile::currentStateBuffer(NodeDof6Type &target) {
     seekCurrentState();
 
     for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-      for (int iDof = 0; iDof < 6; ++iDof) {
-        binHandler_.read(&target[iNode][iDof], 1);
-      }
+      readCurrentNode(target[iNode]);
     }
 
-    validNextOffset_ = true;
+    validateNextOffset();
   }
 
   return target;

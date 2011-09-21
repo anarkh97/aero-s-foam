@@ -161,13 +161,16 @@ Scalar
 GenEiSparseMatrix<Scalar>::diag(int dof) const
 {
   std::cerr << "GenEiSparseMatrix<Scalar>::diag is not implemented\n";
+  return Scalar();
 }
 
 template<class Scalar> 
 Scalar &
 GenEiSparseMatrix<Scalar>::diag( int dof )
 {
+  static Scalar defaultValue;
   std::cerr << "GenEiSparseMatrix<Scalar>::diag is not implemented\n";
+  return defaultValue;
 }
 
 template<class Scalar> 

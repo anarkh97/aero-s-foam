@@ -113,9 +113,7 @@ GlobalStateSharing::iterationIs(IterationRank iter) {
   }
 
   // Exchange data
-  timeComm_->allGatherv(buffer_.array() + bufferStrides_[myCpu],
-                        bufferCounts_[myCpu],
-                        buffer_.array(),
+  timeComm_->allGatherv(buffer_.array(),
                         bufferCounts_.array(),
                         bufferStrides_.array());
 

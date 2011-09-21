@@ -101,6 +101,11 @@ BasisBinaryInputFile::currentStateIndexInc() {
 }
 
 void
+BasisBinaryInputFile::readCurrentNode(double *buffer) {
+  binHandler_.read(buffer, 6);
+}
+
+void
 BasisBinaryInputFile::seekNextState() {
   if (!validNextOffset_) {
     throw std::runtime_error("Must read current state before advancing");
@@ -115,6 +120,17 @@ BasisBinaryInputFile::seekCurrentState() {
   if (validNextOffset_) {
     binHandler_.seek(savedOffset_);
   }
+}
+
+void
+BasisBinaryInputFile::seekNode(int iNode) {
+  const OffSetType nodeOffset = savedOffset_ + 6 * sizeof(double) * iNode;
+  binHandler_.seek(nodeOffset);
+}
+
+void
+BasisBinaryInputFile::validateNextOffset() {
+  validNextOffset_ = true;
 }
 
 } /* end namespace Rom */

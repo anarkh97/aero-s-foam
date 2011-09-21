@@ -418,6 +418,8 @@ TRAIL [a-zA-Z]*
 
 "sgisky"[a-zA-Z]*|"SGISKY"[a-zA-Z]* { yylval.ival = 3; return SOLVERTYPE; }
 
+"simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+
 "fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
 "bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }

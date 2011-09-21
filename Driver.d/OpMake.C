@@ -3,6 +3,9 @@
 #include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
+#ifdef USE_EIGEN3
+#include <Math.d/EiSparseMatrix.h>
+#endif
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
@@ -671,6 +674,21 @@ Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
 }
 
 template<class Scalar>
+GenEiSparseMatrix<Scalar> *
+Domain::constructEiSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
+{
+#ifdef USE_EIGEN3
+ if(dof_set_array == 0) dof_set_array = c_dsa;
+ if(cn == 0)
+   return new GenEiSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
+ else
+   return new GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa);
+#else
+ cerr << "USE_EIGEN3 is not defined\n";
+#endif
+}
+
+template<class Scalar>
 GenNBSparseMatrix<Scalar> *
 Domain::constructNBSparseMatrix()
 {
@@ -1150,11 +1168,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
-    case 5:
-      //filePrint(stderr," ... Frontal Solver is Selected     ...\n");
-      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
-      systemSolver = allOps.sysSolver;
-      break;
     case 1:
       //filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
@@ -1180,6 +1193,19 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       fprintf(stderr,"ERROR: templated SGISkyMatrix class is not implemeted \n");
 #endif
       break;
+#ifdef USE_EIGEN3
+    case 4:
+      //filePrint(stderr," ... Simplicial Cholesky Solver is Selected ...\n");
+      spm = constructEiSparseMatrix<Scalar>(c_dsa);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+      systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
+      break;
+#endif
+    case 5:
+      //filePrint(stderr," ... Frontal Solver is Selected     ...\n");
+      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
+      systemSolver = allOps.sysSolver;
+      break;
 #ifdef USE_SPOOLES
     case 8:
       //filePrint(stderr," ... Spooles Solver is Selected     ...\n");
@@ -1188,7 +1214,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
       break;
 #endif
-
 #ifdef USE_MUMPS
     case 9:
       //filePrint(stderr," ... Mumps Solver is Selected       ...\n");
@@ -1256,6 +1281,12 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
       spm = constructDBSparseMatrix<Scalar>();
       break;
+#ifdef USE_EIGEN3
+    case 4:
+      filePrint(stderr," ... Eigen 3 Sparse Matrix          ...\n");
+      spm = constructEiSparseMatrix<Scalar>();
+      break;
+#endif
   }
   switch(sinfo.precond) {
     case 1:

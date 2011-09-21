@@ -46,7 +46,7 @@ const char* message[] = {
 "1. Sparse    \n",
 "1. SGI Sparse \n",
 "1. SGI Skyline    \n",
-"1. SGI Skyline (Check!!!)\n",
+"1. Simplicial Cholesky\n",
 "1. Frontal    \n",
 "1. BlockSky   \n",
 "1. ParallelSparse \n",

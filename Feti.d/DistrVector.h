@@ -38,28 +38,10 @@ struct DistrInfo {
  private:
    void initialize();
 };
-/*
+
 //------------------------------------------------------------------------------
 
-template<class T, class Scalar, class IType = typename T::InfoType>
-class Expr {
-
-public:
-
-  typedef IType InfoType;
-  InfoType inf;
-  T x;
-
-  Expr(T v) : x(v), inf(x.info()) {}
-  Expr(T v, IType i) : x(v), inf(i) { }
-
-  Scalar operator[] (int i) const { return x[i]; }
-  IType info() const { return inf; }
-
-};
-*/
 #include <Math.d/Expr.h>
-//------------------------------------------------------------------------------
 
 template<class Scalar> class GenPartialDistrVector;
 
@@ -81,7 +63,6 @@ class GenDistrVector {
     Scalar *partial;
   public:
     GenDistrVector() : inf(*(new DistrInfo)) { len = numDom = nT = 0; } 
-    //GenDistrVector() { len = numDom = nT = 0; } // YYY was commented out and giving problem in initialization in Sfem
     GenDistrVector(const DistrInfo &dinfo);
     GenDistrVector(const GenDistrVector<Scalar> &v);
     GenDistrVector(const DistrInfo &dinfo, Scalar *, bool myMemory = true);
@@ -122,8 +103,6 @@ class GenDistrVector {
     template <class T>
       GenDistrVector &operator-=(const Expr<T,Scalar> &);
 
-  //  GenDistrVector operator+(GenDistrVector<Scalar> &);
-  //  GenDistrVector operator-(GenDistrVector<Scalar> &);
     void updateBlock(int ii, Scalar c, GenDistrVector<Scalar> &) {cerr << "GenDistrVector::updateBlock not implemented" << endl;}
     void copyBlock(GenDistrVector<Scalar> &, int ii) {cerr << "GenDistrVector::copyBlock not implemented" << endl;}
     void addBlockSqr(int ii, Scalar c, GenDistrVector<Scalar> &);
@@ -137,7 +116,7 @@ class GenDistrVector {
     Scalar *data() const      { return v;          }
     Scalar *subData(int i)    { return subV[i];    }
     int subLen(int i)         { return subVLen[i]; }
-    int numThreads()	      { return nT; }
+    int numThreads() const    { return nT; }
     int threadLen(int i)      { return thLen[i];   }
     int threadOffset(int i)   { return thOffset[i]; }
     Scalar *threadData(int i) { return thV[i];     }
@@ -167,6 +146,10 @@ class GenDistrVector {
 };
 
 template<class Scalar>
+Scalar
+dot_ignore_master_flag(const GenDistrVector<Scalar> &, const GenDistrVector<Scalar> &);
+
+template<class Scalar>
 class GenStackDistVector : public GenDistrVector<Scalar> {
    public:
       GenStackDistVector(const DistrInfo &dinfo, Scalar *v)
@@ -178,7 +161,6 @@ template<class Scalar>
 class GenPartialDistrVector : public GenDistrVector<Scalar> {
      // PJSA 1-22-07 distributed vector for which some subdomains have zero subvectors
      // can speed up some operations like * by skipping these subvectors
-     //Scalar *partial;
    public:
      GenPartialDistrVector(const DistrInfo &dinfo)
         : GenDistrVector<Scalar>(dinfo) { this->partial = new Scalar[this->numDom]; for(int i=0; i<this->numDom; ++i) this->partial[i] = 1.0; }
@@ -194,21 +176,6 @@ typedef GenDistrVector<DComplex> ComplexDistrVector;
 typedef GenStackDistVector<double> StackDistVector;
 typedef GenStackDistVector<DComplex> ComplexStackDistVector;
 
-//------------------------------------------------------------------------------
-/*
-template<class A, class B>
-class ProdRes {
-  public:
-    typedef B ResType;
-};
-
-
-template<>
-class ProdRes<complex<double>, double> {
-  public:
-    typedef complex<double> ResType;
-};
-*/
 //-----------------------------------------------------------------------------
 template<class T1, class T2, class Scalar>
 Scalar operator,(const Expr<T1,Scalar> &,const Expr<T2,Scalar> &);
@@ -227,38 +194,6 @@ double norm(const GenDistrVector<Scalar> &);
 //------------------------------------------------------------------------------
 template<class T1, class Scalar>
 double norm(const Expr<T1,Scalar,const DistrInfo&> &);
-//------------------------------------------------------------------------------
-/*
-template<class T1, class T2, class Scalar, class IType = typename T1::InfoType>
-class Sum {
-public:
-  typedef IType InfoType;
-private:
-  T1 a;
-  T2 b;
-  InfoType len;
-
-public:
-
-  Sum(T1 aa, T2 bb, InfoType l) : a(aa), b(bb), len(l) { }
-
-  Scalar operator[](int i) const { return a[i]+b[i]; }
-  InfoType info() const { return len; }
-
-};
-//------------------------------------------------------------------------------
-
-template<class T1, class T2, class Scalar>
-inline
-Expr<Sum<T1, T2, Scalar>, Scalar>
-operator+(const Expr<T1, Scalar> &x1, const Expr<T2, Scalar> &x2)
-{
-
-  return Expr<Sum<T1, T2, Scalar>, Scalar>
-    ( Sum<T1, T2, Scalar>(x1.x, x2.x, x1.info()) );
-
-}
-*/
 //------------------------------------------------------------------------------
 
 template<class Scalar>
@@ -308,40 +243,6 @@ operator+(const GenDistrVector<Scalar> &v, const Expr<T, Scalar> &x)
 
 }
 
-//------------------------------------------------------------------------------
-/*
-template<class T1, class T2, class Scalar, class IType = typename T1::InfoType>
-class Diff {
-public:
-  typedef IType InfoType;
-private:
-  T1 a;
-  T2 b;
-  InfoType len;
-
-public:
-
-  Diff(T1 aa, T2 bb, InfoType l) : a(aa), b(bb), len(l) { }
-
-  Scalar operator[](int i) const { return a[i]+b[i]; }
-  InfoType info() const { return len; }
-
-};
-//-----------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-
-template<class T1, class T2, class Scalar>
-inline
-Expr<Diff<T1, T2, Scalar>, Scalar>
-operator-(const Expr<T1, Scalar> &x1, const Expr<T2, Scalar> &x2)
-{
-
-  return Expr<Diff<T1, T2, Scalar>, Scalar>
-    ( Diff<T1, T2, Scalar>(x1.x, x2.x, x1.info()) );
-
-}
-*/
 //------------------------------------------------------------------------------
 
 template<class Scalar>
@@ -393,54 +294,6 @@ operator-(const GenDistrVector<Scalar> &v, const Expr<T, Scalar> &x)
 
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-/*
-template<class T, class Scalar, class Res, class IType = typename T::InfoType>
-class OuterProd {
-
-public:
-  typedef IType InfoType;
-private:
-  Scalar y;
-  T a;
-  InfoType len;
-
-public:
-
-  OuterProd(Scalar yy, T aa, InfoType l) : y(yy), a(aa), len(l) { }
-
-  Res operator[](int i) const { return y*a[i]; }
-  InfoType info() const { return len; }
-
-};
-
-//------------------------------------------------------------------------------
-
-template<class T, class S2>
-inline
-Expr<OuterProd<T, double, typename ProdRes<double, S2>::ResType>,
-    typename ProdRes<double,S2>::ResType > operator*(double y, const Expr<T, S2> &x)
-{
-
-  return Expr<OuterProd<T, double, typename ProdRes<double,S2>::ResType>,
-         typename ProdRes<double,S2>::ResType>
-    ( OuterProd<T, double, typename ProdRes<double,S2>::ResType>(y, x.x, x.info()) );
-}
-
-//------------------------------------------------------------------------------
-
-template<class T, class S2>
-inline
-Expr<OuterProd<T, complex<double>, typename ProdRes<complex<double>, S2>::ResType>,
-    typename ProdRes<complex<double>,S2>::ResType > operator*(complex<double> y, const Expr<T, S2> &x)
-{
-
-  return Expr<OuterProd<T, complex<double>, typename ProdRes<complex<double>,S2>::ResType>,
-         typename ProdRes<complex<double>,S2>::ResType>
-    ( OuterProd<T, complex<double>, typename ProdRes<complex<double>,S2>::ResType>(y, x.x, x.info()) );
-}
-*/
-//------------------------------------------------------------------------------
 template<class Scalar, class Res>
 inline
 Expr<OuterProd<const GenDistrVector<Res> &, Scalar, 
@@ -504,46 +357,6 @@ class BoolOr {
     static bool apply(const A &a, const B&b) { return a || b; }
 };
 
-/*
-template<class T1, class T2, class CompOp, class IType = typename T1::InfoType>
-class CmpElem {
-public:
-  typedef IType InfoType;
-private:
-  T1 a;
-  T2 b;
-  InfoType len;
-
-public:
-
-  CmpElem(T1 aa, T2 bb, InfoType l) : a(aa), b(bb), len(l) { }
-
-  bool operator[](int i) const { return CompOp::apply(a[i],b[i]); }
-  InfoType info() const { return len; }
-
-};
-*/
-
-// macro calls to create the operators
-binaryOpDec( == , CompIsE , , GenDistrVector<Scalar> )
-/*
-template<class Scalar>
-bool operator==(const  GenDistrVector<Scalar> &, const  GenDistrVector<Scalar>
-&);*//*
-template<class Scalar >
- inline Expr< 
-   BinOp<const GenDistrVector<Scalar> &, const GenDistrVector<Scalar> &,
-      Scalar, CompIsE,  typename GenDistrVector<Scalar>::InfoType>,
-       Scalar > 
-operator==(const GenDistrVector<Scalar> &v1, const GenDistrVector<Scalar> &v2)
- { return Expr<
- BinOp<const GenDistrVector<Scalar> &, const GenDistrVector<Scalar> &, 
- Scalar, CompIsE, typename GenDistrVector<Scalar>::InfoType>, 
- Scalar > ( BinOp<const GenDistrVector<Scalar> &,
-  const GenDistrVector<Scalar> &, Scalar, CompIsE, 
-  typename GenDistrVector<Scalar>::InfoType>
-  (v1,v2)); }*/
-
 //-----------------------------------------------------------------------------
 
 template<class T, class IType = typename T::InfoType>
@@ -557,8 +370,8 @@ public:
   BoolNot(T t, IType it) : a(t), len(it) {}
   bool operator[](int i) const { return !a[i]; }
   InfoType info() const { return len; }
-
 };
+
 #ifdef _TEMPLATE_FIX_
 #include <Feti.d/DistrVector.C>
 #endif

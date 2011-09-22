@@ -54,6 +54,7 @@ class GenVecOp : public TaskDescr
 
      void alloc(int);
      void dot(int);
+     void dot_ignore_master_flag(int);
      void zero(int);
      void linAdd(int);
      void linAdd_inv(int);
@@ -233,6 +234,38 @@ GenVecOp<Scalar>::dot(int threadNum)
  for(i = 0; i < len; ++i)
    if(masterFlag[i])
      r += ScalarTypes::conj(d2[i])*d1[i];
+ res[threadNum] = r;
+}
+#endif
+
+#ifdef DETERMINISTIC
+template<class Scalar>
+void
+GenVecOp<Scalar>::dot_ignore_master_flag(int subNum)
+{
+ const Scalar *d1 = v1->subData(subNum);
+ const Scalar *d2 = v2->subData(subNum);
+ const int len = v1->subLen(subNum);
+
+ Scalar r = Scalar();
+ for(int i = 0; i < len; ++i) {
+   r += ScalarTypes::conj(d2[i]) * d1[i];
+ }
+ res[subNum] = r;
+}
+#else
+template<class Scalar>
+void
+GenVecOp<Scalar>::dot_ignore_master_flag(int threadNum)
+{
+ const Scalar *d1 = v1->threadData(threadNum);
+ const Scalar *d2 = v2->threadData(threadNum);
+ const int len = v1->threadLen(threadNum);
+
+ Scalar r = Scalar();
+ for(int i = 0; i < len; ++i) {
+   r += ScalarTypes::conj(d2[i]) * d1[i];
+ }
  res[threadNum] = r;
 }
 #endif
@@ -603,13 +636,12 @@ GenDistrVector<Scalar>::initialize()
  numDom = inf.numDom;
 
  // Allocate memory for the values
-// if(myMemory) v = new Scalar[len];
  if(!v) v = new Scalar[len];
 
- //array of Scalar pointers to hold sub vector values
+ // Array of Scalar pointers to hold sub vector values
  subV = new Scalar *[inf.numDom];
 
- // int array to hold sub vector lengths
+ // Array to hold sub vector lengths
  subVLen = new int[inf.numDom];
  subVOffset = new int[inf.numDom];
 
@@ -666,10 +698,6 @@ GenDistrVector<Scalar>::GenDistrVector(const GenDistrVector<Scalar> &x)
  myMemory = 1; 
  initialize();
  for(int i=0; i<len; ++i) v[i] = x.data()[i];
-/*
- GenVecOp<Scalar> assign(&GenVecOp<Scalar>::assign, this, &x);
- threadManager->execParal(nT, &assign);
-*/
 }
 
 template<class Scalar>
@@ -819,6 +847,36 @@ GenDistrVector<Scalar>::operator * (GenDistrVector<Scalar> &x)
  for(i=0; i < numDom; ++i)
 #else
  for(i=0; i < nT; ++i)
+#endif
+    res += partial[i];
+#ifdef DISTRIBUTED
+ if(structCom)
+   res = structCom->globalSum(res);
+#endif
+ return res;
+}
+
+template<class Scalar>
+Scalar
+dot_ignore_master_flag(const GenDistrVector<Scalar> &v1, const GenDistrVector<Scalar> &v2)
+{
+ const int numDom = v1.num();
+ Scalar *partial = (Scalar *) dbg_alloca(sizeof(Scalar) * numDom);
+ GenVecOp<Scalar> dotAll(&GenVecOp<Scalar>::dot_ignore_master_flag,
+                         const_cast<GenDistrVector<Scalar> *>(&v1),
+                         const_cast<GenDistrVector<Scalar> *>(&v2),
+                         partial);
+#ifdef DETERMINISTIC
+ threadManager->execParal(numDom, &dotAll);
+#else
+ const int nT = v1.numThreads();
+ threadManager->execParal(nT, &dotAll);
+#endif
+ Scalar res = Scalar();
+#ifdef DETERMINISTIC
+ for(int i = 0; i < numDom; ++i)
+#else
+ for(int i = 0; i < nT; ++i)
 #endif
     res += partial[i];
 #ifdef DISTRIBUTED
@@ -1153,48 +1211,6 @@ GenDistrVector<Scalar>::printAll()
  }
  cerr << endl;
 }
-
-/*
-template<class Scalar>
-GenDistrVector<Scalar>
-GenDistrVector<Scalar>::operator+(GenDistrVector<Scalar> & add)
-{
-  DistrInfo info(numDom); info.len = len;
-
-  int iThread, md;
-  for(iThread = 0; iThread < nT; ++iThread) 
-    for(md = iThread; md < numDom; md += nT) 
-     info.domLen[md] = subVLen[md] ;
-  
-  GenDistrVector<Scalar> newVec(info);
-
-  int i;
-  for(i=0; i < len; ++i)
-    newVec.data()[i] = v[i] + add.data()[i];
-    
-  return newVec;
-}
-
-template<class Scalar>
-GenDistrVector<Scalar>
-GenDistrVector<Scalar>::operator-(GenDistrVector<Scalar> & sub)
-{
-
-  DistrInfo info(numDom); info.len = len;
-
-  int iThread,md;
-  for(iThread = 0; iThread < nT; ++iThread) 
-    for(md = iThread; md < numDom; md += nT) 
-     info.domLen[md] = subVLen[md] ;
-  
-  GenDistrVector<Scalar> newVec(info);
-
-  int i;
-  for(i=0; i < len; ++i)
-    newVec.data()[i] = v[i] - sub.data()[i];
-    
-  return newVec;
-}*/
 
 template <class Scalar>
 template <class T>

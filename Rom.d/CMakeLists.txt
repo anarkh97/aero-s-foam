@@ -5,6 +5,8 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  DistrBasisFile.C
+  DistrNodeDof6Buffer.C
   DistrSvdOrthogonalization.C
   FileNameInfo.C
   GalerkinProjectionSolver.C

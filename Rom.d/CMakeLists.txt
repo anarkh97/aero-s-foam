@@ -5,6 +5,7 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
   DistrExplicitSnapshotNonLinDynamic.C

@@ -4,6 +4,8 @@
 #include <Paral.d/SubDOp.h>
 #include <Driver.d/SysState.h>
 
+#include <Problems.d/DynamProbTraits.h>
+
 //-------------------------------------------------------------------------------------------
 template<class VecType>
 SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
@@ -832,6 +834,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     probDesc->project(d_n);
     probDesc->project(v_n);
   }
+      
+  handleDisplacement(*probDesc, d_n);
 
   // Initialize time index (n) and time (t^n)
   int n = 0;
@@ -852,6 +856,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     fint.linC(fint,1.0,tmp2);
   }
   a_n.linC(1.0, fext, -1.0, fint);
+  handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
   if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt, v_n, 0.5*dt*dt, a_n); tmp1 += d_n; // predicted displacement d^1 = d^0 + dt*v^0 + dt*dt/2*a^0
@@ -859,6 +864,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
+  handleAcceleration(*probDesc, a_n);
   if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
   // Compute velocity at first half-time station: v^{1/2} = v^0 + dt/2*a^0
@@ -889,6 +895,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // External force
       probDesc->computeExtForce2(curState, fext, constForce, n+1, next_t, aeroForce, 0.5, 0.0);
       d_n.linAdd(dt,v_n_h);
+      handleDisplacement(*probDesc, d_n);
 
       // Internal force
       getInternalForce(dynOps, d_n, fint, next_t);
@@ -928,6 +935,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt*v^{n+1/2}
       d_n.linAdd(dt, v_n_h);
+      handleDisplacement(*probDesc, d_n);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
       if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n_h, a_n, v_h_p);
@@ -944,6 +952,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
+      handleForce(*probDesc, a_n);
       dynOps.dynMat->reSolve(a_n);
       if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
         tmp1.linC(dt, v_n_h, dt*dt, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt*(v^{n+1/2} + dt*a^{n+1})
@@ -951,6 +960,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }
+      handleAcceleration(*probDesc, a_n);
       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
       // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt/2*a^n

@@ -2,11 +2,27 @@
 #define ROM_DISTRDOMAINUTILS_H
 
 #include <Driver.d/SubDomain.h>
+#include <Driver.d/DecDomain.h>
+#include <Dist.d/DistDom.h>
 
 #include <vector>
 #include <algorithm>
 
 namespace Rom {
+
+// Decomposed domain creation
+template <typename Scalar>
+inline
+GenDecDomain<Scalar> *
+createDecDomain(Domain *domain) {
+  GenDecDomain<Scalar> *result;
+#ifdef DISTRIBUTED
+  result = new GenDistrDomain<Scalar>(domain);
+#else
+  result = new GenDecDomain<Scalar>(domain);
+#endif
+  return result;
+}
 
 // Master nodes of the subdomain (in local indexing)
 template <typename BoolOutIt>

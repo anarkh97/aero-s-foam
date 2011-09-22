@@ -9,6 +9,7 @@ ADD_LIBRARY( Rom
   DistrBasisOrthoDriver.C
   DistrExplicitSnapshotNonLinDynamic.C
   DistrNodeDof6Buffer.C
+  DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
   FileNameInfo.C

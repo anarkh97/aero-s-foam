@@ -16,7 +16,6 @@ DistrInfo::DistrInfo(int ns)
  initialize();
  numDom = ns;
  domLen = new int[numDom];
- subOffset = 0;
 }
 
 DistrInfo::~DistrInfo()

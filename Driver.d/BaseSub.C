@@ -316,11 +316,22 @@ BaseSub::computeMasterFlag(Connectivity *mpcToSub)
   }
 }
 
+const bool *
+BaseSub::getInternalMasterFlag()
+{
+  if (!internalMasterFlag) {
+    computeInternalMasterFlag();
+  }
+  return internalMasterFlag;
+}
+
 void
 BaseSub::computeInternalMasterFlag()
 {
-  internalMasterFlag = new bool[c_dsa->size()];
-  for(int i=0; i<c_dsa->size(); ++i) internalMasterFlag[i] = true;
+  const int dofCount = c_dsa->size();
+  internalMasterFlag = new bool[dofCount];
+  std::fill_n(internalMasterFlag, dofCount, true);
+
   for(int i = 0; i < scomm->numNeighb; ++i) {
     if(subNumber > scomm->subNums[i]) {
       for(int j = 0; j < scomm->sharedDOFsPlus->num(i); ++j) {

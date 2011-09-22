@@ -820,9 +820,15 @@ int main(int argc, char** argv)
 #endif
 	     dd.structoptSolve();
 	   }
-	 else
+	 else 
 #endif
-	   {
+     if (domain->solInfo().activatePodRom) { // POD ROM
+       std::auto_ptr<Rom::DriverInterface> driver;
+       // Stand-alone SVD orthogonalization
+       filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
+       driver.reset(distrBasisOrthoDriverNew(domain));
+       driver->solve(); 
+     } else {
          GenMultiDomainStatic<double> statProb(domain);
          StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
                       GenMultiDomainPostProcessor<double>, GenMultiDomainStatic<double>,

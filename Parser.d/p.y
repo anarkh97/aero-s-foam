@@ -95,7 +95,7 @@
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
-%token NSUBS EXITAFTERDEC SKIPDECCALL OUTPUTMEMORY OUTPUTWEIGHT
+%token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
@@ -520,7 +520,7 @@ Decompose :
          {decInit->memory = true; }
        | Decompose EXITAFTERDEC NewLine
          {decInit->exitAfterDec = true;}
-       | Decompose SKIPDECCALL NewLine
+       | Decompose SKIP NewLine
          {decInit->skip = true;}
        | Decompose DETER NewLine
          {decInit->nosa = true; }
@@ -3324,6 +3324,7 @@ PodRom:
   PODROM PodRomMode NewLine
   { domain->solInfo().activatePodRom = true; }
   | PodRom PodRomOption NewLine
+  ;
 PodRomMode:
   SNAPSHOTS
   { }
@@ -3336,6 +3337,7 @@ PodRomMode:
   | GAPPY
   { domain->solInfo().gappyPodRom = true;
     domain->solInfo().subtype = 13; }
+  ;
 PodRomOption:
   SVD
   { domain->solInfo().svdPodRom = true; }
@@ -3345,6 +3347,9 @@ PodRomOption:
   { domain->solInfo().aspectRatioPodRom = $2; }
   | REFSUBSTRACT
   { domain->solInfo().substractRefPodRom = true; }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; }
+  ;
 SampleNodeList:
   SAMPLENODES NewLine
   {}
@@ -3361,5 +3366,4 @@ Float:
 	| DblConstant 
 	{ $$ = $1; }
 	;
-
 %%

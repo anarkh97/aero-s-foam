@@ -127,7 +127,7 @@ TRAIL [a-zA-Z]*
 
 "exit"|"EXIT"                      { return EXITAFTERDEC; }
 
-"skip"|"SKIP"                      { return SKIPDECCALL; }
+"skip"|"SKIP"                      { return SKIP; }
 
 "outload"|"OUTLOAD"                { return OUTPUTWEIGHT; }
 

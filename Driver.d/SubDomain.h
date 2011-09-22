@@ -292,9 +292,12 @@ class BaseSub : virtual public Domain
   int halfInterfLen(); // Length of the "half interface"
   void computeMasterFlag(Connectivity *mpcToSub);
   bool* getMasterFlag() { return masterFlag; }
+  const bool* getInternalMasterFlag();
+ 
+ protected:
   void computeInternalMasterFlag();
-  bool* getInternalMasterFlag() { return internalMasterFlag; }
 
+ public:
   void setNodeCommSize(FSCommPattern<int> *, int d = 1);
   void setNodeCommSize(FSCommPattern<double> *, int d = 1);
   void setNodeCommSize(FSCommPattern<DComplex> *, int d = 1);

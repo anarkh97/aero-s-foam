@@ -5,6 +5,12 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  DistrBasisFile.C
+  DistrBasisOrthoDriver.C
+  DistrExplicitSnapshotNonLinDynamic.C
+  DistrNodeDof6Buffer.C
+  DistrSvdOrthogonalization.C
+  DistrVecNodeDof6Conversion.C
   FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
@@ -16,6 +22,7 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
+  RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
   VecBasisFile.C

@@ -6,6 +6,7 @@ ADD_LIBRARY( Rom
   BasisOutputFile.C
   BasisOrthoDriver.C
   DistrBasisFile.C
+  DistrBasisOrthoDriver.C
   DistrNodeDof6Buffer.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C

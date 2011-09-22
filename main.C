@@ -48,6 +48,7 @@ using namespace std;
 #include <Rom.d/GappyNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
 #include <Rom.d/DriverInterface.h>
+#include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -864,12 +865,19 @@ int main(int argc, char** argv)
      } break;
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
-         MultiDomainDynam dynamProb(domain);
-         DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-               MultiDomainDynam, double > dynamSolver(&dynamProb);
-         dynamSolver.solve();
-       }
-       else {
+         if (!domain->solInfo().activatePodRom) {
+           MultiDomainDynam dynamProb(domain);
+           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                 MultiDomainDynam, double > dynamSolver(&dynamProb);
+           dynamSolver.solve();
+         } else { // POD ROM
+           filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+           Rom::DistrExplicitSnapshotNonLinDynamic dynamProb(domain);
+           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                 Rom::DistrExplicitSnapshotNonLinDynamic, double > dynamSolver(&dynamProb);
+           dynamSolver.solve();
+         }
+       } else {
          MDNLDynamic nldynamic(domain);
          NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);

@@ -5,10 +5,13 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
   DistrExplicitSnapshotNonLinDynamic.C
+  DistrExplicitPodProjectionNonLinDynamic.C
   DistrNodeDof6Buffer.C
+  DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
   FileNameInfo.C

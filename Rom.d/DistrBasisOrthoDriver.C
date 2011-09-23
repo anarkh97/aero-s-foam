@@ -37,7 +37,8 @@ DistrBasisOrthoDriver::solve() {
                                        decDomain->getAllSubDomains() + decDomain->getNumSub());
   
   FileNameInfo fileInfo;
-  DistrBasisInputFile inputFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS));
+  const BasisId::Type workload = BasisId::STATE;
+  DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS));
 
   DistrSvdOrthogonalization solver(comm_, comm_->numCPUs(), 1);
   
@@ -70,9 +71,11 @@ DistrBasisOrthoDriver::solve() {
  
   solver.solve();
 
-  const int podVectorCount = solver.singularValueCount(); // TODO truncate
+  const int podVectorCount = domain_->solInfo().maxSizePodRom ?
+                             std::min(domain_->solInfo().maxSizePodRom, solver.singularValueCount()) :
+                             solver.singularValueCount();
   {
-    DistrBasisOutputFile outputFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), inputFile.nodeCount(), comm_);
+    DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD), inputFile.nodeCount(), comm_);
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
 
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {

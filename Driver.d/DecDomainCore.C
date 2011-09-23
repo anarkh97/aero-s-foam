@@ -23,12 +23,9 @@ GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
       for (i=0; i<numdofs; ++i)
         v.data()[i] = (double) (i+1) / (double) numdofs;
 
- FSCommPattern<double> *pat = new FSCommPattern<double>(communicator, cpuToSub, myCPU, FSCommPattern<double>::CopyOnSend);
- for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
- pat->finalize();
- BasicAssembler *ba = new BasicAssembler(numSub, subDomain, pat);
- dMat.K->setAssembler(ba); 
- dMat.M->setAssembler(ba);
+ Assembler *assembler = getSolVecAssembler();
+ dMat.K->setAssembler(assembler); 
+ dMat.M->setAssembler(assembler);
 // Power iteration loop
       for (i=0; i<maxIte; ++i) {
 
@@ -57,8 +54,7 @@ GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
       }
       // compute stability maximum time step
       double sdt = 2.0 / sqrt(eigmax);
-  delete ba;
-  delete pat;
+  
   dMat.K->setAssembler((BasicAssembler *)0);
   dMat.M->setAssembler((BasicAssembler *)0);
   return sdt;

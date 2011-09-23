@@ -17,7 +17,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.29e-01 s
+ ... Total Time           = 6.74e-02 s
  ... Total Memory Used    = 9.33e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_skyline_reaction.inp
@@ -39,7 +39,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.01e-01 s
+ ... Total Time           = 7.59e-02 s
  ... Total Memory Used    = 5.94e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_mumps_reaction.inp
@@ -61,7 +61,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.04e-02 s
+ ... Total Time           = 7.45e-02 s
  ... Total Memory Used    = 1.53e+00 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_spooles_reaction.inp
@@ -83,7 +83,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.10e-02 s
+ ... Total Time           = 7.43e-02 s
  ... Total Memory Used    = 6.44e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_gmres_reaction.inp
@@ -106,7 +106,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.33e-01 s
+ ... Total Time           = 1.36e-01 s
  ... Total Memory Used    = 1.24e+01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_direct_reaction.inp
@@ -128,7 +128,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.45e-02 s
+ ... Total Time           = 1.11e-01 s
  ... Total Memory Used    = 5.94e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_spooles_pivot_reaction.inp
@@ -150,7 +150,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.89e-02 s
+ ... Total Time           = 8.34e-02 s
  ... Total Memory Used    = 6.40e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_mumps_pivot_reaction.inp
@@ -172,7 +172,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.54e-02 s
+ ... Total Time           = 9.48e-02 s
  ... Total Memory Used    = 1.53e+00 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_pcg_reaction.inp
@@ -226,7 +226,7 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... Iteration #  41	 Two norm = 1.12201e-05	 Rel. residual = 2.67616e-08
  ... Iteration #  42	 Two norm = 6.33141e-06	 Rel. residual = 1.51013e-08
  ... Iteration #  43	 Two norm = 1.80829e-06	 Rel. residual = 4.31302e-09
- ... Total # Iterations =            43        0.00662 s
+ ... Total # Iterations =            43        0.00711 s
  ...     Final Two norm = 1.80829e-06
  ...     Final residual = 3.26991e-12
  ... Postprocessing                 ...
@@ -242,7 +242,7 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.96e-02 s
+ ... Total Time           = 8.88e-02 s
  ... Total Memory Used    = 4.98e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_bcg_reaction.inp
@@ -309,7 +309,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.24e-02 s
+ ... Total Time           = 1.03e-01 s
  ... Total Memory Used    = 5.05e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_cr_reaction.inp
@@ -379,7 +379,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.60e-02 s
+ ... Total Time           = 9.31e-02 s
  ... Total Memory Used    = 4.97e-01 Mb
  --------------------------------------
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm1_FETI_DP_reaction.inp
@@ -404,8 +404,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.55e-02 s
- ... Total Memory Used    = 3.27e+00 Mb
+ ... Total Time           = 1.05e-01 s
+ ... Total Memory Used    = 3.25e+00 Mb
  ... Total Krylov Iterations =    4 
  --------------------------------------
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm1_FETI_DPH_reaction.inp
@@ -430,7 +430,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.20e-02 s
+ ... Total Time           = 9.55e-02 s
  ... Total Memory Used    = 3.28e+00 Mb
  ... Total Krylov Iterations =    4 
  --------------------------------------

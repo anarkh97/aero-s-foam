@@ -447,6 +447,8 @@ def buildInputs(params):
 
       if(problem_type == "dsvm1"):
         OUTPUT = ["reaction"]
+        OUTPUT2 = ["reaction"]
+        OUTPUT_EXTRAS = [" 1 NG 1"," 1 NG 2"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
                    "spooles pivot","mumps pivot","pcg","bcg","cr",\
@@ -550,9 +552,9 @@ def buildInputs(params):
         idname = idname.replace(" ","_",10)
   
 
-        if(problem_type == "dsvm1"): 
-          OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
-          OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
+#       if(problem_type == "dsvm1"): 
+#         OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
+#         OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
         OUTPUT_FILENAME = idname+".dat" 
 
 #       filterInputs(OPTIONSLIST) 

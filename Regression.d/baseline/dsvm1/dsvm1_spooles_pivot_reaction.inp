@@ -8,7 +8,8 @@ STATICS
 spooles pivot
 *
 OUTPUT
-reaction dsvm1_spooles_pivot_reaction.dat 1
+reaction dsvm1_spooles_pivot_reaction.dat  1 NG 1
+reaction dsvm1_spooles_pivot_reaction_2.dat  1 NG 2
 *
 INCLUDE ../dsvm1.include
 *

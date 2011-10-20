@@ -216,7 +216,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
-        else geoSource->setHeaderLen(iInfo);
+        else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
 #ifndef SERIALIZED_OUTPUT
@@ -1276,7 +1276,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
-        else geoSource->setHeaderLen(iInfo);
+        else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
 #ifndef SERIALIZED_OUTPUT

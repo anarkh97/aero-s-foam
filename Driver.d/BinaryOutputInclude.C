@@ -1,5 +1,4 @@
-#include <cstdlib>
-#include <cstdio>
+#include <algorithm>
 
 // ---------------------------------------------------------------------
 // PJSA: new binary output routines for double and DComplex
@@ -13,15 +12,16 @@ void GeoSource::writeNodeVectorToFile(SVec<Scalar, dim> &sVec, int glSub,
   // this writes numComponents columns of sVec, starting at startComponent
   // for example: displacements -> numComponents = 3, startComponent = 0
   //              temperatures  -> numComponents = 1, startComponent = 6 
-  int numData = numComponents*sVec.size();
+  const int numData = numComponents * sVec.size();
   Scalar *data = new Scalar[numData];
-  for(int iData = 0; iData < sVec.size(); iData++)
-    for(int iComp = startComponent; iComp < (startComponent+numComponents); iComp++)
-      data[iData*numComponents+(iComp-startComponent)] = sVec[iData][iComp];
+  for (int iData = 0; iData < sVec.size(); ++iData) {
+    const Scalar *origin = &sVec[iData][startComponent];
+    std::copy(origin, origin + numComponents, &data[iData * numComponents]);
+  }
     
-  writeNodeScalarToFile(data, numData, glSub, offset*numComponents, fileNumber, iter, numRes, 
+  writeNodeScalarToFile(data, numData, glSub, offset * numComponents, fileNumber, iter, numRes, 
                         time, numComponents, glNodeNums);
 
-  delete [] data;
+  delete[] data;
 }
 

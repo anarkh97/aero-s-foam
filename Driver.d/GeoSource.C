@@ -6,7 +6,6 @@
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/Mpc.h>
 #include <Utils.d/MFTT.h>
-#include <Utils.d/BinFileHandler.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/SubDomainFactory.h>
 

@@ -19,7 +19,6 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class Domain;
 class ControlInterface;
-class BinFileHandler;
 class MatrixTimer;
 class LMPCons;
 class Decomposition;
@@ -515,12 +514,15 @@ public:
   void closeOutputFiles();
   void closeOutputFilesForPita(int sliceRank);
   void createBinaryOutputFile(int, int, int iter = 0);
-  void outputHeader(BinFileHandler&, int, int);
-  void setHeaderLen(int);
+  void computeAndCacheHeaderLength(int);
   void outputHeader(int);
   void outputRange(int, int *, int, int, int , int iter = 0);//CBM
-  int getHeaderDescription(char *, int);
 
+private:
+  int getHeaderDescriptionAndLength(char *, int);
+  void getHeaderDescription(char *, int);
+
+public:
   void readGlobalBinaryData();
   void computeClusterInfo(int glSub);
 
@@ -532,8 +534,7 @@ public:
   template<class Scalar>
     GenSubDomain<Scalar> * readDistributedInputFiles(int localSubNum, int subNum);
 
-  // PJSA: new output functions (implemented in Driver.d/BinaryOutput.C and Driver.d/BinaryOutputInclude.C)
-  BinFileHandler* openBinaryOutputFile(int glSub, int fileNumber, int iter = 0);
+  // Output functions, implemented in Driver.d/BinaryOutput.C and Driver.d/BinaryOutputInclude.C
   void writeNodeScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber, int iter,
                              int numRes, double time, int numComponents, int *glNodeNums);
   void writeNodeScalarToFile(DComplex *complexData, int numData, int glSub, int offset, int fileNumber, int iter,
@@ -546,7 +547,16 @@ public:
   void writeElemScalarToFile(DComplex *complexData, int numData, int glSub, int offset, int fileNumber, int iter,
                              int numRes, double time, int totData, int *glElemNums);
 
+private:
+  int getHeaderNameBytes(int fileId) const;
+  
+  void getOutputFileName(char *result, int fileId, int clusterId, int iter);
+  BinFileHandler* openBinaryOutputFile(int fileId, int clusterId, int iter, const char *flag);
+  void outputHeader(BinFileHandler&, int, int);
+  void writeArrayToBinFile(const double *data, int dataSize, int subId, int inDataOffset, int fileId, 
+                           int iterRank, int resultRank, double timeStamp, int inStateDataCount, int clusterItemCount);
 
+public:
   // Shifting functions
   bool isShifted() { return isShift; }
   void initShift() {

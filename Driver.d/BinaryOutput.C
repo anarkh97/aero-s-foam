@@ -1,170 +1,140 @@
-#include <Utils.d/BinFileHandler.h>
 #include <Driver.d/GeoSource.h>
+
+#include <Utils.d/BinaryOutputFile.h>
+
 #include <fstream>
+#include <memory>
+#include <cstddef>
+#include <stdexcept>
+#include <cassert>
 
-#define TEXT_OUTPUT
+// Private functions
 
-void GeoSource::createBinaryOutputFile(int iInfo, int glSub, int iter)
+void GeoSource::getOutputFileName(char *result, int fileId, int clusterId, int iter) {
+  const char *suffix = computeClusterSuffix(clusterId + 1, clusToSub->csize());
+  if (outLimit > -1) {
+    sprintf(result, "%s%d_%s", oinfo[fileId].filename, iter/outLimit, suffix);
+  } else {
+    sprintf(result, "%s%s", oinfo[fileId].filename, suffix);
+  }
+  delete[] suffix;
+}
+
+inline
+int
+GeoSource::getHeaderNameBytes(int fileId) const {
+  return headLen[fileId] * sizeof(char);
+}
+
+BinFileHandler *
+GeoSource::openBinaryOutputFile(int fileId, int clusterId, int iter, const char *flag)
 {
-  // open file for 1st time and write header
-  if(oinfo[iInfo].interval != 0) {
-    if(binaryOutput) {
-      // determine which cluster subdomain is in
-      int clusNum = (*subToClus)[glSub][0];
+  char outfileName[32];
+  getOutputFileName(outfileName, clusterId, fileId, iter);
+  return new BinFileHandler(outfileName, flag);
+}
 
-      // determine output file name suffixes
-      char outfileName[32];
-      char *suffix = computeClusterSuffix(clusNum+1, clusToSub->csize());
-      if(outLimit > -1) sprintf(outfileName, "%s%d_%s", oinfo[iInfo].filename, iter/outLimit, suffix); 
-      else sprintf(outfileName, "%s%s", oinfo[iInfo].filename, suffix);
+void GeoSource::outputHeader(BinFileHandler &file, int dim, int fileId)
+{
+  char headDescrip[200];
+  const int headerLength = getHeaderDescriptionAndLength(headDescrip, fileId);
+  const std::string headerDesc(headDescrip, headerLength);
 
-      delete [] suffix;
+  const int dataType = oinfo[fileId].dataType;
+  if (dataType != 1 && dataType != 2) {
+    throw std::logic_error("Bad Data Type");
+  }
 
-      // open binary output file for the first time
-      BinFileHandler binFile(outfileName, "ws");
+  const int numClusItems = (dataType == 1) ? numClusNodes : numClusElems;
+  
+  writeHeaderToBinaryOutputFile(file, dataType, headerDesc, numClusItems, dim);
+}
 
-      // write header information
-      outputHeader(binFile, oinfo[iInfo].dim, iInfo);
-    } 
-    else {
+void 
+GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int inDataOffset, int fileId, 
+                               int iterRank, int resultRank, double timeStamp, int inStateDataCount, int clusterItemCount) {
+  const int clusterId = (*subToClus)[subId][0];
+  const char *appendFlag = "ws+";
+  std::auto_ptr<BinFileHandler> binFile(openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag));
+  
+  const int firstSubInCluster = (*clusToSub)[clusterId][0];
+  const bool doSerialPart = (firstSubInCluster == subId);
+
+  writePartialResultToBinaryOutputFile(*binFile, data, dataSize, inDataOffset, doSerialPart, 
+                                       resultRank, timeStamp, inStateDataCount, clusterItemCount,
+                                       getHeaderNameBytes(fileId));
+}
+
+// Public functions
+
+void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
+{
+  // Open file for first time and write header
+  if(oinfo[fileId].interval != 0) {
+    if (binaryOutput) {
+      // Determine which cluster subdomain is in
+      const int clusterId = (*subToClus)[glSub][0];
+      const char *truncateFlag = "ws";
+      std::auto_ptr<BinFileHandler> binFile(openBinaryOutputFile(fileId, clusterId, iter, truncateFlag));
+
+      // Write header information
+      outputHeader(*binFile, oinfo[fileId].dim, fileId);
+    } else { // ASCII output
       ofstream outfile;
-      outfile.open(oinfo[iInfo].filename, ofstream::out | ofstream::trunc);
-      if(headLen == 0) headLen = new int[numOutInfo];
-      char headDescrip[200];   // description of data
-      getHeaderDescription(headDescrip, iInfo);
-      headLen[iInfo] = strlen(headDescrip);
-      for(int i=0; i< headLen[iInfo]; ++i) outfile << headDescrip[i];
+      outfile.open(oinfo[fileId].filename, ofstream::out | ofstream::trunc);
+      char headDescrip[200];
+      const int headerLength = getHeaderDescriptionAndLength(headDescrip, fileId);
+      headDescrip[headerLength] = '\0'; // Ensure we have a valid C-style string
+      outfile << headDescrip;
       outfile.close();
     }
   }
 }
 
-void GeoSource::outputHeader(BinFileHandler &file, int dim, int fileNum)
+void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, int offset, int iter)
 {
-  // write data description
-  if(headLen == 0) headLen = new int[numOutInfo];
-  char headDescrip[200];   // description of data
-  getHeaderDescription(headDescrip, fileNum);
-  headLen[fileNum] = strlen(headDescrip);
+  if (binaryOutput) {
+    const int clusterId = (*subToClus)[glSub][0];
+    const char *appendFlag = "ws+";
+    std::auto_ptr<BinFileHandler> file(openBinaryOutputFile(fileId, clusterId, iter, appendFlag));
 
-  int dataType = oinfo[fileNum].dataType;
-  if(dataType != 1 && dataType != 2)
-    fprintf(stderr," *** ERROR: Bad Data Type: %d\n", dataType);
+    const int dataType = oinfo[fileId].dataType;
+    if (dataType != 1 && dataType != 2) {
+      throw std::logic_error("Bad Data Type");
+    }
 
-  file.write(&dataType, 1);
-  file.write(headLen+fileNum, 1);
-  file.write(headDescrip, headLen[fileNum]);
+    if (dataType == 1) {
+      // Nodal data
+      const bool compressedNumbering = (domain->outFlag == 1);
+      
+      std::vector<int> compressedIndex;
+      for (int iNode = 0; iNode < nData; ++iNode) {
+        const int nodeIndex = globalIndex[iNode];
+        const bool isMasterNode = (nodeIndex >= 0);
 
-  // write number of cluster data
-  if(dataType == 1)   // nodal data
-    file.write(&numClusNodes, 1);
-  else  // elemental data
-    file.write(&numClusElems, 1);
-
-  // write dimension of data
-  file.write(&dim, 1);
-
-  // save spot for number of results
-  file.write(&dim, 1);
-}
-
-void GeoSource::setHeaderLen(int fileNum)
-{
-  // write data description
-  if(headLen == 0) headLen = new int[numOutInfo];
-  char headDescrip[200];   // description of data
-  getHeaderDescription(headDescrip, fileNum);
-  headLen[fileNum] = strlen(headDescrip);
-}
-
-void GeoSource::outputRange(int fileNum, int *flag, int nData, int glSub, int offset, int iter)
-{
-  if(binaryOutput) {
-    int clusNum = (*subToClus)[glSub][0];
-    BinFileHandler *file = openBinaryOutputFile(clusNum, fileNum, iter);
-
-    // skip according to offset
-    file->seek( (offset+5) * sizeof(int) + headLen[fileNum]*sizeof(char) );
-
-    int dataType = oinfo[fileNum].dataType;
-    if(dataType != 1 && dataType != 2)
-      fprintf(stderr," *** ERROR: Bad Data Type: %d\n", dataType);
-
-    if(dataType == 1)  {
-      int *flag2 = (domain->outFlag) ? new int[nData] : flag;
-      int range = 0;
-      int rStart = 0;
-      for(int iNode = 0; iNode < nData; iNode++)  {
-        if(domain->outFlag) flag2[iNode] = (flag[iNode] >=0) ? domain->nodeTable[flag[iNode]]-1 : flag[iNode];
-        if(flag[iNode] >= 0 && flag[iNode] < nodes.size()) range++; // now skipping internal nodes
-        else {
-          if(range > 0) {
-            file->write(flag2+rStart, range);
-            range = 0;
-          }
-          rStart = iNode+1;
+        if (isMasterNode && nodeIndex < nodes.size()) {
+          compressedIndex.push_back(compressedNumbering ? (domain->nodeTable[nodeIndex] - 1) : nodeIndex);
         }
       }
-      if(range > 0) file->write(flag2+rStart, range);
-      if(domain->outFlag) delete [] flag2;
+
+      const int* compressedIndexArray = compressedIndex.empty() ? NULL : &compressedIndex[0];
+      writePartialRangeToBinaryOutputFile(*file, compressedIndexArray, compressedIndex.size(), offset, getHeaderNameBytes(fileId)); 
+    } else {
+      // Elemental data
+      writePartialRangeToBinaryOutputFile(*file, globalIndex, nData, offset, getHeaderNameBytes(fileId)); 
     }
-    else  {
-      file->write(flag, nData);
-    }
-    delete file;
   }
 }
 
-BinFileHandler *
-GeoSource::openBinaryOutputFile(int clusNum, int fileNumber, int iter)
-{
-  // determine output file name suffixes
-  char outfileName[32];
-  char *suffix = computeClusterSuffix(clusNum+1, clusToSub->csize());
-  if(outLimit > -1) sprintf(outfileName, "%s%d_%s", oinfo[fileNumber].filename, iter/outLimit, suffix); // PJSA 3-31-06
-  else sprintf(outfileName, "%s%s", oinfo[fileNumber].filename, suffix);
-
-  delete [] suffix;
-
-  // open binary output file
-  const char *flag = "ws+";
-  return new BinFileHandler(outfileName, flag);
-}
 
 void 
-GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber, 
+GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber,
                                  int iter, int numRes, double time, int numComponents, int *glNodeNums)
 {
-  int group = oinfo[fileNumber].groupNumber;
-  if(binaryOutput && group == -1) { // group output is always ascii
-    // get number of cluster files to write to
-    int clusNum = (*subToClus)[glSub][0];
-
-    // open output file
-    BinFileHandler *binFile = openBinaryOutputFile(clusNum, fileNumber, iter);
-
-    BinFileHandler::OffType timeOffset = headLen[fileNumber]*sizeof(char) 
-                                         + (5+numClusNodes)*sizeof(int)
-                                         + (numRes-1)*(numComponents*numClusNodes+1)*sizeof(double);
-
-    if((*clusToSub)[clusNum][0] == glSub) {  // if first subdomain in cluster 
-      // update number of results
-      binFile->seek(4*sizeof(int)+headLen[fileNumber]*sizeof(char));
-      binFile->write(&numRes, 1);
-      // write time tag
-      binFile->seek(timeOffset);
-      binFile->write(&time, 1);
-    }
-
-    // seek to the correct position in file
-    BinFileHandler::OffType totalOffset = timeOffset + 1*sizeof(double) + offset*sizeof(double);
-    binFile->seek(totalOffset);
-
-    binFile->write(data, numData);
-
-    delete binFile;
-  }
-  else {
+  const int group = oinfo[fileNumber].groupNumber;
+  if (binaryOutput && group == -1) { // Group output is always ASCII
+    writeArrayToBinFile(data, numData, glSub, offset, fileNumber, iter, numRes, time, numComponents * numClusNodes, numClusNodes);
+  } else {
     ofstream outfile;
     outfile.open(oinfo[fileNumber].filename,  ios_base::in | ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
@@ -226,8 +196,6 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
         else glNode = grNode;
       }
       if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
-        //long totalOffset = timeOffset + glNode*(numComponents*(2+oinfo[fileNumber].width) + 1);
-        //outfile.seekp(totalOffset);
         long relativeOffset = long(glNode-glNode_prev-1)*(numComponentsPlus*(2+oinfo[fileNumber].width) + 1);
         outfile.seekp(relativeOffset, ios_base::cur);
       }
@@ -287,41 +255,16 @@ GeoSource::writeNodeScalarToFile(DComplex *complexData, int numData, int glSub, 
       break;
   }
 
-  delete [] data;
+  delete[] data;
 }
 
 void 
 GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offset, int fileNumber,
                                  int iter, int numRes, double time, int totData, int *glElemNums)  
 {
-  if(binaryOutput) {
-    // get number of cluster files to write to
-    int clusNum = (*subToClus)[glSub][0];
-
-    // open output file
-    BinFileHandler *binFile = openBinaryOutputFile(clusNum, fileNumber, iter);
-
-    BinFileHandler::OffType timeOffset = headLen[fileNumber]*sizeof(char)
-                                         + (5+numClusElems)*sizeof(int)
-                                         + (numRes-1)*(totData+1)*sizeof(double);
-
-    if((*clusToSub)[clusNum][0] == glSub) { // if first subdomain in cluster
-      // update number of results
-      binFile->seek(4*sizeof(int)+headLen[fileNumber]*sizeof(char));
-      binFile->write(&numRes, 1);
-      // write time tag
-      binFile->seek(timeOffset);
-      binFile->write(&time, 1);
-    }
-
-    // seek to data offset postion to write data
-    BinFileHandler::OffType totalOffset = timeOffset + 1*sizeof(double) + offset*sizeof(double);
-    binFile->seek(totalOffset);
-
-    binFile->write(data, numData);
-    delete binFile;
-  }
-  else {
+  if (binaryOutput) {
+    writeArrayToBinFile(data, numData, glSub, offset, fileNumber, iter, numRes, time, totData, numClusElems);
+  } else {
     ofstream outfile;
     outfile.open(oinfo[fileNumber].filename,  ios_base::in | ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
@@ -390,6 +333,6 @@ GeoSource::writeElemScalarToFile(DComplex *complexData, int numData, int glSub, 
       break;
   }
 
-  delete [] data;
+  delete[] data;
 }
 

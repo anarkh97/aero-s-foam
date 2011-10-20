@@ -14,6 +14,12 @@ DistrBasisOutputFile::nativeComm() const {
   return *comm_->getCommunicator();
 }
 
+inline
+char *
+DistrBasisOutputFile::getFormat() {
+  return const_cast<char *>("native");
+}
+
 DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int nodeCount, Communicator *comm) :
   fileName_(fileName),
   nodeCount_(nodeCount),
@@ -30,7 +36,7 @@ DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int node
   MPI_File_set_size(handle_, currDisp);
 
   // Format
-  MPI_File_set_view(handle_, currDisp, MPI_INT, MPI_INT, "native", MPI_INFO_NULL);
+  MPI_File_set_view(handle_, currDisp, MPI_INT, MPI_INT, getFormat(), MPI_INFO_NULL);
   if (comm_->myID() == 0) {
     int swapFlag = 1;
     MPI_Status status;
@@ -38,7 +44,7 @@ DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int node
   }
 
   MPI_File_get_size(handle_, &currDisp);
-  MPI_File_set_view(handle_, currDisp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
+  MPI_File_set_view(handle_, currDisp, MPI_DOUBLE, MPI_DOUBLE, getFormat(), MPI_INFO_NULL); 
   
   if (comm_->myID() == 0) {
     double version = 1.0;
@@ -51,7 +57,7 @@ DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int node
   // Info
   const MPI_Datatype INTEGER_TYPE = MPI_UNSIGNED_LONG_LONG; 
   infoDisp_ = currDisp; 
-  MPI_File_set_view(handle_, currDisp, INTEGER_TYPE, INTEGER_TYPE, "native", MPI_INFO_NULL); 
+  MPI_File_set_view(handle_, currDisp, INTEGER_TYPE, INTEGER_TYPE, getFormat(), MPI_INFO_NULL); 
   if (comm_->myID() == 0) {
     typedef u_int64_t BinIntType;
     BinIntType intBuffer[2];
@@ -66,7 +72,7 @@ DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int node
   MPI_File_get_size(handle_, &dataDisp_);
   
   // Data
-  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
+  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, getFormat(), MPI_INFO_NULL); 
 }
 
 DistrBasisOutputFile::~DistrBasisOutputFile() {
@@ -111,7 +117,7 @@ DistrBasisOutputFile::updateStateCountStatus() {
   synchronizeFile();
 
   const MPI_Datatype INTEGER_TYPE = MPI_UNSIGNED_LONG_LONG; 
-  MPI_File_set_view(handle_, infoDisp_, INTEGER_TYPE, INTEGER_TYPE, "native", MPI_INFO_NULL); 
+  MPI_File_set_view(handle_, infoDisp_, INTEGER_TYPE, INTEGER_TYPE, getFormat(), MPI_INFO_NULL); 
   if (comm_->myID() == 0) {
     typedef u_int64_t BinIntType;
     BinIntType intBuffer;
@@ -123,7 +129,7 @@ DistrBasisOutputFile::updateStateCountStatus() {
   
   synchronizeFile();
   status_ = UP_TO_DATE;
-  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
+  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, getFormat(), MPI_INFO_NULL); 
 }
 
 DistrBasisInputFile::DistrBasisInputFile(const std::string &fileName) :

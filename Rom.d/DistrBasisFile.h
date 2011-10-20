@@ -46,6 +46,8 @@ private:
   MPI_File handle_;
   MPI_Offset infoDisp_;
   MPI_Offset dataDisp_;
+
+  static char *getFormat();
 };
 
 class DistrBasisInputFile : public BasisBinaryInputFile {

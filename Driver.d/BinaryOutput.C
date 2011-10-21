@@ -74,7 +74,7 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
     if (binaryOutput) {
       // Determine which cluster subdomain is in
       const int clusterId = (*subToClus)[glSub][0];
-      const char *truncateFlag = "ws";
+      const char *truncateFlag = "w";
       std::auto_ptr<BinFileHandler> binFile(openBinaryOutputFile(fileId, clusterId, iter, truncateFlag));
 
       // Write header information

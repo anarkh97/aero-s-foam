@@ -168,42 +168,39 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
 
   int ierr = 0;
 
-  if (std::strcmp(flag, "r") == 0) {    //CRW
+  if (std::strcmp(flag, "r") == 0) {
     fileid = open(name, O_RDONLY, 0644);
     if (fileid == -1) ierr = 1;
   }
-  else if (std::strcmp(flag, "w") == 0) {    //CRW
+  else if (std::strcmp(flag, "w") == 0) {
     fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fileid == -1) ierr = 1;
   }
-  else if (std::strcmp(flag, "ws") == 0) {    //CRW
+  else if (std::strcmp(flag, "ws") == 0) {
 #ifdef WINDOWS
     fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC , 0644);
 #else
-// RT - lose the SYNC
-    fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC , 0644);
-//    fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, 0644);
+   fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, 0644);
 #endif
     if (fileid == -1) ierr = 1;
   }
-  else if (std::strcmp(flag, "w+") == 0) {    //CRW
+  else if (std::strcmp(flag, "w+") == 0) {
     fileid = open(name, O_WRONLY | O_CREAT, 0644);
     if (fileid == -1) ierr = 1;
   }
-  else if (std::strcmp(flag, "ws+") == 0) {    //CRW
+  else if (std::strcmp(flag, "ws+") == 0) {
 #ifdef WINDOWS
     fileid = open(name, O_WRONLY | O_CREAT, 0644);
 #else
-// RT - lose the SYNC
-  fileid = open(name, O_WRONLY | O_CREAT , 0644);
+  fileid = open(name, O_WRONLY | O_CREAT | O_SYNC, 0644);
 #endif 
    if (fileid == -1) ierr = 1;
   }
-  else if (std::strcmp(flag, "rb") == 0) {    //CRW
+  else if (std::strcmp(flag, "rb") == 0) {
     file = fopen(name, "rb");
     if (!file) ierr = 1;
   }
-  else if (std::strcmp(flag, "wb") == 0) {    //CRW
+  else if (std::strcmp(flag, "wb") == 0) {
     file = fopen(name, "wb");
     if (!file) ierr = 1;
   }
@@ -216,12 +213,11 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
     fprintf(stderr, "*** Error: unable to open \'%s\'\n", name);
     exit(1);
   }
-  // fprintf(stderr,"opened file %s, type is %s\n", name, flag);
 
   headersize = sizeof(int) + sizeof(double);
     
   int one = 1;
-  if (std::strcmp(flag, "r") == 0 || std::strcmp(flag, "rb") == 0) {    //CRW
+  if (std::strcmp(flag, "r") == 0 || std::strcmp(flag, "rb") == 0) {
     read(&one, 1);
     if (one != 1) swapBytes = 1;
     read(&version, 1);
@@ -230,16 +226,6 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
     write(&one, 1);
     write(&version, 1);
   }
-
-/*  PJSA: this is not safe because it assumes that a file will never be declared w+ or ws+
-    the first time it is opened, and this is not the case in the FEM code
-  else if (strcmp(flag, "w") == 0 || strcmp(flag, "ws") == 0 || strcmp(flag, "wb") == 0) {
-    write(&one, 1);
-    write(&version, 1);
-  }
-  else if (strcmp(flag, "w+") == 0 || strcmp(flag, "ws+") == 0)
-    seek(0);
-*/
 
   cpos = headersize;
 
@@ -283,11 +269,11 @@ char *computeClusterSuffix(int num, int maxNum)
   char zeros[100];
   char *suffix = new char[100];
 
-  std::strcpy(zeros, "");    //CRW
+  std::strcpy(zeros, "");
   for (int k=0; k<numZeros; ++k)
     std::strcat(zeros, "0");
 
-  sprintf(suffix, "%s%d", zeros, num);    //CRW
+  sprintf(suffix, "%s%d", zeros, num);
 
   return suffix;
 

@@ -131,6 +131,7 @@ class GenDecDomain
   void reProcessMPCs();
   void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
+  GenAssembler<Scalar> * getSolVecAssembler();
 
  protected:
   void makeSubDomains();
@@ -166,6 +167,7 @@ class GenDecDomain
   void deleteMPCs();
   void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
   virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
+
  public:
   void printLMPC();
 
@@ -224,6 +226,8 @@ class GenDecDomain
   // JLchange coupled_dph functions
   void markSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes);
   void addFsiElements();
+  
+  GenBasicAssembler<Scalar> * solVecAssemblerNew();
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -3387,12 +3387,9 @@ void GeoSource::outputHeader(int fileNumber)
   }
 
   // get data description
-  int headerSize = 200;
-  char *headDescrip = new char[headerSize];   // description of data
+  char headDescrip[200];
   getHeaderDescription(headDescrip, fileNumber);
   fprintf(oinfo[fileNumber].filptr, "%s", headDescrip);
-
-  delete [] headDescrip;
 }
 
 //---------------------------------------------------------------
@@ -3551,7 +3548,7 @@ void GeoSource::outputEnergies(int fileNum, double time, DComplex Wext, DComplex
 
 //--------------------------------------------------------------------
 
-int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
+void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
 {
   int dataType = 0;  // 1 for nodal, 2 for elemental
 
@@ -3597,14 +3594,14 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
 
   // No header for CompositeData
   if (type == OutputInfo::Composit)
-    return dataType;
+    return;
 
   if (type == OutputInfo::InXForce || type == OutputInfo::InYForce ||
       type == OutputInfo::InZForce || type == OutputInfo::AXMoment ||
       type == OutputInfo::AYMoment || type == OutputInfo::AZMoment )  {
     sprintf(headDescrip, header[type], prbType, cinfo->elemSetName, nElem);
     dataType = 2;
-    return dataType;
+    return;
   }
 
   int avgnum = oinfo[fileNumber].averageFlg;
@@ -3626,7 +3623,26 @@ int GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
     dataType = 2;
   }
 
-  return dataType;
+  return;
+}
+
+void GeoSource::computeAndCacheHeaderLength(int fileNum)
+{
+  char headDescrip[200];
+  getHeaderDescriptionAndLength(headDescrip, fileNum);
+}
+
+int GeoSource::getHeaderDescriptionAndLength(char *headDescrip, int fileNumber) {
+  getHeaderDescription(headDescrip, fileNumber);
+  const int len = std::strlen(headDescrip);
+
+  // Cache header length
+  if (!headLen) {
+    headLen = new int[numOutInfo];
+  }
+  headLen[fileNumber] = len;
+  
+  return len;
 }
 
 ControlInterface* GeoSource::getUserSuppliedFunction()

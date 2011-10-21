@@ -86,7 +86,7 @@ SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level le
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
-  stateSnapFile_.updateStateCountStatus();
+  // Nothing to do
 }
 
 template <typename VecType>

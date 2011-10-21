@@ -1,78 +1,14 @@
 #include "DistrBasisFile.h"
 
-#include "DistrNodeDof6Buffer.h"
+#include "RenumberingUtils.h"
 
-#include <Comm.d/Communicator.h>
+#include <algorithm>
+#include <iterator>
+#include <stdexcept>
 
-#include <sys/types.h>
+#include <cassert>
 
 namespace Rom {
-
-inline
-MPI_Comm
-DistrBasisOutputFile::nativeComm() const {
-  return *comm_->getCommunicator();
-}
-
-DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int nodeCount, Communicator *comm) :
-  fileName_(fileName),
-  nodeCount_(nodeCount),
-  stateCount_(0),
-  status_(OUTDATED),
-  comm_(comm)
-{
-  MPI_File_open(nativeComm(),
-                const_cast<char *>(fileName_.c_str()),
-                MPI_MODE_WRONLY | MPI_MODE_CREATE,
-                MPI_INFO_NULL,
-                &handle_);
-  MPI_Offset currDisp = 0;
-  MPI_File_set_size(handle_, currDisp);
-
-  // Format
-  MPI_File_set_view(handle_, currDisp, MPI_INT, MPI_INT, "native", MPI_INFO_NULL);
-  if (comm_->myID() == 0) {
-    int swapFlag = 1;
-    MPI_Status status;
-    MPI_File_write(handle_, &swapFlag, 1, MPI_INT, &status);
-  }
-
-  MPI_File_get_size(handle_, &currDisp);
-  MPI_File_set_view(handle_, currDisp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
-  
-  if (comm_->myID() == 0) {
-    double version = 1.0;
-    MPI_Status status;
-    MPI_File_write(handle_, &version, 1, MPI_DOUBLE, &status);
-  }
-  
-  MPI_File_get_size(handle_, &currDisp);
-
-  // Info
-  const MPI_Datatype INTEGER_TYPE = MPI_UNSIGNED_LONG_LONG; 
-  infoDisp_ = currDisp; 
-  MPI_File_set_view(handle_, currDisp, INTEGER_TYPE, INTEGER_TYPE, "native", MPI_INFO_NULL); 
-  if (comm_->myID() == 0) {
-    typedef u_int64_t BinIntType;
-    BinIntType intBuffer[2];
-    intBuffer[0] = static_cast<BinIntType>(stateCount_);
-    intBuffer[1] = static_cast<BinIntType>(nodeCount_);
-    
-    MPI_Status status;
-    MPI_File_write(handle_, &intBuffer, 2, INTEGER_TYPE, &status);
-  }
-
-  synchronizeFile(); 
-  MPI_File_get_size(handle_, &dataDisp_);
-  
-  // Data
-  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
-}
-
-DistrBasisOutputFile::~DistrBasisOutputFile() {
-  updateStateCountStatus(); // TODO: swallow exceptions
-  MPI_File_close(&handle_);
-}
 
 void
 DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data) {
@@ -82,80 +18,54 @@ DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data) {
 
 void
 DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data, double headValue) {
-  status_ = OUTDATED;
+  assert(data.localNodeCount() == binFile_->localItemCount());
+  SimpleBuffer<double> buffer(binFile_->localDataSize());
 
-  MPI_Status status;
-  
-  // State header
-  const MPI_Offset headerOffset = (nodeCount_ * 6 + 1) * stateCount_;
-  if (comm_->myID() == 0) {
-    MPI_File_write_at(handle_, headerOffset, &headValue, 1, MPI_DOUBLE, &status);
+  double *target = buffer.array();
+  for (BinaryResultOutputFile::ItemIdIterator it = binFile_->itemIdBegin(),
+                                              it_end = binFile_->itemIdEnd();
+                                              it != it_end;
+                                              ++it) {
+    const double *origin = data[*it];
+    std::copy(origin, origin + DOFS_PER_NODE, target);
+    target += DOFS_PER_NODE;
   }
 
-  // State values 
-  const MPI_Offset stateOffset = headerOffset + 1;
-  for (DistrNodeDof6Buffer::NodeItConst it(data.globalNodeIndexBegin()),
-                                        it_end(data.globalNodeIndexEnd());
-       it != it_end; ++it) {
-    const int iNode = *it;
-    
-    const MPI_Offset nodeOffset = stateOffset + (iNode * 6);
-    MPI_File_write_at(handle_, nodeOffset, const_cast<double *>(data[iNode]), 6, MPI_DOUBLE, &status);
-  }
-  
-  ++stateCount_;
+  binFile_->stateAdd(headValue, buffer.array());
 }
 
-void
-DistrBasisOutputFile::updateStateCountStatus() {
-  synchronizeFile();
-
-  const MPI_Datatype INTEGER_TYPE = MPI_UNSIGNED_LONG_LONG; 
-  MPI_File_set_view(handle_, infoDisp_, INTEGER_TYPE, INTEGER_TYPE, "native", MPI_INFO_NULL); 
-  if (comm_->myID() == 0) {
-    typedef u_int64_t BinIntType;
-    BinIntType intBuffer;
-    intBuffer = static_cast<BinIntType>(stateCount_);
-    
-    MPI_Status status;
-    MPI_File_write_at(handle_, 0, &intBuffer, 1, INTEGER_TYPE, &status);
-  }
-  
-  synchronizeFile();
-  status_ = UP_TO_DATE;
-  MPI_File_set_view(handle_, dataDisp_, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL); 
-}
 
 DistrBasisInputFile::DistrBasisInputFile(const std::string &fileName) :
-  BasisBinaryInputFile(fileName)
-{}
-
-void
-DistrBasisOutputFile::synchronizeFile() {
-  MPI_File_sync(handle_);
-  MPI_Barrier(nativeComm());
-  MPI_File_sync(handle_);
+  BasisBinaryInputFile(fileName),
+  fileNodeIds_(),
+  fileBuffer_(nodeCount())
+{
+  inverse_numbering(nodeIdBegin(), nodeIdEnd(), std::inserter(fileNodeIds_, fileNodeIds_.end()));
+  assert(fileNodeIds_.size() == nodeCount());
 }
 
-const DistrNodeDof6Buffer&
+const DistrNodeDof6Buffer &
 DistrBasisInputFile::currentStateBuffer(DistrNodeDof6Buffer &target) {
-  if (validCurrentState()) {
-    seekCurrentState();
+  // Retrieve all information in the internal buffer
+  // TODO: More economical approach
+  BasisBinaryInputFile::currentStateBuffer(fileBuffer_);
+  
+  typedef DistrNodeDof6Buffer::NodeItConst NodeIt;
+  const NodeIt it_end = target.globalNodeIndexEnd();
+  for (NodeIt it = target.globalNodeIndexBegin(); it != it_end; ++it) {
+    const int iNode = *it; // Id of the node requested by the local buffer
 
-    typedef DistrNodeDof6Buffer::NodeItConst NodeIt;
-    const NodeIt it_end = target.globalNodeIndexEnd();
-    for (NodeIt it = target.globalNodeIndexBegin(); it != it_end; ++it) {
-      const int iNode = *it;
-      seekNode(iNode);
-      readCurrentNode(target[iNode]);
+    // Location of requested node in internal buffer
+    std::map<int, int>::const_iterator it_loc = fileNodeIds_.find(iNode);
+    if (it_loc == fileNodeIds_.end()) {
+      throw std::runtime_error("Requested nodal data missing from file");
     }
+    const double *nodeBuffer = fileBuffer_[it_loc->second];
 
-    seekNode(nodeCount());
-    validateNextOffset();
+    std::copy(nodeBuffer, nodeBuffer + DOFS_PER_NODE, &target[iNode][0]);
   }
 
   return target;
 }
-
 
 } /* end namespace Rom */

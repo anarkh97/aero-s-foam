@@ -64,7 +64,8 @@ DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrExplic
   converter_(parent->decDomain->getAllSubDomains(), parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub()),
   masterMapping_(SubDomIt(parent->decDomain->getAllSubDomains()), SubDomIt(parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub())),
   buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
-  outputFile_(BasisFileId(FileNameInfo(), BasisId::STATE, BasisId::SNAPSHOTS), parent->decDomain->getDomain()->numGlobalNodes(), structCom),
+  outputFile_(BasisFileId(FileNameInfo(), BasisId::STATE, BasisId::SNAPSHOTS), parent->decDomain->getDomain()->numGlobalNodes(),
+              buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom),
   skipCounter_(0)
 {}
 

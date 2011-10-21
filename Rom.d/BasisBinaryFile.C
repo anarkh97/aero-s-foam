@@ -3,134 +3,67 @@
 #include <sys/types.h>
 
 #include <stdexcept>
+#include <cassert>
 
 namespace Rom {
 
-namespace {
-  const double VERSION = 1.0;
-  const char *WRITE_FLAG = "w";
-  const char *READ_FLAG = "r";
-  typedef u_int64_t BinIntType;
-  typedef BinFileHandler::OffType OffSetType;
-} // end anonymous namespace
+const double BasisBinaryFile::VERSION = 2.0;
+const std::string BasisBinaryFile::DESC = "rob";
+const int BasisBinaryFile::NODAL_DATA_FLAG = 1;
+const int BasisBinaryFile::DOFS_PER_NODE = 6;
+
 
 BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int nodeCount) :
-  fileName_(fileName),
-  nodeCount_(nodeCount),
-  stateCount_(0),
-  binHandler_(fileName.c_str(), WRITE_FLAG, VERSION) 
-{
-  // WARNING: The program exits when it fails to open the file
-  // TODO: throw std::runtime_error instead
+  binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, DOFS_PER_NODE, VERSION)
+{}
 
-  BinIntType intBuffer[2];
-  intBuffer[0] = static_cast<BinIntType>(stateCount_);
-  intBuffer[1] = static_cast<BinIntType>(nodeCount_);
-  binHandler_.write(intBuffer, 2);
-}
-
-BasisBinaryOutputFile::StateCountStatus
-BasisBinaryOutputFile::stateCountStatus() const {
-  return UP_TO_DATE;
-}
-
-void
-BasisBinaryOutputFile::updateStateCountStatus() {
-  // Nothing to do: State count automatically kept up-to-date
-}
-
-void
-BasisBinaryOutputFile::writeStateHeader(double headValue) {
-  binHandler_.write(&headValue, 1);
-}
-
-void
-BasisBinaryOutputFile::incrementStateCount() {
-  const int newStateCount = stateCount_ + 1;
-
-  // Save the current offset before rewinding
-  const OffSetType offset = binHandler_.tell(); 
-  binHandler_.seek(OffSetType(0));
-
-  // Write the state count in a binary compatible format
-  const BinIntType binStateCount = static_cast<BinIntType>(newStateCount);
-  binHandler_.write(&binStateCount, 1);
-
-  // Restore the offset
-  binHandler_.seek(offset);
-
-  // Commit changes
-  stateCount_ = newStateCount;
-}
 
 BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
-  fileName_(fileName),
-  nodeCount_(),
-  stateCount_(),
-  currentStateIndex_(),
-  currentStateHeaderValue_(),
-  binHandler_(fileName.c_str(), READ_FLAG, VERSION),
-  savedOffset_(),
-  validNextOffset_(false)
+  binFile_(fileName)
 {
-  // WARNING: The program exits when it fails to open the file
-  // TODO: throw std::runtime_error instead
-  
-  if (binHandler_.getVersion() != VERSION) {
+  if (binFile_.version() != VERSION) {
     throw std::runtime_error("Incompatible binary file version");
   }
 
-  // Read file header
-  BinIntType intBuffer[2];
-  binHandler_.read(intBuffer, 2);
-  stateCount_ = static_cast<int>(intBuffer[0]);
-  nodeCount_ = static_cast<int>(intBuffer[1]);
-  validNextOffset_ = true;
-
-  if (validCurrentState()) {
-    seekNextState();
+  if (binFile_.dataType() != NODAL_DATA_FLAG) {
+    throw std::runtime_error("Non-nodal data");
   }
+  
+  if (binFile_.description() != DESC) {
+    throw std::runtime_error("Incorrect description");
+  }
+  
+  if (binFile_.itemDimension() != DOFS_PER_NODE) {
+    throw std::runtime_error("Incorrect #dofs/node");
+  }
+  
+  assert(currentStateIndex() == 0);
+
+  cacheStateHeaderValue();
+}
+
+const NodeDof6Buffer &
+BasisBinaryInputFile::currentStateBuffer(NodeDof6Buffer &target) {
+  assert(validCurrentState());
+  
+  // Retrieve all information in one pass
+  binFile_.state(target.array());
+
+  return target;
 }
 
 void
 BasisBinaryInputFile::currentStateIndexInc() {
   if (validCurrentState()) {
-    seekNextState();
-    ++currentStateIndex_; 
+    binFile_.stateRankInc();
+    cacheStateHeaderValue();
   }
 }
 
-void
-BasisBinaryInputFile::readCurrentNode(double *buffer) {
-  binHandler_.read(buffer, 6);
-}
-
-void
-BasisBinaryInputFile::seekNextState() {
-  if (!validNextOffset_) {
-    throw std::runtime_error("Must read current state before advancing");
+void BasisBinaryInputFile::cacheStateHeaderValue() {
+  if (validCurrentState()) {
+    currentStateHeaderValue_ = binFile_.stateStamp();
   }
-  binHandler_.read(&currentStateHeaderValue_, 1);
-  savedOffset_ = binHandler_.tell();
-  validNextOffset_ = false;
-}
-
-void
-BasisBinaryInputFile::seekCurrentState() {
-  if (validNextOffset_) {
-    binHandler_.seek(savedOffset_);
-  }
-}
-
-void
-BasisBinaryInputFile::seekNode(int iNode) {
-  const OffSetType nodeOffset = savedOffset_ + 6 * sizeof(double) * iNode;
-  binHandler_.seek(nodeOffset);
-}
-
-void
-BasisBinaryInputFile::validateNextOffset() {
-  validNextOffset_ = true;
 }
 
 } /* end namespace Rom */

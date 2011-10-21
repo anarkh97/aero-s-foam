@@ -46,6 +46,8 @@ MPI_Datatype CommTrace<float>::MPIType = MPI_FLOAT;
 template<>
 MPI_Datatype CommTrace<int>::MPIType = MPI_INTEGER;
 template<>
+MPI_Datatype CommTrace<long>::MPIType = MPI_LONG;
+template<>
 MPI_Datatype CommTrace<char>::MPIType = MPI_CHARACTER;
 template<>
 MPI_Datatype CommTrace<DComplex>::MPIType = MPI_DOUBLE_COMPLEX;

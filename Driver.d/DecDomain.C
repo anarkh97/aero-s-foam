@@ -116,6 +116,7 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(subToElem) { delete subToElem; subToElem = 0; }
   if(nodeVecInfo) delete nodeVecInfo;
   delete masterSolVecInfo_;
+  delete ba;
 }
 
 template<class Scalar>
@@ -3463,15 +3464,12 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
+ GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
-   FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
-                                                          FSCommPattern<Scalar>::CopyOnSend);
-   for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
-   pat->finalize();
-   ba = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+   assembler = getSolVecAssembler(); 
  }
 
- if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, assembler);
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
@@ -3714,3 +3712,24 @@ GenDecDomain<Scalar>::getWiCommPattern()
   return wiPat;
 }
 
+template<class Scalar>
+GenAssembler<Scalar> *
+GenDecDomain<Scalar>::getSolVecAssembler() {
+  if (!ba) {
+    ba = solVecAssemblerNew(); 
+  }
+  return ba;
+}
+
+template<class Scalar>
+GenBasicAssembler<Scalar> *
+GenDecDomain<Scalar>::solVecAssemblerNew() {
+  FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
+                                                         FSCommPattern<Scalar>::CopyOnSend);
+  for(int i=0; i<numSub; ++i) {
+    subDomain[i]->setDofPlusCommSize(pat);
+  }
+  pat->finalize();
+
+  return new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+}

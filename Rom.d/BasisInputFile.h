@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdio>
 
+#include <vector>
 #include <cassert>
 
 namespace Rom {
@@ -14,7 +15,11 @@ public:
   const std::string &fileName() const { return fileName_; }
   
   int stateCount() const { return stateCount_; }
+  
   int nodeCount() const { return nodeCount_; }
+  typedef std::vector<int>::const_iterator NodeIdIterator;
+  NodeIdIterator nodeIdBegin() const { return nodeIndices_.begin(); }
+  NodeIdIterator nodeIdEnd() const { return nodeIndices_.end(); }
 
   // Iteration and retrieval
   int currentStateIndex() const { return currentStateIndex_; }
@@ -34,6 +39,8 @@ private:
   const std::string fileName_;
   
   int nodeCount_;
+  std::vector<int> nodeIndices_;
+
   int stateCount_;
   
   FILE *stream_;
@@ -43,6 +50,7 @@ private:
   mutable bool currentStateRead_;
   std::fpos_t currentStatePosition_;
 
+  void readNodeIndices();
   void readCurrentStateHeader();
   void positionAtStateStart() const;
 
@@ -58,9 +66,9 @@ BasisInputFile::currentStateBuffer(NodeDof6Type &target) const {
 
   for (int iNode = 0; iNode < nodeCount(); ++iNode) {
     const int info = std::fscanf(stream_, "%le %le %le %le %le %le",
-                                 &target[iNode][0], &target[iNode][1], &target[iNode][2], 
+                                 &target[iNode][0], &target[iNode][1], &target[iNode][2],
                                  &target[iNode][3], &target[iNode][4], &target[iNode][5]);
-    assert(info == 6); 
+    assert(info == 6);
   }
 
   currentStateRead_ = true;

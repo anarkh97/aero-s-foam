@@ -116,7 +116,8 @@ DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrE
   masterMapping_(SubDomIt(parent->decDomain->getAllSubDomains()), SubDomIt(parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub())),
   buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
   assembledSnapshot_(parent->decDomain->solVecInfo()),
-  outputFile_(BasisFileId(FileNameInfo(), BasisId::FORCE, BasisId::SNAPSHOTS), parent->decDomain->getDomain()->numGlobalNodes(), structCom),
+  outputFile_(BasisFileId(FileNameInfo(), BasisId::FORCE, BasisId::SNAPSHOTS), parent->decDomain->getDomain()->numGlobalNodes(),
+              buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom),
   skipCounter_(0)
 {}
 

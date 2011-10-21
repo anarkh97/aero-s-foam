@@ -28,6 +28,8 @@ BasisInputFile::BasisInputFile(const std::string &fileName) :
    throw std::runtime_error("Input file has unrecognized format");
   }
 
+  readNodeIndices();
+
   if (stateCount_ > 0) {
     readCurrentStateHeader();
   }
@@ -35,6 +37,16 @@ BasisInputFile::BasisInputFile(const std::string &fileName) :
 
 BasisInputFile::~BasisInputFile() {
   std::fclose(stream_);
+}
+
+void
+BasisInputFile::readNodeIndices() {
+  nodeIndices_.resize(nodeCount());
+  for (int iNode = 0; iNode != nodeCount(); ++iNode) { 
+    const int info = std::fscanf(stream_, "%d", &nodeIndices_[iNode]);
+    assert(info == 1);
+    nodeIndices_[iNode] += 1;
+  }
 }
 
 void

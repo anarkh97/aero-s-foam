@@ -262,8 +262,8 @@ if(MPI_FOUND)
    IF(NOT APPLE)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Math Util Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom getopt
+       Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                            PROPERTIES 
@@ -320,8 +320,8 @@ add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
-     Driver Elem Feti HelmAxi solver Corotational Mortar Math Util Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom getopt)
+     Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
@@ -356,7 +356,7 @@ set_target_properties(robcodec
                       RELEASE_OUTPUT_NAME rob
                       DEBUG_OUTPUT_NAME rob.debug)
 
-target_link_libraries(robcodec Rom)
+target_link_libraries(robcodec Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 

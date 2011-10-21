@@ -1,5 +1,7 @@
 #include "BasisOutputFile.h"
 
+#include "SimpleBuffer.h"
+
 #include <string>
 #include <cstdio>
 
@@ -29,6 +31,13 @@ BasisOutputFile::BasisOutputFile(const std::string &fileName, int nodeCount) :
 
   writeStateCount();
   writeNodeCount();
+
+  // TODO: Counting iterator [0, nodeCount)
+  SimpleBuffer<int> nodeIndices(nodeCount_);
+  for (int i = 0; i < nodeCount_; ++i) {
+    nodeIndices[i] = i;
+  }
+  writeIndexMapping(nodeIndices.array(), nodeIndices.array() + nodeCount_);
 }
 
 BasisOutputFile::~BasisOutputFile() {
@@ -76,7 +85,7 @@ BasisOutputFile::writeStateCount() {
 
 void
 BasisOutputFile::writeNodeCount() {
-  fprintf(stream_, "%d\n", nodeCount_);
+  std::fprintf(stream_, "%d\n", nodeCount_);
 }
 
 void

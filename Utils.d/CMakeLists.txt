@@ -3,4 +3,5 @@ ADD_LIBRARY(Util Connectivity.C dofset.C BlockAlloc.C
         BinaryOutputFile.C
         CompositeInfo.C pstress.C
         b2Rotation.C list.C
+        BinaryResultFile.C
         NodeSpaceArray.C MathUtils.C dbg_alloca.C)

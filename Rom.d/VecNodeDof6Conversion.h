@@ -1,26 +1,13 @@
 #ifndef ROM_VECNODEDOF6CONVERSION_H
 #define ROM_VECNODEDOF6CONVERSION_H
 
-#include <vector>
+#include "SimpleBuffer.h"
+
 #include <cassert>
 
 class DofSetArray;
 
 namespace Rom {
-
-struct NodeDof {
-  typedef int DofType;
-
-  int nodeRank;
-  DofType dofId;
-
-  NodeDof(int n, DofType d) :
-    nodeRank(n),
-    dofId(d)
-  {}
-
-  NodeDof() {}
-};
 
 class VecNodeDof6Conversion {
 public:
@@ -33,22 +20,13 @@ public:
   template <typename NodeDofs6Type, typename VecType>
   const VecType &vector(const NodeDofs6Type &origin, VecType &target) const;
 
-  NodeDof nodeDof(int vecLoc) const;
-
-  template <typename IndexOut>
-  IndexOut locations(int nodeRank, IndexOut result) const;
-
   explicit VecNodeDof6Conversion(const DofSetArray &);
-
-  ~VecNodeDof6Conversion();
 
 private:
   int nodeCount_;
   int vectorSize_;
 
-  std::vector<NodeDof> locationId_;
-  
-  typedef int (*DofLocation)[6];
+  typedef SimpleBuffer<int[6]> DofLocation;
   DofLocation dofLocation_;
 
   // Disallow copy and assignment
@@ -82,22 +60,6 @@ VecNodeDof6Conversion::vector(const NodeDofs6Type &origin, VecType &target) cons
   }
 
   return target;
-}
-
-template <typename IndexOut>
-IndexOut
-VecNodeDof6Conversion::locations(int nodeRank, IndexOut result) const {
-  assert(nodeRank >= 0 && nodeRank < nodeCount());
-  const int *nodeLoc = dofLocation_[nodeRank];
-
-  for (int iDof = 0; iDof < 6; ++iDof) {
-    const int loc = nodeLoc[iDof];
-    if (loc >= 0) {
-      *result++ = loc;
-    }
-  }
-
-  return result;
 }
 
 } /* end namespace Rom */

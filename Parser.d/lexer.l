@@ -127,7 +127,7 @@ TRAIL [a-zA-Z]*
 
 "exit"|"EXIT"                      { return EXITAFTERDEC; }
 
-"skip"|"SKIP"                      { return SKIPDECCALL; }
+"skip"|"SKIP"                      { return SKIP; }
 
 "outload"|"OUTLOAD"                { return OUTPUTWEIGHT; }
 
@@ -417,6 +417,8 @@ TRAIL [a-zA-Z]*
 "sgisparse"[a-zA-Z]*|"SGISPARSE"[a-zA-Z]* { yylval.ival = 2; return SOLVERTYPE; }
 
 "sgisky"[a-zA-Z]*|"SGISKY"[a-zA-Z]* { yylval.ival = 3; return SOLVERTYPE; }
+
+"simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
 "fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 

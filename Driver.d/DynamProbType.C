@@ -4,6 +4,8 @@
 #include <Paral.d/SubDOp.h>
 #include <Driver.d/SysState.h>
 
+#include <Problems.d/DynamProbTraits.h>
+
 //-------------------------------------------------------------------------------------------
 template<class VecType>
 SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
@@ -188,7 +190,34 @@ NewmarkWorkVec<VecType,ProblemDescriptor>::~NewmarkWorkVec()
 
 //------------------------------------------------------------------------------
 
-template<
+template < 
+     class DynOps, 
+     class VecType, 
+     class PostProcessor, 
+     class ProblemDescriptor,
+     class Scalar>
+DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>::DynamicSolver(ProblemDescriptor *PrbD) {
+    probDesc = PrbD; 
+    aeroAlg = -1;
+    dynOps = 0;
+    postProcessor = 0;
+}
+
+//------------------------------------------------------------------------------
+
+template < 
+     class DynOps, 
+     class VecType, 
+     class PostProcessor, 
+     class ProblemDescriptor,
+     class Scalar>
+DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>::~DynamicSolver() {
+  delete postProcessor;
+}
+
+//------------------------------------------------------------------------------
+
+template <
      class DynOps,             // Data Structure for K, C, M and dynMat
      class VecType,            // Vector type used
      class PostProcessor,      
@@ -376,18 +405,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 { 
    filePrint(stderr, " ... Quasistatic loop               ... \n");
    if (aeroFlg == 10)  steadyMax = 1;
+   
    // get initial displacements
-
    VecType &d_n = curState.getDisp();
    
    // Initialize some vectors 
-
    VecType  &d_n_p = workVec.get_d_n_p();
    VecType    &rhs = workVec.get_rhs();
    VecType  &ext_f = workVec.get_ext_f();
 
    // Initialize some parameters
-  // Get initial Time
+   // Get initial Time
    int tIndex;
    int initIndex;
    double initialTime = 0.0;
@@ -484,7 +512,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... update solution
     d_n   += d_n_p;
-//   filePrint(stderr, " ... ||u|| = %e\n", d_n.norm());
 
     // ... output current solution and send displacements to fluid
     postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
@@ -572,21 +599,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    VecType &Cd_n_h = workVec.get_Cd_n_h();
    VecType   &tmp1 = workVec.get_tmp1();
 
-   // New vector added for prescribed boundary conditions
-   //VecType &tmp1 = workVec.get_tmp1();
-   //tmp1.zero();
-
-   // These vectors have length equal to the number of constraints
-   // ( number of dirichlet boundary conditions )
-   //VecType &dnc = workVec.get_dnc();
-   //VecType &vnc = workVec.get_vnc();
-   //VecType &anc = workVec.get_anc();
-
-   // zero these vectors
-   //dnc.zero();
-   //vnc.zero();
-   //anc.zero();
-
    // Get initial time and time index
    int n = 0;
    double t = 0.0;
@@ -649,8 +661,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        rhs.linC( Md_n_h, gamma*dt, ext_f );
        dynOps.dynMat->reSolve( rhs );
 
-       //if(probDesc->getHzemFlag() == 2) probDesc->tempProject(rhs);
-
        // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
        d_n.linC(2.0, rhs, -1.0, d_n);
 
@@ -695,11 +705,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          rhs += Cd_n_h;
 
        }
-       // add prescribed boundary condition contributions to rhs vector
-       // and update accelerations at prescribed dofs
-       // probDesc->addPrescContrib( dynOps.M12, dynOps.C12, dnc, vnc, anc, tmp1, t);
-       //rhs += tmp1;
-       //tmp1.zero();
 
        dynOps.dynMat->reSolve( rhs ); // Now rhs contains d_(n+1-alphaf)
 
@@ -839,6 +844,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     probDesc->project(d_n);
     probDesc->project(v_n);
   }
+      
+  handleDisplacement(*probDesc, d_n);
 
   // Initialize time index (n) and time (t^n)
   int n = 0;
@@ -850,8 +857,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   probDesc->computeExtForce2(curState, fext, constForce, n, t_n, aeroForce, 0.5, 0.0);
 
   // Compute the initial internal forces fint^0
-  if(domain->solInfo().isNonLin()) probDesc->getInternalForce(d_n, fint, t_n); else // PJSA 3-31-08
-  dynOps.K->mult(d_n, fint);
+  getInternalForce(dynOps, d_n, fint, t_n);
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
@@ -860,6 +866,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     fint.linC(fint,1.0,tmp2);
   }
   a_n.linC(1.0, fext, -1.0, fint);
+  handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
   if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
@@ -867,6 +874,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
+  handleAcceleration(*probDesc, a_n);
   if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
   // Output the state at t^0: d^0, v^0, a^0, fext^0
@@ -909,11 +917,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // External force
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t_n+dt_n_h, aeroForce, 0.5, 0.0);
       d_n.linAdd(dt_n_h,v_n_h);
+      handleDisplacement(*probDesc, d_n);
+
       // Internal force
-      dynOps.K->mult(d_n, fint);
+      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h);
+
       // 4th order loop see Cohen et al, Finite Elements in Analysis and Design 16(1994) pp 329-336
-      //"Higher-order finite elems with mass lumping for teh 1D wave equation"
-      dynOps.dynMat->reSolve(fint);//ne peut pas aller a l'order 6 ... dynMat contient dt*C/2 !
+      // "Higher-order finite elements with mass lumping for the 1D wave equation"
+      dynOps.dynMat->reSolve(fint);
       tmp1.linC(1.0,d_n,coeff2,fint);
       dynOps.K->mult(tmp1,fint);
       if (dynOps.C) {
@@ -922,23 +933,18 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         tmp1.linC(2.0,tmp1,-1.0,tmp2);
         dynOps.M->mult(v_n_h,tmp2);
         coeff=0.5*dt_n_h;
-        //v_p=v_n_h;//temporary
         v_n_h.linC(1.0,tmp2,coeff,tmp1);
         dynOps.dynMat->reSolve(v_n_h);
-        //coeff=1/dt;
-        //a_n.linC(coeff,v_n_h,-coeff,v_p);
       } else {
         coeff=dt_n_h;
         a_n.linC(1.0,fext,-1.0,fint);
         dynOps.dynMat->reSolve(a_n);
         v_n_h.linC(1.0,v_n_h,coeff,a_n);
       }
-      //coeff=0.5*dt;
-      //v_p=v_n;
-      //v_n.linC(1.0,v_n_h,coeff,a_n);
       
       // Update the time index
       n += 1;
+
       // Output the state at t^n: d^n, v^n, a^n, fext^n
       postProcessor->dynamOutput(n, t_n+dt_n_h, dynOps, fext, aeroForce, curState);
 
@@ -951,9 +957,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt^{n+1/2}*v^{n+1/2}
       d_n.linAdd(dt_n_h, v_n_h);
+      handleDisplacement(*probDesc, d_n);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      //if(aeroAlg == 20) probDesc->aeroSend(t+dt, d_n, v_n, a_n, v_n_h); // note: v_n, a_n haven't been updated yet!!!
       if(aeroAlg == 20) probDesc->aeroSend(t_n+dt_n_h, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
@@ -962,10 +968,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Compute the internal force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fint_p = fint;
-      if(domain->solInfo().isNonLin()) probDesc->getInternalForce(d_n,fint,t_n+dt_n_h);
-      else {
-        dynOps.K->mult(d_n, fint);
-      }
+      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h);
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
       if(dynOps.C) {
@@ -973,14 +976,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
+      handleForce(*probDesc, a_n);
       dynOps.dynMat->reSolve(a_n);
-
       if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
         probDesc->getContactForce(tmp1, tmp2);
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }
+      handleAcceleration(*probDesc, a_n);
       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
       // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^n
@@ -1086,8 +1090,26 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar >
   
   filePrint(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e\n",nstep,criteria);
 
-  //if ( nstep < steadyMin ) return 0;
   if(nstep > steadyMax) return 2;
 
   return (criteria < steadyTol) ? 1 : 0;
 }
+  
+//------------------------------------------------------------------------------
+
+template<
+     class DynOps,             // Data Structure for K, C, M and dynMat
+     class VecType,            // Vector type used
+     class PostProcessor,      
+     class ProblemDescriptor,
+     class Scalar> 
+void
+DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar >
+::getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time) {
+  if (domain->solInfo().isNonLin()) {
+      probDesc->getInternalForce(const_cast<VecType &>(disp), result, time);
+    } else {
+      const_cast<DynOps &>(dynamOps).K->mult(const_cast<VecType &>(disp), result);
+    }
+}
+

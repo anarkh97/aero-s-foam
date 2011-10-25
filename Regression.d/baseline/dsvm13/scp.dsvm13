@@ -1,29 +1,31 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=3:00:00
+#PBS -l nodes=8:ppn=8,walltime=3:00:00
 
 cd /lustre/home/mpotts/FEM/Regression.d/dsvm13
-echo mpirun -n 4 ../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_direct_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_direct_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_spooles_pivot_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_spooles_pivot_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_pcg_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_pcg_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_bcg_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_bcg_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm13_cr_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros  dsvm13_cr_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DP_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DP_buckle_geigenpa.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DPH_buckle_geigenpa.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DPH_buckle_geigenpa.inp
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_direct_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros  dsvm13_direct_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_spooles_pivot_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.6 ../../bin/aeros  dsvm13_spooles_pivot_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_pcg_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.7 ../../bin/aeros  dsvm13_pcg_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_bcg_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.8 ../../bin/aeros  dsvm13_bcg_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm13_cr_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.9 ../../bin/aeros  dsvm13_cr_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DP_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.10 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DP_buckle_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DPH_buckle_geigenpa.inp
+mpirun -n 2 --machinefile host.11 ../../bin/aeros -n 2 --dec --nsub 4 dsvm13_FETI_DPH_buckle_geigenpa.inp &
+wait %1 %2 %3 %4 %5 %6 %7 %8 %9 %10 %11 %12 

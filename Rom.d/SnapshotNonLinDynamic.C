@@ -26,8 +26,8 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     virtual void stateSnapshotAdd(const GeomState &);
     virtual void postProcess();
 
-    int nodeCount() const { return domain_->numGlobalNodes(); }
-    int vectorSize() const { return domain_->numUncon(); }
+    int nodeCount() const { return converter_.nodeCount(); }
+    int vectorSize() const { return converter_.vectorSize(); }
 
     explicit RawImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
 
@@ -86,7 +86,7 @@ SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level le
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
-  stateSnapFile_.updateStateCountStatus();
+  // Nothing to do
 }
 
 template <typename VecType>
@@ -100,14 +100,24 @@ void
 SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   const CoordSet &refCoords = domain_->getNodes();
 
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    // Translational dofs
-    snapBuffer_[iNode][0] = snap[iNode].x - refCoords[iNode]->x;
-    snapBuffer_[iNode][1] = snap[iNode].y - refCoords[iNode]->y;
-    snapBuffer_[iNode][2] = snap[iNode].z - refCoords[iNode]->z;
-    
-    // Rotational dofs
-    mat_to_vec(const_cast<double (*)[3]>(snap[iNode].R), &snapBuffer_[iNode][3]);
+  for (int iNode = 0, iNodeEnd = nodeCount(); iNode != iNodeEnd; ++iNode) {
+    double *nodeBuffer = snapBuffer_[iNode];
+
+    const Node *refNode = refCoords[iNode];
+    if (refNode) {
+      const NodeState &snapNode = snap[iNode];
+
+      // Translational dofs
+      nodeBuffer[0] = snapNode.x - refNode->x;
+      nodeBuffer[1] = snapNode.y - refNode->y;
+      nodeBuffer[2] = snapNode.z - refNode->z;
+
+      // Rotational dofs
+      mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+    } else {
+      // Node does not really exist, corresponds to a gap in node numbering
+      std::fill_n(nodeBuffer, 6, 0.0);
+    }
   }
  
   stateSnapFile_.stateAdd(snapBuffer_);

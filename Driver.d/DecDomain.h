@@ -43,6 +43,7 @@ class GenDecDomain
   Connectivity *elemToSub;
   GenSubDomain<Scalar> **subDomain;
   DistrInfo internalInfo, internalInfo2;
+  DistrInfo *masterSolVecInfo_;
   DistrInfo nodeInfo;
   DistrInfo *nodeVecInfo;
   Connectivity *grToSub;
@@ -83,6 +84,8 @@ class GenDecDomain
   GenDecDomain(Domain *d);
   virtual ~GenDecDomain();
 
+  Domain *getDomain() { return domain; }
+
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
   Connectivity * getSubToSub() { return subToSub; }
@@ -102,6 +105,7 @@ class GenDecDomain
                               GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0);
   void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
+  const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs
   DistrInfo &ndVecInfo(); // all nodes
   // user defined control functions
@@ -127,6 +131,7 @@ class GenDecDomain
   void reProcessMPCs();
   void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
+  GenAssembler<Scalar> * getSolVecAssembler();
 
  protected:
   void makeSubDomains();
@@ -145,8 +150,11 @@ class GenDecDomain
   void getSharedMPCs();
   void makeCorners();
   void makeInternalInfo();
-  void makeInternalInfo2();
+  void makeSolVecInfo();
+  void makeSysVecInfo();
   void makeNodeInfo();
+  void setNonTrivialMasterFlag(DistrInfo &);
+  void makeBasicDistrInfo(DistrInfo &, int(Domain::*)());
   void getCPUMap();
   void makeSubDMaps();
   void constructSubDomains(int iSub);
@@ -159,6 +167,7 @@ class GenDecDomain
   void deleteMPCs();
   void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
   virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
+
  public:
   void printLMPC();
 
@@ -217,6 +226,8 @@ class GenDecDomain
   // JLchange coupled_dph functions
   void markSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes);
   void addFsiElements();
+  
+  GenBasicAssembler<Scalar> * solVecAssemblerNew();
 };
 
 #ifdef _TEMPLATE_FIX_

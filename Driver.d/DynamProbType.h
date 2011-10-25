@@ -10,31 +10,6 @@ class DistrInfo;
 class SingleInfo;
 template <typename T> class SysState;
 
-/*
-template <class VecType> 
-class SysState {
-   VecType &d_n, &v_n, &a_n, &v_n_m;
- public:
-
-   SysState(VecType &v): d_n(v), v_n(v), a_n(v), v_n_m(v) { }
-   
-   SysState(VecType &d, VecType &v, VecType &a, VecType &vm): 
-     d_n(d), v_n(v), a_n(a), v_n_m(vm) { }
-   
-   SysState &operator=(const SysState &sys);  
-   
-   VecType &getDisp()      { return d_n; }
-   VecType &getVeloc()     { return v_n; }
-   VecType &getPrevVeloc() { return v_n_m; }
-   VecType &getAccel()     { return a_n; }
-
-   VecType &getDispConst()      const { return d_n; }
-   VecType &getVelocConst()     const { return v_n; }
-   VecType &getPrevVelocConst() const { return v_n_m; }
-   VecType &getAccelConst()     const { return a_n; }
-
-};
-*/
 
 template <class VecType,
           class ProblemDescriptor> 
@@ -105,10 +80,7 @@ class NewmarkWorkVec {
    VecType & get_ancConst()   const { return *anc;   }
    VecType & get_tmp2Const()  const { return *tmp2;  }
    VecType & get_fintConst()  const { return *fint;  }
-
-
 };
-
 
 
 template < 
@@ -118,19 +90,46 @@ template <
      class ProblemDescriptor,
      class Scalar>
 class DynamicSolver {
+public:
+     DynamicSolver(ProblemDescriptor *PrbD);
+     ~DynamicSolver();
+
+     void solve();
+     
+     VecType * getpDis()  { return d_n; }
+     VecType * getpVel()  { return v_n; }
+     VecType * getpAcc()  { return a_n; }
+     DynOps  * getpOps()  { return dynOps; }
+
+private:
+     VecType * getaeroForce() { return aeroForce; }
+     
+     void explicitNewmarkLoop(SysState<VecType>&,VecType&,
+                              DynOps& dynOps, 
+			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                              double, double);
+     void implicitNewmarkLoop(SysState<VecType>&,VecType&,
+                              DynOps& dynOps, 
+			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                              double, double);
+     void     quasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
+			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                              double, double, int =0);
+
+     int checkSteadyState(double time, double step, double criteria=-1.0);
+
+     void getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time);
 
      ProblemDescriptor *probDesc;
-     PostProcessor     *postProcessor;
+     PostProcessor *postProcessor;
      
      double beta, gamma, alphaf, alpham;
      double dt, tmax;
      double minVel, maxVel, delta;
-     int    algType;
+     int algType;
+     int aeroAlg; 
      
-     // These are not used
-     //double Wext, Wdmp, pWela, pWkin;
-
-     int steadyFlag,steadyMin,steadyMax;
+     int steadyFlag, steadyMin, steadyMax;
      double steadyTol;
 
      VecType * d_n;
@@ -146,44 +145,6 @@ class DynamicSolver {
      DynOps * dynOps; 
 
      NewmarkWorkVec<VecType,ProblemDescriptor> * workVec;
-
-   public:
-
-     DynamicSolver(ProblemDescriptor *PrbD) {
-        probDesc = PrbD; 
-        aeroAlg = -1;//copied from aeroFlag in Utils.d/SolverInfo.h - JFD
-        dynOps = 0;
-        postProcessor = 0;
-     }
-     //~DynamicSolver() { if(dynOps) delete dynOps; if(postProcessor) delete postProcessor; }
-     ~DynamicSolver() { if(postProcessor) delete postProcessor; }
-
-     void solve();
-
-     void explicitNewmarkLoop(SysState<VecType>&,VecType&,
-                              DynOps& dynOps, 
-			      NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
-                              double, double);
-     void implicitNewmarkLoop(SysState<VecType>&,VecType&,
-                              DynOps& dynOps, 
-			      NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
-                              double, double);
-     void     quasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
-			      NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
-                              double, double, int =0);
-
-     int checkSteadyState(double time, double step, double criteria=-1.0);
-
-     VecType * getpDis()  { return d_n; }
-     VecType * getpVel()  { return v_n; }
-     VecType * getpAcc()  { return a_n; }
-
-     DynOps  * getpOps()  { return dynOps; }
-
-     int aeroAlg; 
-
-     VecType * getaeroForce() { return aeroForce; }
-
 };
 
 #ifdef _TEMPLATE_FIX_

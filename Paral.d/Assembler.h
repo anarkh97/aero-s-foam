@@ -15,6 +15,7 @@ class GenAssembler
   public:
     virtual void assemble(GenDistrVector<Scalar> &v, int flag = 0) = 0;
     virtual void split(GenDistrVector<Scalar> &v) = 0;
+    virtual ~GenAssembler() { /* Nothing to do */ };
 };
 
 template<class Scalar>

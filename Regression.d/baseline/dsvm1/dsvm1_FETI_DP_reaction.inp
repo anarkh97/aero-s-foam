@@ -8,7 +8,8 @@ STATICS
 FETI DP
 *
 OUTPUT
-reaction dsvm1_FETI_DP_reaction.dat 1
+reaction dsvm1_FETI_DP_reaction.dat  1 NG 1
+reaction dsvm1_FETI_DP_reaction_2.dat  1 NG 2
 *
 INCLUDE ../dsvm1.include
 *

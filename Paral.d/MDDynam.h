@@ -49,18 +49,6 @@ class GenMDDynamMat {
    Rbm* rigidBodyModes;
 
    GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; C = 0; Cuc = 0; M = 0; Muc = 0; Mcc = 0; Kuc = 0; C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
-/*
-   ~MDDynamMat() { 
-     if(dynMat) delete dynMat; 
-     if(K) delete K; 
-     if(C) delete C; 
-     if(Cuc) delete Cuc; 
-     if(M) delete M;
-     if(Muc) delete Muc;
-     if(Mcc) delete Mcc;
-     if(Kuc) Kuc->partialClean();
-   }
-*/
 };
 
 typedef GenMDDynamMat<double> MDDynamMat;
@@ -96,8 +84,11 @@ class MultiDomDynPostProcessor
 
 class MultiDomainDynam 
 {
+protected:
     DecDomain *decDomain;
     Domain *domain;
+
+private:
     CuCSparse **cucs;
     StaticTimers *times;
 
@@ -133,7 +124,7 @@ class MultiDomainDynam
 
   public:
     MultiDomainDynam(Domain *d);
-    ~MultiDomainDynam();
+    virtual ~MultiDomainDynam();
     MDDynamMat * buildOps(double, double, double);
     MultiDomDynPostProcessor *getPostProcessor();
 

@@ -683,7 +683,7 @@ const char* solverTypeMessage[] = {
 " ... Sparse Solver is Selected      ... \n",
 " ... SGI Sparse Solver is Selected  ... \n",
 " ... SGI Skyline Solver is Selected ... \n",
-"",
+" ... Simplicial Cholesky Solver is Selected ...\n",
 " ... Frontal Solver is Selected     ... \n",
 "",
 "",

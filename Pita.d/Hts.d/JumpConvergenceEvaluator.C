@@ -103,10 +103,7 @@ AccumulatedJumpConvergenceEvaluator::iterationIs(IterationRank iter) {
                    recvs_counts.array() + cpuCount - 1,
                    displacements.array() + 1);
 
-  int myCpu = timeCommunicator_->myID();
-  timeCommunicator_->allGatherv(buffer_.array() + displacements[myCpu],
-                                recvs_counts[myCpu],
-                                buffer_.array(),
+  timeCommunicator_->allGatherv(buffer_.array(),
                                 recvs_counts.array(),
                                 displacements.array());
 

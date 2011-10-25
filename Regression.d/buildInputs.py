@@ -104,7 +104,7 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
+      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=8:ppn=8,walltime=3:00:00\n\n")
       MPIFILE.write("cd %s\n" % dirname)
       MPIFILE.write("../create_mfiles.pl\n" )
      
@@ -447,6 +447,8 @@ def buildInputs(params):
 
       if(problem_type == "dsvm1"):
         OUTPUT = ["reaction"]
+        OUTPUT2 = ["reaction"]
+        OUTPUT_EXTRAS = [" 1 NG 1"," 1 NG 2"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
                    "spooles pivot","mumps pivot","pcg","bcg","cr",\
@@ -550,9 +552,9 @@ def buildInputs(params):
         idname = idname.replace(" ","_",10)
   
 
-        if(problem_type == "dsvm1"): 
-          OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
-          OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
+#       if(problem_type == "dsvm1"): 
+#         OUTPUT_FILENAME = idname+"_1.dat 1" + " NG 1\n" 
+#         OUTPUT_FILENAME = OUTPUT_FILENAME + "reaction "+ idname+"_2.dat 1" + " NG 2" 
         OUTPUT_FILENAME = idname+".dat" 
 
 #       filterInputs(OPTIONSLIST) 
@@ -590,8 +592,8 @@ def buildInputs(params):
           if(idname.find("FETI") != -1 ):
             command = command + "-n 2 --dec --nsub 4"
           print "Creating %s" % filename
-          MPIFILE.write("echo mpirun -n 4 %s %s\n" % (command,filename.replace(" ","_")))
-          MPIFILE.write("mpirun -n 4 --machinefile host.%d %s %s &\n" % (i,command,filename.replace(" ","_")))
+          MPIFILE.write("echo mpirun -n 2 %s %s\n" % (command,filename.replace(" ","_")))
+          MPIFILE.write("mpirun -n 2 --machinefile host.%d %s %s &\n" % (i,command,filename.replace(" ","_")))
           RUNFILE.write("echo %s %s\n" % (command,filename.replace(" ","_")))
           RUNFILE.write("%s %s\n" % (command,filename.replace(" ","_")))
       MPIFILE.write("wait ")

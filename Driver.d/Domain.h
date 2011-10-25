@@ -29,6 +29,8 @@ typedef GenNBSparseMatrix<double> NBSparseMatrix;
 template <class Scalar> class GenDBSparseMatrix;
 typedef GenDBSparseMatrix<double> DBSparseMatrix;
 typedef GenDBSparseMatrix<DComplex> DBComplexSparseMatrix;
+template <class Scalar> class GenEiSparseMatrix;
+typedef GenEiSparseMatrix<double> EiSparseMatrix;
 template <class Scalar> class GenSkyMatrix;
 typedef GenSkyMatrix<double> SkyMatrix;
 typedef GenSkyMatrix<DComplex> SkyMatrixC;
@@ -428,6 +430,10 @@ class Domain : public HData {
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
+                           Connectivity *cn=0);
+
+     template<class Scalar>
+       GenEiSparseMatrix<Scalar> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
      template<class Scalar>

@@ -170,11 +170,32 @@ Communicator::allGather(Type *send_data, int send_count,
 
 template <class Type>
 void
+Communicator::allGather(Type *recv_data, int recv_count)
+{
+#ifdef USE_MPI
+  MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                recv_data, recv_count, CommTrace<Type>::MPIType, comm);
+#endif
+}
+
+template <class Type>
+void
 Communicator::allGatherv(Type *send_data, int send_count,
                          Type *recv_data, int recv_counts[], int displacements[])
 {
 #ifdef USE_MPI
   MPI_Allgatherv(send_data, send_count, CommTrace<Type>::MPIType, 
+                 recv_data, recv_counts, displacements, 
+                 CommTrace<Type>::MPIType, comm);
+#endif
+}
+
+template <class Type>
+void
+Communicator::allGatherv(Type *recv_data, int recv_counts[], int displacements[])
+{
+#ifdef USE_MPI
+  MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, 
                  recv_data, recv_counts, displacements, 
                  CommTrace<Type>::MPIType, comm);
 #endif
@@ -261,6 +282,12 @@ void Communicator::allGather(complex<double> *send_data, int send_count, complex
 
 template <>
 void Communicator::allGatherv(complex<double> *send_data, int send_count, complex<double> *recv_data, int recv_counts[], int displacements[]);
+
+template <>
+void Communicator::allGather(complex<double> *recv_data, int recv_count);
+
+template <>
+void Communicator::allGatherv(complex<double> *recv_data, int recv_counts[], int displacements[]);
 
 template <>
 void

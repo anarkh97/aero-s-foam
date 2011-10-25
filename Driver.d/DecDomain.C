@@ -76,6 +76,7 @@ GenDecDomain<Scalar>::initialize()
   numDualMpc = 0;
   firstOutput = true;
   soweredInput = false;
+  masterSolVecInfo_ = 0;
   nodeVecInfo = 0;
   wiPat = 0;
   ba = 0;
@@ -113,6 +114,8 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   if(subToElem) { delete subToElem; subToElem = 0; }
   if(nodeVecInfo) delete nodeVecInfo;
+  delete masterSolVecInfo_;
+  delete ba;
 }
 
 template<class Scalar>
@@ -675,7 +678,6 @@ GenDecDomain<Scalar>::preProcess()
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
- makeInternalInfo2();
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
@@ -2158,13 +2160,8 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::elementVectorInfo()
 {
-  DistrInfo *eleVecInfo = new DistrInfo(numSub);
-  int totLen = 0;
-  for(int iSub = 0; iSub < numSub; ++iSub) {
-    eleVecInfo->domLen[iSub] = subDomain[iSub]->maxNumDOF();
-    totLen += eleVecInfo->domLen[iSub];
-  }
-  eleVecInfo->len = totLen;
+  DistrInfo *eleVecInfo = new DistrInfo;
+  makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
   return eleVecInfo;
 }
 
@@ -2173,14 +2170,8 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::pbcVectorInfo()
 {
- DistrInfo *bcVecInfo = new DistrInfo(numSub);
- int totLen = 0;
- int iSub;
- for(iSub = 0; iSub < numSub; ++iSub) {
-    bcVecInfo->domLen[iSub] = subDomain[iSub]->nDirichlet();
-    totLen += bcVecInfo->domLen[iSub];
- }
- bcVecInfo->len = totLen;
+ DistrInfo *bcVecInfo = new DistrInfo;
+ makeBasicDistrInfo(*bcVecInfo, &Domain::nDirichlet);
  return bcVecInfo;
 }
 
@@ -2190,48 +2181,33 @@ GenDecDomain<Scalar>::makeInternalInfo()
 {
  startTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 
- // Create internal Distributed information
- internalInfo.domLen = new int[numSub];
- internalInfo.numDom = numSub;
- int totLen = 0;
- for(int iSub = 0; iSub < numSub; ++iSub) {
-   internalInfo.domLen[iSub] = subDomain[iSub]->numUncon();
-   totLen += internalInfo.domLen[iSub];
- }
- internalInfo.len = totLen;
- if(domain->solInfo().inpc || domain->solInfo().timeIntegration == SolverInfo::Qstatic) {
-   bool *internalMasterFlag = new bool[totLen];
-   internalInfo.computeOffsets();
-   for(int iSub = 0; iSub < numSub; ++iSub) {
-     subDomain[iSub]->computeInternalMasterFlag();
-     bool *subMasterFlag = subDomain[iSub]->getInternalMasterFlag();
-     int subOffset = internalInfo.subOffset[iSub];
-     for(int j=0; j<internalInfo.domLen[iSub]; ++j)
-       internalMasterFlag[subOffset+j] = subMasterFlag[j];
-   }
-   internalInfo.setMasterFlag(internalMasterFlag);
- } else
- internalInfo.setMasterFlag();
+ makeSolVecInfo();
+ makeSysVecInfo();
+ 
  stopTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 }
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::makeInternalInfo2()
+GenDecDomain<Scalar>::makeSolVecInfo()
 {
- startTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
+ // Create internal Distributed information, only for unconstrained dofs
+ makeBasicDistrInfo(internalInfo, &Domain::numUncon);
 
- // Create internal Distributed information for all dofs, both constrained and unconstrained
- internalInfo2.domLen = new int[numSub];
- internalInfo2.numDom = numSub;
- int totLen = 0;
- for(int iSub = 0; iSub < numSub; ++iSub) {
-   internalInfo2.domLen[iSub] = subDomain[iSub]->numdof();
-   totLen += internalInfo2.domLen[iSub];
+ if(domain->solInfo().inpc || domain->solInfo().timeIntegration == SolverInfo::Qstatic) {
+   setNonTrivialMasterFlag(internalInfo);
+ } else {
+   internalInfo.setMasterFlag();
  }
- internalInfo2.len = totLen;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::makeSysVecInfo()
+{
+ // Create internal Distributed information for all dofs, both constrained and unconstrained
+ makeBasicDistrInfo(internalInfo2, &Domain::numdof);
  internalInfo2.setMasterFlag();
- stopTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 }
 
 template<class Scalar>
@@ -2240,15 +2216,8 @@ GenDecDomain<Scalar>::makeNodeInfo()
 {
  startTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 
- // Create nodal Distributed information
- nodeInfo.domLen = new int[numSub];
- nodeInfo.numDom = numSub;
- int totLenNode = 0;
- for(int iSub = 0; iSub < numSub; ++iSub) {
-   nodeInfo.domLen[iSub] = subDomain[iSub]->numNodes(); // this is used for nodal stress output
-   totLenNode += nodeInfo.domLen[iSub];
- }
- nodeInfo.len = totLenNode;
+ // Create nodal Distributed information (used for nodal stress output)
+ makeBasicDistrInfo(nodeInfo, &Domain::numNodes);
 #ifdef DISTRIBUTED
  nodeInfo.computeOffsets();
 #else
@@ -2258,23 +2227,56 @@ GenDecDomain<Scalar>::makeNodeInfo()
 }
 
 template<class Scalar>
+const DistrInfo&
+GenDecDomain<Scalar>::masterSolVecInfo() const
+{
+ if(!masterSolVecInfo_) {
+   GenDecDomain<Scalar> *self = const_cast<GenDecDomain<Scalar> *>(this);
+   self->masterSolVecInfo_ = new DistrInfo;
+   self->makeBasicDistrInfo(*masterSolVecInfo_, &Domain::numUncon);
+   self->setNonTrivialMasterFlag(*masterSolVecInfo_);
+ }
+ return *masterSolVecInfo_;
+}
+
+template<class Scalar>
 DistrInfo&
 GenDecDomain<Scalar>::ndVecInfo()
 {
- // Create nodal Distributed information
+ // Create nodal Distributed information (used for nodal stress output)
  if(!nodeVecInfo) {
-   nodeVecInfo = new DistrInfo();
-   nodeVecInfo->domLen = new int[numSub];
-   nodeVecInfo->numDom = numSub;
-   int totLenNode = 0;
-   for(int iSub = 0; iSub < numSub; ++iSub) {
-     nodeVecInfo->domLen[iSub] = subDomain[iSub]->numNodes(); // this is used for nodal stress output
-     totLenNode += nodeVecInfo->domLen[iSub];
-   }
-   nodeVecInfo->len = totLenNode;
+   nodeVecInfo = new DistrInfo;
+   makeBasicDistrInfo(*nodeVecInfo, &Domain::numNodes);
    nodeVecInfo->setMasterFlag();
  }
  return *nodeVecInfo;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::makeBasicDistrInfo(DistrInfo &info, int(Domain::*countFunc)()) {
+ info.domLen = new int[numSub];
+ info.numDom = numSub;
+ int totLen = 0;
+ for(int iSub = 0; iSub < numSub; ++iSub) {
+   info.domLen[iSub] = (subDomain[iSub]->*countFunc)();
+   totLen += info.domLen[iSub];
+ }
+ info.len = totLen;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::setNonTrivialMasterFlag(DistrInfo &info) {
+  bool *internalMasterFlag = new bool[info.len];
+  info.computeOffsets();
+  for(int iSub = 0; iSub < numSub; ++iSub) {
+    const bool *subMasterFlag = subDomain[iSub]->getInternalMasterFlag();
+    const int subDofCount = info.domLen[iSub];
+    const int subOffset = info.subOffset[iSub];
+    std::copy(subMasterFlag, subMasterFlag + subDofCount, internalMasterFlag + subOffset);
+  }
+  info.setMasterFlag(internalMasterFlag);
 }
 
 template<class Scalar>
@@ -3461,15 +3463,12 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
+ GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
-   FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
-                                                          FSCommPattern<Scalar>::CopyOnSend);
-   for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
-   pat->finalize();
-   ba = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+   assembler = getSolVecAssembler(); 
  }
 
- if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, ba);
+ if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, assembler);
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
@@ -3712,3 +3711,24 @@ GenDecDomain<Scalar>::getWiCommPattern()
   return wiPat;
 }
 
+template<class Scalar>
+GenAssembler<Scalar> *
+GenDecDomain<Scalar>::getSolVecAssembler() {
+  if (!ba) {
+    ba = solVecAssemblerNew(); 
+  }
+  return ba;
+}
+
+template<class Scalar>
+GenBasicAssembler<Scalar> *
+GenDecDomain<Scalar>::solVecAssemblerNew() {
+  FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
+                                                         FSCommPattern<Scalar>::CopyOnSend);
+  for(int i=0; i<numSub; ++i) {
+    subDomain[i]->setDofPlusCommSize(pat);
+  }
+  pat->finalize();
+
+  return new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+}

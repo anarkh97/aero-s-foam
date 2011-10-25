@@ -3,6 +3,8 @@
 
 #include <string>
 #include <cstdio>
+#include <stdexcept>
+#include <iterator>
 
 namespace Rom {
 
@@ -27,6 +29,9 @@ public:
   void stateAdd(const NodeBufferType &data, double headValue);
   
   BasisOutputFile(const std::string &fileName, int nodeCount);
+  
+  template <typename NodeIdIt>
+  BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last);
  
   ~BasisOutputFile();
 
@@ -46,12 +51,44 @@ private:
   void rewindAndWriteStateCount(); 
 
   void writeNodeCount();
+  template <typename NodeIdIt>
+  void writeIndexMapping(NodeIdIt first, NodeIdIt last);
+
   void writeStateHeader(double value);
 
   // Disallow copy & assignment
   BasisOutputFile(const BasisOutputFile&);
   BasisOutputFile& operator=(const BasisOutputFile&);
 };
+
+template <typename NodeIdIt>
+BasisOutputFile::BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last) :
+  fileName_(fileName),
+  nodeCount_(std::distance(first, last)),
+  width_(23),
+  precision_(15),
+  stateCount_(0),
+  stream_(NULL),
+  stateCountOnFile_(0)
+{
+  stream_ = std::fopen(fileName_.c_str(), "wt");
+
+  if (!stream_) {
+   throw std::runtime_error("Cannot open output file"); 
+  }
+
+  writeStateCount();
+  writeNodeCount();
+  writeIndexMapping(first, last);
+}
+
+template <typename NodeIdIt>
+void
+BasisOutputFile::writeIndexMapping(NodeIdIt first, NodeIdIt last) {
+  for (NodeIdIt it = first; it != last; ++it) {
+    std::fprintf(stream_, " %d\n", *it + 1);
+  }
+}
 
 inline
 BasisOutputFile::StateCountStatus

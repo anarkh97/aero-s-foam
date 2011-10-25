@@ -1,22 +1,38 @@
 #ifndef ROM_BASISBINARYFILE_H
 #define ROM_BASISBINARYFILE_H
 
-#include <Utils.d/BinFileHandler.h>
+#include "NodeDof6Buffer.h"
+
+#include <Utils.d/BinaryResultFile.h>
 
 #include <string>
+#include <algorithm>
+#include <iterator>
+#include <cassert>
 
 namespace Rom {
 
-class BasisBinaryOutputFile {
+class BasisBinaryFile {
+protected:
+  typedef BinFileHandler::OffType OffsetType;
+  
+  static const double VERSION;
+  static const std::string DESC;
+  static const int NODAL_DATA_FLAG;
+  static const int DOFS_PER_NODE;
+};
+
+class BasisBinaryOutputFile : public BasisBinaryFile {
 public:
-  const std::string &fileName() const { return fileName_; }
+  const std::string &fileName() const { return binFile_.pathName(); }
 
-  int nodeCount() const  { return nodeCount_;  }
-  int stateCount() const { return stateCount_; }
+  int nodeCount() const { return binFile_.itemCount(); }
 
-  enum StateCountStatus { UP_TO_DATE, OUTDATED };
-  StateCountStatus stateCountStatus() const;
-  void updateStateCountStatus();
+  typedef BinaryResultOutputFile::ItemIdIterator NodeIdIterator;
+  NodeIdIterator nodeIdBegin() const { return binFile_.itemIdBegin(); }
+  NodeIdIterator nodeIdEnd() const { return binFile_.itemIdEnd(); }
+
+  int stateCount() const { return binFile_.stateCount(); }
 
   // NodeBufferType must implement double indexation ([i][j]) to yield a type convertible to (double &)
   // First dimension is nodeCount
@@ -27,36 +43,30 @@ public:
   template <typename NodeBufferType>
   void stateAdd(const NodeBufferType &data, double headValue);
   
+  // Node indices: [0, nodeCount) 
   BasisBinaryOutputFile(const std::string &fileName, int nodeCount);
+  
+  // Node indices: [first, last)
+  template <typename NodeIdIt>
+  BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last);
 
 private:
-  const std::string fileName_;
-  const int nodeCount_;
-  int stateCount_;
- 
-  BinFileHandler binHandler_;
-
-  void writeStateHeader(double headValue);
-  void incrementStateCount();
+  BinaryResultOutputFile binFile_;
 
   // Disallow copy & assignment
   BasisBinaryOutputFile(const BasisBinaryOutputFile&);
   BasisBinaryOutputFile& operator=(const BasisBinaryOutputFile&);
 };
 
+template <typename NodeIdIt>
+BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last) :
+  binFile_(fileName, NODAL_DATA_FLAG, DESC, std::distance(first, last), DOFS_PER_NODE, 0, first, last, VERSION)
+{}
+
 template <typename NodeBufferType>
 void
 BasisBinaryOutputFile::stateAdd(const NodeBufferType &data, double headValue) {
-  writeStateHeader(headValue);
-
-  // Write values
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    for (int iDof = 0; iDof < 6; ++iDof) {
-      binHandler_.write(&data[iNode][iDof], 1);
-    }
-  }
-
-  incrementStateCount();
+  binFile_.stateAdd(headValue, data.array());
 }
 
 template <typename NodeBufferType>
@@ -66,68 +76,47 @@ BasisBinaryOutputFile::stateAdd(const NodeBufferType &data) {
 }
 
 
-class BasisBinaryInputFile {
+class BasisBinaryInputFile : public BasisBinaryFile {
 public:
   // Static parameters
-  const std::string &fileName() const { return fileName_; }
+  const std::string &fileName() const { return binFile_.pathName(); }
   
-  int stateCount() const { return stateCount_; }
-  int nodeCount() const { return nodeCount_; }
+  int nodeCount() const { return binFile_.itemCount(); }
+  
+  typedef BinaryResultInputFile::ItemIdIterator NodeIdIterator;
+  NodeIdIterator nodeIdBegin() const { return binFile_.itemIdBegin(); }
+  NodeIdIterator nodeIdEnd() const { return binFile_.itemIdEnd(); }
+  
+  int stateCount() const { return binFile_.stateCount(); }
 
   // Iteration and retrieval
-  int currentStateIndex() const { return currentStateIndex_; }
+  int currentStateIndex() const { return binFile_.stateRank(); }
   double currentStateHeaderValue() const { return currentStateHeaderValue_; }
-  template <typename NodeDof6Type>
-  const NodeDof6Type &currentStateBuffer(NodeDof6Type &target);
+  
+  const NodeDof6Buffer &currentStateBuffer(NodeDof6Buffer &target);
   // Must have called currentStateBuffer() at least once before calling currentStateIndexInc()
   // NOTE: This restriction could be lifted if necessary
+ 
   void currentStateIndexInc();
 
   bool validCurrentState() const { return currentStateIndex() < stateCount(); }
 
-  // Ctor & dtor
+  // Constructor
   explicit BasisBinaryInputFile(const std::string &fileName);
 
-  //~BasisBinaryInputFile();
-
 private:
-  const std::string fileName_;
-  
-  int nodeCount_;
-  int stateCount_;
-  
-  int currentStateIndex_;
+  void cacheStateHeaderValue();
+
   double currentStateHeaderValue_;
 
-  BinFileHandler binHandler_;
-  BinFileHandler::OffType savedOffset_;
-  mutable bool validNextOffset_;
+protected:
+  BinaryResultInputFile binFile_;
 
-  void seekNextState();
-  void seekCurrentState();
-
+private:
   // Disallow copy & assignment
   BasisBinaryInputFile(const BasisBinaryInputFile&);
   BasisBinaryInputFile& operator=(const BasisBinaryInputFile&);
 };
-
-template <typename NodeDof6Type>
-const NodeDof6Type &
-BasisBinaryInputFile::currentStateBuffer(NodeDof6Type &target) {
-  if (validCurrentState()) {
-    seekCurrentState();
-
-    for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-      for (int iDof = 0; iDof < 6; ++iDof) {
-        binHandler_.read(&target[iNode][iDof], 1);
-      }
-    }
-
-    validNextOffset_ = true;
-  }
-
-  return target;
-}
 
 } /* end namespace Rom */
 

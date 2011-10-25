@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <limits>
 
 #include <Element.d/Element.h>
 
@@ -333,3 +334,59 @@ FullSquareMatrixC Element::complexMassMatrix(CoordSet&, DComplex* mel, double mr
 #include <Element.d/Helm.d/HelmElement.h>
 
 bool Element::isFluidElement() { return dynamic_cast<HelmElement *>(this); }
+
+double
+Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
+                                  double stable_tol, int stable_maxit)
+{
+  if(prop) {
+
+      using std::sqrt;
+      double eigmax;
+      double relTol    = stable_tol; // stable_tol default is 1.0e-3
+      double preeigmax = 0.0;
+
+      int numdofs = K.dim();
+      int maxIte  = stable_maxit; // stable_maxit default is 100
+
+      Vector v(numdofs);
+      Vector z(numdofs);
+
+// Starts from an arbitrary array.
+      int i,j;
+      for (i=0; i<numdofs; ++i)
+        v[i] = (double) (i+1) / (double) numdofs;
+
+// Power iteration loop
+
+      for (i=0; i<maxIte; ++i) {
+        z.zero();
+        K.multiply(v,z,1);
+
+        for (j=0; j< numdofs; ++j)
+          z[j] /= M[j][j];
+
+// Normalize
+
+        double zmax = z[0];
+        for (j=1; j< numdofs; ++j)
+          if (abs(z[j])>zmax) zmax = abs(z[j]);
+
+        eigmax = zmax;
+
+        v = (1.0/zmax)*z;
+
+        if ( abs(eigmax - preeigmax) < relTol*abs(preeigmax) ) break;
+
+        preeigmax = eigmax;
+      }
+
+      // compute stability maximum time step
+      double sdt = 2.0 / sqrt(eigmax);
+
+      return sdt;
+  }
+  else { // phantom
+      return std::numeric_limits<double>::infinity();
+  }
+}

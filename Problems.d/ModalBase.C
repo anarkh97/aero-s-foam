@@ -2,7 +2,7 @@
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>
-#include <Driver.d/DynamProbType.h>
+#include <Driver.d/SysState.h>
 
 extern ModeData modeData;
 

@@ -11,7 +11,6 @@
 #include <Driver.d/SubDomain.h>
 
 #include <Element.d/Shell.d/ThreeNodeShell.h>
-#include <Driver.d/DynamProbType.h>
 #include <Feti.d/DistrVector.h>
 #include <Comm.d/Communicator.h>
 #include <Driver.d/SysState.h>

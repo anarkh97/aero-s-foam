@@ -58,7 +58,7 @@
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKENERGYBALANCE COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
@@ -828,16 +828,29 @@ DynamInfo:
         | DynamInfo DampInfo
         | DynamInfo MODAL NewLine
         { domain->solInfo().modal = true; }
+        | DynamInfo STABLE Integer NewLine
+        { domain->solInfo().stable = $3; }
         | DynamInfo STABLE SWITCH NewLine
-        { domain->solInfo().stable = bool($3); }
-        | DynamInfo STABLE Float Integer NewLine
-        { domain->solInfo().stable_tol = $3; domain->solInfo().stable_maxit = $4; }
+        { domain->solInfo().stable = $3; }
+        | DynamInfo STABLE Integer Float Float Integer Integer NewLine
+        { domain->solInfo().stable = $3;
+          domain->solInfo().stable_cfl = $4;
+          domain->solInfo().stable_tol = $5;
+          domain->solInfo().stable_maxit = $6;
+          domain->solInfo().stable_freq = $7;
+        }
         | DynamInfo IACC SWITCH NewLine
         { domain->solInfo().iacc_switch = bool($3); }
         | DynamInfo ZERO SWITCH NewLine
         { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
+        | DynamInfo CHECKENERGYBALANCE NewLine
+        { domain->solInfo().check_energy_balance = true; }
+        | DynamInfo CHECKENERGYBALANCE Float Float NewLine
+        { domain->solInfo().check_energy_balance = true;
+          domain->solInfo().epsilon1 = $3; 
+          domain->solInfo().epsilon2 = $4; }
 	;
 TimeIntegration:
         NEWMARK NewLine

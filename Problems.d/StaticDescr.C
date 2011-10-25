@@ -255,9 +255,9 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
    filePrint(stderr," ... Static Problem with Initial Displacement %d\n",
              domain->numInitDisp6());
-   FullSquareMatrix *geomKelArray=0;
+   FullSquareMatrix *geomKelArray=0, *dummy=0;
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
-                                     geomKelArray);
+                                     geomKelArray, dummy);
  }
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);

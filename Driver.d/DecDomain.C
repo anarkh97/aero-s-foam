@@ -15,7 +15,6 @@
 #include <Driver.d/CornerMaker.h>
 #include <Feti.d/Feti.h>
 #include <Driver.d/Mpc.h>
-#include <Driver.d/DynamProbType.h>
 #include <Solvers.d/DiagParallelSolver.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/GenMS.h>
@@ -729,7 +728,7 @@ GenDecDomain<Scalar>::scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u)
 template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f,
-                                     double eigV, GenDistrVector<Scalar> *aeroF, int x,
+                                     double eigV, GenDistrVector<Scalar> *aeroF, int x, 
                                      GenMDDynamMat<Scalar> *dynOps, SysState<GenDistrVector<Scalar> > *distState, int ndflag)
 {
   int numOutInfo = geoSource->getNumOutInfo();
@@ -786,7 +785,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     time = eigV;
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
-  else time = x*domain->solInfo().getTimeStep();
+  else time = eigV; //x*domain->solInfo().getTimeStep();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();

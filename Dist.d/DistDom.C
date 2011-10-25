@@ -8,7 +8,6 @@
 #include <Utils.d/Memory.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/pstress.h>
-#include <Driver.d/DynamProbType.h>
 #include <Driver.d/SubDomain.h>
 #include <Paral.d/MDDynam.h>
 #include <Driver.d/GeoSource.h>
@@ -183,7 +182,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     time = eigV;
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
-  else time = x*domain->solInfo().getTimeStep();
+  else time = eigV; //x*domain->solInfo().getTimeStep();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();

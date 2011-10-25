@@ -67,7 +67,7 @@ public:
   int getModeDecompFlag(){ return domain->solInfo().modeDecompFlag; }
   void modeDecomp(double time, int tIndex, Vector& dsp){ /* leave blank */ }
 
-  void dynamOutput(int tIndex, ModalOps &mOps, Vector &extF,
+  void dynamOutput(int tIndex, double time, ModalOps &mOps, Vector &extF,
                    Vector *aeroF, SysState<Vector> &state);
 
   FlExchanger *flExchanger;

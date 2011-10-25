@@ -84,8 +84,9 @@ SingleDomainEigen::preProcess()
      times->kelArrayTime += getTime();
    }
 
+   FullSquareMatrix *dummy=0;
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
-                                     geomKelArray);
+                                     geomKelArray, dummy);
 
    if(domain->solInfo().buckling == 1) {
      //delete [] kelArray;

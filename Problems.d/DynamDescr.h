@@ -46,7 +46,7 @@ class SDDynamPostProcessor {
     void closeOutputFilesForPita(int timeSliceRank);
 
     // Perform output (linear dynamics only)
-    void dynamOutput(int timeStepIndex, DynamMat & dMat,
+    void dynamOutput(int timeStepIndex, double time, DynamMat & dMat,
                      Vector & externalForce, Vector * aeroForce,
                      SysState<Vector> & systemState);
     void pitaDynamOutput(int timeStepIndex, DynamMat & dMat,
@@ -76,7 +76,7 @@ class SingleDomainDynamic
     ControlLawInfo *claw;
 
     // members for nonlinear eigen problem
-    FullSquareMatrix *kelArray;
+    FullSquareMatrix *kelArray, *melArray;
     Corotator **allCorot;
     GeomState *geomState;
     double t0; // initial time

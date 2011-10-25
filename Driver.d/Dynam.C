@@ -404,10 +404,10 @@ Domain::thermoeComm()
 }
 
 void
-Domain::dynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
+Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
                     Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx) {
   // Current time stamp
-  double time = tIndex*sinfo.getTimeStep();
+  //double time = tIndex*sinfo.getTimeStep();
    
   if(sinfo.nRestart > 0 && !sinfo.modal && probType() != SolverInfo::NonLinDynam) {
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
@@ -993,7 +993,20 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
       // compute stability maximum time step
       double sdt = 2.0 / sqrt(eigmax);
 
-      return sdt;
+      return sinfo.stable_cfl*sdt;
+}
+
+double
+Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState)
+{
+  double sdt = std::numeric_limits<double>::infinity();
+  for(int iele = 0; iele < numele; ++iele) {
+    double sdt_iele = packedEset[iele]->computeStabilityTimeStep(kelArray[iele], melArray[iele], nodes, geomState,
+                                                                 sinfo.stable_tol, sinfo.stable_maxit);
+    sdt = std::min(sdt, sdt_iele);
+  }
+  //std::cerr << "sinfo.stable_cfl = " << sinfo.stable_cfl << ", sdt = " << sdt << std::endl;
+  return sinfo.stable_cfl*sdt;
 }
 
 //------------------------------------------------------------------------------

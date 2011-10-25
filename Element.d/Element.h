@@ -513,6 +513,9 @@ class Element {
         virtual void readHistory(int) {}
         virtual int numStates() { return 0; }
         virtual void initStates(double *) {}
+
+        virtual double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
+                                                GeomState *gs, double stable_tol, int stable_maxit);
 };
 
 // *****************************************************************

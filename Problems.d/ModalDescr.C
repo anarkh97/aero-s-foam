@@ -1,8 +1,9 @@
+/*
 #include <Problems.d/ModalDescr.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/DynamProbType.h>
 #include <Driver.d/Dynam.h>
-/*
+
 template <class Scalar>
 ModalDescr<Scalar>::ModalDescr(Domain *d) : ModalBase(d){
 

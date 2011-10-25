@@ -90,7 +90,7 @@ class MultiDomDynPostProcessor
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
     void setNodalTemps(DistrVector*);
-    void dynamOutput(int, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
+    void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
     double getKineticEnergy(DistrVector & vel, SubDOp * gMass) { return 0.0; }
 };
 
@@ -106,6 +106,7 @@ class MultiDomainDynam
     ControlLawInfo *claw;
 
     GenFullSquareMatrix<double> **kelArray;
+    GenFullSquareMatrix<double> **melArray;
     Corotator ***allCorot;
     DistrGeomState *geomState;
     DistrVector *dprev;
@@ -177,7 +178,7 @@ class MultiDomainDynam
     SubDOp* getpC(MDDynamMat* dynOps);
 
     // Central Difference only related subroutines
-    void computeStabilityTimeStep(double, MDDynamMat&);
+    void computeStabilityTimeStep(double&, MDDynamMat&);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();

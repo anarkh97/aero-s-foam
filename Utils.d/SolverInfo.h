@@ -101,6 +101,7 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
+   double dt0;
 /* these are now private, use getTimeStep and setTimeStep functions to access
    double dt;           // time step value
    double dtemp;        // thermal time step value
@@ -112,9 +113,18 @@ struct SolverInfo {
    double newmarkGamma; // Newmark algorithm parameter (gamma)
    double newmarkAlphaF;  // Newmark algorithm parameter (alphaf)
    double newmarkAlphaM; // Newmark algorithm parameter (alpham)
-   bool stable;         // compute stability timestep for explicit
+   int stable;          // 0: do not compute the stability timestep for explicit dynamics
+                        // 1: compute stability timestep for explicit dynamics but only use the computed value if 
+                        //    it is less than the previously computed (or initially specified) value
+                        // 2: compute stability timestep for explicit and use it regardless of the previously computed
+                        //    or initially specified value (i.e. the timestep can either increase or decrease)
    double stable_tol;   // convergence tolerance for computionation of stability timestep
    int stable_maxit;    // stable_maxit*n is the maximum number of iterations for computation of stability timestep
+   double stable_cfl;   // factor by which computed stability time step is multiplied
+   int stable_freq;     // number of timesteps between stability timestep updates (nonlinear only)
+   bool check_energy_balance;
+   double epsilon1;
+   double epsilon2;
    double qsMaxvel;     // final relaxation parameter in quasi-static alg.
    double delta;        // translation factor from time index to real time for quasistatics
    int nRestart;        // how many time steps per restart
@@ -322,9 +332,14 @@ struct SolverInfo {
                   structoptFlag = 0;
                   // 2nd order newmark default: constant average acceleration
                   order = 2; timeIntegration = Newmark; newmarkBeta = 0.25; newmarkGamma = 0.5; newmarkAlphaF = 0.5; newmarkAlphaM = 0.5;
-                  stable = true;
+                  stable = 1;
                   stable_tol = 1.0e-3;
                   stable_maxit = 100;
+                  stable_cfl = 0.8;
+                  stable_freq = 1000;
+                  check_energy_balance = false;
+                  epsilon1 = 0.01;
+                  epsilon2 = 1e-10;
                   rbmflg = 0;
                   rbmFilters[0] = rbmFilters[1] = rbmFilters[2] = rbmFilters[3] = rbmFilters[4] = rbmFilters[5] = 0;
                   buckling = 0;
@@ -475,7 +490,7 @@ struct SolverInfo {
    // SET DYNAMIC VALUE FUNCTIONS
 
    void setTimes(double _tmax, double _dt, double _dtemp)
-   { tmax = _tmax; dt = _dt; dtemp = _dtemp; }
+   { tmax = _tmax; dt0 = dt = _dt; dtemp = _dtemp; }
 
    void setParallelInTime(int J, int k, int workloadMax)
    { pitaTimeGridRatio = J; pitaMainIterMax = k; pitaProcessWorkloadMax = workloadMax; }

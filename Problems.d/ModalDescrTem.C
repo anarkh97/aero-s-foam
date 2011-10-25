@@ -1,6 +1,6 @@
 #include <Problems.d/ModalDescr.h>
 #include <Driver.d/Domain.h>
-#include <Driver.d/DynamProbType.h>
+#include <Driver.d/SysState.h>
 #include <Driver.d/Dynam.h>
 
 template <class Scalar>
@@ -241,7 +241,7 @@ void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
-void ModalDescr<Scalar>::dynamOutput(int tIndex, ModalOps &ops, Vector &extF,
+void ModalDescr<Scalar>::dynamOutput(int tIndex, double time, ModalOps &ops, Vector &extF,
   Vector *aeroF, SysState<Vector> &state){
 
   expand(state.getDisp(), fullDsp);
@@ -250,7 +250,7 @@ void ModalDescr<Scalar>::dynamOutput(int tIndex, ModalOps &ops, Vector &extF,
   expand(state.getPrevVeloc(), fullPrevVel);
 
   DynamMat dumDMat;
-  domain->dynamOutput(tIndex, bcx, dumDMat, fullTmpF, fullAeroF,
+  domain->dynamOutput(tIndex, time, bcx, dumDMat, fullTmpF, fullAeroF,
     fullDsp, fullVel, fullAcc, fullPrevVel, vcx);
 //  outputModal(state.getDisp(), extF, tIndex);
   outputModal(state, extF, tIndex);

@@ -103,6 +103,9 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     void writeHistory(int fn);
     void readHistory(int fn);
 
+    double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, 
+                                    GeomState *gs, double stable_tol, int stable_maxit);
+
   private:
     void Elefintbt1(double delt, double *ecord, double *edisp, double *evelo, 
                     double trac[3], double tmftval, double *efint);

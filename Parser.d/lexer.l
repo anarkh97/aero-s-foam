@@ -524,8 +524,9 @@ TRAIL [a-zA-Z]*
 
 "DYNA"[a-zA-Z]*|"dyna"[a-zA-Z]*    { return DYNAM; }
 
-
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
+
+"CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKENERGYBALANCE; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
 

@@ -248,7 +248,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 
  // zero rotational degrees of freedom within element mass matrices
  // TODO this should be done before mel is added to Msolver for initial acceleration calculation
- if(sinfo.zeroRot) {
+ if(sinfo.zeroRot && sinfo.newmarkBeta != 0) {
    int *dofType = dsa->makeDofTypeArray();
 
    int i,j;
@@ -993,7 +993,8 @@ Domain::getGeometricStiffness(GeomState &geomState, Vector& elementInternalForce
 void
 Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
                                   FullSquareMatrix *&kelArray, StaticTimers *times,
-                                  FullSquareMatrix *&geomKelArray)
+                                  FullSquareMatrix *&geomKelArray, FullSquareMatrix *&melArray,
+                                  bool melFlag)
 {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
    times->corotatorTime -= getTime();
@@ -1008,7 +1009,8 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 
    // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
    times->kelArrayTime -= getTime();
-   createKelArray(kelArray);
+   if(melFlag) createKelArray(kelArray, melArray);
+   else createKelArray(kelArray);
    times->kelArrayTime += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Create Element Stiffness Array %14.5f s\n", times->kelArrayTime/1000.0);

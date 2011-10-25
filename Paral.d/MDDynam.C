@@ -1,6 +1,5 @@
 #include <iostream>
 #include <Driver.d/Domain.h>
-#include <Driver.d/DynamProbType.h>
 #include <Paral.d/MDDynam.h>
 #include <Driver.d/Dynam.h>
 #include <Paral.d/MDOp.h>
@@ -148,7 +147,7 @@ MultiDomDynPostProcessor::setNodalTemps(DistrVector* _nodalTemps)
 }
 
 void
-MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVector &distForce, 
+MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce, 
                                       DistrVector *distAeroF, SysState<DistrVector>& distState)
 {
   if(!times) times = new StaticTimers;
@@ -158,7 +157,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
-    double t = double(tIndex)*domain->solInfo().getTimeStep();
+    //double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
     //cerr << "getting usdd at time " << t << " for dynamOutput\n";
@@ -217,7 +216,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, MDDynamMat &dynOps, DistrVecto
     if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
-  decDomain->postProcessing(distState.getDisp(), distForce, 0.0, distAeroF, tIndex, &dynOps, &distState); 
+  decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
 
 //  SolverInfo& sinfo = domain->solInfo();
@@ -233,6 +232,7 @@ MultiDomainDynam::~MultiDomainDynam()
   delete times; 
   if(geomState) delete geomState; 
   if(kelArray) { for(int i=0; i<nsub; ++i) delete [] kelArray[i]; delete [] kelArray; }
+  if(melArray) { for(int i=0; i<nsub; ++i) delete [] melArray[i]; delete [] melArray; }
   if(allCorot) { for(int i=0; i<nsub; ++i) delete [] allCorot[i]; delete [] allCorot; } 
   if(dprev) delete dprev;
 }
@@ -245,7 +245,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   dynMat = new MDDynamMat;
 
   times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
-  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
+  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray, melArray);
 
   if(domain->tdenforceFlag()) { 
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
@@ -269,6 +269,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   claw = 0;
   userSupFunc = 0;
   kelArray = 0;
+  melArray = 0;
   allCorot = 0;
   geomState = 0;
   dprev = 0;
@@ -335,6 +336,8 @@ MultiDomainDynam::preProcess()
     times->corotatorTime += getTime();
 
     kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
+    if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta == 0)
+      melArray = new FullSquareMatrix*[decDomain->getNumSub()];
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::makeSubElementArrays);
   }
 
@@ -362,7 +365,8 @@ MultiDomainDynam::makeSubElementArrays(int isub)
   SubDomain *sd = decDomain->getSubDomain(isub);
 
   // allocate the element stiffness array
-  sd->createKelArray(kelArray[isub]);
+  if(melArray) sd->createKelArray(kelArray[isub], melArray[isub]);
+  else sd->createKelArray(kelArray[isub]);
  
   // update geomState with IDISP6 if GEPS is requested (geometric prestress / linear only)
   if((sd->numInitDisp6() > 0) && (domain->solInfo().gepsFlg == 1)) // GEPS
@@ -803,10 +807,21 @@ MultiDomainDynam::getpC(MDDynamMat* dynOps)
 }
 
 void
-MultiDomainDynam::computeStabilityTimeStep(double dt, MDDynamMat &dMat)
+MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
 {
-  double dt_c; //time step computed from the matrix K
-  dt_c = decDomain->computeStabilityTimeStep(dMat);
+  double dt_c;
+  if(domain->solInfo().isNonLin()) {
+    dt_c = std::numeric_limits<double>::infinity();
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      double dt_ci = decDomain->getSubDomain(i)->computeStabilityTimeStep(kelArray[i], melArray[i], (*geomState)[i]);
+      dt_c = std::min(dt_c,dt_ci);
+    }
+#ifdef DISTRIBUTED
+    dt_c = structCom->globalMin(dt_c);
+#endif
+  }
+  else
+    dt_c = decDomain->computeStabilityTimeStep(dMat);
 
   filePrint(stderr," **************************************\n");
   if (domain->solInfo().modifiedWaveEquation) {
@@ -819,13 +834,15 @@ MultiDomainDynam::computeStabilityTimeStep(double dt, MDDynamMat &dMat)
   filePrint(stderr," Specified time step      = %10.4e\n",dt);
   filePrint(stderr," Stability max. time step = %10.4e\n",dt_c);
   filePrint(stderr," **************************************\n");
-  if( dt_c < dt ) {
+  if( (domain->solInfo().stable == 1 && dt_c < dt) || domain->solInfo().stable == 2 ) {
     dt = dt_c;
     filePrint(stderr," Stability max. time step is selected\n");
   } else
     filePrint(stderr," Specified time step is selected\n");
   filePrint(stderr," **************************************\n");
 
+  for(int i = 0; i < decDomain->getNumSub(); ++i)
+    decDomain->getSubDomain(i)->solInfo().setTimeStep(dt);
   domain->solInfo().setTimeStep(dt);
 }
 

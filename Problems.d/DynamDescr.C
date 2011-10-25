@@ -73,12 +73,12 @@ SDDynamPostProcessor::getKineticEnergy(Vector & vel, SparseMatrix * gMass) {
 }
 
 void
-SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
+SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
 {
   // PJSA 4-9-08 ext_f passed here may not be for the correct time
   startTimerMemory(times->output, times->memoryOutput);
   
-  const double time = tIndex * domain->solInfo().getTimeStep();
+  //const double time = tIndex * domain->solInfo().getTimeStep();
   this->fillBcxVcx(time);
 
   if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
@@ -86,7 +86,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vec
     domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
   }
 
-  domain->dynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
+  domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx);
 
   stopTimerMemory(times->output, times->memoryOutput);
@@ -134,6 +134,7 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
 { 
   domain = d; 
   kelArray = 0; 
+  melArray = 0;
   allCorot = 0;
   geomState = 0; 
   userDefineDisp = 0;
@@ -334,7 +335,11 @@ void
 SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 {
  // ... Compute Stability Time Step
- double sts = domain->computeStabilityTimeStep(dMat);
+ double sts;
+ if(domain->solInfo().isNonLin())
+   sts = domain->computeStabilityTimeStep(kelArray, melArray, geomState);
+ else
+   sts = domain->computeStabilityTimeStep(dMat);
 
  filePrint(stderr," **************************************\n");
  if (domain->solInfo().modifiedWaveEquation) {
@@ -343,11 +348,12 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
  }
  else
    filePrint(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM\n");
+
  filePrint(stderr," --------------------------------------\n");
  filePrint(stderr," Specified time step      = %10.4e\n",dt);
  filePrint(stderr," Stability max. time step = %10.4e\n",sts);
  filePrint(stderr," **************************************\n");
- if( sts < dt ) {
+ if( (domain->solInfo().stable == 1 && sts < dt) || domain->solInfo().stable == 2 ) {
    dt = sts;
    filePrint(stderr," Stability max. time step is selected\n");
  } else
@@ -629,7 +635,10 @@ SingleDomainDynamic::preProcess()
     FullSquareMatrix *geomKelArray=0;
     // this function builds corotators, geomstate and kelArray 
     // for linear+geps only it updates geomState with IDISP6 and computes the element stiffness matrices using this updated geomState
-    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray);
+    bool melFlag = (domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta == 0);
+       // currently we only need to store the element mass matrices
+       // for nonlinear explicit dynamics to compute the critical time step
+    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray, melArray, melFlag);
   }
   else if(domain->tdenforceFlag()) 
     geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet());
@@ -732,9 +741,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    rigidBodyModes = domain->constructHzem();
 
  if((getTimeIntegration() == 1) && (useGrbm || useHzem)) // only use for quasistatics
-   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray);
+   domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray, melArray);
  else
-   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray);
+   domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");

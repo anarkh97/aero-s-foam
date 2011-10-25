@@ -764,3 +764,83 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   exit(-1);
 #endif
 }
+
+double
+BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, 
+                                              GeomState *gs, double stable_tol, int stable_maxit)
+{
+#ifdef USE_EIGEN3
+  if(prop) {
+/*
+    double* _ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
+    double* _edisp = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // d^{n+1}
+    int iloc,jloc;
+    for(int i = 0; i < nnode; ++i) {
+      iloc = i*ndime;
+      _ecord[iloc+0] = cs[nn[i]]->x;
+      _ecord[iloc+1] = cs[nn[i]]->y;
+      _ecord[iloc+2] = cs[nn[i]]->z;
+      for(int j = 0; j < nndof; ++j) {
+        jloc = i*nndof+j;
+        _edisp[jloc] = (*gs)[nn[i]].d[j];
+      }
+    }
+    Map<Matrix<double,3,4,ColMajor> > ecord(_ecord);
+    Map<Matrix<double,6,4,ColMajor> > edisp(_edisp);
+    Matrix<double,3,4,ColMajor> ecurn;
+*/
+    Matrix<double,3,4,ColMajor> ecurn;
+    Matrix<double,3,3,ColMajor> locbvec;
+    Matrix<double,3,4,ColMajor> ecurnloc;
+    double area;
+
+    // get current nodal coordinate
+    // ---------------------------------------
+    //ecurn = ecord + edisp.block<3,4>(0,0);
+    for(int i = 0; i < 4; ++i) {
+      ecurn(0,i) = cs[nn[i]]->x + (*gs)[nn[i]].d[0];
+      ecurn(1,i) = cs[nn[i]]->y + (*gs)[nn[i]].d[1];
+      ecurn(2,i) = cs[nn[i]]->z + (*gs)[nn[i]].d[2];
+    }
+
+    // compute co rotational local base vector
+    // ---------------------------------------
+    _FORTRAN(getlocbvecbt)(ecurn.data(),
+                           locbvec.data());
+          // input : ecurn
+          // output : locbvec
+
+    // get local nodal coordinates
+    // ----------------------------------------
+    ecurnloc = locbvec.transpose()*ecurn;
+
+    // compute area
+    // ----------------------------------------
+    area = 0.50*( (ecurnloc(0,2)-ecurnloc(0,0))*(ecurnloc(1,3)-ecurnloc(1,1))
+                 +(ecurnloc(0,1)-ecurnloc(0,3))*(ecurnloc(1,2)-ecurnloc(1,0)) );
+
+    // compute the length of the longest side
+    // ----------------------------------------
+    double lmax = 0;
+    double n[5] = { 0, 1, 2, 3, 0 };
+    for(int k = 0; k < 4; ++k) { 
+      int i = n[k], j = n[k+1];
+      double lij = std::sqrt(std::pow(ecurn(0,j)-ecurn(0,i),2)+std::pow(ecurn(1,j)-ecurn(1,i),2)
+                             +std::pow(ecurn(2,j)-ecurn(2,i),2));
+      lmax = std::max(lij,lmax);
+    }
+
+    // compute the critical timestep
+    // ----------------------------------------
+    double le = area/lmax; // area / longest side
+    double E = expmat->ematpro[0], nu = expmat->ematpro[1], rho = expmat->ematpro[2];
+    return le/std::sqrt(E/(1-nu*nu)/rho);
+  }
+  else { // phantom
+    return std::numeric_limits<double>::infinity();
+  }
+#else
+  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::computeStabilityTimeStep\n";
+  exit(-1);
+#endif
+}

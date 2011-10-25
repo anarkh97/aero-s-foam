@@ -8,7 +8,7 @@
 #include <Math.d/matrix.h>
 #include <Corotational.d/utilities.h>
 #include <Driver.d/Dynam.h>
-#include <Driver.d/DynamProbType.h>
+#include <Driver.d/SysState.h>
 
 void NLModalOpSolver::reSolve(Vector &rhs){
 /*PRE:
@@ -1056,7 +1056,7 @@ void NLModalDescr::dynamOutput(ModalGeomState* mgs, Vector& vel, Vector& vel_p,
     fullDsp[zdof] = theta[2];
   }
   DynamMat dumDMat;
-  domain->dynamOutput(tIndex+1, bcx, dumDMat, fullTmpF, fullAeroF,
+  domain->dynamOutput(tIndex+1, time, bcx, dumDMat, fullTmpF, fullAeroF,
     fullDsp, fullVel, fullAcc, fullPrevVel, vcx);
 
 // testing

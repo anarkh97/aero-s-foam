@@ -326,7 +326,8 @@ class Domain : public HData {
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
                              FullSquareMatrix *&kelArray, StaticTimers *times,
-                             FullSquareMatrix *&geomKelArray);
+                             FullSquareMatrix *&geomKelArray, FullSquareMatrix *&melArray,
+                             bool melFlag = false);
      ControlInterface* getUserSuppliedFunction();
      void setsizeSfemStress(int fileNumber);
      int getsizeSfemStress() { return sizeSfemStress; }
@@ -570,6 +571,7 @@ class Domain : public HData {
      int  probType() { return sinfo.probType; }
 
      double computeStabilityTimeStep(DynamMat&);
+     double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState);
 
      void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p);
      void initDispVelocOnTimeSlice (Vector& d_n, Vector& v_n, int sliceRank); // PITA: Use user-provided initial seeds
@@ -590,7 +592,7 @@ class Domain : public HData {
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void thermoeComm();
-     void dynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double* vcx);
+     void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,
                           double* vcx, int sliceRank, double time);
 

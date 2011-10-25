@@ -69,7 +69,7 @@ public:
     TRANSPOSED
   };
 
-  template<class Scalar1, class Scalar2, class Scalar3> void multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c = 1.0, TransposeFlag transpose = NORMAL);
+  template<class Scalar1, class Scalar2, class Scalar3> void multiply(GenVector<Scalar1>& a, GenVector<Scalar2>& b, Scalar3 c, TransposeFlag transpose = NORMAL);
   
   void multiply(GenFullSquareMatrix<Scalar> &M2, GenFullSquareMatrix<Scalar> &result);
   void eigenVals(Scalar*);

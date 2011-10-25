@@ -3,7 +3,6 @@
 
 #include <Element.d/NLElement.h>
 #include <Driver.d/Domain.h>
-#include <Driver.d/DynamProbType.h>
 #include <Problems.d/StaticDescr.h>   
 #include <Driver.d/NLState.h>
 

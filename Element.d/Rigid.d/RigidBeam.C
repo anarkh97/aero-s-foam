@@ -17,11 +17,6 @@ extern "C" {
  void _FORTRAN(e3dmas)(double&, double*,
                        double&, double*, double*, double*,
                        double*, double*, const int&, double&, const int&);
-
- void _FORTRAN(mass6)(double&, double&, double&, double&, double*,
-                      double&, double*, double*, double*,
-                      double*, double*, const int&, double&,
-                      const int&, double*);
 }
 
 RigidBeam::RigidBeam(int* _nn)
@@ -174,9 +169,8 @@ RigidBeam::buildFrame(CoordSet& cs)
 }
 
 FullSquareMatrix
-RigidBeam::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
 {
-        // Check for phantom element, which has no mass
         if(prop == NULL || prop->rho == 0 || prop->A == 0) {
            FullSquareMatrix ret(12,mel);
            ret.zero();
@@ -196,17 +190,8 @@ RigidBeam::massMatrix(CoordSet &cs, double *mel, int cmflg)
         int grvflg = 0, masflg = 0;
 
         // Lumped Mass Matrix
-        if (cmflg == 0) {
-          _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
-                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
-
-        // Consistent (Full) Mass Matrix
-        } else {
-
-          _FORTRAN(mass6)(prop->rho,prop->Ixx, prop->Iyy, prop->Izz,
-                  (double*)mel,prop->A,x,y,z,gravityAcceleration,
-                   grvfor,grvflg,totmas,masflg,(double *)elemframe);
-        }
+        _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
+                 x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
         FullSquareMatrix ret(12, mel);
 

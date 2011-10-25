@@ -16,7 +16,7 @@ class RigidBeam : public SuperElement
     LMPCons** getMPCs();
 
     void buildFrame(CoordSet&);
-    int getMassType() { return 2; }
+    int getMassType() { return 0; }
     FullSquareMatrix massMatrix(CoordSet &cs, double *mel, int cmflg = 1);
     double getMass(CoordSet& cs);
     void getGravityForce(CoordSet&, double *g, Vector &f, int gravflg, GeomState *gs);

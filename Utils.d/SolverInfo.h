@@ -101,7 +101,6 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
-   double dt0;
 /* these are now private, use getTimeStep and setTimeStep functions to access
    double dt;           // time step value
    double dtemp;        // thermal time step value
@@ -490,7 +489,7 @@ struct SolverInfo {
    // SET DYNAMIC VALUE FUNCTIONS
 
    void setTimes(double _tmax, double _dt, double _dtemp)
-   { tmax = _tmax; dt0 = dt = _dt; dtemp = _dtemp; }
+   { tmax = _tmax; dt = _dt; dtemp = _dtemp; }
 
    void setParallelInTime(int J, int k, int workloadMax)
    { pitaTimeGridRatio = J; pitaMainIterMax = k; pitaProcessWorkloadMax = workloadMax; }

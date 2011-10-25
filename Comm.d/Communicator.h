@@ -1,6 +1,7 @@
 #ifndef _COMMUNICATOR_H_
 #define _COMMUNICATOR_H_
 
+#include <cstdio>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/MyComplex.h>
 class Connectivity;

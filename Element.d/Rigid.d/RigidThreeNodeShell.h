@@ -11,6 +11,12 @@ class RigidThreeNodeShell : public SuperElement
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront *mf);
+
+    int getMassType() { return 0; }
+    FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
+    double           getMass(CoordSet& cs);
+    void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
+                                     GeomState *gs);
 };
 
 #endif

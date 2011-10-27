@@ -261,7 +261,11 @@ def dComp(params):
 
   if(sendMail == 1):
     mail_file = open(".mail_command","w")
-    command = "mail -s \"Regression Test Summary\" mpotts@hpti.com < reg_test_summary"
+    next_build_num = list(open("/lustre/home/hudson/jobs/FEM build/nextBuildNumber","r").read().splitlines())
+#   command = "mail -s \"Regression Test Summary\" mpotts@hpti.com < reg_test_summary"
+    build_num = int(next_build_num[0])-1
+    log_file = "/lustre/home/hudson/jobs/FEM\ build/builds/" + str(build_num) +"/log"
+    command = "tail -90 " + log_file + "| mail -s \"Regression Test Summary\" mpotts@hpti.com "
     mail_file.write(command)
     print(command)
     os.system(command)

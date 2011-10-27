@@ -245,7 +245,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   dynMat = new MDDynamMat;
 
   times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
-  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray, melArray);
+  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
 
   if(domain->tdenforceFlag()) { 
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());

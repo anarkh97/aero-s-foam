@@ -891,8 +891,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   double eps1 = domain->solInfo().epsilon1;
   double eps2 = domain->solInfo().epsilon2;
-#ifdef DEBUG_EXPLICIT
-  std::ofstream toto("toto");
+#ifdef PRINT_ENERGIES
+  std::ofstream toto("energies");
 #endif
 
   for( ; t_n < tmax-0.01*dt_n_h; ) {
@@ -1006,16 +1006,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         tmp2 = *fint_p + fint;
         Wint += (0.5*dt_n_h)*(v_n_h*tmp2);
 
-#ifdef DEBUG_EXPLICIT
+#ifdef PRINT_ENERGIES
         // 4. compute the dissipation
         dynOps.M->mult(a_n,tmp1);
         double Wdis = -0.125*dt_n_h*dt_n_h*(a_n*tmp1);
 
-        toto << setprecision(16) << n+1 << " " << t_n+dt_n_h << " "
-             << Wkin << " " << Wext << " " << Wint << " " << Wdis << " "
-             << Wkin+Wint-Wext+Wdis << " " << std::abs(Wkin+Wint-Wext) << " "
-             << eps1*std::max(Wext,std::max(Wint,Wkin)) << " " 
-             << dt_n_h << std::endl;
+        energies << setprecision(16) << n+1 << " " << t_n+dt_n_h << " "
+                 << Wkin << " " << Wext << " " << Wint << " " << Wdis << " "
+                 << Wkin+Wint-Wext+Wdis << " " << std::abs(Wkin+Wint-Wext) << " "
+                 << eps1*std::max(Wext,std::max(Wint,Wkin)) << " " 
+                 << dt_n_h << std::endl;
 #endif
         // check |Wkin + Wint - Wext| <= 0.01*max(Wext,Wint,Wkin)
         if(std::abs(Wkin+Wint-Wext) > std::max(eps1*std::max(Wext,std::max(Wint,Wkin)),eps2)) {
@@ -1059,7 +1059,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     } 
   }
   if(aeroAlg < 0)
-    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t_n);
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", t_n, dt_n_h);
 
   totalTime += getTime();
 #ifdef PRINT_TIMERS

@@ -151,7 +151,7 @@ public:
   void reBuild(ModalGeomState &mgs, int iter = 0){ solver->mat.factor(); }
 
   void evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs);
-  void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &) { cerr << "NLModalDescr::formRHSinitializer is not implemented\n"; }
+  void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState *refState=NULL) { cerr << "NLModalDescr::formRHSinitializer is not implemented\n"; }
   void formRHSpredictor(Vector &res, Vector &rhs, ModalGeomState &mgs);
   double formRHScorrector(Vector& res, Vector& rhs, ModalGeomState& mgs);
 

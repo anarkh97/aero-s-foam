@@ -104,6 +104,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // restart file (if it exists), or the initial displacements (if any).
   GeomType *geomState = probDesc->createGeomState();
 
+  probDesc->readRestartFile(displacement, velocity_n, acceleration, v_p, *geomState);
+  probDesc->updatePrescribedDisplacement(geomState);
+
+  GeomType *stepState = probDesc->copyGeomState(geomState);
   stateIncr = StateUpdate::initInc(geomState, &residual);
   refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
@@ -113,10 +117,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     bkGeomState = probDesc->copyGeomState(geomState);
     bkStepState = probDesc->copyGeomState(geomState);
   }
-
-  probDesc->readRestartFile(displacement, velocity_n, acceleration, v_p, *geomState);
-  probDesc->updatePrescribedDisplacement(geomState);
-  GeomType *stepState = probDesc->copyGeomState(geomState);
 
   // Get max number of iterations
   int maxit = probDesc->getMaxit();
@@ -144,7 +144,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     }
     else {
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
-      probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration);
+      probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration, refState);
       probDesc->getSolver()->reSolve(acceleration);
     }
   }

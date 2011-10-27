@@ -120,7 +120,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   int iOut_kir = -1;
 
   int outLimit = geoSource->getOutLimit();
-  if(numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
+  if(numOutInfo && x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
@@ -195,12 +195,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
   // open binary output files
-  if(x==0) {
+  if(x == domain->solInfo().initialTimeIndex) {
     if(!numRes) numRes = new int[numOutInfo];
     for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
   }
 
-  if((x==0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
@@ -242,7 +242,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
 
 
-    if(x==0) { // always put single node output in one file regardless of outLimit
+    if(x == domain->solInfo().initialTimeIndex) { // always put single node output in one file regardless of outLimit
       for(iSub = 0; iSub < this->numSub; iSub++)  {
         int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
         if(nOutNodes) {
@@ -253,7 +253,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
 
 #else
-    if(x == 0 && this->firstOutput) geoSource->openOutputFiles();  // opens all output files
+    if(x == domain->solInfo().initialTimeIndex && this->firstOutput) geoSource->openOutputFiles();  // opens all output files
 #endif
   }
 
@@ -1258,12 +1258,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
 
   // open binary output files
-  if(x==0) {
+  if(x == 0) {
     if(!numRes) numRes = new int[numOutInfo];
     for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
   }
 
-  if((x==0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == 0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
@@ -1300,7 +1300,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
 
 
-    if(x==0) { // always put single node output in one file regardless of outLimit
+    if(x == 0) { // always put single node output in one file regardless of outLimit
       for(iSub = 0; iSub < this->numSub; iSub++)  {
         int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
         if(nOutNodes) {

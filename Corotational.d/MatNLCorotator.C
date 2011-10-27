@@ -191,6 +191,7 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
     dispnp[3*i+2] = curState[nn[i]].z-nodes[i].z;
   }
   double *state = curState.getElemState(ele->getGlNum());
+  //for(int i=0; i<103; ++i) std::cerr << state[i] << " "; std::cerr << std::endl;
   
   ele->updateStates(nodes, state, dispn, dispnp);
 

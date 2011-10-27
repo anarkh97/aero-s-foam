@@ -793,8 +793,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // open output files
-  if(x == 0 && firstOutput) geoSource->openOutputFiles();
-
+  if(x == domain->solInfo().initialTimeIndex && firstOutput) geoSource->openOutputFiles();
 
   Scalar Wext = 0, Waero = 0, Wela = 0, Wkin = 0, Wdmp = 0;
 
@@ -1950,7 +1949,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
     }
   }
 
-  if(x == 0) {
+  if(x == domain->solInfo().initialTime) {
     geoSource->openOutputFiles();
   }
 
@@ -1958,7 +1957,6 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   OutputInfo *oinfo = geoSource->getOutputInfo();
   for(i = 0; i < numOutInfo; i++) {
    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
-   //cerr << "i = " << i << ", x = " << x << ", step = " << step << ", interval = " << oinfo[i].interval << endl;
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
     // int dof = -1;
     switch(oinfo[i].type) {

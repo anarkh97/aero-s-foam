@@ -329,8 +329,9 @@ ElemState::operator=(const ElemState &elem)
     numInternalStates = elem.numInternalStates;
   }
   if(internalStates == 0) internalStates = new double[numInternalStates];
-  for(int i = 0; i < numInternalStates; ++i)
+  for(int i = 0; i < numInternalStates; ++i) {
     internalStates[i] = elem.internalStates[i];
+  }
 }
 
 void
@@ -857,7 +858,16 @@ GeomState::getRotations(double *rotations)
    rotations[9*i+7] = ns[i].R[2][1];
    rotations[9*i+8] = ns[i].R[2][2];
  }
+}
 
+void
+GeomState::getElemStates(double *elemStates)
+{
+ int i,j,k;
+ for(i=0,j=0; i<numelems; ++i) {
+   for(k=0; k<es[i].numInternalStates; ++k)
+     elemStates[j++] = es[i].internalStates[k];
+ }
 }
 
 void
@@ -886,7 +896,26 @@ GeomState::setRotations(double *rotations)
    ns[i].R[2][1] = rotations[9*i+7];
    ns[i].R[2][2] = rotations[9*i+8];
  }
+}
 
+void
+GeomState::setElemStates(double *elemStates)
+{
+ int i,j,k;
+ for(i=0,j=0; i<numelems; ++i) {
+   for(k=0; k<es[i].numInternalStates; ++k)
+     es[i].internalStates[k] = elemStates[j++];
+ }
+}
+
+int
+GeomState::getTotalNumElemStates()
+{
+ int n = 0;
+ for(int i=0,j=0; i<numelems; ++i) {
+   n += es[i].numInternalStates;
+ }
+ return n;
 }
 
 void GeomState::computeGlobalRotation() 

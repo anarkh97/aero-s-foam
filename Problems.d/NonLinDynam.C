@@ -165,7 +165,10 @@ void
 NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                                Vector &v_p, GeomState &geomState)
 {
- domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
+  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+    domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
+  }
 }
 
 int
@@ -628,12 +631,12 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
 }
 
 void
-NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs)
+NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs, GeomState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
   elementInternalForce.zero();
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, rhs);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, rhs, 1.0, domain->solInfo().initialTime, refState);
   if(domain->solInfo().order == 2 && C) {
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);

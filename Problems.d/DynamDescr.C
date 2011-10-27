@@ -82,7 +82,6 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   this->fillBcxVcx(time);
 
   if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
-    // TODO: Check if time is correct for restart
     domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
   }
 
@@ -369,9 +368,13 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                         inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
-  if(domain->solInfo().isNonLin())
-    domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
-                            inState.getPrevVeloc(), bcx, vcx, *geomState);
+  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+    if(domain->solInfo().isNonLin()) { 
+      domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
+                              inState.getPrevVeloc(), bcx, vcx, *geomState);
+    }
+  }
 
   // if we have a user supplied function, give it the initial state at the sensors
   // .. first update bcx, vcx in case any of the sensors have prescribed displacements

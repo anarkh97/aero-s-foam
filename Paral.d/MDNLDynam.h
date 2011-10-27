@@ -129,7 +129,7 @@ class MDNLDynamic
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);
 
     void formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce,
-                            DistrGeomState &geomState, DistrVector &rhs);
+                            DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState = NULL);
 
     void preProcess();
 
@@ -193,6 +193,9 @@ class MDNLDynamic
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
     void updateConstraintTerms(DistrGeomState* geomState, double t);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
+                            DistrVector &v_p, DistrGeomState &geomState);
+    void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
 };
 
 inline double

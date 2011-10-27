@@ -124,7 +124,15 @@ MultiDomainOp::getInitState(int isub)
  StackVector accel(v3->subData(isub),v1->subLen(isub));
  StackVector   v_p(v4->subData(isub),v1->subLen(isub));
 
- sd[isub]->initDispVeloc(disp, veloc, accel, v_p);
+ if(geoSource->getCheckFileInfo()->lastRestartFile) {
+   int extlen = std::log10((double) sd[isub]->subNum()+1) + 1;
+   char *ext = new char[extlen+2];
+   sprintf(ext,"_%d",sd[isub]->subNum()+1);
+   sd[isub]->initDispVeloc(disp, veloc, accel, v_p, ext);
+   delete [] ext;
+ } 
+ else
+   sd[isub]->initDispVeloc(disp, veloc, accel, v_p);
 }
 
 void
@@ -152,6 +160,26 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
 {
   if(!times) times = new StaticTimers;
   startTimerMemory(times->output, times->memoryOutput);
+
+  if(domain->solInfo().nRestart > 0) {
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      int extlen = std::log10((double) sd->subNum()+1) + 1;
+      char *ext = new char[extlen+2];
+      sprintf(ext,"_%d",sd->subNum()+1);
+      if(domain->solInfo().isNonLin()) {
+        StackVector vel_ni(distState.getVeloc().subData(i), distState.getVeloc().subLen(i));
+        sd->writeRestartFile(t, tIndex, vel_ni, (*geomState)[i], ext);
+      }
+      else {
+        StackVector d_ni(distState.getDisp().subData(i), distState.getDisp().subLen(i));
+        StackVector v_ni(distState.getVeloc().subData(i), distState.getVeloc().subLen(i));
+        StackVector v_pi(distState.getPrevVeloc().subData(i), distState.getPrevVeloc().subLen(i));
+        sd->writeRestartFile(t, tIndex, d_ni, v_ni, v_pi, domain->solInfo().initExtForceNorm, ext);
+      }
+      delete [] ext;
+    }
+  }
 
   // PJSA 4-15-08: update bcx for time dependent prescribed displacements and velocities 
   ControlLawInfo *claw = geoSource->getControlLaw();
@@ -245,7 +273,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   dynMat = new MDDynamMat;
 
   times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
-  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray, melArray);
+  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
 
   if(domain->tdenforceFlag()) { 
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
@@ -668,6 +696,26 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
                      &state.getDisp(), &state.getVeloc(), &state.getAccel(),
                      &state.getPrevVeloc());
   threadManager->execParal(decDomain->getNumSub(), &mdop);
+  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+    if(domain->solInfo().isNonLin()) {
+      for(int i = 0; i < decDomain->getNumSub(); ++i) {
+        SubDomain *sd = decDomain->getSubDomain(i);
+        StackVector d_ni(state.getDisp().subData(i), state.getDisp().subLen(i));
+        StackVector v_ni(state.getVeloc().subData(i), state.getVeloc().subLen(i));
+        StackVector a_ni(state.getAccel().subData(i), state.getAccel().subLen(i));
+        StackVector v_pi(state.getPrevVeloc().subData(i), state.getPrevVeloc().subLen(i));
+        int extlen = std::log10((double) sd->subNum()+1) + 1;
+        char *ext = new char[extlen+2];
+        sprintf(ext,"_%d",sd->subNum()+1);
+        sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);
+        delete [] ext;
+      }
+    }
+    domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
+    domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
+    domain->solInfo().initExtForceNorm = decDomain->getSubDomain(0)->solInfo().initExtForceNorm;
+  }
 
   // if we have a user supplied function, give it the initial state at the sensors
   // .. first update bcx, vcx in case any of the sensors have prescribed displacements
@@ -705,11 +753,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState);
  }
  return mddPostPro;
 }

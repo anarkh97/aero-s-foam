@@ -26,7 +26,7 @@
 extern ModeData modeData; 
 
 void
-Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
+Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const char* ext)
 {
  // ... INITIALIZE DISPLACEMENT, VELOCITY, AND ACCELERATION 
  // ... VECTORS TO ZERO
@@ -73,8 +73,17 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  if(probType() != SolverInfo::NonLinDynam) {
    if(cinfo->lastRestartFile) {
-     fprintf(stderr, " ... Restarting From a Previous Run ...\n");
-     int fn = open(cinfo->lastRestartFile,O_RDONLY );
+     int fn;
+     if(strlen(ext) != 0) {
+       char *lastRestartFile = new char[strlen(cinfo->lastRestartFile)+strlen(ext)+1];
+       strcpy(lastRestartFile, cinfo->lastRestartFile);
+       strcat(lastRestartFile, ext);
+       fn = open(lastRestartFile, O_RDONLY);
+       delete [] lastRestartFile;
+     } 
+     else {
+       fn = open(cinfo->lastRestartFile, O_RDONLY);
+     }
      if(fn >= 0) {
        int vsize, restartTIndex;
        double restartT;
@@ -128,14 +137,21 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p)
 
 void
 Domain::writeRestartFile(double time, int timeIndex, Vector &d_n, 
-                         Vector &v_n, Vector &v_p, double Fref)
+                         Vector &v_n, Vector &v_p, double Fref, const char *ext)
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()) {
-   int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
+   int fn;
+   if(strlen(ext) != 0) {
+     char *currentRestartFile = new char[strlen(cinfo->currentRestartFile)+strlen(ext)+1];
+     strcpy(currentRestartFile, cinfo->currentRestartFile);
+     strcat(currentRestartFile, ext);
+     fn = open(currentRestartFile, O_WRONLY | O_CREAT, 0666);
+     delete [] currentRestartFile;
+   } else
+   fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
-     cerr << "here in Dynam.C writeRestartFile\n";
      int vsize = d_n.size();
      int writeSize = write(fn, &vsize, sizeof(int));
      if(writeSize != sizeof(int))

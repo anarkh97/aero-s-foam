@@ -700,7 +700,7 @@ NLMatProbDesc::getStiffAndForce(NLState& state, Vector& residual,
 
 void
 NLMatProbDesc::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce,
-                                  NLState &st, Vector &rhs)
+                                  NLState &st, Vector &rhs, NLState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;

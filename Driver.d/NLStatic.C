@@ -243,8 +243,9 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  }
 
  // Form and store element mass matrices into an array
+ double mratio = geoSource->getMRatio();
  for(iele=0; iele<numele; ++iele)
-   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data()));
+   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
 
  // zero rotational degrees of freedom within element mass matrices
  // TODO this should be done before mel is added to Msolver for initial acceleration calculation
@@ -1490,13 +1491,22 @@ Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
 
 void
 Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
-                         GeomState *geomState)
+                         GeomState *geomState, const char *ext)
 {
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
-   int fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
+
+   int fn;
+   if(strlen(ext) != 0) {
+     char *currentRestartFile = new char[strlen(cinfo->currentRestartFile)+strlen(ext)+1];
+     strcpy(currentRestartFile, cinfo->currentRestartFile);
+     strcat(currentRestartFile, ext);
+     fn = open(currentRestartFile, O_WRONLY | O_CREAT, 0666);
+     delete [] currentRestartFile;
+   } else
+   fn = open(cinfo->currentRestartFile, O_WRONLY | O_CREAT, 0666);
    if(fn >= 0) {
      int writeSize;
      writeSize = write(fn, &timeIndex, sizeof(int));
@@ -1523,7 +1533,16 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
      if(int(writeSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
 
-     // PJSA 9-17-2010
+     // new method of storing the element states in the GeomState object
+     int numElemStates = geomState->getTotalNumElemStates();
+     double *elemStates = (double *) dbg_alloca(sizeof(double)*numElemStates);
+     geomState->getElemStates(elemStates);
+     writeSize = write(fn, elemStates, numElemStates*sizeof(double));
+     if(int(writeSize) != int(numElemStates*sizeof(double)))
+       fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
+
+     // PJSA 9-17-2010 (note: this idea of the element storing the internal states is deprecated
+     // and will eventually be removed
      int numEle = packedEset.last();
      for(int i = 0; i < numEle; ++i)
        packedEset[i]->writeHistory(fn);
@@ -1539,12 +1558,19 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 void
 Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                         Vector &v_p, double *bcx, double *vcx,
-                        GeomState &geomState)
+                        GeomState &geomState, const char *ext)
 {
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  if(cinfo->lastRestartFile) {
-   fprintf(stderr, " ... Restart From a Prev. Nonl. Run ...\n");
-   int fn = open(cinfo->lastRestartFile,O_RDONLY );
+   int fn;
+   if(strlen(ext) != 0) {
+     char *lastRestartFile = new char[strlen(cinfo->lastRestartFile)+strlen(ext)+1];
+     strcpy(lastRestartFile, cinfo->lastRestartFile);
+     strcat(lastRestartFile, ext);
+     fn = open(lastRestartFile, O_RDONLY );
+     delete [] lastRestartFile;
+   } else
+   fn = open(cinfo->lastRestartFile,O_RDONLY );
    if(fn >= 0) {
      int restartTIndex;
      double restartT;
@@ -1556,7 +1582,7 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
        fprintf(stderr," *** ERROR: Inconsistent restart file 2\n");
-     fprintf(stderr,"Initial Time = %f\n\n",restartT);
+     //fprintf(stderr,"Initial Time = %f\n\n",restartT);
      sinfo.initialTime = restartT;
 
      v_n.zero();
@@ -1575,6 +1601,14 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      if(int(readSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Inconsistent restart file 4\n");
      geomState.setRotations(rotations);
+
+     // new method of storing the element states in the GeomState object
+     int numElemStates = geomState.getTotalNumElemStates();
+     double *elemStates = (double *) dbg_alloca(sizeof(double)*numElemStates);
+     readSize = read(fn, elemStates, numElemStates*sizeof(double));
+     if(int(readSize) != int(numElemStates*sizeof(double)))
+       fprintf(stderr," *** ERROR: Inconsistent restart file 5\n");
+     geomState.setElemStates(elemStates);
 
      // PJSA 9-17-2010
      int numEle = packedEset.last();

@@ -99,12 +99,12 @@ MDNLDynamic::subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState
 
 void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
-                                  DistrGeomState &geomState, DistrVector &rhs)
+                                  DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
   elementInternalForce.zero();
-  getStiffAndForce(geomState, rhs, elementInternalForce);
+  getStiffAndForce(geomState, rhs, elementInternalForce, domain->solInfo().initialTime, refState);
   if(domain->solInfo().order == 2 && C) {
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
@@ -755,8 +755,37 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
     delete [] userDefineDisp; delete [] userDefineVel;
   }
+
+  if(domain->solInfo().nRestart > 0) {
+#ifdef RESTART_NO_EXECPARAL
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+      int extlen = std::log10((double) sd->subNum()+1) + 1;
+      char *ext = new char[extlen+2];
+      sprintf(ext,"_%d",sd->subNum()+1);
+      sd->writeRestartFile(time, index, vel_ni, (*geomState)[i], ext);
+      delete [] ext;
+    }
+#else
+    execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, *geomState);
+#endif
+  }
+
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
   decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF);
+}
+
+void
+MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &vel_n, DistrGeomState &geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(i);
+  StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  char *ext = new char[extlen+2];
+  sprintf(ext,"_%d",sd->subNum()+1);
+  sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
+  delete [] ext;
 }
 
 void
@@ -1015,9 +1044,43 @@ void
 MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                              DistrVector &v_p, DistrGeomState &geomState)
 {
-  ControlInfo *cinfo = geoSource->getCheckFileInfo();
-  if(cinfo->lastRestartFile)
-    filePrint(stderr, "Paral.d/MDNLDynam.C: readRestartFile not implemented here\n");
+  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+    filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+#ifdef RESTART_NO_EXECPARAL
+    for(int i = 0; i < decDomain->getNumSub(); ++i) {
+      SubDomain *sd = decDomain->getSubDomain(i);
+      StackVector d_ni(d_n.subData(i), d_n.subLen(i));
+      StackVector v_ni(v_n.subData(i), v_n.subLen(i));
+      StackVector a_ni(a_n.subData(i), a_n.subLen(i));
+      StackVector v_pi(v_p.subData(i), v_p.subLen(i));
+      int extlen = std::log10((double) sd->subNum()+1) + 1;
+      char *ext = new char[extlen+2];
+      sprintf(ext,"_%d",sd->subNum()+1);
+      sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *(geomState[i]), ext);
+      delete [] ext;
+    }
+#else
+    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
+#endif
+    domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
+    domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
+  }
+}
+
+void
+MDNLDynamic::subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
+                                DistrVector &v_p, DistrGeomState &geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(i);
+  StackVector d_ni(d_n.subData(i), d_n.subLen(i));
+  StackVector v_ni(v_n.subData(i), v_n.subLen(i));
+  StackVector a_ni(a_n.subData(i), a_n.subLen(i));
+  StackVector v_pi(v_p.subData(i), v_p.subLen(i));
+  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  char *ext = new char[extlen+2];
+  sprintf(ext,"_%d",sd->subNum()+1);
+  sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *(geomState[i]), ext);
+  delete [] ext;
 }
 
 int

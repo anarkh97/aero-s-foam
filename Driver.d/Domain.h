@@ -579,16 +579,16 @@ class Domain : public HData {
      double computeStabilityTimeStep(DynamMat&);
      double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState);
 
-     void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p);
+     void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p, const char* = "");
      void initDispVelocOnTimeSlice (Vector& d_n, Vector& v_n, int sliceRank); // PITA: Use user-provided initial seeds
      void initTempVector(Vector& d_n, Vector& v_n, Vector& v_p);
      void writeRestartFile(double time, int timeIndex,
-                           Vector &d_n, Vector &v_n, Vector &v_p, double Fref = 0.0);
+                           Vector &d_n, Vector &v_n, Vector &v_p, double Fref = 0.0, const char* = "");
      void writeRestartFile(double time, int timeIndex, Vector &v_n,
-                         GeomState *geomState);
+                           GeomState *geomState, const char* = "");
      void readRestartFile(Vector &d_n, Vector &v_n,
                           Vector &a_n, Vector &v_p, double *bcx,
-                          double *vcx, GeomState &geomState);
+                          double *vcx, GeomState &geomState, const char* = "");
      void getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode,
              double *xdata, int *dofx, double *ydata=0, int *dofy=0, double *zdata=0, int *dofz=0);
      void addVariationOfShape_StructOpt(int iNode, CoordSet *nodescopy, double &x, double &y, double &z);

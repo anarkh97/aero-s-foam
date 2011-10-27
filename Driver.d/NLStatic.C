@@ -243,8 +243,9 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  }
 
  // Form and store element mass matrices into an array
+ double mratio = geoSource->getMRatio();
  for(iele=0; iele<numele; ++iele)
-   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data()));
+   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
 
  // zero rotational degrees of freedom within element mass matrices
  // TODO this should be done before mel is added to Msolver for initial acceleration calculation

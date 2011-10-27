@@ -57,7 +57,7 @@ GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
   
   dMat.K->setAssembler((BasicAssembler *)0);
   dMat.M->setAssembler((BasicAssembler *)0);
-  return sdt;
+  return domain->solInfo().stable_cfl*sdt;
 }
 
 template<>

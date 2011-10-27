@@ -48,6 +48,10 @@ Shell3Corotator::Shell3Corotator(int _n1, int _n2, int _n3,
  fitAlg = fitAlgShell;
 }
 
+Shell3Corotator::Shell3Corotator()
+{
+}
+
 //---------------------------------------------------------------------------
 
 void

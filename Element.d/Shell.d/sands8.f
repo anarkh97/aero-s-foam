@@ -49,6 +49,7 @@ C
        double precision  rmx,rmy,rmxy,rnx,rny,rnxy,clr,cqr
        double precision  rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,sbf
        double precision  ebar
+       double precision  factor
        integer lb(9),le(9), strainFlg
        character*10 status
        integer i,j
@@ -202,6 +203,10 @@ c      compute centroidal membrane strains
 c      compute centroidal bending strains (curvatures (1/radius))
        call momen (xlp,ylp,lb,rmom,status)
 
+c      pjsa 8/11/2011: the matrix rmom returned by momen function is
+c      off by a factor of -1/sqrt(area) 
+       factor = -1.0d0 / dsqrt( area )
+
        rmx  = 0.0d0
        rmy  = 0.0d0
        rmxy = 0.0d0
@@ -209,9 +214,9 @@ c      compute centroidal bending strains (curvatures (1/radius))
        rny  = 0.0d0
        rnxy = 0.0d0
        do 290 j=1,18
-          rmx  =  rmx + rmom(j,1)*dll(j)
-          rmy  =  rmy + rmom(j,2)*dll(j)
-          rmxy = rmxy + rmom(j,3)*dll(j)
+          rmx  =  rmx + factor*rmom(j,1)*dll(j)
+          rmy  =  rmy + factor*rmom(j,2)*dll(j)
+          rmxy = rmxy + factor*rmom(j,3)*dll(j)
           rnx  =  rnx + rmem(j,1)*dll(j)
           rny  =  rny + rmem(j,2)*dll(j)
           rnxy = rnxy + rmem(j,3)*dll(j)

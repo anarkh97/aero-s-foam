@@ -75,6 +75,8 @@ class Corotator {
                                int avgnum = 0, int measure = -1)
       { getNLVonMises(stress, weight, curState, c0, strIndex); }
 
+    virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
+
     virtual ~Corotator() {/*TODO*/}
 };
 

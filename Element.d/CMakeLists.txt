@@ -116,6 +116,16 @@ Convection.d/QuadConvec.C
 Convection.d/trianarea.f
 Convection.d/TriangleConvec.C
 CtcVirtualElt.d/CtcVirtualElt.C
+FelippaShell.d/EffMembraneTriangleInstance.cpp
+FelippaShell.d/AndesBendingTriangleInstance.cpp
+FelippaShell.d/ShellElementInstance.cpp
+FelippaShell.d/FelippaShell.C
+FelippaShell.d/FelippaShellX2.C
+FelippaShell.d/ShellMaterial.cpp
+FelippaShell.d/ShellMaterialType0.cpp
+FelippaShell.d/ShellMaterialType1.cpp
+FelippaShell.d/ShellMaterialTypes2And3.cpp
+FelippaShell.d/ShellMaterialType4.cpp
 FluidQuad.d/BarSloshFS.C    FluidTetra.d/HEVibTetra.C
 FluidQuad.d/HEVibQuadGal.C  FluidTetra.d/SloshTetra.C
 FluidQuad.d/SloshQuadGal.C  FluidTriangle3.d/SloshTriangleFS.C

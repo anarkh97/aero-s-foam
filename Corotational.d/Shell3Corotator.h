@@ -7,11 +7,13 @@ class Node;
 class NodeState;
 
 class Shell3Corotator : public Corotator {
+ protected:
    int n1, n2, n3;
    double origK[18][18];
    int fitAlg;
  public:
-   Shell3Corotator(int _n1,int _n2,int _n3,FullSquareMatrix &,int fitAlgShell);
+   Shell3Corotator();
+   Shell3Corotator(int, int, int, FullSquareMatrix &, int fitAlgShell);
 
    void getStiffAndForce(GeomState &, CoordSet &, FullSquareMatrix &, double *, double dt, double t);
 

@@ -570,9 +570,18 @@ C
  3005    continue
       endif
 C
-C.....DIVIDE MATRIX [L] BY THE SQUARE ROOT OF THE AREA
+C.....CHANGED THIS TO DIVIDE [L] BY THE AREA AS IS STANDARD FOR BENDING.
+C     NOTE THAT WHEN COMPUTING THE STIFFNESS MATRIX L IS DEFINED TO 
+C     BE [lqr] DIVIDED BY THE SQUARE ROOT OF THE AREA BECAUSE IN THIS 
+C     CASE WE USE L TO COMPUTE K = 1/area*lqr*D*lqr^T = L*D*L^T
+C     Furthermore, the -ve sign is required for the bending stress/strain
+C     to be consistent with conventions (tension positive,
+C     and upper surface defined to have +ve local z coordinate, where 
+C     the local z axis is the element normal)
+C     Philip J. S. Avery  8/11/11
 C
-      factor = sqrt(one/area)
+      factor = -one/area
+C     factor = sqrt(one/area)
 C
       do 3007 j=1,3
          do 3008 i=1,9
@@ -649,11 +658,8 @@ C     TO GIVE CONSISTENT RESULTS WITH THE STANDARD SHELL ELEMENT.
 C     Gregory W. Brown  12/04/00
 C
       factor = (one/(twicearea))
-C
-CC.....DIVIDE MATRIX [P] BY THE SQUARE ROOT OF FOUR TIMES THE AREA
-CC
 C      factor = sqrt(one/(two*twicearea))
-CC
+C
       do 4001 j=1,3
          do 4002 i=1,dimp
             reducedP(i,j) = factor*reducedP(i,j)
@@ -709,6 +715,10 @@ C
  6003 continue
 C
 C COMPUTE EQUIVALENT STRAIN (VON MISES)
+C As of 9/13/2011 the upper and lower surfaces have been reversed
+C to be consistent with stress and conventions (tension positive,
+C and upper surface defined to have +ve local z coordinate, where 
+C the local z axis is the element normal)
 C
         if(strainFlg .eq. 1) then
           t2 = 0.5*thick
@@ -841,7 +851,7 @@ C
 C.....ESTIMATE THE STRESSES ON THE UPPER SURFACE
 C
       do 6105 i=1,3
-         ups(i) = (eleN(i)/thick) - (six*eleM(i)/(thick*thick))
+         ups(i) = (eleN(i)/thick) + (six*eleM(i)/(thick*thick))
  6105 continue
 C
 C.....STORE SIGMAXX, SIGMAYY, SIGMAXY (UPPER)
@@ -872,7 +882,7 @@ C
 C.....ESTIMATE THE STRESSES ON THE LOWER SURFACE
 C
       do 6106 i=1,3
-         lws(i) = (eleN(i)/thick) + (six*eleM(i)/(thick*thick))
+         lws(i) = (eleN(i)/thick) - (six*eleM(i)/(thick*thick))
  6106 continue
 C
 C.....CALCULATE THE RADIUS OF MOHR CIRCLE ON THE LOWER SURFACE

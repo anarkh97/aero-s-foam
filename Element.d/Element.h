@@ -289,7 +289,7 @@ class Element {
         double pressure;	// pressure force applied to element
         double preload;
         bool myProp;
-        int glNum;
+        int glNum, subNum;
         vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
@@ -319,7 +319,7 @@ class Element {
         virtual void setPreLoad(double load, int &flg) { }
         virtual double getPreLoad() { return preload; }
 
-        virtual void setGlNum(int gn) { glNum = gn; }
+        virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
         int getGlNum()  { return glNum; }
         virtual void setFrame(EFrame *) {} // By default ignore the frame
         // By default an element does not need a frame

@@ -278,6 +278,18 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Returns shear modulus of material
   double GetShearModulus() const;
 
+  //! Set the plastic strain in the material
+  void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
+
+  //! Set the equivalent plastic strain in the material
+  void SetMaterialEquivalentPlasticStrain(double equivEPSplastic);
+
+  //! Set the back stress in the material
+  void SetMaterialBackStress(const std::vector<double> &BackStress);
+
+  //! Print the internal variables
+  void Print();
+
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector
   //! \param TOL Input. Tolerance to use for the check

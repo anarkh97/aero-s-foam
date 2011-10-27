@@ -199,10 +199,7 @@ void
 Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
-    MatNLCorotator *matnlcorot = dynamic_cast<MatNLCorotator *>(corotators[iele]);
-    if(matnlcorot) {
-      matnlcorot->updateStates(refState, geomState, nodes);
-    }
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
   }
 }
 

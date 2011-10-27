@@ -28,6 +28,8 @@
 #include <Element.d/Spring.d/RotnSprlink.h>
 #include <Element.d/CompShell.d/Compo3NodeShell.h>
 #include <Element.d/CompShell.d/Compo4NodeShell.h>
+#include <Element.d/FelippaShell.d/FelippaShell.h>
+#include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Triangle3.d/ThermTriangle.h>
 #include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
@@ -205,6 +207,18 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 11:
        ele = new (ba) TorSpring(n);
+       break;
+     case 15:
+#ifdef USE_EIGEN3
+       if(nnodes == 3 || (nnodes == 4 && n[2] == n[3]))
+         ele = new (ba) FelippaShell(n);
+       else 
+         ele = new (ba) FelippaShellX2(n);
+#else
+       std::cerr << "Error: Element type 15 requires AERO-S built with Eigen3 template library." << std::endl
+                 << "exiting...\n";
+       exit(-1);
+#endif 
        break;
      case 16:
        ele = new (ba) BelytschkoTsayShell(n);

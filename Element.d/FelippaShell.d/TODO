@@ -1,0 +1,10 @@
+andesms.cpp
+
+1. local stress computation is not supported for shell material type 1 (COEF composite). I think it is not possible, but need to check.
+2. support output of "generalized stresses" i.e. N,M (force and moment per unit length)
+3. epszz is only computed correctly for isotropic plane stress material.
+4. restart (save internal variables).
+5. output of internal variables
+6. time-integration of internal variables for dynamics. consider using MatNLCorotator
+7. consistent and boundary-consistent mass, body force and surface tractions.
+8. optimizations using eigen3, eg symmetry, aligned map, fixed size blocks

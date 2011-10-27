@@ -28,6 +28,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */ 
 
+#include <limits>
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
 #include "IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h"
 
 
@@ -92,6 +96,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial::Clone() const
 std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetMaterialPlasticStrain() const
 {
+/* PJSA
   std::vector<double> EP(9,0.);
   EP[0] = EPSplastic[0];
   EP[4] = EPSplastic[1];
@@ -99,6 +104,8 @@ GetMaterialPlasticStrain() const
   EP[1] = EP[3] = 0.5*EPSplastic[2];
   EP[2] = EP[5] = EP[6] = EP[7] = 0.;
   return EP;
+*/
+  return EPSplastic;
 }
 
 
@@ -112,6 +119,7 @@ GetMaterialEquivalentPlasticStrain() const
 std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetMaterialBackStress() const
 {
+/* PJSA
   std::vector<double> BS(9,0.);
   BS[0] = BackStress[0];
   BS[4] = BackStress[1];
@@ -119,6 +127,8 @@ GetMaterialBackStress() const
   BS[1] = BS[3] = BackStress[2];
   BS[2] = BS[5] = BS[6] = BS[7] = 0.;
   return BS;
+*/
+  return BackStress;
 }
 
 
@@ -147,6 +157,30 @@ double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
 
+
+// Set the plastic strain in the material
+void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
+{ for(int i = 0; i < 3; ++i) EPSplastic[i] = iEPSplastic[i]; }
+
+// Set the equivalent plastic strain in the material
+void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+SetMaterialEquivalentPlasticStrain(double iEquivEPSplastic)
+{ equivEPSplastic = iEquivEPSplastic; }
+
+// Set the back stress in the material
+void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+SetMaterialBackStress(const std::vector<double> &iBackStress)
+{ for(int i = 0; i < 3; ++i) BackStress[i] = iBackStress[i]; }
+
+// Print all of the internal variables
+void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+Print()
+{
+  std::cerr << "Plastic Strain = " << EPSplastic[0] << " " << EPSplastic[1] << " " << EPSplastic[2] << std::endl;
+  std::cerr << "Back Stress = " << BackStress[0] << " " << BackStress[1] << " " << BackStress[2] << std::endl;
+  std::cerr << "Equivalent Plastic Strain = " << equivEPSplastic << std::endl;
+}
 
 // Compute the elastic constitutive response
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -242,15 +276,25 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 					 std::vector<double> *Cep,
 					 const bool UpdateFlag) 
 {
+#ifndef USE_EIGEN3
   // Notify that elastoplastic tangents are not computed.
   if( Cep!=0 )
     {
       std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
-	       <<"Elastoplastic tangents not implemented.\n";
+	       <<"Elastoplastic tangents implementation requires Eigen3 library.\n";
       return false;
     }
-  
-  
+#endif  
+  // Resize output tangents if requested
+  if( Cep )
+    if( int(Cep->size())<9 )
+      Cep->resize( 9 );
+
+  // Elastic modulii
+  std::vector<double> * Ce = 0;
+  if( Cep )
+    Ce = new std::vector<double>(9);
+
   // Vector form of symmetric strain
   double EPS[3] = { Fnp1[0]-1., Fnp1[4]-1., Fnp1[1]+Fnp1[3] };
   
@@ -262,9 +306,9 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Compute trial cauchy stress
   std::vector<double> CStrial(3,0.);
   
-  if( !ComputeElasticConstitutiveResponse(EPSelas, &CStrial) )
+  if( !ComputeElasticConstitutiveResponse(EPSelas, &CStrial, Ce) )
     {
-      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastioPlasticConstitutiveResponse()- "
+      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
 	       <<"Could not compute elastic response at trial state.\n";
       return false;
     }
@@ -278,13 +322,17 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   double Ftrial = EvaluateYieldFunction(Xitrial, equivEPSplastic);
   
   // Use some tolerance for checking yield function value
-  double TOL = SigmaY*1.e-6;
+  // Note: I observe a relationship between TOL and the nltol under NONLINEAR
+  // looks like TOL should be at least an order of magnitude smaller than nltol
+  double TOL = SigmaY*1e-8; // ORIG: SigmaY*1e-6
+  // tolerance for checking consistency parameter
+  double TOL2 = std::numeric_limits<double>::epsilon(); // ORIG: 0
   
   // Resize outputs if required
   if( int(CauchyStress->size())<9 )
     CauchyStress->resize(9);
   
-  if( Ftrial<TOL )
+  if( Ftrial<0 /*ORIG: TOL*/ )
     {
       // This step is purely elastic.
       // No need to update plastic variables.
@@ -294,8 +342,11 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       (*CauchyStress)[4] = CStrial[1];
       (*CauchyStress)[1] = (*CauchyStress)[3] = CStrial[2];
       (*CauchyStress)[2] = (*CauchyStress)[5] = (*CauchyStress)[6] = (*CauchyStress)[7] = (*CauchyStress)[8] = 0.;
+
+      if( Cep )
+        for(int i=0; i<9; i++)
+          (*Cep)[i] = (*Ce)[i];
       
-      return true;
     }
   
   else
@@ -317,7 +368,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       double epMAX = equivEPSplastic + sqrt(2./3.)*sqrt( pow(EPS[0]-EPSplastic[0],2.) + 
 							 pow(EPS[1]-EPSplastic[1],2.) + 
 							 0.5*pow(EPS[2]-EPSplastic[2],2.) );  // due the factor of 2 in the strains.
-      
+
       // Step size for lambda to probe where F < 0.
       double lambdaStep = 1.5*(epMAX-equivEPSplastic)/(SigmaY+K*epMAX);  
       
@@ -339,7 +390,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  // Evaluate corresponding value of Xi
 	  if( !ComputeXiGivenConsistencyParameter(Xitrial, lambda_L, Xi) )
 	    {
-	      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElasticConstitutiveResponse()- "
+	      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
 		       <<"Could not evaluate stress state for some guess of consistency parameter.\n";
 	      return false;
 	    }
@@ -360,20 +411,20 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	    }
 	  
 	  // Sound a warning if lambda is orders of magnitude away from lambdaStep.
-	  if( counter%100 == 0)
+	  if( counter%100 == 0) {
 	    std::cerr<<"\n WARNING: "
-		     <<"IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastioPlasticConstitutiveResponse()- "
+		     <<"IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
 		     <<" Consistency parameter exceeds "<<counter<<" times initial estimate.\n";
-	  
+	  }
 	  // Upper limit on how far to probe- avoid an infinite loop.
-	  if( counter > 1000 )
+	  if( counter > 1000 ) 
 	    return false;
 	}
       
       // Check that F has been bracketed.
       if( F_L>0. || F_R<0. )
 	{
-	  std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastioPlasticConstitutiveResponse()- "
+	  std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
 		   <<"Could not bracket yield function to solve for consistency parameter.\n";
 	  return false;
 	}
@@ -387,17 +438,17 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  lambda = (lambda_L + lambda_R)/2.;
 	  if( !ComputeXiGivenConsistencyParameter(Xitrial, lambda, Xi) )
 	    {
-	      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElasticConstitutiveResponse()- "
+	      std::cerr<<"\n IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
 		       <<"Could not evaluate stress state for some guess of consistency parameter.\n";
 	      return false;
 	    }
 	  double F = EvaluateYieldFunction(Xi, equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi));
 	  
-	  if( fabs(F) < TOL )
+	  if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < TOL2)  //ORIG: if( std::abs(F) < TOL )
 	    CONVERGED = true;
 	  else
 	    {
-	      if( F<0. )
+	      if(!((F < 0 && F_R < 0) || (F > 0 && F_R > 0))) //ORIG: if( F<0. )
 		{
 		  lambda_L = lambda;
 		  F_L      = F;
@@ -441,6 +492,39 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       (*CauchyStress)[4] = CS[1];
       (*CauchyStress)[1] = (*CauchyStress)[3] = CS[2];
       (*CauchyStress)[2] = (*CauchyStress)[5] = (*CauchyStress)[6] = (*CauchyStress)[7] = (*CauchyStress)[8] = 0.;
+
+      if( Cep )
+        {
+#ifdef USE_EIGEN3
+          using Eigen::Matrix3d;
+          using Eigen::Vector3d;
+          // Compute A*P*xi where A is the modified (algorithmic tangent modulus)
+          Matrix3d C; C << (*Ce)[0], (*Ce)[1], (*Ce)[2],
+                           (*Ce)[3], (*Ce)[4], (*Ce)[5],
+                           (*Ce)[6], (*Ce)[7], (*Ce)[8];
+          Matrix3d P; P << 2/3.,  -1./3, 0,
+                           -1/3., 2/3.,  0,
+                           0,     0,     2;
+          Matrix3d A = (C.inverse() + lambda/(1 + 2/3.*lambda*H)*P).inverse();
+          Vector3d xi; xi << Xi[0], Xi[1], Xi[2];
+          Vector3d Pxi = P*xi;
+          Vector3d APxi = A*Pxi;
+
+          // Compute N = A*P*xi / sqrt(xi^T*P*A*P*Xi)
+          double s2 = Pxi.dot(APxi); 
+          Vector3d N = APxi/sqrt(s2);
+
+          // Compute beta
+          double theta1 = 1 + 2/3.*H*lambda;
+          double theta2 = 1 - 2/3.*K*lambda;
+          double fbar2 = xi.dot(Pxi);
+          double beta = 2/3. * theta1/theta2 * fbar2 * (K*theta1 + H*theta2) / s2;
+
+          for(int i=0; i<3; i++)
+            for(int j=0; j<3; j++)
+              (*Cep)[3*i+j] = A(i,j) - N[i]*N[j]/(1+beta);
+#endif
+        }
       
       // If requested, update state of material
       if( UpdateFlag==true )
@@ -456,8 +540,13 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  equivEPSplastic += sqrt(2./3.)*lambda*ComputeJ2(Xi);
 	}
 
-      return true;
     }
+
+  if( Ce )
+    delete Ce;
+
+  return true;
+
 }
 
 

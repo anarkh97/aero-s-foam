@@ -14,6 +14,8 @@
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Element.d/CompShell.d/Compo3NodeShell.h>
 #include <Element.d/CompShell.d/Compo4NodeShell.h>
+#include <Element.d/FelippaShell.d/FelippaShell.h>
+#include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Element.d/Truss.d/TwoNodeTruss.h>
 #include <Element.d/Truss.d/TwoNodeTrussF.h>
 #include <HelmAxi.d/HelmAxiQuad.h>
@@ -811,6 +813,11 @@ Compo3NodeShell::examine(int sub, MultiFront *mf)
   return examineTri3Shell(sub, mf, nn);
 }
 
+PrioInfo
+FelippaShell::examine(int sub, MultiFront *mf)
+{
+  return examineTri3Shell(sub, mf, nn);
+}
 
 PrioInfo
 Therm3NoShell::examine(int sub, MultiFront *mf)
@@ -871,6 +878,12 @@ FourNodeShell::examine(int sub, MultiFront *mf)
 
 PrioInfo
 Compo4NodeShell::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4Shell(sub, mf, nn);
+}
+
+PrioInfo
+FelippaShellX2::examine(int sub, MultiFront *mf)
 {
   return examineQuad4Shell(sub, mf, nn);
 }

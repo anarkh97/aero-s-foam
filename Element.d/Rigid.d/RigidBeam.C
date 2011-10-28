@@ -25,7 +25,8 @@ extern "C" {
 }
 
 RigidBeam::RigidBeam(int* _nn)
- : SuperElement(true)
+ : SuperElement(true),
+   elemframe(0)
 {
   nnodes = 2;
   nn = new int[nnodes];

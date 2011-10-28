@@ -104,7 +104,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
-    double mfttFactor = (domain->mftval) ? domain->mftval->getVal(time) : 1.0;
+    double loadFactor = (domain->mftval) ? lambda*domain->mftval->getVal(time) : lambda;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
       if(packedEset[iele]->getPressure() == 0) continue;
@@ -112,12 +112,18 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       // Compute (linear) element pressure force in the local coordinates
       elementForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      elementForce *= lambda*mfttFactor;
+      //elementForce *= loadFactor;
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(sinfo.newmarkBeta != 0.0)
-        corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
+      if(sinfo.newmarkBeta != 0.0) {
+        FullSquareMatrix elementLoadStiffnessMatrix(kel[iele].dim());
+        elementLoadStiffnessMatrix.zero();
+        corotators[iele]->getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
                                               elementForce.data());
+        for(int i=0; i<kel[iele].dim(); ++i)
+          for(int j=0; j<kel[iele].dim(); ++j)
+            kel[iele][i][j] += loadFactor*elementLoadStiffnessMatrix[i][j];
+      }
 
       // Determine the elemental force for the corrotated system
       corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
@@ -126,7 +132,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       for(int idof = 0; idof < kel[iele].dim(); ++idof) {
         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(dofNum >= 0)
-          residual[dofNum] += elementForce[idof];
+          residual[dofNum] += loadFactor*elementForce[idof];
       }
     }
   }

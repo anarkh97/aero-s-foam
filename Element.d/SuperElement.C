@@ -6,7 +6,7 @@
 SuperElement::SuperElement(bool _localFlag)
  : eset(0), dsa(0), superCorotator(0), nInternalNodes(0), css(0),
    subElems(0), nSubElems(0), subElemDofs(0), subElemNodes(0),
-   nnodes(0), ndofs(0), nn(0)
+   nnodes(0), ndofs(0), nn(0), sub_extf(0)
 { 
   localFlag = _localFlag;
 }
@@ -29,6 +29,10 @@ SuperElement::~SuperElement()
     delete [] subElemNodes;
   }
   if(nn) delete [] nn;
+  if(sub_extf) {
+    for(int i = 0; i < nSubElems; ++i) delete [] sub_extf[i];
+    delete [] sub_extf;
+  }
 }
 
 void
@@ -405,9 +409,15 @@ void
 SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
                                    GeomState *gs, int cflg)
 {
+  if(!sub_extf) { // save a copy of the external force for each sub-element
+    sub_extf = new double * [nSubElems];
+    for(int i=0; i<nSubElems; ++i) sub_extf[i] = new double[subElems[i]->numDofs()];
+  }
+
   elPressureForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    Vector subElementPressureForce(subElems[i]->numDofs());
+    Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
+    subElementPressureForce.zero();
     subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg);
     elPressureForce.add(subElementPressureForce, subElemDofs[i]);
   }
@@ -569,10 +579,19 @@ SuperElement::getMPCs()
 }
 
 void
-SuperElement::setGlNum(int gn)
+SuperElement::setGlNum(int gn, int sn)
 { 
   glNum = gn;
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(-1);
+  subNum = sn;
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setGlNum(glNum, i);
+}
+
+int
+SuperElement::numStates()
+{
+  int ns = 0;
+  for(int i = 0; i < nSubElems; ++i) ns += subElems[i]->numStates();
+  return ns;
 }
 
 void

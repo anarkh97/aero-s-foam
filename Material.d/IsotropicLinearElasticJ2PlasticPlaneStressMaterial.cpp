@@ -326,7 +326,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // looks like TOL should be at least an order of magnitude smaller than nltol
   double TOL = SigmaY*1e-8; // ORIG: SigmaY*1e-6
   // tolerance for checking consistency parameter
-  double TOL2 = std::numeric_limits<double>::epsilon(); // ORIG: 0
+  double TOL2 = 0; //std::numeric_limits<double>::epsilon(); // ORIG: 0
   
   // Resize outputs if required
   if( int(CauchyStress->size())<9 )

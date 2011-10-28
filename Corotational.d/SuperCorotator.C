@@ -12,6 +12,8 @@ SuperCorotator::SuperCorotator(SuperElement *_superElem)
 
 SuperCorotator::~SuperCorotator() 
 { 
+  for(int i = 0; i < nSubElems; ++i)
+    if(!dynamic_cast<Element*>(subElemCorotators[i])) delete subElemCorotators[i];
   delete [] subElemCorotators; 
   if(origK) delete origK;
   if(sub_vld) {
@@ -28,10 +30,9 @@ SuperCorotator::~SuperCorotator()
   }
 }
 
-
-void 
+void
 SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
-                                 FullSquareMatrix &elK, double *f, double dt, double t) 
+                                 FullSquareMatrix &elK, double *f, double dt, double t)
 {
   int i, j;
   elK.zero();
@@ -51,6 +52,28 @@ SuperCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   }
 }
 
+void 
+SuperCorotator::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                 FullSquareMatrix &elK, double *f, double dt, double t) 
+{
+  int i, j;
+  elK.zero();
+  for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    FullSquareMatrix subK(ndofs);
+    subK.zero();  // this is necessary because getStiffAndForce may not be implemented for all subelems
+    double *subf = new double[ndofs];
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    subElemCorotators[i]->getStiffAndForce(refState, geomState, cs, subK, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    elK.add(subK, subElemDofs);
+    for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
+    delete [] subf;
+  }
+}
+
 void
 SuperCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
                                     FullSquareMatrix &elK, double *f)
@@ -61,12 +84,13 @@ SuperCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
     int ndofs = superElem->getSubElemNumDofs(i);
     FullSquareMatrix subK(ndofs);
     subK.zero();
-    double *subf = new double[ndofs];
     int *subElemDofs = superElem->getSubElemDofs(i);
-    for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
+    //double *subf = new double[ndofs];
+    //for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
+    double *subf = superElem->getPreviouslyComputedSubExternalForce(i); 
     subElemCorotators[i]->getDExternalForceDu(geomState, cs, subK, subf);
     elK.add(subK, subElemDofs);
-    delete [] subf;
+    //delete [] subf;
   }
 }
 
@@ -103,11 +127,12 @@ SuperCorotator::getExternalForce(GeomState &geomState, CoordSet &cs,
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
     int *subElemDofs = superElem->getSubElemDofs(i);
-    double *subf = new double[ndofs];
-    for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
+    //double *subf = new double[ndofs];
+    //for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
+    double *subf = superElem->getPreviouslyComputedSubExternalForce(i);
     subElemCorotators[i]->getExternalForce(geomState, cs, subf);
     for(j=0; j<ndofs; ++j) fg[subElemDofs[j]] += subf[j];
-    delete [] subf;
+    //delete [] subf;
   }
 
   for(i=0; i<superElem->numDofs(); ++i) f[i] = fg[i];
@@ -245,3 +270,10 @@ SuperCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, doubl
   }
 }
 
+void
+SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0)
+{
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    subElemCorotators[i]->updateStates(refState, curState, C0);
+}

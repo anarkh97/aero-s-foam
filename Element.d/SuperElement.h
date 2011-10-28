@@ -12,6 +12,8 @@ class SuperElement : public Element
     DofSetArray *dsa;
     SuperCorotator *superCorotator;
     int nInternalNodes;
+    double **sub_extf;
+
   protected:
     CoordSet *css;
     Element **subElems;    
@@ -28,6 +30,8 @@ class SuperElement : public Element
     SuperElement(bool = false);
     virtual ~SuperElement();
 
+    double * getPreviouslyComputedSubExternalForce(int i) { return sub_extf[i]; }
+
     int getNumSubElems() { return nSubElems; }
     int getSubElemNumDofs(int i) { return subElems[i]->numDofs(); }
     int getSubElemNumNodes(int i) { return subElems[i]->numNodes(); }
@@ -38,7 +42,7 @@ class SuperElement : public Element
     double getPressure() { return subElems[0]->getPressure(); }
 
     void renum(int *table);
-    void setGlNum(int gn);
+    void setGlNum(int gn, int sn = 0);
 
     void setProp(StructProp *p, bool _myProp = false); 
     void setPreLoad(double load, int &flg);
@@ -101,6 +105,8 @@ class SuperElement : public Element
     int getNumMPCs();
     LMPCons** getMPCs();
     void makeAllDOFs();
+
+    int numStates();
 };
 
 #endif

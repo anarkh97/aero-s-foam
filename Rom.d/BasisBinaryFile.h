@@ -34,14 +34,9 @@ public:
 
   int stateCount() const { return binFile_.stateCount(); }
 
-  // NodeBufferType must implement double indexation ([i][j]) to yield a type convertible to (double &)
-  // First dimension is nodeCount
-  // Second dimension is 6 (#dofs per node)
-  // Note: (double *)[6] is a valid type
-  template <typename NodeBufferType>
-  void stateAdd(const NodeBufferType &data);
-  template <typename NodeBufferType>
-  void stateAdd(const NodeBufferType &data, double headValue);
+  // Node ordering determined by NodeDof6Buffer, file node ordering ignored
+  void stateAdd(const NodeDof6Buffer &data);
+  void stateAdd(const NodeDof6Buffer &data, double headValue);
   
   // Node indices: [0, nodeCount) 
   BasisBinaryOutputFile(const std::string &fileName, int nodeCount);
@@ -63,15 +58,9 @@ BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, NodeId
   binFile_(fileName, NODAL_DATA_FLAG, DESC, std::distance(first, last), DOFS_PER_NODE, 0, first, last, VERSION)
 {}
 
-template <typename NodeBufferType>
+inline
 void
-BasisBinaryOutputFile::stateAdd(const NodeBufferType &data, double headValue) {
-  binFile_.stateAdd(headValue, data.array());
-}
-
-template <typename NodeBufferType>
-void
-BasisBinaryOutputFile::stateAdd(const NodeBufferType &data) {
+BasisBinaryOutputFile::stateAdd(const NodeDof6Buffer &data) {
   stateAdd(data, static_cast<double>(stateCount() + 1));
 }
 
@@ -93,6 +82,7 @@ public:
   int currentStateIndex() const { return binFile_.stateRank(); }
   double currentStateHeaderValue() const { return currentStateHeaderValue_; }
   
+  // Node ordering determined by NodeDof6Buffer, file node ordering ignored
   const NodeDof6Buffer &currentStateBuffer(NodeDof6Buffer &target);
   // Must have called currentStateBuffer() at least once before calling currentStateIndexInc()
   // NOTE: This restriction could be lifted if necessary

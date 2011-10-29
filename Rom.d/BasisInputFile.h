@@ -3,11 +3,11 @@
 
 #include <string>
 #include <cstdio>
-
 #include <vector>
-#include <cassert>
 
 namespace Rom {
+
+class NodeDof6Buffer;
 
 class BasisInputFile {
 public:
@@ -24,8 +24,9 @@ public:
   // Iteration and retrieval
   int currentStateIndex() const { return currentStateIndex_; }
   double currentStateHeaderValue() const { return currentStateHeaderValue_; }
-  template <typename NodeDof6Type>
-  const NodeDof6Type &currentStateBuffer(NodeDof6Type &target) const;
+  // Node ordering determined by NodeDof6Buffer, file node ordering ignored
+  const NodeDof6Buffer &currentStateBuffer(NodeDof6Buffer &target) const;
+  
   void currentStateIndexInc(); // Must have called currentStateBuffer() at least once before calling currentStateIndexInc()
 
   bool validCurrentState() const { return currentStateIndex() < stateCount(); }
@@ -58,23 +59,6 @@ private:
   BasisInputFile(const BasisInputFile&);
   BasisInputFile& operator=(const BasisInputFile&);
 };
-
-template <typename NodeDof6Type>
-const NodeDof6Type &
-BasisInputFile::currentStateBuffer(NodeDof6Type &target) const {
-  positionAtStateStart();
-
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    const int info = std::fscanf(stream_, "%le %le %le %le %le %le",
-                                 &target[iNode][0], &target[iNode][1], &target[iNode][2],
-                                 &target[iNode][3], &target[iNode][4], &target[iNode][5]);
-    assert(info == 6);
-  }
-
-  currentStateRead_ = true;
-
-  return target;
-}
 
 } /* end namespace Rom */
 

@@ -26,7 +26,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     virtual void stateSnapshotAdd(const GeomState &);
     virtual void postProcess();
 
-    int nodeCount() const { return converter_.nodeCount(); }
+    int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
     int vectorSize() const { return converter_.vectorSize(); }
 
     explicit RawImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
@@ -79,9 +79,9 @@ private:
 SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
   converter_(*domain->getCDSA()),
-  snapBuffer_(nodeCount()),
+  snapBuffer_(dofSetNodeCount()),
   fileInfo_(),
-  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), nodeCount())
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), dofSetNodeCount())
 {}
 
 void
@@ -93,14 +93,14 @@ template <typename VecType>
 inline
 void
 SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const VecType &snap) {
-  converter_.nodeDof6(snap, snapBuffer_);
+  converter_.paddedNodeDof6(snap, snapBuffer_);
 }
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   const CoordSet &refCoords = domain_->getNodes();
 
-  for (int iNode = 0, iNodeEnd = nodeCount(); iNode != iNodeEnd; ++iNode) {
+  for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode != iNodeEnd; ++iNode) {
     double *nodeBuffer = snapBuffer_[iNode];
 
     const Node *refNode = refCoords[iNode];

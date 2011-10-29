@@ -83,7 +83,7 @@ DistrBasisOrthoDriver::solve() {
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-      converter.nodeDof6(vec, outputBuffer);
+      converter.paddedNodeDof6(vec, outputBuffer);
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }

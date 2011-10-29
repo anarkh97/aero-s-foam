@@ -76,7 +76,7 @@ void
 DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::snapshotAdd(const DistrVector &acc) {
   ++skipCounter_;
   if (skipCounter_ >= parent_->domain->solInfo().skipPodRom) {
-    converter_.nodeDof6(acc, buffer_);
+    converter_.paddedNodeDof6(acc, buffer_);
     outputFile_.stateAdd(buffer_);
     skipCounter_ = 0;
   }

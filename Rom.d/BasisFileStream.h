@@ -155,7 +155,7 @@ template <typename VectorBufferType>
 inline
 const NodeDof6Buffer &
 BasisOutputStream::convert(const VectorBufferType &source) {
-  return converter_.nodeDof6(source, buffer_);
+  return converter_.paddedNodeDof6(source, buffer_);
 }
 
 template <typename VectorBufferType>

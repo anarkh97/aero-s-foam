@@ -17,7 +17,7 @@ public:
   int vectorSize() const { return vectorSize_; }
 
   template <typename NodeDofs6Type, typename VecType>
-  const NodeDofs6Type &nodeDof6(const VecType &origin, NodeDofs6Type &target) const;
+  const NodeDofs6Type &paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const;
 
   template <typename NodeDofs6Type, typename VecType>
   const VecType &paddedVector(const NodeDofs6Type &origin, VecType &target) const;
@@ -46,7 +46,7 @@ private:
 
 template <typename NodeDofs6Type, typename VecType>
 const NodeDofs6Type &
-RestrictedVecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDofs6Type &target) const {
+RestrictedVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const {
   for (int iNode = 0; iNode < nodeCount(); ++iNode) {
     if (masterFlag[iNode]) {
       for (int iDof = 0; iDof < 6; ++iDof) {

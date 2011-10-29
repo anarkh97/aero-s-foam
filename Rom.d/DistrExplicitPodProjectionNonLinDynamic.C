@@ -130,7 +130,7 @@ DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::forceSnapshotAdd(const
   if (skipCounter_ >= parent_->domain->solInfo().skipPodRom) {
     assembledSnapshot_ = f;
     parent_->decDomain->getSolVecAssembler()->assemble(assembledSnapshot_);
-    converter_.nodeDof6(assembledSnapshot_, buffer_);
+    converter_.paddedNodeDof6(assembledSnapshot_, buffer_);
     outputFile_.stateAdd(buffer_);
     skipCounter_ = 0;
   }

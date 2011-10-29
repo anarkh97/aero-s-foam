@@ -93,7 +93,7 @@ template <typename VecType>
 inline
 void
 SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const VecType &snap) {
-  converter_.nodeDof6(snap, snapBuffer_);
+  converter_.paddedNodeDof6(snap, snapBuffer_);
 }
 
 void

@@ -1,5 +1,6 @@
 #include "BasisOutputFile.h"
 
+#include "NodeDof6Buffer.h"
 #include "SimpleBuffer.h"
 
 #include <string>
@@ -51,6 +52,22 @@ BasisOutputFile::~BasisOutputFile() {
   }
 
   std::fclose(stream_);
+}
+
+void
+BasisOutputFile::stateAdd(const NodeDof6Buffer &data, double headValue) {
+  assert(nodeCount() == data.size());
+
+  writeStateHeader(headValue);
+  
+  for (int iNode = 0; iNode < nodeCount(); iNode++)  {
+    std::fprintf(stream_, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                 width_, precision_, data[iNode][0], width_, precision_, data[iNode][1],
+                 width_, precision_, data[iNode][2], width_, precision_, data[iNode][3],
+                 width_, precision_, data[iNode][4], width_, precision_, data[iNode][5]);
+  }
+
+  stateCount_++;
 }
 
 void

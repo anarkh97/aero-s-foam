@@ -4,23 +4,16 @@
 
 namespace Rom {
 
-// Input Iterator
-
 BasisInputStream::BasisInputStream(const std::string &fileName, const VecNodeDof6Conversion &converter) :
   file_(fileName),
   isValid_(true),
   converter_(converter),
-  buffer_(file_.nodeCount())
-{
-  if (file_.nodeCount() != converter_.nodeCount()) {
-    throw std::invalid_argument("Incompatible node counts");
-  }
-}
+  buffer_(file_.nodeIdBegin(), file_.nodeIdEnd())
+{}
 
-// Output Iterator
 
 BasisOutputStream::BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter) :
-  file_(fileName, converter.nodeCount()),
+  file_(fileName, converter.dofSetNodeCount()), // Conservative, potentially overallocating
   converter_(converter),
   buffer_(file_.nodeCount())
 {}

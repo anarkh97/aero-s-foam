@@ -64,9 +64,9 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
             diff = float(basewords[j]) - float(compwords[j])
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1
-            if((0.5*(float(basewords[j]) + float(compwords[j])))!= 0.0):
-              if(MaxDiff/(0.5*(float(basewords[j]) + float(compwords[j])))> RelDiff):
-                RelDiff = MaxDiff/(0.5*(float(basewords[j]) + float(compwords[j])))
+            if((0.5*(float(basewords[j]) + float(compwords[j])))>= 1.0e-5):
+              if(diff/(0.5*(float(basewords[j]) + float(compwords[j])))> RelDiff):
+                RelDiff = diff/(0.5*(float(basewords[j]) + float(compwords[j])))
             if(math.fabs(diff) >= MaxDiff):
               MaxDiff = math.fabs(diff)
               MaxDiffLine = i

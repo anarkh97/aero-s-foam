@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """Tool designed to compare data files produced by regression testing and report discrepancies"""
 
-__author__ = "Mark A. Potts (mpotts@hpti.com)"
+__author__ = "Mark A. Potts (mpotts@drc.com)"
 __version__ = "$Revision: 0.1 $"
 __date__ = "2011/02/17"
 

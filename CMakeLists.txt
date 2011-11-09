@@ -54,9 +54,25 @@ IF(UNIX)
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
 
 # acme
-     SET(ACME_FOUND TRUE)
-     add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT)
-     SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+     IF(NOT MPI_FOUND)
+       SET(ACME_FOUND TRUE)
+       add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+       SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+     ELSE(NOT MPI_FOUND)
+      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
+              PATHS /usr/include /usr/local/include)
+      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
+                   PATHS /usr/lib /usr/local/lib)
+      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+        MESSAGE("-- A library with Zoltan API found.")
+        SET(ACME_FOUND TRUE)
+        add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+        SET(EXTRALIBRARIES ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
+        SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement" ${ZOLTAN_INCLUDE_PATH}
+            ${ZOLTAN_INCLUDE_PATH}/../zz ${ZOLTAN_INCLUDE_PATH}/../lb ${ZOLTAN_INCLUDE_PATH}/../Utilities/shared
+            ${ZOLTAN_INCLUDE_PATH}/../Utilities/Timer ${ZOLTAN_INCLUDE_PATH}/../par ${ZOLTAN_INCLUDE_PATH}/../params)
+      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+     ENDIF(NOT MPI_FOUND)
 #    IF(NOT ACME_VERSION)
 #      #MESSAGE("ACME_VERSION is not defined")
 #      SET(ACME_VERSION "2_5")

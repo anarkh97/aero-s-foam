@@ -499,7 +499,7 @@ void ContactSearchData::SetAll()
 void ContactSearchData::Display(ContactParOStream& postream)
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
-  char* type[8]  = { "NO_INTERACTION",
+  const char* type[8]  = { "NO_INTERACTION",
 		     "SLIDING_INTERACTION",
 		     "TIED_INTERACTION",
                      "COVERAGE_INTERACTION",
@@ -537,7 +537,7 @@ void ContactSearchData::Display(ContactParOStream& postream)
 
 void ContactSearchData::Display0()
 {
-  char* type[8]  = { "NO_INTERACTION",
+  const char* type[8]  = { "NO_INTERACTION",
 		     "SLIDING_INTERACTION",
 		     "TIED_INTERACTION",
                      "COVERAGE_INTERACTION",

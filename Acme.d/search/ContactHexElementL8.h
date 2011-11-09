@@ -21,7 +21,7 @@ class ContactHexElemL8 : public ContactElem {
   void BuildTopology(int, int, int, ContactFixedSizeAllocator*);
   void DeleteTopology(ContactFixedSizeAllocator*);
   void UpdateTopology(ContactFace*, VariableHandle, VariableHandle,
-                      VariableHandle, Real);
+                      VariableHandle, Real, bool use_node_normals=false);
   int Nodes_Per_Element() { return 8; };
   int Edges_Per_Element() { return 12; };
   int Faces_Per_Element() { return 6; };

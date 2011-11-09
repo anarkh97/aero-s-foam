@@ -1916,7 +1916,7 @@ void ContactTopology::Display(ContactParOStream& postream)
     ContactNode* node = Nodes[i];
     postream << "    Node " << node->Global_ID() << " has connectivity ";
     for( int k=0 ; k<node->Number_Face_Connections() ; ++k ) {
-      postream << node->Face(k)->Global_ID() << " ";
+      postream << node->GetFace(k)->Global_ID() << " ";
     }
     postream << "\n";
   }

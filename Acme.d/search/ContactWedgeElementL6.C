@@ -163,18 +163,23 @@ void ContactWedgeElemL6::UpdateTopology(ContactFace* face,
 					VariableHandle POSITION,
 					VariableHandle FACE_NORMAL,
 					VariableHandle NODE_NORMAL,
-					Real tol)
+					Real tol, bool use_node_normals)
 {
   int i;
   int num_nodes = face->Nodes_Per_Face();
   for( i=0 ; i<num_nodes ; ++i ){
+    Real* projection;
     ContactNode* face_node    = face->Node(i);
     ContactNode* elem_node1   = Node(i);
     ContactNode* elem_node2   = Node(i+num_nodes);
-    Real* projection          = face_node->Variable(NODE_NORMAL);
     Real* face_node_position  = face_node->Variable(POSITION);
     Real* elem_node_position1 = elem_node1->Variable(POSITION);
     Real* elem_node_position2 = elem_node2->Variable(POSITION);
+    if (use_node_normals) {
+      projection = face_node->Variable(NODE_NORMAL);
+    } else {
+      projection = face->Variable(FACE_NORMAL);
+    }
     for( int k=0 ; k<3 ; ++k ){
       elem_node_position1[k] = face_node_position[k]-projection[k]*tol;
       elem_node_position2[k] = face_node_position[k]+projection[k]*tol;
@@ -343,34 +348,40 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
   }
   switch (i) {
   case 0:
-    local_coords[0] = -1.0;
-    local_coords[1] = -1.0;
-    local_coords[2] = -1.0;
+    local_coords[0] =  1.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  0.0;
+    local_coords[3] = -1.0;
     break;
   case 1:
-    local_coords[0] =  1.0;
-    local_coords[1] = -1.0;
-    local_coords[2] = -1.0;
+    local_coords[0] =  0.0;
+    local_coords[1] =  1.0;
+    local_coords[2] =  0.0;
+    local_coords[3] = -1.0;
     break;
   case 2:
-    local_coords[0] =  1.0;
-    local_coords[1] =  1.0;
-    local_coords[2] = -1.0;
+    local_coords[0] =  0.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  1.0;
+    local_coords[3] = -1.0;
     break;
   case 3:
-    local_coords[0] = -1.0;
-    local_coords[1] =  1.0;
-    local_coords[2] = -1.0;
+    local_coords[0] =  1.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  0.0;
+    local_coords[3] =  1.0;
     break;
   case 4:
-    local_coords[0] = -1.0;
-    local_coords[1] = -1.0;
-    local_coords[2] =  1.0;
+    local_coords[0] =  0.0;
+    local_coords[1] =  1.0;
+    local_coords[2] =  0.0;
+    local_coords[3] =  1.0;
     break;
   case 5:
-    local_coords[0] =  1.0;
-    local_coords[1] = -1.0;
+    local_coords[0] =  0.0;
+    local_coords[1] =  0.0;
     local_coords[2] =  1.0;
+    local_coords[3] =  1.0;
     break;
   }
   if (i<nnodes) return;
@@ -405,10 +416,10 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
       }
     }
     
-    Real detJ  =  1.0/(J[0][0]*J[1][1]*J[2][2]-J[1][2]*J[2][1]-
-                       J[0][1]*J[1][0]*J[2][2]-J[2][0]*J[1][2]+
-                       J[0][2]*J[1][0]*J[2][1]-J[2][0]*J[1][1]);
-                  
+    Real detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+                       J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
+                       J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
+
     invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
     invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
     invJ[0][2] =  (J[1][2]*J[0][1]-J[0][2]*J[1][1])*detJ;

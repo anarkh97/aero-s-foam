@@ -156,18 +156,23 @@ void ContactHexElemL8::UpdateTopology(ContactFace* face,
 				      VariableHandle POSITION,
 				      VariableHandle FACE_NORMAL,
 				      VariableHandle NODE_NORMAL,
-				      Real tol)
+				      Real tol, bool use_node_normals)
 {
   int i;
   int num_nodes = face->Nodes_Per_Face();
   for( i=0 ; i<num_nodes ; ++i ){
+    Real* projection;
     ContactNode* face_node    = face->Node(i);
     ContactNode* elem_node1   = Node(i);
     ContactNode* elem_node2   = Node(i+num_nodes);
-    Real* projection          = face_node->Variable(NODE_NORMAL);
     Real* face_node_position  = face_node->Variable(POSITION);
     Real* elem_node_position1 = elem_node1->Variable(POSITION);
     Real* elem_node_position2 = elem_node2->Variable(POSITION);
+    if (use_node_normals) {
+      projection = face_node->Variable(NODE_NORMAL);
+    } else {
+      projection = face->Variable(FACE_NORMAL);
+    }
     for( int k=0 ; k<3 ; ++k ){
       elem_node_position1[k] = face_node_position[k]-projection[k]*tol;
       elem_node_position2[k] = face_node_position[k]+projection[k]*tol;

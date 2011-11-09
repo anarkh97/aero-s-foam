@@ -3584,7 +3584,7 @@ void ContactTDEnforcement::Display_Enforcement_Data()
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   ContactParOStream& postream = ParOStream();
 
-  char* model[15] = { "TD_FRICTIONLESS",    
+  const char* model[15] = { "TD_FRICTIONLESS",    
                       "TD_CONSTANT_FRICTION", 
                       "TD_TIED",              
                       "TD_SPOT_WELD",         
@@ -3640,7 +3640,7 @@ void ContactTDEnforcement::Display_Enforcement_Data()
 
 void ContactTDEnforcement::Display0_Enforcement_Data()
 {
-  char* model[15] = { "TD_FRICTIONLESS",    
+  const char* model[15] = { "TD_FRICTIONLESS",    
                       "TD_CONSTANT_FRICTION", 
                       "TD_TIED",              
                       "TD_SPOT_WELD",         

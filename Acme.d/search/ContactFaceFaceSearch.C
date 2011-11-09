@@ -13,6 +13,7 @@
 #include "ContactFaceFaceInteraction.h"
 #include <new>
 #include <cmath>
+#include <limits>
 
 typedef struct PointStruct {
   Real x, y, z;
@@ -280,61 +281,40 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     //=========================================================
     Real local_coords[4];
     Real global_coords[3];
-    if (in_cnt!=element->Faces_Per_Element()*face->Nodes_Per_Face()) {
-      q     = &poly1;
-      q->np = 0;
+
+    q     = &poly1;
+    q->np = 0;
  
-      //=======================================================
-      // Find all the vertices of the face that are completely
-      // inside the element and add them to the poly
-      //=======================================================
-      for (i=0; i<face->Nodes_Per_Face(); ++i) {
-        Real* position   = face->Node(i)->Variable(POSITION);
-        global_coords[0] = position[0];
-        global_coords[1] = position[1];
-        global_coords[2] = position[2];
-        element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-        if (element->Is_Local_Coordinates_Inside_Element(local_coords)) {
-          q->p[q->np].xm = local_coords[0];
-          q->p[q->np].ym = local_coords[1];
-          q->p[q->np].zm = local_coords[2];
-          face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-          q->p[q->np].x = local_coords[0];
-          q->p[q->np].y = local_coords[1];
-          q->p[q->np].z = 1.0-local_coords[0]-local_coords[1];
-          q->np++;
-        }
+    //=======================================================
+    // Find all the vertices of the face that are completely
+    // inside the element and add them to the poly
+    //=======================================================
+    for (i=0; i<face->Nodes_Per_Face(); ++i) {
+      Real* position   = face->Node(i)->Variable(POSITION);
+      global_coords[0] = position[0];
+      global_coords[1] = position[1];
+      global_coords[2] = position[2];
+      element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+      if (element->Is_Local_Coordinates_Inside_Element(local_coords)) {
+        q->p[q->np].xm = local_coords[0];
+        q->p[q->np].ym = local_coords[1];
+        q->p[q->np].zm = local_coords[2];
+        face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+        q->p[q->np].x = local_coords[0];
+        q->p[q->np].y = local_coords[1];
+        q->p[q->np].z = 1.0-local_coords[0]-local_coords[1];
+        q->np++;
       }
- 
-      //========================================
-      // Find all the face-edge/element-face
-      // intersections and add them to the poly
-      //========================================
-      for (i=0; i<element->Faces_Per_Element(); ++i) {
-        ContactFace* Face = element->Face(i);
-        for (j=0; j<face->Edges_Per_Face(); ++j) {
-          ContactEdge* Edge = face->Edge(j);
-          if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
-            element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-            q->p[q->np].xm = local_coords[0];
-            q->p[q->np].ym = local_coords[1];
-            q->p[q->np].zm = local_coords[2];
-            face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-            q->p[q->np].x = local_coords[0];
-            q->p[q->np].y = local_coords[1];
-            q->p[q->np].z = 1.0-local_coords[0]-local_coords[1];
-            q->np++;
-          }
-        }
-      }
- 
-      //========================================
-      // Find all the element-edge/face
-      // intersections and add them to the poly
-      //========================================
-      ContactFace* Face = face;
-      for (i=0; i<element->Edges_Per_Element(); ++i) {
-        ContactEdge* Edge = element->Edge(i);
+    }
+
+    //========================================
+    // Find all the face-edge/element-face
+    // intersections and add them to the poly
+    //========================================
+    for (i=0; i<element->Faces_Per_Element(); ++i) {
+      ContactFace* Face = element->Face(i);
+      for (j=0; j<face->Edges_Per_Face(); ++j) {
+        ContactEdge* Edge = face->Edge(j);
         if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
           element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
           q->p[q->np].xm = local_coords[0];
@@ -347,7 +327,31 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
           q->np++;
         }
       }
+    }
  
+    //========================================
+    // Find all the element-edge/face
+    // intersections and add them to the poly
+    //========================================
+    ContactFace* Face = face;
+    for (i=0; i<element->Edges_Per_Element(); ++i) {
+      ContactEdge* Edge = element->Edge(i);
+      if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
+        element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+        q->p[q->np].xm = local_coords[0];
+        q->p[q->np].ym = local_coords[1];
+        q->p[q->np].zm = local_coords[2];
+        face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+        q->p[q->np].x = local_coords[0];
+        q->p[q->np].y = local_coords[1];
+        q->p[q->np].z = 1.0-local_coords[0]-local_coords[1];
+        q->np++;
+      }
+    }
+ 
+    if(q->np==0) p->np = 0;
+    else {
+
       //============================================
       // Order the points of the poly in ccw order
       // based on their positions on the slave face
@@ -533,50 +537,53 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
         zbar      += z1*area3 + z2*area3 + zc*area3;
         tarea     += area;
       }
-      xbar /= tarea;
-      ybar /= tarea;
-      zbar /= tarea;
- 
-      num_area = p->np;
-      for (i=0; i<p->np; ++i) {
-        area_s[i*2+0] = p->p[i].x;
-        area_s[i*2+1] = p->p[i].y;
-        area_m[i*2+0] = p->p[i].xm;
-        area_m[i*2+1] = p->p[i].ym;
-      }
- 
-      global_coords[0] = xbar;
-      global_coords[1] = ybar;
-      global_coords[2] = zbar;
-      face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-      area_s[i*2+0] = local_coords[0];
-      area_s[i*2+1] = local_coords[1];
-      element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
-      area_m[i*2+0] = local_coords[0];
-      area_m[i*2+1] = local_coords[1];
- 
-      for (i=0; i<num_area; ++i) {
-        int  i1 = i;
-        int  i2 = (i1+1)%num_area;
-        Real local_edge_coords[4];
-        local_edge_coords[0] = area_s[i1*2];
-        local_edge_coords[1] = area_s[i1*2+1];
-        local_edge_coords[2] = area_s[i2*2];
-        local_edge_coords[3] = area_s[i2*2+1];
-        ifaceedge[i]         = face->Get_Edge_Number(local_edge_coords)+1;
-        local_edge_coords[0] = area_m[i1*2];
-        local_edge_coords[1] = area_m[i1*2+1];
-        local_edge_coords[2] = area_m[i2*2];
-        local_edge_coords[3] = area_m[i2*2+1];
-        iedge_m[i]           = master_face->Get_Edge_Number(local_edge_coords)+1;
-      }
-      ContactFaceFaceInteraction* cffi =
-        ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
-            allocators[ALLOC_ContactFaceFaceInteraction],
-            slave_face, master_face, num_area,
-            ifaceedge, iedge_m, area_s, area_m );
-      slave_face->Store_FaceFace_Interaction(cffi);
-    }
 
+      if(tarea > std::numeric_limits<double>::epsilon()) {//HB: avoid ctc polygon of null (small) area
+
+        xbar /= tarea;
+        ybar /= tarea;
+        zbar /= tarea;
+ 
+        num_area = p->np;
+        for (i=0; i<p->np; ++i) {
+          area_s[i*2+0] = p->p[i].x;
+          area_s[i*2+1] = p->p[i].y;
+          area_m[i*2+0] = p->p[i].xm;
+          area_m[i*2+1] = p->p[i].ym;
+        }
+ 
+        global_coords[0] = xbar;
+        global_coords[1] = ybar;
+        global_coords[2] = zbar;
+        face->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+        area_s[i*2+0] = local_coords[0];
+        area_s[i*2+1] = local_coords[1];
+        element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
+        area_m[i*2+0] = local_coords[0];
+        area_m[i*2+1] = local_coords[1];
+ 
+        for (i=0; i<num_area; ++i) {
+          int  i1 = i;
+          int  i2 = (i1+1)%num_area;
+          Real local_edge_coords[4];
+          local_edge_coords[0] = area_s[i1*2];
+          local_edge_coords[1] = area_s[i1*2+1];
+          local_edge_coords[2] = area_s[i2*2];
+          local_edge_coords[3] = area_s[i2*2+1];
+          ifaceedge[i]         = face->Get_Edge_Number(local_edge_coords)+1;
+          local_edge_coords[0] = area_m[i1*2];
+          local_edge_coords[1] = area_m[i1*2+1];
+          local_edge_coords[2] = area_m[i2*2];
+          local_edge_coords[3] = area_m[i2*2+1];
+          iedge_m[i]           = master_face->Get_Edge_Number(local_edge_coords)+1;
+        }
+        ContactFaceFaceInteraction* cffi =
+          ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+              allocators[ALLOC_ContactFaceFaceInteraction],
+              slave_face, master_face, num_area,
+              ifaceedge, iedge_m, area_s, area_m );
+        slave_face->Store_FaceFace_Interaction(cffi);
+      }
+    }
   }
 }

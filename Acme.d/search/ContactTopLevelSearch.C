@@ -830,11 +830,11 @@ ContactSearch::Print_Search_Summary()
     if (search_data->Have_Face_Face_Interactions()      ) do_face_face_search = 1;
     if (search_data->Have_Face_Coverage_Interactions()  ) do_coverage_search  = 1;
     if (search_data->Have_Element_Element_Interactions()) do_elem_elem_search = 1;
-    char* offon[2]  = { "off", "on" };
-    char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
-    char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
-    char* cull[2]   = { "NONE", "SLAVE" };
-    char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
+    const char* offon[2]  = { "off", "on" };
+    const char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
+    const char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
+    const char* cull[2]   = { "NONE", "SLAVE" };
+    const char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
     std::cout << "ACME Options ----------------------------------------\n";
     
     std::cout << "  Use Secondary             = " << offon[!no_secondary] << "\n";
@@ -886,11 +886,11 @@ ContactSearch::Print_Search_Header(SearchType search_type, Real dt, Real dt_old,
 {
   #if CONTACT_DEBUG_PRINT_LEVEL>=2
   if (step_number==0) {
-    char* offon[2]  = { "off", "on" };
-    char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
-    char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
-    char* cull[2]   = { "NONE", "SLAVE" };
-    char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
+    const char* offon[2]  = { "off", "on" };
+    const char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
+    const char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
+    const char* cull[2]   = { "NONE", "SLAVE" };
+    const char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
     postream << "ACME Options/Data ----------------------------------------\n";
     
     postream << "  No Secondary              = " << offon[no_secondary] << "\n";
@@ -961,11 +961,11 @@ ContactSearch::Print_Search_Header(SearchType search_type, Real dt, Real dt_old,
   #ifdef CONTACT_HEARTBEAT 
   if (contact_processor_number(SearchComm)==0) {
     if (step_number==0) {
-      char* offon[2]  = { "off", "on" };
-      char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
-      char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
-      char* cull[2]   = { "NONE", "SLAVE" };
-      char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
+      const char* offon[2]  = { "off", "on" };
+      const char* sm_res[2] = { "NODE_BASED", "EDGE_BASED" };
+      const char* pf_alg[3] = { "NONE", "FACE_BASED", "EDGE_BASED" };
+      const char* cull[2]   = { "NONE", "SLAVE" };
+      const char* track[3]  = { "NONE", "LOCAL", "GLOBAL" };
       std::cout << "ACME Options/Data ----------------------------------------\n";
       
       std::cout << "  No Secondary              = " << offon[no_secondary] << "\n";

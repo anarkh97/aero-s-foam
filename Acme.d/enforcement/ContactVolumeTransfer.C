@@ -11,7 +11,7 @@
 #include "Contact_Defines.h"
 #include "ContactBoundingBox.h"
 #include "ContactScratchManager.h"
-#include "string.h"
+#include "cstring"
 #ifdef CONTACT_DEBUG_NODE
 #include "ContactParOStream.h"
 #endif

@@ -5,7 +5,7 @@
 #include "ContactTopology.h"
 #include "ContactNodeFaceInteraction.h"
 #include "ContactShellHandler.h"
-#include "string.h"
+#include "cstring"
 
 #include <algorithm>
 #include <cstdio>

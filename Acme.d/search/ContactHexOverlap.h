@@ -5,7 +5,7 @@
 #include <iostream>
 
 
-#include <math.h>
+#include <cmath>
 typedef double Real;
 #define SMALL_NUMBER 1.0e-04
 #define MAX_POINTS 100

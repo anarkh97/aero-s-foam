@@ -10,7 +10,7 @@
 #include "ContactShellNode.h"
 #include "ContactNodeFaceInteraction.h"
 #include "ContactNodeSurfaceInteraction.h"
-#include "string.h"
+#include "cstring"
 #include <cmath>
 #include <cstdio>
 #include <unistd.h>

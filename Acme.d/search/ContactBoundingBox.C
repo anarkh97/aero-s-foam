@@ -6,7 +6,7 @@
 #include "CString.h"
 #include "contact_sorting.h"
 #include <iostream>
-#include "math.h"
+#include "cmath"
 #include "ContactParOStream.h"
 
 using namespace std;

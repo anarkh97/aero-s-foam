@@ -26,7 +26,7 @@
 #include "ContactTDTied.h"
 #include "ContactTDFrictionless.h"
 #include "ContactHexOverlap.h"
-#include "string.h"
+#include "cstring"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>

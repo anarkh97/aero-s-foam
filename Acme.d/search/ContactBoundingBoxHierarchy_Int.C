@@ -5,7 +5,7 @@
 #include "ContactTimer.h"
 #include "CString.h"
 #include "contact_sorting.h"
-#include "math.h"
+#include "cmath"
 
 using namespace std;
 

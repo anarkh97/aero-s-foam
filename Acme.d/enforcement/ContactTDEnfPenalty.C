@@ -13,7 +13,7 @@
 #include "ContactNodeSurfaceInteraction.h"
 #include "ContactNodeEntityInteraction.h"
 #include "ContactScratchManager.h"
-#include "string.h"
+#include "cstring"
 #include <cmath>
 #include <cstdio>
 #include <unistd.h>

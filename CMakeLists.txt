@@ -54,45 +54,48 @@ IF(UNIX)
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
 
 # acme
-    IF(NOT ACME_VERSION)
-      #MESSAGE("ACME_VERSION is not defined")
-      SET(ACME_VERSION "2_5")
-    ENDIF(NOT ACME_VERSION)
-    FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
-              PATHS /usr/include /usr/local/include)
-    FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
-              PATHS /usr/include /usr/local/include)
-    #FIND_PATH(ACME_driver_INCLUDE_PATH params.h
-    #          PATHS /usr/include /usr/local/include)
-    IF(NOT MPI_FOUND)
-      MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
-      MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
-                   PATHS /usr/lib /usr/local/lib)
-      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-        MESSAGE("-- A library with ACME API found.")
-        SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION} -DCONTACT_NO_MPI)
-        SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
-      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-    ELSE(NOT MPI_FOUND)
-      MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
-      MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
-                   PATHS /usr/lib /usr/local/lib)
-      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
-              PATHS /usr/include /usr/local/include)
-      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
-                   PATHS /usr/lib /usr/local/lib)
-      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-        MESSAGE("-- A library with ACME API found.")
-        SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION})
-        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
-      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-    ENDIF(NOT MPI_FOUND)
+     SET(ACME_FOUND TRUE)
+     add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT)
+     SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+#    IF(NOT ACME_VERSION)
+#      #MESSAGE("ACME_VERSION is not defined")
+#      SET(ACME_VERSION "2_5")
+#    ENDIF(NOT ACME_VERSION)
+#    FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
+#              PATHS /usr/include /usr/local/include)
+#    FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
+#              PATHS /usr/include /usr/local/include)
+#    #FIND_PATH(ACME_driver_INCLUDE_PATH params.h
+#    #          PATHS /usr/include /usr/local/include)
+#    IF(NOT MPI_FOUND)
+#      MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
+#      MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
+#      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
+#                   PATHS /usr/lib /usr/local/lib)
+#      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
+#        MESSAGE("-- A library with ACME API found.")
+#        SET(ACME_FOUND TRUE)
+#        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION} -DCONTACT_NO_MPI)
+#        SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
+#        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
+#      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
+#    ELSE(NOT MPI_FOUND)
+#      MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
+#      MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
+#      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
+#                   PATHS /usr/lib /usr/local/lib)
+#      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
+#              PATHS /usr/include /usr/local/include)
+#      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
+#                   PATHS /usr/lib /usr/local/lib)
+#      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+#        MESSAGE("-- A library with ACME API found.")
+#        SET(ACME_FOUND TRUE)
+#        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION})
+#        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
+#        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
+#      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+#    ENDIF(NOT MPI_FOUND)
 
 # arpack
    IF(NOT WITH_ARPACK EQUAL 0)
@@ -318,10 +321,11 @@ add_subdirectory(Hetero.d)
 add_subdirectory(Material.d)
 add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
+add_subdirectory(Acme.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt Acme)
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)

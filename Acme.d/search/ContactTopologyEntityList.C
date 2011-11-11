@@ -56,15 +56,15 @@ ContactTopologyEntityList::BuildList( ContactNodeBlock** blocks, int num_blocks,
     block_offset[i] = cnt;
     cnt += blocks[i]->Number_of_Nodes();
   }
-  entity_list = new ContactTopologyEntity*[cnt];
+  entity_list = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     cnt = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* node_list = blocks[i]->NodeList();
     node_list->IteratorStart();
-    while (ContactTopologyEntity* entity=node_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=node_list->IteratorForward()) {
       list[cnt] = entity;
       ++cnt;
     }
@@ -94,15 +94,15 @@ ContactTopologyEntityList::BuildList( ContactEdgeBlock** blocks, int num_blocks,
     block_offset[i] = cnt;
     cnt += blocks[i]->Number_of_Edges();
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     cnt  = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* edge_list = blocks[i]->EdgeList();
     edge_list->IteratorStart();
-    while (ContactTopologyEntity* entity=edge_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=edge_list->IteratorForward()) {
       list[cnt] = entity;
       ++cnt;
     }
@@ -132,15 +132,15 @@ ContactTopologyEntityList::BuildList( ContactFaceBlock** blocks, int num_blocks,
     block_offset[i] = cnt;
     cnt += blocks[i]->Number_of_Faces();
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     cnt  = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* face_list = blocks[i]->FaceList();
     face_list->IteratorStart();
-    while (ContactTopologyEntity* entity=face_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=face_list->IteratorForward()) {
       list[cnt] = entity;
       ++cnt;
     }
@@ -170,15 +170,15 @@ ContactTopologyEntityList::BuildList( ContactElementBlock** blocks, int num_bloc
     block_offset[i] = cnt;
     cnt += blocks[i]->Number_of_Elements();
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     cnt  = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* elem_list = blocks[i]->ElemList();
     elem_list->IteratorStart();
-    while (ContactTopologyEntity* entity=elem_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=elem_list->IteratorForward()) {
       list[cnt] = entity;
       ++cnt;
     }
@@ -213,22 +213,22 @@ ContactTopologyEntityList::BuildList( ContactNodeBlock** blocks1,
                       blocks2[i]->Number_of_Nodes();
     cnt            += block_cnt[i];
   }
-  entity_list = new ContactTopologyEntity*[cnt];
+  entity_list = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     int k  = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* node_list = blocks1[i]->NodeList();
     node_list->IteratorStart();
-    while (ContactTopologyEntity* entity=node_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=node_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
     }
     node_list = blocks2[i]->NodeList();
     node_list->IteratorStart();
-    while (ContactTopologyEntity* entity=node_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=node_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
@@ -264,22 +264,22 @@ ContactTopologyEntityList::BuildList( ContactEdgeBlock** blocks1,
                       blocks2[i]->Number_of_Edges();
     cnt            += block_cnt[i];
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     int k = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* edge_list = blocks1[i]->EdgeList();
     edge_list->IteratorStart();
-    while (ContactTopologyEntity* entity=edge_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=edge_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
     }
     edge_list = blocks2[i]->EdgeList();
     edge_list->IteratorStart();
-    while (ContactTopologyEntity* entity=edge_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=edge_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
@@ -315,22 +315,22 @@ ContactTopologyEntityList::BuildList( ContactFaceBlock** blocks1,
                       blocks2[i]->Number_of_Faces();
     cnt            += block_cnt[i];
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     int k = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* face_list = blocks1[i]->FaceList();
     face_list->IteratorStart();
-    while (ContactTopologyEntity* entity=face_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=face_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
     }
     face_list = blocks2[i]->FaceList();
     face_list->IteratorStart();
-    while (ContactTopologyEntity* entity=face_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=face_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
@@ -367,22 +367,22 @@ ContactTopologyEntityList::BuildList( ContactElementBlock** blocks1,
                       blocks2[i]->Number_of_Elements();
     cnt            += block_cnt[i];
   }
-  entity_list  = new ContactTopologyEntity*[cnt];
+  entity_list  = new ContactTopologyEntity<Real>*[cnt];
   
   num_entities = 0;
   for (i=0; i<num_blocks; ++i) {
     int k = 0;
-    ContactTopologyEntity** list = &entity_list[num_entities];
+    ContactTopologyEntity<Real>** list = &entity_list[num_entities];
     ContactBlockEntityList* elem_list = blocks1[i]->ElemList();
     elem_list->IteratorStart();
-    while (ContactTopologyEntity* entity=elem_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=elem_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
     }
     elem_list = blocks2[i]->ElemList();
     elem_list->IteratorStart();
-    while (ContactTopologyEntity* entity=elem_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=elem_list->IteratorForward()) {
       PRECONDITION(k<cnt);
       list[k] = entity;
       ++k;
@@ -416,11 +416,11 @@ ContactTopologyEntityList::SortByNodeGID( )
     int n = 0;
     int cnt=1;
     int old_block = entity_list[0]->BlockID();
-    ContactTopologyEntity** list = &entity_list[0];
+    ContactTopologyEntity<Real>** list = &entity_list[0];
     for (int i=1; i<num_entities; ++i) {
       int new_block = entity_list[i]->BlockID();
       if (new_block != old_block || i==num_entities-1) {
-        ContactTopology::SortEntityList1(cnt, (ContactEdge**)list);
+        ContactTopology::SortEntityList1(cnt, (ContactEdge<Real>**)list);
         for (int j=0; j<cnt; ++j) {
           list[j]->ProcArrayIndex(n++);
         }

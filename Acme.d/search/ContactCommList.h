@@ -19,7 +19,7 @@ class ContactCommList {
   ContactCommList(const int Num_Comm_Partners,
                   const int* Num_to_Proc,
                   const int* Export_Proc_IDs,
-                  ContactTopologyEntity** Entity_List);
+                  ContactTopologyEntity<Real>** Entity_List);
   ContactCommList(const int  Num_Comm_Partners,
 	       	  const int* Num_to_Proc,
 		  const int* Comm_Proc_IDs);
@@ -79,7 +79,7 @@ class ContactCommList {
   int* comm_proc_ids;
   int* num_to_proc;
   int* offset;
-  ContactTopologyEntity** entity_list;
+  ContactTopologyEntity<Real>** entity_list;
   int* entity_index_list;
 };
 

@@ -200,8 +200,8 @@ ContactMPCs::Compute_MPCs( )
     for( ContactNodeFaceInteraction *cnfi = node_entity_list.Node_Face_Iterator_Start();
          cnfi != NULL;
          cnfi = node_entity_list.Node_Face_Iterator_Next()) {
-    ContactNode* sn_node = cnfi->Node();
-    ContactFace* ms_face = cnfi->Face();
+    ContactNode<Real>* sn_node = cnfi->Node();
+    ContactFace<Real>* ms_face = cnfi->Face();
     int sn_index = sn_node->ProcArrayIndex();
     Real shape_functions[MAX_NODES_PER_FACE];
     Real* coords = cnfi->Vector_Var(ContactNodeFaceInteraction::COORDINATES);
@@ -218,7 +218,7 @@ ContactMPCs::Compute_MPCs( )
 	int num_face_nodes = cnfi->Face()->Nodes_Per_Face();
 	mpc->num_face_nodes = num_face_nodes;
 	for( int k=0 ; k<num_face_nodes ; ++k){
-	  ContactNode* face_node = cnfi->Face()->Node(k);
+	  ContactNode<Real>* face_node = cnfi->Face()->Node(k);
 	  mpc->face_node_proc_id[k] = face_node->Global_ID().HiInt();
 	  mpc->face_node_local_id[k] = face_node->Global_ID().LoInt();
 	  mpc->face_node_coeff[k] = -shape_functions[k];
@@ -409,7 +409,7 @@ void ContactMPCs::Communicate_MPCs( )
   int* isb = (int*) send_buf;
   for( i=0 ; i<Node_AsymComm_Plan.Num_Export_Comm_Partners() ; ++i){
     int num_export_to_proc = Node_AsymComm_Plan.Num_Export_to_Proc( i );
-    ContactTopologyEntity** export_entity_list = 
+    ContactTopologyEntity<Real>** export_entity_list = 
       Node_AsymComm_Plan.Export_Entity_List(i);
     for( j=0 ; j<num_export_to_proc ; ++j){
       int node_index = export_entity_list[j]->ProcArrayIndex();
@@ -432,7 +432,7 @@ void ContactMPCs::Communicate_MPCs( )
   int num_export_entities = 0;
   for( i=0 ; i<Node_AsymComm_Plan.Num_Export_Comm_Partners() ; ++i){
     int num_export_to_proc = Node_AsymComm_Plan.Num_Export_to_Proc(i);
-    ContactTopologyEntity** export_entity_list = 
+    ContactTopologyEntity<Real>** export_entity_list = 
       Node_AsymComm_Plan.Export_Entity_List(i);
     int num_mpcs = 0;
     for( j=0 ; j<num_export_to_proc ; ++j){
@@ -448,11 +448,11 @@ void ContactMPCs::Communicate_MPCs( )
   int* num_export_to_proc = new int[num_export_partners];
   int eoffset = 0;
   int ioffset = 0;
-  ContactTopologyEntity** export_entities = new ContactTopologyEntity*[num_export_entities];
+  ContactTopologyEntity<Real>** export_entities = new ContactTopologyEntity<Real>*[num_export_entities];
   for( i=0 ; i<Node_AsymComm_Plan.Num_Export_Comm_Partners() ; ++i){
     int num_export = Node_AsymComm_Plan.Num_Export_to_Proc(i);
     int num_export_to_partner = 0;
-    ContactTopologyEntity** export_entity_list = 
+    ContactTopologyEntity<Real>** export_entity_list = 
       Node_AsymComm_Plan.Export_Entity_List(i);
     for( j=0 ; j<num_export ; ++j){
       int node_index = export_entity_list[j]->ProcArrayIndex();
@@ -485,18 +485,18 @@ void ContactMPCs::Communicate_MPCs( )
   }
   int* import_proc_ids = NULL;
   int* num_import_from_proc = NULL;
-  ContactTopologyEntity** import_entity_list = NULL;
+  ContactTopologyEntity<Real>** import_entity_list = NULL;
   if( num_import_partners ){
     import_proc_ids = new int[num_import_partners];
     num_import_from_proc = new int[num_import_partners];
-    import_entity_list = new ContactTopologyEntity*[num_import_entities];
+    import_entity_list = new ContactTopologyEntity<Real>*[num_import_entities];
   }
   offset = 0;
   eoffset = 0;
   ioffset = 0;
   for( i=0 ; i<Node_AsymComm_Plan.Num_Import_Comm_Partners() ; ++i){
     int num_to_partner = 0;
-    ContactTopologyEntity** elist = Node_AsymComm_Plan.Import_Entity_List( i );
+    ContactTopologyEntity<Real>** elist = Node_AsymComm_Plan.Import_Entity_List( i );
     for( j=0 ; j<Node_AsymComm_Plan.Num_Import_from_Proc( i ) ; ++j){
       int num_mpcs = irb[offset++];
       for( k=0 ; k<num_mpcs ; ++k)
@@ -536,7 +536,7 @@ void ContactMPCs::Communicate_MPCs( )
   char* sb = send_buf;
   // Load up the send buffers
   for( i=0 ; i<Export_NodeMPCs.Num_Export_Comm_Partners() ; ++i){
-    ContactTopologyEntity** export_entity_list = Export_NodeMPCs.Export_Entity_List(i);
+    ContactTopologyEntity<Real>** export_entity_list = Export_NodeMPCs.Export_Entity_List(i);
     // Zero temp tag so we know which MPC to load
     for( j=0 ; j<Export_NodeMPCs.Num_Export_to_Proc( i ) ; ++j)
       export_entity_list[j]->temp_tag = 0;
@@ -597,7 +597,7 @@ void ContactMPCs::Communicate_MPCs( )
   // Zero temp tag for all phatnom faces and then loop over the MPCs
   // and mark each face with the number of MPCs it has.
   int my_proc = contact_processor_number( communicator );
-  ContactFace** phantoms = Phantom_Faces();
+  ContactFace<Real>** phantoms = Phantom_Faces();
   for( i=0 ; i<Number_Imported_Phantom_Faces() ; ++i)
     phantoms[i]->temp_tag = 0;
 

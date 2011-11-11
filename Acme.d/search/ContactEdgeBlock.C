@@ -34,7 +34,7 @@ ContactEdgeBlock::ContactEdgeBlock( ContactSearch::ContactEdge_Type Type,
   switch( type ){
   case ContactSearch::LINEEDGEL2:
     for( int j=0 ; j<number_of_edges ; ++j ) {
-      ContactEdge* edge = ContactLineEdgeL2::new_ContactLineEdgeL2(
+      ContactEdge<Real>* edge = ContactLineEdgeL2<Real>::new_ContactLineEdgeL2(
 	       search->Get_Allocator(ContactSearch::ALLOC_ContactLineEdgeL2),
 	       block_index,Next_ID);
       edge->Global_ID(my_proc,Next_ID);
@@ -44,7 +44,7 @@ ContactEdgeBlock::ContactEdgeBlock( ContactSearch::ContactEdge_Type Type,
     break;
   case ContactSearch::LINEEDGEQ3:
     for( int j=0 ; j<number_of_edges ; ++j ) {
-      ContactEdge* edge = ContactLineEdgeQ3::new_ContactLineEdgeQ3(
+      ContactEdge<Real>* edge = ContactLineEdgeQ3::new_ContactLineEdgeQ3(
 	       search->Get_Allocator(ContactSearch::ALLOC_ContactLineEdgeQ3),
 	       block_index,Next_ID);
       edge->Global_ID(my_proc,Next_ID);
@@ -105,15 +105,15 @@ void ContactEdgeBlock::Delete_Edges()
     }
     POSTCONDITION(alloc!=NULL);
     edge_list->IteratorStart();
-    while (ContactTopologyEntity* entity = edge_list->IteratorForward()) {
-      ContactEdge* edge = static_cast<ContactEdge*>(entity);
-      edge->~ContactEdge();
+    while (ContactTopologyEntity<Real>* entity = edge_list->IteratorForward()) {
+      ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(entity);
+      edge->~ContactEdge<Real>();
       alloc->Delete_Frag(edge);
     }
   }
 }
 
-void ContactEdgeBlock::Insert_Edge( ContactEdge* edge )
+void ContactEdgeBlock::Insert_Edge( ContactEdge<Real>* edge )
 {
   PRECONDITION( edge );
   edge_list->Insert(edge);
@@ -129,7 +129,7 @@ void ContactEdgeBlock::Insert_Edge( char* buffer )
 }
 #endif
 
-void ContactEdgeBlock::Delete_Edge( ContactEdge* edge )
+void ContactEdgeBlock::Delete_Edge( ContactEdge<Real>* edge )
 {
   PRECONDITION( edge );
   edge_list->Delete(edge);

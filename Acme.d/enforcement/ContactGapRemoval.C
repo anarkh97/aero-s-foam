@@ -315,7 +315,7 @@ ContactGapRemoval::Compute_Gap_Removal( int max_iterations, Real trivial_gap,
 #ifdef CONTACT_DEBUG_NODE
   ContactParOStream& postream = ParOStream();
   for( i=0 ; i<Number_Debug_Nodes() ; ++i){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       Real* total_cor = TOTAL_COR.Get_Scratch(dn);
       postream << "Gap Removal Displacement for Node = ("
@@ -361,8 +361,8 @@ void ContactGapRemoval::Gapremoval_Set_Up()
   temp_interaction_list  = new ContactNodeFaceInteraction*[max_interactions];
   int* temp_interaction_mask;
   temp_interaction_mask  = new int[max_interactions];
-  ContactNode* old_node = NULL;
-  ContactNode* cur_node = NULL;
+  ContactNode<Real>* old_node = NULL;
+  ContactNode<Real>* cur_node = NULL;
   
 
   int number_node_face_interactions = topology->Number_NodeFace_Interactions();
@@ -661,7 +661,7 @@ void ContactGapRemoval::Make_Independent(int ncc,
 
 Real ContactGapRemoval::Kinematic_Partition( ContactNodeFaceInteraction* cnfi )
 {
-  ContactFace* face = cnfi->Face();
+  ContactFace<Real>* face = cnfi->Face();
   int f_key = face->Entity_Key();
   int n_key = (int) 
     cnfi->Scalar_Var(ContactNodeFaceInteraction::NODE_ENTITY_KEY);
@@ -808,7 +808,7 @@ ContactGapRemoval::Displacement_Correction( ContactNodeFaceInteraction* cnfi)
   int i,j;
 
   // Get the Node and Face for this interaction
-  ContactFace* face = cnfi->Face();
+  ContactFace<Real>* face = cnfi->Face();
 
   // Calculate the face distribution factors
   Real shape_functions[MAX_NODES_PER_FACE];
@@ -925,7 +925,7 @@ void ContactGapRemoval::Assemble_Corrections( )
       int hi_dbg, lo_dbg;
       sh->Acme_NodeGID_for_Host_Node(i,0,hi_dbg,lo_dbg);
       ContactHostGlobalID gid_dbg(hi_dbg,lo_dbg);
-      ContactNode* node_dbg = static_cast<ContactNode*>
+      ContactNode<Real>* node_dbg = static_cast<ContactNode<Real>*>
         (search->Get_Primary_Topology()->NodeList()->Find(gid_dbg));
       bool PRINT_THIS_NODE = topology->Is_a_Debug_Node(node_dbg);
       if( PRINT_THIS_NODE ){
@@ -940,7 +940,7 @@ void ContactGapRemoval::Assemble_Corrections( )
         int hi, lo;
         sh->Acme_NodeGID_for_Host_Node(i,j,hi,lo);
         ContactHostGlobalID gid(hi,lo);
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
           (search->Get_Primary_Topology()->NodeList()->Find(gid));
 	Real* displ_cor = TOTAL_COR.Get_Scratch(node);
 #ifdef CONTACT_DEBUG_NODE
@@ -969,7 +969,7 @@ void ContactGapRemoval::Assemble_Corrections( )
         int hi, lo;
         sh->Acme_NodeGID_for_Host_Node(i,j,hi,lo);
         ContactHostGlobalID gid(hi,lo);
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
           (search->Get_Primary_Topology()->NodeList()->Find(gid));
 	Real* displ_cor = TOTAL_COR.Get_Scratch(node);
 	displ_cor[0] = assembled_correction[0];
@@ -1001,7 +1001,7 @@ void ContactGapRemoval::Update_Gaps( double trivial_gap, bool& gaps_remaining )
     Real* displ_cor   = TOTAL_COR.Get_Scratch(i);
     Real* updated_pos = UPDATED_POS.Get_Scratch(i);
 
-    ContactNode* node = enforcement_node_list[i];
+    ContactNode<Real>* node = enforcement_node_list[i];
     Real* cur_cor     = node->Variable( CURRENT_POSITION );
     for( j=0 ; j<dimensionality ; ++j){
       updated_pos[j] = cur_cor[j] + displ_cor[j];

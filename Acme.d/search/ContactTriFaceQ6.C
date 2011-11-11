@@ -23,7 +23,7 @@ using acme::Scale;
 ContactTriFaceQ6::ContactTriFaceQ6( ContactFixedSizeAllocator* alloc,
                                     int Block_Index, 
 				    int Index_in_Block,int key ) 
-  : ContactFace( alloc, ContactSearch::TRIFACEQ6,
+  : ContactFace<Real>( alloc, ContactSearch::TRIFACEQ6,
                  Block_Index, Index_in_Block, key, 
                  nodes, edges, Node_Info, Edge_Info) 
 {}
@@ -127,9 +127,9 @@ void ContactTriFaceQ6::Compute_Normal(Real** nodal_positions,
 void ContactTriFaceQ6::Compute_CharacteristicLength( VariableHandle CURRENT_POSITION,
 						     VariableHandle CHARACTERISTIC_LENGTH )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
-  ContactNode* node2 = Node(2);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
+  ContactNode<Real>* node2 = Node(2);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   Real* Position2 = node2->Variable(CURRENT_POSITION);
@@ -171,7 +171,7 @@ void ContactTriFaceQ6::Compute_Centroid( VariableHandle CURRENT_POSITION,
   centroid[2] *= scale;
 }
 
-void ContactTriFaceQ6::Get_Edge_Nodes( int i, ContactNode** node )
+void ContactTriFaceQ6::Get_Edge_Nodes( int i, ContactNode<Real>** node )
 {
   PRECONDITION( i>=0 && i<3 );
   switch( i ){
@@ -198,13 +198,13 @@ void ContactTriFaceQ6::Get_Edge_Nodes( int i, ContactNode** node )
   }
 }
 
-int ContactTriFaceQ6::Get_Edge_Number( ContactNode** edge_nodes )
+int ContactTriFaceQ6::Get_Edge_Number( ContactNode<Real>** edge_nodes )
 {
   PRECONDITION( edge_nodes[0] && edge_nodes[1] && edge_nodes[2] );
   PRECONDITION( edge_nodes[0] != edge_nodes[2] );
   int i1=-1,i2=-1,i3=-1;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    ContactNode* node = Node(i);
+    ContactNode<Real>* node = Node(i);
     if( edge_nodes[0] == node ) i1=i;
     if( edge_nodes[1] == node ) i2=i;
     if( edge_nodes[2] == node ) i3=i;
@@ -258,7 +258,7 @@ ContactTriFaceQ6::Compute_Edge_Normal( VariableHandle POSITION,
 				       Real* edge_normal)
 {
   // Edge tangent assumes straight-sided triangle
-  ContactNode *edge_node[3];
+  ContactNode<Real> *edge_node[3];
   Get_Edge_Nodes( Edge, edge_node );
 
   // Compute the tangent direction as a vector from node 1 to node 2
@@ -346,10 +346,10 @@ bool ContactTriFaceQ6::Is_Inside_Face( Real* local_coords )
   return false;
 }
 
-ContactFace* ContactTriFaceQ6::Neighbor( Real* local_coords )
+ContactFace<Real>* ContactTriFaceQ6::Neighbor( Real* local_coords )
 {
   PRECONDITION( 0 );
-  return (ContactFace*) NULL;
+  return (ContactFace<Real>*) NULL;
 }
 
 void ContactTriFaceQ6::FacetDecomposition(int& nfacets,
@@ -1686,7 +1686,7 @@ void ContactTriFaceQ6::Compute_Node_Areas( VariableHandle POSITION,
 }
 
 int ContactTriFaceQ6::FaceEdge_Intersection(VariableHandle POSITION,
-					    ContactEdge* edge, Real* coords)
+					    ContactEdge<Real>* edge, Real* coords)
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   std::cerr << "ContactTriFaceQ6::FaceEdge_Intersection not yet implemented\n";

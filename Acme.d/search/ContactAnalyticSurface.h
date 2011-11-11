@@ -14,7 +14,7 @@ class ContactParOStream;
 // host codes only need to include that file to be able to use the
 // search package.
 
-class ContactAnalyticSurface : public ContactTopologyEntity {
+class ContactAnalyticSurface : public ContactTopologyEntity<Real> {
 
  public:
 

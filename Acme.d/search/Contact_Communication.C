@@ -549,7 +549,7 @@ void contact_swapadd_reg_data( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, entity_list[j]->Variable(var), bytes_per_var );
       sb += size_of_var;
@@ -605,7 +605,7 @@ void contact_swapadd_reg_data( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, entity_list[j]->Variable(var), bytes_per_var );
       std::memset(entity_list[j]->Variable(var), 0, bytes_per_var );
@@ -627,7 +627,7 @@ void contact_swapadd_reg_data( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
 	  Real *vardata = entity_list[k]->Variable(var);
 	  for(int l=0 ; l<size_of_var ; ++l )
@@ -636,7 +636,7 @@ void contact_swapadd_reg_data( MPI_Comm& search_comm,
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       Real *vardata = entity_list[j]->Variable(var);
       for(int k=0 ; k<size_of_var ; ++k )
@@ -648,7 +648,7 @@ void contact_swapadd_reg_data( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int i=0 ; i<num_procs ; ++i ){
       int num_to_proc = comm.Num_to_Proc( i );
-      ContactTopologyEntity** entity_list = comm.Entity_List( i );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
       for(int j=0 ; j<num_to_proc ; ++j ){
 	Real *vardata = entity_list[j]->Variable(var);
 	for(int k=0 ; k<size_of_var ; ++k )
@@ -685,7 +685,7 @@ void contact_swapadd_temp_tag( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       *sb++ = entity_list[j]->temp_tag;
     }
@@ -740,7 +740,7 @@ void contact_swapadd_temp_tag( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       *sb++ = entity_list[j]->temp_tag;
       entity_list[j]->temp_tag = 0;
@@ -761,14 +761,14 @@ void contact_swapadd_temp_tag( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
           entity_list[k]->temp_tag += *sb++;
 	}
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       entity_list[j]->temp_tag += *rb++;
     }
@@ -778,7 +778,7 @@ void contact_swapadd_temp_tag( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int i=0 ; i<num_procs ; ++i ){
       int num_to_proc = comm.Num_to_Proc( i );
-      ContactTopologyEntity** entity_list = comm.Entity_List( i );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
       for(int j=0 ; j<num_to_proc ; ++j ){
 	entity_list[j]->temp_tag += *sb++;
       }
@@ -813,7 +813,7 @@ void contact_swapadd_context( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       *sb++ = entity_list[j]->GetContext();
     }
@@ -874,9 +874,9 @@ void contact_swapadd_context( MPI_Comm& search_comm,
     //
     contact_wait_msg_done( recv_handles[i] );
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
-      unsigned int new_context = (*rb++) & (ContactTopologyEntity::TRACK_SEARCH_SLAVE|ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+      unsigned int new_context = (*rb++) & (ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE|ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       unsigned int old_context = entity_list[j]->GetContext();
       unsigned int context     = old_context|new_context;
       entity_list[j]->SetContext(context);
@@ -895,7 +895,7 @@ void contact_swap_edge_faces( MPI_Comm& search_comm,
   int mesg = 10003;
   int len,num_to_proc;
   int var_len = 4;
-  ContactTopologyEntity** entity_list;
+  ContactTopologyEntity<Real>** entity_list;
   int my_proc = contact_processor_number(search_comm);
 
   // comm_buffer treates everything as char*, here we want Real* buffers
@@ -917,7 +917,7 @@ void contact_swap_edge_faces( MPI_Comm& search_comm,
     num_to_proc = comm.Num_to_Proc( i );
     entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
-      ContactEdge* edge = static_cast<ContactEdge*>(entity_list[j]);
+      ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(entity_list[j]);
       PRECONDITION(edge);
       *sb++ = edge->Face(0)->Owner();
       *sb++ = edge->Face(0)->BlockID();
@@ -974,7 +974,7 @@ void contact_swap_edge_faces( MPI_Comm& search_comm,
     num_to_proc = comm.Num_to_Proc( i );
     entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
-      ContactEdge* edge = static_cast<ContactEdge*>(entity_list[j]);
+      ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(entity_list[j]);
       PRECONDITION(edge);
       edge->FaceInfo()->owner                  = *rb++;
       edge->FaceInfo()->owner_proc_array_index = *rb++;
@@ -1283,7 +1283,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, &data[entity_list[j]->ProcArrayIndex()*size_per_entity],
 	     bytes_per_var );
@@ -1340,7 +1340,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       int *idata = &data[entity_list[j]->ProcArrayIndex()*size_per_entity];
       std::memcpy(sb, idata, bytes_per_var );
@@ -1363,7 +1363,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
 	  int *idata = &data[entity_list[k]->ProcArrayIndex()*size_per_entity];
 	  for(int l=0 ; l<size_per_entity ; ++l )
@@ -1372,7 +1372,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       int *idata = &data[entity_list[j]->ProcArrayIndex()*size_per_entity];
       for(int k=0 ; k<size_per_entity ; ++k )
@@ -1384,7 +1384,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int j=0 ; j<num_procs ; ++j ){
       int num_to_proc = comm.Num_to_Proc( j );
-      ContactTopologyEntity** entity_list = comm.Entity_List( j );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
       for(int k=0 ; k<num_to_proc ; ++k ){
 	int *idata = &data[entity_list[k]->ProcArrayIndex()*size_per_entity];
 	for(int l=0 ; l<size_per_entity ; ++l )
@@ -1425,7 +1425,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, &data[entity_list[j]->fcs_index*size_per_entity],
 	     bytes_per_var );
@@ -1482,7 +1482,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       int *idata = &data[entity_list[j]->fcs_index*size_per_entity];
       std::memcpy(sb, idata, bytes_per_var );
@@ -1505,7 +1505,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
 	  int *idata = &data[entity_list[k]->fcs_index*size_per_entity];
 	  for(int l=0 ; l<size_per_entity ; ++l )
@@ -1514,7 +1514,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       int *idata = &data[entity_list[j]->fcs_index*size_per_entity];
       for(int k=0 ; k<size_per_entity ; ++k )
@@ -1526,7 +1526,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int j=0 ; j<num_procs ; ++j ){
       int num_to_proc = comm.Num_to_Proc( j );
-      ContactTopologyEntity** entity_list = comm.Entity_List( j );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
       for(int k=0 ; k<num_to_proc ; ++k ){
 	int *idata = &data[entity_list[k]->fcs_index*size_per_entity];
 	for(int l=0 ; l<size_per_entity ; ++l )
@@ -1567,7 +1567,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, &data[entity_list[j]->ProcArrayIndex()*size_per_entity],
 	     bytes_per_var );
@@ -1624,7 +1624,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       Real *rdata = &data[entity_list[j]->ProcArrayIndex()*size_per_entity];
       std::memcpy(sb, rdata, bytes_per_var );
@@ -1645,7 +1645,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
 	  Real *rdata = &data[entity_list[k]->ProcArrayIndex()*size_per_entity];
 	  for(int l=0 ; l<size_per_entity ; ++l )
@@ -1654,7 +1654,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       Real *rdata = &data[entity_list[j]->ProcArrayIndex()*size_per_entity];
       for(int k=0 ; k<size_per_entity ; ++k )
@@ -1666,7 +1666,7 @@ void contact_swapadd_data_array( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int j=0 ; j<num_procs ; ++j ){
       int num_to_proc = comm.Num_to_Proc( j );
-      ContactTopologyEntity** entity_list = comm.Entity_List( j );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
       for(int k=0 ; k<num_to_proc ; ++k ){
 	Real *rdata = &data[entity_list[k]->ProcArrayIndex()*size_per_entity];
 	for(int l=0 ; l<size_per_entity ; ++l )
@@ -1706,7 +1706,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
   int num_procs = comm.Num_Comm_Partners();
   for(int i=0 ; i<num_procs ; ++i ){
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy(sb, &data[entity_list[j]->fcs_index*size_per_entity],
 	     bytes_per_var );
@@ -1763,7 +1763,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
     contact_wait_msg_done(send_handles[i]);
 #endif
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       Real *rdata = &data[entity_list[j]->fcs_index*size_per_entity];
       std::memcpy(sb, rdata, bytes_per_var );
@@ -1784,7 +1784,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
       added_mine = true;
       for(int j=0 ; j<num_procs ; ++j ){
 	int num_to_proc = comm.Num_to_Proc( j );
-	ContactTopologyEntity** entity_list = comm.Entity_List( j );
+	ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
 	for(int k=0 ; k<num_to_proc ; ++k ){
 	  Real *rdata = &data[entity_list[k]->fcs_index*size_per_entity];
 	  for(int l=0 ; l<size_per_entity ; ++l )
@@ -1793,7 +1793,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
       }
     }
     int num_to_proc = comm.Num_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       Real *rdata = &data[entity_list[j]->fcs_index*size_per_entity];
       for(int k=0 ; k<size_per_entity ; ++k )
@@ -1805,7 +1805,7 @@ void contact_swapadd_data_array_fcs( MPI_Comm& search_comm,
   if( !added_mine ){
     for(int j=0 ; j<num_procs ; ++j ){
       int num_to_proc = comm.Num_to_Proc( j );
-      ContactTopologyEntity** entity_list = comm.Entity_List( j );
+      ContactTopologyEntity<Real>** entity_list = comm.Entity_List( j );
       for(int k=0 ; k<num_to_proc ; ++k ){
 	Real *rdata = &data[entity_list[k]->fcs_index*size_per_entity];
 	for(int l=0 ; l<size_per_entity ; ++l )
@@ -2059,7 +2059,7 @@ void contact_import_reg_data( MPI_Comm& search_comm,
   // Gather my data into send_buf
   for(int i=0 ; i<comm.Num_Export_Comm_Partners() ; ++i ){
     int num_to_proc = comm.Num_Export_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Export_Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Export_Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       std::memcpy( sb, entity_list[j]->Variable(vh), bytes_per_var );
       sb += size_per_entity;
@@ -2112,7 +2112,7 @@ void contact_import_reg_data( MPI_Comm& search_comm,
   for(int i=0 ; i<comm.Num_Import_Comm_Partners() ; ++i ){
     contact_wait_msg_done( recv_handles[i] );
     int num_from_proc = comm.Num_Import_from_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Import_Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Import_Entity_List( i );
     for(int j=0 ; j<num_from_proc ; ++j ){
       std::memcpy( entity_list[j]->Variable(vh), rb, bytes_per_var );
       rb += size_per_entity;
@@ -2157,10 +2157,10 @@ void contact_import_node_status( MPI_Comm& search_comm,
   // Gather my data into send_buf
   for(int i=0 ; i<comm.Num_Export_Comm_Partners() ; ++i ){
     int num_to_proc = comm.Num_Export_to_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Export_Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Export_Entity_List( i );
     for(int j=0 ; j<num_to_proc ; ++j ){
       *sb++ = int(entity_list[j]->GetContext() & 
-                  (ContactTopologyEntity::TRACK_SEARCH_SLAVE | ContactTopologyEntity::GLOBAL_SEARCH_SLAVE));
+                  (ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE | ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE));
     }
   }
 
@@ -2208,10 +2208,10 @@ void contact_import_node_status( MPI_Comm& search_comm,
   for(int i=0 ; i<comm.Num_Import_Comm_Partners() ; ++i ){
     contact_wait_msg_done( recv_handles[i] );
     int num_from_proc = comm.Num_Import_from_Proc( i );
-    ContactTopologyEntity** entity_list = comm.Import_Entity_List( i );
+    ContactTopologyEntity<Real>** entity_list = comm.Import_Entity_List( i );
     for(int j=0 ; j<num_from_proc ; ++j ){
       unsigned int status = (unsigned int)(*rb++);
-      entity_list[j]->ClearContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE | ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+      entity_list[j]->ClearContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE | ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       entity_list[j]->SetContextBit(status);
     }
   }

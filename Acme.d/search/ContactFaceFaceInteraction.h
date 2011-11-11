@@ -43,11 +43,11 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
 		     NUMBER_VECTOR_VARS };
 
   ContactFaceFaceInteraction();
-  ContactFaceFaceInteraction( ContactFace*, ContactFace*, 
+  ContactFaceFaceInteraction( ContactFace<Real>*, ContactFace<Real>*, 
 			      int, int*, int*, Real*, Real* );
   ContactFaceFaceInteraction( ContactFaceFaceInteraction& );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
-            ContactFixedSizeAllocator&, ContactFace*, ContactFace*, 
+            ContactFixedSizeAllocator&, ContactFace<Real>*, ContactFace<Real>*, 
 	    int, int*, int*, Real*, Real* );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
 	     ContactFixedSizeAllocator& );
@@ -75,9 +75,9 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
                           gid);};
 #endif
 
-  inline ContactFace* SlaveFace() {return slave_face;};
+  inline ContactFace<Real>* SlaveFace() {return slave_face;};
   inline entity_data* SlaveFaceEntityData()  {return &slave_face_entity_data;};
-  inline ContactFace* MasterFace() {return master_face;};
+  inline ContactFace<Real>* MasterFace() {return master_face;};
   inline entity_data* MasterFaceEntityData() {return &master_face_entity_data;};
   int Set_SlaveFaceEntityData();
   int Set_MasterFaceEntityData();
@@ -98,8 +98,8 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
   void Connect_MasterFace( ContactTopologyEntityHash& );
   void Connect_SlaveFace ( ContactTopology* );
   void Connect_MasterFace( ContactTopology* );
-  void Connect_SlaveFace ( ContactFace* );
-  void Connect_MasterFace( ContactFace* );
+  void Connect_SlaveFace ( ContactFace<Real>* );
+  void Connect_MasterFace( ContactFace<Real>* );
 
   // Parallel packing/unpacking functions
   int  Size();
@@ -119,9 +119,9 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
  private:
   
   Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS+1];
-  ContactFace* slave_face;
+  ContactFace<Real>* slave_face;
   entity_data slave_face_entity_data;
-  ContactFace* master_face;
+  ContactFace<Real>* master_face;
   entity_data master_face_entity_data;
   int num_edges;
   ContactFaceFaceVertex* vertices;

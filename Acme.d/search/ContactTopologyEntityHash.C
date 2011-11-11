@@ -9,11 +9,11 @@ using namespace std;
 ContactTopologyEntityHash::ContactTopologyEntityHash() {
 }
 
-ContactTopologyEntityHash::ContactTopologyEntityHash(int n, ContactTopologyEntity** e) : implementation(n, e)
+ContactTopologyEntityHash::ContactTopologyEntityHash(int n, ContactTopologyEntity<Real>** e) : implementation(n, e)
 {
 }
 
-ContactTopologyEntityHash::ContactTopologyEntityHash(std::vector<ContactTopologyEntity*> *v) : implementation(v)
+ContactTopologyEntityHash::ContactTopologyEntityHash(std::vector<ContactTopologyEntity<Real>*> *v) : implementation(v)
 {
 }
 
@@ -46,7 +46,7 @@ implementation::implementation() : nbins(0), nbins_orig(0), number_of_entities(0
 #endif
 {}
 
-implementation::implementation(int n, ContactTopologyEntity **entities) :
+implementation::implementation(int n, ContactTopologyEntity<Real> **entities) :
   nbins(0), nbins_orig(0), number_of_entities(n),
   hash_space(0), bins(0), next_free(0)
 #ifdef CONTACT_ANALYZE_HASH
@@ -61,7 +61,7 @@ implementation::implementation(int n, ContactTopologyEntity **entities) :
   }
 }
 
-implementation::implementation(std::vector<ContactTopologyEntity*> *v) :
+implementation::implementation(std::vector<ContactTopologyEntity<Real>*> *v) :
   nbins(0), nbins_orig(0), number_of_entities(v->size()),
   hash_space(0), bins(0), next_free(0)
 #ifdef CONTACT_ANALYZE_HASH
@@ -76,7 +76,7 @@ implementation::implementation(std::vector<ContactTopologyEntity*> *v) :
 
   // Add each entity to the hash table
   for(int i = 0; i < v->size(); ++i) {
-    ContactTopologyEntity *entity = (*v)[i];
+    ContactTopologyEntity<Real> *entity = (*v)[i];
     insert(entity->Global_ID(), entity);
   }
 }
@@ -86,7 +86,7 @@ implementation::~implementation()
   ClearHash();
 }
 
-void implementation::ReHash(int number_entities, ContactTopologyEntity **entities)
+void implementation::ReHash(int number_entities, ContactTopologyEntity<Real> **entities)
 {
   ClearHash();
   SetupHash(number_entities, entities);
@@ -103,7 +103,7 @@ void implementation::ClearHash()
   next_free          = NULL;
 }
 
-void implementation::insert( ContactHostGlobalID &Global_ID, ContactTopologyEntity* Entity) {
+void implementation::insert( ContactHostGlobalID &Global_ID, ContactTopologyEntity<Real>* Entity) {
   hash* ptr;
   hash** previous;
 
@@ -127,7 +127,7 @@ void implementation::insert( ContactHostGlobalID &Global_ID, ContactTopologyEnti
   }
 }
 
-ContactTopologyEntity *implementation::find(ContactHostGlobalID &Global_ID)
+ContactTopologyEntity<Real> *implementation::find(ContactHostGlobalID &Global_ID)
 {
   hash* ptr;
   int ibin = hash_func(Global_ID.LoInt());
@@ -142,13 +142,13 @@ ContactTopologyEntity *implementation::find(ContactHostGlobalID &Global_ID)
   return ptr->entity;
 }
 
-ContactTopologyEntity *implementation::find(ContactInteractionEntity::entity_data *data)
+ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity::entity_data *data)
 {
   ContactHostGlobalID id(data->host_gid[0], data->host_gid[1]);
   return find(id);
 }
 
-void implementation::SetupHash(int number_entities, ContactTopologyEntity **entities)
+void implementation::SetupHash(int number_entities, ContactTopologyEntity<Real> **entities)
 {
   number_of_entities = number_entities;
 
@@ -343,12 +343,12 @@ ContactParOStream& implementation::stream_data(ContactParOStream& os) const
 #ifdef CONTACT_HAVE_COMPILER_HASH
 namespace topology_hash_1 {
 
-  implementation::implementation(int n, ContactTopologyEntity **e)
+  implementation::implementation(int n, ContactTopologyEntity<Real> **e)
   {
     SetupHash(n, e);
   }
 
-  implementation::implementation(std::vector<ContactTopologyEntity*> *v)
+  implementation::implementation(std::vector<ContactTopologyEntity<Real>*> *v)
   {
     SetupHash(v->size(), &(*v)[0]);
   }
@@ -361,24 +361,24 @@ namespace topology_hash_1 {
     return stream_data(os);
   }
 
-  void implementation::ReHash(int n, ContactTopologyEntity **e) {
+  void implementation::ReHash(int n, ContactTopologyEntity<Real> **e) {
     ClearHash();
     SetupHash(n, e);
   }
 
   void implementation::AddEntities(ContactBlockEntityList *link_list) {
     link_list->IteratorStart();
-    while(ContactTopologyEntity *entity = link_list->IteratorForward()) {
-      hash_map<int, ContactTopologyEntity *>::value_type vt(entity->Global_ID().LoInt(), entity);
+    while(ContactTopologyEntity<Real> *entity = link_list->IteratorForward()) {
+      hash_map<int, ContactTopologyEntity<Real> *>::value_type vt(entity->Global_ID().LoInt(), entity);
       container.insert(vt);
     }
   }
 
-  void implementation::SetupHash(int n, ContactTopologyEntity **entities) {
-    ContactTopologyEntity *e = 0;
+  void implementation::SetupHash(int n, ContactTopologyEntity<Real> **entities) {
+    ContactTopologyEntity<Real> *e = 0;
     for (int i=0; i<n; ++i) {
       e = entities[i];
-      hash_map<int, ContactTopologyEntity *>::value_type vt(e->Global_ID().LoInt(), e);
+      hash_map<int, ContactTopologyEntity<Real> *>::value_type vt(e->Global_ID().LoInt(), e);
       container.insert(vt);
     }
   }
@@ -388,9 +388,9 @@ namespace topology_hash_1 {
     container.erase(container.begin(), container.end());
   }
 
-  ContactTopologyEntity *implementation::find(ContactHostGlobalID &id) {
+  ContactTopologyEntity<Real> *implementation::find(ContactHostGlobalID &id) {
     // no check on whether container must contain id or not
-    hash_map<int, ContactTopologyEntity *>::iterator it = container.find(id.LoInt());
+    hash_map<int, ContactTopologyEntity<Real> *>::iterator it = container.find(id.LoInt());
     if (it != container.end()) {
       return (*it).second;
     }
@@ -399,16 +399,16 @@ namespace topology_hash_1 {
     }
   }
 
-  ContactTopologyEntity *implementation::find(ContactInteractionEntity::entity_data *data)
+  ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity::entity_data *data)
   {
     ContactHostGlobalID id(data->host_gid[0], data->host_gid[1]);
     return find(id);
   }
 
-  void implementation::insert(ContactHostGlobalID &id, ContactTopologyEntity *e) {
+  void implementation::insert(ContactHostGlobalID &id, ContactTopologyEntity<Real> *e) {
     // no check on whether insert succeeded (id may already have been present,
     // but with a different entity
-    hash_map<int, ContactTopologyEntity *>::value_type vt(id.LoInt(), e);
+    hash_map<int, ContactTopologyEntity<Real> *>::value_type vt(id.LoInt(), e);
     container.insert(vt);
   }
 

@@ -2,18 +2,24 @@
 
 class ContactFixedSizeAllocator;
 
-void ContactNode_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactNode_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
 void ContactLineEdgeL2_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactLineEdgeQ3_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactLineFaceL2_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactLineFaceQ3_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactQuadFaceQ8_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactQuadFaceQ9_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactTriFaceL3_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactTriFaceL3_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactTriFaceQ6_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactHexElemL8_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactWedgeElemL6_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactHexElemL8_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactWedgeElemL6_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactNodeNodeInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactNodeFaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactNodeSurfaceInteraction_SizeAllocator(ContactFixedSizeAllocator& alloc);

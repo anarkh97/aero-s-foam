@@ -5,7 +5,7 @@
 
 class ContactErrors;
 class ContactCommBuffer;
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactSymComm;
 class ContactCommBuffer;
 class ContactTopology;

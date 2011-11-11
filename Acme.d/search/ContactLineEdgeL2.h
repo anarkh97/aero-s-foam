@@ -6,20 +6,21 @@
 #include "ContactEdge.h"
 
 class ContactFixedSizeAllocator;
-class ContactNode;
+template<typename DataType> class ContactNode;
 
-class ContactLineEdgeL2 : public ContactEdge {
+template<typename DataType>
+class ContactLineEdgeL2 : public ContactEdge<DataType> {
 
  public:
   ContactLineEdgeL2( int block_index = -1, int index_in_block = -1 );
-  static ContactLineEdgeL2* new_ContactLineEdgeL2( ContactFixedSizeAllocator&,
+  static ContactLineEdgeL2<DataType>* new_ContactLineEdgeL2( ContactFixedSizeAllocator&,
 						   int block_index=-1, 
 						   int index_in_block = -1 );
   ~ContactLineEdgeL2();
 
  protected:
  private:
-  ContactNode* nodes[2];
+  ContactNode<DataType>* nodes[2];
 };
 
 #endif // ContactLineEdgeL2_h_

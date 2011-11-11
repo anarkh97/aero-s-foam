@@ -8,13 +8,16 @@
 #include <cstring>
 #include <cmath>
 
-bool ContactEdge::array_init = false;
-int ContactEdge::NODES_PER_EDGE[ContactSearch::NEDGE_TYPES] = {0};
+template<typename DataType>
+  bool ContactEdge<DataType>::array_init = false;
+template<typename DataType>
+int ContactEdge<DataType>::NODES_PER_EDGE[ContactSearch::NEDGE_TYPES] = {0};
 
-ContactEdge::ContactEdge( ContactSearch::ContactEdge_Type Type, 
+template<typename DataType>
+ContactEdge<DataType>::ContactEdge( ContactSearch::ContactEdge_Type Type, 
                           int Block_Index, int Host_Index_in_Block,
-                          ContactNode **node_list_) 
-  : ContactTopologyEntity( Block_Index,Host_Index_in_Block, DataArray, CT_EDGE),
+                          ContactNode<DataType> **node_list_) 
+  : ContactTopologyEntity<DataType>( Block_Index,Host_Index_in_Block, DataArray, CT_EDGE),
     node_list(node_list_)
 {
   edge_type      = Type;
@@ -25,36 +28,40 @@ ContactEdge::ContactEdge( ContactSearch::ContactEdge_Type Type,
   face_info.host_gid[1] = -1;
 }
 
-ContactEdge::~ContactEdge() {}
+template<typename DataType>
+ContactEdge<DataType>::~ContactEdge() {}
 
-void ContactEdge::ConnectFace( ContactFace* face )
+template<typename DataType>
+void ContactEdge<DataType>::ConnectFace( ContactFace<DataType>* face )
 {
   PRECONDITION( number_face_connections>=0 && number_face_connections<2 );
   PRECONDITION( face );
   faces[number_face_connections++] = face;
 }
 
-void ContactEdge::Initialize_Lookup_Arrays() {
+template<typename DataType>
+void ContactEdge<DataType>::Initialize_Lookup_Arrays() {
   NODES_PER_EDGE[ContactSearch::NO_EDGES  ] = 0;
   NODES_PER_EDGE[ContactSearch::LINEEDGEL2] = 2;
   NODES_PER_EDGE[ContactSearch::LINEEDGEQ3] = 3;
   array_init = true;
 }
 
-void ContactEdge::Smooth_Normal( VariableHandle FACE_NORMAL, 
-				 Real* coords, Real* smooth_normal )
+template<typename DataType>
+void ContactEdge<DataType>::Smooth_Normal( VariableHandle FACE_NORMAL, 
+				 DataType* coords, DataType* smooth_normal )
 {
   smooth_normal[0]    = 0.0;
   smooth_normal[1]    = 0.0;
   smooth_normal[2]    = 0.0;
   for( int i=0 ; i<number_face_connections ; ++i ){
-    Real* face_normal = faces[i]->Variable(FACE_NORMAL);
+    DataType* face_normal = faces[i]->Variable(FACE_NORMAL);
     smooth_normal[0] += face_normal[0];
     smooth_normal[1] += face_normal[1];
     smooth_normal[2] += face_normal[2];
   }
   if (!shared && number_face_connections>1) {
-    Real mag = std::sqrt( smooth_normal[0]*smooth_normal[0] +
+    DataType mag = std::sqrt( smooth_normal[0]*smooth_normal[0] +
                           smooth_normal[1]*smooth_normal[1] +
                           smooth_normal[2]*smooth_normal[2] );
     if( mag > 0.0 ){
@@ -66,19 +73,20 @@ void ContactEdge::Smooth_Normal( VariableHandle FACE_NORMAL,
   }
 }
 
-void ContactEdge::Compute_Smoothed_Normal( VariableHandle FACE_NORMAL )
+template<typename DataType>
+void ContactEdge<DataType>::Compute_Smoothed_Normal( VariableHandle FACE_NORMAL )
 {
-  Real* smooth_normal = &DataArray[NUMBER_SCALAR_VARS+3*Smoothed_Normal];
+  DataType* smooth_normal = &DataArray[NUMBER_SCALAR_VARS+3*Smoothed_Normal];
   smooth_normal[0] = 0.0;
   smooth_normal[1] = 0.0;
   smooth_normal[2] = 0.0;
   for( int i=0 ; i<number_face_connections ; ++i ){
-    Real* face_normal = faces[i]->Variable(FACE_NORMAL);
+    DataType* face_normal = faces[i]->Variable(FACE_NORMAL);
     smooth_normal[0] += face_normal[0];
     smooth_normal[1] += face_normal[1];
     smooth_normal[2] += face_normal[2];
   }
-  Real mag = std::sqrt( smooth_normal[0]*smooth_normal[0] +
+  DataType mag = std::sqrt( smooth_normal[0]*smooth_normal[0] +
 		        smooth_normal[1]*smooth_normal[1] +
 		        smooth_normal[2]*smooth_normal[2] );
   if( mag > 0.0 ){
@@ -89,26 +97,28 @@ void ContactEdge::Compute_Smoothed_Normal( VariableHandle FACE_NORMAL )
   }
 }
 
-void ContactEdge::Pack( char* buffer )
+template<typename DataType>
+void ContactEdge<DataType>::Pack( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*>(buffer);
   *i_buf = edge_type;
-  // ContactTopologyEntity packs in location 0 as ContactFace and here we pack
+  // ContactTopologyEntity<DataType> packs in location 0 as ContactFace<DataType> and here we pack
   // in the derived type in location 1.
   i_buf[1] = edge_type;
-  ContactTopologyEntity::Pack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Pack( buffer, DataArray_Length() );
   // Add the global ids of the nodes
-  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity::Size(DataArray_Length()));
+  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Edge() ; ++i ){
-    ContactTopologyEntity* entity = 
-      static_cast<ContactTopologyEntity*>(Node(i));
+    ContactTopologyEntity<DataType>* entity = 
+      static_cast<ContactTopologyEntity<DataType>*>(Node(i));
     cnt += PackConnection(entity, &i_buf[cnt]);
   }
 }
 
-void ContactEdge::Copy( ContactEdge* src )
+template<typename DataType>
+void ContactEdge<DataType>::Copy( ContactEdge* src )
 {
-  ContactTopologyEntity::Copy( src, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Copy( src, DataArray_Length() );
   face_info = src->face_info;
 }

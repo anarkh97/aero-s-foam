@@ -39,17 +39,17 @@ class ContactFaceCoverageInteraction : public ContactInteractionEntity {
 		     NUMBER_VECTOR_VARS };
 
   ContactFaceCoverageInteraction();
-  ContactFaceCoverageInteraction( ContactFace* );
+  ContactFaceCoverageInteraction( ContactFace<Real>* );
   ContactFaceCoverageInteraction( ContactFaceCoverageInteraction& );
   static ContactFaceCoverageInteraction* new_ContactFaceCoverageInteraction(
-            ContactFixedSizeAllocator&, ContactFace* );
+            ContactFixedSizeAllocator&, ContactFace<Real>* );
   static ContactFaceCoverageInteraction* new_ContactFaceCoverageInteraction(
 	     ContactFixedSizeAllocator& );
   static ContactFaceCoverageInteraction* new_ContactFaceCoverageInteraction(
 	     ContactFixedSizeAllocator&, ContactFaceCoverageInteraction& );
   ~ContactFaceCoverageInteraction();
 
-  inline ContactFace* SlaveFace() {return slave_face;};
+  inline ContactFace<Real>* SlaveFace() {return slave_face;};
   inline ContactHostGlobalID* SlaveFace_Global_ID() {return &slave_face_global_id;};
   inline int NumVertices() {return num_vertices;};
   inline ContactFaceCoverageVertex* Head() { return head; };
@@ -61,7 +61,7 @@ class ContactFaceCoverageInteraction : public ContactInteractionEntity {
     { return (DataArray+NUMBER_SCALAR_VARS+3*vh); };
 
   void Connect_SlaveFace( ContactTopologyEntityList& );
-  void Connect_SlaveFace( ContactFace* f) {slave_face=f;};
+  void Connect_SlaveFace( ContactFace<Real>* f) {slave_face=f;};
   int Set_SlaveFaceEntityData();
   inline entity_data* SlaveFaceEntityData() {return &slave_face_entity_data;};
 
@@ -87,7 +87,7 @@ class ContactFaceCoverageInteraction : public ContactInteractionEntity {
 
  private:
   Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS+1];
-  ContactFace* slave_face;
+  ContactFace<Real>* slave_face;
   ContactHostGlobalID slave_face_global_id;
   entity_data slave_face_entity_data;
   int num_vertices;

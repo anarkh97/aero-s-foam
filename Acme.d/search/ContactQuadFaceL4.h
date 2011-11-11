@@ -6,8 +6,8 @@
 #include "ContactFace.h"
 #include "ContactEdge.h"
 
-class ContactNode;
-class ContactEdge;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
 class ContactFixedSizeAllocator;
 
 /* This class represents the bilinear four node quadrilateral face with the
@@ -23,87 +23,98 @@ class ContactFixedSizeAllocator;
                              E0
 */
 
-class ContactQuadFaceL4 : public ContactFace {
+template<typename DataType>
+class ContactQuadFaceL4 : public ContactFace<DataType> {
 
  public:
   ContactQuadFaceL4(ContactFixedSizeAllocator*, int blk_indx=-1, 
                     int indx_in_block=-1, int key=-1);
-  static ContactQuadFaceL4* new_ContactQuadFaceL4(ContactFixedSizeAllocator*,
+  static ContactQuadFaceL4<DataType>* new_ContactQuadFaceL4(ContactFixedSizeAllocator*,
                                                   int blk_indx=-1, 
                                                   int indx_in_block=-1, 
                                                   int key=-1);
   ~ContactQuadFaceL4();
   ContactSearch::ContactEdge_Type Edge_Type() 
     {return ContactSearch::LINEEDGEL2;};
-  void Get_Edge_Nodes( int, ContactNode** );
-  int Get_Edge_Number( ContactNode** );
-  int Get_Edge_Number( Real* );
+  void Get_Edge_Nodes( int, ContactNode<DataType>** );
+  int Get_Edge_Number( ContactNode<DataType>** );
+  int Get_Edge_Number( DataType* );
 
   void Compute_Normal(VariableHandle, VariableHandle );
-  void Compute_Normal(VariableHandle, Real*, Real* );
-  void Compute_Normal(Real**, Real*, Real* );
+  void Compute_Normal(VariableHandle, DataType*, DataType* );
+  void Compute_Normal(DataType**, DataType*, DataType* );
   void Compute_CharacteristicLength(VariableHandle, VariableHandle);
   void Compute_Centroid(VariableHandle, VariableHandle );
   void Compute_Edge_Normal( VariableHandle, VariableHandle,
-					int, Real*);
-  void Compute_Local_Coordinates( Real, VariableHandle, VariableHandle,
-				  VariableHandle, Real*, Real* );
-  void Compute_Local_Coordinates( VariableHandle, Real*, Real* );
-  void Compute_Global_Coordinates( VariableHandle, Real*, Real* );
-  void Evaluate_Shape_Functions( Real* Local_Coords, Real* Shape_Funcs );
-  bool Is_Inside_Face( Real* local_coords );
+					int, DataType*);
+  void Compute_Local_Coordinates( DataType, VariableHandle, VariableHandle,
+				  VariableHandle, DataType*, DataType* );
+  void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
+  void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* );
+  void Evaluate_Shape_Functions( DataType* Local_Coords, DataType* Shape_Funcs );
+  bool Is_Inside_Face( DataType* local_coords );
   bool IsPlanar(VariableHandle);
-  ContactFace* Neighbor( Real* local_coords );
+  ContactFace<DataType>* Neighbor( DataType* local_coords );
 
-  void Get_Close_Edges( Real*, int&, int&, int& );
+  void Get_Close_Edges( DataType*, int&, int&, int& );
   void FacetDecomposition(int &, 
-                          Real*, Real*, VariableHandle,
-                          Real*, Real*, VariableHandle,
-                          Real*, Real*, VariableHandle);
-  void FacetStaticRestriction(int, Real*, Real*, Real*, Real*);
-  void FacetDynamicRestriction(int, Real*, Real*);
+                          DataType*, DataType*, VariableHandle,
+                          DataType*, DataType*, VariableHandle,
+                          DataType*, DataType*, VariableHandle);
+  void FacetStaticRestriction(int, DataType*, DataType*, DataType*, DataType*);
+  void FacetDynamicRestriction(int, DataType*, DataType*);
 
   void Smooth_Normal( VariableHandle, VariableHandle, VariableHandle,
 		      VariableHandle, ContactSearch::Smoothing_Resolution,
-		      Real, Real*, Real*, Real );
+		      DataType, DataType*, DataType*, DataType );
 
-  void Compute_Node_Areas( VariableHandle, VariableHandle, Real* );
+  void Compute_Node_Areas( VariableHandle, VariableHandle, DataType* );
                       
-  int FaceEdge_Intersection(VariableHandle, ContactEdge*, Real*);
+  int FaceEdge_Intersection(VariableHandle, ContactEdge<DataType>*, DataType*);
                       
-  static void Compute_Shape_Functions( Real local_coords[3], 
-                                       Real Shape_Funcs[4] );
+  static void Compute_Shape_Functions( DataType local_coords[3], 
+                                       DataType Shape_Funcs[4] );
   
-  static void Compute_Shape_Derivatives( Real local_coords[3],
-                                         Real shape_derivatives[2][4] );
+  static void Compute_Shape_Derivatives( DataType local_coords[3],
+                                         DataType shape_derivatives[2][4] );
   
-  void Compute_Local_Coords( Real node_positions[MAX_NODES_PER_FACE][3],
-			     Real global_coords[3],
-			     Real local_coords[3] );
+  void Compute_Local_Coords( DataType node_positions[MAX_NODES_PER_FACE][3],
+			     DataType global_coords[3],
+			     DataType local_coords[3] );
   
-  static void Compute_Quad_Local_Coords(Real node_positions[MAX_NODES_PER_FACE][3],
-				    Real global_coords[3],
-				    Real local_coords[3] );
+  static void Compute_Quad_Local_Coords(DataType node_positions[MAX_NODES_PER_FACE][3],
+				    DataType global_coords[3],
+				    DataType local_coords[3] );
 
 
-  static void Compute_Global_Coords( Real node_positions[4][3],
-				     Real local_coords[3],
-				     Real global_coords[3] );
+  static void Compute_Global_Coords( DataType node_positions[4][3],
+				     DataType local_coords[3],
+				     DataType global_coords[3] );
 
-  static void Interpolate_Scalar( Real  local_coords[3],
-				  Real  node_scalars[4],
-				  Real& interpolated_scalar );
+  static void Interpolate_Scalar( DataType  local_coords[3],
+				  DataType  node_scalars[4],
+				  DataType& interpolated_scalar );
 
-  static void Interpolate_Vector( Real local_coords[3],
-				  Real node_vectors[4][3],
-				  Real interpolated_vector[3] );
+  static void Interpolate_Vector( DataType local_coords[3],
+				  DataType node_vectors[4][3],
+				  DataType interpolated_vector[3] );
+
+  using ContactTopologyEntity<DataType>::Variable;
+  using ContactFace<DataType>::Node;
+  using ContactFace<DataType>::Nodes_Per_Face;
+  using ContactFace<DataType>::GetEdgeCurvature;
+  using ContactFace<DataType>::LENGTH;
+  using ContactFace<DataType>::MSPARAM;
+  using ContactFace<DataType>::IPENMAG;
+  using ContactFace<DataType>::ILOCATION;
+  using ContactFace<DataType>::ICTIMC;
 
  protected:
  private:
-  ContactNode* nodes[4];
-  ContactEdge* edges[4];
-  connection_data Node_Info[4];
-  connection_data Edge_Info[4];
+  ContactNode<DataType>* nodes[4];
+  ContactEdge<DataType>* edges[4];
+  typename ContactTopologyEntity<DataType>::connection_data Node_Info[4];
+  typename ContactTopologyEntity<DataType>::connection_data Edge_Info[4];
 
 };
 

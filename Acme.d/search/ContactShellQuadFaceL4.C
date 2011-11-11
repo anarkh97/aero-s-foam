@@ -7,7 +7,7 @@
 ContactShellQuadFaceL4::ContactShellQuadFaceL4(ContactFixedSizeAllocator* alloc,
                                                int Block_Index, 
 					       int Index_in_Block, int key ) 
-  : ContactQuadFaceL4( alloc, Block_Index, Index_in_Block, key )
+  : ContactQuadFaceL4<Real>( alloc, Block_Index, Index_in_Block, key )
 {
   // Reset the type (because QuadFaceL4 set it to its type)
   face_type = ContactSearch::SHELLQUADFACEL4;

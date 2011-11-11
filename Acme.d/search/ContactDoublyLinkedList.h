@@ -14,7 +14,7 @@ class ContactTopologyDLL {
  public:
   ContactTopologyDLL();
   ~ContactTopologyDLL();
-  int Append( ContactTopologyEntity* );
+  int Append( ContactTopologyEntity<Real>* );
   
   inline void IteratorStart() {
     current = data.begin(); 
@@ -23,16 +23,16 @@ class ContactTopologyDLL {
       ++current;
     }
   };
-  inline ContactTopologyEntity* IteratorForward() { 
+  inline ContactTopologyEntity<Real>* IteratorForward() { 
     while(current < data.end()) {
-      ContactTopologyEntity *cur_object = *current;
+      ContactTopologyEntity<Real> *cur_object = *current;
       current++;
       if(cur_object != NULL) return cur_object;
     }
     return NULL;
   };
 
-  void SetEntity(const int pos, ContactTopologyEntity* entity) {
+  void SetEntity(const int pos, ContactTopologyEntity<Real>* entity) {
     data[pos] = entity;
   }
 
@@ -46,11 +46,11 @@ class ContactTopologyDLL {
   void Display(ContactParOStream&);
   void Clear();
   
-  std::vector< ContactTopologyEntity* > *EntityList() { return &data; };
+  std::vector< ContactTopologyEntity<Real>* > *EntityList() { return &data; };
 
  private:
-  std::vector< ContactTopologyEntity* > data;
-  std::vector< ContactTopologyEntity* >::iterator current;
+  std::vector< ContactTopologyEntity<Real>* > data;
+  std::vector< ContactTopologyEntity<Real>* >::iterator current;
   int num_entities;
 };
 

@@ -8,7 +8,7 @@
 #include <new>
 
 ContactNodeNodeInteraction::ContactNodeNodeInteraction( 
-   ContactNode* SlaveNode, ContactNode* MasterNode, 
+   ContactNode<Real>* SlaveNode, ContactNode<Real>* MasterNode, 
    int node_entity_key, Real distance)
   : ContactInteractionEntity(DataArray, CT_NNI)
 {
@@ -44,8 +44,8 @@ ContactNodeNodeInteraction::ContactNodeNodeInteraction(
 ContactNodeNodeInteraction*
 ContactNodeNodeInteraction::new_ContactNodeNodeInteraction(
                                      ContactFixedSizeAllocator& alloc,
-                                     ContactNode* SlaveNode,
-                                     ContactNode* MasterNode,
+                                     ContactNode<Real>* SlaveNode,
+                                     ContactNode<Real>* MasterNode,
 				     int node_entity_key,
                                      Real distance )
 {
@@ -110,11 +110,11 @@ void ContactNodeNodeInteraction::Restart_Unpack( Real* buffer )
 
 void ContactNodeNodeInteraction::Connect_SlaveNode(ContactTopologyEntityList& hash_table)
 {
-  slave_node = static_cast<ContactNode *>(hash_table.Find(&slave_node_entity_data));
+  slave_node = static_cast<ContactNode<Real> *>(hash_table.Find(&slave_node_entity_data));
   POSTCONDITION( slave_node );
 }
 
-void ContactNodeNodeInteraction::Connect_SlaveNode(ContactNode* Node)
+void ContactNodeNodeInteraction::Connect_SlaveNode(ContactNode<Real>* Node)
 {
   slave_node = Node;
   POSTCONDITION( slave_node );
@@ -122,11 +122,11 @@ void ContactNodeNodeInteraction::Connect_SlaveNode(ContactNode* Node)
 
 void ContactNodeNodeInteraction::Connect_MasterNode(ContactTopologyEntityList& hash_table)
 {
-  master_node = static_cast<ContactNode *>(hash_table.Find(&master_node_entity_data));
+  master_node = static_cast<ContactNode<Real> *>(hash_table.Find(&master_node_entity_data));
   //POSTCONDITION( master_node );
 }
 
-void ContactNodeNodeInteraction::Connect_MasterNode(ContactNode* Node)
+void ContactNodeNodeInteraction::Connect_MasterNode(ContactNode<Real>* Node)
 {
   master_node = Node;
 }

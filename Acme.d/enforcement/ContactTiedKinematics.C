@@ -176,7 +176,7 @@ ContactTiedKinematics::Compute_Position( Real* position )
 #ifdef CONTACT_DEBUG_NODE
   ContactParOStream& postream = ParOStream();
   for( int i=0 ; i<Number_Debug_Nodes() ; ++i){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       Real* ipos = dn->Variable(CURRENT_POSITION);
       postream << "TiedKinematics Initial Position for Node ("
@@ -194,7 +194,7 @@ ContactTiedKinematics::Compute_Position( Real* position )
   // Compute the final position, initially the current position
   for( int i=0 ; i<number_of_nodes ; ++i){
     Real* pos = position+3*i;
-    if( enforcement_node_list[i]->Ownership() == ContactTopologyEntity::OWNED ){
+    if( enforcement_node_list[i]->Ownership() == ContactTopologyEntity<Real>::OWNED ){
       Real* ipos = enforcement_node_list[i]->Variable(CURRENT_POSITION);
       pos[0] = ipos[0];
       pos[1] = ipos[1];
@@ -246,7 +246,7 @@ ContactTiedKinematics::Compute_Position( Real* position )
 
 #ifdef CONTACT_DEBUG_NODE
   for( int i=0 ; i<Number_Debug_Nodes() ; ++i){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       int index = dn->ProcArrayIndex();
       postream << "TiedKinematics  Final  Position for Node ("

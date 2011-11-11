@@ -7,7 +7,7 @@
 ContactShellTriFaceL3::ContactShellTriFaceL3(ContactFixedSizeAllocator* alloc,
                                              int Block_Index, 
 					     int Index_in_Block, int key ) 
-  : ContactTriFaceL3( alloc, Block_Index, Index_in_Block, key )
+  : ContactTriFaceL3<Real>( alloc, Block_Index, Index_in_Block, key )
 {
   // Reset the type (because TriFaceL3 set it to its type)
   face_type = ContactSearch::SHELLTRIFACEL3;

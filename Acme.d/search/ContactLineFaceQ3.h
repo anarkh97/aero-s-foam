@@ -6,8 +6,8 @@
 #include "ContactFace.h"
 #include "ContactEdge.h"
 
-class ContactNode;
-class ContactEdge;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
 class ContactFixedSizeAllocator;
 
 /* This class represents the line two node face with the following fortran
@@ -18,7 +18,7 @@ class ContactFixedSizeAllocator;
 
 */
 
-class ContactLineFaceQ3 : public ContactFace {
+class ContactLineFaceQ3 : public ContactFace<Real> {
   
  public:
   ContactLineFaceQ3(ContactFixedSizeAllocator*, int blk_indx=-1, 
@@ -31,9 +31,9 @@ class ContactLineFaceQ3 : public ContactFace {
 
   ContactSearch::ContactEdge_Type Edge_Type() 
     {return ContactSearch::NO_EDGES;};
-  void Get_Edge_Nodes(int, ContactNode**) 
+  void Get_Edge_Nodes(int, ContactNode<Real>**) 
     {PRECONDITION(0);};
-  int Get_Edge_Number(ContactNode** ) 
+  int Get_Edge_Number(ContactNode<Real>** ) 
     {PRECONDITION(0); return -1;};
   int Get_Edge_Number( Real* )
     {PRECONDITION(0); return -1;};
@@ -51,7 +51,7 @@ class ContactLineFaceQ3 : public ContactFace {
   void Evaluate_Shape_Functions( Real* local_coords, Real* shape_funcs );
   bool Is_Inside_Face( Real* local_coords );
   inline bool IsPlanar(VariableHandle) {return true;};
-  ContactFace* Neighbor( Real* local_coords );
+  ContactFace<Real>* Neighbor( Real* local_coords );
 
   void Get_Close_Edges( Real*, int&, int&, int& );
   void FacetDecomposition(int &, 
@@ -65,7 +65,7 @@ class ContactLineFaceQ3 : public ContactFace {
 		      VariableHandle, 
 		      ContactSearch::Smoothing_Resolution,
 		      Real,  Real*, Real*, Real );
-  int FaceEdge_Intersection(VariableHandle, ContactEdge*, Real*);
+  int FaceEdge_Intersection(VariableHandle, ContactEdge<Real>*, Real*);
   
   void Compute_Node_Areas(VariableHandle, VariableHandle, Real*);
   
@@ -95,8 +95,8 @@ class ContactLineFaceQ3 : public ContactFace {
 
  protected:
  private:
-  ContactNode* nodes[3];
-  ContactEdge* edges[3];
+  ContactNode<Real>* nodes[3];
+  ContactEdge<Real>* edges[3];
   connection_data Node_Info[3];
   connection_data Edge_Info[3];
 };

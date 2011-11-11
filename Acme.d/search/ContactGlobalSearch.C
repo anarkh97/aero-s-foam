@@ -139,15 +139,15 @@ ContactSearch::GlobalSearch(SearchType search_type,
     switch (physical_face_algorithm) {
     case PF_NONE:
       Build_Physical_Face_List_None(ContactSearch::SEARCH, 
-                                    ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                    ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
       break;
     case PF_FACE_BASED:
       Build_Physical_Face_List_FaceWalk(ContactSearch::SEARCH, 
-                                        ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                        ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
       break;
     case PF_EDGE_BASED:
       Build_Physical_Face_List_EdgeWalk(ContactSearch::SEARCH, 
-                                        ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                        ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
       break;
     default:
       POSTCONDITION(0);
@@ -224,7 +224,7 @@ ContactSearch::GlobalSearch(SearchType search_type,
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
       timer.Start_Timer( search_id_time );
     #endif
-    Interaction_Definition( num_configs,  ContactSearch::SEARCH, ContactTopologyEntity::GLOBAL_SEARCH_SLAVE );
+    Interaction_Definition( num_configs,  ContactSearch::SEARCH, ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE );
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
       timer.Stop_Timer( search_id_time );
     #endif
@@ -267,13 +267,13 @@ ContactSearch::GlobalSearch(SearchType search_type,
   #if CONTACT_DEBUG_PRINT_LEVEL>=2
     if (do_node_face_search) {
       primary_topology->Display_NodeEntity_Interactions_Summary(
-          postream, ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
+          postream, ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
     }
     #else
       #ifdef CONTACT_HEARTBEAT 
       if (do_node_face_search) {
         primary_topology->Display0_NodeEntity_Interactions_Summary(
-            ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
+            ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
       }
       #endif
   #endif
@@ -400,20 +400,20 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
       switch (physical_face_algorithm) {
       case PF_NONE:
         Build_Physical_Face_List_None(ContactSearch::SEARCH, 
-                                      ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                      ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
         break;
       case PF_FACE_BASED:
         if (tracking_type==GLOBAL_TRACKING && tracking_step>0) {
           Build_Physical_Face_List_FaceWalk(ContactSearch::SEARCH, 
-                                            ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, true);
+                                            ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, true);
         } else {
           Build_Physical_Face_List_FaceWalk(ContactSearch::SEARCH, 
-                                            ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                            ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
         }
         break;
       case PF_EDGE_BASED:
         Build_Physical_Face_List_EdgeWalk(ContactSearch::SEARCH, 
-                                          ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, false);
+                                          ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, false);
         break;
       default:
         POSTCONDITION(0);
@@ -491,7 +491,7 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
       timer.Start_Timer( search_id_time );
     #endif
-    Interaction_Definition( num_configs,  ContactSearch::SEARCH, ContactTopologyEntity::GLOBAL_SEARCH_SLAVE );
+    Interaction_Definition( num_configs,  ContactSearch::SEARCH, ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE );
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
       timer.Stop_Timer( search_id_time );
     #endif
@@ -538,13 +538,13 @@ ContactSearch::NewGlobalSearch(SearchType search_type,
   #if CONTACT_DEBUG_PRINT_LEVEL>=2
     if (do_node_face_search) {
       primary_topology->Display_NodeEntity_Interactions_Summary(
-          postream, ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
+          postream, ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
     }
   #else
     #ifdef CONTACT_HEARTBEAT 
       if (do_node_face_search) {
       primary_topology->Display0_NodeEntity_Interactions_Summary(
-          ContactTopologyEntity::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
+          ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE, (char*)"    ", 0);
       }
     #endif
   #endif
@@ -579,8 +579,8 @@ ContactSearch::Global_NodeNodeSearch(SearchType search_type, int num_configs,
     search_topology->Variable_Handle( ContactTopology::Node_Radius );
   
   int number_of_nodes = search_topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(search_topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(search_topology->NodeList()->EntityList());
   int* list    = new int[number_of_nodes];
   Real* dist   = new Real[number_of_nodes];
   Real node_rad_tol = search_data->Max_Search_Tolerance();
@@ -615,7 +615,7 @@ ContactSearch::Global_NodeNodeSearch(SearchType search_type, int num_configs,
     const ObjectBoundingBoxHierarchy &cur_leaf = node_hierarchy[inode];
     const int &object_num = cur_leaf.get_object_number();
     if(object_num < 0) continue;
-    ContactNode* node0 = Nodes[object_num];
+    ContactNode<Real>* node0 = Nodes[object_num];
     int node0_key = node0->Entity_Key();
     if (node0_key<0) continue;
     int list_size = 0;
@@ -624,11 +624,11 @@ ContactSearch::Global_NodeNodeSearch(SearchType search_type, int num_configs,
 
     list_size = Cull_Node_List(list_size, list, node0, dist);
     for(int j=0 ; j<list_size ; ++j ){
-      ContactNode* node1 = Nodes[list[j]];
+      ContactNode<Real>* node1 = Nodes[list[j]];
       int node1_key = node1->Entity_Key();
 
       if(node1_key >= 0) {
-        if(node1->Ownership() == ContactTopologyEntity::OWNED) {
+        if(node1->Ownership() == ContactTopologyEntity<Real>::OWNED) {
           ContactNodeNodeInteraction* cnni0 =
             ContactNodeNodeInteraction::new_ContactNodeNodeInteraction(
                              allocators[ALLOC_ContactNodeNodeInteraction],
@@ -642,7 +642,7 @@ ContactSearch::Global_NodeNodeSearch(SearchType search_type, int num_configs,
       //  Since A interacts with B, B interacts with A can halve the storage and significantly 
       //  reduce computation time
       //
-      if(node0->Ownership() == ContactTopologyEntity::OWNED) {
+      if(node0->Ownership() == ContactTopologyEntity<Real>::OWNED) {
         ContactNodeNodeInteraction* cnni1 =
           ContactNodeNodeInteraction::new_ContactNodeNodeInteraction(
                            allocators[ALLOC_ContactNodeNodeInteraction],
@@ -667,7 +667,7 @@ ContactSearch::Global_NodeNodeSearch(SearchType search_type, int num_configs,
 #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
   timer.Start_Timer( search_id_time );
 #endif
-  Interaction_Definition( num_configs, ContactSearch::SEARCH, ContactTopologyEntity::GLOBAL_SEARCH_SLAVE );
+  Interaction_Definition( num_configs, ContactSearch::SEARCH, ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE );
 #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
   timer.Stop_Timer( search_id_time );
 #endif
@@ -699,11 +699,11 @@ ContactSearch::Global_NodeFaceSearch(SearchType search_type,
   primary_topology->Variable_Handle( ContactTopology::Face_Normal );
 
   int number_of_nodes = search_topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(search_topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(search_topology->NodeList()->EntityList());
   int number_of_faces = search_topology->Number_of_Faces();
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(search_topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(search_topology->FaceList()->EntityList());
 
   //
   //  Allocate data required by the search
@@ -814,7 +814,7 @@ ContactSearch::Global_NodeFaceSearch(SearchType search_type,
    	int global_face_index = 0;
    	Real box_expand = user_search_tol+capture_tol;
    	for(int iface_block = 0; iface_block < num_face_blocks; ++iface_block) {
-   	  ContactFace** BlockFaces = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(iface_block));
+   	  ContactFace<Real>** BlockFaces = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(iface_block));
    	  int num_faces = face_list->BlockNumEntities(iface_block);
    	  //
    	  //  Determine the search tolerances and valid interactions for each face, node block pair
@@ -843,7 +843,7 @@ ContactSearch::Global_NodeFaceSearch(SearchType search_type,
    	    ContactBoundingBox face_current_box;
    	    ContactBoundingBox face_predicted_box;
    	    ContactBoundingBox face_search_box;
-   	    ContactFace *face = BlockFaces[iface];
+   	    ContactFace<Real> *face = BlockFaces[iface];
    	    face->ComputeBoundingBoxForSearch(num_configs,
    					      NODE_COORD_START,
    					      NODE_COORD_END, 
@@ -983,7 +983,7 @@ ContactSearch::Global_NodeFaceSearch(SearchType search_type,
         #endif
         int global_face_index = 0;
         for(int iface_block = 0; iface_block < num_face_blocks; ++iface_block) {
-          ContactFace** BlockFaces = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(iface_block));
+          ContactFace<Real>** BlockFaces = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(iface_block));
           int num_faces = face_list->BlockNumEntities(iface_block);
           //
           //  Determine the search tolerances and valid interactions for each face, node block pair
@@ -1012,7 +1012,7 @@ ContactSearch::Global_NodeFaceSearch(SearchType search_type,
             ContactBoundingBox face_current_box;
             ContactBoundingBox face_predicted_box;
             ContactBoundingBox face_search_box;
-            ContactFace *face = BlockFaces[iface];
+            ContactFace<Real> *face = BlockFaces[iface];
             face->ComputeBoundingBoxForSearch(num_configs,
                                               NODE_COORD_START,
                                               NODE_COORD_END, 
@@ -1180,12 +1180,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
   //
   //  Build a bounding box hierarchy containing all faces
   //
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(search_topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(search_topology->FaceList()->EntityList());
   ObjectBoundingBox *face_boxes = new ObjectBoundingBox[number_of_faces];
   ObjectBoundingBox *face_boxes_tmp = new ObjectBoundingBox[number_of_faces];
 
   for(int iface = 0; iface < number_of_faces; ++iface) {
-    ContactFace* face = Faces[iface];
+    ContactFace<Real>* face = Faces[iface];
     face_boxes[iface].set_object_number(iface);
     for(int inode = 0; inode < face->Nodes_Per_Face(); ++inode) {
       //
@@ -1216,7 +1216,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
   // Loop over all the faces
   int old_block_id = -1;
   int new_block_id = -1;
-  ContactElem* master_element = NULL;
+  ContactElem<Real>* master_element = NULL;
 #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
   timer.Stop_Timer( search_serial_setup_time );
 #endif
@@ -1235,10 +1235,10 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
   //const ObjectBoundingBoxHierarchy &cur_leaf = face_hierarchy[iface];
   //const int &object_num = cur_leaf.get_object_number();
   //if(object_num < 0) continue;
-  //ContactFace* master_face = Faces[object_num];
+  //ContactFace<Real>* master_face = Faces[object_num];
 
     for(int iface=0 ; iface<number_of_faces ; ++iface ){
-    ContactFace* master_face = Faces[iface];
+    ContactFace<Real>* master_face = Faces[iface];
 
     
 
@@ -1247,7 +1247,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
       // Delete the old master element if it exists
       if (master_element!=NULL) {
    	master_element->DeleteTopology(allocators);
-   	master_element->~ContactElem();
+   	master_element->~ContactElem<Real>();
    	switch (search_topology->Face_Block(old_block_id)->Type()) {
    	case TRIFACEL3:
    	  allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(master_element);
@@ -1264,12 +1264,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
       // Contstruct the master element from the master face type
       switch (search_topology->Face_Block(new_block_id)->Type()) {
       case TRIFACEL3:
-   	master_element = ContactWedgeElemL6::new_ContactWedgeElemL6( 
+   	master_element = ContactWedgeElemL6<Real>::new_ContactWedgeElemL6( 
    				      allocators[ALLOC_ContactWedgeElemL6],
    				      ContactSearch::WEDGEELEML6, 0);
    	break;
       case QUADFACEL4:
-   	master_element = ContactHexElemL8::new_ContactHexElemL8( 
+   	master_element = ContactHexElemL8<Real>::new_ContactHexElemL8( 
    				      allocators[ALLOC_ContactHexElemL8],
    				      ContactSearch::HEXELEML8, 0);
    	break;
@@ -1291,7 +1291,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
     if( list_size ){
       if (no_parallel_consistency==INACTIVE) Sort(list_size, list);
       for (int ilist=0; ilist<list_size; ++ilist) {
-        ContactFace* slave_face = Faces[list[ilist]];
+        ContactFace<Real>* slave_face = Faces[list[ilist]];
 	//
 	//  Cull out the found interactions based on various criteria
 	//
@@ -1306,7 +1306,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
 	//
 	//  Test 2: Cull out the faces that are not owned by this processor
 	//
-        if( slave_face->Ownership() != ContactTopologyEntity::OWNED ) continue;
+        if( slave_face->Ownership() != ContactTopologyEntity<Real>::OWNED ) continue;
         //
 	//  Test 3: Cull out the face if it is the same as the master face
 	//
@@ -1347,7 +1347,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
   // Delete the old master element if it exists
   if (master_element!=NULL) {
     master_element->DeleteTopology(allocators);
-    master_element->~ContactElem();
+    master_element->~ContactElem<Real>();
     switch (search_topology->Face_Block(old_block_id)->Type()) {
     case TRIFACEL3:
       allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(master_element);
@@ -1475,7 +1475,7 @@ ContactSearch::Global_ElemElemSearch(SearchType search_type, int num_configs,
     for (int j=0; j<nelems; ++j){
       ContactBoundingBox object_box;
       ContactElement* slave_element = Elems[j];
-      if(slave_element->Ownership() != ContactTopologyEntity::OWNED) continue;
+      if(slave_element->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
       int  slave_element_key = slave_element->Entity_Key();
       //
       // Determine all geometrically possible interactions between 
@@ -1549,7 +1549,7 @@ ContactSearch::Global_ElemElemSearch(SearchType search_type, int num_configs,
 	   	    
 	    int n;
 	    Real mesh[3][2];
-	    ContactNode* node = cartesian_hex->Node(0);
+	    ContactNode<Real>* node = cartesian_hex->Node(0);
 	    Real* xyz  = node->Variable(POSITION);
 	    mesh[0][0] = mesh[0][1] = xyz[0];
 	    mesh[1][0] = mesh[1][1] = xyz[1];
@@ -1616,35 +1616,35 @@ void ContactSearch::build_nodeface_search_status(int *node_search_status,
   ContactTopologyEntityList* face_list = search_topology->FaceList();
   
   int nnodes = node_list->BlockNumEntities(0);
-  ContactNode** Nodes  = 
-    reinterpret_cast<ContactNode**>(node_list->BlockEntityList(0));
+  ContactNode<Real>** Nodes  = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(0));
   for (i=0; i<nnodes; ++i){
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     node->temp_tag = 0;
-    //bool test2 = node->Ownership()==ContactTopologyEntity::OWNED;
+    //bool test2 = node->Ownership()==ContactTopologyEntity<Real>::OWNED;
     //postream<<"    1> checking node "<<node->Exodus_ID()<<"\n";
     //postream<<"         Owner         "<<node->Secondary_Owner()<<"\n";
     //postream<<"         Ownership     "<<test2<<"\n";
-    //postream<<"         StatusFlag    "<<node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)<<"\n";
+    //postream<<"         StatusFlag    "<<node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)<<"\n";
     //postream<<"         Physical_Type "<<node->Physical_Type()<<"\n";
-    if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
-    if (node->Ownership()     != ContactTopologyEntity::OWNED)           continue;
-    if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)            continue;
-    if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)            continue;
+    if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
+    if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED)           continue;
+    if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)            continue;
+    if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)            continue;
     node->temp_tag = 1;
     //postream<<"    1> tagging node "<<node->Exodus_ID()<<"\n";
   } 
   for (i=1; i<search_topology->Number_of_Node_Blocks(); ++i) {
     if (!search_data->Is_NodeBlock_NodeFaceSlave(i)) continue;
     nnodes = node_list->BlockNumEntities(i);
-    Nodes  = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+    Nodes  = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
     for (int j=0; j<nnodes; ++j){
-      ContactNode* node = Nodes[j];
+      ContactNode<Real>* node = Nodes[j];
       node->temp_tag = 0;
-      if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
-      if (node->Ownership()     != ContactTopologyEntity::OWNED)           continue;
-      if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)            continue;
-      if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)            continue;
+      if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
+      if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED)           continue;
+      if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)            continue;
+      if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)            continue;
       node->temp_tag = 2;
       //postream<<"    2> tagging node "<<node->Exodus_ID()<<"\n";
     } 
@@ -1653,14 +1653,14 @@ void ContactSearch::build_nodeface_search_status(int *node_search_status,
   for (i=0; i<search_topology->Number_of_Face_Blocks(); ++i) {
     if (!search_data->Is_FaceBlock_NodeFaceSlave(i)) continue;
     int nfaces = face_list->BlockNumEntities(i);
-    ContactFace** Faces  = 
-      reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+    ContactFace<Real>** Faces  = 
+      reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
     for (int j=0; j<nfaces; ++j){
-      ContactFace* face = Faces[j];
+      ContactFace<Real>* face = Faces[j];
       //postream<<"    3a> tagging face "<<face->Global_ID()<<"\n";
       int num_nodes = face->Nodes_Per_Face();
       for (int k=0; k<num_nodes; ++k) {
-        ContactNode* node = face->Node(k);
+        ContactNode<Real>* node = face->Node(k);
         if (node->temp_tag==1) {
         node->temp_tag=2;
         //postream<<"    3b> tagging node "<<node->Exodus_ID()<<"\n";
@@ -1672,7 +1672,7 @@ void ContactSearch::build_nodeface_search_status(int *node_search_status,
   num_active_nodes = 0;
   for (ii=0, i=0; i<search_topology->Number_of_Node_Blocks(); ++i) {
     nnodes = node_list->BlockNumEntities(i);
-    Nodes  = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+    Nodes  = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
     for (int j=0; j<nnodes; ++j){
       if (Nodes[j]->temp_tag==2) {
         node_search_status[ii++] = 1;
@@ -1708,28 +1708,28 @@ void ContactSearch::build_nodeface_search_status_proximity(int *node_search_stat
   ContactTopologyEntityList* face_list = search_topology->FaceList();
   
   int nnodes = node_list->BlockNumEntities(0);
-  ContactNode** Nodes  = 
-    reinterpret_cast<ContactNode**>(node_list->BlockEntityList(0));
+  ContactNode<Real>** Nodes  = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(0));
   for (i=0; i<nnodes; ++i){
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     node->temp_tag = 0;
-    if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
-    if (node->Ownership()     != ContactTopologyEntity::OWNED)           continue;
-    if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)            continue;
-    if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)            continue;
+    if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
+    if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED)           continue;
+    if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)            continue;
+    if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)            continue;
     node->temp_tag = 1;
   } 
   for (i=1; i<search_topology->Number_of_Node_Blocks(); ++i) {
     if (!search_data->Is_NodeBlock_NodeFaceSlave(i)) continue;
     nnodes = node_list->BlockNumEntities(i);
-    Nodes  = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+    Nodes  = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
     for (int j=0; j<nnodes; ++j){
-      ContactNode* node = Nodes[j];
+      ContactNode<Real>* node = Nodes[j];
       node->temp_tag = 0;
-      if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
-      if (node->Ownership()     != ContactTopologyEntity::OWNED)           continue;
-      if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)            continue;
-      if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)            continue;
+      if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
+      if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED)           continue;
+      if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)            continue;
+      if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)            continue;
       node->temp_tag = 2;
     } 
   }
@@ -1737,13 +1737,13 @@ void ContactSearch::build_nodeface_search_status_proximity(int *node_search_stat
   for (i=0; i<search_topology->Number_of_Face_Blocks(); ++i) {
     if (!search_data->Is_FaceBlock_NodeFaceSlave(i)) continue;
     int nfaces = face_list->BlockNumEntities(i);
-    ContactFace** Faces  = 
-      reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+    ContactFace<Real>** Faces  = 
+      reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
     for (int j=0; j<nfaces; ++j){
-      ContactFace* face = Faces[j];
+      ContactFace<Real>* face = Faces[j];
       int num_nodes = face->Nodes_Per_Face();
       for (int k=0; k<num_nodes; ++k) {
-        ContactNode* node = face->Node(k);
+        ContactNode<Real>* node = face->Node(k);
         if (node->temp_tag==1) node->temp_tag=2;
       }
     }
@@ -1752,7 +1752,7 @@ void ContactSearch::build_nodeface_search_status_proximity(int *node_search_stat
   num_active_nodes = 0;
   for (ii=0, i=0; i<search_topology->Number_of_Node_Blocks(); ++i) {
     nnodes = node_list->BlockNumEntities(i);
-    Nodes  = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+    Nodes  = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
     for (int j=0; j<nnodes; ++j){
       if (Nodes[j]->temp_tag==2 && Nodes[j]->in_proximity) {
         node_search_status[ii++] = 1;
@@ -1766,7 +1766,7 @@ void ContactSearch::build_nodeface_search_status_proximity(int *node_search_stat
   num_active_faces = 0;
   for (ii=0, i=0; i<search_topology->Number_of_Face_Blocks(); ++i) {
     int nfaces = face_list->BlockNumEntities(i);
-    ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+    ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
     if (search_data->Is_FaceBlock_NodeFaceMaster(i)) {
       for (int j=0; j<nfaces; ++j ){
          if (Faces[j]->in_proximity) {
@@ -1789,7 +1789,7 @@ void ContactSearch::build_nodeface_search_status_proximity(int *node_search_stat
 //
 void ContactSearch::ComputeInteractions(const int list_size, 
                                         ACME::ContactNode_Vector &node_list,
-                                        ContactFace *face,
+                                        ContactFace<Real> *face,
                                         const VariableHandle &CURRENT_POSITION,
                                         const VariableHandle &AUGMENTED_POSITION,
                                         const VariableHandle &PREDICTED_POSITION,
@@ -1803,7 +1803,7 @@ void ContactSearch::ComputeInteractions(const int list_size,
 {
   int last_facet_type = -1;
   for(int k=0 ; k<list_size ; ++k ){
-    ContactNode *node = node_list[k];
+    ContactNode<Real> *node = node_list[k];
 
     int npairs = 1;
     int nfacets;

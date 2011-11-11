@@ -262,8 +262,8 @@ ContactVolumeTransfer::Compute_Volume_Transfer( int num_node_vars,
   if( num_node_vars ){
     int inode = 0;
     for( int nn=0 ; nn<topology->Number_of_Node_Blocks() ; nn++ ){
-      ContactNode** BlockNodes = 
-        reinterpret_cast<ContactNode**>(topology->NodeList()->BlockEntityList(nn));
+      ContactNode<Real>** BlockNodes = 
+        reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->BlockEntityList(nn));
       for (int i=0; i<topology->NodeList()->BlockNumEntities(nn); ++i) {
         int k = BlockNodes[i]->HostGlobalArrayIndex();
         Real* n_data = TOTAL_NODAL_DONOR_VARS.Get_Scratch(BlockNodes[i]);
@@ -537,8 +537,8 @@ ContactVolumeTransfer::Compute_Volume_Transfer( int num_node_vars,
   // Release scratch memory
   if( num_node_vars ){
     for( int nn=0 ; nn<topology->Number_of_Node_Blocks() ; nn++ ){
-      ContactNode** BlockNodes = 
-        reinterpret_cast<ContactNode**>(topology->NodeList()->BlockEntityList(nn));
+      ContactNode<Real>** BlockNodes = 
+        reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->BlockEntityList(nn));
       for (int i=0; i<topology->NodeList()->BlockNumEntities(nn); ++i) {
         int k1 = BlockNodes[i]->HostGlobalArrayIndex();
         int k2 = BlockNodes[i]->ProcArrayIndex();

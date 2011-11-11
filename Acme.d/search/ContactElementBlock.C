@@ -147,7 +147,7 @@ void ContactElementBlock::Delete_Elements()
     }
     POSTCONDITION(alloc!=NULL);
     elem_list->IteratorStart();
-    while (ContactTopologyEntity* entity = elem_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity = elem_list->IteratorForward()) {
       ContactElement* element = static_cast<ContactElement*>(entity);
       element->~ContactElement();
       alloc->Delete_Frag(element);
@@ -192,11 +192,11 @@ void ContactElementBlock::ComputeBoundingBox(int nconfigs,
   if( elem_list ){
     local_bounding_box.Reset();
     elem_list->IteratorStart();
-    while (ContactTopologyEntity* entity = elem_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity = elem_list->IteratorForward()) {
       ContactElement* element = static_cast<ContactElement*>(entity);
       ContactBoundingBox object_box;
       for (int k=0; k<element->Nodes_Per_Element(); ++k) {
-        ContactNode* node = element->Node(k);
+        ContactNode<Real>* node = element->Node(k);
         Real* position = node->Variable(POSITION1);
         object_box.add_point(position);
         if (nconfigs>1) {

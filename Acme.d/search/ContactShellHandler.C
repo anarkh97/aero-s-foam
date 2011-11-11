@@ -2373,8 +2373,8 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
   // Mark temp_tag with 1 for shell nodes and 0 for non-shell nodes
   int i;
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     if( Nodes[i]->Is_a_Shell_Node() )
       Nodes[i]->temp_tag = 1;
@@ -2395,9 +2395,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << "\n";
     for( j=0 ; j<node_sym_comm->Num_to_Proc(i) ; ++j){
       postream << "    Communicating node " 
-	       << ((ContactNode*) node_sym_comm->Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) node_sym_comm->Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) node_sym_comm->Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) node_sym_comm->Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -2418,9 +2418,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << "\n";
     for( j=0 ; j<comm_plan->Num_to_Proc(i) ; ++j){
       postream << "    Communicating node " 
-	       << ((ContactNode*) comm_plan->Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) comm_plan->Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) comm_plan->Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) comm_plan->Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -2454,9 +2454,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << comm_plan_to_ghost->Export_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<comm_plan_to_ghost->Num_Export_to_Proc(i) ; ++j){
       postream << "       Communicating Node " 
-	       << ((ContactNode*) comm_plan_to_ghost->Export_Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_ghost->Export_Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) comm_plan_to_ghost->Export_Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_ghost->Export_Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -2468,9 +2468,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << comm_plan_to_ghost->Import_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<comm_plan_to_ghost->Num_Import_from_Proc(i) ; ++j){
       postream << "       Communicating Node " 
-	       << ((ContactNode*) comm_plan_to_ghost->Import_Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_ghost->Import_Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) comm_plan_to_ghost->Import_Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_ghost->Import_Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -2489,9 +2489,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << comm_plan_to_owner->Export_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<comm_plan_to_owner->Num_Export_to_Proc(i) ; ++j){
       postream << "       Communicating Node " 
-	       << ((ContactNode*) comm_plan_to_owner->Export_Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_owner->Export_Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) comm_plan_to_owner->Export_Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_owner->Export_Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -2503,9 +2503,9 @@ void ContactShellHandler::Build_Shell_Comm_Plans()
 	     << comm_plan_to_owner->Import_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<comm_plan_to_owner->Num_Import_from_Proc(i) ; ++j){
       postream << "       Communicating Node " 
-	       << ((ContactNode*) comm_plan_to_owner->Import_Entity_List(i)[j])->Exodus_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_owner->Import_Entity_List(i)[j])->Exodus_ID()
 	       << " " 
-	       << ((ContactNode*) comm_plan_to_owner->Import_Entity_List(i)[j])->Global_ID()
+	       << ((ContactNode<Real>*) comm_plan_to_owner->Import_Entity_List(i)[j])->Global_ID()
 	       << "\n";
     }
   }
@@ -3889,7 +3889,7 @@ void ContactShellHandler::number_nodes_using_handler
 		l < old_handler->Num_Acme_Nodes_for_Host_Node(old_host_node); 
 		++l) {
 	    int old_acme_node = old_handler->Acme_Node_for_Host_Node( old_host_node, l );
-	    ContactNode* old_node_obj = static_cast<ContactNode*>(topology->NodeList()->Find(old_acme_node));
+	    ContactNode<Real>* old_node_obj = static_cast<ContactNode<Real>*>(topology->NodeList()->Find(old_acme_node));
             if(old_node_obj->ConnectedToFace(ContactHostGlobalID(old_face_gid[0], old_face_gid[1]))) {
               found_face = true;
               resolved_node_gid[0] = old_node_obj->Global_ID().HiInt();
@@ -4056,8 +4056,8 @@ void ContactShellHandler::Set_NodeBlk_Position( int NodeBlk_ID,
       int hi, lo;
       Acme_NodeGID_for_Host_Node(node_offset+i,k,hi,lo);
       ContactHostGlobalID gid(hi, lo);
-      ContactNode* node = 
-        static_cast<ContactNode*>(nodes->Find(gid));
+      ContactNode<Real>* node = 
+        static_cast<ContactNode<Real>*>(nodes->Find(gid));
       POSTCONDITION(node);
       Real* position = node->Variable(POSITION);
       for( j=0 ; j<dimensionality ; ++j) {
@@ -4087,8 +4087,8 @@ ContactShellHandler::Set_NodeBlk_KinConstr( int NodeBlk_ID,
       int hi, lo;
       Acme_NodeGID_for_Host_Node(node_offset+i,k,hi,lo);
       ContactHostGlobalID gid(hi, lo);
-      ContactNode* node = 
-        static_cast<ContactNode*>(nodes->Find(gid));
+      ContactNode<Real>* node = 
+        static_cast<ContactNode<Real>*>(nodes->Find(gid));
       POSTCONDITION(node);
       *node->Variable(NUM_KIN_CONSTR) = num_kcs[i];
       Real* vector = node->Variable(KIN_CONSTR_VECTOR);
@@ -4116,8 +4116,8 @@ ContactShellHandler::Set_NodeBlk_RemainingGap( int NodeBlk_ID,
       int hi, lo;
       Acme_NodeGID_for_Host_Node(node_offset+i,k,hi,lo);
       ContactHostGlobalID gid(hi, lo);
-      ContactNode* node = 
-        static_cast<ContactNode*>(nodes->Find(gid));
+      ContactNode<Real>* node = 
+        static_cast<ContactNode<Real>*>(nodes->Find(gid));
       POSTCONDITION(node);
       Real* remaining_gap = node->Variable(REMAINING_GAP);
       for( j=0 ; j<dimensionality ; ++j)
@@ -4144,8 +4144,8 @@ ContactShellHandler::Set_NodeBlk_GhostingGap( int NodeBlk_ID,
       int hi, lo;
       Acme_NodeGID_for_Host_Node(node_offset+i,k,hi,lo);
       ContactHostGlobalID gid(hi, lo);
-      ContactNode* node = 
-        static_cast<ContactNode*>(nodes->Find(gid));
+      ContactNode<Real>* node = 
+        static_cast<ContactNode<Real>*>(nodes->Find(gid));
       POSTCONDITION(node);
       Real* ghosting_gap = node->Variable(GHOSTING_GAP);
       for( j=0 ; j<dimensionality ; ++j)
@@ -4200,10 +4200,10 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   int* sb_i = (int*) send_buff;
   int offset = 0;
   for( i=0 ; i<comm_plan_to_owner->Num_Export_Comm_Partners() ; ++i){
-    ContactNode** node_list_to_proc = (ContactNode**) 
+    ContactNode<Real>** node_list_to_proc = (ContactNode<Real>**) 
       comm_plan_to_owner->Export_Entity_List( i );
     for( j=0 ; j<comm_plan_to_owner->Num_Export_to_Proc( i ) ; ++j){
-      if ( node_list_to_proc[j]->Physical_Type() == ContactNode::MIXED_NODE)
+      if ( node_list_to_proc[j]->Physical_Type() == ContactNode<Real>::MIXED_NODE)
 	sb_i[offset++] = 0;
       else
 	sb_i[offset++] = node_list_to_proc[j]->Number_Face_Connections();
@@ -4241,14 +4241,14 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   rb_i = (int*) recv_buff;
   int* Num_Import_from_Proc = new int[num_import_procs];
   int* Import_Comm_Proc_IDs = new int[num_import_procs];
-  ContactTopologyEntity** Import_Entity_List = new ContactTopologyEntity*[num_imported_faces];
+  ContactTopologyEntity<Real>** Import_Entity_List = new ContactTopologyEntity*[num_imported_faces];
   std::memset( Num_Import_from_Proc, 0, num_import_procs*sizeof(int) );
   num_import_procs = 0;
   num_imported_faces = 0;
   offset = 0;
   for( i=0 ; i<comm_plan_to_owner->Num_Import_Comm_Partners() ; ++i){
     bool added_this_proc = false;
-    ContactTopologyEntity** node_list = comm_plan_to_owner->Import_Entity_List( i );
+    ContactTopologyEntity<Real>** node_list = comm_plan_to_owner->Import_Entity_List( i );
     for( j=0 ; j<comm_plan_to_owner->Num_Import_from_Proc(i) ; ++j){
       if( rb_i[offset] > 0 ){
 	for( k=0 ; k<rb_i[offset] ; ++k){
@@ -4289,13 +4289,13 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   int* Num_Export_to_Proc = new int[num_export_procs];
   int* Export_Comm_Proc_IDs = new int[num_export_procs];
   std::memset( Num_Export_to_Proc, 0, num_export_procs*sizeof(int) );
-  ContactTopologyEntity** Export_Entity_List = new ContactTopologyEntity*[num_exported_faces];
+  ContactTopologyEntity<Real>** Export_Entity_List = new ContactTopologyEntity*[num_exported_faces];
   num_export_procs = 0;
   num_exported_faces = 0;
   offset = 0;
   for( i=0 ; i<comm_plan_to_owner->Num_Export_Comm_Partners() ; ++i){
     bool added_this_proc = false;
-    ContactTopologyEntity** node_list = comm_plan_to_owner->Export_Entity_List( i );
+    ContactTopologyEntity<Real>** node_list = comm_plan_to_owner->Export_Entity_List( i );
     for( j=0 ; j<comm_plan_to_owner->Num_Export_to_Proc(i) ; ++j){
       if( sb_i[offset] > 0 ){
 	for( k=0 ; k<sb_i[offset] ; ++k){
@@ -4334,7 +4334,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
     postream << "    Exporting to Proc " 
 	     << import_loft_face_data_comm_plan->Export_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<import_loft_face_data_comm_plan->Num_Export_to_Proc(i) ; ++j){
-      ContactNode* node = static_cast<ContactNode*>
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                           (import_loft_face_data_comm_plan->Export_Entity_List(i)[j]);
       postream << "       Communicating Node " 
 	       << node->Exodus_ID()
@@ -4356,7 +4356,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
     postream << "    Importing to Proc " 
 	     << import_loft_face_data_comm_plan->Import_Comm_Proc_ID(i) << "\n";
     for( j=0 ; j<import_loft_face_data_comm_plan->Num_Import_from_Proc(i) ; ++j){
-      ContactNode* node = static_cast<ContactNode*>
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                           (import_loft_face_data_comm_plan->Import_Entity_List(i)[j]);
       postream << "       Communicating Node " 
 	       << node->Exodus_ID()
@@ -4383,7 +4383,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   }
   int number_of_ghosts = 0;
   for( i=0;i<import_loft_face_data_comm_plan->Num_Import_Comm_Partners(); ++i){
-    ContactNode** node_list = (ContactNode**) 
+    ContactNode<Real>** node_list = (ContactNode<Real>**) 
       import_loft_face_data_comm_plan->Import_Entity_List(i);
     for(j=0;j<import_loft_face_data_comm_plan->Num_Import_from_Proc(i); ++j){
       number_lofting_ghosts[node_list[j]->ProcArrayIndex()] += 1;
@@ -4404,7 +4404,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
 
   offset = 0;
   for( i=0;i<import_loft_face_data_comm_plan->Num_Import_Comm_Partners(); ++i){
-    ContactNode** node_list = (ContactNode**) 
+    ContactNode<Real>** node_list = (ContactNode<Real>**) 
       import_loft_face_data_comm_plan->Import_Entity_List(i);
     for( j=0;j<import_loft_face_data_comm_plan->Num_Import_from_Proc(i); ++j){
       int node_index = node_list[j]->ProcArrayIndex();
@@ -4424,8 +4424,8 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
     postream << "\n\nLofted Communication Information\n";
     postream << "=====================================================\n";
   }
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     postream << "Information for Node " << Nodes[i]->Exodus_ID() << "\n";
     postream << "   Number of Lofting Ghosts = " << number_lofting_ghosts[i] 
@@ -4480,8 +4480,8 @@ void ContactShellHandler::Mark_Shell_Nodes( )
   // and do a parallel swapadd to make sure all processors know that
   // this node is a mixed node
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->temp_tag = 0;
   }
@@ -4493,7 +4493,7 @@ void ContactShellHandler::Mark_Shell_Nodes( )
 #ifndef CONTACT_NO_MPI
   int * comm_data = new int[topology->Number_of_Nodes()];
   for ( i = 0; i < topology->Node_Sym_Comm()->Num_Comm_Partners(); ++i) {
-    ContactTopologyEntity ** entity_list = topology->Node_Sym_Comm()->Entity_List(i);
+    ContactTopologyEntity<Real> ** entity_list = topology->Node_Sym_Comm()->Entity_List(i);
     for ( j = 0; j < topology->Node_Sym_Comm()->Num_to_Proc(i); ++j) 
       comm_data[entity_list[j]->ProcArrayIndex()] = entity_list[j]->temp_tag;
   }
@@ -4502,7 +4502,7 @@ void ContactShellHandler::Mark_Shell_Nodes( )
 			     comm_data, 1);
   
   for ( i = 0; i < topology->Node_Sym_Comm()->Num_Comm_Partners(); ++i) {
-    ContactTopologyEntity ** entity_list = topology->Node_Sym_Comm()->Entity_List(i);
+    ContactTopologyEntity<Real> ** entity_list = topology->Node_Sym_Comm()->Entity_List(i);
     for ( j = 0; j < topology->Node_Sym_Comm()->Num_to_Proc(i); ++j) 
       entity_list[j]->temp_tag += comm_data[entity_list[j]->ProcArrayIndex()];
   }
@@ -4523,14 +4523,14 @@ void ContactShellHandler::Mark_Shell_Nodes( )
       int host_ex_id = orig_exodus_node_ids[host_id];
       lofted_nodes[lofted_node_idx]->Shell_Node_Base_ID( host_ex_id );
       if (lofted_nodes[lofted_node_idx]->temp_tag > 0) {
-	lofted_nodes[lofted_node_idx]->Physical_Type(ContactNode::MIXED_NODE);
+	lofted_nodes[lofted_node_idx]->Physical_Type(ContactNode<Real>::MIXED_NODE);
 #ifdef SHELL_DEBUG
 	postream << "=> node " << lofted_nodes[lofted_node_idx]->Exodus_ID()
 		 << " (CID:" << contact_id << ")" 
 		 << " is a MIXED node" << "\n";
 #endif
       } else {
-	lofted_nodes[lofted_node_idx]->Physical_Type(ContactNode::SHELL_NODE);
+	lofted_nodes[lofted_node_idx]->Physical_Type(ContactNode<Real>::SHELL_NODE);
 #ifdef SHELL_DEBUG
 	postream << "=> node " << lofted_nodes[lofted_node_idx]->Exodus_ID()
 		 << " (CID:" << contact_id << ")" 
@@ -4547,25 +4547,25 @@ void ContactShellHandler::Mark_Shell_Nodes( )
   // mixed nodes -- they are just flagged as contiuum nodes. This 
   // traps those nodes if they are tab nodes. Still need to work on 
   // correcting the erroneous flagging.
-  ContactNode** node_list = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** node_list = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for( i=0 ; i<number_acme_nodes ; ++i){
-    ContactNode* node = node_list[i];
+    ContactNode<Real>* node = node_list[i];
     if (is_a_tab_node[node->HostGlobalArrayIndex()]){
-      if ( node->Physical_Type() == ContactNode::SHELL_NODE){
-	node->Physical_Type(ContactNode::SHELL_TAB_NODE);
+      if ( node->Physical_Type() == ContactNode<Real>::SHELL_NODE){
+	node->Physical_Type(ContactNode<Real>::SHELL_TAB_NODE);
 #ifdef SHELL_DEBUG
 	  postream << "*> node " << node->Exodus_ID()
 		   << " :: Make that a SHELL TAB node.\n";
 #endif
-      } else if ( node->Physical_Type() == ContactNode::MIXED_NODE){
-	node->Physical_Type(ContactNode::MIXED_TAB_NODE);
+      } else if ( node->Physical_Type() == ContactNode<Real>::MIXED_NODE){
+	node->Physical_Type(ContactNode<Real>::MIXED_TAB_NODE);
 #ifdef SHELL_DEBUG
 	  postream << "*> node " << node->Exodus_ID()
 		   << " :: Make that a MIXED TAB node.\n";
 #endif
-      } else if ( node->Physical_Type() == ContactNode::CONTINUUM_NODE){
-	node->Physical_Type(ContactNode::MIXED_TAB_NODE);
+      } else if ( node->Physical_Type() == ContactNode<Real>::CONTINUUM_NODE){
+	node->Physical_Type(ContactNode<Real>::MIXED_TAB_NODE);
 #ifdef SHELL_DEBUG
 	  postream << "*> node " << node->Exodus_ID()
 		   << " :: Fix CONTINUUM node to be a MIXED TAB node.\n";
@@ -4606,18 +4606,18 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
     rb0 = (Real*) recv_buf;
     int offset = 0;
     for( int i=0 ; i<import_loft_face_data_comm_plan->Num_Export_Comm_Partners() ; ++i ){
-      ContactNode** node_list = (ContactNode**) 
+      ContactNode<Real>** node_list = (ContactNode<Real>**) 
 	import_loft_face_data_comm_plan->Export_Entity_List(i);
-      ContactTopologyEntity* old_node = node_list[0];
+      ContactTopologyEntity<Real>* old_node = node_list[0];
       int next_face_index = 0;
       for( int j=0 ; j<import_loft_face_data_comm_plan->Num_Export_to_Proc(i) ; ++j ){
-        PRECONDITION(!(node_list[j]->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)));
+        PRECONDITION(!(node_list[j]->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)));
 	if( old_node != node_list[j] ) 
 	  next_face_index = 0;
 	old_node = node_list[j];
         
-	ContactFace* face = node_list[j]->GetFace(next_face_index++);
-        while (face->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) {
+	ContactFace<Real>* face = node_list[j]->GetFace(next_face_index++);
+        while (face->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) {
 	  face = node_list[j]->GetFace(next_face_index++);
         }
         
@@ -4679,12 +4679,12 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
   Real T_Weighted_Normal[3][3];
   int num_faces_in_pf[3];
 
-  ContactNode** Nodes = 
-      reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+      reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   int i = -1;
   for( int ii=0 ; ii<number_of_nodes ; ++ii){
-    ContactNode* node = Nodes[ii];
-    if(  node->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) continue;
+    ContactNode<Real>* node = Nodes[ii];
+    if(  node->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
     ++i;
     PRECONDITION(i<topology->Number_of_Primary_Nodes());
     if( !node->Is_a_Shell_Node() ) continue;
@@ -4706,7 +4706,7 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
      // exact location of the lofted node. This is very accurate for
      // many corners, but has problems when the angles are very small and
      // when the number of physical faces changes. 
-    if( node->Physical_Type() == ContactNode::SHELL_NODE ){
+    if( node->Physical_Type() == ContactNode<Real>::SHELL_NODE ){
       Real loft[3];
       loft[0] = 0.0;
       loft[1] = 0.0;
@@ -4751,14 +4751,14 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
 	bool process = false;
 	if( j<num_face_connections ){
           if (topology->HaveGhosting()) {
-            if (node->GetFace(j)->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) continue;
+            if (node->GetFace(j)->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
           }
 	  /********************************************************************/
 	  /*                                                                  */
 	  /*    P R O C E S S    O N    P R O C E S S O R    F A C E S        */
 	  /*                                                                  */
 	  /********************************************************************/
-	  ContactFace* face = node->GetFace(j);
+	  ContactFace<Real>* face = node->GetFace(j);
           POSTCONDITION(face);
 	  if( ContactSearch::Is_a_Shell_Face( face->FaceType() ) ){
 	    face_normal = face->Variable(FACE_NORMAL);
@@ -5056,7 +5056,7 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
       // shells on one plane and  just one shell on another plane. The
       // many many shells will have their normals weighted more heavily
       // than the big face. But it my turn out o.k. after all.
-    if( node->Physical_Type() == ContactNode::SHELL_NODE ){
+    if( node->Physical_Type() == ContactNode<Real>::SHELL_NODE ){
       Real avg_norm[3];
       avg_norm[0] = 0.0;
       avg_norm[1] = 0.0;
@@ -5077,14 +5077,14 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
         Real thickness;
 	if( j<num_face_connections ){
           if (topology->HaveGhosting()) {
-            if (node->GetFace(j)->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) continue;
+            if (node->GetFace(j)->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
           }
 	  /********************************************************************/
 	  /*                                                                  */
 	  /*    P R O C E S S    O N    P R O C E S S O R    F A C E S        */
 	  /*                                                                  */
 	  /********************************************************************/
-	  ContactFace* face = node->GetFace(j);
+	  ContactFace<Real>* face = node->GetFace(j);
 	  if( ContactSearch::Is_a_Shell_Face( face->FaceType() ) ){
 	    face_normal = face->Variable(FACE_NORMAL);
 	    PRECONDITION( face->FaceType() == ContactSearch::SHELLQUADFACEL4 ||
@@ -5164,8 +5164,8 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
   // Now loft the nodes
   i = -1;
   for( int ii=0 ; ii<number_of_nodes ; ++ii){
-    ContactNode* node = Nodes[ii];
-    if(  node->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) continue;
+    ContactNode<Real>* node = Nodes[ii];
+    if(  node->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
     ++i;
     PRECONDITION(i<topology->Number_of_Primary_Nodes());
     if( !node->Is_a_Shell_Node() ) continue;
@@ -5209,8 +5209,8 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
 #ifdef SHELL_DEBUG
   i = -1;
   for( int ii=0 ; ii<number_of_nodes ; ++ii){
-    ContactNode* node = Nodes[ii];
-    if(  node->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) continue;
+    ContactNode<Real>* node = Nodes[ii];
+    if(  node->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
     ++i;
     PRECONDITION(i<topology->Number_of_Primary_Nodes());
     if( !node->Is_a_Shell_Node() ) continue

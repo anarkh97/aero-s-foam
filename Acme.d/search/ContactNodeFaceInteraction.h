@@ -22,19 +22,19 @@ class ContactNodeFaceInteraction : public ContactNodeEntityInteraction {
  public:
 
   ContactNodeFaceInteraction( );
-  ContactNodeFaceInteraction( ContactNode* );
-  ContactNodeFaceInteraction( InteractionSource, ContactNode*, ContactFace*, 
+  ContactNodeFaceInteraction( ContactNode<Real>* );
+  ContactNodeFaceInteraction( InteractionSource, ContactNode<Real>*, ContactFace<Real>*, 
 			      Real*, int, Real*, bool, bool, bool, bool,
                               int, const VariableHandle& );
   ContactNodeFaceInteraction( ContactNodeFaceInteraction& );
   static ContactNodeFaceInteraction* new_ContactNodeFaceInteraction(
             ContactFixedSizeAllocator&, InteractionSource,  
-	    ContactNode*, ContactFace*, Real*, int, Real*, 
+	    ContactNode<Real>*, ContactFace<Real>*, Real*, int, Real*, 
             bool, bool, bool, bool, int, const VariableHandle& );
   static ContactNodeFaceInteraction* new_ContactNodeFaceInteraction(
 	     ContactFixedSizeAllocator&  );
   static ContactNodeFaceInteraction* new_ContactNodeFaceInteraction(
-	     ContactFixedSizeAllocator& , ContactNode* node );
+	     ContactFixedSizeAllocator& , ContactNode<Real>* node );
   static ContactNodeFaceInteraction* new_ContactNodeFaceInteraction(
 	     ContactFixedSizeAllocator&, ContactNodeFaceInteraction& );
   ~ContactNodeFaceInteraction();
@@ -57,7 +57,7 @@ class ContactNodeFaceInteraction : public ContactNodeEntityInteraction {
   virtual char* Pack_ForSecondary( char* buffer );
   virtual char* Unpack_ForSecondary( char* buffer );
 
-  inline ContactFace* Face();
+  inline ContactFace<Real>* Face();
   inline entity_data* FaceEntityData();
   inline int Set_FaceEntityData();
 
@@ -83,7 +83,7 @@ class ContactNodeFaceInteraction : public ContactNodeEntityInteraction {
   inline void Connect_Face( ContactTopologyEntityList& );
   inline void Connect_Face( ContactTopologyEntityHash& );
   inline void Connect_Face( ContactTopology* );
-  inline void Connect_Face( ContactFace* );
+  inline void Connect_Face( ContactFace<Real>* );
 
   // Restart Pack/Unpack functions
   virtual int  Restart_Size();
@@ -99,15 +99,15 @@ class ContactNodeFaceInteraction : public ContactNodeEntityInteraction {
   virtual void Delete_Frag(ContactFixedSizeAllocator* allocators);
 
   inline int NumSharedFaces();
-  inline ContactTopologyEntity::connection_data* SharedFaceData(int i);
+  inline ContactTopologyEntity<Real>::connection_data* SharedFaceData(int i);
     
  protected:
 
  private:
-  inline int  PackConnection(ContactTopologyEntity::connection_data*, int*);
-  inline int  UnPackConnection(ContactTopologyEntity::connection_data*, int*);
+  inline int  PackConnection(ContactTopologyEntity<Real>::connection_data*, int*);
+  inline int  UnPackConnection(ContactTopologyEntity<Real>::connection_data*, int*);
   
-  ContactTopologyEntity::connection_data shared_face_data[4];
+  ContactTopologyEntity<Real>::connection_data shared_face_data[4];
   int number_shared_faces;
 #ifndef CONTACT_NO_MPI
   ContactZoltanLID zoltan_lid;
@@ -156,9 +156,9 @@ inline void ContactNodeFaceInteraction::ZoltanFaceGID(LB_ID_PTR gid)
 }
 #endif
 
-inline ContactFace* ContactNodeFaceInteraction::Face()
+inline ContactFace<Real>* ContactNodeFaceInteraction::Face()
 {
-  return static_cast<ContactFace *>(entity);
+  return static_cast<ContactFace<Real> *>(entity);
 }
 
 inline ContactInteractionEntity::entity_data* ContactNodeFaceInteraction::FaceEntityData()
@@ -174,7 +174,7 @@ inline int ContactNodeFaceInteraction::Set_FaceEntityData()
 
 inline void ContactNodeFaceInteraction::Connect_Face( ContactTopologyEntityList& hash_table )
 {
-  entity = static_cast<ContactFace*>(hash_table.Find( &entity_entity_data ));
+  entity = static_cast<ContactFace<Real>*>(hash_table.Find( &entity_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( face );
 }
@@ -183,7 +183,7 @@ inline void ContactNodeFaceInteraction::Connect_Face( ContactTopologyEntityHash&
 {
   ContactHostGlobalID gid( entity_entity_data.host_gid[0], 
                            entity_entity_data.host_gid[1] );
-  entity = static_cast<ContactFace*>(hash_table.find(gid));
+  entity = static_cast<ContactFace<Real>*>(hash_table.find(gid));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( face );
 }
@@ -193,7 +193,7 @@ inline void ContactNodeFaceInteraction::Connect_Face( ContactTopology* topology 
   entity = topology->FaceList()->Find( &entity_entity_data );
 }
 
-inline void ContactNodeFaceInteraction::Connect_Face( ContactFace* Face )
+inline void ContactNodeFaceInteraction::Connect_Face( ContactFace<Real>* Face )
 {
   entity = Face;
 }
@@ -203,7 +203,7 @@ inline int ContactNodeFaceInteraction::NumSharedFaces()
   return number_shared_faces;
 }
 
-inline ContactTopologyEntity::connection_data* ContactNodeFaceInteraction::SharedFaceData(int i) 
+inline ContactTopologyEntity<Real>::connection_data* ContactNodeFaceInteraction::SharedFaceData(int i) 
 {
   return &shared_face_data[i];
 }

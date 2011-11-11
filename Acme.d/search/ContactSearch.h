@@ -5,10 +5,10 @@
 
 class ContactLinkList;
 class ContactErrors; 
-class ContactNode;
-class ContactFace;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactFace;
 class ContactElement;
-class ContactElem;
+template<typename DataType> class ContactElem;
 class ContactNodeFaceInteraction;
 class ContactNodeSurfaceInteraction;
 class ContactNodeEntityInteraction;
@@ -245,7 +245,7 @@ class ContactSearch{
   //
   //  Determine if the input face is active for searching in the current time step
   //
-  bool Active_Search_Status(ContactFace *face);
+  bool Active_Search_Status(ContactFace<Real> *face);
 
 
 
@@ -396,9 +396,9 @@ class ContactSearch{
 
   void process_node_face_interactions(const int &list_size,
                                       ACME::ContactNode_Vector &list,
-                                      ContactFace *face, 
+                                      ContactFace<Real> *face, 
                                       const VariableHandle &CALCULATION_POSITION,
-                                      ContactNode **Nodes,
+                                      ContactNode<Real> **Nodes,
                                       const VariableHandle &NODE_NORMAL,
                                       Real &CTOLT1,
                                       Real &CTOLT2,
@@ -417,14 +417,14 @@ class ContactSearch{
                                  Real *scratch,
                                  int *rank2,
                                  int *list,
-                                 ContactNode** Nodes, int* node_map,
+                                 ContactNode<Real>** Nodes, int* node_map,
                                  int interaction_source,
                                  VariableHandle position_var,
                                  VariableHandle position_var_2 = -1);
 
   void Process_Analytic_Surfaces(
                                  ObjectBoundingBoxHierarchy *node_hierarchy,
-                                 ContactNode** Nodes,
+                                 ContactNode<Real>** Nodes,
                                  int interaction_source,
                                  VariableHandle position_var,
                                  VariableHandle position_var_2 = -1);
@@ -432,7 +432,7 @@ class ContactSearch{
 
   void Process_Analytic_Surfaces_New(
                                  ObjectBoundingBoxHierarchy **node_hierarchy_ptrs,
-                                 ContactNode **node_block_entities,
+                                 ContactNode<Real> **node_block_entities,
                                  int interaction_source,
                                  VariableHandle position_var,
                                  VariableHandle position_var_2 = -1);
@@ -560,11 +560,11 @@ class ContactSearch{
 
   static int                        Number_Nodes_Per_Face       (ContactFace_Type face_type);
   static ContactEdge_Type           Face_Edge_Type              (ContactFace_Type face_type);
-  static ContactFace*               New_ContactFace             (ContactFace_Type type,
+  static ContactFace<Real>*               New_ContactFace             (ContactFace_Type type,
                                                                  ContactFixedSizeAllocator *alloc);
   static ContactFixedSizeAllocator* Get_ContactFaceAlloc        (ContactFace_Type type,
                                                                  ContactFixedSizeAllocator *alloc);
-  static void                       Delete_ContactTopologyEntity(ContactTopologyEntity*,
+  static void                       Delete_ContactTopologyEntity(ContactTopologyEntity<Real>*,
                                                                  ContactFixedSizeAllocator *alloc);
 
   inline int Max_Interactions_Per_Node() { return 3; };
@@ -689,7 +689,7 @@ class ContactSearch{
 
   void Compute_Remaining_Gap( Real*, Real* ,
                      ContactSearch::Topology, 
-                     ContactTopologyEntity::SearchContext);
+                     ContactTopologyEntity<Real>::SearchContext);
 
   void Compute_Remaining_Gap( Real*, Real* );
   
@@ -825,23 +825,23 @@ class ContactSearch{
 
   ContactErrorCode Interaction_Definition(int num_configs, 
                      ContactSearch::Topology use_topology, 
-                     ContactTopologyEntity::SearchContext status);
+                     ContactTopologyEntity<Real>::SearchContext status);
 
   void Retrieve_Glued_Interactions(VariableHandle, ContactSearch::Topology, int flag=0);
-//  void Retrieve_Tied_Interactions (VariableHandle, ContactSearch::Topology, ContactTopologyEntity::SearchContext);
+//  void Retrieve_Tied_Interactions (VariableHandle, ContactSearch::Topology, ContactTopologyEntity<Real>::SearchContext);
   void Retrieve_Tied_Interactions_From_Primary(VariableHandle);
   void Retrieve_Tracked_Interactions(ContactSearch::SearchType, Real);
   void Initialize_Context();
   void Initialize_Search();
-  void Update_Interaction( ContactNode*, ContactFace*, int, int, int );
-  void Process_Tracking_Face( ContactFace*, ContactNode*, int, int, int );
-  int Cull_Node_List( int, ContactNode*, Real*);
+  void Update_Interaction( ContactNode<Real>*, ContactFace<Real>*, int, int, int );
+  void Process_Tracking_Face( ContactFace<Real>*, ContactNode<Real>*, int, int, int );
+  int Cull_Node_List( int, ContactNode<Real>*, Real*);
   void Process_Interaction( VariableHandle, ContactNodeEntityInteraction*, int& );
   //void Process_Interaction( VariableHandle, ContactNodeEntityInteraction*, int );
   
   void ComputeInteractions(const int list_size, 
                            ACME::ContactNode_Vector &node_list,
-                           ContactFace *face,
+                           ContactFace<Real> *face,
                            const VariableHandle &CURRENT_POSITION,
                            const VariableHandle &AUGMENTED_POSITION,
                            const VariableHandle &PREDICTED_POSITION,
@@ -853,12 +853,12 @@ class ContactSearch{
                            int *physical_faces,
                            const ACME::Int_Vector &node_keys);
 
-  int CheckForNodeFaceInteraction(ContactNode*, ContactFace*,
+  int CheckForNodeFaceInteraction(ContactNode<Real>*, ContactFace<Real>*,
                                   ContactSearch::SearchType, 
                                   ContactNodeFaceInteraction*, 
                                   int, int, Real);
 
-  int Cull_Node_List_New( ACME::ContactNode_Vector &node_list, int*, ContactFace*,
+  int Cull_Node_List_New( ACME::ContactNode_Vector &node_list, int*, ContactFace<Real>*,
                           int, int, int,
                           const ContactBoundingBox &current_face_box,
                           const ContactBoundingBox &predicted_face_box,
@@ -868,15 +868,15 @@ class ContactSearch{
                           const std::vector<bool> &valid_inter,
                           int, int);
 
-  int Cull_Node_List_New1( ACME::ContactNode_Vector &node_list, ContactFace*,
+  int Cull_Node_List_New1( ACME::ContactNode_Vector &node_list, ContactFace<Real>*,
                            int, int, int,
                            const ContactBoundingBox &current_face_box,
                            const ContactBoundingBox &predicted_face_box,
                            const std::vector<bool> &valid_inter,
                            int, int);
 
-  int Cull_Node_List( int, int*, ContactNode*, Real*);
-  int Dynamic_Process_Method( ContactNode*, ContactFace* );
+  int Cull_Node_List( int, int*, ContactNode<Real>*, Real*);
+  int Dynamic_Process_Method( ContactNode<Real>*, ContactFace<Real>* );
   ContactNodeEntityInteraction* Compete_Interactions(VariableHandle NODE_COORDS,
 						   ContactNodeEntityInteraction*,
 						   ContactNodeEntityInteraction*);
@@ -889,17 +889,17 @@ class ContactSearch{
 				     ContactNodeEntityInteraction*);
 
   void Build_Physical_Face_List_None(ContactSearch::Topology use_topology, 
-                                     ContactTopologyEntity::SearchContext status,
+                                     ContactTopologyEntity<Real>::SearchContext status,
                                      bool use_proximity);
   void Build_Physical_Face_List_FaceWalk(ContactSearch::Topology use_topology, 
-                                         ContactTopologyEntity::SearchContext status,
+                                         ContactTopologyEntity<Real>::SearchContext status,
                                          bool use_proximity);
   void Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology use_topology, 
-                                         ContactTopologyEntity::SearchContext status,
+                                         ContactTopologyEntity<Real>::SearchContext status,
                                          bool use_proximity);
                                          
-  void Face_Face_Search( ContactFace*, ContactFace*, 
-                         ContactElem*, VariableHandle);
+  void Face_Face_Search( ContactFace<Real>*, ContactFace<Real>*, 
+                         ContactElem<Real>*, VariableHandle);
   void Process_Face_Coverage( void );
 
   ContactFixedSizeAllocator* allocators;  // array

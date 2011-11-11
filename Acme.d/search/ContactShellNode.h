@@ -6,7 +6,7 @@
 #include "ContactNode.h"
 #include <cstring>
 
-class ContactShellNode : public ContactNode {
+class ContactShellNode : public ContactNode<Real> {
 
  public:
 
@@ -32,7 +32,7 @@ class ContactShellNode : public ContactNode {
   };
 
   virtual int Size(int state) {
-    int s = ContactNode::Size(state);
+    int s = ContactNode<Real>::Size(state);
     // want interactions
     s += sizeof(int) + 3*sizeof(Real);
     return s;
@@ -43,29 +43,29 @@ class ContactShellNode : public ContactNode {
   };
 
   virtual void Pack( char* buffer, int state ){
-    ContactNode::Pack(buffer, state);
-    std::memcpy( buffer+ContactNode::Size(state), 
+    ContactNode<Real>::Pack(buffer, state);
+    std::memcpy( buffer+ContactNode<Real>::Size(state), 
             &shell_node_base_id, sizeof(int) );
-    std::memcpy( buffer+ContactNode::Size(state)+sizeof(int), 
+    std::memcpy( buffer+ContactNode<Real>::Size(state)+sizeof(int), 
             &previous_lofting[0], 3*sizeof(Real) );
   };
   
   virtual void Unpack( char* buffer ){
     int state = (reinterpret_cast<int*>
-                 (buffer+ContactTopologyEntity::Size(DataArray_Length())+5*sizeof(int)))[0];
-    ContactNode::Unpack(buffer);
+                 (buffer+ContactTopologyEntity<Real>::Size(DataArray_Length())+5*sizeof(int)))[0];
+    ContactNode<Real>::Unpack(buffer);
     std::memcpy( &shell_node_base_id, 
-                 buffer+ContactNode::Size(state), 
+                 buffer+ContactNode<Real>::Size(state), 
                  sizeof(int) );
     std::memcpy( &previous_lofting[0], 
-                 buffer+ContactNode::Size(state)+sizeof(int),
+                 buffer+ContactNode<Real>::Size(state)+sizeof(int),
 	         3*sizeof(Real) );
   };
   
-  virtual void Copy( ContactNode* node ) { Copy(node, -2); }
+  virtual void Copy( ContactNode<Real>* node ) { Copy(node, -2); }
   
-  virtual void Copy( ContactNode* src, int state=-1 ){
-    ContactNode::Copy( src, state );
+  virtual void Copy( ContactNode<Real>* src, int state=-1 ){
+    ContactNode<Real>::Copy( src, state );
     ContactShellNode* s = static_cast<ContactShellNode*>(src);
     shell_node_base_id  = s->shell_node_base_id;
     previous_lofting[0] = s->previous_lofting[0];
@@ -82,7 +82,7 @@ class ContactShellNode : public ContactNode {
   }
 
   virtual int Size_ForSecondary(int state) {
-    int s = ContactNode::Size_ForSecondary(state);
+    int s = ContactNode<Real>::Size_ForSecondary(state);
     // want interactions
     s += sizeof(int) + 3*sizeof(Real);
     return s;
@@ -93,30 +93,30 @@ class ContactShellNode : public ContactNode {
   }
 
   virtual void Pack_ForSecondary( char* buffer, int state ){
-    ContactNode::Pack_ForSecondary(buffer, state);
-    std::memcpy( buffer+ContactNode::Size_ForSecondary(state), 
+    ContactNode<Real>::Pack_ForSecondary(buffer, state);
+    std::memcpy( buffer+ContactNode<Real>::Size_ForSecondary(state), 
                  &shell_node_base_id, sizeof(int) );
-    std::memcpy( buffer+ContactNode::Size_ForSecondary(state)+sizeof(int), 
+    std::memcpy( buffer+ContactNode<Real>::Size_ForSecondary(state)+sizeof(int), 
                  &previous_lofting[0], 3*sizeof(Real) );
   };
   
   virtual void Unpack_ForSecondary( char* buffer ){
     int* i_buf = reinterpret_cast<int*> (buffer);
     int state  = ((i_buf[1]>>12) & 0xf)-2;
-    ContactNode::Unpack_ForSecondary(buffer);
+    ContactNode<Real>::Unpack_ForSecondary(buffer);
     std::memcpy( &shell_node_base_id, 
-                 buffer+ContactNode::Size_ForSecondary(state), 
+                 buffer+ContactNode<Real>::Size_ForSecondary(state), 
                  sizeof(int) );
     std::memcpy( &previous_lofting[0], 
-                 buffer+ContactNode::Size_ForSecondary(state)+sizeof(int),
+                 buffer+ContactNode<Real>::Size_ForSecondary(state)+sizeof(int),
 	         3*sizeof(Real) );
   };
   
-  virtual void Copy_ForSecondary( ContactNode* node) 
+  virtual void Copy_ForSecondary( ContactNode<Real>* node) 
            { Copy_ForSecondary(node, -2); }
   
-  virtual void Copy_ForSecondary( ContactNode* src, int state=-1 ){
-    ContactNode::Copy_ForSecondary( src, state );
+  virtual void Copy_ForSecondary( ContactNode<Real>* src, int state=-1 ){
+    ContactNode<Real>::Copy_ForSecondary( src, state );
     ContactShellNode* s = static_cast<ContactShellNode*>(src);
     shell_node_base_id  = s->shell_node_base_id;
     previous_lofting[0] = s->previous_lofting[0];

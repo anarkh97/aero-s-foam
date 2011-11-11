@@ -42,7 +42,7 @@ ContactNodeBlock::ContactNodeBlock( ContactSearch::ContactNode_Type Type,
   switch( type ){
   case ContactSearch::NODE:
     for( int j=0 ; j<number_of_nodes ; ++j) {
-      ContactNode* node;
+      ContactNode<Real>* node;
       switch( entity_type[j] ){
       case( CT_SHELL_NODE ) :
         node = ContactShellNode::new_ContactShellNode( 
@@ -55,7 +55,7 @@ ContactNodeBlock::ContactNodeBlock( ContactSearch::ContactNode_Type Type,
         Next_ID++;
 	break;
       case( CT_NODE ) :
-        node = ContactNode::new_ContactNode(topology->Search()->Get_Allocators(),
+        node = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocators(),
 	  ContactSearch::NODE,block_index,hostID++);
         node->Exodus_ID(exo_ids[j]);
         node->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -70,7 +70,7 @@ ContactNodeBlock::ContactNodeBlock( ContactSearch::ContactNode_Type Type,
     break;
   case ContactSearch::POINT:
     for( int j=0 ; j<number_of_nodes ; ++j) {
-      ContactNode* node = ContactNode::new_ContactNode(topology->Search()->Get_Allocators(),
+      ContactNode<Real>* node = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocators(),
 	 ContactSearch::POINT,block_index,hostID++);
       node->Exodus_ID(exo_ids[j]);
       node->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -126,7 +126,7 @@ ContactNodeBlock::Add_Nodes( int num_nodes, int* host_ids, int* exo_ids,
   switch( type ){
   case ContactSearch::NODE:
     for( j=0 ; j<num_nodes ; ++j) {
-      ContactNode* node;
+      ContactNode<Real>* node;
       switch( entity_type[j] ){
       case( CT_SHELL_NODE ) :
         node = ContactShellNode::new_ContactShellNode( 
@@ -137,7 +137,7 @@ ContactNodeBlock::Add_Nodes( int num_nodes, int* host_ids, int* exo_ids,
         node_list->Insert(node);
 	break;
       case( CT_NODE ) :
-        node = ContactNode::new_ContactNode(topology->Search()->Get_Allocators(),
+        node = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocators(),
 	  ContactSearch::NODE,id,-1);
         node->Exodus_ID(exo_ids[j]);
         node->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -151,7 +151,7 @@ ContactNodeBlock::Add_Nodes( int num_nodes, int* host_ids, int* exo_ids,
     break;
   case ContactSearch::POINT:
     for( j=0 ; j<num_nodes ; ++j) {
-      ContactNode* node = ContactNode::new_ContactNode(topology->Search()->Get_Allocators(),
+      ContactNode<Real>* node = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocators(),
 	 ContactSearch::POINT,id,-1);
       node->Exodus_ID(exo_ids[j]);
       node->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -202,7 +202,7 @@ ContactNodeBlock::UpdateNodeBlock( int block_index,
 	  ContactSearch::NODE,++Next_ID,block_index,j);
 	break;
       case( CT_NODE ) :
-	nodes[j] = ContactNode::new_ContactNode(topology->Search()->Get_Allocator(ContactSearch::ALLOC_ContactNode),
+	nodes[j] = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocator(ContactSearch::ALLOC_ContactNode),
 	  ContactSearch::NODE,++Next_ID,block_index,j);
 	break;
       default:
@@ -215,7 +215,7 @@ ContactNodeBlock::UpdateNodeBlock( int block_index,
     break;
   case ContactSearch::POINT:
    for( j=0 ; j<number_of_nodes ; ++j)
-      nodes[j] = ContactNode::new_ContactNode(topology->Search()->Get_Allocator(ContactSearch::ALLOC_ContactNode),
+      nodes[j] = ContactNode<Real>::new_ContactNode(topology->Search()->Get_Allocator(ContactSearch::ALLOC_ContactNode),
 	 ContactSearch::POINT,++Next_ID,block_index,j);
     num_nodes_added = number_of_nodes;
     break;
@@ -235,14 +235,14 @@ void ContactNodeBlock::Delete_Nodes()
     switch( type ){
     case ContactSearch::NODE:
       node_list->IteratorStart();
-      while (ContactTopologyEntity* entity = node_list->IteratorForward()) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
+      while (ContactTopologyEntity<Real>* entity = node_list->IteratorForward()) {
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
 	switch( node->Base_Type() ){
 	case( CT_NODE ) :
 	  {
             alloc = &topology->Search()->
 	      Get_Allocator(ContactSearch::ALLOC_ContactNode);
-	    node->~ContactNode();
+	    node->~ContactNode<Real>();
 	    alloc->Delete_Frag( node );
 	    break;
 	  }
@@ -264,9 +264,9 @@ void ContactNodeBlock::Delete_Nodes()
       alloc = &topology->Search()->
 	Get_Allocator(ContactSearch::ALLOC_ContactNode);
       node_list->IteratorStart();
-      while (ContactTopologyEntity* entity = node_list->IteratorForward()) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
-        node->~ContactNode();
+      while (ContactTopologyEntity<Real>* entity = node_list->IteratorForward()) {
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
+        node->~ContactNode<Real>();
         alloc->Delete_Frag(node);
       }
       break;
@@ -277,7 +277,7 @@ void ContactNodeBlock::Delete_Nodes()
   }
 }
 
-void ContactNodeBlock::Insert_Node( ContactNode* node )
+void ContactNodeBlock::Insert_Node( ContactNode<Real>* node )
 {
   PRECONDITION( node );
   node_list->Insert(node);
@@ -299,7 +299,7 @@ void ContactNodeBlock::Insert_Node_ForSecondary( char* buffer )
 }
 #endif
 
-void ContactNodeBlock::Delete_Node( ContactNode* node )
+void ContactNodeBlock::Delete_Node( ContactNode<Real>* node )
 {
   PRECONDITION( node );
   node_list->Delete(node);
@@ -317,8 +317,8 @@ void ContactNodeBlock::ComputeBoundingBox(int nconfigs,
     switch( type ){
     case ContactSearch::NODE:
       node_list->IteratorStart();
-      while (ContactTopologyEntity* entity = node_list->IteratorForward()) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
+      while (ContactTopologyEntity<Real>* entity = node_list->IteratorForward()) {
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
         if (node->temp_tag==1) {
           Real* position = node->Variable(POSITION1);
           local_bounding_box.add_point(position);
@@ -331,8 +331,8 @@ void ContactNodeBlock::ComputeBoundingBox(int nconfigs,
       break;
     case ContactSearch::POINT:
       node_list->IteratorStart();
-      while (ContactTopologyEntity* entity = node_list->IteratorForward()) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
+      while (ContactTopologyEntity<Real>* entity = node_list->IteratorForward()) {
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
         if (node->temp_tag==1) {
           Real  radius   = *node->Variable(RADIUS);
           Real* position = node->Variable(POSITION1);

@@ -167,7 +167,7 @@ ContactTDEnfPenalty::Set_Penalty_Scale( double scale )
   return ContactSearch::INVALID_DATA;
 }
 
-void compute_location_on_face(ContactFace *face, 
+void compute_location_on_face(ContactFace<Real> *face, 
                               Real * face_node_coords, 
                               const Real local_coord_x, 
                               const Real local_coord_y,
@@ -306,11 +306,11 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   
   // NOTE : these are not used
   //int num_nodes = topology->Number_of_Nodes();
-  //ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  //ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
 
 #ifdef CONTACT_TD_FACE_FACE_ENF
   int num_faces = topology->Number_of_Faces();
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
 #endif
 
   // set to a value that won't trigger an exit on the 1st iteration
@@ -337,13 +337,13 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     int global_num_face_face_interactions = 0;
     int global_num_vertices = 0;
     for(int i = 0; i < num_faces; ++i) {
-      ContactFace *face = Faces[i];
+      ContactFace<Real> *face = Faces[i];
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       global_num_face_face_interactions += face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
         ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
-        ContactFace *master_face = ffi->MasterFace();
-        ContactFace *slave_face  = ffi->SlaveFace();
+        ContactFace<Real> *master_face = ffi->MasterFace();
+        ContactFace<Real> *slave_face  = ffi->SlaveFace();
         POSTCONDITION(face==slave_face);
 	if (master_face->temp_tag == 0) {
 	  master_face->temp_tag = -1;
@@ -372,7 +372,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     int num_slave_face_nodes  = 0;
     int num_master_face_nodes = 0;
     for(int i = 0; i < num_faces; ++i) {
-      ContactFace *face = Faces[i];
+      ContactFace<Real> *face = Faces[i];
       if (face->temp_tag == -1) {
         for (int k=0; k<face->Nodes_Per_Face(); ++k) {
           if (face->Node(k)->temp_tag==-1) {
@@ -422,12 +422,12 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     int  n = 0;
     int* seginfo = new int[27*global_num_face_face_interactions]; //segments information
     for(int i = 0; i < num_faces; ++i) {
-      ContactFace *face = Faces[i];
+      ContactFace<Real> *face = Faces[i];
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       for(int j = 0; j < num_face_face_interactions; ++j) {
         ContactFaceFaceInteraction *ffi = face->Get_FaceFace_Interaction(j);
-        ContactFace *master_face = ffi->MasterFace();
-        ContactFace *slave_face  = ffi->SlaveFace();
+        ContactFace<Real> *master_face = ffi->MasterFace();
+        ContactFace<Real> *slave_face  = ffi->SlaveFace();
 	seginfo[27*n  ] = slave_face->temp_tag;
 	seginfo[27*n+1] = master_face->temp_tag;
 	seginfo[27*n+2] = ffi->NumEdges();
@@ -461,7 +461,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
     
     int num_seg = 0;
     for(int i = 0; i < num_faces; ++i) {
-      ContactFace *face = Faces[i];
+      ContactFace<Real> *face = Faces[i];
       int num_face_face_interactions = face->Number_FaceFace_Interactions();
       if(num_face_face_interactions == 0) continue;
       Real* normal = face->Variable(ContactTopology::Face_Normal);
@@ -477,8 +477,8 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
 	//
         Real master_shape_functions[MAX_NODES_PER_FACE];
         Real slave_shape_functions[MAX_NODES_PER_FACE];
-        ContactFace *master_face = ffi->MasterFace();
-        ContactFace *slave_face  = ffi->SlaveFace();
+        ContactFace<Real> *master_face = ffi->MasterFace();
+        ContactFace<Real> *slave_face  = ffi->SlaveFace();
         int num_master_nodes     = master_face->Nodes_Per_Face();
         int num_slave_nodes      = slave_face->Nodes_Per_Face();
         int num_vertex           = ffi->NumEdges();
@@ -747,7 +747,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
 	    }
 
 	    // compute contact point
-	    ContactFace* face = cnfi->Face();
+	    ContactFace<Real>* face = cnfi->Face();
             const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(i);
 	    PRECONDITION( num_face_nodes <= MAX_NODES_PER_FACE );
 	    // face distribution factors
@@ -889,7 +889,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
 #if LOCAL_PRINT_FLAG > 3 
   postream << "\n FORCES____iteration = " << iteration << "\n";
   for(int i=0 ; i<number_of_nodes ; ++i ){
-    ContactNode* node = enforcement_node_list[i];
+    ContactNode<Real>* node = enforcement_node_list[i];
     int ExoID = node->Exodus_ID();
     Real* f_tot =   TOTAL_FORCE. Get_Scratch(i);
     postream << ExoID << " f_tot: "
@@ -920,7 +920,7 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
   double f_abs[3] = {0.0,0.0,0.0};
   double m_sum = 0.0;
   for(int i=0 ; i<number_of_nodes ; ++i ){
-    ContactNode* node = enforcement_node_list[i];
+    ContactNode<Real>* node = enforcement_node_list[i];
     int ExoID = node->Exodus_ID();
     Real* f_tot =   TOTAL_FORCE. Get_Scratch(i);
     postream << ExoID << " f_tot "

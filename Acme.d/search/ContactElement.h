@@ -17,14 +17,17 @@
 #include "ContactSearch.h"
 #include "ContactDoublyLinkedList.h"
 
-class ContactNode;
-class ContactEdge;
-class ContactFace;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
+template<typename DataType> class ContactFace;
 class ContactElementElementInteraction;
 
-class ContactElem : public ContactTopologyEntity {
+template<typename DataType>
+class ContactElem : public ContactTopologyEntity<DataType> {
 
  public:
+
+  using ContactTopologyEntity<DataType>::DataArray_Buffer;
   
   enum Scalar_Vars { UNKNOWN_SCALAR_VAR = -1,
 #include "contact_variables.define"
@@ -48,39 +51,39 @@ class ContactElem : public ContactTopologyEntity {
   
   virtual void BuildTopology(int, int, int, ContactFixedSizeAllocator*) = 0;
   virtual void DeleteTopology(ContactFixedSizeAllocator*) = 0;
-  virtual void UpdateTopology(ContactFace*, VariableHandle, VariableHandle,
-                              VariableHandle, Real, bool use_node_normals=false) = 0;
+  virtual void UpdateTopology(ContactFace<DataType>*, VariableHandle, VariableHandle,
+                              VariableHandle, DataType, bool use_node_normals=false) = 0;
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
   virtual int Nodes_Per_Element() = 0;
   virtual int Edges_Per_Element() = 0;
   virtual int Faces_Per_Element() = 0;
-  virtual void Evaluate_Shape_Functions( Real*, Real* ) = 0;
-  virtual void Compute_Global_Coordinates( VariableHandle, Real*, Real* ) = 0;
-  virtual void Compute_Local_Coordinates( VariableHandle, Real*, Real* ) = 0;
-  virtual bool Is_Local_Coordinates_Inside_Element( Real* ) = 0;
-  virtual bool Is_Local_Coordinates_Near_Element( Real*, Real ) = 0;
+  virtual void Evaluate_Shape_Functions( DataType*, DataType* ) = 0;
+  virtual void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual bool Is_Local_Coordinates_Inside_Element( DataType* ) = 0;
+  virtual bool Is_Local_Coordinates_Near_Element( DataType*, DataType ) = 0;
   
   virtual ContactSearch::ContactNode_Type Node_Type() = 0;
   virtual ContactSearch::ContactEdge_Type Edge_Type() = 0;
   virtual ContactSearch::ContactFace_Type Face_Type(int) = 0;
   inline  ContactSearch::ContactElem_Type Elem_Type() {return type;};
 
-  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(Real));};
+  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(DataType));};
 
-  virtual ContactNode** Nodes() = 0;
-  virtual ContactEdge** Edges() = 0;
-  virtual ContactFace** Faces() = 0;
+  virtual ContactNode<DataType>** Nodes() = 0;
+  virtual ContactEdge<DataType>** Edges() = 0;
+  virtual ContactFace<DataType>** Faces() = 0;
 
-  ContactNode* Node( int i );
-  ContactEdge* Edge( int i );
-  ContactFace* Face( int i );
+  ContactNode<DataType>* Node( int i );
+  ContactEdge<DataType>* Edge( int i );
+  ContactFace<DataType>* Face( int i );
   
-  void ConnectNode( int,ContactNode* );
-  void ConnectEdge( int,ContactEdge* );
-  void ConnectFace( int,ContactFace* );
+  void ConnectNode( int,ContactNode<DataType>* );
+  void ConnectEdge( int,ContactEdge<DataType>* );
+  void ConnectFace( int,ContactFace<DataType>* );
 
-  Real MaxSize(VariableHandle POSITION);
+  DataType MaxSize(VariableHandle POSITION);
   // Packing/Unpacking Functions
   int  Size();
   void Pack( char* );
@@ -89,11 +92,11 @@ class ContactElem : public ContactTopologyEntity {
   // Restart Pack/Unpack Functions
 
   inline int Restart_Size() {return DataArray_Length();}
-  inline void Restart_Pack( Real* buffer ) {
-    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(Real) );
+  inline void Restart_Pack( DataType* buffer ) {
+    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(DataType) );
   }
-  inline void Restart_Unpack( Real* buffer ){
-    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(Real) );
+  inline void Restart_Unpack( DataType* buffer ){
+    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(DataType) );
   }
 
   virtual int* Node_Ids() = 0;
@@ -101,25 +104,30 @@ class ContactElem : public ContactTopologyEntity {
   virtual int* Face_Ids() = 0;
 
  protected:
+  using ContactTopologyEntity<DataType>::entity_key;
+  using ContactTopologyEntity<DataType>::block_id;
   ContactSearch::ContactElem_Type type;
 
  private:
-  Real DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
+  DataType DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
 };
 
-inline ContactNode* ContactElem::Node( int i )
+template<typename DataType>
+inline ContactNode<DataType>* ContactElem<DataType>::Node( int i )
 { 
   PRECONDITION( i>=0 && i<Nodes_Per_Element() );
   return( Nodes()[i] );
 }
 
-inline ContactEdge* ContactElem::Edge( int i )
+template<typename DataType>
+inline ContactEdge<DataType>* ContactElem<DataType>::Edge( int i )
 { 
   PRECONDITION( i>=0 && i<Edges_Per_Element() );
   return( Edges()[i] );
 }
 
-inline ContactFace* ContactElem::Face( int i )
+template<typename DataType>
+inline ContactFace<DataType>* ContactElem<DataType>::Face( int i )
 { 
   PRECONDITION( i>=0 && i<Faces_Per_Element() );
   return( Faces()[i] );
@@ -128,7 +136,7 @@ inline ContactFace* ContactElem::Face( int i )
 
 
 
-class ContactElement : public ContactTopologyEntity {
+class ContactElement : public ContactTopologyEntity<Real> {
 
  public:
 
@@ -168,9 +176,9 @@ class ContactElement : public ContactTopologyEntity {
   virtual void Interpolate_Scalar_Value( Real *, Real *, Real& ) { return; };
 
   inline ContactSearch::ContactElement_Type ElementType() {return type;};
-  virtual ContactNode** Nodes() = 0;
-  ContactNode* Node( int i );  
-  void ConnectNode( int, ContactNode* );
+  virtual ContactNode<Real>** Nodes() = 0;
+  ContactNode<Real>* Node( int i );  
+  void ConnectNode( int, ContactNode<Real>* );
 
   // Restart Pack/Unpack Functions
 
@@ -259,16 +267,16 @@ class ContactElement : public ContactTopologyEntity {
   ContactInteractionDLL** ElementElementInteractions;
 };
 
-inline ContactNode* ContactElement::Node( int i )
+inline ContactNode<Real>* ContactElement::Node( int i )
 { 
   PRECONDITION( i>=0 && i<Nodes_Per_Element() );
   return( Nodes()[i] );
 }
 
-inline void ContactElement::ConnectNode( int i, ContactNode* node ) {
+inline void ContactElement::ConnectNode( int i, ContactNode<Real>* node ) {
   PRECONDITION( i>=0 && i<Nodes_Per_Element() );
   Nodes()[i] = node;
-  PackConnection((ContactTopologyEntity*)node, &NodeInfo()[i]);
+  PackConnection((ContactTopologyEntity<Real>*)node, &NodeInfo()[i]);
 }
 
 #ifndef CONTACT_NO_MPI
@@ -278,17 +286,17 @@ inline void ContactElement::ConnectNode( int i, ContactNode* node ) {
 //--------------------------------------------------------------------
 inline int ContactElement::Size_ForDataUpdate()
 {
-  return( ContactTopologyEntity::Size_ForDataUpdate(DataArray_Length()) );
+  return( ContactTopologyEntity<Real>::Size_ForDataUpdate(DataArray_Length()) );
 }
 
 inline void ContactElement::Pack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Pack_ForDataUpdate( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Pack_ForDataUpdate( buffer, DataArray_Length() );
 }
 
 inline void ContactElement::Unpack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Unpack_ForDataUpdate( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Unpack_ForDataUpdate( buffer, DataArray_Length() );
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -296,33 +304,33 @@ inline void ContactElement::Unpack_ForDataUpdate( char* buffer )
 //--------------------------------------------------------------------
 inline int ContactElement::Size()
 {
-  return( ContactTopologyEntity::Size(DataArray_Length()) + 
+  return( ContactTopologyEntity<Real>::Size(DataArray_Length()) + 
           Nodes_Per_Element()*sizeof(connection_data) );
 }
 
 inline void ContactElement::Pack( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
-  // ContactTopologyEntity packs in location 0 as ContactElement 
+  // ContactTopologyEntity<Real> packs in location 0 as ContactElement 
   // and here we pack in the derived type in location 1.
   i_buf[1] = type;
-  ContactTopologyEntity::Pack( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Pack( buffer, DataArray_Length() );
   // Add the global ids of the nodes
-  i_buf = reinterpret_cast<int*> (buffer+ContactTopologyEntity::Size(DataArray_Length()));
+  i_buf = reinterpret_cast<int*> (buffer+ContactTopologyEntity<Real>::Size(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Element() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Node(i)), &i_buf[cnt]);
+    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<Real>*>(Node(i)), &i_buf[cnt]);
   }
 }
 
 inline void ContactElement::Unpack( char* buffer )
 {
-  ContactTopologyEntity::Unpack( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Unpack( buffer, DataArray_Length() );
   entity_key = block_id;
 
   PRECONDITION( ((int*)buffer)[1] == type );
   // Store off the global ids of the nodes
-  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity::Size(DataArray_Length()) );
+  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity<Real>::Size(DataArray_Length()) );
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Element() ; ++i ){
     cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
@@ -331,10 +339,10 @@ inline void ContactElement::Unpack( char* buffer )
 
 inline void ContactElement::Copy( ContactElement* src )
 {
-  ContactTopologyEntity::Copy( src, DataArray_Length() );
+  ContactTopologyEntity<Real>::Copy( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0 ; i<Nodes_Per_Element() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Node(i)), &NodeInfo()[i]);
+    PackConnection(reinterpret_cast<ContactTopologyEntity<Real>*>(src->Node(i)), &NodeInfo()[i]);
   }
 }
 
@@ -344,33 +352,33 @@ inline void ContactElement::Copy( ContactElement* src )
 //--------------------------------------------------------------------
 inline int ContactElement::Size_ForSecondary()
 {
-  return( ContactTopologyEntity::Size_ForSecondary(DataArray_Length()) + 
+  return( ContactTopologyEntity<Real>::Size_ForSecondary(DataArray_Length()) + 
           Nodes_Per_Element()*sizeof(connection_data) );
 }
 
 inline void ContactElement::Pack_ForSecondary( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
-  // ContactTopologyEntity packs in location 0 as ContactElement 
+  // ContactTopologyEntity<Real> packs in location 0 as ContactElement 
   // and here we pack in the derived type in location 1.
   i_buf[1] = type;
-  ContactTopologyEntity::Pack_ForSecondary( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Pack_ForSecondary( buffer, DataArray_Length() );
   // Add the global ids of the nodes
-  i_buf = reinterpret_cast<int*> (buffer+ContactTopologyEntity::Size_ForSecondary(DataArray_Length()));
+  i_buf = reinterpret_cast<int*> (buffer+ContactTopologyEntity<Real>::Size_ForSecondary(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Element() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Node(i)), &i_buf[cnt]);
+    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<Real>*>(Node(i)), &i_buf[cnt]);
   }
 }
 
 inline void ContactElement::Unpack_ForSecondary( char* buffer )
 {
-  ContactTopologyEntity::Unpack_ForSecondary( buffer, DataArray_Length() );
+  ContactTopologyEntity<Real>::Unpack_ForSecondary( buffer, DataArray_Length() );
   entity_key = block_id;
 
   PRECONDITION( ((int*)buffer)[1] == type );
   // Store off the global ids of the nodes
-  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity::Size_ForSecondary(DataArray_Length()) );
+  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity<Real>::Size_ForSecondary(DataArray_Length()) );
   int cnt = 0;
   for( int i=0; i<Nodes_Per_Element(); ++i ){
     cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
@@ -379,10 +387,10 @@ inline void ContactElement::Unpack_ForSecondary( char* buffer )
 
 inline void ContactElement::Copy_ForSecondary( ContactElement* src )
 {
-  ContactTopologyEntity::Copy_ForSecondary( src, DataArray_Length() );
+  ContactTopologyEntity<Real>::Copy_ForSecondary( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0; i<Nodes_Per_Element(); ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Node(i)), &NodeInfo()[i]);
+    PackConnection(reinterpret_cast<ContactTopologyEntity<Real>*>(src->Node(i)), &NodeInfo()[i]);
   }
 }
 #endif

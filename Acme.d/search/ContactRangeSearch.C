@@ -42,7 +42,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
   //
   //  Save useful pointer and variable references
   //
-  Nodes = reinterpret_cast<ContactNode**>(search_topology->NodeList()->EntityList());
+  Nodes = reinterpret_cast<ContactNode<Real>**>(search_topology->NodeList()->EntityList());
   NODE_NORMAL        = search_topology->Variable_Handle( ContactTopology::Node_Normal        );
   FACE_NORMAL        = search_topology->Variable_Handle( ContactTopology::Face_Normal        );
   REMAINING_GAP      = search_topology->Variable_Handle( ContactTopology::Remaining_Gap      );
@@ -65,7 +65,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     int cur_node_box = 0;
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-        ContactNode *node = Nodes[inode];
+        ContactNode<Real> *node = Nodes[inode];
         node_boxes[cur_node_box].set_object_number(inode);
         node->ComputeBoundingBoxForSearch(num_configs,
                                           REMAINING_GAP,
@@ -95,7 +95,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     node_entity_keys.resize(number_of_nodes, -2);
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-	ContactNode *node = Nodes[inode];
+	ContactNode<Real> *node = Nodes[inode];
 	node_entity_keys[inode] = node->Get_Owning_Entity();
 	node_boxes[cur_node_box].set_object_number(inode);
         node->ComputeBoundingBoxForSearch(num_configs,
@@ -135,12 +135,12 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     //
     int num_search_entities = search->Search_Data()->Num_Search_Entities();
 
-    vector< vector<ContactNode*> > node_block_entities(num_search_entities + 1);
+    vector< vector<ContactNode<Real>*> > node_block_entities(num_search_entities + 1);
     vector< vector<int> >          node_global_index(num_search_entities + 1);
 
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-	ContactNode *node = Nodes[inode];
+	ContactNode<Real> *node = Nodes[inode];
 	int node_key = node->Get_Owning_Entity();
 	if(node_key >= 0) {
 	  node_block_entities[node_key+1].push_back(node);
@@ -178,13 +178,13 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     Real box_scale = search->BoxInflation();
     node_hierarchy_ptrs[0] = node_hierarchy;
     for(int iblock = 0; iblock < num_search_entities+1; ++iblock) {
-      vector<ContactNode*> &nodes = node_block_entities[iblock];
+      vector<ContactNode<Real>*> &nodes = node_block_entities[iblock];
       const int num_nodes = nodes.size();
       //
       //  Step 1, compute the bounding box for each node in the list
       //
       for(int inode = 0; inode < num_nodes; ++inode) {
-	ContactNode *node = nodes[inode];
+	ContactNode<Real> *node = nodes[inode];
         node->ComputeBoundingBoxForSearch(num_configs,
                                           REMAINING_GAP,
                                           NODE_COORD_START,
@@ -248,7 +248,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
   //
   //  Save useful pointer and variable references
   //
-  Nodes = reinterpret_cast<ContactNode**>(search_topology->NodeList()->EntityList());
+  Nodes = reinterpret_cast<ContactNode<Real>**>(search_topology->NodeList()->EntityList());
   NODE_NORMAL        = search_topology->Variable_Handle( ContactTopology::Node_Normal        );
   FACE_NORMAL        = search_topology->Variable_Handle( ContactTopology::Face_Normal        );
   REMAINING_GAP      = search_topology->Variable_Handle( ContactTopology::Remaining_Gap      );
@@ -271,7 +271,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     int cur_node_box = 0;
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-        ContactNode *node = Nodes[inode];
+        ContactNode<Real> *node = Nodes[inode];
         node_boxes[cur_node_box].set_object_number(inode);
         node->ComputeBoundingBoxForSearch(num_configs,
                                           REMAINING_GAP,
@@ -302,7 +302,7 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     node_entity_keys.resize(number_of_nodes, -2);
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-	ContactNode *node = Nodes[inode];
+	ContactNode<Real> *node = Nodes[inode];
 	node_entity_keys[inode] = node->Get_Owning_Entity();
 	node_boxes[cur_node_box].set_object_number(inode);
         node->ComputeBoundingBoxForSearch(num_configs,
@@ -343,12 +343,12 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     //
     int num_search_entities = search->Search_Data()->Num_Search_Entities();
 
-    vector< vector<ContactNode*> > node_block_entities(num_search_entities + 1);
+    vector< vector<ContactNode<Real>*> > node_block_entities(num_search_entities + 1);
     vector< vector<int> >          node_global_index(num_search_entities + 1);
 
     for (int inode=0; inode<number_of_nodes; ++inode) { 
       if( node_search_status[inode] ) {
-	ContactNode *node = Nodes[inode];
+	ContactNode<Real> *node = Nodes[inode];
 	int node_key = node->Get_Owning_Entity();
 	if(node_key >= 0) {
 	  node_block_entities[node_key+1].push_back(node);
@@ -386,13 +386,13 @@ ContactNodeFaceRangeSearch::ContactNodeFaceRangeSearch(SearchType my_type,
     Real box_scale = search->BoxInflation();
     node_hierarchy_ptrs[0] = node_hierarchy;
     for(int iblock = 0; iblock < num_search_entities+1; ++iblock) {
-      vector<ContactNode*> &nodes = node_block_entities[iblock];
+      vector<ContactNode<Real>*> &nodes = node_block_entities[iblock];
       const int num_nodes = nodes.size();
       //
       //  Step 1, compute the bounding box for each node in the list
       //
       for(int inode = 0; inode < num_nodes; ++inode) {
-	ContactNode *node = nodes[inode];
+	ContactNode<Real> *node = nodes[inode];
         node->ComputeBoundingBoxForSearch(num_configs,
                                           REMAINING_GAP,
                                           NODE_COORD_START,

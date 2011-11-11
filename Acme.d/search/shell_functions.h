@@ -8,14 +8,14 @@
  public: 
 
 #ifndef CONTACT_NO_MPI
-  virtual int Size() { return (ContactFace::Size() + sizeof(Real)); };
+  virtual int Size() { return (ContactFace<Real>::Size() + sizeof(Real)); };
   virtual void Pack( char* buffer ){ 
-    ContactFace::Pack(buffer);
-    std::memcpy( buffer+ContactFace::Size(), &thickness, sizeof(Real) );
+    ContactFace<Real>::Pack(buffer);
+    std::memcpy( buffer+ContactFace<Real>::Size(), &thickness, sizeof(Real) );
   };
   virtual void Unpack( char* buffer ){
-    ContactFace::Unpack(buffer);
-    std::memcpy( &thickness, buffer+ContactFace::Size(), sizeof(Real) );
+    ContactFace<Real>::Unpack(buffer);
+    std::memcpy( &thickness, buffer+ContactFace<Real>::Size(), sizeof(Real) );
   };
 #endif
 

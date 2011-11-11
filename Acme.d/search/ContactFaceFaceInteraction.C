@@ -22,8 +22,8 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( )
   vertices    = NULL;
 }                                                                               
 
-ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace* Sface,
-							ContactFace* Mface,
+ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<Real>* Sface,
+							ContactFace<Real>* Mface,
 							int Nedges, 
                                                         int* FaceEdge,
                                                         int* EdgeMaster,
@@ -78,8 +78,8 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction(
 ContactFaceFaceInteraction* 
 ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
 				     ContactFixedSizeAllocator& alloc,
-				     ContactFace* Sface,
-				     ContactFace* Mface,
+				     ContactFace<Real>* Sface,
+				     ContactFace<Real>* Mface,
 				     int Nedges, 
                                      int* FaceEdge,
                                      int* EdgeMaster,
@@ -178,26 +178,26 @@ void ContactFaceFaceInteraction::Copy( ContactFaceFaceInteraction* src )
 
 void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopologyEntityList& hash_table )
 {   
-  slave_face = static_cast<ContactFace *>(hash_table.Find( &slave_face_entity_data ));
+  slave_face = static_cast<ContactFace<Real> *>(hash_table.Find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
 
 void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopologyEntityList& hash_table )
 {
-  master_face = static_cast<ContactFace *>(hash_table.Find( &master_face_entity_data ));
+  master_face = static_cast<ContactFace<Real> *>(hash_table.Find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( master_face );
 }
 
 void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopologyEntityHash& hash_table )
 {   
-  slave_face = static_cast<ContactFace *>(hash_table.find( &slave_face_entity_data ));
+  slave_face = static_cast<ContactFace<Real> *>(hash_table.find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
 
 void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopologyEntityHash& hash_table )
 {
-  master_face = static_cast<ContactFace *>(hash_table.find( &master_face_entity_data ));
+  master_face = static_cast<ContactFace<Real> *>(hash_table.find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( master_face );
 }
@@ -205,25 +205,25 @@ void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopologyEntityHash& 
 void ContactFaceFaceInteraction::Connect_SlaveFace( ContactTopology* topology )
 {   
   int block = slave_face_entity_data.block_id;
-  slave_face = static_cast<ContactFace *>
+  slave_face = static_cast<ContactFace<Real> *>
     (topology->Face_Block(block)->FaceList()->Find( &slave_face_entity_data ));
   POSTCONDITION( slave_face );
 }
 void ContactFaceFaceInteraction::Connect_MasterFace( ContactTopology* topology )
 {
   int block = master_face_entity_data.block_id;
-  master_face = static_cast<ContactFace *>
+  master_face = static_cast<ContactFace<Real> *>
     (topology->Face_Block(block)->FaceList()->Find( &master_face_entity_data ));
   //Can't have this condition always be satisfied in parallel
   //POSTCONDITION( slave_face );
 }
 
-void ContactFaceFaceInteraction::Connect_SlaveFace( ContactFace* Face )
+void ContactFaceFaceInteraction::Connect_SlaveFace( ContactFace<Real>* Face )
 {   
   slave_face = Face;
   POSTCONDITION( slave_face );
 }
-void ContactFaceFaceInteraction::Connect_MasterFace( ContactFace* Face )
+void ContactFaceFaceInteraction::Connect_MasterFace( ContactFace<Real>* Face )
 {
   master_face = Face;
   //Can't have this condition always be satisfied in parallel

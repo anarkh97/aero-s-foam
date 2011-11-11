@@ -1,0 +1,88 @@
+// $Id$
+
+#include "ContactWedgeElementL6.C"
+
+template
+ContactWedgeElemL6<Real>::ContactWedgeElemL6( int Block_Index, 
+				        int Host_Index_in_Block, int key ); 
+
+template
+ContactWedgeElemL6<Real>* ContactWedgeElemL6<Real>::new_ContactWedgeElemL6(
+                        ContactFixedSizeAllocator& alloc,
+                        int Block_Index, int Host_Index_in_Block, int key);
+
+template
+void ContactWedgeElemL6_SizeAllocator<Real>(ContactFixedSizeAllocator& alloc);
+
+template
+ContactWedgeElemL6<Real>::~ContactWedgeElemL6();
+
+template
+void ContactWedgeElemL6<Real>::BuildTopology(int nID, int eID, int fID,
+				       ContactFixedSizeAllocator* allocators);
+
+template
+void ContactWedgeElemL6<Real>::DeleteTopology(ContactFixedSizeAllocator* allocators);
+
+template
+void ContactWedgeElemL6<Real>::UpdateTopology(ContactFace<Real>* face, 
+					VariableHandle POSITION,
+					VariableHandle FACE_NORMAL,
+					VariableHandle NODE_NORMAL,
+					Real tol, bool use_node_normals);
+
+template
+bool ContactWedgeElemL6<Real>::Is_Local_Coordinates_Inside_Element( Real* local_coords );
+
+template
+bool ContactWedgeElemL6<Real>::Is_Local_Coordinates_Near_Element( Real* local_coords, Real tolerance );
+
+template
+void ContactWedgeElemL6<Real>::Evaluate_Shape_Functions( Real* local_coords,
+						   Real* shape_functions );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Global_Coordinates( VariableHandle POSITION,
+						     Real* local_coords,
+						     Real* global_coords );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Local_Coordinates( Real Config_Param,
+						    VariableHandle POSITION0, 
+						    VariableHandle POSITION1, 
+						    VariableHandle FACE_NORMAL,
+						    Real* global_coords,
+						    Real* local_coords );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Local_Coordinates( VariableHandle POSITION,
+						    Real* global_coords,
+						    Real* local_coords );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Shape_Functions( Real* local_coords,
+						  Real* shape_functions );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Shape_Derivatives( Real* local_coords,
+						    Real  shape_derivs[3][6] );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[8][3], 
+					       Real* global_coords,
+					       Real* local_coords );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Global_Coords( Real node_positions[6][3],
+						Real local_coords[4],
+						Real global_coords[3] );
+
+template
+void ContactWedgeElemL6<Real>::Interpolate_Scalar( Real  local_coords[4],
+					     Real  node_scalars[6],
+					     Real& interpolated_scalar );
+
+template
+void ContactWedgeElemL6<Real>::Interpolate_Vector( Real local_coords[4],
+					     Real node_vectors[6][3],
+					     Real interpolated_vector[3] );

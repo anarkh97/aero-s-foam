@@ -50,12 +50,12 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   ContactFaceFaceInteraction* cffi;
   ContactFaceCoverageInteraction* cfci;
   ContactInteractionEntity* interaction;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(primary_node_list->EntityList());
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(primary_edge_list->EntityList());
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_face_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_node_list->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(primary_edge_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_face_list->EntityList());
   ContactElement** Elements = 
     reinterpret_cast<ContactElement**>(primary_elem_list->EntityList());
 
@@ -178,7 +178,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   // (the global sum of owned nodes)
   int number_nodes_owned = 0;
   for (i=0; i<number_of_primary_nodes; ++i) {
-    if( Nodes[i]->Ownership() == ContactTopologyEntity::OWNED )
+    if( Nodes[i]->Ownership() == ContactTopologyEntity<Real>::OWNED )
       number_nodes_owned++;
   }
   number_nodes_owned += num_ffi_nodes;
@@ -190,7 +190,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   // (the global sum of owned edges)
   int number_edges_owned = 0;
   for (i=0; i<number_of_primary_edges; ++i) {
-    if( Edges[i]->Ownership() == ContactTopologyEntity::OWNED )
+    if( Edges[i]->Ownership() == ContactTopologyEntity<Real>::OWNED )
       number_edges_owned++;
   }
 #ifndef CONTACT_NO_MPI
@@ -208,10 +208,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   for( i=1 ; i<number_of_node_blocks ; ++i ){
     if( node_blocks[i]->Type() == ContactSearch::POINT ){
       num_sph_elem_blks++;
-      ContactNode** BlockNodes = 
-        reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+      ContactNode<Real>** BlockNodes = 
+        reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
       for (j=0; j<primary_node_list->BlockNumEntities(i); ++j) {
-	if( BlockNodes[j]->Ownership() == ContactTopologyEntity::OWNED )
+	if( BlockNodes[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
 	  num_node_sph_elems++;
       }
     }
@@ -291,10 +291,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     for( i=0 ; i<number_of_edge_blocks ; ++i ) {
       k = number_of_face_blocks+i;
       local_counts[k] = 0;
-      ContactEdge** BlockEdges = 
-        reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+      ContactEdge<Real>** BlockEdges = 
+        reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
       for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
-        if( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED )
+        if( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
           local_counts[k]++;
       }
     }
@@ -303,10 +303,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
 	k = number_of_element_blocks+
             number_of_face_blocks+
             number_of_edge_blocks+(i-1);
-        ContactNode** BlockNodes = 
-          reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+        ContactNode<Real>** BlockNodes = 
+          reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
         for (j=0; j<primary_node_list->BlockNumEntities(i); ++j) {
-	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity::OWNED )
+	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
 	    local_counts[k]++;
 	}
       }
@@ -368,7 +368,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     ne_put_eb_info_global( Exodus_ID, block_ids, global_counts );
 
     // Count the number of std::internal, border & external nodes
-    ContactTopologyEntity** node_comm_list;
+    ContactTopologyEntity<Real>** node_comm_list;
     for (i=0; i<number_of_primary_nodes; ++i) {
       Nodes[i]->temp_tag = 0;
     }
@@ -401,7 +401,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     for (i=0; i<number_of_primary_edges; ++i) {
       Edges[i]->temp_tag = 0;
     }
-    ContactTopologyEntity** edge_comm_list;
+    ContactTopologyEntity<Real>** edge_comm_list;
     for( i=0 ; i<Edge_SymComm->Num_Comm_Partners() ; ++i ){
       edge_comm_list = Edge_SymComm->Entity_List(i);
       for( j=0 ; j<Edge_SymComm->Num_to_Proc( i ) ; ++j )
@@ -423,10 +423,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     if( number_of_node_blocks > 1 ){
       for( i=i ; i<number_of_node_blocks ; ++i ){
 	if( node_blocks[i]->Type() == ContactSearch::POINT ){
-          ContactNode** BlockNodes = 
-            reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+          ContactNode<Real>** BlockNodes = 
+            reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
           for (j=0; j<primary_node_list->BlockNumEntities(i); ++j) {
-	    if( BlockNodes[j]->Ownership() == ContactTopologyEntity::OWNED )
+	    if( BlockNodes[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
 	      num_internal_elems++;
 	  }
 	}
@@ -495,7 +495,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     //  the exodus elem map to have no numbering holes, then this code
     //  is not sufficient.
     for (i=0; i<number_of_primary_edges; ++i) {
-      if ( Edges[i]->Ownership() == ContactTopologyEntity::OWNED) 
+      if ( Edges[i]->Ownership() == ContactTopologyEntity<Real>::OWNED) 
         elem_mapi[icount_i++] = 
           //number_of_primary_faces + Edges[i]->ProcArrayIndex()+1;
           number_of_primary_faces + Edges[i]->fcs_index+1;
@@ -556,9 +556,9 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
       int mapid = Edge_SymComm->Comm_Proc_ID(i);
       edge_comm_list = Edge_SymComm->Entity_List(i);
       for( j=0 ; j<Edge_SymComm->Num_to_Proc( i ) ; ++j ){
-        ContactEdge* e = reinterpret_cast<ContactEdge*>(edge_comm_list[j]);
+        ContactEdge<Real>* e = reinterpret_cast<ContactEdge<Real>*>(edge_comm_list[j]);
         PRECONDITION( e->Number_Face_Connections() == 1 );
-        ContactFace* f = e->Face(0);
+        ContactFace<Real>* f = e->Face(0);
         //elem_ids[j] = f->ProcArrayIndex()+1;
         elem_ids[j] = f->fcs_index+1;
         proc_ids[j] = Edge_SymComm->Comm_Proc_ID(i);
@@ -606,7 +606,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     for( i=0 ; i<my_proc ; ++i )
       my_start += proc_starting_cnt[i];
     for (i=0; i<number_of_primary_nodes; ++i) {
-      if( Nodes[i]->Ownership() == ContactTopologyEntity::OWNED ) 
+      if( Nodes[i]->Ownership() == ContactTopologyEntity<Real>::OWNED ) 
         node_num_map[i] = my_start++;
       else
         node_num_map[i] = 0;
@@ -670,10 +670,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     // then assign the edge numbers to edges on proc 1 from N+1 to NN, etc.
     for( i=0 ; i<number_of_edge_blocks ; ++i ){
       int nowned_edges_in_block = 0;
-      ContactEdge** BlockEdges = 
-        reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+      ContactEdge<Real>** BlockEdges = 
+        reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
       for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
-        if( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED )
+        if( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
           nowned_edges_in_block++;
       }
       int nglobal_edges_in_block = contact_global_sum( nowned_edges_in_block, 
@@ -686,7 +686,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
         my_start += proc_starting_cnt[j];
       }
       for (j=0; j<edge_blocks[i]->Number_of_Edges(); ++j) {
-        if( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED ) {
+        if( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ) {
           PRECONDITION(local_elem_offset<elem_num_map_size);
           elem_num_map[local_elem_offset++] = global_elem_offset + my_start++;
         }
@@ -698,10 +698,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     for( i=1 ; i<number_of_node_blocks ; ++i ){
       if( node_blocks[i]->Type() == ContactSearch::POINT ){
 	int nowned_nodes_in_block = 0;
-        ContactNode** BlockNodes = 
-          reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+        ContactNode<Real>** BlockNodes = 
+          reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
         for (j=0; j<primary_node_list->BlockNumEntities(i); ++j) {
-	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity::OWNED )
+	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
 	    nowned_nodes_in_block++;
 	}
 	int nglobal_nodes_in_block = contact_global_sum( nowned_nodes_in_block, 
@@ -714,7 +714,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
 	  my_start += proc_starting_cnt[j];
 	}
         for (j=0; j<node_blocks[i]->Number_of_Nodes(); ++j) {
-	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity::OWNED ) {
+	  if( BlockNodes[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ) {
 	    elem_num_map[local_elem_offset++] = global_elem_offset + my_start++;
 	  }
 	}
@@ -822,8 +822,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   }
   if (num_ffi>0) {
     for( i=0 ; i<number_of_face_blocks ; ++i ){
-      ContactFace** BlockFaces = 
-        reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(i));
+      ContactFace<Real>** BlockFaces = 
+        reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
       for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
         ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
@@ -831,7 +831,7 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
         while (interaction=interactions->IteratorForward()){
           cffi = static_cast<ContactFaceFaceInteraction*>(interaction);
           ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
-          ContactFace* slave_face = cffi->SlaveFace();
+          ContactFace<Real>* slave_face = cffi->SlaveFace();
           for (k=0; k<cffi->NumEdges()+1; ++k) {
             Real local_coords[3];
             Real position[3];
@@ -851,8 +851,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   }
   if (num_fci>0) {
     for( i=0 ; i<number_of_face_blocks ; ++i ){
-      ContactFace** BlockFaces = 
-        reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(i));
+      ContactFace<Real>** BlockFaces = 
+        reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
       for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
         ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
         if(interactions != NULL) {
@@ -917,10 +917,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
   }
   for( i=0 ; i<number_of_edge_blocks ; ++i ){
     int nedges_in_block = 0;
-    ContactEdge** BlockEdges = 
-      reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+    ContactEdge<Real>** BlockEdges = 
+      reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
     for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
-      if( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED )
+      if( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED )
         nedges_in_block++;
     }
     max_conn_size = std::max(max_conn_size,nedges_in_block);
@@ -1022,8 +1022,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
 
     if (number_of_elements_in_block>0) {
       index = 0;
-      ContactFace** BlockFaces = 
-        reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(i));
+      ContactFace<Real>** BlockFaces = 
+        reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
       for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
         for( k=0 ; k<number_of_nodes_per_element ; ++k )
           //connectivity[index++] = BlockFaces[j]->Node(k)->ProcArrayIndex()+1;
@@ -1044,10 +1044,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
       int num_edges_in_block = 0;
 #ifndef CONTACT_NO_MPI
       if ( PARALLEL ) {
-        ContactEdge** BlockEdges = 
-          reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+        ContactEdge<Real>** BlockEdges = 
+          reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
         for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
-          if ( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED ) 
+          if ( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ) 
             num_edges_in_block++;
         }
       }
@@ -1083,10 +1083,10 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
         index = 0;
 #ifndef CONTACT_NO_MPI
         if ( PARALLEL ) {
-          ContactEdge** BlockEdges = 
-            reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+          ContactEdge<Real>** BlockEdges = 
+            reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
           for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
-            if ( BlockEdges[j]->Ownership() == ContactTopologyEntity::OWNED ) {
+            if ( BlockEdges[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ) {
               for( k=0 ; k<number_of_nodes_per_edge ; ++k ){
                 //connectivity[index++] = BlockEdges[j]->Node(k)->ProcArrayIndex()+1;
                 connectivity[index++] = BlockEdges[j]->Node(k)->fcs_index+1;
@@ -1095,8 +1095,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
           }
         } else {
 #endif
-          ContactEdge** BlockEdges = 
-            reinterpret_cast<ContactEdge**>(edge_list->BlockEntityList(i));
+          ContactEdge<Real>** BlockEdges = 
+            reinterpret_cast<ContactEdge<Real>**>(edge_list->BlockEntityList(i));
           for (j=0; j<edge_list->BlockNumEntities(i); ++j) {
             for( k=0 ; k<number_of_nodes_per_edge ; ++k ){
               //connectivity[index++] = BlockEdges[j]->Node(k)->ProcArrayIndex()+1;
@@ -1131,8 +1131,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
 	}
 	if( num_sph ){
           index = 0;
-          ContactNode** BlockNodes = 
-            reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+          ContactNode<Real>** BlockNodes = 
+            reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
           for (j=0; j<primary_node_list->BlockNumEntities(i); ++j) {
 	    //connectivity[index++] = BlockNodes[j]->ProcArrayIndex()+1;
 	    connectivity[index++] = BlockNodes[j]->fcs_index+1;
@@ -1181,8 +1181,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     if (num_ffi_elems>0) {
       int nstart = num_base_nodes+1;
       for( i=0 ; i<number_of_face_blocks ; ++i){
-        ContactFace** BlockFaces = 
-          reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(i));
+        ContactFace<Real>** BlockFaces = 
+          reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
         for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
           ContactInteractionDLL* interactions = 
             BlockFaces[j]->Get_FaceFace_Interactions();
@@ -1224,8 +1224,8 @@ ContactTopology::Exodus_Output( int Exodus_ID, Real Time,
     if (num_fci_elems>0) {
       int nstart = num_base_nodes+1;
       for( i=0 ; i<number_of_face_blocks ; ++i){
-        ContactFace** BlockFaces = 
-          reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(i));
+        ContactFace<Real>** BlockFaces = 
+          reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
         for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
           ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
 	  if(interactions != NULL) {

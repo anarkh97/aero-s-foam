@@ -8,11 +8,14 @@
 #include "ContactSearch.h"
 #include "ContactFace.h"
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 
-class ContactEdge : public ContactTopologyEntity {
+template<typename DataType>
+class ContactEdge : public ContactTopologyEntity<DataType> {
 
  public:
+
+  using ContactTopologyEntity<DataType>::DataArray_Buffer;
   
   enum Scalar_Vars { UNKNOWN_SCALAR_VAR = -1,
 #include "contact_variables.define"
@@ -30,7 +33,7 @@ class ContactEdge : public ContactTopologyEntity {
 #include "contact_variables.undefine"
 		     NUMBER_VECTOR_VARS };
 
-  ContactEdge( ContactSearch::ContactEdge_Type, int, int, ContactNode **nodes);
+  ContactEdge( ContactSearch::ContactEdge_Type, int, int, ContactNode<DataType> **nodes);
   virtual ~ContactEdge();
 
   static void Initialize_Lookup_Arrays();
@@ -43,23 +46,23 @@ class ContactEdge : public ContactTopologyEntity {
   inline int Number_Face_Connections() { return number_face_connections; };
   inline int EdgeType() { return(edge_type); };
 
-  inline ContactNode* Node( const int i ) {
+  inline ContactNode<DataType>* Node( const int i ) {
     PRECONDITION( i>=0 && i<Nodes_Per_Edge() );
     PRECONDITION( node_list );    
     return node_list[i];
   };
-  inline ContactNode** Nodes() {return node_list;};
-  inline void ConnectNode(const int num, ContactNode* node ) {
+  inline ContactNode<DataType>** Nodes() {return node_list;};
+  inline void ConnectNode(const int num, ContactNode<DataType>* node ) {
     PRECONDITION( num<Nodes_Per_Edge() );
     PRECONDITION( node_list );
     node_list[num] = node;
   };
 
 
-  ContactFace* Face( int i );
-  ContactFace* Neighbor_Face( ContactFace* face );
+  ContactFace<DataType>* Face( int i );
+  ContactFace<DataType>* Neighbor_Face( ContactFace<DataType>* face );
 
-  void ConnectFace( ContactFace* );
+  void ConnectFace( ContactFace<DataType>* );
 
   // Packing/Unpacking Functions
   inline int  Size();
@@ -70,22 +73,23 @@ class ContactEdge : public ContactTopologyEntity {
   // Restart Pack/Unpack Functions
 
   inline int Restart_Size() {return DataArray_Length();}
-  inline void Restart_Pack( Real* buffer ) {
-    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(Real) );
+  inline void Restart_Pack( DataType* buffer ) {
+    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(DataType) );
   }
-  inline void Restart_Unpack( Real* buffer ){
-    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(Real) );
+  inline void Restart_Unpack( DataType* buffer ){
+    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(DataType) );
   }
 
-  inline connection_data* FaceInfo() { return &face_info; };
+  inline typename ContactTopologyEntity<DataType>::connection_data* FaceInfo() { return &face_info; };
 
-  void Smooth_Normal( VariableHandle, Real* coords, Real* smooth_normal );
+  void Smooth_Normal( VariableHandle, DataType* coords, DataType* smooth_normal );
 
   void Compute_Smoothed_Normal( VariableHandle );
   
-  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(Real));};
+  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(DataType));};
 
  protected:
+  using ContactTopologyEntity<DataType>::shared;
   int number_face_connections;
   ContactSearch::ContactEdge_Type edge_type;
 
@@ -93,29 +97,31 @@ class ContactEdge : public ContactTopologyEntity {
   static bool array_init;
   static int                             NODES_PER_EDGE[ContactSearch::NEDGE_TYPES];
 
-  ContactFace* faces[2];    // An edge can only be connected to at most 2 faces
+  ContactFace<DataType>* faces[2];    // An edge can only be connected to at most 2 faces
 
-  ContactNode **node_list;
+  ContactNode<DataType> **node_list;
 
   // The following is used only in the secondary decomposition to store
   // entity information until the actual pointer connections can be made.
-  connection_data  face_info;
+  typename ContactTopologyEntity<DataType>::connection_data  face_info;
 
-  Real DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
+  DataType DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
 };
 
-inline ContactFace* ContactEdge::Face( int i )
+template<typename DataType>
+inline ContactFace<DataType>* ContactEdge<DataType>::Face( int i )
 {
   PRECONDITION( i>=0 && i<number_face_connections );
   PRECONDITION( faces );
   return( faces[i] );
 }
 
-inline ContactFace* ContactEdge::Neighbor_Face( ContactFace* face )
+template<typename DataType>
+inline ContactFace<DataType>* ContactEdge<DataType>::Neighbor_Face( ContactFace<DataType>* face )
 {
   PRECONDITION( face );
   PRECONDITION( face == faces[0] || face == faces[1] );
-  ContactFace* null_neighbor = NULL;
+  ContactFace<DataType>* null_neighbor = NULL;
   if( number_face_connections != 2 ) return null_neighbor;
   if( faces[0] == face ) return faces[1];
   if( faces[1] == face ) return faces[0];
@@ -123,15 +129,17 @@ inline ContactFace* ContactEdge::Neighbor_Face( ContactFace* face )
   return null_neighbor;
 }
 
-inline int ContactEdge::Size()
+template<typename DataType>
+inline int ContactEdge<DataType>::Size()
 {
-  return( ContactTopologyEntity::Size(DataArray_Length()) + 
-          Nodes_Per_Edge()*sizeof(connection_data) );
+  return( ContactTopologyEntity<DataType>::Size(DataArray_Length()) + 
+          Nodes_Per_Edge()*sizeof(typename ContactTopologyEntity<DataType>::connection_data) );
 }
 
-inline void ContactEdge::Unpack( char* buffer )
+template<typename DataType>
+inline void ContactEdge<DataType>::Unpack( char* buffer )
 {
-  ContactTopologyEntity::Unpack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Unpack( buffer, DataArray_Length() );
   PRECONDITION( ((int*)buffer)[1] == edge_type );
 }
 

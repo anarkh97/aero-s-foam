@@ -86,7 +86,7 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
 				 ContactSearch::ContactErrorCode& error_code )
 {
   int i,j,k,n;
-  ContactTopologyEntity* entity=NULL;
+  ContactTopologyEntity<Real>* entity=NULL;
 #ifndef CONTACT_NO_MPI  
   if( Edge_SymComm ) delete Edge_SymComm;
   Edge_SymComm = NULL;
@@ -106,7 +106,7 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
     ContactBlockEntityList* nodes = node_blocks[i]->NodeList();
     nodes->IteratorStart();
     while (entity=nodes->IteratorForward()) {
-      ContactNode* node = static_cast<ContactNode*>(entity);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
       node->Delete_Face_Connections();
     }
   }
@@ -203,7 +203,7 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
     for (k=0, j=0; j<node_blocks[i]->NodeList()->NumEntities(); ++j) {
       ContactHostGlobalID global_id( node_host_ids[2*n+0], 
                                      node_host_ids[2*n+1] );
-      ContactNode* node = static_cast<ContactNode*>
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                           (node_blocks[i]->NodeList()->Find(global_id));
       PRECONDITION( node );
       node->HostArrayIndex(k);
@@ -224,7 +224,7 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
     for (k=0, j=0; j<face_blocks[i]->FaceList()->NumEntities(); ++j) {
       ContactHostGlobalID global_id( face_host_ids[2*n+0], 
                                      face_host_ids[2*n+1] );
-      ContactFace* face = static_cast<ContactFace*>
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                           (face_blocks[i]->FaceList()->Find(global_id));
       PRECONDITION( face );
       face->HostArrayIndex(k);
@@ -276,17 +276,17 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
   
   UpdateInteractions( Errors, postream, error_code );  
   
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->OwnerProcArrayIndex(Nodes[i]->ProcArrayIndex());
     Nodes[i]->PrimaryProcArrayIndex(Nodes[i]->ProcArrayIndex());
   }
-  ContactEdge** Edges = reinterpret_cast<ContactEdge**>(edge_list->EntityList());
+  ContactEdge<Real>** Edges = reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
   for (i=0; i<number_of_edges; ++i) {
     Edges[i]->OwnerProcArrayIndex(Edges[i]->ProcArrayIndex());
     Edges[i]->PrimaryProcArrayIndex(Edges[i]->ProcArrayIndex());
   }
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->OwnerProcArrayIndex(Faces[i]->ProcArrayIndex());
     Faces[i]->PrimaryProcArrayIndex(Faces[i]->ProcArrayIndex());
@@ -309,14 +309,14 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
   for( i=0 ; i<number_comm_partners ; ++i) {
     num_node_comm_ent += number_nodes_to_partner[i];
   }
-  ContactTopologyEntity** node_ent_comm_list = NULL;
+  ContactTopologyEntity<Real>** node_ent_comm_list = NULL;
   if( num_node_comm_ent ){
-    node_ent_comm_list = new ContactTopologyEntity*[num_node_comm_ent];
+    node_ent_comm_list = new ContactTopologyEntity<Real>*[num_node_comm_ent];
     for( i=0 ; i<num_node_comm_ent ; ++i) {
       int index = comm_nodes[i]-1;
       ContactHostGlobalID global_id( node_host_ids[2*index+0], 
                                      node_host_ids[2*index+1] );
-      ContactNode* node = static_cast<ContactNode*>(node_list->Find(global_id));
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(node_list->Find(global_id));
       POSTCONDITION(node);
       node_ent_comm_list[i] = node;
     }
@@ -344,7 +344,7 @@ ContactTopology::UpdateTopology( ContactErrors* Errors,
   contact_swap_edge_faces(SearchComm, *Edge_SymComm, *comm_buffer);
 #endif
 
-  Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->SetNeighborFacesInfo();
   }
@@ -388,13 +388,13 @@ ContactTopology::TopologyDeath( ContactErrors* Errors,
   //    =0, entity is inactive  
   //    =1, entity is active
   //===========================================================================
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( i=0 ; i<number_of_nodes ; ++i){
     Nodes[i]->temp_tag = 1;
   }
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( i=0 ; i<number_of_faces ; ++i){
     Faces[i]->temp_tag = 1;
   }
@@ -411,7 +411,7 @@ ContactTopology::TopologyDeath( ContactErrors* Errors,
     for( j=0 ; j<number_node_deaths_per_block[i] ; ++j){
       ContactHostGlobalID gid(global_node_death_ids[2*n+0],
                               global_node_death_ids[2*n+1]);
-      ContactNode* node = static_cast<ContactNode*>(node_blocks[i]->NodeList()->Find(gid));
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(node_blocks[i]->NodeList()->Find(gid));
       node->temp_tag = 0;
       n++;
     }
@@ -420,7 +420,7 @@ ContactTopology::TopologyDeath( ContactErrors* Errors,
     for( j=0 ; j<number_face_deaths_per_block[i] ; ++j){
       ContactHostGlobalID gid(global_face_death_ids[2*n+0],
                               global_face_death_ids[2*n+1]);
-      ContactFace* face = static_cast<ContactFace*>(face_blocks[i]->FaceList()->Find(gid));
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(face_blocks[i]->FaceList()->Find(gid));
       face->temp_tag = 0;
       // tag all the connected nodes for deletion
       for (k=0; k<face->Nodes_Per_Face(); ++k) {
@@ -505,7 +505,7 @@ ContactTopology::TopologyBirth( ContactErrors* Errors,
   int num_node_births = 0;
   int num_face_births = 0;
   int num_elem_births = 0;
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   
   for( k=0, i=0 ; i<number_of_node_blocks ; ++i){
     num_node_births += number_node_births_per_block[i];
@@ -587,7 +587,7 @@ ContactTopology::TopologyBirth( ContactErrors* Errors,
       node_blocks[i]->NodeList()->IteratorStart();
       while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
         if (entity->temp_tag == 0) {
-          ContactNode* node = static_cast<ContactNode*>(entity);
+          ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
           node->Entity_Key( entity_key );
         }
       }
@@ -601,13 +601,13 @@ ContactTopology::TopologyBirth( ContactErrors* Errors,
       face_blocks[i]->FaceList()->IteratorStart();
       while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
         if (entity->temp_tag == 0) {
-          ContactFace* face = static_cast<ContactFace*>(entity);
+          ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
           for( k=0 ; k<face->Nodes_Per_Face() ; ++k){
             ContactHostGlobalID global_id( face_connectivity[2*index+0], 
                                            face_connectivity[2*index+1] );
-            ContactNode* node = NULL;
+            ContactNode<Real>* node = NULL;
             for( j=0 ; j<number_of_node_blocks ; ++j){
-              node = static_cast<ContactNode*>
+              node = static_cast<ContactNode<Real>*>
                      (node_blocks[i]->NodeList()->Find(global_id));
               if (node) break;
             }
@@ -631,9 +631,9 @@ ContactTopology::TopologyBirth( ContactErrors* Errors,
           for( k=0 ; k<element->Nodes_Per_Element() ; ++k){
             ContactHostGlobalID global_id( elem_connectivity[2*index+0], 
                                            elem_connectivity[2*index+1] );
-            ContactNode* node = NULL;
+            ContactNode<Real>* node = NULL;
             for( j=0 ; j<number_of_node_blocks ; ++j){
-              node = static_cast<ContactNode*>
+              node = static_cast<ContactNode<Real>*>
                      (node_blocks[i]->NodeList()->Find(global_id));
               if (node) break;
             }
@@ -668,7 +668,7 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
   int sum  = contact_global_sum(size, SearchComm );
   if (sum==0) return;
   
-  ContactTopologyEntity* entity=NULL;
+  ContactTopologyEntity<Real>* entity=NULL;
   
   for( int i=0 ; i<number_of_node_blocks ; ++i){
     node_blocks[i]->NodeList()->IteratorStart();
@@ -697,11 +697,11 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
   int        zoltan_pid;
   ContactZoltanComm Zoltan_Comm( ContactZoltanComm::ZOLTAN_EXPORT);
   for(int i=0; i<num_node_exports; ++i) {
-    ContactNode* node = NULL;
+    ContactNode<Real>* node = NULL;
     for( int j=0 ; j<number_of_node_blocks ; ++j){
       ContactHostGlobalID global_id( node_export_ids[2*i+0], 
                                      node_export_ids[2*i+1] );
-      node = static_cast<ContactNode*>
+      node = static_cast<ContactNode<Real>*>
              (node_blocks[j]->NodeList()->Find(global_id));
       if ( node ) break;
     }
@@ -713,11 +713,11 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
     Zoltan_Comm.Add_Export(zoltan_lid,zoltan_gid,zoltan_pid);
   }
   for(int i=0; i<num_face_exports; ++i) {
-    ContactFace* face = NULL;
+    ContactFace<Real>* face = NULL;
     for( int j=0 ; j<number_of_face_blocks ; ++j){
       ContactHostGlobalID global_id( face_export_ids[2*i+0], 
                                      face_export_ids[2*i+1] );
-      face = static_cast<ContactFace*>
+      face = static_cast<ContactFace<Real>*>
              (face_blocks[j]->FaceList()->Find(global_id));
       if ( face ) break;
     }
@@ -768,12 +768,12 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
   for( int i=0 ; i<number_of_face_blocks ; ++i){
     face_blocks[i]->FaceList()->IteratorStart();
     while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
-      ContactFace* face = reinterpret_cast<ContactFace *>(entity);
+      ContactFace<Real>* face = reinterpret_cast<ContactFace<Real> *>(entity);
       int num_nodes = face->Nodes_Per_Face();
-      ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+      ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
       POSTCONDITION( node_info );
       for( int j=0 ; j<num_nodes ; ++j){
-        ContactNode* node = static_cast<ContactNode *>(node_list->Find( &node_info[j] ));
+        ContactNode<Real>* node = static_cast<ContactNode<Real> *>(node_list->Find( &node_info[j] ));
         POSTCONDITION( node );
         face->ConnectNode( j,node );
       }
@@ -791,10 +791,10 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
     while (entity=element_blocks[i]->ElemList()->IteratorForward()) {
       ContactElement* element = reinterpret_cast<ContactElement *>(entity);
       int num_nodes = element->Nodes_Per_Element();
-      ContactTopologyEntity::connection_data *node_info = element->NodeInfo();
+      ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
       POSTCONDITION( node_info );
       for( int j=0 ; j<num_nodes ; ++j){
-        ContactNode* node = static_cast<ContactNode *>(node_list->Find( &node_info[j] ));
+        ContactNode<Real>* node = static_cast<ContactNode<Real> *>(node_list->Find( &node_info[j] ));
         POSTCONDITION( node );
         element->ConnectNode( j,node );
       }
@@ -814,12 +814,12 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
     }
   } 
   for(int i=0; i<num_node_exports; ++i) {
-    ContactNode* node = NULL;
+    ContactNode<Real>* node = NULL;
     int j;
     for( j=0 ; j<number_of_node_blocks ; ++j){
       ContactHostGlobalID global_id( node_export_ids[2*i+0], 
                                      node_export_ids[2*i+1] );
-      node = static_cast<ContactNode*>
+      node = static_cast<ContactNode<Real>*>
              (node_blocks[j]->NodeList()->Find(global_id));
       if ( node ) break;
     }
@@ -835,7 +835,7 @@ ContactTopology::TopologyDLB( ContactErrors* Errors,
     node_blocks[i]->NodeList()->IteratorStart();
     while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
       if (entity->temp_tag==0) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
         node_blocks[i]->Delete_Node(node);
       }
     }
@@ -851,7 +851,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
   int i, j;
   int my_proc = contact_processor_number(SearchComm);
   int num_query = 0;
-  ContactTopologyEntity* entity=NULL;
+  ContactTopologyEntity<Real>* entity=NULL;
 
   //===========================================================================
   // now check if any master entities for the
@@ -860,7 +860,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
   for( i=0 ; i<number_of_node_blocks ; ++i){
     node_blocks[i]->NodeList()->IteratorStart();
     while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
-      ContactNode* node = static_cast<ContactNode*>(entity);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
       node->temp_tag = 0;
       ContactNodeEntityInteraction** interactions = 
 	node->Get_NodeEntity_Interactions();
@@ -869,7 +869,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
         if (cnfi==NULL) continue;
         if (cnfi->FaceEntityData()->owner == my_proc) {
           int blk = cnfi->FaceEntityData()->block_id;
-          ContactFace* face = static_cast<ContactFace*>
+          ContactFace<Real>* face = static_cast<ContactFace<Real>*>
             (face_blocks[blk]->FaceList()->Find(cnfi->FaceEntityData()));
           if (!face) {
             // master face not present, delete interaction
@@ -885,7 +885,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
   for( i=0 ; i<number_of_face_blocks ; ++i){
     face_blocks[i]->FaceList()->IteratorStart();
     while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       face->temp_tag = 0;
       ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
@@ -896,7 +896,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
           static_cast<ContactFaceFaceInteraction*>(interaction);
         if (cffi->MasterFaceEntityData()->owner == my_proc) {
           int blk = cffi->MasterFaceEntityData()->block_id;
-          face = static_cast<ContactFace*>
+          face = static_cast<ContactFace<Real>*>
             (face_blocks[blk]->FaceList()->Find(cffi->MasterFaceEntityData()));
           if (!face) {
             // master face not present, delete interaction
@@ -949,7 +949,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
   for( i=0 ; i<number_of_node_blocks ; ++i){
     node_blocks[i]->NodeList()->IteratorStart();
     while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
-      ContactNode* node = static_cast<ContactNode*>(entity);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
       ContactNodeEntityInteraction** interactions = 
 	node->Get_NodeEntity_Interactions();
       for (j=0; j<node->Number_NodeEntity_Interactions(); ++j) {
@@ -974,7 +974,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
   for( i=0 ; i<number_of_face_blocks ; ++i){
     face_blocks[i]->FaceList()->IteratorStart();
     while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
       ContactInteractionEntity* interaction;
@@ -1052,7 +1052,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
     for( i=0 ; i<number_of_node_blocks ; ++i){
       node_blocks[i]->NodeList()->IteratorStart();
       while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
-        ContactNode* node = static_cast<ContactNode*>(entity);
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
         ContactNodeEntityInteraction** interactions = 
 	  node->Get_NodeEntity_Interactions();
         for (j=0; j<node->Number_NodeEntity_Interactions(); ++j) {
@@ -1076,7 +1076,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
     for( i=0 ; i<number_of_face_blocks ; ++i){
       face_blocks[i]->FaceList()->IteratorStart();
       while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         ContactInteractionEntity* interaction;
@@ -1145,7 +1145,7 @@ ContactTopology::UpdateInteractions( ContactErrors* Errors,
     while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
       if (entity->temp_tag) {
         j = 0;
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         ContactInteractionEntity* interaction;

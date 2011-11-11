@@ -239,7 +239,7 @@ ContactAsymComm::ContactAsymComm( ContactSymComm& symcomm)
   //
   
   int i,j;
-  ContactTopologyEntity** entity_list;
+  ContactTopologyEntity<Real>** entity_list;
 
   // Find sizing information
   for( i=0 ; i<symcomm.Num_Comm_Partners() ; ++i ){
@@ -249,7 +249,7 @@ ContactAsymComm::ContactAsymComm( ContactSymComm& symcomm)
     int num_to_proc = symcomm.Num_to_Proc( i );
     entity_list = symcomm.Entity_List( i );
     for( j=0 ; j<num_to_proc ; ++j ){
-      if( entity_list[j]->Ownership() == ContactTopologyEntity::OWNED ){
+      if( entity_list[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ){
 	need_export = true;
 	export_list.num_entities += 1;
       } else if( entity_list[j]->Owner() == proc_id ){
@@ -277,7 +277,7 @@ ContactAsymComm::ContactAsymComm( ContactSymComm& symcomm)
     int num_to_export = 0;
     int num_to_import = 0;
     for( j=0 ; j<num_to_proc ; ++j ){
-      if( entity_list[j]->Ownership() == ContactTopologyEntity::OWNED ){
+      if( entity_list[j]->Ownership() == ContactTopologyEntity<Real>::OWNED ){
 	num_to_export += 1;
 	export_list.entity_list[export_entity_offset++] = entity_list[j];
       } else if( entity_list[j]->Owner() == proc_id ){
@@ -307,8 +307,8 @@ ContactAsymComm::ContactAsymComm( const int Num_Export_Comm_Partners,
 				  const int* Num_Import_to_Proc,
 				  const int* Export_Comm_Proc_IDs,
 				  const int* Import_Comm_Proc_IDs,
-				  ContactTopologyEntity** Export_Entity_List,
-				  ContactTopologyEntity** Import_Entity_List ) :
+				  ContactTopologyEntity<Real>** Export_Entity_List,
+				  ContactTopologyEntity<Real>** Import_Entity_List ) :
   import_list(Num_Import_Comm_Partners, Num_Import_to_Proc, Import_Comm_Proc_IDs, Import_Entity_List),
   export_list(Num_Export_Comm_Partners, Num_Export_to_Proc, Export_Comm_Proc_IDs, Export_Entity_List)
 {}

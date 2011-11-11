@@ -14,7 +14,7 @@
 ContactSymComm::ContactSymComm( int Num_Comm_Partners,
 				const int* Comm_Proc_Ids,
 				const int* Num_to_Proc,
-				ContactTopologyEntity** Entity_List )
+				ContactTopologyEntity<Real>** Entity_List )
 {
   PRECONDITION( Num_Comm_Partners >= 0 );
   PRECONDITION( Comm_Proc_Ids || !Num_Comm_Partners );
@@ -35,8 +35,8 @@ ContactSymComm::ContactSymComm( int Num_Comm_Partners,
       num_entities += num_to_proc[i];
     }
     allocated_entities = num_entities;
-    entity_list = new ContactTopologyEntity*[num_entities];
-    std::memcpy( entity_list, Entity_List, sizeof(ContactTopologyEntity*)*num_entities );
+    entity_list = new ContactTopologyEntity<Real>*[num_entities];
+    std::memcpy( entity_list, Entity_List, sizeof(ContactTopologyEntity<Real>*)*num_entities );
   } else {
     num_entities = 0;
     comm_proc_ids = NULL;
@@ -147,7 +147,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   //
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int n_to_proc = GhostSymComm->Num_to_Proc( i );
-    ContactTopologyEntity** e_list = GhostSymComm->Entity_List( i );
+    ContactTopologyEntity<Real>** e_list = GhostSymComm->Entity_List( i );
     for( j=0 ; j<n_to_proc ; ++j ){
       e_list[j]->temp_tag = -1234;
     }
@@ -156,7 +156,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // Set temp_tag for each node in node_sharing_info to the index in 
   // node_sharing_info
   for( i=0 ; i<size_shared_node_info ; ++i ){
-    ContactNode* node = static_cast<ContactNode *>
+    ContactNode<Real>* node = static_cast<ContactNode<Real> *>
       (node_hash->find( shared_node_gid[i] ));
     POSTCONDITION( node );
     node->temp_tag = i;
@@ -166,7 +166,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // GhostSymComm.
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int n_to_proc = GhostSymComm->Num_to_Proc( i );
-    ContactTopologyEntity** e_list = GhostSymComm->Entity_List( i );
+    ContactTopologyEntity<Real>** e_list = GhostSymComm->Entity_List( i );
     int comm_proc = GhostSymComm->Comm_Proc_ID( i );
     for( j=0 ; j<n_to_proc ; ++j ){
       if( e_list[j]->temp_tag != -1234 ){
@@ -229,7 +229,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // num_to_each_proc is already allocated and large enough so use it
   num_to_proc = num_to_each_proc;
   offset = new int[num_comm_partners];
-  entity_list = new ContactTopologyEntity*[num_entities];
+  entity_list = new ContactTopologyEntity<Real>*[num_entities];
   
   // Fill in the processor and the offset arrays 
   int proc_index = 0;
@@ -251,7 +251,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // We will sort them as the final step with the Sort() member function.
   //
   // Just copy the GhostSymComm data for starters
-  std::memset( entity_list, 0, num_entities*sizeof(ContactTopologyEntity*) );
+  std::memset( entity_list, 0, num_entities*sizeof(ContactTopologyEntity<Real>*) );
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int proc_id = GhostSymComm->Comm_Proc_ID( i );
     // find this processor in the list
@@ -260,7 +260,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
       if( comm_proc_ids[j] == proc_id ){
 	//	PRECONDITION((offset[j+1]-offset[j])>=GhostSymComm->Num_to_Proc( i ) );
 	std::memcpy( entity_list+offset[j], GhostSymComm->Entity_List( i ),
-		GhostSymComm->Num_to_Proc( i )*sizeof(ContactTopologyEntity*) );
+		GhostSymComm->Num_to_Proc( i )*sizeof(ContactTopologyEntity<Real>*) );
 	REMEMBER( PROC_FOUND = true );
 	break;
       }
@@ -283,7 +283,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
 	  // find the location to insert this node 
 	  // (NULL as used as unfilled locations)
 	  REMEMBER( bool INSERTED = false );
-	  ContactNode* node = static_cast<ContactNode *>
+	  ContactNode<Real>* node = static_cast<ContactNode<Real> *>
 	    (node_hash->find( shared_node_gid[i]));
 	  POSTCONDITION( node );
 	  int begin = offset[k];
@@ -382,7 +382,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // Set temp_tag = -1234 for all nodes that are in the GhostSymComm
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int n_to_proc = GhostSymComm->Num_to_Proc( i );
-    ContactTopologyEntity** e_list = GhostSymComm->Entity_List( i );
+    ContactTopologyEntity<Real>** e_list = GhostSymComm->Entity_List( i );
     for( j=0 ; j<n_to_proc ; ++j ){
       e_list[j]->temp_tag = -1234;
     }
@@ -391,7 +391,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // Set temp_tag for each node in node_sharing_info to the index in 
   // node_sharing_info
   for( i=0 ; i<size_shared_node_info ; ++i ){
-    ContactNode* node = static_cast<ContactNode *>
+    ContactNode<Real>* node = static_cast<ContactNode<Real> *>
       (node_hash->Find( shared_node_gid[i] ) );
     POSTCONDITION( node );
     node->temp_tag = i;
@@ -401,7 +401,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // GhostSymComm.
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int n_to_proc = GhostSymComm->Num_to_Proc( i );
-    ContactTopologyEntity** e_list = GhostSymComm->Entity_List( i );
+    ContactTopologyEntity<Real>** e_list = GhostSymComm->Entity_List( i );
     int comm_proc = GhostSymComm->Comm_Proc_ID( i );
     for( j=0 ; j<n_to_proc ; ++j ){
       if( e_list[j]->temp_tag != -1234 ){
@@ -464,7 +464,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // num_to_each_proc is already allocated and large enough so use it
   num_to_proc = num_to_each_proc;
   offset = new int[num_comm_partners];
-  entity_list = new ContactTopologyEntity*[num_entities];
+  entity_list = new ContactTopologyEntity<Real>*[num_entities];
   
   // Fill in the processor and the offset arrays 
   int proc_index = 0;
@@ -486,7 +486,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
   // We will sort them as the final step with the Sort() member function.
   //
   // Just copy the GhostSymComm data for starters
-  std::memset( entity_list, 0, num_entities*sizeof(ContactTopologyEntity*) );
+  std::memset( entity_list, 0, num_entities*sizeof(ContactTopologyEntity<Real>*) );
   for( i=0 ; i<GhostSymComm->Num_Comm_Partners() ; ++i ){
     int proc_id = GhostSymComm->Comm_Proc_ID( i );
     // find this processor in the list
@@ -495,7 +495,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
       if( comm_proc_ids[j] == proc_id ){
 	//	PRECONDITION((offset[j+1]-offset[j])>=GhostSymComm->Num_to_Proc( i ) );
 	std::memcpy( entity_list+offset[j], GhostSymComm->Entity_List( i ),
-		GhostSymComm->Num_to_Proc( i )*sizeof(ContactTopologyEntity*) );
+		GhostSymComm->Num_to_Proc( i )*sizeof(ContactTopologyEntity<Real>*) );
 	REMEMBER( PROC_FOUND = true );
 	break;
       }
@@ -517,7 +517,7 @@ void ContactSymComm::Build_Comm_Plan( ContactSymComm* GhostSymComm,
 	  // find the location to insert this node 
 	  // (NULL as used as unfilled locations)
 	  REMEMBER( bool INSERTED = false );
-	  ContactNode* node = static_cast<ContactNode *>
+	  ContactNode<Real>* node = static_cast<ContactNode<Real> *>
 	    (node_hash->Find( shared_node_gid[i] ));
 	  POSTCONDITION( node );
 	  int begin = offset[k];
@@ -565,12 +565,12 @@ void ContactSymComm::Build_Subset_Comm_Plan_Using_Temp_Tag( ContactSymComm& SymC
   }
   allocated_entities = SymComm.Size();
   if( allocated_entities ){
-    entity_list = new ContactTopologyEntity*[allocated_entities];
+    entity_list = new ContactTopologyEntity<Real>*[allocated_entities];
   } 
 
   for( int i=0 ; i<allocated_procs ; ++i ){
     int n_to_proc = SymComm.Num_to_Proc( i );
-    ContactTopologyEntity** full_entity_list_to_proc = SymComm.Entity_List(i);
+    ContactTopologyEntity<Real>** full_entity_list_to_proc = SymComm.Entity_List(i);
     bool this_proc_counted = false;
     for( int j=0 ; j<n_to_proc ; ++j ){
       if( full_entity_list_to_proc[j]->temp_tag == 1 ){
@@ -593,7 +593,7 @@ void ContactSymComm::Sort()
   // same ordering on all processors.
   for( int i=0 ; i<num_comm_partners ; ++i ){
     int n_to_proc = num_to_proc[i];
-    ContactTopologyEntity** list = entity_list+offset[i];
+    ContactTopologyEntity<Real>** list = entity_list+offset[i];
     ContactTopology::SortEntityList( n_to_proc, list );
   }
 }
@@ -632,8 +632,8 @@ void ContactSymComm::Check(MPI_Comm Comm) {
   for ( i = 0; i < num_comm_partners; ++i) {
     for (int j = 1; j < num_to_proc[i]; ++j) {
 #if CONTACT_DEBUG_PRINT_LEVEL>=1 || defined(CONTACT_DEBUG)
-      ContactTopologyEntity * entity_1 = entity_list[offset[i]+j];
-      ContactTopologyEntity * entity_2 = entity_list[offset[i]+j-1];
+      ContactTopologyEntity<Real> * entity_1 = entity_list[offset[i]+j];
+      ContactTopologyEntity<Real> * entity_2 = entity_list[offset[i]+j-1];
 #endif
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
       if ( entity_1->Global_ID() < entity_2->Global_ID() ) 

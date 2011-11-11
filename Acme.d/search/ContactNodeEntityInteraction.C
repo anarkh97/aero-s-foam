@@ -11,8 +11,8 @@ ContactNodeEntityInteraction::ContactNodeEntityInteraction(bool is_tied_,
                                                            bool is_infSlip_,
                                                            bool is_glued_,
                                                            bool is_tracked_,
-                                                           ContactNode* node_,
-                                                           ContactTopologyEntity* entity_,
+                                                           ContactNode<Real>* node_,
+                                                           ContactTopologyEntity<Real>* entity_,
                                                            int Location,
                                                            InteractionType type_,
                                                            ContactType base_type_) :
@@ -105,7 +105,7 @@ void  ContactNodeEntityInteraction::Modify_for_Kinematic_Constraints(
 
 void ContactNodeEntityInteraction::Connect_Node( ContactTopologyEntityList& hash_table )
 {   
-  node = static_cast<ContactNode *>(hash_table.Find( &node_entity_data ));
+  node = static_cast<ContactNode<Real> *>(hash_table.Find( &node_entity_data ));
   POSTCONDITION( node );
   Set_NodeEntityData();
 }
@@ -114,7 +114,7 @@ void ContactNodeEntityInteraction::Connect_Node( ContactTopologyEntityHash& hash
 {
   ContactHostGlobalID gid( node_entity_data.host_gid[0], 
                            node_entity_data.host_gid[1] );
-  node = static_cast<ContactNode *>(hash_table.find( gid ));
+  node = static_cast<ContactNode<Real> *>(hash_table.find( gid ));
   POSTCONDITION( node );
   Set_NodeEntityData();
 }
@@ -123,14 +123,14 @@ void ContactNodeEntityInteraction::Connect_Node( ContactTopology* topology )
 { 
   int block = node_entity_data.block_id;
   //int index = node_entity_data.index_in_block;
-  //node = static_cast<ContactNode *>(topology->Node_Block(block)->NodeList()->Find( index ));
-  node = static_cast<ContactNode *>
+  //node = static_cast<ContactNode<Real> *>(topology->Node_Block(block)->NodeList()->Find( index ));
+  node = static_cast<ContactNode<Real> *>
            (topology->Node_Block(block)->NodeList()->Find( &node_entity_data ));
   POSTCONDITION( node );
   Set_NodeEntityData();
 }
 
-void ContactNodeEntityInteraction::Connect_Node( ContactNode* Node )
+void ContactNodeEntityInteraction::Connect_Node( ContactNode<Real>* Node )
 {   
   node = Node;
   POSTCONDITION( node );

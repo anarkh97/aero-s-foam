@@ -11,7 +11,8 @@
 #include <cstddef>
 #include <cstring>
 
-ContactTopologyEntity::ContactTopologyEntity(Real *data_array_, 
+template<typename DataType>
+ContactTopologyEntity<DataType>::ContactTopologyEntity(DataType *data_array_, 
                                              const ContactType base_type_)
   : temp_tag(0),temp_tag1(0),in_proximity(0),
     host_array_index(-1),proc_array_index(-1),enf_array_index(-1),
@@ -20,9 +21,10 @@ ContactTopologyEntity::ContactTopologyEntity(Real *data_array_,
     global_id(0,-1),shared(false),owner(-1),secondary_owner(-1)
 { }
 
-ContactTopologyEntity::ContactTopologyEntity( int Block_ID, 
+template<typename DataType>
+ContactTopologyEntity<DataType>::ContactTopologyEntity( int Block_ID, 
 			                      int host_index_in_block,
-                                              Real *data_array_, 
+                                              DataType *data_array_, 
                                               const ContactType base_type_)
   : temp_tag(0),temp_tag1(0),in_proximity(0),
     host_array_index(host_index_in_block), proc_array_index(-1),
@@ -33,11 +35,13 @@ ContactTopologyEntity::ContactTopologyEntity( int Block_ID,
     shared(false), owner(-1),secondary_owner(-1)
 { }
 
-ContactTopologyEntity::~ContactTopologyEntity()
+template<typename DataType>
+ContactTopologyEntity<DataType>::~ContactTopologyEntity()
 {}
 
+template<typename DataType>
 void 
-ContactTopologyEntity::Display(ContactParOStream& postream)
+ContactTopologyEntity<DataType>::Display(ContactParOStream& postream)
 {
   postream<<"ContactEntity: "<<global_id<<"\n";
   postream<<"               entity type:             ";
@@ -55,7 +59,7 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
     {
       postream<<"CT_FACE\n";
       postream<<"               face type:               ";
-      ContactFace* face = static_cast<ContactFace*>(this);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(this);
       switch (face->FaceType()) {
       case ContactSearch::QUADFACEL4:
         postream<<"QUADFACEL4\n";
@@ -126,7 +130,7 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
   case CT_SHELL_NODE:
     {
       postream<<"               node type:               ";
-      ContactNode* node = static_cast<ContactNode*>(this);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(this);
       switch (node->NodeType()) {
       case ContactSearch::NODE:
         postream<<"NODE\n";
@@ -140,13 +144,13 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
       }
       postream<<"               physical type:           ";
       switch (node->Physical_Type()) {
-      case ContactNode::CONTINUUM_NODE:
+      case ContactNode<Real>::CONTINUUM_NODE:
         postream<<"CONTINUUM_NODE\n";
         break;
-      case ContactNode::MIXED_NODE:
+      case ContactNode<Real>::MIXED_NODE:
         postream<<"MIXED_NODE\n";
         break;
-      case ContactNode::SHELL_NODE:
+      case ContactNode<Real>::SHELL_NODE:
         postream<<"SHELL_NODE\n";
         break;
       default:
@@ -185,7 +189,7 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
   switch (Base_Type()) {
   case CT_NODE:
   case CT_SHELL_NODE: {
-    ContactNode* node = static_cast<ContactNode*>(this);
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>(this);
     postream<<"               exodus_id:               "<<node->Exodus_ID()<<"\n";
     if (Base_Type()==CT_SHELL_NODE) {
       ContactShellNode* snode = static_cast<ContactShellNode*>(this);
@@ -200,7 +204,7 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
     } break;
   case CT_EDGE: {
     postream<<"               node connectivity:      ";
-    ContactEdge* edge = static_cast<ContactEdge*>(this);
+    ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(this);
     for (int i=0; i<edge->Nodes_Per_Edge(); ++i) {
       postream<<" "<<edge->Node(i)->Global_ID();
     }
@@ -217,7 +221,7 @@ ContactTopologyEntity::Display(ContactParOStream& postream)
     } break;
   case CT_FACE: {
     postream<<"               node connectivity:      ";
-    ContactFace* face = static_cast<ContactFace*>(this);
+    ContactFace<Real>* face = static_cast<ContactFace<Real>*>(this);
     for (int i=0; i<face->Nodes_Per_Face(); ++i) {
       postream<<" "<<face->Node(i)->Global_ID();
     }

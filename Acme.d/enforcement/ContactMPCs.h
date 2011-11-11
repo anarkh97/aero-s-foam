@@ -6,7 +6,7 @@
 #include "ContactSearch.h"
 #include "ContactEnforcement.h"
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactTopology;
 class ContactAsymComm;
 struct Contact_MPC_Equation;

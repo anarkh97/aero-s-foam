@@ -21,7 +21,7 @@ using acme::Magnitude;
 ContactQuadFaceQ8::ContactQuadFaceQ8( ContactFixedSizeAllocator* alloc,
                                       int Block_Index, 
 				      int Index_in_Block, int key ) 
-  : ContactFace( alloc, ContactSearch::QUADFACEQ8,
+  : ContactFace<Real>( alloc, ContactSearch::QUADFACEQ8,
                  Block_Index, Index_in_Block, key, 
                  nodes, edges, Node_Info, Edge_Info)
 {}
@@ -125,10 +125,10 @@ void ContactQuadFaceQ8::Compute_Normal(Real** nodal_positions,
 void ContactQuadFaceQ8::Compute_CharacteristicLength(VariableHandle CURRENT_POSITION,
 				                     VariableHandle CHARACTERISTIC_LENGTH )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
-  ContactNode* node2 = Node(2);
-  ContactNode* node3 = Node(3);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
+  ContactNode<Real>* node2 = Node(2);
+  ContactNode<Real>* node3 = Node(3);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   Real* Position2 = node2->Variable(CURRENT_POSITION);
@@ -159,7 +159,7 @@ void ContactQuadFaceQ8::Compute_Centroid( VariableHandle CURRENT_POSITION,
   Compute_Global_Coordinates(CURRENT_POSITION, local_coords, centroid);
 }
 
-void ContactQuadFaceQ8::Get_Edge_Nodes( int i, ContactNode** node )
+void ContactQuadFaceQ8::Get_Edge_Nodes( int i, ContactNode<Real>** node )
 {
   PRECONDITION( i>=0 && i<4 );
   switch( i ){
@@ -191,13 +191,13 @@ void ContactQuadFaceQ8::Get_Edge_Nodes( int i, ContactNode** node )
   }
 }
 
-int ContactQuadFaceQ8::Get_Edge_Number( ContactNode** edge_nodes )
+int ContactQuadFaceQ8::Get_Edge_Number( ContactNode<Real>** edge_nodes )
 {
   PRECONDITION( edge_nodes[0] && edge_nodes[1] && edge_nodes[2] );
   PRECONDITION( edge_nodes[0] != edge_nodes[2] );
   int i1=-1,i2=-1,i3=-1;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    ContactNode* node = Node(i);
+    ContactNode<Real>* node = Node(i);
     if( edge_nodes[0] == node ) i1 = i;
     if( edge_nodes[1] == node ) i2 = i;
     if( edge_nodes[2] == node ) i3 = i;
@@ -401,10 +401,10 @@ bool ContactQuadFaceQ8::Is_Inside_Face( Real* local_coords )
   return false;
 }
 
-ContactFace* ContactQuadFaceQ8::Neighbor( Real* local_coords )
+ContactFace<Real>* ContactQuadFaceQ8::Neighbor( Real* local_coords )
 {
   PRECONDITION( 0 );
-  return (ContactFace*) NULL;
+  return (ContactFace<Real>*) NULL;
 }
 
 void ContactQuadFaceQ8::FacetDecomposition(int& nfacets,
@@ -1937,7 +1937,7 @@ void ContactQuadFaceQ8::Compute_Node_Areas( VariableHandle POSITION,
 }
 
 int ContactQuadFaceQ8::FaceEdge_Intersection(VariableHandle POSITION,
-					     ContactEdge* edge, Real* coords)
+					     ContactEdge<Real>* edge, Real* coords)
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   std::cerr << "ContactQuadFaceQ8::FaceEdge_Intersection not yet implemented\n";

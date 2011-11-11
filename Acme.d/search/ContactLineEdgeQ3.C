@@ -6,7 +6,7 @@
 #include <new>
 
 ContactLineEdgeQ3::ContactLineEdgeQ3( int Blk_Index, int Index_in_Blk ) 
-  : ContactEdge( ContactSearch::LINEEDGEQ3, Blk_Index, Index_in_Blk, nodes )
+  : ContactEdge<Real>( ContactSearch::LINEEDGEQ3, Blk_Index, Index_in_Blk, nodes )
 {}
 
 ContactLineEdgeQ3* ContactLineEdgeQ3::new_ContactLineEdgeQ3(

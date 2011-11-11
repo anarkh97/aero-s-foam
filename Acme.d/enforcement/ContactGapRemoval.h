@@ -7,7 +7,7 @@
 #include "ContactEnforcement.h"
 #include "ContactScratchManager.h"
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactTopology;
 class ContactNodeFaceInteraction;
 

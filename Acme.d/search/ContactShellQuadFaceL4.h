@@ -21,7 +21,7 @@ class ContactFixedSizeAllocator;
                              E0
 */
 
-class ContactShellQuadFaceL4 : public ContactQuadFaceL4 {
+class ContactShellQuadFaceL4 : public ContactQuadFaceL4<Real> {
 
   public :
     ContactShellQuadFaceL4( ContactFixedSizeAllocator*, 

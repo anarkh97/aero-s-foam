@@ -14,9 +14,10 @@
 #include <cmath>
 #include <new>
 
-ContactWedgeElemL6::ContactWedgeElemL6( int Block_Index, 
+template<typename DataType>
+ContactWedgeElemL6<DataType>::ContactWedgeElemL6( int Block_Index, 
 				        int Host_Index_in_Block, int key ) 
-  : ContactElem( ContactSearch::WEDGEELEML6,Block_Index,Host_Index_in_Block,key) 
+  : ContactElem<DataType>( ContactSearch::WEDGEELEML6,Block_Index,Host_Index_in_Block,key) 
 {
   for (int i=0; i<Nodes_Per_Element(); ++i) {
     nodes[i]    = NULL;
@@ -32,42 +33,46 @@ ContactWedgeElemL6::ContactWedgeElemL6( int Block_Index,
   }
 }
 
-ContactWedgeElemL6* ContactWedgeElemL6::new_ContactWedgeElemL6(
+template<typename DataType>
+ContactWedgeElemL6<DataType>* ContactWedgeElemL6<DataType>::new_ContactWedgeElemL6(
                         ContactFixedSizeAllocator& alloc,
                         int Block_Index, int Host_Index_in_Block, int key)
 {
   return new (alloc.New_Frag())
-             ContactWedgeElemL6(Block_Index, Host_Index_in_Block, key);
+             ContactWedgeElemL6<DataType>(Block_Index, Host_Index_in_Block, key);
 }
 
+template<typename DataType>
 void ContactWedgeElemL6_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
-  alloc.Resize( sizeof(ContactWedgeElemL6),
+  alloc.Resize( sizeof(ContactWedgeElemL6<DataType>),
                 100,  // block size
                 0);  // initial block size
-  alloc.Set_Name( "ContactWedgeElemL6 allocator" );
+  alloc.Set_Name( "ContactWedgeElemL6<DataType> allocator" );
 }
 
-ContactWedgeElemL6::~ContactWedgeElemL6() {}
+template<typename DataType>
+ContactWedgeElemL6<DataType>::~ContactWedgeElemL6() {}
 
-void ContactWedgeElemL6::BuildTopology(int nID, int eID, int fID,
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::BuildTopology(int nID, int eID, int fID,
 				       ContactFixedSizeAllocator* allocators)
 {
   int i;
-  ContactNode* node;
-  ContactEdge* edge;
-  ContactFace* face;
+  ContactNode<DataType>* node;
+  ContactEdge<DataType>* edge;
+  ContactFace<DataType>* face;
   
   int NextID = nID;
   for( i=0 ; i<Nodes_Per_Element() ; ++i ) {
-    node = ContactNode::new_ContactNode(allocators,
+    node = ContactNode<DataType>::new_ContactNode(allocators,
                                         ContactSearch::NODE, 
                                         ++NextID );
     ConnectNode(i, node);
   }
   NextID = eID;
   for( i=0 ; i<Edges_Per_Element() ; ++i ) {
-    edge = ContactLineEdgeL2::new_ContactLineEdgeL2( 
+    edge = ContactLineEdgeL2<DataType>::new_ContactLineEdgeL2( 
                         allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
                         ContactSearch::LINEEDGEL2, ++NextID);
     ConnectEdge(i, edge);
@@ -102,11 +107,11 @@ void ContactWedgeElemL6::BuildTopology(int nID, int eID, int fID,
   
   NextID = fID;
   for( i=0 ; i<3 ; ++i ) {
-    face = ContactQuadFaceL4::new_ContactQuadFaceL4(allocators, ++NextID );
+    face = ContactQuadFaceL4<DataType>::new_ContactQuadFaceL4(allocators, ++NextID );
     ConnectFace(i, face);
   }
   for( i=3 ; i<5 ; ++i ) {
-    face = ContactTriFaceL3::new_ContactTriFaceL3(allocators, ++NextID );
+    face = ContactTriFaceL3<DataType>::new_ContactTriFaceL3(allocators, ++NextID );
     ConnectFace(i, face);
   }
   face = Face(0);
@@ -134,47 +139,49 @@ void ContactWedgeElemL6::BuildTopology(int nID, int eID, int fID,
   face->ConnectNode(2, Node(5));
 }
 
-void ContactWedgeElemL6::DeleteTopology(ContactFixedSizeAllocator* allocators)
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::DeleteTopology(ContactFixedSizeAllocator* allocators)
 {
   int i;
   for( i=0 ; i<Nodes_Per_Element() ; ++i ) {
-    ContactNode* node = Node(i);
-    node->~ContactNode();
+    ContactNode<DataType>* node = Node(i);
+    node->~ContactNode<DataType>();
     allocators[ContactSearch::ALLOC_ContactNode].Delete_Frag(node);
   }
   for( i=0 ; i<Edges_Per_Element() ; ++i ) {
-    ContactEdge* edge = Edge(i);
-    edge->~ContactEdge();
+    ContactEdge<DataType>* edge = Edge(i);
+    edge->~ContactEdge<DataType>();
     allocators[ContactSearch::ALLOC_ContactLineEdgeL2].Delete_Frag(edge);
   }
   for( i=0 ; i<3 ; ++i ) {
-    ContactFace* face = Face(i);
-    face->~ContactFace();
+    ContactFace<DataType>* face = Face(i);
+    face->~ContactFace<DataType>();
     allocators[ContactSearch::ALLOC_ContactQuadFaceL4].Delete_Frag(face);
   }
   for( i=3 ; i<Faces_Per_Element() ; ++i ) {
-    ContactFace* face = Face(i);
-    face->~ContactFace();
+    ContactFace<DataType>* face = Face(i);
+    face->~ContactFace<DataType>();
     allocators[ContactSearch::ALLOC_ContactTriFaceL3].Delete_Frag(face);
   }
 }
 
-void ContactWedgeElemL6::UpdateTopology(ContactFace* face, 
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::UpdateTopology(ContactFace<DataType>* face, 
 					VariableHandle POSITION,
 					VariableHandle FACE_NORMAL,
 					VariableHandle NODE_NORMAL,
-					Real tol, bool use_node_normals)
+					DataType tol, bool use_node_normals)
 {
   int i;
   int num_nodes = face->Nodes_Per_Face();
   for( i=0 ; i<num_nodes ; ++i ){
-    Real* projection;
-    ContactNode* face_node    = face->Node(i);
-    ContactNode* elem_node1   = Node(i);
-    ContactNode* elem_node2   = Node(i+num_nodes);
-    Real* face_node_position  = face_node->Variable(POSITION);
-    Real* elem_node_position1 = elem_node1->Variable(POSITION);
-    Real* elem_node_position2 = elem_node2->Variable(POSITION);
+    DataType* projection;
+    ContactNode<DataType>* face_node    = face->Node(i);
+    ContactNode<DataType>* elem_node1   = Node(i);
+    ContactNode<DataType>* elem_node2   = Node(i+num_nodes);
+    DataType* face_node_position  = face_node->Variable(POSITION);
+    DataType* elem_node_position1 = elem_node1->Variable(POSITION);
+    DataType* elem_node_position2 = elem_node2->Variable(POSITION);
     if (use_node_normals) {
       projection = face_node->Variable(NODE_NORMAL);
     } else {
@@ -190,7 +197,8 @@ void ContactWedgeElemL6::UpdateTopology(ContactFace* face,
   }
 }
 
-bool ContactWedgeElemL6::Is_Local_Coordinates_Inside_Element( Real* local_coords )
+template<typename DataType>
+bool ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Inside_Element( DataType* local_coords )
 {
   if( local_coords[0] >=  0.0 && local_coords[0] <= 1.0 &&
       local_coords[1] >=  0.0 && local_coords[1] <= 1.0 &&
@@ -200,10 +208,11 @@ bool ContactWedgeElemL6::Is_Local_Coordinates_Inside_Element( Real* local_coords
   return false;
 }
 
-bool ContactWedgeElemL6::Is_Local_Coordinates_Near_Element( Real* local_coords, Real tolerance )
+template<typename DataType>
+bool ContactWedgeElemL6<DataType>::Is_Local_Coordinates_Near_Element( DataType* local_coords, DataType tolerance )
 {
-  Real low_coord  = -(1.+tolerance);
-  Real high_coord = 1.+tolerance;
+  DataType low_coord  = -(1.+tolerance);
+  DataType high_coord = 1.+tolerance;
   if( local_coords[0] >= low_coord && local_coords[0] <= high_coord &&
       local_coords[1] >= low_coord && local_coords[1] <= high_coord &&
       local_coords[2] >= low_coord && local_coords[2] <= high_coord )
@@ -211,19 +220,21 @@ bool ContactWedgeElemL6::Is_Local_Coordinates_Near_Element( Real* local_coords, 
   return false;
 }
 
-void ContactWedgeElemL6::Evaluate_Shape_Functions( Real* local_coords,
-						   Real* shape_functions )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Evaluate_Shape_Functions( DataType* local_coords,
+						   DataType* shape_functions )
 {
   Compute_Shape_Functions(local_coords, shape_functions);
 }
 
-void ContactWedgeElemL6::Compute_Global_Coordinates( VariableHandle POSITION,
-						     Real* local_coords,
-						     Real* global_coords )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Global_Coordinates( VariableHandle POSITION,
+						     DataType* local_coords,
+						     DataType* global_coords )
 {
-  Real node_positions[6][3];
+  DataType node_positions[6][3];
   for(int i=0; i<Nodes_Per_Element(); ++i ){
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     for (int j=0; j<3; ++j) {
       node_positions[i][j] = node_position[j];
     }
@@ -231,34 +242,35 @@ void ContactWedgeElemL6::Compute_Global_Coordinates( VariableHandle POSITION,
   Compute_Global_Coords(node_positions, local_coords, global_coords);
 }
 
-void ContactWedgeElemL6::Compute_Local_Coordinates( Real Config_Param,
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( DataType Config_Param,
 						    VariableHandle POSITION0, 
 						    VariableHandle POSITION1, 
 						    VariableHandle FACE_NORMAL,
-						    Real* global_coords,
-						    Real* local_coords )
+						    DataType* global_coords,
+						    DataType* local_coords )
 {
   int i, j;
-  Real node_positions[6][3];
+  DataType node_positions[6][3];
   if (Config_Param == 0.0) {
     for (i=0; i<Nodes_Per_Element(); ++i) {
-      Real* node_position = Node(i)->Variable(POSITION0);
+      DataType* node_position = Node(i)->Variable(POSITION0);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = node_position[j];
       }
     }
   } else if (Config_Param == 1.0) {
     for (i=0; i<Nodes_Per_Element(); ++i) {
-      Real* node_position = Node(i)->Variable(POSITION1);
+      DataType* node_position = Node(i)->Variable(POSITION1);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = node_position[j];
       }
     }
   } else {
-    Real alpha = 1.0 - Config_Param, beta = Config_Param;
+    DataType alpha = 1.0 - Config_Param, beta = Config_Param;
     for (i=0; i<Nodes_Per_Element(); ++i) {
-      Real* node_position0 = Node(i)->Variable(POSITION0);
-      Real* node_position1 = Node(i)->Variable(POSITION1);
+      DataType* node_position0 = Node(i)->Variable(POSITION0);
+      DataType* node_position1 = Node(i)->Variable(POSITION1);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = alpha*node_position0[j]+beta*node_position1[j];
       }
@@ -267,14 +279,15 @@ void ContactWedgeElemL6::Compute_Local_Coordinates( Real Config_Param,
   Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
-void ContactWedgeElemL6::Compute_Local_Coordinates( VariableHandle POSITION,
-						    Real* global_coords,
-						    Real* local_coords )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
+						    DataType* global_coords,
+						    DataType* local_coords )
 {
   int i, j;
-  Real node_positions[6][3];
+  DataType node_positions[6][3];
   for (i=0; i<Nodes_Per_Element(); ++i) {
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     for (j=0; j<3; ++j) {
       node_positions[i][j] = node_position[j];
     }
@@ -293,8 +306,9 @@ void ContactWedgeElemL6::Compute_Local_Coordinates( VariableHandle POSITION,
 /*************************************************************************/
 /*************************************************************************/
 
-void ContactWedgeElemL6::Compute_Shape_Functions( Real* local_coords,
-						  Real* shape_functions )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Shape_Functions( DataType* local_coords,
+						  DataType* shape_functions )
 {
   shape_functions[0] = 0.50*local_coords[0]*(1.0-local_coords[3]);
   shape_functions[1] = 0.50*local_coords[1]*(1.0-local_coords[3]);
@@ -304,8 +318,9 @@ void ContactWedgeElemL6::Compute_Shape_Functions( Real* local_coords,
   shape_functions[5] = 0.50*local_coords[2]*(1.0+local_coords[3]);
 }
 
-void ContactWedgeElemL6::Compute_Shape_Derivatives( Real* local_coords,
-						    Real  shape_derivs[3][6] )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Shape_Derivatives( DataType* local_coords,
+						    DataType  shape_derivs[3][6] )
 {
   shape_derivs[0][0] =  0.50*(1.0-local_coords[3]);
   shape_derivs[0][1] =  0.0;
@@ -329,21 +344,22 @@ void ContactWedgeElemL6::Compute_Shape_Derivatives( Real* local_coords,
   shape_derivs[2][5] =  0.50*local_coords[2];
 }
 
-void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3], 
-					       Real* global_coords,
-					       Real* local_coords )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions[8][3], 
+					       DataType* global_coords,
+					       DataType* local_coords )
 {
   //
   // 1st check for coincidence with one of the face nodes
   //
   int  i, j;
   int  nnodes=6;
-  Real spatial_tolerance = 1.0e-10;
+  DataType spatial_tolerance = 1.0e-10;
   for (i=0; i<nnodes; ++i) {
-    Real dx = node_positions[i][0]-global_coords[0];
-    Real dy = node_positions[i][1]-global_coords[1];
-    Real dz = node_positions[i][2]-global_coords[2];
-    Real d  = std::sqrt(dx*dx+dy*dy+dz*dz);
+    DataType dx = node_positions[i][0]-global_coords[0];
+    DataType dy = node_positions[i][1]-global_coords[1];
+    DataType dz = node_positions[i][2]-global_coords[2];
+    DataType d  = std::sqrt(dx*dx+dy*dy+dz*dz);
     if (d<spatial_tolerance) break;
   }
   switch (i) {
@@ -391,12 +407,12 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
   int  iterations=0;
   int  max_iterations=200;
   bool converged = false;
-  Real tolerance = 1.0e-12;
-  Real u, u0=0.0, u1, du;
-  Real v, v0=0.0, v1, dv;
-  Real w, w0=0.0, w1, dw;
-  Real f[3], J[3][3], invJ[3][3];
-  Real shape_derivatives[3][6], coords[4];
+  DataType tolerance = 1.0e-12;
+  DataType u, u0=0.0, u1, du;
+  DataType v, v0=0.0, v1, dv;
+  DataType w, w0=0.0, w1, dw;
+  DataType f[3], J[3][3], invJ[3][3];
+  DataType shape_derivatives[3][6], coords[4];
   while (!converged && iterations<max_iterations) {
     coords[0] = u0;
     coords[1] = v0;
@@ -416,7 +432,7 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
       }
     }
     
-    Real detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+    DataType detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
                        J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
                        J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
 
@@ -449,7 +465,7 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
   }
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   if (!converged) {
-    std::cerr << "ContactWedgeElemL6::Compute_Local_Coordinates() did not converge" 
+    std::cerr << "ContactWedgeElemL6<DataType>::Compute_Local_Coordinates() did not converge" 
 	 << std::endl;
   }
 #endif
@@ -476,11 +492,12 @@ void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3],
   local_coords[3] = w0;
 }
 
-void ContactWedgeElemL6::Compute_Global_Coords( Real node_positions[6][3],
-						Real local_coords[4],
-						Real global_coords[3] )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Compute_Global_Coords( DataType node_positions[6][3],
+						DataType local_coords[4],
+						DataType global_coords[3] )
 {
-  Real N[6];
+  DataType N[6];
   int  nnodes=6;
   global_coords[0] = 0.0;
   global_coords[1] = 0.0;
@@ -493,11 +510,12 @@ void ContactWedgeElemL6::Compute_Global_Coords( Real node_positions[6][3],
   }
 }
 
-void ContactWedgeElemL6::Interpolate_Scalar( Real  local_coords[4],
-					     Real  node_scalars[6],
-					     Real& interpolated_scalar )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Interpolate_Scalar( DataType  local_coords[4],
+					     DataType  node_scalars[6],
+					     DataType& interpolated_scalar )
 {
-  Real N[6];
+  DataType N[6];
   int  nnodes=6;
   interpolated_scalar = 0.0;
   Compute_Shape_Functions(local_coords, N);
@@ -506,11 +524,12 @@ void ContactWedgeElemL6::Interpolate_Scalar( Real  local_coords[4],
   }
 }
 
-void ContactWedgeElemL6::Interpolate_Vector( Real local_coords[4],
-					     Real node_vectors[6][3],
-					     Real interpolated_vector[3] )
+template<typename DataType>
+void ContactWedgeElemL6<DataType>::Interpolate_Vector( DataType local_coords[4],
+					     DataType node_vectors[6][3],
+					     DataType interpolated_vector[3] )
 {
-  Real N[6];
+  DataType N[6];
   int  nnodes=6;
   interpolated_vector[0] = 0.0;
   interpolated_vector[1] = 0.0;

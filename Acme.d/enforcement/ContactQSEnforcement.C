@@ -85,14 +85,14 @@ void ContactQSEnforcement::Remove_Gaps(Real* Position)
       cnei_group = node_entity_list.Node_Group_Next()) {
     PRECONDITION(cnei_group.Num_Interactions() == 1);
     ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(0);
-    ContactNode* node = cnei->Node();
+    ContactNode<Real>* node = cnei->Node();
     const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(0);
     //
     //  Compute the position of the contact point
     //
     Real contact_point_position[3] = {0.0, 0.0, 0.0};
     for( int k=0 ; k < num_face_nodes ; ++k ){
-      ContactNode *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
+      ContactNode<Real> *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
       Real* face_node_pos = Position + NDIM*(face_node->HostGlobalArrayIndex());
       Real face_shape_function = cnei_group.Get_Face_Shape_Function(0,k);
       for(int j=0 ; j<NDIM ; ++j ){ contact_point_position[j] += face_shape_function*face_node_pos[j];}
@@ -123,13 +123,13 @@ void ContactQSEnforcement::Modify_Predictor_Velocity(Real* PredictedVelocity, co
       cnei_group = node_entity_list.Node_Group_Next()) {
     PRECONDITION(cnei_group.Num_Interactions() == 1);
     ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(0);
-    ContactNode* node = cnei->Node();
+    ContactNode<Real>* node = cnei->Node();
 
     Real contact_point_velocity[3] = {0.0, 0.0, 0.0};
 
     const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(0);
     for( int k=0 ; k < num_face_nodes ; ++k ){
-      ContactNode *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
+      ContactNode<Real> *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
       Real face_shape_function = cnei_group.Get_Face_Shape_Function(0,k);
       Real* face_node_vel = PredictedVelocity + NDIM*(face_node->HostGlobalArrayIndex());
       for(int j=0 ; j<NDIM ; ++j ){ contact_point_velocity[j] += face_shape_function*face_node_vel[j];}
@@ -153,12 +153,12 @@ void ContactQSEnforcement::Modify_Preconditioner(Real* Preconditioner)
       cnei_group = node_entity_list.Node_Group_Next()) {
     PRECONDITION(cnei_group.Num_Interactions() == 1);
     ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(0);
-    ContactNode* node = cnei->Node();
+    ContactNode<Real>* node = cnei->Node();
     Real* slave_node_preconditioner = Preconditioner + NDIM*(node->HostGlobalArrayIndex());
 
     const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(0);
     for( int k=0 ; k < num_face_nodes ; ++k ){
-      ContactNode *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
+      ContactNode<Real> *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
       Real face_shape_function = cnei_group.Get_Face_Shape_Function(0,k);
       Real* face_node_preconditioner = Preconditioner + NDIM*(face_node->HostGlobalArrayIndex());
       for(int j=0 ; j<NDIM ; ++j ){ face_node_preconditioner[j] += face_shape_function*slave_node_preconditioner[j];}
@@ -177,11 +177,11 @@ void ContactQSEnforcement::Compute_Contact_Force(Real* Residual) {
       cnei_group = node_entity_list.Node_Group_Next()) {
     PRECONDITION(cnei_group.Num_Interactions() == 1);
     ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(0);
-    ContactNode* node = cnei->Node();
+    ContactNode<Real>* node = cnei->Node();
     Real * slave_node_residual = Residual + NDIM*(node->HostGlobalArrayIndex());
     const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(0);
     for( int k=0 ; k < num_face_nodes ; ++k ){
-      ContactNode *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
+      ContactNode<Real> *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
       Real face_shape_function = cnei_group.Get_Face_Shape_Function(0,k);
       Real* face_node_residual = Residual + NDIM*(face_node->HostGlobalArrayIndex());
       for(int j=0 ; j<NDIM ; ++j ){ face_node_residual[j] -= face_shape_function*slave_node_residual[j];}
@@ -206,11 +206,11 @@ void ContactQSEnforcement::Update_Search_Direction(Real* SearchDirection)
       cnei_group = node_entity_list.Node_Group_Next()) {
     PRECONDITION(cnei_group.Num_Interactions() == 1);
     ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(0);
-    ContactNode* node = cnei->Node();
+    ContactNode<Real>* node = cnei->Node();
     Real* slave_node_search_direction = SearchDirection + NDIM*(node->HostGlobalArrayIndex());
     const int num_face_nodes = cnei_group.Get_Num_Face_Nodes(0);
     for( int k=0 ; k < num_face_nodes ; ++k ){
-      ContactNode *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
+      ContactNode<Real> *face_node = enforcement_node_list[cnei_group.Get_Face_Node_Index(0, k)];
       Real face_shape_function = cnei_group.Get_Face_Shape_Function(0,k);
       Real* face_node_search_direction = SearchDirection + NDIM*(face_node->HostGlobalArrayIndex());
       for(int j=0 ; j<NDIM ; ++j ){ slave_node_search_direction[j] -= face_shape_function*face_node_search_direction[j];}

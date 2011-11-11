@@ -38,12 +38,12 @@ void ContactTopology::Compute_Characteristic_Length( )
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
     search->Timer()->Start_Timer( search->face_charlen_geom_time );
     #endif
-    ContactFace** Faces = 
-      reinterpret_cast<ContactFace**>(primary_face_list->EntityList());
+    ContactFace<Real>** Faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_face_list->EntityList());
     min_characteristic_length =  BIGNUM;
     max_characteristic_length = -BIGNUM;
     for (int i=0; i<number_of_primary_faces; ++i) {
-      ContactFace* face = Faces[i];
+      ContactFace<Real>* face = Faces[i];
       face->Compute_CharacteristicLength(Current_Position, CHARACTERISTIC_LENGTH);
       Real* characteristic_length = face->Variable(CHARACTERISTIC_LENGTH);
       min_characteristic_length = std::min(min_characteristic_length,*characteristic_length);
@@ -83,8 +83,8 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
 {
   PRECONDITION( topology_type == PRIMARY );
 
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_face_list->EntityList());
 
   #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
   search->Timer()->Start_Timer( search->face_normal_geom_time );
@@ -96,11 +96,11 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
   for(int i=0; i<number_of_node_blocks; ++i) {
     if (!node_blocks[i]->Has_Normal_Attributes()) {
       int nnodes = primary_node_list->BlockNumEntities(i);
-      ContactNode** nodes  = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+      ContactNode<Real>** nodes  = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
       if(check_context) {
         for (int j=0; j<nnodes; ++j) {
-          ContactNode* node = nodes[j];
-          if (node->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+          ContactNode<Real>* node = nodes[j];
+          if (node->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
             Real* node_normal = node->Variable(NODE_NORMAL);
             for(int k=0 ; k<dimensionality ; ++k ) {
               node_normal[k] = 0.0;
@@ -109,7 +109,7 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
         }
       } else {
         for (int j=0; j<nnodes; ++j) {
-          ContactNode* node = nodes[j];
+          ContactNode<Real>* node = nodes[j];
           Real* node_normal = node->Variable(NODE_NORMAL);
           for(int k=0 ; k<dimensionality ; ++k ) {
             node_normal[k] = 0.0;
@@ -125,8 +125,8 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
     //
     bool have_tied = search->Search_Data()->Have_Tied_Interactions();
     for (int i=0; i<number_of_primary_faces; ++i) {
-      ContactFace* face = Faces[i];
-      if (face->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+      ContactFace<Real>* face = Faces[i];
+      if (face->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
         face->Compute_Centroid(POSITION, CENTROID);
         face->Compute_Normal(POSITION, FACE_NORMAL);
         Real* face_normal = face->Variable(FACE_NORMAL);
@@ -145,7 +145,7 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
     // Have each face compute its normal and centroid
     //
     for (int i=0; i<number_of_primary_faces; ++i) {
-      ContactFace* face = Faces[i];
+      ContactFace<Real>* face = Faces[i];
       face->Compute_Centroid(POSITION, CENTROID);
       face->Compute_Normal(POSITION, FACE_NORMAL);
       Real* face_normal = face->Variable(FACE_NORMAL);
@@ -177,11 +177,11 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
   for(int i=0; i<number_of_node_blocks; ++i) {
     if (!node_blocks[i]->Has_Normal_Attributes()) {
       int nnodes = primary_node_list->BlockNumEntities(i);
-      ContactNode** nodes  =  reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(i));
+      ContactNode<Real>** nodes  =  reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(i));
       if(check_context) {
         for (int j=0; j<nnodes; ++j) {
-          ContactNode* node = nodes[j];
-          if (node->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+          ContactNode<Real>* node = nodes[j];
+          if (node->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
             Real* node_normal = node->Variable(NODE_NORMAL);
             Normalize(node_normal);
           }
@@ -211,12 +211,12 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
   ContactParOStream& postream = search->ParOStream();
 #endif
 
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(primary_node_list->EntityList());
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(edge_list->EntityList());
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_face_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_node_list->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_face_list->EntityList());
 
   if (number_of_analytic_surfaces>0) {
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
@@ -234,7 +234,7 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
     if (doit) {
       Real box_inflation = search->BoxInflation();
       for (int i=0; i<number_of_primary_nodes; ++i) {
-        ContactNode* node = Nodes[i];
+        ContactNode<Real>* node = Nodes[i];
         ContactBoundingBox object_box;
         node->ComputeBoundingBoxForSearch(num_configs,
                                           REMAINING_GAP,
@@ -300,14 +300,14 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
   //
   if(check_context) {
     for (int i=0; i<number_of_edges; ++i) {
-      ContactEdge *edge = Edges[i];
+      ContactEdge<Real> *edge = Edges[i];
       int num_face_conns = edge->Number_Face_Connections();
       PRECONDITION( num_face_conns==1 || num_face_conns==2 );
       if( num_face_conns == 2 ) {
-	ContactFace *face0 = edge->Face(0); 
-	ContactFace *face1 = edge->Face(1); 
-	if(face0->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE) ||
-	   face1->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+	ContactFace<Real> *face0 = edge->Face(0); 
+	ContactFace<Real> *face1 = edge->Face(1); 
+	if(face0->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE) ||
+	   face1->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
 	  *edge->Variable(CURVATURE) = 
 	    Compute_Curvature( face0->Variable(CENTROID),
 			       face0->Variable(FACE_NORMAL),
@@ -317,8 +317,8 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
 	  face1->SetEdgeCurvature(CURVATURE, edge);
 	}
       } else {
-	ContactFace *face0 = edge->Face(0); 
-	if(face0->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+	ContactFace<Real> *face0 = edge->Face(0); 
+	if(face0->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
 	  *edge->Variable(CURVATURE) = 0.0;
 	  face0->SetEdgeCurvature(CURVATURE, edge);
 	}
@@ -326,12 +326,12 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
     }
   } else {
     for (int i=0; i<number_of_edges; ++i) {
-      ContactEdge *edge = Edges[i];
+      ContactEdge<Real> *edge = Edges[i];
       int num_face_conns = edge->Number_Face_Connections();
       PRECONDITION( num_face_conns==1 || num_face_conns==2 );
       if( num_face_conns == 2 ) {
-	ContactFace *face0 = edge->Face(0); 
-	ContactFace *face1 = edge->Face(1); 
+	ContactFace<Real> *face0 = edge->Face(0); 
+	ContactFace<Real> *face1 = edge->Face(1); 
 	*edge->Variable(CURVATURE) = 
 	  Compute_Curvature( face0->Variable(CENTROID),
 			     face0->Variable(FACE_NORMAL),
@@ -340,7 +340,7 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
 	face0->SetEdgeCurvature(CURVATURE, edge);
 	face1->SetEdgeCurvature(CURVATURE, edge);
       } else {
-	ContactFace *face0 = edge->Face(0); 
+	ContactFace<Real> *face0 = edge->Face(0); 
 	*edge->Variable(CURVATURE) = 0.0;
 	face0->SetEdgeCurvature(CURVATURE, edge);
       }
@@ -383,10 +383,10 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
     
     // loop over shared edges and gather up data to send
     Real * ptr_centroids, * ptr_normals;
-    ContactTopologyEntity ** comm_edges = 
+    ContactTopologyEntity<Real> ** comm_edges = 
       Edge_SymComm->Entity_List(0);
     for(int i=0; i<num_shared_edges; ++i) {
-      ContactEdge * edge = static_cast<ContactEdge *>(comm_edges[i]);
+      ContactEdge<Real> * edge = static_cast<ContactEdge<Real> *>(comm_edges[i]);
       ptr_centroids = edge->Face(0)->Variable(CENTROID);
       send_edge_data[i*6]   = ptr_centroids[0];
       send_edge_data[i*6+1] = ptr_centroids[1];
@@ -432,9 +432,9 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
       //  Wait until the next message has arrived
       //
       contact_wait_msg_done( recv_handles[i] );
-      ContactTopologyEntity ** edges_for_comm = Edge_SymComm->Entity_List(i);
+      ContactTopologyEntity<Real> ** edges_for_comm = Edge_SymComm->Entity_List(i);
         for ( int j = 0; j < Edge_SymComm->Num_to_Proc(i); ++j ){
-        ContactEdge * edge = static_cast<ContactEdge *>(edges_for_comm[j]);
+        ContactEdge<Real> * edge = static_cast<ContactEdge<Real> *>(edges_for_comm[j]);
         *edge->Variable(CURVATURE) = 
           Compute_Curvature(&(recv_edge_data[index]),
                             &(recv_edge_data[index+3]),
@@ -507,10 +507,10 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
       
       // loop over shared edges and gather up data to send
       Real* smooth_normal;
-      ContactTopologyEntity ** comm_edges = 
+      ContactTopologyEntity<Real> ** comm_edges = 
         Edge_SymComm->Entity_List(0);
       for(int i=0; i<num_shared_edges; ++i) {
-        ContactEdge * edge = static_cast<ContactEdge *>(comm_edges[i]);
+        ContactEdge<Real> * edge = static_cast<ContactEdge<Real> *>(comm_edges[i]);
         smooth_normal = edge->Variable(SMOOTHED_NORMAL);
         send_edge_data[i*3+0] = smooth_normal[0];
         send_edge_data[i*3+1] = smooth_normal[1];
@@ -553,9 +553,9 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
         //  Wait until the next message has arrived
         //
         contact_wait_msg_done( recv_handles[i] );
-        ContactTopologyEntity ** edges_for_comm = Edge_SymComm->Entity_List(i);
+        ContactTopologyEntity<Real> ** edges_for_comm = Edge_SymComm->Entity_List(i);
         for ( int j = 0; j < Edge_SymComm->Num_to_Proc(i); ++j ){
-          ContactEdge * edge = static_cast<ContactEdge *>(edges_for_comm[j]);
+          ContactEdge<Real> * edge = static_cast<ContactEdge<Real> *>(edges_for_comm[j]);
           smooth_normal     = edge->Variable(SMOOTHED_NORMAL);
           smooth_normal[0] += recv_edge_data[index  ];
           smooth_normal[1] += recv_edge_data[index+1];
@@ -617,7 +617,7 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
   }
 }
 
-void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_topology, ContactTopologyEntity::SearchContext status,
+void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_topology, ContactTopologyEntity<Real>::SearchContext status,
                                                   bool use_proximity)
 {
   ContactTopology *topology(0);
@@ -638,7 +638,7 @@ void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_to
   }
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
 
   VariableHandle NODE_NORMAL = topology->Variable_Handle( ContactTopology::Node_Normal );
 #ifdef CONTACT_DEBUG_NODE
@@ -649,7 +649,7 @@ void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_to
   //  Zero the nodal physical face normals.  
   //
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     Real *normals[3];
     *(NUMBER_PHYSICAL_FACES.Get_Scratch(i)) = 1;
     normals[0]     = PHYSICAL_FACE_NORMAL_1.Get_Scratch(i);
@@ -659,9 +659,9 @@ void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_to
     normals[1][0]  = normals[1][1] = normals[1][2] = 0.0;
     normals[2][0]  = normals[2][1] = normals[2][2] = 0.0;
     if (!node->CheckContext(status))                           continue;
-    if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-    if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE ) continue;
-    if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE ) continue;
+    if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+    if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE ) continue;
+    if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE ) continue;
     if (node->Number_Face_Connections()==0)                    continue;
     Real* node_normal = node->Variable(NODE_NORMAL);
     normals[0][0]     = node_normal[0]; 
@@ -698,7 +698,7 @@ void ContactSearch::Build_Physical_Face_List_None(ContactSearch::Topology use_to
 }
 
 void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology use_topology, 
-                                                      ContactTopologyEntity::SearchContext status,
+                                                      ContactTopologyEntity<Real>::SearchContext status,
                                                       bool use_proximity)
 {
   ContactTopology *topology(0);
@@ -719,7 +719,7 @@ void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology us
   }
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   VariableHandle FACE_NORMAL = topology->Variable_Handle( ContactTopology::Face_Normal );
   VariableHandle NODE_NORMAL = topology->Variable_Handle( ContactTopology::Node_Normal );
   //
@@ -730,7 +730,7 @@ void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology us
   //  other physical faces.
   //
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     int num_faces = node->Number_Face_Connections();
     POSTCONDITION(num_faces <= 256);
     Real *normals[3];
@@ -752,9 +752,9 @@ void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology us
     //
     if (use_proximity && !node->in_proximity)                  continue;
     if (!node->CheckContext(status))                           continue;
-    if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-    if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE ) continue;
-    if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE ) continue;
+    if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+    if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE ) continue;
+    if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE ) continue;
     if (num_faces==0)                                          continue;
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -787,12 +787,12 @@ void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology us
     //                       case, and potentially slightly sub-optimal performance for the multi-physical
     //                       face cases
     //
-    vector<std::pair<ContactFace*,int> > &face_list = node->ConnectedFaces();
+    vector<std::pair<ContactFace<Real>*,int> > &face_list = node->ConnectedFaces();
     //
     //  Extract information for the very first face.
     //  Set the first physical of the node to the first face encountered
     //
-    ContactFace *face0 = face_list[0].first;
+    ContactFace<Real> *face0 = face_list[0].first;
     face_list[0].second = 0;
     Real* face0_normal = face0->Variable(FACE_NORMAL);
 
@@ -936,7 +936,7 @@ void ContactSearch::Build_Physical_Face_List_FaceWalk(ContactSearch::Topology us
   error_code = (ContactErrorCode) contact_global_error_check( error_code, SearchComm );  
 }
 
-void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology use_topology, ContactTopologyEntity::SearchContext status, 
+void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology use_topology, ContactTopologyEntity<Real>::SearchContext status, 
                                                       bool use_proximity)
 {
   //
@@ -998,8 +998,8 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
 
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
 
   VariableHandle NODE_NORMAL = 
     topology->Variable_Handle( ContactTopology::Node_Normal );
@@ -1007,7 +1007,7 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
     topology->Variable_Handle( ContactTopology::Face_Normal );
 
   for (int i=0; i<number_of_nodes; i++) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     Real *normals[3];
     *(NUMBER_PHYSICAL_FACES.Get_Scratch(i)) = 0.0;
     normals[0]     = PHYSICAL_FACE_NORMAL_1.Get_Scratch(i);
@@ -1017,9 +1017,9 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
     normals[1][0]  = normals[1][1] = normals[1][2] = 0.0;
     normals[2][0]  = normals[2][1] = normals[2][2] = 0.0;
     if (!node->CheckContext(status))                           continue;
-    if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-    if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE ) continue;
-    if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE ) continue;
+    if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+    if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE ) continue;
+    if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE ) continue;
     if (node->Number_Face_Connections()==0)                    continue;
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -1077,21 +1077,21 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
       int num_physical_face_normals = 0;
       
       int num_faces = node->Number_Face_Connections();
-      vector<std::pair<ContactFace*, int> > &face_list = node->ConnectedFaces();
+      vector<std::pair<ContactFace<Real>*, int> > &face_list = node->ConnectedFaces();
       int max_num_edge_connections = 2*num_faces;
       typedef struct {
         int id;
         int nfaces;
-        ContactFace* faces[2];
+        ContactFace<Real>* faces[2];
         int face_edge[2];
-        ContactNode* node1;
+        ContactNode<Real>* node1;
       } lw_edge;
       
       lw_edge* edge_list = new lw_edge[max_num_edge_connections];
       
       // load the lw_edge data
       int edge_nums[2];
-      ContactNode* edge_nodes[2];
+      ContactNode<Real>* edge_nodes[2];
       
       face_list[0].first->GetEdgeInfo(node, edge_nodes, edge_nums);
 #ifdef CONTACT_DEBUG_NODE
@@ -1286,7 +1286,7 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
 	bool Need_to_Reorder_Edges = true;
 	lw_edge starting_edge;
 	lw_edge ending_edge;
-	ContactFace* starting_face=NULL;
+	ContactFace<Real>* starting_face=NULL;
 #ifdef CONTACT_DEBUG_NODE
 	if (PRINT_THIS_NODE) {
 	  postream << "num_edges_with_one_face " 
@@ -1437,7 +1437,7 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
           }
 #endif
 	  lw_edge next_edge = starting_edge;
-	  ContactFace* next_face = starting_face;
+	  ContactFace<Real>* next_face = starting_face;
 	  while( !Finished ){
 	    // FIXIT:  next_edge = next_face->Clockwise_Edge( next_edge );
             int nn = 0;
@@ -1592,7 +1592,7 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
 	    int j = 0;
 	    Real* fn;
 	    lw_edge next_edge = starting_edge;
-	    ContactFace* next_face = starting_face;
+	    ContactFace<Real>* next_face = starting_face;
 	    for( int ii=0 ; ii<num_edges-1 ; ii++ ){
 	      fn = next_face->Variable(FACE_NORMAL);
               face_list[j++].second = pf_id;              
@@ -1661,7 +1661,7 @@ void ContactSearch::Build_Physical_Face_List_EdgeWalk(ContactSearch::Topology us
 	  int pf_id = 0;
 	  PRECONDITION( edge_list[0].nfaces == 1 );
 	  lw_edge next_edge = edge_list[0];
-	  ContactFace* next_face = edge_list[0].faces[0];
+	  ContactFace<Real>* next_face = edge_list[0].faces[0];
 	  PRECONDITION( num_edges == num_faces + 1 );
 	  // For the case of only one sharp edge, set sharpest_edges[1] = NULL
 	  // so that we only get two physical faces

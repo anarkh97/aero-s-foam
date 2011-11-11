@@ -34,9 +34,9 @@ typedef struct PlaneStruct {
         ((a)->x * (b)->x + (a)->y * (b)->y + (a)->z * (b)->z)
 
 void
-ContactSearch::Face_Face_Search(ContactFace* slave_face, 
-                                ContactFace* master_face, 
-                                ContactElem* element,
+ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face, 
+                                ContactFace<Real>* master_face, 
+                                ContactElem<Real>* element,
                                 VariableHandle POSITION)
 {
   int   i, j, k, in_cnt;
@@ -50,7 +50,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
   Point  p0;
   Plane  face_plane;
   Plane* plane=&face_plane;
-  ContactFace* face = slave_face;
+  ContactFace<Real>* face = slave_face;
   VariableHandle FACE_NORMAL = 
     search_topology->Variable_Handle( ContactTopology::Face_Normal );
   
@@ -61,7 +61,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
   
   p->np = face->Nodes_Per_Face();
   for (i=0; i<face->Nodes_Per_Face(); ++i) {
-    ContactNode* node = face->Node(i);
+    ContactNode<Real>* node = face->Node(i);
     Real* position = node->Variable(POSITION);
     p->p[i].x = position[0];
     p->p[i].y = position[1];
@@ -76,7 +76,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     out[i] = 0;
   }
   for (i=0; i<element->Faces_Per_Element(); ++i) {
-    ContactNode* node = element->Face(i)->Node(0);
+    ContactNode<Real>* node = element->Face(i)->Node(0);
     Real* position    = node->Variable(POSITION);
     p0.x              = position[0];
     p0.y              = position[1];
@@ -119,7 +119,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
       Point* w;
       Real   t, tu, tv;
       for (i=0; i<element->Faces_Per_Element(); ++i) {
-        ContactNode* node = element->Face(i)->Node(0);
+        ContactNode<Real>* node = element->Face(i)->Node(0);
         Real* position    = node->Variable(POSITION);
         p0.x              = position[0];
         p0.y              = position[1];
@@ -312,9 +312,9 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     // intersections and add them to the poly
     //========================================
     for (i=0; i<element->Faces_Per_Element(); ++i) {
-      ContactFace* Face = element->Face(i);
+      ContactFace<Real>* Face = element->Face(i);
       for (j=0; j<face->Edges_Per_Face(); ++j) {
-        ContactEdge* Edge = face->Edge(j);
+        ContactEdge<Real>* Edge = face->Edge(j);
         if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
           element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
           q->p[q->np].xm = local_coords[0];
@@ -333,9 +333,9 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     // Find all the element-edge/face
     // intersections and add them to the poly
     //========================================
-    ContactFace* Face = face;
+    ContactFace<Real>* Face = face;
     for (i=0; i<element->Edges_Per_Element(); ++i) {
-      ContactEdge* Edge = element->Edge(i);
+      ContactEdge<Real>* Edge = element->Edge(i);
       if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
         element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
         q->p[q->np].xm = local_coords[0];
@@ -374,7 +374,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
         t3_node_positions[2][0] = 0.0;
         t3_node_positions[2][1] = 1.0;
         t3_node_positions[2][2] = 0.0;
-        ContactTriFaceL3* t3face = static_cast<ContactTriFaceL3*>(face);
+        ContactTriFaceL3<Real>* t3face = static_cast<ContactTriFaceL3<Real>*>(face);
         for (i=0; i<q->np; ++i) {
           local_coords[0] = q->p[i].x;
           local_coords[1] = q->p[i].y;

@@ -83,7 +83,7 @@ ContactBlockEntityList::CleanUp()
   Clear();
 }
 
-void ContactBlockEntityList::Insert( ContactTopologyEntity* entity )
+void ContactBlockEntityList::Insert( ContactTopologyEntity<Real>* entity )
 {
   if (do_hash) {
   ContactHostGlobalID ID = entity->Global_ID();
@@ -149,8 +149,8 @@ void ContactBlockEntityList::Insert( char* buffer )
   int*  ibuffer = reinterpret_cast<int*>(buffer);
   
   if (do_hash) {
-    ContactHostGlobalID ID(ibuffer[ContactTopologyEntity::GID_HI],
-                           ibuffer[ContactTopologyEntity::GID_LO]);
+    ContactHostGlobalID ID(ibuffer[ContactTopologyEntity<Real>::GID_HI],
+                           ibuffer[ContactTopologyEntity<Real>::GID_LO]);
                            
     int       ibin = hash_func(ID.LoInt());
     hash_bin* bin  = &hash_bins[ibin];
@@ -161,7 +161,7 @@ void ContactBlockEntityList::Insert( char* buffer )
       // HASH BIN IS EMPTY SO WE KNOW THIS ENTITY 
       // IS NOT YET IN THE HASH TABLE SO JUST ADD IT
       //=============================================
-      ContactTopologyEntity *entity = CreateEntity(buffer);
+      ContactTopologyEntity<Real> *entity = CreateEntity(buffer);
       hash* hlink   = new hash;
       hlink->list_index = Append(entity);
       hlink->id     = ID;
@@ -179,7 +179,7 @@ void ContactBlockEntityList::Insert( char* buffer )
         //===========================================
         // ENTITY IS NOT IN THE HASH TABLE SO ADD IT
         //===========================================
-        ContactTopologyEntity *entity = CreateEntity(buffer);
+        ContactTopologyEntity<Real> *entity = CreateEntity(buffer);
         hash* hlink   = new hash;
         hlink->list_index = Append(entity);
         hlink->id     = ID;
@@ -189,7 +189,7 @@ void ContactBlockEntityList::Insert( char* buffer )
         //===========================================
         // ENTITY IS NOT IN THE HASH TABLE SO ADD IT
         //===========================================
-        ContactTopologyEntity *entity = CreateEntity(buffer);
+        ContactTopologyEntity<Real> *entity = CreateEntity(buffer);
         hash* hlink   = new hash;
         hlink->list_index = Append(entity);
         hlink->id     = ID;
@@ -200,22 +200,22 @@ void ContactBlockEntityList::Insert( char* buffer )
         // ENTITY IS ALREADY IN THE HASH TABLE
         //=========================================
         PRECONDITION (ID == ptr->id);
-        if (ibuffer[ContactTopologyEntity::OWNERSHIP]==ContactTopologyEntity::OWNED &&
-            ptr->entity->Ownership()!=ContactTopologyEntity::OWNED) {
+        if (ibuffer[ContactTopologyEntity<Real>::OWNERSHIP]==ContactTopologyEntity<Real>::OWNED &&
+            ptr->entity->Ownership()!=ContactTopologyEntity<Real>::OWNED) {
           //===============================================
           // IF THE NEW ENTITY IS OWNED AND THE OLD ENTITY
           // IS NOT_OWNED THEN REPLACE IT WITH THE NEW ONE
           //===============================================
           // delete old entity and replace it with this one
-          ContactTopologyEntity* old_entity = ptr->entity;
+          ContactTopologyEntity<Real>* old_entity = ptr->entity;
           ContactSearch::Delete_ContactTopologyEntity(old_entity, allocators);
-          ContactTopologyEntity* entity = CreateEntity(buffer);
+          ContactTopologyEntity<Real>* entity = CreateEntity(buffer);
           SetEntity(ptr->list_index, entity);
         }
       }
     }
   } else {
-    ContactTopologyEntity *entity = CreateEntity(buffer);
+    ContactTopologyEntity<Real> *entity = CreateEntity(buffer);
     Append(entity);
   }
 }
@@ -225,8 +225,8 @@ void ContactBlockEntityList::Insert_ForSecondary( char* buffer )
   int*  ibuffer = reinterpret_cast<int*> (buffer);
   
   if (do_hash) {
-    ContactHostGlobalID ID(ibuffer[ContactTopologyEntity::GID_HI],
-                           ibuffer[ContactTopologyEntity::GID_LO]);
+    ContactHostGlobalID ID(ibuffer[ContactTopologyEntity<Real>::GID_HI],
+                           ibuffer[ContactTopologyEntity<Real>::GID_LO]);
                            
     int       ibin = hash_func(ID.LoInt());
     hash_bin* bin  = &hash_bins[ibin];
@@ -237,7 +237,7 @@ void ContactBlockEntityList::Insert_ForSecondary( char* buffer )
       // HASH BIN IS EMPTY SO WE KNOW THIS ENTITY 
       // IS NOT YET IN THE HASH TABLE SO JUST ADD IT
       //=============================================
-      ContactTopologyEntity *entity = CreateEntity_ForSecondary(buffer);
+      ContactTopologyEntity<Real> *entity = CreateEntity_ForSecondary(buffer);
       hash* hlink   = new hash;
       hlink->list_index = Append(entity);
       hlink->id     = ID;
@@ -255,7 +255,7 @@ void ContactBlockEntityList::Insert_ForSecondary( char* buffer )
         //===========================================
         // ENTITY IS NOT IN THE HASH TABLE SO ADD IT
         //===========================================
-        ContactTopologyEntity *entity = CreateEntity_ForSecondary(buffer);
+        ContactTopologyEntity<Real> *entity = CreateEntity_ForSecondary(buffer);
         hash* hlink   = new hash;
         hlink->list_index = Append(entity);
         hlink->id     = ID;
@@ -265,7 +265,7 @@ void ContactBlockEntityList::Insert_ForSecondary( char* buffer )
         //===========================================
         // ENTITY IS NOT IN THE HASH TABLE SO ADD IT
         //===========================================
-        ContactTopologyEntity *entity = CreateEntity_ForSecondary(buffer);
+        ContactTopologyEntity<Real> *entity = CreateEntity_ForSecondary(buffer);
         hash* hlink   = new hash;
         hlink->list_index = Append(entity);
         hlink->id     = ID;
@@ -276,28 +276,28 @@ void ContactBlockEntityList::Insert_ForSecondary( char* buffer )
         // ENTITY IS ALREADY IN THE HASH TABLE
         //=========================================
         PRECONDITION (ID == ptr->id);
-        if (ibuffer[ContactTopologyEntity::OWNERSHIP]==ContactTopologyEntity::OWNED &&
-            ptr->entity->Ownership()!=ContactTopologyEntity::OWNED) {
+        if (ibuffer[ContactTopologyEntity<Real>::OWNERSHIP]==ContactTopologyEntity<Real>::OWNED &&
+            ptr->entity->Ownership()!=ContactTopologyEntity<Real>::OWNED) {
           //===============================================
           // IF THE NEW ENTITY IS OWNED AND THE OLD ENTITY
           // IS NOT_OWNED THEN REPLACE IT WITH THE NEW ONE
           //===============================================
           // delete old entity and replace it with this one
-          ContactTopologyEntity* old_entity = ptr->entity;
+          ContactTopologyEntity<Real>* old_entity = ptr->entity;
           ContactSearch::Delete_ContactTopologyEntity(old_entity, allocators);
-          ContactTopologyEntity* entity = CreateEntity_ForSecondary(buffer);
+          ContactTopologyEntity<Real>* entity = CreateEntity_ForSecondary(buffer);
           SetEntity(ptr->list_index, entity);
         }
       }
     }
   } else {
-    ContactTopologyEntity *entity = CreateEntity_ForSecondary(buffer);
+    ContactTopologyEntity<Real> *entity = CreateEntity_ForSecondary(buffer);
     Append(entity);
   }
 }
 #endif
 
-void ContactBlockEntityList::Delete( ContactTopologyEntity* entity )
+void ContactBlockEntityList::Delete( ContactTopologyEntity<Real>* entity )
 {
   if (!do_hash) {
     PRECONDITION(0);
@@ -384,10 +384,10 @@ ContactBlockEntityList::Rehash()
   SetupHash(NumEntities());
   
   int index = 0;
-  std::vector< ContactTopologyEntity* > *entity_data = EntityList();
-  std::vector< ContactTopologyEntity* >::iterator current_entity = entity_data->begin();
+  std::vector< ContactTopologyEntity<Real>* > *entity_data = EntityList();
+  std::vector< ContactTopologyEntity<Real>* >::iterator current_entity = entity_data->begin();
   while(current_entity < entity_data->end()) {
-    ContactTopologyEntity *entity = *current_entity;
+    ContactTopologyEntity<Real> *entity = *current_entity;
     if (entity!=NULL) {
       ContactHostGlobalID ID = entity->Global_ID();
 
@@ -480,7 +480,7 @@ ContactBlockEntityList::InsertBeforeHash( hash_bin* bin, hash* hlink, hash* ptr 
   }
 }
 
-ContactTopologyEntity* 
+ContactTopologyEntity<Real>* 
 ContactBlockEntityList::Find( ContactHostGlobalID& ID )
 {
   if (do_hash) {
@@ -498,8 +498,8 @@ ContactBlockEntityList::Find( ContactHostGlobalID& ID )
   }
 }
 
-ContactTopologyEntity* 
-ContactBlockEntityList::Find( ContactTopologyEntity::connection_data* cdata )
+ContactTopologyEntity<Real>* 
+ContactBlockEntityList::Find( ContactTopologyEntity<Real>::connection_data* cdata )
 {
   if (do_hash) {
     if (hash_nbins==0) return(NULL);
@@ -511,7 +511,7 @@ ContactBlockEntityList::Find( ContactTopologyEntity::connection_data* cdata )
   }
 }
 
-ContactTopologyEntity* 
+ContactTopologyEntity<Real>* 
 ContactBlockEntityList::Find( ContactInteractionEntity::entity_data* edata )
 {
   if (do_hash) {
@@ -526,16 +526,16 @@ ContactBlockEntityList::Find( ContactInteractionEntity::entity_data* edata )
 
 #ifndef CONTACT_NO_MPI
 
-ContactTopologyEntity* 
+ContactTopologyEntity<Real>* 
 ContactBlockEntityList::CreateEntity(char* buffer)
 {
-  ContactTopologyEntity* entity = NULL;
+  ContactTopologyEntity<Real>* entity = NULL;
   int*  ibuffer     = reinterpret_cast<int*>(buffer);
-  int   entity_type = ibuffer[ContactTopologyEntity::BASE_TYPE];
+  int   entity_type = ibuffer[ContactTopologyEntity<Real>::BASE_TYPE];
   switch (entity_type) {
   case CT_NODE:
     {
-      ContactNode* node = ContactNode::new_ContactNode(allocators, ContactSearch::NODE );
+      ContactNode<Real>* node = ContactNode<Real>::new_ContactNode(allocators, ContactSearch::NODE );
       POSTCONDITION(node);
       node->Unpack(buffer);
       entity = node;
@@ -553,12 +553,12 @@ ContactBlockEntityList::CreateEntity(char* buffer)
   case CT_EDGE:
     {
       ContactFixedSizeAllocator* alloc;
-      ContactEdge* edge = NULL;
-      int edge_type = ibuffer[ContactTopologyEntity::DERIVED_TYPE];
+      ContactEdge<Real>* edge = NULL;
+      int edge_type = ibuffer[ContactTopologyEntity<Real>::DERIVED_TYPE];
       switch( edge_type ){
       case ContactSearch::LINEEDGEL2 :
         alloc = &allocators[ContactSearch::ALLOC_ContactLineEdgeL2];
-        edge  = ContactLineEdgeL2::new_ContactLineEdgeL2(*alloc);
+        edge  = ContactLineEdgeL2<Real>::new_ContactLineEdgeL2(*alloc);
         break;
       case ContactSearch::LINEEDGEQ3 :
         alloc = &allocators[ContactSearch::ALLOC_ContactLineEdgeQ3];
@@ -575,8 +575,8 @@ ContactBlockEntityList::CreateEntity(char* buffer)
     break;
   case CT_FACE:
     {
-      ContactSearch::ContactFace_Type face_type = (ContactSearch::ContactFace_Type)ibuffer[ContactTopologyEntity::DERIVED_TYPE];
-      ContactFace* face = ContactSearch::New_ContactFace(face_type, allocators);
+      ContactSearch::ContactFace_Type face_type = (ContactSearch::ContactFace_Type)ibuffer[ContactTopologyEntity<Real>::DERIVED_TYPE];
+      ContactFace<Real>* face = ContactSearch::New_ContactFace(face_type, allocators);
       POSTCONDITION(face);
       face->Unpack(buffer);
       entity = face;
@@ -585,7 +585,7 @@ ContactBlockEntityList::CreateEntity(char* buffer)
   case CT_ELEMENT:
     {
       ContactElement* element = NULL;
-      int element_type = ibuffer[ContactTopologyEntity::DERIVED_TYPE];
+      int element_type = ibuffer[ContactTopologyEntity<Real>::DERIVED_TYPE];
       switch( element_type ){
       case ContactSearch::HEXELEMENTL8 :
         element = ContactHexElementL8::new_ContactHexElementL8(allocators);
@@ -610,16 +610,16 @@ ContactBlockEntityList::CreateEntity(char* buffer)
   return entity;
 }
 
-ContactTopologyEntity* 
+ContactTopologyEntity<Real>* 
 ContactBlockEntityList::CreateEntity_ForSecondary(char* buffer)
 {
-  ContactTopologyEntity* entity = NULL;
+  ContactTopologyEntity<Real>* entity = NULL;
   int*  ibuffer     = reinterpret_cast<int*> (buffer);
-  int   entity_type = ibuffer[ContactTopologyEntity::BASE_TYPE];
+  int   entity_type = ibuffer[ContactTopologyEntity<Real>::BASE_TYPE];
   switch (entity_type) {
   case CT_NODE:
     {
-      ContactNode* node = ContactNode::new_ContactNode(allocators, ContactSearch::NODE );
+      ContactNode<Real>* node = ContactNode<Real>::new_ContactNode(allocators, ContactSearch::NODE );
       POSTCONDITION(node);
       node->Unpack_ForSecondary(buffer);
       entity = node;
@@ -639,8 +639,8 @@ ContactBlockEntityList::CreateEntity_ForSecondary(char* buffer)
     break;
   case CT_FACE:
     {
-      ContactSearch::ContactFace_Type face_type = (ContactSearch::ContactFace_Type)ibuffer[ContactTopologyEntity::DERIVED_TYPE];
-      ContactFace* face = ContactSearch::New_ContactFace(face_type, allocators);
+      ContactSearch::ContactFace_Type face_type = (ContactSearch::ContactFace_Type)ibuffer[ContactTopologyEntity<Real>::DERIVED_TYPE];
+      ContactFace<Real>* face = ContactSearch::New_ContactFace(face_type, allocators);
       POSTCONDITION(face);
       face->Unpack_ForSecondary(buffer);
       entity = face;
@@ -649,7 +649,7 @@ ContactBlockEntityList::CreateEntity_ForSecondary(char* buffer)
   case CT_ELEMENT:
     {
       ContactElement* element = NULL;
-      int element_type = ibuffer[ContactTopologyEntity::DERIVED_TYPE];
+      int element_type = ibuffer[ContactTopologyEntity<Real>::DERIVED_TYPE];
       switch( element_type ){
       case ContactSearch::HEXELEMENTL8 :
         element = ContactHexElementL8::new_ContactHexElementL8(allocators);

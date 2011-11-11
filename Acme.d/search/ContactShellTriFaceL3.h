@@ -20,7 +20,7 @@
                               E0
 */
 
-class ContactShellTriFaceL3 : public ContactTriFaceL3 {
+class ContactShellTriFaceL3 : public ContactTriFaceL3<Real> {
 
   public :
     ContactShellTriFaceL3( ContactFixedSizeAllocator*, 

@@ -55,8 +55,8 @@ int ContactQueryNumObjects(void *data, int *ierr)
   ContactSearch*   search   = (ContactSearch *)data;
   ContactTopology* topology = search->Get_Primary_Topology(); 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList()); 
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList()); 
    
 #if CONTACT_DEBUG_PRINT_LEVEL>=3
   ContactParOStream& postream = search->ParOStream();
@@ -86,8 +86,8 @@ void ContactQueryObjectList(void *data,
   ContactSearch*   search   = (ContactSearch *)data;
   ContactTopology* topology = search->Get_Primary_Topology(); 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());  
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());  
   
   int k=0;
   float *wts = objwgts;
@@ -143,8 +143,8 @@ void ContactQueryGeomMultiValues(void *data,
   ContactTopology* topology = search->Get_Primary_Topology();
   ContactZoltan*   zoltan   = search->Get_Zoltan();   
   VariableHandle   POSITION = zoltan->Position();
-  ContactNode**    Nodes    = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>**    Nodes    = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   
   PRECONDITION(num_dim==topology->Dimensionality());
 
@@ -194,10 +194,10 @@ void ContactMigrateEntityExportSizes(void *data,
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactTopology* topology = search->Get_Primary_Topology();
-  ContactNode** nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace** faces = 
-    reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>** nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>** faces = 
+    reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = 
     reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
 
@@ -213,9 +213,9 @@ void ContactMigrateEntityExportSizes(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-	ContactNode* node = nodes[entity_index];
+	ContactNode<Real>* node = nodes[entity_index];
         POSTCONDITION(node);
-        int state = (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE))?1:-2;
+        int state = (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE))?1:-2;
         #ifdef CONTACT_OLD_XFER
 	size = node->Size(state);
         #else
@@ -231,7 +231,7 @@ void ContactMigrateEntityExportSizes(void *data,
       break;
     case CT_FACE:
       {
-	ContactFace* face = faces[entity_index];
+	ContactFace<Real>* face = faces[entity_index];
         POSTCONDITION(face);
         #ifdef CONTACT_OLD_XFER
 	size = face->Size(enable_off_face_tracking);
@@ -289,10 +289,10 @@ void ContactMigrateEntityExportPack(void *data,
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactSearch*   search   = (ContactSearch *)data;
   ContactTopology* topology = search->Get_Primary_Topology();
-  ContactNode** nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace** faces = 
-    reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>** nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>** faces = 
+    reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = 
     reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
   #ifdef CONTACT_TIMINGS
@@ -313,9 +313,9 @@ void ContactMigrateEntityExportPack(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = nodes[entity_index];
+        ContactNode<Real>* node = nodes[entity_index];
 	POSTCONDITION(node);
-        int state = (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE))?1:-2;
+        int state = (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE))?1:-2;
         #ifdef CONTACT_OLD_XFER
         node->Pack(buf, state);
         #else
@@ -328,7 +328,7 @@ void ContactMigrateEntityExportPack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = faces[entity_index];
+        ContactFace<Real>* face = faces[entity_index];
 	POSTCONDITION(face);
 	#ifdef CONTACT_OLD_XFER
 	face->Pack(buf,enable_off_face_tracking);
@@ -383,7 +383,7 @@ void ContactMigrateEntityUnpack(void *data,
     char* buf       = Buf + indices[i];
     int*  ibuf      = reinterpret_cast<int*>(buf);
     int entity_type = ibuf[0];
-    int block       = ibuf[ContactTopologyEntity::BLOCK_ID];
+    int block       = ibuf[ContactTopologyEntity<Real>::BLOCK_ID];
     REMEMBER(ContactHostGlobalID GID(&gids[i*num_gid_entries]));
     switch (entity_type) {
     case CT_NODE:
@@ -455,10 +455,10 @@ void ContactMigrateInteractionSizes(void *data,
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactTopology* topology = search->Get_Secondary_Topology();
-  ContactNode** nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace** faces = 
-    reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>** nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>** faces = 
+    reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = 
     reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
   
@@ -471,7 +471,7 @@ void ContactMigrateInteractionSizes(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = nodes[entity_index];
+        ContactNode<Real>* node = nodes[entity_index];
 	POSTCONDITION(node);
 	sizes[i] = node->Size_Interactions(state0);
 #if CONTACT_DEBUG_PRINT_LEVEL>=3 || defined(CONTACT_ANALYZE_DATA_XFER)
@@ -484,7 +484,7 @@ void ContactMigrateInteractionSizes(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = faces[entity_index];
+        ContactFace<Real>* face = faces[entity_index];
 	POSTCONDITION(face);
 	sizes[i] = face->Size_Interactions(state0);
 #if CONTACT_DEBUG_PRINT_LEVEL>=3 || defined(CONTACT_ANALYZE_DATA_XFER)
@@ -533,10 +533,10 @@ void ContactMigratePackInteractions(void *data,
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactTopology* topology = search->Get_Secondary_Topology();
-  ContactNode** nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace** faces = 
-    reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>** nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>** faces = 
+    reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = 
     reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
   
@@ -550,14 +550,14 @@ void ContactMigratePackInteractions(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = nodes[entity_index];
+        ContactNode<Real>* node = nodes[entity_index];
 	POSTCONDITION(node);
 	node->Pack_Interactions( buf, state0 );
       }
       break;
     case CT_FACE:
       {
-        ContactFace* face = faces[entity_index];
+        ContactFace<Real>* face = faces[entity_index];
 	POSTCONDITION(face);
 	face->Pack_Interactions( buf, state0 );
       }
@@ -604,7 +604,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
     case CT_SHELL_NODE:
       {
         int j;
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                             (dest_topology->NodeList()->Find(GID));
 	POSTCONDITION( node );
 	node->Unpack_Interactions(buf, 0);
@@ -630,7 +630,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
       break;
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (dest_topology->FaceList()->Find(GID));
 	POSTCONDITION( face );
 	face->Unpack_Interactions(buf);
@@ -713,7 +713,7 @@ void ContactHostidQueryPack(void *data,
   switch (entity_type) {
   case CT_NODE:
     {
-      ContactNode* node = static_cast<ContactNode*>
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                            (topology->NodeList()->Find(global_id));
       *i_buffer++ = CT_NODE;
       if (node) {
@@ -737,7 +737,7 @@ void ContactHostidQueryPack(void *data,
     break;
   case CT_FACE:
     {
-      ContactFace* face = static_cast<ContactFace*>
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                            (topology->FaceList()->Find(global_id));
       *i_buffer++ = CT_FACE;
       if (face) {
@@ -850,9 +850,9 @@ void ContactDynamicLoadBalanceSize(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-	ContactNode* node = NULL;
+	ContactNode<Real>* node = NULL;
         for(int j=0 ; j<topology->Number_of_Node_Blocks() ; ++j ){
-          node = static_cast<ContactNode*>
+          node = static_cast<ContactNode<Real>*>
                  (topology->Node_Block(j)->NodeList()->Find(GID));
           if ( node ) break;
         }
@@ -862,9 +862,9 @@ void ContactDynamicLoadBalanceSize(void *data,
       }
     case CT_FACE:
       {
-        ContactFace* face = NULL;
+        ContactFace<Real>* face = NULL;
         for(int j=0 ; j<topology->Number_of_Face_Blocks() ; ++j ){
-          face = static_cast<ContactFace*>
+          face = static_cast<ContactFace<Real>*>
                  (topology->Face_Block(j)->FaceList()->Find(GID));
           if ( face ) break;
         }
@@ -914,9 +914,9 @@ void ContactDynamicLoadBalancePack(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-	ContactNode* node = NULL;
+	ContactNode<Real>* node = NULL;
         for(int j=0 ; j<topology->Number_of_Node_Blocks() ; ++j ){
-          node = static_cast<ContactNode*>
+          node = static_cast<ContactNode<Real>*>
                  (topology->Node_Block(j)->NodeList()->Find(GID));
           if ( node ) break;
         }
@@ -927,9 +927,9 @@ void ContactDynamicLoadBalancePack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = NULL;
+        ContactFace<Real>* face = NULL;
         for(int j=0 ; j<topology->Number_of_Face_Blocks() ; ++j ){
-          face = static_cast<ContactFace*>
+          face = static_cast<ContactFace<Real>*>
                  (topology->Face_Block(j)->FaceList()->Find(GID));
           if ( face ) break;
         }
@@ -972,7 +972,7 @@ void ContactDynamicLoadBalanceUnpack(void *data, int num_gid_entries,
     int entity_type = ContactZoltanGID::Type(gid);
     char* buf       = Buf + indices[i];
     int*  ibuf      = reinterpret_cast<int*>(buf);
-    int block       = ibuf[ContactTopologyEntity::BLOCK_ID];
+    int block       = ibuf[ContactTopologyEntity<Real>::BLOCK_ID];
     switch (entity_type) {
     case CT_NODE:
     case CT_SHELL_NODE:
@@ -1028,8 +1028,8 @@ void ContactGhostingExportSizes(void *data,
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactTopology* topology = search->Get_Primary_Topology();
-  ContactNode**    nodes    = reinterpret_cast<ContactNode**>   (topology->NodeList()->EntityList());
-  ContactFace**    faces    = reinterpret_cast<ContactFace**>   (topology->FaceList()->EntityList());
+  ContactNode<Real>**    nodes    = reinterpret_cast<ContactNode<Real>**>   (topology->NodeList()->EntityList());
+  ContactFace<Real>**    faces    = reinterpret_cast<ContactFace<Real>**>   (topology->FaceList()->EntityList());
   ContactElement** elements = reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
 
   int edgebased_physical_face  = (search->PhysicalFaceAlgorithm()) == ContactSearch::PF_EDGE_BASED;
@@ -1045,7 +1045,7 @@ void ContactGhostingExportSizes(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-	ContactNode* node = nodes[entity_index];
+	ContactNode<Real>* node = nodes[entity_index];
         POSTCONDITION(node);
 #ifdef CONTACT_OLD_XFER
 	size = node->Size(state1);
@@ -1062,7 +1062,7 @@ void ContactGhostingExportSizes(void *data,
       break;
     case CT_FACE:
       {
-	ContactFace* face = faces[entity_index];
+	ContactFace<Real>* face = faces[entity_index];
         POSTCONDITION(face);
 #ifdef CONTACT_OLD_XFER
 	size = face->Size(enable_off_face_tracking);
@@ -1117,8 +1117,8 @@ void ContactGhostingExportPack(void *data,
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactSearch*     search   = (ContactSearch *)data;
   ContactTopology*   topology = search->Get_Primary_Topology();
-  ContactNode** nodes =       reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace** faces =       reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>** nodes =       reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>** faces =       reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
 
   int edgebased_physical_face  = (search->PhysicalFaceAlgorithm()) == ContactSearch::PF_EDGE_BASED;
@@ -1133,7 +1133,7 @@ void ContactGhostingExportPack(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = nodes[entity_index];
+        ContactNode<Real>* node = nodes[entity_index];
 	POSTCONDITION(node);
 #ifdef CONTACT_OLD_XFER
         node->Pack(buf, -2);
@@ -1147,7 +1147,7 @@ void ContactGhostingExportPack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = faces[entity_index];
+        ContactFace<Real>* face = faces[entity_index];
 	POSTCONDITION(face);
 #ifdef CONTACT_OLD_XFER
 	face->Pack(buf,enable_off_face_tracking);
@@ -1211,7 +1211,7 @@ void ContactGhostingImportSizes(void *data,
     switch (entity_type) {
     case CT_NODE:
       {
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                             (topology->NodeList()->Find(GID));
         POSTCONDITION(node);
 #ifdef CONTACT_OLD_XFER
@@ -1244,7 +1244,7 @@ void ContactGhostingImportSizes(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
         POSTCONDITION(face);
 #ifdef CONTACT_OLD_XFER
@@ -1317,7 +1317,7 @@ void ContactGhostingImportPack(void *data,
     switch (entity_type) {
     case CT_NODE:
       {
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                             (topology->NodeList()->Find(GID));
 	POSTCONDITION(node);
 #ifdef CONTACT_OLD_XFER
@@ -1344,7 +1344,7 @@ void ContactGhostingImportPack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
 	POSTCONDITION(face);
 #ifdef CONTACT_OLD_XFER
@@ -1391,9 +1391,9 @@ void ContactGhostingUnpack(void *data,
   for( int i=0 ; i<num_ids ; ++i ){
     char* buf       = Buf + indices[i];
     int*  ibuf      = reinterpret_cast<int*>(buf);
-    int block       = ibuf[ContactTopologyEntity::BLOCK_ID];
-    ContactHostGlobalID GID(ibuf[ContactTopologyEntity::GID_HI],
-                            ibuf[ContactTopologyEntity::GID_LO]);
+    int block       = ibuf[ContactTopologyEntity<Real>::BLOCK_ID];
+    ContactHostGlobalID GID(ibuf[ContactTopologyEntity<Real>::GID_HI],
+                            ibuf[ContactTopologyEntity<Real>::GID_LO]);
     switch (ibuf[0]) {
     case CT_NODE:
     case CT_SHELL_NODE:
@@ -1457,8 +1457,8 @@ void ContactUpdateGhostingExportSizes(void *data,
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactTopology* topology = search->Get_Primary_Topology();
-  ContactNode**    nodes    = reinterpret_cast<ContactNode**>   (topology->NodeList()->EntityList());
-  ContactFace**    faces    = reinterpret_cast<ContactFace**>   (topology->FaceList()->EntityList());
+  ContactNode<Real>**    nodes    = reinterpret_cast<ContactNode<Real>**>   (topology->NodeList()->EntityList());
+  ContactFace<Real>**    faces    = reinterpret_cast<ContactFace<Real>**>   (topology->FaceList()->EntityList());
   ContactElement** elements = reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
 
   ZOLTAN_ID_PTR lid = lids;
@@ -1470,7 +1470,7 @@ void ContactUpdateGhostingExportSizes(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-	ContactNode* node = nodes[entity_index];
+	ContactNode<Real>* node = nodes[entity_index];
         POSTCONDITION(node);
 	size = node->Size_ForDataUpdate();
 #if CONTACT_DEBUG_PRINT_LEVEL>=3 || defined(CONTACT_ANALYZE_DATA_XFER)
@@ -1483,7 +1483,7 @@ void ContactUpdateGhostingExportSizes(void *data,
       break;
     case CT_FACE:
       {
-	ContactFace* face = faces[entity_index];
+	ContactFace<Real>* face = faces[entity_index];
         POSTCONDITION(face);
 	size = face->Size_ForDataUpdate();
 #if CONTACT_DEBUG_PRINT_LEVEL>=3 || defined(CONTACT_ANALYZE_DATA_XFER)
@@ -1529,8 +1529,8 @@ void ContactUpdateGhostingExportPack(void *data,
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
   ContactSearch*   search   = (ContactSearch *)data;
   ContactTopology* topology = search->Get_Primary_Topology();
-  ContactNode**    nodes    = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
-  ContactFace**    faces    = reinterpret_cast<ContactFace**>(topology->FaceList()->EntityList());
+  ContactNode<Real>**    nodes    = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
+  ContactFace<Real>**    faces    = reinterpret_cast<ContactFace<Real>**>(topology->FaceList()->EntityList());
   ContactElement** elements = reinterpret_cast<ContactElement**>(topology->ElemList()->EntityList());
   
   ZOLTAN_ID_PTR lid = lids;
@@ -1542,7 +1542,7 @@ void ContactUpdateGhostingExportPack(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = nodes[entity_index];
+        ContactNode<Real>* node = nodes[entity_index];
 	POSTCONDITION(node);
         node->Pack_ForDataUpdate(buf);
       }
@@ -1552,7 +1552,7 @@ void ContactUpdateGhostingExportPack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = faces[entity_index];
+        ContactFace<Real>* face = faces[entity_index];
 	POSTCONDITION(face);
 	face->Pack_ForDataUpdate(buf);
       }
@@ -1604,7 +1604,7 @@ void ContactUpdateGhostingImportSizes(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                             (topology->NodeList()->Find(GID));
         POSTCONDITION(node);
 	size = node->Size_ForDataUpdate();
@@ -1618,7 +1618,7 @@ void ContactUpdateGhostingImportSizes(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
         POSTCONDITION(face);
 	size = face->Size_ForDataUpdate();
@@ -1676,7 +1676,7 @@ void ContactUpdateGhostingImportPack(void *data,
     case CT_NODE:
     case CT_SHELL_NODE:
       {
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                             (topology->NodeList()->Find(GID));
 	POSTCONDITION(node);
         node->Pack_ForDataUpdate(buf);
@@ -1687,7 +1687,7 @@ void ContactUpdateGhostingImportPack(void *data,
       break;
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
 	POSTCONDITION(face);
 	face->Pack_ForDataUpdate(buf);
@@ -1733,7 +1733,7 @@ void ContactUpdateGhostingUnpack(void *data,
     case CT_SHELL_NODE:
       PRECONDITION( block>=0 && block<topology->Number_of_Node_Blocks() );
       {
-        ContactNode* node = reinterpret_cast<ContactNode*>(topology->Ghosted_Node_Block(block)->NodeList()->Find(GID));
+        ContactNode<Real>* node = reinterpret_cast<ContactNode<Real>*>(topology->Ghosted_Node_Block(block)->NodeList()->Find(GID));
         POSTCONDITION(node);
         node->Unpack_ForDataUpdate(buf);
       }
@@ -1744,7 +1744,7 @@ void ContactUpdateGhostingUnpack(void *data,
     case CT_FACE:
       PRECONDITION( block>=0 && block<topology->Number_of_Face_Blocks() );
       {
-        ContactFace* face = reinterpret_cast<ContactFace*>(topology->Ghosted_Face_Block(block)->FaceList()->Find(GID));
+        ContactFace<Real>* face = reinterpret_cast<ContactFace<Real>*>(topology->Ghosted_Face_Block(block)->FaceList()->Find(GID));
         POSTCONDITION(face);
         face->Unpack_ForDataUpdate(buf);
       }
@@ -1788,10 +1788,10 @@ void ContactUpdateTiedImportSizes(void *data,
     switch (entity_type) {
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
         POSTCONDITION(face);
-        face->SetContextBit(ContactTopologyEntity::TIED);
+        face->SetContextBit(ContactTopologyEntity<Real>::TIED);
         // face_type, face normal & nodal coordinates
         sizes[i] = sizeof(Real)*(1+3*(1+face->Nodes_Per_Face()));
       }
@@ -1835,7 +1835,7 @@ void ContactUpdateTiedImportPack(void *data,
     switch (entity_type) {
     case CT_FACE:
       {
-        ContactFace* face = static_cast<ContactFace*>
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                             (topology->FaceList()->Find(GID));
         POSTCONDITION(face);
         int j = 0;
@@ -1890,10 +1890,10 @@ void ContactUpdateTiedUnpack(void *data,
   MPI_Comm SearchComm = search->Get_Comm();
   int my_proc         = contact_processor_number( SearchComm );
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
-    if(node->Ownership() == ContactTopologyEntity::OWNED){
+    ContactNode<Real>* node = Nodes[i];
+    if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
       int num_tied_at_node = 0;
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(ContactSearch::STATE1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(ContactSearch::STATE1); ++j) {

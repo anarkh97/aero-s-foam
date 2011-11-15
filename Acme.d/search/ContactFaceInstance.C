@@ -138,3 +138,47 @@ ContactFace<Real>::ComputeBoundingBoxForSearch(const int num_configs,
                                          ContactBoundingBox &box_c,
                                          ContactBoundingBox &box_p,
                                          ContactBoundingBox &box_s);
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template
+ContactFace<ActiveScalar>::ContactFace(ContactFixedSizeAllocator* alloc,
+                         ContactSearch::ContactFace_Type Type,
+                         int Block_ID, int Host_Index_in_Block, int key,
+                         ContactNode<ActiveScalar> **node_list_,
+                         ContactEdge<ActiveScalar> **edge_list_,
+                         connection_data *node_info_list_,
+                         connection_data *edge_info_list_);
+
+template
+ContactFace<ActiveScalar>::~ContactFace();
+
+template
+void ContactFace<ActiveScalar>::Initialize_Lookup_Arrays();
+
+template
+void ContactFace<ActiveScalar>::SetNeighborFacesInfo();
+
+template
+void ContactFace<ActiveScalar>::ConnectNode(const int num, ContactNode<ActiveScalar>* node );
+
+template
+void ContactFace<ActiveScalar>::ConnectEdge(const int num, ContactEdge<ActiveScalar>* edge );
+
+template
+ActiveScalar
+ContactFace<ActiveScalar>::GetEdgeCurvature(int i);
+
+template
+void
+ContactFace<ActiveScalar>::GetEdgeSmoothedNormal(int i, ActiveScalar* smoothed_normal);
+
+template
+ContactFaceFaceInteraction*
+ContactFace<ActiveScalar>::Get_FaceFace_Interaction(int interaction_number, int state );
+
+template
+void
+ContactFace<ActiveScalar>::Store_FaceFace_Interaction(
+             ContactFaceFaceInteraction* ffi, int state );
+
+#endif

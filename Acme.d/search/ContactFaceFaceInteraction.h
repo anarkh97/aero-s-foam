@@ -8,14 +8,20 @@
 #include "ContactFace.h"
 #include "ContactSearch.h"
  
-typedef struct {
+struct ContactFaceFaceVertex {
   Real slave_x;
   Real slave_y;
   Real master_x;
   Real master_y;
   int  slave_edge_id;
   int  master_edge_flag;
-} ContactFaceFaceVertex;
+#if (MAX_FFI_DERIVATIVES > 0)
+  Real slave_x_derivatives[MAX_FFI_DERIVATIVES];
+  Real slave_y_derivatives[MAX_FFI_DERIVATIVES];
+  Real master_x_derivatives[MAX_FFI_DERIVATIVES];
+  Real master_y_derivatives[MAX_FFI_DERIVATIVES];
+#endif
+};
 
 class CString;
 class ContactTopologyEntityList;
@@ -49,6 +55,17 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
             ContactFixedSizeAllocator&, ContactFace<Real>*, ContactFace<Real>*, 
 	    int, int*, int*, Real*, Real* );
+#if (MAX_FFI_DERIVATIVES > 0)
+  ContactFaceFaceInteraction( ContactFace<ActiveScalar>*, ContactFace<ActiveScalar>*,
+                              int, int*, int*, ActiveScalar*, ActiveScalar* );
+  static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
+            ContactFixedSizeAllocator&, ContactFace<ActiveScalar>*, ContactFace<ActiveScalar>*,
+            int, int*, int*, ActiveScalar*, ActiveScalar* );
+//  {
+//    std::cerr << "ContactFaceFaceInteraction::new_ContactFaceFaceInteraction is not implemented for type ActiveScalar\n";
+//    return NULL;
+//  };
+#endif
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
 	     ContactFixedSizeAllocator& );
   static ContactFaceFaceInteraction* new_ContactFaceFaceInteraction(
@@ -79,6 +96,8 @@ class ContactFaceFaceInteraction : public ContactInteractionEntity {
   inline entity_data* SlaveFaceEntityData()  {return &slave_face_entity_data;};
   inline ContactFace<Real>* MasterFace() {return master_face;};
   inline entity_data* MasterFaceEntityData() {return &master_face_entity_data;};
+  inline void Set_SlaveFace(ContactFace<Real>* cf) {slave_face=cf;};
+  inline void Set_MasterFace(ContactFace<Real>* cf) {master_face=cf;};
   int Set_SlaveFaceEntityData();
   int Set_MasterFaceEntityData();
   inline int NumEdges() {return num_edges;};

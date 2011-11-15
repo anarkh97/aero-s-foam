@@ -51,7 +51,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 	       int Host_Index_in_Block, 
                int key,
                ContactNode<DataType> **node_list_,
-               ContactEdge<Real> **edge_list_,
+               ContactEdge<DataType> **edge_list_,
                typename ContactTopologyEntity<DataType>::connection_data *node_info_list_,
                typename ContactTopologyEntity<DataType>::connection_data *edge_info_list_);
 
@@ -76,7 +76,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 
   inline ContactNode<DataType>**     Nodes()    {return node_list;};
   inline typename ContactTopologyEntity<DataType>::connection_data*  NodeInfo() {return node_info_list;};
-  inline ContactEdge<Real>**     Edges()    {return edge_list;};
+  inline ContactEdge<DataType>**     Edges()    {return edge_list;};
   inline typename ContactTopologyEntity<DataType>::connection_data*  EdgeInfo() {return edge_info_list;};
 
 
@@ -125,7 +125,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 				  VariableHandle POSITION2 = 0) = 0;
   virtual void FacetStaticRestriction(int, DataType*, DataType*, DataType*, DataType*) = 0;
   virtual void FacetDynamicRestriction(int, DataType*, DataType*) = 0;
-  virtual int  FaceEdge_Intersection(VariableHandle, ContactEdge<Real>*, DataType*) = 0;
+  virtual int  FaceEdge_Intersection(VariableHandle, ContactEdge<DataType>*, DataType*) = 0;
   virtual bool IsPlanar(VariableHandle) = 0;
  
 #ifndef CONTACT_NO_MPI
@@ -133,11 +133,11 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 #endif
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
-  inline ContactEdge<Real>* Edge( const int i );
+  inline ContactEdge<DataType>* Edge( const int i );
   void ConnectNode( const int, ContactNode<DataType>* );
-  void ConnectEdge( const int, ContactEdge<Real>* );
+  void ConnectEdge( const int, ContactEdge<DataType>* );
 
-  inline ContactEdge<Real>* Clockwise_Edge( ContactEdge<Real>* );
+  inline ContactEdge<DataType>* Clockwise_Edge( ContactEdge<DataType>* );
   inline void Clockwise_EdgeNode( int, ContactNode<DataType>** );
 
   inline ContactSearch::ContactFace_Type FaceType() {return face_type;};
@@ -237,7 +237,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 
   void SetEdgeCurvature(VariableHandle);
 
-  void SetEdgeCurvature(VariableHandle &var, ContactEdge<Real> *edge);
+  void SetEdgeCurvature(VariableHandle &var, ContactEdge<DataType> *edge);
 
 
   DataType GetEdgeCurvature(int);
@@ -291,7 +291,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
   // but we hold a pointer to them to provide access through the base class.
   
   ContactNode<DataType> **node_list;
-  ContactEdge<Real> **edge_list;
+  ContactEdge<DataType> **edge_list;
   typename ContactTopologyEntity<DataType>::connection_data *node_info_list;   
   typename ContactTopologyEntity<DataType>::connection_data *edge_info_list;
 
@@ -314,13 +314,13 @@ inline ContactNode<DataType>* ContactFace<DataType>::Node( const int i ) {
 }
 
 template<typename DataType>
-inline ContactEdge<Real>* ContactFace<DataType>::Edge( const int i ) { 
+inline ContactEdge<DataType>* ContactFace<DataType>::Edge( const int i ) { 
   PRECONDITION( i>=0 && i<Edges_Per_Face() );
   return( Edges()[i] );
 }
 
 template<typename DataType>
-inline ContactEdge<Real>* ContactFace<DataType>::Clockwise_Edge( ContactEdge<Real>* edge ) {
+inline ContactEdge<DataType>* ContactFace<DataType>::Clockwise_Edge( ContactEdge<DataType>* edge ) {
   int i;
   // Find this edge in the edge list
   for( i=0 ; i<Edges_Per_Face() ; ++i){

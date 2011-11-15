@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactElement_C_
+#define ContactElement_C_
+
 #include "ContactSearch.h"
 #include "ContactElement.h"
 #include "ContactFace.h"
@@ -493,3 +496,4 @@ ContactElement::ComputeBoundingBoxForSearch(const int num_configs,
   }
 }
 
+#endif  // #define ContactElement_C_

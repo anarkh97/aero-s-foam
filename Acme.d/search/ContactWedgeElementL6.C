@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactWedgeElementL6_C_
+#define ContactWedgeElementL6_C_
+
 #include <algorithm>
 
 #include "allocators.h"
@@ -349,6 +352,10 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
 					       DataType* global_coords,
 					       DataType* local_coords )
 {
+  using std::sqrt;
+  using std::fabs;
+  using std::min;
+  using std::max;
   //
   // 1st check for coincidence with one of the face nodes
   //
@@ -359,7 +366,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
     DataType dx = node_positions[i][0]-global_coords[0];
     DataType dy = node_positions[i][1]-global_coords[1];
     DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = std::sqrt(dx*dx+dy*dy+dz*dz);
+    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
     if (d<spatial_tolerance) break;
   }
   switch (i) {
@@ -454,9 +461,9 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
     u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
     v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
     w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = std::fabs(u1-u0);
-    dv = std::fabs(v1-v0);
-    dw = std::fabs(w1-w0);
+    du = fabs(u1-u0);
+    dv = fabs(v1-v0);
+    dw = fabs(w1-w0);
     u0 = u1;
     v0 = v1;
     w0 = w1;
@@ -471,20 +478,20 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
 #endif
   POSTCONDITION(converged);
   if (u0<1.0+spatial_tolerance) {
-    u0 = std::min(u0, 1.0);
+    u0 = min(u0, 1.0);
   }
   if (u0>-spatial_tolerance) {
-    u0 = std::max(u0, 0.0);
+    u0 = max(u0, 0.0);
   }
   if (v0<1.0+spatial_tolerance) {
-    v0 = std::min(v0, 1.0);
+    v0 = min(v0, 1.0);
   }
   if (v0>-spatial_tolerance) {
-    v0 = std::max(v0, 0.0);
+    v0 = max(v0, 0.0);
   }
-  if (std::fabs(w0)<1.0+spatial_tolerance) {
-    w0 = std::min(w0, 1.0);
-    w0 = std::max(w0,-1.0);
+  if (fabs(w0)<1.0+spatial_tolerance) {
+    w0 = min(w0, 1.0);
+    w0 = max(w0,-1.0);
   }
   local_coords[0] = u0;
   local_coords[1] = v0;
@@ -542,5 +549,4 @@ void ContactWedgeElemL6<DataType>::Interpolate_Vector( DataType local_coords[4],
   }
 }
 
-
-
+#endif  // #define ContactWedgeElementL6_C_

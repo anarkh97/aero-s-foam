@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactNode_C_
+#define ContactNode_C_
+
 #include "allocators.h"
 #include "ContactNode.h"
 #include "ContactEdge.h"
@@ -75,9 +78,9 @@ void ContactNode<DataType>::Delete_Face_Connections( )
 }
 
 template<typename DataType>
-void ContactNode<DataType>::Connect_Face(ContactFace<Real>* Face )
+void ContactNode<DataType>::Connect_Face(ContactFace<DataType>* Face )
 {
-  faces.push_back(pair<ContactFace<Real>*,int>(Face,-1));
+  faces.push_back(pair<ContactFace<DataType>*,int>(Face,-1));
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -747,10 +750,14 @@ bool ContactNode<DataType>::ConnectedToFace(const ContactHostGlobalID &id) {
   return false;
 }
 
-bool sort_face_pair_by_id(const pair<ContactFace<Real>*,int> &d1, const pair<ContactFace<Real>*,int> &d2) {
+template<typename DataType>
+bool sort_face_pair_by_id(const pair<ContactFace<DataType>*,int> &d1, const pair<ContactFace<DataType>*,int> &d2) {
   return(d1.first->Global_ID() < d2.first->Global_ID());
 }
+
 template<typename DataType>
 void ContactNode<DataType>::SortConnectedFaces() {
-  sort(faces.begin(), faces.end(), sort_face_pair_by_id);
+  sort(faces.begin(), faces.end(), sort_face_pair_by_id<DataType>);
 }
+
+#endif  // #ifdef ContactNode_C_

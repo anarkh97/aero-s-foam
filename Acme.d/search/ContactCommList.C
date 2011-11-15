@@ -146,7 +146,7 @@ void ContactCommList::CreateFromListAddition(const ContactCommList &com1,
   //  entity_list_temp is a matrix of ContactTopologyEntity<Real> pointers.
   //  The matrix has num_procs rows and num_to_send/receive length for each row.
   //
-  ContactTopologyEntity<Real>*** entity_list_temp = new ContactTopologyEntity**[num_procs];
+  ContactTopologyEntity<Real>*** entity_list_temp = new ContactTopologyEntity<Real>**[num_procs];
   for(int iproc = 0; iproc < num_procs; ++iproc) {
     new_com_list_size[iproc] = com1_list_size[iproc] + com2_list_size[iproc];
     entity_list_temp[iproc] = new ContactTopologyEntity<Real>*[new_com_list_size[iproc]];

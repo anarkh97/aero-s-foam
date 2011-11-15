@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactTriFaceL3_C_
+#define ContactTriFaceL3_C_
+
 #include <algorithm>
 
 #include "allocators.h"
@@ -255,11 +258,12 @@ int ContactTriFaceL3<DataType>::Get_Edge_Number( ContactNode<DataType>** edge_no
 template<typename DataType>
 int ContactTriFaceL3<DataType>::Get_Edge_Number( DataType* local_coords )
 {
+  using std::fabs;
   DataType tol(1.0e-8);
-  if (std::fabs(local_coords[1])<tol && std::fabs(local_coords[3])<tol) return(0);
-  if (std::fabs(local_coords[0])<tol && std::fabs(local_coords[2])<tol) return(1);
-  if (std::fabs((1.0-local_coords[0]-local_coords[1]))<tol &&
-      std::fabs((1.0-local_coords[2]-local_coords[3]))<tol) return(2);
+  if (fabs(local_coords[1])<tol && fabs(local_coords[3])<tol) return(0);
+  if (fabs(local_coords[0])<tol && fabs(local_coords[2])<tol) return(1);
+  if (fabs((1.0-local_coords[0]-local_coords[1]))<tol &&
+      fabs((1.0-local_coords[2]-local_coords[3]))<tol) return(2);
   return( -1 );
 }
 
@@ -970,6 +974,7 @@ template<typename DataType>
 int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                                             ContactEdge<DataType>* edge,DataType* coords)
 {
+  using std::fabs;
   int intersection=0;
 #if 0
 //#if CONTACT_DEBUG_PRINT_LEVEL>=1
@@ -1023,13 +1028,13 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   }
   Normalize(edge_dir);
   DataType tmax;
-  if (std::fabs(edge_dir[0])>=std::fabs(edge_dir[1]) && std::fabs(edge_dir[0])>=std::fabs(edge_dir[2])) {
+  if (fabs(edge_dir[0])>=fabs(edge_dir[1]) && fabs(edge_dir[0])>=fabs(edge_dir[2])) {
     tmax = (edge_node_position1[0]-edge_node_position0[0])/edge_dir[0];
   } else
-  if (std::fabs(edge_dir[1])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[1])>=std::fabs(edge_dir[2])) {
+  if (fabs(edge_dir[1])>=fabs(edge_dir[0]) && fabs(edge_dir[1])>=fabs(edge_dir[2])) {
     tmax = (edge_node_position1[1]-edge_node_position0[1])/edge_dir[1];
   } else
-  if (std::fabs(edge_dir[2])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[2])>=std::fabs(edge_dir[1])) {
+  if (fabs(edge_dir[2])>=fabs(edge_dir[0]) && fabs(edge_dir[2])>=fabs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
   tmax *= 1.05;
@@ -1057,7 +1062,7 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   DataType n_dot_d = Dot(normal, edge_dir);
 
   // if (edge ray) and (tri3 plane) are parallel => no intersection
-  if (std::fabs(n_dot_d)<1.0e-10) {
+  if (fabs(n_dot_d)<1.0e-10) {
     return 0;
   }
 
@@ -1134,8 +1139,8 @@ template<typename DataType>
 void ContactTriFaceL3<DataType>::Evaluate_Shape_Functions( DataType* local_coords,
 						 DataType* shape_functions )
 {
-  
-  PRECONDITION( std::fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
+  using std::fabs;
+  PRECONDITION( fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
   Compute_Shape_Functions( local_coords, shape_functions );
 }
 
@@ -1222,8 +1227,8 @@ template<typename DataType>
 void ContactTriFaceL3<DataType>::Compute_Shape_Functions( DataType local_coords[3],
 						DataType shape_functions[3] )
 {
-  
-  PRECONDITION( std::fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
+  using std::fabs; 
+  PRECONDITION( fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
   shape_functions[0] = local_coords[0];
   shape_functions[1] = local_coords[1];
   shape_functions[2] = local_coords[2];
@@ -1233,8 +1238,8 @@ template<typename DataType>
 void ContactTriFaceL3<DataType>::Compute_Shape_Derivatives( DataType local_coords[3],
 					          DataType shape_derivs[2][3] )
 {
-  
-  PRECONDITION( std::fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
+  using std::fabs;
+  PRECONDITION( fabs(local_coords[0]+local_coords[1]+local_coords[2]-1.0)<1.e-13 );
   shape_derivs[0][0] =  1.0;
   shape_derivs[0][1] =  0.0;
   shape_derivs[0][2] = -1.0;
@@ -1248,6 +1253,7 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
 					     DataType global_coords[3],
 					     DataType local_coords[3] )
 {
+  using std::sqrt;
   int  i;
   DataType spatial_tolerance = 1.0e-10;
   //
@@ -1260,7 +1266,7 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
     DataType dx = node_positions[i][0]-global_coords[0];
     DataType dy = node_positions[i][1]-global_coords[1];
     DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = std::sqrt(dx*dx+dy*dy+dz*dz);
+    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
     if (d<spatial_tolerance) break;
   }
   switch (i) {
@@ -1327,17 +1333,18 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
   DataType L1   = a0/area;
   DataType L2   = a1/area;
   // If it's close to any of the edges, snap to it
+  using std::min; using std::max;
   if (L1<1.0+spatial_tolerance) {
-    L1 = std::min(L1, 1.0);
+    L1 = min(L1, 1.0);
   }
   if (L1>-spatial_tolerance) {
-    L1 = std::max(L1, 0.0);
+    L1 = max(L1, 0.0);
   }
   if (L2<1.0+spatial_tolerance) {
-    L2 = std::min(L2, 1.0);
+    L2 = min(L2, 1.0);
   }
   if (L2>-spatial_tolerance) {
-    L2 = std::max(L2, 0.0);
+    L2 = max(L2, 0.0);
   }
   local_coords[0] = L1;
   local_coords[1] = L2;
@@ -1393,3 +1400,5 @@ void ContactTriFaceL3<DataType>::Interpolate_Vector( DataType local_coords[3],
     }
   }
 }
+
+#endif  // #define ContactTriFaceL3_C_

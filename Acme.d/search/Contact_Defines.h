@@ -112,5 +112,25 @@ typedef int MPI_Comm;
 #if defined (__osf__) && !defined(__PUMAGON__) && !defined(CONTACT_USE_BLOCKING_SEND)
 #define CONTACT_USE_BLOCKING_SEND
 #endif
-                         
+
+//
+//  Number of derivatives for Face-Face interactions
+//  use 54 for dimensionality 3 and support for linear and quadratic faces
+//  use 24 for dimensionality 3 and support for linear faces only
+//  use 16 for dimensionality 2 and support for linear faces only
+//
+#define MAX_FFI_DERIVATIVES 54
+
+#if (MAX_FFI_DERIVATIVES > 0) && defined(USE_SACADO)
+#  include "Sacado.hpp"
+   typedef Sacado::Fad::SFad<Real,MAX_FFI_DERIVATIVES> ActiveScalar;
+#elif (MAX_FFI_DERIVATIVES > 0) && defined(USE_EIGEN3)
+#  include <Eigen/Core>
+#  include <unsupported/Eigen/AutoDiff>
+   typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType;
+   typedef Eigen::AutoDiffScalar<DerivativeType> ActiveScalar;
+#else
+#  error "Computation of Face-Face interaction derivatives requires Sacado or Eigen3"
+#endif
+
 #endif // #ifdef Contact_Defines_h_

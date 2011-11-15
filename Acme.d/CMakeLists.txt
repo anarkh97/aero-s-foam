@@ -59,7 +59,7 @@ search/ContactFaceBlock.C
 search/ContactFaceInstance.C
 search/ContactFaceCoverageInteraction.C
 search/ContactFaceFaceInteraction.C
-search/ContactFaceFaceSearch.C
+search/ContactFaceFaceSearchInstance.C
 search/ContactFixedSizeAllocator.C
 search/ContactGlobalSearch.C
 search/ContactHexElementL8Instance.C

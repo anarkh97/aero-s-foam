@@ -88,3 +88,92 @@ template
 void  ContactHexElemL8<Real>::Interpolate_Vector( Real local_coords[3],
 					    Real node_vectors[8][3],
 					    Real interpolated_vector[3] );
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template
+ContactHexElemL8<ActiveScalar>::ContactHexElemL8( int Block_Index, 
+				    int Host_Index_in_Block, int key );
+
+template
+ContactHexElemL8<ActiveScalar>* ContactHexElemL8<ActiveScalar>::new_ContactHexElemL8(
+                        ContactFixedSizeAllocator& alloc,
+                        int Block_Index, int Host_Index_in_Block, int key);
+
+template
+void ContactHexElemL8_SizeAllocator<ActiveScalar>(ContactFixedSizeAllocator& alloc);
+
+template
+ContactHexElemL8<ActiveScalar>::~ContactHexElemL8();
+
+template
+void ContactHexElemL8<ActiveScalar>::BuildTopology(int nID, int eID, int fID,
+				     ContactFixedSizeAllocator* allocators);
+template
+void ContactHexElemL8<ActiveScalar>::DeleteTopology(ContactFixedSizeAllocator* allocators);
+
+template
+void ContactHexElemL8<ActiveScalar>::UpdateTopology(ContactFace<ActiveScalar>* face, 
+				      VariableHandle POSITION,
+				      VariableHandle FACE_NORMAL,
+				      VariableHandle NODE_NORMAL,
+				      ActiveScalar tol, bool use_node_normals);
+
+template
+bool
+ContactHexElemL8<ActiveScalar>::Is_Local_Coordinates_Inside_Element( ActiveScalar* local_coords );
+
+template
+bool
+ContactHexElemL8<ActiveScalar>::Is_Local_Coordinates_Near_Element( ActiveScalar* local_coords, ActiveScalar tolerance );
+
+template
+void ContactHexElemL8<ActiveScalar>::Evaluate_Shape_Functions( ActiveScalar* local_coords,
+						  ActiveScalar* shape_functions );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Global_Coordinates( VariableHandle POSITION,
+						   ActiveScalar* local_coords,
+						   ActiveScalar* global_coords );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates( ActiveScalar Config_Param,
+						  VariableHandle POSITION0, 
+						  VariableHandle POSITION1, 
+						  VariableHandle FACE_NORMAL,
+						  ActiveScalar* global_coords,
+						  ActiveScalar* local_coords );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
+						  ActiveScalar* global_coords,
+						  ActiveScalar* local_coords );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Shape_Functions( ActiveScalar* local_coords,
+						ActiveScalar* shape_functions );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Shape_Derivatives( ActiveScalar* local_coords,
+						  ActiveScalar shape_derivs[3][8] );
+
+template
+void 
+ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar node_positions[8][3], 
+					ActiveScalar global_coords[3],
+					ActiveScalar local_coords[3] );
+
+template
+void ContactHexElemL8<ActiveScalar>::Compute_Global_Coords( ActiveScalar node_positions[8][3],
+					      ActiveScalar local_coords[3],
+					      ActiveScalar global_coords[3] );
+
+template
+void  ContactHexElemL8<ActiveScalar>::Interpolate_Scalar( ActiveScalar  local_coords[3],
+					    ActiveScalar  node_scalars[8],
+					    ActiveScalar& interpolated_scalar );
+
+template
+void  ContactHexElemL8<ActiveScalar>::Interpolate_Vector( ActiveScalar local_coords[3],
+					    ActiveScalar node_vectors[8][3],
+					    ActiveScalar interpolated_vector[3] );
+#endif

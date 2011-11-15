@@ -15,42 +15,50 @@
 #include <cmath>
 #include <limits>
 
-typedef struct PointStruct {
-  Real x, y, z;
-  Real xm, ym, zm;
-} Point;
+template<typename DataType>
+struct PointStruct {
+  DataType x, y, z;
+  DataType xm, ym, zm;
+};
 
-typedef struct PolyStruct {
+template<typename DataType>
+struct PolyStruct {
   int   np;
-  Point p[20];   
-} Poly;
+  PointStruct<DataType> p[20];   
+};
 
-typedef struct PlaneStruct {  
-  Point normal;  
-  Real  d;
-} Plane;
+template<typename DataType>
+struct PlaneStruct {  
+  PointStruct<DataType> normal;  
+  DataType  d;
+};
 
 #define V3_Dot(a,b) \
         ((a)->x * (b)->x + (a)->y * (b)->y + (a)->z * (b)->z)
 
+template<typename DataType>
 void
-ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face, 
-                                ContactFace<Real>* master_face, 
-                                ContactElem<Real>* element,
+ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face, 
+                                ContactFace<DataType>* master_face, 
+                                ContactElem<DataType>* element,
                                 VariableHandle POSITION)
 {
+  typedef PointStruct<DataType> Point;
+  typedef PolyStruct<DataType> Poly;
+  typedef PlaneStruct<DataType> Plane;
+
   int   i, j, k, in_cnt;
   int   in[6], out[6];
   int   num_area=0;
   int   ifaceedge[20], iedge_m[20];
-  Real  area_s[42], area_m[42];
+  DataType  area_s[42], area_m[42];
   Poly  poly0, poly1, poly2;
   Poly* p=&poly0;
   Poly* q=&poly1;
   Point  p0;
   Plane  face_plane;
   Plane* plane=&face_plane;
-  ContactFace<Real>* face = slave_face;
+  ContactFace<DataType>* face = slave_face;
   VariableHandle FACE_NORMAL = 
     search_topology->Variable_Handle( ContactTopology::Face_Normal );
   
@@ -61,12 +69,13 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
   
   p->np = face->Nodes_Per_Face();
   for (i=0; i<face->Nodes_Per_Face(); ++i) {
-    ContactNode<Real>* node = face->Node(i);
-    Real* position = node->Variable(POSITION);
+    ContactNode<DataType>* node = face->Node(i);
+    DataType* position = node->Variable(POSITION);
     p->p[i].x = position[0];
     p->p[i].y = position[1];
     p->p[i].z = position[2];
   }
+
   //============================================
   // FIRST, CHECK TO SEE IF ALL THE VERTICES OF
   // THE FACE ARE INSIDE OR OUTSIDE THE ELEMENT
@@ -76,18 +85,18 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
     out[i] = 0;
   }
   for (i=0; i<element->Faces_Per_Element(); ++i) {
-    ContactNode<Real>* node = element->Face(i)->Node(0);
-    Real* position    = node->Variable(POSITION);
+    ContactNode<DataType>* node = element->Face(i)->Node(0);
+    DataType* position    = node->Variable(POSITION);
     p0.x              = position[0];
     p0.y              = position[1];
     p0.z              = position[2];
-    Real* normal      = element->Face(i)->Variable(FACE_NORMAL);
+    DataType* normal      = element->Face(i)->Variable(FACE_NORMAL);
     plane->normal.x   = normal[0];
     plane->normal.y   = normal[1];
     plane->normal.z   = normal[2];
     plane->d          = -V3_Dot(&(plane->normal), &p0);
     for (j=0; j<face->Nodes_Per_Face(); ++j) {
-      Real value = V3_Dot(&(p->p[j]), &plane->normal) + plane->d;
+      DataType value = V3_Dot(&(p->p[j]), &plane->normal) + plane->d;
       if (value > 0.0) {
         out[i]++;
       } else {
@@ -95,9 +104,11 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       }
     }
   }
+
   for (i=0; i<element->Faces_Per_Element(); ++i) {
     if (out[i]==face->Nodes_Per_Face()) return;
   }
+
   int all_planar = 0;
   for (in_cnt=0, i=0; i<element->Faces_Per_Element(); ++i) {
     all_planar += element->Face(i)->IsPlanar(POSITION);
@@ -105,26 +116,27 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
   }
 
   if (all_planar==element->Faces_Per_Element()) {
+
     //=========================================================
     // If all the faces of the element are planar, then use
     // them as clipping planes to get the intersecting polygon
     //=========================================================
     if (in_cnt!=element->Faces_Per_Element()*face->Nodes_Per_Face()) {
-      Real tol=1.0e-6;
+      DataType tol=1.0e-6;
       p = &poly0;
       q = &poly1;
       Poly*  r;
       Point* u;
       Point* v;
       Point* w;
-      Real   t, tu, tv;
+      DataType   t, tu, tv;
       for (i=0; i<element->Faces_Per_Element(); ++i) {
-        ContactNode<Real>* node = element->Face(i)->Node(0);
-        Real* position    = node->Variable(POSITION);
+        ContactNode<DataType>* node = element->Face(i)->Node(0);
+        DataType* position    = node->Variable(POSITION);
         p0.x              = position[0];
         p0.y              = position[1];
         p0.z              = position[2];
-        Real* normal      = element->Face(i)->Variable(FACE_NORMAL);
+        DataType* normal      = element->Face(i)->Variable(FACE_NORMAL);
         plane->normal.x   = normal[0];
         plane->normal.y   = normal[1];
         plane->normal.z   = normal[2];
@@ -183,9 +195,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       // global coordinate std::system so calculate the centroid and
       // convert to the face and element local coordinate std::system
       //=========================================================
-      Real xc = 0.0;
-      Real yc = 0.0;
-      Real zc = 0.0;
+      DataType xc = 0.0;
+      DataType yc = 0.0;
+      DataType zc = 0.0;
       for (i=0; i<p->np; ++i) {
         xc += p->p[i].x;
         yc += p->p[i].y;
@@ -194,26 +206,26 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       xc /= p->np;
       yc /= p->np;
       zc /= p->np;
-      Real xbar  = 0.0;
-      Real ybar  = 0.0;
-      Real zbar  = 0.0;
-      Real tarea = 0.0;
+      DataType xbar  = 0.0;
+      DataType ybar  = 0.0;
+      DataType zbar  = 0.0;
+      DataType tarea = 0.0;
       for (i=0; i<p->np; ++i) {
         int  i1    = i;
         int  i2    = (i1+1)%p->np;
-        Real x1    = p->p[i1].x;
-        Real y1    = p->p[i1].y;
-        Real z1    = p->p[i1].z;
-        Real x2    = p->p[i2].x;
-        Real y2    = p->p[i2].y;
-        Real z2    = p->p[i2].z;
-        Real area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
+        DataType x1    = p->p[i1].x;
+        DataType y1    = p->p[i1].y;
+        DataType z1    = p->p[i1].z;
+        DataType x2    = p->p[i2].x;
+        DataType y2    = p->p[i2].y;
+        DataType z2    = p->p[i2].z;
+        DataType area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
                               ((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))+
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))*
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))+
                               ((x2-x1)*(yc-y1)-(xc-x1)*(y2-y1))*
                               ((x2-x1)*(yc-y1)-(xc-x1)*(y2-y1)));
-        Real area3 = area/3.0;
+        DataType area3 = area/3.0;
         xbar      += x1*area3 + x2*area3 + xc*area3;
         ybar      += y1*area3 + y2*area3 + yc*area3;
         zbar      += z1*area3 + z2*area3 + zc*area3;
@@ -224,8 +236,8 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       zbar /= tarea;
  
       num_area = p->np;
-      Real local_coords[6];
-      Real global_coords[6];
+      DataType local_coords[6];
+      DataType global_coords[6];
       for (i=0; i<p->np; ++i) {
         global_coords[0] = p->p[i].x;
         global_coords[1] = p->p[i].y;
@@ -251,7 +263,7 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       for (i=0; i<num_area; ++i) {
         int  i1 = i;
         int  i2 = (i1+1)%num_area;
-        Real local_edge_coords[4];
+        DataType local_edge_coords[4];
         local_edge_coords[0] = area_s[i1*2];
         local_edge_coords[1] = area_s[i1*2+1];
         local_edge_coords[2] = area_s[i2*2];
@@ -279,8 +291,8 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
     // local coordinate std::system.  Then order these intersections
     // in a ccw direction and std::remove duplicate entries.
     //=========================================================
-    Real local_coords[4];
-    Real global_coords[3];
+    DataType local_coords[4];
+    DataType global_coords[3];
 
     q     = &poly1;
     q->np = 0;
@@ -290,7 +302,7 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
     // inside the element and add them to the poly
     //=======================================================
     for (i=0; i<face->Nodes_Per_Face(); ++i) {
-      Real* position   = face->Node(i)->Variable(POSITION);
+      DataType* position   = face->Node(i)->Variable(POSITION);
       global_coords[0] = position[0];
       global_coords[1] = position[1];
       global_coords[2] = position[2];
@@ -312,9 +324,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
     // intersections and add them to the poly
     //========================================
     for (i=0; i<element->Faces_Per_Element(); ++i) {
-      ContactFace<Real>* Face = element->Face(i);
+      ContactFace<DataType>* Face = element->Face(i);
       for (j=0; j<face->Edges_Per_Face(); ++j) {
-        ContactEdge<Real>* Edge = face->Edge(j);
+        ContactEdge<DataType>* Edge = face->Edge(j);
         if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
           element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
           q->p[q->np].xm = local_coords[0];
@@ -333,9 +345,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
     // Find all the element-edge/face
     // intersections and add them to the poly
     //========================================
-    ContactFace<Real>* Face = face;
+    ContactFace<DataType>* Face = face;
     for (i=0; i<element->Edges_Per_Element(); ++i) {
-      ContactEdge<Real>* Edge = element->Edge(i);
+      ContactEdge<DataType>* Edge = element->Edge(i);
       if (Face->FaceEdge_Intersection(POSITION, Edge, global_coords)) {
         element->Compute_Local_Coordinates(POSITION, global_coords, local_coords);
         q->p[q->np].xm = local_coords[0];
@@ -357,14 +369,14 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       // based on their positions on the slave face
       //============================================
       int  imin=-1;
-      Real ymin=2.0;
+      DataType ymin=2.0;
       int*  hit = new int  [q->np];
-      Real* vec = new Real [q->np];
+      DataType* vec = new DataType [q->np];
       for (i=0; i<q->np; ++i) hit[i] = 0;
  
       switch (face->FaceType()) {
       case TRIFACEL3: {
-        Real t3_node_positions[3][3];
+        DataType t3_node_positions[3][3];
         t3_node_positions[0][0] = 0.0;
         t3_node_positions[0][1] = 0.0;
         t3_node_positions[0][2] = 0.0;
@@ -374,7 +386,7 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         t3_node_positions[2][0] = 0.0;
         t3_node_positions[2][1] = 1.0;
         t3_node_positions[2][2] = 0.0;
-        ContactTriFaceL3<Real>* t3face = static_cast<ContactTriFaceL3<Real>*>(face);
+        ContactTriFaceL3<DataType>* t3face = static_cast<ContactTriFaceL3<DataType>*>(face);
         for (i=0; i<q->np; ++i) {
           local_coords[0] = q->p[i].x;
           local_coords[1] = q->p[i].y;
@@ -390,17 +402,17 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         local_coords[1] = q->p[imin].y;
         local_coords[2] = q->p[imin].z;
         t3face->Compute_Global_Coords(t3_node_positions, local_coords, global_coords);
-        Real dx0 = global_coords[0];
-        Real dy0 = global_coords[1];
+        DataType dx0 = global_coords[0];
+        DataType dy0 = global_coords[1];
         for (i=0; i<q->np; ++i) {
           if (i==imin) continue;
           local_coords[0] = q->p[i].x;
           local_coords[1] = q->p[i].y;
           local_coords[2] = q->p[i].z;
           t3face->Compute_Global_Coords(t3_node_positions, local_coords, global_coords);
-          Real dx  = global_coords[0] - dx0;
-          Real dy  = global_coords[1] - dy0;
-          Real mag = dx*dx + dy*dy;
+          DataType dx  = global_coords[0] - dx0;
+          DataType dy  = global_coords[1] - dy0;
+          DataType mag = dx*dx + dy*dy;
           if( mag > 0.0 ) {
             mag = std::sqrt(mag);
             dx /= mag;
@@ -423,9 +435,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         POSTCONDITION(imin>=0);
         for (i=0; i<q->np; ++i) {
           if (i==imin) continue;
-          Real dx  = q->p[i].x - q->p[imin].x;
-          Real dy  = q->p[i].y - q->p[imin].y;
-          Real mag = dx*dx + dy*dy;
+          DataType dx  = q->p[i].x - q->p[imin].x;
+          DataType dy  = q->p[i].y - q->p[imin].y;
+          DataType mag = dx*dx + dy*dy;
           if( mag > 0.0 ) {
             mag = std::sqrt(mag);
             dx /= mag;
@@ -445,9 +457,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
  
       for (i=0; i<q->np; ++i) {
         if( i==imin ) continue;
-        Real dx = q->p[i].x - q->p[imin].x;
-        Real dy = q->p[i].y - q->p[imin].y;
-        Real d  = dx*dx + dy*dy;
+        DataType dx = q->p[i].x - q->p[imin].x;
+        DataType dy = q->p[i].y - q->p[imin].y;
+        DataType d  = dx*dx + dy*dy;
         if (d <= 1.0e-10) hit[i] = 1;
       }
       hit[imin] = 1;
@@ -458,7 +470,7 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       p->p[0] = q->p[imin];
       for (i=0; i<q->np; ++i) {
         int  jmin = -1;
-        Real vmax = -2.0;
+        DataType vmax = -2.0;
         for (j=0; j<q->np; ++j) {
           if( !hit[j] && vec[j]>vmax ) {
              vmax = vec[j];
@@ -468,9 +480,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         if (jmin>=0) {
           hit[jmin] = 1;
           int equivalent=0;
-          Real dx = q->p[jmin].x - q->p[kmin].x;
-          Real dy = q->p[jmin].y - q->p[kmin].y;
-          Real d  = dx*dx + dy*dy;
+          DataType dx = q->p[jmin].x - q->p[kmin].x;
+          DataType dy = q->p[jmin].y - q->p[kmin].y;
+          DataType d  = dx*dx + dy*dy;
           if (d <= 1.0e-10) equivalent=1;
           if (!equivalent) {
             kmin = jmin;
@@ -489,9 +501,9 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       // If there is an intersecting polygon, it is stored in the
       // local coordinate std::system so calculate the centroid
       //=========================================================
-      Real xc = 0.0;
-      Real yc = 0.0;
-      Real zc = 0.0;
+      DataType xc = 0.0;
+      DataType yc = 0.0;
+      DataType zc = 0.0;
       for (i=0; i<p->np; ++i) {
         local_coords[0] = p->p[i].x;
         local_coords[1] = p->p[i].y;
@@ -504,10 +516,10 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
       xc /= p->np;
       yc /= p->np;
       zc /= p->np;
-      Real xbar  = 0.0;
-      Real ybar  = 0.0;
-      Real zbar  = 0.0;
-      Real tarea = 0.0;
+      DataType xbar  = 0.0;
+      DataType ybar  = 0.0;
+      DataType zbar  = 0.0;
+      DataType tarea = 0.0;
       for (i=0; i<p->np; ++i) {
         int  i1    = i;
         int  i2    = (i1+1)%p->np;
@@ -515,23 +527,23 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         local_coords[1] = p->p[i1].y;
         local_coords[2] = p->p[i1].z;
         face->Compute_Global_Coordinates(POSITION, local_coords, global_coords);
-        Real x1    = global_coords[0];
-        Real y1    = global_coords[1];
-        Real z1    = global_coords[2];
+        DataType x1    = global_coords[0];
+        DataType y1    = global_coords[1];
+        DataType z1    = global_coords[2];
         local_coords[0] = p->p[i2].x;
         local_coords[1] = p->p[i2].y;
         local_coords[2] = p->p[i2].z;
         face->Compute_Global_Coordinates(POSITION, local_coords, global_coords);
-        Real x2    = global_coords[0];
-        Real y2    = global_coords[1];
-        Real z2    = global_coords[2];
-        Real area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
+        DataType x2    = global_coords[0];
+        DataType y2    = global_coords[1];
+        DataType z2    = global_coords[2];
+        DataType area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
                               ((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))+
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))*
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))+
                               ((x2-x1)*(yc-y1)-(xc-x1)*(y2-y1))*
                               ((x2-x1)*(yc-y1)-(xc-x1)*(y2-y1)));
-        Real area3 = area/3.0;
+        DataType area3 = area/3.0;
         xbar      += x1*area3 + x2*area3 + xc*area3;
         ybar      += y1*area3 + y2*area3 + yc*area3;
         zbar      += z1*area3 + z2*area3 + zc*area3;
@@ -565,7 +577,7 @@ ContactSearch::Face_Face_Search(ContactFace<Real>* slave_face,
         for (i=0; i<num_area; ++i) {
           int  i1 = i;
           int  i2 = (i1+1)%num_area;
-          Real local_edge_coords[4];
+          DataType local_edge_coords[4];
           local_edge_coords[0] = area_s[i1*2];
           local_edge_coords[1] = area_s[i1*2+1];
           local_edge_coords[2] = area_s[i2*2];

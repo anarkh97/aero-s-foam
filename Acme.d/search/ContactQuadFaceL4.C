@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactQuadFaceL4_C_
+#define ContactQuadFaceL4_C_
+
 #include "allocators.h"
 #include "ContactNode.h"
 #include "ContactQuadFaceL4.h"
@@ -46,6 +49,7 @@ template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle CURRENT_POSITION,
 				       VariableHandle FACE_NORMAL )
 {
+  using std::sqrt;
   ContactNode<DataType>* node0 = Node(0);
   ContactNode<DataType>* node1 = Node(1);
   ContactNode<DataType>* node2 = Node(2);
@@ -67,9 +71,9 @@ void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle CURRENT_POSITION
   face_normal[0] = Vec02[1]*Vec13[2] - Vec02[2]*Vec13[1];
   face_normal[1] = Vec02[2]*Vec13[0] - Vec02[0]*Vec13[2];
   face_normal[2] = Vec02[0]*Vec13[1] - Vec02[1]*Vec13[0];
-  DataType Mag = std::sqrt( face_normal[0]*face_normal[0] + 
-		        face_normal[1]*face_normal[1] +
-		        face_normal[2]*face_normal[2] );
+  DataType Mag = sqrt( face_normal[0]*face_normal[0] + 
+		       face_normal[1]*face_normal[1] +
+		       face_normal[2]*face_normal[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     face_normal[0] *= Mag;
@@ -82,6 +86,7 @@ template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle POSITION,
                                        DataType* normal, DataType* local_coords )
 {
+  using std::sqrt;
   DataType shape_derivatives[2][4];
   DataType e1[3] = {0.0, 0.0, 0.0};
   DataType e2[3] = {0.0, 0.0, 0.0};
@@ -101,7 +106,7 @@ void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle POSITION,
     b += e2[i]*e2[i];
     c += e1[i]*e2[i];
   }
-  DataType detJ = std::sqrt(a*b-c*c);
+  DataType detJ = sqrt(a*b-c*c);
   normal[0] = (e1[1]*e2[2]-e1[2]*e2[1])/detJ;
   normal[1] = (e2[0]*e1[2]-e1[0]*e2[2])/detJ;
   normal[2] = (e1[0]*e2[1]-e2[0]*e1[1])/detJ;
@@ -111,6 +116,7 @@ template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_Normal(DataType** nodal_positions,
                                        DataType* local_coords, DataType* normal )
 {
+  using std::sqrt;
   DataType shape_derivatives[2][4];
   DataType e1[3] = {0.0, 0.0, 0.0};
   DataType e2[3] = {0.0, 0.0, 0.0};
@@ -130,7 +136,7 @@ void ContactQuadFaceL4<DataType>::Compute_Normal(DataType** nodal_positions,
     b += e2[i]*e2[i];
     c += e1[i]*e2[i];
   }
-  DataType detJ = std::sqrt(a*b-c*c);
+  DataType detJ = sqrt(a*b-c*c);
   normal[0] = (e1[1]*e2[2]-e1[2]*e2[1])/detJ;
   normal[1] = (e2[0]*e1[2]-e1[0]*e2[2])/detJ;
   normal[2] = (e1[0]*e2[1]-e2[0]*e1[1])/detJ;
@@ -140,6 +146,7 @@ template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_CharacteristicLength(VariableHandle CURRENT_POSITION,
 				                     VariableHandle CHARACTERISTIC_LENGTH )
 {
+  using std::sqrt;
   ContactNode<DataType>* node0 = Node(0);
   ContactNode<DataType>* node1 = Node(1);
   ContactNode<DataType>* node2 = Node(2);
@@ -163,9 +170,9 @@ void ContactQuadFaceL4<DataType>::Compute_CharacteristicLength(VariableHandle CU
   face_normal[2] = Vec02[0]*Vec13[1] - Vec02[1]*Vec13[0];
 
   DataType* characteristiclength = Variable(CHARACTERISTIC_LENGTH);
-  *characteristiclength = std::sqrt( face_normal[0]*face_normal[0] + 
-		                     face_normal[1]*face_normal[1] +
-		                     face_normal[2]*face_normal[2] ) / 2.0;
+  *characteristiclength = sqrt( face_normal[0]*face_normal[0] + 
+		                face_normal[1]*face_normal[1] +
+		                face_normal[2]*face_normal[2] ) / 2.0;
 }
 
 template<typename DataType>
@@ -272,15 +279,16 @@ int ContactQuadFaceL4<DataType>::Get_Edge_Number( ContactNode<DataType>** edge_n
 template<typename DataType>
 int ContactQuadFaceL4<DataType>::Get_Edge_Number( DataType* local_coords )
 {
+  using std::fabs;
   DataType tol(1.0e-8);
-  if (std::fabs(local_coords[1] - -1.0)<tol && 
-      std::fabs(local_coords[3] - -1.0)<tol) return(0);
-  if (std::fabs(local_coords[0] -  1.0)<tol && 
-      std::fabs(local_coords[2] -  1.0)<tol) return(1);
-  if (std::fabs(local_coords[1] -  1.0)<tol && 
-      std::fabs(local_coords[3] -  1.0)<tol) return(2);
-  if (std::fabs(local_coords[0] - -1.0)<tol && 
-      std::fabs(local_coords[2] - -1.0)<tol) return(3);
+  if (fabs(local_coords[1] - -1.0)<tol && 
+      fabs(local_coords[3] - -1.0)<tol) return(0);
+  if (fabs(local_coords[0] -  1.0)<tol && 
+      fabs(local_coords[2] -  1.0)<tol) return(1);
+  if (fabs(local_coords[1] -  1.0)<tol && 
+      fabs(local_coords[3] -  1.0)<tol) return(2);
+  if (fabs(local_coords[0] - -1.0)<tol && 
+      fabs(local_coords[2] - -1.0)<tol) return(3);
   return( -1 );
 }
 
@@ -457,6 +465,7 @@ void ContactQuadFaceL4<DataType>::Get_Close_Edges( DataType* local_coords, int& 
 template<typename DataType>
 bool ContactQuadFaceL4<DataType>::IsPlanar(VariableHandle POSITION)
 {
+  using std::sqrt;
   ContactNode<DataType>* node0 = Node(0);
   ContactNode<DataType>* node1 = Node(1);
   ContactNode<DataType>* node2 = Node(2);
@@ -488,18 +497,18 @@ bool ContactQuadFaceL4<DataType>::IsPlanar(VariableHandle POSITION)
   normal1[0] = Vec23[1]*Vec21[2] - Vec23[2]*Vec21[1];
   normal1[1] = Vec23[2]*Vec21[0] - Vec23[0]*Vec21[2];
   normal1[2] = Vec23[0]*Vec21[1] - Vec23[1]*Vec21[0];
-  Mag = std::sqrt( normal0[0]*normal0[0] + 
-	           normal0[1]*normal0[1] +
-	           normal0[2]*normal0[2] );
+  Mag = sqrt( normal0[0]*normal0[0] + 
+	      normal0[1]*normal0[1] +
+	      normal0[2]*normal0[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     normal0[0] *= Mag;
     normal0[1] *= Mag;
     normal0[2] *= Mag;
   }
-  Mag = std::sqrt( normal1[0]*normal1[0] + 
-	           normal1[1]*normal1[1] +
-	           normal1[2]*normal1[2] );
+  Mag = sqrt( normal1[0]*normal1[0] + 
+	      normal1[1]*normal1[1] +
+	      normal1[2]*normal1[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     normal1[0] *= Mag;
@@ -521,6 +530,7 @@ void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
           DataType* coordinates1, DataType* normals1, VariableHandle POSITION1,
           DataType* coordinates2, DataType* normals2, VariableHandle POSITION2) 
 {
+  using std::sqrt;
   int i, j;
   bool is_planar = IsPlanar(POSITION0);
   if (coordinates1!=NULL && is_planar) {
@@ -701,7 +711,7 @@ void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
     DataType a4i        = -vy0*vz00+vy00*vz0;
     DataType a4j        =  vx0*vz00-vx00*vz0;
     DataType a4k        = -vx0*vy00+vx00*vy0;
-    DataType snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+    DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
     normals0[0+3*i] = a4i*snmag;
     normals0[1+3*i] = a4j*snmag;
     normals0[2+3*i] = a4k*snmag;
@@ -720,7 +730,7 @@ void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
       DataType a4i        = -vy0*vz00+vy00*vz0;
       DataType a4j        =  vx0*vz00-vx00*vz0;
       DataType a4k        = -vx0*vy00+vx00*vy0;
-      DataType snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+      DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
       normals1[0+3*i] = a4i*snmag;
       normals1[1+3*i] = a4j*snmag;
       normals1[2+3*i] = a4k*snmag;
@@ -740,7 +750,7 @@ void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
       DataType a4i        = -vy0*vz00+vy00*vz0;
       DataType a4j        =  vx0*vz00-vx00*vz0;
       DataType a4k        = -vx0*vy00+vx00*vy0;
-      DataType snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+      DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
       normals2[0+3*i] = a4i*snmag;
       normals2[1+3*i] = a4j*snmag;
       normals2[2+3*i] = a4k*snmag;
@@ -753,6 +763,7 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
                                          DataType* normals, DataType* ctrcl_facets, 
                                          DataType* ctrcl)
 {
+#ifndef USE_SACADO
   int ii1=0,ilocc=0,ilocs=0;
   int iistored=0,iconcave=0,iinside=1,iout=2;
   DataType projcv,projmv,one_third=1.0/3.0;
@@ -917,6 +928,9 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
   for (int i=0; i<LENGTH; ++i) {
     ctrcl[i] = ctrcl_facets[i];
   }
+#else
+  std::cerr << "ContactQuadFaceL4<DataType>::FacetStaticRestriction is not implemented properly\n";
+#endif
 }
 
 template<typename DataType>
@@ -924,6 +938,7 @@ void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
                                                 DataType* ctrcl_facets, 
                                                 DataType* ctrcl)
 {
+#ifndef USE_SACADO
   // There are three possibilities with each triangle
   //   1) Accepted =  1
   //   2) Rejected =  0
@@ -982,6 +997,9 @@ void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
   for (int i=0; i<LENGTH; ++i) {
     ctrcl[i] = ctrcl_facets[i];
   }
+#else
+  std::cerr << "ContactQuadFaceL4<DataType>::FacetDynamicRestriction is not implemented properly\n";
+#endif
 }
 
 template<typename DataType>
@@ -1033,7 +1051,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
   //      the normal at node 2 is computed by the value along the smoothed 
   //      edge.
   
-
+  using std::sqrt;
   DataType upper_bound =  1.0 - percentage;
   DataType lower_bound = -1.0 + percentage;
   DataType* face_normal = Variable(FACE_NORMAL);
@@ -1546,7 +1564,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
   DataType Mag = smooth_normal[0]*smooth_normal[0] + 
              smooth_normal[1]*smooth_normal[1] +
              smooth_normal[2]*smooth_normal[2];
-  Mag = std::sqrt(Mag);
+  Mag = sqrt(Mag);
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     smooth_normal[0] *= Mag;
@@ -1627,6 +1645,8 @@ template<typename DataType>
 int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                                              ContactEdge<DataType>* edge, DataType* coords)
 {
+  using std::sqrt;
+  using std::fabs;
   int intersection=0;
 #if 0
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
@@ -1679,18 +1699,18 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
     edge_dir[j] = edge_node_position1[j]-edge_node_position0[j];
     dir_mag += edge_dir[j]*edge_dir[j];
   }
-  dir_mag = 1.0/std::sqrt(dir_mag);
+  dir_mag = 1.0/sqrt(dir_mag);
   edge_dir[0] *= dir_mag;
   edge_dir[1] *= dir_mag;
   edge_dir[2] *= dir_mag;
   DataType tmax;
-  if (std::fabs(edge_dir[0])>=std::fabs(edge_dir[1]) && std::fabs(edge_dir[0])>=std::fabs(edge_dir[2])) {
+  if (fabs(edge_dir[0])>=fabs(edge_dir[1]) && fabs(edge_dir[0])>=fabs(edge_dir[2])) {
     tmax = (edge_node_position1[0]-edge_node_position0[0])/edge_dir[0];
   } else
-  if (std::fabs(edge_dir[1])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[1])>=std::fabs(edge_dir[2])) {
+  if (fabs(edge_dir[1])>=fabs(edge_dir[0]) && fabs(edge_dir[1])>=fabs(edge_dir[2])) {
     tmax = (edge_node_position1[1]-edge_node_position0[1])/edge_dir[1];
   } else
-  if (std::fabs(edge_dir[2])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[2])>=std::fabs(edge_dir[1])) {
+  if (fabs(edge_dir[2])>=fabs(edge_dir[0]) && fabs(edge_dir[2])>=fabs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
   tmax *= 1.05;
@@ -1725,9 +1745,9 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
     normal[0] = dy1*dz2-dz1*dy2;
     normal[1] = dz1*dx2-dx1*dz2;
     normal[2] = dx1*dy2-dy1*dx2;
-    n_mag     = 1.0/std::sqrt(normal[0]*normal[0]+
-                              normal[1]*normal[1]+
-                              normal[2]*normal[2]);
+    n_mag     = 1.0/sqrt(normal[0]*normal[0]+
+                         normal[1]*normal[1]+
+                         normal[2]*normal[2]);
     normal[0] *= n_mag;
     normal[1] *= n_mag;
     normal[2] *= n_mag;
@@ -1737,7 +1757,7 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                    normal[1]*edge_dir[1] +
                    normal[2]*edge_dir[2];
     // if (edge ray) and (tri3 plane) are parallel => no intersection
-    if (std::fabs(n_dot_d)<1.0e-10) continue;
+    if (fabs(n_dot_d)<1.0e-10) continue;
     DataType q[3], P[3], t;
     q[0] = node_position0[0]-edge_pnt[0];
     q[1] = node_position0[1]-edge_pnt[1];
@@ -2172,6 +2192,10 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
 					 DataType global_coords[3],
 					 DataType local_coords[3] )
 {
+  using std::sqrt;
+  using std::fabs;
+  using std::min;
+  using std::max;
   int  i, j;
   int  nnodes=4;
   DataType spatial_tolerance = 1.0e-10;
@@ -2182,7 +2206,7 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
     DataType dx = node_positions[i][0]-global_coords[0];
     DataType dy = node_positions[i][1]-global_coords[1];
     DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = std::sqrt(dx*dx+dy*dy+dz*dz);
+    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
     if (d<spatial_tolerance) break;
   }
   switch (i) {
@@ -2267,8 +2291,8 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
     
     s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
     t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-    ds = std::fabs(s1-s0);
-    dt = std::fabs(t1-t0);
+    ds = fabs(s1-s0);
+    dt = fabs(t1-t0);
     s0 = s1;
     t0 = t1;
     if (ds<tolerance && dt<tolerance) converged = true;
@@ -2299,13 +2323,13 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
   }
 #endif
   // If it's close to any of the edges, snap to it
-  if (std::fabs(s0)<1.0+spatial_tolerance) {
-    s0 = std::min(s0, 1.0);
-    s0 = std::max(s0,-1.0);
+  if (fabs(s0)<1.0+spatial_tolerance) {
+    s0 = min(s0, 1.0);
+    s0 = max(s0,-1.0);
   }
-  if (std::fabs(t0)<1.0+spatial_tolerance) {
-    t0 = std::min(t0, 1.0);
-    t0 = std::max(t0,-1.0);
+  if (fabs(t0)<1.0+spatial_tolerance) {
+    t0 = min(t0, 1.0);
+    t0 = max(t0,-1.0);
   }
   local_coords[0] = s0;
   local_coords[1] = t0;
@@ -2362,3 +2386,5 @@ void  ContactQuadFaceL4<DataType>::Interpolate_Vector( DataType local_coords[2],
     }
   }
 }
+
+#endif  // #define ContactQuadFaceL4_C_

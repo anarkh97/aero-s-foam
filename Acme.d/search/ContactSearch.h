@@ -898,11 +898,15 @@ class ContactSearch{
                                          ContactTopologyEntity<Real>::SearchContext status,
                                          bool use_proximity);
                                          
-  void Face_Face_Search( ContactFace<Real>*, ContactFace<Real>*, 
-                         ContactElem<Real>*, VariableHandle);
+  template<typename DataType>
+    void Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*, 
+                           ContactElem<DataType>*, VariableHandle);
   void Process_Face_Coverage( void );
 
   ContactFixedSizeAllocator* allocators;  // array
+#if (MAX_FFI_DERIVATIVES > 0)
+  ContactFixedSizeAllocator* active_allocators;  // array
+#endif
   ContactSequentialAllocator* scratch_allocator;
   void Set_Up_Allocators();
   

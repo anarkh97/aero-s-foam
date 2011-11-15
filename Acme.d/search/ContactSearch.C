@@ -496,6 +496,14 @@ ContactSearch::~ContactSearch()
     delete [] allocators;
   }
   delete scratch_allocator;
+#if (MAX_FFI_DERIVATIVES > 0)
+  if (active_allocators) {
+    for (int i=0; i<ALLOC_NUM_ALLOCATED_ENTITIES; ++i) {
+      active_allocators[i].Purge();
+    }
+    delete [] active_allocators;
+  }
+#endif
   if( num_tables ){
     for( int i=0 ; i<num_tables ; ++i ) delete tables[i];
     delete [] tables;
@@ -519,6 +527,9 @@ ContactSearch::~ContactSearch()
   zoltan             = NULL;
 #endif
   allocators         = NULL;
+#if (MAX_FFI_DERIVATIVES > 0)
+  active_allocators  = NULL;
+#endif
   tables             = NULL;
   enforcement        = NULL;
   
@@ -805,6 +816,43 @@ void ContactSearch::Set_Up_Allocators()
 
   // Right now set the block size to 10000
   scratch_allocator = new ContactSequentialAllocator( 100000,1 ) ;
+
+#if (MAX_FFI_DERIVATIVES > 0)
+  active_allocators = new ContactFixedSizeAllocator[ALLOC_NUM_ALLOCATED_ENTITIES];
+  ContactNode_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactNode]);
+  ContactLineEdgeL2_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactLineEdgeL2]);
+  ContactLineEdgeQ3_SizeAllocator(active_allocators[ALLOC_ContactLineEdgeQ3]);
+  ContactLineFaceL2_SizeAllocator(active_allocators[ALLOC_ContactLineFaceL2]);
+  ContactLineFaceQ3_SizeAllocator(active_allocators[ALLOC_ContactLineFaceQ3]);
+  ContactQuadFaceL4_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactQuadFaceL4]);
+  ContactQuadFaceQ8_SizeAllocator(active_allocators[ALLOC_ContactQuadFaceQ8]);
+  ContactQuadFaceQ9_SizeAllocator(active_allocators[ALLOC_ContactQuadFaceQ9]);
+  ContactTriFaceL3_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactTriFaceL3]);
+  ContactTriFaceQ6_SizeAllocator(active_allocators[ALLOC_ContactTriFaceQ6]);
+  ContactHexElemL8_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactHexElemL8]);
+  ContactWedgeElemL6_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactWedgeElemL6]);
+  ContactNodeNodeInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeNodeInteraction]);
+  ContactNodeFaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeFaceInteraction]);
+  ContactNodeSurfaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeSurfaceInteraction]);
+  ContactFaceFaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactFaceFaceInteraction]);
+  ContactFaceCoverageInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactFaceCoverageInteraction]);
+  ContactElementElementInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactElementElementInteraction]);
+  ContactPolyVert_SizeAllocator(active_allocators[ALLOC_ContactPolyVert]);
+  ContactPolyEdge_SizeAllocator(active_allocators[ALLOC_ContactPolyEdge]);
+  ContactPoly_SizeAllocator(active_allocators[ALLOC_ContactPoly]);
+  ContactFaceFaceGraphNode_SizeAllocator(active_allocators[ALLOC_ContactFaceFaceGraphNode]);
+  ContactCartesianHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactCartesianHexElementL8]);
+  ContactHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactHexElementL8]);
+  ContactShellQuadFaceL4_SizeAllocator(active_allocators[ALLOC_ContactShellQuadFaceL4]);
+  ContactShellTriFaceL3_SizeAllocator(active_allocators[ALLOC_ContactShellTriFaceL3]);
+  ContactShellNode_SizeAllocator(active_allocators[ALLOC_ContactShellNode]);
+#endif
 }
 
 int ContactSearch::Number_of_Errors()

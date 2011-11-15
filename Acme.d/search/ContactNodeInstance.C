@@ -130,4 +130,63 @@ template
 bool ContactNode<Real>::ConnectedToFace(const ContactHostGlobalID &id);
 
 template
+bool sort_face_pair_by_id<Real>(const pair<ContactFace<Real>*,int> &d1, const pair<ContactFace<Real>*,int> &d2);
+
+template
 void ContactNode<Real>::SortConnectedFaces();
+
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template
+ContactNode<ActiveScalar>::ContactNode(ContactFixedSizeAllocator* alloc,
+                         ContactSearch::ContactNode_Type Type,
+                         int Block_Index,
+                         int Host_Index_in_Block,
+                         ContactType cetype );
+
+template
+ContactNode<ActiveScalar>* ContactNode<ActiveScalar>::new_ContactNode( ContactFixedSizeAllocator* alloc,
+                                           ContactSearch::ContactNode_Type Type,
+                                           int Block_Index,
+                                           int Host_Index_in_Block,
+                                           ContactType cetype );
+
+template
+void ContactNode_SizeAllocator<ActiveScalar>( ContactFixedSizeAllocator& alloc);
+
+template
+ContactNode<ActiveScalar>::~ContactNode();
+
+template
+void ContactNode<ActiveScalar>::Delete_Face_Connections( );
+
+template
+void ContactNode<ActiveScalar>::Connect_Face(ContactFace<ActiveScalar>* Face );
+
+template
+int ContactNode<ActiveScalar>::Size_Interactions(int state);
+
+template<>
+void ContactNode<ActiveScalar>::Unpack_Interactions( char* buffer, int state )
+{
+  std::cerr << "ContactNode<ActiveScalar>::Unpack_Interactions is not implemented\n";
+}
+
+template<>
+void ContactNode<ActiveScalar>::Copy_Interactions( ContactNode* src, int state )
+{
+  std::cerr << "ContactNode<ActiveScalar>::Copy_Interactions is not implemented\n";
+}
+
+template<>
+void ContactNode<ActiveScalar>::Unpack_Interactions_ForSecondary( char* buffer, int state )
+{
+  std::cerr << "ContactNode<ActiveScalar>::Unpack_Interactions_ForSecondary is not implemented\n";
+}
+
+template<>
+void ContactNode<ActiveScalar>::Copy_Interactions_ForSecondary( ContactNode* src, int state )
+{
+  std::cerr << "ContactNode<ActiveScalar>::Copy_Interactions_ForSecondary is not implemented\n";
+}
+#endif

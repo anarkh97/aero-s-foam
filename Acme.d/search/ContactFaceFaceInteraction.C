@@ -18,7 +18,6 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( )
   slave_face  = NULL;
   master_face = NULL;
   num_edges   = 0;
-  num_edges   = 0;  // why twice REJ?
   vertices    = NULL;
 }                                                                               
 
@@ -87,8 +86,70 @@ ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
 {
   return new (alloc.New_Frag())
     ContactFaceFaceInteraction( Sface, Mface, Nedges, 
-                                FaceEdge, EdgeMaster,Sarea, Marea );
+                                FaceEdge, EdgeMaster, Sarea, Marea );
 }
+
+#if (MAX_FFI_DERIVATIVES > 0)
+ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<ActiveScalar>*,
+                                                        ContactFace<ActiveScalar>*,
+                                                        int Nedges,
+                                                        int* FaceEdge,
+                                                        int* EdgeMaster,
+                                                        ActiveScalar* Sarea,
+                                                        ActiveScalar* Marea )
+: ContactInteractionEntity(DataArray, CT_FFI)
+{
+  num_edges   = Nedges;
+  slave_face  = NULL;
+  master_face = NULL;
+  if (num_edges>0) {
+    int i,j;
+    vertices = new ContactFaceFaceVertex[num_edges+1];
+    for (i=0; i<num_edges; ++i) {
+      vertices[i].slave_x          = Sarea[2*i].val();
+      vertices[i].slave_y          = Sarea[2*i+1].val();
+      vertices[i].master_x         = Marea[2*i].val();
+      vertices[i].master_y         = Marea[2*i+1].val();
+      vertices[i].slave_edge_id    = FaceEdge[i];
+      vertices[i].master_edge_flag = EdgeMaster[i];
+      for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
+        vertices[i].slave_x_derivatives[j]  = Sarea[2*i].dx(j);
+        vertices[i].slave_y_derivatives[j]  = Sarea[2*i+1].dx(j);
+        vertices[i].master_x_derivatives[j] = Marea[2*i].dx(j);
+        vertices[i].master_y_derivatives[j] = Marea[2*i+1].dx(j);
+      }
+    }
+    i = num_edges;
+    vertices[i].slave_x          = Sarea[2*i].val();
+    vertices[i].slave_y          = Sarea[2*i+1].val();
+    vertices[i].master_x         = Marea[2*i].val();
+    vertices[i].master_y         = Marea[2*i+1].val();
+    vertices[i].slave_edge_id    = 0;
+    vertices[i].master_edge_flag = 0;
+    for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
+      vertices[i].slave_x_derivatives[j]  = Sarea[2*i].dx(j);
+      vertices[i].slave_y_derivatives[j]  = Sarea[2*i+1].dx(j);
+      vertices[i].master_x_derivatives[j] = Marea[2*i].dx(j);
+      vertices[i].master_y_derivatives[j] = Marea[2*i+1].dx(j);
+    }
+  }
+}
+
+ContactFaceFaceInteraction*
+ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+                                     ContactFixedSizeAllocator& alloc,
+                                     ContactFace<ActiveScalar>* Sface,
+                                     ContactFace<ActiveScalar>* Mface,
+                                     int Nedges,
+                                     int* FaceEdge,
+                                     int* EdgeMaster,
+                                     ActiveScalar* Sarea, ActiveScalar* Marea )
+{
+  return new (alloc.New_Frag())
+    ContactFaceFaceInteraction( Sface, Mface, Nedges,
+                                FaceEdge, EdgeMaster, Sarea, Marea );
+}
+#endif
 
 ContactFaceFaceInteraction* 
 ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
@@ -232,7 +293,11 @@ void ContactFaceFaceInteraction::Connect_MasterFace( ContactFace<Real>* Face )
 
 int ContactFaceFaceInteraction::Data_Size()
 {
+#if (MAX_FFI_DERIVATIVES > 0)
+  return 2+num_edges+num_edges+4*num_edges+num_edges+4*MAX_FFI_DERIVATIVES*num_edges;
+#else
   return 2+num_edges+num_edges+4*num_edges+num_edges;
+#endif
 }
 
 int ContactFaceFaceInteraction::Restart_Size()

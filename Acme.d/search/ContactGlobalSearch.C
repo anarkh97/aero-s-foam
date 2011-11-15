@@ -27,6 +27,11 @@
 #include "ContactBoundingBoxHierarchy_Int.h"
 #include "ContactRangeSearch.h"
 #include "contact_tolerances.h"
+#include "ContactLineEdgeL2.h" // PJSA
+#include "ContactQuadFaceL4.h" // PJSA
+#include "ContactTriFaceL3.h" // PJSA
+#include "ContactHexElementL8.h" // PJSA
+#include "ContactWedgeElementL6.h" // PJSA
 
 Real intersection_volume(Real thex1[24][4][3],Real thex2[24][4][3]);
 
@@ -1184,6 +1189,11 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
   ObjectBoundingBox *face_boxes = new ObjectBoundingBox[number_of_faces];
   ObjectBoundingBox *face_boxes_tmp = new ObjectBoundingBox[number_of_faces];
 
+#if (MAX_FFI_DERIVATIVES > 0)
+  ContactFace<ActiveScalar>::Initialize_Lookup_Arrays();
+  ContactEdge<ActiveScalar>::Initialize_Lookup_Arrays();
+#endif
+
   for(int iface = 0; iface < number_of_faces; ++iface) {
     ContactFace<Real>* face = Faces[iface];
     face_boxes[iface].set_object_number(iface);
@@ -1322,13 +1332,186 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
 	//
 	//  Add the face-face interaction
 	//
+
         Real normal_search_tol = search_data->Get_Search_Data( ContactSearch::SEARCH_NORMAL_TOLERANCE,
     				                               slave_face_key, master_face_key );
+#if (MAX_FFI_DERIVATIVES <= 0)
   	master_element->UpdateTopology(master_face, POSITION, 
     				       FACE_NORMAL, NODE_NORMAL,
     				       normal_search_tol);
 
     	Face_Face_Search(slave_face, master_face, master_element, POSITION);
+#else
+        // convert the slave face to ActiveScalar
+        ContactFace<ActiveScalar> *active_slave_face;
+        switch (slave_face->FaceType()) {
+        case TRIFACEL3: 
+          active_slave_face = ContactTriFaceL3<ActiveScalar>::new_ContactTriFaceL3(active_allocators);
+          break;
+        case QUADFACEL4:
+          active_slave_face = ContactQuadFaceL4<ActiveScalar>::new_ContactQuadFaceL4(active_allocators);
+          break;
+        default:
+          PRECONDITION(0);
+          break;
+        }
+        // convert the slave face
+        for( int i=0; i<active_slave_face->Nodes_Per_Face(); ++i ) {
+          ContactNode<ActiveScalar>* node = ContactNode<ActiveScalar>::new_ContactNode(active_allocators, slave_face->Node(i)->NodeType());
+          Real* pos = slave_face->Node(i)->Variable(POSITION);
+          ActiveScalar* active_pos = node->Variable(POSITION);
+          for( int j=0 ; j<dimensionality ; ++j ) {
+            active_pos[j] = ActiveScalar(MAX_FFI_DERIVATIVES, 3*i+j, pos[j]);
+          }
+          active_slave_face->ConnectNode(i, node);
+          node->Connect_Face(active_slave_face); // ?
+        }
+        for( int i=0; i<active_slave_face->Edges_Per_Face(); ++i ) {
+          ContactEdge<ActiveScalar>* edge = ContactLineEdgeL2<ActiveScalar>::new_ContactLineEdgeL2(
+                        active_allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
+                        ContactSearch::LINEEDGEL2);
+          active_slave_face->ConnectEdge(i, edge);
+          edge->ConnectFace(active_slave_face);
+          edge->ConnectNode(0, active_slave_face->Node(i));
+          if(i+1 < active_slave_face->Edges_Per_Face())
+            edge->ConnectNode(1, active_slave_face->Node(i+1));
+          else
+            edge->ConnectNode(1, active_slave_face->Node(0));
+        }
+        active_slave_face->Compute_Normal(POSITION, FACE_NORMAL);
+
+        // convert the master face
+        ContactFace<ActiveScalar> *active_master_face;
+        switch (master_face->FaceType()) {
+        case TRIFACEL3:
+          active_master_face = ContactTriFaceL3<ActiveScalar>::new_ContactTriFaceL3(active_allocators);
+          break;
+        case QUADFACEL4:
+          active_master_face = ContactQuadFaceL4<ActiveScalar>::new_ContactQuadFaceL4(active_allocators);
+          break;
+        default:
+          PRECONDITION(0);
+          break;
+        }
+        for( int i=0; i<active_master_face->Nodes_Per_Face(); ++i ) {
+          ContactNode<ActiveScalar>* node = ContactNode<ActiveScalar>::new_ContactNode(active_allocators, master_face->Node(i)->NodeType());
+          Real* pos = master_face->Node(i)->Variable(POSITION);
+          ActiveScalar* active_pos = node->Variable(POSITION);
+          for( int j=0 ; j<dimensionality ; ++j ) {
+            active_pos[j] = ActiveScalar(MAX_FFI_DERIVATIVES, MAX_FFI_DERIVATIVES/2+3*i+j, pos[j]);
+          }
+          active_master_face->ConnectNode(i, node);
+          node->Connect_Face(active_master_face);
+        }
+        for( int i=0; i<active_master_face->Edges_Per_Face(); ++i ) {
+          ContactEdge<ActiveScalar>* edge = ContactLineEdgeL2<ActiveScalar>::new_ContactLineEdgeL2(
+                        active_allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
+                        ContactSearch::LINEEDGEL2);
+          active_master_face->ConnectEdge(i, edge);
+          edge->ConnectFace(active_master_face);
+          edge->ConnectNode(0, active_master_face->Node(i));
+          if(i+1 < active_master_face->Edges_Per_Face())
+            edge->ConnectNode(1, active_master_face->Node(i+1));
+          else
+            edge->ConnectNode(1, active_master_face->Node(0));
+        }
+        active_master_face->Compute_Normal(POSITION, FACE_NORMAL);
+
+        // convert the master element
+        ContactElem<ActiveScalar> *active_master_element;
+        switch (master_element->Elem_Type()) {
+        case HEXELEML8:
+          active_master_element = ContactHexElemL8<ActiveScalar>::new_ContactHexElemL8(
+                                      active_allocators[ALLOC_ContactHexElemL8],
+                                      ContactSearch::HEXELEML8, 0);
+          break;
+        case WEDGEELEML6:
+          active_master_element = ContactWedgeElemL6<ActiveScalar>::new_ContactWedgeElemL6(
+                                      active_allocators[ALLOC_ContactWedgeElemL6],
+                                      ContactSearch::WEDGEELEML6, 0);
+          break;
+        default:
+          PRECONDITION(0);
+          break;
+        }
+        active_master_element->BuildTopology(0,0,0,active_allocators);
+        active_master_element->UpdateTopology(active_master_face, POSITION,
+                                              FACE_NORMAL, NODE_NORMAL,
+                                              ActiveScalar(normal_search_tol));
+
+        Face_Face_Search(active_slave_face, active_master_face, active_master_element, POSITION);
+        // copy the FaceFaceInteractions to slave_face
+        ContactInteractionDLL *interactions = active_slave_face->Get_FaceFace_Interactions();
+        if(interactions) {
+          ContactInteractionEntity* entity;
+          interactions->IteratorStart();
+          while (entity=interactions->IteratorForward()) {
+            ContactFaceFaceInteraction* new_ffi =
+              ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
+            ContactFaceFaceInteraction* old_ffi = static_cast<ContactFaceFaceInteraction*>(entity);
+            new_ffi->Copy( old_ffi );
+            new_ffi->Set_SlaveFace(slave_face);
+            new_ffi->Set_MasterFace(master_face);
+            new_ffi->Set_SlaveFaceEntityData();
+            new_ffi->Set_MasterFaceEntityData(); 
+            slave_face->Store_FaceFace_Interaction( new_ffi );
+          }
+        }
+
+        // delete active_slave_face
+        for( int i=0; i<active_slave_face->Edges_Per_Face(); ++i ) { 
+          ContactEdge<ActiveScalar>* edge = active_slave_face->Edge(i);
+          edge->~ContactEdge<ActiveScalar>();
+          active_allocators[ALLOC_ContactLineEdgeL2].Delete_Frag(edge);
+        }
+        for( int i=0; i<active_slave_face->Nodes_Per_Face(); ++i ) { 
+          ContactNode<ActiveScalar>* node = active_slave_face->Node(i);
+          node->~ContactNode<ActiveScalar>();
+          active_allocators[ALLOC_ContactNode].Delete_Frag(node);
+        }
+        active_slave_face->~ContactFace<ActiveScalar>();
+        switch (slave_face->FaceType()) {
+        case TRIFACEL3:
+          active_allocators[ALLOC_ContactTriFaceL3].Delete_Frag(active_slave_face);
+          break;
+        case QUADFACEL4:
+          active_allocators[ALLOC_ContactQuadFaceL4].Delete_Frag(active_slave_face);
+          break;
+        }
+
+        // delete active_master_face
+        for( int i=0; i<active_master_face->Edges_Per_Face(); ++i ) {
+          ContactEdge<ActiveScalar>* edge = active_master_face->Edge(i);
+          edge->~ContactEdge<ActiveScalar>();
+          active_allocators[ALLOC_ContactLineEdgeL2].Delete_Frag(edge);
+        }
+        for( int i=0; i<active_master_face->Nodes_Per_Face(); ++i ) {
+          ContactNode<ActiveScalar>* node = active_master_face->Node(i);
+          node->~ContactNode<ActiveScalar>();
+          active_allocators[ALLOC_ContactNode].Delete_Frag(node);
+        }
+        active_master_face->~ContactFace<ActiveScalar>();
+        switch (master_face->FaceType()) {
+        case TRIFACEL3:
+          active_allocators[ALLOC_ContactTriFaceL3].Delete_Frag(active_master_face);
+          break;
+        case QUADFACEL4:
+          active_allocators[ALLOC_ContactQuadFaceL4].Delete_Frag(active_master_face);
+          break;
+        }
+
+        // delete active_master_element
+        active_master_element->DeleteTopology(active_allocators);
+        active_master_element->~ContactElem<ActiveScalar>();
+        switch (master_element->Elem_Type()) {
+        case HEXELEML8:
+          active_allocators[ALLOC_ContactHexElemL8].Delete_Frag(active_master_element);
+          break;
+        case WEDGEELEML6:
+          active_allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(active_master_element);
+          break;
+        }
+#endif
       }
     }
   }

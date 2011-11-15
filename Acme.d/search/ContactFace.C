@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactFace_C_
+#define ContactFace_C_
+
 #include "ContactFace.h"
 #include "ContactNode.h"
 #include "ContactEdge.h"
@@ -24,7 +27,7 @@ ContactFace<DataType>::ContactFace(ContactFixedSizeAllocator* alloc,
                          ContactSearch::ContactFace_Type Type, 
 			 int Block_ID, int Host_Index_in_Block, int key,
                          ContactNode<DataType> **node_list_,
-                         ContactEdge<Real> **edge_list_,
+                         ContactEdge<DataType> **edge_list_,
                          typename ContactTopologyEntity<DataType>::connection_data *node_info_list_,
                          typename ContactTopologyEntity<DataType>::connection_data *edge_info_list_)
   : ContactTopologyEntity<DataType>( Block_ID, Host_Index_in_Block, DataArray, CT_FACE), 
@@ -101,7 +104,7 @@ void ContactFace<DataType>::SetNeighborFacesInfo()
 {
   number_of_neighbors = 0;
   for (int i=0; i<Edges_Per_Face(); ++i) {
-    ContactEdge<Real>* edge = Edges()[i];
+    ContactEdge<DataType>* edge = Edges()[i];
     if (edge->Shared()) {
       ++number_of_neighbors;
     } else {
@@ -119,7 +122,7 @@ void ContactFace<DataType>::SetNeighborFacesInfo()
     neighbor_face_info[i].owner_proc_array_index = -1;
     neighbor_face_info[i].host_gid[0] = -1; 
     neighbor_face_info[i].host_gid[1] = -1;
-    ContactEdge<Real>* edge = Edges()[i];
+    ContactEdge<DataType>* edge = Edges()[i];
     if (edge->Shared()) {
       neighbor_face_info[i] = *(edge->FaceInfo());
     } else {
@@ -144,7 +147,7 @@ void ContactFace<DataType>::ConnectNode(const int num, ContactNode<DataType>* no
 
 
 template<typename DataType>
-void ContactFace<DataType>::ConnectEdge(const int num, ContactEdge<Real>* edge ) {
+void ContactFace<DataType>::ConnectEdge(const int num, ContactEdge<DataType>* edge ) {
   PRECONDITION( num < Edges_Per_Face() );
   PRECONDITION( Edges() );
   Edges()[num] = edge;
@@ -655,11 +658,11 @@ ContactFace<DataType>::SetEdgeCurvature(VariableHandle CURVATURE)
 template<typename DataType>
 void
 ContactFace<DataType>::SetEdgeCurvature(VariableHandle &CURVATURE,
-                              ContactEdge<Real> *edge)
+                              ContactEdge<DataType> *edge)
 {
   DataType* curvature = &DataArray[Edge0_Curvature];
   const int num_edge = Edges_Per_Face();
-  ContactEdge<Real> **edges = Edges();
+  ContactEdge<DataType> **edges = Edges();
   for (int i=0; i<num_edge; ++i) {
     if(edges[i] == edge) {
       curvature[i] = *(edge->Variable(CURVATURE));
@@ -822,3 +825,5 @@ ContactFace<DataType>::ComputeBoundingBoxForSearch(const int num_configs,
     box_s.add_tolerance(user_tol);
   }
 }
+
+#endif  // #ifdef ContactFace_C_

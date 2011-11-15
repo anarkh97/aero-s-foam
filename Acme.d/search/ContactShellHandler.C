@@ -4241,7 +4241,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   rb_i = (int*) recv_buff;
   int* Num_Import_from_Proc = new int[num_import_procs];
   int* Import_Comm_Proc_IDs = new int[num_import_procs];
-  ContactTopologyEntity<Real>** Import_Entity_List = new ContactTopologyEntity*[num_imported_faces];
+  ContactTopologyEntity<Real>** Import_Entity_List = new ContactTopologyEntity<Real>*[num_imported_faces];
   std::memset( Num_Import_from_Proc, 0, num_import_procs*sizeof(int) );
   num_import_procs = 0;
   num_imported_faces = 0;
@@ -4289,7 +4289,7 @@ void ContactShellHandler::Build_Loft_Nodes_Data_Structures()
   int* Num_Export_to_Proc = new int[num_export_procs];
   int* Export_Comm_Proc_IDs = new int[num_export_procs];
   std::memset( Num_Export_to_Proc, 0, num_export_procs*sizeof(int) );
-  ContactTopologyEntity<Real>** Export_Entity_List = new ContactTopologyEntity*[num_exported_faces];
+  ContactTopologyEntity<Real>** Export_Entity_List = new ContactTopologyEntity<Real>*[num_exported_faces];
   num_export_procs = 0;
   num_exported_faces = 0;
   offset = 0;

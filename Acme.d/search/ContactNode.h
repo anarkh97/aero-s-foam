@@ -4,7 +4,7 @@
 #define ContactNode_h_
 
 /* A Node is a Node is a Node so this is a concrete class unlike
-   ContactEdge<Real> and ContactFace<Real> which are themselves abstract classes */
+   ContactEdge and ContactFace which are themselves abstract classes */
 
 #include "ContactTopologyEntity.h"
 #include "contact_assert.h"
@@ -64,18 +64,18 @@ class ContactNode : public ContactTopologyEntity<DataType> {
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
 
-  inline ContactFace<Real>* GetFace( int i );
+  inline ContactFace<DataType>* GetFace( int i );
   inline int          GetFacePFIndex(int i);
   int                 GetFacePFEntityKey(int physical_face_num);
   bool                ConnectedToFace(const ContactHostGlobalID &id);
   void                SortConnectedFaces();
-  inline std::vector<std::pair<ContactFace<Real>*, int> >& ConnectedFaces() { return faces; };
+  inline std::vector<std::pair<ContactFace<DataType>*, int> >& ConnectedFaces() { return faces; };
 
 
 
   // Functions to connect up the topology
   void Delete_Face_Connections( );
-  void Connect_Face(ContactFace<Real>* );
+  void Connect_Face(ContactFace<DataType>* );
 
   inline int Number_Face_Connections() {return faces.size();};
   inline ContactSearch::ContactNode_Type NodeType() {return node_type;};
@@ -259,7 +259,7 @@ class ContactNode : public ContactTopologyEntity<DataType> {
   //   0->2 = physical face 0,1, or 2
   //   >3   = Extra face set that is part of no physcial face
   //
-  std::vector<std::pair<ContactFace<Real>*,int> > faces;
+  std::vector<std::pair<ContactFace<DataType>*,int> > faces;
   PHYSICAL_TYPE physical_type;
 
   inline int NumberOfStates() const {return 2;};
@@ -276,7 +276,7 @@ class ContactNode : public ContactTopologyEntity<DataType> {
 
 
 template<typename DataType>
-inline ContactFace<Real>* ContactNode<DataType>::GetFace( int i ) {
+inline ContactFace<DataType>* ContactNode<DataType>::GetFace( int i ) {
   PRECONDITION( i>=0 && i<faces.size() );
   return( faces[i].first );
 }

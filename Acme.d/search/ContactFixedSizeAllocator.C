@@ -36,7 +36,7 @@ ContactFixedSizeAllocator::ContactFixedSizeAllocator(
   storage_bytes = ssize >= sizeof(char*) ? ssize : sizeof(char*);
   
   // In order to align the free frag link pointers on 4-byte boundaries,
-  // the storage bytes must be a multible of 4.
+  // the storage bytes must be a multiple of 4.
 
   int max_alignment = std::max(sizeof(char*), sizeof(Real));
   while ( storage_bytes % max_alignment ) ++storage_bytes;

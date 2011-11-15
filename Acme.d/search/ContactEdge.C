@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactEdge_C_
+#define ContactEdge_C_
+
 #include "ContactEdge.h"
 #include "ContactNode.h"
 #include "ContactFace.h"
@@ -122,3 +125,5 @@ void ContactEdge<DataType>::Copy( ContactEdge* src )
   ContactTopologyEntity<DataType>::Copy( src, DataArray_Length() );
   face_info = src->face_info;
 }
+
+#endif  // #define ContactEdge_C_

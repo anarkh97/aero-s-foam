@@ -86,3 +86,90 @@ template
 void ContactWedgeElemL6<Real>::Interpolate_Vector( Real local_coords[4],
 					     Real node_vectors[6][3],
 					     Real interpolated_vector[3] );
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template
+ContactWedgeElemL6<ActiveScalar>::ContactWedgeElemL6( int Block_Index, 
+				        int Host_Index_in_Block, int key ); 
+
+template
+ContactWedgeElemL6<ActiveScalar>* ContactWedgeElemL6<ActiveScalar>::new_ContactWedgeElemL6(
+                        ContactFixedSizeAllocator& alloc,
+                        int Block_Index, int Host_Index_in_Block, int key);
+
+template
+void ContactWedgeElemL6_SizeAllocator<ActiveScalar>(ContactFixedSizeAllocator& alloc);
+
+template
+ContactWedgeElemL6<ActiveScalar>::~ContactWedgeElemL6();
+
+template
+void ContactWedgeElemL6<ActiveScalar>::BuildTopology(int nID, int eID, int fID,
+				       ContactFixedSizeAllocator* allocators);
+
+template
+void ContactWedgeElemL6<ActiveScalar>::DeleteTopology(ContactFixedSizeAllocator* allocators);
+
+template
+void ContactWedgeElemL6<ActiveScalar>::UpdateTopology(ContactFace<ActiveScalar>* face, 
+					VariableHandle POSITION,
+					VariableHandle FACE_NORMAL,
+					VariableHandle NODE_NORMAL,
+					ActiveScalar tol, bool use_node_normals);
+
+template
+bool ContactWedgeElemL6<ActiveScalar>::Is_Local_Coordinates_Inside_Element( ActiveScalar* local_coords );
+
+template
+bool ContactWedgeElemL6<ActiveScalar>::Is_Local_Coordinates_Near_Element( ActiveScalar* local_coords, ActiveScalar tolerance );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Evaluate_Shape_Functions( ActiveScalar* local_coords,
+						   ActiveScalar* shape_functions );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Global_Coordinates( VariableHandle POSITION,
+						     ActiveScalar* local_coords,
+						     ActiveScalar* global_coords );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates( ActiveScalar Config_Param,
+						    VariableHandle POSITION0, 
+						    VariableHandle POSITION1, 
+						    VariableHandle FACE_NORMAL,
+						    ActiveScalar* global_coords,
+						    ActiveScalar* local_coords );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
+						    ActiveScalar* global_coords,
+						    ActiveScalar* local_coords );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Shape_Functions( ActiveScalar* local_coords,
+						  ActiveScalar* shape_functions );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Shape_Derivatives( ActiveScalar* local_coords,
+						    ActiveScalar  shape_derivs[3][6] );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar node_positions[8][3], 
+					       ActiveScalar* global_coords,
+					       ActiveScalar* local_coords );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Compute_Global_Coords( ActiveScalar node_positions[6][3],
+						ActiveScalar local_coords[4],
+						ActiveScalar global_coords[3] );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Interpolate_Scalar( ActiveScalar  local_coords[4],
+					     ActiveScalar  node_scalars[6],
+					     ActiveScalar& interpolated_scalar );
+
+template
+void ContactWedgeElemL6<ActiveScalar>::Interpolate_Vector( ActiveScalar local_coords[4],
+					     ActiveScalar node_vectors[6][3],
+					     ActiveScalar interpolated_vector[3] );
+#endif

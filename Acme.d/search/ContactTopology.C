@@ -2875,6 +2875,18 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
   	*interaction_data++ = vertices[j].master_x;
   	*interaction_data++ = vertices[j].master_y;
   	index1 += 4;
+#if (MAX_FFI_DERIVATIVES > 0)
+        int k;
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].slave_x_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].slave_y_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].master_x_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].master_y_derivatives[k];
+        index1 += 4*MAX_FFI_DERIVATIVES;
+#endif
       }
       ++index0;
     }
@@ -3495,7 +3507,7 @@ void ContactTopology::Complete_Edge_Comm_List( int num_partners,
   }
 
   //  now build the entity list
-  ContactTopologyEntity<Real> ** comm_edge_list = new ContactTopologyEntity*[total_num_edges];
+  ContactTopologyEntity<Real> ** comm_edge_list = new ContactTopologyEntity<Real>*[total_num_edges];
   int * count_edges_to_partner = new int[number_comm_partners];
   for (int i = 0; i < number_comm_partners; ++i ) count_edges_to_partner[i]=0;
 

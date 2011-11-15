@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactTopologyEntity_C_
+#define ContactTopologyEntity_C_
+
 #include "ContactTopologyEntity.h"
 #include "ContactParOStream.h"
 #include "ContactNode.h"
@@ -252,4 +255,4 @@ ContactTopologyEntity<DataType>::Display(ContactParOStream& postream)
   }
 }
 
-
+#endif  // #define ContactTopologyEntity_C_

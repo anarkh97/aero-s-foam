@@ -1,5 +1,8 @@
 // $Id$
 
+#ifndef ContactLineEdgeL2_C_
+#define ContactLineEdgeL2_C_
+
 #include "ContactLineEdgeL2.h"
 #include "ContactFixedSizeAllocator.h"
 #include "ContactNode.h"
@@ -32,4 +35,4 @@ void ContactLineEdgeL2_SizeAllocator(ContactFixedSizeAllocator& alloc)
 template<typename DataType>
 ContactLineEdgeL2<DataType>::~ContactLineEdgeL2() {}
 
-
+#endif  // #define ContactLineEdgeL2_C_

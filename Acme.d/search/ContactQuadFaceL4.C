@@ -279,16 +279,17 @@ int ContactQuadFaceL4<DataType>::Get_Edge_Number( ContactNode<DataType>** edge_n
 template<typename DataType>
 int ContactQuadFaceL4<DataType>::Get_Edge_Number( DataType* local_coords )
 {
-  using std::fabs;
+  using std::abs;
   DataType tol(1.0e-8);
-  if (fabs(local_coords[1] - -1.0)<tol && 
-      fabs(local_coords[3] - -1.0)<tol) return(0);
-  if (fabs(local_coords[0] -  1.0)<tol && 
-      fabs(local_coords[2] -  1.0)<tol) return(1);
-  if (fabs(local_coords[1] -  1.0)<tol && 
-      fabs(local_coords[3] -  1.0)<tol) return(2);
-  if (fabs(local_coords[0] - -1.0)<tol && 
-      fabs(local_coords[2] - -1.0)<tol) return(3);
+  // PJSA: the explicit typecast of abs argument is a workaround of flaw in Eigen's AutoDiffScalar
+  if (abs(DataType(local_coords[1] - -1.0))<tol && 
+      abs(DataType(local_coords[3] - -1.0))<tol) return(0);
+  if (abs(DataType(local_coords[0] -  1.0))<tol && 
+      abs(DataType(local_coords[2] -  1.0))<tol) return(1);
+  if (abs(DataType(local_coords[1] -  1.0))<tol && 
+      abs(DataType(local_coords[3] -  1.0))<tol) return(2);
+  if (abs(DataType(local_coords[0] - -1.0))<tol && 
+      abs(DataType(local_coords[2] - -1.0))<tol) return(3);
   return( -1 );
 }
 
@@ -763,7 +764,7 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
                                          DataType* normals, DataType* ctrcl_facets, 
                                          DataType* ctrcl)
 {
-#ifndef USE_SACADO
+#if (MAX_FFI_DERIVATIVES <= 0)
   int ii1=0,ilocc=0,ilocs=0;
   int iistored=0,iconcave=0,iinside=1,iout=2;
   DataType projcv,projmv,one_third=1.0/3.0;
@@ -938,7 +939,7 @@ void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
                                                 DataType* ctrcl_facets, 
                                                 DataType* ctrcl)
 {
-#ifndef USE_SACADO
+#if (MAX_FFI_DERIVATIVES <= 0)
   // There are three possibilities with each triangle
   //   1) Accepted =  1
   //   2) Rejected =  0
@@ -1051,7 +1052,9 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
   //      the normal at node 2 is computed by the value along the smoothed 
   //      edge.
   
+  using std::abs;
   using std::sqrt;
+
   DataType upper_bound =  1.0 - percentage;
   DataType lower_bound = -1.0 + percentage;
   DataType* face_normal = Variable(FACE_NORMAL);
@@ -1083,7 +1086,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     //  2-------------------3
     //
 
-    if( fabs(GetEdgeCurvature(0)) > critical_curvature) {
+    if( abs(GetEdgeCurvature(0)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1132,7 +1135,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     //  |  |
     //  1--2
     //
-    if(fabs(GetEdgeCurvature(1)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(1)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1177,7 +1180,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     //  |        D          |
     //  0-------------------1
     //
-    if(fabs(GetEdgeCurvature(2)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(2)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1226,7 +1229,7 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     //  |  |
     //  3--0
     //
-    if(fabs(GetEdgeCurvature(3)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(3)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1273,8 +1276,8 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     curvature1 = GetEdgeCurvature(0);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1345,8 +1348,8 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     curvature1 = GetEdgeCurvature(1);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1417,8 +1420,8 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     curvature1 = GetEdgeCurvature(2);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1489,8 +1492,8 @@ void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION
     curvature1 = GetEdgeCurvature(3);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1646,7 +1649,7 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                                              ContactEdge<DataType>* edge, DataType* coords)
 {
   using std::sqrt;
-  using std::fabs;
+  using std::abs;
   int intersection=0;
 #if 0
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
@@ -1704,13 +1707,13 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   edge_dir[1] *= dir_mag;
   edge_dir[2] *= dir_mag;
   DataType tmax;
-  if (fabs(edge_dir[0])>=fabs(edge_dir[1]) && fabs(edge_dir[0])>=fabs(edge_dir[2])) {
+  if (abs(edge_dir[0])>=abs(edge_dir[1]) && abs(edge_dir[0])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[0]-edge_node_position0[0])/edge_dir[0];
   } else
-  if (fabs(edge_dir[1])>=fabs(edge_dir[0]) && fabs(edge_dir[1])>=fabs(edge_dir[2])) {
+  if (abs(edge_dir[1])>=abs(edge_dir[0]) && abs(edge_dir[1])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[1]-edge_node_position0[1])/edge_dir[1];
   } else
-  if (fabs(edge_dir[2])>=fabs(edge_dir[0]) && fabs(edge_dir[2])>=fabs(edge_dir[1])) {
+  if (abs(edge_dir[2])>=abs(edge_dir[0]) && abs(edge_dir[2])>=abs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
   tmax *= 1.05;
@@ -1757,7 +1760,7 @@ int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                    normal[1]*edge_dir[1] +
                    normal[2]*edge_dir[2];
     // if (edge ray) and (tri3 plane) are parallel => no intersection
-    if (fabs(n_dot_d)<1.0e-10) continue;
+    if (abs(n_dot_d)<1.0e-10) continue;
     DataType q[3], P[3], t;
     q[0] = node_position0[0]-edge_pnt[0];
     q[1] = node_position0[1]-edge_pnt[1];
@@ -2193,7 +2196,7 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
 					 DataType local_coords[3] )
 {
   using std::sqrt;
-  using std::fabs;
+  using std::abs;
   using std::min;
   using std::max;
   int  i, j;
@@ -2291,8 +2294,8 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
     
     s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
     t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-    ds = fabs(s1-s0);
-    dt = fabs(t1-t0);
+    ds = abs(s1-s0);
+    dt = abs(t1-t0);
     s0 = s1;
     t0 = t1;
     if (ds<tolerance && dt<tolerance) converged = true;
@@ -2323,11 +2326,11 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
   }
 #endif
   // If it's close to any of the edges, snap to it
-  if (fabs(s0)<1.0+spatial_tolerance) {
+  if (abs(s0)<1.0+spatial_tolerance) {
     s0 = min(s0, 1.0);
     s0 = max(s0,-1.0);
   }
-  if (fabs(t0)<1.0+spatial_tolerance) {
+  if (abs(t0)<1.0+spatial_tolerance) {
     t0 = min(t0, 1.0);
     t0 = max(t0,-1.0);
   }

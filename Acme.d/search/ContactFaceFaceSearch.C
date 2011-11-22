@@ -47,6 +47,9 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
   typedef PolyStruct<DataType> Poly;
   typedef PlaneStruct<DataType> Plane;
 
+  using std::abs;
+  using std::sqrt;
+
   int   i, j, k, in_cnt;
   int   in[6], out[6];
   int   num_area=0;
@@ -147,7 +150,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
         q->np = 0;
         u     = &(p->p[p->np-1]);
         tu    = V3_Dot(u, &plane->normal)+plane->d;
-        if (std::fabs(tu)<tol) tu=0.0;
+        if (abs(tu)<tol) tu=0.0;
         for (j=0, k=p->np; k>0; k--, u=v, tu=tv, ++j) {
           //=================================================
           // ON OLD POLYGON (P), U IS PREVIOUS VERTEX, V IS
@@ -155,7 +158,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
           //=================================================
           v  = &(p->p[j]);
           tv = V3_Dot(v, &plane->normal)+plane->d;
-          if (std::fabs(tv)<tol) tv=0.0;
+          if (abs(tv)<tol) tv=0.0;
           if ((tu>0.0 && tv<0.0) ||
               (tu<0.0 && tv>0.0)) {
             //=================================================
@@ -219,7 +222,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
         DataType x2    = p->p[i2].x;
         DataType y2    = p->p[i2].y;
         DataType z2    = p->p[i2].z;
-        DataType area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
+        DataType area  = 0.5*sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
                               ((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))+
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))*
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))+
@@ -414,7 +417,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
           DataType dy  = global_coords[1] - dy0;
           DataType mag = dx*dx + dy*dy;
           if( mag > 0.0 ) {
-            mag = std::sqrt(mag);
+            mag = sqrt(mag);
             dx /= mag;
             dy /= mag;
           } else {
@@ -439,7 +442,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
           DataType dy  = q->p[i].y - q->p[imin].y;
           DataType mag = dx*dx + dy*dy;
           if( mag > 0.0 ) {
-            mag = std::sqrt(mag);
+            mag = sqrt(mag);
             dx /= mag;
             dy /= mag;
           } else {
@@ -537,7 +540,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
         DataType x2    = global_coords[0];
         DataType y2    = global_coords[1];
         DataType z2    = global_coords[2];
-        DataType area  = 0.5*std::sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
+        DataType area  = 0.5*sqrt(((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))*
                               ((y2-y1)*(zc-z1)-(yc-y1)*(z2-z1))+
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))*
                               ((z2-z1)*(xc-x1)-(zc-z1)*(x2-x1))+

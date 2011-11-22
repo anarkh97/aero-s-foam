@@ -258,12 +258,12 @@ int ContactTriFaceL3<DataType>::Get_Edge_Number( ContactNode<DataType>** edge_no
 template<typename DataType>
 int ContactTriFaceL3<DataType>::Get_Edge_Number( DataType* local_coords )
 {
-  using std::fabs;
+  using std::abs;
   DataType tol(1.0e-8);
-  if (fabs(local_coords[1])<tol && fabs(local_coords[3])<tol) return(0);
-  if (fabs(local_coords[0])<tol && fabs(local_coords[2])<tol) return(1);
-  if (fabs((1.0-local_coords[0]-local_coords[1]))<tol &&
-      fabs((1.0-local_coords[2]-local_coords[3]))<tol) return(2);
+  if (abs(local_coords[1])<tol && abs(local_coords[3])<tol) return(0);
+  if (abs(local_coords[0])<tol && abs(local_coords[2])<tol) return(1);
+  if (abs((1.0-local_coords[0]-local_coords[1]))<tol &&
+      abs((1.0-local_coords[2]-local_coords[3]))<tol) return(2);
   return( -1 );
 }
 
@@ -512,6 +512,8 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
               B-D: Smooth along one edge
               E-G: Smooth along two edges
   */
+  using std::abs;
+
   DataType upper_bound = 1.0 - percentage;
   DataType lower_bound = percentage/2.0;
   DataType* face_normal = Variable(FACE_NORMAL);
@@ -538,7 +540,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
                  /       B       \
                 2-----------------3
     */     
-    if( fabs(GetEdgeCurvature(0)) > critical_curvature) {
+    if( abs(GetEdgeCurvature(0)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -592,7 +594,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
                             \  \
                              1--2
     */
-    if( fabs(GetEdgeCurvature(1)) > critical_curvature) {
+    if( abs(GetEdgeCurvature(1)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -647,7 +649,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
                 /  /
                3--0
     */
-    if( fabs(GetEdgeCurvature(2)) > critical_curvature) {
+    if( abs(GetEdgeCurvature(2)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -700,8 +702,8 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(0);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0) > critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1) > critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0) > critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1) > critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -776,8 +778,8 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(1);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0) > critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1) > critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0) > critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1) > critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -853,8 +855,8 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(2);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0) > critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1) > critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0) > critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1) > critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -974,7 +976,7 @@ template<typename DataType>
 int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
                                             ContactEdge<DataType>* edge,DataType* coords)
 {
-  using std::fabs;
+  using std::abs;
   int intersection=0;
 #if 0
 //#if CONTACT_DEBUG_PRINT_LEVEL>=1
@@ -983,7 +985,6 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   POSTCONDITION( 0 );
   return intersection;
 #else
-  std::cout << "KHP: ContactTriFaceL3<DataType>::FaceEdge_Intersection\n";
   // Do bounding box check
   int i, j;
   DataType edge_min[3], edge_max[3];
@@ -1028,13 +1029,13 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   }
   Normalize(edge_dir);
   DataType tmax;
-  if (fabs(edge_dir[0])>=fabs(edge_dir[1]) && fabs(edge_dir[0])>=fabs(edge_dir[2])) {
+  if (abs(edge_dir[0])>=abs(edge_dir[1]) && abs(edge_dir[0])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[0]-edge_node_position0[0])/edge_dir[0];
   } else
-  if (fabs(edge_dir[1])>=fabs(edge_dir[0]) && fabs(edge_dir[1])>=fabs(edge_dir[2])) {
+  if (abs(edge_dir[1])>=abs(edge_dir[0]) && abs(edge_dir[1])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[1]-edge_node_position0[1])/edge_dir[1];
   } else
-  if (fabs(edge_dir[2])>=fabs(edge_dir[0]) && fabs(edge_dir[2])>=fabs(edge_dir[1])) {
+  if (abs(edge_dir[2])>=abs(edge_dir[0]) && abs(edge_dir[2])>=abs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
   tmax *= 1.05;
@@ -1062,7 +1063,7 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   DataType n_dot_d = Dot(normal, edge_dir);
 
   // if (edge ray) and (tri3 plane) are parallel => no intersection
-  if (fabs(n_dot_d)<1.0e-10) {
+  if (abs(n_dot_d)<1.0e-10) {
     return 0;
   }
 

@@ -353,7 +353,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
 					       DataType* local_coords )
 {
   using std::sqrt;
-  using std::fabs;
+  using std::abs;
   using std::min;
   using std::max;
   //
@@ -461,9 +461,9 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
     u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
     v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
     w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = fabs(u1-u0);
-    dv = fabs(v1-v0);
-    dw = fabs(w1-w0);
+    du = abs(u1-u0);
+    dv = abs(v1-v0);
+    dw = abs(w1-w0);
     u0 = u1;
     v0 = v1;
     w0 = w1;
@@ -489,7 +489,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
   if (v0>-spatial_tolerance) {
     v0 = max(v0, 0.0);
   }
-  if (fabs(w0)<1.0+spatial_tolerance) {
+  if (abs(w0)<1.0+spatial_tolerance) {
     w0 = min(w0, 1.0);
     w0 = max(w0,-1.0);
   }

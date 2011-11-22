@@ -106,32 +106,56 @@ ContactFaceFaceInteraction::ContactFaceFaceInteraction( ContactFace<ActiveScalar
     int i,j;
     vertices = new ContactFaceFaceVertex[num_edges+1];
     for (i=0; i<num_edges; ++i) {
-      vertices[i].slave_x          = Sarea[2*i].val();
-      vertices[i].slave_y          = Sarea[2*i+1].val();
-      vertices[i].master_x         = Marea[2*i].val();
-      vertices[i].master_y         = Marea[2*i+1].val();
+      vertices[i].slave_x          = GetActiveScalarValue(Sarea[2*i]);
+      vertices[i].slave_y          = GetActiveScalarValue(Sarea[2*i+1]);
+      vertices[i].master_x         = GetActiveScalarValue(Marea[2*i]);
+      vertices[i].master_y         = GetActiveScalarValue(Marea[2*i+1]);
       vertices[i].slave_edge_id    = FaceEdge[i];
       vertices[i].master_edge_flag = EdgeMaster[i];
       for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
-        vertices[i].slave_x_derivatives[j]  = Sarea[2*i].dx(j);
-        vertices[i].slave_y_derivatives[j]  = Sarea[2*i+1].dx(j);
-        vertices[i].master_x_derivatives[j] = Marea[2*i].dx(j);
-        vertices[i].master_y_derivatives[j] = Marea[2*i+1].dx(j);
+        vertices[i].slave_x_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i],j);
+        vertices[i].slave_y_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i+1],j);
+        vertices[i].master_x_derivatives[j] = GetActiveScalarDerivative(Marea[2*i],j);
+        vertices[i].master_y_derivatives[j] = GetActiveScalarDerivative(Marea[2*i+1],j);
       }
+#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
+      int k,l;
+      // note: only storing lower triangular part due to symmetry 
+      for (j=0,l=0; j<MAX_FFI_DERIVATIVES; ++j) {
+        for (k=0; k<=j; ++k,++l) {
+          vertices[i].slave_x_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i],j,k);
+          vertices[i].slave_y_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i+1],j,k);
+          vertices[i].master_x_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i],j,k);
+          vertices[i].master_y_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i+1],j,k);
+        }
+      }
+#endif
     }
     i = num_edges;
-    vertices[i].slave_x          = Sarea[2*i].val();
-    vertices[i].slave_y          = Sarea[2*i+1].val();
-    vertices[i].master_x         = Marea[2*i].val();
-    vertices[i].master_y         = Marea[2*i+1].val();
+    vertices[i].slave_x          = GetActiveScalarValue(Sarea[2*i]);
+    vertices[i].slave_y          = GetActiveScalarValue(Sarea[2*i+1]);
+    vertices[i].master_x         = GetActiveScalarValue(Marea[2*i]);
+    vertices[i].master_y         = GetActiveScalarValue(Marea[2*i+1]);
     vertices[i].slave_edge_id    = 0;
     vertices[i].master_edge_flag = 0;
     for (j=0; j<MAX_FFI_DERIVATIVES; ++j) {
-      vertices[i].slave_x_derivatives[j]  = Sarea[2*i].dx(j);
-      vertices[i].slave_y_derivatives[j]  = Sarea[2*i+1].dx(j);
-      vertices[i].master_x_derivatives[j] = Marea[2*i].dx(j);
-      vertices[i].master_y_derivatives[j] = Marea[2*i+1].dx(j);
+      vertices[i].slave_x_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i],j);
+      vertices[i].slave_y_derivatives[j]  = GetActiveScalarDerivative(Sarea[2*i+1],j);
+      vertices[i].master_x_derivatives[j] = GetActiveScalarDerivative(Marea[2*i],j);
+      vertices[i].master_y_derivatives[j] = GetActiveScalarDerivative(Marea[2*i+1],j);
     }
+#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
+    int k,l;
+    // note: only storing lower triangular part due to symmetry
+    for (j=0,l=0; j<MAX_FFI_DERIVATIVES; ++j) {
+      for (k=0; k<=j; ++k,++l) {
+        vertices[i].slave_x_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i],j,k);
+        vertices[i].slave_y_second_derivatives[l]  = GetActiveScalarSecondDerivative(Sarea[2*i+1],j,k);
+        vertices[i].master_x_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i],j,k);
+        vertices[i].master_y_second_derivatives[l] = GetActiveScalarSecondDerivative(Marea[2*i+1],j,k);
+      }
+    }
+#endif
   }
 }
 
@@ -293,8 +317,8 @@ void ContactFaceFaceInteraction::Connect_MasterFace( ContactFace<Real>* Face )
 
 int ContactFaceFaceInteraction::Data_Size()
 {
-#if (MAX_FFI_DERIVATIVES > 0)
-  return 2+num_edges+num_edges+4*num_edges+num_edges+4*MAX_FFI_DERIVATIVES*num_edges;
+#if (MAX_FFI_DERIVATIVES > 0) 
+  return 2+num_edges+num_edges+4*num_edges+num_edges+4*MAX_FFI_DERIVATIVES*num_edges+4*MAX_FFI_SECOND_DERIVATIVES*num_edges;
 #else
   return 2+num_edges+num_edges+4*num_edges+num_edges;
 #endif

@@ -2886,6 +2886,33 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
         for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
           *interaction_data++ = vertices[j].master_y_derivatives[k];
         index1 += 4*MAX_FFI_DERIVATIVES;
+#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
+        //std::cerr << "slave_x_second_derivatives = ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
+          //std::cerr << vertices[j].slave_x_second_derivatives[k] << " ";
+          *interaction_data++ = vertices[j].slave_x_second_derivatives[k];
+        }
+        //std::cerr << std::endl;
+        //std::cerr << "slave_y_second_derivatives = ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
+          //std::cerr << vertices[j].slave_y_second_derivatives[k] << " ";
+          *interaction_data++ = vertices[j].slave_y_second_derivatives[k];
+        }
+        //std::cerr << std::endl;
+        //std::cerr << "master_x_second_derivatives = ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
+          //std::cerr << vertices[j].master_x_second_derivatives[k] << " ";
+          *interaction_data++ = vertices[j].master_x_second_derivatives[k];
+        }
+        //std::cerr << std::endl;
+        //std::cerr << "master_y_second_derivatives = ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
+          //std::cerr << vertices[j].master_y_second_derivatives[k] << " ";
+          *interaction_data++ = vertices[j].master_y_second_derivatives[k];
+        }
+        //std::cerr << std::endl;
+        index1 += 4*MAX_FFI_SECOND_DERIVATIVES;
+#endif
 #endif
       }
       ++index0;

@@ -20,6 +20,12 @@ struct ContactFaceFaceVertex {
   Real slave_y_derivatives[MAX_FFI_DERIVATIVES];
   Real master_x_derivatives[MAX_FFI_DERIVATIVES];
   Real master_y_derivatives[MAX_FFI_DERIVATIVES];
+#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
+  Real slave_x_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
+  Real slave_y_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
+  Real master_x_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
+  Real master_y_second_derivatives[MAX_FFI_SECOND_DERIVATIVES];
+#endif
 #endif
 };
 

@@ -374,7 +374,7 @@ ContactHexElemL8<DataType>::Compute_Local_Coords( DataType node_positions[8][3],
 					DataType local_coords[3] )
 {
   using std::sqrt;
-  using std::fabs;
+  using std::abs;
   using std::min;
   using std::max;
   //
@@ -487,9 +487,9 @@ ContactHexElemL8<DataType>::Compute_Local_Coords( DataType node_positions[8][3],
     u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
     v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
     w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = fabs(u1-u0);
-    dv = fabs(v1-v0);
-    dw = fabs(w1-w0);
+    du = abs(u1-u0);
+    dv = abs(v1-v0);
+    dw = abs(w1-w0);
     u0 = u1;
     v0 = v1;
     w0 = w1;
@@ -508,15 +508,15 @@ ContactHexElemL8<DataType>::Compute_Local_Coords( DataType node_positions[8][3],
 #endif
   POSTCONDITION(converged);
   // If it's close to any of the edges, snap to it
-  if (fabs(u0)<1.0+spatial_tolerance) {
+  if (abs(u0)<1.0+spatial_tolerance) {
     u0 = min(u0, 1.0);
     u0 = max(u0,-1.0);
   }
-  if (fabs(v0)<1.0+spatial_tolerance) {
+  if (abs(v0)<1.0+spatial_tolerance) {
     v0 = min(v0, 1.0);
     v0 = max(v0,-1.0);
   }
-  if (fabs(w0)<1.0+spatial_tolerance) {
+  if (abs(w0)<1.0+spatial_tolerance) {
     w0 = min(w0, 1.0);
     w0 = max(w0,-1.0);
   }
@@ -717,10 +717,11 @@ void
 ContactCartesianHexElementL8::Compute_Volume( VariableHandle NODE_POSITION,
 					      VariableHandle ELEMENT_VOLUME )
 {
+  using std::abs;
   Real* volume = Variable(ELEMENT_VOLUME);
   Real* n0_pos = Node(0)->Variable(NODE_POSITION);
   Real* n6_pos = Node(6)->Variable(NODE_POSITION);
-  *volume = std::fabs( (n0_pos[0]-n6_pos[0]) * (n0_pos[1]-n6_pos[1]) * 
+  *volume = abs( (n0_pos[0]-n6_pos[0]) * (n0_pos[1]-n6_pos[1]) * 
 		 (n0_pos[2]-n6_pos[2]) );
 }
 
@@ -1326,6 +1327,9 @@ ContactHexElementL8::Compute_Local_Coords( Real node_positions[8][3],
 					   Real global_coords[3],
 					   Real local_coords[3] )
 {
+  using std::abs;
+  using std::min;
+  using std::max;
 
   int  i, j;
   int  nnodes=8;
@@ -1434,9 +1438,9 @@ ContactHexElementL8::Compute_Local_Coords( Real node_positions[8][3],
     u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
     v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
     w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
-    du = std::fabs(u1-u0);
-    dv = std::fabs(v1-v0);
-    dw = std::fabs(w1-w0);
+    du = abs(u1-u0);
+    dv = abs(v1-v0);
+    dw = abs(w1-w0);
     u0 = u1;
     v0 = v1;
     w0 = w1;
@@ -1455,17 +1459,17 @@ ContactHexElementL8::Compute_Local_Coords( Real node_positions[8][3],
 #endif
   POSTCONDITION(converged);
   // If it's close to any of the edges, snap to it
-  if (std::fabs(u0)<1.0+spatial_tolerance) {
-    u0 = std::min(u0, 1.0);
-    u0 = std::max(u0,-1.0);
+  if (abs(u0)<1.0+spatial_tolerance) {
+    u0 = min(u0, 1.0);
+    u0 = max(u0,-1.0);
   }
-  if (std::fabs(v0)<1.0+spatial_tolerance) {
-    v0 = std::min(v0, 1.0);
-    v0 = std::max(v0,-1.0);
+  if (abs(v0)<1.0+spatial_tolerance) {
+    v0 = min(v0, 1.0);
+    v0 = max(v0,-1.0);
   }
-  if (std::fabs(w0)<1.0+spatial_tolerance) {
-    w0 = std::min(w0, 1.0);
-    w0 = std::max(w0,-1.0);
+  if (abs(w0)<1.0+spatial_tolerance) {
+    w0 = min(w0, 1.0);
+    w0 = max(w0,-1.0);
   }
   local_coords[0] = u0;
   local_coords[1] = v0;

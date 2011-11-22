@@ -1361,7 +1361,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           Real* pos = slave_face->Node(i)->Variable(POSITION);
           ActiveScalar* active_pos = node->Variable(POSITION);
           for( int j=0 ; j<dimensionality ; ++j ) {
-            active_pos[j] = ActiveScalar(MAX_FFI_DERIVATIVES, 3*i+j, pos[j]);
+            active_pos[j] = InitActiveScalar(MAX_FFI_DERIVATIVES, 3*i+j, pos[j]);
           }
           active_slave_face->ConnectNode(i, node);
           node->Connect_Face(active_slave_face); // ?
@@ -1398,7 +1398,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           Real* pos = master_face->Node(i)->Variable(POSITION);
           ActiveScalar* active_pos = node->Variable(POSITION);
           for( int j=0 ; j<dimensionality ; ++j ) {
-            active_pos[j] = ActiveScalar(MAX_FFI_DERIVATIVES, MAX_FFI_DERIVATIVES/2+3*i+j, pos[j]);
+            active_pos[j] = InitActiveScalar(MAX_FFI_DERIVATIVES, MAX_FFI_DERIVATIVES/2+3*i+j, pos[j]);
           }
           active_master_face->ConnectNode(i, node);
           node->Connect_Face(active_master_face);

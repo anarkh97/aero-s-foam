@@ -233,6 +233,7 @@ int ContactZoltan::Balance()
 			    &export_local_ids, &export_procs );
 }
 
+/* doesn't build with zoltan in trilinos version 10.8.3
 void ContactZoltan::Evaluate ( int    print_stats,
 			       int*   num_objects,
 			       float* object_weights,
@@ -246,6 +247,7 @@ void ContactZoltan::Evaluate ( int    print_stats,
 			  object_weights, num_cuts, cut_weights, 
 			  num_boundary_objects, num_adj_procs );
 }
+*/
 
 int ContactZoltan::Free_Data ()
 {

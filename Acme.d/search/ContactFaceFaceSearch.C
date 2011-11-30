@@ -198,8 +198,8 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     if (p->np>0) {
       //=========================================================
       // If there is an intersecting polygon, it is stored in the
-      // global coordinate std::system so calculate the centroid and
-      // convert to the face and element local coordinate std::system
+      // global coordinate system so calculate the centroid and
+      // convert to the face and element local coordinate system
       //=========================================================
       Real xc = 0.0;
       Real yc = 0.0;
@@ -294,8 +294,8 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     //=========================================================
     // If all the faces of the element are not planar, then 
     // find all the edge-face intersections in the slave face
-    // local coordinate std::system.  Then order these intersections
-    // in a ccw direction and std::remove duplicate entries.
+    // local coordinate system.  Then order these intersections
+    // in a ccw direction and remove duplicate entries.
     //=========================================================
     Real local_coords[4];
     Real global_coords[3];

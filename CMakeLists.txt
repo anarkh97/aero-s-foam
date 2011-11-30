@@ -55,16 +55,19 @@ IF(UNIX)
     IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
       FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
                 PATHS /usr/include /usr/local/include)
+      FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
+                PATHS /usr/include /usr/local/include)
       FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
                    PATHS /usr/lib /usr/local/lib)
-      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with Zoltan API found.")
         SET(ZOLTAN_FOUND TRUE)
         SET(EXTRALIBRARIES ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
         SET(INC_DIR ${INC_DIR} ${ZOLTAN_INCLUDE_PATH}
-            ${ZOLTAN_INCLUDE_PATH}/../zz ${ZOLTAN_INCLUDE_PATH}/../lb ${ZOLTAN_INCLUDE_PATH}/../Utilities/shared
-            ${ZOLTAN_INCLUDE_PATH}/../Utilities/Timer ${ZOLTAN_INCLUDE_PATH}/../par ${ZOLTAN_INCLUDE_PATH}/../params)
-      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+            ${ZOLTAN_SRC_PATH}/zz ${ZOLTAN_SRC_PATH}/lb ${ZOLTAN_SRC_PATH}/Utilities/shared
+            ${ZOLTAN_SRC_PATH}/Utilities/Timer ${ZOLTAN_SRC_PATH}/par ${ZOLTAN_SRC_PATH}/params
+            ${ZOLTAN_SRC_PATH}/order ${ZOLTAN_SRC_PATH}/tpls)
+      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
     ENDIF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
 
 # acme

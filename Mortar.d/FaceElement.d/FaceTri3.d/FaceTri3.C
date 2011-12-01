@@ -200,6 +200,47 @@ FaceTri3::GetShapeFct(double *Shape, double *m)
    Shape[2] = t;
 }
 
+void
+FaceTri3::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+{
+  double x = m[0];
+  double y = m[1];
+
+  dShapex[0] = 1;
+  dShapex[1] = 0;
+  dShapex[2] = -1;
+
+  dShapey[0] = 0;
+  dShapey[1] = 1;
+  dShapey[2] = -1;
+}
+
+void
+FaceTri3::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs)
+{
+  // Compute shape functions' derivatives w.r.t. the local coordinates
+  double dShapex[3], dShapey[3];
+  GetdShapeFct(dShapex, dShapey, m);
+
+  // Compute dM/dx & dM/dy
+  Node &nd1 = cs.getNode(Nodes[0]);
+  Node &nd2 = cs.getNode(Nodes[1]);
+  Node &nd3 = cs.getNode(Nodes[2]);
+
+  double X[3], Y[3], Z[3];
+  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
+  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
+  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
+
+  dMdx[0] = dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2];
+  dMdx[1] = dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2];
+  dMdx[2] = dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2];
+
+  dMdy[0] = dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2];
+  dMdy[1] = dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2];
+  dMdy[2] = dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2];
+}
+
 void 
 FaceTri3::GetShapeFctVal(double *Shape, double *m)
 {
@@ -283,6 +324,38 @@ FaceTri3::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordSe
    }
    return(NormN); // !! A CONTROLER !! 
 }
+
+void
+FaceTri3::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
+{
+  // This function computes dNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
+  // It is used to compute the gradient of the gap function
+
+  // Compute shape functions' derivatives w.r.t. the local coordinates
+  double dShapex[3], dShapey[3];
+  GetdShapeFct(dShapex, dShapey, m);
+
+  // Compute dM/dx & dM/dy
+  double dMdx[3], dMdy[3];
+  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
+
+  // Compute dNormal
+  for(int i = 0; i < 3; ++ i) {
+    dNormal[3*i  ][0] = 0;
+    dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
+    dNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
+    dNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
+    dNormal[3*i+1][1] = 0;
+    dNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
+    dNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
+    dNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
+    dNormal[3*i+2][2] = 0;
+  }
+  //std::cerr << "dNormal[][0] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][0] << " "; std::cerr << std::endl;
+  //std::cerr << "dNormal[][1] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][1] << " "; std::cerr << std::endl;
+  //std::cerr << "dNormal[][2] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][2] << " "; std::cerr << std::endl;
+}
+
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 

@@ -148,7 +148,7 @@ IF(UNIX)
    find_package(Eigen3)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
-     add_definitions(-DUSE_EIGEN3 -DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
+     add_definitions(-DUSE_EIGEN3)
    ENDIF(EIGEN3_FOUND)
 
 # metis

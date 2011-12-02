@@ -1140,7 +1140,7 @@ NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
 }
 
 double
-NonLinDynamic::getResidualNorm(Vector &res)
+NonLinDynamic::getResidualNorm(const Vector &res)
 {
   CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
   if(m) return m->norm(res);

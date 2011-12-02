@@ -28,9 +28,9 @@ public:
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
 
-  // Direct hooks in NLDynamSolver (rely on function hiding)
-  int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time);
-  double getResidualNorm(const Vector &);
+  // Hooks in NLDynamSolver
+  virtual double getResidualNorm(const Vector &);
+  int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time); // relies on function hiding
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

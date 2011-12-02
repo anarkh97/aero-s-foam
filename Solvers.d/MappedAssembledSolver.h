@@ -109,7 +109,7 @@ class CoordinateMap
     ~CoordinateMap() {}
 
    template <class VectorType>
-   double norm(VectorType &v) {
+   double norm(const VectorType &v) {
      VectorType v2(numMappedEqs);
      v2.zero();
      for(int i = 0; i < numMappedEqs; ++i) {

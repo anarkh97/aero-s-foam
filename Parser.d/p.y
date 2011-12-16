@@ -3128,6 +3128,9 @@ NLInfo:
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine
         { domain->solInfo().getNLInfo().tolRes = $3; }
+        | NLInfo NLTOL Float Float NewLine
+        { domain->solInfo().getNLInfo().tolRes = $3;
+          domain->solInfo().getNLInfo().tolInc = $4; }
         | NLInfo DLAMBDA Float Float NewLine
         { domain->solInfo().getNLInfo().dlambda = $3; domain->solInfo().getNLInfo().maxLambda = $4; }
         | NLInfo FITALG Integer NewLine

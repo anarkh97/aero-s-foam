@@ -288,8 +288,9 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  }
 
  // Form and store element damping matrices and mass matrices into arrays
+ double mratio = geoSource->getMRatio();
  for(iele=0; iele<numele; ++iele) {
-   mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data());
+   mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio);
    cArray[iele] = packedEset[iele]->dampingMatrix(nodes, cArray[iele].data());
  }
 

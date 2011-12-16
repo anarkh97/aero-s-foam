@@ -133,6 +133,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  if(!subCast) 
    if(sinfo.ATDARBFlag >= 0.0 || sinfo.ATDROBalpha != 0.0) checkSommerTypeBC(this);
 
+ bool zeroRot = (sinfo.zeroRot && sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0);
+ int *dofType = (zeroRot) ? dsa->makeDofTypeArray() : 0;
+
  if(sinfo.farfield) { addSBoundNodes(); makeKss(this); } // for Farfield output (TODO check with Radek)
 
  int iele;
@@ -291,7 +294,8 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          for(j = 0; j < dim; ++j) {
            double m  = mel[i][j];
            double k  = kel[i][j];
-           mel[i][j] = alpha*m + beta*k; // mel is now the damping element matrix
+           mel[i][j] = (zeroRot && (dofType[ (*allDOFs)[iele][i] ] == 1 
+                        || dofType[ (*allDOFs)[iele][j] ] == 1)) ? 0 : alpha*m + beta*k; // mel is now the damping element matrix
            kel[i][j] = Kcoef*k + Ccoef*mel[i][j] + Mcoef*m;
          }
      }

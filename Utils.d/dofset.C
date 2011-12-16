@@ -181,6 +181,8 @@ DofSetArray::DofSetArray(int nnode, int *renumtable, int _myMap)
 int *
 DofSetArray::makeDofTypeArray()
 {
+ if(dofType) return dofType;
+
  dofType = new int[size()];
  
  // mark the translational degrees of freedom to 0

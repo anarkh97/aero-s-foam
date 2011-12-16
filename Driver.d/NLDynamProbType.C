@@ -1,3 +1,4 @@
+#include <limits>
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
 extern int totalNewtonIter;
@@ -159,6 +160,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double timeLoop =- getTime();
   double currentRes;
   char ch[4] = { '|', '/', '-', '\\' };
+  double tolInc = domain->solInfo().getNLInfo().tolInc;
 
   for( ; step < maxStep; ++step) {
 
@@ -190,7 +192,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     StateUpdate::zeroInc(stateIncr);
 
     // Iteration loop
-    for(int iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
+    for(int iter = 0; iter < maxit; ++iter) {
 
       residual = external_force;
          
@@ -200,9 +202,6 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
 
-      // Assemble global tangent stiffness
-      //probDesc->reBuild(*geomState, iter);
-
       // Compute incremental displacements
       geomState->get_inc_displacement(inc_displac, *stepState, domain->solInfo().zeroRot);
 
@@ -210,22 +209,31 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                            acceleration, residual, rhs, geomState);
 
-      //filePrint(stderr,"2 NORMS: fext*fext %e residual*residual %e\n", external_force*external_force, resN*resN);
-
-      // Assemble global tangent stiffness
-      probDesc->reBuild(*geomState, iter);
-
+      // Store the residual norm
       currentRes = resN;
       if(iter == 0) initialRes = resN;
-      residual = rhs;
 
-      // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-      probDesc->getSolver()->reSolve(rhs);
+      // If the convergence criteria does not involve the solution increment, then 
+      // check for convergence now (to avoid potentially unnecessary solve)
+      if(tolInc != std::numeric_limits<double>::infinity()
+         || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
-      // Check for convergence
-      // XXXX it seems like a waste of one rebuild/solve to compute dv before checking for convergence. dv is only used for printing
-      converged = probDesc->checkConvergence(iter, resN, residual, rhs, time);
-      StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+        // Assemble global tangent stiffness
+        probDesc->reBuild(*geomState, iter);
+
+        residual = rhs;
+        totalNewtonIter++;
+
+        // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+        probDesc->getSolver()->reSolve(rhs);
+
+        StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+      }
+      // If the converged criteria does involve the solution increment, then
+      // check for convergence now
+      if(tolInc != std::numeric_limits<double>::infinity()) {
+        converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
+      }
 
       if(converged == 1)
         break;

@@ -505,7 +505,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
     if (p->np>0) {
       //=========================================================
       // If there is an intersecting polygon, it is stored in the
-      // local coordinate std::system so calculate the centroid
+      // local coordinate system so calculate the centroid
       //=========================================================
       Real xc = 0.0;
       Real yc = 0.0;
@@ -556,7 +556,7 @@ ContactSearch::Face_Face_Search(ContactFace* slave_face,
         tarea     += area;
       }
 
-      if(tarea > std::numeric_limits<double>::epsilon()) {//HB: avoid ctc polygon of null (small) area
+      if(tarea > 10*std::numeric_limits<double>::epsilon()) {//HB: avoid ctc polygon of null (small) area
 
         xbar /= tarea;
         ybar /= tarea;

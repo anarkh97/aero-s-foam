@@ -17,7 +17,7 @@ public:
   int subDomainCount() const { return subDomains_.size(); }
 
   template <typename NodeDof6Type, typename VecType>
-  const NodeDof6Type &nodeDof6(const VecType &origin, NodeDof6Type &target) const;
+  const NodeDof6Type &paddedNodeDof6(const VecType &origin, NodeDof6Type &target) const;
 
   template <typename NodeDof6Type, typename VecType>
   const VecType &vector(const NodeDof6Type &origin, VecType &target) const;
@@ -88,12 +88,12 @@ private:
 
 template <typename NodeDof6Type, typename VecType>
 const NodeDof6Type &
-DistrVecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDof6Type &target) const {
+DistrVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDof6Type &target) const {
   for (int iSub = 0; iSub < subDomainCount(); ++iSub) {
     SubNodeDof6Adapter<NodeDof6Type> subNodeDof(target, *subDomains_[iSub]);
     const GenStackVector<double> subVector(const_cast<VecType &>(origin).subData(iSub),
                                            const_cast<VecType &>(origin).subLen(iSub));
-    subRestrictedConversions_[iSub]->nodeDof6(subVector, subNodeDof);
+    subRestrictedConversions_[iSub]->paddedNodeDof6(subVector, subNodeDof);
   }
 
   return target;

@@ -468,7 +468,7 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
 
      int converged = 0;
 
-     if(normRes <= tolerance*firstRes) 
+     if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
        converged = 1;
 
      // Check for divergence
@@ -532,6 +532,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    //PJSA 11/5/09: new way to rebuild solver (including preconditioner) and Kuc, now works for any solver
    spm->zeroAll();
    AllOps<double> ops;
+   kuc->zeroAll();
    ops.Kuc = kuc;
    if(spp) {
      spp->zeroAll();
@@ -791,9 +792,8 @@ NonLinDynamic::preProcess()
 
  allOps.M = domain->constructDBSparseMatrix<double>();
 
- allOps.C = (domain->solInfo().alphaDamp != 0.0 || domain->solInfo().betaDamp != 0.0) ? domain->constructDBSparseMatrix<double>() : 0; // DAMPING
+ allOps.C = (domain->solInfo().alphaDamp != 0.0 || domain->solInfo().betaDamp != 0.0) ? domain->constructDBSparseMatrix<double>() : 0;
 
- // TDL
  allOps.Kuc = domain->constructCuCSparse<double>();
 
  // for initialization step just build M^{-1}
@@ -817,8 +817,12 @@ NonLinDynamic::preProcess()
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                          (FullSquareMatrix *) NULL, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
+ // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES (previously was done later on in this function, see comment below)
+ if(C) domain->createKelArray(kelArray, melArray, celArray);
+ else domain->createKelArray(kelArray, melArray);
+
+ domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, kelArray,
+                          melArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
     fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
@@ -845,9 +849,12 @@ NonLinDynamic::preProcess()
  // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
  domain->createCorotators(allCorot);
 
+/* this should be done before assembling the operators to (a) prevent unnecessary recomputation and
+   (b) make sure that the operators are consistent (e.g. when the rotational mass and damping are zero'd)
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
  if(C) domain->createKelArray(kelArray, melArray, celArray);
  else domain->createKelArray(kelArray, melArray);
+*/
 
  // Look if there is a user supplied routine for control
  claw = geoSource->getControlLaw();
@@ -1149,7 +1156,7 @@ NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
 }
 
 double
-NonLinDynamic::getResidualNorm(Vector &res)
+NonLinDynamic::getResidualNorm(const Vector &res)
 {
   CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
   if(m) return m->norm(res);
@@ -1158,5 +1165,5 @@ NonLinDynamic::getResidualNorm(Vector &res)
 
 bool
 NonLinDynamic::factorWhenBuilding() const { 
-  return true;
+  return domain->solInfo().iacc_switch;
 }

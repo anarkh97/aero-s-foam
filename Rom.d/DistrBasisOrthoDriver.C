@@ -42,29 +42,45 @@ DistrBasisOrthoDriver::solve() {
 
   DistrSvdOrthogonalization solver(comm_, comm_->numCPUs(), 1);
   
-  const int blockSize = 1; // TODO more efficient
+  const int blockSize = 64; // TODO More flexible
   {
     solver.blockSizeIs(blockSize);
   }
- 
+
+  const int skipFactor = domain->solInfo().skipPodRom;
+  const int basisStateCount = 1 + (inputFile.stateCount() - 1) / skipFactor;
+
   const int localLength = decDomain->solVecInfo().totLen();
   {
     const int maxLocalLength = comm_->globalMax(localLength);
     const int maxCpuLoad = ((maxLocalLength / blockSize) + (maxLocalLength % blockSize)) * blockSize;
     assert(maxCpuLoad >= localLength);
     const int globalProbSize = maxCpuLoad * solver.rowCpus();
-    solver.problemSizeIs(globalProbSize, inputFile.stateCount());
+    solver.problemSizeIs(globalProbSize, basisStateCount);
     assert(solver.localRows() == maxCpuLoad);
   }
 
   {
     DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-    while (inputFile.validCurrentState()) {
+    
+    int count = 0;
+    int skipCounter = skipFactor;
+    while (count < basisStateCount) {
+      assert(inputFile.validCurrentState());
       inputFile.currentStateBuffer(inputBuffer);
-      double *vecBuffer = solver.matrixColBuffer(inputFile.currentStateIndex());
-      GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-      converter.paddedMasterVector(inputBuffer, vec);
-      std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
+
+      if (skipCounter >= skipFactor) {
+        double *vecBuffer = solver.matrixColBuffer(count);
+        GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
+        converter.paddedMasterVector(inputBuffer, vec);
+        std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
+        
+        skipCounter = 1;
+        ++count;
+      } else {
+        ++skipCounter;
+      }
+
       inputFile.currentStateIndexInc();
     }
   }
@@ -83,7 +99,7 @@ DistrBasisOrthoDriver::solve() {
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-      converter.nodeDof6(vec, outputBuffer);
+      converter.paddedNodeDof6(vec, outputBuffer);
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }

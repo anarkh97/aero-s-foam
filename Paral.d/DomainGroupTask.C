@@ -28,7 +28,7 @@ template<class Scalar>
 GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> **_sd, double _cm, 
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
-                                               FSCommunicator *_com)
+                                               FSCommunicator *_com, FullSquareMatrix **_melArray)
 {
   nsub = _nsub;
   sd = _sd;
@@ -44,6 +44,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   K    = new GenSparseMatrix<Scalar> *[nsub];
   rbms = _rbms;
   kelArray = _kelArray;
+  melArray = _melArray;
   Kuc  = new GenSparseMatrix<Scalar> *[nsub];
   coeM    = _cm;
   coeC    = _cc;
@@ -240,7 +241,8 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
-  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, (FullSquareMatrix *) NULL);
+  FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;
+  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray);
 
   if(allMats) delete allMats;
 }

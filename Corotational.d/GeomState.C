@@ -477,7 +477,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       vel_n[loc[i][2]] = vdcoef*(ns[i].z - ss[i].z) + vvcoef*v_n + vacoef*a_n;
       acc_n[loc[i][2]] = avcoef*(vel_n[loc[i][2]] - v_n) + aacoef*a_n;
     }
-
+/* this is no longer required
     // Update rotational velocities and accelerations
     // Currently we don't update rotational velocity and acceleration when zeroRot is true
     // because the global mass and damping matrices do not have the rotational blocks correctly
@@ -485,6 +485,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // zero but this is done AFTER the global mass and damping matrices are assembled.
     // For now, if you want to output the rotational velocity and/or acceleration use "zero off" under DYNAMIC
     if(!zeroRot) {
+*/
       if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
         double dtheta[3], dR[3][3];
         mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
@@ -498,7 +499,9 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           }
         }
       }
+/*
     }
+*/
   }
 
   // Update step translational displacements

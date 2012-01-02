@@ -23,10 +23,12 @@ namespace Rom {
 struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   class RawImpl : public Impl {
   public:
+    virtual void lastMidTimeIs(double t);
+    virtual void lastDeltaIs(double dt);
     virtual void stateSnapshotAdd(const GeomState &);
     virtual void postProcess();
 
-    int nodeCount() const { return converter_.nodeCount(); }
+    int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
     int vectorSize() const { return converter_.vectorSize(); }
 
     explicit RawImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
@@ -45,6 +47,8 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     
     VecNodeDof6Conversion converter_;
     NodeDof6Buffer snapBuffer_;
+
+    double timeStamp_;
 
   protected:
     FileNameInfo fileInfo_;
@@ -79,9 +83,10 @@ private:
 SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
   converter_(*domain->getCDSA()),
-  snapBuffer_(nodeCount()),
+  snapBuffer_(dofSetNodeCount()),
   fileInfo_(),
-  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), nodeCount())
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), dofSetNodeCount()),
+  timeStamp_(domain->solInfo().initialTime)
 {}
 
 void
@@ -93,14 +98,24 @@ template <typename VecType>
 inline
 void
 SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const VecType &snap) {
-  converter_.nodeDof6(snap, snapBuffer_);
+  converter_.paddedNodeDof6(snap, snapBuffer_);
+}
+
+void
+SnapshotNonLinDynamicDetail::RawImpl::lastMidTimeIs(double t) {
+  timeStamp_ = t;
+}
+
+void
+SnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double dt) {
+  timeStamp_ += dt;
 }
 
 void
 SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   const CoordSet &refCoords = domain_->getNodes();
 
-  for (int iNode = 0, iNodeEnd = nodeCount(); iNode != iNodeEnd; ++iNode) {
+  for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode != iNodeEnd; ++iNode) {
     double *nodeBuffer = snapBuffer_[iNode];
 
     const Node *refNode = refCoords[iNode];
@@ -119,8 +134,8 @@ SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
       std::fill_n(nodeBuffer, 6, 0.0);
     }
   }
- 
-  stateSnapFile_.stateAdd(snapBuffer_);
+
+  stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
 }
 
 SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :

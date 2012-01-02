@@ -3422,12 +3422,13 @@ GenDecDomain<Scalar>::makeMpcToSub()
 template<class Scalar>
 void
 GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
-                               Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti)
+                               Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti,
+                               FullSquareMatrix **melArray, bool factor)
 {
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator);
+                                communicator, melArray);
 
  if(domain->solInfo().type == 0) {
    switch(domain->solInfo().subtype) {
@@ -3500,7 +3501,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
      dgt.dynMats[0]->unify(communicator);
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
-     res.dynMat->refactor();
+     if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
      cerr << " *** ERROR: type 1 not supported here in GenDecDomain::buildOps\n";

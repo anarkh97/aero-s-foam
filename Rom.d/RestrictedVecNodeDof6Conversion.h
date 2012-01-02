@@ -7,27 +7,30 @@
 #include <Utils.d/dofset.h>
 
 #include <vector>
+#include <algorithm>
+
 #include <cassert>
 
 namespace Rom {
 
 class RestrictedVecNodeDof6Conversion {
 public:
+  int dofSetNodeCount() const { return dofSetNodeCount_; }
   int nodeCount() const { return nodeCount_; }
   int vectorSize() const { return vectorSize_; }
 
   template <typename NodeDofs6Type, typename VecType>
-  const NodeDofs6Type &nodeDof6(const VecType &origin, NodeDofs6Type &target) const;
+  const NodeDofs6Type &paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const;
 
   template <typename NodeDofs6Type, typename VecType>
   const VecType &paddedVector(const NodeDofs6Type &origin, VecType &target) const;
 
   template <typename BoolFwdIt>
-  RestrictedVecNodeDof6Conversion(const DofSetArray &dsa, BoolFwdIt masterFlagBegin,
-                                                          BoolFwdIt masterFlagEnd);
+  RestrictedVecNodeDof6Conversion(const DofSetArray &dsa, BoolFwdIt nodeMaskBegin,
+                                                          BoolFwdIt nodeMaskEnd);
 
 private:
-  int nodeCount_;
+  int dofSetNodeCount_;
   int vectorSize_;
 
   std::vector<NodeDof> locationId_;
@@ -35,7 +38,8 @@ private:
   typedef SimpleBuffer<int[6]> DofLocation;
   DofLocation dofLocation_;
 
-  std::vector<bool> masterFlag;
+  std::vector<bool> nodeMask_;
+  int nodeCount_;
 
   void initialize(const DofSetArray &dsa);
 
@@ -46,9 +50,9 @@ private:
 
 template <typename NodeDofs6Type, typename VecType>
 const NodeDofs6Type &
-RestrictedVecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDofs6Type &target) const {
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    if (masterFlag[iNode]) {
+RestrictedVecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const {
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
       for (int iDof = 0; iDof < 6; ++iDof) {
         const int loc = dofLocation_[iNode][iDof];
         target[iNode][iDof] = (loc >= 0) ? origin[loc] : 0.0;
@@ -62,8 +66,8 @@ RestrictedVecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDofs6Type &
 template <typename NodeDofs6Type, typename VecType>
 const VecType &
 RestrictedVecNodeDof6Conversion::paddedVector(const NodeDofs6Type &origin, VecType &target) const {
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
-    if (masterFlag[iNode]) {
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
+    if (nodeMask_[iNode]) {
       for (int iDof = 0; iDof < 6; ++iDof) {
         const int loc = dofLocation_[iNode][iDof];
         if (loc >= 0) {
@@ -84,13 +88,14 @@ RestrictedVecNodeDof6Conversion::paddedVector(const NodeDofs6Type &origin, VecTy
 
 template <typename BoolFwdIt>
 RestrictedVecNodeDof6Conversion::RestrictedVecNodeDof6Conversion(const DofSetArray &dsa,
-                                                                 BoolFwdIt masterFlagBegin,
-                                                                 BoolFwdIt masterFlagEnd) :
-  nodeCount_(const_cast<DofSetArray &>(dsa).numNodes()),
+                                                                 BoolFwdIt nodeMaskBegin,
+                                                                 BoolFwdIt nodeMaskEnd) :
+  dofSetNodeCount_(const_cast<DofSetArray &>(dsa).numNodes()),
   vectorSize_(const_cast<DofSetArray &>(dsa).size()),
   locationId_(vectorSize()),
-  dofLocation_(nodeCount()),
-  masterFlag(masterFlagBegin, masterFlagEnd)
+  dofLocation_(dofSetNodeCount()),
+  nodeMask_(nodeMaskBegin, nodeMaskEnd),
+  nodeCount_(std::count(nodeMask_.begin(), nodeMask_.end(), true))
 {
   initialize(dsa);
 }

@@ -11,11 +11,11 @@ namespace Rom {
 
 class VecNodeDof6Conversion {
 public:
-  int nodeCount() const { return nodeCount_; }
+  int dofSetNodeCount() const { return dofSetNodeCount_; }
   int vectorSize() const { return vectorSize_; }
 
   template <typename NodeDofs6Type, typename VecType>
-  const NodeDofs6Type &nodeDof6(const VecType &origin, NodeDofs6Type &target) const;
+  const NodeDofs6Type &paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const;
 
   template <typename NodeDofs6Type, typename VecType>
   const VecType &vector(const NodeDofs6Type &origin, VecType &target) const;
@@ -23,7 +23,7 @@ public:
   explicit VecNodeDof6Conversion(const DofSetArray &);
 
 private:
-  int nodeCount_;
+  int dofSetNodeCount_;
   int vectorSize_;
 
   typedef SimpleBuffer<int[6]> DofLocation;
@@ -36,8 +36,8 @@ private:
 
 template <typename NodeDofs6Type, typename VecType>
 const NodeDofs6Type &
-VecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDofs6Type &target) const {
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
+VecNodeDof6Conversion::paddedNodeDof6(const VecType &origin, NodeDofs6Type &target) const {
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
     for (int iDof = 0; iDof < 6; ++iDof) {
       const int loc = dofLocation_[iNode][iDof];
       target[iNode][iDof] = (loc >= 0) ? origin[loc] : 0.0;
@@ -50,7 +50,7 @@ VecNodeDof6Conversion::nodeDof6(const VecType &origin, NodeDofs6Type &target) co
 template <typename NodeDofs6Type, typename VecType>
 const VecType &
 VecNodeDof6Conversion::vector(const NodeDofs6Type &origin, VecType &target) const {
-  for (int iNode = 0; iNode < nodeCount(); ++iNode) {
+  for (int iNode = 0; iNode < dofSetNodeCount(); ++iNode) {
     for (int iDof = 0; iDof < 6; ++iDof) {
       const int loc = dofLocation_[iNode][iDof];
       if (loc >= 0) {

@@ -5,6 +5,7 @@
 #include "VecNodeDof6Conversion.h"
 
 #include "NodeDof6Buffer.h"
+#include "MappedNodeDof6Buffer.h"
 
 #include <string>
 #include <utility>
@@ -18,7 +19,7 @@ class BasisInputStream {
 public:
   int size() const { return file_.stateCount(); }
   int vectorSize() const { return converter_.vectorSize(); }
-  int nodeCount() const { return converter_.nodeCount(); }
+  int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
 
   // Check the readiness of the stream
   int currentVectorRank() const { return file_.currentStateIndex(); }
@@ -47,7 +48,7 @@ private:
   BasisBinaryInputFile file_;
   bool isValid_;
   const VecNodeDof6Conversion &converter_;
-  NodeDof6Buffer buffer_;
+  MappedNodeDof6Buffer buffer_;
 };
 
 inline
@@ -65,7 +66,8 @@ template <typename VectorBufferType>
 inline
 void
 BasisInputStream::performUncheckedInput(VectorBufferType &target) {
-  converter_.vector(file_.currentStateBuffer(buffer_), target);
+  file_.currentStateBuffer(buffer_.underlyingBuffer()); // Fill buffer in one pass, ignoring the file node mapping
+  converter_.vector(buffer_, target); // Fill vector according to the file node mapping 
   file_.currentStateIndexInc();
 }
 
@@ -129,7 +131,7 @@ class BasisOutputStream {
 public:
   int size() const { return file_.stateCount(); }
   int vectorSize() const { return converter_.vectorSize(); }
-  int nodeCount() const { return converter_.nodeCount(); }
+  int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
   
   BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter);
 
@@ -155,7 +157,7 @@ template <typename VectorBufferType>
 inline
 const NodeDof6Buffer &
 BasisOutputStream::convert(const VectorBufferType &source) {
-  return converter_.nodeDof6(source, buffer_);
+  return converter_.paddedNodeDof6(source, buffer_);
 }
 
 template <typename VectorBufferType>

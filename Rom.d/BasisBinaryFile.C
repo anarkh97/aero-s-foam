@@ -17,6 +17,14 @@ BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int no
   binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, DOFS_PER_NODE, VERSION)
 {}
 
+void
+BasisBinaryOutputFile::stateAdd(const NodeDof6Buffer &data, double headValue) {
+  assert(nodeCount() == data.size());
+
+  // Dump all information in one pass
+  binFile_.stateAdd(headValue, data.array());
+}
+
 
 BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
   binFile_(fileName)
@@ -45,6 +53,7 @@ BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
 const NodeDof6Buffer &
 BasisBinaryInputFile::currentStateBuffer(NodeDof6Buffer &target) {
   assert(validCurrentState());
+  assert(nodeCount() == target.size());
   
   // Retrieve all information in one pass
   binFile_.state(target.array());

@@ -27,7 +27,7 @@ PodProjectionNonLinDynamic::preProcess() {
 
   // Input/output state conversion
   vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
-  snapBuffer_.sizeIs(vecNodeDof6Conversion_->nodeCount());
+  snapBuffer_.sizeIs(vecNodeDof6Conversion_->dofSetNodeCount());
 
   FileNameInfo fileInfo; 
 

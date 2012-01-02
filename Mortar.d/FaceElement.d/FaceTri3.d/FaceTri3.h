@@ -67,11 +67,14 @@ class FaceTri3: public FaceElement {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         // -> local methods 
 	void   GetShapeFct(double* Shape, double* m);
+        void   GetdShapeFct(double* dShapex, double* dShapey, double* m);
         double GetShapeFctAndJacobian(double* Shape, double* m, CoordSet& cs);
 	double GetJacobian(CoordSet& cs);
+        void   ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs);
 	
 	// -> implementation of virtual fcts
         double* ViewRefCoords();
+        void GetdNormal(double dNormal[][3], double* m, CoordSet& cs);
 
 	// -> implementation of pure virtual fcts
         void   LocalToGlobalCoord(double* M, double* m, CoordSet& cs);

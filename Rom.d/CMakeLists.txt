@@ -20,6 +20,7 @@ ADD_LIBRARY( Rom
   QrPseudoInversion.C
   LeastSquaresSolver.C
   NodalRestrictionMapping.C
+  MappedNodeDof6Buffer.C
   MeshOutput.C
   MeshSamplingDriver.C
   MeshDesc.C

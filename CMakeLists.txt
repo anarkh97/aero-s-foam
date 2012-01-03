@@ -307,11 +307,15 @@ add_subdirectory(Hetero.d)
 add_subdirectory(Material.d)
 add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
-add_subdirectory(Acme.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt Acme)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
+
+IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
+  add_subdirectory(Acme.d)
+  SET(ALLLIBS ${ALLLIBS} Acme)
+ENDIF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)

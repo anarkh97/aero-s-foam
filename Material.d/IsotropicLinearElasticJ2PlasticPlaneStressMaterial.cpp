@@ -324,7 +324,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Use some tolerance for checking yield function value
   // Note: I observe a relationship between TOL and the nltol under NONLINEAR
   // looks like TOL should be at least an order of magnitude smaller than nltol
-  double TOL = SigmaY*1e-8; // ORIG: SigmaY*1e-6
+  double TOL = SigmaY*1e-7; // ORIG: SigmaY*1e-6
   // tolerance for checking consistency parameter
   double TOL2 = 0; //std::numeric_limits<double>::epsilon(); // ORIG: 0
   

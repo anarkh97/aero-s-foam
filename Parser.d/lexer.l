@@ -1119,7 +1119,7 @@ TRAIL [a-zA-Z]*
 
 "MATUSAGE"|"matusage"              { return MATUSAGE; }
 
-"bili"[a-zA-Z]*|"BILI"[a-zA-Z]*|"BiLi"[a-zA-Z]*         { return BILINEARPLASTIC; }
+"bili"[a-zA-Z]*|"BILI"[a-zA-Z]*|"Bili"[a-zA-Z]*         { return BILINEARPLASTIC; }
 
 "fini"[a-zA-Z]*|"FINI"[a-zA-Z]*|"Fini"[a-zA-Z]*         { return FINITESTRAINPLASTIC; }
 

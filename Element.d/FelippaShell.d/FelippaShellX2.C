@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Hetero.d/FlExchange.h>
@@ -96,4 +97,4 @@ FelippaShellX2::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
   for(j=0; j<24; ++j) res[j] = 0.0;
   for(j=0; j<18; ++j) res[subElemDofs[i][j]] = subres[j];
 }
-
+#endif

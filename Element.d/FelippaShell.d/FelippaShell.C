@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -1084,4 +1085,4 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
      }
 }
-
+#endif

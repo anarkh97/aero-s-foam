@@ -3,6 +3,7 @@
 
 #include <Element.d/Element.h>
 class TetCorotator;
+class NLMaterial;
 
 class Tetrahedral: public Element {
 
@@ -12,6 +13,7 @@ class Tetrahedral: public Element {
         double  *cFrame;  // HB 4-15-05
 
         TetCorotator *tetCorotator;
+        NLMaterial *mat;
 public:
 	Tetrahedral(int*);
 
@@ -67,6 +69,7 @@ public:
         void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 		               Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
 
+        void setMaterial(NLMaterial *);
+        int numStates();
 };
 #endif
-

@@ -7,6 +7,9 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/PentaCorotator.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/NLPentahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
 
 #define USE_NEW_PENTA6_STIFF  //HB: force using new implementation of the stiffness matrix 
                               //    that deals with ansitropic constitutive matrix
@@ -56,6 +59,7 @@ Pentahedral::Pentahedral(int* nodenums)
 
   cFrame = 0;
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -672,8 +676,16 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
 Corotator*
 Pentahedral::getCorotator(CoordSet &cs, double *kel, int , int )
 {
-  if(!pentaCorotator) pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
-  return pentaCorotator;
+  if(mat) {
+    MatNLElement *ele = new NLPentahedral6(nn);
+    ele->setMaterial(mat);
+    ele->setGlNum(glNum);
+    return new MatNLCorotator(ele);
+  }
+  else {
+    if(!pentaCorotator) pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
+    return pentaCorotator;
+  }
 }
 
 //---------------------------------------------------------------------------------
@@ -851,7 +863,17 @@ Pentahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
     for(int j=0; j<3; ++j) 
       stress[i][j+6] = pvec[j];
 }
-                                                                                     
-                                                                                           
-       
- 
+
+void
+Pentahedral::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Pentahedral::numStates()
+{
+  int numGaussPoints = 6;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+

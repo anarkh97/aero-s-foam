@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <Element.d/Element.h>
-#include <Element.d/NonLinearity.d/3DShapeFunction.h>
+#include <Element.d/NonLinearity.d/ShapeFunction.h>
 
 Tensor *
 ShapeFunction::getGradUInstance()
@@ -46,21 +46,11 @@ ShapeFunction::getGlobalGrads(Tensor *_gradU, Tensor *_dgradUdqk, double *jac,
 
   localGrad = localderivatives%displacements; // dof contraction
 
-  //for(j = 0; j < numdofs; ++j)    
-  //  fprintf(stderr,"disp[%d]=%e\n", j, displacements[j]);
-
   Tensor_d1s2_sparse * dgradUdqk = static_cast<Tensor_d1s2_sparse *>(_dgradUdqk);
   Tensor_d0s2 * gradU = static_cast<Tensor_d0s2 *>(_gradU);
 
   (*gradU) = localGrad|invjacobian; // space contraction
   (*dgradUdqk) = localderivatives|invjacobian;
-
-  //for (int q=0; q<9; q++)
-  //  fprintf(stderr, "gradU[%d]=%e \n",q, (*gradU)[q]);
-
-  //for (int q=0; q<8; q++)
-  //  for (int p=0; p<9; p++)
-  //    fprintf(stderr, "dgradUdqk[%d][%d]=%e \n",q, p, (*dgradUdqk)[q][p]);
 }
 
 void

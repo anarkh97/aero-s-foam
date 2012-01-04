@@ -45,37 +45,34 @@ extern double computeVonMisesStress(double Stress[6]);
 extern double computeVonMisesStrain(double Strain[6]);
 
 //-----------------------------------------------------------------------
-//    Brick20 FEM input nodes numbering       Brick20 class nodes numbering
-//                     16                                 20 
-// 	       5+-------+-------+8		  5+-------+-------+8
-// 	       /|	       /|		  /|		  /|		 
-// 	      / |	      / |		 / |		 / |		 
-// 	   13+  |	   15+  |	      17+  |	      19+  |		   
-// 	    / 17+	    /	+20	       / 13+	       /   +16  	   
-// 	   /	| 14	   /	|	      /    | 18       /    |		  
-// 	 6+-------+-------+7	|	    6+-------+-------+7    |		  
-// 	  |	|      12 |	|	     |     |	  12 |     |		  
-// 	  |    1+-------+-|-----+ 4   ===>   |    1+-------+-|-----+ 4       
-// 	  |    /	  |    /	     |    /	     |    /		  
-// 	18+   / 	19+   / 	   14+   /	   15+   /		 
-// 	  | 9+  	  |  +11	     | 9+	     |  +11	    
-// 	  | /		  | /		     | /	     | /	    
-// 	  |/		  |/		     |/ 	     |/ 		  
-// 	 2+-------+-------+3		    2+-------+-------+3 		 
-//   		 10		                    10
+//    Brick20 nodes numbering      
+//                     16            
+// 	       5+-------+-------+8
+// 	       /|	       /|	
+// 	      / |	      / |
+// 	   13+  |	   15+  |	
+// 	    / 17+	    /	+20
+// 	   /	| 14	   /	|
+// 	 6+-------+-------+7	|
+// 	  |	|      12 |	|
+// 	  |    1+-------+-|-----+ 4   
+// 	  |    /	  |    /
+// 	18+   / 	19+   / 
+// 	  | 9+  	  |  +11	
+// 	  | /		  | /		
+// 	  |/		  |/	
+// 	 2+-------+-------+3	
+//   		 10		 
 //-----------------------------------------------------------------------
 Brick20::Brick20(int* nodenums)
 {
   int i;
-  for(i=0; i<12; ++i)
+ for(i=0; i<20; ++i)
     nn[i] = nodenums[i];
-  for(i =0; i < 4; ++i) {
-    nn[i+16] = nodenums[i+12];
-    nn[i+12] = nodenums[i+16];
-  }
 
   cFrame = 0;
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -456,20 +453,24 @@ Brick20::stiffness(CoordSet &cs, double *d, int flg)
 }
 
 int
-Brick20::numNodes(){ 
+Brick20::numNodes()
+{ 
   if(useFull)
-    return(20); 
+    return 20; 
   else
     return 8;
 }
 
 int
-Brick20::numDofs(){ return(60); }
+Brick20::numDofs()
+{
+  return 60;
+}
 
 int
 Brick20::getTopNumber()
 {
-  return(172);//9; // Cube Geometry, watch: it is returned as 8 node brick
+  return 172; // Cube Geometry, watch: it is returned as 8 node brick
 }
 
 int*
@@ -478,29 +479,20 @@ Brick20::nodes(int *p)
   if(useFull)
     {
       if(!p) p = new int[20];
-      
-      for(int i=0; i<12; ++i)
-	p[i] = nn[i];
-      
-      for(int i =0; i < 4; ++i) {
-	p[i+12] = nn[i+16];
-	p[i+16] = nn[i+12];
-      }
+      for(int i=0; i<20; ++i)
+        p[i] = nn[i];
       
       return(p);
     }
   else
     {
-        if(!p) p = new int[8];
-      
+      if(!p) p = new int[8];
       for(int i=0; i<8; ++i)
 	p[i] = nn[i];
-      
       
       return(p);
     }
 }
-
 
 int*
 Brick20::dofs(DofSetArray &dsa, int *p)
@@ -603,6 +595,35 @@ Brick20::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
   //cerr<<" -------------------------"<<endl;
   //for(int i=0; i<60; i++) 
-   //cerr<<" eelementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
+   //cerr<<" elementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;
+}
+
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
+
+void
+Brick20::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Brick20::numStates()
+{
+  int numGaussPoints = 27;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+Corotator*
+Brick20::getCorotator(CoordSet &cs, double *kel, int , int )
+{
+  if(!mat) 
+    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  MatNLElement *ele = new NLHexahedral20(nn);
+  ele->setMaterial(mat);
+  ele->setGlNum(glNum);
+  return new MatNLCorotator(ele);
 }
 

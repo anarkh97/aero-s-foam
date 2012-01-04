@@ -57,6 +57,7 @@ Brick32::Brick32(int* nodenums)
 
   cFrame = 0; 
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -600,15 +601,35 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
   //cerr<<" -------------------------"<<endl;
   //for(int i=0; i<96; i++) 
-   //cerr<<" eelementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;  
+   //cerr<<" elementThermalForce["<<i+1<<"] = "<<elementThermalForce[i]<<endl;  
 }
 
-//-------------------------------------------------------------------
-Corotator *
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
+
+void
+Brick32::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Brick32::numStates()
+{
+  int numGaussPoints = 64;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+Corotator*
 Brick32::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- fprintf(stderr," *** ERROR: Brick32::getCorotator: NOT implemented. Abort.\n");
- exit(-1);
- return((Corotator*)0); 
-}
+  if(!mat)
+    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  MatNLElement *ele = new NLHexahedral32(nn);
+  ele->setMaterial(mat);
+  ele->setGlNum(glNum);
+  return new MatNLCorotator(ele);
+} 
 

@@ -30,7 +30,7 @@ class SuperElement : public Element
     SuperElement(bool = false);
     virtual ~SuperElement();
 
-    double * getPreviouslyComputedSubExternalForce(int i) { return sub_extf[i]; }
+    double * getPreviouslyComputedSubExternalForce(int i) { return (sub_extf) ? sub_extf[i] : 0; }
 
     int getNumSubElems() { return nSubElems; }
     int getSubElemNumDofs(int i) { return subElems[i]->numDofs(); }

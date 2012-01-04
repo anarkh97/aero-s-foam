@@ -25,7 +25,7 @@ class RigidFourNodeShell : public SuperElement
     void setMaterial(NLMaterial *);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState* gs, int cflg);
+                              GeomState* gs = 0, int cflg = 0);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
                      GeomState*);

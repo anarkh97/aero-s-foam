@@ -2332,6 +2332,12 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       std::cerr << search_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+#else
+  filePrint(stderr," !!! FATAL PB in MortarHandler::perform_search: USE_ACME FLAG WAS NOT DEFINED !!!\n");
+  filePrint(stderr," => IF YOU GET TO THIS POINT, THIS MEANS YOU HAVE DEFINED SOME CONTACT SURFACE(S)\n");
+  filePrint(stderr," => BUT IMPOSSIBLE TO DO CONTACT WITHOUT THE ACME LIB !!!\n");
+  filePrint(stderr," => STOP EXECUTION \n");
+  exit(-1);
 #endif
 }
 

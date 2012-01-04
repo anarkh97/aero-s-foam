@@ -455,7 +455,7 @@ Brick20::stiffness(CoordSet &cs, double *d, int flg)
 int
 Brick20::numNodes()
 { 
-  if(useFull)
+  if(true/*useFull*/)
     return 20; 
   else
     return 8;
@@ -476,7 +476,7 @@ Brick20::getTopNumber()
 int*
 Brick20::nodes(int *p)
 {
-  if(useFull)
+  if(true/*useFull*/)
     {
       if(!p) p = new int[20];
       for(int i=0; i<20; ++i)

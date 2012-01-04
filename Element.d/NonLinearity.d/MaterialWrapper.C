@@ -1,9 +1,6 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 
-//#define PJSA_CONVERT_TO_PK2
-//#define PJSA_CONVERT_TO_M
-
 template<typename Material>
 MaterialWrapper<Material>::MaterialWrapper(Material *_mat)
 {
@@ -28,27 +25,208 @@ template<typename Material>
 void
 MaterialWrapper<Material>::getStress(Tensor *_stress, Tensor &_strain, double*)
 {
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
 
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state)
+{
+  // clone material for thread-safety reasons
+  IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
+
+  std::vector<double> PlasticStrain;
+  std::vector<double> BackStress;
+  if(state) {
+    // set the internal variables    
+    for (int i = 0; i < 9; ++i) PlasticStrain.push_back(state[i]);
+    clone->SetMaterialPlasticStrain(PlasticStrain);
+    for (int i = 0; i < 9; ++i) BackStress.push_back(state[9+i]);
+    clone->SetMaterialBackStress(BackStress);
+    clone->SetMaterialEquivalentPlasticStrain(state[18]);
+  }
+  
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
+    
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // Cauchy stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+  
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, NULL);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+
+  delete clone;
 }
 
 template<typename Material>
 void 
-MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &, double*)
+MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*)
 {
+  Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
 
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+  std::vector<double> ltangents; // first elasticity tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, &ltangents);
+
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
+      for(int k=0; k<3; k++)
+        for(int l=0; l<3; l++)
+          (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state)
+{
+  // clone material for thread-safety reasons
+  IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
+
+  std::vector<double> PlasticStrain;
+  std::vector<double> BackStress;
+  if(state) {
+    // set the internal variables    
+    for (int i = 0; i < 9; ++i) PlasticStrain.push_back(state[i]);
+    clone->SetMaterialPlasticStrain(PlasticStrain);
+    for (int i = 0; i < 9; ++i) BackStress.push_back(state[9+i]);
+    clone->SetMaterialBackStress(BackStress);
+    clone->SetMaterialEquivalentPlasticStrain(state[18]);
+  }
+  
+  Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
+    
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // Cauchy stress tensor
+  std::vector<double> ltangents; // consistent tangent modulus
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+  
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, &ltangents);
+
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
+      for(int k=0; k<3; k++)
+        for(int l=0; l<3; l++)
+          (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
+
+  delete clone;
 }
 
 template<typename Material>
 void 
 MaterialWrapper<Material>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*)
 {
+  Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
 
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+  std::vector<double> ltangents; // first elasticity tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, &ltangents);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
+      for(int k=0; k<3; k++)
+        for(int l=0; l<3; l++)
+          (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double* state)
+{
+  // clone material for thread-safety reasons
+  IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
+
+  std::vector<double> PlasticStrain;
+  std::vector<double> BackStress;
+  if(state) {
+    // set the internal variables
+    for (int i = 0; i < 9; ++i) PlasticStrain.push_back(state[i]);
+    clone->SetMaterialPlasticStrain(PlasticStrain);
+    for (int i = 0; i < 9; ++i) BackStress.push_back(state[9+i]);
+    clone->SetMaterialBackStress(BackStress);
+    clone->SetMaterialEquivalentPlasticStrain(state[18]);
+  }
+
+  Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
+
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // Cauchy stress tensor
+  std::vector<double> ltangents; // consistent tangent modulus
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, &ltangents);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
+      for(int k=0; k<3; k++)
+        for(int l=0; l<3; l++)
+          (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
+
+  delete clone;
 }
 
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                     double *staten, double *statenp, double)
+                                     double *, double *statenp, double)
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
@@ -111,26 +289,9 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 
   clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, &ltangents);
 
-#ifndef CONVERT_TO_PK1
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       (*stress)[3*i+j] = lstress[3*i+j];
-#else
-  Tensor_d0s2 sigma;
-  // copy lstress into sigma (this is the Cauchy stress tensor)
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      sigma[3*i+j] = lstress[3*i+j];
-
-  // compute the first Piola-Kirchhoff stress tensor P = J*sigma*F^{-T}
-  double J;
-  Tensor_d0s2 Ft, Ftinv;
-  enp.getDeterminant(J);
-  enp.getTranspose(Ft);
-  Ft.getInverse(Ftinv);
-  (*stress) = (sigma|Ftinv);
-  (*stress) = J*(*stress);
-#endif
 
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)

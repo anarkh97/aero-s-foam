@@ -13,12 +13,15 @@ template<int e>
 class ElasPlasKinHardMat : public NLMaterial
 {
   protected:
-    double rho, E, nu, Ep, sigE;
+    // Ep is the tangent modulus from the uniaxial strain-stress curve (Et for DYNA3D Material type 3)
+    // theta is hardening parameter which specifies and arbitrary combination of isotropic and kinematic hardening (beta for DYNA3D Material type 3)
+    // theta = 0 (default) is purely kinematic hardening, while theta = 1 is purely isotropic hardening
+    double rho, E, nu, Ep, sigE, theta;
 
   public:
     ElasPlasKinHardMat(StructProp *p);
-    ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE)
-       {rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE;}
+    ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE, double _theta = 0)
+       {rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; }
 
     void getStress(Tensor *stress, Tensor &strain, double *);
 
@@ -30,7 +33,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void updateStates(Tensor en, Tensor enp, double *state);
 
-    int getNumStates() { return 13; } // Kinematic hardening: the internal variables are : the plastic strain (6 doubles), the center of the yield surface in sigma space (6 doubles) and the equivalent plastic strain (1 double)
+    int getNumStates() { return 13; } // the internal variables are : the plastic strain (6 doubles), the center of the yield surface in sigma space (6 doubles) and the equivalent plastic strain (1 double)
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double);

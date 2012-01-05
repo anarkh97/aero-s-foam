@@ -3243,10 +3243,20 @@ MatSpec:
            geoSource->addMaterial($2-1, 
              new BilinPlasKinHardMat($4, $5, $6, $7, $8) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 

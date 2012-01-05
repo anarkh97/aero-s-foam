@@ -1125,7 +1125,7 @@ TRAIL [a-zA-Z]*
 
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
-"linear"|"LINEAR"                                       { return LINEARELASTIC; }
+"linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 

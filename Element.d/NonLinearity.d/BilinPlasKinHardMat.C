@@ -193,6 +193,7 @@ ElasPlasKinHardMat<e>::initStates(double *st)
 
 extern LinearStrain linearStrain;
 extern GreenLagrangeStrain greenLagrangeStrain;
+extern LogarithmicStrain logarithmicStrain;
 
 template<int e>
 StrainEvaluator *
@@ -201,6 +202,7 @@ ElasPlasKinHardMat<e>::getStrainEvaluator()
   switch(e) {
     case 0: return &linearStrain; break;
     case 1: return &greenLagrangeStrain; break;
+    case 2: return &logarithmicStrain; break;
   }
   return NULL;
 } 

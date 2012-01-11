@@ -93,7 +93,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -3258,6 +3258,16 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
@@ -3267,6 +3277,11 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat($4, $5, $6));
+         }
+        | MatSpec Integer HENCKY Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HenckyMat($4, $5, $6));
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {

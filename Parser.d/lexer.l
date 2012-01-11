@@ -1123,6 +1123,8 @@ TRAIL [a-zA-Z]*
 
 "fini"[a-zA-Z]*|"FINI"[a-zA-Z]*|"Fini"[a-zA-Z]*         { return FINITESTRAINPLASTIC; }
 
+"logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
+
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
 "linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
@@ -1130,6 +1132,8 @@ TRAIL [a-zA-Z]*
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
 "stve"[a-zA-Z]*|"STVE"[a-zA-Z]*|"StVe"[a-zA-Z]*         { return STVENANTKIRCHHOFF; }
+
+"henc"[a-zA-Z]*|"HENC"[a-zA-Z]*|"Henc"[a-zA-Z]*         { return HENCKY; }
 
 "neoh"[a-zA-Z]*|"NEOH"[a-zA-Z]*|"NeoH"[a-zA-Z]*         { return NEOHOOKEAN; }
 

@@ -49,6 +49,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
 typedef ElasPlasKinHardMat<0> BilinPlasKinHardMat;
 typedef ElasPlasKinHardMat<1> FiniteStrainPlasKinHardMat;
+typedef ElasPlasKinHardMat<2> LogStrainPlasKinHardMat;
 
 //template <class T> inline double delta(T a, T b) { return (a==b) ? 1.0 : 0.0; }
 

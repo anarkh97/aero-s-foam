@@ -173,7 +173,7 @@ FullSquareMatrix
 RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
 {
         if(prop == NULL || prop->rho == 0 || prop->A == 0) {
-           FullSquareMatrix ret(12,mel);
+           FullSquareMatrix ret(numDofs(),mel);
            ret.zero();
            return ret;
         }
@@ -194,7 +194,9 @@ RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
         _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
-        FullSquareMatrix ret(12, mel);
+        for(int i=12; i<numDofs(); ++i) mel[i] = 0; // this is for the lagrange multiplier dofs, if any
+
+        FullSquareMatrix ret(numDofs(), mel);
 
         return ret;
 }

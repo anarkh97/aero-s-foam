@@ -1893,6 +1893,16 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT Integer Float Float Float Float NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.amplitude = $5;
+          sp.omega = $6;
+          sp.phase = $7;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
 	;
 ElemSet:
 	TOPOLOGY NewLine Element

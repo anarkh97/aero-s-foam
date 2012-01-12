@@ -7,6 +7,8 @@ class DotConstraintType1a : public MpcElement
 {
     double (*c0)[3]; // initial frame (axes stored row-wise)
     int axis1, axis2;
+    int axis1_copy;
+    double t_reparam, offset;
 
   public:
     DotConstraintType1a(int*, int, int);

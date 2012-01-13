@@ -28,6 +28,25 @@
 #include <algorithm>
 
 void
+Domain::getElemStiffAndForce(const GeomState &geomState, double time,
+                             const GeomState *refState, const Corotator &elemCorot,
+                             double *elemForce, FullSquareMatrix &elemStiff) {
+    const_cast<Corotator &>(elemCorot).getStiffAndForce(
+        const_cast<GeomState *>(refState),
+        const_cast<GeomState &>(geomState),
+        nodes, elemStiff, elemForce, sinfo.getTimeStep(), time);
+}
+
+void
+Domain::getElemStiffAndForce(const GeomState &geomState, double time,
+                             const Corotator &elemCorot,
+                             double *elemForce, FullSquareMatrix &elemStiff) {
+  const_cast<Corotator &>(elemCorot).getStiffAndForce(
+      const_cast<GeomState &>(geomState),
+      nodes, elemStiff, elemForce, sinfo.getTimeStep(), time);
+}
+
+void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
@@ -61,10 +80,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if(corotators[iele]) {
-      corotators[iele]->getStiffAndForce(refState, geomState, nodes, kel[iele],
-                                         elementForce.data(), sinfo.getTimeStep(),
-                                         sinfo.isDynam() ? time : lambda); // mpc needs lambda for nonlinear statics
+    if (const Corotator *elemCorot = corotators[iele]) {
+      const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
+      getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
@@ -92,7 +110,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       Vector elementForceTmp(packedEset[iele]->numDofs());  
       kel[iele].zero();
       elementForceTmp.zero();
-      c->getStiffAndForce(geomState, nodes, kel[iele], elementForceTmp.getData(), sinfo.getTimeStep(), time);
+      getElemStiffAndForce(geomState, time, *c, elementForceTmp.getData(), kel[iele]);
       int *p = new int[packedEset[iele]->numDofs()];
       packedEset[iele]->dofs(*c_dsa, p);
       for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
@@ -1397,7 +1415,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       }
       pstress(svec,pvec);
       geoSource->outputNodeScalars(fileNumber, pvec+strDir-1, 1);
-      //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,pvec[strDir-1]);
     }
   }
   else {
@@ -1407,7 +1424,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
 
 
 // Nonlinear version of getElementForces
-
 void
 Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
                           int fileNumber, int forceIndex, double time)
@@ -1476,23 +1492,9 @@ Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
 
 // ... PRINT THE ELEMENT FORCES TO A FILE
    geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
-/*
-   fprintf(oinfo[fileNumber].filptr,"%*.*e\n",w,p,time);
-
-   int k;
-   for(k=0; k<numele; ++k)
-     fprintf(oinfo[fileNumber].filptr,"% *.*e\t% *.*e\n",
-             w,p,forces[k][0],w,p,forces[k][1]);
-
-   fflush(oinfo[fileNumber].filptr);
-*/
-
 }
 
-
-
 // Nonlinear restart file
-
 void
 Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
                          GeomState *geomState, const char *ext)

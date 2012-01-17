@@ -93,7 +93,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -1893,6 +1893,16 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT Integer Float Float Float Float NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.amplitude = $5;
+          sp.omega = $6;
+          sp.phase = $7;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
 	;
 ElemSet:
 	TOPOLOGY NewLine Element
@@ -3128,6 +3138,9 @@ NLInfo:
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine
         { domain->solInfo().getNLInfo().tolRes = $3; }
+        | NLInfo NLTOL Float Float NewLine
+        { domain->solInfo().getNLInfo().tolRes = $3;
+          domain->solInfo().getNLInfo().tolInc = $4; }
         | NLInfo DLAMBDA Float Float NewLine
         { domain->solInfo().getNLInfo().dlambda = $3; domain->solInfo().getNLInfo().maxLambda = $4; }
         | NLInfo FITALG Integer NewLine
@@ -3240,10 +3253,30 @@ MatSpec:
            geoSource->addMaterial($2-1, 
              new BilinPlasKinHardMat($4, $5, $6, $7, $8) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
@@ -3254,6 +3287,11 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat($4, $5, $6));
+         }
+        | MatSpec Integer HENCKY Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HenckyMat($4, $5, $6));
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {

@@ -69,7 +69,7 @@ Penta15::Penta15(int* nodenums)
 
   cFrame = 0; 
   cCoefs = 0;
-
+  mat = 0;
 }
 
 Element *
@@ -555,12 +555,34 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
 }
 
-//---------------------------------------------------------------------------------
-Corotator *
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NLPentahedral.h>
+#include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+#include <Corotational.d/MatNLCorotator.h>
+
+void
+Penta15::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Penta15::numStates()
+{
+  int numGaussPoints = 9;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+Corotator*
 Penta15::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- fprintf(stderr," *** WARNING: Penta15::getCorotator: NOT implemented. Abort.\n");
- exit(-1);
- return((Corotator*)0); 
+  if(!mat)
+    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  MatNLElement *ele = new NLPentahedral15(nn);
+  ele->setMaterial(mat);
+  ele->setGlNum(glNum);
+  return new MatNLCorotator(ele);
 }
 

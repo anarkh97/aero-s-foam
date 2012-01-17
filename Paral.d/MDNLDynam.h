@@ -196,6 +196,8 @@ class MDNLDynamic
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
+
+    virtual bool factorWhenBuilding() const;
 };
 
 inline double

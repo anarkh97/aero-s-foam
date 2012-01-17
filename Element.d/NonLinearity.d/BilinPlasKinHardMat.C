@@ -14,6 +14,7 @@ ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
   nu = p->nu;
   Ep = p->Ep;         // Tangent modulus from the strain-stress curve
   sigE = p->sigE;     // Yield equivalent stress
+  theta = 0;
 }
 
 template<int e>
@@ -78,8 +79,8 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
   //////////////////////////////////////////////////////////////////////////////
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
-  // hardening
-  double theta = 0.0;                          
+  // hardening. Note: this is now a member variable with default value 0
+  //double theta = 0.0;
 
   if(statenp == 0) {
 
@@ -192,6 +193,7 @@ ElasPlasKinHardMat<e>::initStates(double *st)
 
 extern LinearStrain linearStrain;
 extern GreenLagrangeStrain greenLagrangeStrain;
+extern LogarithmicStrain logarithmicStrain;
 
 template<int e>
 StrainEvaluator *
@@ -200,6 +202,7 @@ ElasPlasKinHardMat<e>::getStrainEvaluator()
   switch(e) {
     case 0: return &linearStrain; break;
     case 1: return &greenLagrangeStrain; break;
+    case 2: return &logarithmicStrain; break;
   }
   return NULL;
 } 

@@ -4,7 +4,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Element.d/NLElement.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
-#include <Element.d/NonLinearity.d/3DShapeFunction.h>
+#include <Element.d/NonLinearity.d/ShapeFunction.h>
 #include <Utils.d/NodeSpaceArray.h>
 #include <Math.d/TTensor.h>
 #include <Utils.d/dbg_alloca.h>

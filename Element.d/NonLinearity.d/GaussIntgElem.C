@@ -5,7 +5,9 @@
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/mathUtility.h>
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 
 FullSquareMatrix  
 GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
@@ -595,6 +597,7 @@ copyTens(Tensor *stens, double *svec)
   }
 }
 
+#ifdef USE_EIGEN3
 void
 copyTens(Tensor *stens, Eigen::Matrix3d &smat)
 {
@@ -614,6 +617,7 @@ copyTens(Tensor *stens, Eigen::Matrix3d &smat)
     else { cerr << "ERROR: unrecognized tensor type"; exit(-1); }
   }
 }
+#endif
 
 void
 GaussIntgElement::getStrainTens(Node *nodes, double *dispnp, double (*result)[9])
@@ -674,6 +678,7 @@ GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result)
 
     strainEvaluator->getE(enp, gradUnp);
 
+#ifdef USE_EIGEN3
     Eigen::Matrix3d M;
     copyTens(&enp,M);
     // compute the deviatoric stress/strain tensor and it's second invariant
@@ -681,11 +686,13 @@ GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result)
     double J2 = 0.5*(dev*dev).trace();
     // compute the effective stress/strain
     result[i] = sqrt(3*J2);
+#else
+    result[i] = 0;
+#endif
   }
 
   delete &gradUnp;
   delete &enp;
-
 }
 
 void
@@ -848,6 +855,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       strainEvaluator->getE(enp, gradUnp);
 
       material->getStress(&s, enp, statenp);
+#ifdef USE_EIGEN3
       Eigen::Matrix3d M;
       copyTens(&s,M);
       // compute the deviatoric stress/strain tensor and it's second invariant
@@ -855,6 +863,9 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       double J2 = 0.5*(dev*dev).trace();
       // compute the effective stress/strain
       result[i] = sqrt(3*J2);
+#else
+      result[i] = 0;
+#endif
     }
   }
   else { // evaluate at the gauss points and extrapolate to the nodes
@@ -883,7 +894,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       //material->getStressAndTangentMaterial(&s, &D, enp, 0);
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
-
+#ifdef USE_EIGEN3
       Eigen::Matrix3d M;
       copyTens(&s,M);
       // compute the deviatoric stress/strain tensor and it's second invariant
@@ -891,6 +902,9 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       double J2 = 0.5*(dev*dev).trace();
       // compute the effective stress/strain
       gpstress[i] = sqrt(3*J2);
+#else
+      gpstress[i] = 0;
+#endif
     }
 
     //TODO extrapolate from gauss points to nodes

@@ -118,3 +118,11 @@ StVenantKirchhoffMat::getStrainEvaluator()
   return &greenLagrangeStrain;
 }
 
+extern LogarithmicStrain logarithmicStrain;
+
+StrainEvaluator *
+HenckyMat::getStrainEvaluator()
+{
+  return &logarithmicStrain;
+}
+

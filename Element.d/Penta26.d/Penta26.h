@@ -9,6 +9,7 @@
 #define _PENTA26_H_
 
 #include <Element.d/Element.h>
+class NLMaterial;
 
 class Penta26: public Element {
 
@@ -19,7 +20,7 @@ class Penta26: public Element {
 
         double  *cCoefs;  
         double  *cFrame; 
-
+        NLMaterial *mat;
 public:
 	Penta26(int*);
 
@@ -73,6 +74,7 @@ public:
                  "              for Penta26 el.\n"); return (double *) 0;
         }
 
+        void setMaterial(NLMaterial *);
+        int numStates();
 };
 #endif
-

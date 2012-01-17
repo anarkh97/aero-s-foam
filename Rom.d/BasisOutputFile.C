@@ -47,7 +47,7 @@ BasisOutputFile::~BasisOutputFile() {
       rewindAndWriteStateCount();
     } catch (std::runtime_error &) {
       // Log error and swallow exception
-      fprintf(stderr, "WARNING: Corrupted output file %s\n", fileName_.c_str());
+      std::fprintf(stderr, "WARNING: Corrupted output file %s\n", fileName_.c_str());
     }
   }
 

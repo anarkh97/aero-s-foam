@@ -8,6 +8,10 @@ DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2)
   c0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
+
+  axis1_copy = axis1;
+  t_reparam = -1;
+  offset = M_PI/2;
 }
 
 DotConstraintType1a::~DotConstraintType1a()
@@ -89,6 +93,20 @@ DotConstraintType1a::buildFrame(CoordSet& cs)
 void 
 DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
 {
+  double ff = prop->amplitude*std::sin(prop->omega*t + prop->phase); // forcing function
+  double TOL = M_PI/64;
+  if(std::fabs(std::fmod(ff-offset,M_PI)) < TOL && t > t_reparam) { // reparameterize to stay away from singularity
+    if(axis1 != axis2) {
+      axis1 = axis2;
+      offset = 0;
+    }
+    else {
+      axis1 = axis1_copy;
+      offset = M_PI/2;
+    }
+    t_reparam = t;
+  }
+
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
@@ -118,8 +136,7 @@ DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
   }
 
   // -ve value of constraint function
-  rhs.r_value = std::cos(prop->amplitude*std::sin(prop->omega*t + prop->phase)-M_PI/2)
-                -(c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
+  rhs.r_value = std::cos(ff-offset)-(c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
 }
 
 void

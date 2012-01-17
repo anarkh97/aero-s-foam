@@ -2,7 +2,7 @@
 #define _NLMEMBRANE_H_
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
-#include <Element.d/NonLinearity.d/3DShapeFunction.h>
+#include <Element.d/NonLinearity.d/ShapeFunction.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/TTensor.h>

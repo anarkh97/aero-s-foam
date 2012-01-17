@@ -813,11 +813,13 @@ Compo3NodeShell::examine(int sub, MultiFront *mf)
   return examineTri3Shell(sub, mf, nn);
 }
 
+#ifdef USE_EIGEN3
 PrioInfo
 FelippaShell::examine(int sub, MultiFront *mf)
 {
   return examineTri3Shell(sub, mf, nn);
 }
+#endif
 
 PrioInfo
 Therm3NoShell::examine(int sub, MultiFront *mf)
@@ -882,11 +884,13 @@ Compo4NodeShell::examine(int sub, MultiFront *mf)
   return examineQuad4Shell(sub, mf, nn);
 }
 
+#ifdef USE_EIGEN3
 PrioInfo
 FelippaShellX2::examine(int sub, MultiFront *mf)
 {
   return examineQuad4Shell(sub, mf, nn);
 }
+#endif
 
 PrioInfo Therm4NoShell::examine(int sub, MultiFront *mf)
 {

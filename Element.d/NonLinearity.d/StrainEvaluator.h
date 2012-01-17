@@ -50,6 +50,18 @@ class GreenLagrangeStrain : public StrainEvaluator
     void getE(Tensor &e, Tensor &gradU);
 };
 
+class LogarithmicStrain : public StrainEvaluator
+{
+  public:
+    Tensor *getTMInstance();
+    Tensor *getStressInstance();
+    Tensor *getStrainInstance();
+    Tensor *getBInstance(int numdofs);
+    Tensor *getDBInstance(int numdofs);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getE(Tensor &e, Tensor &gradU);
+};
+
 class DeformationGradient : public StrainEvaluator
 {
   // To be used when the appropriate strain measure is the

@@ -4,6 +4,7 @@
 #include <Element.d/Element.h>
 
 class PentaCorotator;
+class NLMaterial;
 
 class Pentahedral: public Element {
 
@@ -12,6 +13,7 @@ class Pentahedral: public Element {
         double  *cFrame;  // HB 4-15-05
                                                                                                                   
         PentaCorotator* pentaCorotator;
+        NLMaterial *mat;
 public:
 	Pentahedral(int*);
 
@@ -70,6 +72,8 @@ public:
      void getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 		            Vector &elDisp, int strInd, int surface=0, double *ndTemps=0);
 
+     void setMaterial(NLMaterial *);
+     int numStates();
 };
 #endif
 

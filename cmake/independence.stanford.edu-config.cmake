@@ -3,9 +3,8 @@
 #SET(CMAKE_INCLUDE_PATH /home/avery/Codes/eigen
 #                       /share/apps/lib/arpack/src
 #                       /share/apps/lib/spooles-2.2/src
-##                       /share/apps/lib/MUMPS_4.9.2/src/include
 #                       /home/avery/Codes/mumps/MUMPS_4.9.2/include
-#                       /share/apps/lib/acme-2.9/src/search /share/apps/lib/acme-2.9/src/enforcement
+#                       /share/apps/lib/ZOLTAN/src
 #                       /share/apps/lib/ZOLTAN/src/include)
 #SET(CMAKE_LIBRARY_PATH /usr/lib64
 #                       /opt/intel/Compiler/11.1/064/mkl/lib/em64t
@@ -15,7 +14,6 @@
 ##                       /share/apps/lib/MUMPS_4.9.2/gcc_openmpi143
 #                       /home/avery/Codes/mumps/MUMPS_4.9.2/lib
 #                       /share/apps/lib/metis-4.0.1/gcc
-#                       /share/apps/lib/acme-2.9/gcc_openmpi143
 #                       /share/apps/lib/ZOLTAN/gcc_openmpi143)
 ## generic blas and lapack
 #SET(BLAS_LIBRARIES /home/avery/Codes/lapack-3.3.0/BLAS/SRC/libblas.a)
@@ -25,11 +23,14 @@
 
 SET(CMAKE_INCLUDE_PATH /home/avery/Intel/eigen
                        /home/avery/Intel/SPOOLES
-                       /home/avery/Intel/MUMPS_4.10.0/include)
+                       /home/avery/Intel/MUMPS_4.10.0/include
+                       /home/avery/Intel/Zoltan/Zoltan_v3.5/include
+                       /home/avery/Intel/Zoltan/Zoltan_v3.5/src)
 SET(CMAKE_LIBRARY_PATH /home/avery/Intel/ARPACK
                        /home/avery/Intel/SPOOLES
                        /home/avery/Intel/SPOOLES/MT/src
-                       /home/avery/Intel/MUMPS_4.10.0/lib)
+                       /home/avery/Intel/MUMPS_4.10.0/lib
+                       /home/avery/Intel/Zoltan/Zoltan_v3.5/lib)
 ## blas and lapack without scalapack and blacs (using intel math kernel library)
 #SET(LAPACK_LIBRARIES -Wl,--start-group /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_sequential.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread CACHE STRING "Path to a library.")
 #SET(LAPACK_FOUND true)

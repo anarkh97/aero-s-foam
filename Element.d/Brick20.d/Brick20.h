@@ -2,6 +2,8 @@
 #define _TWENTY_BRICK_H_
 
 #include <Element.d/Element.h>
+class Corotator;
+class NLMaterial;
 
 class Brick20: public Element {
 
@@ -9,7 +11,7 @@ class Brick20: public Element {
         double *C; 
         double  *cCoefs;  // HB 06-19-05
         double  *cFrame;  // HB 06-19-05
-                                                                                                                             
+        NLMaterial *mat;                                                                                                                             
 public:
 	Brick20(int*);
 
@@ -49,25 +51,6 @@ public:
 	void getThermalForce(CoordSet &cs, Vector &ndTemps,
                              Vector &elementThermalForce, int glflag, GeomState *geomState);
 
-#ifdef STRUCTOPT
-
-        int chkOptInf(CoordSet&);
-
-        void gradstiffness(CoordSet &, CoordSet &, FullSquareMatrix &, int =1);
-
-        void gradMassMatrix(CoordSet &, CoordSet &, FullSquareMatrix &);
-
-        void getGradVonMises (Vector &, Vector &, CoordSet &, CoordSet &,
-                              Vector &, Vector &, int , int =0);
-
-        void getGradVonMisesInt(CoordSet &, CoordSet &, Vector &, Vector &,
-                                double &, double &, int, double &, double &,
-                                double &, double &);
-
-        double getGradMass(CoordSet &, CoordSet &);
-
-#endif
-
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame)
           { cCoefs = coefs; cFrame = frame; } // HB 06-19-05 
@@ -77,6 +60,9 @@ public:
                  "              for Hexa20 el.\n"); return (double *) 0;
         }
 
+        void setMaterial(NLMaterial *);
+        int numStates();
+        Corotator *getCorotator(CoordSet &cs, double *kel, int, int);
 };
 #endif
 

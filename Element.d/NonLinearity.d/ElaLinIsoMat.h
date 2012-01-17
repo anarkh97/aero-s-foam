@@ -50,5 +50,15 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     StrainEvaluator * getStrainEvaluator();
 };
 
+class HenckyMat : public ElaLinIsoMat
+{
+  public:
+    HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
+    HenckyMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
+
+    StrainEvaluator * getStrainEvaluator();
+};
+
+
 #endif
  

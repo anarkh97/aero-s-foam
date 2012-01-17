@@ -252,6 +252,9 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   userSupFunc = 0;
   mu = 0; lambda = 0;
   aeroForce = 0;
+  kelArray = 0;
+  melArray = 0;
+  celArray = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -281,7 +284,7 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
   int converged = 0;
   // Check for convergence
-  if(normRes <= tolerance*firstRes) converged = 1;
+  if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) converged = 1;
   // Check for divergence
   else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
 
@@ -457,6 +460,17 @@ MDNLDynamic::preProcess()
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubCorotators);
   times->corotatorTime += getTime();
 
+  // Allocate each subdomain's array of stiffness matrices
+  kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
+
+  // Allocate each subdomain's array of mass matrices
+  melArray = new FullSquareMatrix*[decDomain->getNumSub()];
+
+  if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) celArray = new FullSquareMatrix*[decDomain->getNumSub()];
+
+  // Now make those arrays
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
+
   times->memoryPreProcess += threadManager->memoryUsed();
 
   // Construct FETI Solver
@@ -465,7 +479,7 @@ MDNLDynamic::preProcess()
   double Kcoef = 0.0;
   double Mcoef = 1.0;
   double Ccoef = 0.0;
-  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef);
+  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, factorWhenBuilding());
   solver = (ParallelSolver *) allOps->dynMat;
   M = allOps->M;
   C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
@@ -474,6 +488,7 @@ MDNLDynamic::preProcess()
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 
+/*
   // Allocate each subdomain's array of stiffness matrices
   kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
@@ -484,7 +499,7 @@ MDNLDynamic::preProcess()
 
   // Now make those arrays
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
-
+*/
   // Look if there is a user supplied routine for control
   claw = geoSource->getControlLaw();
 
@@ -503,7 +518,7 @@ MDNLDynamic::preProcess()
   mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
   lambda = new std::vector<double>[decDomain->getNumSub()];
 
-  times->memoryPreProcess -= threadManager->memoryUsed();
+  times->memoryPreProcess += threadManager->memoryUsed();
 }
 
 void
@@ -526,7 +541,7 @@ void
 MDNLDynamic::makeSubElementArrays(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
-  if(C) sd->createKelArray(kelArray[isub], melArray[isub], celArray[isub]); 
+  if(celArray) sd->createKelArray(kelArray[isub], melArray[isub], celArray[isub]); 
   else sd->createKelArray(kelArray[isub], melArray[isub]);
 }
 
@@ -859,6 +874,11 @@ MDNLDynamic::getResidualNorm(DistrVector &r)
                   // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
                   // correctly only for the case of one contactsurfaces pair
  return sqrt(solver->getFNormSq(w));
+}
+
+bool
+MDNLDynamic::factorWhenBuilding() const {
+  return domain->solInfo().iacc_switch;
 }
 
 void

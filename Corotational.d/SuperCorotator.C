@@ -130,8 +130,10 @@ SuperCorotator::getExternalForce(GeomState &geomState, CoordSet &cs,
     //double *subf = new double[ndofs];
     //for(j=0; j<ndofs; ++j) subf[j] = f[subElemDofs[j]];
     double *subf = superElem->getPreviouslyComputedSubExternalForce(i);
-    subElemCorotators[i]->getExternalForce(geomState, cs, subf);
-    for(j=0; j<ndofs; ++j) fg[subElemDofs[j]] += subf[j];
+    if(subf) {
+      subElemCorotators[i]->getExternalForce(geomState, cs, subf);
+      for(j=0; j<ndofs; ++j) fg[subElemDofs[j]] += subf[j];
+    }
     //delete [] subf;
   }
 

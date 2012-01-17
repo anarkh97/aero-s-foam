@@ -1,7 +1,5 @@
 PROJECT (FEM)
 
-#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
-
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
@@ -53,45 +51,36 @@ IF(UNIX)
 
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
 
-# acme
-    IF(NOT ACME_VERSION)
-      #MESSAGE("ACME_VERSION is not defined")
-      SET(ACME_VERSION "2_5")
-    ENDIF(NOT ACME_VERSION)
-    FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
-              PATHS /usr/include /usr/local/include)
-    FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
-              PATHS /usr/include /usr/local/include)
-    #FIND_PATH(ACME_driver_INCLUDE_PATH params.h
-    #          PATHS /usr/include /usr/local/include)
-    IF(NOT MPI_FOUND)
-      MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
-      MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
-                   PATHS /usr/lib /usr/local/lib)
-      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-        MESSAGE("-- A library with ACME API found.")
-        SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION} -DCONTACT_NO_MPI)
-        SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
-      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-    ELSE(NOT MPI_FOUND)
-      MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
-      MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
-      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
-                   PATHS /usr/lib /usr/local/lib)
+# zoltan
+    IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
       FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
-              PATHS /usr/include /usr/local/include)
+                PATHS /usr/include /usr/local/include)
+      FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
+                PATHS /usr/include /usr/local/include)
       FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
                    PATHS /usr/lib /usr/local/lib)
-      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-        MESSAGE("-- A library with ACME API found.")
+      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
+        MESSAGE("-- A library with Zoltan API found.")
+        SET(ZOLTAN_FOUND TRUE)
+        SET(EXTRALIBRARIES ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
+        SET(INC_DIR ${INC_DIR} ${ZOLTAN_INCLUDE_PATH}
+            ${ZOLTAN_SRC_PATH}/zz ${ZOLTAN_SRC_PATH}/lb ${ZOLTAN_SRC_PATH}/Utilities/shared
+            ${ZOLTAN_SRC_PATH}/Utilities/Timer ${ZOLTAN_SRC_PATH}/par ${ZOLTAN_SRC_PATH}/params
+            ${ZOLTAN_SRC_PATH}/order ${ZOLTAN_SRC_PATH}/tpls)
+      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
+    ENDIF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
+
+# acme
+    IF(NOT MPI_FOUND)
+      SET(ACME_FOUND TRUE)
+      add_definitions(-DUSE_ACME -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+      SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+    ELSE(NOT MPI_FOUND)
+      IF(ZOLTAN_FOUND)
         SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION})
-        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
-      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+        add_definitions(-DUSE_ACME -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+        SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+      ENDIF(ZOLTAN_FOUND)
     ENDIF(NOT MPI_FOUND)
 
 # arpack
@@ -145,7 +134,7 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   find_package(Eigen3)
+   find_package(Eigen3 3.0.90)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
      add_definitions(-DUSE_EIGEN3)
@@ -322,6 +311,11 @@ add_subdirectory(Regression.d)
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
      Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
+
+IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
+  add_subdirectory(Acme.d)
+  SET(ALLLIBS ${ALLLIBS} Acme)
+ENDIF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)

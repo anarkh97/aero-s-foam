@@ -1,6 +1,7 @@
 #ifndef _FELIPPASHELL_H_
 #define _FELIPPASHELL_H_
 
+#ifdef USE_EIGEN3
 #include <Element.d/Element.h>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
@@ -80,5 +81,6 @@ public:
         int getMassType() { return 0; } // lumped only
 
 };
+#endif
 #endif
 

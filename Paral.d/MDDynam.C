@@ -20,7 +20,7 @@
 #include <Feti.d/Feti.h>
 #include <Utils.d/ModeData.h>
 
-#define EXPLICIT_UPDATE
+//#define EXPLICIT_UPDATE
 
 extern ModeData modeData;
 

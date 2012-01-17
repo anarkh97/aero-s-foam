@@ -201,12 +201,15 @@ Membrane.d/FourNodeMembrane.C
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
 NonLinearity.d/2DMat.C
-NonLinearity.d/3DShapeFunction.C
+NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
+NonLinearity.d/NLPentahedral.C
+NonLinearity.d/NLTetrahedral.C
 NonLinearity.d/NLMembrane.C
 NonLinearity.d/StrainEvaluator.C
+NonLinearity.d/felippa.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C

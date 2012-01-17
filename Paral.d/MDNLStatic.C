@@ -146,7 +146,7 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  //  converged = 1;
 
  // Check to see if residual has converged
- if(relativeRes <= domain->solInfo().getNLInfo().tolRes)
+ if(relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc)
   converged = 1;
 
  // Divergence check

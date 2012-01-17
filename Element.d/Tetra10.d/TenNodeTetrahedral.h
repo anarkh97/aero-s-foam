@@ -2,6 +2,7 @@
 #define _TENNODETETRAHEDRAL_H_
 
 #include <Element.d/Element.h>
+class NLMaterial;
 
 class TenNodeTetrahedral: public Element {
 
@@ -9,6 +10,7 @@ class TenNodeTetrahedral: public Element {
 
         double  *cCoefs;  // HB 06-19-05
         double  *cFrame;  // HB 06-19-05
+        NLMaterial *mat;
                                                                                                                                         
 public:
 	TenNodeTetrahedral(int*);
@@ -68,6 +70,8 @@ public:
                                Vector &elDisp, int strInd, int surface=0,
                                double *ndTemps=0);
 
+        void setMaterial(NLMaterial *);
+        int numStates();
+        Corotator *getCorotator(CoordSet &cs, double *kel, int, int);
 };
 #endif
-

@@ -35,7 +35,7 @@ typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
-#define EXPLICIT_UPDATE
+//#define EXPLICIT_UPDATE
 
 // SDDynamPostProcessor implementation
 

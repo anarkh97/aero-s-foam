@@ -20,18 +20,18 @@ C       SZ        (20 x 1) array of shape function z-derivatives
 C       DET        Value of Jacobian determinant
 C-----------------------------------------------------------------------
 C HEXA20 nodes/shape fcts numbering:
-C                     20
+C                     16
 C             5+-------+-------+8
 C             /|              /|             
 C            / |             / |             
-C         17+  |          19+  |               
-C          / 13+           /   +16             
-C         /    | 18       /    |    t          
+C         13+  |          15+  |               
+C          / 17+           /   +20             
+C         /    | 14       /    |    t          
 C       6+-------+-------+7    |    |          
 C        |     |      12 |     |    |          
 C        |    1+-------+-|-----+ 4  +---- s    
 C        |    /          |    /    /           
-C      14+   /         15+   /    /           
+C      18+   /         19+   /    /           
 C        | 9+            |  +11  r       
 C        | /             | /            
 C        |/              |/                   
@@ -83,14 +83,14 @@ C     +-----------------------------------------------------------------
       sf(10) = 0.25d0*rp*ssm*tm
       sf(11) = 0.25d0*rrm*sp*tm
       sf(12) = 0.25d0*rm*ssm*tm
-      sf(13) = 0.25d0*rm*sm*ttm
-      sf(14) = 0.25d0*rp*sm*ttm
-      sf(15) = 0.25d0*rp*sp*ttm
-      sf(16) = 0.25d0*rm*sp*ttm
-      sf(17) = 0.25d0*rrm*sm*tp
-      sf(18) = 0.25d0*rp*ssm*tp
-      sf(19) = 0.25d0*rrm*sp*tp
-      sf(20) = 0.25d0*rm*ssm*tp
+      sf(17) = 0.25d0*rm*sm*ttm
+      sf(18) = 0.25d0*rp*sm*ttm
+      sf(19) = 0.25d0*rp*sp*ttm
+      sf(20) = 0.25d0*rm*sp*ttm
+      sf(13) = 0.25d0*rrm*sm*tp
+      sf(14) = 0.25d0*rp*ssm*tp
+      sf(15) = 0.25d0*rrm*sp*tp
+      sf(16) = 0.25d0*rm*ssm*tp
 C--------------------------------------- DERIVATIVE EVALUATION
       sd1(1)  = -0.125d0*sm*tm*(2.d0*rm+sm+tm-5.d0)
       sd1(2)  =  0.125d0*sm*tm*(2.d0*rp+sm+tm-5.d0)
@@ -104,14 +104,14 @@ C--------------------------------------- DERIVATIVE EVALUATION
       sd1(10) =  0.25d0*ssm*tm
       sd1(11) = -0.5d0*r*sp*tm
       sd1(12) = -sd1(10)
-      sd1(14) =  0.25d0*sm*ttm
-      sd1(13) = -sd1(14)
-      sd1(15) =  0.25d0*sp*ttm
-      sd1(16) = -sd1(15)
-      sd1(17) = -0.5d0*r*sm*tp
-      sd1(18) =  0.25d0*ssm*tp
-      sd1(19) = -0.5d0*r*sp*tp
-      sd1(20) = -sd1(18)
+      sd1(18) =  0.25d0*sm*ttm
+      sd1(17) = -sd1(18)
+      sd1(19) =  0.25d0*sp*ttm
+      sd1(20) = -sd1(19)
+      sd1(13) = -0.5d0*r*sm*tp
+      sd1(14) =  0.25d0*ssm*tp
+      sd1(15) = -0.5d0*r*sp*tp
+      sd1(16) = -sd1(14)
       sd2(1)  = -0.125d0*tm*rm*(2.d0*sm+tm+rm-5.d0)
       sd2(2)  = -0.125d0*tm*rp*(2.d0*sm+tm+rp-5.d0)
       sd2(3)  =  0.125d0*tm*rp*(2.d0*sp+tm+rp-5.d0)
@@ -124,14 +124,14 @@ C--------------------------------------- DERIVATIVE EVALUATION
       sd2(11) =  0.25d0*rrm*tm
       sd2(9)  = -sd2(11)
       sd2(12) = -0.5d0*s*tm*rm
-      sd2(14) = -0.25d0*ttm*rp
-      sd2(15) = -sd2(14)
-      sd2(16) =  0.25d0*ttm*rm
-      sd2(13) = -sd2(16)
-      sd2(19) =  0.25d0*rrm*tp
-      sd2(17) = -sd2(19)
-      sd2(18) = -0.5d0*s*tp*rp
-      sd2(20) = -0.5d0*s*tp*rm
+      sd2(18) = -0.25d0*ttm*rp
+      sd2(19) = -sd2(18)
+      sd2(20) =  0.25d0*ttm*rm
+      sd2(17) = -sd2(20)
+      sd2(15) =  0.25d0*rrm*tp
+      sd2(13) = -sd2(15)
+      sd2(14) = -0.5d0*s*tp*rp
+      sd2(16) = -0.5d0*s*tp*rm
       sd3(1)  = -0.125d0*rm*sm*(2.d0*tm+rm+sm-5.d0)
       sd3(2)  = -0.125d0*rp*sm*(2.d0*tm+rp+sm-5.d0)
       sd3(3)  = -0.125d0*rp*sp*(2.d0*tm+rp+sp-5.d0)
@@ -144,14 +144,14 @@ C--------------------------------------- DERIVATIVE EVALUATION
       sd3(10) = -0.25d0*ssm*rp
       sd3(11) = -0.25d0*rrm*sp
       sd3(12) = -0.25d0*ssm*rm
-      sd3(13) = -0.5d0*t*rm*sm
-      sd3(14) = -0.5d0*t*rp*sm
-      sd3(15) = -0.5d0*t*rp*sp
-      sd3(16) = -0.5d0*t*rm*sp
-      sd3(18) = -sd3(10)
-      sd3(19) = -sd3(11)
-      sd3(20) = -sd3(12)
-      sd3(17) = -sd3(9)
+      sd3(17) = -0.5d0*t*rm*sm
+      sd3(18) = -0.5d0*t*rp*sm
+      sd3(19) = -0.5d0*t*rp*sp
+      sd3(20) = -0.5d0*t*rm*sp
+      sd3(14) = -sd3(10)
+      sd3(15) = -sd3(11)
+      sd3(16) = -sd3(12)
+      sd3(13) = -sd3(9)
       xd1   =    0.0
       xd2   =    0.0
       xd3   =    0.0

@@ -1070,7 +1070,7 @@ Domain::setUpData()
       int numIDisModal = modeData.numNodes*6;
       BCond *iDis_new = new BCond[numIDis+numIDisModal];
       for(int i=0; i<numIDis; ++i) iDis_new[i] = iDis[i]; 
-      modeData.addMultY(numBC, bc, iDis_new+numIDis);
+      modeData.addMultY(numBC, bc, iDis_new+numIDis, 6);
       numIDis += numIDisModal;
       delete [] iDis;
       iDis = iDis_new;
@@ -1091,10 +1091,10 @@ Domain::setUpData()
   else {
     if(numBC) {
       filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
-      int numIVelModal = modeData.numNodes*3;
+      int numIVelModal = modeData.numNodes*6;
       BCond *iVel_new = new BCond[numIVel+numIVelModal];
       for(int i=0; i<numIVel; ++i) iVel_new[i] = iVel[i];
-      modeData.addMultY(numBC, bc, iVel_new+numIVel, 3);
+      modeData.addMultY(numBC, bc, iVel_new+numIVel, 6);
       numIVel += numIVelModal;
       delete [] iVel;
       iVel = iVel_new;

@@ -174,7 +174,7 @@ def dComp(params):
       indir = names+"/"
       os.chdir(indir)
       if(run == 1):
-        os.system("rm *.dat")
+        os.system("rm *.dat test.* host.*")
         qsubScript = "scp."+names
         retcode = subprocess.Popen(["qsub", qsubScript ], stdout=subprocess.PIPE).communicate()[0]
         numbers = filter(lambda x: x.isdigit(), retcode)
@@ -184,7 +184,7 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
-        os.system("rm *.dat")
+        os.system("rm *.dat test.* host.*")
         command = "./run."+names+" >& reg.out"
 #       command = "sh ./scp."+names+" >& reg.out"
         os.system(command)
@@ -199,7 +199,7 @@ def dComp(params):
       print "%s" % indir
       os.chdir(indir)
       if(run == 1):
-        os.system("rm *.dat")
+        os.system("rm *.dat test.* host.*")
         qsubScript = "scp."+indir
         retcode = subprocess.Popen(["qsub", qsubScript ], stdout=subprocess.PIPE).communicate()[0]
         numbers = filter(lambda x: x.isdigit(), retcode)
@@ -209,7 +209,7 @@ def dComp(params):
             break
           time.sleep(10)
       if(lrun == 1):
-        os.system("rm *.dat")
+        os.system("rm *.dat test.* host.*")
         print "current directory is %s\n"% os.getcwd()
         command = "./run."+indir+" >& reg.out"
 #       command = "sh ./scp."+indir+" >& reg.out"

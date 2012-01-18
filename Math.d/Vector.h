@@ -124,6 +124,7 @@ class GenVector {
    void insertData(Scalar *v);
    Scalar* getData() { return d; }
    void reset(int newlen, Scalar initialValue = 0.0);
+   void resize(int newlen);
 
    double squareNorm() const;
    double norm() const;

@@ -5,7 +5,8 @@ Rbm.C
 MappedAssembledSolver.C
 SolverCore.C
 SpoolesCore.C
-UFront.C)
+UFront.C
+GoldfarbIdnani.C)
 
 #SET(INC_DIR ..)
 

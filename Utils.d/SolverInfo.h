@@ -194,6 +194,8 @@ struct SolverInfo {
    int sparse_renum;  // renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
    int sparse_maxsup, sparse_defblk;
 
+   double goldfarb_tol;
+
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
    map<int, double> mumps_cntl;
@@ -243,6 +245,7 @@ struct SolverInfo {
 
    bool lagrangeMult;
    double penalty;
+   bool mpcDual;
 
    bool activatePodRom;
    bool svdPodRom;
@@ -356,6 +359,7 @@ struct SolverInfo {
                   spooles_maxzeros = 0.04;
                   spooles_msglvl = 0;
                   spooles_renum = 0;
+                  goldfarb_tol = 1.0;
                   explicitK = false;
                   localScaled = false;
                   coarseScaled = false;
@@ -431,6 +435,7 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+                  mpcDual = false;
 
                   activatePodRom = false;
                   svdPodRom = false;

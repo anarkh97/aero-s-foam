@@ -420,11 +420,13 @@ TRAIL [a-zA-Z]*
 
 "simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
+"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+
 "fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
 "bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
 
-"para"[a-zA-Z]*|"PARA"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
+"supe"[a-zA-Z]*|"SUPE"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
 
 "spooles"[a-zA-Z]*|"SPOOLES"[a-zA-Z]* { yylval.ival = 8; return SOLVERTYPE; }
 
@@ -461,6 +463,8 @@ TRAIL [a-zA-Z]*
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
+
+"goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 

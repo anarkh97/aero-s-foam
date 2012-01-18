@@ -669,19 +669,18 @@ MDNLDynamic::subExtractControlDisp(int isub, DistrGeomState &geomState, double *
   ControlLawInfo *subClaw = sd->getClaw();
   if(subClaw && subClaw->numSensor > 0) {
     CoordSet &nodes = sd->getNodes();
-    NodeState *nodeState = geomState[isub]->getNodeState();
     for(int i=0; i<subClaw->numSensor; ++i) {
       switch (subClaw->sensor[i].dofnum) {
         case 0:
-          ctrdsp[sd->getSensorDataMap()[i]] = nodeState[subClaw->sensor[i].nnum].x
+          ctrdsp[sd->getSensorDataMap()[i]] = (*geomState[isub])[subClaw->sensor[i].nnum].x
                         - nodes[subClaw->sensor[i].nnum]->x;
           break;
         case 1:
-          ctrdsp[sd->getSensorDataMap()[i]] = nodeState[subClaw->sensor[i].nnum].y
+          ctrdsp[sd->getSensorDataMap()[i]] = (*geomState[isub])[subClaw->sensor[i].nnum].y
                         - nodes[subClaw->sensor[i].nnum]->y;
           break;
         case 2:
-          ctrdsp[sd->getSensorDataMap()[i]] = nodeState[subClaw->sensor[i].nnum].z
+          ctrdsp[sd->getSensorDataMap()[i]] = (*geomState[isub])[subClaw->sensor[i].nnum].z
                         - nodes[subClaw->sensor[i].nnum]->z;
           break;
         default:

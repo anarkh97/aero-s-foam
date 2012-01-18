@@ -2649,6 +2649,7 @@ Domain::initialize()
  nContactSurfacePairs = 0;
  outFlag = 0;
  nodeTable = 0;
+ p = 0;
 }
 
 Domain::~Domain()
@@ -3502,30 +3503,66 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 }
 
 void
-Domain::UpdateContactSurfaceElements()
+Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  //cerr << "here in Domain::UpdateContactSurfaceElements, numLMPC = " << numLMPC << endl;
-  StructProp *p = new StructProp(); // TODO memory leak
+  // first store the lagrange multipliers
+  std::map<std::pair<int,int>,double> mu; 
+  std::map<std::pair<int,int>,double>::iterator it;
+  if(sinfo.lagrangeMult) {
+    for(std::vector<int>::iterator i = contactSurfElems.begin(); i != contactSurfElems.end(); ++i) {
+      if(packedEset[*i]->numInternalNodes() == 1) {
+        int in = (*elemToNode)[*i][packedEset[*i]->numNodes()-1];
+        LMPCons *lmpc = dynamic_cast<LMPCons*>(packedEset[*i]);
+        mu[lmpc->id] = (*geomState)[in].x;
+      }
+    }
+    // count the number of contact surface lmpcs with lagrange multipliers
+    int count3 = 0;
+    for(int i = 0; i < numLMPC; ++i) {
+      if(lmpc[i]->getSource() == mpc::ContactSurfaces) count3++;
+    }
+
+    geomState->resizeNodeState(count3-contactSurfElems.size()); // resizing the node state vector allows the lagrange multipliers to be stored
+  }
+
+  if(!p) p = new StructProp(); 
   p->lagrangeMult = sinfo.lagrangeMult;
   p->penalty = sinfo.penalty;
   p->type = StructProp::Constraint;
   int count = 0;
   int nEle = packedEset.size();
   int count1 = 0;
+  int lastNode = geomState->numNodes();
+  if(sinfo.lagrangeMult) lastNode -= contactSurfElems.size();
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
         //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
-        //delete packedEset[contactSurfElems[count]];
-        packedEset[contactSurfElems[count]] = 0;
+        packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         packedEset[contactSurfElems[count]]->setProp(p);
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) {
+          int in[1] = { lastNode++ };
+          packedEset[contactSurfElems[count]]->setInternalNodes(in);
+          if((it = mu.find(lmpc[i]->id)) != mu.end())
+            (*geomState)[in[0]].x = it->second;
+          else
+            (*geomState)[in[0]].x = 0;
+        }
         count1++;
       }
       else { // new
         //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
         packedEset[nEle]->setProp(p);
+        if(packedEset[nEle]->numInternalNodes() == 1) {
+          int in[1] = { lastNode++ };
+          packedEset[nEle]->setInternalNodes(in);
+          if((it = mu.find(lmpc[i]->id)) != mu.end())
+            (*geomState)[in[0]].x = it->second;
+          else
+            (*geomState)[in[0]].x = 0;
+        }
         contactSurfElems.push_back(nEle);
         nEle++;
       }
@@ -3535,13 +3572,13 @@ Domain::UpdateContactSurfaceElements()
   int count2 = 0;
   while(count < contactSurfElems.size()) {
     //cerr << "deleting elemset " << contactSurfElems.back() << endl;
-    //delete packedEset[contactSurfElems.back()];
-    packedEset[contactSurfElems.back()] = 0;
+    packedEset.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;
   }
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
-  numele = packedEset.last();
+  numele = packedEset.last(); 
+  numnodes = lastNode;
 }
 

@@ -1,6 +1,6 @@
 
 void
-mat_mult_mat(double A[3][3], double B[3][3], double C[3][3], int transflag)
+mat_mult_mat(const double A[3][3], const double B[3][3], double C[3][3], int transflag)
 {
  int i,j;
  if(transflag == 0) {

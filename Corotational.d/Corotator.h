@@ -77,6 +77,8 @@ class Corotator {
 
     virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
 
+    virtual void getResidualCorrection(GeomState &gs, double *r) {}
+
     virtual ~Corotator() {/*TODO*/}
 };
 

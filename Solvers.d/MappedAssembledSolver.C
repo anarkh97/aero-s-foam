@@ -37,8 +37,8 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
 
   // PJSA also constrain the lagrange multiplier dofs, if any
   for(int i = 0; i < dsa->numNodes(); ++i) {
-    int dof = dsa->locate(i, DofSet::Lagrange);
-    if(dof >= 0)
+    int dof;
+    if((dof = dsa->locate(i, DofSet::LagrangeE)) >= 0 || (dof = dsa->locate(i, DofSet::LagrangeI)) >= 0)
       constrainedDOFs[mpCount++] = dof;
   }
 

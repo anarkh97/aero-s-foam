@@ -16,7 +16,7 @@ class TemperatureState : public GeomState {
    private:
 //     int numnodes;	// number of nodes
 //     NodeState *ns;	// node state (x,y,z position and rotation tensor)
-     int (*loc)[1];	// dof location array
+//     int (*loc)[1];	// dof location array
 //     double refCG[3];   // reference CG
 //     double gRot[3][3]; // Global Rotation Matrix
 //     const CoordSet &X0;

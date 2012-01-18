@@ -41,6 +41,7 @@ template <class Scalar> class GenCuCSparse;
 typedef GenCuCSparse<double> CuCSparse;
 template <class Scalar> class GenBLKSparseMatrix;
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
+template <class BaseSolver, class Scalar> class GoldfarbIdnaniQpSolver;
 template <class Scalar> class GenSGISparseMatrix;
 typedef GenSGISparseMatrix<double> SGISparseMatrix;
 class SGISky;
@@ -266,6 +267,8 @@ class Domain : public HData {
     Elemset elems_copy; // Needed for SFEM
     Elemset elems_fullcopy; // copy of the full elementset, needed for SFEM
 
+    StructProp *p; // property for new constraints
+
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
@@ -324,6 +327,7 @@ class Domain : public HData {
 			   Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL);
+     void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
@@ -434,7 +438,7 @@ class Domain : public HData {
 
      template<class Scalar>
        GenEiSparseMatrix<Scalar> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
-                           Connectivity *cn=0);
+                           Connectivity *cn=0, bool flag=true);
 
      template<class Scalar>
        GenCuCSparse<Scalar> *constructCuCSparse(DofSetArray *dof_set_array=0);
@@ -836,7 +840,7 @@ class Domain : public HData {
      void addDirichletLMPCs(int _numDirichlet, BCond *_dbc);
      void deleteAllLMPCs();
      void deleteSomeLMPCs(mpc::ConstraintSource s);
-     void UpdateContactSurfaceElements();
+     void UpdateContactSurfaceElements(GeomState *);
 
      // HB: mortar stuff (EXPERIMENTAL)
   protected:

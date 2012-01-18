@@ -66,7 +66,7 @@
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
@@ -2444,6 +2444,8 @@ Solver:
 	{ domain->solInfo().mumps_icntl[$2] = $3; }
 	| MUMPSCNTL Integer Float NewLine
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
+        | GOLDFARBTOL Float NewLine
+        { domain->solInfo().goldfarb_tol = $2; }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
         | DEBUGICNTL Integer Integer NewLine
@@ -2898,17 +2900,20 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) geoSource->setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty; }
+          domain->solInfo().penalty = $2.penalty;
+          domain->solInfo().mpcDual = $2.mpcDual; }
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        { $$.lagrangeMult = false; $$.penalty = 0.0; $$.mpcDual = false; } // Direct elimination of slave dofs
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        { $$.lagrangeMult = false; $$.penalty = $2; $$.mpcDual = false; } // Treatment of constraints through penalty method
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        { $$.lagrangeMult = true; $$.penalty = $3; $$.mpcDual = false; } // Treatment of constraints through augmented Lagrangian method
+        | MULTIPLIERS DUALMORTAR
+        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = true; }
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??

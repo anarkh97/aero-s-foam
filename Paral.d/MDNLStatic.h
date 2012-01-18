@@ -78,7 +78,7 @@ class MDNLStatic
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
-    double getResidualNorm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec, DistrGeomState &geomState);
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,

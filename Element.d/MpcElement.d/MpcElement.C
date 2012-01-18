@@ -135,8 +135,12 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
   if(p == 0) p = new int[numDofs()];
   for(int i = 0; i < nterms; i++)
     dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
-  if(prop->lagrangeMult)
-    dsa.number(nn[nNodes], DofSet::Lagrange, p+nterms);
+  if(prop->lagrangeMult) {
+    if(type == 0)
+      dsa.number(nn[nNodes], DofSet::LagrangeE, p+nterms);
+    else
+      dsa.number(nn[nNodes], DofSet::LagrangeI, p+nterms);
+  }
   return p;
 }
 
@@ -145,8 +149,12 @@ MpcElement::markDofs(DofSetArray &dsa)
 {
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
-  if(prop->lagrangeMult)
-    dsa.mark(nn[nNodes], DofSet::Lagrange);
+  if(prop->lagrangeMult) {
+    if(type == 0)
+      dsa.mark(nn[nNodes], DofSet::LagrangeE);
+    else
+      dsa.mark(nn[nNodes], DofSet::LagrangeI);
+  }
 }
 
 FullSquareMatrix
@@ -229,7 +237,9 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
           if(prop->penalty != 0) Ktan[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
         }
         if(prop->lagrangeMult) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
-        f[i] = lambda*terms[i].coef.r_value;
+        if(!(type == 1 && prop->lagrangeMult)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
+                                                   // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
+
       }
       if(prop->lagrangeMult) f[nterms] = -rhs.r_value;
     }
@@ -262,6 +272,25 @@ void
 MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H) 
 { 
   H.zero(); 
+}
+
+void
+MpcElement::getResidualCorrection(GeomState& c1, double* r)
+{
+  // note #1: r = [0; -f] + dr = [-G^t*lambda; -(pos_part<f>-neg_part<lambda>)]
+  // therefore dr = [-G^t*lambda; -(-neg_part<f>-neg_part<lambda>)]
+  //              = [-G^t*lambda; -pos_part<rhs>+neg_part<lambda>]
+  // note #2: rhs = -f (-ve value of the constraint function f <= 0)
+  // 
+  // r = [-G^t*lambda; pos_part<f>+neg_part<lambda>]
+  if(prop->lagrangeMult && type == 1) {
+    double lambda = c1[nn[nNodes]].x;
+    for(int i = 0; i < nterms; ++i)
+      r[i] -= lambda*terms[i].coef.r_value;
+    if(rhs.r_value > 0) r[nterms] -= rhs.r_value;
+    /*when using exact QP solver works then lambda is always dual-feasible
+    if(lambda < 0) r[nterms] += lambda; */
+  }
 }
 
 void

@@ -250,17 +250,16 @@ void
 NonLinDynamic::extractControlDisp(GeomState *geomState, double *ctrdsp)  
 {
   CoordSet &nodes = domain->getNodes();
-  NodeState *nodeState = geomState->getNodeState();
   for(int i = 0; i < claw->numSensor; ++i) {
     switch(claw->sensor[i].dofnum) {
       case 0:
-        ctrdsp[i] = nodeState[claw->sensor[i].nnum].x - nodes[claw->sensor[i].nnum]->x;
+        ctrdsp[i] = (*geomState)[claw->sensor[i].nnum].x - nodes[claw->sensor[i].nnum]->x;
         break;
       case 1:
-        ctrdsp[i] = nodeState[claw->sensor[i].nnum].y - nodes[claw->sensor[i].nnum]->y;
+        ctrdsp[i] = (*geomState)[claw->sensor[i].nnum].y - nodes[claw->sensor[i].nnum]->y;
         break;
       case 2:
-        ctrdsp[i] = nodeState[claw->sensor[i].nnum].z - nodes[claw->sensor[i].nnum]->z;
+        ctrdsp[i] = (*geomState)[claw->sensor[i].nnum].z - nodes[claw->sensor[i].nnum]->z;
         break;
       default:
         fprintf(stderr, "ERROR: Sensor dof %d not available in NonLinDynamic::extractControlDisp\n",claw->sensor[i].dofnum+1);
@@ -371,7 +370,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements();
+    domain->UpdateContactSurfaceElements(&geomState);
 
     if(solver) delete solver;
     if(prec) delete prec;

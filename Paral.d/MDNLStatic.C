@@ -35,7 +35,7 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
 }
 
 double
-MDNLStatic::getResidualNorm(DistrVector &r)
+MDNLStatic::getResidualNorm(DistrVector &r, DistrGeomState &geomState)
 {
  // XXXX should also include constraint error i.e. pos_part<gap>
  DistrVector w(r);

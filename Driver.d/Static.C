@@ -683,10 +683,14 @@ const char* solverTypeMessage[] = {
 " ... Sparse Solver is Selected      ... \n",
 " ... SGI Sparse Solver is Selected  ... \n",
 " ... SGI Skyline Solver is Selected ... \n",
+#ifdef EIGEN_CHOLMOD_SUPPORT
+" ... Cholmod Solver is Selected     ... \n",
+#else
 " ... Simplicial Cholesky Solver is Selected ...\n",
+#endif
 " ... Frontal Solver is Selected     ... \n",
 "",
-"",
+" ... SuperLU Solver is Selected     ... \n",
 " ... Spooles Solver is Selected     ... \n",
 " ... Mumps Solver is Selected       ... \n",
 "",

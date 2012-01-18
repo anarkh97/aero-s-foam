@@ -22,7 +22,8 @@ class DofSet {
       Contact,
       IntPress,
       Potential,
-      Lagrange;
+      LagrangeE,
+      LagrangeI;
 
     static const int DispAndRot = 0x3f;
     static DofSet nullDofset;
@@ -203,6 +204,7 @@ class ConstrainedDSA : public DofSetArray {
 
     ConstrainedDSA(DofSetArray &dsa, int n, int *sing = 0);  // PJSA: 1-23-01
     ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int n, int *sing = 0);
+    ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa);
     virtual ~ConstrainedDSA() { /* nothing to delete */ };
     int getInvRCNmax() { return invrowcolmax; }  // PJSA: 11-12-02
   private:

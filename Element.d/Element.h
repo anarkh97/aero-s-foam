@@ -550,6 +550,7 @@ class Elemset
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
     void collapseRigid6(std::set<int> &);
+    void deleteElem(int i);
 };
 
 class EsetGeomAccessor {

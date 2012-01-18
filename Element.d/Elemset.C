@@ -4,6 +4,12 @@
 #include <queue>
 #include <Utils.d/Connectivity.h>
 
+void Elemset::deleteElem(int i)
+{
+  elem[i]->~Element();
+  elem[i] = 0;
+}
+
 void Elemset::deleteElems() 
 {
   if (!elem) {

@@ -897,7 +897,7 @@ FelippaShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
 int
 FelippaShell::getTopNumber()
 {
-  return 120;
+  return 108;
 }
 
 void

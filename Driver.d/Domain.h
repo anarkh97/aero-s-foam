@@ -323,6 +323,12 @@ class Domain : public HData {
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
                           int fileNumber, int stressIndex, double time);
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
+     void getElemStiffAndForce(const GeomState &geomState, double time, 
+                               const GeomState *refState, const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getElemStiffAndForce(const GeomState &geomState, double time, 
+                               const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
 			   Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,

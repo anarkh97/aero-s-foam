@@ -64,8 +64,10 @@ GenGaussNewtonSolver<Scalar>::resetSolver(int vCount, int vSize) {
 template <typename Scalar>
 void
 GenGaussNewtonSolver<Scalar>::projectRhs(const GenVector<Scalar> &rhs) {
-  assert(lsSolver_.status() == LeastSquares::FACTORED);
+  assert(lsSolver_.status() == LeastSquares::FACTORED ||
+         lsSolver_.status() == LeastSquares::PROJECTED);
 
+  lsSolver_.statusIs(LeastSquares::FACTORED);
   fillRhsBuffer(rhs);
   lsSolver_.statusIs(LeastSquares::PROJECTED);
 }

@@ -15,6 +15,7 @@ ADD_LIBRARY( Rom
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
   ElementSamplingDriver.C
+  ExplicitMeshSamplingDriver.C
   FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C

@@ -1317,17 +1317,21 @@ int main(int argc, char** argv)
          } else if (domain->solInfo().samplingPodRom) {
            // Offline mesh sampling
            if (domain->solInfo().gaussNewtonPodRom) { 
-             // Gappy node-based hyperreduction
-             filePrint(stderr, " ... POD: Reduced Mesh Construction ...\n");
+             // Gappy node-based hyperreduction (Gauss-Newton, implicit time-integration)
+             filePrint(stderr, " ... POD: GN Node-based Reduced Mesh...\n");
              driver.reset(meshSamplingDriverNew(domain));
            } else if (domain->solInfo().galerkinPodRom) {
-             filePrint(stderr, "Not implemented\n");
-             break;
+             // Gappy node-based hyperreduction (Galerkin, explicit time-integration)
+             filePrint(stderr, " ... POD: GP Node-based Reduced Mesh...\n");
+             driver.reset(explicitMeshSamplingDriverNew(domain));
            } else {
              // Element-based hyperrection
              filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
              driver.reset(elementSamplingDriverNew(domain));
            }
+         } else {
+           filePrint(stderr, " ... Unknown Analysis Type          ...\n");
+           break;
          }
          driver->solve();
        }

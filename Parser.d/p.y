@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER
+%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVD SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3377,21 +3377,34 @@ PodRom:
   | PodRom PodRomOption NewLine
   ;
 PodRomMode:
-  SNAPSHOTS
-  { }
+  FOM
+  { domain->solInfo().snapshotsPodRom = true; }
+  | GALERKIN
+  { domain->solInfo().galerkinPodRom = true;
+    domain->solInfo().subtype = 12; }
   | GAUSSNEWTON 
   { domain->solInfo().gaussNewtonPodRom = true;
     domain->solInfo().subtype = 11; }
-  | GALERKIN
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 12; }
   | GAPPY
   { domain->solInfo().gappyPodRom = true;
     domain->solInfo().subtype = 13; }
+  | SVD PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().svdPodRom = true; }
+  | SAMPLING PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().samplingPodRom = true; }
+  ;
+PodRomOfflineModeOption:
+  /* empty */
+  | GAUSSNEWTON
+  { domain->solInfo().gaussNewtonPodRom = true; }
+  | FORCE
+  { domain->solInfo().galerkinPodRom = true; }
   ;
 PodRomOption:
   SVD
-  { domain->solInfo().svdPodRom = true; }
+  { domain->solInfo().onlineSvdPodRom = true; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | ASPECTRATIO Float

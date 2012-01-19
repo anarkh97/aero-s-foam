@@ -1207,7 +1207,7 @@ TRAIL [a-zA-Z]*
 
 "PODROM"|"PodRom"|"podrom"                { return PODROM; }
 
-"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+"FOM"|"Fom"|"fom"                         { return FOM; }
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
@@ -1216,6 +1216,10 @@ TRAIL [a-zA-Z]*
 "GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
 
 "SVD"|"Svd"|"svd"                         { return SVD; }
+
+"SAMPLING"|"Sampling"|"sampling"          { return SAMPLING; }
+
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
 
 "PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 

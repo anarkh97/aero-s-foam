@@ -50,6 +50,7 @@ using namespace std;
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitGappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -908,6 +909,12 @@ int main(int argc, char** argv)
              Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
                    Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+             dynamSolver.solve();
+           } else if (domain->solInfo().gappyPodRom) {
+             filePrint(stderr, " ... POD: Explicit Gappy Galerkin   ...\n");
+             Rom::DistrExplicitGappyNonLinDynamic dynamProb(domain);
+             DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                   Rom::DistrExplicitGappyNonLinDynamic, double > dynamSolver(&dynamProb);
              dynamSolver.solve();
            } else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");

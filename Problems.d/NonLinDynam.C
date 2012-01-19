@@ -532,7 +532,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    //PJSA 11/5/09: new way to rebuild solver (including preconditioner) and Kuc, now works for any solver
    spm->zeroAll();
    AllOps<double> ops;
-   kuc->zeroAll();
+   if (kuc) kuc->zeroAll();
    ops.Kuc = kuc;
    if(spp) {
      spp->zeroAll();

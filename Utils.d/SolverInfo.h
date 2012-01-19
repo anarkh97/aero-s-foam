@@ -252,6 +252,7 @@ struct SolverInfo {
    double aspectRatioPodRom;
    bool substractRefPodRom;
    int skipPodRom;
+   double tolPodRom;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -440,6 +441,7 @@ struct SolverInfo {
                   aspectRatioPodRom = 1.0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+                  tolPodRom = 1.0e-6;
                  }
 
    // Set RbmFilter level

@@ -14,11 +14,13 @@ ADD_LIBRARY( Rom
   DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
+  ElementSamplingDriver.C
   FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
   QrPseudoInversion.C
   LeastSquaresSolver.C
+  SparseNonNegativeLeastSquaresSolver.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C
   MeshOutput.C
@@ -34,4 +36,8 @@ ADD_LIBRARY( Rom
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
+  LawsonHanson.d/diff.f
+  LawsonHanson.d/g1.f
+  LawsonHanson.d/h12.f
+  LawsonHanson.d/spnnls.f
 )

@@ -1225,6 +1225,8 @@ TRAIL [a-zA-Z]*
 
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
 
+"TOLERANCE"|[Tt]"olerance"                { return TOLER; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

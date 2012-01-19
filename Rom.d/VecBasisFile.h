@@ -3,6 +3,8 @@
 
 #include "VecBasis.h"
 
+#include <Math.d/Vector.h>
+
 namespace Rom {
 
 class BasisInputStream;
@@ -14,6 +16,12 @@ class NodalRestrictionMapping;
 // Output the full content of the basis
 BasisOutputStream &
 operator<<(BasisOutputStream &, const VecBasis &);
+
+inline
+BasisOutputStream &
+writeVectors(BasisOutputStream &out, const VecBasis &source) {
+  return out << source;
+}
 
 // Output a partial content of the basis
 BasisOutputStream &
@@ -31,6 +39,12 @@ writeRestrictedVectors(BasisOutputStream &, const VecBasis &, const NodalRestric
 // Reset basis with the full content of the stream (inverse of operator<<)
 BasisInputStream &
 operator>>(BasisInputStream &, VecBasis &);
+
+inline
+BasisInputStream &
+readVectors(BasisInputStream &in, VecBasis &target) {
+  return in >> target;
+}
 
 // Reset basis with a partial content of the stream (inverse of writeVectors)
 BasisInputStream &

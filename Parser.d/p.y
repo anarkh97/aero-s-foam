@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES
+%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3400,6 +3400,8 @@ PodRomOption:
   { domain->solInfo().substractRefPodRom = true; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | TOLER Float
+  { domain->solInfo().tolPodRom = $2; }
   ;
 SampleNodeList:
   SAMPLENODES NewLine

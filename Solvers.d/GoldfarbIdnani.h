@@ -1,6 +1,7 @@
 #ifndef _GOLDFARB_IDNANI_H_
 #define _GOLDFARB_IDNANI_H_
 
+#ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #include <Math.d/BLKSparseMatrix.h>
 
@@ -127,5 +128,6 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double*, double*);
 template<>
 void
 GoldfarbIdnaniQpSolver<WrapEiSparseMat<std::complex<double> >,std::complex<double> >::solve(std::complex<double>*, std::complex<double>*);
+#endif
 
 #endif

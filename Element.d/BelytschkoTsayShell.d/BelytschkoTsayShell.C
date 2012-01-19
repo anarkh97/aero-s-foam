@@ -402,6 +402,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         edisp[jloc] = geomState[nn[i]].d[j];
         evelo[jloc] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
       }
+      //mat_to_vec(geomState[nn[i]].R,edisp+i*nndof+3); // EXP
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;

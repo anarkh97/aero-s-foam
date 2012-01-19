@@ -7,6 +7,7 @@ typedef GenFullSquareMatrix<double> FullSquareMatrix;
 void   orthonorm3( double rten[3][3] );
 double fitalg3_3nodnew(double x0[3][3], double xn[3][3]);
 void   inc_rottensor ( double[3], double[3][3]);
+void   inc_rottensor ( double[3][3], double[3]);
 double form_rottensor ( double[3], double[3][3]);
 void   vec_to_mat (double rvec[3], double rten[3][3] );
 void   vec_to_quat (double[3], double[4]);

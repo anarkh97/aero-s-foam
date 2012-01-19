@@ -499,31 +499,24 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       vel_n[loc[i][2]] = vdcoef*(ns[i].z - ss[i].z) + vvcoef*v_n + vacoef*a_n;
       acc_n[loc[i][2]] = avcoef*(vel_n[loc[i][2]] - v_n) + aacoef*a_n;
     }
-/* this is no longer required
-    // Update rotational velocities and accelerations
-    // Currently we don't update rotational velocity and acceleration when zeroRot is true
-    // because the global mass and damping matrices do not have the rotational blocks correctly
-    // set to zero. The element mass and damping matrices do have the rotational blocks set to
-    // zero but this is done AFTER the global mass and damping matrices are assembled.
-    // For now, if you want to output the rotational velocity and/or acceleration use "zero off" under DYNAMIC
-    if(!zeroRot) {
+
+    // Update angular velocities and accelerations
+    if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+      double dtheta[3], dR[3][3];
+      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
+/*
+      //WHY NOT THIS:
+      mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
 */
-      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
-        double dtheta[3], dR[3][3];
-        mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
-        mat_to_vec(dR, dtheta);
-        for(int j = 0; j < 3; ++j) {
-          if(loc[i][3+j] >= 0) {
-            double v_n = vel_n[loc[i][3+j]];
-            double a_n = acc_n[loc[i][3+j]];
-            vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
-            acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
-          }
+      for(int j = 0; j < 3; ++j) {
+        if(loc[i][3+j] >= 0) {
+          double v_n = vel_n[loc[i][3+j]];
+          double a_n = acc_n[loc[i][3+j]];
+          vel_n[loc[i][3+j]] = vdcoef*dtheta[j] + vvcoef*v_n + vacoef*a_n;
+          acc_n[loc[i][3+j]] = avcoef*(vel_n[loc[i][3+j]] - v_n) + aacoef*a_n;
         }
       }
-/*
     }
-*/
   }
 
   // Update step translational displacements
@@ -544,7 +537,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           ss[i].R[j][k] = ns[i].R[j][k];
     }
     else {
-      mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R
+      mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * result2)
       if(alphaf != 0.5) {
         mat_to_vec(result2, rotVec);
         rotVec[0] *= rcoef;
@@ -653,9 +646,13 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
         if(loc[inode][5] >= 0) incVec[loc[inode][5]] = 0.0;
       }
       else {
-        double R[3][3], vec[3];
-        mat_mult_mat( ns[inode].R, ss.ns[inode].R, R, 2 ); // LEFT
-        mat_to_vec( R, vec );
+        double dR[3][3], vec[3];
+        mat_mult_mat( ns[inode].R, ss.ns[inode].R, dR, 2 ); // dR = ns[inode].R * ss.ns[inode].R^T (i.e. ns[inode].R = dR * ss.ns[inode].R)
+/*
+        //WHY NOT THIS:
+        mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
+*/
+        mat_to_vec( dR, vec );
         if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
         if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
         if( loc[inode][5] >= 0 ) incVec[loc[inode][5]] = vec[2];

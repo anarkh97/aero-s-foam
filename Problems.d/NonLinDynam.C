@@ -64,6 +64,7 @@ NonLinDynamic::~NonLinDynamic()
   if (res) {
     fclose(res); 
   }
+  if(clawDofs) delete [] clawDofs;
   delete prevFrc;
   delete[] bcx;
   delete[] vcx;

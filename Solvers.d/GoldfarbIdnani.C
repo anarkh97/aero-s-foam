@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <iostream>
 #include <Solvers.d/GoldfarbIdnani.h>
 #include <Solvers.d/eiquadprog.hpp>
@@ -80,5 +81,4 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<std::complex<double> >,std::complex<doubl
 {
   cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
 }
-
-
+#endif

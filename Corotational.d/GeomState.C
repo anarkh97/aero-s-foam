@@ -508,6 +508,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       //WHY NOT THIS:
       mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
 */
+      mat_to_vec(dR, dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
           double v_n = vel_n[loc[i][3+j]];

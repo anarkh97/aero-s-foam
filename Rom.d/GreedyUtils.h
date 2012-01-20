@@ -66,7 +66,7 @@ private:
 // Determine the indices with the highest sum of squares across all vectors
 template <typename VecFwdIt, typename IdxOutIt>
 IdxOutIt
-max_magnitude_indices(VecFwdIt first, VecFwdIt last, IdxOutIt result, int maxResultCount = 1) {
+max_magnitude_indices(VecFwdIt first, VecFwdIt last, IdxOutIt result, int maxResultCount) {
   // Exit early when trivial case is detected
   if (first == last || maxResultCount <= 0) {
     return result;
@@ -142,7 +142,6 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
   // Greedy iterations parameters
   const int podVectorCountMax = vector_count_max(podFirst, podLast);
   const int targetSampleSize = std::max(static_cast<int>(aspectRatio * podVectorCountMax), podVectorCountMax);
-  const int dofsPerNodeEstimate = 6;
 
   std::vector<int> sampleLocations;
 
@@ -164,16 +163,15 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
 
   // Start greedy iterations
   int handledVectorCount = 0;
-  int greedyIter = 0;
+  int greedyIter = 1;
   const int podVectorCountMin = vector_count_min(podFirst, podLast);
   while (sampleLocations.size() < targetSampleSize && handledVectorCount < podVectorCountMin) {
-    std::cerr << sampleLocations.size() << " sample locations at greedy iteration: " << greedyIter++ << std::endl;
+    std::cerr << sampleLocations.size() << " sample locations before greedy iteration: " << greedyIter << std::endl;
 
     // Update the reconstruction error
-    handledVectorCount++;
     typename std::vector<VecType>::iterator errorIt = reconstructionError.begin();
-    for (typename std::vector<BasisType>::const_iterator podIt = podFirst; podIt != podLast; ++podIt) {
-      errorEval(podIt->begin(), podIt->begin() + handledVectorCount,
+    for (BasisRanIt podIt = podFirst; podIt != podLast; ++podIt) {
+      errorEval(podIt->begin(), podIt->begin() + (handledVectorCount + 1),
                 sampleLocations.begin(), sampleLocations.end(),
                 *errorIt++);
     }
@@ -188,7 +186,8 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
 
     // Greedily determine the best entries and find the corresponding nodes
     const int remainingLocations = targetSampleSize - sampleLocations.size();
-    const int remainingPodVectors = (podVectorCountMin - handledVectorCount) + 1;
+    const int remainingPodVectors = podVectorCountMin - handledVectorCount;
+    const int dofsPerNodeEstimate = 6;
     const double ratio = static_cast<double>(remainingLocations) / (remainingPodVectors * dofsPerNodeEstimate);
     const int locationsToSelect = static_cast<int>(std::ceil(ratio));
 
@@ -209,6 +208,9 @@ IndexOutIt greedy_sampling(BasisRanIt podFirst, BasisRanIt podLast,
       nodeDofMap.locations(*it, std::back_inserter(sampleLocations));
     }
     std::cerr << std::endl;
+   
+    ++handledVectorCount;
+    ++greedyIter;
   }
 
   return result;

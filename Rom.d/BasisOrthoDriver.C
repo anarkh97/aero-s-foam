@@ -75,6 +75,8 @@ BasisOrthoDriver::solve() {
   if (domain_->solInfo().gaussNewtonPodRom) {
     workload.push_back(BasisId::RESIDUAL);
     workload.push_back(BasisId::JACOBIAN);
+  } else if (domain_->solInfo().galerkinPodRom) {
+    workload.push_back(BasisId::FORCE);
   } else {
     workload.push_back(BasisId::STATE);
   }

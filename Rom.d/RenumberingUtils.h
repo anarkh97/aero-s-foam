@@ -9,42 +9,70 @@ class Connectivity;
 
 namespace Rom {
 
-class SampledMeshRenumbering {
+class MeshRenumbering {
 public:
   typedef std::vector<int> Restriction;
   typedef std::map<int, int> Extension;
 
-  const Restriction &sampleNodeIds() const { return sampleNodeIds_; }
   const Restriction &reducedNodeIds() const { return reducedNodeIds_; }
-  const Restriction &reducedSampleNodeIds() const { return reducedSampleNodeIds_; }
   const Extension &nodeRenumbering() const { return nodeRenumbering_; }
 
   const Restriction &reducedElemIds() const { return reducedElemIds_; }
   const Extension &elemRenumbering() const { return elemRenumbering_; }
 
   template <typename IdxInIt>
-  SampledMeshRenumbering(IdxInIt firstSample, IdxInIt lastSample,
-                         const Connectivity &nodeToNode,
-                         const Connectivity &nodeToElem);
+  MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
+                  const Connectivity &elemToNode);
 
-private:
-  Restriction sampleNodeIds_;
+protected:
+  MeshRenumbering() {}
+
   Restriction reducedNodeIds_;
-  Restriction reducedSampleNodeIds_;
   Extension nodeRenumbering_;
   
   Restriction reducedElemIds_;
   Extension elemRenumbering_;
 
+private:
+  void init(const Connectivity &);
+
+  // Disallow copy & assignment
+  MeshRenumbering(const MeshRenumbering &);
+  MeshRenumbering &operator=(const MeshRenumbering &);
+};
+
+template <typename IdxInIt>
+MeshRenumbering::MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
+                                 const Connectivity &elemToNode) :
+  reducedElemIds_(firstSampleElem, lastSampleElem)
+{
+  init(elemToNode);
+}
+
+
+class SampledMeshRenumbering : public MeshRenumbering {
+public:
+  const Restriction &sampleNodeIds() const { return sampleNodeIds_; }
+  const Restriction &reducedSampleNodeIds() const { return reducedSampleNodeIds_; }
+
+  template <typename IdxInIt>
+  SampledMeshRenumbering(IdxInIt firstSampleNode, IdxInIt lastSampleNode,
+                         const Connectivity &nodeToNode,
+                         const Connectivity &nodeToElem);
+
+private:
+  Restriction sampleNodeIds_;
+  Restriction reducedSampleNodeIds_;
+
   void init(const Connectivity &, const Connectivity &);
 };
 
 template <typename IdxInIt>
-SampledMeshRenumbering::SampledMeshRenumbering(IdxInIt firstSample,
-                                               IdxInIt lastSample,
+SampledMeshRenumbering::SampledMeshRenumbering(IdxInIt firstSampleNode,
+                                               IdxInIt lastSampleNode,
                                                const Connectivity &nodeToNode,
                                                const Connectivity &nodeToElem) :
-  sampleNodeIds_(firstSample, lastSample)
+  sampleNodeIds_(firstSampleNode, lastSampleNode)
 {
   init(nodeToNode, nodeToElem);
 }

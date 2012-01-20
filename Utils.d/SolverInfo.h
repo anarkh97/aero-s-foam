@@ -26,10 +26,11 @@ struct SolverInfo {
  public:
    // Problem Type parameters
    enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam, 
-	  ArcLength, ConditionNumber, TempDynamic, Top,
+          ArcLength, ConditionNumber, TempDynamic, Top,
           AxiHelm, MatNonLinStatic, MatNonLinDynam,
           Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
-          Decomp, None, NonLinTempDynam, DisEnrM };
+          Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
+          None };
    
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
@@ -248,13 +249,18 @@ struct SolverInfo {
    bool mpcDual;
 
    bool activatePodRom;
+   bool snapshotsPodRom;
    bool svdPodRom;
+   bool samplingPodRom;
+   bool galerkinPodRom;
    bool gaussNewtonPodRom;
    bool gappyPodRom;
+   bool onlineSvdPodRom;
    int  maxSizePodRom;
    double aspectRatioPodRom;
    bool substractRefPodRom;
    int skipPodRom;
+   double tolPodRom;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -438,13 +444,18 @@ struct SolverInfo {
                   mpcDual = false;
 
                   activatePodRom = false;
+                  snapshotsPodRom = false;
                   svdPodRom = false;
+                  samplingPodRom = false;
+                  galerkinPodRom = false;
                   gaussNewtonPodRom = false;
                   gappyPodRom = false;
+                  onlineSvdPodRom = false;
                   maxSizePodRom = 0;
                   aspectRatioPodRom = 1.0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+                  tolPodRom = 1.0e-6;
                  }
 
    // Set RbmFilter level

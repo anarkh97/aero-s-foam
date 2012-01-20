@@ -1211,7 +1211,7 @@ TRAIL [a-zA-Z]*
 
 "PODROM"|"PodRom"|"podrom"                { return PODROM; }
 
-"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+"FOM"|"Fom"|"fom"                         { return FOM; }
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
@@ -1221,6 +1221,10 @@ TRAIL [a-zA-Z]*
 
 "SVD"|"Svd"|"svd"                         { return SVDTOKEN; }
 
+"SAMPLING"|"Sampling"|"sampling"          { return SAMPLING; }
+
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+
 "PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 
 "ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
@@ -1228,6 +1232,8 @@ TRAIL [a-zA-Z]*
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
+
+"TOLERANCE"|[Tt]"olerance"                { return TOLER; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

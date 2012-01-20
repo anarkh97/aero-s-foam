@@ -116,6 +116,11 @@ struct ElementPressureTag {
   static double valueTransformation(double x) { return x; }
 };
 
+struct ElementWeightTag {
+  typedef double SecondType;
+  static double valueTransformation(double x) { return x; }
+};
+
 struct MatUsageTag {
   typedef int SecondType;
   static int valueTransformation(int i) { return i + 1; }

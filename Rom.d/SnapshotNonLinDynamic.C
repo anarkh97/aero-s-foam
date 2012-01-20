@@ -183,7 +183,7 @@ SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & sn
 
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
-  outputBasisType_(domain->solInfo().svdPodRom ? ORTHOGONAL : RAW),
+  outputBasisType_(domain->solInfo().onlineSvdPodRom ? ORTHOGONAL : RAW),
   impl_(NULL)
 {}
 

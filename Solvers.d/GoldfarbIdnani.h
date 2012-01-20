@@ -20,7 +20,7 @@ class GoldfarbIdnaniQpSolver : public BaseSolver
   MatrixXd CI;
 
   double tol;
-  double dummy;
+  Scalar dummy;
 
 public:
   template<class BaseArgs>

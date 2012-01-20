@@ -20,6 +20,7 @@ class GoldfarbIdnaniQpSolver : public BaseSolver
   MatrixXd CI;
 
   double tol;
+  double dummy;
 
 public:
   template<class BaseArgs>
@@ -87,15 +88,15 @@ public:
   }
   void zeroAll() { G.setZero(); CE.setZero(); CI.setZero(); BaseSolver::zeroAll(); }
   int  dim() { return n+p+m; }
-  Scalar diag(int dof) const {} // TODO
-  Scalar &diag(int dof) {} // TODO
+  Scalar diag(int dof) const { return Scalar(0); } // TODO
+  Scalar &diag(int dof) { return dummy; } // TODO
 
   void solve(Scalar* rhs, Scalar* sol); 
   void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol) {
     solve(rhs.data(), sol.data());
   }
   int neqs() { return n+p+m; }
-  long size() {}
+  long size() { return 0; } // TODO
   void factor() { 
     // XXXX currently we are factoring inside eiquadprog.hpp
     //BaseSolver::factor();

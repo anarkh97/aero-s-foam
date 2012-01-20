@@ -1219,7 +1219,7 @@ TRAIL [a-zA-Z]*
 
 "GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
 
-"SVD"|"Svd"|"svd"                         { return SVD; }
+"SVD"|"Svd"|"svd"                         { return SVDTOKEN; }
 
 "PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 

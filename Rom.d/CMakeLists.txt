@@ -8,6 +8,7 @@ ADD_LIBRARY( Rom
   CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
+  DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitGappyNonLinDynamic.C

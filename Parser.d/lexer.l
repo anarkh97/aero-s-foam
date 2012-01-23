@@ -528,7 +528,7 @@ TRAIL [a-zA-Z]*
 
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
 
-"CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKENERGYBALANCE; }
+"CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKTOKEN; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
 

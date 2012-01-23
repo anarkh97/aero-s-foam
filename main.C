@@ -47,6 +47,7 @@ using namespace std;
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/GappyNonLinDynamic.h>
+#include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
@@ -1244,6 +1245,12 @@ int main(int argc, char** argv)
                  filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
                  Rom::GappyNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().checkPodRom) {
+                 filePrint(stderr, " ... POD: State Projection Check    ...\n");
+                 Rom::CheckNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::CheckNonLinDynamic,
+                                GeomState, Rom::CheckNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else {
                  filePrint(stderr, " ... POD: Snapshot collection       ...\n");

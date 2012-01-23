@@ -58,7 +58,7 @@
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token CHECKENERGYBALANCE COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
@@ -845,9 +845,9 @@ DynamInfo:
         { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
-        | DynamInfo CHECKENERGYBALANCE NewLine
+        | DynamInfo CHECKTOKEN NewLine
         { domain->solInfo().check_energy_balance = true; }
-        | DynamInfo CHECKENERGYBALANCE Float Float NewLine
+        | DynamInfo CHECKTOKEN Float Float NewLine
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
@@ -3408,7 +3408,9 @@ PodRomOfflineModeOption:
   { domain->solInfo().galerkinPodRom = true; }
   ;
 PodRomOption:
-  SVDTOKEN
+  CHECKTOKEN
+  { domain->solInfo().checkPodRom = true; }
+  | SVDTOKEN
   { domain->solInfo().onlineSvdPodRom = true; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }

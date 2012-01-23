@@ -44,6 +44,7 @@ using namespace std;
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
+#include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/GappyNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
@@ -925,11 +926,21 @@ int main(int argc, char** argv)
              dynamSolver.solve();
            }
          }
-       } else {
-         MDNLDynamic nldynamic(domain);
-         NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                        MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
-         nldynamicSolver.solve();
+       } else { // implicit
+         if (!domain->solInfo().activatePodRom) {
+           MDNLDynamic nldynamic(domain);
+           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
+           nldynamicSolver.solve();
+         } else { // POD ROM
+           filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+           Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
+           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                         Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
+                         Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+           nldynamicSolver.solve();
+           nldynamic.postProcess();
+         }
        }
      } break;
      case SolverInfo::PodRomOffline: {

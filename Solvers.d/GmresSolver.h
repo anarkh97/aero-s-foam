@@ -2,12 +2,13 @@
 #define __GMRESSOLVER_H__
 
 #include <Solvers.d/Solver.h>
+#include <Solvers.d/MultiDomainSolver.h>
 
 template <class Scalar> class GmresOrthoSet;
 class FSCommunicator;
 
 template<class Scalar, class AnyVector, class AnyOperator, class LeftPreconditioner, class RightPreconditioner>
-class GmresSolver : public GenSolver<Scalar>
+class GmresSolver : public GenSolver<Scalar>, public MultiDomainSolver<Scalar>
 {
   private: 
     int maxit;
@@ -19,16 +20,17 @@ class GmresSolver : public GenSolver<Scalar>
     RightPreconditioner *rightprec;
     void (RightPreconditioner::*applyRight)(AnyVector &, AnyVector &);
     GmresOrthoSet<Scalar> *oSetGMRES;
-    FSCommunicator *com; 
     int rank;
     int m_info[1];
+  protected:
+    using MultiDomainSolver<Scalar>::com;
 
   public:
     // Constructor
     GmresSolver(int maxit, double tol, AnyOperator *_op, void (AnyOperator::*_matvec)(AnyVector &, AnyVector &),
                 LeftPreconditioner *_leftprec, void (LeftPreconditioner::*_applyLeft)(AnyVector &, AnyVector &), 
                 RightPreconditioner *_rightprec, void (RightPreconditioner::*_applyRight)(AnyVector &, AnyVector &),
-                FSCommunicator* _comm = NULL);
+                FSCommunicator* _com = NULL);
 
     // Destructor
     ~GmresSolver();
@@ -43,6 +45,11 @@ class GmresSolver : public GenSolver<Scalar>
     long size() { return 0; }
     int neqs() { return op->neqs(); }
     void factor() { }
+
+    Timings& getTimers() { return GenSolver<Scalar>::getTimers(); }
+    double getSolutionTime() { return GenSolver<Scalar>::getSolutionTime(); }
+    void solve(Scalar *rhs, Scalar *solution) {
+      std::cerr << "GmresSolver::solve(Scalar *rhs, Scalar *solution) is not implemented\n"; }
 };
 
 #ifdef _TEMPLATE_FIX_

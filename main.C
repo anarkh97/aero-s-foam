@@ -730,10 +730,10 @@ int main(int argc, char** argv)
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
- //   type == 1 && iterType == 0 (PCG) is a Domain Decomposition method only if a decomposition is provided or requested
+ //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
-    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 0 && domain_decomp)
+    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)) {
 
    if(parallel_proc) {

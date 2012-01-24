@@ -60,7 +60,7 @@ template<class Scalar>
 GenDomainGroupTask<Scalar>::~GenDomainGroupTask()
 {
   // delete [] dynMats;
-  delete [] spMats;
+  //delete [] spMats;
   //delete [] rbms;
   // don't delete K,Kuc,C,Cuc,M,Muc
 }
@@ -168,7 +168,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
   GenMultiSparse<Scalar> *allMats = 0;
   if(make_feti) {
-    if(domain->solInfo().type != 0) {
+    if(domain->solInfo().type == 2) {
       switch(solvertype) {
         default :
           cerr << " ... WARNING: in DomainGroupTask::runFor solvertype " << solvertype << " is  not implemented. Skyline solver is used instead ...\n";
@@ -214,17 +214,36 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         } break;
       }
     }
+    else if(domain->solInfo().type == 1) {
+      dynMats[isub] = 0;
+      switch(domain->solInfo().iterSubtype) {
+        case 2 :
+          spMats[isub] = sd[isub]->template constructNBSparseMatrix<Scalar>();
+          break;
+        default:
+        case 3 :
+          spMats[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
+          break;
+#ifdef USE_EIGEN3
+        case 4:
+          spMats[isub] = sd[isub]->template constructEiSparseMatrix<Scalar>();
+          break;
+#endif
+      }
+    }
 
     if(domain->solInfo().type == 2 && domain->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
       sd[isub]->constructKcc();
       sd[isub]->constructKrc();
     }
 
-    if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
-      allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->Krc, sd[isub]->Kcc);
-    else 
-      allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->KiiSparse, sd[isub]->Kbb,
-                                           sd[isub]->Kib, sd[isub]->Krc, sd[isub]->Kcc);
+    if(domain->solInfo().type == 2) {
+      if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted)
+        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->Krc, sd[isub]->Kcc);
+      else 
+        allMats = new GenMultiSparse<Scalar>(spMats[isub], sd[isub]->KiiSparse, sd[isub]->Kbb,
+                                             sd[isub]->Kib, sd[isub]->Krc, sd[isub]->Kcc);
+    }
   }
 
   AllOps<Scalar> allOps;
@@ -242,7 +261,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Cuc_deriv = Cuc_deriv[isub];
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;
-  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray);
+  if(domain->solInfo().type == 2)
+    sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray);
+  else
+    sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spMats[isub], subKelArray, subMelArray);
 
   if(allMats) delete allMats;
 }

@@ -675,6 +675,7 @@ GenDecDomain<Scalar>::preProcess()
 
  paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
+
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
@@ -3463,7 +3464,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
- if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().type == 1) {
    assembler = getSolVecAssembler(); 
  }
 
@@ -3504,8 +3505,24 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
-     cerr << " *** ERROR: type 1 not supported here in GenDecDomain::buildOps\n";
-     exit(-1);
+     switch(domain->solInfo().iterType) {
+       case 1: {
+         if(myCPU == 0) cerr << " ... GMRES Solver is Selected       ...\n";
+         res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
+         //res.prec = getDiagSolver(numSub, dgt.sd, dgt.spp);
+         GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
+           = new GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> >
+             (domain->solInfo().maxit, domain->solInfo().tol, res.spMat, &GenSubDOp<Scalar>::mult, NULL,
+              &GenParallelSolver<Scalar>::solve, NULL, &GenParallelSolver<Scalar>::solve, communicator); 
+         if(domain->solInfo().maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().maxvecsize;
+         gmresSolver->verbose = verboseFlag;
+         gmresSolver->printNumber = domain->solInfo().fetiInfo.printNumber;
+         res.dynMat = gmresSolver;
+       } break;
+       default:
+         cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
+         exit(-1);
+     }
    } break;
    case 2 : { // feti
      if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";

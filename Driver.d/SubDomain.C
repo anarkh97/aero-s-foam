@@ -541,8 +541,9 @@ GenSubDomain<Scalar>::applyForceSplitting()
 
   // forces
   for(int i=0; i < numNeuman; ++i) {
-    if((cdof = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum))) > -1 && (num = weightPlus[cdof]) > 1)
+    if((cdof = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum))) > -1 && (num = weightPlus[cdof]) > 1) {
       nbc[i].val /= double(num);
+    }
   }
   for(int i=0; i < numComplexNeuman; ++i) {
     if((cdof = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum))) > -1 && (num = weightPlus[cdof]) > 1) {

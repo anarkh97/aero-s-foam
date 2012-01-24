@@ -3410,6 +3410,10 @@ PodRomOfflineModeOption:
 PodRomOption:
   CHECKTOKEN
   { domain->solInfo().checkPodRom = true; }
+  | SNAPSHOTS
+  { domain->solInfo().snapshotsPodRom = true; }
+  | SNAPSHOTS SWITCH
+  { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
   | SVDTOKEN
   { domain->solInfo().onlineSvdPodRom = true; }
   | PODSIZEMAX Integer

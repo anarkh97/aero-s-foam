@@ -1,8 +1,13 @@
 #include "PodProjectionNonLinDynamic.h"
 
-#include "BasisFileStream.h"
-#include "VecBasisFile.h"
 #include "FileNameInfo.h"
+#include "BasisFileStream.h"
+#include "NodeDof6Buffer.h"
+#include "VecNodeDof6Conversion.h"
+
+#include "VecBasis.h"
+#include "VecBasisFile.h"
+
 #include "BasisOps.h"
 
 #include <Driver.d/Domain.h>
@@ -10,12 +15,151 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <cstddef>
 
 namespace Rom {
 
-PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
-  NonLinDynamic(d)
+// Implementation classes
+
+// Common implementation
+class PodProjectionNonLinDynamic::Impl {
+public:
+  virtual void handleResidualSnapshot(const Vector &res) = 0;
+  virtual void handleJacobianSnapshot() = 0;
+
+  virtual ~Impl();
+
+protected:
+  explicit Impl(PodProjectionNonLinDynamic *parent);
+
+  const ConstrainedDSA &getCDSA() const { return *parent_->domain->getCDSA(); }
+  int solVecInfo() const { return parent_->solVecInfo(); }
+  const SolverInfo &solInfo() const { return parent_->domain->solInfo(); }
+  PodProjectionSolver *getSolver() { return parent_->getSolver(); }
+  const PodProjectionSolver *getSolver() const { return parent_->getSolver(); }
+    
+private:  
+  PodProjectionNonLinDynamic *parent_;
+  
+  // Disallow copy & assignment
+  Impl(const Impl &);
+  Impl &operator=(const Impl &);
+};
+
+PodProjectionNonLinDynamic::Impl::Impl(PodProjectionNonLinDynamic *parent) :
+  parent_(parent)
 {}
+
+PodProjectionNonLinDynamic::Impl::~Impl() {
+  // Nothing to do
+}
+
+// Dummy class, used for namespace access
+class PodProjectionNonLinDynamicDetail : private PodProjectionNonLinDynamic {
+public:
+  class BasicImpl;
+  class SnapImpl;
+
+private:
+  // Dummy constructor
+  PodProjectionNonLinDynamicDetail();
+};
+
+// Basic implementation
+class PodProjectionNonLinDynamicDetail::BasicImpl : public PodProjectionNonLinDynamic::Impl {
+public:
+  explicit BasicImpl(PodProjectionNonLinDynamic *parent);
+  
+  // Overriden functions
+  virtual void handleResidualSnapshot(const Vector &res);
+  virtual void handleJacobianSnapshot();
+
+protected: 
+  VecNodeDof6Conversion vecNodeDof6Conversion_;
+  FileNameInfo fileInfo_;
+
+  VecBasis projectionBasis_;
+};
+
+PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamic::Impl(parent),
+  vecNodeDof6Conversion_(getCDSA()),
+  fileInfo_()
+{
+  // Load projection basis
+  BasisInputStream projectionBasisInput(BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD), vecNodeDof6Conversion_);
+
+  if (projectionBasisInput.vectorSize() != solVecInfo()) {
+    throw std::domain_error("Projection basis has incorrect #rows");
+  }
+
+  const int projectionSubspaceSize = solInfo().maxSizePodRom ?
+                                     std::min(solInfo().maxSizePodRom, projectionBasisInput.size()) :
+                                     projectionBasisInput.size();
+  
+  readVectors(projectionBasisInput, projectionBasis_, projectionSubspaceSize);
+  
+  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionBasis_.vectorCount());
+
+  // Setup solver
+  PodProjectionSolver *solver = getSolver();
+  solver->projectionBasisIs(projectionBasis_);
+  solver->factor(); // Delayed factorization
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::handleResidualSnapshot(const Vector &) {
+  // Nothing to do
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::handleJacobianSnapshot() {
+  // Nothing to do
+}
+
+// Implementation with residual/jacobian snapshots
+class PodProjectionNonLinDynamicDetail::SnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+public:
+  explicit SnapImpl(PodProjectionNonLinDynamic *parent);
+  
+  // Overriden functions
+  virtual void handleResidualSnapshot(const Vector &res);
+  virtual void handleJacobianSnapshot();
+
+private:
+  BasisOutputStream residualSnapFile_;
+  BasisOutputStream jacobianSnapFile_;
+};
+
+PodProjectionNonLinDynamicDetail::SnapImpl::SnapImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamicDetail::BasicImpl(parent),
+  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_),
+  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
+void
+PodProjectionNonLinDynamicDetail::SnapImpl::handleResidualSnapshot(const Vector &res) {
+  residualSnapFile_ << res;
+}
+
+void
+PodProjectionNonLinDynamicDetail::SnapImpl::handleJacobianSnapshot() {
+  Vector snap(solVecInfo());
+  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
+  jacobianSnapFile_ << snap;
+}
+
+
+// Main class members
+
+PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
+  NonLinDynamic(d),
+  impl_(NULL)
+{}
+
+PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
+  // Nothing to do
+}
 
 void
 PodProjectionNonLinDynamic::preProcess() {
@@ -25,34 +169,11 @@ PodProjectionNonLinDynamic::preProcess() {
     throw std::runtime_error("Solver must be a PodProjectionSolver");
   }
 
-  // Input/output state conversion
-  vecNodeDof6Conversion_.reset(new VecNodeDof6Conversion(*this->domain->getCDSA()));
-  snapBuffer_.sizeIs(vecNodeDof6Conversion_->dofSetNodeCount());
-
-  FileNameInfo fileInfo; 
-
-  // Load projection basis
-  BasisInputStream projectionBasisInput(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), *vecNodeDof6Conversion_);
-
-  if (projectionBasisInput.vectorSize() != solVecInfo()) {
-    throw std::domain_error("Projection basis has incorrect #rows");
+  if (domain->solInfo().snapshotsPodRom) {
+    impl_.reset(new PodProjectionNonLinDynamicDetail::SnapImpl(this));
+  } else {
+    impl_.reset(new PodProjectionNonLinDynamicDetail::BasicImpl(this));
   }
-
-  const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, projectionBasisInput.size()) :
-                                     projectionBasisInput.size();
-  
-  readVectors(projectionBasisInput, projectionBasis_, projectionSubspaceSize);
-  
-  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionBasis_.vectorCount());
-
-  // Setup solver
-  getSolver()->projectionBasisIs(projectionBasis_);
-  getSolver()->factor(); // Delayed factorization
-  
-  // Snapshot output
-  residualSnapFile_.reset(new BasisOutputStream(BasisFileId(fileInfo, BasisId::RESIDUAL, BasisId::SNAPSHOTS), *vecNodeDof6Conversion_));
-  jacobianSnapFile_.reset(new BasisOutputStream(BasisFileId(fileInfo, BasisId::JACOBIAN, BasisId::SNAPSHOTS), *vecNodeDof6Conversion_));
 }
 
 
@@ -68,7 +189,7 @@ PodProjectionNonLinDynamic::getSolver() {
 
 int
 PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
-  computeAndSaveJacobianSnapshot();
+  impl_->handleJacobianSnapshot();
 
   // Forward to hidden base class function
   return NonLinDynamic::checkConvergence(iteration, normRes, residual, dv, time); 
@@ -80,10 +201,8 @@ PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual) {
 }
 
 void
-PodProjectionNonLinDynamic::computeAndSaveJacobianSnapshot() {
-  Vector snap(solVecInfo());
-  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
-  *jacobianSnapFile_ << snap;
+PodProjectionNonLinDynamic::handleResidualSnapshot(const Vector &snap) {
+  impl_->handleResidualSnapshot(snap);
 }
 
 bool

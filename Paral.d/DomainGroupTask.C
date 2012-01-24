@@ -42,6 +42,14 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   C_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   Cuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   K    = new GenSparseMatrix<Scalar> *[nsub];
+  if(domain->solInfo().precond) {
+    spp = new GenSparseMatrix<Scalar> *[nsub];
+    sps = new GenSolver<Scalar> *[nsub];
+  }
+  else { 
+    spp = 0;
+    sps = 0;
+  }
   rbms = _rbms;
   kelArray = _kelArray;
   melArray = _melArray;
@@ -80,6 +88,8 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   Cuc[isub] = 0;
   C_deriv[isub] = 0;
   Cuc_deriv[isub] = 0;
+  if(spp) spp[isub] = 0;
+  if(sps) sps[isub] = 0;
 
   if((cdsa->size() - dsa->size()) != 0)
     Kuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
@@ -230,6 +240,11 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           break;
 #endif
       }
+      if(domain->solInfo().precond == 1) {
+        GenDiagMatrix<Scalar> *dm = new GenDiagMatrix<Scalar>(sd[isub]->getCDSA());
+        spp[isub] = (GenSparseMatrix<Scalar>*) dm;
+        sps[isub] = (GenSolver<Scalar>*) dm;
+      }
     }
 
     if(domain->solInfo().type == 2 && domain->solInfo().getFetiInfo().version == FetiInfo::fetidp) {
@@ -259,6 +274,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Kuc = Kuc[isub];
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];
+  allOps.spp = (spp) ? spp[isub] : 0;
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;
   if(domain->solInfo().type == 2)

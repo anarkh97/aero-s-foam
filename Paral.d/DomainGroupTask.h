@@ -22,6 +22,8 @@ class GenDomainGroupTask : public TaskDescr {
 // RT end
    GenSparseMatrix<Scalar> **K;
    GenSparseMatrix<Scalar> **Kuc;
+   GenSparseMatrix<Scalar> **spp;
+   GenSolver<Scalar> **sps;
    Rbm **rbms; // geometric based RBMs
    FullSquareMatrix **kelArray, **melArray;
    double coeM, coeC, coeK;

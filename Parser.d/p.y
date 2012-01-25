@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER
+%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER ELLUMPWEIGHTS
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -312,6 +312,7 @@ Component:
         | Constraints
         | PodRom
         | SampleNodeList
+        | ElementLumpingWeightList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -3432,6 +3433,12 @@ SampleNodeList:
   {}
   | SampleNodeList Integer NewLine
   { geoSource->sampleNodeAdd($2 - 1); }
+  ;
+ElementLumpingWeightList:
+  ELLUMPWEIGHTS NewLine
+  { domain->solInfo().elemLumpPodRom = true; }
+  | ElementLumpingWeightList Integer Float NewLine
+  { geoSource->setElementLumpingWeight($2 - 1, $3); }
   ;
 Integer:
 	IntConstant

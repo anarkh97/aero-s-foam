@@ -46,6 +46,7 @@ using namespace std;
 #include <Rom.d/SnapshotNonLinDynamic.h>
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
+#include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/GappyNonLinDynamic.h>
 #include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
@@ -1236,7 +1237,13 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-               if (domain->solInfo().gaussNewtonPodRom || domain->solInfo().galerkinPodRom) {
+               if (domain->solInfo().galerkinPodRom || domain->solInfo().elemLumpPodRom) {
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+                 Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().gaussNewtonPodRom || domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,

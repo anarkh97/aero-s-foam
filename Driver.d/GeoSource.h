@@ -614,6 +614,17 @@ public:
 private:
   SampleNodeList sampleNode_;
 
+public:
+  // POD-ROM elementary lumping weights
+  typedef std::map<int, double> ElementWeightMap;
+  ElementWeightMap::const_iterator elementLumpingWeightBegin() const { return elementLumpingWeights_.begin(); }
+  ElementWeightMap::const_iterator elementLumpingWeightEnd()   const { return elementLumpingWeights_.end();   }
+  
+  void setElementLumpingWeight(int iele, double value);
+
+private:
+  ElementWeightMap elementLumpingWeights_;
+
 protected:
   void closeOutputFileImpl(int fileIndex);
 };

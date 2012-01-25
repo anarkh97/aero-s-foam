@@ -17,6 +17,8 @@
 #include <Utils.d/OutputInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
+#include <map>
+
 class MortarHandler;
 class MFTTData;
 class ControlInterface;
@@ -330,9 +332,14 @@ class Domain : public HData {
                                const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
-			   Corotator **allCorot, FullSquareMatrix *kel,
+                           Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL);
+     void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda, double time,
+                                       GeomState *refState);
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);

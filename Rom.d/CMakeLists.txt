@@ -22,6 +22,7 @@ ADD_LIBRARY( Rom
   FileNameInfo.C
   GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
+  LumpedPodProjectionNonLinDynamic.C
   QrPseudoInversion.C
   LeastSquaresSolver.C
   SparseNonNegativeLeastSquaresSolver.C

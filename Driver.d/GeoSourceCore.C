@@ -4463,6 +4463,10 @@ bool GeoSource::elemOutput()
   return false;
 }
 
+void GeoSource::setElementLumpingWeight(int iele, double value) {
+  elementLumpingWeights_[iele] = value;
+}
+
 ControlLawInfo::ControlLawInfo()
 {
   fileName = routineName = 0;
@@ -4501,5 +4505,4 @@ void ControlLawInfo::makeGlobalClaw(ControlLawInfo *subClaw)
   numUserForce += subClaw->numUserForce;
   numUserDisp += subClaw->numUserDisp;
 }
-
 

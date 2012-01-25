@@ -222,6 +222,41 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 }
 
 void
+Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
+                                     GeomState &geomState, Vector& elementForce,
+                                     Corotator **corotators, FullSquareMatrix *kel,
+                                     Vector &residual, double lambda, double time,
+                                     GeomState *refState)
+{
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+  
+  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iElem = it->first;
+
+    // Get updated tangent stiffness matrix and element internal force
+    if (const Corotator *elementCorot = corotators[iElem]) {
+      elementForce.zero();
+
+      FullSquareMatrix &elementStiff = kel[iElem];
+      getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+   
+      // Apply lumping weight 
+      const double lumpingWeight = it->second;
+      elementForce *= lumpingWeight;
+      elementStiff *= lumpingWeight;
+
+      const int elemDofCount = elementStiff.dim();
+      for(int iDof = 0; iDof < elemDofCount; ++iDof) {
+        const int dofId = c_dsa->getRCN((*allDOFs)[iElem][iDof]);
+        if (dofId >= 0) {
+          residual[dofId] -= elementForce[iDof];
+        }
+      }
+    }
+  }
+}
+
+void
 Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef)
 {
   for(int iele = 0; iele < numele; ++iele) {

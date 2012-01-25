@@ -1235,6 +1235,8 @@ TRAIL [a-zA-Z]*
 
 "TOLERANCE"|[Tt]"olerance"                { return TOLER; }
 
+"ELLUMP"|[eE]"l"[lL]"ump"                 { return ELLUMPWEIGHTS; }
+
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 
 "\""[A-Za-z0-9_./]*"\"" { yytext[yyleng-1] = 0; yylval.strval = strdup(yytext+1);

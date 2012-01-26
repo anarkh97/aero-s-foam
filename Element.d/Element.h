@@ -531,6 +531,7 @@ class Elemset
     int emax;
     BlockAlloc ba;
     bool myData;
+    int dampingFlag;
   public:
     Elemset(int = 256);
     virtual ~Elemset() { deleteElems(); }
@@ -548,8 +549,9 @@ class Elemset
     void deleteElems();
     void remove(int num) { elem[num] = 0; }//DEC
     void setMyData(bool _myData) { myData = _myData; }
-    bool hasDamping() { for(int i=0; i<last(); ++i) if (elem[i]->isDamped()) return true; return false; }
+    bool hasDamping();
     void collapseRigid6(std::set<int> &);
+    void deleteElem(int i);
 };
 
 class EsetGeomAccessor {

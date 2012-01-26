@@ -31,7 +31,7 @@ class NonLinStatic {
  public:
     // Constructor
     NonLinStatic(Domain *d);
-    ~NonLinStatic() { if(kelArray) delete [] kelArray; if(allCorot) delete [] allCorot; if(bcx) delete [] bcx; }
+    ~NonLinStatic();
 
     int  solVecInfo();
     int  sysVecInfo();
@@ -64,7 +64,10 @@ class NonLinStatic {
     bool linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 
-    double getResidualNorm(Vector &res);
+    double getResidualNorm(Vector &res, GeomState &geomState);
+
+  private:
+    void clean();
 };
 
 #endif

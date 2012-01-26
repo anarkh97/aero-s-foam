@@ -221,7 +221,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 #endif 
        break;
      case 16:
-       ele = new (ba) BelytschkoTsayShell(n);
+       if(nnodes == 3) {
+         int n_copy[4] = { n[0], n[1], n[2], n[2] };
+         ele = new (ba) BelytschkoTsayShell(n_copy);
+       }
+       else 
+         ele = new (ba) BelytschkoTsayShell(n);
        break;
      case 17:
        ele = new (ba) EightNodeBrick(n);

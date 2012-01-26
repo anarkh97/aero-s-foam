@@ -82,6 +82,7 @@ struct LayerData {
 struct ConstraintOptions {
   bool lagrangeMult;
   double penalty;
+  bool mpcDual;
 };
 
 extern double fetiHTol;

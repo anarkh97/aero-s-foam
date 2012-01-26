@@ -7,6 +7,7 @@ typedef GenFullSquareMatrix<double> FullSquareMatrix;
 void   orthonorm3( double rten[3][3] );
 double fitalg3_3nodnew(double x0[3][3], double xn[3][3]);
 void   inc_rottensor ( double[3], double[3][3]);
+void   inc_rottensor ( double[3][3], double[3]);
 double form_rottensor ( double[3], double[3][3]);
 void   vec_to_mat (double rvec[3], double rten[3][3] );
 void   vec_to_quat (double[3], double[4]);
@@ -29,7 +30,7 @@ void dnormalize(double v[3],double dv[3]);
 double   magnitude(double a[3]);
 void   tran_fsl(  double force[], FullSquareMatrix &stiff,
                 double t0n[3][3], int num_nodes );
-void   mat_mult_mat(double R1[3][3], double R2[3][3], double result[3][3], 
+void   mat_mult_mat(const double R1[3][3], const double R2[3][3], double result[3][3], 
                     int transflag);
 void mat_mult_vec(double A[3][3], double b[3], double c[3]);
 

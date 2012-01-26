@@ -183,6 +183,13 @@ InputFileSectionHelper<std::pair<const int, ElementPressureTag::SecondType>, Ele
 
 template <>
 const std::string &
+InputFileSectionHelper<std::pair<const int, ElementWeightTag::SecondType>, ElementWeightTag>::header(ElementWeightTag) {
+  static const std::string result("ELLUMP");
+  return result;
+}
+
+template <>
+const std::string &
 InputFileSectionHelper<std::pair<const int, MatUsageTag::SecondType>, MatUsageTag>::header(MatUsageTag) {
   static const std::string result("MATUSAGE");
   return result;

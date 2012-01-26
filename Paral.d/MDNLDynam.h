@@ -1,6 +1,10 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
+#include <map>
+#include <vector>
+#include <cstddef>
+
 class Domain;
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
@@ -131,7 +135,7 @@ class MDNLDynamic
     void formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce,
                             DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState = NULL);
 
-    void preProcess();
+    virtual void preProcess();
 
     void processLastOutput();
     ParallelSolver *getSolver();
@@ -169,6 +173,9 @@ class MDNLDynamic
     int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
+  protected:
+    Domain *getDomain() { return domain; }
+    DecDomain *getDecDomain() { return decDomain; }
 
   private:
     void makeSubDofs(int isub);

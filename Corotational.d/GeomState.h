@@ -1,7 +1,8 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
-#include<map>
+#include <map>
+#include <vector>
 
 class DofSetArray;
 class CoordSet;
@@ -35,16 +36,15 @@ class ElemState {
 };
 
 class GeomState {
-  public:
-     NodeState *ns;     // node state (x,y,z position and rotation tensor)
   protected:
+     std::vector<NodeState> ns; // node state (x,y,z position and rotation tensor)
      int numnodes;	// number of nodes
-     int (*loc)[6];	// dof location array
+     std::vector<std::vector<int> > loc; // dof location array
      double refCG[3];   // reference CG
      double gRot[3][3]; // Global Rotation Matrix
      const CoordSet &X0;
      int    numReal;    // number of 'real' nodes
-     bool  *flag; 	// signifies if node is connected to element
+     std::vector<int> flag; // signifies if node is connected to element
      int numelems;
      ElemState *es;
      std::map<int,int> emap;
@@ -64,7 +64,8 @@ class GeomState {
 
      NodeState & operator[](int i)  { return ns[i]; }
      const NodeState & operator[](int i) const { return ns[i]; }
-     NodeState *getNodeState() { return ns; }
+     void resizeNodeState(int count) { ns.resize(numnodes+count); }
+     void resizeLocAndFlag(DofSetArray &cdsa);
 
      double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
      int getNumElemStates(int glNum) { return (numelems > 0) ? es[emap[glNum]].numInternalStates : 0; }

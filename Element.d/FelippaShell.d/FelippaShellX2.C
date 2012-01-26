@@ -47,7 +47,7 @@ FelippaShellX2::clone()
 int
 FelippaShellX2::getTopNumber()
 {
-  return 2120;
+  return 188;
 }
 
 void

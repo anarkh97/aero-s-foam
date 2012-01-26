@@ -101,7 +101,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
         residual[dofNum] -= elementForce[idof];
     }
   }
-
+/*
   for(int iele = numele; iele < packedEset.size(); ++iele) {
     Corotator *c = dynamic_cast<Corotator*>(packedEset[iele]);
     if(c) {
@@ -119,18 +119,20 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       delete [] p;
     }
   }
-
+*/
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     double loadFactor = (domain->mftval) ? lambda*domain->mftval->getVal(time) : lambda;
+    double p0;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
-      if(packedEset[iele]->getPressure() == 0) continue;
+      if((p0 = packedEset[iele]->getPressure()) == 0) continue;
 
       // Compute (linear) element pressure force in the local coordinates
       elementForce.zero();
+      packedEset[iele]->setPressure(p0*loadFactor);
       packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      //elementForce *= loadFactor;
+      packedEset[iele]->setPressure(p0);
 
       // Include the "load stiffness matrix" in kel[iele]
       if(sinfo.newmarkBeta != 0.0) {
@@ -140,7 +142,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                                               elementForce.data());
         for(int i=0; i<kel[iele].dim(); ++i)
           for(int j=0; j<kel[iele].dim(); ++j)
-            kel[iele][i][j] += loadFactor*elementLoadStiffnessMatrix[i][j];
+            kel[iele][i][j] += elementLoadStiffnessMatrix[i][j];
       }
 
       // Determine the elemental force for the corrotated system
@@ -150,7 +152,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       for(int idof = 0; idof < kel[iele].dim(); ++idof) {
         int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(dofNum >= 0)
-          residual[dofNum] += loadFactor*elementForce[idof];
+          residual[dofNum] += elementForce[idof];
       }
     }
   }
@@ -217,6 +219,75 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();
     
+}
+
+void
+Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
+                                     GeomState &geomState, Vector& elementForce,
+                                     Corotator **corotators, FullSquareMatrix *kel,
+                                     Vector &residual, double lambda, double time,
+                                     GeomState *refState)
+{
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+  
+  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iElem = it->first;
+
+    // Get updated tangent stiffness matrix and element internal force
+    if (const Corotator *elementCorot = corotators[iElem]) {
+      elementForce.zero();
+
+      FullSquareMatrix &elementStiff = kel[iElem];
+      getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+   
+      // Apply lumping weight 
+      const double lumpingWeight = it->second;
+      elementForce *= lumpingWeight;
+      elementStiff *= lumpingWeight;
+
+      const int elemDofCount = elementStiff.dim();
+      for(int iDof = 0; iDof < elemDofCount; ++iDof) {
+        const int dofId = c_dsa->getRCN((*allDOFs)[iElem][iDof]);
+        if (dofId >= 0) {
+          residual[dofId] -= elementForce[iDof];
+        }
+      }
+    }
+  }
+}
+
+void
+Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef)
+{
+  for(int iele = 0; iele < numele; ++iele) {
+    if(corotators[iele]) {
+      Vector residualCorrection(packedEset[iele]->numDofs());
+      residualCorrection.zero();
+      corotators[iele]->getResidualCorrection(geomState, residualCorrection.data());
+    
+      // Assemble element residualCorrection into global residual vector
+      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
+        int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+        if(dofNum >= 0)
+          residual[dofNum] += rcoef*residualCorrection[idof];
+      }
+    }
+  }
+
+  for(int iele = numele; iele < packedEset.size(); ++iele) {
+    Corotator *c = dynamic_cast<Corotator*>(packedEset[iele]);
+    if(c) {
+      Vector residualCorrection(packedEset[iele]->numDofs());
+      residualCorrection.zero();
+      corotators[iele]->getResidualCorrection(geomState, residualCorrection.data());
+      int *p = new int[packedEset[iele]->numDofs()];
+      packedEset[iele]->dofs(*c_dsa, p);
+      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
+        if(p[idof] > -1) residual[p[idof]] += rcoef*residualCorrection[idof];
+      }
+      delete [] p;
+    }
+  }
 }
 
 void

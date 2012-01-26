@@ -316,7 +316,10 @@ FelippaShell::setProp(StructProp *p, bool myProp)
 {
   Element::setProp(p, myProp);
   type = 0;
-  nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho);
+  if(p) {
+    nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho);
+  }
+  else nmat = gpmat = 0; // phantom
 }
 
 void
@@ -470,6 +473,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
 int
 FelippaShell::numStates()
 {
+  if(prop == NULL) return 0;
   return gpmat->GetNumStates() + nmat->GetNumStates();
 }
 
@@ -897,7 +901,7 @@ FelippaShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
 int
 FelippaShell::getTopNumber()
 {
-  return 120;
+  return 108;
 }
 
 void

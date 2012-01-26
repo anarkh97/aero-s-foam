@@ -420,11 +420,13 @@ TRAIL [a-zA-Z]*
 
 "simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
+"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+
 "fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
 "bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
 
-"para"[a-zA-Z]*|"PARA"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
+"supe"[a-zA-Z]*|"SUPE"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
 
 "spooles"[a-zA-Z]*|"SPOOLES"[a-zA-Z]* { yylval.ival = 8; return SOLVERTYPE; }
 
@@ -461,6 +463,8 @@ TRAIL [a-zA-Z]*
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
+
+"goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
@@ -528,7 +532,7 @@ TRAIL [a-zA-Z]*
 
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
 
-"CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKENERGYBALANCE; }
+"CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKTOKEN; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
 
@@ -1207,7 +1211,7 @@ TRAIL [a-zA-Z]*
 
 "PODROM"|"PodRom"|"podrom"                { return PODROM; }
 
-"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+"FOM"|"Fom"|"fom"                         { return FOM; }
 
 "GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
 
@@ -1215,7 +1219,11 @@ TRAIL [a-zA-Z]*
 
 "GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
 
-"SVD"|"Svd"|"svd"                         { return SVD; }
+"SVD"|"Svd"|"svd"                         { return SVDTOKEN; }
+
+"SAMPLING"|"Sampling"|"sampling"          { return SAMPLING; }
+
+"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
 
 "PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
 
@@ -1224,6 +1232,10 @@ TRAIL [a-zA-Z]*
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 
 "SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
+
+"TOLERANCE"|[Tt]"olerance"                { return TOLER; }
+
+"ELLUMP"|[eE]"l"[lL]"ump"                 { return ELLUMPWEIGHTS; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

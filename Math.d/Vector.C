@@ -111,6 +111,23 @@ GenVector<Scalar>::reset(int newlen, Scalar initialvalue)
  for(int i=0; i<len; ++i)
    d[i] = initialvalue;
 }
+
+template<class Scalar>
+void
+GenVector<Scalar>::resize(int newlen)
+{
+ if(len == newlen) return;
+ Scalar *newd = new Scalar[newlen];
+ for(int i=0; i<std::min(len,newlen); ++i)
+   newd[i] = d[i];
+ if(newlen > len) {
+   for(int i=len; i<newlen; ++i) newd[i] = 0;
+ }
+ if(myMemory && d) delete [] d;
+ myMemory = true;
+ len = newlen;
+ d  = newd;
+}
                                                                                                                    
 template<class Scalar>
 void

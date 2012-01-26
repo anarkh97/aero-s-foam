@@ -38,7 +38,7 @@ public:
   Scalar * matrixColBuffer(int col);
   Scalar * matrixBuffer();
   
-  // Local Rhs/Solution buffer: [max(equationCount, unknownCount) by rhsCount]
+  // Rhs/Solution buffer: [max(equationCount, unknownCount) by rhsCount]
   Scalar rhsEntry(int row) const; // First right-hand side
   Scalar rhsEntry(int rank, int row) const;
   const Scalar * rhsBuffer(int rank) const;

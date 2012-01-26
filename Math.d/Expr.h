@@ -81,7 +81,7 @@ public:
 
   Diff(T1 aa, T2 bb, InfoType l) : a(aa), b(bb), len(l) { }
 
-  Scalar operator[](int i) const { return a[i]+b[i]; }
+  Scalar operator[](int i) const { return a[i]-b[i]; }
   InfoType info() const { return len; }
 
 };

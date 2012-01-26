@@ -24,7 +24,8 @@ int
       DofSet::IntPress = 1 << 8,
       DofSet::Contact = 1 << 9,
       DofSet::Potential = 1 << 10,
-      DofSet::Lagrange = 1 << 11; // PJSA previously was 0
+      DofSet::LagrangeE = 1 << 11, // Lagrange multiplier for equality constraint
+      DofSet::LagrangeI = 1 << 12; // Lagrange multiplier for inequality constraint
     
 DofSet DofSet::nullDofset(-1);
 
@@ -764,6 +765,64 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
   invrowcolmax = cnt2;
 }
 
+ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa)
+{
+  // make a ConstrainedDSA from another ConstrainedDSA and in addition
+  // constrained all of the Lagrange multiplier dofs
+  int i, inode;
+  numnodes = dsa.numnodes;
+
+  dofs          = new DofSet[numnodes];
+  node_num_dofs = new    int[numnodes];
+  node_offset   = new    int[numnodes+1];
+
+  renummap = dsa.renummap;
+
+  for(i = 0; i < numnodes; ++i) {
+     dofs[i] = cdsa.dofs[i];
+     dofs[i].unmark(DofSet::LagrangeE);
+     dofs[i].unmark(DofSet::LagrangeI);
+  }
+
+  for(inode = 0; inode < numnodes; ++inode)
+    node_num_dofs[inode] = dofs[inode].count();
+
+  makeOffset();
+
+  int ndof  = dsa.size();
+  rowcolnum = new int[ndof];
+  invrowcol = new int[ndof];
+
+  // 1. initialize rowcolnum to zero
+  for(i=0; i<ndof; ++i)
+    rowcolnum[i] = 0;
+
+  // 2. loop over the nodes
+  for(i = 0; i < numnodes; ++i) {
+    int dofNums[DofSet::max_known_dof];
+    DofSet fixedDofs = dofs[i] ^ dsa.dofs[i];
+    int ndofs = dsa.number(i, fixedDofs, dofNums);
+    int j;
+    for(j = 0; j < ndofs; ++j)
+       rowcolnum[dofNums[j]] = 1;
+  }
+
+  // 3. final loop where you start numbering.
+
+  int cnt  = 0;
+  int cnt2 = 0;
+  for(i=0; i<ndof; ++i) {
+    if(rowcolnum[i]) {
+      rowcolnum[i] = -1;
+      invrowcol[i] = cnt2++;
+    } else {
+      rowcolnum[i] = cnt++;   // To renumber unconstrained dofs.
+      invrowcol[i] = -1;
+    }
+  }
+  invrowcolmax = cnt2;
+
+}
 
 void
 DofSetArray::mark(int node, int ds)

@@ -329,7 +329,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     timeStiff -= getTime();
     StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
                            residual, elementInternalForce, totalRes, lambda);
-    double residualNorm = probDesc->getResidualNorm(residual);
+    double residualNorm = probDesc->getResidualNorm(residual, *geomState);
     if(probDesc->linesearch()) e_k = probDesc->getEnergy(lambda, force, geomState); // experimental
     timeStiff += getTime();
 #ifdef PRINT_TIMERS

@@ -19,6 +19,7 @@
 #include <Solvers.d/GmresSolver.h>
 #include <Solvers.d/Spooles.h>
 #include <Solvers.d/Mumps.h>
+#include <Solvers.d/GoldfarbIdnani.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
@@ -679,14 +680,20 @@ Domain::constructDBSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
 
 template<class Scalar>
 GenEiSparseMatrix<Scalar> *
-Domain::constructEiSparseMatrix(DofSetArray *dof_set_array, Connectivity *cn)
+Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bool flag)
 {
 #ifdef USE_EIGEN3
- if(dof_set_array == 0) dof_set_array = c_dsa;
- if(cn == 0)
-   return new GenEiSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa);
- else
-   return new GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa);
+  if(c_dsa == 0) c_dsa = Domain::c_dsa;
+  if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
+  if(sinfo.mpcDual) {
+    Connectivity *nodeToNodeG = nodeToNode;
+    DofSetArray *g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
+    typename WrapEiSparseMat<Scalar>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
+    return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol);
+  }
+  else {
+   return new GenEiSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, flag);
+  }
 #else
  cerr << "USE_EIGEN3 is not defined\n";
 #endif
@@ -1167,20 +1174,17 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
   switch(sinfo.subtype) {
     default:
     case 0:
-      //filePrint(stderr," ... Skyline Solver is Selected     ...\n");
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 1:
-      //filePrint(stderr," ... Sparse Solver is Selected      ...\n");
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
       spm->zeroAll();
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
-      //filePrint(stderr," ... SGI Sparse Solver is Selected  ...\n");
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
@@ -1188,7 +1192,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
-      //filePrint(stderr," ... SGI Skyline Solver is Selected ...\n");
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
       makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
@@ -1199,20 +1202,24 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #ifdef USE_EIGEN3
     case 4:
-      //filePrint(stderr," ... Simplicial Cholesky Solver is Selected ...\n");
       spm = constructEiSparseMatrix<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
       systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
       break;
 #endif
     case 5:
-      //filePrint(stderr," ... Frontal Solver is Selected     ...\n");
       makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
       systemSolver = allOps.sysSolver;
       break;
+#ifdef EIGEN_SUPERLU_SUPPORT
+    case 7:
+      spm = constructEiSparseMatrix<Scalar>(c_dsa, nodeToNode, false);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+      systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
+      break;
+#endif
 #ifdef USE_SPOOLES
     case 8:
-      //filePrint(stderr," ... Spooles Solver is Selected     ...\n");
       spm = constructSpooles<Scalar>(c_dsa, rbm);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
@@ -1220,7 +1227,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #endif
 #ifdef USE_MUMPS
     case 9:
-      //filePrint(stderr," ... Mumps Solver is Selected       ...\n");
 #ifdef DISTRIBUTED
       spm = constructMumps<Scalar>(c_dsa, rbm, new FSCommunicator(structCom));
 #else

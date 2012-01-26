@@ -58,7 +58,7 @@
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token CHECKENERGYBALANCE COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
@@ -66,7 +66,7 @@
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES
+%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER ELLUMPWEIGHTS
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -312,6 +312,7 @@ Component:
         | Constraints
         | PodRom
         | SampleNodeList
+        | ElementLumpingWeightList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -845,9 +846,9 @@ DynamInfo:
         { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
-        | DynamInfo CHECKENERGYBALANCE NewLine
+        | DynamInfo CHECKTOKEN NewLine
         { domain->solInfo().check_energy_balance = true; }
-        | DynamInfo CHECKENERGYBALANCE Float Float NewLine
+        | DynamInfo CHECKTOKEN Float Float NewLine
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
@@ -2444,6 +2445,8 @@ Solver:
 	{ domain->solInfo().mumps_icntl[$2] = $3; }
 	| MUMPSCNTL Integer Float NewLine
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
+        | GOLDFARBTOL Float NewLine
+        { domain->solInfo().goldfarb_tol = $2; }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
         | DEBUGICNTL Integer Integer NewLine
@@ -2898,17 +2901,20 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) geoSource->setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty; }
+          domain->solInfo().penalty = $2.penalty;
+          domain->solInfo().mpcDual = $2.mpcDual; }
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        { $$.lagrangeMult = false; $$.penalty = 0.0; $$.mpcDual = false; } // Direct elimination of slave dofs
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        { $$.lagrangeMult = false; $$.penalty = $2; $$.mpcDual = false; } // Treatment of constraints through penalty method
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        { $$.lagrangeMult = true; $$.penalty = $3; $$.mpcDual = false; } // Treatment of constraints through augmented Lagrangian method
+        | MULTIPLIERS DUALMORTAR
+        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = true; }
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
@@ -3377,21 +3383,40 @@ PodRom:
   | PodRom PodRomOption NewLine
   ;
 PodRomMode:
-  SNAPSHOTS
-  { }
+  FOM
+  { domain->solInfo().snapshotsPodRom = true; }
+  | GALERKIN
+  { domain->solInfo().galerkinPodRom = true;
+    domain->solInfo().subtype = 12; }
   | GAUSSNEWTON 
   { domain->solInfo().gaussNewtonPodRom = true;
     domain->solInfo().subtype = 11; }
-  | GALERKIN
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 12; }
   | GAPPY
   { domain->solInfo().gappyPodRom = true;
     domain->solInfo().subtype = 13; }
+  | SVDTOKEN PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().svdPodRom = true; }
+  | SAMPLING PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().samplingPodRom = true; }
+  ;
+PodRomOfflineModeOption:
+  /* empty */
+  | GAUSSNEWTON
+  { domain->solInfo().gaussNewtonPodRom = true; }
+  | FORCE
+  { domain->solInfo().galerkinPodRom = true; }
   ;
 PodRomOption:
-  SVD
-  { domain->solInfo().svdPodRom = true; }
+  CHECKTOKEN
+  { domain->solInfo().checkPodRom = true; }
+  | SNAPSHOTS
+  { domain->solInfo().snapshotsPodRom = true; }
+  | SNAPSHOTS SWITCH
+  { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
+  | SVDTOKEN
+  { domain->solInfo().onlineSvdPodRom = true; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | ASPECTRATIO Float
@@ -3400,12 +3425,20 @@ PodRomOption:
   { domain->solInfo().substractRefPodRom = true; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | TOLER Float
+  { domain->solInfo().tolPodRom = $2; }
   ;
 SampleNodeList:
   SAMPLENODES NewLine
   {}
   | SampleNodeList Integer NewLine
   { geoSource->sampleNodeAdd($2 - 1); }
+  ;
+ElementLumpingWeightList:
+  ELLUMPWEIGHTS NewLine
+  { domain->solInfo().elemLumpPodRom = true; }
+  | ElementLumpingWeightList Integer Float NewLine
+  { geoSource->setElementLumpingWeight($2 - 1, $3); }
   ;
 Integer:
 	IntConstant

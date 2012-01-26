@@ -152,6 +152,7 @@ def dComp(params):
     lrun = 0 
 
   files = [] 
+  plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):
      
     if(params[1] == 'ALL'):
@@ -243,6 +244,8 @@ def dComp(params):
          outstring = "\tDiscrepancy " + file + "\n"
          SUMMARY_FILE.write(outstring)
          SUMMARY_FILE.write(compstring[0])
+         gnuplotCalled = 1;
+         plotList.append([file,basefile]);
        else:
          exactMatches += 1
          print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
@@ -259,7 +262,44 @@ def dComp(params):
   outstring = "Test completed at %s on %s\n"% (time,date)
   SUMMARY_FILE.write(outstring)
 
+  if(len(plotList) > 0):
+    
+    PLOT_FILE = open("gnuplot_create","w")
+    PLOT_FILE.write("set terminal postscript color\n")
+    PLOT_FILE.write("set output \"Discrepancies.ps\"\n")
+    PLOT_FILE.write("set lmargin 10\nset rmargin 5\nset tmargin 5\nset bmargin 5\nset key bottom\nset key box\n")
+
+    for files in plotList:
+      words = files[0].split('/');
+      title1 = words[1]
+      title2 = "baseline--%s"%words[1]
+      TEST_FILE = open(files[0],"r")
+      linenum = 0
+      count = 0
+      for line in TEST_FILE:
+        if (linenum == 2):
+          words = line.split()
+          count = len(words)
+          break
+        linenum = linenum+1
+      print "count = %d for %s\n"%(count,files[0])
+      if(count == 0):
+        PLOT_FILE.write("set title \"%s--MISSING\"\n" % (files[0]))
+        PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\"\n" % (files[1],title2))
+      elif (count == 1):
+          PLOT_FILE.write("set title \"%s comparison\"\n" % (files[0]))
+          PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\", \"%s\" every ::2 using 1 title \"%s\"\n" % (files[0],title1,files[1],title2));
+      else:
+        for col in range(2,count+1):
+          PLOT_FILE.write("set title \"%s comparison of column %d\"\n" % (files[0],col))
+          PLOT_FILE.write("plot \"%s\" every ::2 using 1:%d title \"%s\", \"%s\" every ::2 using 1:%d title \"%s\"\n" % (files[0],col,title1,files[1],col,title2));
+    PLOT_FILE.close()
+#   command =  "echo \"/usr/bin/gnuplot gnuplot_create\""
+    os.system('gnuplot gnuplot_create');
+    os.system("ps2pdf Discrepancies.ps Discrepancies.pdf");
   if(sendMail == 1):
+    command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
+    os.system(command) 
     mail_file = open(".mail_command","w")
     next_build_num = list(open("/lustre/home/hudson/jobs/FEM build/nextBuildNumber","r").read().splitlines())
 #   command = "mail -s \"Regression Test Summary\" mpotts@hpti.com < reg_test_summary"

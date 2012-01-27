@@ -656,7 +656,7 @@ SingleDomainDynamic::preProcess()
 
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch();
-  else if(domain->GetnContactSurfacePairs())
+  else if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs())
     domain->InitializeStaticContactSearch(MortarHandler::CTC);
 
   prevFrc = new PrevFrc(domain->numUncon());

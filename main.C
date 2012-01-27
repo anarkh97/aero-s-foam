@@ -166,6 +166,8 @@ int main(int argc, char** argv)
  weightList[8] = 3.0;   // ThreeNodeShell
  weightList[10] = 2.0;  // ThermQuadGal
  weightList[13] = 2.0;  // thermoleastic quad
+ weightList[15] = 3.0;  // FelippaShell
+ weightList[1515] = 4.0;  // FelippaShellX2
  weightList[16] = 4.0;  // FourNodeShell
  weightList[17] = 3.0;  // EightNodeBrick
  weightList[19] = 3.0;  // Membrane

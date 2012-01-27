@@ -208,7 +208,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 11:
        ele = new (ba) TorSpring(n);
        break;
-     case 15:
+     case 15: case 1515:
 #ifdef USE_EIGEN3
        if(nnodes == 3 || (nnodes == 4 && n[2] == n[3]))
          ele = new (ba) FelippaShell(n);

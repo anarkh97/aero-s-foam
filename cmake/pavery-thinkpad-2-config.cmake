@@ -5,6 +5,7 @@ SET(CMAKE_INCLUDE_PATH
     /home/avery/Codes/trilinos/trilinos-10.8.3-Obj_cmake/include
     /home/avery/Codes/trilinos/trilinos-10.8.3-Source/packages/zoltan/src)
 SET(CMAKE_LIBRARY_PATH
+    /home/avery/Codes/ARPACK
     /home/avery/Codes/trilinos/trilinos-10.8.3-Obj_cmake/lib)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")

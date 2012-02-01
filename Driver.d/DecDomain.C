@@ -3498,7 +3498,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 // RT end
  switch(domain->solInfo().type) {
    case 0 : { // direct
-     if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
+     //if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
      dgt.dynMats[0]->unify(communicator);
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
      if(factor) res.dynMat->refactor();

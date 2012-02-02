@@ -134,7 +134,8 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
     for(int i=0; i<mgaus[2]; ++i) {
       switch(expmat->optctv) {
       case 5 :
-        mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);
+        mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
+                                                                        expmat->ematpro[6]);
         break;
       case 6 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);

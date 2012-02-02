@@ -459,7 +459,8 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
-    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H);
+    double tol = expmat->ematpro[6];
+    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol);
     type = 4;
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);

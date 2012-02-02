@@ -231,7 +231,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param iH Kinematic hardening modulus
   IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
 						     double iSigmaY, double iK = 0.,
-						     double iH=0.);
+						     double iH = 0., double iTol = 1.0e-6);
   
   //! Destructor
   ~IsotropicLinearElasticJ2PlasticPlaneStressMaterial();
@@ -341,6 +341,9 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   
   //! Kinematic hardening modulus
   double H;
+
+  //! Tolerance for convergence of nonlinear solve
+  double Tol;
   
   //! Plastic strain 
   std::vector<double> EPSplastic;

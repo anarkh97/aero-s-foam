@@ -22,7 +22,6 @@ class RigidFourNodeShell : public SuperElement
     // EXPERIMENTAL
     void setPressure(double, MFTTData* = 0);
     double getPressure();
-    void setMaterial(NLMaterial *);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs = 0, int cflg = 0);

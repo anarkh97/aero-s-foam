@@ -180,7 +180,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement()) { // XXXX
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
-         //cerr << "adding C to Msolver\n";
+         kel = packedEset[iele]->stiffness(nodes, karray);
          if(mat) mat->add(kel,(*allDOFs)[iele]);
        }
        else {

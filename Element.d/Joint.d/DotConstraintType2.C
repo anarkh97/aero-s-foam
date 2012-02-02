@@ -17,7 +17,7 @@ DotConstraintType2::~DotConstraintType2()
 void
 DotConstraintType2::setFrame(EFrame *elemframe)
 {
-  c0 = new double[3][3];
+  if(!c0) c0 = new double[3][3];
   for(int i = 0; i < 3; ++i)
     for(int j = 0; j < 3; ++j) 
       c0[i][j] = (*elemframe)[i][j];

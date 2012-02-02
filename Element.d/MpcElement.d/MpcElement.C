@@ -196,7 +196,6 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   }
 
   return ret;
-
 }
 
 Corotator*

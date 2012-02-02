@@ -166,6 +166,7 @@ RigidBeam::buildFrame(CoordSet& cs)
 
     elemframe = &c0;
   }
+  SuperElement::setFrame(elemframe);
   SuperElement::buildFrame(cs);
 }
 
@@ -191,12 +192,13 @@ RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
         int grvflg = 0, masflg = 0;
 
         // Lumped Mass Matrix
-        _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
+        double elmass[144];
+        _FORTRAN(e3dmas)(prop->rho,elmass,prop->A,
                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
-        for(int i=12; i<numDofs(); ++i) mel[i] = 0; // this is for the lagrange multiplier dofs, if any
-
         FullSquareMatrix ret(numDofs(), mel);
+        ret.zero();
+        for(int i=0; i<12; ++i) ret[i][i] = elmass[13*i];
 
         return ret;
 }
@@ -289,6 +291,7 @@ RigidBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[10] = -globalm[1];
         gravityForce[11] = -globalm[2];
 
+        for(int i=12; i<numDofs(); ++i) gravityForce[i] = 0;
 }
 
 void

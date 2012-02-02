@@ -415,7 +415,6 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
                        Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
                        double *acx, GeomState *refState)
 {
-
   if(time == sinfo.initialTime) {
     geoSource->openOutputFiles();
     //printStatistics();

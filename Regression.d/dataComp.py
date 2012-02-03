@@ -119,10 +119,12 @@ def dComp(params):
   loc = -1
   sloc = -1
   rloc = -1
+  nloc = -1
   i = 0 
   pattern = re.compile("\-r")
   runLocal = re.compile("\-l")
   sendMail = re.compile("\-s")
+  newPlots = re.compile("\-n")
 
   for s in params:
     if(re.search(pattern,s)):
@@ -131,25 +133,49 @@ def dComp(params):
        sloc = i
     if(re.search(runLocal,s)):
        rloc = i
+    if(re.search(newPlots,s)):
+       nloc = i
     i=i+1
 
   if(sloc != -1):
     sendMail = 1
     del params[sloc]
+    if(nloc > sloc): nloc = nloc -1
+    if(rloc > sloc): rloc = rloc -1
+    if(loc > sloc): loc = loc -1
   else:
      sendMail = 0
  
   if(loc != -1):
     run = 1
     del params[loc]
+    if(nloc > loc): nloc = nloc -1
+    if(rloc > loc): rloc = rloc -1
+    if(sloc > loc): sloc = sloc -1
   else:
     run = 0 
 
   if(rloc != -1):
     lrun = 1
     del params[rloc]
+    if(nloc > rloc): nloc = nloc -1
+    if(sloc > rloc): sloc = sloc -1
+    if(loc > rloc): loc = loc -1
   else:
     lrun = 0 
+
+  if(nloc != -1):
+    newP = 1
+    del params[nloc]
+    if(sloc > nloc): sloc = sloc -1
+    if(rloc > nloc): rloc = rloc -1
+    if(loc > nloc): loc = loc -1
+    os.system("rm gnuplot_create")
+  else:
+    newP = 0
+
+  run = 0
+  lrun = 0
 
   files = [] 
   plotList = []
@@ -263,11 +289,13 @@ def dComp(params):
   SUMMARY_FILE.write(outstring)
 
   if(len(plotList) > 0):
-    
-    PLOT_FILE = open("gnuplot_create","w")
-    PLOT_FILE.write("set terminal postscript color\n")
-    PLOT_FILE.write("set output \"Discrepancies.ps\"\n")
-    PLOT_FILE.write("set lmargin 10\nset rmargin 5\nset tmargin 5\nset bmargin 5\nset key bottom\nset key box\n")
+    if(os.path.exists("gnuplot_create")):
+      PLOT_FILE = open("gnuplot_create","a")
+    else:
+      PLOT_FILE = open("gnuplot_create","w")
+      PLOT_FILE.write("set terminal postscript color\n")
+      PLOT_FILE.write("set output \"Discrepancies.ps\"\n")
+      PLOT_FILE.write("set lmargin 10\nset rmargin 5\nset tmargin 5\nset bmargin 5\nset key bottom\nset key box\n")
 
     for files in plotList:
       words = files[0].split('/');
@@ -282,7 +310,6 @@ def dComp(params):
           count = len(words)
           break
         linenum = linenum+1
-      print "count = %d for %s\n"%(count,files[0])
       if(count == 0):
         PLOT_FILE.write("set title \"%s--MISSING\"\n" % (files[0]))
         PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\"\n" % (files[1],title2))
@@ -294,21 +321,13 @@ def dComp(params):
           PLOT_FILE.write("set title \"%s comparison of column %d\"\n" % (files[0],col))
           PLOT_FILE.write("plot \"%s\" every ::2 using 1:%d title \"%s\", \"%s\" every ::2 using 1:%d title \"%s\"\n" % (files[0],col,title1,files[1],col,title2));
     PLOT_FILE.close()
-#   command =  "echo \"/usr/bin/gnuplot gnuplot_create\""
+    os.system("rm Discrepancies.*")
     os.system('gnuplot gnuplot_create');
     os.system("ps2pdf Discrepancies.ps Discrepancies.pdf");
   if(sendMail == 1):
     command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
     os.system(command) 
-    mail_file = open(".mail_command","w")
-    next_build_num = list(open("/lustre/home/hudson/jobs/FEM build/nextBuildNumber","r").read().splitlines())
-#   command = "mail -s \"Regression Test Summary\" mpotts@hpti.com < reg_test_summary"
-    build_num = int(next_build_num[0])-1
-    log_file = "/lustre/home/hudson/jobs/FEM\ build/builds/" + str(build_num) +"/log"
-    command = "tail -90 " + log_file + "| mail -s \"Regression Test Summary\" mpotts@hpti.com "
-    mail_file.write(command)
-    print(command)
-    os.system(command)
+
 
   sys.exit(result)
 

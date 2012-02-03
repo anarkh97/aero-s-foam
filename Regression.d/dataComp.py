@@ -174,9 +174,6 @@ def dComp(params):
   else:
     newP = 0
 
-  run = 0
-  lrun = 0
-
   files = [] 
   plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):

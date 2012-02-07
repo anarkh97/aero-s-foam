@@ -601,7 +601,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
 #ifndef DEBUG_EXPLICIT
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
 #else
-   // TODO need to implmenet Corotator::getInternalForce
+   // TODO need to implement Corotator::getInternalForce
    andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
 #endif
  }

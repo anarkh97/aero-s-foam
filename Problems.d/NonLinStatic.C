@@ -65,6 +65,12 @@ NonLinStatic::clean()
   }
 }
 
+void
+NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateStates(refState, geomState, allCorot);
+}
+
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
                                Vector &, double lambda, GeomState *refState)

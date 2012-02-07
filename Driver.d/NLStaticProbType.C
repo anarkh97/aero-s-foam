@@ -101,6 +101,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
    filePrint(stderr," --------------------------------------\n");
    fflush(stderr);
+   if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
 #ifndef DEBUG_NEWTON
    // Output current load step results
    probDesc->staticOutput(geomState, time, force, totalRes, refState);

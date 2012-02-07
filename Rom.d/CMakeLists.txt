@@ -20,7 +20,6 @@ ADD_LIBRARY( Rom
   ElementSamplingDriver.C
   ExplicitMeshSamplingDriver.C
   FileNameInfo.C
-  GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
   LumpedPodProjectionNonLinDynamic.C
   QrPseudoInversion.C

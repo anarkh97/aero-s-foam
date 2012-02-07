@@ -80,9 +80,8 @@ GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) 
   if (!rhsIsprojected_) {
     reduce(this->projectionBasis(), rhs, this->getReducedSolution());
   }
-
+  
   performSolve();
-  expand(this->projectionBasis(), this->lastReducedSolution(), rhs);
   
   rhsIsprojected_ = false;
 }

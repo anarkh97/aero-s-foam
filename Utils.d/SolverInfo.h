@@ -256,6 +256,7 @@ struct SolverInfo {
    bool galerkinPodRom;
    bool gaussNewtonPodRom;
    bool gappyPodRom;
+   bool reducedPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
@@ -453,6 +454,7 @@ struct SolverInfo {
                   galerkinPodRom = false;
                   gaussNewtonPodRom = false;
                   gappyPodRom = false;
+                  reducedPodRom = false;
                   elemLumpPodRom = false;
                   onlineSvdPodRom = false;
                   maxSizePodRom = 0;

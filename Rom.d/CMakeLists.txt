@@ -32,6 +32,7 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
+  ReducedNonLinDynamic.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

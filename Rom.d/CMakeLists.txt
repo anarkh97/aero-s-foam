@@ -12,6 +12,7 @@ ADD_LIBRARY( Rom
   DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
   DistrExplicitPodProjectionNonLinDynamic.C
+  DistrExplicitLumpedPodProjectionNonLinDynamic.C
   DistrExplicitGappyNonLinDynamic.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C

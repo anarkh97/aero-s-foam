@@ -99,10 +99,13 @@ private:
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
 
+protected:
     GenFullSquareMatrix<double> **kelArray;
     GenFullSquareMatrix<double> **melArray;
     Corotator ***allCorot;
     DistrGeomState *geomState;
+
+private:
     DistrVector *dprev;
 
     MDDynamMat *dynMat;

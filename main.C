@@ -54,6 +54,7 @@ using namespace std;
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitGappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
@@ -912,11 +913,19 @@ int main(int argc, char** argv)
            dynamSolver.solve();
          } else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
-             filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
-             Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
-             DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                   Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
-             dynamSolver.solve();
+             if (domain->solInfo().elemLumpPodRom) {
+               filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
+               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                             Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+               dynamSolver.solve();
+             } else {
+               filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
+               Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
+               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                             Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+               dynamSolver.solve();
+             }
            } else if (domain->solInfo().gappyPodRom) {
              filePrint(stderr, " ... POD: Explicit Gappy Galerkin   ...\n");
              Rom::DistrExplicitGappyNonLinDynamic dynamProb(domain);

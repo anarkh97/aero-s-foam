@@ -585,8 +585,11 @@ class Domain : public HData {
      template <class Scalar>
        void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
-       void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
+       void computeExtForce4(GenVector<Scalar>& force, const GenVector<Scalar>& constantForce, double t,
                              GenSparseMatrix<Scalar> *kuc = 0);
+     template <class Scalar> 
+       void computeExtForce(GenVector<Scalar>& force, double t,
+                            GenSparseMatrix<Scalar> *kuc = 0);
      void computeExtForce(Vector &f, double t, int tIndex,
                           SparseMatrix *kuc, Vector &prev_f);
 

@@ -3,6 +3,8 @@
 
 #include "PodProjectionSolver.h"
 
+#include "CholeskyUtils.h"
+
 #include <Math.d/FullSquareMatrix.h>
 
 #include <cstddef>
@@ -80,11 +82,22 @@ GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) 
   if (!rhsIsprojected_) {
     reduce(this->projectionBasis(), rhs, this->getReducedSolution());
   }
-
+  
   performSolve();
-  expand(this->projectionBasis(), this->lastReducedSolution(), rhs);
   
   rhsIsprojected_ = false;
+}
+
+template <typename Scalar>
+void
+GenGalerkinProjectionSolver<Scalar>::performFactor() {
+  cholesky_factor_upper(reducedMatrix_);
+}
+
+template <typename Scalar>
+void
+GenGalerkinProjectionSolver<Scalar>::performSolve() {
+  cholesky_solve_upper(reducedMatrix_, this->getReducedSolution().data());
 }
 
 typedef GenGalerkinProjectionSolver<double> GalerkinProjectionSolver;

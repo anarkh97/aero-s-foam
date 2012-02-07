@@ -203,7 +203,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                              acceleration, midtime);
 
       // Compute incremental displacements
-      geomState->get_inc_displacement(inc_displac, *stepState, domain->solInfo().zeroRot);
+      StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
 
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,

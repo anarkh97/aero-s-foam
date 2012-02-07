@@ -5,28 +5,38 @@ template< class ProbDescr, class VecType, class GeomType >
 class IncrUpdater  {
 
 public:
-
   typedef VecType StateIncr;
   typedef GeomType RefState;
-
-  static void update(RefState *, GeomType *unp, StateIncr *, VecType &du) { unp->update(du); }
+  
   static RefState *initRef(GeomType *u)  { return new RefState(*u); }
+
   static StateIncr *initInc(GeomType *, VecType *v)  { return new VecType(*v); }
+
   static void copyState(GeomType *gn, RefState *gp)  { *gp = *gn; };
+
   static void zeroInc(StateIncr *du)  { du->zero(); }
+
+  static void get_inc_displacement(ProbDescr *,
+                                   GeomType *geomState, StateIncr &du, GeomType *refState,
+                                   bool zeroRot) {
+    geomState->get_inc_displacement(du, *refState, zeroRot);
+  }
+
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
-    geomState->update(*du);
+    updateState(geomState, *du);
     return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState);
   }
+
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime) {
-    geomState->update(*du);
+    updateState(geomState, *du);
     return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
   }
+
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, GeomType *refState, 
                   GeomType *geomState,
@@ -37,12 +47,9 @@ public:
      geomState->midpoint_step_update(velN, acceleration, delta, *refState, beta, gamma, alphaf, alpham,
                                      zeroRot);
   }
+
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 
-  static void formRHSpredictor(ProbDescr *pbd, VecType &vel_n, VecType &accel,
-    VecType &residual, VecType &rhs, GeomType *geomState, double midtime){
-    pbd->formRHSpredictor(vel_n, accel, residual, rhs, *geomState, midtime);
-  }
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
     return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs); 
@@ -64,7 +71,10 @@ public:
     force_bk = force;
   }
     
-
+private:
+  static void updateState(GeomType *geomState, const VecType &du) {
+    geomState->update(const_cast<VecType &>(du));
+  }
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -88,11 +98,6 @@ public:
   
     geomState->update(*du, pbd->getDelta());
     return pbd->getStiffAndForce(*geomState, residual);
-  }
-
-  static void formRHSpredictor(ProbDescr *pbd, VecType &vel_n, VecType &accel,
-    VecType &residual, VecType &rhs, GeomType *geomState, double midtime){
-    pbd->formRHSpredictor(residual, rhs, *geomState);
   }
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
@@ -133,20 +138,27 @@ public:
   typedef VecType StateIncr;
   typedef GeomType RefState;
 
-  static void update(RefState *rs, GeomType *unp, StateIncr *incr, VecType &du)  {
-    *incr += du; unp->update(*rs, *incr);  }
-
   static VecType *initInc(GeomType *, VecType *v)  { return new VecType(*v);  }
 
   static RefState *initRef(GeomType *u)  { return new RefState(*u); }
+  
   static void copyState(GeomType *gn, RefState *gp)  { *gp = *gn; }
+  
   static void zeroInc(StateIncr *incr)  { incr->zero(); }
+  
+  static void get_inc_displacement(ProbDescr *,
+                                   GeomType *geomState, StateIncr &du, GeomType *refState,
+                                   bool zeroRot) {
+    geomState->get_inc_displacement(du, *refState, zeroRot);
+  }
+  
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &totalRes, double = 1.0) {
     return pbd->integrate(*sn, *snp, *du, residual, 
                           elementInternalForce, totalRes);
   }
+  
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
                   StateIncr *du, VecType &residual,
                   VecType &elementInternalForce, VecType &totalRes, VecType, VecType,
@@ -154,7 +166,9 @@ public:
     return pbd->integrate(*sn, *snp, *du, residual,
                           elementInternalForce, totalRes);
   }
+  
   static void updateIncr(StateIncr *du, VecType &ddu) { *du += ddu; }
+  
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, RefState *sn, 
                   GeomType *snp,
@@ -167,10 +181,6 @@ public:
      *sn = *snp;
   }
 
-  static void formRHSpredictor(ProbDescr *pbd, VecType &vel_n, VecType &accel,
-    VecType &residual, VecType &rhs, GeomType *geomState, double midtime){
-    pbd->formRHSpredictor(vel_n, residual, rhs, *geomState, midtime);
-  }
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
     return pbd->formRHScorrector(inc_displac, vel_n, residual, rhs); 

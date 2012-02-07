@@ -18,6 +18,8 @@
 
 #include <Driver.d/Domain.h>
 
+#include <Utils.d/vector_to_array.h>
+
 #include <vector>
 #include <iterator>
 #include <cstddef>
@@ -31,17 +33,6 @@
 extern GeoSource *geoSource;
 
 namespace Rom {
-
-namespace { // anonymous
-
-  template <typename T>
-  inline
-  const T *
-  toArray(const std::vector<T> &v) {
-    return !v.empty() ? &v[0] : NULL;
-  }
-
-} // end anonymous namespace
 
 MeshSamplingDriver::MeshSamplingDriver(Domain *domain) :
   domain_(domain)

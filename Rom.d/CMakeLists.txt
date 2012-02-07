@@ -11,6 +11,7 @@ ADD_LIBRARY( Rom
   DistrBasisOrthoDriver.C
   DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
+  DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitLumpedPodProjectionNonLinDynamic.C
   DistrExplicitGappyNonLinDynamic.C

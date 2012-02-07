@@ -2,11 +2,10 @@
 
 #include "DistrGalerkinProjectionSolver.h"
 
-#include "DistrVecBasis.h"
-#include "DistrVecBasisOps.h"
-
 #include "FileNameInfo.h"
 #include "DistrBasisFile.h"
+
+#include "DistrVecBasis.h"
 
 #include "DistrMasterMapping.h"
 #include "DistrVecNodeDof6Conversion.h"
@@ -14,14 +13,10 @@
 #include "PtrPtrIterAdapter.h"
 
 #include <Driver.d/DecDomain.h>
-#include <Math.d/Vector.h>
 #include <Feti.d/DistrVector.h>
-#include <Utils.d/DistHelper.h>
 
 #include <Driver.d/GeoSource.h>
 
-#include <algorithm>
-#include <stdexcept>
 #include <cstddef>
 
 extern Communicator *structCom;
@@ -45,6 +40,7 @@ private:
 DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::~SnapshotHandler() {
   // Nothing to do
 }
+
 
 // Dummy class, used for namespace access
 class DistrExplicitPodProjectionNonLinDynamicDetail : public DistrExplicitPodProjectionNonLinDynamic {
@@ -87,7 +83,7 @@ private:
 // Main class implementation
 
 DistrExplicitPodProjectionNonLinDynamic::DistrExplicitPodProjectionNonLinDynamic(Domain *domain) :
-  MultiDomainDynam(domain),
+  DistrExplicitPodProjectionNonLinDynamicBase(domain),
   snapshotHandler_(NULL)
 {}
 
@@ -97,56 +93,13 @@ DistrExplicitPodProjectionNonLinDynamic::~DistrExplicitPodProjectionNonLinDynami
 
 void
 DistrExplicitPodProjectionNonLinDynamic::preProcess() {
-  MultiDomainDynam::preProcess();
- 
-  FileNameInfo fileInfo; 
-  DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
-
-  const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
-                                     podBasisFile.stateCount();
-
-  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionSubspaceSize);
-  projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
-
-  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
-  
-  typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
-  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-  DistrNodeDof6Buffer snapBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-
-  for (DistrVecBasis::iterator it = projectionBasis_.begin(),
-                               it_end = projectionBasis_.end();
-                               it != it_end; ++it) {
-    assert(podBasisFile.validCurrentState());
-
-    podBasisFile.currentStateBuffer(snapBuffer);
-    converter.vector(snapBuffer, *it);
-    
-    podBasisFile.currentStateIndexInc();
-  }
+  DistrExplicitPodProjectionNonLinDynamicBase::preProcess();
 
   if (domain->solInfo().snapshotsPodRom) {
     snapshotHandler_.reset(new DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler(this->decDomain));
   } else {
     snapshotHandler_.reset(new DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler);
   }
-}
-
-MDDynamMat *
-DistrExplicitPodProjectionNonLinDynamic::buildOps(double mCoef, double cCoef, double kCoef) {
-  MDDynamMat *result = MultiDomainDynam::buildOps(mCoef, cCoef, kCoef);
-  assert(result->M);
-
-  const GenSubDOp<double> &fullMass = *(result->M);
-  std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(fullMass));
-  solver->projectionBasisIs(projectionBasis_);
-
-  delete result->dynMat;
-  result->dynMat = solver.release();
-
-  return result;
 }
 
 void

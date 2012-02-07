@@ -55,7 +55,7 @@ DofSet::count()
 }
 
 int 
-DofSet::locate(int dof)
+DofSet::locate(int dof) const
 {
   int cdof = flags;
   int seekeddof = (int) dof;
@@ -839,7 +839,7 @@ DofSetArray::mark(int *node, int numNodes, int ds)
 }
 
 int
-DofSetArray::locate(int node, int ds)
+DofSetArray::locate(int node, int ds) const
 {
  //fprintf(stderr," ... numnodes is %d ...\n",numnodes);
  //fprintf(stderr," ... node is %d ...\n",node);

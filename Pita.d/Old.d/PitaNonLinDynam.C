@@ -5,6 +5,7 @@
 #include <Comm.d/Communicator.h>
 #include <Driver.d/Domain.h>
 #include <Timers.d/StaticTimers.h>
+#include <Utils.d/dofset.h>
 
 #include <iostream>
 
@@ -83,21 +84,7 @@ void PitaNonLinDynamic::reBuildKonly()
 // Set rotational displacements equal to zero.
 void PitaNonLinDynamic::zeroRotDofs(Vector & vec) const
 {
-  ConstrainedDSA & cdsa = *(domain->getCDSA());
-  int numNodes = cdsa.numNodes(); 
-  int dofPos;
-  for (int inode = 0; inode < numNodes; ++inode)
-  {
-      dofPos = cdsa.locate(inode, DofSet::Xrot);
-      if (dofPos >= 0)
-        vec[dofPos] = 0.0;
-      dofPos = cdsa.locate(inode, DofSet::Yrot);
-      if (dofPos >= 0)
-        vec[dofPos] = 0.0;
-      dofPos = cdsa.locate(inode, DofSet::Zrot);
-      if (dofPos >= 0)
-        vec[dofPos] = 0.0;
-  }
+  ::zeroRotDofs(*domain->getCDSA(), vec);
 }
 
 double PitaNonLinDynamic::energyNorm(const Vector &disp, const Vector &velo)

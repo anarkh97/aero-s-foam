@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <memory>
 #include <cstddef>
 
 extern Communicator *structCom;
@@ -32,13 +31,48 @@ namespace Rom {
 
 class DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler {
 public:
-  void forceSnapshotAdd(const DistrVector &s);
-  explicit SnapshotHandler(DistrExplicitPodProjectionNonLinDynamic *parent);
+  virtual void forceSnapshotAdd(const DistrVector &) = 0;
+ 
+  SnapshotHandler() {} 
+  virtual ~SnapshotHandler();
+
+private:
+  // Disallow copy and assignment
+  SnapshotHandler(const SnapshotHandler &);
+  SnapshotHandler &operator=(const SnapshotHandler &);
+};
+
+DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::~SnapshotHandler() {
+  // Nothing to do
+}
+
+// Dummy class, used for namespace access
+class DistrExplicitPodProjectionNonLinDynamicDetail : public DistrExplicitPodProjectionNonLinDynamic {
+public:
+  class NoOpSnapshotHandler;
+  class RecordingSnapshotHandler;
+
+private:
+  // Dummy constructor
+  DistrExplicitPodProjectionNonLinDynamicDetail();
+};
+
+// NoOp implementation
+class DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler : public DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler {
+public:
+  virtual void forceSnapshotAdd(const DistrVector &); //overriden
+};
+
+// Recording implementation
+class DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler : public DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler {
+public:
+  virtual void forceSnapshotAdd(const DistrVector &s); // overriden
+  explicit RecordingSnapshotHandler(DecDomain *decDom);
 
 private:
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
   
-  DistrExplicitPodProjectionNonLinDynamic *parent_;
+  DecDomain *decDomain_;
 
   DistrVecNodeDof6Conversion converter_;
   DistrMasterMapping masterMapping_;
@@ -49,13 +83,16 @@ private:
   int skipCounter_;
 };
 
+
+// Main class implementation
+
 DistrExplicitPodProjectionNonLinDynamic::DistrExplicitPodProjectionNonLinDynamic(Domain *domain) :
   MultiDomainDynam(domain),
   snapshotHandler_(NULL)
 {}
 
 DistrExplicitPodProjectionNonLinDynamic::~DistrExplicitPodProjectionNonLinDynamic() {
-  delete snapshotHandler_;
+  // Nothing to do
 }
 
 void
@@ -90,7 +127,11 @@ DistrExplicitPodProjectionNonLinDynamic::preProcess() {
     podBasisFile.currentStateIndexInc();
   }
 
-  snapshotHandler_ = new SnapshotHandler(this);
+  if (domain->solInfo().snapshotsPodRom) {
+    snapshotHandler_.reset(new DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler(this->decDomain));
+  } else {
+    snapshotHandler_.reset(new DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler);
+  }
 }
 
 MDDynamMat *
@@ -113,23 +154,31 @@ DistrExplicitPodProjectionNonLinDynamic::forceSnapshotAdd(const DistrVector &f) 
   snapshotHandler_->forceSnapshotAdd(f);
 }
 
-DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrExplicitPodProjectionNonLinDynamic *parent) :
-  parent_(parent),
-  converter_(parent->decDomain->getAllSubDomains(), parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub()),
-  masterMapping_(SubDomIt(parent->decDomain->getAllSubDomains()), SubDomIt(parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub())),
+
+// Implementation of auxiliary classes
+
+void
+DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler::forceSnapshotAdd(const DistrVector &) {
+  // Nothing to do
+}
+
+DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::RecordingSnapshotHandler(DecDomain *decDom) :
+  decDomain_(decDom),
+  converter_(decDom->getAllSubDomains(), decDom->getAllSubDomains() + decDom->getNumSub()),
+  masterMapping_(SubDomIt(decDom->getAllSubDomains()), SubDomIt(decDom->getAllSubDomains() + decDom->getNumSub())),
   buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
-  assembledSnapshot_(parent->decDomain->solVecInfo()),
+  assembledSnapshot_(decDom->solVecInfo()),
   outputFile_(BasisFileId(FileNameInfo(), BasisId::FORCE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
               buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom),
   skipCounter_(0)
 {}
 
 void
-DistrExplicitPodProjectionNonLinDynamic::SnapshotHandler::forceSnapshotAdd(const DistrVector &f) {
+DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::forceSnapshotAdd(const DistrVector &f) {
   ++skipCounter_;
-  if (skipCounter_ >= parent_->domain->solInfo().skipPodRom) {
+  if (skipCounter_ >= decDomain_->getDomain()->solInfo().skipPodRom) {
     assembledSnapshot_ = f;
-    parent_->decDomain->getSolVecAssembler()->assemble(assembledSnapshot_);
+    decDomain_->getSolVecAssembler()->assemble(assembledSnapshot_);
     converter_.paddedNodeDof6(assembledSnapshot_, buffer_);
     outputFile_.stateAdd(buffer_);
     skipCounter_ = 0;

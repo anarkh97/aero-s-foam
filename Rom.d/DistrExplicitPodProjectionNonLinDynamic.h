@@ -7,6 +7,8 @@
 
 #include <Problems.d/DynamProbTraits.h>
 
+#include <memory>
+
 namespace Rom {
 
 template <typename Scalar> class GenDistrGalerkinProjectionSolver;
@@ -24,12 +26,14 @@ public:
 
   ~DistrExplicitPodProjectionNonLinDynamic();
 
+protected:
+  class SnapshotHandler;
+
 private:
   DistrVecBasis projectionBasis_;
 
-  class SnapshotHandler;
   friend class SnapshotHandler;
-  SnapshotHandler * snapshotHandler_;
+  std::auto_ptr<SnapshotHandler> snapshotHandler_;
 
   // Disallow copy and assignment
   DistrExplicitPodProjectionNonLinDynamic(const DistrExplicitPodProjectionNonLinDynamic &);

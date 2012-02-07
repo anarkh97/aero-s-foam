@@ -16,6 +16,12 @@ public:
 
   static void zeroInc(StateIncr *du)  { du->zero(); }
 
+  static void get_inc_displacement(ProbDescr *,
+                                   GeomType *geomState, StateIncr &du, GeomType *refState,
+                                   bool zeroRot) {
+    geomState->get_inc_displacement(du, *refState, zeroRot);
+  }
+
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
@@ -135,14 +141,24 @@ public:
   static VecType *initInc(GeomType *, VecType *v)  { return new VecType(*v);  }
 
   static RefState *initRef(GeomType *u)  { return new RefState(*u); }
+  
   static void copyState(GeomType *gn, RefState *gp)  { *gp = *gn; }
+  
   static void zeroInc(StateIncr *incr)  { incr->zero(); }
+  
+  static void get_inc_displacement(ProbDescr *,
+                                   GeomType *geomState, StateIncr &du, GeomType *refState,
+                                   bool zeroRot) {
+    geomState->get_inc_displacement(du, *refState, zeroRot);
+  }
+  
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &totalRes, double = 1.0) {
     return pbd->integrate(*sn, *snp, *du, residual, 
                           elementInternalForce, totalRes);
   }
+  
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
                   StateIncr *du, VecType &residual,
                   VecType &elementInternalForce, VecType &totalRes, VecType, VecType,
@@ -150,7 +166,9 @@ public:
     return pbd->integrate(*sn, *snp, *du, residual,
                           elementInternalForce, totalRes);
   }
+  
   static void updateIncr(StateIncr *du, VecType &ddu) { *du += ddu; }
+  
   static void midpointIntegrate(ProbDescr *pbd, 
                   VecType &velN, double delta, RefState *sn, 
                   GeomType *snp,

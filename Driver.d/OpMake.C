@@ -3184,12 +3184,8 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
 
 template <class Scalar>
 void
-Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
-                         double t, GenSparseMatrix<Scalar>* kuc)
+Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>* kuc)
 {
-  // This is called for linear and nonlinear dynamics 
-  // doesn't include follower forces
-
   f.zero();
 
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
@@ -3261,6 +3257,17 @@ Domain::computeExtForce4(GenVector<Scalar>& f, GenVector<Scalar>& constantForce,
     // compute the non-homogeneous force
     kuc->multSubtract(Vc, f);
   }
+}
+
+template <class Scalar>
+void
+Domain::computeExtForce4(GenVector<Scalar>& f, const GenVector<Scalar>& constantForce,
+                         double t, GenSparseMatrix<Scalar>* kuc)
+{
+  // This is called for linear and nonlinear dynamics 
+  // doesn't include follower forces
+
+  computeExtForce(f, t, kuc);
 
   // ADD CONSTANT FORCE
   f += constantForce;

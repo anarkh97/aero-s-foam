@@ -99,7 +99,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER ELLUMPWEIGHTS
+%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER REDUCED ELLUMPWEIGHTS
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3388,6 +3388,9 @@ PodRomMode:
   | GALERKIN
   { domain->solInfo().galerkinPodRom = true;
     domain->solInfo().subtype = 12; }
+  | GALERKIN REDUCED
+  { domain->solInfo().galerkinPodRom = true;
+    domain->solInfo().reducedPodRom = true; }
   | GAUSSNEWTON 
   { domain->solInfo().gaussNewtonPodRom = true;
     domain->solInfo().subtype = 11; }

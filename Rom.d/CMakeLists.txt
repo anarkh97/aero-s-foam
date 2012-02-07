@@ -20,7 +20,6 @@ ADD_LIBRARY( Rom
   ElementSamplingDriver.C
   ExplicitMeshSamplingDriver.C
   FileNameInfo.C
-  GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
   LumpedPodProjectionNonLinDynamic.C
   QrPseudoInversion.C
@@ -33,6 +32,7 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
+  ReducedNonLinDynamic.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

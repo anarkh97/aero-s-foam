@@ -3385,6 +3385,8 @@ PodRom:
 PodRomMode:
   FOM
   { domain->solInfo().snapshotsPodRom = true; }
+  | FOM CHECKTOKEN 
+  { domain->solInfo().checkPodRom = true; }
   | GALERKIN
   { domain->solInfo().galerkinPodRom = true;
     domain->solInfo().subtype = 12; }
@@ -3412,11 +3414,7 @@ PodRomOfflineModeOption:
   { domain->solInfo().galerkinPodRom = true; }
   ;
 PodRomOption:
-  CHECKTOKEN
-  { domain->solInfo().checkPodRom = true; }
-  | SNAPSHOTS
-  { domain->solInfo().snapshotsPodRom = true; }
-  | SNAPSHOTS SWITCH
+  SNAPSHOTS SWITCH
   { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
   | SVDTOKEN
   { domain->solInfo().onlineSvdPodRom = true; }

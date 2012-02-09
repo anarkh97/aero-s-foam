@@ -5,7 +5,7 @@
 #include <Element.d/Element.h>
 #include <Driver.d/GeoSource.h>
 
-//#def WITH_GLOBAL_ROT
+#define WITH_GLOBAL_ROT
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)

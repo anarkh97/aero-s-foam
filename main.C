@@ -1304,13 +1304,13 @@ int main(int argc, char** argv)
 	// KHP: Keep both methods around until satisfied with one or the other
 	// KHP: because of difference in convergence criteria when doing
 	// KHP: single domain vs. multiple domain.
-        /*{
+        {
         NonLinStatic nlstatic(domain);
-        NLStaticSolver <Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,
-                      NonLinStatic, GeomState  > nlsolver(&nlstatic);
+        NLStaticSolver <Solver, Vector, SingleDomainPostProcessor<double,Vector,Solver>,
+                        NonLinStatic, GeomState > nlsolver(&nlstatic);
         nlsolver.arclength();
-        }*/
-        domain->arcLength();
+        }
+        //domain->arcLength();
         break;
      case SolverInfo::ConditionNumber: {
         SingleDomainCond condProb(domain);

@@ -24,7 +24,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // Allocate Appropriate Vectors to store external force and residual
  VecType force(probDesc->solVecInfo());
  VecType residual(probDesc->solVecInfo());
- VecType totalRes(probDesc->sysVecInfo());
+ VecType totalRes(probDesc->solVecInfo());
 
  VecType elementInternalForce(probDesc->elemVecInfo());
 
@@ -137,7 +137,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // Allocate Vectors
  VecType force(probDesc->solVecInfo());
  VecType residual(probDesc->solVecInfo());
- VecType totRes(probDesc->sysVecInfo());
+ VecType totRes(probDesc->solVecInfo());
  VecType arcLenResid(probDesc->solVecInfo());
  VecType pVec(probDesc->solVecInfo());
 
@@ -157,15 +157,10 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // Initialize geometric state of Problem
  GeomType *u0 = probDesc->createGeomState();
  GeomType *u  = probDesc->createGeomState();
-
- // HB
- GeomType *geomState = probDesc->createGeomState();
- stateIncr = StateUpdate::initInc(geomState, &residual);
-
- refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
+ stateIncr = StateUpdate::initInc(u, &residual);
 
  // ... Output initial configuration
- probDesc->staticOutput(u0, 0.0, force, totRes, refState);
+ probDesc->staticOutput(u, 0.0, force, totRes, u0);
 
  // ... DEFINE deltaLambda0
  double deltaLambda0 = probDesc->getDeltaLambda0();
@@ -184,7 +179,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  int numIter = 0;
  int step    = 1;
- newton(force, residual, elementInternalForce, totRes, solver, refState,
+ newton(force, residual, elementInternalForce, totRes, solver, u0,
         u, numIter, lambda, step);
 
  // ... Declare Vector dU
@@ -211,8 +206,6 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  // ... DEFINE MAXIMUM NUMBER OF TRAJECTORY ITERATIONS
  int maxNumTrajectory = 2000;
- //HB
- //maxNumTrajectory = 1;
 
 // ---------------------------------------------------
 
@@ -222,7 +215,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // ... COMPUTE TRAJECTORY (EQUILIBRIUM) PATH
  for(iter=0; iter<maxNumTrajectory; ++iter) {
 
-   probDesc->staticOutput(u, lambda, force, totRes, refState);
+   probDesc->staticOutput(u, lambda, force, totRes, u0);
 
    // Compute: dU = nu*(u - u0);
    u->diff(*u0, dU);
@@ -249,21 +242,23 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    if(deltaS < deltaSmin) deltaS = deltaSmin;
 
    filePrint(stderr,"**** Equilibrium #%d deltaLambda = %10.6f lambda = %10.6f\n"
-                   ,step, deltaLambda, lambda);
+                   , step, deltaLambda, lambda);
    step++;
 
    predictorStep(*u, *u0, dU, lambda, deltaLambda, deltaS, deltaS0, w, solver,
                  force, residual,totRes, elementInternalForce,  pVec, step);
 
    //u->diff(*u0, dU);
-   filePrint(stderr," -> ||dU|| = %e\n",dU.norm());
+   filePrint(stderr," -> ||dU|| = %e\n", dU.norm());
 
    // ... CALL EXTENDED NEWTON
-   extendedNewton(*u,dU,lambda,deltaLambda,deltaS,w,numExtIter,
-                  solver,force,residual, totRes, arcLenResid, forceNorm,
+   extendedNewton(*u, *u0, dU, lambda, deltaLambda, deltaS, w, numExtIter,
+                  solver, force, residual, totRes, arcLenResid, forceNorm,
                   elementInternalForce, pVec, step);
 
-   if( abs(lambda) >= 1.0 ) break;
+   probDesc->updateStates(u0, *u);
+
+   if( abs(lambda) >= probDesc->getMaxLambda() ) break;
 
    //...DETERMINE CONTROL PARAMETER BASED ON # OF ITERATIONS IN EXTENDED NEWTON
    nu = 1.0;
@@ -272,23 +267,25 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    nu = pow(4./numExtIter,0.75);
    //if(numExtIter < 4) nu = 2.0;
    //if(numExtIter > 6) nu = 0.5;
-
  }
  //HB
  filePrint(stderr,"**** Equilibrium #%d deltaLambda = %10.6f lambda = %10.6f\n"
-                 ,step, deltaLambda, lambda);
+                 , step, deltaLambda, lambda);
 
 
  // ... DEFINE INITIAL GUESS
- u->interp((1.0 - lambda0)/(lambda - lambda0), *u, *u0 );
+ u->interp((1.0 - lambda0)/(lambda - lambda0), *u, *u0);
  lambda = 1.0;
 
  // ... CALL NEWTON FOR FINAL SOLUTION
+ *u0 = *u;
  step++;
- newton(force, residual, totRes, elementInternalForce, solver, refState, u, numIter, lambda, step);
+ newton(force, residual, totRes, elementInternalForce, solver, u0, u, numIter, lambda, step);
+
+ probDesc->updateStates(u0, *u);
 
  // CALL POST PROCESSING OF DISPLACEMENTS
- probDesc->staticOutput(u, lambda, force, totRes, refState);
+ probDesc->staticOutput(u, lambda, force, totRes, u0);
  
 }
 
@@ -411,9 +408,9 @@ template < class OpSolver,
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
 ::predictorStep(GeomType &u, GeomType &u0, VecType &dU, double &lambda, double &deltaLambda,
-                 double &deltaS, double &deltaS0, double w, OpSolver* solver,
-                 VecType& force, VecType& residual, VecType &totRes, VecType& elementInternalForce, 
-                 VecType& duds, int step)
+                double &deltaS, double &deltaS0, double w, OpSolver* solver,
+                VecType& force, VecType& residual, VecType &totRes, VecType& elementInternalForce, 
+                VecType& duds, int step)
 {
   filePrint(stderr," ### GET IN PREDICTOR STEP\n");
   //HB: be aware that for multi-domain problem most of the dot product here are not "consistent"
@@ -424,7 +421,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   //    But be carefull, if we use this with a residual-like vector (i.e. a "disassembled-like vector") ...
   probDesc->getRHS(force); //PJSA nonlinear external force computed in getStiffAndForce probDesc->getRHS(force, &u);
   residual.zero();
-  double residualNorm = probDesc->getStiffAndForce(u, residual, elementInternalForce, totRes, lambda);
+  double residualNorm = probDesc->getStiffAndForce(u, residual, elementInternalForce, totRes, lambda, &u0);
   int rebuildFlag = probDesc->reBuild(0, step, u);
   if(rebuildFlag) { filePrint(stderr," ... ||res|| = %e\n", residualNorm); }
 
@@ -456,7 +453,7 @@ template < class OpSolver,
 	   class StateUpdate>
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
-::extendedNewton(GeomType &u, VecType &dU, double &lambda, double deltaLambda, 
+::extendedNewton(GeomType &u, GeomType &u0, VecType &dU, double &lambda, double deltaLambda, 
                  double &deltaS, double w, int &numExtIter, OpSolver* solver,
                  VecType& force, VecType& residual,  VecType &totRes,
                  VecType& arcLenResid, 
@@ -501,7 +498,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     residual.linC(force, lambda);
 
     // Compute stiffness and residual force
-    double residualNorm = probDesc->getStiffAndForce(u, residual, elementInternalForce, totRes, lambda);
+    double residualNorm = probDesc->getStiffAndForce(u, residual, elementInternalForce, totRes, lambda, &u0);
 
     // rebuild tangent stiffness matrix when necessary
     // step # should be the second argument in probDesc->reBuild() 

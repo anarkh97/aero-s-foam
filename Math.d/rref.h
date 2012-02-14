@@ -13,7 +13,8 @@
  * @return              the rank of the matr
  */
 
-#define QR_ROW_ECHELON
+//this may be a good choice, especially hooked with a sparse qr factorization. 
+//#define QR_ROW_ECHELON
 #ifdef QR_ROW_ECHELON
 #include <Eigen/Dense>
 #endif
@@ -33,6 +34,7 @@ int rowEchelon(Matrix& M, bool reduced, int* rowmap, int* colmap, int optc = 0, 
   const Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> &P = decA.colsPermutation();
   const typename Eigen::ColPivHouseholderQR< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> >::HouseholderSequenceType &Q = decA.householderQ();
   //const typename Eigen::FullPivHouseholderQR< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> >::MatrixQReturnType &Q = decA.matrixQ();
+  //NOTE: if you want to use the FullPivHouseholderQR then make sure rowmap is set properly
 
   A = A*P;
   M = Q.transpose()*M; // now M is the row echelon form of the augmented matrix: [R;Q^T*b]

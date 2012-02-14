@@ -565,7 +565,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     if(optc) { 
       if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
-      if(std::abs<double>(c(i,m)) > 100*std::numeric_limits<double>::epsilon()) {
+      if(std::abs<double>(c(i,m)) > std::numeric_limits<double>::epsilon()) {
         if(i < rank) lmpc[i]->rhs.r_value = c(i,m);
         else {
           cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";

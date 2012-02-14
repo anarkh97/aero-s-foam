@@ -22,8 +22,11 @@ MpcElement::addTerms(DofSet nodalDofs)
   nterms = 0;
   for(int i = 0; i < nNodes; ++i) {
     for(int j = 0; j < nodalDofs.count(); ++j)
-      for(int k = 0; k < 11; ++k)
-        if(nodalDofs.contains(1 << k)) addterm(new LMPCTerm(nn[i], k, 0.0));
+      for(int k = 0; k < 11; ++k) 
+        if(nodalDofs.contains(1 << k)) {
+          LMPCTerm t(nn[i], k, 0.0);
+          addterm(&t);
+        }
   }
 }
 
@@ -46,7 +49,10 @@ MpcElement::addTerms(DofSet *nodalDofs)
   for(int i = 0; i < nNodes; ++i) {
     for(int j = 0; j < nodalDofs[i].count(); ++j)
       for(int k = 0; k < 11; ++k)
-        if(nodalDofs[i].contains(1 << k)) addterm(new LMPCTerm(nn[i], k, 0.0));
+        if(nodalDofs[i].contains(1 << k)) {
+          LMPCTerm t(nn[i], k, 0.0);
+          addterm(&t);
+        }
   }
 }
 

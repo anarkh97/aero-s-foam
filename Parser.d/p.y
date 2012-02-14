@@ -2910,9 +2910,6 @@ ConstraintOptionsData:
         | DIRECT Float
         { $$.lagrangeMult = false; $$.penalty = 0.0;
           domain->solInfo().mpcDirectTol = $2; }
-        | DIRECT Float Integer
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
-          domain->solInfo().mpcDirectTol = $2; domain->solInfo().mpcReduce = bool($3); }
         | MULTIPLIERS
         { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float

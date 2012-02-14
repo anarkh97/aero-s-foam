@@ -8,7 +8,6 @@
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
-using namespace Eigen;
 #include <map>
 #include <vector>
 #endif
@@ -45,6 +44,7 @@ RigidBeam::getMPCs()
   using std::map;
   using std::pair;
   using std::vector;
+  using namespace Eigen;
   // Create a unique integer ID for every DOF involved in an MPC and count
   // in how many MPC each DOF appears.
   int nID = 0;
@@ -121,6 +121,7 @@ RigidBeam::getMPCs()
     }
   }
 
+  delete dofToLMPC;
   delete [] rowmap;
 #endif
   return lmpc;

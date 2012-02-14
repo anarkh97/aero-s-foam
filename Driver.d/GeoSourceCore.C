@@ -177,6 +177,9 @@ GeoSource::~GeoSource()
   if(headLen) delete [] headLen;
   if(subToClus) delete subToClus;
   // claw is deleted by domain
+  for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+    if(oinfo[iInfo].filptr) fclose(oinfo[iInfo].filptr);
+  }
 }
 
 //----------------------------------------------------------------------
@@ -367,10 +370,6 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 }
 
 // Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)
-#include <Element.d/Rigid.d/RigidBeam.h>
-#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
-#include <Element.d/Rigid.d/RigidSolid6Dof.h>
-
 void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
   if(numLMPC) {
@@ -417,6 +416,7 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     //std::cerr << "Number of DOFs in MPCS: " << dofToLMPC->csize() << std::endl;
     Connectivity *lmpcToLmpc = lmpcToDof.transcon(dofToLMPC);
     compStruct renumb = lmpcToLmpc->renumByComponent(1);
+    delete lmpcToLmpc;
     //std::cerr << "Number of components = " << renumb.numComp << std::endl;
 
     // Determine for each MPC which DOF will be slave
@@ -542,16 +542,11 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   }
   delete [] term2col;
 
-  // compute the (reduced) row echelon form of the matrix with column pivoting
-  bool reduce = domain->solInfo().mpcReduce;
   /*double t = -getTime();
-  if(reduce)
-    cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";
-  else
-    cerr << " ... Converting " << numLMPC << " LMPCs to Row Echelon Form";*/
+  cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";*/
   int *colmap = new int[c.cols()];
   for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
-  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, reduce, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
+  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
   /*cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
   if(rank != numLMPC)
     cerr << "found " << numLMPC-rank << " redundant constraints\n";*/
@@ -561,7 +556,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     lmpc[i]->terms.clear();
     lmpc[i]->nterms = 0;
     for(int j = i; j < m; ++j) {
-      if(reduce && j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
+      if(j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
       if(std::abs<double>(c(i,j)) > std::numeric_limits<double>::epsilon()) {
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
@@ -585,7 +580,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << "error: GeoSource::reduceMPCs requires eigen2 library\n"; exit(-1);
+  cerr << "error: GeoSource:: educeMPCs requires eigen2 library\n"; exit(-1);
   return 0;
 #endif
 }

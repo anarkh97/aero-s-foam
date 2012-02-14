@@ -248,7 +248,6 @@ struct SolverInfo {
    double penalty;
    int mpcDirect;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
-   bool mpcReduce;
    bool mpcDual;
 
    bool activatePodRom;
@@ -449,7 +448,6 @@ struct SolverInfo {
                   penalty = 0;
                   mpcDirect = 0;
                   mpcDirectTol = 10;
-                  mpcReduce = true;
                   mpcDual = false;
 
                   activatePodRom = false;

@@ -570,7 +570,8 @@ SuperElement::getMPCs()
   for(int i = 0; i < nSubElems; ++i) {
     LMPCons** submpcs = subElems[i]->getMPCs();
     for(int j = 0; j < subElems[i]->getNumMPCs(); ++j) {
-      ret[k] = new LMPCons(*submpcs[j]);
+      //ret[k] = new LMPCons(*submpcs[j]);
+      ret[k] = submpcs[j];
       k++;
     }
     delete [] submpcs;

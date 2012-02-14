@@ -29,6 +29,11 @@ using std::list;
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
 
+#include <Element.d/Rigid.d/RigidBeam.h>
+#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
+#include <Element.d/Rigid.d/RigidFourNodeShell.h>
+#include <Element.d/Rigid.d/RigidSolid6Dof.h>
+
 #include<Sfem.d/Sfem.h>
 
 extern int verboseFlag;
@@ -1283,8 +1288,8 @@ Domain::prepDirectMPC()
   for(int i = 0; i < nEle; ++i) {
     Element *ele = packedEset[i];
     if(ele != 0) {
-      // TODO this rigid collapse idea should be done once, at the beginning.
-      if(false /*dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele)*/)
+      if(false /*dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele)
+         || dynamic_cast<RigidFourNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele)*/) // TODO
         rigidSet->elemadd(nRigid++, ele);
       else {
         int n = ele->getNumMPCs();
@@ -2770,8 +2775,8 @@ Domain::~Domain()
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
  for(int i=0; i<nMortarCond; ++i) // HB
    if(MortarConds[i]) delete MortarConds[i];
- //for(int i=0; i<numLMPC; ++i) // HB
- //  if(lmpc[i]) delete lmpc[i];
+ for(int i=0; i<numLMPC; ++i) // HB
+   if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
  if(p) delete p;

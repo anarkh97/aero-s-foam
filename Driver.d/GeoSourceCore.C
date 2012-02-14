@@ -153,8 +153,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 */
   subToClus = 0;
 
-  mpcDirect = false;
-
   mratio = 1.0; // consistent mass matrix
 
   elemSet.setMyData(true);
@@ -368,57 +366,13 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   domain->setNumLMPC(0);
 }
 
-/** Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master) */
+// Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
-void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc) 
+void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
-  int nEle = elemSet.last();
-  int nRigid = 0;
-  Elemset *rigidSet = new Elemset;
-
-  if(!domain->solInfo().isNonLin()) { // direct elimination for nonlinear constraints is not supported
-    for(int i = 0; i < nEle; ++i) {
-      Element *ele = elemSet[i];
-      if(ele != 0) {
-        if(dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele))
-          rigidSet->elemadd(nRigid++, ele);
-        else {
-          int n = ele->getNumMPCs();
-          if(n > 0) {
-            LMPCons **l = ele->getMPCs();
-            for(int j = 0; j < n; ++j)
-              lmpc[numLMPC++] = l[j];
-            delete [] l;
-          }
-        }
-      }
-    }
-    if(nRigid > 0) {
-      //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
-      std::set<int> blockedNodes;
-      for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
-      rigidSet->collapseRigid6(blockedNodes);
-      nRigid = rigidSet->last();
-      StructProp p; // dummy property
-      for(int i = 0; i < nRigid; ++i) {
-        int n = (*rigidSet)[i]->getNumMPCs();
-        if(n > 0) {
-          if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
-            (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
-            (*rigidSet)[i]->setProp(&p);
-          }
-          LMPCons **l = (*rigidSet)[i]->getMPCs();
-          for(int j = 0; j < n; ++j)
-            lmpc[numLMPC++] = l[j];
-          delete [] l;
-        }
-      }
-    }
-  }
-
   if(numLMPC) {
     if(verboseFlag) cerr << " ... Using direct elimination method for " << numLMPC << " constraints ...\n";
 
@@ -438,7 +392,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       // First flush the MPC from any zero terms
       lmpc[i]->removeNullTerms();
       // PJSA Second flush the MPC from any terms which have a boundary condition
-      vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin(); 
+      vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
       while(it != lmpc[i]->terms.end()) {
         pair<int,int> p(it->nnum, it->dofnum);
         if(dispBC.find(pair<int,int>(it->nnum, it->dofnum)) != dispBC.end())
@@ -479,7 +433,7 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
           for(int k = 0; k < lmpc[j]->nterms; ++k) {
             pair<int,int> p(lmpc[j]->terms[k].nnum, lmpc[j]->terms[k].dofnum);
             if(dofID[p] == i) {
-              if(k != 0) { 
+              if(k != 0) {
                 LMPCTerm t = lmpc[j]->terms[k];
                 lmpc[j]->terms[k] = lmpc[j]->terms[0];
                 lmpc[j]->terms[0] = t;
@@ -515,26 +469,28 @@ void GeoSource::makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
         }
       }
       delete [] order;
-    } 
+    }
     //else std::cerr << "Found a Slave for each MPC!"<< std::endl;
 
     // compress the mpcs by removing the redundant ones
     int j = 0;
     for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->nterms != 0) { 
+      if(lmpc[i]->nterms != 0) {
         if(i != j) lmpc[j] = lmpc[i];
         j++;
       }
+      else delete lmpc[i];
     }
     if(verboseFlag && j < numLMPC) cerr << " ... Found " << numLMPC-j << " redundant constraints ...\n";
-    domain->setNumLMPC(j);
+    numLMPC = j;
+    delete dofToLMPC;
+    renumb.clearMemory();
   }
 }
 
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
-using namespace Eigen;
 #endif
 
 int
@@ -573,12 +529,13 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       map<pair<int,int>, int>::iterator it = dofID.find(p);
       term2col[i].push_back(it->second); col2pair[it->second] = p;
     }
-  }      
-
+  }
   // copy lmpc coefficients into a dense matrix
-  Matrix<double,Dynamic,Dynamic> c(numLMPC, dofToLMPC->csize());  
+  int optc = 1; // set to 1 to deal with non-zero rhs
+  int n = numLMPC, m = dofToLMPC->csize();
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> c(n, m+optc);
   c.setZero();
-  for(int i = 0; i < numLMPC; ++i) {
+  for(int i = 0; i < n; ++i) {
     for(int j = 0; j < lmpc[i]->nterms; ++j) {
       c(i,term2col[i][j]) = lmpc[i]->terms[j].coef.r_value;
     }
@@ -586,33 +543,45 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] term2col;
 
   // compute the (reduced) row echelon form of the matrix with column pivoting
-  bool reduce = true;
+  bool reduce = domain->solInfo().mpcReduce;
   /*double t = -getTime();
   if(reduce)
     cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";
   else
     cerr << " ... Converting " << numLMPC << " LMPCs to Row Echelon Form";*/
   int *colmap = new int[c.cols()];
-  for(int i=0; i<c.cols(); ++i) colmap[i] = i;
-  int rank = rowEchelon<double, Matrix<double,Dynamic,Dynamic> >(c, reduce, NULL, colmap);
+  for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
+  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, reduce, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
   /*cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
   if(rank != numLMPC)
     cerr << "found " << numLMPC-rank << " redundant constraints\n";*/
 
   // copy the coefficients of the rref matrix into the lmpc data structure 
-  for(int i = 0; i < numLMPC; ++i) { 
-    lmpc[i]->terms.clear(); 
+  for(int i = 0; i < n; ++i) {
+    lmpc[i]->terms.clear();
     lmpc[i]->nterms = 0;
-    for(int j = i; j < c.cols(); ++j) {
+    for(int j = i; j < m; ++j) {
       if(reduce && j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
-      if(std::abs<double>(c(i,j)) > std::numeric_limits<double>::epsilon()) { 
+      if(std::abs<double>(c(i,j)) > std::numeric_limits<double>::epsilon()) {
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
         lmpc[i]->nterms++;
       }
     }
+    if(optc) { 
+      if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
+      if(std::abs<double>(c(i,m)) > 100*std::numeric_limits<double>::epsilon()) {
+        if(i < rank) lmpc[i]->rhs.r_value = c(i,m);
+        else {
+          cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
+          lmpc[i]->rhs.r_value = 0;
+        }
+      }
+      else lmpc[i]->rhs.r_value = 0;
+    }
   }
 
+  delete dofToLMPC;
   delete [] colmap;
   return rank;
 #else
@@ -774,8 +743,8 @@ void GeoSource::setUpData()
     if(p->soundSpeed == 1.0)
       p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
     if(p->type != StructProp::Constraint) {
-      p->lagrangeMult = (mpcDirect) ? false : domain->solInfo().lagrangeMult;
-      p->penalty = (mpcDirect) ? 0.0 : domain->solInfo().penalty;
+      p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
+      p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
     }
     it++;
   }
@@ -932,9 +901,6 @@ void GeoSource::setUpData()
     localToGlobalElementsNumber.push_back(iElem);
   }
   numInternalNodes = lastNode-numNodes;
-
-  if(mpcDirect)
-    makeDirectMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
 
   // preprocess the surface node groups
   ResizeArray<SurfaceEntity*> *SurfEntities = domain->viewSurfEntities();

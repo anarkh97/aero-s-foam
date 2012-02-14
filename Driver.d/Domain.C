@@ -1269,6 +1269,102 @@ Domain::makeSommerToNode()
  return ret;
 }
 
+Connectivity *
+Domain::prepDirectMPC()
+{
+  // get all of the lmpcs from the packedEset
+  // TODO don't extract elements which use lagrange multipliers or penalty
+  for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+  numLMPC = 0;
+  lmpc.deleteArray();
+  int nEle = packedEset.last();
+  int nRigid = 0;
+  Elemset *rigidSet = new Elemset;
+  for(int i = 0; i < nEle; ++i) {
+    Element *ele = packedEset[i];
+    if(ele != 0) {
+      // TODO this rigid collapse idea should be done once, at the beginning.
+      if(false /*dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele)*/)
+        rigidSet->elemadd(nRigid++, ele);
+      else {
+        int n = ele->getNumMPCs();
+        if(n > 0) {
+          LMPCons **l = ele->getMPCs();
+          for(int j = 0; j < n; ++j)
+            lmpc[numLMPC++] = l[j];
+          delete [] l;
+        }
+      }
+    }
+  }
+  if(nRigid > 0) {
+    //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
+    std::set<int> blockedNodes;
+    for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
+    rigidSet->collapseRigid6(blockedNodes);
+    nRigid = rigidSet->last();
+    StructProp p; // dummy property
+    for(int i = 0; i < nRigid; ++i) {
+      int n = (*rigidSet)[i]->getNumMPCs();
+      if(n > 0) {
+        if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
+          (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
+          (*rigidSet)[i]->setProp(&p);
+        }
+        LMPCons **l = (*rigidSet)[i]->getMPCs();
+        for(int j = 0; j < n; ++j)
+          lmpc[numLMPC++] = l[j];
+        delete [] l;
+      }
+    }
+  }
+  //cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
+
+  geoSource->makeDirectMPCs(numLMPC, lmpc);
+  // MPC Connectivity treatment in direct way.
+  std::multimap<int, int> mpcConnect;
+  std::multimap<int, int>::iterator it;
+  std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
+  int ndMax = nodeToElem->csize();
+  for(int i = 0; i < numLMPC; ++i) {
+    for(int j = 1; j < lmpc[i]->nterms; ++j)
+      if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
+
+        ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
+        bool found = false;
+        for(it = ret.first; it != ret.second; ++it)
+          if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
+
+        if(!found)
+          mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+      }
+  }
+
+  int *ptr = new int[ndMax+1];
+  for(int i = 0; i < ndMax; ++i)
+    ptr[i] = 1;
+  ptr[ndMax] = 0;
+  for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+    ptr[it->first]++;
+  for(int i = 0; i < ndMax; ++i)
+    ptr[i+1] += ptr[i];
+  int *tg = new int[ptr[ndMax]];
+
+  for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+    tg[--ptr[it->first]] = it->second;
+  for(int i = 0; i < ndMax; ++i)
+    tg[--ptr[i]] = i;
+
+  Connectivity renumToNode(ndMax, ptr, tg);
+  Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
+  Connectivity *renumToElem = elemToRenum->reverse();
+  Connectivity *nodeToNodeDirect = renumToElem->transcon(elemToRenum);
+  delete renumToElem;
+  delete elemToRenum;
+  delete rigidSet;
+  return nodeToNodeDirect;
+}
+
 Renumber
 Domain::getRenumbering()
 {
@@ -1278,51 +1374,7 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode) delete nodeToNode;
-
- if(geoSource->getDirectMPC()) {
-   // MPC Connectivity treatment in direct way.
-   std::multimap<int, int> mpcConnect;
-   std::multimap<int, int>::iterator it;
-   std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
-   int ndMax = nodeToElem->csize();
-   for(int i = 0; i < this->numLMPC; ++i) {
-     for(int j = 1; j < lmpc[i]->nterms; ++j)
-       if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
-
-         ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
-         bool found = false;
-         for(it = ret.first; it != ret.second; ++it)
-           if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
-
-         if(!found)
-           mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
-       }
-   }
-
-   int *ptr = new int[ndMax+1];
-   for(int i = 0; i < ndMax; ++i)
-     ptr[i] = 1;
-     
-   ptr[ndMax] = 0;
-   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-     ptr[it->first]++;
-   for(int i = 0; i < ndMax; ++i)
-     ptr[i+1] += ptr[i];
-   int *tg = new int[ptr[ndMax]];
-
-   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-     tg[--ptr[it->first]] = it->second;
-   for(int i = 0; i < ndMax; ++i)
-     tg[--ptr[i]] = i;
-
-   Connectivity renumToNode(ndMax, ptr, tg);
-   Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
-   Connectivity *renumToElem = elemToRenum->reverse();
-   nodeToNode = renumToElem->transcon(elemToRenum);
-   delete renumToElem;
-   delete elemToRenum;
- } else
-   nodeToNode = nodeToElem->transcon(elemToNode);
+ nodeToNode = nodeToElem->transcon(elemToNode);
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
@@ -2649,6 +2701,7 @@ Domain::initialize()
  nContactSurfacePairs = 0;
  outFlag = 0;
  nodeTable = 0;
+ MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
 }
 
@@ -2720,6 +2773,8 @@ Domain::~Domain()
  //for(int i=0; i<numLMPC; ++i) // HB
  //  if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
+ if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
+ if(p) delete p;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>

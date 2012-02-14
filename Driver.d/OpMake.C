@@ -734,18 +734,20 @@ GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
   if(DSA==0) DSA=c_dsa;
-  if(!geoSource->getDirectMPC())
+  if(!sinfo.getDirectMPC())
     return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, rbm);
   else {
+    if(nodeToNodeDirect) delete nodeToNodeDirect;
+    nodeToNodeDirect = prepDirectMPC();
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
     ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNode, MpcDSA, sinfo.trbm, rbm);
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, rbm);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap);
+          nMappedEq, eqMap, c_dsa);
   }
 }
 
@@ -779,17 +781,19 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
     }
   }
   else {
-    if(!geoSource->getDirectMPC())
+    if(!sinfo.getDirectMPC())
       return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
     else {
+      if(nodeToNodeDirect) delete nodeToNodeDirect;
+      nodeToNodeDirect = prepDirectMPC();
       DOFMap *baseMap = new DOFMap[dsa->size()];
       DOFMap *eqMap = new DOFMap[DSA->size()];
       // TODO Examine when DSA can be different from c_dsa
       ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
-        baseArg(nodeToNode, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
+        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
       int nMappedEq = DSA->size();
-      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap);
+      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa);
     }
   }
 }
@@ -821,18 +825,20 @@ GenSpoolesSolver<Scalar> *
 Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
 {
   if(DSA == 0) DSA = c_dsa;
-  if(!geoSource->getDirectMPC())
+  if(!sinfo.getDirectMPC())
     return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, DSA, rbm);
   else {
+    if(nodeToNodeDirect) delete nodeToNodeDirect;
+    nodeToNodeDirect = prepDirectMPC();
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
     ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNode, dsa, MpcDSA, rbm);
+    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, rbm);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSpooles<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap);
+          nMappedEq, eqMap, c_dsa);
   }
 }
 
@@ -841,18 +847,20 @@ GenMumpsSolver<Scalar> *
 Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
 {
   if(DSA == 0) DSA = c_dsa;
-  if(!geoSource->getDirectMPC())
+  if(!sinfo.getDirectMPC())
     return new GenMumpsSolver<Scalar>(nodeToNode, dsa, DSA, com);
   else {
+    if(nodeToNodeDirect) delete nodeToNodeDirect;
+    nodeToNodeDirect = prepDirectMPC();
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
     ConstrainedDSA *MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapMumps<Scalar>::CtorData baseArg(nodeToNode, dsa, MpcDSA, com);
+    typename WrapMumps<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, com);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapMumps<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap);
+          nMappedEq, eqMap, c_dsa);
   }
 }
 

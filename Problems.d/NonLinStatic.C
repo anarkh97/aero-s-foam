@@ -89,6 +89,10 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     residual.resize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
+  else if(domain->solInfo().mpcDirect != 0) {
+    clean();
+    preProcess(false); 
+  }
 
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
                            kelArray, residual, lambda, 0, refState);

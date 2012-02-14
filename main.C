@@ -632,7 +632,7 @@ int main(int argc, char** argv)
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
    callDec = true;
  }
- if(domain->solInfo().type != 2 && !geoSource->getDirectMPC())
+ if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)

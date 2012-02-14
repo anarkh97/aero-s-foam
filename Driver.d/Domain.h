@@ -198,13 +198,14 @@ class Domain : public HData {
      DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
      ConstrainedDSA *c_dsa;	// Constrained dof set array
      ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
+     ConstrainedDSA *MpcDSA;
      Connectivity *allDOFs;     // all dof arrays for each node
      Connectivity *allDOFsFluid;     // all dof arrays for each node
      int maxNumDOFs; 		// maximum number of dofs an element has
      int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has, ADDED FOR HEV PROBLEM, EC, 20070820
      int maxNumNodes;           // maximum number of nodes an element has
      int maxNumNodesFluid;           // maximum number of nodes a fluid element has, ADDED FOR HEV PRBLEM, EC, 20070820
-     Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi;
+     Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi, *nodeToNodeDirect;
      Connectivity *elemToNodeFluid, *nodeToElemFluid, *nodeToNodeFluid;
                                 // ADDED FOR HEV PROBLEM, EC, 20070820
      Connectivity *nodeToNode_sommer; // for higher order sommerfeld
@@ -685,6 +686,7 @@ class Domain : public HData {
      int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
 
      Connectivity *makeSommerToNode();
+     Connectivity *prepDirectMPC();
      // renumbering functions
      Renumber  getRenumbering();
      Renumber* getRenumberingFluid(); //ADDED FOR HEV PROBLEM, EC, 20070820

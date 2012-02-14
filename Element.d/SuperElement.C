@@ -398,7 +398,7 @@ SuperElement::nodes(int *p)
 Corotator*
 SuperElement::getCorotator(CoordSet &cs, double *d, int i1, int i2)
 {
-  if(!superCorotator) superCorotator = new SuperCorotator(this);
+  superCorotator = new SuperCorotator(this);
   for(int i = 0; i < nSubElems; ++i)
     superCorotator->setSubCorotator(i, subElems[i]->getCorotator(cs, d, i1, i2));
  

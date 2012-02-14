@@ -61,27 +61,37 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
 
 NonLinDynamic::~NonLinDynamic()
 {
+  clean();
   if (res) {
     fclose(res); 
   }
   if(clawDofs) delete [] clawDofs;
   delete prevFrc;
-  delete[] bcx;
-  delete[] vcx;
-  delete M;
-  delete kuc;
-  delete[] kelArray;
-  delete[] melArray;
-  delete[] celArray;
-  if (allCorot) {
+  delete times;
+}
+
+void
+NonLinDynamic::clean()
+{
+  if(bcx)      { delete [] bcx; bcx = 0; }
+  if(vcx)      { delete [] vcx; vcx = 0; }
+  if(solver)   { delete solver; solver = 0; }
+  if(prec)     { delete prec; prec = 0; }
+  if(kelArray) { delete [] kelArray; kelArray = 0; }
+  if(celArray) { delete [] celArray; celArray = 0; }
+  if(melArray) { delete [] melArray; melArray = 0; }
+  if(M)        { delete M; M = 0; }
+  if(kuc)      { delete kuc; kuc = 0; }
+  if(allCorot) {
+
     for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
-      if(allCorot[iElem] != dynamic_cast<Corotator*>(domain->getElementSet()[iElem]))
+      if(allCorot[iElem] && (allCorot[iElem] != dynamic_cast<Corotator*>(domain->getElementSet()[iElem])))
         delete allCorot[iElem];
     }
+
+    delete [] allCorot;
+    allCorot = 0;
   }
-  delete[] allCorot;
-  delete solver; 
-  delete times;
 }
 
 void
@@ -367,20 +377,20 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
   }
 
   if(domain->GetnContactSurfacePairs()) {
+    clean();
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->UpdateContactSurfaceElements(&geomState);
-
-    if(solver) delete solver;
-    if(prec) delete prec;
-    delete [] allCorot; allCorot = 0;  // memory leak?
-    delete [] kelArray; kelArray = 0;
-    delete [] melArray; melArray = 0;
-    if(celArray) { delete [] celArray; celArray = 0; }
     preProcess();
-    elementInternalForce.initialize(domain->maxNumDOF());
+    geomState.resizeLocAndFlag(*domain->getCDSA());
+    residual.resize(domain->getCDSA()->size());
+    elementInternalForce.resize(domain->maxNumDOF());
+  }
+  else if(domain->solInfo().mpcDirect != 0) {
+    clean();
+    preProcess();
   }
 
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);

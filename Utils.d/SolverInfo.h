@@ -246,6 +246,9 @@ struct SolverInfo {
 
    bool lagrangeMult;
    double penalty;
+   int mpcDirect;
+   double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
+   bool mpcReduce;
    bool mpcDual;
 
    bool activatePodRom;
@@ -316,13 +319,13 @@ struct SolverInfo {
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
 				  
-	          ATDARBFlag = -2.0;
+                  ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
-	   	  ATDROBVal = 0.0;
-		  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
-		  ATDROBbeta = 0.0;
+                  ATDROBVal = 0.0;
+                  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
+                  ATDROBbeta = 0.0;
 
-		  aeroFlag = -1;
+                  aeroFlag = -1;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
@@ -444,6 +447,9 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+                  mpcDirect = 0;
+                  mpcDirectTol = 10;
+                  mpcReduce = true;
                   mpcDual = false;
 
                   activatePodRom = false;
@@ -463,6 +469,10 @@ struct SolverInfo {
                   skipPodRom = 1;
                   tolPodRom = 1.0e-6;
                  }
+
+   void setDirectMPC(int mode) { mpcDirect = mode; }
+   // Whether we are doing direct elimination for MPCs
+   int getDirectMPC() { return mpcDirect; }
 
    // Set RbmFilter level
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }

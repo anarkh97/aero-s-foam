@@ -263,8 +263,6 @@ class GeoSource {
   int numSurfacePressure;
   BCond *surface_pres;
 
-  bool mpcDirect;
-
 public:
   bool binaryInput, binaryOutput;
   bool binaryInputControlLeft;
@@ -579,14 +577,11 @@ public:
   void cleanUp();
   void cleanAuxData();
 
-  void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  void makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc);
   int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
-  bool setDirectMPC(bool mode) { return mpcDirect = mode; }
-  /// Whether we are doing direct elimination for MPCs
-  bool getDirectMPC() { return mpcDirect; }
   Element* getElem(int topid) { return elemSet[topid]; }
 
   double global_average_E, global_average_nu, global_average_rhof;

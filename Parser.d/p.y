@@ -2899,7 +2899,7 @@ FAcousticData:
 	;
 Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
-        { if(!$2.lagrangeMult && $2.penalty == 0) geoSource->setDirectMPC(true);
+        { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
           domain->solInfo().penalty = $2.penalty;
           domain->solInfo().mpcDual = $2.mpcDual; }
@@ -2907,6 +2907,12 @@ Constraints:
 ConstraintOptionsData:
         DIRECT
         { $$.lagrangeMult = false; $$.penalty = 0.0; $$.mpcDual = false; } // Direct elimination of slave dofs
+        | DIRECT Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().mpcDirectTol = $2; }
+        | DIRECT Float Integer
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().mpcDirectTol = $2; domain->solInfo().mpcReduce = bool($3); }
         | MULTIPLIERS
         { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float

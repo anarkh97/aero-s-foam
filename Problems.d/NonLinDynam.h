@@ -201,7 +201,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
                               double &alphaf, double &alpham);
 
 private:
-  virtual bool factorWhenBuilding() const;
+    virtual bool factorWhenBuilding() const;
+    void clean();
 };
 
 inline double

@@ -203,9 +203,11 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  // ... DEFINE NU = load control parameter multiplier
  double nu = 1.0;
+ int extMax = domain->solInfo().getNLInfo().extMax;
+ int extMin = domain->solInfo().getNLInfo().extMin;
 
  // ... DEFINE MAXIMUM NUMBER OF TRAJECTORY ITERATIONS
- int maxNumTrajectory = 20000;
+ int maxNumTrajectory = 2000;
 
 // ---------------------------------------------------
 
@@ -264,9 +266,9 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    nu = 1.0;
    //HB: disable this for debug
    //nu = sqrt(4./numExtIter);
-   nu = pow(4./numExtIter,0.75);
-   //if(numExtIter < 4) nu = 2.0;
-   //if(numExtIter > 6) nu = 0.5;
+   //nu = pow(4./numExtIter,0.75);
+   if(numExtIter < extMin) nu = 2.0;
+   if(numExtIter > extMax) nu = 0.5;
  }
  //HB
  filePrint(stderr,"**** Equilibrium #%d deltaLambda = %10.6f lambda = %10.6f\n"

@@ -3151,7 +3151,13 @@ NLInfo:
         { domain->solInfo().getNLInfo().tolRes = $3;
           domain->solInfo().getNLInfo().tolInc = $4; }
         | NLInfo DLAMBDA Float Float NewLine
-        { domain->solInfo().getNLInfo().dlambda = $3; domain->solInfo().getNLInfo().maxLambda = $4; }
+        { domain->solInfo().getNLInfo().dlambda = $3;
+          domain->solInfo().getNLInfo().maxLambda = $4; }
+        | NLInfo DLAMBDA Float Float Integer Integer NewLine
+        { domain->solInfo().getNLInfo().dlambda = $3; 
+          domain->solInfo().getNLInfo().maxLambda = $4;
+          domain->solInfo().getNLInfo().extMin = $5;
+          domain->solInfo().getNLInfo().extMax = $6; }
         | NLInfo FITALG Integer NewLine
         { domain->solInfo().getNLInfo().fitAlgShell = $3;
           domain->solInfo().getNLInfo().fitAlgBeam  = $3; }

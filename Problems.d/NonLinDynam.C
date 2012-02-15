@@ -66,13 +66,13 @@ NonLinDynamic::~NonLinDynamic()
     fclose(res); 
   }
   if(clawDofs) delete [] clawDofs;
-  delete prevFrc;
   delete times;
 }
 
 void
 NonLinDynamic::clean()
 {
+  if(prevFrc)  { delete prevFrc; prevFrc = 0; }
   if(bcx)      { delete [] bcx; bcx = 0; }
   if(vcx)      { delete [] vcx; vcx = 0; }
   if(solver)   { delete solver; solver = 0; }
@@ -81,6 +81,7 @@ NonLinDynamic::clean()
   if(celArray) { delete [] celArray; celArray = 0; }
   if(melArray) { delete [] melArray; melArray = 0; }
   if(M)        { delete M; M = 0; }
+  if(C)        { delete C; C = 0; }
   if(kuc)      { delete kuc; kuc = 0; }
   if(allCorot) {
 
@@ -549,7 +550,11 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
    double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
 
    if(domain->solInfo().mpcDirect != 0) {
-     clean();
+     if(solver) delete solver;
+     if(prec) delete prec;
+     if(kuc) delete kuc;
+     if(M) delete M;
+     if(C) delete C;
      preProcess(Kcoef, Mcoef, Ccoef);
    }
    else {
@@ -836,8 +841,10 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
    rigidBodyModes = domain->constructHzem();
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES (previously was done later on in this function, see comment below)
- if(C) domain->createKelArray(kelArray, melArray, celArray);
- else domain->createKelArray(kelArray, melArray);
+ if(!kelArray) {
+   if(C) domain->createKelArray(kelArray, melArray, celArray);
+   else domain->createKelArray(kelArray, melArray);
+ }
 
  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, kelArray,
                           melArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
@@ -853,7 +860,7 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
    projector_prep(rigidBodyModes, allOps.M);
 
  // TDL Change
- kuc = allOps.Kuc;
+ kuc    = allOps.Kuc;
  M      = allOps.M;
  C      = allOps.C;
  solver = allOps.sysSolver;
@@ -861,11 +868,13 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  prec   = allOps.prec;
  spp    = allOps.spp;
 
- // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
- allCorot = new Corotator *[domain->numElements()];
+ if(!allCorot) {
+   // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
+   allCorot = new Corotator *[domain->numElements()];
 
- // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
- domain->createCorotators(allCorot);
+   // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
+   domain->createCorotators(allCorot);
+ }
 
 /* this should be done before assembling the operators to (a) prevent unnecessary recomputation and
    (b) make sure that the operators are consistent (e.g. when the rotational mass and damping are zero'd)
@@ -878,7 +887,7 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  claw = geoSource->getControlLaw();
 
  // create list of usdd node dofs mapped to cdsa dof numbers
- if(claw)  {
+ if(claw) {
    int nClaw = claw->numUserDisp;
    clawDofs = new int[nClaw];
    for (int j = 0; j < nClaw; ++j) {
@@ -894,8 +903,6 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 
  localTemp.initialize(solVecInfo());
 
- //XXXX domain->InitializeStaticContactSearch(MortarHandler::CTC); XXXX
-
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
 }
@@ -904,7 +911,7 @@ void NonLinDynamic::openResidualFile()
 {
   if(!res) {
     res = fopen("residuals", "w");
-    totIter = 0;  
+    totIter = 0;
     fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
   }
 }

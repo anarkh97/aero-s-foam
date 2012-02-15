@@ -205,7 +205,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  double nu = 1.0;
 
  // ... DEFINE MAXIMUM NUMBER OF TRAJECTORY ITERATIONS
- int maxNumTrajectory = 2000;
+ int maxNumTrajectory = 20000;
 
 // ---------------------------------------------------
 

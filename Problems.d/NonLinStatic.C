@@ -89,10 +89,6 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     residual.resize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
-  else if(domain->solInfo().mpcDirect != 0) {
-    clean();
-    preProcess(false); 
-  }
 
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
                            kelArray, residual, lambda, 0, refState);
@@ -193,17 +189,23 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
-   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
-   spm->zeroAll();
-   AllOps<double> ops;
-   if(spp) { // rebuild preconditioner as well as the solver
-     spp->zeroAll();
-     ops.spp = spp;
+   if(domain->solInfo().mpcDirect != 0) {
+     if(solver) delete solver;
+     if(prec) delete prec;
+     preProcess();
    }
-   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
-   solver->factor();
-   if(prec) prec->factor();
-   rebuildFlag = 1;
+   else {
+     spm->zeroAll();
+     AllOps<double> ops;
+     if(spp) { // rebuild preconditioner as well as the solver
+       spp->zeroAll();
+       ops.spp = spp;
+     }
+     domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
+     solver->factor();
+     if(prec) prec->factor();
+  }
+  rebuildFlag = 1;
  }
 
  times->rebuild += getTime();
@@ -405,7 +407,6 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
   double Wela = 0.0;
   for(int i = 0; i < domain->numElements(); ++i)
      Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
-  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
 
   // Total Energy = Wext + Wela
   return Wext + Wela;

@@ -471,7 +471,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // Compute first norm
   double firstNorm = (lambda*lambda)*forceNorm;
   //HB
-  fprintf(stderr,"--- firstNorm = %e\n",firstNorm);
+  filePrint(stderr,"--- firstNorm = %e\n",firstNorm);
 
 
   if(firstNorm == 0.0) return;
@@ -510,7 +510,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     //HB
     Dlbda = lambda-lambda0;
     double r = (dU*dU) + w*(Dlbda*Dlbda) - (deltaS*deltaS);
-    fprintf(stderr," r = %e, |r/r0| = %e,|dl| = %e, ||dU|| = %e\n",r, fabs(r/r0), fabs(Dlbda), sqrt(dU*dU));
+    filePrint(stderr," r = %e, |r/r0| = %e,|dl| = %e, ||dU|| = %e\n",r, fabs(r/r0), fabs(Dlbda), sqrt(dU*dU));
 
     arcLenResid = residual;
 
@@ -537,7 +537,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     // Update lambda
     lambda += mu;
     // HB
-    fprintf(stderr,"              lambda = %f, mu = %15.6e\n",lambda,mu);
+    filePrint(stderr,"              lambda = %f, mu = %15.6e\n",lambda,mu);
 
     // Compute arcLenResid = arcLenResid + mu*force
     arcLenResid.linC(arcLenResid, mu, force);

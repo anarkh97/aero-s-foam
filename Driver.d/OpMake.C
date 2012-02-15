@@ -743,7 +743,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA) delete MpcDSA;
+    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
     typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, rbm);
     int nMappedEq = DSA->size();
@@ -791,7 +791,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       DOFMap *baseMap = new DOFMap[dsa->size()];
       DOFMap *eqMap = new DOFMap[DSA->size()];
       // TODO Examine when DSA can be different from c_dsa
-      if(MpcDSA) delete MpcDSA;
+      if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
       MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
         baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
@@ -836,7 +836,7 @@ Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA) delete MpcDSA;
+    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
     typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, rbm);
     int nMappedEq = DSA->size();
@@ -859,7 +859,7 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
     DOFMap *baseMap = new DOFMap[dsa->size()];
     DOFMap *eqMap = new DOFMap[DSA->size()];
     // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA) delete MpcDSA;
+    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
     typename WrapMumps<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, com);
     int nMappedEq = DSA->size();

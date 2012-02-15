@@ -36,9 +36,7 @@ RigidBeam::RigidBeam(int* _nn)
 }
 
 /* the idea here is to reduce the element constraint jacobian. in some cases it may be possible to
-   avoid doing a reduction on the global constraint jacobian. However, first this function needs to
-   be upgraded to allow for the non-zero rhs. see GeoSource::reduceMPCs
-*/
+   avoid doing a reduction on the global constraint jacobian. 
 LMPCons **
 RigidBeam::getMPCs()
 {
@@ -146,6 +144,7 @@ RigidBeam::getMPCs()
 #endif
   return lmpc;
 }
+*/
 
 void
 RigidBeam::buildFrame(CoordSet& cs)

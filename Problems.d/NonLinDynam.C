@@ -388,10 +388,6 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     residual.resize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
-  else if(domain->solInfo().mpcDirect != 0) {
-    clean();
-    preProcess();
-  }
 
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);
 
@@ -546,24 +542,30 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
  if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 
-   //PJSA 11/5/09: new way to rebuild solver (including preconditioner) and Kuc, now works for any solver
-   spm->zeroAll();
-   AllOps<double> ops;
-   if (kuc) kuc->zeroAll();
-   ops.Kuc = kuc;
-   if(spp) {
-     spp->zeroAll();
-     ops.spp = spp;
-   }
    double beta, gamma, alphaf, alpham, dt = 2*localDelta;
    getNewmarkParameters(beta, gamma, alphaf, alpham);
    double Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
    double Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
    double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
-   domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
-   if(!verboseFlag) solver->setPrintNullity(false);
-   solver->factor();
-   if(prec) prec->factor();
+
+   if(domain->solInfo().mpcDirect != 0) {
+     clean();
+     preProcess(Kcoef, Mcoef, Ccoef);
+   }
+   else {
+     spm->zeroAll();
+     AllOps<double> ops;
+     if (kuc) kuc->zeroAll();
+     ops.Kuc = kuc;
+     if(spp) {
+       spp->zeroAll();
+       ops.spp = spp;
+     }
+     domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+     if(!verboseFlag) solver->setPrintNullity(false);
+     solver->factor();
+     if(prec) prec->factor();
+   }
 
  }
  times->rebuild += getTime();
@@ -753,7 +755,7 @@ NonLinDynamic::processLastOutput()  {
 }
 
 void
-NonLinDynamic::preProcess()
+NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 {
 
  // Allocate space for the Static Timers
@@ -813,9 +815,9 @@ NonLinDynamic::preProcess()
  allOps.Kuc = domain->constructCuCSparse<double>();
 
  // for initialization step just build M^{-1}
- double Kcoef = 0.0;
- double Mcoef = 1.0;
- double Ccoef = 0.0;
+ //double Kcoef = 0.0;
+ //double Mcoef = 1.0;
+ //double Ccoef = 0.0;
 
  // HAI
  //int useProjector=domain->solInfo().filterFlags;
@@ -1181,5 +1183,5 @@ NonLinDynamic::getResidualNorm(const Vector &res)
 
 bool
 NonLinDynamic::factorWhenBuilding() const { 
-  return domain->solInfo().iacc_switch;
+  return domain->solInfo().iacc_switch || domain->solInfo().mpcDirect != 0;
 }

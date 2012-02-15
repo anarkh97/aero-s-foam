@@ -539,6 +539,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     for(int j = 0; j < lmpc[i]->nterms; ++j) {
       c(i,term2col[i][j]) = lmpc[i]->terms[j].coef.r_value;
     }
+    if(optc) c(i,m) = lmpc[i]->rhs.r_value;
   }
   delete [] term2col;
 
@@ -557,7 +558,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     lmpc[i]->nterms = 0;
     for(int j = i; j < m; ++j) {
       if(j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
-      if(std::abs<double>(c(i,j)) > std::numeric_limits<double>::epsilon()) {
+      if(std::fabs(c(i,j)) > std::numeric_limits<double>::epsilon()) {
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
         lmpc[i]->nterms++;
@@ -565,7 +566,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     if(optc) { 
       if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
-      if(std::abs<double>(c(i,m)) > std::numeric_limits<double>::epsilon()) {
+      if(std::fabs(c(i,m)) > 100*std::numeric_limits<double>::epsilon()) {
         if(i < rank) lmpc[i]->rhs.r_value = c(i,m);
         else {
           cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
@@ -580,7 +581,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << "error: GeoSource:: educeMPCs requires eigen2 library\n"; exit(-1);
+  cerr << "error: GeoSource::reduceMPCs requires eigen2 library\n"; exit(-1);
   return 0;
 #endif
 }

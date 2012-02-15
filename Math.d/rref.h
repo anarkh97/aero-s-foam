@@ -14,7 +14,7 @@
  */
 
 //this may be a good choice, especially hooked with a sparse qr factorization. 
-//#define QR_ROW_ECHELON
+#define QR_ROW_ECHELON
 #ifdef QR_ROW_ECHELON
 #include <Eigen/Dense>
 #endif

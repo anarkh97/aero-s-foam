@@ -3461,8 +3461,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
  // note the assembly operation for direct solver is not thread safe
- if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) dgt.runFor(i, make_feti);
- else execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
+ /*if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) dgt.runFor(i, make_feti);
+ else*/ execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
@@ -3527,8 +3527,8 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
  // note the assembly operation for direct solver is not thread safe
- if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) subRebuildOps(i, res, coeM, coeC, coeK, kelArray, melArray);
- else execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
+ /*if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) subRebuildOps(i, res, coeM, coeC, coeK, kelArray, melArray);
+ else*/ execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
@@ -3562,6 +3562,9 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   if(domain->solInfo().type == 0) {
     GenSparseMatrix<Scalar> *spmat = dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat);
     if(iSub == 0) spmat->zeroAll();
+#if defined(_OPENMP)
+    #pragma omp barrier
+#endif
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
                                                     (melArray) ? melArray[iSub] : 0);
   }

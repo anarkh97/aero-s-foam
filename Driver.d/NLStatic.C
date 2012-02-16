@@ -122,7 +122,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 */
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
-    double loadFactor = (domain->mftval) ? lambda*domain->mftval->getVal(time) : lambda;
+    double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(time) : lambda;
     double p0;
     for(int iele = 0; iele < numele;  ++iele) {
       // If there is a zero pressure defined, skip the element
@@ -159,7 +159,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   // pressure using surfacetopo
   int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
-  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
+  double mfttFactor = (domain->mftval && sinfo.isDynam()) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
   for(int iele = 0; iele < numNeum; ++iele) {
     neum[iele]->dofs(*dsa, edofs);
     elementForce.zero();

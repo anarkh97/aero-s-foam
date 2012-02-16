@@ -244,15 +244,16 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                 time, maxit, initialRes, currentRes, probDesc->getTolerance());
 
-    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
-
-    // Step Update (updates state which includes displacement and velocity, but not acceleration) 
+    // Step Update: updates position from _{n+1-alphaf} to _{n+1} and velocity/acceleration from _{n} to _{n+1}
     v_p = velocity_n;
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration,
                                    domain->solInfo().zeroRot);
-    if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
+    if(domain->solInfo().soltyp != 2) {
+      probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
+      StateUpdate::copyState(geomState, refState);
+    }
 
     // Output results at current time
     if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();

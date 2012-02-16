@@ -3460,7 +3460,9 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  }
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
- execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
+ // note the assembly operation for direct solver is not thread safe
+ if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) dgt.runFor(i, make_feti);
+ else execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
@@ -3524,7 +3526,9 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 {
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
+ // note the assembly operation for direct solver is not thread safe
+ if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) subRebuildOps(i, res, coeM, coeC, coeK, kelArray, melArray);
+ else execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);

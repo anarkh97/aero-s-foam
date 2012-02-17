@@ -247,39 +247,37 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       if(converged == 1)
         break;
-      else if(converged == -1)
-        if(!failSafe) filePrint(stderr," ... Warning, Solution diverging\n");
+      else if(converged == -1 && !failSafe)
+        filePrint(stderr," ... Warning, Solution diverging\n");
     }
-    if(converged == 0) {
-      if(!failSafe) {
-        filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
-                         " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
-                         midtime, maxit, initialRes, currentRes, probDesc->getTolerance());
-      }
-    }
-    if(failSafe) { 
-      if(converged != 1) failed = true;
-      else failed = false;
+    if(converged == 0 && !failSafe) {
+      filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
+                       " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
+                       midtime, maxit, initialRes, currentRes, probDesc->getTolerance());
     }
 
-    if(failSafe && failed) { p *= 2; q *= 2; numConverged = 0; continue; } // decrease the time step and try again
-    else {
-
-      // Step Update: updates position from _{n+1-alphaf} to _{n+1} and velocity/acceleration from _{n} to _{n+1}
-      v_p = velocity_n;
-      StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
-                                     stepState, geomState, stateIncr, residual,
-                                     elementInternalForce, totalRes, acceleration,
-                                     domain->solInfo().zeroRot);
-      if(domain->solInfo().soltyp != 2) {
-        probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
-        StateUpdate::copyState(geomState, refState);
-      }
-
-      p++;
-      numConverged++;
-      if(numConverged >= 2 && (q-p)%2 == 0 && q >= 2) { p /= 2; q /= 2; numConverged = 0; } // increase the timestep
+    if(failed = (failSafe && converged != 1)) { 
+      // decrease the time step and try again
+      p *= 2;
+      q *= 2;
+      numConverged = 0;
+      continue;
     }
+
+    // Step Update: updates position from _{n+1-alphaf} to _{n+1} and velocity/acceleration from _{n} to _{n+1}
+    v_p = velocity_n;
+    StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
+                                   stepState, geomState, stateIncr, residual,
+                                   elementInternalForce, totalRes, acceleration,
+                                   domain->solInfo().zeroRot);
+    if(domain->solInfo().soltyp != 2) {
+      probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
+      StateUpdate::copyState(geomState, refState);
+    }
+
+    p++;
+    numConverged++;
+    if(numConverged >= 2 && (q-p)%2 == 0 && q >= 2) { p /= 2; q /= 2; numConverged = 0; } // increase the timestep
     time += dt;
 
     if(p%q == 0) { // finished a whole step. post process

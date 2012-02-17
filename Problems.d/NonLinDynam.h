@@ -67,8 +67,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     PrevFrc *prevFrc;   // previous Aeroelastic force at time step t(n-1)
     double t0;          // initial time
     double totalTime;   // total time
-    double dt;          // time step size
-    double delta;       // half time step size
+    double dt0;         // initial time step size
     int maxStep;        // maximum number of time steps
 
     double tolerance;   // convergence criteria tolerance
@@ -127,8 +126,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     void   computeTimeInfo();
 
-    double getDelta() const     { return delta;     }
-    double getDt() const        { return dt;        }
+    double getDelta() const     { return dt0/2;     }
+    double getDt() const        { return dt0;        }
     int    getMaxStep() const   { return maxStep;   }
     double getTotalTime() const { return totalTime; }
     int    getMaxit();
@@ -141,12 +140,9 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
                           GeomState* geomState, Vector& elementInternalForce, Vector& aeroF);
 
-    double formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
-                            Vector &residual, Vector &rhs);
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs, double localDelta);
 
-    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid);
     void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 
     void formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs, GeomState *refState = NULL);
@@ -181,7 +177,6 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
   public:
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(GeomState& geomState, int iter = 0);
     void reBuild(GeomState& geomState, int iter, double localDelta);
 
     void printTimers(double timeLoop);
@@ -204,25 +199,6 @@ private:
     virtual bool factorWhenBuilding() const;
     void clean();
 };
-
-inline double
-NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
-                                Vector &residual,         Vector &rhs)
-{
-  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
-}
-
-inline void
-NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid)
-{
-  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, delta);
-}
-
-inline void
-NonLinDynamic::reBuild(GeomState& geomState, int iter)
-{
-  reBuild(geomState, iter, delta);
-}
 
 inline const NLDynamPostProcessor &
 NonLinDynamic::defaultPostProcessor() const

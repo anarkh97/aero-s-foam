@@ -572,6 +572,8 @@ TRAIL [a-zA-Z]*
 
 "lines"[a-zA-Z]*|"LINES"[a-zA-Z]*  { return LINESEARCH; }
 
+"fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
+
 "debug_icntl"                      { return DEBUGICNTL; }
 
 "debug_cntl"                       { return DEBUGCNTL; }

@@ -361,7 +361,7 @@ ReducedNonLinDynamic::getStiffAndForce(GeomState &geomState, Vector &residual, V
 }
 
 void
-ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration) {
+ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration, double delta) {
   // Rebuild every updateK iterations
   if (iteration % domain_->solInfo().getNLInfo().updateK == 0) {
     // Recompute tangent stiffness matrix
@@ -649,7 +649,7 @@ ReducedNonLinDynamic::Updater::updateIncr(StateIncr *du, VecType &ddu) {
 
 double
 ReducedNonLinDynamic::Updater::formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
-                                                VecType &accel, VecType &residual, VecType &rhs, GeomType *) {
+                                                VecType &accel, VecType &residual, VecType &rhs, GeomType *, double delta) {
   return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs); 
 }
 

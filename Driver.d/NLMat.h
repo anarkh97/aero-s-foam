@@ -113,7 +113,7 @@ public:
    void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &);
    int  getMaxStep() { return maxStep; }
    double getStiffAndForce (NLState &, Vector &, Vector &, double = -1);
-   void reBuild (NLState &, int = 0);
+   void reBuild (NLState &, int = 0, double delta = 0);
    void formRHSpredictor (Vector &, Vector &, Vector &, NLState &, double);
    int checkConvergence (int, double, Vector &, Vector &, double );
    void update (Vector &);

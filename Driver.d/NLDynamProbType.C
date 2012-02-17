@@ -27,7 +27,6 @@ extern int totalNewtonIter;
  *   GeomType          = GeomState
  ***************************************************************/
 
-#include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
 
 template < class OpSolver, 
@@ -46,9 +45,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Compute time integration values: dt, totalTime, maxStep
   probDesc->computeTimeInfo();
   probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
-
-  // Get pointer to Solver
-  //OpSolver *solver = probDesc->getSolver();
+  bool failSafe = domain->solInfo().getNLInfo().failsafe;
 
   if(domain->solInfo().order == 1)
     filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
@@ -69,13 +66,13 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   GeomType *bkGeomState = 0;
   GeomType *bkStepState = 0;
   VecType *bkVelocity_n = 0, *bkAcceleration = 0, *bkV_p = 0, *bkAeroForce = 0;
-  if(probDesc->getAeroAlg() == 5) {
+  if(probDesc->getAeroAlg() == 5 || failSafe) {
     bkVelocity_n = new VecType(probDesc->solVecInfo()); bkVelocity_n->zero();
     bkAcceleration = new VecType(probDesc->solVecInfo()); bkAcceleration->zero();
     bkV_p = new VecType(probDesc->solVecInfo()); bkV_p->zero();
     bkAeroForce = new VecType(probDesc->solVecInfo()); bkAeroForce->zero();
   }
-  int parity = 0; //parity for A5 algorithm
+  int parity = 0; // parity for A5 algorithm
 
   // zero vectors
   external_force.zero();
@@ -112,7 +109,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   stateIncr = StateUpdate::initInc(geomState, &residual);
   refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
-  if(aeroAlg == 5) {
+  if(aeroAlg == 5 || failSafe) {
     bkRefState = StateUpdate::initRef(geomState);
     bkStateIncr = StateUpdate::initInc(geomState, &residual);
     bkGeomState = probDesc->copyGeomState(geomState);
@@ -123,7 +120,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int maxit = probDesc->getMaxit();
 
   // Get time step size
-  double dt = probDesc->getDt();
+  double dt0 = probDesc->getDt();
 
   // Get delta = dt/2
   double delta = probDesc->getDelta();
@@ -158,31 +155,45 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   // Begin time marching
   double timeLoop =- getTime();
-  double currentRes;
+  double currentRes, midtime;
   char ch[4] = { '|', '/', '-', '\\' };
   double tolInc = domain->solInfo().getNLInfo().tolInc;
+  double dt = dt0;
+  bool failed = false;
+  int numConverged = 0;
+  int p = 0, q = 1;
 
-  for( ; step < maxStep; ++step) {
+  double t0 = time;
+  double tmax = time + maxStep*dt0;
+
+  for(int step=0 ; time < tmax || failed; step++ ) {
+
+    dt = dt0/q;
+    delta = dt/2;
 
     if(aeroAlg < 0) {
-      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
-                ch[int((timeLoop + getTime())/250.)%4], time, int(double(step)/double(maxStep)*100.0));
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
+                ch[int((timeLoop + getTime())/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100.0));
       if(verboseFlag) filePrint(stderr,"\n");
     }
 
-    if(aeroAlg == 5) {
-      if(parity==0) //copy current state to backup state
+    if(aeroAlg == 5 || failSafe) {
+      if(aeroAlg == 5 && parity == 0 || failSafe && !failed) { // copy current state to backup state
         StateUpdate::copyTo(refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce,
                             bkRefState, bkGeomState, bkStepState, bkStateIncr, *bkVelocity_n, *bkAcceleration, *bkV_p, *bkAeroForce);
-      else //restore backup state to current state
+      }
+      else { // restore current state to backup state
         StateUpdate::copyTo(bkRefState, bkGeomState, bkStepState, bkStateIncr, *bkVelocity_n, *bkAcceleration, *bkV_p, *bkAeroForce,
                             refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce);
+      }
     }
 
     double midtime = time + dt*(1 - alphaf);
-    probDesc->getExternalForce(external_force, constantForce, step, midtime, geomState, elementInternalForce, aeroForce);
-
-    time += dt;
+    
+    if(!failed && (aeroAlg < 0 || p%q == 0)) { // for coupled aero, only get fluid load at increments of dt0
+      double midtimeExt = (aeroAlg < 0) ? midtime : time + dt0*(1-alphaf);
+      probDesc->getExternalForce(external_force, constantForce, step, midtimeExt, geomState, elementInternalForce, aeroForce);
+    }
 
     double resN, initialRes;
     int converged;
@@ -196,8 +207,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       residual = external_force;
          
-      // And stateIncr to geomState and compute element tangent stiffness and internal/follower forces
-      // also update the constraints (updateContactConditions called)
+      // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
       StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
                              elementInternalForce, totalRes, velocity_n,
                              acceleration, midtime);
@@ -207,7 +217,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
       resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
-                                           acceleration, residual, rhs, geomState);
+                                           acceleration, residual, rhs, geomState, delta);
 
       // Store the residual norm
       currentRes = resN;
@@ -219,7 +229,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
          || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
         // Assemble global tangent stiffness
-        probDesc->reBuild(*geomState, iter);
+        probDesc->reBuild(*geomState, iter, delta);
 
         residual = rhs;
         totalNewtonIter++;
@@ -238,40 +248,62 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(converged == 1)
         break;
       else if(converged == -1)
-        filePrint(stderr," ... Warning, Solution diverging\n");
+        if(!failSafe) filePrint(stderr," ... Warning, Solution diverging\n");
     }
-    if(converged == 0) 
-      filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
-                time, maxit, initialRes, currentRes, probDesc->getTolerance());
-
-    // Step Update: updates position from _{n+1-alphaf} to _{n+1} and velocity/acceleration from _{n} to _{n+1}
-    v_p = velocity_n;
-    StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
-                                   stepState, geomState, stateIncr, residual,
-                                   elementInternalForce, totalRes, acceleration,
-                                   domain->solInfo().zeroRot);
-    if(domain->solInfo().soltyp != 2) {
-      probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
-      StateUpdate::copyState(geomState, refState);
-    }
-
-    // Output results at current time
-    if(step+1 == maxStep && (aeroAlg != 5 || parity==1)) probDesc->processLastOutput();
-    else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
-      probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg);
-    }
-    probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration);
-
-    if(aeroAlg == 5) { 
-      if(!parity) {
-        time -= dt;
-        step--;
+    if(converged == 0) {
+      if(!failSafe) {
+        filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
+                         " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
+                         midtime, maxit, initialRes, currentRes, probDesc->getTolerance());
       }
-      parity = ( parity ? 0 : 1 );
+    }
+    if(failSafe) { 
+      if(converged != 1) failed = true;
+      else failed = false;
+    }
+
+    if(failSafe && failed) { p *= 2; q *= 2; numConverged = 0; continue; } // decrease the time step and try again
+    else {
+
+      // Step Update: updates position from _{n+1-alphaf} to _{n+1} and velocity/acceleration from _{n} to _{n+1}
+      v_p = velocity_n;
+      StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
+                                     stepState, geomState, stateIncr, residual,
+                                     elementInternalForce, totalRes, acceleration,
+                                     domain->solInfo().zeroRot);
+      if(domain->solInfo().soltyp != 2) {
+        probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
+        StateUpdate::copyState(geomState, refState);
+      }
+
+      p++;
+      numConverged++;
+      if(numConverged >= 2 && (q-p)%2 == 0 && q >= 2) { p /= 2; q /= 2; numConverged = 0; } // increase the timestep
+    }
+    time += dt;
+
+    if(p%q == 0) { // finished a whole step. post process
+
+      // Output results at current time
+      if(step+1 == maxStep && (aeroAlg != 5 || parity == 1)) probDesc->processLastOutput();
+      else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
+        probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg);
+      }
+      probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration);
+
+      if(aeroAlg == 5) { 
+        if(!parity) {
+          time -= dt;
+          step--;
+        }
+        parity = ( parity ? 0 : 1 );
+      }
+
+      step = p/q;
     }
   }
   if(aeroAlg < 0)
-    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", time);
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", time, dt);
 
   timeLoop += getTime();
 #ifdef PRINT_TIMERS
@@ -282,5 +314,17 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   delete stepState;
   delete geomState;
+
+  if(aeroAlg == 5 || failSafe) {
+    delete bkVelocity_n;
+    delete bkAcceleration;
+    delete bkV_p;
+    delete bkAeroForce;
+    delete bkRefState;
+    delete bkStateIncr;
+    delete bkGeomState;
+    delete bkStepState;
+  }
+
 }
 

@@ -29,13 +29,15 @@ struct NonlinearInfo {
 
    bool unsymmetric;
    bool linesearch;
+   bool failsafe;
 
    NonlinearInfo() { updateK     = 1; kryflg     =   0; initflg =   0; 
                      reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
                      fitAlgShell = 2; fitAlgBeam =   2; dlambda = 1.0;
                      tolRes = 1.0E-6; tolInc     = std::numeric_limits<double>::infinity();
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
-                     extMax      = 6; unsymmetric = false; linesearch = false; }
+                     extMax      = 6; unsymmetric = false; linesearch = false;
+                     failsafe = false; }
 
 };
 

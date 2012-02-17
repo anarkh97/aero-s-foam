@@ -115,7 +115,6 @@ double
 MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                               DistrVector& residual, DistrVector& rhs, double localDelta)
 {
-  // PJSA 10-4-2007 copied from NonLinDynamic
   times->correctorTime -= getTime();
   if(domain->solInfo().order == 1) {
     M->mult(inc_displacement, rhs);
@@ -145,7 +144,6 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
                               DistrVector& rhs, DistrGeomState &geomState,
                               double midtime, double localDelta)
 {
-  // PJSA 10-4-2007 copied from single domain equivalent in Problems.d/NonLinDynamic.C
   times->predictorTime -= getTime();
 
   if(claw && userSupFunc) {
@@ -158,7 +156,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
 
       // get user defined motion
       userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel);
-      userSupFunc->usd_disp(midtime-delta, userDefineDispLast, userDefineVel);
+      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel);
 
       // update state
       execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
@@ -218,16 +216,15 @@ MDNLDynamic::computeTimeInfo()
 
   // Get total time and time step size and store them 
   totalTime = domain->solInfo().tmax;
-  dt        = domain->solInfo().getTimeStep();
-  delta     = 0.5*dt;
+  dt0        = domain->solInfo().getTimeStep();
 
   // Compute maximum number of steps
-  maxStep = (int) ( (totalTime+0.49*dt)/dt );
+  maxStep = (int) ( (totalTime+0.49*dt0)/dt0 );
 
   // Compute time remainder
-  double remainder = totalTime - maxStep*dt;
-  if(std::abs(remainder)>0.01*dt){
-    domain->solInfo().tmax = totalTime = maxStep*dt;
+  double remainder = totalTime - maxStep*dt0;
+  if(std::abs(remainder)>0.01*dt0){
+    domain->solInfo().tmax = totalTime = maxStep*dt0;
     fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 

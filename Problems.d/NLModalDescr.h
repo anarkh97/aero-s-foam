@@ -148,7 +148,7 @@ public:
   void updateStates(ModalGeomState *refState, ModalGeomState& geomState) {}
   double getStiffAndForce(ModalGeomState &mgs,
     Vector &res, double midtime = -1, ModalGeomState * = NULL);
-  void reBuild(ModalGeomState &mgs, int iter = 0){ solver->mat.factor(); }
+  void reBuild(ModalGeomState &mgs, int iter = 0, double delta = 0){ solver->mat.factor(); }
 
   void evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs);
   void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState *refState=NULL) { cerr << "NLModalDescr::formRHSinitializer is not implemented\n"; }

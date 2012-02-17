@@ -314,22 +314,22 @@ NonLinDynamic::computeTimeInfo()
 
   // Get total time and time step size and store them 
   totalTime = domain->solInfo().tmax;
-  dt        = domain->solInfo().getTimeStep();
-  delta     = 0.5*dt;
+  dt0       = domain->solInfo().getTimeStep();
+  //delta     = 0.5*dt0;
 
   // Compute maximum number of steps
-  maxStep = (int) ( (totalTime+0.49*dt)/dt );
+  maxStep = (int) ( (totalTime+0.49*dt0)/dt0 );
 
   // Compute time remainder
-  double remainder = totalTime - maxStep*dt;
-  if(std::abs(remainder)>0.01*dt){
-    domain->solInfo().tmax = totalTime = maxStep*dt; 
+  double remainder = totalTime - maxStep*dt0;
+  if(std::abs(remainder)>0.01*dt0){
+    domain->solInfo().tmax = totalTime = maxStep*dt0; 
     fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 
   // set half time step size in user defined functions 
   if(userSupFunc)
-    userSupFunc->setDt(delta);
+    userSupFunc->setDt(dt0/2);
 }
 
 void
@@ -683,7 +683,7 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
 
       // get user defined motion
       userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel);
-      userSupFunc->usd_disp(midtime-delta, userDefineDispLast, userDefineVel);
+      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel);
 
       // update state
       geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
@@ -712,8 +712,6 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
     M->mult(localTemp, rhs);
     if(C) {
       localTemp.linC(-dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
-      // this multAdd is not defined... need to use the scalar array version below
-      //C->multAdd(localTemp, rhs);
       C->multAdd(localTemp.data(), rhs.data());
     }
     rhs.linAdd(dt*dt*beta, residual);
@@ -762,7 +760,6 @@ NonLinDynamic::processLastOutput()  {
 void
 NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 {
-
  // Allocate space for the Static Timers
  if(!times) times = new StaticTimers;
 

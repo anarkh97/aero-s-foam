@@ -847,7 +847,7 @@ NLMatProbDesc::checkConvergence(int iteration, double normRes,
 }
 
 void
-NLMatProbDesc::reBuild(NLState &, int iteration)
+NLMatProbDesc::reBuild(NLState &, int iteration, double delta)
 {
  times->rebuild -= getTime();
 

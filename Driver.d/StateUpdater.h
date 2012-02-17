@@ -51,8 +51,8 @@ public:
   static void updateIncr(StateIncr *du, VecType &ddu) { *du = ddu; }
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
-    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
-    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs); 
+    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState, double delta) {
+    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs, delta); 
   }
 
   static void copyTo(RefState *refState, GeomType *geomState, GeomType *stepState, StateIncr *stateIncr, VecType &v, VecType &a, VecType &vp, VecType &force,
@@ -101,7 +101,7 @@ public:
   }
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
-    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
+    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState, double delta) {
     return pbd->formRHScorrector(residual, rhs, *geomState); 
   }
 
@@ -182,7 +182,7 @@ public:
   }
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
-    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState){
+    VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState, double delta) {
     return pbd->formRHScorrector(inc_displac, vel_n, residual, rhs); 
   }
 

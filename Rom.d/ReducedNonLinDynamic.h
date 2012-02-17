@@ -66,7 +66,7 @@ public:
   double getStiffAndForce(GeomState &geomState, GenVector<double> &residual, GenVector<double> &elementInternalForce, double midtime, GeomState *refState);
 
   // Assemble new dynamic stiffness matrix
-  void reBuild(GeomState& geomState, int iter);
+  void reBuild(GeomState& geomState, int iter, double delta);
 
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs); // dummy
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs, GeomState *refState);
@@ -187,7 +187,7 @@ public:
   static void updateIncr(StateIncr *du, VecType &ddu);
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
-                                 VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState);
+                                 VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState, double delta);
 
   static void copyTo(RefState *, GeomType *, GeomType *, StateIncr *, VecType &, VecType &, VecType &, VecType &,
                      RefState *, GeomType *, GeomType *, StateIncr *, VecType &, VecType &, VecType &, VecType &);

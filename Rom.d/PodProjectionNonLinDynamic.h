@@ -53,9 +53,9 @@ public:
   static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,
                                  GenVector<double> &vel_n, GenVector<double> &accel,
                                  GenVector<double> &residual, GenVector<double> &rhs,
-                                 GeomState *geomState) {
+                                 GeomState *geomState, double delta) {
     const double result = IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
-        pbd, inc_displac, vel_n, accel, residual, rhs, geomState);
+        pbd, inc_displac, vel_n, accel, residual, rhs, geomState, delta);
 
     pbd->handleResidualSnapshot(rhs);
 

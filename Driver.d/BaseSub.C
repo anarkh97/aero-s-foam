@@ -1,4 +1,3 @@
-
 #include <Utils.d/dofset.h>
 #include <Utils.d/Memory.h>
 #include <Math.d/SparseMatrix.h>
@@ -2911,8 +2910,6 @@ BaseSub::setDnb(list<SommerElement *> *_list)
   numNeum = 0;
   for(list<SommerElement *>::iterator it = _list->begin(); it != _list->end(); ++it) {
     addNeum((*it));
-//cerr << "node[0]=" << (*it)->getNode(0) << ", node[1]=" << (*it)->getNode(1);
-//cerr << "node[2]=" << (*it)->getNode(2) << ", node[3]=" << (*it)->getNode(3) << endl;
   }
 }
 
@@ -2937,8 +2934,6 @@ BaseSub::setArb(list<SommerElement *> *_list)
     (*it)->dom = this;
   }
 }
-
-// *****************************************************************************
 
 void
 BaseSub::setWIoneCommSize(FSCommPattern<int> *pat)
@@ -3169,6 +3164,7 @@ void
 BaseSub::mergeInterfaces()
 {
   // mpc list should already have been set before now
+  if(boundDofFlag) delete [] boundDofFlag;
   boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
   allBoundDofs = scomm->allBoundDofs(); // PJSA 7-29-05
   totalInterfSize = scomm->totalInterfSize();

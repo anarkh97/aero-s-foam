@@ -20,7 +20,7 @@ NonLinStatic::NonLinStatic(Domain *d)
   kelArray = 0;
   allCorot = 0;
   bcx = 0;
-  solver = solver;
+  solver = 0;
   prec = 0;
   times = 0;
 

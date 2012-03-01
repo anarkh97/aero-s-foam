@@ -45,7 +45,7 @@ class GenDecDomain
   DistrInfo internalInfo, internalInfo2;
   DistrInfo *masterSolVecInfo_;
   DistrInfo nodeInfo;
-  DistrInfo *nodeVecInfo;
+  DistrInfo *nodeVecInfo, *eleVecInfo, *bcVecInfo;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 

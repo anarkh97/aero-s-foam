@@ -99,6 +99,7 @@ SComm::mergeTypeSpecificLists()
   // resize **exchangeData but i don't think it is necessary to add "virtual nodes"
   // to sharedNodes list. however, check in code where sharedNodes is used and convert to "std"
   // NumNeighb and SubNums etc.
+  if(TypeMap) { for(int i=0; i<numDofType; ++i) { if(TypeMap[i]) delete [] TypeMap[i]; } delete [] TypeMap; }
 
   int i,j,k,l;
   // step 1. initialize combined list to type 0

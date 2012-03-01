@@ -1016,7 +1016,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
 #ifdef DISTRIBUTED
   status_change1 = this->fetiCom->globalMax((int) status_change1);
 #endif
-  
+
   if(status_change1) {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcStatus, mpcPat, flag);
     mpcPat->exchange();
@@ -2978,6 +2978,8 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
      buildCCt();
 */
    }
+   if(subsWithMpcs) { delete subsWithMpcs; subsWithMpcs = 0; }
+   if(mpcSubMap) { delete [] mpcSubMap; mpcSubMap = 0; }
  }
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);

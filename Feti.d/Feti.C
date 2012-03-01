@@ -24,7 +24,7 @@
 #include <Math.d/VectorSet.h>
 #include <Solvers.d/PCGSolver.h>
 #include <Solvers.d/Rbm.h>
-#include <Solvers.d/Mumps.h> //Axel
+#include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 
 #include <Feti.d/FetiOp.h>
@@ -3018,7 +3018,6 @@ GenFetiSolver<Scalar>::getFCMult(int iSub, GenDistrVector<Scalar> *r, Scalar *sv
 #endif
  }
 }
-
 
 template<class Scalar>
 void

@@ -59,7 +59,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
 template<class Scalar>
 GenDomainGroupTask<Scalar>::~GenDomainGroupTask()
 {
-  // delete [] dynMats;
+  delete [] dynMats;
   delete [] spMats;
   //delete [] rbms;
   // don't delete K,Kuc,C,Cuc,M,Muc

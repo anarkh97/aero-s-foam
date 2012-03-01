@@ -16,6 +16,8 @@ class DistrGeomState {
      DistrGeomState(DecDomain *domain);
      // Copy Constructor
      DistrGeomState(const DistrGeomState &);
+     // Destructor
+     ~DistrGeomState();
 
      // return the ith subdomain's GeomState
      GeomState* operator[](int i) const { return gs[i]; }

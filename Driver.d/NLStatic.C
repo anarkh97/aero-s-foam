@@ -101,25 +101,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
         residual[dofNum] -= elementForce[idof];
     }
   }
-/*
-  for(int iele = numele; iele < packedEset.size(); ++iele) {
-    Corotator *c = dynamic_cast<Corotator*>(packedEset[iele]);
-    if(c) {
-      // TODO implicit
-      //FullSquareMatrix kelTmp(packedEset[iele]->numDofs());
-      Vector elementForceTmp(packedEset[iele]->numDofs());  
-      kel[iele].zero();
-      elementForceTmp.zero();
-      getElemStiffAndForce(geomState, time, *c, elementForceTmp.getData(), kel[iele]);
-      int *p = new int[packedEset[iele]->numDofs()];
-      packedEset[iele]->dofs(*c_dsa, p);
-      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
-        if(p[idof] > -1) residual[p[idof]] -= elementForceTmp[idof];
-      }
-      delete [] p;
-    }
-  }
-*/
+
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(time) : lambda;
@@ -271,21 +253,6 @@ Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Ve
         if(dofNum >= 0)
           residual[dofNum] += rcoef*residualCorrection[idof];
       }
-    }
-  }
-
-  for(int iele = numele; iele < packedEset.size(); ++iele) {
-    Corotator *c = dynamic_cast<Corotator*>(packedEset[iele]);
-    if(c) {
-      Vector residualCorrection(packedEset[iele]->numDofs());
-      residualCorrection.zero();
-      corotators[iele]->getResidualCorrection(geomState, residualCorrection.data());
-      int *p = new int[packedEset[iele]->numDofs()];
-      packedEset[iele]->dofs(*c_dsa, p);
-      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
-        if(p[idof] > -1) residual[p[idof]] += rcoef*residualCorrection[idof];
-      }
-      delete [] p;
     }
   }
 }

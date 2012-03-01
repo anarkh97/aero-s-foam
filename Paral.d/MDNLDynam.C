@@ -252,12 +252,38 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   kelArray = 0;
   melArray = 0;
   celArray = 0;
+  times = 0;
+  solver = 0;
+  allOps =0;
+  M = 0;
+  C = 0;
+  Kuc = 0;
+  allCorot = 0;
+  localTemp = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
 {
   if(mu) delete [] mu;
   if(lambda) delete [] lambda;
+  if(times) delete times;
+  if(solver) delete solver;
+  if(allOps) delete allOps;
+  if(M) delete M;
+  if(C) delete C;
+  if(Kuc) delete Kuc;
+  if(localTemp) delete localTemp;
+  if(allCorot) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
+    delete [] allCorot;
+  }
+  if(kelArray || melArray || celArray) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubElementArrays);
+    if(kelArray) delete [] kelArray;
+    if(melArray) delete [] melArray;
+    if(celArray) delete [] celArray;
+  }
+  if(decDomain) delete decDomain;
 }
 
 int
@@ -481,6 +507,8 @@ MDNLDynamic::preProcess()
   M = allOps->M;
   C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
   Kuc = allOps->Kuc;
+  if(allOps->K) delete allOps->K;
+  if(allOps->Muc) delete allOps->Muc;
   times->getFetiSolverTime += getTime();
 
   times->memoryPreProcess -= threadManager->memoryUsed();
@@ -535,11 +563,32 @@ MDNLDynamic::makeSubCorotators(int isub)
 }
 
 void
+MDNLDynamic::deleteSubCorotators(int isub)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  if(allCorot[isub]) {
+    for (int iElem = 0; iElem < sd->numElements(); ++iElem) {
+      if(allCorot[isub][iElem] && (allCorot[isub][iElem] != dynamic_cast<Corotator*>(sd->getElementSet()[iElem])))
+        delete allCorot[isub][iElem];
+    }
+    delete [] allCorot[isub];
+  }
+}
+
+void
 MDNLDynamic::makeSubElementArrays(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   if(celArray) sd->createKelArray(kelArray[isub], melArray[isub], celArray[isub]); 
   else sd->createKelArray(kelArray[isub], melArray[isub]);
+}
+
+void
+MDNLDynamic::deleteSubElementArrays(int isub)
+{
+  if(kelArray && kelArray[isub]) delete [] kelArray[isub];
+  if(melArray && melArray[isub]) delete [] melArray[isub];
+  if(celArray && celArray[isub]) delete [] celArray[isub];
 }
 
 void
@@ -720,6 +769,8 @@ MDNLDynamic::printTimers(double timeLoop)
 
   execParal(decDomain->getNumSub(), mdpp,
            &MultiDomainPostProcessor::getMemoryK, memory);
+
+  delete mdpp;
 
   long totMemK = 0;
   for(i=0; i<decDomain->getNumSub(); ++i)

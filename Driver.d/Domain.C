@@ -2708,6 +2708,7 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
+ g_dsa = 0;
 }
 
 Domain::~Domain()
@@ -2780,6 +2781,9 @@ Domain::~Domain()
  if(nodeTable) delete [] nodeTable;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
  if(p) delete p;
+ for(int i=0; i<contactSurfElems.size(); ++i)
+   packedEset.deleteElem(contactSurfElems[i]);
+ if(g_dsa) delete g_dsa;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>

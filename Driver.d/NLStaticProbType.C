@@ -110,6 +110,9 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    // increment load parameter
    lambda += deltaLambda;
  }
+ delete geomState;
+ if(refState) delete refState;
+ if(stateIncr) delete stateIncr;
 
  probDesc->printTimers();
 

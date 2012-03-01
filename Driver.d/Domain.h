@@ -199,6 +199,7 @@ class Domain : public HData {
      ConstrainedDSA *c_dsa;	// Constrained dof set array
      ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
      ConstrainedDSA *MpcDSA;
+     ConstrainedDSA *g_dsa;
      Connectivity *allDOFs;     // all dof arrays for each node
      Connectivity *allDOFsFluid;     // all dof arrays for each node
      int maxNumDOFs; 		// maximum number of dofs an element has

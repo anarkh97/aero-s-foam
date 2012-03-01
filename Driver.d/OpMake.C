@@ -780,7 +780,8 @@ Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bo
   if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
   if(sinfo.mpcDual) {
     Connectivity *nodeToNodeG = nodeToNode;
-    DofSetArray *g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
+    if(g_dsa) delete g_dsa;
+    g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
     typename WrapEiSparseMat<Scalar>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
     return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol);
   }

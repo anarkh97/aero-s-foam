@@ -78,6 +78,8 @@ GenDecDomain<Scalar>::initialize()
   soweredInput = false;
   masterSolVecInfo_ = 0;
   nodeVecInfo = 0;
+  eleVecInfo = 0;
+  bcVecInfo = 0;
   wiPat = 0;
   ba = 0;
 } 
@@ -114,6 +116,8 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   if(subToElem) { delete subToElem; subToElem = 0; }
   if(nodeVecInfo) delete nodeVecInfo;
+  if(eleVecInfo) delete eleVecInfo;
+  if(bcVecInfo) delete bcVecInfo;
   delete masterSolVecInfo_;
   delete ba;
 }
@@ -2158,8 +2162,10 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::elementVectorInfo()
 {
-  DistrInfo *eleVecInfo = new DistrInfo;
-  makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
+  if(!eleVecInfo) {
+    eleVecInfo = new DistrInfo;
+    makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
+  }
   return eleVecInfo;
 }
 
@@ -2168,8 +2174,10 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::pbcVectorInfo()
 {
- DistrInfo *bcVecInfo = new DistrInfo;
- makeBasicDistrInfo(*bcVecInfo, &Domain::nDirichlet);
+ if(!bcVecInfo) {
+   bcVecInfo = new DistrInfo;
+   makeBasicDistrInfo(*bcVecInfo, &Domain::nDirichlet);
+ }
  return bcVecInfo;
 }
 
@@ -3460,9 +3468,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  }
 
  if(verboseFlag) filePrint(stderr," ... Assemble Subdomain Matrices    ... \n");
- // note the assembly operation for direct solver is not thread safe
- /*if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) dgt.runFor(i, make_feti);
- else*/ execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
+ execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
@@ -3489,13 +3495,15 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
  } else {
-   res.C_deriv   = 0; //delete [] dgt.C_deriv;
+   res.C_deriv = 0;
+   delete [] dgt.C_deriv;
  }
  if(dgt.Cuc_deriv[0]) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
  } else {
-   res.Cuc_deriv = 0; //delete [] dgt.Cuc_deriv;
+   res.Cuc_deriv = 0;
+   delete [] dgt.Cuc_deriv;
  }
 // RT end
  switch(domain->solInfo().type) {
@@ -3526,9 +3534,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 {
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- // note the assembly operation for direct solver is not thread safe
- /*if(domain->solInfo().type == 0) for(int i=0; i<numSub; ++i) subRebuildOps(i, res, coeM, coeC, coeK, kelArray, melArray);
- else*/ execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
+ execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);

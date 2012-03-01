@@ -806,6 +806,8 @@ MortarHandler::CreateFFIPolygon()
 {
   // clear data from previous call to this function
   CtcPolygons.clear(); 
+  for(size_t i=0; i<MortarEls.size(); ++i)
+    if(MortarEls[i]) delete MortarEls[i];
   MortarEls.clear();
   NodalMortars.clear();
   ActiveSlaveNodes.clear();

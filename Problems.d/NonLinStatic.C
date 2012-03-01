@@ -274,7 +274,7 @@ NonLinStatic::preProcess(bool factor)
 
  times->makeBCs -= getTime();
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx = new double[numdof];
+ if(!bcx) bcx = new double[numdof];
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);

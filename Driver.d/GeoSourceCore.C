@@ -366,7 +366,10 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
-  domain->setNumLMPC(0);
+ for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+ lmpc.deleteArray();
+ lmpc.restartArray();
+ domain->setNumLMPC(0);
 }
 
 // Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)

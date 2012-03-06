@@ -153,10 +153,11 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineDispLast = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
 
       // get user defined motion
-      userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel);
-      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel);
+      userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel, userDefineAcc);
+      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel, userDefineAcc);
 
       // update state
       execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
@@ -169,7 +170,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       if(Kuc) 
         execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subKucTransposeMultSubtractClaw, residual, userDefineDisp);
 
-      delete [] userDefineDisp; delete [] userDefineDispLast; delete [] userDefineVel;
+      delete [] userDefineDisp; delete [] userDefineDispLast; delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 
@@ -258,6 +259,8 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   M = 0;
   C = 0;
   Kuc = 0;
+  Muc = 0;
+  Cuc = 0;
   allCorot = 0;
   localTemp = 0;
 }
@@ -272,6 +275,8 @@ MDNLDynamic::~MDNLDynamic()
   if(M) delete M;
   if(C) delete C;
   if(Kuc) delete Kuc;
+  if(Muc) delete Muc;
+  if(Cuc) delete Cuc;
   if(localTemp) delete localTemp;
   if(allCorot) {
     execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
@@ -346,9 +351,10 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     if(claw->numUserDisp > 0) {
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
       execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
-      delete [] userDefineDisp; delete [] userDefineVel;
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 
@@ -447,7 +453,7 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
    double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
    double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
    double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
-   decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray);
+   decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
  } else
    times->norms[numSystems].rebuildTang = 0;
 
@@ -489,7 +495,9 @@ MDNLDynamic::preProcess()
   // Allocate each subdomain's array of mass matrices
   melArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
-  if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) celArray = new FullSquareMatrix*[decDomain->getNumSub()];
+  // Allocate each subdomain's array of damping matrices
+  if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0 || domain->getElementSet().hasDamping()) 
+    celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
   // Now make those arrays
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
@@ -502,29 +510,18 @@ MDNLDynamic::preProcess()
   double Kcoef = 0.0;
   double Mcoef = 1.0;
   double Ccoef = 0.0;
-  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, factorWhenBuilding());
+  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, celArray, factorWhenBuilding());
   solver = (ParallelSolver *) allOps->dynMat;
   M = allOps->M;
-  C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
+  C = allOps->C;
   Kuc = allOps->Kuc;
+  Muc = allOps->Muc;
+  Cuc = allOps->Cuc;
   if(allOps->K) delete allOps->K;
-  if(allOps->Muc) delete allOps->Muc;
   times->getFetiSolverTime += getTime();
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 
-/*
-  // Allocate each subdomain's array of stiffness matrices
-  kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  // Allocate each subdomain's array of mass matrices
-  melArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  if(C) celArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  // Now make those arrays
-  execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
-*/
   // Look if there is a user supplied routine for control
   claw = geoSource->getControlLaw();
 
@@ -610,7 +607,7 @@ MDNLDynamic::makeSubClawDofs(int isub)
 void
 MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
                               int tIndex, double t, DistrGeomState* geomState,
-                              DistrVector& elementInternalForce, DistrVector& aero_f)
+                              DistrVector& elementInternalForce, DistrVector& aero_f, double localDelta)
 {
   times->formRhs -= getTime();
 
@@ -620,8 +617,13 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
   }
 
-  execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
-              f, constantForce, t);
+  double beta, gamma, alphaf, alpham;
+  getNewmarkParameters(beta, gamma, alphaf, alpham);
+  double dt = 2*localDelta;
+  double t0 = domain->solInfo().initialTime;
+  double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
+  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
+              f, constantForce, t, tm);
 
   // add the USDF forces
   if(claw && userSupFunc) {
@@ -636,9 +638,6 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   // AERO
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0) {
-
-    double gamma = sinfo.newmarkGamma;
-    double alphaf = sinfo.newmarkAlphaF;
 
     aeroForce->zero();
     int iscollocated;
@@ -698,14 +697,15 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 }
 
 void
-MDNLDynamic::subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time)
+MDNLDynamic::subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm)
 {
   StackVector localf(f.subData(isub), f.subLen(isub));
   StackVector localg(constantForce.subData(isub), constantForce.subLen(isub));
 
   SubDomain *sd = decDomain->getSubDomain(isub);
 
-  sd->computeExtForce4(localf, localg, time);
+  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0;
+  sd->computeExtForce4(localf, localg, tf, (*Kuc)[isub], userSupFunc, localCuc, tm, (*Muc)[isub]);
 }
 
 void
@@ -807,15 +807,17 @@ MDNLDynamic::printTimers(double timeLoop)
 
 void
 MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVector &vel_p, 
-                         double time, int index, DistrVector &ext_force, DistrVector &aeroF, DistrVector &acc_n)
+                         double time, int index, DistrVector &ext_force, DistrVector &aeroF, DistrVector &acc_n,
+                         DistrGeomState *refState)
 {
   if(claw && claw->numUserDisp) {
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
-    userSupFunc->usd_disp(time,userDefineDisp,userDefineVel);
+    double *userDefineAcc  = new double[claw->numUserDisp];
+    userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
     execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, *geomState, userDefineDisp);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
-    delete [] userDefineDisp; delete [] userDefineVel;
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc);
+    delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
   if(domain->solInfo().nRestart > 0) {
@@ -835,7 +837,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
   }
 
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF, refState);
 }
 
 void

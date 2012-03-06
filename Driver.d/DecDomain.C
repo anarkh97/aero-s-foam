@@ -3431,12 +3431,12 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
                                Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti,
-                               FullSquareMatrix **melArray, bool factor)
+                               FullSquareMatrix **melArray, FullSquareMatrix **celArray, bool factor)
 {
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator, melArray);
+                                communicator, melArray, celArray);
 
  if(domain->solInfo().type == 0) {
    switch(domain->solInfo().subtype) {
@@ -3530,11 +3530,11 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 template<class Scalar>
 void
 GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
-                                 FullSquareMatrix **kelArray, FullSquareMatrix **melArray)
+                                 FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
+ execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
@@ -3547,7 +3547,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 template<class Scalar>
 void
 GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
-                                    FullSquareMatrix **kelArray, FullSquareMatrix **melArray)
+                                    FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
   AllOps<Scalar> allOps;
 
@@ -3572,7 +3572,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
     #pragma omp barrier
 #endif
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
-                                                    (melArray) ? melArray[iSub] : 0);
+                                                    (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
   }
   else {
     GenMultiSparse<Scalar> *allMats;

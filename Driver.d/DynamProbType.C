@@ -598,6 +598,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    VecType &Md_n_h = workVec.get_Md_n_h();
    VecType &Cd_n_h = workVec.get_Cd_n_h();
    VecType   &tmp1 = workVec.get_tmp1();
+   VecType    &dnc = workVec.get_dnc();
+   VecType    &vnc = workVec.get_vnc();
+   VecType    &anc = workVec.get_anc();
 
    // Get initial time and time index
    int n = 0;
@@ -623,6 +626,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          dynOps.C->mult(v_n, tmp1);
          a_n -= tmp1;
        }
+/*
+       probDesc->getPrescContrib( dynOps.Muc, dynOps.Cuc, vnc, anc, tmp1, t, t);
+       a_n += tmp1;
+*/
        dynOps.Msolver->reSolve(a_n);
        if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
      }
@@ -705,7 +712,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          rhs += Cd_n_h;
 
        }
-
+/*
+       // add prescribed boundary condition (velocity and acceleration) contributions to rhs vector
+       probDesc->getPrescContrib( dynOps.Muc, dynOps.Cuc, vnc, anc, tmp1, t+(dt*(1-alpham)), t+(dt*(1-alphaf)));
+       rhs += (beta*dt*dt)*tmp1;
+*/
        dynOps.dynMat->reSolve( rhs ); // Now rhs contains d_(n+1-alphaf)
 
        // call projector for RBMs in case of rbmfilter level 2

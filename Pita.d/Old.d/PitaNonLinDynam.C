@@ -61,7 +61,7 @@ int PitaNonLinDynamic::getInitSeed(DynamState<double> & ds, int sliceRank)
     double *ctracc  = (double *) alloca(sizeof(double)*claw->numSensor);
     GenVector<double> dummy_acc(this->solVecInfo(), 0.0);
     extractControlData(ds.disp(), ds.vel(), dummy_acc, ctrdisp, ctrvel, ctracc);
-    userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel);
+    userSupFunc->usd_disp(sliceTime, ctrdisp, ctrvel, ctracc);
   }  
   return 0; // Default value for int aeroAlg
 }

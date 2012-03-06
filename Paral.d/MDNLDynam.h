@@ -42,7 +42,7 @@ class MDNLDynamic
     MDDynamMat *allOps;
     SubDOp *M;
     SubDOp *C;
-    SubDOp *Kuc;
+    SubDOp *Kuc, *Muc, *Cuc;
     Corotator ***allCorot;       // element corotators per subdomain
     DistrVector *localTemp;
 
@@ -119,7 +119,7 @@ class MDNLDynamic
     void getConstForce(DistrVector &gravityForce);
     void getExternalForce(DistrVector &externalForce, DistrVector &constantForce,
                           int tIndex, double time, DistrGeomState *geomState, 
-                          DistrVector &elementInternalForce, DistrVector &aeroF);
+                          DistrVector &elementInternalForce, DistrVector &aeroF, double localDelta);
 
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
@@ -153,7 +153,8 @@ class MDNLDynamic
 
     void printTimers(double timeLoop);
     void dynamOutput(DistrGeomState* geomState, DistrVector& velocity, DistrVector &vp,
-                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration);
+                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration,
+                     DistrGeomState *refState);
     void dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                           DistrVector& velocity, DistrVector& bkVelocity,
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
@@ -175,7 +176,7 @@ class MDNLDynamic
     void makeSubDofs(int isub);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
-    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
+    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);

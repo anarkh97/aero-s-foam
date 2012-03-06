@@ -27,6 +27,7 @@ class NonLinStatic {
     double firstDv;
     double tolerance;
     StaticTimers *times;
+    Vector *reactions;
 
  public:
     // Constructor

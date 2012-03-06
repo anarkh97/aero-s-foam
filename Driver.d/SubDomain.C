@@ -254,36 +254,68 @@ GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a)//DofSet::max_k
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
 
    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+   int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
+
    if(xLoc >= 0)
      xyz[nodeI][0] = a[xLoc];           // free
+   else if(xLoc1 >= 0)
+     xyz[nodeI][0] = acx[xLoc1];        // constrained
 
    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+   int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
+
    if(yLoc >= 0)
      xyz[nodeI][1] = a[yLoc];
+   else if(yLoc1 >= 0)
+     xyz[nodeI][1] = acx[yLoc1];
 
    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+   int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
+
    if(zLoc >= 0)
      xyz[nodeI][2] = a[zLoc];
+   else if(zLoc1 >= 0)
+     xyz[nodeI][2] = acx[zLoc1];
 
    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+   int xRot1 =   dsa->locate(inode, DofSet::Xrot);
+
    if(xRot >= 0)
      xyz[nodeI][3] = a[xRot];
+   else if(xRot1 >= 0)
+     xyz[nodeI][3] = acx[xRot1];
 
    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+   int yRot1 =   dsa->locate(inode, DofSet::Yrot);
+
    if(yRot >= 0)
      xyz[nodeI][4] = a[yRot];
+   else if(yRot1 >= 0)
+     xyz[nodeI][4] = acx[yRot1];
 
    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+   int zRot1 =   dsa->locate(inode, DofSet::Zrot);
+
    if(zRot >= 0)
      xyz[nodeI][5] = a[zRot];
+   else if(zRot1 >= 0)
+     xyz[nodeI][5] = acx[zRot1];
 
    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+   int xTemp1 =   dsa->locate(inode, DofSet::Temp);
+
    if(xTemp >= 0)
      xyz[nodeI][6] = a[xTemp];
+   else if(xTemp1 >= 0)
+     xyz[nodeI][6] = acx[xTemp1];
 
    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+   int xHelm1 =   dsa->locate(inode, DofSet::Helm);
+
    if(xHelm >= 0)
      xyz[nodeI][7] = a[xHelm];
+   else if(xHelm1 >= 0)
+     xyz[nodeI][7] = acx[xHelm1];
  }
 }
 
@@ -1215,7 +1247,7 @@ void GenSubDomain<Scalar>::extractControlData(Scalar *disp, Scalar *vel,
       if(dof2 >= 0) { // constrained
         ctrdsp[gi] = bcx[dof2];
         ctrvel[gi] = vcx[dof2];
-        ctracc[gi] = 0.0; // XXXX prescribed acceleration not supported
+        ctracc[gi] = acx[dof2];
       }
     }
   }
@@ -3214,7 +3246,7 @@ void GenSubDomain<Scalar>::initMpcScaling()
 }
 
 template<class Scalar>
-void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
+void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc)
 {
   // modify boundary condition values for output purposes
   int i;
@@ -3224,6 +3256,7 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
       bcx[dof] = usrDefDisp[locToGlUserDispMap[i]];
       if(bcx_scalar) bcx_scalar[dof] = bcx[dof];
       vcx[dof] = usrDefVel[locToGlUserDispMap[i]];
+      acx[dof] = usrDefAcc[locToGlUserDispMap[i]];
     }
   }
   updateUsddInDbc(usrDefDisp, locToGlUserDispMap); // CHECK
@@ -3507,6 +3540,7 @@ GenSubDomain<Scalar>::clean_up()
  if(scaling) { delete [] scaling; scaling = 0; }
  if(bcx) { delete [] bcx; bcx = 0; }
  if(vcx) { delete [] vcx; vcx = 0; }
+ if(acx) { delete [] acx; acx = 0; }
  if(boundMap) { delete [] boundMap; boundMap = 0; }
  if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
  if(internalMap) { delete [] internalMap; internalMap = 0; }

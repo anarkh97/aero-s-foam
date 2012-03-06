@@ -41,6 +41,7 @@
 #include <Rom.d/GaussNewtonSolver.h>
 #include <Rom.d/GappyProjectionSolver.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
+#include <Control.d/ControlInterface.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -91,10 +92,10 @@ template<class Scalar>
 void
 Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 		      double Ccoef, GenSparseMatrix<Scalar> *mat,
-                      FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
+                      FullSquareMatrix *kelArray, FullSquareMatrix *melArray, FullSquareMatrix *celArray)
 {
  if(matrixTimers) matrixTimers->memoryForm -= memoryUsed();
- int makeMass = Mcoef != 0 || ops.M != 0 || ops.C != 0;
+ int makeMass = (Mcoef != 0 || ops.M != 0 || ops.C != 0);
 
  // Rayleigh damping coefficients: C = alpha*M + beta*K
  double alphaDamp = sinfo.alphaDamp, alpha;
@@ -292,18 +293,23 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
 
-   // Form the element impedance matrix in kel and the element damping matrix in mel
+   // Form the element impedance matrix in kel and the element damping matrix in cel
    if(matrixTimers) matrixTimers->formTime -= getTime();
    if(!isShifted) {
      if(makeMass) {
-       for(i = 0; i < dim; ++i)
+       if(celArray) cel.copy(celArray[iele]);
+       else if(cel.dim() != dim) cel.setSize(dim);
+       for(i = 0; i < dim; ++i) {
          for(j = 0; j < dim; ++j) {
            double m  = mel[i][j];
            double k  = kel[i][j];
-           mel[i][j] = (zeroRot && (dofType[ (*allDOFs)[iele][i] ] == 1 
-                        || dofType[ (*allDOFs)[iele][j] ] == 1)) ? 0 : alpha*m + beta*k; // mel is now the damping element matrix
-           kel[i][j] = Kcoef*k + Ccoef*mel[i][j] + Mcoef*m;
+           if(!celArray) {
+             cel[i][j] = (zeroRot && (dofType[ (*allDOFs)[iele][i] ] == 1 
+                          || dofType[ (*allDOFs)[iele][j] ] == 1)) ? 0 : alpha*m + beta*k;
+           }
+           kel[i][j] = Kcoef*k + Ccoef*cel[i][j] + Mcoef*m;
          }
+       }
      }
      else {
        for(i = 0; i < dim; ++i)
@@ -353,7 +359,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      }
    }
 
-   // Assemble the element damping matrix mel in ops.C and ops.C_deriv
+   // Assemble the element damping matrix cel in ops.C and ops.C_deriv
    if(isShifted) {
      if(isDamped && isStructureElement(iele)) {
        izel /= omega;
@@ -362,8 +368,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      }
    }
    else {
-     if(ops.C) ops.C->add(mel,(*allDOFs)[iele]);
-     if(ops.Cuc) ops.Cuc->add(mel,(*allDOFs)[iele]);
+     if(ops.C) ops.C->add(cel,(*allDOFs)[iele]);
+     if(ops.Cuc) ops.Cuc->add(cel,(*allDOFs)[iele]);
+     if(ops.Ccc) ops.Ccc->add(cel,(*allDOFs)[iele]);
    }
    if(matrixTimers) matrixTimers->assemble += getTime();
  }
@@ -986,7 +993,8 @@ Domain::constructGappyProjectionSolver()
 template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
-                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, bool factorize)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
+                 FullSquareMatrix *celArray, bool factorize)
 {
  if(matrixTimers) matrixTimers->memorySolve -= memoryUsed();
 
@@ -1021,11 +1029,11 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                     systemSolver, allOps.spm, rbm, kelArray, melArray); // also used for eigen
+                                     systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
-                                      systemSolver, allOps.spm, rbm, kelArray, melArray);
+                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray);
       break;
    }
    if(sinfo.inpc) {
@@ -1034,7 +1042,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
        GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
        prec_solver->zeroAll();
        AllOps<Scalar> allOps_tmp;
-       makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray);
+       makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray,celArray);
        prec_solver->factor();
        sfbm->setMeanSolver(prec_solver);
      }
@@ -1086,7 +1094,7 @@ template<class Scalar>
 void
 Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                    Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
-                   bool factorize)
+                   FullSquareMatrix *celArray, bool factorize)
 {
  GenSolver<Scalar> *systemSolver;
  GenSparseMatrix<Scalar> *spm;
@@ -1101,26 +1109,26 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        case 0: { //case 1:
          spm = (GenSkyMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver  = (GenSkyMatrix<Scalar>*) spm;
        }
        break;
        case 5: { //case 2:
-	 makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
+	 makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray,celArray);
          systemSolver = allOps.sysSolver;
        }
        break;
        case 1: { //case 3:
          spm = (GenBLKSparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
        }
        break;
        case 2: { //case 4:
          spm = (GenSGISparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
        }
        break;
@@ -1128,7 +1136,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 #ifdef NO_COMPLEX
 	 spm = dynamic_cast<SGISky*>(allOps.sysSolver);
 	 spm->zeroAll();
-	 makeSparseOps(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+	 makeSparseOps(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
 	 systemSolver   = dynamic_cast<SGISky*>(spm);
 #else
 	 fprintf(stderr,"ERROR: templated SGISkyMatrix class is not implemeted \n");
@@ -1139,7 +1147,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        case 8: { //case 8:
          spm =(GenSpoolesSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
-         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
        }
        break;
@@ -1268,39 +1276,39 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // ... Build stiffness matrix K and Kuc, etc...
- buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix *) NULL, factorize);
+ buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factorize);
 }
 
 template<class Scalar>
 void
 Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, FullSquareMatrix *celArray)
 {
   switch(sinfo.subtype) {
     default:
     case 0:
       spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver  = (GenSkyMatrix<Scalar>*) spm;
       break;
     case 1:
       spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
       spm->zeroAll();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
       break;
     case 2:
       if(matrixTimers) matrixTimers->constructTime -= getTime();
       spm = constructSGISparseMatrix<Scalar>(rbm);
       if(matrixTimers) matrixTimers->constructTime += getTime();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
       break;
     case 3:
 #ifdef NO_COMPLEX
       spm = constructSGISkyMatrix(rbm);
-      makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<double>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (SGISky*) spm;
 #else
       fprintf(stderr,"ERROR: templated SGISkyMatrix class is not implemeted \n");
@@ -1309,25 +1317,25 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #ifdef USE_EIGEN3
     case 4:
       spm = constructEiSparseMatrix<Scalar>(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
       break;
 #endif
     case 5:
-      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray);
+      makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray,celArray);
       systemSolver = allOps.sysSolver;
       break;
 #ifdef EIGEN_SUPERLU_SUPPORT
     case 7:
       spm = constructEiSparseMatrix<Scalar>(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
       break;
 #endif
 #ifdef USE_SPOOLES
     case 8:
       spm = constructSpooles<Scalar>(c_dsa, rbm);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
       break;
 #endif
@@ -1338,14 +1346,14 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #else
       spm = constructMumps<Scalar>(c_dsa, rbm);
 #endif
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenMumpsSolver<Scalar>*) spm;
       break;
 #endif
     case 10:
       //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
       spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 11:
@@ -1354,7 +1362,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
       break;
@@ -1364,7 +1372,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
       break;
@@ -1374,7 +1382,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray);
+        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
       break;
@@ -1385,7 +1393,7 @@ template<class Scalar>
 void
 Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
+                 Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, FullSquareMatrix *celArray)
 {
   switch(sinfo.iterSubtype) {
     case 2:
@@ -1412,7 +1420,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       allOps.spp = (GenSparseMatrix<Scalar> *) diag;
       break;
   }
-  makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
+  makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
   if(allOps.prec) allOps.prec->factor();
   if(sinfo.inpc) { systemSolver = 0; return; }
   switch(sinfo.iterType) {
@@ -1423,7 +1431,7 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
         GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
         prec_solver->zeroAll();
         AllOps<Scalar> allOps_tmp;
-        makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray);
+        makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray,celArray);
         prec_solver->factor();
         spm->setMeanSolver(prec_solver);
       }
@@ -1918,40 +1926,37 @@ void
 Domain::computeReactionForce(GenVector<Scalar> &fc, GenVector<Scalar> &Vu,
                              GenSparseMatrix<Scalar> *_kuc, GenSparseMatrix<Scalar> *_kcc)
 {
-  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
+  // TODO include external force on the constrained dofs
   GenCuCSparse<Scalar> *kuc = dynamic_cast<GenCuCSparse<Scalar> *>(_kuc);
   if(kuc) kuc->transposeMultNew(Vu.data(), fc.data()); // fc = kuc^T * Vu
   else fc.zero();
 
-  // COMPUTE NON-HOMOGENEOUS FORCE CONTRIBUTION
   GenCuCSparse<Scalar> *kcc = dynamic_cast<GenCuCSparse<Scalar> *>(_kcc);
   if(kcc) {
     GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
-    // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
     for(int i=0; i<numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
       if(dof < 0) continue;
       dof = c_dsa->invRCN(dof);
       if(dof >= 0) {
-        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
+        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else
         ScalarTypes::initScalar(Vc[dof], dbc[i].val);
       }
     }
 
-    // CONSTRUCT NON-HOMONGENOUS COMPLEX DIRICHLET BC VECTOR
     ComplexBCond *cdbcMRHS = cdbc + iWaveDir * numComplexDirichlet;
     for(int i=0; i<numComplexDirichlet; ++i) {
       int dof2 = dsa->locate(cdbc[i].nnum,(1 << cdbc[i].dofnum));
       if(dof2 < 0) continue;
       dof2 = c_dsa->invRCN(dof2);
       if(dof2 >= 0) {
-        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
+        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else
         ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
 
-    kcc->multAddNew(Vc.data(), fc.data());
+    kcc->multAddNew(Vc.data(), fc.data()); // fc += Kcc * Vc
   }
 }
 
@@ -3244,21 +3249,21 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
     switch(nbc[i].type) {
       case(BCond::Forces) : if(!domain->mftval) cnst_f[dof] += nbc[i].val; break;
       case(BCond::Flux) :   if(!domain->hftval) cnst_f[dof] += nbc[i].val; break;
-      case(BCond::Actuators) : case(BCond::Usdf) : break;  // these are never constant
+      case(BCond::Actuators) : case(BCond::Usdf) : break;
       default : cnst_f[dof] += nbc[i].val;
     }
   }
 
   // ... COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
-  // note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  // note #1: when MFTT is present this term is not constant (see computeExtForce)
   if(sinfo.ATDDNBVal != 0.0 && !domain->mftval) addAtddnbForce(cnst_f);
 
   // ... COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
-  //  note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  //  note #1: when MFTT is present this term is not constant (see computeExtForce)
   if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
 
   // ... COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT is present this term is not constant (see computeExtForce4)
+  // note #1: when MFTT is present this term is not constant (see computeExtForce)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
   if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
@@ -3271,7 +3276,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
-  // note #1: when USDD is present this is term is not constant (see computeExtForce4)
+  // note #1: when USDD is present this is term is not constant (see computeExtForce)
   // note #2  for nonlinear this term is not constant (see getStiffAndForce) 
   if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
     Vector Vc(numDirichlet, 0.0);
@@ -3290,7 +3295,9 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
 
 template <class Scalar>
 void
-Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>* kuc)
+Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>* kuc,
+                        ControlInterface *userSupFunc, GenSparseMatrix<Scalar>* cuc, 
+                        double tm, GenSparseMatrix<Scalar> *muc)
 {
   f.zero();
 
@@ -3334,8 +3341,9 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)
-  // note #2: for nonlinear this term is follower (see getStiffAndForce)
-  if(numDirichlet && (claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
+  // note #2: for nonlinear the contribution due to Kuc is follower (see getStiffAndForce)
+  // note #3: for linear and nonlinear dynamics the contribution due to Cuc and Muc is now included
+  if(numDirichlet && (claw && claw->numUserDisp)) {
     Vector Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
@@ -3344,36 +3352,74 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
       int dof2 = c_dsa->invRCN(dof);
       if(dof2 >= 0) Vc[dof2] = dbc[i].val;
     }
-// see Domain::updateUsddInDbc
-//    if(userDefineDisp) {
-//      int numDisp = claw->numUserDisp;
-//      for(int i = 0; i < numDisp; ++i) {
-//        int dof = dsa->locate(claw->userDisp[i].nnum, (1 << claw->userDisp[i].dofnum));
-//        if(dof < 0) continue;
-//        int dof2 = c_dsa->invRCN(dof);
-//        if(dof2 >= 0)
-//          if(userMap) {
-//            Vc[dof2] += userDefineDisp[userMap[i]];
-//          }
-//          else
-//            Vc[dof2] += userDefineDisp[i];
-//      }
-//    }
 
-    // compute the non-homogeneous force
-    kuc->multSubtract(Vc, f);
+    // compute the non-homogeneous force due to Kuc
+    if(!sinfo.isNonLin() && kuc) kuc->multSubtract(Vc, f);
+
+    if(sinfo.isDynam() && userSupFunc) {
+
+      GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
+
+      double *userDefineDisp = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+      double *userDefineVel  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+      double *userDefineAcc  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+
+      for(int i = 0; i < claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp( tm, userDefineDisp, userDefineVel, userDefineAcc );
+
+      Vc.zero();
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        int dof = getDSA()->locate( claw->userDisp[i].nnum,
+                                    1 << claw->userDisp[i].dofnum );
+        if(dof < 0) continue;
+        int dof1 = getCDSA()->invRCN( dof );
+        if(dof1 >= 0) {
+          int j = (subCast) ? subCast->getUserDispDataMap()[i] : i;
+          Vc[dof1] = userDefineAcc[j];
+        }
+      }
+
+      if(muc) muc->multSubtract(Vc, f); // fu -= Muc * a_c^{n+1-alpha_m}
+
+      if(cuc) {
+
+        for(int i = 0; i < claw->numUserDisp; ++i) {
+          userDefineVel[i] = 0;
+          userDefineAcc[i] = 0;
+        }
+        userSupFunc->usd_disp( t, userDefineDisp, userDefineVel, userDefineAcc );
+
+        Vc.zero();
+        for(int i=0; i<claw->numUserDisp; ++i) {
+          int dof = getDSA()->locate( claw->userDisp[i].nnum,
+                                      1 << claw->userDisp[i].dofnum );
+          if(dof < 0) continue;
+          int dof1 = getCDSA()->invRCN( dof );
+          if(dof1 >= 0) {
+            int j = (subCast) ? subCast->getUserDispDataMap()[i] : i;
+            Vc[dof1] = userDefineVel[j];
+          }
+        }
+
+        cuc->multSubtract(Vc, f); // fu -= Cuc * v_c^{n+1-alpha_f}
+      }
+    }
   }
 }
 
 template <class Scalar>
 void
 Domain::computeExtForce4(GenVector<Scalar>& f, const GenVector<Scalar>& constantForce,
-                         double t, GenSparseMatrix<Scalar>* kuc)
+                         double t, GenSparseMatrix<Scalar>* kuc, ControlInterface *userSupFunc,
+                         GenSparseMatrix<Scalar>* cuc, double tm, GenSparseMatrix<Scalar> *muc)
 {
   // This is called for linear and nonlinear dynamics 
   // doesn't include follower forces
 
-  computeExtForce(f, t, kuc);
+  computeExtForce(f, t, kuc, userSupFunc, cuc, tm, muc);
 
   // ADD CONSTANT FORCE
   f += constantForce;

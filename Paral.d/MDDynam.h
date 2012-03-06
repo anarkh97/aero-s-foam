@@ -38,17 +38,20 @@ class GenMDDynamMat {
    };
    GenParallelSolver<Scalar> *Msolver;
    GenSubDOp<Scalar> *K;
+   GenSubDOp<Scalar> *Kuc;
+   GenSubDOp<Scalar> *Kcc;
    GenSubDOp<Scalar> *C;
    GenSubDOp<Scalar> *Cuc;
+   GenSubDOp<Scalar> *Ccc;
    GenSubDOp<Scalar> *M;
    GenSubDOp<Scalar> *Muc;
    GenSubDOp<Scalar> *Mcc;
-   GenSubDOp<Scalar> *Kuc;
    GenSubDOp<Scalar> **C_deriv;
    GenSubDOp<Scalar> **Cuc_deriv;
    Rbm* rigidBodyModes;
 
-   GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; C = 0; Cuc = 0; M = 0; Muc = 0; Mcc = 0; Kuc = 0; C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
+   GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; Kuc = 0; Kcc = 0; C = 0; Cuc = 0; Ccc = 0; M = 0; Muc = 0; Mcc = 0; 
+                     C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
 };
 
 typedef GenMDDynamMat<double> MDDynamMat;
@@ -168,7 +171,7 @@ private:
     void getRayleighCoef(double& alpha);
 
     void addPrescContrib(SubDOp*, SubDOp*, DistrVector&, DistrVector&, 
-                         DistrVector&, DistrVector&, double t);
+                         DistrVector&, DistrVector&, double tm, double tf);
 
     SubDOp* getpK(MDDynamMat* dynOps);
     SubDOp* getpM(MDDynamMat* dynOps);

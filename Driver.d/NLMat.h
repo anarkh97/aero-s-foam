@@ -108,9 +108,9 @@ public:
    double getDelta()  { return delta; }
    double getDt()     { return dt;    }
    void getInitialTime (int &, double &);
-   void getExternalForce (Vector &, Vector &, int, double &, NLState *, Vector &, Vector &);
+   void getExternalForce (Vector &, Vector &, int, double &, NLState *, Vector &, Vector &, double);
    void dynamCommToFluid (NLState *, NLState *, Vector &, Vector &, Vector &, Vector &,int, int, int) {}
-   void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &);
+   void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &, NLState *);
    int  getMaxStep() { return maxStep; }
    double getStiffAndForce (NLState &, Vector &, Vector &, double = -1);
    void reBuild (NLState &, int = 0, double delta = 0);

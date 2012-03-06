@@ -1788,7 +1788,7 @@ MatData:
         { StructProp sp;  // this is for spring with stiffness-proportional damping : GID Kx Ky Kz lx1 ...
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
-          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.alphaDamp = $15;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.betaDamp = $15;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }

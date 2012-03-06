@@ -66,7 +66,7 @@ public:
                                 Vector& vp, Vector& bkVp, int step, int parity,
                                 int aeroAlg) {};
     virtual void dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF,
-                             Vector & acceleration) const;
+                             Vector & acceleration, GeomState * refState) const;
   private:
     PitaNonLinDynamic & probDesc_;
     int sliceRank_;  
@@ -112,7 +112,7 @@ PitaNonLinDynamic::formRHSCoarsePredictor(Vector & velocity, Vector & accelerati
 }
 
 inline void
-PitaNonLinDynamic::PitaPostProcessor::dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF, Vector & acceleration) const
+PitaNonLinDynamic::PitaPostProcessor::dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF, Vector & acceleration, GeomState * refState) const
 {
   probDesc_.pitaDynamOutput(sliceRank_, geomState, velocity, vp, time, step, force, aeroF);
 }

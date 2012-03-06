@@ -59,6 +59,7 @@ void NLModalDescr::rotateVector(Vector& globalF, Vector& rotF, double glR[3][3])
     xdof = domain->getCDSA()->locate(i, DofSet::Xrot);
     ydof = domain->getCDSA()->locate(i, DofSet::Yrot);
     zdof = domain->getCDSA()->locate(i, DofSet::Zrot);
+    if(xdof == -1 || ydof == -1 || zdof == -1) continue; // FIXME
 
     rotF[xdof] = glR[0][0]*globalF[xdof] + glR[1][0]*globalF[ydof]
       + glR[2][0]*globalF[zdof];
@@ -614,7 +615,7 @@ void NLModalDescr::getConstForce(Vector &constF){
 //------------------------------------------------------------------------------
 
 void NLModalDescr::getExternalForce(Vector &extF, Vector &gravF, int tIndex,
-  double time, ModalGeomState* mgs, Vector &elemIntF, Vector& aeroF){
+  double time, ModalGeomState* mgs, Vector &elemIntF, Vector& aeroF, double delta){
 /*PRE: nothing special
  POST: non-linear, modalized force in extF
  NOTE: arguements to this function are of size numRBM+numFlex+numConstr
@@ -949,6 +950,16 @@ void NLModalDescr::evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs){
 
 //------------------------------------------------------------------------------
 
+void NLModalDescr::formRHSinitializer(Vector&, Vector&, Vector&,
+  ModalGeomState&, Vector& rhs, ModalGeomState*){
+/*PRE:
+ POST:
+*/
+  rhs.zero(); // TODO
+}
+
+//------------------------------------------------------------------------------
+
 void NLModalDescr::formRHSpredictor(Vector &res, Vector &rhs,
   ModalGeomState &mgs){
 /*PRE:
@@ -1007,7 +1018,7 @@ int NLModalDescr::checkConvergence(int iter, double normRes, Vector &residual,
 //------------------------------------------------------------------------------
 
 void NLModalDescr::dynamOutput(ModalGeomState* mgs, Vector& vel, Vector& vel_p,
-  double time, int tIndex, Vector& extF, Vector &aeroF, Vector &acc){
+  double time, int tIndex, Vector& extF, Vector &aeroF, Vector &acc, ModalGeomState*){
 /*PRE:
  POST:
  NOTE: valid only for displacements, leave for now
@@ -1045,6 +1056,7 @@ void NLModalDescr::dynamOutput(ModalGeomState* mgs, Vector& vel, Vector& vel_p,
     xdof = domain->getCDSA()->locate(iNode, DofSet::Xrot);
     ydof = domain->getCDSA()->locate(iNode, DofSet::Yrot);
     zdof = domain->getCDSA()->locate(iNode, DofSet::Zrot);
+    if(xdof == -1 || ydof == -1 || zdof == -1) continue; // FIXME
     tmp[0] = fullDsp[xdof];  tmp[1] = fullDsp[ydof];  tmp[2] = fullDsp[zdof];
 
     vec_to_mat(tmp, rottensor);
@@ -1563,4 +1575,12 @@ void NLModalDescr::printCoefs(){
   }
 
 
+}
+
+void NLModalDescr::getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham)
+{
+  beta  = domain->solInfo().newmarkBeta;
+  gamma = domain->solInfo().newmarkGamma;
+  alphaf = domain->solInfo().newmarkAlphaF;
+  alpham = domain->solInfo().newmarkAlphaM;
 }

@@ -23,6 +23,7 @@ NonLinStatic::NonLinStatic(Domain *d)
   solver = 0;
   prec = 0;
   times = 0;
+  reactions = 0;
 
   if(domain->GetnContactSurfacePairs())
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
@@ -32,6 +33,7 @@ NonLinStatic::~NonLinStatic()
 {
   clean();
   if(times) delete times;
+  if(reactions) delete reactions;
 }
 
 int
@@ -90,8 +92,9 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     elementInternalForce.resize(domain->maxNumDOF());
   }
 
+  reactions->zero();
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState);
+                           kelArray, residual, lambda, 0, refState, reactions);
 
   times->buildStiffAndForce += getTime();
 
@@ -278,6 +281,7 @@ NonLinStatic::preProcess(bool factor)
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);
+ if(!reactions) reactions = new Vector(domain->nDirichlet());
 
  times->makeBCs += getTime();
 
@@ -303,7 +307,7 @@ NonLinStatic::preProcess(bool factor)
                                                                        // of the number of rigid body modes
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
-                          (FullSquareMatrix *) NULL, factor);
+                          (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
@@ -366,7 +370,8 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
   Vector dummyForce(domain->numUncon(), 0.0);
   int step = std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
   domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
-                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
+                         reactions);
   times->output += getTime();
 }
 

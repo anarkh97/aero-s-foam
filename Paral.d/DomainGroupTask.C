@@ -28,7 +28,7 @@ template<class Scalar>
 GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> **_sd, double _cm, 
                                                double _cc, double _ck, Rbm **_rbms, FullSquareMatrix **_kelArray,
                                                double _alpha, double _beta, int _numSommer, int _solvertype,
-                                               FSCommunicator *_com, FullSquareMatrix **_melArray)
+                                               FSCommunicator *_com, FullSquareMatrix **_melArray, FullSquareMatrix **_celArray)
 {
   nsub = _nsub;
   sd = _sd;
@@ -45,6 +45,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   rbms = _rbms;
   kelArray = _kelArray;
   melArray = _melArray;
+  celArray = _celArray;
   Kuc  = new GenSparseMatrix<Scalar> *[nsub];
   coeM    = _cm;
   coeC    = _cc;
@@ -59,7 +60,7 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
 template<class Scalar>
 GenDomainGroupTask<Scalar>::~GenDomainGroupTask()
 {
-  delete [] dynMats;
+  //delete [] dynMats;
   delete [] spMats;
   //delete [] rbms;
   // don't delete K,Kuc,C,Cuc,M,Muc
@@ -116,7 +117,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
     if((cdsa->size() - dsa->size()) != 0)
       Muc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
 
-    if(alpha != 0.0 || beta != 0.0 || (numSommer > 0)) { // for rayleigh damping
+    if(alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping()) {
       C[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
 
       if((cdsa->size() - dsa->size()) != 0)
@@ -242,7 +243,8 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   allOps.Cuc_deriv = Cuc_deriv[isub];
   FullSquareMatrix *subKelArray = (kelArray) ? kelArray[isub] : 0;
   FullSquareMatrix *subMelArray = (melArray) ? melArray[isub] : 0;
-  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray);
+  FullSquareMatrix *subCelArray = (celArray) ? celArray[isub] : 0;
+  sd[isub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, allMats, subKelArray, subMelArray, subCelArray);
 
   if(allMats) delete allMats;
 }

@@ -29,17 +29,21 @@ class GenDynamMat {
    GenSparseMatrix<Scalar> *M;		// Mass Matrix
    GenSparseMatrix<Scalar> *Muc;        // constrained to unconstrained Mass Matrix
    GenSparseMatrix<Scalar> *Mcc;        // constrained to constrained Mass Matrix
-   GenSparseMatrix<Scalar> *kuc;
+   GenSparseMatrix<Scalar> *Kuc;
+   GenSparseMatrix<Scalar> *Kcc;
+   GenSparseMatrix<Scalar> *Ccc;
    int           numdofs;	// number of dof
    Rbm* rigidBodyModes;
 
    // Constructor
-   GenDynamMat() { dynMat = 0; Msolver = 0; C = 0; M = 0; Cuc = 0; Muc = 0; Mcc = 0; refK = 0; kuc = 0; rigidBodyModes = 0; }
+   GenDynamMat() { dynMat = 0; Msolver = 0; C = 0; M = 0; Cuc = 0; Muc = 0; Mcc = 0; refK = 0; Kuc = 0; 
+                   Kcc = 0; Ccc = 0; rigidBodyModes = 0; }
    GenDynamMat(GenDynamMat *d) { 
        dynMat = (*d).dynMat; Msolver = (*d).Msolver;
        K = (*d).K; refK = (*d).refK; 
        C = (*d).C; Cuc = (*d).Cuc; 
        M = (*d).M; Muc = (*d).Muc; Mcc = (*d).Mcc;
+       Kuc = (*d).Kuc; Kcc = (*d).Kcc; Ccc = (*d).Ccc;
        numdofs = (*d).numdofs;
        rigidBodyModes = (*d).rigidBodyModes;
    }

@@ -131,7 +131,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   // Evaluate external force at initial time
   // send init. step as -1 so that comm. w/fluid code is avoided
-  probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce);
+  probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce, delta);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(domain->solInfo().iacc_switch) {
@@ -148,7 +148,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   }
 
   // Output initial geometry state of problem and open output files
-  probDesc->dynamOutput(geomState, velocity_n, v_p, time, -1, external_force, aeroForce, acceleration);
+  probDesc->dynamOutput(geomState, velocity_n, v_p, time, -1, external_force, aeroForce, acceleration, refState);
 
   // Get maximum number of iterations
   int maxStep = probDesc->getMaxStep();
@@ -192,7 +192,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     
     if(!failed && (aeroAlg < 0 || p%q == 0)) { // for coupled aero, only get fluid load at increments of dt0
       double midtimeExt = (aeroAlg < 0) ? midtime : time + dt0*(1-alphaf);
-      probDesc->getExternalForce(external_force, constantForce, step, midtimeExt, geomState, elementInternalForce, aeroForce);
+      double deltaExt = (aeroAlg < 0) ? delta : dt0/2;
+      probDesc->getExternalForce(external_force, constantForce, step, midtimeExt, geomState, elementInternalForce, aeroForce, deltaExt);
     }
 
     double resN, initialRes;
@@ -287,7 +288,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
         probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg);
       }
-      probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration);
+      probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration, refState);
 
       if(aeroAlg == 5) { 
         if(!parity) {

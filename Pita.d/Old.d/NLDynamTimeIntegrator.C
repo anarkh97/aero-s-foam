@@ -69,7 +69,7 @@ void
 NLDynamTimeIntegrator::integrate(int numSteps)
 {
   if (currStep == 0) {
-    postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, -1, external_force, aeroForce, acceleration);
+    postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, -1, external_force, aeroForce, acceleration, refState);
   }
   
   // Begin time-marching
@@ -81,7 +81,7 @@ NLDynamTimeIntegrator::integrate(int numSteps)
     {
        fprintf(stderr,"\n**** Begin Time Step %d - Time %e ****\n", currStep + 1, currTime);
     }
-    probDesc.getExternalForce(external_force, gravityForce, currStep, midTime, geomState, elementInternalForce, aeroForce);
+    probDesc.getExternalForce(external_force, gravityForce, currStep, midTime, geomState, elementInternalForce, aeroForce, localDelta);
     stateIncr.zero();
 
     // Newton iterations
@@ -120,7 +120,7 @@ NLDynamTimeIntegrator::integrate(int numSteps)
 
     geomState->midpoint_step_update(velocity, acceleration, localDelta, *stepState, beta, gamma, alphaf, alpham, probDesc.getZeroRot());
 
-    postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, currStep, external_force, aeroForce, acceleration);
+    postProcessor().dynamOutput(geomState, velocity, dummyVp, currTime, currStep, external_force, aeroForce, acceleration, refState);
   }
 }
 

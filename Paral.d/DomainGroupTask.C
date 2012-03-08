@@ -10,6 +10,7 @@
 #include <Math.d/CuCSparse.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 #include <Math.d/SGISparseMatrix.h>
 #include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/Skyline.d/SGISky.h>
@@ -194,6 +195,21 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           dynMats[isub] = dynamic_cast<GenSolver<Scalar> *>(sgisky);
           spMats[isub] = dynamic_cast<GenSparseMatrix<Scalar> *>(sgisky);
         } break;
+#ifdef USE_EIGEN3
+        case 4: {
+          GenEiSparseMatrix<Scalar> *eism = sd[isub]->template constructEiSparseMatrix<Scalar>(sd[isub]->getCCDSA());
+          dynMats[isub] = eism;
+          spMats[isub] = eism;
+        } break;
+#endif
+#ifdef EIGEN_SUPERLU_SUPPORT
+        case 7: {
+          GenEiSparseMatrix<Scalar> *eism = sd[isub]->template constructEiSparseMatrix<Scalar>(sd[isub]->getCCDSA(),
+                                                                                               sd[isub]->getNodeToNode(), false);
+          dynMats[isub] = eism;
+          spMats[isub] = eism;
+        } break;
+#endif
 #ifdef USE_SPOOLES
         case 8 : {
           GenSpoolesSolver<Scalar> *ssmat = sd[isub]->template constructSpooles<Scalar>(sd[isub]->getCCDSA());

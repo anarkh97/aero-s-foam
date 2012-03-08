@@ -2723,8 +2723,10 @@ Solver:
         { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
         | PICKANYCORNER Integer NewLine
         { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
+/* deprecated
         | FRONTAL NewLine
 	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
+*/
         | NLPREC NewLine
         { domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
           domain->solInfo().fetiInfo.nlPrecFlg = 1; 

@@ -491,7 +491,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   //r0 = 1.;
 
   int maxExtIter = probDesc->getMaxit();
-  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter) {
+  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter, ++totalNewtonIter) {
 
     filePrint(stderr," ------------------------------------\n");
     filePrint(stderr," ### Extended-Newton iteration %d ###\n",numExtIter);

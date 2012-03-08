@@ -379,17 +379,18 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  // add Rayleigh damping
  int i,j;
  double alpha, beta;
+ double *karray = new double[maxNumDOFs*maxNumDOFs];
  FullSquareMatrix kel;
  for(iele=0; iele<numele; ++iele) {
    if(!packedEset[iele]->getProperty()) continue; // phantom
-   kel.setSize(packedEset[iele]->numDofs());
-   kel = packedEset[iele]->stiffness(nodes, kel.data());
+   kel = packedEset[iele]->stiffness(nodes, karray);
    alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : sinfo.alphaDamp;
    beta  = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : sinfo.betaDamp;
    for(i=0; i<cArray[iele].dim(); ++i)
      for(j=0; j<cArray[iele].dim(); ++j)
        cArray[iele][i][j] += alpha*mArray[iele][i][j] + beta*kel[i][j];
  }
+ delete [] karray;
 
  // zero rotational degrees of freedom within element mass matrices and damping matrices
  // for nonlinear implicit dynamics

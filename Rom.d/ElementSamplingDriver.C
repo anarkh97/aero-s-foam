@@ -303,7 +303,7 @@ ElementSamplingDriver::preProcess() {
   const bool buildMelArray = false;
   domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, dummyMelArray, buildMelArray);
   if(domain_->nDirichlet() > 0) {
-    geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet());
+    geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
 }
 

@@ -326,14 +326,14 @@ void
 ReducedNonLinDynamic::updatePrescribedDisplacement(GeomState *geomState) const {
   // Initial conditions
   if (domain_->numInitDisp6() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getInitDisp6(), domain_->numInitDisp6());
+    geomState->updatePrescribedDisplacement(domain_->getInitDisp6(), domain_->numInitDisp6(), domain_->getNodes());
   } else if (domain_->numInitDisp() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getInitDisp(), domain_->numInitDisp());
+    geomState->updatePrescribedDisplacement(domain_->getInitDisp(), domain_->numInitDisp(), domain_->getNodes());
   }
   
   // Boundary conditions
   if (domain_->nDirichlet() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet());
+    geomState->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
 }
 

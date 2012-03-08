@@ -569,7 +569,8 @@ class GenSubDomain : public BaseSub
   void fSend(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fSplit(Scalar *locF);
-  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda=1.0);
+  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
+  void updatePrescribedDisp(GeomState *geomState);
   Scalar displacementNorm(Scalar *displacement);
   void firstAssemble(GenSparseMatrix<Scalar> *K);
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }

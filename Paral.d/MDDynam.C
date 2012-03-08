@@ -403,7 +403,7 @@ MultiDomainDynam::makeSubElementArrays(int isub)
  
   // update geomState with IDISP6 if GEPS is requested (geometric prestress / linear only)
   if((sd->numInitDisp6() > 0) && (domain->solInfo().gepsFlg == 1)) // GEPS
-   (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6());
+   (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
   Vector elementInternalForce(sd->maxNumDOF(), 0.0);
@@ -416,7 +416,7 @@ MultiDomainDynam::initSubPrescribedDisplacement(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   if(sd->nDirichlet() > 0) 
-    (*geomState)[isub]->updatePrescribedDisplacement(sd->getDBC(), sd->nDirichlet());
+    (*geomState)[isub]->updatePrescribedDisplacement(sd->getDBC(), sd->nDirichlet(), sd->getNodes());
 }
 
 void

@@ -679,7 +679,7 @@ SingleDomainDynamic::preProcess()
     // for nonlinear explicit we only need to initialize geomState with the constant constrained displacements (DISP).
     // the geomState is always updated before use with the current unconstrained displacments plus any time-dependent constrained displacements (USDD)
     if(domain->nDirichlet() > 0) { 
-      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
+      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet(), domain->getNodes()); 
     }
   }
 

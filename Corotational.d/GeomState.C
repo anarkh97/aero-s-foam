@@ -708,26 +708,31 @@ GeomState::zeroRotDofs(Vector& vec)
   }
 }
 
-// updating prescribed displacements for nonlinear statics
+// incremental update of prescribed displacements for nonlinear statics
 // i.e. non-zero displacement boundary conditions
-
 void
 GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
                                         double delta)
 {
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[numnodes][3];
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
 
-  // initialize to zero, rotational prescribed dofs
+  // initialize the rotation dofs from the current state
   int i;
-  for(i=0; i<numnodes; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
+  for(i=0; i<numDirichlet; ++i) {
+    int nodeNumber = dbc[i].nnum;
+    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+    if(it == dth.end()) {
+      std::vector<double> v(3);
+      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    }
+  }
 
   for(i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
-    
 
     // we multiply the total prescribed value by delta which
     // is a parameter prescribed by the user in the input file
@@ -750,6 +755,67 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
                 ns[nodeNumber].z += prescribedValue;
                 break;
         case 3:
+                dth[nodeNumber][0] += prescribedValue;
+                break;
+        case 4:
+                dth[nodeNumber][1] += prescribedValue;
+                break;
+        case 5:
+                dth[nodeNumber][2] += prescribedValue;
+                break;
+        default:
+                break;
+    }
+
+  }
+
+  // Take care of rotational degrees of freedom for
+  // the prescribed displacements
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
+  }
+}
+
+// update prescribed displacements for nonlinear dynamics
+// i.e. displacement boundary and initial conditions prescribed with
+// DISP and IDISP
+void
+GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
+                                        CoordSet &cs)
+{
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
+
+  // initialize the rotation dofs from the current state
+  int i;
+  for(i=0; i<numDirichlet; ++i) {
+    int nodeNumber = dbc[i].nnum;
+    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+    if(it == dth.end()) {
+      std::vector<double> v(3);
+      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    }
+  }
+
+  for(i=0; i<numDirichlet; ++i) {
+
+    int nodeNumber = dbc[i].nnum;
+    int dofNumber  = dbc[i].dofnum;
+
+    double prescribedValue = dbc[i].val;
+
+    switch(dofNumber) {
+        case 0:
+                ns[nodeNumber].x = cs[nodeNumber]->x + prescribedValue;
+                break;
+        case 1:
+                ns[nodeNumber].y = cs[nodeNumber]->y + prescribedValue;
+                break;
+        case 2:
+                ns[nodeNumber].z = cs[nodeNumber]->z + prescribedValue;
+                break;
+        case 3:
                 dth[nodeNumber][0] = prescribedValue;
                 break;
         case 4:
@@ -764,14 +830,11 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
 
   }
 
-  // Take care of rotational degrees of freedom
-  for(i=0; i<numnodes; ++i) {
-    if(dth[i][0] == 0.0 && dth[i][1] == 0.0 && dth[i][2] == 0.0) continue;
-    //  inc_rottensor( dth[i], ns[i].R );
-    form_rottensor( dth[i], ns[i].R );
+  // Take care of rotational degrees of freedom for
+  // the prescribed displacements
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
   }
-
-  delete [] dth;
 }
 
 // update prescribed displacements for nonlinear dynamics
@@ -782,13 +845,21 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
                                         CoordSet &cs )
 {
   if(claw->numUserDisp == 0) return;
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[claw->numUserDisp][3];
 
-  // initialize to zero, rotational prescribed dofs
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
+
+  // initialize the rotation dofs from the current state
   int i;
-  for(i=0; i<claw->numUserDisp; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
+  for(i=0; i<claw->numUserDisp; ++i) {
+    int nodeNumber = claw->userDisp[i].nnum;
+    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+    if(it == dth.end()) {
+      std::vector<double> v(3);
+      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    }
+  }
 
   for(i=0; i<claw->numUserDisp; ++i) {
   
@@ -800,22 +871,22 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
     
     switch(dofNumber) {
     	case 0: 
-		ns[nodeNumber].x = ( cs[nodeNumber]->x + v[i] );
+		ns[nodeNumber].x = cs[nodeNumber]->x + v[i];
 		break;
 	case 1:
-		ns[nodeNumber].y = ( cs[nodeNumber]->y + v[i] );
+		ns[nodeNumber].y = cs[nodeNumber]->y + v[i];
 		break;
 	case 2:
-		ns[nodeNumber].z = ( cs[nodeNumber]->z + v[i] );
+		ns[nodeNumber].z = cs[nodeNumber]->z + v[i];
 		break;
 	case 3:
-	        dth[i][0] = v[i];
+                dth[nodeNumber][0] = v[i];
 		break;
 	case 4:
-	        dth[i][1] = v[i];
+                dth[nodeNumber][1] = v[i];
 		break;
 	case 5:
-	        dth[i][2] = v[i];
+                dth[nodeNumber][2] = v[i];
 		break;
 	default:
 		break;
@@ -825,17 +896,9 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
 
   // Take care of rotational degrees of freedom for
   // the prescribed displacements
-  for(i=0; i<claw->numUserDisp; ++i) {
-    if(dth[i][0] == 0.0 &&
-       dth[i][1] == 0.0 &&
-       dth[i][2] == 0.0) continue;
-    //inc_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
-    form_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
   }
-
- // check whether this is the appropriate method of
- // deleting this data structure!
- delete [] dth;
 }
 
 /*

@@ -88,10 +88,12 @@ class GeomState {
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
      virtual void setVelocity(const Vector &, const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
-                                       double delta = 1.0);
+                                       double delta);
+     void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
+                                       CoordSet &cs);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
-                                       CoordSet &cs );
+                                       CoordSet &cs);
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham,
                                        bool zeroRot);

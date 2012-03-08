@@ -1137,13 +1137,13 @@ NonLinDynamic::updatePrescribedDisplacement(GeomState *geomState)
 
    // note 2: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to construct the geometric stiffness"
    if((domain->numInitDisp() > 0) && (domain->numInitDisp6() == 0))
-     geomState->updatePrescribedDisplacement(domain->getInitDisp(), domain->numInitDisp());
+     geomState->updatePrescribedDisplacement(domain->getInitDisp(), domain->numInitDisp(), domain->getNodes());
    
    if(domain->numInitDisp6() > 0) 
-     geomState->updatePrescribedDisplacement(domain->getInitDisp6(), domain->numInitDisp6());
+     geomState->updatePrescribedDisplacement(domain->getInitDisp6(), domain->numInitDisp6(), domain->getNodes());
    
    if(domain->nDirichlet() > 0)
-     geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
+     geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet(), domain->getNodes()); 
 
    times->timePresc += getTime();
  }

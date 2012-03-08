@@ -2474,21 +2474,29 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda)
 {
+  if(numDirichlet > 0)
+    geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState)
+{
   if(domain->solInfo().initialTime == 0.0) {
     // note 1: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to initialize the displacement field"
     if((domain->numInitDisp() > 0) && (domain->numInitDisp6() == 0)) {
       if(this->numInitDisp() > 0) {
-        geomState->updatePrescribedDisplacement(this->getInitDisp(), this->numInitDisp(), deltaLambda);
+        geomState->updatePrescribedDisplacement(this->getInitDisp(), this->numInitDisp(), nodes);
       }
     }
 
     if(domain->numInitDisp6() > 0) {
       if(this->numInitDisp6() > 0)
-        geomState->updatePrescribedDisplacement(this->getInitDisp6(), this->numInitDisp6(), deltaLambda);
+        geomState->updatePrescribedDisplacement(this->getInitDisp6(), this->numInitDisp6(), nodes);
     }
 
     if(numDirichlet > 0)
-      geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
+      geomState->updatePrescribedDisplacement(dbc, numDirichlet, nodes);
   }
 }
 

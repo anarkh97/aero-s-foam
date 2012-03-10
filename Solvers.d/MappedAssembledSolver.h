@@ -117,19 +117,6 @@ class CoordinateMap
       numEqs(nEq), dofMaps(baseMap), numMappedEqs(nMappedEq), eqMaps(eqMap),
       step(0), flag(0), subScript(0) {}
     ~CoordinateMap() { delete [] dofMaps; delete [] eqMaps; }
-
-   template <class VectorType>
-   double norm(const VectorType &v) {
-     VectorType v2(numMappedEqs);
-     v2.zero();
-     for(int i = 0; i < numMappedEqs; ++i) {
-       for(int j = 0; j < eqMaps[i].ndofs; ++j) {
-         v2[eqMaps[i].dofs[j]] += eqMaps[i].coefs[j]*v[i];
-       }
-     }
-     return v2.norm();
-   }
-
 };
 
 
@@ -218,6 +205,20 @@ class MappedAssembledSolver : public BaseSolver, public Map
       solution = rhs;
       reSolve(solution.data());
     }
+
+   double getResidualNorm(const GenVector<Scalar> &v) {
+     GenVector<Scalar> v1(Map::numMappedEqs);
+     GenVector<Scalar> v2(BaseSolver::neqs());
+     v2.zero();
+     for(int i = 0; i < Map::numMappedEqs; ++i) {
+       v1[i] = Map::eqMaps[i].rhs;
+       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
+         v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
+       }
+     }
+     return sqrt(v1.sqNorm()+v2.sqNorm());
+   }
+
 
 };
 

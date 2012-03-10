@@ -75,13 +75,14 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  *****************************************************************/
 
 {
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
+
   for(int iele = 0; iele < numele; ++iele) {
 
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
-      const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
       getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs

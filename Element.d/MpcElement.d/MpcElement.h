@@ -55,6 +55,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     virtual void update(GeomState&, CoordSet&, double);
     virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
+    virtual double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    virtual double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
 
     PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }

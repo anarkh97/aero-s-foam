@@ -66,7 +66,7 @@ public:
   double getStiffAndForce(GeomState &geomState, GenVector<double> &residual, GenVector<double> &elementInternalForce, double midtime, GeomState *refState);
 
   // Assemble new dynamic stiffness matrix
-  void reBuild(GeomState& geomState, int iter, double delta);
+  void reBuild(GeomState& geomState, int iter, double delta, double t);
 
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs); // dummy
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs, GeomState *refState);
@@ -85,6 +85,8 @@ public:
                         int step, int parity, int aeroAlg);
   
   void printTimers(double timeLoop);
+
+  double getResidualNorm(GenVector<double> &res) { return res.norm(); }
 
 private:
   int fullSolVecInfo() const;

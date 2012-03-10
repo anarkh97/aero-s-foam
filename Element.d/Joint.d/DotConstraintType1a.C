@@ -184,3 +184,31 @@ DotConstraintType1a::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatri
 
 }
 
+double
+DotConstraintType1a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+{
+  double vel_rhs = 0;
+  // f(t)   = -cos(a*sin(w*t+phi)-pi/2)
+  // f'(t)  = a*w*cos(w*t+phi)*sin(a*sin(w*t+phi) - pi/2)
+  if(prop) {
+    double a = prop->amplitude, w = prop->omega, phi = prop->phase;
+    vel_rhs = a*w*std::cos(w*t+phi)*std::sin(a*std::sin(w*t+phi) - M_PI/2);
+  }
+  return vel_rhs;
+}
+
+double
+DotConstraintType1a::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+{
+  double acc_rhs = MpcElement::getAccelerationConstraintRhs(gState, cs, t);
+  // f(t)   = -cos(a*sin(w*t+phi)-pi/2)
+  // f''(t) = (a*w*cos(w*t+phi))^2*cos(a*sin(w*t+phi) - pi/2)
+  //          - sin(a*sin(w*t+phi) - pi/2)*a*w*w*sin(w*t+phi)
+  if(prop) {
+    double a = prop->amplitude, w = prop->omega, phi = prop->phase;
+    acc_rhs += std::pow((a*w*cos(w*t+phi)),2)*std::cos(a*sin(w*t+phi) - M_PI/2)
+               - std::sin(a*sin(w*t+phi) - M_PI/2)*a*w*w*std::sin(w*t+phi);
+  }
+  return acc_rhs;
+}
+

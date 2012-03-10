@@ -37,8 +37,8 @@ public:
   double getProjectionTolerance() const { return projTol; }
 
   // Added methods
-  void reBuildCoarse(GeomState & geomState, int iter = 0);
-  void reBuildFine(GeomState & geomState, int iter = 0);
+  void reBuildCoarse(GeomState & geomState, int iter, double time);
+  void reBuildFine(GeomState & geomState, int iter, double time);
   void reBuildKonly();
   void zeroRotDofs(VecType &) const;
   double formRHSCoarseCorrector(Vector & inc_displac, Vector & velocity, Vector & acceleration, Vector & residual, Vector & rhs);
@@ -88,15 +88,15 @@ private:
 };
 
 inline void
-PitaNonLinDynamic::reBuildFine(GeomState & geomState, int iter)
+PitaNonLinDynamic::reBuildFine(GeomState & geomState, int iter, double time)
 {
-  reBuild(geomState, iter, getDelta());
+  reBuild(geomState, iter, getDelta(), time);
 }
 
 inline void
-PitaNonLinDynamic::reBuildCoarse(GeomState & geomState, int iter)
+PitaNonLinDynamic::reBuildCoarse(GeomState & geomState, int iter, double time)
 {
-  reBuild(geomState, iter, getCoarseDelta());
+  reBuild(geomState, iter, getCoarseDelta(), time);
 }
 
 inline double

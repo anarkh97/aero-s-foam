@@ -101,6 +101,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Initialize geometric state of problem using the mesh geometry,
   // restart file (if it exists), or the initial displacements (if any).
   GeomType *geomState = probDesc->createGeomState();
+  geomState->setVelocity(displacement,velocity_n,acceleration); // PJSA: initial velocity in geomState is used for acceleration constraint rhs
 
   probDesc->readRestartFile(displacement, velocity_n, acceleration, v_p, *geomState);
   probDesc->updatePrescribedDisplacement(geomState);
@@ -138,11 +139,13 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     if(domain->solInfo().order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
+      probDesc->reBuild(*geomState, 0, delta, time);
       probDesc->getSolver()->reSolve(velocity_n);
     }
     else {
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration, refState);
+      probDesc->reBuild(*geomState, 0, delta, time);
       probDesc->getSolver()->reSolve(acceleration);
     }
   }
@@ -155,7 +158,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   // Begin time marching
   double timeLoop =- getTime();
-  double currentRes, midtime;
+  double midtime;
   char ch[4] = { '|', '/', '-', '\\' };
   double tolInc = domain->solInfo().getNLInfo().tolInc;
   double dt = dt0;
@@ -217,11 +220,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
 
       // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
-      resN = StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
-                                           acceleration, residual, rhs, geomState, delta);
+      StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
+                                    acceleration, residual, rhs, geomState, delta);
 
-      // Store the residual norm
-      currentRes = resN;
+      // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
+      if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+
+      // Compute and store the residual norm
+      resN = probDesc->getResidualNorm(rhs);
       if(iter == 0) initialRes = resN;
 
       // If the convergence criteria does not involve the solution increment, then 
@@ -230,7 +236,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
          || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
         // Assemble global tangent stiffness
-        probDesc->reBuild(*geomState, iter, delta);
+        if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
         residual = rhs;
         totalNewtonIter++;
@@ -254,7 +260,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     if(converged == 0 && !failSafe) {
       filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
                        " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
-                       midtime, maxit, initialRes, currentRes, probDesc->getTolerance());
+                       midtime, maxit, initialRes, resN, probDesc->getTolerance());
     }
 
     if(failed = (failSafe && converged != 1)) { 

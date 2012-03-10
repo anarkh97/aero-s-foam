@@ -420,12 +420,7 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
 double
 NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
 {
-  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
-  if(m) return m->norm(rhs);
-  else {
-    Vector res(rhs);
-    domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
-    return res.norm();
-  }
-
+  Vector res(rhs);
+  domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
+  return solver->getResidualNorm(res);
 }

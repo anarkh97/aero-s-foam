@@ -851,23 +851,31 @@ NLMatProbDesc::checkConvergence(int iteration, double normRes,
 }
 
 void
-NLMatProbDesc::reBuild(NLState &, int iteration, double delta)
+NLMatProbDesc::reBuild(NLState &, int iteration, double delta, double t)
 {
  times->rebuild -= getTime();
 
  // Rebuild every updateK iterations
- if( iteration % domain.solInfo().getNLInfo().updateK == 0 ) {
+ if( iteration % domain.solInfo().getNLInfo().updateK == 0 || t == domain.solInfo().initialTime) {
 /* PJSA
    solver->reBuild(kelArray, melArray, delta);
 */
+   double Kcoef, Ccoef, Mcoef;
+   if(t == domain.solInfo().initialTime) {
+     Kcoef = 0;
+     Ccoef = 0;
+     Mcoef = 1;
+   }
+   else {
+     double beta, gamma, alphaf, alpham, dt = 2*delta;
+     getNewmarkParameters(beta, gamma, alphaf, alpham);
+     Kcoef = dt*dt*beta;
+     Ccoef = dt*gamma;
+     Mcoef = (1-alpham)/(1-alphaf);
+   }
    spm->zeroAll();
    AllOps<double> ops;
    ops.Kuc = kuc;
-   double beta, gamma, alphaf, alpham, dt = 2*delta;
-   getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = dt*dt*beta;
-   double Ccoef = dt*gamma;
-   double Mcoef = (1-alpham)/(1-alphaf);
    domain.makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
    solver->factor();
  }

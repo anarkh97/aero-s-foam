@@ -59,7 +59,8 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   Ccc(NULL),
   Muc(NULL),
   Mcc(NULL),
-  reactions(NULL)
+  reactions(NULL),
+  factor(false)
 {
   if(domain->GetnContactSurfacePairs())
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
@@ -198,7 +199,7 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
 int
 NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
 {
-  // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
+  // initialize state with IDISP/IDISP6/IVEL or RESTART
   domain->initDispVeloc(d_n, v_n, a_n, v_p);
 
   updateUserSuppliedFunction(d_n, v_n, a_n, v_p, domain->solInfo().initialTime);
@@ -547,20 +548,29 @@ NonLinDynamic::copyGeomState(GeomState* geomState)
 
 // Rebuild dynamic mass matrix
 void
-NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
+NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, double t)
 {
  // note: localDelta = deltat/2
  times->rebuild -= getTime();
 
  // Rebuild every updateK iterations
- if(iteration % domain->solInfo().getNLInfo().updateK == 0)  {
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime))  {
    //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
 
-   double beta, gamma, alphaf, alpham, dt = 2*localDelta;
-   getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
-   double Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
-   double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+   double Kcoef, Ccoef, Mcoef;
+
+   if(t == domain->solInfo().initialTime) {
+     Kcoef = 0;
+     Ccoef = 0;
+     Mcoef = 1;
+   }
+   else {
+     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+     getNewmarkParameters(beta, gamma, alphaf, alpham);
+     Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
+     Ccoef = (domain->solInfo().order == 1) ? 0 : dt*gamma;
+     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+   }
 
    if(domain->solInfo().mpcDirect != 0) {
      if(solver) delete solver;
@@ -568,6 +578,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta)
      if(Kuc) delete Kuc;
      if(M) delete M; if(Muc) delete Muc; if(Mcc) delete Mcc;
      if(C) delete C; if(Cuc) delete Cuc; if(Ccc) delete Ccc;
+     factor = true;
      preProcess(Kcoef, Mcoef, Ccoef);
    }
    else {
@@ -758,8 +769,7 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     rhs.linAdd(dt*dt*beta, residual);
   }
   times->correctorTime += getTime();
-  resN = getResidualNorm(rhs);
-  return resN;
+  return rhs.norm();
 }
 
 void
@@ -1183,12 +1193,10 @@ NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
 double
 NonLinDynamic::getResidualNorm(const Vector &res)
 {
-  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
-  if(m) return m->norm(res);
-  else return res.norm();
+  return solver->getResidualNorm(res);
 }
 
 bool
 NonLinDynamic::factorWhenBuilding() const { 
-  return domain->solInfo().iacc_switch || domain->solInfo().mpcDirect != 0;
+  return factor; //domain->solInfo().iacc_switch || domain->solInfo().mpcDirect != 0;
 }

@@ -160,11 +160,11 @@ AndesBendingTriangle<doublereal>::L(doublereal x[3], doublereal y[3], doublereal
         return -Lq;
     }
 
-    if (cqr == 0) {
+    else if (cqr == 0) {
         return -Ll;
     }
 
-    if (clr != 0 && cqr != 0) {
+    else { // clr != 0 && cqr != 0
         return -(clr*Ll + cqr*Lq);
     }
 

@@ -362,9 +362,9 @@ ReducedNonLinDynamic::getStiffAndForce(GeomState &geomState, Vector &residual, V
 }
 
 void
-ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration, double delta) {
+ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration, double delta, double t) {
   // Rebuild every updateK iterations
-  if (iteration % domain_->solInfo().getNLInfo().updateK == 0) {
+  if (iteration % domain_->solInfo().getNLInfo().updateK == 0 && t != domain_->solInfo().initialTime) {
     // Recompute tangent stiffness matrix
     {
       fullMatrix_->zeroAll();

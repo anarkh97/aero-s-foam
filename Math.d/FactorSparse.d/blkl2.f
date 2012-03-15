@@ -490,8 +490,8 @@
                 CALL  DPOTRF_LDL ( 'LOWER', NJ, LNZ(JLPNT), JLEN,
      &                          JDEF, DEF(NDEF+1), TOL, RWORK, INFO )
                 IF  ( INFO .NE. 0 )  THEN
-                    write(6,*) '*** INFO = ',INFO
-                    write(6,*) '*** RANK DEFICIENCY = ',NDEF
+*                    write(6,*) '*** INFO = ',INFO
+*                    write(6,*) '*** RANK DEFICIENCY = ',NDEF
                     IFLAG = 102
                     RETURN
                 END IF

@@ -2768,10 +2768,8 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
 {
- if(localLen() == 0) return;
  int i, iDof, k;
 
- //Scalar *force = (Scalar *) dbg_alloca(sizeof(Scalar)*localLen());
  Scalar *force = new Scalar[localLen()];
  for(iDof = 0; iDof < localLen(); ++iDof) force[iDof] = -fr[iDof];
 

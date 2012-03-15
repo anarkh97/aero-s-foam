@@ -142,7 +142,7 @@ NlDynamTimeIntegrator::integrate(int steps) {
     for (int iter = 0; iter < maxNumIter_; ++iter, ++totalNewtonIter) {
       residual_ = externalForce_;
       probDesc_->getStiffAndForce(*geomState_, residual_, elementInternalForce_, midTime_); // Update elementary tangential stiffness & residual force (force imbalance) at equilibrium time
-      probDesc_->reBuild(*geomState_, iter, localDelta_); // Assemble and factor Mdyn
+      probDesc_->reBuild(*geomState_, iter, localDelta_, midTime_); // Assemble and factor Mdyn
       geomState_->get_inc_displacement(incDisplac_, *stepState_, probDesc()->getZeroRot()); // Compute incremental displacement
       lastResNorm = probDesc_->formRHScorrector(incDisplac_, velocity_n, acceleration_, residual_, rhs_, localDelta_); // Assemble residual (in rhs) 
       if (iter == 0) {

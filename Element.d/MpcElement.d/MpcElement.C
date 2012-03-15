@@ -166,15 +166,6 @@ MpcElement::markDofs(DofSetArray &dsa)
 FullSquareMatrix
 MpcElement::stiffness(CoordSet& c0, double* karray, int)
 {
-/*
-  FullSquareMatrix ret(numDofs(), karray);
-  ret.zero();
-  if(prop->lagrangeMult) {
-    for(int i = 0; i < nterms; ++i)
-      ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
-  }
-  return ret;
-*/
   // this function computes the constraint stiffness matrix for linear statics and dynamics
   // see comments in ::getStiffAndForce (nonlinear version)
   FullSquareMatrix ret(numDofs(), karray);
@@ -216,7 +207,9 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
-  update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+    update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+  if(t == 0 && delt > 0 && type == 0)
+    rhs.r_value = getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
   // NOTES:
@@ -254,7 +247,7 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 void 
 MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
 { 
-  // THIS is for a linear constraint. Nonlinear constraints must overload this function
+  // this is for a linear constraint. Nonlinear constraints must overload this function
   rhs = original_rhs;
 
   for(int i = 0; i < nterms; ++i) {
@@ -275,9 +268,35 @@ MpcElement::update(GeomState& c1, CoordSet& c0, double t)
 
 void 
 MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H) 
-{ 
+{
+  // this is for a linear constraint. Nonlinear constraints must overload this function
   H.zero(); 
 }
+
+double
+MpcElement::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+{
+  return 0;
+}
+
+double
+MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+{
+  // compute rhs = -(G(q)*qdot)_q * qdot assuming other terms are zero. Overload function if this assumption is not correct
+  FullSquareMatrix H(nterms);
+  getHessian(*gState, cs, H);
+  Vector v(nterms);
+  // fill v with initial velocity 
+  for(int i = 0; i < nterms; ++i)
+    v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+
+  Vector Hv(nterms,0.0);
+  for(int i = 0; i < nterms; ++i)
+    for(int j = 0; j < nterms; ++j)
+      Hv[i] += H[i][j]*v[j];
+  return -(v*Hv);
+}
+
 
 void
 MpcElement::getResidualCorrection(GeomState& c1, double* r)
@@ -328,3 +347,4 @@ MpcElement::getNLVonMises(Vector& stress, Vector& weight,
   stress.zero();
   weight.zero();
 }
+

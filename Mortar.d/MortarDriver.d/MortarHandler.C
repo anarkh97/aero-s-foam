@@ -2022,7 +2022,7 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
 
   for(int j=0; j<numSub; ++j) {
     int inode = 0;
-    for(int ivertex=0; ivertex< PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
+    for(int ivertex=0; ivertex<PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(ivertex);
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
@@ -2041,22 +2041,24 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
         }
       }
     }
-    for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
-      int glNode = PtrMasterEntity->GetGlVertexId(ivertex);
-      int locNode = sd[j]->globalToLocal(glNode);
-      if(locNode > -1) {
-        Node &node = PtrMasterEntity->GetVertex(ivertex);
+    if(PtrMasterEntity != PtrSlaveEntity) { // i.e. not mortar SelfContact
+      for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
+        int glNode = PtrMasterEntity->GetGlVertexId(ivertex);
+        int locNode = sd[j]->globalToLocal(glNode);
+        if(locNode > -1) {
+          Node &node = PtrMasterEntity->GetVertex(ivertex);
 #ifdef DISTRIBUTED
-        if(DIST_ACME != 2) {
-          positions[3*inode+0] += (node.x/double(share[3*inode+0]));
-          positions[3*inode+1] += (node.y/double(share[3*inode+1]));
-          positions[3*inode+2] += (node.z/double(share[3*inode+2]));
-        } else
+          if(DIST_ACME != 2) {
+            positions[3*inode+0] += (node.x/double(share[3*inode+0]));
+            positions[3*inode+1] += (node.y/double(share[3*inode+1]));
+            positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+          } else
 #endif
-        {
-          positions[3*inode+0] = node.x;
-          positions[3*inode+1] = node.y;
-          positions[3*inode+2] = node.z;
+          {
+            positions[3*inode+0] = node.x;
+            positions[3*inode+1] = node.y;
+            positions[3*inode+2] = node.z;
+          }
         }
       }
     }
@@ -2071,11 +2073,13 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
       node.y = positions[3*inode+1];
       node.z = positions[3*inode+2];
     }
-    for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
-      Node &node = PtrMasterEntity->GetVertex(ivertex);
-      node.x = positions[3*inode+0];
-      node.y = positions[3*inode+1];
-      node.z = positions[3*inode+2];
+    if(PtrMasterEntity != PtrSlaveEntity) { // i.e. not mortar SelfContact
+      for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
+        Node &node = PtrMasterEntity->GetVertex(ivertex);
+        node.x = positions[3*inode+0];
+        node.y = positions[3*inode+1];
+        node.z = positions[3*inode+2];
+      }
     }
   }
   else if(DIST_ACME == 1) {
@@ -2586,7 +2590,7 @@ MortarHandler::make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa)
     }
     if(count > 0) mass[inode] += m/double(count);
   }
-  for(int i=0;  i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // XXXX dummy value for constrained nodes
+  for(int i=0;  i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for for constrained nodes' mass
 }
 
 void
@@ -2613,11 +2617,10 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
         count = 0; m = 0.0;
         c_dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          share[3*inode+j] += 1; // XXXX
+          share[3*inode+j] += 1;
           if(dofs[j] > -1) {
             m += (*M)[s]->diag(dofs[j]);
             dofmap[3*(s*num_nodes+inode)+j] = dofs[j];
-            //share[3*inode+j] += 1;
             count++;
           }
         }
@@ -2631,11 +2634,10 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
         count = 0; m = 0.0;
         c_dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          share[3*inode+j] += 1; // XXXX
+          share[3*inode+j] += 1;
           if(dofs[j] > -1) { 
             m += (*M)[s]->diag(dofs[j]); 
             dofmap[3*(s*num_nodes+inode)+j] = dofs[j];
-            //share[3*inode+j] += 1;
             count++;
           }
         }
@@ -2712,8 +2714,8 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
 
   if(!(DIST_ACME == 1 && structCom->myID() != 0))
 #endif
-  for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // XXXX dummy value for constrained nodes
-  for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
+  for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for constrained nodes' mass
+  //this should not be necessary: for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1;
 }
 
 void
@@ -2726,17 +2728,16 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
 
   int k = 0; int dofs[3]; int count; double m;
   for(int s = 0; s < numSub; ++s) {
-    ConstrainedDSA *c_dsa = sd[s]->getCDSA();
+    //DofSetArray *dsa = sd[s]->getDSA();
     int inode = 0;
     for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(i);
       int locNode = sd[s]->globalToLocal(glNode);
       if(locNode > -1) {
-        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        //dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          if(dofs[j] > -1) {
+          //if(dofs[j] > -1)
             share[3*inode+j] += 1;
-          }
         }
       }
     }
@@ -2744,11 +2745,10 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
       int glNode = PtrMasterEntity->GetGlVertexId(i);
       int locNode = sd[s]->globalToLocal(glNode);
       if(locNode > -1) {
-        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        //dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          if(dofs[j] > -1) {
+          //if(dofs[j] > -1)
             share[3*inode+j] += 1;
-          }
         }
       }
     }
@@ -2793,7 +2793,7 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
     delete cpuToSelf; delete pat2;
   }
 #endif
-  for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
+  //this should not be necessary: for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1;
 }
 
 void

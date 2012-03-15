@@ -347,7 +347,7 @@ void ContactWedgeElemL6::Compute_Shape_Derivatives( Real* local_coords,
   shape_derivs[2][5] =  0.50*local_coords[2];
 }
 
-void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[8][3], 
+void ContactWedgeElemL6::Compute_Local_Coords( Real node_positions[6][3], 
 					       Real* global_coords,
 					       Real* local_coords )
 {

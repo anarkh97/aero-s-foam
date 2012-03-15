@@ -409,8 +409,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   double Ftrial = EvaluateYieldFunction(Xitrial, equivEPSplastic);
 
   // Use some tolerance for checking yield function value
-  double TOL = SigmaY*1.e-6;
-
+  double TOL = SigmaY*1.0e-6;
   
   if( Ftrial<TOL )
     {

@@ -332,7 +332,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     timeStiff -= getTime();
     StateUpdate::integrate(probDesc, refState, geomState, stateIncr,
                            residual, elementInternalForce, totalRes, lambda);
-    double residualNorm = probDesc->getResidualNorm(residual, *geomState);
+    //double residualNorm = probDesc->getResidualNorm(residual, *geomState);
     if(probDesc->linesearch()) e_k = probDesc->getEnergy(lambda, force, geomState); // experimental
     timeStiff += getTime();
 #ifdef PRINT_TIMERS
@@ -348,6 +348,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     filePrint(stderr,"  Rebuild Tangent Stiffness Matrix time = %13.4f s\n",
               timeRebuild/1000.0);
 #endif
+    // note the residual norm needs to be computed after reBuild for "constraints direct"
+    double residualNorm = probDesc->getResidualNorm(residual, *geomState);
 
     if(rebuildFlag) {
       filePrint(stderr," ... Newton : Iter #%d --- Rebuild Tangent Stiffness (res = %e)\n", iter+1, residualNorm); // HB

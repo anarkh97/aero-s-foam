@@ -101,6 +101,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     double resN;
     Vector *reactions;
+    bool factor;
 
  public:
     // Constructor
@@ -180,7 +181,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
   public:
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(GeomState& geomState, int iter, double localDelta);
+    void reBuild(GeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
     virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,

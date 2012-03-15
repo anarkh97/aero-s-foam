@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/Memory.h>
@@ -439,7 +440,8 @@ GenBLKSparseMatrix<Scalar>::factor()
           deftemp, tol, iprow,  ipcol, tmpsiz, 
           tmpvec, iwsiz, iwork, rwsize, rwork, iflag);
   if(iflag != 0)
-    fprintf(stderr, "Error during sparse factor %d\n",iflag);
+    //fprintf(stderr, "Error during sparse factor %d\n",iflag);
+    throw std::runtime_error("Error during sparse factor");
 
   if(numrbm != lbdef) {
     //fprintf(stderr,"Num rbm = %d last block (size %d) %d tol %e\n",numrbm, defblk, lbdef, tol); 

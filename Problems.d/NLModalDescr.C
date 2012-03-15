@@ -244,7 +244,7 @@ void NLModalDescr::preProcess(){
 */
   preProcessBase();
   fullFrot.setData(new double[fullTmpF.size()], fullTmpF.size());
-  mass = domain->computeStructureMass();
+  mass = domain->computeStructureMass(false);
   populateRBModes();
   populateFlexModes(sqrt(mass));
   numModes = numRBM + numFlex;
@@ -360,6 +360,7 @@ void NLModalDescr::preProcess(){
   modesRB[4].linAdd(dxyz[0][1], modesRB[0], dxyz[2][1], modesRB[2]);
   modesRB[5].linAdd(dxyz[0][2], modesRB[0], dxyz[1][2], modesRB[1]);
 
+/*
   // calc the mass moment of inertia tensor
   fprintf(stderr, "mass moment of inertia\n");
   for(j = 0; j < 3; ++j){
@@ -370,7 +371,7 @@ void NLModalDescr::preProcess(){
     }
     fprintf(stderr, "\n");
   }
-
+*/
   // initialize the coupling coefficients -- Bp, Bh and Bt -- initialize temporary
   //   variables and create temporary var M_phip
   Bp = new double***[numFlex];    // Bp[numFlex][numFlex][3][3]
@@ -665,8 +666,8 @@ void NLModalDescr::updatePrescribedDisplacement(ModalGeomState *mgs){
          *mgs that store the displacements at time step n+1
 */
   int j;
-  for(j = 0; j <  domain->numInitDisp(); ++j)
-    mgs->q[domain->getInitDisp()[j].nnum] += domain->getInitDisp()[j].val;
+  for(int j = 0; j <  domain->numInitDispModal(); ++j)
+    mgs->q[domain->getInitDispModal()[j].nnum] += domain->getInitDispModal()[j].val;
 }
 
 //------------------------------------------------------------------------------

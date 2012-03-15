@@ -439,21 +439,31 @@ MDNLDynamic::copyGeomState(DistrGeomState* geomState)
 }
 
 void
-MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta)
+MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta, double t)
 {
  times->rebuild -= getTime();
 
- if(iteration % domain->solInfo().getNLInfo().updateK == 0) {
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime)) {
    times->norms[numSystems].rebuildTang = 1;
+
+   double Kcoef, Ccoef, Mcoef;
+   if(t == domain->solInfo().initialTime) {
+     Kcoef = 0;
+     Ccoef = 0;
+     Mcoef = 1;
+   }
+   else {
+     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+     getNewmarkParameters(beta, gamma, alphaf, alpham);
+     Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
+     Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
+     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+   }
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
-   double beta, gamma, alphaf, alpham, dt = 2*localDelta;
-   getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
-   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
-   double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
    decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+
  } else
    times->norms[numSystems].rebuildTang = 0;
 
@@ -927,7 +937,7 @@ MDNLDynamic::getResidualNorm(DistrVector &r)
 
 bool
 MDNLDynamic::factorWhenBuilding() const {
-  return domain->solInfo().iacc_switch;
+  return false; //domain->solInfo().iacc_switch;
 }
 
 void

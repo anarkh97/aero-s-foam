@@ -113,7 +113,7 @@ public:
    void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &, NLState *);
    int  getMaxStep() { return maxStep; }
    double getStiffAndForce (NLState &, Vector &, Vector &, double = -1);
-   void reBuild (NLState &, int = 0, double delta = 0);
+   void reBuild (NLState &, int, double delta, double t);
    void formRHSpredictor (Vector &, Vector &, Vector &, NLState &, double);
    int checkConvergence (int, double, Vector &, Vector &, double );
    void update (Vector &);
@@ -133,6 +133,7 @@ public:
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
    double getResidualNorm(Vector &rhs, NLState &) { return rhs.norm(); }
+   double getResidualNorm(Vector &rhs) { return rhs.norm(); }
 
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }

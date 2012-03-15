@@ -651,7 +651,7 @@ class Domain : public HData {
      void tempdynamOutput(int, double*, DynamMat&, Vector&, Vector&, Vector&,
                           Vector&);
 
-     double computeStructureMass();
+     double computeStructureMass(bool printFlag = true);
      double computeFluidMass();
      double getStructureMass();
 

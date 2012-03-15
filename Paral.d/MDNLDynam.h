@@ -149,7 +149,7 @@ class MDNLDynamic
                             DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
 
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(DistrGeomState& geomState, int iter, double localDelta);
+    void reBuild(DistrGeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
     void dynamOutput(DistrGeomState* geomState, DistrVector& velocity, DistrVector &vp,

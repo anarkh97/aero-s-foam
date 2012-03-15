@@ -8,6 +8,7 @@
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
+#include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -142,6 +143,10 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
         break;
       case 7 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu);
+        break;
+      case 8 :
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu);
+        break;
       }
     }
   }

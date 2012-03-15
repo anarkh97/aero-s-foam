@@ -179,8 +179,10 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
      if(packedEset[iele]->isConstraintElement()) { // XXXX
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
-         kel.~FullSquareMatrix();
-         kel = packedEset[iele]->stiffness(nodes, karray);
+         //note: now I am using the tangent stiffness from kelArray so initial accelerations
+         //      will be correctly computed even in the case of non-zero IDISP.
+         //kel.~FullSquareMatrix();
+         //kel = packedEset[iele]->stiffness(nodes, karray);
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical

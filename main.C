@@ -132,6 +132,7 @@ int verboseFlag = 0;
 int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
+int debugFlag = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -320,6 +321,7 @@ int main(int argc, char** argv)
    {"with-sower",0,0, 1010},
    {"sower",0,0, 1010},
    {"nclus", 1, 0, 1012},
+   {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
  };
  // end getopt_long
@@ -392,6 +394,9 @@ int main(int argc, char** argv)
       case 1005 :
 	nosa=true;
 	break;
+      case 1006 :
+        debugFlag = 1;
+        break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);

@@ -2,6 +2,7 @@
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
 extern int totalNewtonIter;
+extern int debugFlag;
 
 /****************************************************************
  *
@@ -254,7 +255,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         }
       }
       catch(std::runtime_error& e) {
-        cerr << "exception: " << e.what() << endl;
+        if(!failSafe || debugFlag) cerr << "exception: " << e.what() << endl;
         converged = 0;
         break;
       }

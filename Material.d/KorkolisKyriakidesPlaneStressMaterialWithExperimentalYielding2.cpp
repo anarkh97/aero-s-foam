@@ -1,7 +1,7 @@
 // Sriramajayam
 
 /*
- * KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.cpp
+ * KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.cpp
  * DG++
  *
  * Created by Ramsharan Rangarajan on 12/03/2010.
@@ -29,11 +29,11 @@
  */ 
 
 
-#include "KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h"
+#include "KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h"
 
 // Constructor
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(double iLambda, double iMu)
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, double iMu)
 {
   // Youngs modulus
   E = iMu*(3.*iLambda + 2.*iMu)/(iLambda + iMu);
@@ -50,16 +50,16 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(double iLambda, do
 
 
 // Destructor
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-~KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding() 
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+~KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2() 
 {}
 
 
 
 // Copy constructor
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding
-(const KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding & Mat)
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2
+(const KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 & Mat)
   : E(Mat.E), nu(Mat.nu)
 {
   EPSplastic.clear();
@@ -70,13 +70,13 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding
 
 
 // Cloning
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding * 
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::Clone() const
-{ return new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(*this); }
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 * 
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::Clone() const
+{ return new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(*this); }
 
 
 // Return plastic strain
-std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialPlasticStrain() const
 {
   std::vector<double> EP(9,0.);
@@ -89,24 +89,24 @@ GetMaterialPlasticStrain() const
 }
 
 // Return equivalent plastic strain
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialEquivalentPlasticStrain() const
 { return equivEPSplastic; }
 
 
 // Return Bulk modulus
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetBulkModulus() const
 { return E/(3.*(1.-2.*nu)); }
 
 // Return shear modulus
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
 
 
 // Check if state of material lies within yield surface
-bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 CheckMaterialState(const std::vector<double> &CS, const double TOL) const
 {
   // Cauchy stress in vector form 
@@ -127,7 +127,7 @@ CheckMaterialState(const std::vector<double> &CS, const double TOL) const
 
 
 // Compute the elastic constitutive response
-bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeElasticConstitutiveResponse(const std::vector<double> &EPS, 
 				   std::vector<double> *CS, 
 				   std::vector<double> *C) const
@@ -162,7 +162,7 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 
 
 // Compute elastoplastic response of material
-bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 					 std::vector<double> *CauchyStress, 
 					 std::vector<double> *Cep,
@@ -171,7 +171,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Notify that elastoplastic tangents are not computed.
   if( Cep!=0 )
     {
-      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeElastoPlasticConstitutiveResponse()- "
+      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeElastoPlasticConstitutiveResponse()- "
 	       <<"Elastoplastic tangents not implemented.\n";
       return false;
     }
@@ -192,7 +192,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   std::vector<double> CStrial(3,0.);
   if( !ComputeElasticConstitutiveResponse(EPSelas, &CStrial) )
     {
-      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeElastoPlasticConstitutiveResponse()- "
+      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeElastoPlasticConstitutiveResponse()- "
 	       <<"Could not compute elastic constitutive response at trial state.\n";
       return false;
     }
@@ -227,7 +227,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       double normNtrial = DeviatoricStressNorm(&Ntrial[0]);
       if( normNtrial < 1.e-6 )
 	{
-	  std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeElastoPlasticConstitutiveResponse()- "
+	  std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeElastoPlasticConstitutiveResponse()- "
 		   <<"Normal to yield surface has close to zero magnitude.\n";
 	  return false;
 	}
@@ -257,7 +257,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  // Find lambda such that f = 0.
 	  if( !ComputeConsistencyParameterGivenDirection(&CStrial[0], &N[0], lambdaMax, 0., lambda) )
 	    {
-	      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeElastoPlasticConstitutiveResponse()- "
+	      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeElastoPlasticConstitutiveResponse()- "
 		       <<"Could not compute consistency parameter for given direction.\n";
 	      return false;
 	    }
@@ -286,7 +286,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       // Check if solution converged
       if( !CONVERGED )
 	{
-	  std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeElastoPlasticConstitutiveResponse()- "
+	  std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeElastoPlasticConstitutiveResponse()- "
 		   <<"Could not solve for new state of system.\n";
 	  return false;
 	}
@@ -325,7 +325,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 
 
 // Evaluate yield function
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 EvaluateYieldFunction(const double * CS, const double eqP) const
 {
   // Compute two linear transformations of cauchy stress
@@ -364,7 +364,7 @@ EvaluateYieldFunction(const double * CS, const double eqP) const
 
 
 // Evaluate derivative of yield function with respect to cauchy stress
-std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 EvaluateDerivativeOfYieldFunction(const double * CS, const double eqP) const
 {
   // Derivative wrt Cauchy stress
@@ -400,7 +400,7 @@ EvaluateDerivativeOfYieldFunction(const double * CS, const double eqP) const
 
 
 // Linear transformations of stress involved in this model
-void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeLinearTransformationsOfStress(const double * CS, double * L1CS, double * L2CS) const
 {
   // Model parameters
@@ -426,17 +426,17 @@ ComputeLinearTransformationsOfStress(const double * CS, double * L1CS, double * 
 
 
 // Compute yield stress by interpolating experimental stress-strain curve
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetYieldStressUsingExperimentalCurve(const double eqP) const
 {
   double SigmaY = 0.;
   if( eqP<=ExpEqPlasticStrain[0] )
     SigmaY = ExpYieldStress[0];
-  else if ( eqP>=ExpEqPlasticStrain[30] )
-    SigmaY = ExpYieldStress[30];
+  else if ( eqP>=ExpEqPlasticStrain[52] )
+    SigmaY = ExpYieldStress[52];
   else
     {
-      for(int i=0; i<30; i++)
+      for(int i=0; i<52; i++)
 	if( eqP>=ExpEqPlasticStrain[i] && eqP<=ExpEqPlasticStrain[i+1] )
 	  {
 	    double lambda = (ExpEqPlasticStrain[i+1]-eqP)/(ExpEqPlasticStrain[i+1]-ExpEqPlasticStrain[i]);
@@ -449,7 +449,7 @@ GetYieldStressUsingExperimentalCurve(const double eqP) const
 
 
 // Compute \f$\sigma\f$ given \f$\sigma_{trial}, \lambda, {\bf N} \f$.
-void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeCauchyStressGivenConsistencyParameterAndDirection(const double * CStrial, const double lambda, 
 							 const double * N, double * CS) const
 {
@@ -472,14 +472,14 @@ ComputeCauchyStressGivenConsistencyParameterAndDirection(const double * CStrial,
 
 
 // Compute equivalent plastic strain given lambda and N.
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeEquivalentPlasticStrainGivenConsistencyParameterAndDirection(const double lambda, const double * N) const
 {
   return equivEPSplastic + sqrt(2./3.)*lambda*DeviatoricStressNorm(N);
 }
 
 
-bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeConsistencyParameterGivenDirection(const double * CStrial, const double * N, 
 					  double lambda_L, double lambda_R, 
 					  double & lambda) const
@@ -502,7 +502,7 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
   // Check that the bisection method can be applied
   if( F_L>0. || F_R<0. )
     {
-      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeConsistencyParameterGivenDirection()- "
+      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeConsistencyParameterGivenDirection()- "
 	       <<"Could not bracket function for bisection method.\n";
       return false;
     }
@@ -552,7 +552,7 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
   // Check if solution converged
   if( !CONVERGED )
     {
-      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::ComputeConsistencyParameterGivenDirection()- "
+      std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::ComputeConsistencyParameterGivenDirection()- "
 	       <<"Could not compute consistency parameter for given direction.\n";
       return false;
     }
@@ -562,7 +562,7 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
 
 
 // Compute eigenvalues
-void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeEigenvalues(const double * X, double &A, double &B) const
 {
   // Sum of roots 
@@ -579,7 +579,7 @@ ComputeEigenvalues(const double * X, double &A, double &B) const
 
 // Compute the norm of a deviatoric stress tensor 
 // given in vector form [Sxx, Syy, Sxy]
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 DeviatoricStressNorm(const double * S) const
 {
   return sqrt( 2.*(pow(S[0],2.)+pow(S[1],2.)+pow(S[2],2.)+S[0]*S[1]) );
@@ -588,112 +588,178 @@ DeviatoricStressNorm(const double * S) const
 
 // Compute the norm of a deviatoric strain tensor 
 // given in vector form [Sxx, Syy, 2Sxy]
-double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 DeviatoricStrainNorm(const double * S) const
 {
   return sqrt( 2.*(pow(S[0],2.)+pow(S[1],2.)+S[0]*S[1]) + 0.5*pow(S[2],2.) );
 }
 
-// The 6.89475908677537e6 factor converts ksi to Pa
+// The 6.89475908677537e3 factor converts psi to Pa
 //#define USE_SI_UNITS
 #ifdef USE_SI_UNITS
-const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-ExpYieldStress[31] = { 39.126*6.89475908677537e6, 
-		       40.855*6.89475908677537e6, 
-		       42.015*6.89475908677537e6, 
-		       42.671*6.89475908677537e6, 
-		       43.292*6.89475908677537e6, 
-		       44.198*6.89475908677537e6, 
-		       44.806*6.89475908677537e6, 
-		       45.048*6.89475908677537e6, 
-		       45.631*6.89475908677537e6, 
-		       46.427*6.89475908677537e6, 
-		       47.087*6.89475908677537e6, 
-		       47.635*6.89475908677537e6, 
-		       48.458*6.89475908677537e6,  
-		       49.095*6.89475908677537e6,  
-		       49.848*6.89475908677537e6, 
-		       50.185*6.89475908677537e6,  
-		       50.659*6.89475908677537e6, 
-		       50.987*6.89475908677537e6, 
-		       51.291*6.89475908677537e6, 
-		       51.534*6.89475908677537e6, 
-		       51.850*6.89475908677537e6, 
-		       52.200*6.89475908677537e6, 
-		       52.500*6.89475908677537e6,  
-		       52.720*6.89475908677537e6,  
-		       52.900*6.89475908677537e6, 
-		       53.050*6.89475908677537e6,  
-		       53.170*6.89475908677537e6,  
-		       53.270*6.89475908677537e6, 
-		       53.370*6.89475908677537e6,  
-		       53.450*6.89475908677537e6, 
-		       53.580*6.89475908677537e6 };
+const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+ExpYieldStress[53] = { 19540.0*6.89475908677537e3,
+                       25490.0*6.89475908677537e3,
+                       28480.0*6.89475908677537e3,
+                       31310.0*6.89475908677537e3,
+                       34180.0*6.89475908677537e3,
+                       37040.0*6.89475908677537e3,
+                       39720.0*6.89475908677537e3,
+                       41340.0*6.89475908677537e3,
+                       42360.0*6.89475908677537e3,
+                       43040.0*6.89475908677537e3,
+                       43490.0*6.89475908677537e3,
+                       43870.0*6.89475908677537e3,
+                       44140.0*6.89475908677537e3,
+                       44310.0*6.89475908677537e3,
+                       44620.0*6.89475908677537e3,
+                       44880.0*6.89475908677537e3,
+                       45030.0*6.89475908677537e3,
+                       45370.0*6.89475908677537e3,
+                       45520.0*6.89475908677537e3,
+                       45580.0*6.89475908677537e3,
+                       45730.0*6.89475908677537e3,
+                       45880.0*6.89475908677537e3,
+                       46120.0*6.89475908677537e3,
+                       46280.0*6.89475908677537e3,
+                       46380.0*6.89475908677537e3,
+                       46480.0*6.89475908677537e3,
+                       46620.0*6.89475908677537e3,
+                       46700.0*6.89475908677537e3,
+                       46770.0*6.89475908677537e3,
+                       46850.0*6.89475908677537e3,
+                       46910.0*6.89475908677537e3,
+                       47000.0*6.89475908677537e3,
+                       47080.0*6.89475908677537e3,
+                       47150.0*6.89475908677537e3,
+                       47230.0*6.89475908677537e3,
+                       47300.0*6.89475908677537e3,
+                       47370.0*6.89475908677537e3,
+                       47430.0*6.89475908677537e3,
+                       47480.0*6.89475908677537e3,
+                       47520.0*6.89475908677537e3,
+                       47570.0*6.89475908677537e3,
+                       47680.0*6.89475908677537e3,
+                       47760.0*6.89475908677537e3,
+                       47840.0*6.89475908677537e3,
+                       47870.0*6.89475908677537e3,
+                       47910.0*6.89475908677537e3,
+                       47970.0*6.89475908677537e3,
+                       47990.0*6.89475908677537e3,
+                       48010.0*6.89475908677537e3,
+                       48010.0*6.89475908677537e3,
+                       48000.0*6.89475908677537e3,
+                       48020.0*6.89475908677537e3,
+                       48060.0*6.89475908677537e3 };
 #else
 // these units are psi
-const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-ExpYieldStress[31] = { 39.126e3,
-                       40.855e3,
-                       42.015e3,
-                       42.671e3,
-                       43.292e3,
-                       44.198e3,
-                       44.806e3,
-                       45.048e3,
-                       45.631e3,
-                       46.427e3,
-                       47.087e3,
-                       47.635e3,
-                       48.458e3,
-                       49.095e3,
-                       49.848e3,
-                       50.185e3,
-                       50.659e3,
-                       50.987e3,
-                       51.291e3,
-                       51.534e3,
-                       51.850e3,
-                       52.200e3,
-                       52.500e3,
-                       52.720e3,
-                       52.900e3,
-                       53.050e3,
-                       53.170e3,
-                       53.270e3,
-                       53.370e3,
-                       53.450e3,
-                       53.580e3 };
+const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+ExpYieldStress[53] = { 19540.0,
+                       25490.0,
+                       28480.0,
+                       31310.0,
+                       34180.0,
+                       37040.0,
+                       39720.0,
+                       41340.0,
+                       42360.0,
+                       43040.0,
+                       43490.0,
+                       43870.0,
+                       44140.0,
+                       44310.0,
+                       44620.0,
+                       44880.0,
+                       45030.0,
+                       45370.0,
+                       45520.0,
+                       45580.0,
+                       45730.0,
+                       45880.0,
+                       46120.0,
+                       46280.0,
+                       46380.0,
+                       46480.0,
+                       46620.0,
+                       46700.0,
+                       46770.0,
+                       46850.0,
+                       46910.0,
+                       47000.0,
+                       47080.0,
+                       47150.0,
+                       47230.0,
+                       47300.0,
+                       47370.0,
+                       47430.0,
+                       47480.0,
+                       47520.0,
+                       47570.0,
+                       47680.0,
+                       47760.0,
+                       47840.0,
+                       47870.0,
+                       47910.0,
+                       47970.0,
+                       47990.0,
+                       48010.0,
+                       48010.0,
+                       48000.0,
+                       48020.0,
+                       48060.0 };
 #endif
 
-const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
-ExpEqPlasticStrain[31] = { 0.0000e-2, 
-			   0.0187e-2, 
-			   0.0513e-2, 
-			   0.0885e-2, 
-			   0.1409e-2, 
-			   0.2665e-2, 
-			   0.5801e-2, 
-			   0.7106e-2, 
-			   1.1467e-2, 
-			   1.8328e-2,  
-			   2.4497e-2,
-			   3.0011e-2, 
-			   3.9337e-2, 
-			   4.8031e-2, 
-			   5.9797e-2, 
-			   6.6361e-2, 
-			   7.6791e-2, 
-			   8.6381e-2, 
-			   9.7461e-2, 
-			   10.9280e-2, 
-			   13.0000e-2, 
-			   16.0000e-2,
-			   20.0000e-2, 
-			   24.0000e-2, 
-			   28.0000e-2, 
-			   32.0000e-2, 
-			   36.0000e-2, 
-			   40.0000e-2, 
-			   45.0000e-2, 
-			   50.0000e-2, 
-			   60.0000e-2 };
+const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+ExpEqPlasticStrain[53] = { 0.0,
+                           0.000584,
+                           0.000881,
+                           0.001162,
+                           0.001453,
+                           0.001771,
+                           0.00216,
+                           0.002594,
+                           0.003028,
+                           0.003426,
+                           0.003776,
+                           0.004092,
+                           0.004378,
+                           0.004625,
+                           0.005038,
+                           0.005383,
+                           0.005688,
+                           0.006384,
+                           0.006821,
+                           0.00708,
+                           0.007673,
+                           0.00852,
+                           0.01021,
+                           0.01189,
+                           0.01353,
+                           0.0152,
+                           0.0175,
+                           0.01893,
+                           0.02063,
+                           0.02234,
+                           0.02406,
+                           0.02575,
+                           0.02743,
+                           0.02913,
+                           0.0308,
+                           0.03251,
+                           0.03424,
+                           0.03597,
+                           0.03768,
+                           0.03927,
+                           0.0411,
+                           0.04541,
+                           0.04898,
+                           0.05233,
+                           0.05408,
+                           0.0567,
+                           0.05839,
+                           0.05924,
+                           0.06095,
+                           0.06181,
+                           0.06268,
+                           0.06355,
+                           0.06442 };

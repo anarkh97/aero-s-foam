@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>
@@ -1081,9 +1082,10 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
     else { // gradient projection step
       Scalar rp = r_k*p;
       Scalar pFp = p*Fp; 
+      //if(ScalarTypes::lessThan(pFp, 0)) throw std::runtime_error("FETI operator is not positive semidefinite");
       Scalar delta_f = nu*nu/2.0*pFp + nu*rp;
       if(this->fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
-        cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << endl;
+        cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << ", pFp = " << pFp << ", nu = " << nu << ", rp = " << rp << endl;
       if(ScalarTypes::lessThanEq(delta_f, 0)) break; // sequence is monotonic (note: check for gcr and gmres)
       else {
         if(i < this->fetiInfo->linesearch_maxit) { 
@@ -1091,8 +1093,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
           nu *= this->fetiInfo->linesearch_tau;
         }
         else {
-          if(this->myCPU == 0) cerr << " warning: linesearch did not converge\n";
-          exit(-1);
+          throw std::runtime_error("linesearch did not converge");
         }
       }
     }

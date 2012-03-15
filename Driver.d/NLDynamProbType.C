@@ -210,46 +210,53 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     for(int iter = 0; iter < maxit; ++iter) {
 
       residual = external_force;
-         
-      // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
-      StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
-                             elementInternalForce, totalRes, velocity_n,
-                             acceleration, midtime);
 
-      // Compute incremental displacements
-      StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
+      try {         
+        // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
+        StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
+                               elementInternalForce, totalRes, velocity_n,
+                               acceleration, midtime);
 
-      // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
-      StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
-                                    acceleration, residual, rhs, geomState, delta);
+        // Compute incremental displacements
+        StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
 
-      // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
-      if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+        // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
+        StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
+                                      acceleration, residual, rhs, geomState, delta);
 
-      // Compute and store the residual norm
-      resN = probDesc->getResidualNorm(rhs);
-      if(iter == 0) initialRes = resN;
+        // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
+        if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
-      // If the convergence criteria does not involve the solution increment, then 
-      // check for convergence now (to avoid potentially unnecessary solve)
-      if(tolInc != std::numeric_limits<double>::infinity()
-         || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
+        // Compute and store the residual norm
+        resN = probDesc->getResidualNorm(rhs);
+        if(iter == 0) initialRes = resN;
 
-        // Assemble global tangent stiffness
-        if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+        // If the convergence criteria does not involve the solution increment, then 
+        // check for convergence now (to avoid potentially unnecessary solve)
+        if(tolInc != std::numeric_limits<double>::infinity()
+           || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
-        residual = rhs;
-        totalNewtonIter++;
+          // Assemble global tangent stiffness
+          if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
-        // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-        probDesc->getSolver()->reSolve(rhs);
+          residual = rhs;
+          totalNewtonIter++;
 
-        StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+          // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+          probDesc->getSolver()->reSolve(rhs);
+
+          StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+        }
+        // If the converged criteria does involve the solution increment, then
+        // check for convergence now
+        if(tolInc != std::numeric_limits<double>::infinity()) {
+          converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
+        }
       }
-      // If the converged criteria does involve the solution increment, then
-      // check for convergence now
-      if(tolInc != std::numeric_limits<double>::infinity()) {
-        converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
+      catch(std::runtime_error& e) {
+        cerr << "exception: " << e.what() << endl;
+        converged = 0;
+        break;
       }
 
       if(converged == 1)

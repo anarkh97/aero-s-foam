@@ -82,7 +82,7 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
@@ -1750,6 +1750,17 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.lagrangeMult = bool($17);
+          sp.penalty = $18;
+          sp.type = StructProp::Constraint;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
 	{ StructProp sp; 
 	  sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
@@ -1766,6 +1777,18 @@ MatData:
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
           sp.betaDamp = $21; sp.alphaDamp = $22;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.lagrangeMult = bool($21);
+          sp.penalty = $22;
+          sp.type = StructProp::Constraint;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }

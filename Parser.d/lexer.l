@@ -524,6 +524,8 @@ TRAIL [a-zA-Z]*
 
 "CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
 
+"RIGID"|"rigid"                    { return RIGID; }
+
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }

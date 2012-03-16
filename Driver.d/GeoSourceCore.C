@@ -423,8 +423,10 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     //std::cerr << "Number of components = " << renumb.numComp << std::endl;
 
     // Determine for each MPC which DOF will be slave
-    vector<int> mpcSlaveDOF(numLMPC, -1);
-    vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    std::vector<int> mpcSlaveDOF(numLMPC);
+    for(int i=0; i<numLMPC;++i) mpcSlaveDOF[i] = -1;
+    std::vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    for(int i=0; i<dofToLMPC->csize(); ++i) dofSlaveOf[i] = -1;
     int nMPCtoView = numLMPC;
     for(int i = 0; i < dofToLMPC->csize(); ++i)
       if(dofToLMPC->num(i) == 1) {

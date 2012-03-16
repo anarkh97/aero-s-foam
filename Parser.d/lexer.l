@@ -1041,7 +1041,7 @@ TRAIL [a-zA-Z]*
 
 "shapestc"|"SHAPESTC"              { yylval.ival = OutputInfo::ShapeStc;     return STRESSID; }
 
-"rigid"|"RIGID"                    { yylval.ival = OutputInfo::Rigid;        return STRESSID; }
+"rigidbod"|"RIGIDBOD"              { yylval.ival = OutputInfo::Rigid;        return STRESSID; }
 
 "composit"|"COMPOSIT"              { yylval.ival = OutputInfo::Composit;     return STRESSID; }
 

@@ -553,9 +553,9 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   int *colmap = new int[c.cols()];
   for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
   int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
-  /*cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
-  if(rank != numLMPC)
-    cerr << "found " << numLMPC-rank << " redundant constraints\n";*/
+  //cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
+  //if(rank != numLMPC)
+  //  cerr << "found " << numLMPC-rank << " redundant constraints\n";
 
   // copy the coefficients of the rref matrix into the lmpc data structure 
   for(int i = 0; i < n; ++i) {
@@ -563,7 +563,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     lmpc[i]->nterms = 0;
     for(int j = i; j < m; ++j) {
       if(j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
-      if(std::fabs(c(i,j)) > std::numeric_limits<double>::epsilon()) {
+      if(std::fabs(c(i,j)) > 10*std::numeric_limits<double>::epsilon()) {
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
         lmpc[i]->nterms++;

@@ -186,9 +186,9 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
     if(strainEvaluator->isNonLinear()) {
       SimpleTensor<SimpleTensor<double,TensorTypes::ndofs>,TensorTypes::ndofs> kg;
       kg=DB || s;
-      for(int i=0; i < TensorTypes::ndofs; ++i)
-        for(int j=0; j < TensorTypes::ndofs; ++j)
-          temp3[i*TensorTypes::ndofs+j] = kg[i][j];
+      for(int j=0; j < TensorTypes::ndofs; ++j)
+        for(int k=0; k < TensorTypes::ndofs; ++k)
+          temp3[j*TensorTypes::ndofs+k] = kg[j][k];
       temp2 = temp3 + temp2;
     }
     //fprintf(stderr, "Weight %e jac %e\n",weight,jac);
@@ -299,9 +299,9 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
     if(strainEvaluator->isNonLinear()) {
       SimpleTensor<SimpleTensor<double,TensorType::ndofs>,TensorType::ndofs> kg;
       kg=DB || s;
-      for(int i=0; i < TensorType::ndofs; ++i)
-        for(int j=0; j < TensorType::ndofs; ++j)
-          temp3[i*TensorType::ndofs+j] = kg[i][j];
+      for(int j=0; j < TensorType::ndofs; ++j)
+        for(int k=0; k < TensorType::ndofs; ++k)
+          temp3[j*TensorType::ndofs+k] = kg[j][k];
         temp3 = temp3 + temp2;
       }
       temp3 = (weight * fabs(jac))*temp3;
@@ -546,9 +546,9 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     if(strainEvaluator->isNonLinear()) {
       SimpleTensor<SimpleTensor<double,TensorType::ndofs>,TensorType::ndofs> kg;
       kg=DBnp || s;
-      for(int i=0; i < TensorType::ndofs; ++i)
-        for(int j=0; j < TensorType::ndofs; ++j)
-          temp3[i*TensorType::ndofs+j] = kg[i][j];
+      for(int j=0; j < TensorType::ndofs; ++j)
+        for(int k=0; k < TensorType::ndofs; ++k)
+          temp3[j*TensorType::ndofs+k] = kg[j][k];
         temp2 = temp3 + temp2;
     }
     temp3 = (weight * fabs(jacnp))*temp2;

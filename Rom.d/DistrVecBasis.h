@@ -5,13 +5,12 @@
 
 #include <Feti.d/DistrVector.h>
 
-#ifdef _TR1_FUNCTIONAL
-  #include <tr1/functional>
-#elif defined(USE_BOOST)
-  #include <boost/version.hpp>
-  #if BOOST_VERSION >= 103400
-    #include <boost/tr1/functional.hpp>
-  #endif
+#ifdef USE_BOOST
+#include <boost/tr1/functional.hpp>
+#else
+//note: if the the standard c++ library doesn't have tr1 then
+//      you must configure with boost version 1.35 or later
+#include <tr1/functional>
 #endif
 
 namespace Rom {

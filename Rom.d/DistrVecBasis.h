@@ -5,7 +5,14 @@
 
 #include <Feti.d/DistrVector.h>
 
-#include <tr1/functional>
+#ifdef _TR1_FUNCTIONAL
+  #include <tr1/functional>
+#elif defined(USE_BOOST)
+  #include <boost/version.hpp>
+  #if BOOST_VERSION >= 103400
+    #include <boost/tr1/functional.hpp>
+  #endif
+#endif
 
 namespace Rom {
 

@@ -2,7 +2,8 @@
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
 SET(CMAKE_INCLUDE_PATH /home/pavery/lib/eigen
                        /home/pavery/lib/SPOOLES
-                       /home/pavery/lib/MUMPS/include)
+                       /home/pavery/lib/MUMPS/include
+                       /home/pavery/lib/boost_1_49_0)
 SET(CMAKE_LIBRARY_PATH /home/pavery/lib/ARPACK
                        /home/pavery/lib/SPOOLES
                        /home/pavery/lib/SPOOLES/MT/src

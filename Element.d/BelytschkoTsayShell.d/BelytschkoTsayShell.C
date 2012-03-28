@@ -829,7 +829,7 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
     // compute the length of the longest side
     // ----------------------------------------
     double lmax = 0;
-    double n[5] = { 0, 1, 2, 3, 0 };
+    int n[5] = { 0, 1, 2, 3, 0 };
     for(int k = 0; k < 4; ++k) { 
       int i = n[k], j = n[k+1];
       double lij = std::sqrt(std::pow(ecurn(0,j)-ecurn(0,i),2)+std::pow(ecurn(1,j)-ecurn(1,i),2)

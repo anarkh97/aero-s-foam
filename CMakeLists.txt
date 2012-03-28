@@ -248,6 +248,12 @@ IF(UNIX)
 #      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
 #    ENDIF(METIS_LIBRARY)
 
+  FIND_PACKAGE(Boost)
+  if(Boost_FOUND)
+    add_definitions(-DUSE_BOOST)
+    include_directories(${Boost_INCLUDE_DIRS})
+  endif(Boost_FOUND)
+
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
 

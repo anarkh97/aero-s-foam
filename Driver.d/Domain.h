@@ -526,7 +526,7 @@ class Domain : public HData {
        void addThermalForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void addMpcRhs(GenVector<Scalar>& force);
+       void addMpcRhs(GenVector<Scalar>& force, double t = 0);
 
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);

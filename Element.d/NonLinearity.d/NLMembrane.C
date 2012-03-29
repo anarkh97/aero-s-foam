@@ -389,7 +389,7 @@ NLMembrane::setMaterial(NLMaterial *m)
 
 void
 NLMembrane::computePressureForce(Node *nodes,Vector& force,
-                                 double *gs, int cflg)
+                                 double *gs, int cflg, double)
 {
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
                        nodes[1].y+gs[4]-nodes[0].y-gs[1],

@@ -73,7 +73,7 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
 void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                         GeomState *geomState, int cflg)
+                                         GeomState *geomState, int cflg, double)
 {
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

@@ -141,7 +141,7 @@ ThreeNodeTri3D::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
 
 void
 ThreeNodeTri3D::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                     GeomState *geomState, int cflg)
+                                     GeomState *geomState, int cflg, double)
 {
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

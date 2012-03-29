@@ -478,7 +478,7 @@ BelytschkoTsayShell::getTopNumber()
 
 void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                          GeomState *geomState, int cflg)
+                                          GeomState *geomState, int cflg, double)
 {
 /* now the pressure force is added in the same routine as the internal force
   int opttrc = 0; // 0 : pressure

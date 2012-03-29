@@ -85,7 +85,7 @@ class SuperElement : public Element
 
     Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
     void computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                              GeomState *gs=0, int cflg = 0);
+                              GeomState *gs=0, int cflg = 0, double t = 0);
 
     double* getMidPoint(CoordSet &cs);
     double* getCompositeData(int nl);

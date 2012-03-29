@@ -168,7 +168,7 @@ Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
 
 void
 Element::computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *, int cflg)
+                              GeomState *, int cflg, double)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: Pressure force not implemented for element type %d\n", elementType);
@@ -179,15 +179,6 @@ int
 Element::getTopNumber()
 {
  return -1;
-}
-
-void
-Element::computePressureForce(Node *, Vector& elPressureForce,
-                              double *, int cflg)
-{
- if(!isConstraintElement() && !isSpring())
-   fprintf(stderr," *** WARNING: Pressure force 2 not implemented for element %d\n", glNum);
- elPressureForce.zero();
 }
 
 void

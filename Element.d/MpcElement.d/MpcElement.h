@@ -62,7 +62,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
     bool isSafe() { return false; }
 
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs, int cflg);
+                              GeomState *gs = 0, int cflg = 0, double t = 0);
     int getTopNumber() { return 101; }
 
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,

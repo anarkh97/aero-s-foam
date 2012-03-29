@@ -407,7 +407,7 @@ SuperElement::getCorotator(CoordSet &cs, double *d, int i1, int i2)
 
 void 
 SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
-                                   GeomState *gs, int cflg)
+                                   GeomState *gs, int cflg, double t)
 {
   if(!sub_extf) { // save a copy of the external force for each sub-element
     sub_extf = new double * [nSubElems];
@@ -418,7 +418,7 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
     subElementPressureForce.zero();
-    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg);
+    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
     elPressureForce.add(subElementPressureForce, subElemDofs[i]);
   }
 /*

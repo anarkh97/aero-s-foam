@@ -264,3 +264,14 @@ DotConstraintType1a::getAccelerationConstraintRhs(GeomState *gState, CoordSet& c
   return acc_rhs;
 }
 
+void
+DotConstraintType1a::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+                                          GeomState *gs, int cflg, double t)
+{
+  rhs.r_value = prop->amplitude*std::sin(prop->omega*t + prop->phase)
+                -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
+  //rhs.r_value = std::cos(prop->amplitude*std::sin(prop->omega*t + prop->phase)-M_PI/2)
+  //              -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
+  MpcElement::computePressureForce(cs, elPressureForce, gs, cflg, t);
+}
+

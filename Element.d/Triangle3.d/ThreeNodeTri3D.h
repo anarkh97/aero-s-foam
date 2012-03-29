@@ -33,7 +33,8 @@ class ThreeNodeTri3D : virtual public Element
   void computeDisp(CoordSet&cs, State &state, const InterpPoint &, double*res, GeomState *gs);
   void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);
 
-  void computePressureForce(CoordSet& cs, Vector& elPressureForce, GeomState *geomState, int cflg);
+  void computePressureForce(CoordSet& cs, Vector& elPressureForce, 
+                            GeomState *geomState = 0, int cflg = 0, double t = 0);
 
   int getTopNumber();
 

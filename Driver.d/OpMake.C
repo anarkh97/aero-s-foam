@@ -1636,7 +1636,7 @@ Domain::addThermalForce(GenVector<Scalar> &force)
 
 template<class Scalar>
 void
-Domain::addMpcRhs(GenVector<Scalar> &force)
+Domain::addMpcRhs(GenVector<Scalar> &force, double t)
 {
   Vector elementForce(maxNumDOFs);
 
@@ -1645,7 +1645,7 @@ Domain::addMpcRhs(GenVector<Scalar> &force)
     if(!packedEset[iele]->isMpcElement()) continue; // this also works for superelements
 
     // Otherwise, compute element force due to mpc rhs
-    packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0);
+    packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0, t);
 
     // Assemble element pressure forces into domain force vector
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
@@ -1877,7 +1877,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(lmpc.max_size() && !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -3270,7 +3270,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // ... ADD RHS FROM LMPCs for linear statics
-  if(lmpc.max_size() && !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
+  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
@@ -3335,7 +3335,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
-  if(lmpc.max_size() && !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f);
+  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)

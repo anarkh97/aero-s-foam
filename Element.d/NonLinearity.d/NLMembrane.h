@@ -88,7 +88,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     void setProp(StructProp *);
     void setMaterial(NLMaterial *);
     void computePressureForce(Node *cs,Vector& elPressureForce,
-                              double *gs=0, int cflg = 0);
+                              double *gs = 0, int cflg = 0, double t = 0);
 };
 
 #endif

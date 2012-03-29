@@ -44,7 +44,7 @@ public:
 
 	int getTopNumber();
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs, int cflg);
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
 				  
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
 	                     int glfag, GeomState *gs=0);

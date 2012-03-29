@@ -409,9 +409,7 @@ class Element {
                                                                                  // can make it different to numNodes for elements that aren't
                                                                                  // supported by xpost eg RigidSolid6Dof
         virtual void computePressureForce(CoordSet& cs,Vector& elPressureForce,
-                                          GeomState *gs=0, int cflg = 0);
-        virtual void computePressureForce(Node *nd,Vector& elPressureForce,
-                                          double *gs=0, int cflg = 0);
+                                          GeomState *gs = 0, int cflg = 0, double t = 0);
 	virtual double * getMidPoint(CoordSet &)  { return 0; }
 	/* toxa: use this midPoint instead */
 	//virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }

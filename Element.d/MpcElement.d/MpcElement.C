@@ -318,7 +318,7 @@ MpcElement::getResidualCorrection(GeomState& c1, double* r)
 }
 
 void
-MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int)
+MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
 {
   // this function computes the constraint force vector for linear statics and dynamics
   // see comments in ::getStiffAndForce (nonlinear version)

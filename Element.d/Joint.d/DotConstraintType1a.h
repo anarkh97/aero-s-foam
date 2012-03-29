@@ -9,6 +9,7 @@ class DotConstraintType1a : public MpcElement
     int axis1, axis2;
     int axis1_copy;
     double t_reparam, offset;
+    bool instantaneous_partials;
 
   public:
     DotConstraintType1a(int*, int, int);

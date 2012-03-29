@@ -8,6 +8,7 @@ DotConstraintType1::DotConstraintType1(int* _nn, int _axis1, int _axis2)
   c0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
+  instantaneous_partials = true;
 }
 
 DotConstraintType1::~DotConstraintType1()
@@ -97,23 +98,44 @@ DotConstraintType1::update(GeomState& gState, CoordSet& cs, double)
   mat_mult_mat(c0, ns1.R, c1, 2);
   mat_mult_mat(c0, ns2.R, c2, 2);
 
-  // rotation parameters (thetax, thetay, thetaz)
-  double r1[3], r2[3];
-  mat_to_vec(ns1.R, r1);
-  mat_to_vec(ns2.R, r2);
+  if(instantaneous_partials) {
 
-  double dRdvi1[3][3], dRdvi2[3][3], d1[3], d2[3];
-  for(int i=0; i<3; ++i) {
-    // partial derivatives of rotation matrices wrt ith rotation parameters
-    Partial_R_Partial_EM3(r1, i, dRdvi1);
-    Partial_R_Partial_EM3(r2, i, dRdvi2);
+    // instantaneous rotation parameters (thetax, thetay, thetaz)
+    double r[3] = { 0, 0, 0 };
 
-    // partial derivatives of constraint functions wrt ith rotation parameters
-    mat_mult_vec(dRdvi1, c0[axis1], d1);
-    mat_mult_vec(dRdvi2, c0[axis2], d2);
+    double dRdvi[3][3], d1[3], d2[3];
+    for(int i=0; i<3; ++i) {
+      // partial derivatives of instantaneous rotation matrices wrt ith instantaneous rotation parameters
+      Partial_R_Partial_EM3(r, i, dRdvi);
 
-    terms[0+i].coef.r_value = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
-    terms[3+i].coef.r_value = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+      // partial derivatives of constraint functions wrt ith instantaneous rotation parameters
+      mat_mult_vec(dRdvi, c1[axis1], d1);
+      mat_mult_vec(dRdvi, c2[axis2], d2);
+
+      terms[0+i].coef.r_value = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
+      terms[3+i].coef.r_value = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+    }
+  }
+  else {
+
+    // rotation parameters (thetax, thetay, thetaz)
+    double r1[3], r2[3];
+    mat_to_vec(ns1.R, r1);
+    mat_to_vec(ns2.R, r2);
+
+    double dRdvi1[3][3], dRdvi2[3][3], d1[3], d2[3];
+    for(int i=0; i<3; ++i) {
+      // partial derivatives of rotation matrices wrt ith rotation parameters
+      Partial_R_Partial_EM3(r1, i, dRdvi1);
+      Partial_R_Partial_EM3(r2, i, dRdvi2);
+
+      // partial derivatives of constraint functions wrt ith rotation parameters
+      mat_mult_vec(dRdvi1, c0[axis1], d1);
+      mat_mult_vec(dRdvi2, c0[axis2], d2);
+
+      terms[0+i].coef.r_value = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
+      terms[3+i].coef.r_value = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+    }
   }
 
   // -ve value of constraint function
@@ -134,34 +156,64 @@ DotConstraintType1::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix
   mat_mult_mat(c0, ns1.R, c1, 2);
   mat_mult_mat(c0, ns2.R, c2, 2);
 
-  // rotation parameters (thetax, thetay, thetaz)
-  double r1[3], r2[3];
-  mat_to_vec(ns1.R, r1);
-  mat_to_vec(ns2.R, r2);
+  if(instantaneous_partials) {
 
-  double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], dRdvi1[3][3], dRdvj2[3][3], d1[3], d2[3];
-  for(int i=0; i<3; ++i) {
-    // second partial derivatives of rotation matrices wrt rotation parameters
-    for(int j=i; j<3; ++j) {
-      Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
-      Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
-      mat_mult_vec(d2Rdvidvj1, c0[axis1], d1);
-      mat_mult_vec(d2Rdvidvj2, c0[axis2], d2);
+    // instantaneous rotation parameters
+    double r[3] = { 0, 0, 0 };
 
-      H[i][j] = H[j][i] = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
-      H[3+i][3+j] = H[3+j][3+i] = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+    double d2Rdvidvj[3][3], dRdvi[3][3], dRdvj[3][3], d1[3], d2[3];
+    for(int i=0; i<3; ++i) {
+      // second partial derivatives of rotation matrices wrt instantaneous rotation parameters
+      for(int j=i; j<3; ++j) {
+        Second_Partial_R_Partial_EM3(r, i, j, d2Rdvidvj);
+
+        mat_mult_vec(d2Rdvidvj, c1[axis1], d1);
+        mat_mult_vec(d2Rdvidvj, c2[axis2], d2);
+
+        H[i][j] = H[j][i] = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
+        H[3+i][3+j] = H[3+j][3+i] = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+      }
+    }
+    for(int i=0; i<3; ++i) {
+      Partial_R_Partial_EM3(r, i, dRdvi);
+      mat_mult_vec(dRdvi, c1[axis1], d1);
+      for(int j=0; j<3; ++j) {
+        Partial_R_Partial_EM3(r, j, dRdvj);
+        mat_mult_vec(dRdvj, c2[axis2], d2);
+        H[i][3+j] = H[3+j][i] = d1[0]*d2[0] + d1[1]*d2[1] + d1[2]*d2[2];
+      }
     }
   }
-  for(int i=0; i<3; ++i) {
-    Partial_R_Partial_EM3(r1, i, dRdvi1);
-    mat_mult_vec(dRdvi1, c0[axis1], d1);
-    for(int j=0; j<3; ++j) {
-      Partial_R_Partial_EM3(r2, j, dRdvj2);
-      mat_mult_vec(dRdvj2, c0[axis2], d2);
+  else {
 
-      H[i][3+j] = H[3+j][i] = d1[0]*d2[0] + d1[1]*d2[1] + d1[2]*d2[2];
+    // rotation parameters (thetax, thetay, thetaz)
+    double r1[3], r2[3];
+    mat_to_vec(ns1.R, r1);
+    mat_to_vec(ns2.R, r2);
+
+    double d2Rdvidvj1[3][3], d2Rdvidvj2[3][3], dRdvi1[3][3], dRdvj2[3][3], d1[3], d2[3];
+    for(int i=0; i<3; ++i) {
+      // second partial derivatives of rotation matrices wrt rotation parameters
+      for(int j=i; j<3; ++j) {
+        Second_Partial_R_Partial_EM3(r1, i, j, d2Rdvidvj1);
+        Second_Partial_R_Partial_EM3(r2, i, j, d2Rdvidvj2);
+        mat_mult_vec(d2Rdvidvj1, c0[axis1], d1);
+        mat_mult_vec(d2Rdvidvj2, c0[axis2], d2);
+
+        H[i][j] = H[j][i] = d1[0]*c2[axis2][0] + d1[1]*c2[axis2][1] + d1[2]*c2[axis2][2];
+        H[3+i][3+j] = H[3+j][3+i] = c1[axis1][0]*d2[0] + c1[axis1][1]*d2[1] + c1[axis1][2]*d2[2];
+      }
+    }
+    for(int i=0; i<3; ++i) {
+      Partial_R_Partial_EM3(r1, i, dRdvi1);
+      mat_mult_vec(dRdvi1, c0[axis1], d1);
+      for(int j=0; j<3; ++j) {
+        Partial_R_Partial_EM3(r2, j, dRdvj2);
+        mat_mult_vec(dRdvj2, c0[axis2], d2);
+
+        H[i][3+j] = H[3+j][i] = d1[0]*d2[0] + d1[1]*d2[1] + d1[2]*d2[2];
+      }
     }
   }
-
 }
 

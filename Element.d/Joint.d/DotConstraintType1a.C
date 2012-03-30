@@ -8,7 +8,7 @@ DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2)
   c0 = 0;
   axis1 = _axis1;
   axis2 = _axis2;
-  instantaneous_partials = true;
+  covariant_derivatives = true;
 
   axis1_copy = axis1;
   t_reparam = -1;
@@ -117,7 +117,7 @@ DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
   mat_mult_mat(c0, ns1.R, c1, 2);
   mat_mult_mat(c0, ns2.R, c2, 2);
 
-  if(instantaneous_partials) {
+  if(covariant_derivatives) {
 
     // instantaneous rotation parameters (thetax, thetay, thetaz)
     double r[3] = { 0, 0, 0 };
@@ -175,7 +175,7 @@ DotConstraintType1a::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatri
   mat_mult_mat(c0, ns1.R, c1, 2);
   mat_mult_mat(c0, ns2.R, c2, 2);
 
-  if(instantaneous_partials) {
+  if(covariant_derivatives) {
 
     // instantaneous rotation parameters
     double r[3] = { 0, 0, 0 };

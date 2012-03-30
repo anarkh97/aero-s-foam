@@ -7,7 +7,7 @@ DotConstraintType2::DotConstraintType2(int* _nn, int _axis)
 {
   axis = _axis;
   c0 = 0;
-  instantaneous_partials = true;
+  covariant_derivatives = true;
 }
 
 DotConstraintType2::~DotConstraintType2()
@@ -114,7 +114,7 @@ DotConstraintType2::update(GeomState& gState, CoordSet& cs, double)
     terms[6+i].coef.r_value = c1[i];
   }
 
-  if(instantaneous_partials) {
+  if(covariant_derivatives) {
 
     // instantaneous rotation parameters (thetax, thetay, thetaz)
     double r[3] = { 0,0,0 };
@@ -165,7 +165,7 @@ DotConstraintType2::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix
   double c1[3];
   mat_mult_vec(ns1.R, c0[axis], c1);
 
-  if(instantaneous_partials) {
+  if(covariant_derivatives) {
 
     // instantaneous rotation increment
     double r[3] = { 0, 0, 0 };

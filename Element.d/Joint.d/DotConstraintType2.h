@@ -7,7 +7,7 @@ class DotConstraintType2 : public MpcElement
 {
     double (*c0)[3]; // initial frame (axes stored row-wise)
     int axis;
-    bool instantaneous_partials;
+    bool covariant_derivatives;
 
   public:
     DotConstraintType2(int*, int);

@@ -3675,15 +3675,8 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  // print real part
   if(time >= 0.0)
     filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, freq());
-  for(int i = 0; i < numOutElems; i++)  {
-    int numNodes = offsets[i+1] - offsets[i];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      filePrint(oinfo[fileNum].filptr," % *.*e", w, p, stressData[offsets[i]+iNode].real());
-    filePrint(oinfo[fileNum].filptr,"\n");
-  }
 
   switch(oinfo[fileNum].complexouttype) {
     default:

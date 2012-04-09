@@ -3675,9 +3675,6 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  if(time >= 0.0)
-    filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, freq());
-
   switch(oinfo[fileNum].complexouttype) {
     default:
     case OutputInfo::realimag :

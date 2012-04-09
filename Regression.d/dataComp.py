@@ -235,7 +235,8 @@ def dComp(params):
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
         print "current directory is %s\n"% os.getcwd()
-        command = "./run."+indir+" >& reg.out"
+        command = "./run."+indir+" >reg.out 2>&1"
+##PJSA: replace this line with the one above for compatability with dash on ubuntu:        command = "./run."+indir+" >& reg.out"
 #       command = "sh ./scp."+indir+" >& reg.out"
         print "command is %s\n"% command
         os.system(command)

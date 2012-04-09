@@ -1755,7 +1755,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         }
         // print imaginary part
         if(time != -1.0) {
-          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for (i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
@@ -1767,7 +1767,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       if (oinfo[fileNum].groupNumber > 0)  {
 
@@ -1830,7 +1830,7 @@ void GeoSource::outputElemVectors(int fileNum, double *data,
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
     else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
   for(int i = 0; i < outputSize; i++) {
@@ -1860,7 +1860,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
@@ -1874,7 +1874,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       // output imaginary part
       if(outputSize != 1) {
         if(time != -1.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for(i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
@@ -1887,7 +1887,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
@@ -1901,7 +1901,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       // output phase part
       if(outputSize != 1) {
         if(time != -1.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for(i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",

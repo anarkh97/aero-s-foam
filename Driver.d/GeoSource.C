@@ -694,7 +694,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
         // print imaginary part
         if (outputSize != 1) {
           if (time != -1.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+            filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
           }
           for (i = 0; i < outputSize; i++)  {
             filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
@@ -709,7 +709,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
       }
       if (oinfo[fileNum].groupNumber > 0)  {
 
@@ -741,7 +741,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
         // print phase
         if (outputSize != 1) {
           if (time != -1.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+            filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
           }
           for (i = 0; i < outputSize; i++)  {
             filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
@@ -880,7 +880,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
         // print imaginary part
         if(outputSize != 1) {
           if(time != -1.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
+            filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
           }
           for(int inode = 0; inode < outputSize; inode++)  {
             filePrint(oinfo[fileNum].filptr,

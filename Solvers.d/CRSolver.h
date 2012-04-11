@@ -15,6 +15,7 @@ protected:
    GenCRSolver(int _maxit, double _tol, AnyOperator* _A, AnyPreconditioner* _P = 0)
      { maxiter = _maxit; tolerance = _tol; A = _A; P = _P;}
    void solve(AnyVector&, AnyVector&);
+   void reSolve(AnyVector &rhs) { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    int neqs() { return A->neqs(); }
    double getSolutionTime() { return solveTime; }
    long size() { return 0; }

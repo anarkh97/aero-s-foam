@@ -3277,8 +3277,10 @@ void GeoSource::outputElemStress(int fileNum, double *stressData,
   int p = oinfo[fileNum].precision;
 
   if(time != -1.0) {
-    filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-    if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+    if(numOutElems == 1)
+      fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+    else
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
   for(int i = 0; i < numOutElems; i++)  {
@@ -3302,8 +3304,10 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
     case OutputInfo::realimag :
       // print real part
       if(time != -1.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3313,8 +3317,10 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
       }
       // print imaginary part
       if(time != -1.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3326,8 +3332,10 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
     case OutputInfo::modulusphase :
       // print modulus
       if(time != -1.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3337,8 +3345,10 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
       }
       // print phase part
       if(time != -1.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else 
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];

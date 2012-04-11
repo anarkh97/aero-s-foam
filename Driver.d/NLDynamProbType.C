@@ -168,9 +168,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int p = 0, q = 1;
 
   double t0 = time;
-  double tmax = time + maxStep*dt0;
+  double tmax = time + maxStep*dt0 + std::numeric_limits<double>::epsilon();
 
-  for(int step=0 ; time < tmax || failed; step++ ) {
+  for(int step=0 ; time+dt0/q <= tmax || failed; step++ ) {
 
     dt = dt0/q;
     delta = dt/2;

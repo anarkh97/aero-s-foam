@@ -168,7 +168,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int p = 0, q = 1;
 
   double t0 = time;
-  double tmax = time + maxStep*dt0 + std::numeric_limits<double>::epsilon();
+  double tmax = time + maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
   for(int step=0 ; time+dt0/q <= tmax || failed; step++ ) {
 
@@ -271,7 +271,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                        midtime, maxit, initialRes, resN, probDesc->getTolerance());
     }
 
-    if(failed = (failSafe && converged != 1)) { 
+    if(failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol)) { 
       // decrease the time step and try again
       p *= 2;
       q *= 2;

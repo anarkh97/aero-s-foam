@@ -271,7 +271,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                        midtime, maxit, initialRes, resN, probDesc->getTolerance());
     }
 
-    if(failed = (failSafe && converged != 1)) { 
+    if(failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol)) { 
       // decrease the time step and try again
       p *= 2;
       q *= 2;

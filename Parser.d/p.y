@@ -3206,6 +3206,9 @@ NLInfo:
 */
         | NLInfo FAILSAFE NewLine
         { domain->solInfo().getNLInfo().failsafe = true; }
+        | NLInfo FAILSAFE Float NewLine
+        { domain->solInfo().getNLInfo().failsafe = true;
+          domain->solInfo().getNLInfo().failsafe_tol = $3; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:

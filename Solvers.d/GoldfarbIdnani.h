@@ -20,13 +20,15 @@ class GoldfarbIdnaniQpSolver : public BaseSolver
   MatrixXd CI;
 
   double tol;
+  bool check;
   Scalar dummy;
 
 public:
   template<class BaseArgs>
-  GoldfarbIdnaniQpSolver(BaseArgs &ba, ConstrainedDSA *cdsa, double _tol)
+  GoldfarbIdnaniQpSolver(BaseArgs &ba, ConstrainedDSA *cdsa, double _tol, bool _check)
    : BaseSolver(ba) {
     tol = _tol;
+    check = _check;
     unconstrNum = cdsa->getUnconstrNum();
     n = 0; p = 0; m = 0;
     doftype = new int[cdsa->size()];

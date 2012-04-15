@@ -98,6 +98,13 @@ MDNLDynamic::subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState
 }
 
 void
+MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
+                                bool zeroRot)
+{
+  geomState->get_inc_displacement(du, *refState, zeroRot); 
+}
+
+void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
                                   DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
@@ -136,7 +143,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
   }
 
   times->correctorTime += getTime();
-  return getResidualNorm(rhs);
+  return rhs.norm();
 }
 
 void
@@ -924,7 +931,7 @@ MDNLDynamic::sysVecInfo()
 }
 
 double
-MDNLDynamic::getResidualNorm(DistrVector &r)
+MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
  DistrVector w(r);

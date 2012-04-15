@@ -237,7 +237,7 @@ public:
         CoordSet & operator = (const CoordSet & other);
 
 	// Member functions
-        int size();
+        int size() const;
         void  nodeadd(int n, double*xyz);
         void  nodeadd(int n, Node &node);
 	Node &getNode(int n);

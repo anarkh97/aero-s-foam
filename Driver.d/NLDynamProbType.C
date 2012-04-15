@@ -168,7 +168,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int p = 0, q = 1;
 
   double t0 = time;
-  double tmax = time + maxStep*dt0 + std::numeric_limits<double>::epsilon();
+  double tmax = time + maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
   for(int step=0 ; time+dt0/q <= tmax || failed; step++ ) {
 
@@ -229,7 +229,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
         // Compute and store the residual norm
-        resN = probDesc->getResidualNorm(rhs);
+        resN = probDesc->getResidualNorm(rhs, *geomState, delta);
         if(iter == 0) initialRes = resN;
 
         // If the convergence criteria does not involve the solution increment, then 

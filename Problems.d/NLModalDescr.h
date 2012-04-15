@@ -150,6 +150,9 @@ public:
     Vector &res, double midtime = -1, ModalGeomState * = NULL);
   void reBuild(ModalGeomState &mgs, int iter, double delta, double t){ if(t != domain->solInfo().initialTime) solver->mat.factor(); }
 
+  void getIncDisplacement(ModalGeomState *geomState, Vector &du, ModalGeomState *refState,
+                          bool zeroRot);
+
   void evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs);
   void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState *refState=NULL);
   void formRHSpredictor(Vector &res, Vector &rhs, ModalGeomState &mgs);
@@ -177,7 +180,7 @@ public:
   void test2(ModalGeomState* = 0);
   void test(ModalGeomState* = 0);
   void printCoefs();
-  double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+  double getResidualNorm(Vector &rhs, ModalGeomState &, double) { return rhs.norm(); }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }

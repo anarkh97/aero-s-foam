@@ -86,7 +86,7 @@ public:
   
   void printTimers(double timeLoop);
 
-  double getResidualNorm(GenVector<double> &res) { return res.norm(); }
+  double getResidualNorm(GenVector<double> &res, GeomState &, double) { return res.norm(); }
 
 private:
   int fullSolVecInfo() const;

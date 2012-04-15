@@ -144,6 +144,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
                           GeomState* geomState, Vector& elementInternalForce, Vector& aeroF, double localDelta);
 
+    void getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState, bool zeroRot);
+
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs, double localDelta);
 
@@ -191,7 +193,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;
-    virtual double getResidualNorm(const Vector &rhs);
+    virtual double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
 
     int getAeroAlg();
     int getThermoeFlag();

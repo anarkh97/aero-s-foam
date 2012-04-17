@@ -222,7 +222,6 @@ Penta.d/Penta6ShapeFct.C
 Penta.d/Pentahedral.C
 Penta.d/sands24.f
 Quad4.d/FourNodeQuad.C
-Quad4.d/FourNodeQuad3D.C
 Quad4.d/getcmt.f
 Quad4.d/lgauss.f
 Quad4.d/q4dmas.f
@@ -351,7 +350,6 @@ ThermQuad.d/ThermQuadGal.C
 ThermQuad.d/veccrs.f
 Triangle3.d/ThermTriangle.C
 Triangle3.d/Triangle3.C
-Triangle3.d/ThreeNodeTri3D.C
 Truss.d/Therm2NodeBar.C
 Truss.d/TwoNodeTruss.C
 Truss.d/TwoNodeTrussF.C

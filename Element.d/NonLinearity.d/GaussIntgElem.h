@@ -61,7 +61,6 @@ class GenGaussIntgElement : public MatNLElement
     virtual int getNumGaussPoints() = 0;
     virtual void getGaussPointAndWeight(int, double *, double &) = 0;
     virtual GenShapeFunction<TensorTypes> *getShapeFunction() = 0;
-    virtual StrainEvaluator *getStrainEvaluator() = 0;
     virtual GenStrainEvaluator<TensorTypes> *getGenStrainEvaluator() = 0;
     virtual NLMaterial *getMaterial() = 0;
 

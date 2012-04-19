@@ -121,6 +121,9 @@ class MDNLDynamic
                           int tIndex, double time, DistrGeomState *geomState, 
                           DistrVector &elementInternalForce, DistrVector &aeroF, double localDelta);
 
+    void getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
+                            bool zeroRot);
+
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
     
@@ -160,7 +163,7 @@ class MDNLDynamic
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
                           int aeroAlg);
 
-    double getResidualNorm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec, DistrGeomState &, double);
 
     int getAeroAlg();
     int getThermoeFlag();

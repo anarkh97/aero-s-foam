@@ -66,7 +66,7 @@
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
@@ -93,7 +93,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -2313,13 +2313,22 @@ Lumped:
 	;
 Preload:
         PRELOAD NewLine
-        { fprintf(stderr," ... PreLoad in Truss Elements      ... \n");}
+        { }
         | Preload Integer Float NewLine
         { geoSource->setElementPreLoad( $2-1, $3 ); }
-        | Preload Integer Integer Float NewLine
+        | Preload Integer THRU Integer Float NewLine
         { int i;
-          for(i=$2; i<($3+1); ++i)
-            geoSource->setElementPreLoad( i-1, $4 );
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, $5 );
+        }
+        | Preload Integer Float Float Float NewLine
+        { double load[3] = { $3, $4, $5 };
+          geoSource->setElementPreLoad( $2-1, load ); }
+        | Preload Integer THRU Integer Float Float Float NewLine
+        { double load[3] = { $5, $6, $7 };
+          int i;
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, load );
         }
 	;
 IterSolver:
@@ -2478,6 +2487,8 @@ Solver:
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
         | GOLDFARBTOL Float NewLine
         { domain->solInfo().goldfarb_tol = $2; }
+        | GOLDFARBCHECK SWITCH NewLine
+        { domain->solInfo().goldfarb_check = bool($2); }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
         | DEBUGICNTL Integer Integer NewLine
@@ -2934,23 +2945,20 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty;
-          domain->solInfo().mpcDual = $2.mpcDual; }
+          domain->solInfo().penalty = $2.penalty; }
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; $$.mpcDual = false; } // Direct elimination of slave dofs
+        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
         | DIRECT Float
         { $$.lagrangeMult = false; $$.penalty = 0.0;
           domain->solInfo().mpcDirectTol = $2; }
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
+        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; $$.mpcDual = false; } // Treatment of constraints through penalty method
+        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; $$.mpcDual = false; } // Treatment of constraints through augmented Lagrangian method
-        | MULTIPLIERS DUALMORTAR
-        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = true; }
+        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
@@ -3350,6 +3358,11 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat2D($4, $5, $6, $7));
+         }
+        | MatSpec Integer SVKPLSTRESS Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat2D($4, $5, $6, $7));
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {

@@ -787,12 +787,12 @@ Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bo
 #ifdef USE_EIGEN3
   if(c_dsa == 0) c_dsa = Domain::c_dsa;
   if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
-  if(sinfo.mpcDual) {
+  if(sinfo.subtype == 14) {
     Connectivity *nodeToNodeG = nodeToNode;
     if(g_dsa) delete g_dsa;
     g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
     typename WrapEiSparseMat<Scalar>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
-    return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol);
+    return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol, sinfo.goldfarb_check);
   }
   else {
    return new GenEiSparseMatrix<Scalar>(nodeToNode, dsa, c_dsa, flag);
@@ -1317,7 +1317,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #endif
       break;
 #ifdef USE_EIGEN3
-    case 4:
+    case 4: case 14:
       spm = constructEiSparseMatrix<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;

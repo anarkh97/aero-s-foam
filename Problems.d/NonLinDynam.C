@@ -398,10 +398,12 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->UpdateContactSurfaceElements(&geomState);
+    factor = false;
     preProcess();
     geomState.resizeLocAndFlag(*domain->getCDSA());
     residual.resize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
+    localTemp.resize(domain->getCDSA()->size());
   }
 
   getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);
@@ -679,6 +681,16 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
 }
 
 void
+NonLinDynamic::getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState,
+                                  bool zeroRot)
+{
+  if(domain->GetnContactSurfacePairs()) {
+    du.resize(domain->getCDSA()->size());
+  }
+  geomState->get_inc_displacement(du, *refState, zeroRot);
+}
+
+void
 NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs, GeomState *refState)
 {
   // rhs = (fext - fint - Cv)
@@ -749,6 +761,12 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
                                 Vector &residual, Vector &rhs, double localDelta)
 {
   times->correctorTime -= getTime();
+  if(domain->GetnContactSurfacePairs()) {
+    velocity.resize(domain->getCDSA()->size());
+    acceleration.resize(domain->getCDSA()->size());
+    rhs.resize(domain->getCDSA()->size());
+  }
+
   if(domain->solInfo().order == 1) {
     M->mult(inc_displacement, rhs);
     rhs.linC(localDelta, residual, -1.0, rhs);
@@ -764,7 +782,6 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
     if(C) {
       localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(localTemp.data(), rhs.data());
-      //std::cerr << "here in NonLinDynamic::formRHScorrector #2, rhs.norm() = " << rhs.norm() << std::endl;
     }
     rhs.linAdd(dt*dt*beta, residual);
   }
@@ -1191,8 +1208,12 @@ NonLinDynamic::getNewmarkParameters(double &beta, double &gamma,
 }
 
 double
-NonLinDynamic::getResidualNorm(const Vector &res)
+NonLinDynamic::getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta)
 {
+  double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+  getNewmarkParameters(beta, gamma, alphaf, alpham);
+  Vector res(rhs);
+  domain->applyResidualCorrection(geomState, allCorot, res, dt*dt*beta);
   return solver->getResidualNorm(res);
 }
 

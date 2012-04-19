@@ -66,18 +66,20 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
 {
     int n[3];
     NLMaterial *material;
-    bool linearKinematics;
+    bool useDefaultMaterial;
 
   protected:
     int getNumGaussPoints();
     void getGaussPointAndWeight(int i, double *point, double &weight);
     GenShapeFunction< TwoDTensorTypes<9> > *getShapeFunction();
-    StrainEvaluator *getStrainEvaluator();
     GenStrainEvaluator<TwoDTensorTypes<9> > *getGenStrainEvaluator();
     NLMaterial *getMaterial();
 
   public:
-    NLMembrane(int *nd, bool isLinKin);
+    NLMembrane(int *nd);
+    ~NLMembrane();
+    void setPreLoad(std::vector<double> &_preload) { preload = _preload; }
+    std::vector<double> getPreLoad() { return preload; }
     int numNodes() { return 3; }
     int numDofs() { return 9; }
     void renum(int *);
@@ -85,10 +87,39 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int*   dofs(DofSetArray &, int *p=0);
     int*   nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
-    void setProp(StructProp *);
     void setMaterial(NLMaterial *);
-    void computePressureForce(Node *cs,Vector& elPressureForce,
-                              double *gs = 0, int cflg = 0, double t = 0);
+    int numInternalNodes();
+    void computePressureForce(CoordSet &cs, Vector& elPressureForce,
+                              GeomState *gs=0, int cflg = 0, double t = 0);
+
+    Corotator* getCorotator(CoordSet &, double *, int , int);
+    int getTopNumber() { return 104; }
+    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
+    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
+    double getMass(CoordSet&);
+    void getGravityForce(CoordSet& cs, double *gravityAcceleration,
+                         Vector& gravityForce, int gravflg, GeomState *geomState);
+    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                     int surface=0, double *ndTemps=0, double ylayer=0, double zlayer=0, int avgnum=0);
+    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                      int surface=0, double *ndTemps=0);
+
+    void computeDisp(CoordSet&cs, State &state, const InterpPoint &, double*res, GeomState *gs);
+    void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);
+
+    PrioInfo examine(int sub, MultiFront *mf);
+};
+
+#include <Element.d/SuperElement.h>
+
+class NLMembrane4 : public SuperElement
+{
+  public:
+    NLMembrane4(int *nodenums);
+    int  getTopNumber();
+    void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);
+    void getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF, double *res, GeomState *gs=0);
+    PrioInfo examine(int sub, MultiFront *mf);
 };
 
 #endif

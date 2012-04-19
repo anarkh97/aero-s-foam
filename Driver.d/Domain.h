@@ -800,9 +800,6 @@ class Domain : public HData {
      // returns the value of the pressure force flag
      int  pressureFlag();
 
-     // returns the value of the preload force flag
-     int  preloadFlag();
-
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.penalty == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 

@@ -627,7 +627,7 @@ int main(int argc, char** argv)
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
  if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
-    && !domain->solInfo().mpcDual) {
+    && domain->solInfo().subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
    if(verboseFlag) {
      filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
      filePrint(stderr, " ***          Using FETI-DP instead.\n");

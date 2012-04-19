@@ -2666,10 +2666,6 @@ void Domain::WriteToFileMortarLMPCs(FILE *file)
 int
 Domain::pressureFlag() { return geoSource->pressureFlag(); }
 
-// returns the value of the preload force flag
-int
-Domain::preloadFlag() { return geoSource->preloadFlag(); }
-
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 
@@ -3569,24 +3565,15 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 void
 Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  // first store the lagrange multipliers
-  std::map<std::pair<int,int>,double> mu; 
-  std::map<std::pair<int,int>,double>::iterator it;
+  // copy the lagrange multipliers from geomState
+  std::vector<double> mu;
   if(sinfo.lagrangeMult) {
-    for(std::vector<int>::iterator i = contactSurfElems.begin(); i != contactSurfElems.end(); ++i) {
-      if(packedEset[*i]->numInternalNodes() == 1) {
-        int in = (*elemToNode)[*i][packedEset[*i]->numNodes()-1];
-        LMPCons *lmpc = dynamic_cast<LMPCons*>(packedEset[*i]);
-        mu[lmpc->id] = (*geomState)[in].x;
+    for(int i = 0; i < numLMPC; ++i) {
+      if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+        mu.push_back(geomState->getMultiplier(lmpc[i]->id));
       }
     }
-    // count the number of contact surface lmpcs with lagrange multipliers
-    int count3 = 0;
-    for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->getSource() == mpc::ContactSurfaces) count3++;
-    }
-
-    geomState->resizeNodeState(count3-contactSurfElems.size()); // resizing the node state vector allows the lagrange multipliers to be stored
+    geomState->clearMultiplierNodes();
   }
 
   if(!p) p = new StructProp(); 
@@ -3594,10 +3581,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   p->penalty = sinfo.penalty;
   p->type = StructProp::Constraint;
   int count = 0;
-  int nEle = packedEset.size();
+  int nEle = packedEset.last();
   int count1 = 0;
-  int lastNode = geomState->numNodes();
-  if(sinfo.lagrangeMult) lastNode -= contactSurfElems.size();
+  int nNode = geomState->numNodes();
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
@@ -3605,13 +3591,10 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         packedEset[contactSurfElems[count]]->setProp(p);
-        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+          int in[1] = { nNode++ };
           packedEset[contactSurfElems[count]]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         count1++;
       }
@@ -3620,12 +3603,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
         packedEset[nEle]->setProp(p);
         if(packedEset[nEle]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+          int in[1] = { nNode++ };
           packedEset[nEle]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -3643,6 +3623,6 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
   numele = packedEset.last(); 
-  numnodes = lastNode;
+  numnodes = geomState->numNodes();
 }
 

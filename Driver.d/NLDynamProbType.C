@@ -229,7 +229,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
         // Compute and store the residual norm
-        resN = probDesc->getResidualNorm(rhs);
+        resN = probDesc->getResidualNorm(rhs, *geomState, delta);
         if(iter == 0) initialRes = resN;
 
         // If the convergence criteria does not involve the solution increment, then 

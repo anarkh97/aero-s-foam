@@ -16,10 +16,10 @@ public:
 
   static void zeroInc(StateIncr *du)  { du->zero(); }
 
-  static void get_inc_displacement(ProbDescr *,
+  static void get_inc_displacement(ProbDescr *pbd,
                                    GeomType *geomState, StateIncr &du, GeomType *refState,
                                    bool zeroRot) {
-    geomState->get_inc_displacement(du, *refState, zeroRot);
+    pbd->getIncDisplacement(geomState, du, refState, zeroRot);
   }
 
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,

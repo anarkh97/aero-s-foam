@@ -196,6 +196,7 @@ struct SolverInfo {
    int sparse_maxsup, sparse_defblk;
 
    double goldfarb_tol;
+   bool goldfarb_check;
 
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
@@ -248,7 +249,6 @@ struct SolverInfo {
    double penalty;
    int mpcDirect;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
-   bool mpcDual;
 
    bool activatePodRom;
    bool snapshotsPodRom;
@@ -371,6 +371,7 @@ struct SolverInfo {
                   spooles_msglvl = 0;
                   spooles_renum = 0;
                   goldfarb_tol = 1.0;
+                  goldfarb_check = false;
                   explicitK = false;
                   localScaled = false;
                   coarseScaled = false;
@@ -448,7 +449,6 @@ struct SolverInfo {
                   penalty = 0;
                   mpcDirect = 0;
                   mpcDirectTol = 10;
-                  mpcDual = false;
 
                   activatePodRom = false;
                   snapshotsPodRom = false;

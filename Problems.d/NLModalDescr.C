@@ -875,6 +875,15 @@ double NLModalDescr::getStiffAndForce(ModalGeomState &mgs,
 
 //------------------------------------------------------------------------------
 
+void 
+NLModalDescr::getIncDisplacement(ModalGeomState *geomState, Vector &du, ModalGeomState *refState,
+                                 bool zeroRot)
+{
+  geomState->get_inc_displacement(du, *refState, zeroRot);
+}
+
+//------------------------------------------------------------------------------
+
 void NLModalDescr::evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs){
 /*PRE:
  POST:

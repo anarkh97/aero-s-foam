@@ -434,6 +434,8 @@ TRAIL [a-zA-Z]*
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
+"gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
+
 "mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }
 
 "mumps_cntl"|"MUMPS_CNTL" { return MUMPSCNTL; }
@@ -465,6 +467,8 @@ TRAIL [a-zA-Z]*
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
 
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
+
+"goldfarb_check"|"GOLDFARB_CHECK"  { return GOLDFARBCHECK; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
@@ -1134,6 +1138,8 @@ TRAIL [a-zA-Z]*
 "logs"[a-zA-Z]*|"LOGS"[a-zA-Z]*|"LogS"[a-zA-Z]*         { return LOGSTRAINPLASTIC; }
 
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
+
+"hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
 
 "linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
 

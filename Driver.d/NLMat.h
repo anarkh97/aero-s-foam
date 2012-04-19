@@ -133,7 +133,7 @@ public:
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
    double getResidualNorm(Vector &rhs, NLState &) { return rhs.norm(); }
-   double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+   double getResidualNorm(Vector &rhs, NLState &, double) { return rhs.norm(); }
 
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }

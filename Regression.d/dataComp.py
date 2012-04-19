@@ -209,7 +209,8 @@ def dComp(params):
           time.sleep(10)
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
-        command = "./run."+names+" >& reg.out"
+        command = "./run."+names+" >reg.out 2>&1"
+##PJSA: replace this line with the one above for compatability with dash on ubuntu:        command = "./run."+names+" >& reg.out"
 #       command = "sh ./scp."+names+" >& reg.out"
         os.system(command)
       os.chdir('../') 

@@ -475,8 +475,10 @@ size_t ElemsetIO::write(Elemset* eset, int index, BinFileHandler& file, int curO
 	  file.write(nodes, numNodes);
           double pressure = (*eset)[index]->getPressure();
           file.write(&pressure, 1);
-          double preload = (*eset)[index]->getPreLoad();
-          file.write(&preload, 1);
+          std::vector<double> preload = (*eset)[index]->getPreLoad();
+          int preload_size = preload.size();
+          file.write(&preload_size, 1);
+          file.write(&(preload[0]), preload_size);
 	}
       else 
 	{

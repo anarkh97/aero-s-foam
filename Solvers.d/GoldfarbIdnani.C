@@ -55,17 +55,22 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
   }
   VectorXd x(n);
   VectorXd lambda(p), mu(m);
-  try {
+  //note: the exceptions should be caught in the driver, see for example Driver.d/NLDynamProbType.C
+  //try { 
+    if(check) {
+      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(G,Eigen::EigenvaluesOnly);
+      if(es.eigenvalues().minCoeff() <= 0) throw std::runtime_error("Matrix G is not positive definite");
+    }
 #ifdef SPARSE_G
     Eigen::SparseMatrix<double> SparseG = EiSparseMatrix::getEigenSparse();
     double f = Eigen::solve_quadprog(SparseG, G.trace(), g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
 #else
     double f = Eigen::solve_quadprog(G, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
 #endif
-  }
-  catch(std::runtime_error& e) {
-    cerr << "exception: " << e.what() << endl;
-  }
+  //}
+  //catch(std::runtime_error& e) {
+  //  cerr << "exception: " << e.what() << endl;
+  //}
   for(int i = 0; i < neqs(); ++i) {
     switch(doftype[i]) {
       case 0 : sol(i) = x(dofmap[i]); break;

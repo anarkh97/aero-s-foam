@@ -36,9 +36,15 @@ SuperElement::~SuperElement()
 }
 
 void
-SuperElement::setPreLoad(double load, int &flg)
+SuperElement::setPreLoad(std::vector<double> &load)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load, flg);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load);
+}
+
+std::vector<double>
+SuperElement::getPreLoad()
+{
+  return subElems[0]->getPreLoad();
 }
 
 void

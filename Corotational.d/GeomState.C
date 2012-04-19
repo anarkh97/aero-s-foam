@@ -131,11 +131,11 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0) 
+GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0)
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0) 
+GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0)
 {
   numnodes = cs.size();                 // Number of nodes
   ns.resize(numnodes);
@@ -176,6 +176,14 @@ GeomState::~GeomState()
 }
 
 void
+GeomState::clearMultiplierNodes()
+{
+  numnodes -= multiplier_nodes.size();
+  ns.resize(numnodes);
+  multiplier_nodes.clear();
+}
+
+void
 GeomState::resizeLocAndFlag(DofSetArray &cdsa)
 {
   // note ns has already been resized
@@ -183,9 +191,9 @@ GeomState::resizeLocAndFlag(DofSetArray &cdsa)
   loc.resize(ns.size());
   flag.resize(ns.size());
 
-  for(int i = numnodes; i < ns.size(); ++i) {
+  for(int i = numnodes-multiplier_nodes.size(); i < ns.size(); ++i) {
 
-    loc[i].resize(9); for(int j=0; j<6; ++j) loc[i][j] = -1;
+    loc[i].resize(6); for(int j=0; j<6; ++j) loc[i][j] = -1;
     int dof;
     if((dof = cdsa.locate( i, DofSet::LagrangeE )) > -1) {
       loc[i][0] = dof;
@@ -199,7 +207,6 @@ GeomState::resizeLocAndFlag(DofSetArray &cdsa)
       flag[i] = 0;
     }
   }
-  numnodes = ns.size();
 }
 
 void
@@ -224,19 +231,47 @@ GeomState::printNode(int i)
 GeomState &
 GeomState::operator=(const GeomState &g2)
 {
-  int i,j;
-  for(i=0; i<numnodes; ++i)
-    ns[i] = g2.ns[i];
+  // note: unlike the copy constructor, the assignment operator does not copy X0 or refCG
+  if(numnodes != g2.numNodes()) {
+    numnodes = g2.numNodes();
+    ns.resize(g2.numNodes());
+    loc.resize(g2.numNodes());
+    flag.resize(g2.numNodes());
+  }
 
+  numReal = g2.numReal;
+
+  // Copy dof locations
+  for(int i = 0; i < numnodes; ++i) {
+    loc[i].resize(6);
+    loc[i][0] = g2.loc[i][0];
+    loc[i][1] = g2.loc[i][1];
+    loc[i][2] = g2.loc[i][2];
+    loc[i][3] = g2.loc[i][3];
+    loc[i][4] = g2.loc[i][4];
+    loc[i][5] = g2.loc[i][5];
+  }
+
+  // Copy node states
+  for(int i = 0; i < numnodes; ++i) {
+    ns[i]  = g2.ns[i];
+    flag[i]= g2.flag[i];
+  }
+  multiplier_nodes = g2.multiplier_nodes;
+
+  // now deal with element states
+  numelems = g2.numelems;
+  es = new ElemState[numelems];
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
   emap = g2.emap;
 
 #ifdef WITH_GLOBAL_ROT
-  for(i=0; i<3; ++i)
-    for(j=0; j<3; ++j)
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
 #endif
+
   return *this;
 }
 
@@ -260,7 +295,7 @@ GeomState::extract(double *p)
   }
 }
 
-GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
+GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier_nodes(g2.multiplier_nodes)
 {
   // Copy number of nodes
   numnodes = g2.numnodes;
@@ -275,8 +310,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   numReal = g2.numReal;
 
   // Copy dof locations
-  int i;
-  for(i = 0; i < numnodes; ++i) {
+  for(int i = 0; i < numnodes; ++i) {
     loc[i].resize(6); 
     loc[i][0] = g2.loc[i][0];
     loc[i][1] = g2.loc[i][1];
@@ -287,7 +321,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   }
 
   // Copy node states
-  for(i = 0; i < numnodes; ++i) {
+  for(int i = 0; i < numnodes; ++i) {
     ns[i]  = g2.ns[i];
     flag[i]= g2.flag[i];
   }
@@ -477,6 +511,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
   // Update translational velocity and accelerations
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
 
     // Update translational velocities and accelerations
     if(loc[i][0] >= 0) {
@@ -523,6 +558,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
     ss.ns[i].x = ns[i].x = tcoef*(ns[i].x - alphaf*ss.ns[i].x);
     ss.ns[i].y = ns[i].y = tcoef*(ns[i].y - alphaf*ss.ns[i].y);
     ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);
@@ -532,6 +568,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
     if(alphaf == 0.0) {
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
@@ -634,6 +671,8 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
+    if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
+    
     // Update incremental translational displacements
     if(loc[inode][0] >= 0) incVec[loc[inode][0]] = ns[inode].x - ss.ns[inode].x;
     if(loc[inode][1] >= 0) incVec[loc[inode][1]] = ns[inode].y - ss.ns[inode].y;
@@ -1002,6 +1041,25 @@ GeomState::getTotalNumElemStates()
    n += es[i].numInternalStates;
  }
  return n;
+}
+
+void
+GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
+{
+  NodeState n;
+  n.x = value;
+  ns.push_back(n);
+  multiplier_nodes[lmpc_id] = numnodes++;
+}
+
+double
+GeomState::getMultiplier(std::pair<int,int> &lmpc_id)
+{
+  std::map<std::pair<int,int>,int>::iterator it;
+  if((it = multiplier_nodes.find(lmpc_id)) != multiplier_nodes.end())
+    return ns[it->second].x;
+  else
+    return 0;
 }
 
 void GeomState::computeGlobalRotation() 

@@ -21,11 +21,18 @@ TwoNodeTrussF::TwoNodeTrussF(int* nodenums)
         preload = 0.0;
 }
 
-void 
-TwoNodeTrussF::setPreLoad(double load, int &flg)
-{ 
-        preload = load;
-        flg = 1;
+void
+TwoNodeTrussF::setPreLoad(std::vector<double> &load)
+{
+        preload = load[0];
+}
+
+std::vector<double>
+TwoNodeTrussF::getPreLoad()
+{
+        std::vector<double> ret;
+        ret.push_back(preload);
+        return ret;
 }
 
 Element *

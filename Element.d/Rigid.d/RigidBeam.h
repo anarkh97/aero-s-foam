@@ -13,7 +13,7 @@ class RigidBeam : public SuperElement
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
-    LMPCons** getMPCs();
+    //LMPCons** getMPCs();
 
     void buildFrame(CoordSet&);
     int getMassType() { return 0; }

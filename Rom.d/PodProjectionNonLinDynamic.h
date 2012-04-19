@@ -1,12 +1,6 @@
 #ifndef ROM_PODPROJECTIONNONLINDYNAMIC_H
 #define ROM_PODPROJECTIONNONLINDYNAMIC_H
 
-#include "PodProjectionSolver.h"
-#include "VecNodeDof6Conversion.h"
-#include "NodeDof6Buffer.h"
-#include "BasisFileStream.h"
-#include "VecBasis.h"
-
 #include <Problems.d/NonLinDynam.h>
 #include <Driver.d/StateUpdater.h>
 
@@ -14,39 +8,39 @@
 
 namespace Rom {
 
+template <typename Scalar> class GenPodProjectionSolver;
+
 class PodProjectionNonLinDynamic : public NonLinDynamic {
 public:
   explicit PodProjectionNonLinDynamic(Domain *);
+  virtual ~PodProjectionNonLinDynamic();
 
   // Required additional pre-processing
   virtual void preProcess();
 
   // Hiding NonLinDynamic::getSolve
-  PodProjectionSolver *getSolver();
-  const PodProjectionSolver *getSolver() const;
+  GenPodProjectionSolver<double> *getSolver();
+  const GenPodProjectionSolver<double> *getSolver() const;
 
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
 
   // Hooks in NLDynamSolver
-  virtual double getResidualNorm(const Vector &);
+  virtual double getResidualNorm(const Vector &, GeomState &, double);
   int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time); // relies on function hiding
+
+protected:
+  class Impl;
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden
 
-  void computeAndSaveJacobianSnapshot();
-  void saveResidualSnapshot(const Vector &snap) { *residualSnapFile_ << snap; }
+  void handleResidualSnapshot(const Vector &);
 
-  VecBasis projectionBasis_;
-
-  std::auto_ptr<VecNodeDof6Conversion> vecNodeDof6Conversion_;
-  NodeDof6Buffer snapBuffer_;
+  std::auto_ptr<Impl> impl_;
   
-  std::auto_ptr<BasisOutputStream> residualSnapFile_;
-  std::auto_ptr<BasisOutputStream> jacobianSnapFile_;
-
   friend class Updater;
+  friend class Impl;
 
   // Disallow copy and assignment
   PodProjectionNonLinDynamic(const PodProjectionNonLinDynamic &);
@@ -59,11 +53,11 @@ public:
   static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,
                                  GenVector<double> &vel_n, GenVector<double> &accel,
                                  GenVector<double> &residual, GenVector<double> &rhs,
-                                 GeomState *geomState) {
+                                 GeomState *geomState, double delta) {
     const double result = IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
-        pbd, inc_displac, vel_n, accel, residual, rhs, geomState);
+        pbd, inc_displac, vel_n, accel, residual, rhs, geomState, delta);
 
-    pbd->saveResidualSnapshot(rhs);
+    pbd->handleResidualSnapshot(rhs);
 
     return result;
   }

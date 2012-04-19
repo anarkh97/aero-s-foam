@@ -448,12 +448,15 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
       if(nNodes == 0) { cerr << "Sower.h found void element in readData, elType = " << elType << endl; return; }
       s->readNum<>(NODES_TYPE, nodes, nNodes, file);
       obj->elemadd(localIndex, elType, nNodes, nodes);
-      double pressure, preload;
+      double pressure;
       s->read(&pressure, 1, file);
-      s->read(&preload, 1, file);
+      int preload_size;
+      s->read(&preload_size, 1, file);
+      std::vector<double> preload;
+      preload.reserve(preload_size);
+      s->read(&(preload[0]), preload_size, file);
       (*obj)[localIndex]->setPressure(pressure);
-      int prlflg;
-      (*obj)[localIndex]->setPreLoad(preload, prlflg);
+      (*obj)[localIndex]->setPreLoad(preload);
     }
 
   static oType create(int size)
@@ -596,8 +599,7 @@ class PreLoadIO
 #endif
       double preload;
       s->read(&preload, 1, file);
-      int prlflg;
-      (*obj)[localIndex]->setPreLoad(preload,prlflg); 
+      (*obj)[localIndex]->setPreLoad(preload); 
     }
 };
 */

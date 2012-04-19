@@ -100,9 +100,9 @@ template<class Scalar>
 void
 GenMultiDomainEigen<Scalar>::error(int subspacesize, int numRbm)
 {
- fprintf(stderr,"*** subspace size must be bigger than number of rbm   ***\n");
- fprintf(stderr,"subspace size = %d\n",subspacesize);
- fprintf(stderr,"number of rbm = %d\n",numRbm);
+ filePrint(stderr,"*** subspace size must be bigger than number of rbm   ***\n");
+ filePrint(stderr,"subspace size = %d\n",subspacesize);
+ filePrint(stderr,"number of rbm = %d\n",numRbm);
 }
 
 template <class Scalar>

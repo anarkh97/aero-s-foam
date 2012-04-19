@@ -34,7 +34,7 @@ public:
                                 Vector& vp, Vector& bkVp, int step, int parity,
                                 int aeroAlg) = 0;
   virtual void dynamOutput(GeomState *, GenVector<double> &, GenVector<double> &, double, int, GenVector<double> &, GenVector<double> &,
-                           GenVector<double> &) const = 0;
+                           GenVector<double> &, GeomState *) const = 0;
 };
 
 // Virtual methods to allow derived class PitaNonLinDynamic in Pita.d/PitaNonLinDynam.d
@@ -44,6 +44,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     Domain *domain;
     double *bcx;	// displacement prescribed values
     double *vcx;        // velocity prescribed values
+    double *acx;        // acceleration prescribed values
     Solver *solver;
     SparseMatrix *spm;
     Solver *prec;
@@ -56,7 +57,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     SparseMatrix *M;    // Mass matrix
     SparseMatrix *C;    // Damping matrix
-    SparseMatrix *kuc;
+    SparseMatrix *Kuc;
+    SparseMatrix *Muc, *Mcc, *Cuc, *Ccc;
     Corotator **allCorot;
     Vector localTemp;
 
@@ -67,8 +69,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     PrevFrc *prevFrc;   // previous Aeroelastic force at time step t(n-1)
     double t0;          // initial time
     double totalTime;   // total time
-    double dt;          // time step size
-    double delta;       // half time step size
+    double dt0;         // initial time step size
     int maxStep;        // maximum number of time steps
 
     double tolerance;   // convergence criteria tolerance
@@ -99,6 +100,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int numR;            // number of rigid body modes
 
     double resN;
+    Vector *reactions;
+    bool factor;
 
  public:
     // Constructor
@@ -110,7 +113,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getInitialTime(int &initTimeIndex, double &initTime);
     void readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
                          Vector &v_p, GeomState &geomState);
-    void setBC(double *userDefineDisplacement, double *userDefineVel);
+    void setBC(double *userDefineDisplacement, double *userDefineVel, double *userDefineAcc);
 
     int  getInitState(Vector& d, Vector& v, Vector& a, Vector &v_p);
     void updateUserSuppliedFunction(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p, double initialTime);
@@ -127,8 +130,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     void   computeTimeInfo();
 
-    double getDelta() const     { return delta;     }
-    double getDt() const        { return dt;        }
+    double getDelta() const     { return dt0/2;     }
+    double getDt() const        { return dt0;        }
     int    getMaxStep() const   { return maxStep;   }
     double getTotalTime() const { return totalTime; }
     int    getMaxit();
@@ -139,19 +142,18 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getConstForce(Vector& constantForce);
 
     void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
-                          GeomState* geomState, Vector& elementInternalForce, Vector& aeroF);
+                          GeomState* geomState, Vector& elementInternalForce, Vector& aeroF, double localDelta);
 
-    double formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
-                            Vector &residual, Vector &rhs);
+    void getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState, bool zeroRot);
+
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
                             Vector &residual, Vector &rhs, double localDelta);
 
-    void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid);
     void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 
     void formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce, GeomState &geomState, Vector &rhs, GeomState *refState = NULL);
 
-    virtual void preProcess();
+    virtual void preProcess(double Kcoef = 0, double Mcoef = 1, double Ccoef = 0);
 
     virtual void openResidualFile();
 
@@ -173,10 +175,15 @@ class NonLinDynamic : public NLDynamPostProcessor {
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
                             Vector& elementInternalForce, double midtime=-1, GeomState *refState = NULL);
 
+  private:
+    // Overridable implementation of getStiffAndForce
+    virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
+                                            Corotator **allCorot, FullSquareMatrix *kelArray,
+                                            Vector &residual, double lambda, double time, GeomState *refState);
 
+  public:
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(GeomState& geomState, int iter = 0);
-    void reBuild(GeomState& geomState, int iter, double localDelta);
+    void reBuild(GeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
     virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
@@ -184,8 +191,9 @@ class NonLinDynamic : public NLDynamPostProcessor {
                           Vector& vp, Vector& bkVp, int step, int parity,
                           int aeroAlg);
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
-                     double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration) const;
-    virtual double getResidualNorm(const Vector &rhs);
+                     double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
+                     GeomState *refState) const;
+    virtual double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
 
     int getAeroAlg();
     int getThermoeFlag();
@@ -195,27 +203,9 @@ class NonLinDynamic : public NLDynamPostProcessor {
                               double &alphaf, double &alpham);
 
 private:
-  virtual bool factorWhenBuilding() const;
+    virtual bool factorWhenBuilding() const;
+    void clean();
 };
-
-inline double
-NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector& acceleration,
-                                Vector &residual,         Vector &rhs)
-{
-  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
-}
-
-inline void
-NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &geomState, double mid)
-{
-  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, delta);
-}
-
-inline void
-NonLinDynamic::reBuild(GeomState& geomState, int iter)
-{
-  reBuild(geomState, iter, delta);
-}
 
 inline const NLDynamPostProcessor &
 NonLinDynamic::defaultPostProcessor() const

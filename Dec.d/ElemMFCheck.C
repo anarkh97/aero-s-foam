@@ -2,10 +2,8 @@
 #include <Element.d/Element.h>
 #include <Element.d/Beam.d/EulerBeam.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
-#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
-#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/Membrane.d/Membrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
@@ -80,6 +78,7 @@
 #include <Element.d/Helm.d/HelmBrick32.h>
 #include <Element.d/Helm.d/HelmPenta26.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
 
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
@@ -337,7 +336,7 @@ FourNodeQuad::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-FourNodeQuad3D::examine(int sub, MultiFront *mf)
+NLMembrane4::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
 }
@@ -467,9 +466,9 @@ Triangle3::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-ThreeNodeTri3D::examine(int sub, MultiFront *mf)
+NLMembrane::examine(int sub, MultiFront *mf)
 {
-  return examineTri3(sub, mf, nn);
+  return examineTri3(sub, mf, n);
 }
 
 PrioInfo

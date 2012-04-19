@@ -9,6 +9,7 @@ class DotConstraintType1a : public MpcElement
     int axis1, axis2;
     int axis1_copy;
     double t_reparam, offset;
+    bool covariant_derivatives;
 
   public:
     DotConstraintType1a(int*, int, int);
@@ -17,6 +18,10 @@ class DotConstraintType1a : public MpcElement
     void buildFrame(CoordSet&);
     void update(GeomState& gState, CoordSet& cs, double t);
     void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
+    double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    void computePressureForce(CoordSet&, Vector& elPressureForce,
+                              GeomState *gs = 0, int cflg = 0, double t = 0);
 };
 
 #endif

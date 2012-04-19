@@ -9,16 +9,21 @@
 #define MAPPEDASSEMBLEDSOLVER_H_
 #include <iostream>
 
+#include <Utils.d/dbg_alloca.h>
 #include <Utils.d/resize_array.h>
 #include <Math.d/FullMatrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
+#include <Utils.d/dofset.h>
 
 struct DOFMap {
   int ndofs;
   int *dofs;
   double *coefs;
+  double rhs; // PJSA extension for non-zero lmpc rhs
+  DOFMap() : ndofs(0), dofs(NULL), coefs(NULL), rhs(0.0) {}
+  ~DOFMap() { if(dofs) delete [] dofs; if(coefs) delete [] coefs; }
 };
 
 DOFMap *getDofMaps(int size);
@@ -30,6 +35,7 @@ class CoordinateMap
     ResizeArray<int> subScript;
 
   protected:
+    int numEqs;
     DOFMap *dofMaps;
     int numMappedEqs;
     DOFMap *eqMaps;
@@ -62,13 +68,14 @@ class CoordinateMap
         //std::cerr << std::endl;
       }
 
+/* TODO this is ok if there is no rhs
       // If we only have a renumbering, we are done and can return;
       if(isRenumbering)
         return mat;
-
+*/
       // If we have a more complex mapping, we do the transformation of the matrix
       // The intermediate matrix needs to be nMappedDOFs x ndofs. Allocate memory for it.
-      Scalar *dataSpace = (Scalar *) dbg_alloca(nMappedDOFs*mat.dim()*sizeof(Scalar));
+      Scalar *dataSpace = (Scalar *) dbg_alloca(nMappedDOFs*ndofs*sizeof(Scalar));
       GenStackFSFullMatrix<Scalar> mTmp(nMappedDOFs, ndofs, dataSpace);
       // Multiply by the mapping matrix on the left
       mTmp = (Scalar) 0;
@@ -84,9 +91,10 @@ class CoordinateMap
       }
 
       // Multiply the mapping on the right.
-      // insure the matrix we build is big enough.
-      m[nMappedDOFs*nMappedDOFs] = 0;
-      MatrixType res(nMappedDOFs, m.data());
+      m[ndofs+nMappedDOFs*nMappedDOFs] = 0; // resize the workspace, include space for vector containing contribution of non-zero lmpc rhs
+      GenStackVector<Scalar> vec(ndofs, m.data());
+      vec.zero();
+      MatrixType res(nMappedDOFs, m.data()+ndofs);
       res.zero();
       // res = mTmp*M
       // res[i][j] =  sum_k ( mTmp[i][k] * M[k][j] )
@@ -97,6 +105,8 @@ class CoordinateMap
           for(int i = 0; i < nMappedDOFs; ++i)
             res[i][j] += mTmp[i][k]*dMapK.coefs[jptr];
         }
+        for(int i = 0; i < ndofs; ++i)
+          vec[i] += mat[i][k]*dMapK.rhs;
       }
 
       return res;
@@ -104,22 +114,9 @@ class CoordinateMap
 
   public:
     CoordinateMap(int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap):
-      dofMaps(baseMap), numMappedEqs(nMappedEq), eqMaps(eqMap),
+      numEqs(nEq), dofMaps(baseMap), numMappedEqs(nMappedEq), eqMaps(eqMap),
       step(0), flag(0), subScript(0) {}
-    ~CoordinateMap() {}
-
-   template <class VectorType>
-   double norm(const VectorType &v) {
-     VectorType v2(numMappedEqs);
-     v2.zero();
-     for(int i = 0; i < numMappedEqs; ++i) {
-       for(int j = 0; j < eqMaps[i].ndofs; ++j) {
-         v2[eqMaps[i].dofs[j]] += eqMaps[i].coefs[j]*v[i];
-       }
-     }
-     return v2.norm();
-   }
-
+    ~CoordinateMap() { delete [] dofMaps; delete [] eqMaps; }
 };
 
 
@@ -130,11 +127,15 @@ class MappedAssembledSolver : public BaseSolver, public Map
     ResizeArray<double> dd;
     ResizeArray<std::complex<double> > dz;
     ResizeArray<Scalar> ds;
+    GenVector<Scalar> f;
+    ConstrainedDSA *cdsa;
 
   public:
     template <class BaseArgs>
-    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap):
-      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0) {}
+    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap, ConstrainedDSA *_cdsa) :
+      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0), f(nMappedEq), cdsa(_cdsa) {
+        f.zero();
+    }
     ~MappedAssembledSolver() {}
 
     // Note: None of the add routines are thread safe
@@ -142,39 +143,44 @@ class MappedAssembledSolver : public BaseSolver, public Map
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       m.setMyval(0);
       BaseSolver::add(m, mappedDofs.data());
-    }
-
+      for(int i = 0; i < mat.dim(); ++i) {  // PJSA extension for non-zero lmpc rhs
+        int j = cdsa->getRCN(dofs[i]);      // the first m.dim() entries in the workspace dd now store the
+        if(j > -1) f[j] += dd[i];           // contribution to f 
+      }                                     // TODO f should be zero'd when solver is rebuilt
+    }                                       // TODO consider just building Kcc/Kuc and then making f inside solve
+                                            //      this would be better for the linear case if just the rhs is changing
+                                            //      with time, but the element matrices are the same
     void addImaginary(FullSquareMatrix &mat, int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       BaseSolver::addImaginary(m, mappedDofs.data());
+      cerr << "MappedAssembledSolver::addImaginary(FullSquareMatrix&, int*) is not implemented\n";
     }
 
     void add(FullSquareMatrixC &mat, int *dofs) {
       FullSquareMatrixC m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
+      cerr << "MappedAssembledSolver::add(FullSquareMatrixC&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int *dofs) {
       GenFullM<Scalar> m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
+      cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int*) is not implemented\n";
     }
 
-    // TODO revisit
     void add(GenFullM<Scalar> &mat, int fi, int fj) {
-      cerr << "MappedAssembledSolver::add(GenFullM<Scalar> &, int, int) is not implemented\n";
+      cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int, int) is not implemented\n";
     }
 
-    // TODO revisit
     void add(GenAssembledFullM<Scalar> &mat, int *dofs) {
-      cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar> &, int *) is not implemented\n";
+      cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
     }
 
     void addDiscreteMass(int dof, Scalar s) {
       int dofs[1] = { dof };
       double d[1] = { ScalarTypes::Real(s) };
       FullSquareMatrix mat(1, d);
-      FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
-      BaseSolver::add(m, mappedDofs.data());
+      add(mat,dofs);
     }
 
     void add(int dofi, int dofj, Scalar s) {
@@ -185,8 +191,7 @@ class MappedAssembledSolver : public BaseSolver, public Map
         int dofs[2] = { dofi, dofj };
         double d[4] = { 0, ScalarTypes::Real(s), 0, 0 };
         FullSquareMatrix mat(2, d);
-        FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
-        BaseSolver::add(m, mappedDofs.data());
+        add(mat,dofs);
       }
     }
 
@@ -201,6 +206,20 @@ class MappedAssembledSolver : public BaseSolver, public Map
       reSolve(solution.data());
     }
 
+   double getResidualNorm(const GenVector<Scalar> &v) {
+     GenVector<Scalar> v1(Map::numMappedEqs);
+     GenVector<Scalar> v2(BaseSolver::neqs());
+     v2.zero();
+     for(int i = 0; i < Map::numMappedEqs; ++i) {
+       v1[i] = Map::eqMaps[i].rhs;
+       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
+         v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
+       }
+     }
+     return sqrt(v1.sqNorm()+v2.sqNorm());
+   }
+
+
 };
 
 template<class BaseSolver, class Scalar, class Map>
@@ -209,13 +228,15 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::reSolve(Scalar *s)
   GenVector<Scalar> s2(BaseSolver::neqs());
   s2.zero();
   for(int i = 0; i < Map::numMappedEqs; ++i) {
+    Scalar delta = s[i] - f[i];
     for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
-      s2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*s[i];
+      s2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*delta; // PJSA extension for non-zero lmpc rhs
     }
   }
-  BaseSolver::reSolve(s2.data());
+  if(BaseSolver::neqs() > 0)
+    BaseSolver::reSolve(s2.data());
   for(int i = 0; i < Map::numMappedEqs; ++i) {
-    s[i] = 0;
+    s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
     for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
       s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
   }

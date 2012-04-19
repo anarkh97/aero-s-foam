@@ -5,11 +5,15 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
+  DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
+  DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
+  DistrExplicitLumpedPodProjectionNonLinDynamic.C
   DistrExplicitGappyNonLinDynamic.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C
@@ -18,8 +22,8 @@ ADD_LIBRARY( Rom
   ElementSamplingDriver.C
   ExplicitMeshSamplingDriver.C
   FileNameInfo.C
-  GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
+  LumpedPodProjectionNonLinDynamic.C
   QrPseudoInversion.C
   LeastSquaresSolver.C
   SparseNonNegativeLeastSquaresSolver.C
@@ -30,6 +34,7 @@ ADD_LIBRARY( Rom
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
+  ReducedNonLinDynamic.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

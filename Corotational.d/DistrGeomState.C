@@ -6,6 +6,10 @@
 #include <Driver.d/DecDomain.h>
 #include <Threads.d/PHelper.h>
 #include <Corotational.d/TemperatureState.h>
+#ifdef USE_MPI
+#include <Comm.d/Communicator.h>
+extern Communicator *structCom;
+#endif
 
 DistrGeomState::DistrGeomState(DecDomain* domain)
 {
@@ -43,6 +47,12 @@ DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
   TemperatureState* ts;
   if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
   else gs[isub] = new GeomState(*(g2[isub]));
+}
+
+DistrGeomState::~DistrGeomState()
+{
+  for(int i=0; i<numSub; ++ i) delete gs[i];
+  delete [] gs;
 }
 
 // Subdomain update
@@ -162,3 +172,13 @@ DistrGeomState::subCopy(int isub, DistrGeomState &unp)
   *(gs[isub]) = unpR; 
 }
 
+int 
+DistrGeomState::getTotalNumElemStates()
+{
+  int ret = 0;
+  for(int i=0; i<numSub; ++i) ret += gs[i]->getTotalNumElemStates();
+#ifdef USE_MPI
+  ret = structCom->globalSum(ret);
+#endif
+  return ret;
+}

@@ -152,7 +152,7 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
   MatrixXd R(G.rows(),G.cols()), J(G.rows(),G.cols());
   
 #ifdef SPARSE_G
-  SimplicialLLt<SparseMatrix<double>,Upper> chol;
+  SimplicialLLT<SparseMatrix<double>,Upper> chol;
 #else
   LLT<MatrixXd,Lower> chol(G.cols());
 #endif

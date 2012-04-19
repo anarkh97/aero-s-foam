@@ -179,10 +179,11 @@ class GeoSource {
   ResizeArray<double *> cframes;
 
   int prsflg;
-  int prlflg;
   int constpflg, constqflg; // consistent pressure and gravity
   typedef std::vector<pair<int,double> > ElemPressureContainer;
   ElemPressureContainer eleprs;
+  typedef std::vector<pair<int,std::vector<double> > > ElemPreloadContainer;
+  ElemPreloadContainer eleprl;
 
   // Connectivities
   Connectivity *clusToSub;
@@ -263,8 +264,6 @@ class GeoSource {
   int numSurfacePressure;
   BCond *surface_pres;
 
-  bool mpcDirect;
-
 public:
   bool binaryInput, binaryOutput;
   bool binaryInputControlLeft;
@@ -337,6 +336,7 @@ public:
   int  addCFrame(int,double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
+  void setElementPreLoad(int, double[3]);
   void setConsistentPFlag(int);
   void setConsistentQFlag(int, int=1);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
@@ -436,7 +436,6 @@ public:
   int getNumCframes() { return numCframes; }
   const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
-  int preloadFlag() { return prlflg; }
   int consistentPFlag() { return constpflg; }
   int consistentQFlag() { return constqflg; }
   map<int, Attrib> &getAttributes()  { return attrib; }
@@ -579,14 +578,11 @@ public:
   void cleanUp();
   void cleanAuxData();
 
-  void makeDirectMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  void makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc);
   int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
-  bool setDirectMPC(bool mode) { return mpcDirect = mode; }
-  /// Whether we are doing direct elimination for MPCs
-  bool getDirectMPC() { return mpcDirect; }
   Element* getElem(int topid) { return elemSet[topid]; }
 
   double global_average_E, global_average_nu, global_average_rhof;
@@ -613,6 +609,17 @@ public:
 
 private:
   SampleNodeList sampleNode_;
+
+public:
+  // POD-ROM elementary lumping weights
+  typedef std::map<int, double> ElementWeightMap;
+  ElementWeightMap::const_iterator elementLumpingWeightBegin() const { return elementLumpingWeights_.begin(); }
+  ElementWeightMap::const_iterator elementLumpingWeightEnd()   const { return elementLumpingWeights_.end();   }
+  
+  void setElementLumpingWeight(int iele, double value);
+
+private:
+  ElementWeightMap elementLumpingWeights_;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

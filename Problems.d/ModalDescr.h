@@ -89,6 +89,8 @@ public:
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
+  void addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& dnc, Vector& vnc, Vector& anc,
+                       Vector& result, double tm, double tf) { result.zero(); } // TODO
 };
 #ifdef _TEMPLATE_FIX_
   #include <Problems.d/ModalDescrTem.C>

@@ -239,31 +239,35 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor 
     }
   }
   else {
-    Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(F.transpose()*F);
+    // new implementation. this should be significantly faster...
+    Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec(F.transpose()*F);
 
     // logarithmic (Hencky) strain, Lagrangean description
-    Eigen::Vector3d lnl = dec.eigenvalues().array().log();
-    E = 0.5*(dec.eigenvectors() * lnl.asDiagonal() * dec.eigenvectors().adjoint());
+    Eigen::Matrix<double,3,1> lnl = dec.eigenvalues().array().log();
+    Eigen::Matrix<double,3,3> ylnl = dec.eigenvectors()*lnl.asDiagonal();
+    E = 0.5*ylnl*dec.eigenvectors().adjoint();
 
     // Moore-Penrose pseudo inverses of C - lambda_i*I
-    double tol = 1e-15;
-    Eigen::Array<Eigen::Matrix3d,3,1> mpinverse;
+    double tol = std::numeric_limits<double>::epsilon();
+    Eigen::Array<Eigen::Matrix<double,3,3>,3,1> mpinverse;
     for(int i=0; i<3; ++i) {
-      Eigen::Vector3d singularValues = dec.eigenvalues() - Eigen::Vector3d::Constant(dec.eigenvalues()[i]);
-      Eigen::Vector3d invertedSingularVals;
+      Eigen::Matrix<double,3,1> singularValues = dec.eigenvalues() - Eigen::Matrix<double,3,1>::Constant(dec.eigenvalues()[i]);
+      Eigen::Matrix<double,3,1> invertedSingularVals;
       for(int j=0; j<3; ++j) invertedSingularVals[j] = (fabs(singularValues[j]) < tol) ? 0 : 1/singularValues[j];
       mpinverse[i] = dec.eigenvectors() * invertedSingularVals.asDiagonal() * dec.eigenvectors().adjoint();
     }
 
     // some more precomputation...
-    Eigen::Array3d linv = dec.eigenvalues().array().inverse();
-    Eigen::Array3d linv2 = linv.square();
+    Eigen::Array<double,3,1> linv = dec.eigenvalues().array().inverse();
+    Eigen::Array<double,3,1> linv2 = linv.square();
 
     // allocate memory for intermediate derivatives
-    Eigen::Array<Eigen::Array3d,Eigen::Dynamic,1> dldq(numdofs), d2ldqkdq(numdofs);
-    Eigen::Array<Eigen::Vector3d,Eigen::Dynamic,1> dlnldq(numdofs);
-    Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dCdq(numdofs), d2Cdqkdq(numdofs), dydq(numdofs), d2ydqkdq(numdofs);
+    Eigen::Array<Eigen::Array<double,3,1>,Eigen::Dynamic,1> dldq(numdofs), d2ldqkdq(numdofs);
+    Eigen::Array<Eigen::Matrix<double,3,1>,Eigen::Dynamic,1> dlnldq(numdofs);
+    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> dCdq(numdofs), d2Cdqkdq(numdofs), dydq(numdofs), d2ydqkdq(numdofs);
+    Eigen::Matrix<double,3,3> tmp1,tmp3,toto;
+    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> tmp2(numdofs);
 
     for(int k=0; k<numdofs; ++k) {
 
@@ -272,49 +276,58 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor 
 
       // second derivatives of C wrt q_k,q_j
       for(int j=0; j<=k; ++j) {
-        Eigen::Matrix3d d2Cdqjdqk;
         if((j-k)%3 == 0) {
-          Eigen::Matrix3d tmp = dGradUdq[j].transpose()*dGradUdq[k];
+          Eigen::Matrix<double,3,3> tmp = dGradUdq[j].transpose()*dGradUdq[k];
           d2Cdqkdq[j] = tmp + tmp.transpose();
         }
-        else d2Cdqkdq[j].setZero();
+        //else d2Cdqkdq[j].setZero();
       }
 
-      for(int i=0; i<3; ++i) {
-        // first derivative of lambda_i with respect to q_k
-        dldq[k][i] = dec.eigenvectors().col(i).adjoint().dot(dCdq[k]*dec.eigenvectors().col(i));
+      Eigen::Matrix<double,3,3> dCdqky = dCdq[k]*dec.eigenvectors();
 
-        // first derivatve of y_i with respect to q_k
-        // least squares solve: -(C-lambda_i*I)^{+}(dCdqk*dec.eigenvectors().col(i))
-        dydq[k].col(i) = -mpinverse[i]*(dCdq[k]*dec.eigenvectors().col(i));
+      // first derivative of lambda with respect to q_k
+      dldq[k] = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
 
-        for(int j=0; j<=k; ++j) {
-          // second derivatives of lambda_i with respect to q_k,q_j
-          d2ldqkdq(j)[i] = dec.eigenvectors().col(i).adjoint().dot(d2Cdqkdq[j]*dec.eigenvectors().col(i) + 2*dCdq[j]*dydq[k].col(i));
+      // first derivatve of y with respect to q_k
+      for(int i=0; i<3; ++i) dydq[k].col(i) = -mpinverse[i]*dCdqky.col(i);
 
-          // second derivatives of y_i with repsect to q_k,q_j
-          d2ydqkdq(j).col(i) = -mpinverse[i]*( (dCdq[j]-dldq[j][i]*Eigen::Matrix3d::Identity())*dydq[k].col(i)
-            + (dCdq[k]-dldq[k][i]*Eigen::Matrix3d::Identity())*dydq[j].col(i) + d2Cdqkdq[j]*dec.eigenvectors().col(i) )
-            - dec.eigenvectors().col(i)*dydq[j].col(i).dot(dydq[k].col(i));
+      for(int j=0; j<=k; ++j) {
+        Eigen::Matrix<double,3,3> dCdqjdydqk = dCdq[j]*dydq[k];
+        if((j-k)%3 == 0) {
+          Eigen::Matrix<double,3,3> d2Cdqkdqjy = d2Cdqkdq[j]*dec.eigenvectors();
+
+          // second derivatives of lambda with respect to q_k, q_j for non-zero d2Cdqkdq[j]
+          d2ldqkdq(j) = (dec.eigenvectors().adjoint()*(d2Cdqkdqjy + 2*dCdqjdydqk)).diagonal();
+
+          // second derivatives of y with respect to q_k, q_j 
+          toto = dCdqjdydqk + dCdq[k]*dydq[j] + d2Cdqkdqjy
+                 - dydq[k]*dldq[j].matrix().asDiagonal() - dydq[j]*dldq[k].matrix().asDiagonal();
         }
+        else {
+          // second derivatives of lambda with respect to q_k, q_j for zero d2Cdqkdq[j]
+          d2ldqkdq(j) = (dec.eigenvectors().adjoint()*(2*dCdqjdydqk)).diagonal();
+
+          toto = dCdqjdydqk + dCdq[k]*dydq[j] 
+                 - dydq[k]*dldq[j].matrix().asDiagonal() - dydq[j]*dldq[k].matrix().asDiagonal();
+        }
+        // second derivatives of y with respect to q_k, q_j
+        d2ydqkdq(j) = -dec.eigenvectors()*(dydq[j].adjoint()*dydq[k]).diagonal().asDiagonal();
+        for(int i=0; i<3; ++i)
+          d2ydqkdq(j).col(i) -= mpinverse[i]*toto.col(i);
       }
       // first derivative of E with respect to q_k
       dlnldq[k] = linv*dldq[k];
-      dEdqk = 0.5*(dydq[k]*lnl.asDiagonal()*dec.eigenvectors().adjoint()
+      tmp1 = dydq[k]*lnl.asDiagonal();
+      tmp2[k] = dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint();
+      dEdqk.triangularView<Eigen::Upper>() = 0.5*(dydq[k]*ylnl.adjoint()
                     + dec.eigenvectors()*dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint()
-                      + dec.eigenvectors()*lnl.asDiagonal()*dydq[k].adjoint());
+                      + ylnl*dydq[k].adjoint());
       for(int j=0; j<=k; ++j) {
         // second derivative of E with respect to q_k,j
-        Eigen::Vector3d d2lnldqkdqj = linv*d2ldqkdq(j) - linv2*dldq[j]*dldq[k];
-        d2Edqkdq[j] = 0.5*(d2ydqkdq(j)*lnl.asDiagonal()*dec.eigenvectors().adjoint()
-                           + dydq[k]*dlnldq[j].asDiagonal()*dec.eigenvectors().adjoint()
-                             + dydq[k]*lnl.asDiagonal()*dydq[j].adjoint()
-                           + dydq[j]*dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint()
-                             + dec.eigenvectors()*d2lnldqkdqj.asDiagonal()*dec.eigenvectors().adjoint()
-                               + dec.eigenvectors()*dlnldq[k].asDiagonal()*dydq[j].adjoint()
-                           + dydq[j]*lnl.asDiagonal()*dydq[k].adjoint()
-                             + dec.eigenvectors()*dlnldq[j].asDiagonal()*dydq[k].adjoint()
-                               + dec.eigenvectors()*lnl.asDiagonal()*d2ydqkdq(j).adjoint());
+        Eigen::Matrix<double,3,1> d2lnldqkdqj = linv*d2ldqkdq(j) - linv2*dldq[j]*dldq[k];
+        tmp3 = d2ydqkdq(j)*ylnl.adjoint() + dydq[k]*tmp2[j] + dydq[j]*(tmp1.adjoint() + tmp2[k]);
+        d2Edqkdq[j].triangularView<Eigen::Upper>() = 0.5*(tmp3 + tmp3.adjoint()
+                             + dec.eigenvectors()*d2lnldqkdqj.asDiagonal()*dec.eigenvectors().adjoint());
       }
 
       for(int l=0; l<3; ++l)
@@ -329,6 +342,7 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor 
   for(int i=0; i<3; ++i)
     for(int j=i; j<3; ++j)
       e(i,j) = E(i,j);
+
 #else
   std::cerr << "Error: LogarithmicStrain requires AERO-S built with Eigen3 template library." << std::endl;
   exit(-1);

@@ -41,7 +41,7 @@ FullSquareMatrix
 QuadRadiation::massMatrix(CoordSet &cs, double *d, int cmflg)
 {
 
-        FullSquareMatrix mass(3,d);
+        FullSquareMatrix mass(4,d);
         mass.zero();
         return mass;
 }
@@ -52,7 +52,7 @@ QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 // ... Compute Radiative matrix
 
-          FullSquareMatrix ret(3,Kcv);
+          FullSquareMatrix ret(4,Kcv);
 
           ret[0][0] = 0;
           ret[1][1] = 0;

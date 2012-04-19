@@ -55,12 +55,14 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     virtual void update(GeomState&, CoordSet&, double);
     virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
+    virtual double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    virtual double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
 
     PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }
 
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs, int cflg);
+                              GeomState *gs = 0, int cflg = 0, double t = 0);
     int getTopNumber() { return 101; }
 
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,

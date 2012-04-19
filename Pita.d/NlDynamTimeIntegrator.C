@@ -113,7 +113,7 @@ NlDynamTimeIntegrator::updateAcceleration() {
       fprintf(stderr, " ... Computing consistent initial acceleration ...\n");
     }
     // a_0 = M^{-1} * (fext(t_0) - fint(u_0) - C * v_0)
-    probDesc_->getExternalForce(externalForce_, gravityForce_, -1, currTime_, geomState_, elementInternalForce_, aeroForce_);
+    probDesc_->getExternalForce(externalForce_, gravityForce_, -1, currTime_, geomState_, elementInternalForce_, aeroForce_, localDelta_);
     probDesc_->formRHSinitializer(externalForce_, velocity(), elementInternalForce_, *geomState_, acceleration_);
     probDesc_->getSolver()->reSolve(acceleration_);
   } else {
@@ -131,7 +131,7 @@ NlDynamTimeIntegrator::integrate(int steps) {
     if (verboseFlag) {
       fprintf(stderr, "\n**** Begin Time Step %d - Time %e ****\n", currStep_ + 1, currTime_);
     }
-    probDesc_->getExternalForce(externalForce_, gravityForce_, currStep_, midTime_, geomState_, elementInternalForce_, aeroForce_);
+    probDesc_->getExternalForce(externalForce_, gravityForce_, currStep_, midTime_, geomState_, elementInternalForce_, aeroForce_, localDelta_);
     stateIncr_.zero();
 
     GenVector<double> & velocity_n = velocity(); // Local reference is safe as long as internalState_ is not shared again
@@ -142,7 +142,7 @@ NlDynamTimeIntegrator::integrate(int steps) {
     for (int iter = 0; iter < maxNumIter_; ++iter, ++totalNewtonIter) {
       residual_ = externalForce_;
       probDesc_->getStiffAndForce(*geomState_, residual_, elementInternalForce_, midTime_); // Update elementary tangential stiffness & residual force (force imbalance) at equilibrium time
-      probDesc_->reBuild(*geomState_, iter, localDelta_); // Assemble and factor Mdyn
+      probDesc_->reBuild(*geomState_, iter, localDelta_, midTime_); // Assemble and factor Mdyn
       geomState_->get_inc_displacement(incDisplac_, *stepState_, probDesc()->getZeroRot()); // Compute incremental displacement
       lastResNorm = probDesc_->formRHScorrector(incDisplac_, velocity_n, acceleration_, residual_, rhs_, localDelta_); // Assemble residual (in rhs) 
       if (iter == 0) {

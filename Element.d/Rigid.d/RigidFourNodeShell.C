@@ -37,21 +37,15 @@ RigidFourNodeShell::getPressure()
   return pressure;
 }
 
-void
-RigidFourNodeShell::setMaterial(NLMaterial *m)
-{
-  expmat = dynamic_cast<ExpMat *>(m);
-}
-
 FullSquareMatrix
 RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
   int nndof = 6, ndime = 3;
-  FullSquareMatrix ret(nnodes*nndof, mel);
+  FullSquareMatrix ret(numDofs(), mel);
   ret.zero();
 
-  // Check for phantom element, which has no mass
-  if(prop) {
+  // Check for element which has no mass
+  if(prop && prop->rho != 0 && prop->eh != 0) {
     double* ecord = new double[nnodes*ndime];
     double* edisp = new double[nnodes*nndof];
     for(int i = 0; i < nnodes; ++i) {
@@ -62,8 +56,10 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
     }
 
     double* emasl = (double*) dbg_alloca(sizeof(double)*nnodes*nndof);
+    double ematpro[20];
+    ematpro[2] = prop->rho; ematpro[19] = prop->eh;
     // get bt shell element lumped mass
-    _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
+    _FORTRAN(elemaslbt)(nndof, ematpro, ecord, edisp, emasl);
        // input : nndof,ematpro,ecord,edisp
        // output : emasl
     delete [] ecord;
@@ -77,7 +73,7 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
 void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                         GeomState *geomState, int cflg)
+                                         GeomState *geomState, int cflg, double)
 {
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
@@ -98,6 +94,8 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   for(int i = 0; i < nnodes; ++i)
     for(int j = 0; j < ndime; ++j)
       elPressureForce[6*i+j] = efbc[3*i+j];
+
+  for(int i=nnodes*ndime; i<numDofs(); ++i) elPressureForce[i] = 0; // lagrange multiplier dofs, if any
 }
 
 #include <Element.d/State.h>

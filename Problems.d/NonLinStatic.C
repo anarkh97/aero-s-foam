@@ -20,9 +20,10 @@ NonLinStatic::NonLinStatic(Domain *d)
   kelArray = 0;
   allCorot = 0;
   bcx = 0;
-  solver = solver;
+  solver = 0;
   prec = 0;
   times = 0;
+  reactions = 0;
 
   if(domain->GetnContactSurfacePairs())
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
@@ -32,6 +33,7 @@ NonLinStatic::~NonLinStatic()
 {
   clean();
   if(times) delete times;
+  if(reactions) delete reactions;
 }
 
 int
@@ -65,6 +67,12 @@ NonLinStatic::clean()
   }
 }
 
+void
+NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateStates(refState, geomState, allCorot);
+}
+
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
                                Vector &, double lambda, GeomState *refState)
@@ -84,8 +92,9 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     elementInternalForce.resize(domain->maxNumDOF());
   }
 
+  reactions->zero();
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState);
+                           kelArray, residual, lambda, 0, refState, reactions);
 
   times->buildStiffAndForce += getTime();
 
@@ -183,17 +192,23 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
-   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
-   spm->zeroAll();
-   AllOps<double> ops;
-   if(spp) { // rebuild preconditioner as well as the solver
-     spp->zeroAll();
-     ops.spp = spp;
+   if(domain->solInfo().mpcDirect != 0) {
+     if(solver) delete solver;
+     if(prec) delete prec;
+     preProcess();
    }
-   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
-   solver->factor();
-   if(prec) prec->factor();
-   rebuildFlag = 1;
+   else {
+     spm->zeroAll();
+     AllOps<double> ops;
+     if(spp) { // rebuild preconditioner as well as the solver
+       spp->zeroAll();
+       ops.spp = spp;
+     }
+     domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
+     solver->factor();
+     if(prec) prec->factor();
+  }
+  rebuildFlag = 1;
  }
 
  times->rebuild += getTime();
@@ -262,10 +277,11 @@ NonLinStatic::preProcess(bool factor)
 
  times->makeBCs -= getTime();
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx = new double[numdof];
+ if(!bcx) bcx = new double[numdof];
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);
+ if(!reactions) reactions = new Vector(domain->nDirichlet());
 
  times->makeBCs += getTime();
 
@@ -291,7 +307,7 @@ NonLinStatic::preProcess(bool factor)
                                                                        // of the number of rigid body modes
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
-                          (FullSquareMatrix *) NULL, factor);
+                          (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
@@ -352,8 +368,10 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot,
-                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
+  int step = std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
+  domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
+                         reactions);
   times->output += getTime();
 }
 
@@ -394,7 +412,6 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
   double Wela = 0.0;
   for(int i = 0; i < domain->numElements(); ++i)
      Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
-  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
 
   // Total Energy = Wext + Wela
   return Wext + Wela;
@@ -403,12 +420,7 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
 double
 NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
 {
-  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
-  if(m) return m->norm(rhs);
-  else {
-    Vector res(rhs);
-    domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
-    return res.norm();
-  }
-
+  Vector res(rhs);
+  domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
+  return solver->getResidualNorm(res);
 }

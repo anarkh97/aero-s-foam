@@ -17,9 +17,7 @@ class MyControl : public ControlInterface {
 	      Vector *ext_f=0);
 	      
     void usd_disp(double time, double *userDefineDisplacement, 
-                  double *userDefineVelocity);
-    void usd_disp(double time, double *userDefineDisplacement,
-                  double *userDefineVelocity, int numLoc, int *locToGlobMap);
+                  double *userDefineVelocity, double *userDefineAcceleration);
 
     void usd_forc(double time, double *userDefineForce);
     
@@ -64,7 +62,8 @@ MyControl::init(double *displacement, double *velocity, double *acceleration,
 // they were selected in the input file.
 
 void
-MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
+MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel,
+                    double *userDefineAcc)
 {
  // blank intentionally
 }

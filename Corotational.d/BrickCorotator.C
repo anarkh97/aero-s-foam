@@ -127,7 +127,7 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     
         double detF = F[0][0]*F[1][1]*F[2][2]+F[0][1]*F[1][2]*F[2][0]+F[0][2]*F[1][0]*F[2][1]
                      -F[0][0]*F[1][2]*F[2][1]-F[0][1]*F[1][0]*F[2][2]-F[0][2]*F[1][1]*F[2][0];
-        if(detF < 0) cerr << " *** WARNING: in BrickCorotator::getStiffAndForce |F| = " << detF << endl;
+        //if(detF < 0) cerr << " *** WARNING: in BrickCorotator::getStiffAndForce |F| = " << detF << endl;
 
    
         // compute e_ij = 0.5*(F_ki Fkj - delta_ij)

@@ -27,6 +27,7 @@ class NonLinStatic {
     double firstDv;
     double tolerance;
     StaticTimers *times;
+    Vector *reactions;
 
  public:
     // Constructor
@@ -50,6 +51,8 @@ class NonLinStatic {
 
     void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &, GeomState *refState);
     int checkConvergence(int iter, double normDv, double residualNorm);
+
+    void updateStates(GeomState *refState, GeomState& geomState);
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
                             Vector& elementInternalForce, Vector &,

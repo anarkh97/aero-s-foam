@@ -37,8 +37,8 @@ public:
   double getProjectionTolerance() const { return projTol; }
 
   // Added methods
-  void reBuildCoarse(GeomState & geomState, int iter = 0);
-  void reBuildFine(GeomState & geomState, int iter = 0);
+  void reBuildCoarse(GeomState & geomState, int iter, double time);
+  void reBuildFine(GeomState & geomState, int iter, double time);
   void reBuildKonly();
   void zeroRotDofs(VecType &) const;
   double formRHSCoarseCorrector(Vector & inc_displac, Vector & velocity, Vector & acceleration, Vector & residual, Vector & rhs);
@@ -66,7 +66,7 @@ public:
                                 Vector& vp, Vector& bkVp, int step, int parity,
                                 int aeroAlg) {};
     virtual void dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF,
-                             Vector & acceleration) const;
+                             Vector & acceleration, GeomState * refState) const;
   private:
     PitaNonLinDynamic & probDesc_;
     int sliceRank_;  
@@ -88,15 +88,15 @@ private:
 };
 
 inline void
-PitaNonLinDynamic::reBuildFine(GeomState & geomState, int iter)
+PitaNonLinDynamic::reBuildFine(GeomState & geomState, int iter, double time)
 {
-  reBuild(geomState, iter, getDelta());
+  reBuild(geomState, iter, getDelta(), time);
 }
 
 inline void
-PitaNonLinDynamic::reBuildCoarse(GeomState & geomState, int iter)
+PitaNonLinDynamic::reBuildCoarse(GeomState & geomState, int iter, double time)
 {
-  reBuild(geomState, iter, getCoarseDelta());
+  reBuild(geomState, iter, getCoarseDelta(), time);
 }
 
 inline double
@@ -112,7 +112,7 @@ PitaNonLinDynamic::formRHSCoarsePredictor(Vector & velocity, Vector & accelerati
 }
 
 inline void
-PitaNonLinDynamic::PitaPostProcessor::dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF, Vector & acceleration) const
+PitaNonLinDynamic::PitaPostProcessor::dynamOutput(GeomState * geomState, Vector & velocity, Vector & vp, double time, int step, Vector & force, Vector & aeroF, Vector & acceleration, GeomState * refState) const
 {
   probDesc_.pitaDynamOutput(sliceRank_, geomState, velocity, vp, time, step, force, aeroF);
 }

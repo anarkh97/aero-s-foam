@@ -222,7 +222,7 @@ GenSparseMatrix<double> *
 ExplicitMeshSamplingDriver::massMatrixNew() {
   AllOps<double> allOps;
   allOps.M = domain->constructDBSparseMatrix<double>();
-  domain->buildOps(allOps, 0.0, 0.0, 0.0, NULL, NULL, NULL, false);
+  domain->buildOps(allOps, 0.0, 0.0, 0.0, NULL, NULL, NULL, NULL, false);
  
   return allOps.M;
 }

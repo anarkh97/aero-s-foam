@@ -36,9 +36,15 @@ SuperElement::~SuperElement()
 }
 
 void
-SuperElement::setPreLoad(double load, int &flg)
+SuperElement::setPreLoad(std::vector<double> &load)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load, flg);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load);
+}
+
+std::vector<double>
+SuperElement::getPreLoad()
+{
+  return subElems[0]->getPreLoad();
 }
 
 void
@@ -398,7 +404,7 @@ SuperElement::nodes(int *p)
 Corotator*
 SuperElement::getCorotator(CoordSet &cs, double *d, int i1, int i2)
 {
-  if(!superCorotator) superCorotator = new SuperCorotator(this);
+  superCorotator = new SuperCorotator(this);
   for(int i = 0; i < nSubElems; ++i)
     superCorotator->setSubCorotator(i, subElems[i]->getCorotator(cs, d, i1, i2));
  
@@ -407,7 +413,7 @@ SuperElement::getCorotator(CoordSet &cs, double *d, int i1, int i2)
 
 void 
 SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
-                                   GeomState *gs, int cflg)
+                                   GeomState *gs, int cflg, double t)
 {
   if(!sub_extf) { // save a copy of the external force for each sub-element
     sub_extf = new double * [nSubElems];
@@ -418,7 +424,7 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
     subElementPressureForce.zero();
-    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg);
+    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
     elPressureForce.add(subElementPressureForce, subElemDofs[i]);
   }
 /*
@@ -570,7 +576,8 @@ SuperElement::getMPCs()
   for(int i = 0; i < nSubElems; ++i) {
     LMPCons** submpcs = subElems[i]->getMPCs();
     for(int j = 0; j < subElems[i]->getNumMPCs(); ++j) {
-      ret[k] = new LMPCons(*submpcs[j]);
+      //ret[k] = new LMPCons(*submpcs[j]);
+      ret[k] = submpcs[j];
       k++;
     }
     delete [] submpcs;

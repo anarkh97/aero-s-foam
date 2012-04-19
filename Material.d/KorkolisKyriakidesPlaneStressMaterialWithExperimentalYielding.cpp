@@ -595,6 +595,7 @@ DeviatoricStrainNorm(const double * S) const
 }
 
 // The 6.89475908677537e6 factor converts ksi to Pa
+//#define USE_SI_UNITS
 #ifdef USE_SI_UNITS
 const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
 ExpYieldStress[31] = { 39.126*6.89475908677537e6, 

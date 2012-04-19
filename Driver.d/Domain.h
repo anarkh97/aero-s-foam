@@ -17,6 +17,8 @@
 #include <Utils.d/OutputInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
+#include <map>
+
 class MortarHandler;
 class MFTTData;
 class ControlInterface;
@@ -118,12 +120,13 @@ struct AllOps
   GenSparseMatrix<Scalar> *Cuc;	 // constrained to unconstrained damping matrix
   GenSparseMatrix<Scalar> *Kcc;  // constrained to constrained stiffness matrix
   GenSparseMatrix<Scalar> *Mcc;	 // constrained to constrained mass matrix
+  GenSparseMatrix<Scalar> *Ccc;  // constrained to constrained damping matrix
   GenSparseMatrix<Scalar> **C_deriv;    // derivatives of damping matrix for higher order sommerfeld
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
 
   GenVector<Scalar> *rhs_inpc;
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -133,6 +136,7 @@ struct AllOps
                if(Cuc) Cuc->zeroAll();
                if(Kcc) Kcc->zeroAll();
                if(Mcc) Mcc->zeroAll();
+               if(Ccc) Ccc->zeroAll();
              }
 };
 
@@ -196,13 +200,15 @@ class Domain : public HData {
      DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
      ConstrainedDSA *c_dsa;	// Constrained dof set array
      ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
+     ConstrainedDSA *MpcDSA;
+     ConstrainedDSA *g_dsa;
      Connectivity *allDOFs;     // all dof arrays for each node
      Connectivity *allDOFsFluid;     // all dof arrays for each node
      int maxNumDOFs; 		// maximum number of dofs an element has
      int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has, ADDED FOR HEV PROBLEM, EC, 20070820
      int maxNumNodes;           // maximum number of nodes an element has
      int maxNumNodesFluid;           // maximum number of nodes a fluid element has, ADDED FOR HEV PRBLEM, EC, 20070820
-     Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi;
+     Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi, *nodeToNodeDirect;
      Connectivity *elemToNodeFluid, *nodeToElemFluid, *nodeToNodeFluid;
                                 // ADDED FOR HEV PROBLEM, EC, 20070820
      Connectivity *nodeToNode_sommer; // for higher order sommerfeld
@@ -273,7 +279,7 @@ class Domain : public HData {
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
                             Corotator **, FullSquareMatrix *, double *acceleration = 0,
-                            double *acx = 0, GeomState *refState=0);
+                            double *acx = 0, GeomState *refState=0, Vector *reactions=0);
 
   public:
      Domain(int iniSize = 16);
@@ -330,9 +336,14 @@ class Domain : public HData {
                                const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
-			   Corotator **allCorot, FullSquareMatrix *kel,
+                           Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL);
+                           GeomState *refState = NULL, Vector *reactions = NULL);
+     void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda, double time,
+                                       GeomState *refState);
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
@@ -412,31 +423,35 @@ class Domain : public HData {
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
-                     bool factor = true);
+                     FullSquareMatrix *celArray = 0, bool factor = true);
 
      template<class Scalar>
        void makeStaticOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
+                 FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
        void makeDynamicOpsAndSolver(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
-                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0);
+                 Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0,
+                 FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
        void rebuildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
 	  	       Rbm* rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *mel = 0,
-                       bool factor = true);
+                       FullSquareMatrix *celArray = 0, bool factor = true);
 
      template<class Scalar>
        void makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
-                          FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
+                          FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
+                          FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
        void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0);
+                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
+                           FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
@@ -511,7 +526,7 @@ class Domain : public HData {
        void addThermalForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void addMpcRhs(GenVector<Scalar>& force);
+       void addMpcRhs(GenVector<Scalar>& force, double t = 0);
 
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
@@ -520,8 +535,21 @@ class Domain : public HData {
        void buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc = 0);
 
      template<class Scalar>
-       void computeReactionForce(GenVector<Scalar> &fu, GenVector<Scalar> &Vu,
+       void computeReactionForce(GenVector<Scalar> &fc, GenVector<Scalar> &Vu,
                                  GenSparseMatrix<Scalar> *kuc, GenSparseMatrix<Scalar> *kcc = 0);
+     void computeReactionForce(Vector &fc, Vector &Du, Vector &Vu, Vector &Au,
+                               double *bcx, double *vcx, double *acx,
+                               SparseMatrix *_kuc, SparseMatrix *_kcc,
+                               SparseMatrix *_cuc, SparseMatrix *_ccc,
+                               SparseMatrix *_muc, SparseMatrix *_mcc);
+     void computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corotators,
+                               FullSquareMatrix *kel, double lambda, GeomState *refState);
+     void computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corotators,
+                               FullSquareMatrix *kel, double time, GeomState *refState,
+                               Vector &Vu, Vector &Au, double *vcx, double *acx,
+                               SparseMatrix *_cuc, SparseMatrix *_ccc,
+                               SparseMatrix *_muc, SparseMatrix *_mcc);
+     bool reactionsReqd(double time, int step);
 
      template<class Scalar>
        void buildFreqSweepRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *muc,
@@ -556,7 +584,7 @@ class Domain : public HData {
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
                          int step=0, double *velocity=0, double *vcx=0,
                          Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0,
-                         double *acx=0, GeomState *refState=0);
+                         double *acx=0, GeomState *refState=0, Vector *reactions=0);
 
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
@@ -578,8 +606,12 @@ class Domain : public HData {
      template <class Scalar>
        void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
-       void computeExtForce4(GenVector<Scalar>& force, GenVector<Scalar>& constantForce, double t,
-                             GenSparseMatrix<Scalar> *kuc = 0);
+       void computeExtForce4(GenVector<Scalar>& force, const GenVector<Scalar>& constantForce, double t,
+                             GenSparseMatrix<Scalar> *kuc = 0, ControlInterface *userSupFunc = 0,
+                             GenSparseMatrix<Scalar> *cuc = 0, double tm = 0, GenSparseMatrix<Scalar> *muc = 0);
+     template <class Scalar> 
+       void computeExtForce(GenVector<Scalar>& force, double t, GenSparseMatrix<Scalar> *kuc = 0, ControlInterface *userSupFunc = 0,
+                            GenSparseMatrix<Scalar> *cuc = 0, double tm = 0, GenSparseMatrix<Scalar> *muc = 0);
      void computeExtForce(Vector &f, double t, int tIndex,
                           SparseMatrix *kuc, Vector &prev_f);
 
@@ -608,18 +640,18 @@ class Domain : public HData {
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void thermoeComm();
-     void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*);
+     void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double* = 0);
      void pitaDynamOutput(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &,
-                          double* vcx, int sliceRank, double time);
+                          double* vcx, double* acx, int sliceRank, double time);
 
   protected:
-     void dynamOutputImpl(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double, int, int);
+     void dynamOutputImpl(int, double* bcx, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double*, double, int, int);
 
   public:
      void tempdynamOutput(int, double*, DynamMat&, Vector&, Vector&, Vector&,
                           Vector&);
 
-     double computeStructureMass();
+     double computeStructureMass(bool printFlag = true);
      double computeFluidMass();
      double getStructureMass();
 
@@ -675,6 +707,7 @@ class Domain : public HData {
      int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
 
      Connectivity *makeSommerToNode();
+     Connectivity *prepDirectMPC();
      // renumbering functions
      Renumber  getRenumbering();
      Renumber* getRenumberingFluid(); //ADDED FOR HEV PROBLEM, EC, 20070820
@@ -766,9 +799,6 @@ class Domain : public HData {
 
      // returns the value of the pressure force flag
      int  pressureFlag();
-
-     // returns the value of the preload force flag
-     int  preloadFlag();
 
      // returns the value of the contact force flag
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.penalty == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics

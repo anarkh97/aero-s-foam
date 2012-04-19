@@ -29,6 +29,11 @@ using std::list;
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
 
+#include <Element.d/Rigid.d/RigidBeam.h>
+#include <Element.d/Rigid.d/RigidThreeNodeShell.h>
+#include <Element.d/Rigid.d/RigidFourNodeShell.h>
+#include <Element.d/Rigid.d/RigidSolid6Dof.h>
+
 #include<Sfem.d/Sfem.h>
 
 extern int verboseFlag;
@@ -1269,6 +1274,102 @@ Domain::makeSommerToNode()
  return ret;
 }
 
+Connectivity *
+Domain::prepDirectMPC()
+{
+  // get all of the lmpcs from the packedEset
+  // TODO don't extract elements which use lagrange multipliers or penalty
+  for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+  numLMPC = 0;
+  lmpc.deleteArray();
+  int nEle = packedEset.last();
+  int nRigid = 0;
+  Elemset *rigidSet = new Elemset;
+  for(int i = 0; i < nEle; ++i) {
+    Element *ele = packedEset[i];
+    if(ele != 0) {
+      if(false /*dynamic_cast<RigidBeam*>(ele) || dynamic_cast<RigidThreeNodeShell*>(ele)
+         || dynamic_cast<RigidFourNodeShell*>(ele) || dynamic_cast<RigidSolid6Dof*>(ele)*/) // TODO
+        rigidSet->elemadd(nRigid++, ele);
+      else {
+        int n = ele->getNumMPCs();
+        if(n > 0) {
+          LMPCons **l = ele->getMPCs();
+          for(int j = 0; j < n; ++j)
+            lmpc[numLMPC++] = l[j];
+          delete [] l;
+        }
+      }
+    }
+  }
+  if(nRigid > 0) {
+    //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
+    std::set<int> blockedNodes;
+    for(int i = 0; i < numDirichlet; ++i) blockedNodes.insert(dbc[i].nnum);
+    rigidSet->collapseRigid6(blockedNodes);
+    nRigid = rigidSet->last();
+    StructProp p; // dummy property
+    for(int i = 0; i < nRigid; ++i) {
+      int n = (*rigidSet)[i]->getNumMPCs();
+      if(n > 0) {
+        if((*rigidSet)[i]->getProperty() == 0) { // this element was instantiated in Elemset::collapseRigid6
+          (*rigidSet)[i]->buildFrame(nodes);     // need to call buildFrame and setProp to prep it.
+          (*rigidSet)[i]->setProp(&p);
+        }
+        LMPCons **l = (*rigidSet)[i]->getMPCs();
+        for(int j = 0; j < n; ++j)
+          lmpc[numLMPC++] = l[j];
+        delete [] l;
+      }
+    }
+  }
+  //cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
+
+  geoSource->makeDirectMPCs(numLMPC, lmpc);
+  // MPC Connectivity treatment in direct way.
+  std::multimap<int, int> mpcConnect;
+  std::multimap<int, int>::iterator it;
+  std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
+  int ndMax = nodeToElem->csize();
+  for(int i = 0; i < numLMPC; ++i) {
+    for(int j = 1; j < lmpc[i]->nterms; ++j)
+      if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
+
+        ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
+        bool found = false;
+        for(it = ret.first; it != ret.second; ++it)
+          if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
+
+        if(!found)
+          mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
+      }
+  }
+
+  int *ptr = new int[ndMax+1];
+  for(int i = 0; i < ndMax; ++i)
+    ptr[i] = 1;
+  ptr[ndMax] = 0;
+  for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+    ptr[it->first]++;
+  for(int i = 0; i < ndMax; ++i)
+    ptr[i+1] += ptr[i];
+  int *tg = new int[ptr[ndMax]];
+
+  for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
+    tg[--ptr[it->first]] = it->second;
+  for(int i = 0; i < ndMax; ++i)
+    tg[--ptr[i]] = i;
+
+  Connectivity renumToNode(ndMax, ptr, tg);
+  Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
+  Connectivity *renumToElem = elemToRenum->reverse();
+  Connectivity *nodeToNodeDirect = renumToElem->transcon(elemToRenum);
+  delete renumToElem;
+  delete elemToRenum;
+  delete rigidSet;
+  return nodeToNodeDirect;
+}
+
 Renumber
 Domain::getRenumbering()
 {
@@ -1278,51 +1379,7 @@ Domain::getRenumbering()
 
  // create node to node connectivity
  if(nodeToNode) delete nodeToNode;
-
- if(geoSource->getDirectMPC()) {
-   // MPC Connectivity treatment in direct way.
-   std::multimap<int, int> mpcConnect;
-   std::multimap<int, int>::iterator it;
-   std::pair<std::multimap<int,int>::iterator, std::multimap<int,int>::iterator> ret;
-   int ndMax = nodeToElem->csize();
-   for(int i = 0; i < this->numLMPC; ++i) {
-     for(int j = 1; j < lmpc[i]->nterms; ++j)
-       if(lmpc[i]->terms[0].nnum != lmpc[i]->terms[j].nnum) {
-
-         ret = mpcConnect.equal_range(lmpc[i]->terms[0].nnum);
-         bool found = false;
-         for(it = ret.first; it != ret.second; ++it)
-           if((*it).second == lmpc[i]->terms[j].nnum) { found = true; break; }
-
-         if(!found)
-           mpcConnect.insert(std::pair<int,int>(lmpc[i]->terms[0].nnum, lmpc[i]->terms[j].nnum));
-       }
-   }
-
-   int *ptr = new int[ndMax+1];
-   for(int i = 0; i < ndMax; ++i)
-     ptr[i] = 1;
-     
-   ptr[ndMax] = 0;
-   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-     ptr[it->first]++;
-   for(int i = 0; i < ndMax; ++i)
-     ptr[i+1] += ptr[i];
-   int *tg = new int[ptr[ndMax]];
-
-   for(it = mpcConnect.begin(); it != mpcConnect.end(); ++it)
-     tg[--ptr[it->first]] = it->second;
-   for(int i = 0; i < ndMax; ++i)
-     tg[--ptr[i]] = i;
-
-   Connectivity renumToNode(ndMax, ptr, tg);
-   Connectivity *elemToRenum = elemToNode->transcon(&renumToNode);
-   Connectivity *renumToElem = elemToRenum->reverse();
-   nodeToNode = renumToElem->transcon(elemToRenum);
-   delete renumToElem;
-   delete elemToRenum;
- } else
-   nodeToNode = nodeToElem->transcon(elemToNode);
+ nodeToNode = nodeToElem->transcon(elemToNode);
 
  //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
@@ -2609,10 +2666,6 @@ void Domain::WriteToFileMortarLMPCs(FILE *file)
 int
 Domain::pressureFlag() { return geoSource->pressureFlag(); }
 
-// returns the value of the preload force flag
-int
-Domain::preloadFlag() { return geoSource->preloadFlag(); }
-
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 
@@ -2649,7 +2702,9 @@ Domain::initialize()
  nContactSurfacePairs = 0;
  outFlag = 0;
  nodeTable = 0;
+ MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
+ g_dsa = 0;
 }
 
 Domain::~Domain()
@@ -2717,9 +2772,14 @@ Domain::~Domain()
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
  for(int i=0; i<nMortarCond; ++i) // HB
    if(MortarConds[i]) delete MortarConds[i];
- //for(int i=0; i<numLMPC; ++i) // HB
- //  if(lmpc[i]) delete lmpc[i];
+ for(int i=0; i<numLMPC; ++i) // HB
+   if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
+ if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
+ if(p) delete p;
+ for(int i=0; i<contactSurfElems.size(); ++i)
+   packedEset.deleteElem(contactSurfElems[i]);
+ if(g_dsa) delete g_dsa;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -3505,24 +3565,15 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 void
 Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  // first store the lagrange multipliers
-  std::map<std::pair<int,int>,double> mu; 
-  std::map<std::pair<int,int>,double>::iterator it;
+  // copy the lagrange multipliers from geomState
+  std::vector<double> mu;
   if(sinfo.lagrangeMult) {
-    for(std::vector<int>::iterator i = contactSurfElems.begin(); i != contactSurfElems.end(); ++i) {
-      if(packedEset[*i]->numInternalNodes() == 1) {
-        int in = (*elemToNode)[*i][packedEset[*i]->numNodes()-1];
-        LMPCons *lmpc = dynamic_cast<LMPCons*>(packedEset[*i]);
-        mu[lmpc->id] = (*geomState)[in].x;
+    for(int i = 0; i < numLMPC; ++i) {
+      if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+        mu.push_back(geomState->getMultiplier(lmpc[i]->id));
       }
     }
-    // count the number of contact surface lmpcs with lagrange multipliers
-    int count3 = 0;
-    for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->getSource() == mpc::ContactSurfaces) count3++;
-    }
-
-    geomState->resizeNodeState(count3-contactSurfElems.size()); // resizing the node state vector allows the lagrange multipliers to be stored
+    geomState->clearMultiplierNodes();
   }
 
   if(!p) p = new StructProp(); 
@@ -3530,10 +3581,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   p->penalty = sinfo.penalty;
   p->type = StructProp::Constraint;
   int count = 0;
-  int nEle = packedEset.size();
+  int nEle = packedEset.last();
   int count1 = 0;
-  int lastNode = geomState->numNodes();
-  if(sinfo.lagrangeMult) lastNode -= contactSurfElems.size();
+  int nNode = geomState->numNodes();
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
@@ -3541,13 +3591,10 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         packedEset[contactSurfElems[count]]->setProp(p);
-        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+          int in[1] = { nNode++ };
           packedEset[contactSurfElems[count]]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         count1++;
       }
@@ -3556,12 +3603,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
         packedEset[nEle]->setProp(p);
         if(packedEset[nEle]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+          int in[1] = { nNode++ };
           packedEset[nEle]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -3579,6 +3623,6 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
   numele = packedEset.last(); 
-  numnodes = lastNode;
+  numnodes = geomState->numNodes();
 }
 

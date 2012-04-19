@@ -715,6 +715,13 @@ SevenArgExecuter<TA,TB,TC,TD,TE,TF,TG,TH>::runFor(int i)
 }
 
 template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
+void execParal7R(int n, TA *target, void (TA::*fct)(int, TB&, TC, TD, TE, TF**, TG**, TH**), TB &b, TC c, TD d, TE e, TF **f, TG **g, TH **h)
+{
+ SevenArgExecuter<TA,TB&,TC,TD,TE,TF**,TG**,TH**> fe(target,fct, b,c,d,e,f,g,h);
+ threadManager->execParal(n, &fe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE, class TF, class TG, class TH>
 void execParal7R(int n, TA *target, void (TA::*fct)(int, TB&, TC&, TD&, TE&, TF&, TG&, TH&), TB &b, TC &c, TD &d, TE &e, TF &f, TG &g, TH &h)
 {
  SevenArgExecuter<TA,TB&,TC&,TD&,TE&,TF&,TG&,TH&> fe(target,fct, b,c,d,e,f,g,h);

@@ -26,7 +26,7 @@ class NLStaticSolver {
           OpSolver* solver, typename StateUpdate::RefState *refState,
           GeomType* geomState, int& numIter, double lambda=1.0, int step = 1);
 
-     void extendedNewton(GeomType &u, VecType &dU, double &lambda, 
+     void extendedNewton(GeomType &u, GeomType &u0, VecType &dU, double &lambda, 
                 double deltaLambda,
                 double &deltaS, double w, int &numExtIter, OpSolver* solver,
                 VecType& force, VecType& residual, VecType& glRes,

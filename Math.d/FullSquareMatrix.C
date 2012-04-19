@@ -495,3 +495,27 @@ void GenFullSquareMatrix<Scalar>::multiply(GenVector<Scalar1>& a, GenVector<Scal
   }
   return;
 }
+
+template <typename Scalar>
+inline
+void
+GenFullSquareMatrix<Scalar>::multAdd(const GenVector<Scalar> &a, GenVector<Scalar> &b) const {
+  const_cast<GenFullSquareMatrix<Scalar> *>(this)->multiply(const_cast<GenVector<Scalar> &>(a), b, 1.0, NORMAL);
+}
+
+template <typename Scalar>
+inline
+void
+GenFullSquareMatrix<Scalar>::mult(const GenVector<Scalar> &a, GenVector<Scalar> &b) const {
+  b.zero();
+  this->multAdd(a, b);
+}
+
+template <typename Scalar>
+void
+GenFullSquareMatrix<Scalar>::linAdd(const Scalar &coef, const GenFullSquareMatrix<Scalar> &other) {
+  assert(this->length == other.length);
+  for (int i = 0; i < this->length; ++i) {
+    this->value[i] += coef * other.value[i];
+  }
+}

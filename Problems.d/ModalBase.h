@@ -48,6 +48,7 @@ struct ModalOps
  dynMat  dynamic operator matrix for time integration
 */
   DiagonalMatrix *M, *C, *K, *dynMat, *Msolver;
+  SparseMatrix *Muc, *Cuc;
 };
 
 //------------------------------------------------------------------------------

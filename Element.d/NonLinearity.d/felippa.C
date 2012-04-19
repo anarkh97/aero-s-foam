@@ -3220,7 +3220,7 @@ double r8_choose ( int n, int k )
   int i;
   int mn;
   int mx;
-  int value;
+  double value;
 
   mn = i4_min ( k, n - k );
 

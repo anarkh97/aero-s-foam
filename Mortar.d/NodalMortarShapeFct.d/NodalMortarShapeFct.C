@@ -384,11 +384,11 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
   LMPCTerm SlaveTerm;
                                                                                                                                              
   LMPCons* MortarLMPC = NULL;
-  double tol = 0.0; // we may use a (relative) tolerance to filter the small term
+  double tol = std::numeric_limits<double>::epsilon(); // we may use a (relative) tolerance to filter the small term
   int dofs[3] = {0,1,2};
   for(int i = 0; i < int(LinkedSlaveNodes.size()); i++) {
     for(int idof = 0; idof < 3; idof++) {
-      if(std::abs<double>(SlaveMPCCoeffs[3*i+idof]) > tol) {
+      if(fabs(SlaveMPCCoeffs[3*i+idof]) > tol) {
         SlaveTerm.nnum   = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
         SlaveTerm.dofnum = dofs[idof];
         SlaveTerm.coef.r_value = SlaveMPCCoeffs[3*i+idof];
@@ -408,7 +408,7 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
  for(int i = 0; i < int(LinkedMasterNodes.size()); i++) {
    //double coefnorm = 0; // DEBUG
    for(int idof = 0; idof < 3; idof++){
-     if(std::abs<double>(MasterMPCCoeffs[3*i+idof]) > tol) {
+     if(fabs(MasterMPCCoeffs[3*i+idof]) > tol) {
        MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
        MasterTerm.dofnum = dofs[idof];
        MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof];

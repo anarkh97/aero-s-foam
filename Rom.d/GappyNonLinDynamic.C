@@ -66,7 +66,7 @@ GappyNonLinDynamic::getSolver() {
 }
 
 double
-GappyNonLinDynamic::getResidualNorm(const Vector &residual) {
+GappyNonLinDynamic::getResidualNorm(const Vector &residual, GeomState &, double) {
   return getSolver()->projectAndComputeNorm(residual);
 }
 

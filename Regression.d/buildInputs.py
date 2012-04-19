@@ -170,7 +170,7 @@ def buildInputs(params):
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","newmark\nmech 0.5 0.0 0.0\n*","*","*"]
+        EXTRAS = ["*","newmark\nmech 0.25 0.5 0.0 0.0\n*","*","*"]
 
       if(problem_type == "dsvm38"):
         OUTPUT = ["gvelocit"]

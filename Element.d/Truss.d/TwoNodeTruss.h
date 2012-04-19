@@ -6,6 +6,7 @@
 class TwoNodeTruss : public virtual Element 
 {
         int nn[2];
+        double preload;
 public:
 	TwoNodeTruss(int*);
         Element *clone();
@@ -30,7 +31,8 @@ public:
         void getThermalForce(CoordSet &cs, Vector &ndTemps,
                              Vector &ThermalForce, int glflag, 
                              GeomState *gs);
-        void setPreLoad(double load, int &flg);
+        void setPreLoad(std::vector<double> &load);
+        std::vector<double> getPreLoad();
 	bool isSafe() { return false; }
 	bool isStart() {return false; }
 #ifndef SALINAS

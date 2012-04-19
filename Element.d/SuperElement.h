@@ -45,7 +45,8 @@ class SuperElement : public Element
     void setGlNum(int gn, int sn = 0);
 
     void setProp(StructProp *p, bool _myProp = false); 
-    void setPreLoad(double load, int &flg);
+    void setPreLoad(std::vector<double> &load);
+    std::vector<double> getPreLoad();
     void setFrame(EFrame *frame);
     void buildFrame(CoordSet &cs);
     void setOffset(double *o);

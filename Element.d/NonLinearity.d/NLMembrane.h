@@ -78,6 +78,8 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
   public:
     NLMembrane(int *nd);
     ~NLMembrane();
+    void setPreLoad(std::vector<double> &_preload) { preload = _preload; }
+    std::vector<double> getPreLoad() { return preload; }
     int numNodes() { return 3; }
     int numDofs() { return 9; }
     void renum(int *);

@@ -2666,10 +2666,6 @@ void Domain::WriteToFileMortarLMPCs(FILE *file)
 int
 Domain::pressureFlag() { return geoSource->pressureFlag(); }
 
-// returns the value of the preload force flag
-int
-Domain::preloadFlag() { return geoSource->preloadFlag(); }
-
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 

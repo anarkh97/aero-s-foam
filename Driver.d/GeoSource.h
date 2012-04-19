@@ -179,10 +179,11 @@ class GeoSource {
   ResizeArray<double *> cframes;
 
   int prsflg;
-  int prlflg;
   int constpflg, constqflg; // consistent pressure and gravity
   typedef std::vector<pair<int,double> > ElemPressureContainer;
   ElemPressureContainer eleprs;
+  typedef std::vector<pair<int,std::vector<double> > > ElemPreloadContainer;
+  ElemPreloadContainer eleprl;
 
   // Connectivities
   Connectivity *clusToSub;
@@ -335,6 +336,7 @@ public:
   int  addCFrame(int,double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
+  void setElementPreLoad(int, double[3]);
   void setConsistentPFlag(int);
   void setConsistentQFlag(int, int=1);
   void addOffset(OffsetData &od) { offsets.push_back(od); }
@@ -434,7 +436,6 @@ public:
   int getNumCframes() { return numCframes; }
   const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
-  int preloadFlag() { return prlflg; }
   int consistentPFlag() { return constpflg; }
   int consistentQFlag() { return constqflg; }
   map<int, Attrib> &getAttributes()  { return attrib; }

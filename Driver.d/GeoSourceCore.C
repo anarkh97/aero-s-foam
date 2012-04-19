@@ -67,7 +67,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numCoefData = 0;
   numLayMat = 0;
   prsflg = 0;
-  prlflg = 0;
 
   constpflg = 1;
   constqflg = 1;
@@ -695,6 +694,15 @@ void GeoSource::setUpData()
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
 
+  // Set up element preload
+  for(vector<pair<int,std::vector<double> > >::iterator i = eleprl.begin(); i != eleprl.end(); ++i) {
+    int elemNum = i->first;
+    if(elemSet[elemNum])
+     elemSet[elemNum]->setPreLoad(i->second);
+   else
+     fprintf(stderr," *** WARNING: Preload was found for non-existent element %d\n", elemNum+1);
+  }
+
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
@@ -1193,12 +1201,28 @@ void GeoSource::setElementPressure(int elemNum, double pressure)
  eleprs.push_back(pair<int,double>(elemNum,pressure));
 }
 
+/*
 void GeoSource::setElementPreLoad(int elemNum, double preload)
 {
  if(elemSet[elemNum])
-   elemSet[elemNum]->setPreLoad(preload,prlflg);
+   elemSet[elemNum]->setPreLoad(preload);
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
+}
+*/
+
+void GeoSource::setElementPreLoad(int elemNum, double _preload)
+{
+ std::vector<double> preload; 
+ preload.push_back(_preload);
+ eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
+}
+
+void GeoSource::setElementPreLoad(int elemNum, double _preload[3])
+{
+ std::vector<double> preload;
+ for(int i=0; i<3; ++i) preload.push_back(_preload[i]);
+ eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
 }
 
 void GeoSource::setConsistentPFlag(int _constpflg)

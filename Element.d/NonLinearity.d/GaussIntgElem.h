@@ -58,6 +58,7 @@ template <class TensorTypes>
 class GenGaussIntgElement : public MatNLElement
 {
   protected:
+    std::vector<double> preload;
     virtual int getNumGaussPoints() = 0;
     virtual void getGaussPointAndWeight(int, double *, double &) = 0;
     virtual GenShapeFunction<TensorTypes> *getShapeFunction() = 0;
@@ -86,6 +87,8 @@ class GenGaussIntgElement : public MatNLElement
       return nst*ngp;
     }
     void initStates(double *);
+    void getStressTens(Node *nodes, double *dispn, double *staten,
+                       double *dispnp, double *statenp, double (*result)[9]);
 };
 
 template <class TensorTypes>
@@ -164,6 +167,8 @@ GenGaussIntgElement<TensorTypes>::stiffness(CoordSet& cs, double *k, int)
     //fprintf(stderr, "About to integrate! %p\n", material);
     material->integrate(&s, &D, e, e, 0, 0, 0);
     //fprintf(stderr, "Have integrated\n");
+
+    for(int j=0; j<preload.size(); ++j) s[j] += preload[j];
 
     //Tensor_d1s2_Ss23 & _B = static_cast<Tensor_d1s2_Ss23 &>(B);
     //for (int k = 0; k<24; ++k)
@@ -508,7 +513,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   
   kTan.zero();
   nodeforce = 0;
-  
+
   for(i = 0; i < ngp; i++) {
 
     double point[3], weight, jacn, jacnp;
@@ -535,6 +540,9 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
     material->integrate(&s, &Dnp, en, enp,
                         staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+
+    for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
+                                                            // force per unit length (ie. prestress multiplied by thickness)
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -568,6 +576,108 @@ GenGaussIntgElement<TensorType>::initStates(double *st)
  
   for(int i = 0; i < ngp; ++i)
     material->initStates(st+i*ninterns);
+}
+
+inline void
+copyTens(Stress2D *stens, double *svec)
+{
+  svec[0] = (*stens)[0]; // sxx
+  svec[1] = svec[3] = (*stens)[2]; // sxy
+  svec[2] = svec[6] = 0; // sxz
+  svec[4] = (*stens)[1]; // syy
+  svec[5] = svec[7] = 0; // syz
+  svec[8] = 0; // szz
+}
+
+template <class TensorType>
+void
+GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, double *staten,
+                                               double *dispnp, double *statenp, double (*result)[9])
+{
+  int ndofs = numDofs();
+  GenShapeFunction<TensorType> *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Obtain the storage for gradU ( 3x3 )
+  typename TensorType::GradUTensor gradUn;
+  typename TensorType::GradUTensor gradUnp;
+  // Obtain the storage for dgradUdqk ( ndof x3x3 )
+  typename TensorType::GradUDerivTensor dgradUdqkn;
+  typename TensorType::GradUDerivTensor dgradUdqknp;
+
+  // NDofsx3x3x-> 6xNDofs
+  typename TensorType::BTensor Bn;
+  typename TensorType::BTensor Bnp;
+
+  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
+  typename TensorType::DBTensor DBn;
+  typename TensorType::DBTensor DBnp;
+
+  typename TensorType::DTensor Dnp;
+  typename TensorType::StressTensor en;
+  typename TensorType::StressTensor enp;
+  typename TensorType::StressTensor s;
+  
+  int i,j;
+  int ngp = getNumGaussPoints();
+  int nstatepgp = material->getNumStates();
+  
+  // evaluate at the gauss points and extrapolate to the nodes
+  double (*gpstress)[9] = new double[getNumGaussPoints()][9];
+  double t = material->getThickness();
+
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight, jacn, jacnp;
+    StackVector dispVecn(dispn,ndofs);
+    StackVector dispVecnp(dispnp,ndofs); 
+
+    getGaussPointAndWeight(i, point, weight);
+
+    /*shapeF->getGradU(gradUn, nodes, point, dispVecn);
+    shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getE(en, gradUn);
+    strainEvaluator->getE(enp, gradUnp);  */
+
+    shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
+    shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+
+    //material->updateStates(en, enp, state + nstatepgp*i);
+    //material->getStress(&s, e, 0);       
+    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
+
+    material->integrate(&s, &Dnp, en, enp,
+                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+
+    for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
+                                                            // force per unit length (ie. prestress multiplied by thickness)
+
+    copyTens(&s, gpstress[i]);
+    if(t > 0) for(int j=0; j<9; ++j) gpstress[i][j] /= t;
+  }
+
+  //TODO extrapolate from gauss points to nodes
+  //temporary fix implemented here is to return the average of all the gauss points for each node
+  double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  for(int i = 0; i < getNumGaussPoints(); i++)
+    for(int j = 0; j < 9; ++j)
+      average[j] += gpstress[i][j];
+  for(int i = 0; i < 9; ++i)
+    average[i] /= getNumGaussPoints();
+  for(int i = 0; i < numNodes(); ++i)
+    for(int j = 0; j < 9; ++j)
+      result[i][j] = average[j];
+
+  delete [] gpstress;
 }
 
 #endif

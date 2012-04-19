@@ -39,6 +39,8 @@ class NLMaterial
      virtual GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() { return NULL; }
 
      virtual double getEquivPlasticStrain(double *statenp) { return 0; }
+
+     virtual double getThickness() { return 0; }
 };
 
 #endif

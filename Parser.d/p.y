@@ -2313,13 +2313,22 @@ Lumped:
 	;
 Preload:
         PRELOAD NewLine
-        { fprintf(stderr," ... PreLoad in Truss Elements      ... \n");}
+        { }
         | Preload Integer Float NewLine
         { geoSource->setElementPreLoad( $2-1, $3 ); }
-        | Preload Integer Integer Float NewLine
+        | Preload Integer THRU Integer Float NewLine
         { int i;
-          for(i=$2; i<($3+1); ++i)
-            geoSource->setElementPreLoad( i-1, $4 );
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, $5 );
+        }
+        | Preload Integer Float Float Float NewLine
+        { double load[3] = { $3, $4, $5 };
+          geoSource->setElementPreLoad( $2-1, load ); }
+        | Preload Integer THRU Integer Float Float Float NewLine
+        { double load[3] = { $5, $6, $7 };
+          int i;
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, load );
         }
 	;
 IterSolver:

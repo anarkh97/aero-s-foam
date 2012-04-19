@@ -287,13 +287,12 @@ class Element {
   protected:
 	StructProp *prop;	// structural properties for this element
         double pressure;	// pressure force applied to element
-        double preload;
         bool myProp;
         int glNum, subNum;
         vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
-        Element() { prop = 0; pressure = 0.0; preload = 0.0;
+        Element() { prop = 0; pressure = 0.0;
         _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
@@ -315,9 +314,9 @@ class Element {
 	virtual void setPressure(double pres, MFTTData *mftt = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
-        // By default ingore any element preload
-        virtual void setPreLoad(double load, int &flg) { }
-        virtual double getPreLoad() { return preload; }
+        // By default ignore any element preload
+        virtual void setPreLoad(std::vector<double> &load) { }
+        virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
         int getGlNum()  { return glNum; }

@@ -35,6 +35,8 @@ class ElaLinIsoMat2D : public NLMaterial
      void initStates(double *) {};
 
      GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+
+     double getThickness() { return t; }
 };
 
 // same equation as ElaLinIsoMat2D but with different Green-Lagrange strain evaluator

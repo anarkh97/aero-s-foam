@@ -225,8 +225,8 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #ifdef SOWER_DEBUG
   if(ese) ese->list();
 #endif
-  // pressure and preload
-  prsflg = 1; prlflg = 1; 
+  // pressure flag
+  prsflg = 1; 
 
   // materials
 #ifdef SOWER_DEBUG

@@ -139,13 +139,14 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
                                                                         expmat->ematpro[6]);
         break;
       case 6 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],
+                                                           expmat->ematpro[6], expmat->ematpro[7]);
         break;
       case 7 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
         break;
       case 8 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
         break;
       }
     }

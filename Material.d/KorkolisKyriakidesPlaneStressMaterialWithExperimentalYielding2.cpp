@@ -33,13 +33,17 @@
 
 // Constructor
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
-KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, double iMu)
+KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, double iMu, double iTol1, double iTol2)
 {
   // Youngs modulus
   E = iMu*(3.*iLambda + 2.*iMu)/(iLambda + iMu);
   
   // Poisson ratio
   nu = 0.5*iLambda/(iLambda+iMu);
+
+  // Tolerances for convergence of nonlinear solve
+  Tol1 = (iTol1 >= 0) ? iTol1 : 1.0e-6;
+  Tol2 = (iTol2 >= 0) ? iTol2 : 1.0e-6;
 
   // Zero initial plastic strain and equivalent plastic strain
   EPSplastic.clear();
@@ -79,6 +83,7 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::Clone() const
 std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialPlasticStrain() const
 {
+/* PJSA
   std::vector<double> EP(9,0.);
   EP[0] = EPSplastic[0];
   EP[4] = EPSplastic[1];
@@ -86,6 +91,8 @@ GetMaterialPlasticStrain() const
   EP[1] = EP[3] = 0.5*EPSplastic[2];
   EP[2] = EP[5] = EP[6] = EP[7] = 0.;
   return EP;
+*/
+  return EPSplastic;
 }
 
 // Return equivalent plastic strain
@@ -104,6 +111,15 @@ double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
 
+// Set the plastic strain in the material
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
+{ for(int i = 0; i < 3; ++i) EPSplastic[i] = iEPSplastic[i]; }
+
+// Set the equivalent plastic strain in the material
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+SetMaterialEquivalentPlasticStrain(double iEquivEPSplastic)
+{ equivEPSplastic = iEquivEPSplastic; }
 
 // Check if state of material lies within yield surface
 bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -201,9 +217,9 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   double Ftrial = EvaluateYieldFunction(&CStrial[0], equivEPSplastic);
 
   // Use some tolerance for checking yield function value
-  double TOL = ExpYieldStress[0]*1.e-6;
+  double TOL = ExpYieldStress[0]*Tol2; // ORIG: ExpYieldStress[0]*1.e-6
 
-  if( Ftrial<TOL )
+  if( Ftrial<0 /*ORIG: TOL*/ )
     {
       // This step is purely elastic
       // No need to update plastic variables
@@ -385,7 +401,7 @@ EvaluateDerivativeOfYieldFunction(const double * CS, const double eqP) const
       double Fplus = EvaluateYieldFunction(MyCS, eqP);
       
       // Minus direction
-      MyCS[i] = CS[i]-2.*deltaSigma;
+      MyCS[i] = CS[i]-deltaSigma; // ORIG: CS[i]-2.*deltaSigma;
       double Fminus = EvaluateYieldFunction(MyCS, eqP);
       
       // Compute derivative
@@ -432,11 +448,11 @@ GetYieldStressUsingExperimentalCurve(const double eqP) const
   double SigmaY = 0.;
   if( eqP<=ExpEqPlasticStrain[0] )
     SigmaY = ExpYieldStress[0];
-  else if ( eqP>=ExpEqPlasticStrain[52] )
-    SigmaY = ExpYieldStress[52];
+  else if ( eqP>=ExpEqPlasticStrain[53] )
+    SigmaY = ExpYieldStress[53];
   else
     {
-      for(int i=0; i<52; i++)
+      for(int i=0; i<53; i++)
 	if( eqP>=ExpEqPlasticStrain[i] && eqP<=ExpEqPlasticStrain[i+1] )
 	  {
 	    double lambda = (ExpEqPlasticStrain[i+1]-eqP)/(ExpEqPlasticStrain[i+1]-ExpEqPlasticStrain[i]);
@@ -514,7 +530,7 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
   bool CONVERGED = false;
   
  // Use some tolerance for checking convergence
-  double TOL = 1.e-6*ExpYieldStress[0];
+  double TOL = Tol1*ExpYieldStress[0]; // ORIG: 1e-6*ExpYieldStress[0]
   
   // Solution = lambda
   
@@ -530,13 +546,13 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
       double F = EvaluateYieldFunction(CS, eqP);
      
       // Check if root has been found
-      if( fabs(F)<TOL )
+      if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < 0)  //ORIG: if( fabs(F)<TOL )
 	CONVERGED = true;
       
       // Otherwise update bracket
       else
 	{
-	  if( F<0. )
+          if(!((F < 0 && F_R < 0) || (F > 0 && F_R > 0))) //ORIG: if( F<0. )
 	    {
 	      lambda_L = lambda;
 	      F_L = F;
@@ -598,7 +614,7 @@ DeviatoricStrainNorm(const double * S) const
 //#define USE_SI_UNITS
 #ifdef USE_SI_UNITS
 const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
-ExpYieldStress[53] = { 19540.0*6.89475908677537e3,
+ExpYieldStress[54] = { 19540.0*6.89475908677537e3,
                        25490.0*6.89475908677537e3,
                        28480.0*6.89475908677537e3,
                        31310.0*6.89475908677537e3,
@@ -650,11 +666,12 @@ ExpYieldStress[53] = { 19540.0*6.89475908677537e3,
                        48010.0*6.89475908677537e3,
                        48000.0*6.89475908677537e3,
                        48020.0*6.89475908677537e3,
-                       48060.0*6.89475908677537e3 };
+                       48060.0*6.89475908677537e3,
+                       48061.0*6.89475908677537e3 };
 #else
 // these units are psi
 const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
-ExpYieldStress[53] = { 19540.0,
+ExpYieldStress[54] = { 19540.0,
                        25490.0,
                        28480.0,
                        31310.0,
@@ -706,11 +723,12 @@ ExpYieldStress[53] = { 19540.0,
                        48010.0,
                        48000.0,
                        48020.0,
-                       48060.0 };
+                       48060.0,
+                       48061.0 };
 #endif
 
 const double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
-ExpEqPlasticStrain[53] = { 0.0,
+ExpEqPlasticStrain[54] = { 0.0,
                            0.000584,
                            0.000881,
                            0.001162,
@@ -762,4 +780,5 @@ ExpEqPlasticStrain[53] = { 0.0,
                            0.06181,
                            0.06268,
                            0.06355,
-                           0.06442 };
+                           0.06442,
+                           1.0 };

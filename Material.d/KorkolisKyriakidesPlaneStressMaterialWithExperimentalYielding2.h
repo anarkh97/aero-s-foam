@@ -44,7 +44,7 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! Constructor
   //! \param iLambda Lame constant for elastic response (SI units)
   //! \param iMu Lame constant for elastic response (SI units)
-  KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, double iMu);
+  KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, double iMu, double iTol1 = 1.0e-6, double iTol2 = 1.0e-6);
   
   //! Destructor
   virtual ~KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2();
@@ -81,7 +81,13 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   
   //! Returns shear modulus of material
   virtual double GetShearModulus() const;
-  
+
+  //! Set the plastic strain in the material
+  void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
+
+  //! Set the equivalent plastic strain in the material
+  void SetMaterialEquivalentPlasticStrain(double equivEPSplastic);
+
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector
   //! \param TOL Input. Tolerance to use for check
@@ -95,7 +101,7 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! Returns true if calculations went well and false otherwise
   //! \param EPS Input. Elastic strain, 3x1
   //! \param CS Output. Computed cauchy stress, 3x1
-  //! \param C Ouput. Elastic modulii 3x3
+  //! \param C Output. Elastic modulii 3x3
   virtual bool ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 						  std::vector<double> *CS, 
 						  std::vector<double> *C=0) const;
@@ -176,6 +182,9 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! Poisson ratio
   double nu;
   
+  //! Tolerances for convergence of nonlinear solve
+  double Tol1, Tol2;
+
   //! Plastic strain 
   std::vector<double> EPSplastic;
   

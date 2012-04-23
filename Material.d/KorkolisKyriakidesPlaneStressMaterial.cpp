@@ -49,8 +49,8 @@ KorkolisKyriakidesPlaneStressMaterial(double iLambda, double iMu,
   H = iH;
 
   // Tolerances for convergence of nonlinear solve
-  Tol1 = (iTol1 >= 0) ? iTol1 : 1.0e-6;
-  Tol2 = (iTol2 >= 0) ? iTol2 : 1.0e-6;
+  Tol1 = (iTol1 > 0) ? iTol1 : 1.0e-6;
+  Tol2 = (iTol2 > 0) ? iTol2 : 1.0e-6;
 
   // Zero initial plastic strain and backstress
   EPSplastic.clear();
@@ -71,7 +71,7 @@ KorkolisKyriakidesPlaneStressMaterial::~KorkolisKyriakidesPlaneStressMaterial()
 // Copy constructor
 KorkolisKyriakidesPlaneStressMaterial::
 KorkolisKyriakidesPlaneStressMaterial(const KorkolisKyriakidesPlaneStressMaterial &Mat)
-  : E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H)
+  : E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol1(Mat.Tol1), Tol2(Mat.Tol2)
 {
   EPSplastic.clear();
   BackStress.clear();

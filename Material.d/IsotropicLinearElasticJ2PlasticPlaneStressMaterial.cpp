@@ -51,7 +51,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
   SigmaY = iSigmaY;
   K = iK;
   H = iH;
-  Tol = (iTol >= 0) ? iTol : 1.0e-6;
+  Tol = (iTol > 0) ? iTol : 1.0e-6;
   
   // Zero initial plastic strain and backstress
   EPSplastic.clear();

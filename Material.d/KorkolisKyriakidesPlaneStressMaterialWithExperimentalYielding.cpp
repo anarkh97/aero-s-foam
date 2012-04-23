@@ -42,8 +42,8 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(double iLambda, do
   nu = 0.5*iLambda/(iLambda+iMu);
 
   // Tolerances for convergence of nonlinear solve
-  Tol1 = (iTol1 >= 0) ? iTol1 : 1.0e-6;
-  Tol2 = (iTol2 >= 0) ? iTol2 : 1.0e-6;
+  Tol1 = (iTol1 > 0) ? iTol1 : 1.0e-6;
+  Tol2 = (iTol2 > 0) ? iTol2 : 1.0e-6;
 
   // Zero initial plastic strain and equivalent plastic strain
   EPSplastic.clear();
@@ -64,7 +64,7 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding
 (const KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding & Mat)
-  : E(Mat.E), nu(Mat.nu)
+  : E(Mat.E), nu(Mat.nu), Tol1(Mat.Tol1), Tol2(Mat.Tol2)
 {
   EPSplastic.clear();
   for(int i=0; i<3; i++)

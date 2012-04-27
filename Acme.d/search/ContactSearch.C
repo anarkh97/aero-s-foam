@@ -725,7 +725,7 @@ void ContactSearch::create_zoltan_object( ContactErrorCode& error )
   //========================
   int zoltan_error;
   zoltan = new ContactZoltan(SearchComm, zoltan_error);
-  if( zoltan_error == LB_FATAL ){
+  if( zoltan_error == ZOLTAN_FATAL ){
     error = ZOLTAN_ERROR;
     errors->Add_Error_Message("Error Creating Zoltan Object");
     return;

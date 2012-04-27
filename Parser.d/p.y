@@ -2245,7 +2245,7 @@ Frame:
             $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
             $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
         | Integer THIRDNODE Integer NewLine
-        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d) }
+        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d); }
 	;
 BoffsetList:
 	BOFFSET NewLine

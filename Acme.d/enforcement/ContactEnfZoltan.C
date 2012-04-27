@@ -20,7 +20,7 @@
 
 #ifndef CONTACT_NO_MPI
 #include "ContactEnfZoltan.h"
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "ContactEnforcement.h"
 #include "ContactZoltan.h"
 #include "ContactTopologyEntityHash.h"

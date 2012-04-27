@@ -82,7 +82,6 @@
 //temporary include
 #include "mpi.h"
 #include "zoltan.h"
-#include "lbi_const.h"
 #include "ContactZoltan.h"
 #include "ContactZoltanComm.h"
 #include "ContactZoltanCommUtils.h"

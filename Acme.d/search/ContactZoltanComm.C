@@ -87,7 +87,7 @@ void ContactZoltanComm::CleanUp()
     LB_ID_TYPE** export_lids_ptr  = (export_lids == NULL)  ? NULL : &export_lids ;
     int**        export_procs_ptr = (export_procs == NULL) ? NULL : &export_procs;
 
-    LB_Free_Data( NULL, NULL, NULL,
+    Zoltan_LB_Free_Data( NULL, NULL, NULL,
                   export_gids_ptr, 
                   export_lids_ptr, 
                   export_procs_ptr );
@@ -102,7 +102,7 @@ void ContactZoltanComm::CleanUp()
     LB_ID_TYPE** import_lids_ptr  = (import_lids == NULL)  ? NULL : &import_lids ;
     int**        import_procs_ptr = (import_procs == NULL) ? NULL : &import_procs;
 
-    LB_Free_Data( import_gids_ptr, 
+    Zoltan_LB_Free_Data( import_gids_ptr, 
                   import_lids_ptr, 
                   import_procs_ptr, 
                   NULL, NULL, NULL );

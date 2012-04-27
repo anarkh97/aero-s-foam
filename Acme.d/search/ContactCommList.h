@@ -22,7 +22,7 @@
 #define ContactCommList_h_
 
 #ifndef CONTACT_NO_MPI
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "Contact_Defines.h"
 #include "contact_assert.h"
 #include "ContactTopologyEntity.h"

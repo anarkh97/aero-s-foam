@@ -62,7 +62,7 @@
 #include "ContactCommBuffer.h"
 
 #ifndef CONTACT_NO_MPI
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "ContactZoltan.h"
 #include "ContactZoltanComm.h"
 #endif

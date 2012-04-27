@@ -28,7 +28,7 @@
 #include "contact_assert.h"
 #include "ContactBoundingBox.h"
 #ifndef CONTACT_NO_MPI
-#include "lbi_const.h"
+#include "zoltan.h"
 #endif
 
 class ContactTopologyEntity {

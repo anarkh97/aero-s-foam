@@ -21,7 +21,7 @@
 
 #ifndef CONTACT_NO_MPI
 
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "Zoltan_Interface.h"
 #include "ContactSearch.h"
 #include "ContactTopology.h"

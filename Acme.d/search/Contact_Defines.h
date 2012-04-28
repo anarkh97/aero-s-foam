@@ -122,7 +122,7 @@ typedef int MPI_Comm;
 #define MAX_FFI_DERIVATIVES 24
 //#define COMPUTE_FFI_SECOND_DERIVATIVES
 
-//#define FFI_AUTO_DIFF_SACADO
+#define FFI_AUTO_DIFF_SACADO
 
 #if (MAX_FFI_DERIVATIVES > 0) && defined(USE_SACADO) && defined(FFI_AUTO_DIFF_SACADO)
 #  include "Sacado.hpp"

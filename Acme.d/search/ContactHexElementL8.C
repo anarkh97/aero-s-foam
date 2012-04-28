@@ -537,9 +537,9 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
 
   double node_positions[nnodes][3], global_coords[3], local_coords[3];
   for(i=0; i<3; ++i) {
-    global_coords[i] = active_global_coords[i].value();
+    global_coords[i] = GetActiveScalarValue(active_global_coords[i]);
     for(j=0; j<nnodes; ++j)
-      node_positions[j][i] = active_node_positions[j][i].value();
+      node_positions[j][i] = GetActiveScalarValue(active_node_positions[j][i]);
   }
 
   using std::sqrt;

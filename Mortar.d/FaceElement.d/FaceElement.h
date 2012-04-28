@@ -22,6 +22,10 @@ class DofSetArray;
 struct InterpPoint;
 class Connectivity;
 
+#ifdef USE_EIGEN3
+#include <Eigen/Sparse>
+#endif
+
 // ACME headers
 #ifdef USE_ACME
 #include "ContactSearch.h"

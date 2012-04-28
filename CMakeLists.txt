@@ -167,8 +167,16 @@ IF(UNIX)
    find_package(Eigen3)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
-     add_definitions(-DUSE_EIGEN3 -DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
+     add_definitions(-DUSE_EIGEN3) 
    ENDIF(EIGEN3_FOUND)
+
+#sacado
+    FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
+    IF(SACADO_INCLUDE_PATH)
+      MESSAGE("-- A library with SACADO API found. ")
+      add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
+      include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+    ENDIF(SACADO_INCLUDE_PATH)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis

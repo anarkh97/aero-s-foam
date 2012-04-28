@@ -58,15 +58,15 @@
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
-%token CHECKENERGYBALANCE COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
+%token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
@@ -82,7 +82,7 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
@@ -93,13 +93,13 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM SNAPSHOTS GAUSSNEWTON GALERKIN GAPPY SVD PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES
+%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER REDUCED ELLUMPWEIGHTS
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -312,6 +312,7 @@ Component:
         | Constraints
         | PodRom
         | SampleNodeList
+        | ElementLumpingWeightList
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -845,9 +846,9 @@ DynamInfo:
         { domain->solInfo().zeroRot = bool($3); }
         | DynamInfo NOSECONDARY NewLine
         { domain->solInfo().no_secondary = true; }
-        | DynamInfo CHECKENERGYBALANCE NewLine
+        | DynamInfo CHECKTOKEN NewLine
         { domain->solInfo().check_energy_balance = true; }
-        | DynamInfo CHECKENERGYBALANCE Float Float NewLine
+        | DynamInfo CHECKTOKEN Float Float NewLine
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
@@ -1749,6 +1750,17 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.lagrangeMult = bool($17);
+          sp.penalty = $18;
+          sp.type = StructProp::Constraint;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
 	{ StructProp sp; 
 	  sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
@@ -1768,6 +1780,18 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.lagrangeMult = bool($21);
+          sp.penalty = $22;
+          sp.type = StructProp::Constraint;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer Float Float Float Float Float Float Float NewLine
         { StructProp sp;
           sp.A = $2; sp.E = $3; sp.nu = $4; sp.rho = $5;
@@ -1780,6 +1804,14 @@ MatData:
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13;  
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float NewLine
+        { StructProp sp;  // this is for spring with stiffness-proportional damping : GID Kx Ky Kz lx1 ...
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.betaDamp = $15;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
@@ -1890,6 +1922,16 @@ MatData:
           sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float Float Float Float NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.amplitude = $5;
+          sp.omega = $6;
+          sp.phase = $7;
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
@@ -2203,7 +2245,7 @@ Frame:
             $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
             $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
         | Integer THIRDNODE Integer NewLine
-        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d) }
+        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d); }
 	;
 BoffsetList:
 	BOFFSET NewLine
@@ -2271,13 +2313,22 @@ Lumped:
 	;
 Preload:
         PRELOAD NewLine
-        { fprintf(stderr," ... PreLoad in Truss Elements      ... \n");}
+        { }
         | Preload Integer Float NewLine
         { geoSource->setElementPreLoad( $2-1, $3 ); }
-        | Preload Integer Integer Float NewLine
+        | Preload Integer THRU Integer Float NewLine
         { int i;
-          for(i=$2; i<($3+1); ++i)
-            geoSource->setElementPreLoad( i-1, $4 );
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, $5 );
+        }
+        | Preload Integer Float Float Float NewLine
+        { double load[3] = { $3, $4, $5 };
+          geoSource->setElementPreLoad( $2-1, load ); }
+        | Preload Integer THRU Integer Float Float Float NewLine
+        { double load[3] = { $5, $6, $7 };
+          int i;
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, load );
         }
 	;
 IterSolver:
@@ -2434,6 +2485,10 @@ Solver:
 	{ domain->solInfo().mumps_icntl[$2] = $3; }
 	| MUMPSCNTL Integer Float NewLine
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
+        | GOLDFARBTOL Float NewLine
+        { domain->solInfo().goldfarb_tol = $2; }
+        | GOLDFARBCHECK SWITCH NewLine
+        { domain->solInfo().goldfarb_check = bool($2); }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
         | DEBUGICNTL Integer Integer NewLine
@@ -2702,8 +2757,10 @@ Solver:
         { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
         | PICKANYCORNER Integer NewLine
         { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
+/* deprecated
         | FRONTAL NewLine
 	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
+*/
         | NLPREC NewLine
         { domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
           domain->solInfo().fetiInfo.nlPrecFlg = 1; 
@@ -2886,13 +2943,16 @@ FAcousticData:
 	;
 Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
-        { if(!$2.lagrangeMult && $2.penalty == 0) geoSource->setDirectMPC(true);
+        { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
           domain->solInfo().penalty = $2.penalty; }
         ;
 ConstraintOptionsData:
         DIRECT
         { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        | DIRECT Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().mpcDirectTol = $2; }
         | MULTIPLIERS
         { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float
@@ -3128,8 +3188,17 @@ NLInfo:
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine
         { domain->solInfo().getNLInfo().tolRes = $3; }
+        | NLInfo NLTOL Float Float NewLine
+        { domain->solInfo().getNLInfo().tolRes = $3;
+          domain->solInfo().getNLInfo().tolInc = $4; }
         | NLInfo DLAMBDA Float Float NewLine
-        { domain->solInfo().getNLInfo().dlambda = $3; domain->solInfo().getNLInfo().maxLambda = $4; }
+        { domain->solInfo().getNLInfo().dlambda = $3;
+          domain->solInfo().getNLInfo().maxLambda = $4; }
+        | NLInfo DLAMBDA Float Float Integer Integer NewLine
+        { domain->solInfo().getNLInfo().dlambda = $3; 
+          domain->solInfo().getNLInfo().maxLambda = $4;
+          domain->solInfo().getNLInfo().extMin = $5;
+          domain->solInfo().getNLInfo().extMax = $6; }
         | NLInfo FITALG Integer NewLine
         { domain->solInfo().getNLInfo().fitAlgShell = $3;
           domain->solInfo().getNLInfo().fitAlgBeam  = $3; }
@@ -3144,6 +3213,11 @@ NLInfo:
         | NLInfo LINESEARCH NewLine
         { domain->solInfo().getNLInfo().linesearch = true; }
 */
+        | NLInfo FAILSAFE NewLine
+        { domain->solInfo().getNLInfo().failsafe = true; }
+        | NLInfo FAILSAFE Float NewLine
+        { domain->solInfo().getNLInfo().failsafe = true;
+          domain->solInfo().getNLInfo().failsafe_tol = $3; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -3240,10 +3314,30 @@ MatSpec:
            geoSource->addMaterial($2-1, 
              new BilinPlasKinHardMat($4, $5, $6, $7, $8) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
@@ -3255,10 +3349,20 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new StVenantKirchhoffMat($4, $5, $6));
          }
+        | MatSpec Integer HENCKY Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HenckyMat($4, $5, $6));
+         }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat2D($4, $5, $6, $7));
+         }
+        | MatSpec Integer SVKPLSTRESS Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat2D($4, $5, $6, $7));
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {
@@ -3339,21 +3443,41 @@ PodRom:
   | PodRom PodRomOption NewLine
   ;
 PodRomMode:
-  SNAPSHOTS
-  { }
+  FOM
+  { domain->solInfo().snapshotsPodRom = true; }
+  | FOM CHECKTOKEN 
+  { domain->solInfo().checkPodRom = true; }
+  | GALERKIN
+  { domain->solInfo().galerkinPodRom = true;
+    domain->solInfo().subtype = 12; }
+  | GALERKIN REDUCED
+  { domain->solInfo().galerkinPodRom = true;
+    domain->solInfo().reducedPodRom = true; }
   | GAUSSNEWTON 
   { domain->solInfo().gaussNewtonPodRom = true;
     domain->solInfo().subtype = 11; }
-  | GALERKIN
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 12; }
   | GAPPY
   { domain->solInfo().gappyPodRom = true;
     domain->solInfo().subtype = 13; }
+  | SVDTOKEN PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().svdPodRom = true; }
+  | SAMPLING PodRomOfflineModeOption
+  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
+    domain->solInfo().samplingPodRom = true; }
+  ;
+PodRomOfflineModeOption:
+  /* empty */
+  | GAUSSNEWTON
+  { domain->solInfo().gaussNewtonPodRom = true; }
+  | FORCE
+  { domain->solInfo().galerkinPodRom = true; }
   ;
 PodRomOption:
-  SVD
-  { domain->solInfo().svdPodRom = true; }
+  SNAPSHOTS SWITCH
+  { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
+  | SVDTOKEN
+  { domain->solInfo().onlineSvdPodRom = true; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | ASPECTRATIO Float
@@ -3362,12 +3486,20 @@ PodRomOption:
   { domain->solInfo().substractRefPodRom = true; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | TOLER Float
+  { domain->solInfo().tolPodRom = $2; }
   ;
 SampleNodeList:
   SAMPLENODES NewLine
   {}
   | SampleNodeList Integer NewLine
   { geoSource->sampleNodeAdd($2 - 1); }
+  ;
+ElementLumpingWeightList:
+  ELLUMPWEIGHTS NewLine
+  { domain->solInfo().elemLumpPodRom = true; }
+  | ElementLumpingWeightList Integer Float NewLine
+  { geoSource->setElementLumpingWeight($2 - 1, $3); }
   ;
 Integer:
 	IntConstant

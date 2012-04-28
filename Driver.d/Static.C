@@ -121,7 +121,7 @@ Domain::printStatistics()
 }
 
 double
-Domain::computeStructureMass()
+Domain::computeStructureMass(bool printFlag)
 {
   // Compute total mass and mass center of gravity
   // Added calculation for moments of inertia
@@ -231,8 +231,10 @@ Domain::computeStructureMass()
 
     delete [] nodeNumbers;
 
-    filePrint(stderr," Fluid Mass = %f\n",fluidmas);
-    filePrint(stderr," --------------------------------------\n");
+    if(printFlag) {
+      filePrint(stderr," Fluid Mass = %f\n",fluidmas);
+      filePrint(stderr," --------------------------------------\n");
+    }
 
     totmas += fluidmas;
   
@@ -314,29 +316,31 @@ Domain::computeStructureMass()
   Izy += Mz*yc*zc;
 
   totmas = (Mx+My+Mz)/3.0;
-  if(Mx != My || Mx != Mz || My != Mz) {
-    filePrint(stderr," Directional Mass\n");
-    filePrint(stderr," Mx = %f My = %f Mz = %f\n",Mx,My,Mz);
+  if(printFlag) {
+    if(Mx != My || Mx != Mz || My != Mz) {
+      filePrint(stderr," Directional Mass\n");
+      filePrint(stderr," Mx = %f My = %f Mz = %f\n",Mx,My,Mz);
+      filePrint(stderr," --------------------------------------\n");
+    }
+
+    filePrint(stderr," Moments of Inertia\n");
+    filePrint(stderr," Ixx = %e Iyy = %e Izz = %e\n",Ixx,Iyy,Izz);
+    filePrint(stderr," --------------------------------------\n");
+
+    filePrint(stderr," Products of Inertia\n");
+    filePrint(stderr," Ixy = %e Iyz = %e Ixz = %e\n",Ixy,Iyz,Ixz);
+    filePrint(stderr," --------------------------------------\n");
+
+    if (Iyx != Ixy || Ixz != Izx || Iyz != Izy)  {
+      filePrint(stderr," WARNING: Non-Symmetric Products of Inertia (Check DiMASS) \n");
+      filePrint(stderr," Iyx = %e Izy = %e Izx = %e\n",Iyx,Izy,Izx);
+      filePrint(stderr," --------------------------------------\n");
+    }
+
+    filePrint(stderr," Center of Gravity\n");
+    filePrint(stderr," x = %f y = %f z = %f\n",xc,yc,zc);
     filePrint(stderr," --------------------------------------\n");
   }
-
-  filePrint(stderr," Moments of Inertia\n");
-  filePrint(stderr," Ixx = %e Iyy = %e Izz = %e\n",Ixx,Iyy,Izz);
-  filePrint(stderr," --------------------------------------\n");
-
-  filePrint(stderr," Products of Inertia\n");
-  filePrint(stderr," Ixy = %e Iyz = %e Ixz = %e\n",Ixy,Iyz,Ixz);
-  filePrint(stderr," --------------------------------------\n");
-
-  if (Iyx != Ixy || Ixz != Izx || Iyz != Izy)  {
-    filePrint(stderr," WARNING: Non-Symmetric Products of Inertia (Check DiMASS) \n");
-    filePrint(stderr," Iyx = %e Izy = %e Izx = %e\n",Iyx,Izy,Izx);
-    filePrint(stderr," --------------------------------------\n");
-  }
-
-  filePrint(stderr," Center of Gravity\n");
-  filePrint(stderr," x = %f y = %f z = %f\n",xc,yc,zc);
-  filePrint(stderr," --------------------------------------\n");
 
   // Computation to find node closest to the center of gravity
   int nodeMarker = 0;
@@ -363,13 +367,15 @@ Domain::computeStructureMass()
     }
   }
 
-  filePrint(stderr," Node %d is closest to the Center of Gravity\n",nodeMarker+1);
-  Node *thisNode = nodes[nodeMarker];
-  if(thisNode) {
-    filePrint(stderr," Node %d has coordinates: %e %e %e \n",
-              nodeMarker + 1, thisNode->x, thisNode->y, thisNode->z);
-    filePrint(stderr," It is %e from the center of gravity\n",minDistance);
-    filePrint(stderr," --------------------------------------\n");
+  if(printFlag) {
+    filePrint(stderr," Node %d is closest to the Center of Gravity\n",nodeMarker+1);
+    Node *thisNode = nodes[nodeMarker];
+    if(thisNode) {
+      filePrint(stderr," Node %d has coordinates: %e %e %e \n",
+                nodeMarker + 1, thisNode->x, thisNode->y, thisNode->z);
+      filePrint(stderr," It is %e from the center of gravity\n",minDistance);
+      filePrint(stderr," --------------------------------------\n");
+    }
   }
 
   // Compute Geometric center of gravity of structure
@@ -379,7 +385,7 @@ Domain::computeStructureMass()
 
   int nComponents = renumb.numComp + renumbFluid.numComp;
 
-  filePrint(stderr," Number of Components = %d\n",renumb.numComp);
+  if(printFlag) filePrint(stderr," Number of Components = %d\n",renumb.numComp);
   for(int n=0; n<renumb.numComp; ++n) {
     xc = 0.0, yc = 0.0, zc = 0.0;
     int realNodeCnt = 0;
@@ -401,8 +407,10 @@ Domain::computeStructureMass()
     double yg = yc/realNodeCnt;
     double zg = zc/realNodeCnt;
 
-    filePrint(stderr," Component %d: Centroid\n", n+1);
-    filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+    if(printFlag) {
+      filePrint(stderr," Component %d: Centroid\n", n+1);
+      filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+    }
   }
   for(int n=0; n<renumbFluid.numComp; ++n) {
     xc = 0.0, yc = 0.0, zc = 0.0;
@@ -425,16 +433,20 @@ Domain::computeStructureMass()
     double yg = yc/realNodeCnt;
     double zg = zc/realNodeCnt;
     
-    filePrint(stderr," Component %d (Fluid): Centroid\n", renumb.numComp+n+1);
-    filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+    if(printFlag) {
+      filePrint(stderr," Component %d (Fluid): Centroid\n", renumb.numComp+n+1);
+      filePrint(stderr," x = %f y = %f z = %f\n",xg,yg,zg);
+    }
   }
-  
-  filePrint(stderr," --------------------------------------\n");
+ 
+  if(printFlag) {
+    filePrint(stderr," --------------------------------------\n");
 
-  filePrint(stderr," Maximum x dimension = %f\n",xmax);
-  filePrint(stderr," Maximum y dimension = %f\n",ymax);
-  filePrint(stderr," Maximum z dimension = %f\n",zmax);
-  filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," Maximum x dimension = %f\n",xmax);
+    filePrint(stderr," Maximum y dimension = %f\n",ymax);
+    filePrint(stderr," Maximum z dimension = %f\n",zmax);
+    filePrint(stderr," --------------------------------------\n");
+  }
 
   return totmas;
 }
@@ -683,10 +695,14 @@ const char* solverTypeMessage[] = {
 " ... Sparse Solver is Selected      ... \n",
 " ... SGI Sparse Solver is Selected  ... \n",
 " ... SGI Skyline Solver is Selected ... \n",
+#ifdef EIGEN_CHOLMOD_SUPPORT
+" ... Cholmod Solver is Selected     ... \n",
+#else
 " ... Simplicial Cholesky Solver is Selected ...\n",
+#endif
 " ... Frontal Solver is Selected     ... \n",
 "",
-"",
+" ... SuperLU Solver is Selected     ... \n",
 " ... Spooles Solver is Selected     ... \n",
 " ... Mumps Solver is Selected       ... \n",
 "",

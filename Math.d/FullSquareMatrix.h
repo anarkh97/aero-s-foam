@@ -74,6 +74,14 @@ public:
   void multiply(GenFullSquareMatrix<Scalar> &M2, GenFullSquareMatrix<Scalar> &result);
   void eigenVals(Scalar*);
   void eigenV(Scalar*);
+
+  // Computes b <- M * a
+  void mult(const GenVector<Scalar> &a, GenVector<Scalar> &b) const;
+
+  // Computes b <- b + M * a
+  void multAdd(const GenVector<Scalar> &a, GenVector<Scalar> &b) const;
+
+  void linAdd(const Scalar &, const GenFullSquareMatrix<Scalar> &);
 };
 
 template<class Scalar>

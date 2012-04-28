@@ -41,15 +41,21 @@ public:
 
   const std::map<int, double> &elemPressures() const { return elemPressures_; }
   
-  // Only for a reduced mesh
+  // Reduced mesh only
   const std::vector<int> &sampleNodeIds() const { return sampleNodeIds_; }
+  const std::map<int, double> &elemWeights() const { return elemWeights_; }
+
+  // Create element-based reduced mesh
+  MeshDesc(Domain *, GeoSource *, const MeshRenumbering &, const std::map<int, double> &weights);
+  
+  // Create node-based reduced mesh 
+  MeshDesc(Domain *, GeoSource *, const SampledMeshRenumbering &);
+  
+private:
+  void init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren);
 
   typedef std::map<int, Attrib> AttribContainer;
-
-  // Creates a reduced mesh from the default one
-  MeshDesc(Domain *, GeoSource *, const SampledMeshRenumbering &);
-
-private:
+  
   CoordSet nodes_; 
   Elemset elements_;
 
@@ -66,6 +72,7 @@ private:
   std::map<int, double> elemPressures_;
 
   const std::vector<int> sampleNodeIds_;
+  std::map<int, double> elemWeights_;
 
   // Disallow copy & assignment
   MeshDesc(const MeshDesc &);

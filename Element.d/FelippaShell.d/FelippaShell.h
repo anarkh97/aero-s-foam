@@ -1,6 +1,7 @@
 #ifndef _FELIPPASHELL_H_
 #define _FELIPPASHELL_H_
 
+#ifdef USE_EIGEN3
 #include <Element.d/Element.h>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
@@ -60,7 +61,7 @@ public:
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
         void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs = 0, int cflg = 0);
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
 
         // Nonlinear
         Corotator* getCorotator(CoordSet&, double*, int, int);
@@ -80,5 +81,6 @@ public:
         int getMassType() { return 0; } // lumped only
 
 };
+#endif
 #endif
 

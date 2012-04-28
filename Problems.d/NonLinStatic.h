@@ -27,11 +27,12 @@ class NonLinStatic {
     double firstDv;
     double tolerance;
     StaticTimers *times;
+    Vector *reactions;
 
  public:
     // Constructor
     NonLinStatic(Domain *d);
-    ~NonLinStatic() { if(kelArray) delete [] kelArray; if(allCorot) delete [] allCorot; if(bcx) delete [] bcx; }
+    ~NonLinStatic();
 
     int  solVecInfo();
     int  sysVecInfo();
@@ -51,6 +52,8 @@ class NonLinStatic {
     void staticOutput(GeomState *geomState, double lambda, Vector& force, Vector &, GeomState *refState);
     int checkConvergence(int iter, double normDv, double residualNorm);
 
+    void updateStates(GeomState *refState, GeomState& geomState);
+
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
                             Vector& elementInternalForce, Vector &,
                             double lambda = 1, GeomState *refState = NULL);
@@ -64,7 +67,10 @@ class NonLinStatic {
     bool linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 
-    double getResidualNorm(Vector &res);
+    double getResidualNorm(Vector &res, GeomState &geomState);
+
+  private:
+    void clean();
 };
 
 #endif

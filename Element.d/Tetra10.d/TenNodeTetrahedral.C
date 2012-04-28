@@ -67,6 +67,7 @@ TenNodeTetrahedral::TenNodeTetrahedral(int* nodenums)
 
   cFrame = 0;
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -851,5 +852,32 @@ TenNodeTetrahedral::getAllStressAniso(FullM& stress,Vector& weight,CoordSet &cs,
     for(int j=0; j<3; ++j) 
       stress[i][j+6] = pvec[j];
 }
-                                                                                     
-  
+
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NLTetrahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
+
+void
+TenNodeTetrahedral::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+TenNodeTetrahedral::numStates()
+{
+  int numGaussPoints = 15;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+Corotator*
+TenNodeTetrahedral::getCorotator(CoordSet &cs, double *kel, int , int )
+{
+  if(!mat)
+    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  MatNLElement *ele = new NLTetrahedral10(nn);
+  ele->setMaterial(mat);
+  ele->setGlNum(glNum);
+  return new MatNLCorotator(ele);
+}

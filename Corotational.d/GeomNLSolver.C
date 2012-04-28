@@ -296,7 +296,7 @@ Domain::arcLength()
  double Ccoef = 0.0;
 
  buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                  (FullSquareMatrix *) NULL, true);
+                  (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, true);
 
  solver = allOps.sysSolver;
 

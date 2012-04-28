@@ -384,7 +384,7 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
   LMPCTerm SlaveTerm;
                                                                                                                                              
   LMPCons* MortarLMPC = NULL;
-  double tol = 0.0; // we may use a (relative) tolerance to filter the small term
+  double tol = std::numeric_limits<double>::epsilon(); // we may use a (relative) tolerance to filter the small term
   int dofs[3] = {0,1,2};
   for(int i = 0; i < int(LinkedSlaveNodes.size()); i++) {
     for(int idof = 0; idof < 3; idof++) {

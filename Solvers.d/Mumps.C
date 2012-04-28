@@ -507,7 +507,7 @@ GenMumpsSolver<Scalar>::~GenMumpsSolver()
 #endif
 */
 #ifdef USE_MUMPS
- mpicomm->sync();
+  if(mpicomm) mpicomm->sync();
 
   if(host) {
     if(mumpsId.id.ICNTL(18) == 0) { // centralized matrix input
@@ -534,8 +534,7 @@ GenMumpsSolver<Scalar>::~GenMumpsSolver()
   Tmumps_c(mumpsId.id);
 
 #endif
- mpicomm->sync();
-
+  if(mpicomm) mpicomm->sync();
 }
 
 template<>

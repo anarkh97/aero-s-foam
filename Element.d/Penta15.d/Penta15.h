@@ -9,6 +9,8 @@
 #define _PENTA15_H_
 
 #include <Element.d/Element.h>
+class Corotator;
+class NLMaterial;
 
 class Penta15: public Element {
 
@@ -19,6 +21,7 @@ class Penta15: public Element {
 
         double  *cCoefs;  
         double  *cFrame; 
+        NLMaterial *mat;
 
 public:
 	Penta15(int*);
@@ -73,6 +76,8 @@ public:
                  "              for Penta15 el.\n"); return (double *) 0;
         }
 
+        void setMaterial(NLMaterial *);
+        int numStates();
 };
 #endif
 

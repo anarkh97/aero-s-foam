@@ -85,6 +85,7 @@ Penta26::Penta26(int* nodenums)
 
   cFrame = 0; 
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -581,12 +582,32 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
   }
 }
 
-//---------------------------------------------------------------------------------
-Corotator *
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
+#include <Element.d/NonLinearity.d/NLPentahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
+
+void
+Penta26::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Penta26::numStates()
+{
+  int numGaussPoints = 18;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
+
+Corotator*
 Penta26::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- fprintf(stderr," *** WARNING: Penta26::getCorotator: NOT implemented. Abort.\n");
- exit(-1);
- return((Corotator*)0); 
+  if(!mat)
+    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  MatNLElement *ele = new NLPentahedral26(nn);
+  ele->setMaterial(mat);
+  ele->setGlNum(glNum);
+  return new MatNLCorotator(ele);
 }
 

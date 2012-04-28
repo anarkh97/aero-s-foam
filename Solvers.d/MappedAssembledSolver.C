@@ -17,6 +17,7 @@ DOFMap *getDofMaps(int size) {
     res[i].coefs = new double[1];
     res[i].dofs[0] = i;
     res[i].coefs[0] = 1;
+    res[i].rhs = 0;
   }
   return res;
 }
@@ -37,8 +38,8 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
 
   // PJSA also constrain the lagrange multiplier dofs, if any
   for(int i = 0; i < dsa->numNodes(); ++i) {
-    int dof = dsa->locate(i, DofSet::Lagrange);
-    if(dof >= 0)
+    int dof;
+    if((dof = dsa->locate(i, DofSet::LagrangeE)) >= 0 || (dof = dsa->locate(i, DofSet::LagrangeI)) >= 0)
       constrainedDOFs[mpCount++] = dof;
   }
 
@@ -56,6 +57,7 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
       if(dof >= 0) {
         baseMap[dof].dofs = new int[lmpc[i]->nterms-1];
         baseMap[dof].coefs = new double[lmpc[i]->nterms-1];
+        baseMap[dof].rhs = lmpc[i]->rhs.r_value/lmpc[i]->terms[0].coef.r_value;
         double c1 = 1.0/lmpc[i]->terms[0].coef.r_value;
         int nCoefs = 0;
         for(int j = 1; j < lmpc[i]->nterms; ++j) {
@@ -71,6 +73,7 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
       if(eqDof >= 0) {
         eqMap[eqDof].dofs = new int[lmpc[i]->nterms-1];
         eqMap[eqDof].coefs = new double[lmpc[i]->nterms-1];
+        eqMap[eqDof].rhs = lmpc[i]->rhs.r_value/lmpc[i]->terms[0].coef.r_value;
         double c1 = 1.0/lmpc[i]->terms[0].coef.r_value;
         int nCoefs = 0;
         for(int j = 1; j < lmpc[i]->nterms; ++j) {
@@ -92,6 +95,7 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
       baseMap[i].coefs = new double[1];
       baseMap[i].dofs[0] = i;
       baseMap[i].coefs[0] = 1;
+      baseMap[i].rhs = 0;
     }
   }
 
@@ -107,6 +111,7 @@ Domain::makeMaps(DofSetArray *dsa, ConstrainedDSA *cdsa, DOFMap *baseMap, DOFMap
         eqMap[dofNums[j]].coefs = new double[1];
         eqMap[dofNums[j]].dofs[0] = mappedNums[j];
         eqMap[dofNums[j]].coefs[0] = 1;
+        eqMap[dofNums[j]].rhs = 0;
       }
     }
   }

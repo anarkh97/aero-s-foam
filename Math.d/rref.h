@@ -5,7 +5,7 @@
  * Row echelon form with full pivoting. Note that columns and
  * rows might be swapped due to the full pivoting, returned in rowmap and colmap if not NULL
  *  
- * @param mx            the matr to reduce
+ * @param M            the matr to reduce
  * @param reduced       if true, the reduced row echelon form is returned, that
  *                      is, zeros above the diagonal, too
  * @param rowmap        the row mapping to reestablish the original row ordering. 
@@ -13,22 +13,55 @@
  * @return              the rank of the matr
  */
 
+//this may be a good choice, especially hooked with a sparse qr factorization. 
+#define QR_ROW_ECHELON
+#ifdef QR_ROW_ECHELON
+#include <Eigen/Dense>
+#endif
+
 #include <limits>
+#include <Utils.d/MyComplex.h>
 
 template <typename T, typename Matrix>
-int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap) 
+int rowEchelon(Matrix& M, bool reduced, int* rowmap, int* colmap, int optc = 0, double tol = 10.0) 
 {
-  int rows = mx.rows();
-  int cols = mx.cols();
-  int pivs = std::min<int>(rows, cols);
+  // M is an augmented matrix [A;b]
+#ifdef QR_ROW_ECHELON
+  int p = M.rows();
+  int n = M.cols()-1;
+  Eigen::Block< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> > A = M.block(0,0,p,n);
+  Eigen::ColPivHouseholderQR<Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> > decA(A); // A*P=Q*R
+  const Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> &P = decA.colsPermutation();
+  const typename Eigen::ColPivHouseholderQR< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> >::HouseholderSequenceType &Q = decA.householderQ();
+  //const typename Eigen::FullPivHouseholderQR< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> >::MatrixQReturnType &Q = decA.matrixQ();
+  //NOTE: if you want to use the FullPivHouseholderQR then make sure rowmap is set properly
+
+  A = A*P;
+  M = Q.transpose()*M; // now M is the row echelon form of the augmented matrix: [R;Q^T*b]
+  for(int i=0; i<n; ++i) colmap[i] = P.indices()[i];
+  //decA.setThreshold(tol*epsilon);
+  int r = decA.rank();
+
+  if(reduced) {
+    Eigen::Block< Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> > R11 = M.block(0,0,r,r); 
+    // R11 is upper triangular and non-singular
+    R11.template triangularView<Eigen::Upper>().solveInPlace(M.block(0,r,r,n-r+1));
+    R11 = Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic>::Identity(r,r);
+    // now M is the reduced row echelon form of the augmented matrix: [R11^{-1}*R12;R11^{-1}*Q^T*b]
+  }
+  return r;
+#else
+  int rows = M.rows();
+  int cols = M.cols();
+  int pivs = std::min(rows, cols-optc); // PJSA: don't pivot last column if optc == 1
         
   //find pivot row/column
   int prow = -1;
   int pcol = -1;
   T pval = -std::numeric_limits<T>::max();
   for (int row = 0; row < rows; row++) {
-    for (int col = 0; col < cols; col++) {
-      T val = std::abs<T>(mx(row, col));
+    for (int col = 0; col < cols-optc; col++) { // PJSA: don't pivot last column if optc == 1
+      T val = std::abs(M(row, col));
       if (val > pval) {
         pval = val;
         prow = row;
@@ -39,11 +72,11 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
         
   //precondition (each iteration): prow/pcol/pval are set
   for (int pivot = 0; pivot < pivs; pivot++) {
-    if (pval <= 10*std::numeric_limits<T>::epsilon()) return pivot;
+    if (pval <= tol*std::numeric_limits<T>::epsilon()) return pivot;
           
     //swap rows / columns
     if (prow != pivot) {
-      mx.row(prow).swap(mx.row(pivot));
+      M.row(prow).swap(M.row(pivot));
       if (rowmap != NULL) {
         int tmp = rowmap[prow]; 
         rowmap[prow] = rowmap[pivot]; 
@@ -52,7 +85,7 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
     }
 
     if (pcol != pivot) {
-      mx.col(pcol).swap(mx.col(pivot));
+      M.col(pcol).swap(M.col(pivot));
       if (colmap != NULL) {
         int tmp = colmap[pcol];
         colmap[pcol] = colmap[pivot];
@@ -61,26 +94,26 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
     }
     
     //divide pivot row
-    pval = mx(pivot, pivot);
+    pval = M(pivot, pivot);
     for (int col = pivot + 1; col < cols; col++) {
-      mx(pivot,col) /= pval;
+      M(pivot,col) /= pval;
     }
-    mx(pivot,pivot) = 1.0;
+    M(pivot,pivot) = 1.0;
 
     //subtract pivot row from other rows
     //find next pivot at the same time
     pval = -std::numeric_limits<T>::max();
     for (int row = pivot + 1; row < rows; row++) {
-      T rpiv = mx(row, pivot);                          
-      mx(row, pivot) = 0.0;
+      T rpiv = M(row, pivot);                          
+      M(row, pivot) = 0.0;
       for (int col = pivot + 1; col < cols; col++) {
-        T val = mx(row, col);
-        T sub = mx(pivot, col);
+        T val = M(row, col);
+        T sub = M(pivot, col);
         val -= sub * rpiv;
-        mx(row, col) = val;
+        M(row, col) = val;
         // is this our new pivot?
-        if (row < rows && col < cols) {
-          if (val < 0.0) val = -val;
+        if (row < rows && col < cols-optc) { // PJSA: don't pivot last column if optc == 1
+          val = std::abs(val);
           if (val > pval) {
             pval = val;
             prow = row;
@@ -92,17 +125,18 @@ int rowEchelon(Matrix& mx, bool reduced, int* rowmap, int* colmap)
     if (reduced) {
       //subtract pivot from rows above pivot row, too
       for (int row = 0; row < pivot; row++) {
-        T rpiv = mx(row, pivot);                          
-        mx(row, pivot) = 0.0;
+        T rpiv = M(row, pivot);                          
+        M(row, pivot) = 0.0;
         for (int col = pivot + 1; col < cols; col++) {
-          T val = mx(row, col);
-          T sub = mx(pivot, col);
-          mx(row, col) = val - sub * rpiv;
+          T val = M(row, col);
+          T sub = M(pivot, col);
+          M(row, col) = val - sub * rpiv;
         }
       }
     }
   }
   return pivs;
+#endif
 }
 
 template <typename T, typename Matrix>
@@ -120,7 +154,7 @@ void ToReducedRowEchelonForm(Matrix& m, int *rowmap)
       return;
     i = r;
     //while(m(i,lead) == 0) {
-    while(abs<T>(m(i,lead)) <= std::numeric_limits<T>::epsilon()) {
+    while(std::abs<T>(m(i,lead)) <= std::numeric_limits<T>::epsilon()) {
       i++;
       if(i == rowCount) {
         i = r;

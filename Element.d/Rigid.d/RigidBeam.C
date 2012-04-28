@@ -8,7 +8,6 @@
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
-using namespace Eigen;
 #include <map>
 #include <vector>
 #endif
@@ -20,7 +19,8 @@ extern "C" {
 }
 
 RigidBeam::RigidBeam(int* _nn)
- : SuperElement(true)
+ : SuperElement(true),
+   elemframe(0)
 {
   nnodes = 2;
   nn = new int[nnodes];
@@ -35,6 +35,8 @@ RigidBeam::RigidBeam(int* _nn)
   subElems[3] = new ParallelAxesConstraintType1(indices);
 }
 
+/* the idea here is to reduce the element constraint jacobian. in some cases it may be possible to
+   avoid doing a reduction on the global constraint jacobian. 
 LMPCons **
 RigidBeam::getMPCs()
 {
@@ -44,6 +46,7 @@ RigidBeam::getMPCs()
   using std::map;
   using std::pair;
   using std::vector;
+  using namespace Eigen;
   // Create a unique integer ID for every DOF involved in an MPC and count
   // in how many MPC each DOF appears.
   int nID = 0;
@@ -91,39 +94,57 @@ RigidBeam::getMPCs()
   }
 
   // copy lmpc coefficients into a dense matrix
-  Matrix<double,Dynamic,Dynamic> c(numLMPC, dofToLMPC->csize());
+  int n = numLMPC, m = dofToLMPC->csize();
+  Matrix<double,Dynamic,Dynamic> c(n, m+1);
   c.setZero();
-  for(int i = 0; i < numLMPC; ++i) {
+  for(int i = 0; i < n; ++i) {
     for(int j = 0; j < lmpc[i]->nterms; ++j) {
       c(i,term2col[i][j]) = lmpc[i]->terms[j].coef.r_value;
     }
+    c(i,m) = lmpc[i]->rhs.r_value;
   }
   delete [] term2col;
 
-  // compute the reduced row echelon form, without column pivoting
+  // compute the reduced row echelon form
   double t = -getTime();
   int *rowmap = new int[c.rows()];
   for(int i = 0; i < c.rows(); ++i) rowmap[i] = i;
-  ToReducedRowEchelonForm<double, Matrix<double,Dynamic,Dynamic> >(c, rowmap);
+  int *colmap = new int[c.cols()];
+  for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
+  int rank = rowEchelon<double, Matrix<double,Dynamic,Dynamic> >(c, true, rowmap, colmap, 1);
+  if(rank != numLMPC) cerr << "found " << numLMPC-rank << " redundant constraints in rigid beam\n";
+  // when will a rigid beam have redundant constraints? is this case properly dealt with
 
   // copy the coefficients of the dense matrix back into the lmpc data structure 
-  for(int i = 0; i < numLMPC; ++i) {
+  for(int i = 0; i < n; ++i) {
     lmpc[rowmap[i]]->terms.clear();
     lmpc[rowmap[i]]->nterms = 0;
-    for(int j = i; j < c.cols(); ++j) {
-      if(j > i && j < numLMPC) continue;
-      if(std::abs<double>(c(i,j)) > 1e-9) { // std::numeric_limits<double>::epsilon()
-        LMPCTerm t(col2pair[j].first, col2pair[j].second, c(i,j));
+    for(int j = i; j < m; ++j) {
+      if(j > i && j < rank) continue;
+      if(std::abs<double>(c(i,j)) > std::numeric_limits<double>::epsilon()) {
+        LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[rowmap[i]]->terms.push_back(t);
         lmpc[rowmap[i]]->nterms++;
       }
     }
+    if(colmap[m] != m) cerr << "error: mpc rhs was pivoted in rigid beam\n"; // this should not happen
+    if(std::abs<double>(c(i,m)) > std::numeric_limits<double>::epsilon()) {
+      if(i < rank) lmpc[rowmap[i]]->rhs.r_value = c(i,m);
+      else {
+        cerr << "warning: inconsistent constraint detected (" << c(i,m) << ") in rigid beam\n";
+        lmpc[rowmap[i]]->rhs.r_value = 0;
+      }
+    }
+    else lmpc[rowmap[i]]->rhs.r_value = 0;
   }
 
+  delete dofToLMPC;
   delete [] rowmap;
+  delete [] colmap;
 #endif
   return lmpc;
 }
+*/
 
 void
 RigidBeam::buildFrame(CoordSet& cs)
@@ -165,6 +186,7 @@ RigidBeam::buildFrame(CoordSet& cs)
 
     elemframe = &c0;
   }
+  SuperElement::setFrame(elemframe);
   SuperElement::buildFrame(cs);
 }
 
@@ -172,7 +194,7 @@ FullSquareMatrix
 RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
 {
         if(prop == NULL || prop->rho == 0 || prop->A == 0) {
-           FullSquareMatrix ret(12,mel);
+           FullSquareMatrix ret(numDofs(),mel);
            ret.zero();
            return ret;
         }
@@ -190,10 +212,13 @@ RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
         int grvflg = 0, masflg = 0;
 
         // Lumped Mass Matrix
-        _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
+        double elmass[144];
+        _FORTRAN(e3dmas)(prop->rho,elmass,prop->A,
                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
-        FullSquareMatrix ret(12, mel);
+        FullSquareMatrix ret(numDofs(), mel);
+        ret.zero();
+        for(int i=0; i<12; ++i) ret[i][i] = elmass[13*i];
 
         return ret;
 }
@@ -286,6 +311,7 @@ RigidBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[10] = -globalm[1];
         gravityForce[11] = -globalm[2];
 
+        for(int i=12; i<numDofs(); ++i) gravityForce[i] = 0;
 }
 
 void

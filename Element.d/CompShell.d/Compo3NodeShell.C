@@ -636,7 +636,7 @@ Compo3NodeShell::getTopNumber()
 
 void
 Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                      GeomState *geomState, int cflg)
+                                      GeomState *geomState, int cflg, double)
 { 
      double px = 0.0;
      double py = 0.0;

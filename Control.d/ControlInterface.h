@@ -29,7 +29,7 @@ class ControlInterface {
 
     // User defined displacement routine
     virtual void usd_disp(double time, double *userDefineDisp,
-                          double *userDefineVel) = 0;
+                          double *userDefineVel, double *userDefineAcc) = 0;
 };
 
 #endif

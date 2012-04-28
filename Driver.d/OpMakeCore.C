@@ -12,7 +12,8 @@
 template<>
 void
 Domain::makeFrontalOps(AllOps<DComplex> &ops, double Kcoef, double Mcoef, double Ccoef,
-                       Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
+                       Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
+                       FullSquareMatrix *celArray)
 {
   fprintf(stderr, "WARNING: Domain::makeFrontalOps(...) is not implmented for DComplex type \n");
 }
@@ -21,7 +22,8 @@ Domain::makeFrontalOps(AllOps<DComplex> &ops, double Kcoef, double Mcoef, double
 template<>
 void
 Domain::makeFrontalOps(AllOps<double> &ops, double Kcoef, double Mcoef, double Ccoef,
-                       Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray)
+                       Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
+                       FullSquareMatrix *celArray)
 {
  if(matrixTimers) matrixTimers->assemble -= getTime();
 

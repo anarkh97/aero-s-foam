@@ -39,7 +39,7 @@
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu, 
 						   double iSigmaY, double iK,
-						   double iH)
+						   double iH, double iTol)
 {
   // Youngs modulus
   E = iMu*(3.*iLambda + 2.*iMu)/(iLambda + iMu);
@@ -51,6 +51,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
   SigmaY = iSigmaY;
   K = iK;
   H = iH;
+  Tol = (iTol > 0) ? iTol : 1.0e-6;
   
   // Zero initial plastic strain and backstress
   EPSplastic.clear();
@@ -72,7 +73,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial::~IsotropicLinearElasticJ2Pla
 // Copy constructor
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(const IsotropicLinearElasticJ2PlasticPlaneStressMaterial &Mat)
-  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H)
+  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol)
 {
   EPSplastic.clear();
   BackStress.clear();
@@ -324,9 +325,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Use some tolerance for checking yield function value
   // Note: I observe a relationship between TOL and the nltol under NONLINEAR
   // looks like TOL should be at least an order of magnitude smaller than nltol
-  double TOL = SigmaY*1e-8; // ORIG: SigmaY*1e-6
-  // tolerance for checking consistency parameter
-  double TOL2 = 0; //std::numeric_limits<double>::epsilon(); // ORIG: 0
+  double TOL = SigmaY*Tol;
   
   // Resize outputs if required
   if( int(CauchyStress->size())<9 )
@@ -444,7 +443,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	    }
 	  double F = EvaluateYieldFunction(Xi, equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi));
 	  
-	  if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < TOL2)  //ORIG: if( std::abs(F) < TOL )
+	  if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < 0)  //ORIG: if( std::abs(F) < TOL )
 	    CONVERGED = true;
 	  else
 	    {

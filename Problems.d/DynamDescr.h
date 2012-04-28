@@ -29,12 +29,12 @@ class Rbm;
 class SDDynamPostProcessor {
     Domain *domain;
     double *bcx;
-    double *vcx;
+    double *vcx, *acx;
     StaticTimers *times;
     GeomState *geomState;
 
   public:
-    SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
+    SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
                          StaticTimers *_times, GeomState *_geomState = 0);
 
     ~SDDynamPostProcessor();
@@ -69,9 +69,10 @@ class SingleDomainDynamic
     double *bcx;	// displacement bc values
     double *userDefineDisp;
     double *vcx;	// velocity bc values
+    double *acx;        // acceleration bc values
     StaticTimers *times;
     int    *nodeOrder;
-    SparseMatrix *kuc;
+    SparseMatrix *kuc, *muc, *cuc;
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
 
@@ -103,14 +104,15 @@ class SingleDomainDynamic
     void addCtrl(Vector &f, double *controlForce);
     void addCtrl(Vector &, double *, double *);
     void addUserForce(Vector&f, double *userDefineForce);
-    void setBC(double *userDefineDisp, double *userDefineVel);
+    void setBC(double *userDefineDisp, double *userDefineVel, double *userDefineAcc);
  public:
     SingleDomainDynamic(Domain *d); 
     ~SingleDomainDynamic();
 
     int* boundary() { return bc;}
-    double* boundaryValue() { return bcx;}
-    double* boundaryVeloc() { return vcx;}
+    double* boundaryValue() { return bcx; }
+    double* boundaryVeloc() { return vcx; }
+    double* boundaryAccel() { return acx; }
 
     void trProject(Vector &f);
     void project(Vector &v);
@@ -145,9 +147,8 @@ class SingleDomainDynamic
     GenSolver<double> *getSolver();
     SDDynamPostProcessor *getPostProcessor();
     void printTimers(DynamMat *, double);
-    void addPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& dnc,
-                         Vector& vnc, Vector& anc, Vector& result,
-                         double t, double *pt_dt=0);
+    //void getPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& vnc,
+    //                     Vector& anc, Vector& result, double tm, double tf);
     double betaDamp() const;
     double alphaDamp() const; 
     void setDamping( double betaDamp, double alphaDamp );

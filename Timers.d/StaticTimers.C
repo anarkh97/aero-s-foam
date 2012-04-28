@@ -46,16 +46,21 @@ const char* message[] = {
 "1. Sparse    \n",
 "1. SGI Sparse \n",
 "1. SGI Skyline    \n",
+#ifdef EIGEN_CHOLMOD_SUPPORT
+"1. Cholmod Sparse \n",
+#else
 "1. Simplicial Cholesky\n",
+#endif
 "1. Frontal    \n",
 "1. BlockSky   \n",
-"1. ParallelSparse \n",
+"1. SuperLU Sparse \n",
 "1. Spooles Sparse\n",
 "1. Mumps Sparse\n",
 "1. Diagonal\n",
 "1. CG\n",
 "1. CG\n         Diagonal Preconditioner\n",
-"1. CG\n         FETI Preconditioner\n"
+"1. CG\n         FETI Preconditioner\n",
+"1. Goldfarb-Idnani\n"
 };
 
 const char* renumMessage[] = {

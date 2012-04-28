@@ -23,8 +23,8 @@ public:
 
   GappyProjectionSolver *getSolver(); // Hiding NonLinDynamic::getSolver
   
-  // Direct hook in NLDynamSolver (relies on function hiding)
-  double getResidualNorm(const Vector &);
+  // Hook in NLDynamSolver
+  virtual double getResidualNorm(const Vector &, GeomState &, double);
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

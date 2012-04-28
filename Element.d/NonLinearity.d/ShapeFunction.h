@@ -1,7 +1,8 @@
-#ifndef _3DSHAPEFUNCTION_H_
-#define _3DSHAPEFUNCTION_H_
+#ifndef _SHAPEFUNCTION_H_
+#define _SHAPEFUNCTION_H_
 #include <Utils.d/NodeSpaceArray.h>
 #include <Math.d/Vector.h>
+
 class Node;
 
 class ShapeFunction
@@ -15,8 +16,7 @@ class ShapeFunction
      virtual Tensor *getDgradUDqkInstance();
      virtual Tensor *getValInstance() = 0;
      virtual void getLocalDerivatives(Tensor *localDerivatives, double xi[3]) = 0;
-     virtual void getValues(Tensor *gradU, Tensor *dgradUdqk, 
-                            double *jac, double xi[3]) = 0;
+     virtual void getValues(Tensor *val, double xi[3]) = 0;
      virtual void getGlobalGrads(Tensor *gradU, Tensor *dgradUdqk, double *jac, 
                                  Node *nodes, double xi[3], Vector &disp);
      virtual void getGradU(Tensor *gradU, Node *nodes, double xi[3], Vector &disp);

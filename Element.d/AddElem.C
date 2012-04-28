@@ -16,7 +16,6 @@
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
 #include <Element.d/Quad4.d/Quad.h>
-#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Brick.d/EightNodeBrick.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -32,7 +31,6 @@
 #include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Triangle3.d/ThermTriangle.h>
-#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/ThermQuad.d/ThermQuadGal.h>
 #include <Element.d/ThermQuad.d/Therm3DQuad.h>
 #include <Element.d/Brick.d/ThermBrick.h>
@@ -208,7 +206,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 11:
        ele = new (ba) TorSpring(n);
        break;
-     case 15:
+     case 15: case 1515:
 #ifdef USE_EIGEN3
        if(nnodes == 3 || (nnodes == 4 && n[2] == n[3]))
          ele = new (ba) FelippaShell(n);
@@ -221,7 +219,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 #endif 
        break;
      case 16:
-       ele = new (ba) BelytschkoTsayShell(n);
+       if(nnodes == 3) {
+         int n_copy[4] = { n[0], n[1], n[2], n[2] };
+         ele = new (ba) BelytschkoTsayShell(n_copy);
+       }
+       else 
+         ele = new (ba) BelytschkoTsayShell(n);
        break;
      case 17:
        ele = new (ba) EightNodeBrick(n);
@@ -507,11 +510,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) RevoluteActuator(n);
        break;
      case 128:
-       ele = new (ba) FourNodeQuad3D(n);
+       ele = new (ba) NLMembrane4(n);
        break;
      case 129:
-       ele = new (ba) ThreeNodeTri3D(n);
+       ele = new (ba) NLMembrane(n);
        break;
+/* deprecated: now the strain measure defined by the material model
      case 201:
        ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure
        break;
@@ -527,6 +531,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 204:
        ele = new (ba) NLMembrane(n, true);
        break;
+*/
      case 2020:
        ele = new (ba) Compo4NodeShell(n);
        break;

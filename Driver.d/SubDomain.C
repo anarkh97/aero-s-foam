@@ -254,36 +254,68 @@ GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a)//DofSet::max_k
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
 
    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+   int xLoc1 =   dsa->locate(inode, DofSet::Xdisp);
+
    if(xLoc >= 0)
      xyz[nodeI][0] = a[xLoc];           // free
+   else if(xLoc1 >= 0)
+     xyz[nodeI][0] = acx[xLoc1];        // constrained
 
    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+   int yLoc1 =   dsa->locate(inode, DofSet::Ydisp);
+
    if(yLoc >= 0)
      xyz[nodeI][1] = a[yLoc];
+   else if(yLoc1 >= 0)
+     xyz[nodeI][1] = acx[yLoc1];
 
    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+   int zLoc1 =   dsa->locate(inode, DofSet::Zdisp);
+
    if(zLoc >= 0)
      xyz[nodeI][2] = a[zLoc];
+   else if(zLoc1 >= 0)
+     xyz[nodeI][2] = acx[zLoc1];
 
    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+   int xRot1 =   dsa->locate(inode, DofSet::Xrot);
+
    if(xRot >= 0)
      xyz[nodeI][3] = a[xRot];
+   else if(xRot1 >= 0)
+     xyz[nodeI][3] = acx[xRot1];
 
    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+   int yRot1 =   dsa->locate(inode, DofSet::Yrot);
+
    if(yRot >= 0)
      xyz[nodeI][4] = a[yRot];
+   else if(yRot1 >= 0)
+     xyz[nodeI][4] = acx[yRot1];
 
    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+   int zRot1 =   dsa->locate(inode, DofSet::Zrot);
+
    if(zRot >= 0)
      xyz[nodeI][5] = a[zRot];
+   else if(zRot1 >= 0)
+     xyz[nodeI][5] = acx[zRot1];
 
    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+   int xTemp1 =   dsa->locate(inode, DofSet::Temp);
+
    if(xTemp >= 0)
      xyz[nodeI][6] = a[xTemp];
+   else if(xTemp1 >= 0)
+     xyz[nodeI][6] = acx[xTemp1];
 
    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+   int xHelm1 =   dsa->locate(inode, DofSet::Helm);
+
    if(xHelm >= 0)
      xyz[nodeI][7] = a[xHelm];
+   else if(xHelm1 >= 0)
+     xyz[nodeI][7] = acx[xHelm1];
  }
 }
 
@@ -540,11 +572,11 @@ GenSubDomain<Scalar>::applyForceSplitting()
   int cdof, num;
 
   // forces
-  for(int i=0; i < numNeuman; ++i) {
+  for(int i = 0; i < numNeuman; ++i) {
     if((cdof = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum))) > -1 && (num = weightPlus[cdof]) > 1)
       nbc[i].val /= double(num);
   }
-  for(int i=0; i < numComplexNeuman; ++i) {
+  for(int i = 0; i < numComplexNeuman; ++i) {
     if((cdof = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum))) > -1 && (num = weightPlus[cdof]) > 1) {
       cnbc[i].reval /= double(num);
       cnbc[i].imval /= double(num);
@@ -562,17 +594,17 @@ GenSubDomain<Scalar>::applyMpcSplitting()
 
   // mpcs (NOTE: optional kscaling is done later, hhs is not split)
   if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::tscaling) {
-    for(int iMPC=0; iMPC<numMPC; ++iMPC) { // dual mpcs
+    for(int iMPC = 0; iMPC < numMPC; ++iMPC) { // dual mpcs
       if(mpc[iMPC]->type == 2) continue; // bmpc
-      for(int i=0; i<mpc[iMPC]->nterms; ++i) {
+      for(int i = 0; i < mpc[iMPC]->nterms; ++i) {
         if((cdof = mpc[iMPC]->terms[i].cdof) > -1 && (num = weightPlus[cdof]) > 1)
           mpc[iMPC]->terms[i].coef /= double(num);
       }
     }
   }
   // XXXX kscaling currently not supported for primal mpcs
-    for(int iMPC=0; iMPC<numMPC_primal; ++iMPC) { // primal mpcs
-      for(int i=0; i<mpc_primal[iMPC]->nterms; ++i) {
+    for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) { // primal mpcs
+      for(int i = 0; i < mpc_primal[iMPC]->nterms; ++i) {
         if((cdof = mpc_primal[iMPC]->terms[i].cdof) > -1 && (num = weightPlus[cdof]) > 1)
           mpc_primal[iMPC]->terms[i].coef /= double(num);
       }
@@ -709,8 +741,8 @@ GenSubDomain<Scalar>::collectScaling(FSCommPattern<Scalar> *vPat)
  // HB & PJSA: for LMPCs coeff stiffness scaling/splitting for the primal method
 /* XXXX kscaling currently not supported for primal mpcs
  if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) {
-   for(int iMPC=0;iMPC<numMPC_primal;iMPC++){
-     for(int k=0;k<mpc_primal[iMPC]->nterms;k++){
+   for(int iMPC = 0; iMPC < numMPC_primal; iMPC++){
+     for(int k = 0; k < mpc_primal[iMPC]->nterms; k++){
        int ccdof = (mpc_primal[iMPC]->terms)[k].ccdof;
        if(ccdof>=locLen) fprintf(stderr, "Strange: cdof (%d) >= locLen (%d)\n", ccdof, locLen);
        else if(ccdof >= 0) // rdof
@@ -779,9 +811,9 @@ GenSubDomain<Scalar>::sendMpcScaling(FSCommPattern<Scalar> *mpcPat)
 {
   int i,j;
   diagCCt = new Scalar[numMPC]; // PJSA 11-26-02: compute weights for mpcs also
-  for(i=0; i<numMPC; ++i) {
+  for(i = 0; i < numMPC; ++i) {
     diagCCt[i] = 0.0;
-    for(j=0; j<mpc[i]->nterms; ++j)
+    for(j = 0; j < mpc[i]->nterms; ++j)
       diagCCt[i] += mpc[i]->terms[j].coef * mpc[i]->terms[j].coef / mpc[i]->k[j]; //HB: for mpc kscaling;
   }
 
@@ -801,7 +833,7 @@ GenSubDomain<Scalar>::collectMpcScaling(FSCommPattern<Scalar> *mpcPat)
 {
   int i, j;
   Scalar *mpcSum = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcSum[i] = 0.0;
+  for(i = 0; i < numMPC; ++i) mpcSum[i] = 0.0;
   int neighb;
   for(i = 0; i < scomm->numT(SComm::mpc); ++i) {
     if(subNumber != (neighb = scomm->neighbT(SComm::mpc, i))) {
@@ -941,8 +973,8 @@ GenSubDomain<Scalar>::fetiBaseOp(GenSolver<Scalar> *s, Scalar *localvec, Scalar 
  // multiply Q*beta to get the MPC force contribution
  if(numMPC > 0) {
    int i,iMPC;
-   for(iMPC=0; iMPC<numMPC; ++iMPC)
-     for(i=0; i<mpc[iMPC]->nterms; ++i) {
+   for(iMPC = 0; iMPC < numMPC; ++iMPC)
+     for(i = 0; i < mpc[iMPC]->nterms; ++i) {
        int cdof = mpc[iMPC]->terms[i].cdof;
        if(cdof < 0) continue;
        localvec[cdof] += mpc[iMPC]->terms[i].coef * beta[localToGlobalMPC[iMPC]];
@@ -1105,7 +1137,7 @@ GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> 
 	}
     }
 
-  for(i=0; i<numMPC; ++i)
+  for(i = 0; i < numMPC; ++i)
     dot += deltaFmpc[i] * ScalarTypes::conj(deltaFmpc[i]);
 
   for(i=0; i<numWIdof; ++i) //HB ... to be checked ...
@@ -1148,11 +1180,11 @@ GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vP
   //Scalar *mpcJump = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
   Scalar *mpcJump = (numMPC) ? new Scalar[numMPC] : 0;
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+  for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   Scalar *wiJump = (Scalar *) dbg_alloca(sizeof(Scalar)*numWIdof);
   bool *wiFlag =  (bool *) dbg_alloca(sizeof(bool)*numWIdof);
-  for(i=0; i<numWIdof; ++i) wiFlag[i] = true;
+  for(i = 0; i < numWIdof; ++i) wiFlag[i] = true;
 
   for(iSub = 0; iSub < scomm->numT(SComm::all); ++iSub) {
     FSSubRecInfo<Scalar> rInfo = vPat->recData(scomm->neighbT(SComm::all,iSub), subNumber);
@@ -1187,11 +1219,11 @@ GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vP
   }
 
   // add mpcJump to interfvec
-  for(i=0; i<scomm->lenT(SComm::mpc); ++i) {
+  for(i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     interfvec[scomm->mapT(SComm::mpc,i)] = mpcJump[scomm->mpcNb(i)];
   }
   // add wiJump to interfvec
-  for(i=0; i<scomm->lenT(SComm::wet); ++i) {
+  for(i = 0; i < scomm->lenT(SComm::wet); ++i) {
     interfvec[scomm->mapT(SComm::wet,i)] = wiJump[scomm->wetDofNb(i)];
   }
   if(mpcJump) delete [] mpcJump;
@@ -1215,7 +1247,7 @@ void GenSubDomain<Scalar>::extractControlData(Scalar *disp, Scalar *vel,
       if(dof2 >= 0) { // constrained
         ctrdsp[gi] = bcx[dof2];
         ctrvel[gi] = vcx[dof2];
-        ctracc[gi] = 0.0; // XXXX prescribed acceleration not supported
+        ctracc[gi] = acx[dof2];
       }
     }
   }
@@ -1342,7 +1374,6 @@ GenSubDomain<Scalar>::reScaleAndReSplitKww()
 #endif
  prev_cscale_factor = cscale_factor;
 }
-
 
 template<class Scalar>
 void
@@ -1586,13 +1617,13 @@ GenSubDomain<Scalar>::makeKbbMpc()
 {
   // make the mpc dofs be boundary dofs
   int *weight_mpc = new int[c_dsa->size()];
-  for(int i=0; i<c_dsa->size(); ++i) weight_mpc[i] = 0;
-  for(int i=0; i<cc_dsa->size(); ++i) weight_mpc[ccToC[i]] = weight[i];
+  for(int i = 0; i < c_dsa->size(); ++i) weight_mpc[i] = 0;
+  for(int i = 0; i < cc_dsa->size(); ++i) weight_mpc[ccToC[i]] = weight[i];
 
   for(int i = 0; i < numMPC; i++) {
     SubLMPCons<Scalar> *m = mpc[i];
     //XXXX if(mpc[i]->active) continue;
-    for(int k=0; k<m->nterms; k++) {
+    for(int k = 0; k < m->nterms; k++) {
       int cdof = (m->terms)[k].cdof;
       if(cdof >= 0) weight_mpc[cdof] = 2; // > 1 hence will be in boundary (see makeBmaps and makeImaps)
     }
@@ -1943,7 +1974,7 @@ GenSubDomain<Scalar>::rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat)
   int iSub, i;
   int iOff = 0;
   Scalar *mpcv = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcv[i] = 0.0;
+  for(i = 0; i < numMPC; ++i) mpcv[i] = 0.0;
   Scalar *wiv = (Scalar *) dbg_alloca(numWIdof*sizeof(Scalar));
   for(i=0; i<numWIdof; ++i) wiv[i] = 0.0;
 
@@ -2086,12 +2117,12 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::renumberMPCs()
 {
-  for(int iMPC=0; iMPC<numMPC; ++iMPC) {
-    for(int i=0; i<mpc[iMPC]->nterms; ++i)
+  for(int iMPC = 0; iMPC < numMPC; ++iMPC) {
+    for(int i = 0; i < mpc[iMPC]->nterms; ++i)
       mpc[iMPC]->terms[i].nnum = globalToLocal(mpc[iMPC]->terms[i].nnum);
   }
-  for(int iMPC=0; iMPC<numMPC_primal; ++iMPC) {
-    for(int i=0; i<mpc_primal[iMPC]->nterms; ++i)
+  for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) {
+    for(int i = 0; i < mpc_primal[iMPC]->nterms; ++i)
       mpc_primal[iMPC]->terms[i].nnum = globalToLocal(mpc_primal[iMPC]->terms[i].nnum);
   }
 }
@@ -2318,7 +2349,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
 
 
     if(glWeight)  {
-      for(k = 0; k<NodesPerElement; ++k) {
+      for(k = 0; k < NodesPerElement; ++k) {
 #ifdef DISTRIBUTED
         glStress[nodeNumbers[k]] += (*elstress)[k];
         glWeight[nodeNumbers[k]] += (*elweight)[k];
@@ -2443,21 +2474,29 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda)
 {
+  if(numDirichlet > 0)
+    geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::updatePrescribedDisp(GeomState *geomState)
+{
   if(domain->solInfo().initialTime == 0.0) {
     // note 1: "if both IDISP and IDISP6 are present in the input file, FEM selects IDISP6 to initialize the displacement field"
     if((domain->numInitDisp() > 0) && (domain->numInitDisp6() == 0)) {
       if(this->numInitDisp() > 0) {
-        geomState->updatePrescribedDisplacement(this->getInitDisp(), this->numInitDisp(), deltaLambda);
+        geomState->updatePrescribedDisplacement(this->getInitDisp(), this->numInitDisp(), nodes);
       }
     }
 
     if(domain->numInitDisp6() > 0) {
       if(this->numInitDisp6() > 0)
-        geomState->updatePrescribedDisplacement(this->getInitDisp6(), this->numInitDisp6(), deltaLambda);
+        geomState->updatePrescribedDisplacement(this->getInitDisp6(), this->numInitDisp6(), nodes);
     }
 
     if(numDirichlet > 0)
-      geomState->updatePrescribedDisplacement(dbc, numDirichlet, deltaLambda);
+      geomState->updatePrescribedDisplacement(dbc, numDirichlet, nodes);
   }
 }
 
@@ -2486,8 +2525,8 @@ GenSubDomain<Scalar>::assembleMpcIntoKcc()
   int mpcOffset = numCRNdof;
 
   int i,iMPC;
-  for(iMPC=0; iMPC<numMPC_primal; ++iMPC) {
-    for(i=0; i<mpc_primal[iMPC]->nterms; ++i) {
+  for(iMPC = 0; iMPC < numMPC_primal; ++iMPC) {
+    for(i = 0; i < mpc_primal[iMPC]->nterms; ++i) {
       int   d = mpc_primal[iMPC]->terms[i].dof;
       int dof = mpc_primal[iMPC]->terms[i].ccdof;
       if((dof < 0) && (d >= 0) && !isWetInterfaceDof(d)) {
@@ -2572,15 +2611,15 @@ GenSubDomain<Scalar>::multKcc()
  delete [] iDisp; delete [] firstpointer;
 
  int k;
- for(iRHS=0; iRHS < nRHS; ++iRHS) {
+ for(iRHS = 0; iRHS < nRHS; ++iRHS) {
    bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-   for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
+   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
    bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
-   for(int i=0; i<numWIdof; ++i) wiFlag[i] = true;
+   for(int i = 0; i < numWIdof; ++i) wiFlag[i] = true;
 
    if(Krw) Krw->transposeMultNew(KrrKrc[iRHS], localw);
 
-   for(iDof=0; iDof<totalInterfSize; iDof++) {
+   for(iDof = 0; iDof < totalInterfSize; iDof++) {
      switch(boundDofFlag[iDof]) {
        case 0:
          BKrrKrc[iRHS][iDof] = KrrKrc[iRHS][allBoundDofs[iDof]];
@@ -2599,7 +2638,6 @@ GenSubDomain<Scalar>::multKcc()
          BKrrKrc[iRHS][iDof] = 0.0;
          if(mpcFlag[locMpcNb]) {
            for(k = 0; k < m->nterms; k++) {
-             //int cc_dof = cc_dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
              int cc_dof = (m->terms)[k].ccdof;
              if(cc_dof >= 0) BKrrKrc[iRHS][iDof] += KrrKrc[iRHS][cc_dof] * (m->terms)[k].coef;
 /* experimental code for mpc / wet interface interaction
@@ -2661,11 +2699,11 @@ GenSubDomain<Scalar>::reMultKcc()
  if(Krr) Krr->reSolve(nRHS, KrrKrc); // this can be expensive when nRHS is large eg for coupled freq sweep
 
  int k;
- for(iRHS=0; iRHS < nRHS; ++iRHS) {
-   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-   for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
+ for(iRHS = 0; iRHS < nRHS; ++iRHS) {
+   bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
+   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
    bool *wiFlag = (bool *) dbg_alloca(sizeof(bool)*numWIdof);
-   for(int i=0; i<numWIdof; ++i) wiFlag[i] = true;
+   for(int i = 0; i < numWIdof; ++i) wiFlag[i] = true;
 
    if(Krw) Krw->transposeMultNew(KrrKrc[iRHS], localw);
 
@@ -2688,7 +2726,6 @@ GenSubDomain<Scalar>::reMultKcc()
          BKrrKrc[iRHS][iDof] = 0.0;
          if(mpcFlag[locMpcNb]) {
            for(k = 0; k < m->nterms; k++) {
-             //int cc_dof = cc_dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
              int cc_dof = (m->terms)[k].ccdof;
              if(cc_dof >= 0) BKrrKrc[iRHS][iDof] += KrrKrc[iRHS][cc_dof] * (m->terms)[k].coef;
 /* experimental code for mpc / wet interface interaction
@@ -2731,16 +2768,14 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
 {
- if(localLen() == 0) return;
  int i, iDof, k;
 
- //Scalar *force = (Scalar *) dbg_alloca(sizeof(Scalar)*localLen());
  Scalar *force = new Scalar[localLen()];
  for(iDof = 0; iDof < localLen(); ++iDof) force[iDof] = -fr[iDof];
 
  //add the lambda contribution to fr, ie: -fr + Br^(s)^T lambda
  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
- for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+ for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
  for(iDof = 0; iDof < totalInterfSize; ++iDof) {
    switch(boundDofFlag[iDof]) {
      case 0:
@@ -2753,7 +2788,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
        int locMpcNb = -1-allBoundDofs[iDof];
        if(mpcFlag[locMpcNb]) {
          SubLMPCons<Scalar> *m = mpc[locMpcNb];
-         for(k=0; k<m->nterms; k++) {
+         for(k = 0; k < m->nterms; k++) {
            int ccdof = (m->terms)[k].ccdof;
            if(ccdof >= 0) force[ccdof] -= lambda[iDof] * (m->terms)[k].coef;
          }
@@ -2784,12 +2819,12 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
  }
 
  // add Bc^(s)^T lambda
- for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
- for(i=0; i < scomm->lenT(SComm::mpc); ++i) {
+ for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+ for(i = 0; i < scomm->lenT(SComm::mpc); ++i) {
    int locMpcNb = scomm->mpcNb(i);
    if(mpcFlag[locMpcNb]) {
      SubLMPCons<Scalar> *m = mpc[locMpcNb];
-     for(k=0; k<m->nterms; k++) {
+     for(k = 0; k < m->nterms; k++) {
        int dof = (m->terms)[k].dof;
        if((dof >= 0) && (cornerMap[dof] >= 0))
          fcstar[cornerMap[dof]] += lambda[scomm->mapT(SComm::mpc,i)] * (m->terms)[k].coef;
@@ -2827,7 +2862,7 @@ GenSubDomain<Scalar>::multFcB(Scalar *p)
 
   // fcstar += Bc^(s)^T p
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+  for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
   for(i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpcFlag[locMpcNb]) {
@@ -3217,7 +3252,7 @@ void GenSubDomain<Scalar>::initMpcScaling()
 }
 
 template<class Scalar>
-void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
+void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc)
 {
   // modify boundary condition values for output purposes
   int i;
@@ -3227,6 +3262,7 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel)
       bcx[dof] = usrDefDisp[locToGlUserDispMap[i]];
       if(bcx_scalar) bcx_scalar[dof] = bcx[dof];
       vcx[dof] = usrDefVel[locToGlUserDispMap[i]];
+      acx[dof] = usrDefAcc[locToGlUserDispMap[i]];
     }
   }
   updateUsddInDbc(usrDefDisp, locToGlUserDispMap); // CHECK
@@ -3248,7 +3284,7 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
   }
 
   // number the mpc equations
-  for(int i=0; i<numMPC_primal; ++i) {
+  for(int i = 0; i < numMPC_primal; ++i) {
     int fDof = cornerEqs->firstdof(mpcOffset+localToGlobalMPC_primal[i]);
     cornerEqNums[offset++] = fDof;
   }
@@ -3402,13 +3438,13 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
  int numDOFs = localLen();
  locKpQ = new Scalar[numMPC*numDOFs];
  int i;
- for(i=0; i<numMPC*numDOFs; ++i)
+ for(i = 0; i < numMPC*numDOFs; ++i)
    locKpQ[i] = 0.0;
 
  // loop over mpc structure and fill coefficients
  int iMPC;
- for(iMPC=0; iMPC<numMPC; ++iMPC) {
-   for(i=0; i<mpc[iMPC]->nterms; ++i) {
+ for(iMPC = 0; iMPC < numMPC; ++iMPC) {
+   for(i = 0; i < mpc[iMPC]->nterms; ++i) {
      int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                             (1 << mpc[iMPC]->terms[i].dofnum));
      if(dof >= 0) {
@@ -3417,16 +3453,16 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
    }
  }
 
- for(iMPC=0; iMPC<numMPC; ++iMPC)
+ for(iMPC = 0; iMPC < numMPC; ++iMPC)
    if(s) s->reSolve(locKpQ + iMPC*numDOFs);
 
  QtKpBt = new Scalar [numMPC*totalInterfSize];
 
- for(i=0; i<numMPC*totalInterfSize; ++i)
+ for(i = 0; i < numMPC*totalInterfSize; ++i)
    QtKpBt[i] = 0.0;
 
  int j;
- for(i=0; i<numMPC; ++i)
+ for(i = 0; i < numMPC; ++i)
    for(j=0; j<totalInterfSize; ++j)
      QtKpBt[j+i*totalInterfSize] = locKpQ[allBoundDofs[j]+i*numDOFs];
 
@@ -3434,8 +3470,8 @@ GenSubDomain<Scalar>::getQtKQ(GenSolver<Scalar> *s)
  qtkq->zero();
 
  int jMPC;
- for(iMPC=0; iMPC<numMPC; ++iMPC)
-   for(jMPC=0; jMPC<numMPC; ++jMPC)
+ for(iMPC = 0; iMPC < numMPC; ++iMPC)
+   for(jMPC = 0; jMPC < numMPC; ++jMPC)
      for(i=0; i<mpc[iMPC]->nterms; ++i) {
        int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                                 (1 << mpc[iMPC]->terms[i].dofnum));
@@ -3453,7 +3489,7 @@ GenSubDomain<Scalar>::getQtKQ(int glMPCnum, Scalar *QtKQ)
 {
  int thisMPC=  globalToLocalMPC[glMPCnum];
  int iMPC;
- for(iMPC=0; iMPC<numMPC; ++iMPC)
+ for(iMPC = 0; iMPC < numMPC; ++iMPC)
    QtKQ[iMPC] = (*qtkq)[thisMPC][iMPC];
 }
 
@@ -3475,8 +3511,8 @@ GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *V, int numV, Scalar *QtV)
  int numDofs = localLen();
  int iMPC = globalToLocalMPC[glMPCnum];
  int i,n;
- for(n=0; n<numV; ++n) {
-   for(i=0; i<mpc[iMPC]->nterms; ++i) {
+ for(n = 0; n < numV; ++n) {
+   for(i = 0; i < mpc[iMPC]->nterms; ++i) {
      int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                               (1 << mpc[iMPC]->terms[i].dofnum));
      if(dof < 0) continue;
@@ -3492,7 +3528,7 @@ GenSubDomain<Scalar>::multQt(int glMPCnum, Scalar *beta, Scalar *result)
 {
  int iMPC = globalToLocalMPC[glMPCnum];
  int i;
- for(i=0; i<mpc[iMPC]->nterms; ++i) {
+ for(i = 0; i < mpc[iMPC]->nterms; ++i) {
    int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                             (1 << mpc[iMPC]->terms[i].dofnum));
    if(dof < 0) continue;
@@ -3510,6 +3546,7 @@ GenSubDomain<Scalar>::clean_up()
  if(scaling) { delete [] scaling; scaling = 0; }
  if(bcx) { delete [] bcx; bcx = 0; }
  if(vcx) { delete [] vcx; vcx = 0; }
+ if(acx) { delete [] acx; acx = 0; }
  if(boundMap) { delete [] boundMap; boundMap = 0; }
  if(dualToBoundary) { delete [] dualToBoundary; dualToBoundary = 0; }
  if(internalMap) { delete [] internalMap; internalMap = 0; }
@@ -3611,24 +3648,23 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::updateMpcRhs(Scalar *interfvec)
 {
-  bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(int i=0; i<numMPC; ++i) mpcFlag[i] = true;
-  for(int i=0; i<scomm->lenT(SComm::mpc); ++i) {
+  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
+  for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+  for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpcFlag[locMpcNb] == true) {
-      mpc[locMpcNb]->rhs =  mpc[locMpcNb]->original_rhs + interfvec[scomm->mapT(SComm::mpc,i)];
+      mpc[locMpcNb]->rhs = mpc[locMpcNb]->original_rhs + interfvec[scomm->mapT(SComm::mpc,i)];
       mpcFlag[locMpcNb] = false;
     }
   }
 }
-
 
 template<class Scalar>
 double
 GenSubDomain<Scalar>::getMpcError()
 {
   double ret = 0;
-  for(int i=0; i<numMPC; ++i) {
+  for(int i = 0; i < numMPC; ++i) {
     if(mpcMaster[i]) {
       if(mpc[i]->type == 0) {
         ret += ScalarTypes::sqNorm(mpc[i]->rhs);
@@ -3686,7 +3722,7 @@ GenSubDomain<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **m
 {
   // PJSA: extracts the mpc residual components from mpcv and inserts them in the interface vector subv
   int i, j, k;
-  for(i=0; i<numMPC; ++i) {
+  for(i = 0; i < numMPC; ++i) {
     int iDof = (*mpcToBoundDof)[i][0];
     int gi = localToGlobalMPC[i];
     double w = double(mpcToBlock->num(gi));
@@ -3737,7 +3773,7 @@ GenSubDomain<Scalar>::combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scal
  int i,j;
  Scalar *mpcCombo = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
  int *mpcCount =  (int *) dbg_alloca(sizeof(int)*numMPC);
- for(i=0; i<numMPC; ++i) mpcCount[i] = 1;
+ for(i = 0; i < numMPC; ++i) mpcCount[i] = 1;
  for(i = 0; i < scomm->numT(SComm::mpc); ++i) {
    int neighb = scomm->neighbT(SComm::mpc, i);
    if(subNumber != neighb) {
@@ -3905,12 +3941,11 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
 {
   int i, iDof, k;
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+  for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   for(iDof = 0; iDof < totalInterfSize; ++iDof) {
     switch(boundDofFlag[iDof]) {
       case 0:
-        //cerr << "scaling[iDof] = " << scaling[iDof] << ", u[iDof] = " << u[iDof] << ", dualToBoundary[iDof] = " << dualToBoundary[iDof] << endl;
         v[dualToBoundary[iDof]] += u[iDof] * scaling[iDof];
         if(deltaU) deltaU[allBoundDofs[iDof]] = -v[dualToBoundary[iDof]];
         break;
@@ -3924,12 +3959,10 @@ GenSubDomain<Scalar>::applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *de
         if(mpcFlag[locMpcNb]) {
           SubLMPCons<Scalar> *m = mpc[locMpcNb];
           if(!mpc[locMpcNb]->active) {
-            for(k=0; k<m->nterms; k++) {
+            for(k = 0; k < m->nterms; k++) {
               int cdof = (m->terms)[k].cdof;
               if(cdof >= 0) { // mpc dof that exists
                 Scalar coef = (m->terms)[k].coef / m->k[k]; // 1/m->k[k] = A, see generalized preconditioner
-                //cerr << "locMpcNb = " << locMpcNb << ", scaling[iDof] = " << scaling[iDof] << ", coef = " << coef << ", u[iDof] = " << u[iDof] << ", cdof = " << cdof
-                //     << ", invBoundMap[cdof] = " << invBoundMap[cdof] << endl;
                 if(invBoundMap[cdof] < 0) cerr << "error here in GenSubDomain<Scalar>::applyBtransposeAndScaling\n";
                 v[invBoundMap[cdof]] += u[iDof] * coef * scaling[iDof];
               }
@@ -3951,7 +3984,7 @@ GenSubDomain<Scalar>::applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw)
   if(numMPC && !deltaFmpc)
     deltaFmpc = new Scalar[numMPC]; // only need to allocate 1st time (unless numMPC changes)
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+  for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   // Return preconditioned u
   for(iDof = 0; iDof < totalInterfSize; ++iDof) {
@@ -3968,7 +4001,7 @@ GenSubDomain<Scalar>::applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw)
         Pu[iDof] = 0.0;
         if(mpcFlag[locMpcNb]) deltaFmpc[locMpcNb] = 0.0;
         if(!mpc[locMpcNb]->active) {
-          for(k=0; k<m->nterms; k++) {
+          for(k = 0; k < m->nterms; k++) {
             int cdof = (m->terms)[k].cdof;
             if(cdof > -1) { // mpc dof that exists
               Scalar coef = (m->terms)[k].coef;
@@ -4008,7 +4041,7 @@ GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWei
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
     int locMpcNb = scomm->mpcNb(i);
     if(mpc[locMpcNb]->type == 1) { // inequality constraint
-      for(int j=0; j<mpc[locMpcNb]->nterms; ++j) {
+      for(int j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
         int glNode = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
         globStress[glNode] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
@@ -4025,17 +4058,17 @@ GenSubDomain<Scalar>::getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEq
 {
 // XXXX needs some work to map both dual and primal into single mpcLambda array
   if(numMPC > 0 && numMPC_primal > 0) cerr << "unsupported feature in GenSubDomain::getLocalMpcForces \n";
-  for(int i=0; i<scomm->lenT(SComm::mpc); ++i) { // dual mpcs
+  for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) { // dual mpcs
     int locMpcNb = scomm->mpcNb(i);
     if(localLambda) mpcLambda[locMpcNb] = localLambda[scomm->mapT(SComm::mpc,i)];
     else mpcLambda[locMpcNb] = 0;
   }
-  for(int i=0; i<numMPC_primal; ++i) {
+  for(int i = 0; i < numMPC_primal; ++i) {
     int glMpcNb = localToGlobalMPC_primal[i];
     int dof = cornerEqs->firstdof(mpcOffset+glMpcNb);
     mpcLambda[i] = -ScalarTypes::Real(uc[dof]);
   }
-  if(salinasFlag) for(int i=0; i<numMPC+numMPC_primal; ++i) mpcLambda[i] = -mpcLambda[i];  // different sign convention
+  if(salinasFlag) for(int i = 0; i < numMPC+numMPC_primal; ++i) mpcLambda[i] = -mpcLambda[i];  // different sign convention
 }
 
 template<class Scalar>
@@ -4179,7 +4212,7 @@ void
 GenSubDomain<Scalar>::deleteMPCs()
 {
   if(mpc) {
-    for(int i=0; i<numMPC; ++i)
+    for(int i = 0; i < numMPC; ++i)
       if(mpc[i]) { delete mpc[i]; mpc[i] = 0; }
     delete [] mpc; mpc = 0;
   }
@@ -4916,7 +4949,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
 {
-  for(int i=0; i<numMPC; ++i) mpc[i]->initKsum();
+  for(int i = 0; i < numMPC; ++i) mpc[i]->initKsum();
 
   // Get the trace of the subdomain interfaces
   int iNeighb, iDof, j;
@@ -4927,8 +4960,8 @@ GenSubDomain<Scalar>::sendMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
     for(iDof = 0; iDof < scomm->lenT(SComm::mpc,iNeighb); ++iDof) {
       int locMpcNb = scomm->mpcNb(iNeighb,iDof);
       if(subNumber != neighb)
-        for(j=0; j<mpc[locMpcNb]->gsize; ++j) sInfo.data[nOff+j] = 0.0;
-      for(j=0; j<mpc[locMpcNb]->nterms; ++j) {
+        for(j = 0; j < mpc[locMpcNb]->gsize; ++j) sInfo.data[nOff+j] = 0.0;
+      for(j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int c_dof = mpc[locMpcNb]->terms[j].cdof;
         if(c_dof > -1) {
           int b_dof = invBoundMap[c_dof];
@@ -4965,7 +4998,7 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
      int nOff = 0;
      for(iDof = 0; iDof < scomm->lenT(SComm::mpc,iNeighb); ++iDof) {
        int locMpcNb = scomm->mpcNb(iNeighb,iDof);
-       for(j=0; j<mpc[locMpcNb]->nterms; ++j)  {
+       for(j = 0; j < mpc[locMpcNb]->nterms; ++j)  {
          mpc[locMpcNb]->ksum[j] += rInfo.data[nOff+mpc[locMpcNb]->gi[j]];
        }
        nOff += mpc[locMpcNb]->gsize;
@@ -4979,11 +5012,11 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
    int iMPC, i;
 #ifdef DEBUG_MPC
    cerr << "before k scaling: \n";
-   for(iMPC=0; iMPC<numMPC; ++iMPC) mpc[iMPC]->print();
+   for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
-   for(iMPC=0; iMPC<numMPC; ++iMPC) {
+   for(iMPC = 0; iMPC < numMPC; ++iMPC) {
      if(mpc[iMPC]->type == 2) continue; // bmpc
-     for(i=0; i<mpc[iMPC]->nterms; ++i) {
+     for(i = 0; i < mpc[iMPC]->nterms; ++i) {
        if(ScalarTypes::norm(mpc[iMPC]->ksum[i]) < 1.0e-12) {
          //cerr << " *** WARNING: ksum = " << mpc[iMPC]->ksum[i] << ", cdof = " << mpc[iMPC]->terms[i].cdof << ", coef = " << mpc[iMPC]->terms[i].coef << endl;
          mpc[iMPC]->ksum[i] = 1.0;
@@ -4994,7 +5027,7 @@ GenSubDomain<Scalar>::collectMpcDiag(FSCommPattern<Scalar> *mpcDiagPat)
    }
 #ifdef DEBUG_MPC
    cerr << "after k scaling: \n";
-   for(iMPC=0; iMPC<numMPC; ++iMPC) mpc[iMPC]->print();
+   for(iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC]->print();
 #endif
  }
 }
@@ -5164,8 +5197,8 @@ GenSubDomain<Scalar>::makeLocalMpcToDof()
   // step 1.1: find size of target: total number of coefficients involving a different dof
   int numtarget = 0;
   int i, j, jj;
-  for(i=0; i<size; i++) {
-    for(j=0; j<mpc[i]->nterms; j++) {
+  for(i = 0; i < size; i++) {
+    for(j = 0; j < mpc[i]->nterms; j++) {
       int dofj = mpc[i]->terms[j].dof;
       for(jj=0; jj<j; jj++) {
         int dofjj = mpc[i]->terms[jj].dof;
@@ -5178,9 +5211,9 @@ GenSubDomain<Scalar>::makeLocalMpcToDof()
   int *pointer = new int[size+1];
   int *target  = new int[numtarget];
   int count = 0;
-  for(i=0; i<size; i++) {
+  for(i = 0; i < size; i++) {
     pointer[i] = count;
-    for(j=0; j<mpc[i]->nterms; j++) {
+    for(j = 0; j < mpc[i]->nterms; j++) {
       int dofj = mpc[i]->terms[j].dof;
       for(jj=0; jj<j; jj++) {
         int dofjj = mpc[i]->terms[jj].dof;
@@ -5214,14 +5247,14 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::locateMpcDofs()
 {
-  for(int i=0; i<numMPC; ++i)
-    for(int k=0; k < mpc[i]->nterms; ++k) {
+  for(int i = 0; i < numMPC; ++i)
+    for(int k = 0; k < mpc[i]->nterms; ++k) {
       (mpc[i]->terms)[k].dof = dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
       (mpc[i]->terms)[k].cdof = c_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
       (mpc[i]->terms)[k].ccdof = cc_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
     }
-  for(int i=0; i<numMPC_primal; ++i)
-    for(int k=0; k < mpc_primal[i]->nterms; ++k) {
+  for(int i = 0; i < numMPC_primal; ++i)
+    for(int k = 0; k < mpc_primal[i]->nterms; ++k) {
       (mpc_primal[i]->terms)[k].dof = dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
       (mpc_primal[i]->terms)[k].cdof = c_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
       (mpc_primal[i]->terms)[k].ccdof = cc_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
@@ -5238,7 +5271,7 @@ GenSubDomain<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, Simp
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
     if(mpc[i]->active) { CCtsolver->addone(1.0, renum_gi, renum_gi); continue; } // trick to prevent singularities in CCt when rebuit for contact
-    for(k=0; k < mpc[i]->nterms; ++k) {
+    for(k = 0; k < mpc[i]->nterms; ++k) {
       int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
         dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling
@@ -5252,10 +5285,10 @@ GenSubDomain<Scalar>::assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, Simp
       int renum_gj = mpcEqNums->firstdof(gj);
       if(renum_gj > renum_gi) {  // work with upper symmetric half
         // now find matching dof/s
-        for(k=0; k < mpc[i]->nterms; ++k) {
+        for(k = 0; k < mpc[i]->nterms; ++k) {
           int dofk = (mpc[i]->terms)[k].cdof;
           if(dofk >= 0) {
-            for(l=0; l < mpc[lj]->nterms; ++l) {
+            for(l = 0; l < mpc[lj]->nterms; ++l) {
               int dofl = (mpc[lj]->terms)[l].cdof;
               if(dofk == dofl) {
                 dotij += mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
@@ -5285,7 +5318,7 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
   // -> nearly 2x the required size
 
   // this is the exact required array size
-  for(i=0; i<numMPC; ++i){
+  for(i = 0; i < numMPC; ++i){
     if(mpc[i]->active) continue;
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
@@ -5305,12 +5338,12 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
 
   // Step 2. Fill the array
   lengthCCtData = 0; // use it as counter (at the end, it should be the exact number of contributions)
-  for(i=0; i<numMPC; ++i) {
+  for(i = 0; i < numMPC; ++i) {
     if(mpc[i]->active) continue;
     Scalar dotii = 0.0;
     int gi = localToGlobalMPC[i];
     int renum_gi = mpcEqNums->firstdof(gi);
-    for(k=0; k < mpc[i]->nterms; ++k) {
+    for(k = 0; k < mpc[i]->nterms; ++k) {
       int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
         dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling
@@ -5327,10 +5360,10 @@ GenSubDomain<Scalar>::computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNum
       int renum_gj = mpcEqNums->firstdof(gj);
       if(renum_gj > renum_gi) {  // work with upper symmetric half
         // now find matching dof/s
-        for(k=0; k < mpc[i]->nterms; ++k) {
+        for(k = 0; k < mpc[i]->nterms; ++k) {
           int dofk = (mpc[i]->terms)[k].cdof;
           if(dofk >= 0) {
-            for(l=0; l < mpc[lj]->nterms; ++l) {
+            for(l = 0; l < mpc[lj]->nterms; ++l) {
               int dofl = (mpc[lj]->terms)[l].cdof;
               if(dofk == dofl) {
                 dotij += mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
@@ -5390,11 +5423,11 @@ GenSubDomain<Scalar>::assembleLocalCCtsolver()
 {
   // Step 2. add local mpc CC^t terms to solver
   int i, j, k, l;
-  for(i=0; i<numMPC; ++i) {
+  for(i = 0; i<numMPC; ++i) {
     if(mpc[i]->active) continue;
     Scalar dotii = 0.0;
-    for(k=0; k < mpc[i]->nterms; ++k) {
-      int dof =(mpc[i]->terms)[k].cdof;
+    for(k = 0; k < mpc[i]->nterms; ++k) {
+      int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
         dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // HB: for mpc kscaling;
     }
@@ -5405,10 +5438,10 @@ GenSubDomain<Scalar>::assembleLocalCCtsolver()
       if(mpc[lj]->active) continue;
       if(lj > i) { // work with upper symmetric half only
         // now find matching dof/s
-        for(k=0; k < mpc[i]->nterms; ++k) {
+        for(k = 0; k < mpc[i]->nterms; ++k) {
           int dofk = (mpc[i]->terms)[k].cdof;
           if(dofk >= 0) {
-            for(l=0; l < mpc[lj]->nterms; ++l) {
+            for(l = 0; l < mpc[lj]->nterms; ++l) {
               int dofl = (mpc[lj]->terms)[l].cdof;
               if(dofk == dofl) {
                 dotij += mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling
@@ -5444,11 +5477,11 @@ GenSubDomain<Scalar>::sendNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connect
     if(subNumber != neighb) {
       int count = 0;
       FSSubRecInfo<Scalar> sInfo = cctPat->getSendBuffer(subNumber, neighb);
-      for(j=0; j<numMPC; ++j) {
+      for(j = 0; j < numMPC; ++j) {
         int gj = localToGlobalMPC[j];
         if(mpcToSub->offset(gj, neighb) > -1) {
           sInfo.data[count++] = localCCtsolver->getone(j, j);
-          for(k=j+1; k<numMPC; ++k) {
+          for(k = j+1; k<numMPC; ++k) {
             int gk = localToGlobalMPC[k];
             if((mpcToSub->offset(gk, neighb) > -1) && (localMpcToGlobalMpc->offset(j, k) > -1)) {
               sInfo.data[count] = localCCtsolver->getone(j, k);
@@ -5471,11 +5504,11 @@ GenSubDomain<Scalar>::recNeighbCCtsolver(FSCommPattern<Scalar> *cctPat, Connecti
     if(subNumber != neighb) {
       int count = 0;
       FSSubRecInfo<Scalar> rInfo = cctPat->recData(neighb, subNumber);
-      for(j=0; j<numMPC; ++j) {
+      for(j = 0; j < numMPC; ++j) {
         int gj = localToGlobalMPC[j];
         if(mpcToSub->offset(gj, neighb) > -1) {
           localCCtsolver->addone(rInfo.data[count++], j, j);
-          for(k=j+1; k<numMPC; ++k) {
+          for(k = j+1; k<numMPC; ++k) {
             int gk = localToGlobalMPC[k];
             if((mpcToSub->offset(gk, neighb) > -1) && (localMpcToGlobalMpc->offset(j, k) > -1)) {
               localCCtsolver->addone(rInfo.data[count], j, k);
@@ -5520,7 +5553,7 @@ GenSubDomain<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCts
     int bi = (*blockToBlockMpc)[iBlock][p];
     int renum_bi = blockMpcEqNums->firstdof(bi);
     Scalar dotii = 0.0;
-    for(k=0; k < mpc[i]->nterms; ++k) {
+    for(k = 0; k < mpc[i]->nterms; ++k) {
       int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
         dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling;
@@ -5536,10 +5569,10 @@ GenSubDomain<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCts
         if(renum_bj > renum_bi) { // work with upper symmetric part only
           Scalar dotij = 0.0;
           // now find matching dof/s
-          for(k=0; k < mpc[i]->nterms; ++k) {
+          for(k = 0; k < mpc[i]->nterms; ++k) {
             int dofk = (mpc[i]->terms)[k].cdof;
             if(dofk >= 0) {
-              for(l=0; l < mpc[lj]->nterms; ++l) {
+              for(l = 0; l < mpc[lj]->nterms; ++l) {
                 int dofl = (mpc[lj]->terms)[l].cdof;
                 if(dofk == dofl)
                   dotij += mpc[i]->terms[k].coef * mpc[lj]->terms[l].coef / mpc[lj]->k[l]; // for mpc kscaling;
@@ -5560,9 +5593,9 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double* R[], Scalar*
   int i, n, iMPC;
 
   if(trans) {
-    for(iMPC=0; iMPC<numMPC; ++iMPC) {
-      for(n=0; n<num_vect; ++n) {
-        for(i=0; i<mpc[iMPC]->nterms; ++i) {
+    for(iMPC = 0; iMPC < numMPC; ++iMPC) {
+      for(n = 0; n < num_vect; ++n) {
+        for(i = 0; i < mpc[iMPC]->nterms; ++i) {
           int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                                   (1 << mpc[iMPC]->terms[i].dofnum));
           if(dof < 0) continue;
@@ -5572,12 +5605,12 @@ GenSubDomain<Scalar>::constraintProduct(int num_vect, const double* R[], Scalar*
     }
   }
   else {
-    for(iMPC=0; iMPC<numMPC; ++iMPC) {
-      for(i=0; i<mpc[iMPC]->nterms; ++i) {
+    for(iMPC = 0; iMPC < numMPC; ++iMPC) {
+      for(i = 0; i < mpc[iMPC]->nterms; ++i) {
         int dof = c_dsa->locate(mpc[iMPC]->terms[i].nnum,
                                 (1 << mpc[iMPC]->terms[i].dofnum));
         if(dof < 0) continue;
-        for(n=0; n<num_vect; ++n)
+        for(n = 0; n < num_vect; ++n)
           V[iMPC][n] += mpc[iMPC]->terms[i].coef * R[iMPC][dof];
       }
     }
@@ -5725,7 +5758,7 @@ GenSubDomain<Scalar>::makeFreqSweepLoad(Scalar *d, int iRHS, double omega)
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
  buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, iRHS, omega);
 
- for(int i=0; i<numMPC; ++i) mpc[i]->rhs = 0.0; // PJSA 10-18-04: set mpc rhs to zero for higher-order derivative solves
+ for(int i = 0; i < numMPC; ++i) mpc[i]->rhs = 0.0; // PJSA 10-18-04: set mpc rhs to zero for higher-order derivative solves
 }
 
 
@@ -5985,8 +6018,8 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::normalizeCstep1(Scalar *cnorm)
 {
-  for(int i=0; i<numMPC; ++i)
-    for(int j=0; j<mpc[i]->nterms; ++j)
+  for(int i = 0; i < numMPC; ++i)
+    for(int j = 0; j < mpc[i]->nterms; ++j)
       cnorm[localToGlobalMPC[i]] += mpc[i]->terms[j].coef*mpc[i]->terms[j].coef;
 }
 
@@ -5994,8 +6027,8 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::normalizeCstep2(Scalar *cnorm)
 {
-  for(int i=0; i<numMPC; ++i)
-    for(int j=0; j<mpc[i]->nterms; ++j)
+  for(int i = 0; i < numMPC; ++i)
+    for(int j = 0; j < mpc[i]->nterms; ++j)
       mpc[i]->terms[j].coef /= cnorm[localToGlobalMPC[i]];
 }
 

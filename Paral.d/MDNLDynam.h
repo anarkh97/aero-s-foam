@@ -1,6 +1,10 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
+#include <map>
+#include <vector>
+#include <cstddef>
+
 class Domain;
 template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
@@ -38,7 +42,7 @@ class MDNLDynamic
     MDDynamMat *allOps;
     SubDOp *M;
     SubDOp *C;
-    SubDOp *Kuc;
+    SubDOp *Kuc, *Muc, *Cuc;
     Corotator ***allCorot;       // element corotators per subdomain
     DistrVector *localTemp;
 
@@ -48,8 +52,7 @@ class MDNLDynamic
 
     double t0;                   // initial time
     double totalTime;		 // total simulation time
-    double dt;			 // time step size
-    double delta;		 // half time step size
+    double dt0;			 // initial time step size
     double remainder;		 // remaining time after max steps
     int    maxStep;		 // maximum number of time steps
 
@@ -105,8 +108,8 @@ class MDNLDynamic
 
     void computeTimeInfo();
 
-    double getDelta() const     { return delta; }
-    double getDt() const        { return dt;    }
+    double getDelta() const     { return dt0/2; }
+    double getDt() const        { return dt0;   }
     double getLastDt() const    { return remainder; }
     int    getMaxStep() const   { return maxStep;   }
     double getTotalTime() const { return totalTime; }
@@ -116,22 +119,21 @@ class MDNLDynamic
     void getConstForce(DistrVector &gravityForce);
     void getExternalForce(DistrVector &externalForce, DistrVector &constantForce,
                           int tIndex, double time, DistrGeomState *geomState, 
-                          DistrVector &elementInternalForce, DistrVector &aeroF);
+                          DistrVector &elementInternalForce, DistrVector &aeroF, double localDelta);
 
-    double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                           DistrVector& residual, DistrVector& rhs);
+    void getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
+                            bool zeroRot);
+
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
     
-    void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual, 
-                          DistrVector& rhs, DistrGeomState &, double mid = 0.0);
     void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);
 
     void formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce,
                             DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState = NULL);
 
-    void preProcess();
+    virtual void preProcess();
 
     void processLastOutput();
     ParallelSolver *getSolver();
@@ -150,18 +152,18 @@ class MDNLDynamic
                             DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
 
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(DistrGeomState& geomState, int iter = 0);
-    void reBuild(DistrGeomState& geomState, int iter, double localDelta);
+    void reBuild(DistrGeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
     void dynamOutput(DistrGeomState* geomState, DistrVector& velocity, DistrVector &vp,
-                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration);
+                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration,
+                     DistrGeomState *refState);
     void dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                           DistrVector& velocity, DistrVector& bkVelocity,
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
                           int aeroAlg);
 
-    double getResidualNorm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec, DistrGeomState &, double);
 
     int getAeroAlg();
     int getThermoeFlag();
@@ -169,12 +171,15 @@ class MDNLDynamic
     int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
+  protected:
+    Domain *getDomain() { return domain; }
+    DecDomain *getDecDomain() { return decDomain; }
 
   private:
     void makeSubDofs(int isub);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
-    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
+    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
@@ -196,26 +201,10 @@ class MDNLDynamic
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
+
+    virtual bool factorWhenBuilding() const;
+    void deleteSubCorotators(int isub);
+    void deleteSubElementArrays(int isub);
 };
-
-inline double
-MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                              DistrVector& residual, DistrVector& rhs)
-{
-  return formRHScorrector(inc_displacement, velocity, acceleration, residual, rhs, delta);
-}
-
-inline void 
-MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
-                              DistrVector& rhs, DistrGeomState &geomState, double mid)
-{
-  formRHSpredictor(velocity, acceleration, residual, rhs, geomState, mid, delta);
-}
-
-inline void
-MDNLDynamic::reBuild(DistrGeomState& geomState, int iter)
-{
-  reBuild(geomState, iter, delta);
-}
 
 #endif

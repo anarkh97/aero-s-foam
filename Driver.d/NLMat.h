@@ -108,12 +108,12 @@ public:
    double getDelta()  { return delta; }
    double getDt()     { return dt;    }
    void getInitialTime (int &, double &);
-   void getExternalForce (Vector &, Vector &, int, double &, NLState *, Vector &, Vector &);
+   void getExternalForce (Vector &, Vector &, int, double &, NLState *, Vector &, Vector &, double);
    void dynamCommToFluid (NLState *, NLState *, Vector &, Vector &, Vector &, Vector &,int, int, int) {}
-   void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &);
+   void dynamOutput (NLState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &, NLState *);
    int  getMaxStep() { return maxStep; }
    double getStiffAndForce (NLState &, Vector &, Vector &, double = -1);
-   void reBuild (NLState &, int = 0);
+   void reBuild (NLState &, int, double delta, double t);
    void formRHSpredictor (Vector &, Vector &, Vector &, NLState &, double);
    int checkConvergence (int, double, Vector &, Vector &, double );
    void update (Vector &);
@@ -132,7 +132,8 @@ public:
    double getTolerance()  { return tolerance*firstRes; }
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
-   double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+   double getResidualNorm(Vector &rhs, NLState &) { return rhs.norm(); }
+   double getResidualNorm(Vector &rhs, NLState &, double) { return rhs.norm(); }
 
    int getAeroAlg() { return domain.solInfo().aeroFlag; }
    int getThermoeFlag() { return domain.solInfo().thermoeFlag; }

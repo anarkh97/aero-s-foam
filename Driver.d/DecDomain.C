@@ -78,6 +78,8 @@ GenDecDomain<Scalar>::initialize()
   soweredInput = false;
   masterSolVecInfo_ = 0;
   nodeVecInfo = 0;
+  eleVecInfo = 0;
+  bcVecInfo = 0;
   wiPat = 0;
   ba = 0;
 } 
@@ -114,6 +116,8 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   if(subToElem) { delete subToElem; subToElem = 0; }
   if(nodeVecInfo) delete nodeVecInfo;
+  if(eleVecInfo) delete eleVecInfo;
+  if(bcVecInfo) delete bcVecInfo;
   delete masterSolVecInfo_;
   delete ba;
 }
@@ -675,6 +679,7 @@ GenDecDomain<Scalar>::preProcess()
 
  paralApply(numSub, subDomain, &BaseSub::mergeInterfaces);
  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
+
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
@@ -2158,8 +2163,10 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::elementVectorInfo()
 {
-  DistrInfo *eleVecInfo = new DistrInfo;
-  makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
+  if(!eleVecInfo) {
+    eleVecInfo = new DistrInfo;
+    makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
+  }
   return eleVecInfo;
 }
 
@@ -2168,8 +2175,10 @@ template<class Scalar>
 DistrInfo*
 GenDecDomain<Scalar>::pbcVectorInfo()
 {
- DistrInfo *bcVecInfo = new DistrInfo;
- makeBasicDistrInfo(*bcVecInfo, &Domain::nDirichlet);
+ if(!bcVecInfo) {
+   bcVecInfo = new DistrInfo;
+   makeBasicDistrInfo(*bcVecInfo, &Domain::nDirichlet);
+ }
  return bcVecInfo;
 }
 
@@ -3422,12 +3431,13 @@ GenDecDomain<Scalar>::makeMpcToSub()
 template<class Scalar>
 void
 GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK,
-                               Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti)
+                               Rbm **rbms, FullSquareMatrix **kelArray, bool make_feti,
+                               FullSquareMatrix **melArray, FullSquareMatrix **celArray, bool factor)
 {
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator);
+                                communicator, melArray, celArray);
 
  if(domain->solInfo().type == 0) {
    switch(domain->solInfo().subtype) {
@@ -3462,7 +3472,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
- if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().type == 1) {
    assembler = getSolVecAssembler(); 
  }
 
@@ -3486,25 +3496,43 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
  } else {
-   res.C_deriv   = 0; //delete [] dgt.C_deriv;
+   res.C_deriv = 0;
+   delete [] dgt.C_deriv;
  }
  if(dgt.Cuc_deriv[0]) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
  } else {
-   res.Cuc_deriv = 0; //delete [] dgt.Cuc_deriv;
+   res.Cuc_deriv = 0;
+   delete [] dgt.Cuc_deriv;
  }
 // RT end
  switch(domain->solInfo().type) {
    case 0 : { // direct
-     if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
+     //if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
      dgt.dynMats[0]->unify(communicator);
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
-     res.dynMat->refactor();
+     if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
-     cerr << " *** ERROR: type 1 not supported here in GenDecDomain::buildOps\n";
-     exit(-1);
+     switch(domain->solInfo().iterType) {
+       case 1: {
+         if(myCPU == 0) cerr << " ... GMRES Solver is Selected       ...\n";
+         res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
+         if(domain->solInfo().precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
+         GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
+           = new GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> >
+             (domain->solInfo().maxit, domain->solInfo().tol, res.spMat, &GenSubDOp<Scalar>::mult, res.prec,
+              &GenParallelSolver<Scalar>::solve, NULL, &GenParallelSolver<Scalar>::solve, communicator); 
+         if(domain->solInfo().maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().maxvecsize;
+         gmresSolver->verbose = verboseFlag;
+         gmresSolver->printNumber = domain->solInfo().fetiInfo.printNumber;
+         res.dynMat = gmresSolver;
+       } break;
+       default:
+         cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
+         exit(-1);
+     }
    } break;
    case 2 : { // feti
      if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";
@@ -3519,11 +3547,11 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 template<class Scalar>
 void
 GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
-                                 FullSquareMatrix **kelArray, FullSquareMatrix **melArray)
+                                 FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
  res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
- execParal6R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray);
+ execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
  if(domain->solInfo().type == 0) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
@@ -3536,7 +3564,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 template<class Scalar>
 void
 GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
-                                    FullSquareMatrix **kelArray, FullSquareMatrix **melArray)
+                                    FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
   AllOps<Scalar> allOps;
 
@@ -3557,8 +3585,11 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   if(domain->solInfo().type == 0) {
     GenSparseMatrix<Scalar> *spmat = dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat);
     if(iSub == 0) spmat->zeroAll();
+#if defined(_OPENMP)
+    #pragma omp barrier
+#endif
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
-                                                    (melArray) ? melArray[iSub] : 0);
+                                                    (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
   }
   else {
     GenMultiSparse<Scalar> *allMats;

@@ -11,10 +11,11 @@ GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditio
   RightPreconditioner *_rightprec, void (RightPreconditioner::*_applyRight)(AnyVector &, AnyVector &),
   FSCommunicator *_com)
  : maxit(_maxit), tol(_tol), op(_op), matvec(_matvec), leftprec(_leftprec), applyLeft(_applyLeft), 
-   rightprec(_rightprec), applyRight(_applyRight), com(_com), oSetGMRES(NULL),
+   rightprec(_rightprec), applyRight(_applyRight), oSetGMRES(NULL),
    maxortho(1000), printNumber(1), verbose(1)
 {
-  rank = (com) ? com->cpuNum() : 0;
+  com = _com;
+  rank = (_com) ? _com->cpuNum() : 0;
 }
 
 template<class Scalar, class AnyVector, class AnyOperator, class LeftPreconditioner, class RightPreconditioner>

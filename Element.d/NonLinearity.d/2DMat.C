@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
 #include <Math.d/TTensor.h>
 
@@ -58,7 +58,7 @@ ElaLinIsoMat2D::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor
 
   double E11 = t*E/(1-nu*nu);
   double E12 = nu*E11;
-  double E33 =t* E/(1+nu);
+  double E33 = t*E/(1+nu);
   (*tm)[0][0] = E11;
   (*tm)[1][1] = E11;
   (*tm)[2][2] = E33/2;
@@ -92,3 +92,20 @@ ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
   //for (int i=0; i<6; ++i)
   //  fprintf(stderr,"s[%d]=%e\n",i , (*stress)[i]);
 }
+
+extern LinearStrain2D<9> linStrain2D;
+
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+ElaLinIsoMat2D::getGenStrainEvaluator()
+{
+  return &linStrain2D;
+}
+
+extern GLStrain2D<9> glStrain2D;
+
+GenStrainEvaluator<TwoDTensorTypes<9> > *
+StVenantKirchhoffMat2D::getGenStrainEvaluator()
+{
+  return &glStrain2D;
+}
+

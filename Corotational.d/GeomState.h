@@ -1,7 +1,8 @@
 #ifndef _GEOM_STATE_H_
 #define _GEOM_STATE_H_
 
-#include<map>
+#include <map>
+#include <vector>
 
 class DofSetArray;
 class CoordSet;
@@ -35,19 +36,19 @@ class ElemState {
 };
 
 class GeomState {
-  public:
-     NodeState *ns;     // node state (x,y,z position and rotation tensor)
   protected:
+     std::vector<NodeState> ns; // node state (x,y,z position and rotation tensor)
      int numnodes;	// number of nodes
-     int (*loc)[6];	// dof location array
+     std::vector<std::vector<int> > loc; // dof location array
      double refCG[3];   // reference CG
      double gRot[3][3]; // Global Rotation Matrix
      const CoordSet &X0;
      int    numReal;    // number of 'real' nodes
-     bool  *flag; 	// signifies if node is connected to element
+     std::vector<int> flag; // signifies if node is connected to element
      int numelems;
      ElemState *es;
      std::map<int,int> emap;
+     std::map<std::pair<int,int>,int> multiplier_nodes;
 
    public:
      // Default Constructor
@@ -64,14 +65,15 @@ class GeomState {
 
      NodeState & operator[](int i)  { return ns[i]; }
      const NodeState & operator[](int i) const { return ns[i]; }
-     NodeState *getNodeState() { return ns; }
+     void clearMultiplierNodes();
+     void resizeLocAndFlag(DofSetArray &cdsa);
 
      double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
      int getNumElemStates(int glNum) { return (numelems > 0) ? es[emap[glNum]].numInternalStates : 0; }
      int getTotalNumElemStates();
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }
-     int numNodes() { return numnodes; }
+     int numNodes() const { return numnodes; }
 
      void getPositions(double *positions);
      void getRotations(double *rotations);
@@ -87,10 +89,12 @@ class GeomState {
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
      virtual void setVelocity(const Vector &, const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
-                                       double delta = 1.0);
+                                       double delta);
+     void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
+                                       CoordSet &cs);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
-                                       CoordSet &cs );
+                                       CoordSet &cs);
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham,
                                        bool zeroRot);
@@ -116,6 +120,9 @@ class GeomState {
 			       double  grad[3], double jac[3][3]);
      void rotate(double mat[3][3], double vec[3]);
      void setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf);
+
+     void addMultiplierNode(std::pair<int,int> &lmpc_id, double value);
+     double getMultiplier(std::pair<int,int> &lmpc_id);
 };
 
 #endif

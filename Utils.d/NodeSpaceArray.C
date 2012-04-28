@@ -564,7 +564,7 @@ Tensor_d1s2_sparse::splContractInto(const Tensor &b, Tensor *result) const
     }
 }
 
-inline double
+double
 Tensor_d1s2_sparse::operator()(int n, int I, int J) const
 {
   if(n >= size) { throw "first index out of range\n"; }

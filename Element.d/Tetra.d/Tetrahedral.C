@@ -1,13 +1,17 @@
-#include	<cstdio>
-#include        <iostream>
-#include	<cmath>
+#include <cstdio>
+#include <iostream>
+#include <cmath>
 
-#include	<Element.d/Tetra.d/Tetrahedral.h>
-#include        <Utils.d/dofset.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Math.d/FullSquareMatrix.h>
-#include        <Corotational.d/TetCorotator.h>
+#include <Element.d/Tetra.d/Tetrahedral.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <Utils.d/pstress.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Corotational.d/TetCorotator.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/NLTetrahedral.h>
+#include <Corotational.d/MatNLCorotator.h>
+
 
 #define USE_NEW_TET4_STIFF  //HB: force using new implementation of the stiffness matrix 
                             //    that deals with ansitropic constitutive matrix
@@ -63,6 +67,7 @@ Tetrahedral::Tetrahedral(int* nodenums)
 
   cFrame = 0;
   cCoefs = 0;
+  mat = 0;
 }
 
 Element *
@@ -634,8 +639,16 @@ Tetrahedral::markDofs(DofSetArray &dsa)
 Corotator *
 Tetrahedral::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- if(!tetCorotator) tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs);
- return tetCorotator;
+  if(mat) {
+    MatNLElement *ele = new NLTetrahedral4(nn);
+    ele->setMaterial(mat);
+    ele->setGlNum(glNum);
+    return new MatNLCorotator(ele);
+  }
+  else {
+    if(!tetCorotator) tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs);
+    return tetCorotator;
+  }
 }
 
 //---------------------------------------------------------------------------------
@@ -813,6 +826,17 @@ Tetrahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
     for(int j=0; j<3; ++j) 
       stress[i][j+6] = pvec[j];
 }
-                                                                                     
-                    
+
+void
+Tetrahedral::setMaterial(NLMaterial *_mat)
+{
+  mat = _mat;
+}
+
+int
+Tetrahedral::numStates()
+{
+  int numGaussPoints = 1;
+  return (mat) ? numGaussPoints*mat->getNumStates(): 0;
+}
 

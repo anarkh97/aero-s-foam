@@ -26,7 +26,7 @@ FullSquareMatrix
 RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
         if(prop == NULL || prop->rho == 0 || prop->eh == 0) {
-           FullSquareMatrix ret(18,mel);
+           FullSquareMatrix ret(numDofs(),mel);
            ret.zero();
            return ret;
         }
@@ -46,12 +46,10 @@ RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
         int grvflg = 0, masflg = 0;
 
-        const int numdof = 18;
-
-        _FORTRAN(mass8)(x,y,z,h,prop->rho,(double *)mel,numdof,
+        _FORTRAN(mass8)(x,y,z,h,prop->rho,(double *)mel,numDofs(),
                         gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
-        FullSquareMatrix ret(18,mel);
+        FullSquareMatrix ret(numDofs(),mel);
 
         return ret;
 }
@@ -210,5 +208,7 @@ RigidThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[15] = mx[2];
         gravityForce[16] = my[2];
         gravityForce[17] = mz[2];
+
+        for(int i=18; i<numDofs(); ++i) gravityForce[i] = 0;
 }
 

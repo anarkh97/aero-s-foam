@@ -4,6 +4,12 @@
 #include <queue>
 #include <Utils.d/Connectivity.h>
 
+void Elemset::deleteElem(int i)
+{
+  elem[i]->~Element();
+  elem[i] = 0;
+}
+
 void Elemset::deleteElems() 
 {
   if (!elem) {
@@ -72,6 +78,7 @@ Elemset::Elemset(int initsize) : ba(4096, initsize)
   }
   else elem = 0;
   myData = false;
+  dampingFlag = -1;
 }
 
 Elemset::Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap)
@@ -83,6 +90,7 @@ Elemset::Elemset(Elemset &globalset, int numlocal, int *localToGlobalMap)
   }
   else elem = 0;
   myData = false;
+  dampingFlag = -1;
 }
 
 void
@@ -222,6 +230,20 @@ Elemset::collapseRigid6(std::set<int> &blockedNodes)
   delete [] elem;
   elem = newSet;
   emax = iEl;
+}
+
+bool
+Elemset::hasDamping()
+{
+  if(dampingFlag == -1) {
+    dampingFlag = 0;
+    for(int i=0; i<last(); ++i)
+      if (elem[i]->isDamped()) {
+        dampingFlag = 1;
+        break;
+      }
+  }
+  return bool(dampingFlag);
 }
 
 #ifdef SALINAS

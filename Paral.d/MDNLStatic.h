@@ -46,6 +46,7 @@ class MDNLStatic
     DistrInfo& sysVecInfo();
     DistrInfo& elemVecInfo();
     int checkConvergence(int iter, double normDv, double normRes);
+    void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
     int  getMaxit();
     double getScaleFactor();
     double getDeltaLambda0();
@@ -78,7 +79,7 @@ class MDNLStatic
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
-    double getResidualNorm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec, DistrGeomState &geomState);
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
@@ -86,13 +87,16 @@ class MDNLStatic
                              DistrGeomState *refState);
 
     void makeSubCorotators(int isub);
+    void deleteSubCorotators(int isub);
     void makeSubKelArrays(int isub);
+    void deleteSubKelArrays(int isub);
     void makeSubDofs(int isub);
     void updatePrescribedDisp(int isub, DistrGeomState& geomState);
     void subGetRHS(int isub, DistrVector& rhs);
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
     void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
 };
 
 #endif

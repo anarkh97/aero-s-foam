@@ -421,7 +421,7 @@ Domain::thermoeComm()
 
 void
 Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
-                    Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx) {
+                    Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, double* acx) {
   // Current time stamp
   //double time = tIndex*sinfo.getTimeStep();
    
@@ -447,7 +447,7 @@ Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector
       geoSource->openOutputFiles();
   }
 
-  this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, time, 0, numOutInfo);
+  this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, acx, time, 0, numOutInfo);
 } 
 
 // Output for time-parallel linear dynamics
@@ -457,18 +457,18 @@ Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector
 // 2) The corresponding output files must already be open
 void
 Domain::pitaDynamOutput(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
-                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, 
+                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, double* acx,
                         int sliceRank, double time)
 {
   std::pair<int, int> requestIndices = geoSource->getTimeSliceOutputFileIndices(sliceRank);
-  this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, time, requestIndices.first, requestIndices.second);
+  this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, acx, time, requestIndices.first, requestIndices.second);
 } 
 
 // Perform output for files with indices in [firstRequest, lastRequest)
 // Precondition: The corresponding output files must already be open
 void
 Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce,
-                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx,
+                        Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, double* acx,
                         double time, int firstRequest, int lastRequest)
 {
   // Print out the displacement info
@@ -568,10 +568,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI],
+            getOrAddDofForPrint(get, a_n, acx, first_node+iNode, data[nodeI],
                                 &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp,
                                 data[nodeI]+2, &DofSet::Zdisp);
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI]+3, 
+            getOrAddDofForPrint(get, a_n, acx, first_node+iNode, data[nodeI]+3, 
                                 &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, 
                                 &DofSet::Zrot);
           }
@@ -584,7 +584,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           realNode = -1;
           for (iNode = 0; iNode < nNodes; ++iNode)  {
             if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            getOrAddDofForPrint(get, a_n, (double *) 0 /*acx*/, first_node+iNode, data[nodeI], 
+            getOrAddDofForPrint(get, a_n, acx, first_node+iNode, data[nodeI], 
                                 &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
           }
           geoSource->outputNodeVectors(i, data, nNodesOut, time);
@@ -672,77 +672,83 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
         case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-            data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+              data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::AeroYForce:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-            data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+              data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::AeroZForce:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-            data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+              data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::AeroXMom:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-            data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+              data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::AeroYMom:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-            data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+              data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::AeroZMom:  {
-          double *data = new double[nNodesOut];
-          realNode = -1;
-          for (iNode = 0; iNode < nNodes; ++iNode)  {
-            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-            int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-            data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+          if(sinfo.aeroFlag >= 0) {
+            double *data = new double[nNodesOut];
+            realNode = -1;
+            for (iNode = 0; iNode < nNodes; ++iNode)  {
+              if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+              int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+              data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+            }
+            geoSource->outputNodeScalars(i, data, nNodesOut, time);
+            delete [] data;
           }
-          geoSource->outputNodeScalars(i, data, nNodesOut, time);
-          delete [] data;
-        }
-          break;
+        } break;
         case OutputInfo::Composit:
           getCompositeData(i,time);
           break;          
@@ -759,6 +765,43 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
           delete [] plot_data;
         } break;
+        case OutputInfo::Reactions: {
+          Vector fc(numDirichlet);
+          computeReactionForce(fc, d_n, v_n, a_n, bcx, vcx, acx,
+                               dMat.Kuc, dMat.Kcc, dMat.Cuc, dMat.Ccc, dMat.Muc, dMat.Mcc);
+          double (*rxyz)[3] = new double[nNodesOut][3];
+          DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
+          realNode = -1;
+          for(int iNode = 0; iNode < nNodes; ++iNode) {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            for(int k = 0; k < 3; ++k) {
+              int dof =   dsa->locate(first_node+iNode, dofs[k].list());
+              int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
+              rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
+            }
+          }
+          geoSource->outputNodeVectors(i, rxyz, nNodesOut, time);
+          delete [] rxyz;
+          } break;
+        case OutputInfo::Reactions6: {
+          Vector fc(numDirichlet);
+          computeReactionForce(fc, d_n, v_n, a_n, bcx, vcx, acx,
+                               dMat.Kuc, dMat.Kcc, dMat.Cuc, dMat.Ccc, dMat.Muc, dMat.Mcc);
+          double (*rxyz)[6] = new double[nNodesOut][6];
+          DofSet dofs[6] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp,
+                             DofSet::Xrot, DofSet::Yrot, DofSet::Zrot };
+          realNode = -1;
+          for(int iNode = 0; iNode < nNodes; ++iNode) {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            for(int k = 0; k < 6; ++k) {
+              int dof =   dsa->locate(first_node+iNode, dofs[k].list());
+              int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
+              rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
+            }
+          }
+          geoSource->outputNodeVectors6(i, rxyz, nNodesOut, time);
+          delete [] rxyz;
+          } break;
         case OutputInfo::ModeError: // don't print warning message since these are
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
           break;
@@ -1099,5 +1142,48 @@ Domain::updateActuatorsInNbc(double* actuatorsForce, int* map, double* weight)
       }
       j++;
     }
+}
+
+void
+Domain::computeReactionForce(Vector &fc, Vector &Du, Vector &Vu, Vector &Au,
+                             double *bcx, double *vcx, double *acx,
+                             SparseMatrix *_kuc, SparseMatrix *_kcc,
+                             SparseMatrix *_cuc, SparseMatrix *_ccc,
+                             SparseMatrix *_muc, SparseMatrix *_mcc)
+{
+  // TODO include external force on the constrained dofs
+  CuCSparse *kuc = dynamic_cast<CuCSparse *>(_kuc);
+
+  if(kuc) kuc->transposeMultNew(Du.data(), fc.data()); // fc = Kuc^T * Du
+  else fc.zero();
+
+  CuCSparse *cuc = dynamic_cast<CuCSparse *>(_cuc);
+  if(cuc) cuc->transposeMultAddNew(Vu.data(), fc.data()); // fc += Cuc^T * Vu
+
+  CuCSparse *muc = dynamic_cast<CuCSparse *>(_muc);
+  if(muc) muc->transposeMultAddNew(Au.data(), fc.data()); // fc += Muc^T * Vu
+
+  CuCSparse *kcc = dynamic_cast<CuCSparse *>(_kcc);
+  CuCSparse *ccc = dynamic_cast<CuCSparse *>(_ccc);
+  CuCSparse *mcc = dynamic_cast<CuCSparse *>(_mcc);
+  Vector Dc(numDirichlet, 0.0);
+  Vector Vc(numDirichlet, 0.0);
+  Vector Ac(numDirichlet, 0.0);
+
+  for(int i=0; i<numDirichlet; ++i) {
+    int dof = dsa->locate(dbc[i].nnum,(1 << dbc[i].dofnum));
+    if(dof < 0) continue;
+    int cdof = c_dsa->invRCN(dof);
+    if(cdof >= 0) {
+      Dc[cdof] = bcx[dof];
+      Vc[cdof] = vcx[dof];
+      Ac[cdof] = (acx) ? acx[dof] : 0; 
+    }
+  }
+
+  if(kcc) kcc->multAddNew(Dc.data(), fc.data()); // fc += Kcc * Dc
+  if(ccc) ccc->multAddNew(Vc.data(), fc.data()); // fc += Ccc * Vc
+  if(mcc) mcc->multAddNew(Ac.data(), fc.data()); // fc += Mcc * Ac
+
 }
 

@@ -14,10 +14,14 @@ class GenParallelSolver {
     virtual void reSolve(GenDistrVector<Scalar> &) = 0;
     virtual double getSolutionTime() = 0;
     virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) = 0;
-    virtual void getRBMs(Scalar *) = 0;
+    virtual void getRBMs(Scalar *) {
+      std::cerr << "GenParallelSolver::getRBMs(Scalar *) is not implemented\n"; }
     virtual Timings& getTimers() = 0;
-    virtual int numRBM() = 0;
-    virtual void getRBMs(GenDistrVectorSet<Scalar> &) = 0;
+    virtual int numRBM() {
+      std::cerr << "GenParallelSolver::numRBM() is not implemented\n";
+      return 0; } 
+    virtual void getRBMs(GenDistrVectorSet<Scalar> &) {
+      std::cerr << "GenParallelSolver::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented\n"; }
 
     virtual void reconstruct() {
       // Nothing to do

@@ -287,34 +287,25 @@ Vector& elDisp, int strInd,int surface, double *ndTemps)
           }
         }
 
-// Get Element Principals
+// Get Element Principals for each node without averaging
         double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
         double pvec[3] = {0.0,0.0,0.0};
-        for (j=0; j<6; ++j) {
-          for (i=0; i<8; ++i) {
-            svec[j] += stress[i][j];
-          }
-          svec[j] /= 8;
-        }
-// Convert Engineering to Tensor Strains
-        if(strInd != 0) {
-          svec[3] /= 2;
-          svec[4] /= 2;
-          svec[5] /= 2;
-        }
-        pstress(svec,pvec);
+
         for (i=0; i<8; ++i) {
+          for (j=0; j<6; ++j) {
+            svec[j] = stress[i][j];
+          }
+// Convert Engineering to Tensor Strains
+          if(strInd != 0) {
+            svec[3] /= 2;
+            svec[4] /= 2;
+            svec[5] /= 2;
+          }
+          pstress(svec,pvec);
           for (j=0; j<3; ++j) {
             stress[i][j+6] = pvec[j];
           }
         }
-}
-
-void
-EightNodeBrick::getIntrnForce(Vector &elForce, CoordSet& cs,
-                               double *elDisp, int forceIndex, double *ndTemps)
-{
-  for(int i=0; i<8; ++i) elForce[i] = 0;
 }
 
 double
@@ -532,8 +523,8 @@ EightNodeBrick::markDofs(DofSetArray &dsa)
 Corotator*
 EightNodeBrick::getCorotator(CoordSet &cs, double *kel, int , int )
 {
- if(mat) {
-    MatNLElement *ele = new NLHexahedral(nn);
+  if(mat) {
+    MatNLElement *ele = new NLHexahedral8(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
     return new MatNLCorotator(ele);

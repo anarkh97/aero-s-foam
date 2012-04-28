@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -315,7 +316,10 @@ FelippaShell::setProp(StructProp *p, bool myProp)
 {
   Element::setProp(p, myProp);
   type = 0;
-  nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho);
+  if(p) {
+    nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho);
+  }
+  else nmat = gpmat = 0; // phantom
 }
 
 void
@@ -455,7 +459,8 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
-    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H);
+    double tol = expmat->ematpro[6];
+    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol);
     type = 4;
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);
@@ -469,6 +474,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
 int
 FelippaShell::numStates()
 {
+  if(prop == NULL) return 0;
   return gpmat->GetNumStates() + nmat->GetNumStates();
 }
 
@@ -595,7 +601,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
 #ifndef DEBUG_EXPLICIT
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
 #else
-   // TODO need to implmenet Corotator::getInternalForce
+   // TODO need to implement Corotator::getInternalForce
    andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
 #endif
  }
@@ -896,12 +902,12 @@ FelippaShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
 int
 FelippaShell::getTopNumber()
 {
-  return 120;
+  return 108;
 }
 
 void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                   GeomState *geomState, int cflg)
+                                   GeomState *geomState, int cflg, double)
 { 
      double px = 0.0;
      double py = 0.0;
@@ -1084,4 +1090,4 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
      }
 }
-
+#endif

@@ -288,16 +288,13 @@ FaceQuad4::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &c
   X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
   X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
 
-  dMdx[0] = 0.0; dMdx[1] = 0.0; dMdx[2] = 0.0;
-  dMdy[0] = 0.0; dMdy[1] = 0.0; dMdy[2] = 0.0;
+  dMdx[0] = dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2] + dShapex[3]*X[3];
+  dMdx[1] = dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2] + dShapex[3]*Y[3];
+  dMdx[2] = dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2] + dShapex[3]*Z[3];
 
-  dMdx[0] += dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2] + dShapex[3]*X[3];
-  dMdx[1] += dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2] + dShapex[3]*Y[3];
-  dMdx[2] += dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2] + dShapex[3]*Z[3];
-
-  dMdy[0] += dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2] + dShapey[3]*X[3];
-  dMdy[1] += dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2] + dShapey[3]*Y[3];
-  dMdy[2] += dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2] + dShapey[3]*Z[3];
+  dMdy[0] = dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2] + dShapey[3]*X[3];
+  dMdy[1] = dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2] + dShapey[3]*Y[3];
+  dMdy[2] = dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2] + dShapey[3]*Z[3];
 }
 
 /*
@@ -515,7 +512,7 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordS
 void
 FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
 {
-  // This function computes ddNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
+  // This function computes dNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
   // It is used to compute the gradient of the gap function
 
   // Compute shape functions' derivatives w.r.t. the local coordinates
@@ -526,18 +523,7 @@ FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
   double dMdx[3], dMdy[3];
   ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
 
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-
-  double X[4], Y[4], Z[4];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-
-  double dNdX[3][4], dNdY[3][4], dNdZ[3][4];
+  // Compute dNormal
   for(int i = 0; i < 4; ++ i) {
     dNormal[3*i  ][0] = 0;
     dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];

@@ -53,65 +53,37 @@ IF(UNIX)
 
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
 
-# acme
-     IF(NOT MPI_FOUND)
-       SET(ACME_FOUND TRUE)
-       add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
-       SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
-     ELSE(NOT MPI_FOUND)
+# zoltan
+    IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
       FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
-              PATHS /usr/include /usr/local/include)
+                PATHS /usr/include /usr/local/include)
+      FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
+                PATHS /usr/include /usr/local/include)
       FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
                    PATHS /usr/lib /usr/local/lib)
-      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
+      IF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
         MESSAGE("-- A library with Zoltan API found.")
-        SET(ACME_FOUND TRUE)
-        add_definitions(-DUSE_ACME -DACME_2_5 -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+        SET(ZOLTAN_FOUND TRUE)
         SET(EXTRALIBRARIES ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
-        SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement" ${ZOLTAN_INCLUDE_PATH}
-            ${ZOLTAN_INCLUDE_PATH}/../zz ${ZOLTAN_INCLUDE_PATH}/../lb ${ZOLTAN_INCLUDE_PATH}/../Utilities/shared
-            ${ZOLTAN_INCLUDE_PATH}/../Utilities/Timer ${ZOLTAN_INCLUDE_PATH}/../par ${ZOLTAN_INCLUDE_PATH}/../params)
-      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-     ENDIF(NOT MPI_FOUND)
-#    IF(NOT ACME_VERSION)
-#      #MESSAGE("ACME_VERSION is not defined")
-#      SET(ACME_VERSION "2_5")
-#    ENDIF(NOT ACME_VERSION)
-#    FIND_PATH(ACME_search_INCLUDE_PATH ContactSearch.h
-#              PATHS /usr/include /usr/local/include)
-#    FIND_PATH(ACME_enforcement_INCLUDE_PATH Enforcement_Interface.h
-#              PATHS /usr/include /usr/local/include)
-#    #FIND_PATH(ACME_driver_INCLUDE_PATH params.h
-#    #          PATHS /usr/include /usr/local/include)
-#    IF(NOT MPI_FOUND)
-#      MARK_AS_ADVANCED(CLEAR ACME_acme_nompi_LIBRARY)
-#      MARK_AS_ADVANCED(FORCE ACME_acme_LIBRARY)
-#      FIND_LIBRARY(ACME_acme_nompi_LIBRARY NAMES acmeSharedOPT
-#                   PATHS /usr/lib /usr/local/lib)
-#      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-#        MESSAGE("-- A library with ACME API found.")
-#        SET(ACME_FOUND TRUE)
-#        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION} -DCONTACT_NO_MPI)
-#        SET(EXTRALIBRARIES ${ACME_acme_nompi_LIBRARY} ${EXTRALIBRARIES})
-#        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH})
-#      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_nompi_LIBRARY)
-#    ELSE(NOT MPI_FOUND)
-#      MARK_AS_ADVANCED(FORCE ACME_acme_nompi_LIBRARY)
-#      MARK_AS_ADVANCED(CLEAR ACME_acme_LIBRARY)
-#      FIND_LIBRARY(ACME_acme_LIBRARY NAMES acmeDistOPT
-#                   PATHS /usr/lib /usr/local/lib)
-#      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
-#              PATHS /usr/include /usr/local/include)
-#      FIND_LIBRARY(ZOLTAN_LIBRARY NAMES zoltan
-#                   PATHS /usr/lib /usr/local/lib)
-#      IF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-#        MESSAGE("-- A library with ACME API found.")
-#        SET(ACME_FOUND TRUE)
-#        add_definitions(-DUSE_ACME -DACME_${ACME_VERSION})
-#        SET(EXTRALIBRARIES ${ACME_acme_LIBRARY} ${ZOLTAN_LIBRARY} ${EXTRALIBRARIES})
-#        SET(INC_DIR ${INC_DIR} ${ACME_search_INCLUDE_PATH} ${ACME_enforcement_INCLUDE_PATH} ${ZOLTAN_INCLUDE_PATH})
-#      ENDIF(ACME_search_INCLUDE_PATH AND ACME_enforcement_INCLUDE_PATH AND ACME_acme_LIBRARY AND ZOLTAN_INCLUDE_PATH AND ZOLTAN_LIBRARY)
-#    ENDIF(NOT MPI_FOUND)
+        SET(INC_DIR ${INC_DIR} ${ZOLTAN_INCLUDE_PATH}
+            ${ZOLTAN_SRC_PATH}/zz ${ZOLTAN_SRC_PATH}/lb ${ZOLTAN_SRC_PATH}/Utilities/shared
+            ${ZOLTAN_SRC_PATH}/Utilities/Timer ${ZOLTAN_SRC_PATH}/par ${ZOLTAN_SRC_PATH}/params
+            ${ZOLTAN_SRC_PATH}/order ${ZOLTAN_SRC_PATH}/tpls)
+      ENDIF(ZOLTAN_INCLUDE_PATH AND ZOLTAN_SRC_PATH AND ZOLTAN_LIBRARY)
+    ENDIF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
+
+# acme
+    IF(NOT MPI_FOUND)
+      SET(ACME_FOUND TRUE)
+      add_definitions(-DUSE_ACME -DCONTACT_NO_MPI -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+      SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+    ELSE(NOT MPI_FOUND)
+      IF(ZOLTAN_FOUND)
+        SET(ACME_FOUND TRUE)
+        add_definitions(-DUSE_ACME -DCONTACT_NO_EXODUS_OUTPUT -DCONTACT_DEBUG_PRINT_LEVEL=0)
+        SET(INC_DIR ${INC_DIR} "Acme.d/search" "Acme.d/enforcement")
+      ENDIF(ZOLTAN_FOUND)
+    ENDIF(NOT MPI_FOUND)
 
 # arpack
    IF(NOT WITH_ARPACK EQUAL 0)
@@ -164,10 +136,23 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   find_package(Eigen3)
+   find_package(Eigen3 3.0.90)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
-     add_definitions(-DUSE_EIGEN3) 
+     add_definitions(-DUSE_EIGEN3)
+     set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
+     find_package(Cholmod)
+     if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+       include_directories(${CHOLMOD_INCLUDES})
+       add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
+       SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
+     endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+     find_package(SuperLU)
+     if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
+       include_directories(${SUPERLU_INCLUDES})
+       add_definitions(-DEIGEN_SUPERLU_SUPPORT)
+       SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
+     endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
    ENDIF(EIGEN3_FOUND)
 
 #sacado
@@ -273,6 +258,15 @@ IF(UNIX)
 #      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
 #    ENDIF(METIS_LIBRARY)
 
+  FIND_PACKAGE(Boost 1.35)
+  if(Boost_FOUND)
+    add_definitions(-DUSE_BOOST)
+    include_directories(${Boost_INCLUDE_DIRS})
+  else(Boost_FOUND)
+    unset(Boost_INCLUDE_DIR CACHE)
+    unset(Boost_LIBRARY_DIRS CACHE)
+  endif(Boost_FOUND)
+
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
 
@@ -345,11 +339,15 @@ add_subdirectory(Hetero.d)
 add_subdirectory(Material.d)
 add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
-add_subdirectory(Acme.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt Acme)
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
+
+IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
+  add_subdirectory(Acme.d)
+  SET(ALLLIBS ${ALLLIBS} Acme)
+ENDIF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
 
 IF(MPI_FOUND)
   add_subdirectory(Pita.d)
@@ -480,11 +478,11 @@ COMMAND ${TEST_SHORT}
 if(TEST_DURATION_SHORT)
   ADD_TEST(copyfiles ${REG_SRC_DIR}/copy_files.pl ${REG_SRC_DIR} ${EXEC_DIR} )
   ADD_TEST(buildInputs ${EXEC_DIR}/buildInputs.py ALL)
-  ADD_TEST(testShort ${EXEC_DIR}/dataComp.py -l short)
+  ADD_TEST(testShort ${EXEC_DIR}/dataComp.py -l -n short)
 else(TEST_DURATION_SHORT)
   ADD_TEST(copyfiles ${REG_SRC_DIR}/copy_files.pl ${REG_SRC_DIR} ${EXEC_DIR} )
   ADD_TEST(buildInputs ${EXEC_DIR}/buildInputs.py ALL)
-  ADD_TEST(testStatics ${EXEC_DIR}/dataComp.py -l statics)
+  ADD_TEST(testStatics ${EXEC_DIR}/dataComp.py -l -n statics)
   ADD_TEST(testNLstatics ${EXEC_DIR}/dataComp.py -l nlstatics)
   ADD_TEST(testEigen ${EXEC_DIR}/dataComp.py -l eigen)
   ADD_TEST(testDynamics ${EXEC_DIR}/dataComp.py -l dynamics)
@@ -517,9 +515,10 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest35a ${EXEC_DIR}/dataComp.py -l dsvm35a)
   ADD_TEST(testRtest35b ${EXEC_DIR}/dataComp.py -l dsvm35b)
   ADD_TEST(testRtest37 ${EXEC_DIR}/dataComp.py -r dsvm37)
-  ADD_TEST(testRtest38 ${EXEC_DIR}/dataComp.py -r dsvm38)
+#  ADD_TEST(testRtest38 ${EXEC_DIR}/dataComp.py -r dsvm38)
   ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
   # use the -s flag to send results via email
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l -s dsvm40)
+  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
   

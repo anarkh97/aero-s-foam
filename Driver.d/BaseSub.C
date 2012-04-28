@@ -1,4 +1,3 @@
-
 #include <Utils.d/dofset.h>
 #include <Utils.d/Memory.h>
 #include <Math.d/SparseMatrix.h>
@@ -146,7 +145,8 @@ BaseSub::makeCDSA()
 
     if(solInfo().isDynam()) { // PJSA: initialize prescribed velocities
       vcx = new double[numdofs];
-      for(int i=0; i<numdofs; ++i) vcx[i] = 0.0;
+      acx = new double[numdofs];
+      for(int i=0; i<numdofs; ++i) acx[i] = vcx[i] = 0.0;
     }
 
     // dof set array with boundary conditions applied
@@ -1769,7 +1769,7 @@ void
 BaseSub::initialize()
 {
   scomm = 0; glToLocalNode = 0; glNums = 0; glElems = 0; weight = 0;
-  bcx = 0; bcxC = 0; vcx = 0; locToGlSensorMap = 0; locToGlActuatorMap = 0; 
+  bcx = 0; bcxC = 0; vcx = 0; acx = 0; locToGlSensorMap = 0; locToGlActuatorMap = 0; 
   locToGlUserDispMap = 0; locToGlUserForceMap = 0; boundMap = 0; 
   dualToBoundary = 0; internalMap = 0; crnPerNeighb = 0; 
   boundLen = 0; internalLen = 0; crnDofSize = 0;
@@ -1835,6 +1835,7 @@ BaseSub::~BaseSub()
   if(bcx) { delete [] bcx; bcx = 0; }
   if(bcxC) { delete [] bcxC; bcxC = 0; }
   if(vcx) { delete [] vcx; vcx = 0; }
+  if(acx) { delete [] acx; acx = 0; }
   if(faceIsSafe) { delete [] faceIsSafe; faceIsSafe = 0; }
   if(boundaryDOFs) {
     for(int i=0; i<scomm->numNeighb; ++i) 
@@ -2911,8 +2912,6 @@ BaseSub::setDnb(list<SommerElement *> *_list)
   numNeum = 0;
   for(list<SommerElement *>::iterator it = _list->begin(); it != _list->end(); ++it) {
     addNeum((*it));
-//cerr << "node[0]=" << (*it)->getNode(0) << ", node[1]=" << (*it)->getNode(1);
-//cerr << "node[2]=" << (*it)->getNode(2) << ", node[3]=" << (*it)->getNode(3) << endl;
   }
 }
 
@@ -2937,8 +2936,6 @@ BaseSub::setArb(list<SommerElement *> *_list)
     (*it)->dom = this;
   }
 }
-
-// *****************************************************************************
 
 void
 BaseSub::setWIoneCommSize(FSCommPattern<int> *pat)
@@ -3169,6 +3166,7 @@ void
 BaseSub::mergeInterfaces()
 {
   // mpc list should already have been set before now
+  if(boundDofFlag) delete [] boundDofFlag;
   boundDofFlag = scomm->mergeTypeSpecificLists(); // merge types 0, 1 and 2 (std, wet and mpc)
   allBoundDofs = scomm->allBoundDofs(); // PJSA 7-29-05
   totalInterfSize = scomm->totalInterfSize();

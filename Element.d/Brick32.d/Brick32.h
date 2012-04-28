@@ -9,6 +9,8 @@
 #define _BRICK32_H_
 
 #include <Element.d/Element.h>
+class Corotator;
+class NLMaterial;
 
 class Brick32: public Element {
 
@@ -19,6 +21,7 @@ class Brick32: public Element {
 
         double  *cCoefs;  
         double  *cFrame; 
+        NLMaterial *mat;
 
 public:
 	Brick32(int*);
@@ -54,7 +57,6 @@ public:
         int*             nodes(int * = 0);
 	int getTopNumber();
         int numTopNodes();
-        Corotator *getCorotator(CoordSet &cs, double *kel, int , int );
 
        void getThermalForce(CoordSet &cs, Vector &ndTemps,
                             Vector &elementThermalForce, int glflag, 
@@ -73,6 +75,9 @@ public:
                  "              for Hexahedral el.\n"); return (double *) 0;
         }
 
+        void setMaterial(NLMaterial *);
+        int numStates();
+        Corotator *getCorotator(CoordSet &cs, double *kel, int, int);
 };
 #endif
 

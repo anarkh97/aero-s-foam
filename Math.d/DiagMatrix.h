@@ -24,6 +24,7 @@ class GenDiagMatrix: public GenSparseMatrix<Scalar> , public GenSolver<Scalar>
      int    dim() { return neq; }
 
      int neqs() { return neq; }
+     int numCol() { return neq; }
      double getSolutionTime(){ return 0;}//JFD to be done
      long size() { return neq*sizeof(Scalar); }
      void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);

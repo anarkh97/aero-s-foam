@@ -1,48 +1,21 @@
 #ifndef _NLHEXAHEDRAL_H_
 #define _NLHEXAHEDRAL_H_
-#include <Utils.d/NodeSpaceArray.h>
-#include <Element.d/NonLinearity.d/GaussIntgElem.h>
-#include <Element.d/NonLinearity.d/3DShapeFunction.h>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
-#include <Element.d/NonLinearity.d/StrainEvaluator.h>
 
-class HexahedralShapeFunction : public ShapeFunction
+#include <Element.d/NonLinearity.d/SolidElementTemplate.h>
+
+typedef SolidElementTemplate<Hexahedron,8, 8 > NLHexahedral8;
+typedef SolidElementTemplate<Hexahedron,20,27> NLHexahedral20;
+typedef SolidElementTemplate<Hexahedron,32,64> NLHexahedral32;
+
+// Nonlinear 8-node brick element with 2x2x2 gauss points
+class NLHexahedral : public SolidElementTemplate<Hexahedron,8,8>
 {
+    bool linearKinematics;
   public:
-    HexahedralShapeFunction() : ShapeFunction(24) {}
-    void getLocalDerivatives(Tensor *localDerivatives, double xi[3]);
-    void getValues(Tensor *gradU, Tensor *dgradUdqk, double *jac, double xi[3]) {}
-    Tensor *getValInstance() { return 0; }
-};
-
-class NLHexahedral : public GaussIntgElement
-{
-    int n[8];
-    NLMaterial *material;
-    int strainMeasure;
-    static const double nodeRefCoords[8][3];
-
-  protected:
-    int getNumGaussPoints();
-    void getGaussPointAndWeight(int i, double *point, double &weight);
-    void getLocalNodalCoords(int i, double *coords);
-    ShapeFunction *getShapeFunction();
-    StrainEvaluator *getStrainEvaluator();
-    NLMaterial *getMaterial();
-
-  public:
-    NLHexahedral(int *nd, int = -1);
-    int numNodes() { return 8; }
-    int numDofs() { return 24; }
-    PrioInfo examine(int sub, MultiFront *); // dec
-    void renum(int *);
-    void   markDofs(DofSetArray &);
-    int*   dofs(DofSetArray &, int *p=0);
-    int*   nodes(int * = 0);
-    //void updateStates(Node *nodes, double *states, double *un, double *unp) {}
-    void setProp(StructProp *);
-    void setMaterial(NLMaterial *);
-    int getTopNumber();
+    NLHexahedral(int *nd, bool isLinKin) : linearKinematics(isLinKin), SolidElementTemplate<Hexahedron,8,8>(nd) {}
+    StrainEvaluator* getStrainEvaluator();
+    PrioInfo examine(int sub, MultiFront *);
+    int getTopNumber() { return 117; }
 };
 
 #endif

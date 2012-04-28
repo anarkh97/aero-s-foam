@@ -20,11 +20,20 @@ NonLinStatic::NonLinStatic(Domain *d)
   kelArray = 0;
   allCorot = 0;
   bcx = 0;
-  solver = solver;
+  solver = 0;
   prec = 0;
+  times = 0;
+  reactions = 0;
 
   if(domain->GetnContactSurfacePairs())
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
+}
+
+NonLinStatic::~NonLinStatic()
+{
+  clean();
+  if(times) delete times;
+  if(reactions) delete reactions;
 }
 
 int
@@ -39,6 +48,31 @@ NonLinStatic::sysVecInfo()
   return 0;
 }
 
+void
+NonLinStatic::clean()
+{
+  if(bcx)      { delete [] bcx; bcx = 0; }
+  if(solver)   { delete solver; solver = 0; }
+  if(prec)     { delete prec; prec = 0; }
+  if(kelArray) { delete [] kelArray; kelArray = 0; }
+  if(allCorot) {
+
+    for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
+      if(allCorot[iElem] && (allCorot[iElem] != dynamic_cast<Corotator*>(domain->getElementSet()[iElem])))
+        delete allCorot[iElem];
+    }
+
+    delete [] allCorot;
+    allCorot = 0;
+  }
+}
+
+void
+NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateStates(refState, geomState, allCorot);
+}
+
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
                                Vector &, double lambda, GeomState *refState)
@@ -46,22 +80,21 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
   times->buildStiffAndForce -= getTime();
 
   if(domain->GetnContactSurfacePairs()) {
+    clean();
     domain->UpdateSurfaces(MortarHandler::CTC, &geomState);
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
-    domain->UpdateContactSurfaceElements();
-
-    if(solver) delete solver;
-    if(prec) delete prec;
-    if(allCorot) delete [] allCorot; allCorot = 0;  // memory leak?
-    if(kelArray) delete [] kelArray; kelArray = 0;
+    domain->UpdateContactSurfaceElements(&geomState);
     preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
-    elementInternalForce.initialize(domain->maxNumDOF());
+    geomState.resizeLocAndFlag(*domain->getCDSA());
+    residual.resize(domain->getCDSA()->size());
+    elementInternalForce.resize(domain->maxNumDOF());
   }
 
+  reactions->zero();
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState);
+                           kelArray, residual, lambda, 0, refState, reactions);
 
   times->buildStiffAndForce += getTime();
 
@@ -117,7 +150,7 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
  int converged = 0;
 
  // Check relative convergence criteria
- if(normRes <= tolerance*firstRes)
+ if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
    converged = 1;
 
  // Check Divergence
@@ -144,7 +177,7 @@ NonLinStatic::createGeomState()
  if(domain->solInfo().soltyp == 2) 
    geomState = (GeomState *) new TemperatureState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes());
  else
-   geomState = new GeomState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes(),&domain->getElementSet()); 
+   geomState = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet()); 
 
  times->timeGeom += getTime();
 
@@ -159,17 +192,23 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
  int rebuildFlag = 0;
 
  if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
-   //PJSA 11/5/09: new way to rebuild solver (including preconditioner), now works for any solver
-   spm->zeroAll();
-   AllOps<double> ops;
-   if(spp) { // rebuild preconditioner as well as the solver
-     spp->zeroAll();
-     ops.spp = spp;
+   if(domain->solInfo().mpcDirect != 0) {
+     if(solver) delete solver;
+     if(prec) delete prec;
+     preProcess();
    }
-   domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
-   solver->factor();
-   if(prec) prec->factor();
-   rebuildFlag = 1;
+   else {
+     spm->zeroAll();
+     AllOps<double> ops;
+     if(spp) { // rebuild preconditioner as well as the solver
+       spp->zeroAll();
+       ops.spp = spp;
+     }
+     domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
+     solver->factor();
+     if(prec) prec->factor();
+  }
+  rebuildFlag = 1;
  }
 
  times->rebuild += getTime();
@@ -226,7 +265,7 @@ void
 NonLinStatic::preProcess(bool factor)
 {
  // Allocate space for the Static Timers
- times = new StaticTimers;
+ if(!times) times = new StaticTimers;
 
  startTimerMemory(times->preProcess, times->memoryPreProcess);
 
@@ -238,10 +277,11 @@ NonLinStatic::preProcess(bool factor)
 
  times->makeBCs -= getTime();
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx = new double[numdof];
+ if(!bcx) bcx = new double[numdof];
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);
+ if(!reactions) reactions = new Vector(domain->nDirichlet());
 
  times->makeBCs += getTime();
 
@@ -266,8 +306,8 @@ NonLinStatic::preProcess(bool factor)
                                                                        // since the nullity of the tangent stiffness matrix may be less than the nullity
                                                                        // of the number of rigid body modes
  
- domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                          (FullSquareMatrix *) NULL, factor);
+ domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
+                          (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
@@ -276,20 +316,22 @@ NonLinStatic::preProcess(bool factor)
  prec = allOps.prec;
  spp = allOps.spp;
 
- // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
- startTimerMemory(times->preProcess, times->memoryPreProcess);
- times->corotatorTime -= getTime();
- allCorot = new Corotator *[domain->numElements()];
+ if(!allCorot) { // first time only
+   // ... CREATE THE ARRAY OF ELEMENT COROTATORS
+   startTimerMemory(times->preProcess, times->memoryPreProcess);
+   times->corotatorTime -= getTime();
+   allCorot = new Corotator *[domain->numElements()];
+   domain->createCorotators(allCorot);
+   times->corotatorTime += getTime();
+ }
 
- // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
- domain->createCorotators(allCorot);
- times->corotatorTime += getTime();
-
- // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
- times->kelArrayTime -= getTime();
- domain->createKelArray(kelArray);
- times->kelArrayTime += getTime();
- stopTimerMemory(times->preProcess, times->memoryPreProcess);
+ if(!kelArray) { // first time only
+   // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
+   times->kelArrayTime -= getTime();
+   domain->createKelArray(kelArray);
+   times->kelArrayTime += getTime();
+   stopTimerMemory(times->preProcess, times->memoryPreProcess);
+ }
 
  // Set the nonlinear tolerance used for convergence
  tolerance = domain->solInfo().getNLInfo().tolRes;
@@ -326,8 +368,10 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  domain->postProcessing(geomState, force, dummyForce, lambda, 1, 0, 0, allCorot,
-                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
+  int step = std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
+  domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
+                         reactions);
   times->output += getTime();
 }
 
@@ -368,16 +412,15 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
   double Wela = 0.0;
   for(int i = 0; i < domain->numElements(); ++i)
      Wela += allCorot[i]->getElementEnergy(*geomState, domain->getNodes());
-  //cerr << "Wext = " << Wext << ", Wela = " << Wela << endl;
 
   // Total Energy = Wext + Wela
   return Wext + Wela;
 }
 
 double
-NonLinStatic::getResidualNorm(Vector &res)
+NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
 {
-  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
-  if(m) return m->norm(res);
-  else return res.norm();
+  Vector res(rhs);
+  domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
+  return solver->getResidualNorm(res);
 }

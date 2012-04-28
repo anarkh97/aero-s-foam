@@ -7,6 +7,7 @@ class BarFCorotator;
 class TwoNodeTrussF : public virtual Element {
 
         int nn[2];
+        double preload;
         BarFCorotator *myCorot;
 public:
 	TwoNodeTrussF(int*);
@@ -32,7 +33,8 @@ public:
         void getThermalForce(CoordSet &cs, Vector &ndTemps,
                              Vector &ThermalForce, int glflag, 
                              GeomState *gs);
-        void setPreLoad(double load, int &flg);
+        void setPreLoad(std::vector<double> &load);
+        std::vector<double> getPreLoad();
 	bool isSafe() { return false; }
 	bool isStart() {return false; }
 

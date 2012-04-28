@@ -1,10 +1,9 @@
 # use to tell cmake where to search for the include files and libraries of:
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
-SET(CMAKE_INCLUDE_PATH /home/pavery/code/eigen
+SET(CMAKE_INCLUDE_PATH /home/pavery/hg/eigen
                        /home/pavery/code/SPOOLES
                        /home/pavery/code/MUMPS/MUMPS_4.10.0/include
-                       /home/pavery/code/ACME/acme-2.9/search
-                       /home/pavery/code/ACME/acme-2.9/enforcement
+                       /home/pavery/code/Zoltan
                        /home/pavery/code/Zoltan/include)
 SET(CMAKE_LIBRARY_PATH /home/pavery/code/ARPACK
                        /home/pavery/code/SPOOLES
@@ -14,7 +13,6 @@ SET(CMAKE_LIBRARY_PATH /home/pavery/code/ARPACK
                        /home/pavery/code/MUMPS/MUMPS_4.10.0/lib
                        /home/pavery/code/MUMPS/MUMPS_4.10.0/libseq
                        /home/pavery/code/ParMETIS3_1
-                       /home/pavery/code/ACME/acme-2.9/lib
                        /home/pavery/code/Zoltan/Obj_generic)
 SET(BLAS_LIBRARIES /home/pavery/code/LAPACK/lapack-3.2.1/libblas.a)
 SET(LAPACK_LIBRARIES /home/pavery/code/LAPACK/lapack-3.2.1/liblapack.a ${BLAS_LIBRARIES})
@@ -28,4 +26,3 @@ SET(EXTRALIB -lgfortran CACHE STRING "Extra MPI link parameters")
 #                 CACHE STRING "Extra MPI link parameters")
 #
 #SET(BLA_VENDOR Intel10_64lp)
-SET(ACME_VERSION "2_9")

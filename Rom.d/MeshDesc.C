@@ -201,11 +201,24 @@ MeshSectionTraits<EFrameData>::renumbered_slot = &EFrameData::elnum;
 
 using namespace Detail;
 
+MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren, const std::map<int, double> &weights) :
+  properties_(&geoSource->getStructProps()),
+  materialLaws_(&geoSource->getMaterialLaws())
+{
+  init(domain, geoSource, ren);
+  reduce(ren.elemRenumbering(), weights, std::inserter(elemWeights_, elemWeights_.end())); 
+}
+                                                                                      
 MeshDesc::MeshDesc(Domain *domain, GeoSource *geoSource, const SampledMeshRenumbering &ren) :
   properties_(&geoSource->getStructProps()),
   materialLaws_(&geoSource->getMaterialLaws()),
   sampleNodeIds_(ren.reducedSampleNodeIds().begin(), ren.reducedSampleNodeIds().end())
 {
+  init(domain, geoSource, ren);
+}
+
+void
+MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren) {
   // Nodes
   reduce(ren.reducedNodeIds().begin(), ren.reducedNodeIds().end(), domain->getNodes(), nodes_);
 
@@ -256,7 +269,13 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
 
   out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
 
-  out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
+  if (!mesh.sampleNodeIds().empty()) {
+    out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
+  }
+
+  if (!mesh.elemWeights().empty()) {
+    out << make_section(mesh.elemWeights().begin(), mesh.elemWeights().end(), ElementWeightTag());
+  }
 
   return out;
 }

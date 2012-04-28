@@ -34,7 +34,21 @@ class ElaLinIsoMat2D : public NLMaterial
 
      void initStates(double *) {};
 
-     StrainEvaluator * getStrainEvaluator() { return 0; }
+     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+
+     double getThickness() { return t; }
 };
+
+// same equation as ElaLinIsoMat2D but with different Green-Lagrange strain evaluator
+// (also known as St. Venant-Kirchhoff hyperelastic material
+class StVenantKirchhoffMat2D : public ElaLinIsoMat2D
+{
+  public:
+    StVenantKirchhoffMat2D(StructProp *p) : ElaLinIsoMat2D(p) {}
+    StVenantKirchhoffMat2D(double rho, double E, double nu, double t) : ElaLinIsoMat2D(rho, E, nu, t) {}
+
+    GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
+};
+
 
 #endif

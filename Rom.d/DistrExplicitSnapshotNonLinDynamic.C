@@ -26,6 +26,7 @@ namespace Rom {
 
 class DistrExplicitSnapshotNonLinDynamic::SnapshotHandler {
 public:
+  void currentTimeIs(double t);
   void snapshotAdd(const DistrVector &s);
   explicit SnapshotHandler(DistrExplicitSnapshotNonLinDynamic *parent);
 
@@ -40,6 +41,8 @@ private:
   DistrBasisOutputFile outputFile_;
   
   int skipCounter_;
+
+  double currentTime_;
 };
 
 DistrExplicitSnapshotNonLinDynamic::DistrExplicitSnapshotNonLinDynamic(Domain *domain) :
@@ -58,6 +61,11 @@ DistrExplicitSnapshotNonLinDynamic::preProcess() {
 }
 
 void
+DistrExplicitSnapshotNonLinDynamic::currentTimeIs(double t) {
+  snapshotHandler_->currentTimeIs(t);
+}
+
+void
 DistrExplicitSnapshotNonLinDynamic::snapshotAdd(const DistrVector &f) {
   snapshotHandler_->snapshotAdd(f);
 }
@@ -69,15 +77,21 @@ DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrExplic
   buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
   outputFile_(BasisFileId(FileNameInfo(), BasisId::STATE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
               buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom),
-  skipCounter_(0)
+  skipCounter_(0),
+  currentTime_(0.0)
 {}
 
 void
-DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::snapshotAdd(const DistrVector &acc) {
+DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::currentTimeIs(double time) {
+  currentTime_ = time;
+}
+
+void
+DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::snapshotAdd(const DistrVector &state) {
   ++skipCounter_;
   if (skipCounter_ >= parent_->domain->solInfo().skipPodRom) {
-    converter_.nodeDof6(acc, buffer_);
-    outputFile_.stateAdd(buffer_);
+    converter_.paddedNodeDof6(state, buffer_);
+    outputFile_.stateAdd(buffer_, currentTime_);
     skipCounter_ = 0;
   }
 }

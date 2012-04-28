@@ -1,4 +1,22 @@
-// $Id$
+// This file is part of a modified version of ACME: Algorithms for Contact in
+// a Multiphysics Environment, derived from version 2.7f
+//
+// Copyright (C) 2007 Sandia Corporation
+// Copyright (C) 2011 Stanford University
+//
+// ACME is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// ACME is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with ACME.  If not, see <http://www.gnu.org/licenses/>.
+
 
 #include "ContactZoltanComm.h"
 #include "ContactZoltanID.h"
@@ -69,7 +87,7 @@ void ContactZoltanComm::CleanUp()
     LB_ID_TYPE** export_lids_ptr  = (export_lids == NULL)  ? NULL : &export_lids ;
     int**        export_procs_ptr = (export_procs == NULL) ? NULL : &export_procs;
 
-    LB_Free_Data( NULL, NULL, NULL,
+    Zoltan_LB_Free_Data( NULL, NULL, NULL,
                   export_gids_ptr, 
                   export_lids_ptr, 
                   export_procs_ptr );
@@ -84,7 +102,7 @@ void ContactZoltanComm::CleanUp()
     LB_ID_TYPE** import_lids_ptr  = (import_lids == NULL)  ? NULL : &import_lids ;
     int**        import_procs_ptr = (import_procs == NULL) ? NULL : &import_procs;
 
-    LB_Free_Data( import_gids_ptr, 
+    Zoltan_LB_Free_Data( import_gids_ptr, 
                   import_lids_ptr, 
                   import_procs_ptr, 
                   NULL, NULL, NULL );

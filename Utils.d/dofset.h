@@ -22,7 +22,8 @@ class DofSet {
       Contact,
       IntPress,
       Potential,
-      Lagrange;
+      LagrangeE,
+      LagrangeI;
 
     static const int DispAndRot = 0x3f;
     static DofSet nullDofset;
@@ -90,7 +91,7 @@ class DofSet {
 
     // Locates a dof in the current set. Only works for single dofs
     // i.e. result is undefined for composites such as XYZrot and XYZdisp
-    int locate(int dof);
+    int locate(int dof) const;
 
     int list() { return flags; }
 
@@ -119,7 +120,7 @@ class EqNumberer {
     int size() { return (node_offset) ? node_offset[numnodes] : 0; }
 
     // Return the number of nodes
-    int numNodes() { return numnodes; }
+    int numNodes() const { return numnodes; }
 
     // Return the first dof of a node
     int firstdof(int node) 
@@ -157,7 +158,7 @@ class DofSetArray : public EqNumberer {
     void initialize() { dofs = 0; rowcolnum = 0; invrowcol = 0; dofType = 0; myDofs = false; }
 
     // locate a dof for a given node
-    int locate(int node, int dof);
+    int locate(int node, int dof) const;
     int number(int node, DofSet, int *);
 
     // Mark dofs for a node
@@ -184,6 +185,23 @@ class DofSetArray : public EqNumberer {
     void clean_up();
 };
 
+template <typename VecType>
+void
+zeroRotDofs(const DofSetArray &dsa, VecType &vec) {
+  static const int ROT_DOFS[] = { DofSet::Xrot, DofSet::Yrot, DofSet::Zrot };
+  static const int ROT_DOFS_SIZE = sizeof(ROT_DOFS) / sizeof(ROT_DOFS[0]);
+
+  const int nodeCount = dsa.numNodes();
+  for (int iNode = 0; iNode < nodeCount; ++iNode) {
+    for (const int *dofType = ROT_DOFS; dofType != ROT_DOFS + ROT_DOFS_SIZE; ++dofType) {
+      const int dofLoc = dsa.locate(iNode, *dofType);
+      if (dofLoc >= 0) {
+        vec[dofLoc] = 0.0;
+      }
+    }
+  }
+}
+
 class BCond;
 class ComplexBCond;
 
@@ -203,6 +221,7 @@ class ConstrainedDSA : public DofSetArray {
 
     ConstrainedDSA(DofSetArray &dsa, int n, int *sing = 0);  // PJSA: 1-23-01
     ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa, int n, int *sing = 0);
+    ConstrainedDSA(DofSetArray &dsa, ConstrainedDSA &cdsa);
     virtual ~ConstrainedDSA() { /* nothing to delete */ };
     int getInvRCNmax() { return invrowcolmax; }  // PJSA: 11-12-02
   private:
@@ -221,4 +240,5 @@ class SimpleNumberer : public EqNumberer {
       void setWeight(int, int);
       void makeOffset();
 };
+
 #endif

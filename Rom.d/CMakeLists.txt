@@ -5,26 +5,36 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
+  DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
+  DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
+  DistrExplicitLumpedPodProjectionNonLinDynamic.C
+  DistrExplicitGappyNonLinDynamic.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
+  ElementSamplingDriver.C
+  ExplicitMeshSamplingDriver.C
   FileNameInfo.C
-  GalerkinProjectionSolver.C
   GappyNonLinDynamic.C
+  LumpedPodProjectionNonLinDynamic.C
   QrPseudoInversion.C
   LeastSquaresSolver.C
+  SparseNonNegativeLeastSquaresSolver.C
   NodalRestrictionMapping.C
+  MappedNodeDof6Buffer.C
   MeshOutput.C
   MeshSamplingDriver.C
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
+  ReducedNonLinDynamic.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
@@ -33,4 +43,8 @@ ADD_LIBRARY( Rom
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
+  LawsonHanson.d/diff.f
+  LawsonHanson.d/g1.f
+  LawsonHanson.d/h12.f
+  LawsonHanson.d/spnnls.f
 )

@@ -44,12 +44,18 @@ using namespace std;
 #include <Parser.d/DecInit.h>
 #include <Sfem.d/Sfem.h>
 #include <Rom.d/SnapshotNonLinDynamic.h>
+#include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
+#include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/GappyNonLinDynamic.h>
+#include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
+#include <Rom.d/ReducedNonLinDynamic.h>
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitGappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -126,6 +132,7 @@ int verboseFlag = 0;
 int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
+int debugFlag = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -162,6 +169,8 @@ int main(int argc, char** argv)
  weightList[8] = 3.0;   // ThreeNodeShell
  weightList[10] = 2.0;  // ThermQuadGal
  weightList[13] = 2.0;  // thermoleastic quad
+ weightList[15] = 3.0;  // FelippaShell
+ weightList[1515] = 4.0;  // FelippaShellX2
  weightList[16] = 4.0;  // FourNodeShell
  weightList[17] = 3.0;  // EightNodeBrick
  weightList[19] = 3.0;  // Membrane
@@ -312,6 +321,7 @@ int main(int argc, char** argv)
    {"with-sower",0,0, 1010},
    {"sower",0,0, 1010},
    {"nclus", 1, 0, 1012},
+   {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
  };
  // end getopt_long
@@ -384,6 +394,9 @@ int main(int argc, char** argv)
       case 1005 :
 	nosa=true;
 	break;
+      case 1006 :
+        debugFlag = 1;
+        break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);
@@ -613,7 +626,8 @@ int main(int argc, char** argv)
 
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
- if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0) {
+ if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
+    && domain->solInfo().subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
    if(verboseFlag) {
      filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
      filePrint(stderr, " ***          Using FETI-DP instead.\n");
@@ -623,7 +637,7 @@ int main(int argc, char** argv)
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
    callDec = true;
  }
- if(domain->solInfo().type != 2 && !geoSource->getDirectMPC())
+ if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
@@ -728,10 +742,10 @@ int main(int argc, char** argv)
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
- //   type == 1 && iterType == 0 (PCG) is a Domain Decomposition method only if a decomposition is provided or requested
+ //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
-    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 0 && domain_decomp)
+    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)) {
 
    if(parallel_proc) {
@@ -861,20 +875,14 @@ int main(int argc, char** argv)
 	   }
 	 else 
 #endif
-     if (domain->solInfo().activatePodRom) { // POD ROM
-       std::auto_ptr<Rom::DriverInterface> driver;
-       // Stand-alone SVD orthogonalization
-       filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
-       driver.reset(distrBasisOrthoDriverNew(domain));
-       driver->solve(); 
-     } else {
-         GenMultiDomainStatic<double> statProb(domain);
-         StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
-                      GenMultiDomainPostProcessor<double>, GenMultiDomainStatic<double>,
-                      GenDistrVector<complex<double> > >
-              statSolver(&statProb);
-         statSolver.solve();
-	   }
+     {
+       GenMultiDomainStatic<double> statProb(domain);
+       StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
+                    GenMultiDomainPostProcessor<double>, GenMultiDomainStatic<double>,
+                    GenDistrVector<complex<double> > >
+            statSolver(&statProb);
+       statSolver.solve();
+     }
          }
        }
        break;
@@ -909,11 +917,25 @@ int main(int argc, char** argv)
                  MultiDomainDynam, double > dynamSolver(&dynamProb);
            dynamSolver.solve();
          } else { // POD ROM
-           if (domain->solInfo().gaussNewtonPodRom) {
-             filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
-             Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
+           if (domain->solInfo().galerkinPodRom) {
+             if (domain->solInfo().elemLumpPodRom) {
+               filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
+               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                             Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+               dynamSolver.solve();
+             } else {
+               filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
+               Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
+               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                             Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+               dynamSolver.solve();
+             }
+           } else if (domain->solInfo().gappyPodRom) {
+             filePrint(stderr, " ... POD: Explicit Gappy Galerkin   ...\n");
+             Rom::DistrExplicitGappyNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                   Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                   Rom::DistrExplicitGappyNonLinDynamic, double > dynamSolver(&dynamProb);
              dynamSolver.solve();
            } else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
@@ -923,13 +945,34 @@ int main(int argc, char** argv)
              dynamSolver.solve();
            }
          }
-       } else {
-         MDNLDynamic nldynamic(domain);
-         NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                        MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
-         nldynamicSolver.solve();
+       } else { // implicit
+         if (!domain->solInfo().activatePodRom) {
+           MDNLDynamic nldynamic(domain);
+           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
+           nldynamicSolver.solve();
+         } else { // POD ROM
+           filePrint(stderr, " ... POD: Snapshot collection       ...\n");
+           Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
+           NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
+                         Rom::DistrSnapshotNonLinDynamic, DistrGeomState,
+                         Rom::DistrSnapshotNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+           nldynamicSolver.solve();
+           nldynamic.postProcess();
+         }
        }
      } break;
+     case SolverInfo::PodRomOffline: {
+       std::auto_ptr<Rom::DriverInterface> driver;
+       if (domain->solInfo().svdPodRom) {
+         // Stand-alone SVD orthogonalization
+         filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
+         driver.reset(distrBasisOrthoDriverNew(domain));
+         driver->solve();
+         break;
+       }
+     }
+     // Fall-thru
      default:
        filePrint(stderr,"*** ERROR: Problem type %d is not supported multi-domain mode\n", domain->probType());
    }
@@ -1049,39 +1092,24 @@ int main(int argc, char** argv)
      }
      case SolverInfo::Static:
        {
-         if (domain->solInfo().activatePodRom) { // POD ROM
-           std::auto_ptr<Rom::DriverInterface> driver;
-           if (!domain->solInfo().gappyPodRom) {
-             // Stand-alone SVD orthogonalization
-             filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
-             driver.reset(basisOrthoDriverNew(domain));
-           } else {
-             // Offline gappy mesh construction
-             filePrint(stderr, " ... POD: Reduced Mesh Construction ...\n");
-             driver.reset(meshSamplingDriverNew(domain));
-           }
-           driver->solve(); 
+         if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
+         if(domain->isComplex()) {
+           if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
+           SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
+             statProb(domain);
+           StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
+                        SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
+                        SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
+             statSolver(&statProb);
+           statSolver.solve();
          } else {
-           if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Helmholtz Analysis ");
-           if(domain->isComplex()) {
-             if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
-             SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >
-               statProb(domain);
-             StaticSolver<DComplex, AllOps<DComplex>, /*GenSolver<DComplex>,*/ GenVector<DComplex>,
-                          SingleDomainPostProcessor<DComplex, GenVector<DComplex>, GenSolver<DComplex> >,
-                          SingleDomainStatic<DComplex, GenVector<DComplex>, GenSolver<DComplex> >, GenVector<DComplex> >
-               statSolver(&statProb);
-             statSolver.solve();
-           }
-           else {
-             if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
-             SingleDomainStatic<double, Vector, Solver> statProb(domain);
-             StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
-                  SingleDomainPostProcessor<double, Vector, Solver>,
-              SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
-               statSolver(&statProb);
-             statSolver.solve();
-           }
+           if(geoSource->isShifted()) filePrint(stderr, "in Real Domain ...\n");
+           SingleDomainStatic<double, Vector, Solver> statProb(domain);
+           StaticSolver<double, AllOps<double>, /*Solver,*/ Vector,
+                SingleDomainPostProcessor<double, Vector, Solver>,
+            SingleDomainStatic<double, Vector, Solver>, GenVector<DComplex> >
+             statSolver(&statProb);
+           statSolver.solve();
          }
        }
        break;
@@ -1226,7 +1254,19 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-               if (domain->solInfo().gaussNewtonPodRom) {
+               if (domain->solInfo().galerkinPodRom && domain->solInfo().reducedPodRom) {
+                 filePrint(stderr, " ... POD: Reduced-order model (alt) ...\n");
+                 Rom::ReducedNonLinDynamic probDesc(domain);
+                 NLDynamSolver <Rom::ReducedNonLinDynamic::Solver, Vector, void, Rom::ReducedNonLinDynamic, GeomState,
+                                Rom::ReducedNonLinDynamic::Updater> solver(&probDesc);
+                 solver.solve();
+               } else if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+                 Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().gaussNewtonPodRom || domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
@@ -1236,6 +1276,12 @@ int main(int argc, char** argv)
                  filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
                  Rom::GappyNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
+                 nldynamicSolver.solve();
+               } else if (domain->solInfo().checkPodRom) {
+                 filePrint(stderr, " ... POD: State Projection Check    ...\n");
+                 Rom::CheckNonLinDynamic nldynamic(domain);
+                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::CheckNonLinDynamic,
+                                GeomState, Rom::CheckNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else {
                  filePrint(stderr, " ... POD: Snapshot collection       ...\n");
@@ -1263,13 +1309,13 @@ int main(int argc, char** argv)
 	// KHP: Keep both methods around until satisfied with one or the other
 	// KHP: because of difference in convergence criteria when doing
 	// KHP: single domain vs. multiple domain.
-        /*{
+        {
         NonLinStatic nlstatic(domain);
-        NLStaticSolver <Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,
-                      NonLinStatic, GeomState  > nlsolver(&nlstatic);
+        NLStaticSolver <Solver, Vector, SingleDomainPostProcessor<double,Vector,Solver>,
+                        NonLinStatic, GeomState > nlsolver(&nlstatic);
         nlsolver.arclength();
-        }*/
-        domain->arcLength();
+        }
+        //domain->arcLength();
         break;
      case SolverInfo::ConditionNumber: {
         SingleDomainCond condProb(domain);
@@ -1315,6 +1361,35 @@ int main(int argc, char** argv)
          FourierStatic fDescr(domain, fourHelmBC);
          FourierSolver fSolver(&fDescr);
          fSolver.solve();
+       }
+       break;
+     case SolverInfo::PodRomOffline:
+       {
+         std::auto_ptr<Rom::DriverInterface> driver;
+         if (domain->solInfo().svdPodRom) {
+           // Stand-alone SVD orthogonalization
+           filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+           driver.reset(basisOrthoDriverNew(domain));
+         } else if (domain->solInfo().samplingPodRom) {
+           // Offline mesh sampling
+           if (domain->solInfo().gaussNewtonPodRom) { 
+             // Gappy node-based hyperreduction (Gauss-Newton, implicit time-integration)
+             filePrint(stderr, " ... POD: GN Node-based Reduced Mesh...\n");
+             driver.reset(meshSamplingDriverNew(domain));
+           } else if (domain->solInfo().galerkinPodRom) {
+             // Gappy node-based hyperreduction (Galerkin, explicit time-integration)
+             filePrint(stderr, " ... POD: GP Node-based Reduced Mesh...\n");
+             driver.reset(explicitMeshSamplingDriverNew(domain));
+           } else {
+             // Element-based hyperrection
+             filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
+             driver.reset(elementSamplingDriverNew(domain));
+           }
+         } else {
+           filePrint(stderr, " ... Unknown Analysis Type          ...\n");
+           break;
+         }
+         driver->solve();
        }
        break;
      case SolverInfo::None:

@@ -368,11 +368,6 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
        }
      }
 
-
-   if (tIndex*sinfo.getTimeStep() >= sinfo.tmax) {
-      for (i=0; i<numOutInfo; i++)
-          if (oinfo[i].interval != 0) fclose(oinfo[i].filptr);
-    }
   }
 }
 

@@ -35,7 +35,7 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
 }
 
 double
-MDNLStatic::getResidualNorm(DistrVector &r)
+MDNLStatic::getResidualNorm(DistrVector &r, DistrGeomState &geomState)
 {
  // XXXX should also include constraint error i.e. pos_part<gap>
  DistrVector w(r);
@@ -65,6 +65,12 @@ MDNLStatic::makeSubKelArrays(int isub)
 }
 
 void
+MDNLStatic::deleteSubKelArrays(int isub)
+{
+ if(kelArray[isub]) delete [] kelArray[isub];
+}
+
+void
 MDNLStatic::makeSubCorotators(int isub)
 {
  SubDomain *sd  = decDomain->getSubDomain(isub);
@@ -72,6 +78,20 @@ MDNLStatic::makeSubCorotators(int isub)
  allCorot[isub] = new Corotator*[numele];
  sd->createCorotators(allCorot[isub]);
 }
+
+void
+MDNLStatic::deleteSubCorotators(int isub)
+{
+ SubDomain *sd = decDomain->getSubDomain(isub);
+ if(allCorot[isub]) {
+   for (int iElem = 0; iElem < sd->numElements(); ++iElem) {
+     if(allCorot[isub][iElem] && (allCorot[isub][iElem] != dynamic_cast<Corotator*>(sd->getElementSet()[iElem])))
+       delete allCorot[isub][iElem];
+   }
+   delete [] allCorot[isub];
+ }
+}
+
 
 MDNLStatic::MDNLStatic(Domain *d)
 {
@@ -84,12 +104,27 @@ MDNLStatic::MDNLStatic(Domain *d)
 #endif
  numSystems = 0;
  mu = 0; lambda = 0;
+ solver = 0;
+ kelArray = 0;
+ allCorot = 0;
+ times = 0;
 }
 
 MDNLStatic::~MDNLStatic()
 {
   if(mu) delete [] mu;
   if(lambda) delete [] lambda;
+  if(solver) delete solver;
+  if(times) delete times;
+  if(allCorot) {
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::deleteSubCorotators);
+    delete [] allCorot;
+  }
+  if(kelArray) {
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::deleteSubKelArrays);
+    delete [] kelArray;
+  }
+  if(decDomain) delete decDomain;
 }
 
 DistrInfo&
@@ -146,7 +181,7 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  //  converged = 1;
 
  // Check to see if residual has converged
- if(relativeRes <= domain->solInfo().getNLInfo().tolRes)
+ if(relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc)
   converged = 1;
 
  // Divergence check
@@ -269,6 +304,12 @@ MDNLStatic::preProcess()
  GenMDDynamMat<double> allOps;
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
  solver = allOps.sysSolver;
+ if(allOps.K) delete allOps.K;
+ if(allOps.Kuc) delete allOps.Kuc;
+ if(allOps.M) delete allOps.M;
+ if(allOps.Muc) delete allOps.Muc;
+ if(allOps.C) delete allOps.C;
+ if(allOps.Cuc) delete allOps.Cuc;
  times->getFetiSolverTime += getTime();
 
  // Make subdomain's array of stiffness matrices
@@ -380,6 +421,8 @@ MDNLStatic::printTimers()
   execParal(decDomain->getNumSub(), mdpp,
            &MultiDomainPostProcessor::getMemoryK, memory);
 
+  delete mdpp;
+
   long totMemK = 0;
   for(i=0; i<decDomain->getNumSub(); ++i)
     totMemK += memory[i];
@@ -407,7 +450,7 @@ MDNLStatic::printTimers()
 
   times->printTimers(domain, solver->getTimers(),
                      solver->getSolutionTime());
-		    
+
   times->timeTimers += getTime();
 }
 
@@ -438,5 +481,19 @@ MDNLStatic::getConstraintMultipliers(int isub)
   mu[isub].clear();
   lambda[isub].clear();
   sd->getConstraintMultipliers(mu[isub], lambda[isub]);
+}
+
+void
+MDNLStatic::updateStates(DistrGeomState *refState, DistrGeomState& geomState)
+{
+  execParal2R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState);
+}
+
+void
+MDNLStatic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
 }
 

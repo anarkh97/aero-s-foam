@@ -62,6 +62,8 @@ GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
  if(domain->solInfo().modeFilterFlag)
    project(rhs);
 
+ if(domain->solInfo().type == 1) allOps.spMat->getAssembler()->assemble(rhs); // XXXX
+
  times->formRhs += getTime();
 }
 

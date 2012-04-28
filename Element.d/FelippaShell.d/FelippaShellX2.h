@@ -1,6 +1,7 @@
 #ifndef _FELIPPASHELLX2_H_
 #define _FELIPPASHELLX2_H_
 
+#ifdef USE_EIGEN3
 #include <Element.d/SuperElement.h>
 
 class FelippaShellX2 : public SuperElement
@@ -22,4 +23,5 @@ class FelippaShellX2 : public SuperElement
 
 };
 
+#endif
 #endif

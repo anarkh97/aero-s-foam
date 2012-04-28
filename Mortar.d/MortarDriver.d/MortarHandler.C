@@ -41,10 +41,6 @@
 //                         entities have been renumbered in local 
 //                         numbering AND have their OWN node set coord. 
 // -----------------------------------------------------------------------
-//             05/21/05 -> add ACME_1_3 & ACME_2_2 flag: defined in
-//                         the Makefile -> to switch between using
-//                         the ACME.1.3 or ACME.2.2 library
-// -----------------------------------------------------------------------
 //             02/19/07 -> FFI methods taking the nodes'coord. set as input 
 //                         are now DEPRECATED. The  nodes'coord. set as now
 //                         accessed throught the SurfaceEntity objects. 
@@ -93,16 +89,11 @@
 
 // ACME headers
 #ifdef USE_ACME
-#ifndef ACME_2_9
 #include "Contact_Defines.h"
-#endif
 #include "ContactSearch.h"
 #include "ContactEnforcement.h"
 #include "Search_Interface.h"
 #include "Enforcement_Interface.h"
-#ifdef ACME_1_3
-#include "params.h"
-#endif
 #endif
 
 // Locally define flags
@@ -815,6 +806,8 @@ MortarHandler::CreateFFIPolygon()
 {
   // clear data from previous call to this function
   CtcPolygons.clear(); 
+  for(size_t i=0; i<MortarEls.size(); ++i)
+    if(MortarEls[i]) delete MortarEls[i];
   MortarEls.clear();
   NodalMortars.clear();
   ActiveSlaveNodes.clear();
@@ -1829,32 +1822,6 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   filePrint(stderr,"   * build ACME search object\n");
 #endif
   ContactSearch::ContactErrorCode error;
-#if defined(ACME_1_3)
-  search_obj = new ContactSearch( dimensionality,
-                            num_states,
-                            num_entity_keys,
-                            num_node_blocks,
-                            node_block_types,
-                            &(num_nodes_per_block[0]),
-                            node_exodus_ids,
-                            node_global_ids,
-                            number_face_blocks,
-                            face_block_types,
-                            &(number_faces_per_block[0]),
-                            face_global_ids,
-                            face_connectivity,
-                            num_element_blocks,
-                            element_block_types,
-                            number_elements_per_block,
-                            element_ids,
-                            element_connectivity,
-                            num_comm_partners,
-                            comm_proc_id,
-                            number_nodes_to_partner,
-                            comm_node,
-                            mpi_Comm,
-                            error );
-#elif defined(ACME_2_2) || defined(ACME_2_5)
   search_obj = new ContactSearch( dimensionality,
                             num_states,
                             num_analytical_surfs,
@@ -1881,36 +1848,6 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
                             comm_node,
                             mpi_Comm,
                             error );
-#elif defined(ACME_2_9)
-  search_obj = new ContactSearch( dimensionality,
-                            num_states,
-                            num_analytical_surfs,
-                            num_node_blocks,
-                            node_block_types,
-                            &(num_nodes_per_block[0]),
-                            node_exodus_ids,
-                            node_global_ids,
-                            ACMENodesCoord,
-                            ACMENodesCoord, //(double *) 0, // NEW IN VERSION 2.9 model_coords
-                            number_face_blocks,
-                            face_block_types,
-                            &(number_faces_per_block[0]),
-                            face_global_ids,
-                            face_connectivity,
-                            face_lofting_factors,
-                            num_element_blocks,
-                            element_block_types,
-                            number_elements_per_block,
-                            element_ids,
-                            element_connectivity,
-                            num_comm_partners,
-                            comm_proc_id,
-                            number_nodes_to_partner,
-                            comm_node,
-                            false, // NEW IN VERSION 2.9 normal_smoothing_status
-                            mpi_Comm,
-                            error );
-#endif
   
   if(error) {
     std::cerr << "Error in ACME ContactSearch::ContactSearch: error code = " << error << std::endl;
@@ -1970,27 +1907,12 @@ MortarHandler::set_search_data(int interaction_type)
   double Normal_Tol = GetNormalTol();
   double Tangential_Tol = GetTangentialTol();
   double Interaction_Typ;
-#if defined(ACME_1_3)
-  switch(interaction_type) {
-    case 1 : case 2 : Interaction_Typ = (double)(ContactSearch::SLIDING_INTERACTION); break;
-    case 3 : std::cerr << " *** ERROR: NodeNode_Interaction not supported for ACME version 1.3\n"; break;
-    case 4 : Interaction_Typ = (double)(ContactSearch::FACE_FACE_INTERACTION); break;
-    case 5 : Interaction_Typ = (double)(ContactSearch::FACE_COVERAGE_INTERACTION); break;
-    case 6 : Interaction_Typ = (double)(ContactSearch::ELEMENT_ELEMENT_INTERACTION); break;
-  }
-#elif defined(ACME_2_2) || defined(ACME_2_5) || defined(ACME_2_9)
   switch(interaction_type) {
     case 1 : case 2 : Interaction_Typ = (double)(ContactSearch::SLIDING_INTERACTION); break;
     case 3 : case 4 : case 6 : Interaction_Typ = (double)(ContactSearch::GENERIC_INTERACTION); break;
     case 5 : Interaction_Typ = (double)(ContactSearch::COVERAGE_INTERACTION); break;
   }
-#endif
 
-//#if defined(ACME_1_3) || defined(ACME_2_2)
-//  int step_size = 3;
-//#elif defined(ACME_2_5) || defined(ACME_2_9)
-//  int step_size = ContactSearch::NSIZSD; // should be 4
-//#endif
   int step_size = ContactSearch::NSIZSD;
 
   double *Search_Data = new double[step_size*num_entity_keys*num_entity_keys];
@@ -2000,9 +1922,6 @@ MortarHandler::set_search_data(int interaction_type)
     Search_Data[step_size*i  ] = (double)(ContactSearch::NO_INTERACTION);
     Search_Data[step_size*i+1] = Normal_Tol;
     Search_Data[step_size*i+2] = Tangential_Tol;
-//#if defined(ACME_2_5) || defined(ACME_2_9)
-//    Search_Data[step_size*i+3] = 0;
-//#endif
   }
   for(int i=0; i<4; i++) {
     if(SelfContact) { 
@@ -2031,19 +1950,10 @@ MortarHandler::set_search_data(int interaction_type)
         filePrint(stderr,", NO_INTERACTION             ");
       if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::SLIDING_INTERACTION))
         filePrint(stderr,", SLIDING_INTERACTION        ");
-#if defined(ACME_1_3)
-      if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::FACE_FACE_INTERACTION))
-        filePrint(stderr,", FACE_FACE_INTERACTION      ");
-      if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::FACE_COVERAGE_INTERACTION))
-        filePrint(stderr,", FACE_COVERAGE_INTERACTION  ");
-      if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::ELEMENT_ELEMENT_INTERACTION))
-        filePrint(stderr,", ELEMENT_ELEMENT_INTERACTION");
-#elif defined(ACME_2_2) || defined(ACME_2_5) || defined(ACME_2_9)
       if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::GENERIC_INTERACTION))
         filePrint(stderr,", GENERIC_INTERACTION        ");
       if(Search_Data[step_size*(j+8*i)]==(double)(ContactSearch::COVERAGE_INTERACTION))
         filePrint(stderr,", COVERAGE_INTERACTION       ");
-#endif
       filePrint(stderr,", normal tol = %e, tang. tol = %e\n", Search_Data[step_size*(j+8*i)+1], Search_Data[step_size*(j+8*i)+2]);
     }
   }
@@ -2112,7 +2022,7 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
 
   for(int j=0; j<numSub; ++j) {
     int inode = 0;
-    for(int ivertex=0; ivertex< PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
+    for(int ivertex=0; ivertex<PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(ivertex);
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
@@ -2131,22 +2041,24 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
         }
       }
     }
-    for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
-      int glNode = PtrMasterEntity->GetGlVertexId(ivertex);
-      int locNode = sd[j]->globalToLocal(glNode);
-      if(locNode > -1) {
-        Node &node = PtrMasterEntity->GetVertex(ivertex);
+    if(PtrMasterEntity != PtrSlaveEntity) { // i.e. not mortar SelfContact
+      for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
+        int glNode = PtrMasterEntity->GetGlVertexId(ivertex);
+        int locNode = sd[j]->globalToLocal(glNode);
+        if(locNode > -1) {
+          Node &node = PtrMasterEntity->GetVertex(ivertex);
 #ifdef DISTRIBUTED
-        if(DIST_ACME != 2) {
-          positions[3*inode+0] += (node.x/double(share[3*inode+0]));
-          positions[3*inode+1] += (node.y/double(share[3*inode+1]));
-          positions[3*inode+2] += (node.z/double(share[3*inode+2]));
-        } else
+          if(DIST_ACME != 2) {
+            positions[3*inode+0] += (node.x/double(share[3*inode+0]));
+            positions[3*inode+1] += (node.y/double(share[3*inode+1]));
+            positions[3*inode+2] += (node.z/double(share[3*inode+2]));
+          } else
 #endif
-        {
-          positions[3*inode+0] = node.x;
-          positions[3*inode+1] = node.y;
-          positions[3*inode+2] = node.z;
+          {
+            positions[3*inode+0] = node.x;
+            positions[3*inode+1] = node.y;
+            positions[3*inode+2] = node.z;
+          }
         }
       }
     }
@@ -2161,11 +2073,13 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
       node.y = positions[3*inode+1];
       node.z = positions[3*inode+2];
     }
-    for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
-      Node &node = PtrMasterEntity->GetVertex(ivertex);
-      node.x = positions[3*inode+0];
-      node.y = positions[3*inode+1];
-      node.z = positions[3*inode+2];
+    if(PtrMasterEntity != PtrSlaveEntity) { // i.e. not mortar SelfContact
+      for(int ivertex=0; ivertex<PtrMasterEntity->GetnVertices(); ++ivertex, ++inode) {
+        Node &node = PtrMasterEntity->GetVertex(ivertex);
+        node.x = positions[3*inode+0];
+        node.y = positions[3*inode+1];
+        node.z = positions[3*inode+2];
+      }
     }
   }
   else if(DIST_ACME == 1) {
@@ -2352,7 +2266,6 @@ MortarHandler::set_search_options()
   ContactSearch::ContactErrorCode error;
   double data[3];
   
-#ifndef ACME_1_3
   // Deactivate Secondary Decomposition
   if(NoSecondary) {
     error = search_obj->Set_Search_Option(ContactSearch::NO_SECONDARY,
@@ -2365,7 +2278,7 @@ MortarHandler::set_search_options()
       exit(error);
     }
   }
-#endif
+
   // Activate multiple interations
   data[0] = 30.;
   error = search_obj->Set_Search_Option(ContactSearch::MULTIPLE_INTERACTIONS,
@@ -2378,7 +2291,6 @@ MortarHandler::set_search_options()
     exit(error);
   }
 
-#ifndef ACME_2_9 
   // Activate normal smoothing TODO debug why this doesn't work for acme-2.9 
   data[1] = 0.5;
   data[2] = ContactSearch::USE_EDGE_BASED_NORMAL;  // ContactSearch::USE_NODE_NORMAL
@@ -2392,7 +2304,6 @@ MortarHandler::set_search_options()
       std::cerr << search_obj->Error_Message(i) << std::endl;
     exit(error);
   }
-#endif
 #endif
 }
 
@@ -2411,19 +2322,11 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       error = search_obj->Static_Search_2_Configuration();
       break;
     case 3:
-#ifdef ACME_1_3
-      error = search_obj->Dynamic_Search_2_Configuration();
-#else
       search_obj->Set_Search_Option(ContactSearch::OLD_DYNAMIC_SEARCH, ContactSearch::ACTIVE, (double *)0);
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
-#endif
       break;
     case 4: {
-#ifdef ACME_1_3
-      error = search_obj->Dynamic_Search_Augmented_2_Configuration(mass, dt_old, dt);
-#else
       error = search_obj->Dynamic_Search_2_Configuration(dt_old, dt);
-#endif
       //int num_interactions, data_size;
       //search_obj->Size_NodeFace_Interactions(num_interactions, data_size);
       //cerr << "here in MortarHandler::perform_search, num_interactions = " << num_interactions << endl;
@@ -2435,6 +2338,12 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
       std::cerr << search_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+#else
+  filePrint(stderr," !!! FATAL PB in MortarHandler::perform_search: USE_ACME FLAG WAS NOT DEFINED !!!\n");
+  filePrint(stderr," => IF YOU GET TO THIS POINT, THIS MEANS YOU HAVE DEFINED SOME CONTACT SURFACE(S)\n");
+  filePrint(stderr," => BUT IMPOSSIBLE TO DO CONTACT WITHOUT THE ACME LIB !!!\n");
+  filePrint(stderr," => STOP EXECUTION \n");
+  exit(-1);
 #endif
 }
 
@@ -2551,11 +2460,7 @@ MortarHandler::build_td_enforcement()
   bool get_cvars = true;
   bool calc_plot_force = false;
   ContactSearch::ContactErrorCode error;
-#ifdef ACME_1_3
-  contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error);
-#else
   contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
-#endif
   if(error) { 
     std::cerr << "Error in ACME ContactTDEnforcement::ContactTDEnforcement: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
@@ -2593,9 +2498,7 @@ MortarHandler::build_td_enforcement()
   } 
   
   double tol = TDEnfConvTol;
-#ifndef ACME_1_3
   contact_obj->Set_Convergence_Tolerance(tol);
-#endif
   if(error) {
     std::cerr << "Error in ACME ContactTDEnforcement::Set_Convergence_Tolerance: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
@@ -2634,7 +2537,6 @@ MortarHandler::remove_gap(Vector &d)
   set_node_configuration(1);
   perform_search(1);
 
-#ifndef ACME_1_3
   int num_nodes = PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices();
   int max_iterations = 100;
   double trivial_gap = 1.0e-10;
@@ -2650,7 +2552,6 @@ MortarHandler::remove_gap(Vector &d)
   for(int i=0; i<3*num_nodes; ++i) if(dofmap[i] > -1) d[dofmap[i]] += displ_cor[i];
   delete [] displ_cor;
   delete gap_removal_obj;
-#endif
 #endif
 }
 
@@ -2689,7 +2590,7 @@ MortarHandler::make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa)
     }
     if(count > 0) mass[inode] += m/double(count);
   }
-  for(int i=0;  i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // XXXX dummy value for constrained nodes
+  for(int i=0;  i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for for constrained nodes' mass
 }
 
 void
@@ -2716,11 +2617,10 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
         count = 0; m = 0.0;
         c_dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          share[3*inode+j] += 1; // XXXX
+          share[3*inode+j] += 1;
           if(dofs[j] > -1) {
             m += (*M)[s]->diag(dofs[j]);
             dofmap[3*(s*num_nodes+inode)+j] = dofs[j];
-            //share[3*inode+j] += 1;
             count++;
           }
         }
@@ -2734,11 +2634,10 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
         count = 0; m = 0.0;
         c_dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          share[3*inode+j] += 1; // XXXX
+          share[3*inode+j] += 1;
           if(dofs[j] > -1) { 
             m += (*M)[s]->diag(dofs[j]); 
             dofmap[3*(s*num_nodes+inode)+j] = dofs[j];
-            //share[3*inode+j] += 1;
             count++;
           }
         }
@@ -2815,8 +2714,8 @@ MortarHandler::make_nodal_mass(SubDOp *M, SubDomain **sd)
 
   if(!(DIST_ACME == 1 && structCom->myID() != 0))
 #endif
-  for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // XXXX dummy value for constrained nodes
-  for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
+  for(int i=0; i<num_nodes; ++i) if(mass[i] == 0.0) mass[i] = 1.0; // TODO: need Mcc for constrained nodes' mass
+  //this should not be necessary: for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1;
 }
 
 void
@@ -2829,17 +2728,16 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
 
   int k = 0; int dofs[3]; int count; double m;
   for(int s = 0; s < numSub; ++s) {
-    ConstrainedDSA *c_dsa = sd[s]->getCDSA();
+    //DofSetArray *dsa = sd[s]->getDSA();
     int inode = 0;
     for(int i = 0; i<PtrSlaveEntity->GetnVertices(); ++i, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(i);
       int locNode = sd[s]->globalToLocal(glNode);
       if(locNode > -1) {
-        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        //dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          if(dofs[j] > -1) {
+          //if(dofs[j] > -1)
             share[3*inode+j] += 1;
-          }
         }
       }
     }
@@ -2847,11 +2745,10 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
       int glNode = PtrMasterEntity->GetGlVertexId(i);
       int locNode = sd[s]->globalToLocal(glNode);
       if(locNode > -1) {
-        c_dsa->number(locNode,DofSet::XYZdisp,dofs);
+        //dsa->number(locNode,DofSet::XYZdisp,dofs);
         for(int j=0; j<3; ++j) {
-          if(dofs[j] > -1) {
+          //if(dofs[j] > -1)
             share[3*inode+j] += 1;
-          }
         }
       }
     }
@@ -2896,7 +2793,7 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
     delete cpuToSelf; delete pat2;
   }
 #endif
-  for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1; // XXXX dummy value for constrained nodes
+  //this should not be necessary: for(int i=0; i<3*num_nodes; ++i) if(share[i] == 0) share[i] = 1;
 }
 
 void
@@ -3132,7 +3029,6 @@ void
 MortarHandler::get_global_variable(int var, double &value)
 {
 #ifdef USE_ACME
-#ifndef ACME_1_3
   ContactSearch::ContactErrorCode error = contact_obj->Get_Global_Variable((ContactTDEnforcement::Contact_TDEnf_Global_Vars) var, value);
   if(error) {
     std::cerr << "Error in ACME ContactTDEnforcement::Get_Global_Variable: error code = " << error << std::endl;
@@ -3140,7 +3036,6 @@ MortarHandler::get_global_variable(int var, double &value)
       std::cerr << contact_obj->Error_Message(i) << std::endl;
     exit(error);
   }
-#endif
 #endif
 }
 

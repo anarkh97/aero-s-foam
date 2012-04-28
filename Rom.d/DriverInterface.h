@@ -25,5 +25,7 @@ private:
 extern Rom::DriverInterface *basisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *distrBasisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *meshSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *explicitMeshSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

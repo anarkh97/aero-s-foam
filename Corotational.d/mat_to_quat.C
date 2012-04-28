@@ -125,11 +125,17 @@ void mat_to_quat( double rten[3][3], double q[4] )
       //for(int l=0; l<4; ++l) q[l] /= norm;
 */
 #endif
-/*
+
   // always return the positive quaternion.
+  // see: "INTERPOLATION OF ROTATIONAL VARIABLES IN NONLINEAR DYNAMICS OF 3D BEAMS" 
+  // by Jelenic and Crisfield, Int. J. Numer. Meth. Engng. 43, 1193–1222 (1998)
+  // section 3.5.2. for discussion of uniqueness of the extracted rotational pseudovector.
+  // also appendix B1 of "A THREE-DIMENSIONAL FINITE-STRAIN ROD MODEL
+  // PART II: COMPUTATIONAL ASPECTS" by Simo and Vu-Quoc, Computer Methods in Applied 
+  // Mechanics and Engineering, Volume 58, Issue 1, October 1986
   if(q[0] < 0) {
     //cerr << "negative quaternion in mat_to_quat\n";
     for(int l=0; l<4; ++l) q[l] = -q[l]; // this amounts to reparameterizing at -pi,pi
   }
-*/
+
 }

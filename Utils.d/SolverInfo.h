@@ -26,10 +26,11 @@ struct SolverInfo {
  public:
    // Problem Type parameters
    enum { Static, Dynamic, Modal, NonLinStatic, NonLinDynam, 
-	  ArcLength, ConditionNumber, TempDynamic, Top,
+          ArcLength, ConditionNumber, TempDynamic, Top,
           AxiHelm, MatNonLinStatic, MatNonLinDynam,
           Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
-          Decomp, None, NonLinTempDynam, DisEnrM };
+          Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
+          None };
    
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
@@ -194,6 +195,9 @@ struct SolverInfo {
    int sparse_renum;  // renumbering scheme for BLKSparseMatrix: 0 = esmond MMD (default), 1 = metis ND
    int sparse_maxsup, sparse_defblk;
 
+   double goldfarb_tol;
+   bool goldfarb_check;
+
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
    map<int, double> mumps_cntl;
@@ -243,15 +247,25 @@ struct SolverInfo {
 
    bool lagrangeMult;
    double penalty;
+   int mpcDirect;
+   double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
 
    bool activatePodRom;
+   bool snapshotsPodRom;
+   bool checkPodRom;
    bool svdPodRom;
+   bool samplingPodRom;
+   bool galerkinPodRom;
    bool gaussNewtonPodRom;
    bool gappyPodRom;
+   bool reducedPodRom;
+   bool elemLumpPodRom;
+   bool onlineSvdPodRom;
    int  maxSizePodRom;
    double aspectRatioPodRom;
    bool substractRefPodRom;
    int skipPodRom;
+   double tolPodRom;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -304,13 +318,13 @@ struct SolverInfo {
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
 				  
-	          ATDARBFlag = -2.0;
+                  ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
-	   	  ATDROBVal = 0.0;
-		  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
-		  ATDROBbeta = 0.0;
+                  ATDROBVal = 0.0;
+                  ATDROBalpha = 0.0; //this value can not be 0 when Robin boundary is set, it is the flag!
+                  ATDROBbeta = 0.0;
 
-		  aeroFlag = -1;
+                  aeroFlag = -1;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
@@ -356,6 +370,8 @@ struct SolverInfo {
                   spooles_maxzeros = 0.04;
                   spooles_msglvl = 0;
                   spooles_renum = 0;
+                  goldfarb_tol = 1.0;
+                  goldfarb_check = false;
                   explicitK = false;
                   localScaled = false;
                   coarseScaled = false;
@@ -431,16 +447,30 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+                  mpcDirect = 0;
+                  mpcDirectTol = 10;
 
                   activatePodRom = false;
+                  snapshotsPodRom = false;
+                  checkPodRom = false;
                   svdPodRom = false;
+                  samplingPodRom = false;
+                  galerkinPodRom = false;
                   gaussNewtonPodRom = false;
                   gappyPodRom = false;
+                  reducedPodRom = false;
+                  elemLumpPodRom = false;
+                  onlineSvdPodRom = false;
                   maxSizePodRom = 0;
                   aspectRatioPodRom = 1.0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+                  tolPodRom = 1.0e-6;
                  }
+
+   void setDirectMPC(int mode) { mpcDirect = mode; }
+   // Whether we are doing direct elimination for MPCs
+   int getDirectMPC() { return mpcDirect; }
 
    // Set RbmFilter level
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }

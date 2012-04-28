@@ -1,5 +1,7 @@
 #include "BasisInputFile.h"
 
+#include "NodeDof6Buffer.h"
+
 #include <cstddef>
 #include <stdexcept>
 
@@ -37,6 +39,25 @@ BasisInputFile::BasisInputFile(const std::string &fileName) :
 
 BasisInputFile::~BasisInputFile() {
   std::fclose(stream_);
+}
+
+const NodeDof6Buffer &
+BasisInputFile::currentStateBuffer(NodeDof6Buffer &target) const {
+  assert(nodeCount() == target.size());
+
+  positionAtStateStart();
+
+  for (int iNode = 0; iNode != nodeCount(); ++iNode) {
+    double *nodeBuffer = target[iNode];
+    const int info = std::fscanf(stream_, "%le %le %le %le %le %le",
+                                 &nodeBuffer[0], &nodeBuffer[1], &nodeBuffer[2],
+                                 &nodeBuffer[3], &nodeBuffer[4], &nodeBuffer[5]);
+    assert(info == 6);
+  }
+
+  currentStateRead_ = true;
+
+  return target;
 }
 
 void

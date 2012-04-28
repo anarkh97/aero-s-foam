@@ -35,7 +35,7 @@
 KorkolisKyriakidesPlaneStressMaterial::
 KorkolisKyriakidesPlaneStressMaterial(double iLambda, double iMu, 
 				      double iSigmaY, double iK, 
-				      double iH)
+				      double iH, double iTol1, double iTol2)
 {
   // Youngs modulus
   E = iMu*(3.*iLambda + 2.*iMu)/(iLambda + iMu);
@@ -47,6 +47,10 @@ KorkolisKyriakidesPlaneStressMaterial(double iLambda, double iMu,
   SigmaY = iSigmaY;
   K = iK;
   H = iH;
+
+  // Tolerances for convergence of nonlinear solve
+  Tol1 = (iTol1 > 0) ? iTol1 : 1.0e-6;
+  Tol2 = (iTol2 > 0) ? iTol2 : 1.0e-6;
 
   // Zero initial plastic strain and backstress
   EPSplastic.clear();
@@ -67,7 +71,7 @@ KorkolisKyriakidesPlaneStressMaterial::~KorkolisKyriakidesPlaneStressMaterial()
 // Copy constructor
 KorkolisKyriakidesPlaneStressMaterial::
 KorkolisKyriakidesPlaneStressMaterial(const KorkolisKyriakidesPlaneStressMaterial &Mat)
-  : E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H)
+  : E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol1(Mat.Tol1), Tol2(Mat.Tol2)
 {
   EPSplastic.clear();
   BackStress.clear();
@@ -89,6 +93,7 @@ KorkolisKyriakidesPlaneStressMaterial::Clone() const
 std::vector<double> KorkolisKyriakidesPlaneStressMaterial::
 GetMaterialPlasticStrain() const
 {
+/* PJSA
   std::vector<double> EP(9,0.);
   EP[0] = EPSplastic[0];
   EP[4] = EPSplastic[1];
@@ -96,6 +101,8 @@ GetMaterialPlasticStrain() const
   EP[1] = EP[3] = 0.5*EPSplastic[2];
   EP[2] = EP[5] = EP[6] = EP[7] = 0.;
   return EP;
+*/
+  return EPSplastic;
 }
 
 
@@ -109,6 +116,7 @@ GetMaterialEquivalentPlasticStrain() const
 std::vector<double> KorkolisKyriakidesPlaneStressMaterial::
 GetMaterialBackStress() const
 {
+/* PJSA
   std::vector<double> BS(9,0.);
   BS[0] = BackStress[0];
   BS[4] = BackStress[1];
@@ -116,6 +124,8 @@ GetMaterialBackStress() const
   BS[1] = BS[3] = BackStress[2];
   BS[2] = BS[5] = BS[6] = BS[7] = 0.;
   return BS;
+*/
+  return BackStress;
 }
 
 
@@ -144,6 +154,29 @@ double KorkolisKyriakidesPlaneStressMaterial::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
 
+// Set the plastic strain in the material
+void KorkolisKyriakidesPlaneStressMaterial::
+SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
+{ for(int i = 0; i < 3; ++i) EPSplastic[i] = iEPSplastic[i]; }
+
+// Set the equivalent plastic strain in the material
+void KorkolisKyriakidesPlaneStressMaterial::
+SetMaterialEquivalentPlasticStrain(double iEquivEPSplastic)
+{ equivEPSplastic = iEquivEPSplastic; }
+
+// Set the back stress in the material
+void KorkolisKyriakidesPlaneStressMaterial::
+SetMaterialBackStress(const std::vector<double> &iBackStress)
+{ for(int i = 0; i < 3; ++i) BackStress[i] = iBackStress[i]; }
+
+// Print all of the internal variables
+void KorkolisKyriakidesPlaneStressMaterial::
+Print()
+{
+  std::cerr << "Plastic Strain = " << EPSplastic[0] << " " << EPSplastic[1] << " " << EPSplastic[2] << std::endl;
+  std::cerr << "Back Stress = " << BackStress[0] << " " << BackStress[1] << " " << BackStress[2] << std::endl;
+  std::cerr << "Equivalent Plastic Strain = " << equivEPSplastic << std::endl;
+}
 
 // Compute the elastic constitutive response
 bool KorkolisKyriakidesPlaneStressMaterial::
@@ -296,7 +329,7 @@ EvaluateDerivativeOfYieldFunction(const double * Xi, const double eqP) const
       double Fplus = EvaluateYieldFunction(MyXi, eqP);
       
       // Minus direction
-      MyXi[i] = Xi[i]-2.*deltaSigma;
+      MyXi[i] = Xi[i]-deltaSigma; // ORIG: Xi[i]-2.*deltaSigma
       double Fminus = EvaluateYieldFunction(MyXi, eqP);
       
       // Compute derivative
@@ -409,10 +442,9 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   double Ftrial = EvaluateYieldFunction(Xitrial, equivEPSplastic);
 
   // Use some tolerance for checking yield function value
-  double TOL = SigmaY*1.e-6;
-
+  double TOL = SigmaY*Tol2; // ORIG: SigmaY*1.e-6
   
-  if( Ftrial<TOL )
+  if( Ftrial<0 /*ORIG: TOL*/ )
     {
       // This step is purely elastic
       // No need to update plastic variables
@@ -574,7 +606,7 @@ ComputeConsistencyParameterGivenDirection(const double * Xitrial, const double *
   bool CONVERGED = false;
   
  // Use some tolerance for checking convergence
-  double TOL = 1.e-6*SigmaY;
+  double TOL = Tol1*SigmaY; // ORIG: 1.e-6*SigmaY
   
   // Solution = lambda
   
@@ -590,13 +622,13 @@ ComputeConsistencyParameterGivenDirection(const double * Xitrial, const double *
       double F = EvaluateYieldFunction(Xi, eqP);
      
       // Check if root has been found
-      if( fabs(F)<TOL )
+      if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < 0)  //ORIG: if( fabs(F)<TOL )
 	CONVERGED = true;
       
       // Otherwise update bracket
       else
 	{
-	  if( F<0. )
+          if(!((F < 0 && F_R < 0) || (F > 0 && F_R > 0))) //ORIG: if( F<0. )
 	    {
 	      lambda_L = lambda;
 	      F_L = F;

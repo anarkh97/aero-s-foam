@@ -122,7 +122,7 @@ CoordSet::getCoordinates(int *nn, int numNodes,
 }
 
 int
-CoordSet::size()
+CoordSet::size() const
 {
   return last;
 }

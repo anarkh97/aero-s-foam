@@ -66,7 +66,7 @@ class BaseSub : virtual public Domain
   int *weightPlus;
   double *bcx;
   DComplex *bcxC; // FETI-H
-  double *vcx;
+  double *vcx, *acx;
   int *locToGlSensorMap;
   int *locToGlActuatorMap;
   int *locToGlUserDispMap;
@@ -494,7 +494,8 @@ class GenSubDomain : public BaseSub
   void addCtrl(Scalar *, Scalar *);
   Scalar *getBcx()  { if(!bcx_scalar) makeBcx_scalar(); return bcx_scalar; }
   double *getVcx()  { return vcx; }
-  void setUserDefBC(double *, double *);
+  double *getAcx()  { return acx; }
+  void setUserDefBC(double *, double *, double *);
   //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
   //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);
@@ -568,7 +569,8 @@ class GenSubDomain : public BaseSub
   void fSend(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fSplit(Scalar *locF);
-  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda=1.0);
+  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
+  void updatePrescribedDisp(GeomState *geomState);
   Scalar displacementNorm(Scalar *displacement);
   void firstAssemble(GenSparseMatrix<Scalar> *K);
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }

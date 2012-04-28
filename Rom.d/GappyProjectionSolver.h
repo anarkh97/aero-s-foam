@@ -196,8 +196,10 @@ double
 GenGappyProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
   validateRhs(rhs);
 
-  assert(lsSolver_.status() == LeastSquares::FACTORED);
+  assert(lsSolver_.status() == LeastSquares::FACTORED ||
+         lsSolver_.status() == LeastSquares::PROJECTED);
 
+  lsSolver_.statusIs(LeastSquares::FACTORED);
   fillRhsBuffer(rhs);
   lsSolver_.statusIs(LeastSquares::PROJECTED);
 

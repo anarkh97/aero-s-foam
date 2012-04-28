@@ -201,12 +201,15 @@ Membrane.d/FourNodeMembrane.C
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
 NonLinearity.d/2DMat.C
-NonLinearity.d/3DShapeFunction.C
+NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
+NonLinearity.d/NLPentahedral.C
+NonLinearity.d/NLTetrahedral.C
 NonLinearity.d/NLMembrane.C
 NonLinearity.d/StrainEvaluator.C
+NonLinearity.d/felippa.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C
@@ -219,7 +222,6 @@ Penta.d/Penta6ShapeFct.C
 Penta.d/Pentahedral.C
 Penta.d/sands24.f
 Quad4.d/FourNodeQuad.C
-Quad4.d/FourNodeQuad3D.C
 Quad4.d/getcmt.f
 Quad4.d/lgauss.f
 Quad4.d/q4dmas.f
@@ -348,7 +350,6 @@ ThermQuad.d/ThermQuadGal.C
 ThermQuad.d/veccrs.f
 Triangle3.d/ThermTriangle.C
 Triangle3.d/Triangle3.C
-Triangle3.d/ThreeNodeTri3D.C
 Truss.d/Therm2NodeBar.C
 Truss.d/TwoNodeTruss.C
 Truss.d/TwoNodeTrussF.C

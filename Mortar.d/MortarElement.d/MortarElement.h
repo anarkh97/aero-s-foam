@@ -5,9 +5,10 @@
 #ifndef _MORTARELEMENT_H_ 
 #define _MORTARELEMENT_H_ 
 
-#include <cstdio>
+#include <iostream>
 //#include <iostream.h> 
 //#include <Mortar.d/FaceElement.d/FaceElement.h>
+#include <Mortar.d/MortarAutoDiff.h>
 
 class FaceElement;
 
@@ -52,6 +53,10 @@ class MortarElement{
         // ~~~~~~~~~~~~~~~~~
 	// -> interface 
 	virtual void GetShapeFctVal(double* Shape, double* m);
+#if (MAX_MORTAR_DERIVATIVES > 0)
+        virtual void GetShapeFctVal(MadDouble* Shape, MadDouble* m)
+          { std::cerr << "MortarElement::GetShapeFctVal(MadDouble* Shape, MadDouble* m) is not implemented\n"; }
+#endif
 };
 #endif
 

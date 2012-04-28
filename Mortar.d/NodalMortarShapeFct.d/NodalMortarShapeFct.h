@@ -10,10 +10,12 @@
 #include <utility>
 #include <map>
 
+#include <Eigen/Core>
+
 class Connectivity;
 class FaceElement;
 class FaceElemSet;
-class FFIPolygon;
+template <class Scalar> class FFIPolygon;
 class LMPCons;
 
 class NodalMortarShapeFct {
@@ -30,6 +32,9 @@ class NodalMortarShapeFct {
 	std::vector<double> SlaveMPCCoeffs;
 	std::vector<double> MasterMPCCoeffs;
         double MPCRhs;
+
+        Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> SlaveMPCCoeffDerivs;
+        Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> MasterMPCCoeffDerivs;
 	
   public:
 	// Constructors
@@ -62,14 +67,17 @@ class NodalMortarShapeFct {
  	// Mortar LMPC methods
 	// ~~~~~~~~~~~~~~~~~~~
 	void MakeSlaveLink(Connectivity*, FaceElemSet*, bool Dual=false);
-	void MakeMasterLink(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon*);
-	void BuildMortarLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon*);
-        void BuildMortarCtcLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon*);
+        template<class Scalar>
+	void MakeMasterLink(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
+        template<class Scalar>
+	void BuildMortarLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
+        template<class Scalar>
+        void BuildMortarCtcLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
 
         LMPCons* CreateMortarLMPCons(int, int, double, int* SlaveLlToGlNodeMap=0, 
                                                        int* MasterLlToGlNodeMap=0);
 
-        LMPCons* CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
+        LMPCons* CreateMortarCtcLMPCons(int, int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 
 	// Print, display methods
 	// ~~~~~~~~~~~~~~~~~~~~~~
@@ -77,9 +85,14 @@ class NodalMortarShapeFct {
 
         // Test wet FSI methods (NEED TO BE REDESIGNED)
         // ~~~~~~~~~~~~~~~~~~~~
-	void BuildWetFSICoupling(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon*);
+        template<class Scalar>
+	void BuildWetFSICoupling(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
         LMPCons* CreateWetFSICons(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 };
+
+#ifdef _TEMPLATE_FIX_
+  #include <Mortar.d/NodalMortarShapeFct.d/NodalMortarShapeFct.C>
+#endif
 
 #endif
 

@@ -2288,7 +2288,7 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
-    CurrentMortarCond->build_search(numSub, sd);
+    CurrentMortarCond->build_search(true, numSub, sd);
     CurrentMortarCond->build_td_enforcement();
     CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
     CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
@@ -2397,7 +2397,9 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
       CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
-      CurrentMortarCond->build_search(numSub, sd);
+      CurrentMortarCond->SetMortarScaling(sinfo.mortar_scaling);
+      CurrentMortarCond->SetMortarIntegrationRule(sinfo.mortar_integration_rule);
+      CurrentMortarCond->build_search(false, numSub, sd);
       CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
       CurrentMortarCond->set_node_configuration(1);
       CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
@@ -2454,10 +2456,16 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
-      CurrentMortarCond->CreateFFIPolygon();
+#if (MAX_MORTAR_DERIVATIVES > 0)
+      if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag())
+        CurrentMortarCond->CreateFFIPolygon<MadDouble>();
+      else
+#endif
+      CurrentMortarCond->CreateFFIPolygon<double>();
       CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
       num_interactions += CurrentMortarCond->GetnFFI();
+      CurrentMortarCond->DeleteFFIData();
     }
   }
   if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
@@ -2502,7 +2510,12 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
     filePrint(stderr," -> time spent in the ACME search: %e s\n",time/1000);
     time = -getTime();
 #endif
-    CurrentMortarCond->CreateFFIPolygon();
+#if (MAX_MORTAR_DERIVATIVES > 0)
+    if(CurrentMortarCond->GetInteractionType()==MortarHandler::CTC && !tdenforceFlag())
+      CurrentMortarCond->CreateFFIPolygon<MadDouble>();
+    else
+#endif
+    CurrentMortarCond->CreateFFIPolygon<double>();
 #ifdef MORTAR_TIMINGS
     time += getTime();
     filePrint(stderr," -> time spent in building the Mortar B matrices: %e s\n",time/1000);

@@ -51,4 +51,5 @@ class DualMortarQuad4: public MortarElement {
 	// -> implementation of virtual methods
 	void GetShapeFctVal(double* Shape, double* m);
 };
+
 #endif

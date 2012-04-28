@@ -45,12 +45,6 @@ StdMortarQuad4::nMortarShapeFct() { return 4; }
 // LOCAL METHODS
 // -------------
 void
-StdMortarQuad4::GetStdMortarShapeFct(double* Shape, double* m)
-{
-   GetPtrMasterFace()->GetShapeFctVal(Shape, m);
-}
-
-void
 StdMortarQuad4::GetShapeFct(double* Shape, double* m)
 { 
    GetStdMortarShapeFct(Shape, m); 
@@ -64,3 +58,11 @@ StdMortarQuad4::GetShapeFctVal(double* Shape, double* m)
 { 
    GetStdMortarShapeFct(Shape, m); 
 }
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+StdMortarQuad4::GetShapeFctVal(MadDouble* Shape, MadDouble* m)
+{
+   GetStdMortarShapeFct(Shape, m);
+}
+#endif

@@ -244,6 +244,8 @@ struct SolverInfo {
                   //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
    bool ffi_debug;
+   double mortar_scaling;
+   int mortar_integration_rule;
 
    bool lagrangeMult;
    double penalty;
@@ -444,6 +446,8 @@ struct SolverInfo {
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
+                  mortar_scaling = 1.0;
+                  mortar_integration_rule = 6;
 
                   lagrangeMult = true;
                   penalty = 0;

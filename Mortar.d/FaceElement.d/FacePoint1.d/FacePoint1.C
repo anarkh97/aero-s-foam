@@ -181,6 +181,12 @@ FacePoint1::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, Coord
   cerr << "POINTFACE not supported\n"; return 0.0;
 }
 
+void
+FacePoint1::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, CoordSet &cs)
+{
+  cerr << "POINTFACE not supported\n";
+}
+
 FullM
 FacePoint1::ScalarMass(CoordSet &cs, double rho, int ngp)
 {

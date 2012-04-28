@@ -59,7 +59,7 @@
 #include <cmath>
 
 // STL
-#include <algorithm>
+//#include <algorithm>
 #include <vector>
 #include <map>
 
@@ -78,13 +78,6 @@
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
-#include <Mortar.d/MortarElement.d/MortarElement.h>
-#include <Mortar.d/MortarElement.d/MortarQuad4.d/StdMortarQuad4.h>
-#include <Mortar.d/MortarElement.d/MortarQuad4.d/DualMortarQuad4.h>
-#include <Mortar.d/MortarElement.d/MortarTri3.d/StdMortarTri3.h>
-#include <Mortar.d/MortarElement.d/MortarTri3.d/DualMortarTri3.h>
-#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
-#include <Mortar.d/NodalMortarShapeFct.d/NodalMortarShapeFct.h>
 #include <Paral.d/SubDOp.h>
 
 // ACME headers
@@ -99,35 +92,19 @@
 // Locally define flags
 #include <Mortar.d/MortarDriver.d/MortarHandlerDefs.h>
 
-#ifdef HB_THREAD_FFI_M_N
-#include <Threads.d/PHelper.h>
-#endif
-
 #ifdef HB_MORTAR_TIMER
 #include <Timers.d/GetTime.h>
 #endif
-
-#ifdef HB_THREAD_NODALMORTAR
-#include <Threads.d/PHelper.h>
-#endif
-
-#define DEBUG_ACME_SHELL
-
-// External routines
-extern MortarElement* CreateMortarElement(FaceElement*, CoordSet&, bool);
 
 extern Communicator *structCom;
 
 extern Domain *domain;
 
-using namespace std;
-
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS
 // -----------------------------------------------------------------------------------------------------
 MortarHandler::MortarHandler()
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -136,8 +113,7 @@ MortarHandler::MortarHandler()
 }
 
 MortarHandler::MortarHandler(int _Id)
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -147,8 +123,7 @@ MortarHandler::MortarHandler(int _Id)
 }
 
 MortarHandler::MortarHandler(int _Id, int _MasterEntityId, int _SlaveEntityId)
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -160,8 +135,7 @@ MortarHandler::MortarHandler(int _Id, int _MasterEntityId, int _SlaveEntityId)
 }
 
 MortarHandler::MortarHandler(int _MasterEntityId, int _SlaveEntityId)
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -173,8 +147,7 @@ MortarHandler::MortarHandler(int _MasterEntityId, int _SlaveEntityId)
 
 MortarHandler::MortarHandler(int _MasterEntityId, int _SlaveEntityId, 
                              double _NormalTol)
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -187,8 +160,7 @@ MortarHandler::MortarHandler(int _MasterEntityId, int _SlaveEntityId,
 
 MortarHandler::MortarHandler(int _MasterEntityId, int _SlaveEntityId, 
                              double _NormalTol, double _TangTol)
-: CtcPolygons()
-, MortarEls()
+: MortarEls()
 , NodalMortars()
 , ActiveSlaveNodes()
 , ActiveSlaveFacesToMortarEl()
@@ -341,6 +313,9 @@ MortarHandler::Initialize()
   DIST_ACME = 0; //domain->solInfo().dist_acme;
 
   SelfContact = false;
+
+  MortarScaling = 1.0;
+  MortarIntegrationRule = 6;
 }
 
 /*
@@ -364,8 +339,6 @@ MortarHandler::DeleteFFIData()
   if(Slave_face_procs)           { delete [] Slave_face_procs          ; Slave_face_procs          = 0; }
   if(ACMEFFI_index)              { delete [] ACMEFFI_index             ; ACMEFFI_index             = 0; }
   if(ACMEFFI_data)               { delete [] ACMEFFI_data              ; ACMEFFI_data              = 0; }
-
-  CtcPolygons.clear();
 
   for(size_t i=0; i<MortarEls.size(); ++i) 
     if(MortarEls[i]) delete MortarEls[i];
@@ -581,6 +554,18 @@ MortarHandler::SetDistAcme(int _DistAcme)
   DIST_ACME = _DistAcme;
 }
 
+void
+MortarHandler::SetMortarScaling(double _MortarScaling)
+{
+  MortarScaling = _MortarScaling;
+}
+
+void
+MortarHandler::SetMortarIntegrationRule(int _MortarIntegrationRule)
+{
+  MortarIntegrationRule = _MortarIntegrationRule;
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -685,6 +670,7 @@ MortarHandler::Print()
 }
 
 #ifdef HB_ACME_FFI_DEBUG
+/* TODO these should be called from MortarHandler::CreateFFIPolygon and passed ctcPolygons as an argument
 void
 MortarHandler::PrintFFIPolyVertices(FILE* file, int& firstVertId)
 {
@@ -704,47 +690,8 @@ MortarHandler::PrintFFIPolyTopo(FILE* file, int& EdgeOffset, int& VertOffset, in
   for(int i=0; i<CtcPolygons.size(); i++)
     CtcPolygons[i].PrintFFIPolygonTopo(file, EdgeOffset, VertOffset, elCode);
 }
+*/
 #endif
-
-// -----------------------------------------------------------------------------------------------------
-//                                            PRIVATE METHODS
-// -----------------------------------------------------------------------------------------------------
-void
-MortarHandler::ComputeOneFFIMandN(int iFFI, CoordSet &cs)
-{
-  Connectivity* SlaveACMEBlocksMap = PtrSlaveEntity->GetPtrACMEBlocksMap();
-  int SlaveBlkId = Slave_face_block_id[iFFI]-1;
-  int slave_face = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
-  int iMortar = ActiveSlaveFacesToMortarEl[slave_face];
-  MortarElement* MortarEl = MortarEls[iMortar];
-  if(InteractionType==MortarHandler::FSI) {
-    CtcPolygons[iFFI].ComputeNormalN(MortarEl, cs);
-  } 
-  else if(InteractionType==MortarHandler::CTC) {
-    CoordSet& csm = PtrMasterEntity->GetNodeSet();
-    CtcPolygons[iFFI].ComputeGradNormalM(MortarEl, cs, csm);
-    CtcPolygons[iFFI].ComputeGradNormalN(MortarEl, cs, csm);
-    CtcPolygons[iFFI].ComputeNormalGeoGap(MortarEl, cs, csm); // PJSA need the master nodes also
-  }
-  else { // TIED
-    CtcPolygons[iFFI].ComputeM(MortarEl, cs);
-    CtcPolygons[iFFI].ComputeN(MortarEl, cs);
-  }
-}
-
-void
-MortarHandler::MakeOneNodalMortarLMPC(int i, bool Dual)
-{
-  NodalMortars[i].SetRefData(ActiveSlaveNodes[i], 1.0);
-  NodalMortars[i].MakeSlaveLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, Dual);
-  NodalMortars[i].MakeMasterLink(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
-  if(InteractionType==MortarHandler::FSI)
-    NodalMortars[i].BuildWetFSICoupling(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
-  else if(InteractionType==MortarHandler::CTC)
-    NodalMortars[i].BuildMortarCtcLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
-  else // TIED
-    NodalMortars[i].BuildMortarLMPC(ActiveSlaveNodeToElem, &ActiveSlaveElemSet, SlaveFaceToFFIConnect, &CtcPolygons[0]);
-}
 
 // -----------------------------------------------------------------------------------------------------
 //                TEST FFI SEARCH METHODS & MORTAR METHODS USING LOCAL NUMBERING (SALINAS)
@@ -800,253 +747,6 @@ MortarHandler::PerformACMEFFISearch()
   exit(-1);
 }
 #endif
-
-void
-MortarHandler::CreateFFIPolygon()
-{
-  // clear data from previous call to this function
-  CtcPolygons.clear(); 
-  for(size_t i=0; i<MortarEls.size(); ++i)
-    if(MortarEls[i]) delete MortarEls[i];
-  MortarEls.clear();
-  NodalMortars.clear();
-  ActiveSlaveNodes.clear();
-  ActiveSlaveElemSet.deleteElems();
-  ActiveMasterElemSet.deleteElems();
-  if(ActiveSlaveNodeToElem) { delete ActiveSlaveNodeToElem; ActiveSlaveNodeToElem = 0; }
-  if(ActiveMasterNodeToElem) { delete ActiveMasterNodeToElem; ActiveMasterNodeToElem = 0; }
-  if(SlaveFaceToFFIConnect) { delete SlaveFaceToFFIConnect; SlaveFaceToFFIConnect = 0; }
-  ActiveSlaveFacesToMortarEl.clear();
-
-  // BRUTE FORCE TEST
-  CoordSet& cs = PtrSlaveEntity->GetNodeSet();
-
-#ifdef HB_MORTAR_TIMER
-  double t0,t00,dt0,dt1,dt2,dt3,dt4;
-  t00 = getTime(); t0 = t00;
-#endif  
-#ifdef MORTAR_DEBUG
-  filePrint(stderr,"   * Create the FFI polygon \n");
-#endif  
-  // Allocate CtcPolygons array
-  CtcPolygons.assign(nFFI, FFIPolygon());
-
-  FaceElemSet* MasterElemSet = GetPtrMasterFaceElemSet();
-  FaceElemSet* SlaveElemSet  = GetPtrSlaveFaceElemSet();
-  Connectivity* SlaveACMEBlocksMap = PtrSlaveEntity->GetPtrACMEBlocksMap();
-  Connectivity* MasterACMEBlocksMap= PtrMasterEntity->GetPtrACMEBlocksMap();
-
-  // Create each FFIPolygon
-  // !!! ACME indices in Fortran indexing !!!
-  //filePrint(stderr," ### Write ACMEFFI_data array offset\n");
-  //FILE* FFIDataFile = fopen("FFIDataOffset.txt","w");
-  std::vector<int> IndexActiveSlaveFaces ; IndexActiveSlaveFaces.reserve(512);
-  std::vector<int> IndexActiveMasterFaces; IndexActiveMasterFaces.reserve(512);
-  int SlaveBlkId, MasterBlkId;
-  for(int iFFI=0; iFFI < nFFI; iFFI++) {
-    SlaveBlkId  = Slave_face_block_id[iFFI]-1;
-    if(Slave_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI
-                                                  << ", Slave_face_index_in_block[iFFI] = " << Slave_face_index_in_block[iFFI] << endl;
-    int slave_face  = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
-    FaceElement *SlaveFaceEl  = (*SlaveElemSet)[slave_face];
-
-    if(SelfContact) { // TODO
-      MasterBlkId = Master_face_block_id[iFFI]-1;
-      MasterACMEBlocksMap = SlaveACMEBlocksMap;
-      MasterElemSet = SlaveElemSet;
-      PtrMasterEntity = PtrSlaveEntity;
-    }
-    else {
-      MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
-    }
-    if(Master_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
-                                                << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << endl;
-    int master_face = (*MasterACMEBlocksMap)[MasterBlkId][Master_face_index_in_block[iFFI]-1];
-    FaceElement *MasterFaceEl = (*MasterElemSet)[master_face];
-
-    int FFIDataOffset = ACMEFFI_index[iFFI];
-    int nVertices = (int) ACMEFFI_data[FFIDataOffset];
-    double* ACME_FFI_Data = &ACMEFFI_data[FFIDataOffset];
-
-    CtcPolygons[iFFI].SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVertices, ACME_FFI_Data);
-    
-    // Add ptr to FFI in slave face element 
-    //SlaveFaceEl->AddPtrFFI(&CtcPolygons[iFFI]); 
-#ifdef FFI_MORTAR_DEBUG
-    filePrint(stderr," * -------------------------------- \n");
-    filePrint(stderr,"   -> create FFIPolygon %d\n", iFFI+1);
-    std::cerr << "   -> MasterBlkId = " << MasterBlkId <<" master_face = "<<master_face<< std::endl;
-    std::cerr << "   -> SlaveBlkId  = " << SlaveBlkId<<" slave_face = "<<slave_face << std::endl;
-    filePrint(stderr,"   -> FFIDataOffset = %d\n",FFIDataOffset);
-    std::cerr<<"    -> slave  face element:\n"; SlaveFaceEl->print();
-    std::cerr<<"    -> master face element:\n"; MasterFaceEl->print();
-    CtcPolygons[iFFI].Print();
-#endif
-
-    // Get indices of active slave/master face elements 
-    IndexActiveSlaveFaces.push_back(slave_face);
-    IndexActiveMasterFaces.push_back(master_face);
-
-    //filePrint(FFIDataFile," %6d, nVertices = %3d\n",FFIDataOffset,nVertices);
-  }
-  //fclose(FFIDataFile);
-#ifdef HB_MORTAR_TIMER
-  dt0 = (getTime()-t0)/1000.;
-#endif
-  // Eliminates duplicate face indices
-  sort(IndexActiveSlaveFaces.begin() , IndexActiveSlaveFaces.end());
-  sort(IndexActiveMasterFaces.begin(), IndexActiveMasterFaces.end());
-
-  IndexActiveSlaveFaces.erase(unique(IndexActiveSlaveFaces.begin(),IndexActiveSlaveFaces.end()), 
-                               IndexActiveSlaveFaces.end());
-
-  IndexActiveMasterFaces.erase(unique(IndexActiveMasterFaces.begin(),IndexActiveMasterFaces.end()),
-                               IndexActiveMasterFaces.end());
-
-  int nActiveSlaveFaces = IndexActiveSlaveFaces.size();
-  
-  // Create active master & slave face element set
-  // & associated connectivity object
-#ifdef MORTAR_DEBUG
-  int nActiveMasterFaces= IndexActiveMasterFaces.size();
-  filePrint(stderr,"   * number of active slave face elem. = %6d\n", nActiveSlaveFaces);
-  filePrint(stderr,"   * number of active master face elem.= %6d\n", nActiveMasterFaces);
-  filePrint(stderr,"   * active slave & master face element sets\n"); 
-#endif
-#ifdef HB_MORTAR_TIMER
-  t0 = getTime();
-#endif
-  std::map<int,int> IndexActiveSlaveFacesToActiveSlaveElemSetMap; 
-  for(int i=0; i<int(IndexActiveSlaveFaces.size()); ++i) {
-    ActiveSlaveElemSet.elemadd(i, (*SlaveElemSet)[IndexActiveSlaveFaces[i]]); 
-    IndexActiveSlaveFacesToActiveSlaveElemSetMap[IndexActiveSlaveFaces[i]] = i;
-  }  
-  Connectivity ActiveSlaveElemToNode(&ActiveSlaveElemSet);
-  ActiveSlaveNodeToElem = ActiveSlaveElemToNode.reverse();
-
-  for(int i=0; i<int(IndexActiveMasterFaces.size()); ++i) {
-    ActiveMasterElemSet.elemadd(i, (*MasterElemSet)[IndexActiveMasterFaces[i]]); 
-  }
-  Connectivity ActiveMasterElemToNode(&ActiveMasterElemSet);
-  ActiveMasterNodeToElem = ActiveMasterElemToNode.reverse();
-
-  ActiveSlaveNodes.clear();
-  ActiveSlaveNodes.reserve(128);
-  for(int iel=0; iel<int(IndexActiveSlaveFaces.size()); iel++) {
-    size_t old_size(ActiveSlaveNodes.size());
-    ActiveSlaveNodes.insert(ActiveSlaveNodes.end(), ActiveSlaveElemSet[iel]->nNodes(), 0);
-    ActiveSlaveElemSet[iel]->GetNodes(&ActiveSlaveNodes[old_size]);
-  }
-  //filePrint(stderr,"   * ActiveSlaveNodes.size() = %d\n", (int) ActiveSlaveNodes.size());
-  sort(ActiveSlaveNodes.begin(),ActiveSlaveNodes.end());
-  ActiveSlaveNodes.erase(std::unique(ActiveSlaveNodes.begin(),ActiveSlaveNodes.end()),
-                         ActiveSlaveNodes.end());
-
-  int nActiveSlaveNodes = ActiveSlaveNodes.size();
-#ifdef MORTAR_DEBUG
-  filePrint(stderr,"   * nActiveSlaveNodes = %d\n", nActiveSlaveNodes);
-#endif
-
-  // Create the map ActiveSlaveFaces to FFIs
-  // 1) count the number of FFIs per ActiveSlaveFaces
-  int* SlaveFaceToFFIpointer = new int[nActiveSlaveFaces+1];
-  int* SlaveFaceToFFItarget = new int[nFFI];
-  { 
-    std::vector<int> nFFIperSlaveFace(nActiveSlaveFaces, 0);
-    for(int iFFI=0; iFFI<nFFI; iFFI++) {
-      //int slave_face = Slave_face_index_in_block[iFFI]-1;
-      int SlaveBlkId = Slave_face_block_id[iFFI]-1;
-      int slave_face = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
-      nFFIperSlaveFace[IndexActiveSlaveFacesToActiveSlaveElemSetMap[slave_face]]++;  
-    }
-    // 2) set the map pointer array
-    SlaveFaceToFFIpointer[0] = 0;
-    for(int i=0; i<nActiveSlaveFaces; i++)
-      SlaveFaceToFFIpointer[i+1] = SlaveFaceToFFIpointer[i]+nFFIperSlaveFace[i];
-
-    // 3) fill the target (map) array
-    std::vector<int> Offset(nActiveSlaveFaces, 0);
-    for(int iFFI=0; iFFI<nFFI; iFFI++){
-      int SlaveBlkId = Slave_face_block_id[iFFI]-1;
-      int slave_face = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
-      int i = IndexActiveSlaveFacesToActiveSlaveElemSetMap[slave_face];
-      SlaveFaceToFFItarget[SlaveFaceToFFIpointer[i]+Offset[i]] = iFFI; 
-      Offset[i]++;
-    }
-  }
-  SlaveFaceToFFIConnect = new Connectivity(nActiveSlaveFaces, SlaveFaceToFFIpointer, SlaveFaceToFFItarget);
-
-  //SlaveFaceToFFIConnect.print();
-#ifdef HB_MORTAR_TIMER
-  dt1 = (getTime()-t0)/1000.;
-  t0 = getTime();
-#endif
-  // Create Mortar element
-  bool Dual = false;
-  if(MortarType==MortarHandler::DUAL) { Dual = true; }
-#ifdef MORTAR_DEBUG
-  if(Dual) filePrint(stderr,"   * Create Dual Mortar elements \n");
-  else     filePrint(stderr,"   * Create Std Mortar elements \n"); 
-#endif
-  MortarEls.assign(nActiveSlaveFaces, (MortarElement*) 0);
-
-  for(int i=0; i<nActiveSlaveFaces; ++i) {
-    FaceElement* SlaveFaceEl  = (*SlaveElemSet)[IndexActiveSlaveFaces[i]];
-    MortarEls[i] = CreateMortarElement(SlaveFaceEl, cs, Dual); 
-    //std::cerr << " number of mortar shp fcts = " <<MortarEls[iel]->nMortarShapeFct()<<std::endl;
-    ActiveSlaveFacesToMortarEl[IndexActiveSlaveFaces[i]] = i;
-  }
-#ifdef HB_MORTAR_TIMER
-  dt2 = (getTime()-t0)/1000.;
-  t0 = getTime();
-#endif
-  // Integrate shape fcts product
-#ifdef MORTAR_DEBUG
-  filePrint(stderr,"   * Compute FFI contributions to the shape fct products\n"); 
-#endif
-  //ResizeArray<int>* ActiveSlaveFacesToFFIs;
-  //ActiveSlaveFacesToFFIs = new ResizeArray<int>[nActiveSlaveFaces];
-
-  execParal(nFFI, this, &MortarHandler::ComputeOneFFIMandN, cs);
-#ifdef HB_MORTAR_TIMER
-  dt3 = (getTime()-t0)/1000.;
-  t0 = getTime();
-#endif
-  // Create nodal Mortar shape fcts (NO BOUNDARY MODIFICATION) 
-#ifdef MORTAR_DEBUG
-  filePrint(stderr,"   * Create nodal Mortar shape fcts\n"); 
-  filePrint(stderr,"     -> NO BOUNDARY MODIFICATION\n"); 
-  filePrint(stderr,"     -> NodalMortars.size() = %d\n",NodalMortars.size()); 
-#endif
-  //NodalMortars = new NodalMortarShapeFct*[NodalMortars.size()];
-  NodalMortars.assign(nActiveSlaveNodes, NodalMortarShapeFct());
-#ifdef HB_THREAD_NODALMORTAR
-  execParal(nActiveSlaveNodes, this, &MortarHandler::MakeOneNodalMortarLMPC, Dual);
-#else
-  for(int i=0; i<nActiveSlaveNodes; ++i) MakeOneNodalMortarLMPC(i, Dual);
-#endif
-#ifdef HB_MORTAR_TIMER
-  dt4 = (getTime()-t0)/1000.;
-  double dttot = dt0+dt1+dt2+dt3+dt4;
-  filePrint(stderr,"   * CPU time statistic of MortarHandler::CreateFFIPolygon(...):\n");
-  filePrint(stderr,"    # making the FFI contact polygons (seq): %e s (%2.4f %%)\n",dt0,100.*dt0/dttot);
-  filePrint(stderr,"    # making mapping & connectivities (seq): %e s (%2.4f %%)\n",dt1,100.*dt1/dttot);
-  filePrint(stderr,"    # creating the mortar elements    (seq): %e s (%2.4f %%)\n",dt2,100.*dt2/dttot);
-#ifdef HB_THREAD_FFI_M_N
-  filePrint(stderr,"    # computing FFI M & N contribution(// ): %e s (%2.4f %%)\n",dt3,100.*dt3/dttot);
-#else
-  filePrint(stderr,"    # computing FFI M & N contribution(seq): %e s (%2.4f %%)\n",dt3,100.*dt3/dttot);
-#endif
-#ifdef HB_THREAD_NODALMORTAR
-  filePrint(stderr,"    # assembling nodal mortar LMPCs   (// ): %e s (%2.4f %%)\n",dt4,100.*dt4/dttot);
-#else
-  filePrint(stderr,"    # assembling nodal mortar LMPCs   (seq): %e s (%2.4f %%)\n",dt4,100.*dt4/dttot);
-#endif
-  filePrint(stderr,"    # total CPU time                       : %e s\n",dttot);
-#endif
-}
-
-//#endif
 
 // This method to manually create the ACMEFFIData arrays without performing the ACME FFI search
 // This is intented for equivalence geometry & so by pass the ACME FFI search 
@@ -1127,6 +827,7 @@ MortarHandler::CreateACMEFFIData()
        ACMEFFI_data[offset++] = -1.0; ACMEFFI_data[offset++] =  1.0; 
        ACMEFFI_data[offset++] = -1.0; ACMEFFI_data[offset++] =  1.0; 
        break;
+     case FaceElement::SHELLTRIFACEL3:
      case FaceElement::TRIFACEL3:
        Slave_face_block_id[iFFI] = 3;
        Master_face_block_id[iFFI]= 7;
@@ -1203,7 +904,7 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
   if(InteractionType== MortarHandler::CTC) { // PJSA 12-20-05
     for(int i=0; i<int(NodalMortars.size()); i++){
       lmpcnum--;
-      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
+      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
       if(MortarLMPC){ MortarLMPC->id.first = Id; (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; numCTC++; }
     }
   }
@@ -1263,7 +964,7 @@ MortarHandler::AddWetFSI(ResizeArray<LMPCons*>* FSIArray, int& numFSI)
 //***************************************************************************************************
 // new ACME interface functions
 void
-MortarHandler::build_search(int numSub, SubDomain **sd)
+MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
 {
 #ifdef USE_ACME
 #ifdef MORTAR_DEBUG
@@ -1318,34 +1019,46 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   FaceElemSet* SlaveFaceElemSet  = GetPtrSlaveFaceElemSet(); 
   double *face_block_shell_thickness = new double[number_face_blocks];
   // -> !!! UNDERLAYING LINEAR FACE ELEMENT TYPE !!!
-  if(PtrSlaveEntity->GetIsShellFace()) {
+  if(PtrSlaveEntity->GetIsShellFace() && tdenforceFlag) {
     face_block_types[0] = ContactSearch::SHELLQUADFACEL4;
     face_block_shell_thickness[0] = PtrSlaveEntity->GetShellThickness();
+    face_block_types[1] = ContactSearch::SHELLQUADFACEL4; // slave Quad8 face els
+    face_block_shell_thickness[1] = PtrSlaveEntity->GetShellThickness();
   }
-  else
+  else {
     face_block_types[0] = ContactSearch::QUADFACEL4; // slave Quad4 face els
-  face_block_types[1] = ContactSearch::QUADFACEL4; // slave Quad8 face els
-  if(PtrSlaveEntity->GetIsShellFace()) {
+    face_block_types[1] = ContactSearch::QUADFACEL4; // slave Quad8 face els
+  }
+  if(PtrSlaveEntity->GetIsShellFace() && tdenforceFlag) {
     face_block_types[2] = ContactSearch::SHELLTRIFACEL3;
     face_block_shell_thickness[2] = PtrSlaveEntity->GetShellThickness();
+    face_block_types[3] = ContactSearch::SHELLTRIFACEL3;  // slave Tri6 face els
+    face_block_shell_thickness[3] = PtrSlaveEntity->GetShellThickness();
   }
-  else
+  else {
     face_block_types[2] = ContactSearch::TRIFACEL3;  // slave Tri3 face els
-  face_block_types[3] = ContactSearch::TRIFACEL3;  // slave Tri6 face els
-  if(PtrMasterEntity->GetIsShellFace()) {
+    face_block_types[3] = ContactSearch::TRIFACEL3;  // slave Tri6 face els
+  }
+  if(PtrMasterEntity->GetIsShellFace() && tdenforceFlag) {
     face_block_types[4] = ContactSearch::SHELLQUADFACEL4;
     face_block_shell_thickness[4] = PtrMasterEntity->GetShellThickness();
+    face_block_types[5] = ContactSearch::SHELLQUADFACEL4; // master Quad8 face els
+    face_block_shell_thickness[5] = PtrMasterEntity->GetShellThickness();
   }
-  else
+  else {
     face_block_types[4] = ContactSearch::QUADFACEL4; // master Quad4 face els
-  face_block_types[5] = ContactSearch::QUADFACEL4; // master Quad8 face els
-  if(PtrMasterEntity->GetIsShellFace()) {
+    face_block_types[5] = ContactSearch::QUADFACEL4; // master Quad8 face els
+  }
+  if(PtrMasterEntity->GetIsShellFace() && tdenforceFlag) {
     face_block_types[6] = ContactSearch::SHELLTRIFACEL3;
     face_block_shell_thickness[6] = PtrMasterEntity->GetShellThickness();
+    face_block_types[7] = ContactSearch::SHELLTRIFACEL3;  // master Tri6 face els
+    face_block_shell_thickness[7] = PtrMasterEntity->GetShellThickness();
    }
-  else
+  else {
     face_block_types[6] = ContactSearch::TRIFACEL3;  // master Tri3 face els
-  face_block_types[7] = ContactSearch::TRIFACEL3;  // master Tri6 face els
+    face_block_types[7] = ContactSearch::TRIFACEL3;  // master Tri6 face els
+  }
 
   std::map<int, int> nVerticesPerFaceType;
   nVerticesPerFaceType[ContactSearch::QUADFACEL4] = 4;
@@ -1857,29 +1570,31 @@ MortarHandler::build_search(int numSub, SubDomain **sd)
   }
 
   // set face block attributes (shell thickness and lofting
-  for(int i = 0; i < number_face_blocks; i++) {
-    if(face_block_types[i] == ContactSearch::SHELLQUADFACEL4 || face_block_types[i] == ContactSearch::SHELLTRIFACEL3) {
-      double *attributes = new double[number_faces_per_block[i]];
-      for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = face_block_shell_thickness[i];
-      ContactSearch::ContactErrorCode error;
-      error = search_obj->Set_Face_Block_Attributes(ContactSearch::SHELL_THICKNESS, i+1, attributes);
-      if(error) {
-        std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
-        for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
-          std::cerr << search_obj->Error_Message(j) << std::endl;
-        exit(error);
-      }
+  if(tdenforceFlag) {
+    for(int i = 0; i < number_face_blocks; i++) {
+      if(face_block_types[i] == ContactSearch::SHELLQUADFACEL4 || face_block_types[i] == ContactSearch::SHELLTRIFACEL3) {
+        double *attributes = new double[number_faces_per_block[i]];
+        for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = face_block_shell_thickness[i];
+        ContactSearch::ContactErrorCode error;
+        error = search_obj->Set_Face_Block_Attributes(ContactSearch::SHELL_THICKNESS, i+1, attributes);
+        if(error) {
+          std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
+          for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
+            std::cerr << search_obj->Error_Message(j) << std::endl;
+          exit(error);
+        }
 
-      for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = 0.5;
-      error = search_obj->Set_Face_Block_Attributes(ContactSearch::LOFTING_FACTOR, i+1, attributes);
-      if(error) {
-        std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
-        for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
-          std::cerr << search_obj->Error_Message(j) << std::endl;
-        exit(error);
-      }
+        for(int j = 0; j < number_faces_per_block[i]; ++j) attributes[j] = 0.5;
+        error = search_obj->Set_Face_Block_Attributes(ContactSearch::LOFTING_FACTOR, i+1, attributes);
+        if(error) {
+          std::cerr << "Error in ACME ContactSearch::Set_Face_Block_Attributes: error code = " << error << std::endl;
+          for(int j = 1; j <= search_obj->Number_of_Errors(); ++j)
+            std::cerr << search_obj->Error_Message(j) << std::endl;
+          exit(error);
+        }
 
-      delete [] attributes;
+        delete [] attributes;
+      }
     }
   }
 
@@ -2022,7 +1737,7 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
 
   for(int j=0; j<numSub; ++j) {
     int inode = 0;
-    for(int ivertex=0; ivertex<PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
+    for(int ivertex=0; ivertex< PtrSlaveEntity->GetnVertices(); ++ivertex, ++inode) {
       int glNode = PtrSlaveEntity->GetGlVertexId(ivertex);
       int locNode = sd[j]->globalToLocal(glNode);
       if(locNode > -1) {
@@ -2310,6 +2025,9 @@ MortarHandler::set_search_options()
 void
 MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
 {
+#ifdef PJSA_ACME_TIMER
+  double tt = -getTime();
+#endif
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
   switch(search_algorithm) {
@@ -2345,12 +2063,24 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
   filePrint(stderr," => STOP EXECUTION \n");
   exit(-1);
 #endif
+#ifdef PJSA_ACME_TIMER
+  std::cerr << "elapsed time in MortarHandler::perform_search = " << (tt+getTime())/1000 << " seconds\n";
+#endif
 }
 
 void
 MortarHandler::get_interactions(int interaction_type)
 {
+#ifdef PJSA_ACME_TIMER
+  double tt = -getTime();
+#endif
 #ifdef USE_ACME
+/*
+  if(PtrMasterEntity->GetIsShellFace() || PtrSlaveEntity->GetIsShellFace()) {
+    std::cerr << " *** ERROR: ACME does not currently support the extraction of interactions involving shells.\n";
+    exit(-1);
+  }
+*/
   switch(interaction_type) {
 
     case 1 :  // NodeFace_Interactions
@@ -2408,6 +2138,7 @@ MortarHandler::get_interactions(int interaction_type)
         //for(int i = 0; i < num_FFI; ++i) cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i] << " " 
         //                                      << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << ACMEFFI_index[i] << " " << endl;
         //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) cerr << ACMEFFI_data[i] << " "; cerr << endl;
+        //TODO: for self contact we should eliminate the redundant constraints.
       } else {
 #ifdef MORTAR_DEBUG
         filePrint(stderr," *** WARNING: no Face-Face interaction found between master surf %2d & slave surf %2d\n",
@@ -2424,6 +2155,9 @@ MortarHandler::get_interactions(int interaction_type)
       cerr << "get ElementElement_Interactions not supported\n";
       break;
   }
+#endif
+#ifdef PJSA_ACME_TIMER
+  std::cerr << "elapsed time in MortarHandler::get_interactions = " << (tt+getTime())/1000 << " seconds\n";
 #endif
 }
 

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <Eigen/Core>
 #include <Utils.d/MyComplex.h>
 #include <Utils.d/resize_array.h>
 #include <Corotational.d/GeomState.h>
@@ -111,6 +112,8 @@ class LMPCons
     std::pair<int,int> id;          // unique identifier
                                     // currently defined for source == ContactSurfaces as follows:
                                     //   id.first = mortar handler id, id.second = slave node global id
+
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> H;
 
     // real constructor 
     LMPCons(int _lmpcnum, double _rhs, LMPCTerm *term0 = 0);

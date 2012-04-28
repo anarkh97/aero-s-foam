@@ -10,7 +10,6 @@
 #include <Element.d/Element.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
-#include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
 // External routines
 extern void getGaussPtOnTriangle(int, int, double&, double&, double&, double&);
@@ -18,15 +17,17 @@ extern void getGaussPtOnTriangle(int, int, double&, double&, double&, double&);
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
-TriFacet::TriFacet()
+template<class Scalar>
+TriFacet<Scalar>::TriFacet()
 {
   Initialize();
 }
 
-TriFacet::TriFacet(FaceElement* FaceElem, const double* m1, const double* m2, const double* m3)
+template<class Scalar>
+TriFacet<Scalar>::TriFacet(FaceElement* FaceElem, const Scalar* m1, const Scalar* m2, const Scalar* m3)
 {
   // set area to zero
-  Area   = 0.0;
+  //Area   = 0.0;
   // set local coord. of triangular vertices in face el.
   LocalCoordOnFaceEl[0][0] = m1[0]; LocalCoordOnFaceEl[0][1] = m1[1];
   LocalCoordOnFaceEl[1][0] = m2[0]; LocalCoordOnFaceEl[1][1] = m2[1];
@@ -39,10 +40,11 @@ TriFacet::TriFacet(FaceElement* FaceElem, const double* m1, const double* m2, co
 // -----------------------------------------------------------------------------------------------------
 //                                             DESTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
-TriFacet::~TriFacet()
+template<class Scalar>
+TriFacet<Scalar>::~TriFacet()
 {
   // set area to zero
-  Area   = 0.0;
+  //Area   = 0.0;
   // set ptr to face el. to NULL
   FaceEl = 0;
 }
@@ -50,11 +52,12 @@ TriFacet::~TriFacet()
 // -----------------------------------------------------------------------------------------------------
 //                                    INITIALIZATION & CLEAR/CLEAN METHODS
 // -----------------------------------------------------------------------------------------------------
+template<class Scalar>
 void
-TriFacet::Initialize()
+TriFacet<Scalar>::Initialize()
 {
   // set area to zero
-  Area   = 0.0;
+  //Area   = 0.0;
   // set local coord. of triangular vertices in face el. to 0.
   LocalCoordOnFaceEl[0][0] = 0.0; LocalCoordOnFaceEl[0][1] = 0.0;
   LocalCoordOnFaceEl[1][0] = 0.0; LocalCoordOnFaceEl[1][1] = 0.0;
@@ -68,11 +71,12 @@ TriFacet::Initialize()
 // -----------------------------------------------------------------------------------------------------
 //                                            SET METHODS 
 // -----------------------------------------------------------------------------------------------------
+template<class Scalar>
 void
-TriFacet::SetTriFacet(FaceElement* FaceElem, const double* m1, const double* m2, const double* m3)
+TriFacet<Scalar>::SetTriFacet(FaceElement* FaceElem, const Scalar* m1, const Scalar* m2, const Scalar* m3)
 {
   // set area to zero
-  Area = 0.0;
+  //Area = 0.0;
   // set local coord. of triangular vertices in face el.
   LocalCoordOnFaceEl[0][0] = m1[0]; LocalCoordOnFaceEl[0][1] = m1[1];
   LocalCoordOnFaceEl[1][0] = m2[0]; LocalCoordOnFaceEl[1][1] = m2[1];
@@ -81,20 +85,22 @@ TriFacet::SetTriFacet(FaceElement* FaceElem, const double* m1, const double* m2,
   FaceEl = FaceElem;
 }
 
-void
-TriFacet::SetArea(double S) { Area = S; };
+//void
+//TriFacet::SetArea(double S) { Area = S; };
 
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS 
 // -----------------------------------------------------------------------------------------------------
+template<class Scalar>
 void
-TriFacet::Print()
+TriFacet<Scalar>::Print()
 {
-  fprintf(stderr," * TriFacet area = %e\n", Area);
-  fprintf(stderr," * TriFacet vertices coord. (on ref. face elem.):\n");
+  //fprintf(stderr," * TriFacet area = %e\n", Area);
+  std::cerr << " * TriFacet vertices coord. (on ref. face elem.):\n";
   for(int i=0; i<3; i++)
-    fprintf(stderr,"  -> vertex %d: x = %e, y = %e\n",i+1,LocalCoordOnFaceEl[i][0],LocalCoordOnFaceEl[i][1]);
-  fprintf(stderr," * TriFacet ptr to face elem %p\n",FaceEl);
+    std::cerr << "  -> vertex " << i+1 << ": x = " << LocalCoordOnFaceEl[i][0]
+              << ", y = " << LocalCoordOnFaceEl[i][1] << std::endl;
+  std::cerr << " * TriFacet ptr to face elem " << FaceEl << std::endl;
 }
 
 /*
@@ -164,24 +170,28 @@ TriFacet::MappingShapeFctAndDerivative(double* Shape, double* dShape, double* m)
 }*/
 
 // Return jacobian of the mapping ref. TriFacet -> ref. face el.
-double
-TriFacet::MappingJacobian()
+template<class Scalar>
+Scalar
+TriFacet<Scalar>::MappingJacobian()
 {
   // J = 2.Area = ||12 x 13|| 
-  double X[3] = {LocalCoordOnFaceEl[0][0],LocalCoordOnFaceEl[1][0],LocalCoordOnFaceEl[2][0]};
-  double Y[3] = {LocalCoordOnFaceEl[0][1],LocalCoordOnFaceEl[1][1],LocalCoordOnFaceEl[2][1]};
+  Scalar X[3] = {LocalCoordOnFaceEl[0][0],LocalCoordOnFaceEl[1][0],LocalCoordOnFaceEl[2][0]};
+  Scalar Y[3] = {LocalCoordOnFaceEl[0][1],LocalCoordOnFaceEl[1][1],LocalCoordOnFaceEl[2][1]};
 
   //cerr << " SENS A VERIFIER !!!" << endl;
-  double J = (X[1]-X[0])*(Y[2]-Y[0]) - (X[2]-X[0])*(Y[1]-Y[0]);
+  Scalar J = (X[1]-X[0])*(Y[2]-Y[0]) - (X[2]-X[0])*(Y[1]-Y[0]);
 
-  return fabs(J);// to avoid swapping the vertex to have a positive jacobian
-                  // this is OK because we just use it as the differential area
-                  // in the integration formula
+  using std::abs;
+  //if(J < 0) std::cerr << "here in TriFacet<Scalar>::MappingJacobian, J < 0\n";
+  return abs(J);// to avoid swapping the vertex to have a positive jacobian
+                // this is OK because we just use it as the differential area
+                // in the integration formula
 }
 
 // Map the given point m in the ref. Trifacet to the associated point in the ref. face el. 
+template<class Scalar>
 void
-TriFacet::LocalToLocalCoordOnFaceEl(const double* m, double* mOnFaceEl)
+TriFacet<Scalar>::LocalToLocalCoordOnFaceEl(const double* m, Scalar* mOnFaceEl)
 {
   double r = m[0];
   double s = m[1];
@@ -193,30 +203,34 @@ TriFacet::LocalToLocalCoordOnFaceEl(const double* m, double* mOnFaceEl)
 
 // Return the jacobian on the real face el. at the point associated to 
 // the given point m in the ref. TriFacet 
-double
-TriFacet::GetJacobianOnFaceEl(const double* m, CoordSet &cs)
+template<class Scalar>
+template<typename CoordSetT>
+Scalar
+TriFacet<Scalar>::GetJacobianOnFaceEl(const Scalar* m, CoordSetT &cs)
 {
   // J = J(mapping ref. face el. -> real face el.) * J(mapping TriFacet -> ref. face el.)
-  double JTriFacetMapping = MappingJacobian();
+  Scalar JTriFacetMapping = MappingJacobian();
    
-  double mOnFaceEl[2];
+  Scalar mOnFaceEl[2];
   LocalToLocalCoordOnFaceEl(m, mOnFaceEl);
-  double JFaceElMapping = FaceEl->GetJacobian(mOnFaceEl, cs);
+  Scalar JFaceElMapping = FaceEl->GetJacobian(mOnFaceEl, cs);
 
   return JFaceElMapping*JTriFacetMapping;
 }
 
 // Return the isoparametric mapping normal and jacobian on the real face el. at the point 
 // associated to the given point m in the ref. TriFacet
-double
-TriFacet::GetIsoParamMappingNormalAndJacobianOnFaceEl(double* Normal, const double* m, CoordSet &cs)
+template<class Scalar>
+template<typename CoordSetT>
+Scalar
+TriFacet<Scalar>::GetIsoParamMappingNormalAndJacobianOnFaceEl(Scalar* Normal, const Scalar* m, CoordSetT &cs)
 {
   // J = J(mapping ref. face el. -> real face el.) * J(mapping TriFacet -> ref. face el.)
-  double JTriFacetMapping = MappingJacobian();
+  Scalar JTriFacetMapping = MappingJacobian();
 
-  double mOnFaceEl[2];
+  Scalar mOnFaceEl[2];
   LocalToLocalCoordOnFaceEl(m, mOnFaceEl);
-  double JFaceElMapping = FaceEl->GetIsoParamMappingNormalAndJacobian(Normal, mOnFaceEl, cs);
+  Scalar JFaceElMapping = FaceEl->GetIsoParamMappingNormalAndJacobian(Normal, mOnFaceEl, cs);
 
   return JFaceElMapping*JTriFacetMapping;
 }
@@ -224,8 +238,9 @@ TriFacet::GetIsoParamMappingNormalAndJacobianOnFaceEl(double* Normal, const doub
 // ------------------------------------------------------------------------------------------------------
 //                         INTEGRATION OF SHAPE FUNCTIONS PRODUCT METHODS 
 // ------------------------------------------------------------------------------------------------------
-FullM
-TriFacet::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
+template<>
+inline FullM
+TriFacet<double>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
 // ******************************************************************************************************
 // Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
 // MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
@@ -298,8 +313,18 @@ TriFacet::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFace
   return MatShapeFctProd; 
 }
 
-FullM
-TriFacet::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
+#if (MAX_MORTAR_DERIVATIVES > 0)
+template<>
+inline FullM
+TriFacet<MadDouble>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
+{
+  std::cerr << "TriFacet<MadDouble>::IntegrateShapeFctProduct is not implemented\n";
+}
+#endif
+
+template<>
+inline FullM
+TriFacet<double>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
 // ******************************************************************************************************
 // Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
 // MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
@@ -382,13 +407,23 @@ TriFacet::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& Frie
   return MatShapeFctProd;
 }
 
-FullM
-TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs,
-                                             CoordSet& cs1, TriFacet& FriendFacet2, CoordSet& cs2, int ngp)
+#if (MAX_MORTAR_DERIVATIVES > 0)
+template<>
+inline FullM
+TriFacet<MadDouble>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
+{
+  std::cerr << "TriFacet<MadDouble>::IntegrateNormalShapeFctProduct is not implemented\n";
+}
+#endif
+
+template<>
+inline FullM
+TriFacet<double>::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs,
+                                                     CoordSet& cs1, TriFacet& FriendFacet2, CoordSet& cs2, int ngp)
 // ******************************************************************************************************
-// Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
-// MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
-// times the normal (see Notes (2)).
+// Integrate on the CURRENT triangular facet the product of the gradient of the shape functions defined by
+// the given MortarElement and the shape functions of the element associated to the given (Friend) triangular
+// facet times the normal (see Notes (2)).
 // -> Mij = Intg[current TriFacet][Mortar(i).FriendFacet.Shape(j).normal(current TriFacet->FaceElem)]
 // -> THE SIZE OF THE OUTPUT MATRIX IS:
 //      (NUMBER OF MORTAR SHAPE FCTS) x (THE NUMBER OF DOFs OF THE FACE ELEMENT ASSOCIATED TO 
@@ -419,15 +454,13 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
    double* ShapeOnFriendFaceEl  = (double*) dbg_alloca(nShapeFctOnFriendFaceEl*sizeof(double));
    double m[2], mOnMortarEl[2], mOnFriendFaceEl[2];
    double r, s, t, weight;
-   double Normal[3];
+   double JNormal[3];
 
    int nShapeFctOnFriendFaceEl2 = FriendFaceEl->nNodes();
    double* ShapeOnFriendFaceEl2  = (double*) dbg_alloca(nShapeFctOnFriendFaceEl2*sizeof(double));
-   double mOnFriendFaceEl2[2], MOnFriendFaceEl[3], MOnFriendFaceEl2[3], dNormal[12][3];
+   double mOnFriendFaceEl2[2], MOnFriendFaceEl[3], MOnFriendFaceEl2[3], dJNormal[12][3];
 
    int igp, i, j;
-   // FOR TEST
-   //ngp = 1; r = 1/3.; s = 1/3.; t = 1-r-s; weight = 0.5;
   
    for(igp=1; igp<=ngp; igp++){
      //cerr << " # Gauss point " << igp << endl;
@@ -435,12 +468,6 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      getGaussPtOnTriangle(ngp,igp,r,s,t,weight);
      //cerr << " # r = " << r << ", s = " << s << ", w = " << weight << endl;
      m[0] = r; m[1] = s;
-
-     // Jacobian on the face element supporting the CURRENT triangular facet
-     double dA = GetIsoParamMappingNormalAndJacobianOnFaceEl(Normal, m, cs);
-     //cerr << " # dA = " << dA << endl;
-     // PJSA is the -ve of the normal?
-     //cerr << " # normal = " << std::setprecision(12) << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
 
      // Get local coord. on each face element
      // -> for the mortar elem. (see the NOTE section)
@@ -455,6 +482,12 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      FriendFacet2.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceEl2);
      //cerr << " # mOnFriendFaceEl:   x = " << mOnFriendFaceEl[0] << ", y = " << mOnFriendFaceEl[1] << endl;
 
+     // Jacobian and JNormal on the face element supporting the CURRENT triangular facet
+     double dA = MappingJacobian(); 
+     FaceEl->GetIsoParamMappingNormalJacobianProduct(JNormal, mOnMortarEl, cs);
+     //cerr << " # dA = " << dA << endl;
+     //cerr << " # J*normal = " << JNormal[0] <<" "<< JNormal[1] <<" "<< JNormal[2] << endl;
+
      // Compute shape fcts
      // -> mortar elem.
      MortarEl->GetShapeFctVal(MortarShape, mOnMortarEl);
@@ -468,9 +501,9 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      FriendFaceEl2->GetShapeFctVal(ShapeOnFriendFaceEl2, mOnFriendFaceEl2);
      //for(j=0;j<nShapeFctOnFriendFaceEl2;j++) cerr << " ShapeOnFriendFaceEl2[" << j << "] = " << ShapeOnFaceElem2[j] << endl;
 
-     // Get the derivative of the Normal
-     FaceEl->GetdNormal(dNormal, mOnMortarEl, cs);
-     //for(int i=0; i<12; ++i) cerr << " # dNormal[" << i << "] = " << dNormal[i][0] <<" "<< dNormal[i][1] <<" "<< dNormal[i][2] << endl;
+     // Get the derivative of J*Normal
+     FaceEl->GetdJNormal(dJNormal, mOnMortarEl, cs);
+     //for(int i=0; i<12; ++i) cerr << " # dJNormal[" << i << "] = " << dJNormal[i][0] <<" "<< dJNormal[i][1] <<" "<< dJNormal[i][2] << endl;
 
      // Get global coord. on the element supporting the given triangular facet
      FriendFaceEl->LocalToGlobalCoord(MOnFriendFaceEl, mOnFriendFaceEl, cs1);
@@ -483,23 +516,23 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
      // Shape fcts product & integration
      for(i=0;i<nMortarShapeFct;i++)
        for(j=0;j<nShapeFctOnFriendFaceEl;j++){
-         MatShapeFctProd[i][3*j  ] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*Normal[0];
-         MatShapeFctProd[i][3*j+1] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*Normal[1];
-         MatShapeFctProd[i][3*j+2] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*Normal[2];
+         MatShapeFctProd[i][3*j  ] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*JNormal[0];
+         MatShapeFctProd[i][3*j+1] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*JNormal[1];
+         MatShapeFctProd[i][3*j+2] += weight*dA*MortarShape[i]*ShapeOnFriendFaceEl[j]*JNormal[2];
          //cerr << "i = " << i << ", j = " << j << ", MatShapeFctProd[i] #1 = " << MatShapeFctProd[i][3*j  ] << " " << MatShapeFctProd[i][3*j+1]
          //     << " " << MatShapeFctProd[i][3*j+2] << endl;
-         MatShapeFctProd[i][3*j  ] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dNormal[3*j  ][0]
-                                      +MOnFriendFaceEl[1]*dNormal[3*j  ][1]+MOnFriendFaceEl[2]*dNormal[3*j  ][2]);
-         MatShapeFctProd[i][3*j+1] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dNormal[3*j+1][0]
-                                      +MOnFriendFaceEl[1]*dNormal[3*j+1][1]+MOnFriendFaceEl[2]*dNormal[3*j+1][2]);
-         MatShapeFctProd[i][3*j+2] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dNormal[3*j+2][0]
-                                      +MOnFriendFaceEl[1]*dNormal[3*j+2][1]+MOnFriendFaceEl[2]*dNormal[3*j+2][2]);
-         MatShapeFctProd[i][3*j  ] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dNormal[3*j  ][0]
-                                      +MOnFriendFaceEl2[1]*dNormal[3*j  ][1]+MOnFriendFaceEl2[2]*dNormal[3*j  ][2]);
-         MatShapeFctProd[i][3*j+1] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dNormal[3*j+1][0]
-                                      +MOnFriendFaceEl2[1]*dNormal[3*j+1][1]+MOnFriendFaceEl2[2]*dNormal[3*j+1][2]);
-         MatShapeFctProd[i][3*j+2] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dNormal[3*j+2][0]
-                                      +MOnFriendFaceEl2[1]*dNormal[3*j+2][1]+MOnFriendFaceEl2[2]*dNormal[3*j+2][2]);
+         MatShapeFctProd[i][3*j  ] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dJNormal[3*j  ][0]
+                                      +MOnFriendFaceEl[1]*dJNormal[3*j  ][1]+MOnFriendFaceEl[2]*dJNormal[3*j  ][2]);
+         MatShapeFctProd[i][3*j+1] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dJNormal[3*j+1][0]
+                                      +MOnFriendFaceEl[1]*dJNormal[3*j+1][1]+MOnFriendFaceEl[2]*dJNormal[3*j+1][2]);
+         MatShapeFctProd[i][3*j+2] += weight*dA*MortarShape[i]*(MOnFriendFaceEl[0]*dJNormal[3*j+2][0]
+                                      +MOnFriendFaceEl[1]*dJNormal[3*j+2][1]+MOnFriendFaceEl[2]*dJNormal[3*j+2][2]);
+         MatShapeFctProd[i][3*j  ] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dJNormal[3*j  ][0]
+                                      +MOnFriendFaceEl2[1]*dJNormal[3*j  ][1]+MOnFriendFaceEl2[2]*dJNormal[3*j  ][2]);
+         MatShapeFctProd[i][3*j+1] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dJNormal[3*j+1][0]
+                                      +MOnFriendFaceEl2[1]*dJNormal[3*j+1][1]+MOnFriendFaceEl2[2]*dJNormal[3*j+1][2]);
+         MatShapeFctProd[i][3*j+2] -= weight*dA*MortarShape[i]*(MOnFriendFaceEl2[0]*dJNormal[3*j+2][0]
+                                      +MOnFriendFaceEl2[1]*dJNormal[3*j+2][1]+MOnFriendFaceEl2[2]*dJNormal[3*j+2][2]);
          //cerr << "i = " << i << ", j = " << j << ", MatShapeFctProd[i] #2 = " << MatShapeFctProd[i][3*j  ] << " " << MatShapeFctProd[i][3*j+1]
          //     << " " << MatShapeFctProd[i][3*j+2] << endl;
        } 
@@ -509,9 +542,13 @@ TriFacet::IntegrateGradNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& 
   return MatShapeFctProd;
 }
 
+/* old version
 // Compute normal "geometrical" gap 
-Vector
-TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, CoordSet& cs1, int ngp)
+template<class Scalar>
+template<typename CoordSetT>
+GenVector<Scalar>
+TriFacet<Scalar>::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSetT& cs, CoordSetT& cs1, int ngp,
+                                                double offset)
 // ******************************************************************************************************
 // Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
 // MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
@@ -526,20 +563,23 @@ TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& Frien
 //     (2) THE NORMAL IS THE NORMAL OF THE ELEMENT SUPPORTING THE CURRENT TRIANGULAR FACET
 // ******************************************************************************************************
 {
-   //cerr << "here in TriFacet::IntegrateNormalGeoGagsProduct\n";
    // Get ptr to the face element supporting the given triangular facet
    FaceElement* FriendFaceEl = FriendFacet.GetPtrFaceEl();
    int nMortarShapeFct   = MortarEl->nNodes();
 
-   Vector NormalGeoGaps(nMortarShapeFct,0.0);
+   GenVector<Scalar> NormalGeoGaps(nMortarShapeFct,Scalar(0.0));
 
-   double* MortarShape = (double*) dbg_alloca(nMortarShapeFct*sizeof(double));
-   double m[2], mOnMortarEl[2], mOnFriendFaceEl[2];
-   double r, s, t, weight;
-   double Normal[3], MOnFriendFaceEl[3];
+   Scalar* MortarShape = (Scalar*) dbg_alloca(nMortarShapeFct*sizeof(Scalar));
+   Scalar mOnMortarEl[2], mOnFriendFaceEl[2];
+   double m[2], r, s, t, weight;
+   Scalar J, JNormal[3], MOnFriendFaceEl[3];
    int igp, i;
-   // FOR TEST
-   //ngp = 1; r = 1/3.; s = 1/3.; t = 1-r-s; weight = 0.5;
+
+   Scalar dA = MappingJacobian();
+   if(FaceEl->GetFaceElemType() == FaceElement::TRIFACEL3) {
+     FaceEl->GetIsoParamMappingNormalJacobianProduct(JNormal, (Scalar*) NULL, cs);
+     if(offset != 0) J = sqrt(JNormal[0]*JNormal[0]+JNormal[1]*JNormal[1]+JNormal[2]*JNormal[2]);
+   }
 
    for(igp=1; igp<=ngp; igp++){
      //cerr << " # Gauss point " << igp << endl;
@@ -550,16 +590,19 @@ TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& Frien
 
      // Get local coord. on each face element
      // -> for the mortar elem. (see the NOTE section)
-     LocalToLocalCoordOnFaceEl(m, mOnMortarEl);  // XXXX mOnMortarEl is a function of LocalCoordOnFaceEl
+     LocalToLocalCoordOnFaceEl(m, mOnMortarEl); 
      //cerr << " # mOnMortarEl: x = " << mOnMortarEl[0] << ", y = " << mOnMortarEl[1] << endl;
 
      // -> for the element supporting the given triangular facet
-     FriendFacet.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceEl); // XXXX mOnMortarEl is a function of FriendFacet.LocalCoordOnFaceEl
+     FriendFacet.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceEl); 
      //cerr << " # mOnFriendFaceEl:   x = " << mOnFriendFaceEl[0] << ", y = " << mOnFriendFaceEl[1] << endl;
 
-     // Jacobian and Normal on the face element supporting the CURRENT triangular facet
-     double dA = FaceEl->GetIsoParamMappingNormalAndJacobian(Normal, mOnMortarEl, cs) * MappingJacobian(); // XXXX MappingJacobian is a function of LocalCoordOnFaceEl
-     //cerr << " # dA = " << dA << ", Normal = " << Normal[0] <<" "<< Normal[1] <<" "<< Normal[2] << endl;
+     // Jacobian and J*Normal on the face element supporting the CURRENT triangular facet
+     if(FaceEl->GetFaceElemType() != FaceElement::TRIFACEL3) {
+       FaceEl->GetIsoParamMappingNormalJacobianProduct(JNormal, mOnMortarEl, cs);
+       if(offset != 0) J = sqrt(JNormal[0]*JNormal[0]+JNormal[1]*JNormal[1]+JNormal[2]*JNormal[2]);
+     }
+     //cerr << " # dA = " << dA << ", J*Normal = " << JNormal[0] <<" "<< JNormal[1] <<" "<< JNormal[2] << endl;
 
      // Compute shape fcts
      // -> mortar elem.
@@ -571,9 +614,104 @@ TriFacet::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& Frien
      //cerr << " # MOnFriendFaceEl:   x = " << MOnFriendFaceEl[0] << ", y = " << MOnFriendFaceEl[1] << ", z = " << MOnFriendFaceEl[2] << endl;
 
      // Shape fcts product & integration
-     double sdot = weight*dA*(MOnFriendFaceEl[0]*Normal[0]+MOnFriendFaceEl[1]*Normal[1]+MOnFriendFaceEl[2]*Normal[2]);
-     for(i=0;i<nMortarShapeFct;i++)
+     Scalar sdot = weight*dA*(MOnFriendFaceEl[0]*JNormal[0]+MOnFriendFaceEl[1]*JNormal[1]+MOnFriendFaceEl[2]*JNormal[2]);
+     //cerr << " # sdot = " << sdot << endl;
+     for(i=0;i<nMortarShapeFct;i++) {
        NormalGeoGaps[i] += sdot*MortarShape[i];
+       if(offset != 0) NormalGeoGaps[i] += weight*dA*J*MortarShape[i]*offset;
+     }
+  }
+
+  //NormalGeoGaps.print("  NormalGeoGaps[TriFacet]=");
+  return NormalGeoGaps;
+}
+*/
+
+// Compute normal "geometrical" gap  in one pass by integrating over A and B simultaneously
+template<class Scalar>
+template<typename CoordSetT>
+GenVector<Scalar>
+TriFacet<Scalar>::IntegrateNormalGeoGagsProduct(MortarElement* MortarEl, TriFacet& FriendFacetB, TriFacet& FriendFacetC,
+                                                CoordSetT& cs, CoordSetT& csB, CoordSetT& csC, int ngp,
+                                                double offset)
+// ******************************************************************************************************
+// Integrate on the CURRENT triangular facet the product of the shape functions defined by the given
+// MortarElement and the shape functions of the element associated to the given (Friend) triangular facet
+// times the normal (see Notes (2)).
+// -> Mij = Intg[current TriFacet][Mortar(i).FriendFacet.Shape(j).normal(current TriFacet->FaceElem)]
+// -> THE SIZE OF THE OUTPUT MATRIX IS:
+//      (NUMBER OF MORTAR SHAPE FCTS) x (THE NUMBER OF DOFs OF THE FACE ELEMENT ASSOCIATED TO
+//                                       THE GIVEN (FRIEND) TRIFACET)
+// NOTES:
+//     (1) WE ASSUME THAT THE MortarElement LIVES ON THE GEOMETRY ASSOCIATED WITH THE CURRENT TRIANGULAR
+//         FACET (I.E. THE ELEMENT SUPPORTING THE CURRENT TRIANGULAR FACET)
+//     (2) THE NORMAL IS THE NORMAL OF THE ELEMENT SUPPORTING THE CURRENT TRIANGULAR FACET
+// ******************************************************************************************************
+{
+   // Get ptr to the face element supporting the given triangular facets
+   FaceElement* FriendFaceElB = FriendFacetB.GetPtrFaceEl();
+   FaceElement* FriendFaceElC = FriendFacetC.GetPtrFaceEl();
+   int nMortarShapeFct   = MortarEl->nNodes();
+
+   GenVector<Scalar> NormalGeoGaps(nMortarShapeFct,Scalar(0.0));
+
+   Scalar* MortarShape = (Scalar*) dbg_alloca(nMortarShapeFct*sizeof(Scalar));
+   Scalar mOnMortarEl[2], mOnFriendFaceElB[2], mOnFriendFaceElC[2];
+   double m[2], r, s, t, weight;
+   Scalar J, JNormal[3], MOnFriendFaceElB[3], MOnFriendFaceElC[3];
+   int igp, i;
+
+   Scalar dA = MappingJacobian();
+   if(FaceEl->GetFaceElemType() == FaceElement::TRIFACEL3) {
+     FaceEl->GetIsoParamMappingNormalJacobianProduct(JNormal, (Scalar*) NULL, cs);
+     if(offset != 0) J = sqrt(JNormal[0]*JNormal[0]+JNormal[1]*JNormal[1]+JNormal[2]*JNormal[2]);
+   }
+
+   for(igp=1; igp<=ngp; igp++){
+     //cerr << " # Gauss point " << igp << endl;
+
+     getGaussPtOnTriangle(ngp,igp,r,s,t,weight);
+     //cerr << " # r = " << r << ", s = " << s << ", w = " << weight << endl;
+     m[0] = r; m[1] = s;
+
+     // Get local coord. on each face element
+     // -> for the mortar elem. (see the NOTE section)
+     LocalToLocalCoordOnFaceEl(m, mOnMortarEl); 
+     //cerr << " # mOnMortarEl: x = " << mOnMortarEl[0] << ", y = " << mOnMortarEl[1] << endl;
+
+     // -> for the element supporting the given triangular facets
+     FriendFacetB.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceElB); 
+     FriendFacetC.LocalToLocalCoordOnFaceEl(m, mOnFriendFaceElC);
+     //cerr << " # mOnFriendFaceElB:   x = " << mOnFriendFaceElB[0] << ", y = " << mOnFriendFaceElB[1] << endl;
+     //cerr << " # mOnFriendFaceElC:   x = " << mOnFriendFaceElC[0] << ", y = " << mOnFriendFaceElC[1] << endl;
+
+     // Jacobian and J*Normal on the face element supporting the CURRENT triangular facet
+     if(FaceEl->GetFaceElemType() != FaceElement::TRIFACEL3) {
+       FaceEl->GetIsoParamMappingNormalJacobianProduct(JNormal, mOnMortarEl, cs);
+       if(offset != 0) J = sqrt(JNormal[0]*JNormal[0]+JNormal[1]*JNormal[1]+JNormal[2]*JNormal[2]);
+     }
+     //cerr << " # dA = " << dA << ", J*Normal = " << JNormal[0] <<" "<< JNormal[1] <<" "<< JNormal[2] << endl;
+
+     // Compute shape fcts
+     // -> mortar elem.
+     MortarEl->GetShapeFctVal(MortarShape, mOnMortarEl);
+     //cerr << " # MortarShape = "; for(i=0; i<nMortarShapeFct; ++i) cerr << MortarShape[i] << " "; cerr << endl;
+
+     // Get global coord. on the element supporting the given triangular facets
+     FriendFaceElB->LocalToGlobalCoord(MOnFriendFaceElB, mOnFriendFaceElB, csB);
+     FriendFaceElC->LocalToGlobalCoord(MOnFriendFaceElC, mOnFriendFaceElC, csC);
+     //cerr << " # MOnFriendFaceElB:   x = " << MOnFriendFaceElB[0] << ", y = " << MOnFriendFaceElB[1] << ", z = " << MOnFriendFaceElB[2] << endl;
+     //cerr << " # MOnFriendFaceElC:   x = " << MOnFriendFaceElC[0] << ", y = " << MOnFriendFaceElC[1] << ", z = " << MOnFriendFaceElC[2] << endl;
+
+     // Shape fcts product & integration
+     Scalar sdot = weight*dA*( (MOnFriendFaceElB[0]-MOnFriendFaceElC[0])*JNormal[0]
+                              +(MOnFriendFaceElB[1]-MOnFriendFaceElC[1])*JNormal[1]
+                              +(MOnFriendFaceElB[2]-MOnFriendFaceElC[2])*JNormal[2] );
+     //cerr << " # sdot = " << sdot << endl;
+     for(i=0;i<nMortarShapeFct;i++) {
+       NormalGeoGaps[i] += sdot*MortarShape[i];
+       if(offset != 0) NormalGeoGaps[i] += weight*dA*J*MortarShape[i]*offset;
+     }
   }
 
   //NormalGeoGaps.print("  NormalGeoGaps[TriFacet]=");

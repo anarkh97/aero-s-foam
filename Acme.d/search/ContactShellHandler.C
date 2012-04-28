@@ -4473,6 +4473,7 @@ void ContactShellHandler::NumberNodes() {
 
 void ContactShellHandler::Mark_Shell_Nodes( )
 {
+  //std::cerr << "here in ContactShellHandler::Mark_Shell_Nodes: number_lofted_nodes = " << number_lofted_nodes << std::endl;
   int i,j;
 
   // loop over shell nodes. Check connected faces. If any face is
@@ -4626,12 +4627,12 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
                       
 	switch( face->FaceType() ){
 	case(ContactSearch::SHELLQUADFACEL4):{
-	  ContactShellQuadFaceL4* sq4 = (ContactShellQuadFaceL4*) face;
+	  ContactShellQuadFaceL4<Real>* sq4 = (ContactShellQuadFaceL4<Real>*) face;
 	  sb[offset++] = sq4->Lofting_Factor()*sq4->Thickness();
 	  break;
         }
 	case(ContactSearch::SHELLTRIFACEL3):{
-	  ContactShellTriFaceL3* st3 = (ContactShellTriFaceL3*) face; 
+	  ContactShellTriFaceL3<Real>* st3 = (ContactShellTriFaceL3<Real>*) face; 
 	  sb[offset++] = st3->Lofting_Factor()*st3->Thickness();
 	  break;
         }
@@ -4647,12 +4648,12 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
 	Real dbg_t;
 	switch( face->FaceType() ){
 	case(ContactSearch::SHELLQUADFACEL4):{
-	  ContactShellQuadFaceL4* sq4 = (ContactShellQuadFaceL4*) face;
+	  ContactShellQuadFaceL4<Real>* sq4 = (ContactShellQuadFaceL4<Real>*) face;
 	  dbg_t = sq4->Lofting_Factor()*sq4->Thickness();
 	  break;
 	}
 	case(ContactSearch::SHELLTRIFACEL3):{
-	  ContactShellTriFaceL3* st3 = (ContactShellTriFaceL3*) face; 
+	  ContactShellTriFaceL3<Real>* st3 = (ContactShellTriFaceL3<Real>*) face; 
 	  dbg_t = st3->Lofting_Factor()*st3->Thickness();
 	  break;
 	}
@@ -4687,6 +4688,7 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
     if(  node->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) continue;
     ++i;
     PRECONDITION(i<topology->Number_of_Primary_Nodes());
+    //std::cerr << "here in ShellHandler::Loft_Nodes, ii = " << ii << ", node->Is_a_Shell_Node() = " << node->Is_a_Shell_Node() << std::endl;
     if( !node->Is_a_Shell_Node() ) continue;
     // We have decided for the time being, to only loft shell nodes.
     // We don't loft mixed nodes because that would change the continuum
@@ -4767,12 +4769,12 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
 	    
 	    switch(face->FaceType()){
 	    case(ContactSearch::SHELLQUADFACEL4):{
-	      ContactShellQuadFaceL4* sq4 = (ContactShellQuadFaceL4*) face;
+	      ContactShellQuadFaceL4<Real>* sq4 = (ContactShellQuadFaceL4<Real>*) face;
 	      thickness = sq4->Lofting_Factor()*sq4->Thickness();
 	      break;
 	    }
 	    case(ContactSearch::SHELLTRIFACEL3):{
-	      ContactShellTriFaceL3* st3 = (ContactShellTriFaceL3*) face;      
+	      ContactShellTriFaceL3<Real>* st3 = (ContactShellTriFaceL3<Real>*) face;      
 	      thickness = st3->Lofting_Factor()*st3->Thickness();
 	      break;
 	    }
@@ -5092,12 +5094,12 @@ void ContactShellHandler::Loft_Nodes( int num_configs,
 	    
 	    switch(face->FaceType()){
 	    case(ContactSearch::SHELLQUADFACEL4):{
-	      ContactShellQuadFaceL4* sq4 = (ContactShellQuadFaceL4*) face;
+	      ContactShellQuadFaceL4<Real>* sq4 = (ContactShellQuadFaceL4<Real>*) face;
 	      thickness = sq4->Lofting_Factor()*sq4->Thickness();
 	      break;
 	    }
 	    case(ContactSearch::SHELLTRIFACEL3):{
-	      ContactShellTriFaceL3* st3 = (ContactShellTriFaceL3*) face;      
+	      ContactShellTriFaceL3<Real>* st3 = (ContactShellTriFaceL3<Real>*) face;      
 	      thickness = st3->Lofting_Factor()*st3->Thickness();
 	      break;
 	    }

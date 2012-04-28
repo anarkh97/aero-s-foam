@@ -38,7 +38,8 @@ void ContactQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
   alloc.Resize( sizeof(ContactQuadFaceL4<DataType>),
                 100,  // block size
-                0);  // initial block size
+                0,   // initial block size
+                sizeof(DataType) );
   alloc.Set_Name( "ContactQuadFaceL4<DataType> allocator" );
 }
 
@@ -2304,27 +2305,28 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   if (!converged) {
     std::cerr << "ContactQuadFaceL4<DataType>::Compute_Local_Coords() did not converge" 
-	 << std::endl;
+	      << std::endl;
     std::cerr << "  Computing Coordinates for point (" << global_coords[0]
-	 << "," << global_coords[1] << "," << global_coords[2] << ")"
-	 << std::endl;
+	      << "," << global_coords[1] << "," << global_coords[2] << ")"
+	      << std::endl;
     std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0] 
-	 << "," << node_positions[0][1] << "," << node_positions[0][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[0][1] << "," << node_positions[0][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[1][0] 
-	 << "," << node_positions[1][1] << "," << node_positions[1][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[1][1] << "," << node_positions[1][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[2][0] 
-	 << "," << node_positions[2][1] << "," << node_positions[2][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[2][1] << "," << node_positions[2][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[3][0] 
-	 << "," << node_positions[3][1] << "," << node_positions[3][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[3][1] << "," << node_positions[3][2]
+	      << ")" << std::endl;
     std::cerr << "  After " << iterations << "iterations, local_coords = ("
-	 << s0 << "," << t0 << ")" << std::endl;
+	      << s0 << "," << t0 << ")" << std::endl;
     std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
   }
 #endif
+  POSTCONDITION(converged);
   // If it's close to any of the edges, snap to it
   if (abs(s0)<1.0+spatial_tolerance) {
     s0 = min(s0, 1.0);
@@ -2338,6 +2340,281 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
   local_coords[1] = t0;
   local_coords[2] = 0.0;
   
+}
+
+template<>
+inline void 
+ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_node_positions[MAX_NODES_PER_FACE][3], 
+			 		 ActiveScalar active_global_coords[3],
+					 ActiveScalar active_local_coords[3] )
+{
+  int  i, j;
+  const int  nnodes=4;
+
+  double node_positions[nnodes][3], global_coords[3], local_coords[3];
+  for(i=0; i<3; ++i) {
+    global_coords[i] = active_global_coords[i].value();
+    for(j=0; j<nnodes; ++j)
+      node_positions[j][i] = active_node_positions[j][i].value();
+  }
+
+  using std::sqrt;
+  using std::abs;
+  using std::min;
+  using std::max;
+
+  double spatial_tolerance = 1.0e-10;
+  //
+  // check for coincidence with one of the face nodes
+  //
+  for (i=0; i<nnodes; ++i) {
+    double dx = node_positions[i][0]-global_coords[0];
+    double dy = node_positions[i][1]-global_coords[1];
+    double dz = node_positions[i][2]-global_coords[2];
+    double d  = sqrt(dx*dx+dy*dy+dz*dz);
+    if (d<spatial_tolerance) break;
+  }
+  switch (i) {
+  case 0:
+    local_coords[0] = -1.0;
+    local_coords[1] = -1.0;
+    break;
+  case 1:
+    local_coords[0] =  1.0;
+    local_coords[1] = -1.0;
+    break;
+  case 2:
+    local_coords[0] =  1.0;
+    local_coords[1] =  1.0;
+    break;
+  case 3:
+    local_coords[0] = -1.0;
+    local_coords[1] =  1.0;
+    break;
+  }
+  if (i<nnodes) {
+    local_coords[2] = 0.0;
+  }
+  else {
+    //
+    // use newton's method to iterate (values only)
+    //
+    int  iterations=0;
+    int  max_iterations=500;
+    bool converged = false;
+    double tolerance = 1.0e-12;
+    double s, s0=0.0, s1, ds=0.0; 
+    double t, t0=0.0, t1, dt=0.0;
+    double J[3][2], f[3], shape_derivatives[2][4], shape_functions[4];
+    double JT[2][3], JTJ[2][2], invJTJ[2][2];
+  
+    while (!converged && iterations<max_iterations) {
+      local_coords[0] = s0;
+      local_coords[1] = t0;
+
+      // BUILD JACOBIAN AND INVERT
+      shape_derivatives[0][0] = -0.25*(1.0-local_coords[1]);
+      shape_derivatives[0][1] =  0.25*(1.0-local_coords[1]);
+      shape_derivatives[0][2] =  0.25*(1.0+local_coords[1]);
+      shape_derivatives[0][3] = -0.25*(1.0+local_coords[1]);
+  
+      shape_derivatives[1][0] = -0.25*(1.0-local_coords[0]);
+      shape_derivatives[1][1] = -0.25*(1.0+local_coords[0]);
+      shape_derivatives[1][2] =  0.25*(1.0+local_coords[0]);
+      shape_derivatives[1][3] =  0.25*(1.0-local_coords[0]);
+
+      for (i=0; i<2; ++i) {
+        J[0][i] = 0.0;
+        J[1][i] = 0.0;
+        J[2][i] = 0.0;
+        for (j=0; j<nnodes; ++j) {
+          J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
+          J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
+          J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
+        }
+      }
+      JT[0][0] = J[0][0];
+      JT[0][1] = J[1][0];
+      JT[0][2] = J[2][0];
+      JT[1][0] = J[0][1];
+      JT[1][1] = J[1][1];
+      JT[1][2] = J[2][1];
+    
+      JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
+      JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
+      JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
+      JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
+    
+      double detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+      invJTJ[0][0] =  JTJ[1][1]*detJTJ;
+      invJTJ[0][1] = -JTJ[0][1]*detJTJ;
+      invJTJ[1][0] = -JTJ[1][0]*detJTJ;
+      invJTJ[1][1] =  JTJ[0][0]*detJTJ;
+
+      // APPLY NEWTON ALGORITHM
+      shape_functions[0] = 0.25*(1.0-local_coords[0])*(1.0-local_coords[1]);
+      shape_functions[1] = 0.25*(1.0+local_coords[0])*(1.0-local_coords[1]);
+      shape_functions[2] = 0.25*(1.0+local_coords[0])*(1.0+local_coords[1]);
+      shape_functions[3] = 0.25*(1.0-local_coords[0])*(1.0+local_coords[1]);
+      f[0] = 0.0;
+      f[1] = 0.0;
+      f[2] = 0.0;
+      for( int i=0 ; i<nnodes ; ++i ){
+        for (int j=0; j<3; ++j) {
+          f[j] += shape_functions[i]*node_positions[i][j];
+        }
+      }
+
+      double dx = f[0]-global_coords[0];
+      double dy = f[1]-global_coords[1];
+      double dz = f[2]-global_coords[2];
+      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    
+      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+      ds = abs(s1-s0);
+      dt = abs(t1-t0);
+      s0 = s1;
+      t0 = t1;
+      if (ds<tolerance && dt<tolerance) converged = true;
+      ++iterations;
+    }
+#if CONTACT_DEBUG_PRINT_LEVEL>=2
+    if (!converged) {
+      std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge"
+           << std::endl;
+      std::cerr << "  Computing Coordinates for point (" << global_coords[0]
+           << "," << global_coords[1] << "," << global_coords[2] << ")"
+           << std::endl;
+      std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0]
+           << "," << node_positions[0][1] << "," << node_positions[0][2]
+           << ")" << std::endl;
+      std::cerr << "                            (" << node_positions[1][0]
+           << "," << node_positions[1][1] << "," << node_positions[1][2]
+           << ")" << std::endl;
+      std::cerr << "                            (" << node_positions[2][0]
+           << "," << node_positions[2][1] << "," << node_positions[2][2]
+           << ")" << std::endl;
+      std::cerr << "                            (" << node_positions[3][0]
+           << "," << node_positions[3][1] << "," << node_positions[3][2]
+           << ")" << std::endl;
+      std::cerr << "  After " << iterations << "iterations, local_coords = ("
+           << s0 << "," << t0 << ")" << std::endl;
+      std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
+    }
+#endif
+    POSTCONDITION(converged);
+    // If it's close to any of the edges, snap to it
+    if (abs(s0)<1.0+spatial_tolerance) {
+      s0 = min(s0, 1.0);
+      s0 = max(s0,-1.0);
+    }
+    if (abs(t0)<1.0+spatial_tolerance) {
+      t0 = min(t0, 1.0);
+      t0 = max(t0,-1.0);
+    }
+    local_coords[0] = s0;
+    local_coords[1] = t0;
+    local_coords[2] = 0.0;
+
+    local_coords[0] = s0;
+    local_coords[1] = t0;
+    local_coords[2] = 0.0;
+  }
+
+  //
+  // use newton's method to iterate, starting from solution of previous solve so only one iteration will be required
+  //
+  int  iterations=0;
+  int  max_iterations=500;
+  bool converged = false;
+  ActiveScalar tolerance = 1.0e-12;
+  ActiveScalar s, s0=local_coords[0], s1, ds=0.0; 
+  ActiveScalar t, t0=local_coords[1], t1, dt=0.0;
+  ActiveScalar J[3][2], f[3], shape_derivatives[2][4];
+  ActiveScalar JT[2][3], JTJ[2][2], invJTJ[2][2];
+  
+  while (!converged && iterations<max_iterations) {
+    active_local_coords[0] = s0;
+    active_local_coords[1] = t0;
+
+    // BUILD JACOBIAN AND INVERT
+    Compute_Shape_Derivatives(active_local_coords, shape_derivatives);
+    for (i=0; i<2; ++i) {
+      J[0][i] = 0.0;
+      J[1][i] = 0.0;
+      J[2][i] = 0.0;
+      for (j=0; j<nnodes; ++j) {
+        J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
+        J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
+        J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+      }
+    }
+    JT[0][0] = J[0][0];
+    JT[0][1] = J[1][0];
+    JT[0][2] = J[2][0];
+    JT[1][0] = J[0][1];
+    JT[1][1] = J[1][1];
+    JT[1][2] = J[2][1];
+    
+    JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
+    JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
+    JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
+    JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
+    
+    ActiveScalar detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+    invJTJ[0][0] =  JTJ[1][1]*detJTJ;
+    invJTJ[0][1] = -JTJ[0][1]*detJTJ;
+    invJTJ[1][0] = -JTJ[1][0]*detJTJ;
+    invJTJ[1][1] =  JTJ[0][0]*detJTJ;
+
+    // APPLY NEWTON ALGORITHM
+    Compute_Global_Coords( active_node_positions, active_local_coords, f );
+    ActiveScalar dx = f[0]-active_global_coords[0];
+    ActiveScalar dy = f[1]-active_global_coords[1];
+    ActiveScalar dz = f[2]-active_global_coords[2];
+    s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+    t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    
+    s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+    t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+    ds = abs(s1-s0);
+    dt = abs(t1-t0);
+    s0 = s1;
+    t0 = t1;
+    if (ds<tolerance && dt<tolerance) converged = true;
+    ++iterations;
+  }
+#if CONTACT_DEBUG_PRINT_LEVEL>=2
+  if (!converged) {
+    std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge"
+              << std::endl;
+    std::cerr << "  Computing Coordinates for point (" << global_coords[0]
+              << "," << global_coords[1] << "," << global_coords[2] << ")"
+              << std::endl;
+    std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0]
+              << "," << node_positions[0][1] << "," << node_positions[0][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[1][0]
+              << "," << node_positions[1][1] << "," << node_positions[1][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[2][0]
+              << "," << node_positions[2][1] << "," << node_positions[2][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[3][0]
+              << "," << node_positions[3][1] << "," << node_positions[3][2]
+              << ")" << std::endl;
+    std::cerr << "  After " << iterations << "iterations, local_coords = ("
+              << s0 << "," << t0 << ")" << std::endl;
+    std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
+  }
+#endif
+  POSTCONDITION(converged);
+
+  active_local_coords[0] = s0;
+  active_local_coords[1] = t0;
+  active_local_coords[2] = 0.0;
 }
 
 template<typename DataType>

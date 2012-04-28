@@ -28,7 +28,8 @@ void ContactLineEdgeL2_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
   alloc.Resize( sizeof(ContactLineEdgeL2<DataType>),
 		100,    // block size
-		0 );  // initial block size
+		0,      // initial block size
+                sizeof(DataType) );
   alloc.Set_Name( "ContactLineEdgeL2<DataType> allocator" );
 }
 

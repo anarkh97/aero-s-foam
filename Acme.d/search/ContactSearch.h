@@ -23,11 +23,13 @@ class ContactSequentialAllocator;
 class ContactEnforcement;
 class ContactTable;
 class ContactBoundingBox;
+class ContactFaceFaceInteraction;
 class ObjectBoundingBox;
 class DomainBox;
 
 class ObjectBoundingBoxHierarchy;
 class ObjectBoundingBoxHierarchy_Int;
+
 
 #include "Contact_Defines.h"
 #include "ContactParOStream.h"
@@ -899,8 +901,16 @@ class ContactSearch{
                                          bool use_proximity);
                                          
   template<typename DataType>
-    void Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*, 
-                           ContactElem<DataType>*, VariableHandle);
+    ContactFaceFaceInteraction* Face_Face_Search( ContactFace<DataType>*, ContactFace<DataType>*, 
+                                                  ContactElem<DataType>*, VariableHandle);
+  template<typename DataType>
+    bool Face_Face_Search_Step1( ContactFace<DataType>*, ContactFace<DataType>*, 
+                                 ContactElem<DataType>*, VariableHandle, int&, int&);
+
+  template<typename DataType>
+    ContactFaceFaceInteraction* Face_Face_Search_Step2( ContactFace<DataType>*, ContactFace<DataType>*,
+                                                        ContactElem<DataType>*, VariableHandle, int, int);
+
   void Process_Face_Coverage( void );
 
   ContactFixedSizeAllocator* allocators;  // array

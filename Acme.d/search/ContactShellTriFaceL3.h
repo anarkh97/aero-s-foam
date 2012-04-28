@@ -20,13 +20,15 @@
                               E0
 */
 
-class ContactShellTriFaceL3 : public ContactTriFaceL3<Real> {
+
+template<typename DataType>
+class ContactShellTriFaceL3 : public ContactTriFaceL3<DataType> {
 
   public :
     ContactShellTriFaceL3( ContactFixedSizeAllocator*, 
                            int blk_indx=-1, int indx_in_block=-1, int key=-1);
   static 
-    ContactShellTriFaceL3* new_ContactShellTriFaceL3(ContactFixedSizeAllocator*,
+    ContactShellTriFaceL3<DataType>* new_ContactShellTriFaceL3(ContactFixedSizeAllocator*,
                                                      int blk_indx=-1, 
                                                      int indx_in_block=-1, 
                                                      int key=-1);

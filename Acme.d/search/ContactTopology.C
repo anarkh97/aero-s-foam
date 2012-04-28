@@ -1514,16 +1514,16 @@ ContactTopology::Set_FaceBlk_Attributes(
       switch( block->Type() ){
       case( ContactSearch::SHELLQUADFACEL4 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellQuadFaceL4* face = 
-            static_cast<ContactShellQuadFaceL4*>(faces[i]);
+	  ContactShellQuadFaceL4<Real>* face = 
+            static_cast<ContactShellQuadFaceL4<Real>*>(faces[i]);
 	  face->Thickness( attributes[face->HostArrayIndex()] );
 	}
 	break;
       }
       case( ContactSearch::SHELLTRIFACEL3 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellTriFaceL3* face = 
-            static_cast<ContactShellTriFaceL3*>(faces[i]);
+	  ContactShellTriFaceL3<Real>* face = 
+            static_cast<ContactShellTriFaceL3<Real>*>(faces[i]);
 	  face->Thickness( attributes[face->HostArrayIndex()] );
 	}
 	break;
@@ -1542,16 +1542,16 @@ ContactTopology::Set_FaceBlk_Attributes(
       switch( block->Type() ){
       case( ContactSearch::SHELLQUADFACEL4 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellQuadFaceL4* face = 
-            static_cast<ContactShellQuadFaceL4*>(faces[i]);
+	  ContactShellQuadFaceL4<Real>* face = 
+            static_cast<ContactShellQuadFaceL4<Real>*>(faces[i]);
 	  face->Lofting_Factor( attributes[face->HostArrayIndex()] );
 	}
 	break;
       }
       case( ContactSearch::SHELLTRIFACEL3 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellTriFaceL3* face = 
-            static_cast<ContactShellTriFaceL3*>(faces[i]);
+	  ContactShellTriFaceL3<Real>* face = 
+            static_cast<ContactShellTriFaceL3<Real>*>(faces[i]);
 	  face->Lofting_Factor( attributes[face->HostArrayIndex()] );
 	}
 	break;
@@ -2887,30 +2887,14 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
           *interaction_data++ = vertices[j].master_y_derivatives[k];
         index1 += 4*MAX_FFI_DERIVATIVES;
 #ifdef COMPUTE_FFI_SECOND_DERIVATIVES
-        //std::cerr << "slave_x_second_derivatives = ";
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
-          //std::cerr << vertices[j].slave_x_second_derivatives[k] << " ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
           *interaction_data++ = vertices[j].slave_x_second_derivatives[k];
-        }
-        //std::cerr << std::endl;
-        //std::cerr << "slave_y_second_derivatives = ";
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
-          //std::cerr << vertices[j].slave_y_second_derivatives[k] << " ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
           *interaction_data++ = vertices[j].slave_y_second_derivatives[k];
-        }
-        //std::cerr << std::endl;
-        //std::cerr << "master_x_second_derivatives = ";
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
-          //std::cerr << vertices[j].master_x_second_derivatives[k] << " ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
           *interaction_data++ = vertices[j].master_x_second_derivatives[k];
-        }
-        //std::cerr << std::endl;
-        //std::cerr << "master_y_second_derivatives = ";
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k) {
-          //std::cerr << vertices[j].master_y_second_derivatives[k] << " ";
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
           *interaction_data++ = vertices[j].master_y_second_derivatives[k];
-        }
-        //std::cerr << std::endl;
         index1 += 4*MAX_FFI_SECOND_DERIVATIVES;
 #endif
 #endif

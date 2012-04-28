@@ -117,7 +117,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::SHELLQUADFACEL4:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace<Real>* face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(
+      ContactFace<Real>* face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -127,7 +127,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::SHELLTRIFACEL3:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace<Real>* face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(
+      ContactFace<Real>* face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -237,7 +237,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::SHELLQUADFACEL4:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace<Real>* face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(
+      ContactFace<Real>* face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -245,7 +245,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::SHELLTRIFACEL3:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace<Real>* face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(
+      ContactFace<Real>* face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);

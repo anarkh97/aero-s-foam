@@ -940,11 +940,11 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
                                                shape_functions );
     break;
   case ContactSearch::SHELLQUADFACEL4:
-    ContactShellQuadFaceL4::Compute_Shape_Functions( local_coords, 
+    ContactShellQuadFaceL4<Real>::Compute_Shape_Functions( local_coords, 
                                                      shape_functions );
     break;
   case ContactSearch::SHELLTRIFACEL3:
-    ContactShellTriFaceL3::Compute_Shape_Functions( local_coords, 
+    ContactShellTriFaceL3<Real>::Compute_Shape_Functions( local_coords, 
                                                     shape_functions );
     break;
   case ContactSearch::LINEFACEL2:

@@ -37,6 +37,8 @@ void ContactPoly_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactFaceFaceGraphNode_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactCartesianHexElementL8_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactHexElementL8_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactShellQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc);
-void ContactShellTriFaceL3_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactShellQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc);
+template<typename DataType>
+  void ContactShellTriFaceL3_SizeAllocator(ContactFixedSizeAllocator& alloc);
 void ContactShellNode_SizeAllocator(ContactFixedSizeAllocator& alloc);

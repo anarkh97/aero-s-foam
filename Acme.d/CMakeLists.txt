@@ -91,8 +91,8 @@ search/ContactSecondaryDecomposition.C
 search/ContactSequentialAllocator.C
 search/ContactShellHandler.C
 search/ContactShellNode.C
-search/ContactShellQuadFaceL4.C
-search/ContactShellTriFaceL3.C
+search/ContactShellQuadFaceL4Instance.C
+search/ContactShellTriFaceL3Instance.C
 search/contact_sorting.f
 search/ContactSurfaceGeometry.C
 search/ContactSymComm.C
@@ -120,3 +120,8 @@ search/Search_Interface.C
 search/search_methods.f
 search/Zoltan_Interface.C
 )
+
+SET(INC_DIR ..)
+
+INCLUDE_DIRECTORIES( ${INC_DIR} )
+

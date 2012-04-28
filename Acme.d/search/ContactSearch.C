@@ -810,8 +810,8 @@ void ContactSearch::Set_Up_Allocators()
   ContactFaceFaceGraphNode_SizeAllocator(allocators[ALLOC_ContactFaceFaceGraphNode]);
   ContactCartesianHexElementL8_SizeAllocator(allocators[ALLOC_ContactCartesianHexElementL8]);
   ContactHexElementL8_SizeAllocator(allocators[ALLOC_ContactHexElementL8]);
-  ContactShellQuadFaceL4_SizeAllocator(allocators[ALLOC_ContactShellQuadFaceL4]);
-  ContactShellTriFaceL3_SizeAllocator(allocators[ALLOC_ContactShellTriFaceL3]);
+  ContactShellQuadFaceL4_SizeAllocator<Real>(allocators[ALLOC_ContactShellQuadFaceL4]);
+  ContactShellTriFaceL3_SizeAllocator<Real>(allocators[ALLOC_ContactShellTriFaceL3]);
   ContactShellNode_SizeAllocator(allocators[ALLOC_ContactShellNode]);
 
   // Right now set the block size to 10000
@@ -849,8 +849,8 @@ void ContactSearch::Set_Up_Allocators()
   ContactFaceFaceGraphNode_SizeAllocator(active_allocators[ALLOC_ContactFaceFaceGraphNode]);
   ContactCartesianHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactCartesianHexElementL8]);
   ContactHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactHexElementL8]);
-  ContactShellQuadFaceL4_SizeAllocator(active_allocators[ALLOC_ContactShellQuadFaceL4]);
-  ContactShellTriFaceL3_SizeAllocator(active_allocators[ALLOC_ContactShellTriFaceL3]);
+  ContactShellQuadFaceL4_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactShellQuadFaceL4]);
+  ContactShellTriFaceL3_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactShellTriFaceL3]);
   ContactShellNode_SizeAllocator(active_allocators[ALLOC_ContactShellNode]);
 #endif
 }
@@ -5518,10 +5518,10 @@ ContactFace<Real>* ContactSearch::New_ContactFace(ContactFace_Type face_type,   
     face = ContactTriFaceQ6::new_ContactTriFaceQ6(alloc);
     break;
   case ContactSearch::SHELLQUADFACEL4 :
-    face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(alloc);
+    face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(alloc);
     break;
   case ContactSearch::SHELLTRIFACEL3 :
-    face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(alloc);
+    face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(alloc);
     break;
   case ContactSearch::LINEFACEL2 :
     face = ContactLineFaceL2::new_ContactLineFaceL2(alloc);

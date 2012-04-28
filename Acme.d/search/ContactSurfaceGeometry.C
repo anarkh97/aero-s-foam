@@ -198,6 +198,24 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
   #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
     search->Timer()->Stop_Timer( search->node_normal_geom_time );
   #endif
+
+  // PJSA: Loft the shell nodes to the appropriate location
+  if( Have_Shells() ){
+    //std::cerr << "here in ContactTopology::Compute_Face_Geometry, lofting nodes\n";    
+    int num_configs = 3;
+    #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
+      search->Timer()->Start_Timer( search->shell_loft_geom_time );
+    #endif
+    Shell_Handler()->Loft_Nodes( num_configs,
+                                 CURRENT_POSITION,
+                                 PREDICTED_POSITION,
+                                 AUGMENTED_POSITION,
+                                 FACE_NORMAL,
+                                 LOFTING_VECTOR );
+    #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
+      search->Timer()->Stop_Timer( search->shell_loft_geom_time );
+    #endif
+  }
 }
 
 void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,

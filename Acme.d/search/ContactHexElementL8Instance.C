@@ -116,7 +116,7 @@ void ContactHexElemL8<ActiveScalar>::UpdateTopology(ContactFace<ActiveScalar>* f
 				      VariableHandle POSITION,
 				      VariableHandle FACE_NORMAL,
 				      VariableHandle NODE_NORMAL,
-				      ActiveScalar tol, bool use_node_normals);
+				      Real tol, bool use_node_normals);
 
 template
 bool

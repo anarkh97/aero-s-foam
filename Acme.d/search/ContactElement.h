@@ -52,7 +52,7 @@ class ContactElem : public ContactTopologyEntity<DataType> {
   virtual void BuildTopology(int, int, int, ContactFixedSizeAllocator*) = 0;
   virtual void DeleteTopology(ContactFixedSizeAllocator*) = 0;
   virtual void UpdateTopology(ContactFace<DataType>*, VariableHandle, VariableHandle,
-                              VariableHandle, DataType, bool use_node_normals=false) = 0;
+                              VariableHandle, Real, bool use_node_normals=false) = 0;
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
   virtual int Nodes_Per_Element() = 0;

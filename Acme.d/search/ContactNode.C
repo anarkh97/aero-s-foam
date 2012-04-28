@@ -46,7 +46,8 @@ void ContactNode_SizeAllocator( ContactFixedSizeAllocator& alloc)
 {
   alloc.Resize( sizeof(ContactNode<DataType>),
                 100,  // block size
-                0);  // initial block size
+                0,    // initial block size
+                sizeof(DataType) );
   alloc.Set_Name( "ContactNode allocator" );
 }
 

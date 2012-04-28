@@ -120,14 +120,17 @@ typedef int MPI_Comm;
 //  use 16 for dimensionality 2 and support for linear faces only
 //
 #define MAX_FFI_DERIVATIVES 24
-#define COMPUTE_FFI_SECOND_DERIVATIVES
+//#define COMPUTE_FFI_SECOND_DERIVATIVES
 
-#if (MAX_FFI_DERIVATIVES > 0) && defined(USE_SACADO)
+//#define FFI_AUTO_DIFF_SACADO
+
+#if (MAX_FFI_DERIVATIVES > 0) && defined(USE_SACADO) && defined(FFI_AUTO_DIFF_SACADO)
 #  include "Sacado.hpp"
    typedef Sacado::Fad::SFad<Real,MAX_FFI_DERIVATIVES> ActiveScalar;
    inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(nbDer, derNumber, value); }
    inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.val(); }
    inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.dx(i); }
+   const int MAX_FFI_SECOND_DERIVATIVES = 0;
 #elif (MAX_FFI_DERIVATIVES > 0) && defined(USE_EIGEN3) && !defined(COMPUTE_FFI_SECOND_DERIVATIVES)
 #  include <Eigen/Core>
 #  include <unsupported/Eigen/AutoDiff>
@@ -136,6 +139,7 @@ typedef int MPI_Comm;
    inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(value, nbDer, derNumber); }
    inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.value(); }
    inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.derivatives()[i]; }
+   const int MAX_FFI_SECOND_DERIVATIVES = 0;
 #elif (MAX_FFI_DERIVATIVES > 0) && defined(USE_EIGEN3) && defined(COMPUTE_FFI_SECOND_DERIVATIVES)
 #  include <Eigen/Core>
 #  include <unsupported/Eigen/AutoDiff>

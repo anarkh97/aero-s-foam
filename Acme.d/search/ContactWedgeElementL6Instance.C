@@ -115,7 +115,7 @@ void ContactWedgeElemL6<ActiveScalar>::UpdateTopology(ContactFace<ActiveScalar>*
 					VariableHandle POSITION,
 					VariableHandle FACE_NORMAL,
 					VariableHandle NODE_NORMAL,
-					ActiveScalar tol, bool use_node_normals);
+					Real tol, bool use_node_normals);
 
 template
 bool ContactWedgeElemL6<ActiveScalar>::Is_Local_Coordinates_Inside_Element( ActiveScalar* local_coords );

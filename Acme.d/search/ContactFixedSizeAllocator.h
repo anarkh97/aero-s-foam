@@ -24,11 +24,12 @@ public:
     int storage_bytes,                // Forced to be at least sizeof(char*).
     int block_length,                 // At least 2.
     int initial_length = 0,           // At least 2 (defaults to block_length).
-    const char* object_name = 0);     // Name is optional.
+    const char* object_name = 0,      // Name is optional.
+    size_t real_len = 0);
  ~ContactFixedSizeAllocator();
   
   // Purges existing memory and resets with new parameters.
-  void  Resize(int storage_bytes, int block_length, int initial_length = 0);
+  void  Resize(int storage_bytes, int block_length, int initial_length = 0, size_t real_len = 0);
   
   void  Set_Name(const char* name);   // attaches a text name to the allocator
   const char* Name() const { return object_name; }
@@ -47,6 +48,7 @@ private:
   int block_size;      // Number of bytes per allocated block.
   int initial_size;    // Number of bytes allocated for very first block.
   int num_obj;         // Number of objects per block
+  size_t sizeof_real; 
   
   // State variables:
   

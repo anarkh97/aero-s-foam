@@ -30,6 +30,8 @@
 #include "ContactLineEdgeL2.h" // PJSA
 #include "ContactQuadFaceL4.h" // PJSA
 #include "ContactTriFaceL3.h" // PJSA
+#include "ContactShellQuadFaceL4.h" // PJSA
+#include "ContactShellTriFaceL3.h" // PJSA
 #include "ContactHexElementL8.h" // PJSA
 #include "ContactWedgeElementL6.h" // PJSA
 
@@ -1260,9 +1262,11 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
    	master_element->~ContactElem<Real>();
    	switch (search_topology->Face_Block(old_block_id)->Type()) {
    	case TRIFACEL3:
+        case SHELLTRIFACEL3:
    	  allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(master_element);
    	  break;
    	case QUADFACEL4:
+        case SHELLQUADFACEL4:
    	  allocators[ALLOC_ContactHexElemL8].Delete_Frag(master_element);
    	  break;
    	default:
@@ -1274,11 +1278,13 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
       // Contstruct the master element from the master face type
       switch (search_topology->Face_Block(new_block_id)->Type()) {
       case TRIFACEL3:
+      case SHELLTRIFACEL3:
    	master_element = ContactWedgeElemL6<Real>::new_ContactWedgeElemL6( 
    				      allocators[ALLOC_ContactWedgeElemL6],
    				      ContactSearch::WEDGEELEML6, 0);
    	break;
       case QUADFACEL4:
+      case SHELLQUADFACEL4:
    	master_element = ContactHexElemL8<Real>::new_ContactHexElemL8( 
    				      allocators[ALLOC_ContactHexElemL8],
    				      ContactSearch::HEXELEML8, 0);
@@ -1335,13 +1341,17 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
 
         Real normal_search_tol = search_data->Get_Search_Data( ContactSearch::SEARCH_NORMAL_TOLERANCE,
     				                               slave_face_key, master_face_key );
-#if (MAX_FFI_DERIVATIVES <= 0)
   	master_element->UpdateTopology(master_face, POSITION, 
     				       FACE_NORMAL, NODE_NORMAL,
     				       normal_search_tol);
 
-    	Face_Face_Search(slave_face, master_face, master_element, POSITION);
+#if (MAX_FFI_DERIVATIVES <= 0)
+        ContactFaceFaceInteraction *cffi = Face_Face_Search(slave_face, master_face, master_element, POSITION);
+        if(cffi) slave_face->Store_FaceFace_Interaction(cffi);
 #else
+        int in_cnt, all_planar;
+        bool cffi_flag = Face_Face_Search_Step1(slave_face, master_face, master_element, POSITION, in_cnt, all_planar);
+        if(cffi_flag) {
         // convert the slave face to ActiveScalar
         ContactFace<ActiveScalar> *active_slave_face;
         switch (slave_face->FaceType()) {
@@ -1350,6 +1360,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           break;
         case QUADFACEL4:
           active_slave_face = ContactQuadFaceL4<ActiveScalar>::new_ContactQuadFaceL4(active_allocators);
+          break;
+        case SHELLTRIFACEL3:
+          active_slave_face = ContactShellTriFaceL3<ActiveScalar>::new_ContactShellTriFaceL3(active_allocators);
+          break;
+        case SHELLQUADFACEL4:
+          active_slave_face = ContactShellQuadFaceL4<ActiveScalar>::new_ContactShellQuadFaceL4(active_allocators);
           break;
         default:
           PRECONDITION(0);
@@ -1388,6 +1404,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           break;
         case QUADFACEL4:
           active_master_face = ContactQuadFaceL4<ActiveScalar>::new_ContactQuadFaceL4(active_allocators);
+          break;
+        case SHELLTRIFACEL3:
+          active_master_face = ContactShellTriFaceL3<ActiveScalar>::new_ContactShellTriFaceL3(active_allocators);
+          break;
+        case SHELLQUADFACEL4:
+          active_master_face = ContactShellQuadFaceL4<ActiveScalar>::new_ContactShellQuadFaceL4(active_allocators);
           break;
         default:
           PRECONDITION(0);
@@ -1434,12 +1456,18 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           PRECONDITION(0);
           break;
         }
-        active_master_element->BuildTopology(0,0,0,active_allocators);
+        active_master_element->BuildTopology(number_of_nodes,
+                                             number_of_edges,
+                                             number_of_faces,
+                                             active_allocators);
         active_master_element->UpdateTopology(active_master_face, POSITION,
                                               FACE_NORMAL, NODE_NORMAL,
-                                              ActiveScalar(normal_search_tol));
+                                              normal_search_tol);
 
-        Face_Face_Search(active_slave_face, active_master_face, active_master_element, POSITION);
+        ContactFaceFaceInteraction *active_cffi = Face_Face_Search_Step2(active_slave_face, active_master_face, active_master_element, POSITION, in_cnt, all_planar);
+        if(active_cffi) active_slave_face->Store_FaceFace_Interaction(active_cffi);
+        else { std::cerr << "whoopsy2\n"; }
+
         // copy the FaceFaceInteractions to slave_face
         ContactInteractionDLL *interactions = active_slave_face->Get_FaceFace_Interactions();
         if(interactions) {
@@ -1477,6 +1505,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         case QUADFACEL4:
           active_allocators[ALLOC_ContactQuadFaceL4].Delete_Frag(active_slave_face);
           break;
+        case SHELLTRIFACEL3:
+          active_allocators[ALLOC_ContactShellTriFaceL3].Delete_Frag(active_slave_face);
+          break;
+        case SHELLQUADFACEL4:
+          active_allocators[ALLOC_ContactShellQuadFaceL4].Delete_Frag(active_slave_face);
+          break;
         }
 
         // delete active_master_face
@@ -1498,6 +1532,12 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         case QUADFACEL4:
           active_allocators[ALLOC_ContactQuadFaceL4].Delete_Frag(active_master_face);
           break;
+        case SHELLTRIFACEL3:
+          active_allocators[ALLOC_ContactShellTriFaceL3].Delete_Frag(active_master_face);
+          break;
+        case SHELLQUADFACEL4:
+          active_allocators[ALLOC_ContactShellQuadFaceL4].Delete_Frag(active_master_face);
+          break;
         }
 
         // delete active_master_element
@@ -1510,6 +1550,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         case WEDGEELEML6:
           active_allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(active_master_element);
           break;
+        }
         }
 #endif
       }
@@ -1533,9 +1574,11 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
     master_element->~ContactElem<Real>();
     switch (search_topology->Face_Block(old_block_id)->Type()) {
     case TRIFACEL3:
+    case SHELLTRIFACEL3:
       allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(master_element);
       break;
     case QUADFACEL4:
+    case SHELLQUADFACEL4:
       allocators[ALLOC_ContactHexElemL8].Delete_Frag(master_element);
       break;
     default:

@@ -17,7 +17,7 @@ ContactFixedSizeAllocator::ContactFixedSizeAllocator()
 { }
 
 ContactFixedSizeAllocator::ContactFixedSizeAllocator(
-         int ssize, int blen, int ilen, const char* name)
+         int ssize, int blen, int ilen, const char* name, size_t rlen)
   : object_name  (0),
     storage_bytes(0),
     block_size   (0),
@@ -30,6 +30,7 @@ ContactFixedSizeAllocator::ContactFixedSizeAllocator(
   PRECONDITION(ilen >= 0 && ilen != 1);
   
   if (ilen == 0) ilen = blen;  // Initial length defaults to block size.
+  if (rlen == 0) rlen = sizeof(Real);
 
   // FSM links unused frags by using the memory allocated to the frags, so each
   // frag must be large enough to hold the link pointer when the frag is free.
@@ -38,7 +39,7 @@ ContactFixedSizeAllocator::ContactFixedSizeAllocator(
   // In order to align the free frag link pointers on 4-byte boundaries,
   // the storage bytes must be a multiple of 4.
 
-  int max_alignment = std::max(sizeof(char*), sizeof(Real));
+  int max_alignment = std::max(sizeof(char*), rlen);
   while ( storage_bytes % max_alignment ) ++storage_bytes;
   
   num_obj = blen;
@@ -58,7 +59,7 @@ ContactFixedSizeAllocator::~ContactFixedSizeAllocator()
   if (object_name != 0) delete [] object_name;
 }
 
-void ContactFixedSizeAllocator::Resize(int ssize, int blen, int ilen)
+void ContactFixedSizeAllocator::Resize(int ssize, int blen, int ilen, size_t rlen)
 {
   PRECONDITION(Sanity_Check());
   PRECONDITION(ssize >= 0);
@@ -66,13 +67,14 @@ void ContactFixedSizeAllocator::Resize(int ssize, int blen, int ilen)
   PRECONDITION(ilen >= 0 && ilen != 1);
   
   if (ilen == 0) ilen = blen;  // Initial length defaults to block size.
+  if (rlen == 0) rlen = sizeof(Real);
   
   num_obj = blen;
 
   Purge();
  
   storage_bytes = ssize >= sizeof(char*) ? ssize : sizeof(char*);
-  int max_alignment = std::max(sizeof(char*), sizeof(Real));
+  int max_alignment = std::max(sizeof(char*), rlen);
   while ( storage_bytes % max_alignment ) ++storage_bytes;
   block_size   = blen * storage_bytes;
   initial_size = ilen * storage_bytes;

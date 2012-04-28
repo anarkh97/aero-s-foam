@@ -50,7 +50,8 @@ void ContactWedgeElemL6_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
   alloc.Resize( sizeof(ContactWedgeElemL6<DataType>),
                 100,  // block size
-                0);  // initial block size
+                0,   // initial block size
+                sizeof(DataType) );
   alloc.Set_Name( "ContactWedgeElemL6<DataType> allocator" );
 }
 
@@ -173,7 +174,7 @@ void ContactWedgeElemL6<DataType>::UpdateTopology(ContactFace<DataType>* face,
 					VariableHandle POSITION,
 					VariableHandle FACE_NORMAL,
 					VariableHandle NODE_NORMAL,
-					DataType tol, bool use_node_normals)
+					Real tol, bool use_node_normals)
 {
   int i;
   int num_nodes = face->Nodes_Per_Face();
@@ -348,7 +349,7 @@ void ContactWedgeElemL6<DataType>::Compute_Shape_Derivatives( DataType* local_co
 }
 
 template<typename DataType>
-void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions[8][3], 
+void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions[6][3], 
 					       DataType* global_coords,
 					       DataType* local_coords )
 {
@@ -497,6 +498,271 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
   local_coords[1] = v0;
   local_coords[2] = 1.0-u0-v0;
   local_coords[3] = w0;
+}
+
+template<>
+void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
+					       ActiveScalar* active_global_coords,
+					       ActiveScalar* active_local_coords )
+{
+  int  i, j;
+  const int  nnodes=6;
+
+  double node_positions[nnodes][3], global_coords[3], local_coords[4];
+  for(i=0; i<3; ++i) {
+    global_coords[i] = active_global_coords[i].value();
+    for(j=0; j<nnodes; ++j)
+      node_positions[j][i] = active_node_positions[j][i].value();
+  }
+
+  using std::sqrt;
+  using std::abs;
+  using std::min;
+  using std::max;
+  //
+  // 1st check for coincidence with one of the face nodes
+  //
+  double spatial_tolerance = 1.0e-10;
+  for (i=0; i<nnodes; ++i) {
+    double dx = node_positions[i][0]-global_coords[0];
+    double dy = node_positions[i][1]-global_coords[1];
+    double dz = node_positions[i][2]-global_coords[2];
+    double d  = sqrt(dx*dx+dy*dy+dz*dz);
+    if (d<spatial_tolerance) break;
+  }
+  switch (i) {
+  case 0:
+    local_coords[0] =  1.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  0.0;
+    local_coords[3] = -1.0;
+    break;
+  case 1:
+    local_coords[0] =  0.0;
+    local_coords[1] =  1.0;
+    local_coords[2] =  0.0;
+    local_coords[3] = -1.0;
+    break;
+  case 2:
+    local_coords[0] =  0.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  1.0;
+    local_coords[3] = -1.0;
+    break;
+  case 3:
+    local_coords[0] =  1.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  0.0;
+    local_coords[3] =  1.0;
+    break;
+  case 4:
+    local_coords[0] =  0.0;
+    local_coords[1] =  1.0;
+    local_coords[2] =  0.0;
+    local_coords[3] =  1.0;
+    break;
+  case 5:
+    local_coords[0] =  0.0;
+    local_coords[1] =  0.0;
+    local_coords[2] =  1.0;
+    local_coords[3] =  1.0;
+    break;
+  }
+  if (i>=nnodes) {
+    //
+    // else use newton's method to iterate
+    //
+    int  iterations=0;
+    int  max_iterations=200;
+    bool converged = false;
+    double tolerance = 1.0e-12;
+    double u, u0=0.0, u1, du;
+    double v, v0=0.0, v1, dv;
+    double w, w0=0.0, w1, dw;
+    double f[3], J[3][3], invJ[3][3];
+    double shape_derivatives[3][6], shape_functions[6];
+    while (!converged && iterations<max_iterations) {
+      local_coords[0] = u0;
+      local_coords[1] = v0;
+      local_coords[2] = 1.0-u0-v0;
+      local_coords[3] = w0;
+      // BUILD JACOBIAN AND INVERT
+      shape_derivatives[0][0] =  0.50*(1.0-local_coords[3]);
+      shape_derivatives[0][1] =  0.0;
+      shape_derivatives[0][2] = -0.50*(1.0-local_coords[3]);
+      shape_derivatives[0][3] =  0.50*(1.0+local_coords[3]);
+      shape_derivatives[0][4] =  0.0;
+      shape_derivatives[0][5] = -0.50*(1.0+local_coords[3]);
+
+      shape_derivatives[1][0] =  0.0;
+      shape_derivatives[1][1] =  0.50*(1.0-local_coords[3]);
+      shape_derivatives[1][2] = -0.50*(1.0-local_coords[3]);
+      shape_derivatives[1][3] =  0.0;
+      shape_derivatives[1][4] =  0.50*(1.0+local_coords[3]);
+      shape_derivatives[1][5] = -0.50*(1.0+local_coords[3]);
+
+      shape_derivatives[2][0] = -0.50*local_coords[0];
+      shape_derivatives[2][1] = -0.50*local_coords[1];
+      shape_derivatives[2][2] = -0.50*local_coords[2];
+      shape_derivatives[2][3] =  0.50*local_coords[0];
+      shape_derivatives[2][4] =  0.50*local_coords[1];
+      shape_derivatives[2][5] =  0.50*local_coords[2];
+
+      for (i=0; i<3; ++i) {
+        J[0][i] = 0.0;
+        J[1][i] = 0.0;
+        J[2][i] = 0.0;
+        for (j=0; j<6; ++j) {
+          J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
+          J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
+          J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
+        }
+      }
+    
+      double detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+                           J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
+                           J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
+
+      invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
+      invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
+      invJ[0][2] =  (J[1][2]*J[0][1]-J[0][2]*J[1][1])*detJ;
+      invJ[1][0] = -(J[1][0]*J[2][2]-J[2][0]*J[1][2])*detJ;
+      invJ[1][1] =  (J[0][0]*J[2][2]-J[0][2]*J[2][0])*detJ;
+      invJ[1][2] = -(J[0][0]*J[1][2]-J[1][0]*J[0][2])*detJ;
+      invJ[2][0] =  (J[1][0]*J[2][1]-J[2][0]*J[1][1])*detJ;
+      invJ[2][1] = -(J[0][0]*J[2][1]-J[2][0]*J[0][1])*detJ;
+      invJ[2][2] =  (J[0][0]*J[1][1]-J[0][1]*J[1][0])*detJ;
+
+      // APPLY NEWTON ALGORITHM
+      shape_functions[0] = 0.50*local_coords[0]*(1.0-local_coords[3]);
+      shape_functions[1] = 0.50*local_coords[1]*(1.0-local_coords[3]);
+      shape_functions[2] = 0.50*local_coords[2]*(1.0-local_coords[3]);
+      shape_functions[3] = 0.50*local_coords[0]*(1.0+local_coords[3]);
+      shape_functions[4] = 0.50*local_coords[1]*(1.0+local_coords[3]);
+      shape_functions[5] = 0.50*local_coords[2]*(1.0+local_coords[3]);
+      f[0] = 0.0;
+      f[1] = 0.0;
+      f[2] = 0.0;
+      for( int i=0 ; i<nnodes ; ++i ){
+        for (int j=0; j<3; ++j) {
+          f[j] += shape_functions[i]*node_positions[i][j];
+        }
+      }
+      u  = f[0]-global_coords[0];
+      v  = f[1]-global_coords[1];
+      w  = f[2]-global_coords[2];
+      u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
+      v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
+      w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
+      du = abs(u1-u0);
+      dv = abs(v1-v0);
+      dw = abs(w1-w0);
+      u0 = u1;
+      v0 = v1;
+      w0 = w1;
+      if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
+      ++iterations;
+    }
+#if CONTACT_DEBUG_PRINT_LEVEL>=1
+    if (!converged) {
+      std::cerr << "ContactWedgeElemL6<double>::Compute_Local_Coordinates() did not converge" 
+                << std::endl;
+    }
+#endif
+    POSTCONDITION(converged);
+    if (u0<1.0+spatial_tolerance) {
+      u0 = min(u0, 1.0);
+    }
+    if (u0>-spatial_tolerance) {
+      u0 = max(u0, 0.0);
+    }
+    if (v0<1.0+spatial_tolerance) {
+      v0 = min(v0, 1.0);
+    }
+    if (v0>-spatial_tolerance) {
+      v0 = max(v0, 0.0);
+    }
+    if (abs(w0)<1.0+spatial_tolerance) {
+      w0 = min(w0, 1.0);
+      w0 = max(w0,-1.0);
+    }
+    local_coords[0] = u0;
+    local_coords[1] = v0;
+    local_coords[2] = 1.0-u0-v0;
+    local_coords[3] = w0;
+  }
+  //
+  // repeat newton's method to get the derivatives
+  //
+  int  iterations=0;
+  int  max_iterations=200;
+  bool converged = false;
+  ActiveScalar tolerance = 1.0e-12;
+  ActiveScalar u, u0=local_coords[0], u1, du;
+  ActiveScalar v, v0=local_coords[1], v1, dv;
+  ActiveScalar w, w0=local_coords[3], w1, dw;
+  ActiveScalar f[3], J[3][3], invJ[3][3];
+  ActiveScalar shape_derivatives[3][6];
+  while (!converged && iterations<max_iterations) {
+    active_local_coords[0] = u0;
+    active_local_coords[1] = v0;
+    active_local_coords[2] = 1.0-u0-v0;
+    active_local_coords[3] = w0;
+    // BUILD JACOBIAN AND INVERT
+    Compute_Shape_Derivatives( active_local_coords, shape_derivatives );
+    for (i=0; i<3; ++i) {
+      J[0][i] = 0.0;
+      J[1][i] = 0.0;
+      J[2][i] = 0.0;
+      for (j=0; j<6; ++j) {
+        J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
+        J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
+        J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+      }
+    }
+    
+    ActiveScalar detJ  =  1.0/(J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1])-
+                               J[0][1]*(J[1][0]*J[2][2]-J[2][0]*J[1][2])+
+                               J[0][2]*(J[1][0]*J[2][1]-J[2][0]*J[1][1]));
+
+    invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJ;
+    invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJ;
+    invJ[0][2] =  (J[1][2]*J[0][1]-J[0][2]*J[1][1])*detJ;
+    invJ[1][0] = -(J[1][0]*J[2][2]-J[2][0]*J[1][2])*detJ;
+    invJ[1][1] =  (J[0][0]*J[2][2]-J[0][2]*J[2][0])*detJ;
+    invJ[1][2] = -(J[0][0]*J[1][2]-J[1][0]*J[0][2])*detJ;
+    invJ[2][0] =  (J[1][0]*J[2][1]-J[2][0]*J[1][1])*detJ;
+    invJ[2][1] = -(J[0][0]*J[2][1]-J[2][0]*J[0][1])*detJ;
+    invJ[2][2] =  (J[0][0]*J[1][1]-J[0][1]*J[1][0])*detJ;
+
+    // APPLY NEWTON ALGORITHM
+    Compute_Global_Coords( active_node_positions, active_local_coords, f );
+    u  = f[0]-active_global_coords[0];
+    v  = f[1]-active_global_coords[1];
+    w  = f[2]-active_global_coords[2];
+    u1 = u0-(invJ[0][0]*u+invJ[0][1]*v+invJ[0][2]*w);
+    v1 = v0-(invJ[1][0]*u+invJ[1][1]*v+invJ[1][2]*w);
+    w1 = w0-(invJ[2][0]*u+invJ[2][1]*v+invJ[2][2]*w);
+    du = abs(u1-u0);
+    dv = abs(v1-v0);
+    dw = abs(w1-w0);
+    u0 = u1;
+    v0 = v1;
+    w0 = w1;
+    if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
+    ++iterations;
+  }
+#if CONTACT_DEBUG_PRINT_LEVEL>=1
+  if (!converged) {
+    std::cerr << "ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coordinates() did not converge" 
+	 << std::endl;
+  }
+#endif
+  POSTCONDITION(converged);
+  active_local_coords[0] = u0;
+  active_local_coords[1] = v0;
+  active_local_coords[2] = 1.0-u0-v0;
+  active_local_coords[3] = w0;
 }
 
 template<typename DataType>

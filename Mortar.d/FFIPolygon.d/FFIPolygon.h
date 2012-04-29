@@ -44,6 +44,7 @@ class FFIPolygon {
         Scalar (*VertexLlCoordOnSFaceEl)[2];
         Scalar (*VertexLlCoordOnMFaceEl)[2];
 #endif
+        double* ACME_FFI_LocalCoordData;
         // Helper methods
         // ~~~~~~~~~~~~~~
         static TriFacet<Scalar>& MasterFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
@@ -136,6 +137,9 @@ class FFIPolygon {
 
         // Space/memory allocation/desallocation methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   private:
+        void PrepLocalCoordData();
 };
 
 #ifdef _TEMPLATE_FIX_

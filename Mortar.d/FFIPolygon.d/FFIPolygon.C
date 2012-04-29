@@ -117,8 +117,13 @@ FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* Sla
 
   // Create & fill polygon triangularization
   int LocalCoordOffset = 2*nVertices+1;
+  ACME_FFI_LocalCoordData = &ACME_FFI_Data[LocalCoordOffset];
+}
 
-  double* ACME_FFI_LocalCoordData = &ACME_FFI_Data[LocalCoordOffset];
+template<>
+inline void
+FFIPolygon<MadDouble>::PrepLocalCoordData()
+{
   MadDouble* ACME_FFI_LocalCoordData_copy = new MadDouble[nVertices*4];
 
   for(int i=0; i<nVertices; ++i) {
@@ -136,6 +141,16 @@ FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* Sla
     for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].derivatives()[j] = *ACME_FFI_LocalCoordData++;
     for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].derivatives()[j] = *ACME_FFI_LocalCoordData++;
     for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].derivatives()[j] = *ACME_FFI_LocalCoordData++;
+#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
+    for(int k=0; k<4; ++k)
+      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j)
+       ACME_FFI_LocalCoordData++; // TODO need to use the first derivatives of the FFI, but how?
+    for(int k=0; k<4; ++k) {
+      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j)
+        for(int l=0; l<=j; ++l) {
+          ACME_FFI_LocalCoordData++; // TODO need to use the second derivatives of the FFI, but how?
+        }
+    }
 #elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
     for(int k=0; k<4; ++k)
       for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) {
@@ -702,6 +717,7 @@ inline void
 FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp,
                                            double offset)
 {
+   PrepLocalCoordData();
    int nMortarShapeFct = MortarEl->nNodes();
 
    GenVector<MadDouble> MadNormalGeoGaps(nMortarShapeFct,MadDouble(0.0));
@@ -797,7 +813,11 @@ FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &Sl
        M[i][3*j+0] = MadSlaveCoords[SlaveFace->GetNode(j)]->x.adj().val();
        M[i][3*j+1] = MadSlaveCoords[SlaveFace->GetNode(j)]->y.adj().val();
        M[i][3*j+2] = MadSlaveCoords[SlaveFace->GetNode(j)]->z.adj().val();
-       // TODO: fill dM with second derivatives
+       for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l) {
+         dM[i][3*j+0][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->x.adj().dx(l);
+         dM[i][3*j+1][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->y.adj().dx(l);
+         dM[i][3*j+2][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->z.adj().dx(l);
+       }
 #elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
        for(int k = 0; k < 3; ++k)
          M[i][3*j+k] = MadNormalGeoGaps[i].derivatives()[MAX_MORTAR_DERIVATIVES/2+3*j+k];
@@ -818,7 +838,11 @@ FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &Sl
        N[i][3*j+0] = -MadMasterCoords[MasterFace->GetNode(j)]->x.adj().val();
        N[i][3*j+1] = -MadMasterCoords[MasterFace->GetNode(j)]->y.adj().val();
        N[i][3*j+2] = -MadMasterCoords[MasterFace->GetNode(j)]->z.adj().val();
-       // TODO: fill dN with second derivatives
+       for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l) {
+         dN[i][3*j+0][l] = MadMasterCoords[MasterFace->GetNode(j)]->x.adj().dx(l);
+         dN[i][3*j+1][l] = MadMasterCoords[MasterFace->GetNode(j)]->y.adj().dx(l);
+         dN[i][3*j+2][l] = MadMasterCoords[MasterFace->GetNode(j)]->z.adj().dx(l);
+       }
 #elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
        for(int k = 0; k < 3; ++k)
          N[i][3*j+k] = -MadNormalGeoGaps[i].derivatives()[3*j+k];

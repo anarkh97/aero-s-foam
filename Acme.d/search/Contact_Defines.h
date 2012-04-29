@@ -133,23 +133,23 @@ typedef int MPI_Comm;
 
 //
 //  Number of derivatives for Face-Face interactions
-//  use 54 for dimensionality 3 and support for linear and quadratic faces
-//  use 24 for dimensionality 3 and support for linear faces only
-//  use 16 for dimensionality 2 and support for linear faces only
+//  use MAX_FFI_DERIVATIVES=54 for dimensionality 3 and support for linear and quadratic faces
+//  use MAX_FFI_DERIVATIVES=24 for dimensionality 3 and support for linear faces only
+//  use MAX_FFI_DERIVATIVES=16 for dimensionality 2 and support for linear faces only
 //
-#define MAX_FFI_DERIVATIVES 24
-//#define COMPUTE_FFI_SECOND_DERIVATIVES
+#ifndef MAX_FFI_DERIVATIVES
+#  define MAX_FFI_DERIVATIVES 0
+#endif
 
-#define FFI_AUTO_DIFF_SACADO
-
-#if (MAX_FFI_DERIVATIVES > 0) && defined(USE_SACADO) && defined(FFI_AUTO_DIFF_SACADO)
+#if (MAX_FFI_DERIVATIVES > 0)
+#if defined(USE_SACADO) && defined(FFI_AUTO_DIFF_SACADO)
 #  include "Sacado.hpp"
    typedef Sacado::Fad::SFad<Real,MAX_FFI_DERIVATIVES> ActiveScalar;
    inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(nbDer, derNumber, value); }
    inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.val(); }
    inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.dx(i); }
    const int MAX_FFI_SECOND_DERIVATIVES = 0;
-#elif (MAX_FFI_DERIVATIVES > 0) && defined(USE_EIGEN3) && !defined(COMPUTE_FFI_SECOND_DERIVATIVES)
+#elif defined(USE_EIGEN3) && defined(FFI_AUTO_DIFF_EIGEN3) && !defined(COMPUTE_FFI_SECOND_DERIVATIVES)
 #  include <Eigen/Core>
 #  include <unsupported/Eigen/AutoDiff>
    typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType;
@@ -158,7 +158,7 @@ typedef int MPI_Comm;
    inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.value(); }
    inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.derivatives()[i]; }
    const int MAX_FFI_SECOND_DERIVATIVES = 0;
-#elif (MAX_FFI_DERIVATIVES > 0) && defined(USE_EIGEN3) && defined(COMPUTE_FFI_SECOND_DERIVATIVES)
+#elif defined(USE_EIGEN3) && defined(FFI_AUTO_DIFF_EIGEN3) && defined(COMPUTE_FFI_SECOND_DERIVATIVES)
 #  include <Eigen/Core>
 #  include <unsupported/Eigen/AutoDiff>
    typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType1;
@@ -173,6 +173,7 @@ typedef int MPI_Comm;
    inline Real GetActiveScalarSecondDerivative(const ActiveScalar& s, int i, int j) { return s.derivatives()[i].derivatives()[j]; }
 #else
 #  error "Computation of Face-Face interaction derivatives requires Sacado or Eigen3"
+#endif
 #endif
 
 #endif // #ifdef Contact_Defines_h_

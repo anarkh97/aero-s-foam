@@ -2360,6 +2360,7 @@ ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[
   
 }
 
+#if (MAX_FFI_DERIVATIVES > 0)
 template<>
 inline void 
 ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_node_positions[MAX_NODES_PER_FACE][3], 
@@ -2634,6 +2635,7 @@ ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_
   active_local_coords[1] = t0;
   active_local_coords[2] = 0.0;
 }
+#endif
 
 template<typename DataType>
 void ContactQuadFaceL4<DataType>::Compute_Global_Coords( DataType node_positions[4][3],

@@ -94,7 +94,7 @@
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
 %token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
-%token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
+%token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
@@ -1967,6 +1967,7 @@ FaceSet:
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
             delete [] nodes;
           }
+/* moved to  Domain::SetUpSurfaces
           else if($$->GetIsShellFace()) { // for acme shell it is necessary to include both sides of the element in the face block
             int etype;
             if($3 == 1) etype = 5; // SHELLQUADFACEL4
@@ -1978,6 +1979,7 @@ FaceSet:
             $$->AddFaceElement(2*($2-1)+1, etype, $4.num, nodes);
             delete [] nodes;
           }
+*/
           else $$->AddFaceElement($2-1, $3, $4.num, $4.nd);
         }
 	; 
@@ -2183,6 +2185,10 @@ AcmeControls:
         { domain->solInfo().dist_acme = $2; }
         | FFIDEBUG Integer NewLine
         { domain->solInfo().ffi_debug = bool($2); }
+        | MORTARSCALING Float NewLine
+        { domain->solInfo().mortar_scaling = $2; }
+        | MORTARINTEGRATIONRULE Integer NewLine
+        { domain->solInfo().mortar_integration_rule = $2; }
 NodeSet:
 	NODE NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }

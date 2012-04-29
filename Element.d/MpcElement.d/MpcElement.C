@@ -267,10 +267,20 @@ MpcElement::update(GeomState& c1, CoordSet& c0, double t)
 }
 
 void 
-MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& H) 
+MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& _H) 
 {
-  // this is for a linear constraint. Nonlinear constraints must overload this function
-  H.zero(); 
+  //std::cerr << "here in GenMpcElement<Scalar>::getHessian\n";
+  //std::cerr << "eigenvalues of H: " << this->H.eigenvalues().transpose() << std::endl;
+#ifdef USE_EIGEN3
+  if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
+    //std::cerr << "H = \n" << this->H << std::endl;
+    for(int i=0; i<H.rows(); ++i)
+      for(int j=0; j<H.cols(); ++j)
+        _H[i][j] = H(i,j);
+  }
+  else
+#endif
+    _H.zero();
 }
 
 double

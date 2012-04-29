@@ -517,6 +517,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coords( DataType node_positions
   local_coords[3] = w0;
 }
 
+#if (MAX_FFI_DERIVATIVES > 0)
 template<>
 void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
 					       ActiveScalar* active_global_coords,
@@ -781,6 +782,7 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
   active_local_coords[2] = 1.0-u0-v0;
   active_local_coords[3] = w0;
 }
+#endif
 
 template<typename DataType>
 void ContactWedgeElemL6<DataType>::Compute_Global_Coords( DataType node_positions[6][3],

@@ -1,6 +1,7 @@
 #ifndef EI_SPARSEMATRIX_H_
 #define EI_SPARSEMATRIX_H_
 
+#ifdef USE_EIGEN3
 #include <complex>
 
 #include <Eigen/Core>
@@ -112,4 +113,5 @@ class WrapEiSparseMat : public GenEiSparseMatrix<Scalar>
 #include <Math.d/EiSparseMatrix.C>
 #endif
 
+#endif
 #endif

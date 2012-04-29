@@ -36,8 +36,10 @@ inline NodalMortarShapeFct::NodalMortarShapeFct()
 , LinkedMasterNodes()
 , SlaveMPCCoeffs()
 , MasterMPCCoeffs() 
+#ifdef USE_EIGEN3
 , SlaveMPCCoeffDerivs()
 , MasterMPCCoeffDerivs()
+#endif
 { }
 
 inline NodalMortarShapeFct::NodalMortarShapeFct(int ref_node, double ref_coeff)
@@ -46,8 +48,10 @@ inline NodalMortarShapeFct::NodalMortarShapeFct(int ref_node, double ref_coeff)
 , LinkedMasterNodes()
 , SlaveMPCCoeffs()
 , MasterMPCCoeffs() 
+#ifdef USE_EIGEN3
 , SlaveMPCCoeffDerivs()
 , MasterMPCCoeffDerivs()
+#endif
 { }
 
 // -----------------------------------------------------------------------------------------------------
@@ -66,8 +70,10 @@ NodalMortarShapeFct::ClearData()
   LinkedMasterNodes.clear();
   SlaveMPCCoeffs.clear();
   MasterMPCCoeffs.clear();
+#ifdef USE_EIGEN3
   SlaveMPCCoeffDerivs.resize(0,0);
   MasterMPCCoeffDerivs.resize(0,0);
+#endif
 }
 
 inline void 

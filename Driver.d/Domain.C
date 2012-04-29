@@ -2254,6 +2254,27 @@ void Domain::SetUpSurfaces(CoordSet* cs)
   if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
 #endif
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
+
+    // For acme shells it is necessary to include both sides of the element in the face block
+    // currently we only use acme shells when we are using the tdenforcement module of acme
+    // to compute the contact forces. In other cases we don't use acme shells since acme doesn't
+    // support the extraction of interactions for shells
+    if(SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag()) {
+      int nFaceElems = SurfEntities[iSurf]->GetnFaceElems();
+      for(int i = 0; i < nFaceElems; ++i) {
+        int etype = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetFaceElemType();
+        if(etype != 1 && etype != 3) {
+          cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
+          exit(-1);
+        }
+        int nNodes = SurfEntities[iSurf]->GetFaceElemSet()[i]->nNodes();
+        int *nodes = new int[nNodes];
+        for(int j=0; j<nNodes; ++i) nodes[nNodes-1-j] = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetNode(j);
+        SurfEntities[iSurf]->AddFaceElement(nFaceElems+i, etype, nNodes, nodes);
+        delete [] nodes;
+      }
+    }
+
 #ifdef MORTAR_DEBUG
     //filePrint(stderr," ------------------------------------------------------------------------\n");
     //filePrint(stderr,"  average normal of face element of surface %2d BEFORE local renumbering\n",SurfEntities[iSurf]->ID());

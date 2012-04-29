@@ -105,6 +105,7 @@ FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveF
   delete [] ACME_FFI_LocalCoordData_copy;
 }
 
+#if (MAX_MORTAR_DERIVATIVES > 0)
 template<>
 inline void
 FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl,
@@ -157,6 +158,7 @@ FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* Sla
   CreateTriangularization(ACME_FFI_LocalCoordData_copy);
   delete [] ACME_FFI_LocalCoordData_copy;
 }
+#endif
 
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS 

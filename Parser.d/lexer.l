@@ -1185,6 +1185,10 @@ TRAIL [a-zA-Z]*
 
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
 
+"mortar_scal"[a-zA-Z]*             { return MORTARSCALING; }
+
+"mortar_inte"[a-zA-Z_]*             { return MORTARINTEGRATIONRULE; }
+
 "SEARCH_TOL"|"search_tol"          { return SEARCHTOL; }
 
 "STD"|"std"                        { return STDMORTAR; }

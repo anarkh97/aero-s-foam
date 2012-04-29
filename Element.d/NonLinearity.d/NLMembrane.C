@@ -447,7 +447,9 @@ NLMembrane::stiffness(CoordSet& cs, double *k, int flg)
   }
 }
 
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 
 FullSquareMatrix
 NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
@@ -456,7 +458,7 @@ NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
   if(prop == NULL) { ret.zero(); return ret; }
 
   if(cmflg) { // consistent mass matrix
-
+#ifdef USE_EIGEN3
     double mass = getMass(cs);
     Eigen::Map<Eigen::Matrix<double,9,9> > M(mel);
     M << 2, 0, 0, 1, 0, 0, 1, 0, 0,
@@ -469,6 +471,10 @@ NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
          0, 1, 0, 0, 1, 0, 0, 2, 0,
          0, 0, 1, 0, 0, 1, 0, 0, 2;
      M *= mass/12;
+#else
+     std::cerr << " ERROR: consistent mass matrix for NLMembrane element requires Eigen3 library\n";
+     exit(-1);
+#endif
   }
   else { // lumped mass matrix
 

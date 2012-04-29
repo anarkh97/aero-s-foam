@@ -10,7 +10,9 @@
 #include <utility>
 #include <map>
 
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 
 class Connectivity;
 class FaceElement;
@@ -32,10 +34,10 @@ class NodalMortarShapeFct {
 	std::vector<double> SlaveMPCCoeffs;
 	std::vector<double> MasterMPCCoeffs;
         double MPCRhs;
-
+#ifdef USE_EIGEN3
         Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> SlaveMPCCoeffDerivs;
         Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> MasterMPCCoeffDerivs;
-	
+#endif	
   public:
 	// Constructors
 	// ~~~~~~~~~~~~

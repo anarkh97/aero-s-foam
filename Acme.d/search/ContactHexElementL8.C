@@ -544,6 +544,7 @@ ContactHexElemL8<DataType>::Compute_Local_Coords( DataType node_positions[8][3],
   local_coords[2] = w0;
 }
 
+#if (MAX_FFI_DERIVATIVES > 0)
 template<>
 inline void
 ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[8][3],
@@ -827,6 +828,7 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
   active_local_coords[1] = v0;
   active_local_coords[2] = w0;
 }
+#endif
 
 template<typename DataType>
 void ContactHexElemL8<DataType>::Compute_Global_Coords( DataType node_positions[8][3],

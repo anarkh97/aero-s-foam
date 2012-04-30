@@ -1484,8 +1484,6 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
 
         ContactFaceFaceInteraction *active_cffi = Face_Face_Search_Step2(active_slave_face, active_master_face, active_master_element, POSITION, in_cnt, all_planar);
         if(active_cffi) active_slave_face->Store_FaceFace_Interaction(active_cffi);
-        else { std::cerr << "whoopsy2\n"; }
-
         // copy the FaceFaceInteractions to slave_face
         ContactInteractionDLL *interactions = active_slave_face->Get_FaceFace_Interactions();
         if(interactions) {

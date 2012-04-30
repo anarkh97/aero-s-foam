@@ -1550,7 +1550,6 @@ ContactSearch::Face_Face_Search_Step2(ContactFace<DataType>* slave_face,
               slave_face, master_face, num_area,
               ifaceedge, iedge_m, area_s, area_m );
       }
-      else std::cerr << "whoopsy\n";
     }
   }
   return cffi;

@@ -108,7 +108,7 @@ FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveF
 #if (MAX_MORTAR_DERIVATIVES > 0)
 template<>
 inline void
-FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl,
+FFIPolygon<ActiveDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl,
                                      int nVert, double* ACME_FFI_Data)
 {
   nVertices  = nVert;
@@ -122,9 +122,9 @@ FFIPolygon<MadDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* Sla
 
 template<>
 inline void
-FFIPolygon<MadDouble>::PrepLocalCoordData()
+FFIPolygon<ActiveDouble>::PrepLocalCoordData()
 {
-  MadDouble* ACME_FFI_LocalCoordData_copy = new MadDouble[nVertices*4];
+  ActiveDouble* ACME_FFI_LocalCoordData_copy = new ActiveDouble[nVertices*4];
 
   for(int i=0; i<nVertices; ++i) {
     ACME_FFI_LocalCoordData_copy[4*i  ] = *ACME_FFI_LocalCoordData++;
@@ -700,27 +700,27 @@ FFIPolygon<double>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &Slave
 #if (MAX_MORTAR_DERIVATIVES > 0)
 template<>
 inline void
-FFIPolygon<MadDouble>::ComputeGradNormalM(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+FFIPolygon<ActiveDouble>::ComputeGradNormalM(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
 {
-   // M is computed in FFIPolygon<MadDouble>::ComputeNormalGeoGap
+   // M is computed in FFIPolygon<ActiveDouble>::ComputeNormalGeoGap
 }
 
 template<>
 inline void
-FFIPolygon<MadDouble>::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+FFIPolygon<ActiveDouble>::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
 {
-   // N is computed in FFIPolygon<MadDouble>::ComputeNormalGeoGap
+   // N is computed in FFIPolygon<ActiveDouble>::ComputeNormalGeoGap
 }
 
 template<>
 inline void
-FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp,
+FFIPolygon<ActiveDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp,
                                            double offset)
 {
    PrepLocalCoordData();
    int nMortarShapeFct = MortarEl->nNodes();
 
-   GenVector<MadDouble> MadNormalGeoGaps(nMortarShapeFct,MadDouble(0.0));
+   GenVector<ActiveDouble> MadNormalGeoGaps(nMortarShapeFct,ActiveDouble(0.0));
 
    MadCoordSet MadMasterCoords, MadSlaveCoords;
    for (int i=0; i<MasterFace->nNodes(); ++i) {
@@ -739,9 +739,9 @@ FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &Sl
      mynode->y.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, 3*i+1);
      mynode->z.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, 3*i+2);
 #else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-     mynode->x = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,3*i+0), MAX_MORTAR_DERIVATIVES, 3*i+0);
-     mynode->y = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,3*i+1), MAX_MORTAR_DERIVATIVES, 3*i+1);
-     mynode->z = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,3*i+2), MAX_MORTAR_DERIVATIVES, 3*i+2);
+     mynode->x = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,3*i+0), MAX_MORTAR_DERIVATIVES, 3*i+0);
+     mynode->y = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,3*i+1), MAX_MORTAR_DERIVATIVES, 3*i+1);
+     mynode->z = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,3*i+2), MAX_MORTAR_DERIVATIVES, 3*i+2);
 #endif
      MadMasterCoords[MasterFace->GetNode(i)] = mynode;
    }
@@ -761,11 +761,11 @@ FFIPolygon<MadDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &Sl
      mynode->y.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+1);
      mynode->z.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+2);
 #else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-     mynode->x = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+0),
+     mynode->x = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+0),
                            MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+0);
-     mynode->y = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+1),
+     mynode->y = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+1),
                            MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+1);
-     mynode->z = MadDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+2),
+     mynode->z = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+2),
                            MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+2);
 #endif
      MadSlaveCoords[SlaveFace->GetNode(i)] = mynode;

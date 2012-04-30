@@ -120,13 +120,13 @@ class FaceElement {
         virtual void GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet &cs)=0;
         virtual void LocalToGlobalCoord(double* M, double* m, CoordSet &cs)=0;
 #if (MAX_MORTAR_DERIVATIVES > 0)
-        virtual void GetShapeFctVal(MadDouble* Shape, MadDouble* m)
-          { std::cerr << "FaceElement::GetShapeFctVal(MadDouble* Shape, MadDouble* m) is not implemented\n"; }
-        virtual void GetIsoParamMappingNormalJacobianProduct(MadDouble* JNormal, MadDouble* m, MadCoordSet &cs)
-          { std::cerr << "FaceElement::GetIsoParamMappingNormalJacobianProduct(MadDouble* JNormal, MadDouble* m,"
+        virtual void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
+          { std::cerr << "FaceElement::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m) is not implemented\n"; }
+        virtual void GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet &cs)
+          { std::cerr << "FaceElement::GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m,"
                       << " MadCoordSet &cs) is not implemented\n"; }
-        virtual void LocalToGlobalCoord(MadDouble* M, MadDouble* m, MadCoordSet &cs)
-          { std::cerr << "FaceElement::LocalToGlobalCoord(MadDouble* M, MadDouble* m, MadCoordSet &cs) is not implemented\n"; }
+        virtual void LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs)
+          { std::cerr << "FaceElement::LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs) is not implemented\n"; }
 #endif
 
         virtual FullM ScalarMass(CoordSet& , double rho, int ngp)=0;

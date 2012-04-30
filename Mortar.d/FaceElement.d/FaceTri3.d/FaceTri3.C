@@ -168,7 +168,7 @@ FaceTri3::LocalToGlobalCoord(double *M, double *m, CoordSet &cs)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceTri3::LocalToGlobalCoord(MadDouble *M, MadDouble *m, MadCoordSet &cs)
+FaceTri3::LocalToGlobalCoord(ActiveDouble *M, ActiveDouble *m, MadCoordSet &cs)
 {
   return LocalToGlobalCoordTemp(M, m, cs);
 }
@@ -182,7 +182,7 @@ FaceTri3::GetShapeFctVal(double *Shape, double *m)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceTri3::GetShapeFctVal(MadDouble *Shape, MadDouble *m)
+FaceTri3::GetShapeFctVal(ActiveDouble *Shape, ActiveDouble *m)
 {
    GetShapeFct(Shape, m);
 }
@@ -215,7 +215,7 @@ FaceTri3::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, Co
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceTri3::GetIsoParamMappingNormalJacobianProduct(MadDouble *JNormal, MadDouble *m, MadCoordSet &cs)
+FaceTri3::GetIsoParamMappingNormalJacobianProduct(ActiveDouble *JNormal, ActiveDouble *m, MadCoordSet &cs)
 {
    GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
 }

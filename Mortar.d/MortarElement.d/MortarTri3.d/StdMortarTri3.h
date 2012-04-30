@@ -36,7 +36,7 @@ class StdMortarTri3: public MortarElement {
 	// -> implementation of virtual methods
 	void GetShapeFctVal(double* Shape, double* m);
 #if (MAX_MORTAR_DERIVATIVES > 0)
-        void GetShapeFctVal(MadDouble* Shape, MadDouble* m);
+        void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m);
 #endif
 };
 

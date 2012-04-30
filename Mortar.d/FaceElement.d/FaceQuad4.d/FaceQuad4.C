@@ -223,7 +223,7 @@ FaceQuad4::LocalToGlobalCoord(double* M, double* m, CoordSet &cs)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceQuad4::LocalToGlobalCoord(MadDouble* M, MadDouble* m, MadCoordSet &cs)
+FaceQuad4::LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs)
 {
   LocalToGlobalCoordTemp(M, m, cs);
 }
@@ -237,7 +237,7 @@ FaceQuad4::GetShapeFctVal(double *Shape, double *m)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceQuad4::GetShapeFctVal(MadDouble *Shape, MadDouble *m)
+FaceQuad4::GetShapeFctVal(ActiveDouble *Shape, ActiveDouble *m)
 {
   GetShapeFct(Shape, m);
 }
@@ -381,7 +381,7 @@ FaceQuad4::GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, C
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceQuad4::GetIsoParamMappingNormalJacobianProduct(MadDouble* JNormal, MadDouble* m, MadCoordSet& cs)
+FaceQuad4::GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet& cs)
 {
   GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
 }

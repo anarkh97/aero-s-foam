@@ -95,9 +95,9 @@ class FaceQuad4: public FaceElement {
         double GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet& cs);
         void   GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet& cs);
 #if (MAX_MORTAR_DERIVATIVES > 0)
-        void   GetShapeFctVal(MadDouble*, MadDouble*);
-        void   LocalToGlobalCoord(MadDouble* M, MadDouble* m, MadCoordSet& cs);
-        void   GetIsoParamMappingNormalJacobianProduct(MadDouble* JNormal, MadDouble* m, MadCoordSet& cs);
+        void   GetShapeFctVal(ActiveDouble*, ActiveDouble*);
+        void   LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet& cs);
+        void   GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet& cs);
 #endif
 
 	// Miscelleaneous methods

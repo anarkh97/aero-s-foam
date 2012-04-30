@@ -161,10 +161,6 @@ IF(UNIX)
       MESSAGE("-- A library with SACADO API found. ")
       add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
       include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
-      IF(EIGEN3_FOUND)
-        add_definitions(-DFFI_AUTO_DIFF_SACADO -DMAX_FFI_DERIVATIVES=24)
-        add_definitions(-DMORTAR_AUTO_DIFF_SACADO -DMAX_MORTAR_DERIVATIVES=24)
-      ENDIF(EIGEN3_FOUND)
     ENDIF(SACADO_INCLUDE_PATH)
 
 # metis

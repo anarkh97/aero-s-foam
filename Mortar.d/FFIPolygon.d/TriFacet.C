@@ -316,9 +316,9 @@ TriFacet<double>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& Fr
 #if (MAX_MORTAR_DERIVATIVES > 0)
 template<>
 inline FullM
-TriFacet<MadDouble>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
+TriFacet<ActiveDouble>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
 {
-  std::cerr << "TriFacet<MadDouble>::IntegrateShapeFctProduct is not implemented\n";
+  std::cerr << "TriFacet<ActiveDouble>::IntegrateShapeFctProduct is not implemented\n";
 }
 #endif
 
@@ -410,9 +410,9 @@ TriFacet<double>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFac
 #if (MAX_MORTAR_DERIVATIVES > 0)
 template<>
 inline FullM
-TriFacet<MadDouble>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
+TriFacet<ActiveDouble>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
 {
-  std::cerr << "TriFacet<MadDouble>::IntegrateNormalShapeFctProduct is not implemented\n";
+  std::cerr << "TriFacet<ActiveDouble>::IntegrateNormalShapeFctProduct is not implemented\n";
 }
 #endif
 

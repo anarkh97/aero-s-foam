@@ -2479,7 +2479,7 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
     if(CurrentMortarCond->GetInteractionType() == t) {
 #if (MAX_MORTAR_DERIVATIVES > 0)
       if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag())
-        CurrentMortarCond->CreateFFIPolygon<MadDouble>();
+        CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
       else
 #endif
       CurrentMortarCond->CreateFFIPolygon<double>();
@@ -2533,7 +2533,7 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
 #endif
 #if (MAX_MORTAR_DERIVATIVES > 0)
     if(CurrentMortarCond->GetInteractionType()==MortarHandler::CTC && !tdenforceFlag())
-      CurrentMortarCond->CreateFFIPolygon<MadDouble>();
+      CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
     else
 #endif
     CurrentMortarCond->CreateFFIPolygon<double>();

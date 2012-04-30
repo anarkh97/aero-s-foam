@@ -61,7 +61,7 @@ StdMortarTri3::GetShapeFctVal(double* Shape, double* m)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-StdMortarTri3::GetShapeFctVal(MadDouble* Shape, MadDouble* m)
+StdMortarTri3::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
 {
    GetStdMortarShapeFct(Shape, m);
 }

@@ -61,7 +61,7 @@ StdMortarQuad4::GetShapeFctVal(double* Shape, double* m)
 
 #if (MAX_MORTAR_DERIVATIVES > 0)
 void
-StdMortarQuad4::GetShapeFctVal(MadDouble* Shape, MadDouble* m)
+StdMortarQuad4::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
 {
    GetStdMortarShapeFct(Shape, m);
 }

@@ -1,7 +1,7 @@
 # use to tell cmake where to search for the include files and libraries of:
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
 SET(CMAKE_INCLUDE_PATH
-    /home/avery/Projects/Merge/eigen
+    /home/avery/Codes/eigen
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/sacado/src
     /home/avery/Codes/trilinos/trilinos-10.10.2-Obj_cmake/include
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/zoltan/src)

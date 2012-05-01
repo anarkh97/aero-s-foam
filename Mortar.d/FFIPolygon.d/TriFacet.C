@@ -319,6 +319,7 @@ inline FullM
 TriFacet<ActiveDouble>::IntegrateShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet &cs, int ngp)
 {
   std::cerr << "TriFacet<ActiveDouble>::IntegrateShapeFctProduct is not implemented\n";
+  return FullM(0);
 }
 #endif
 
@@ -413,6 +414,7 @@ inline FullM
 TriFacet<ActiveDouble>::IntegrateNormalShapeFctProduct(MortarElement* MortarEl, TriFacet& FriendFacet, CoordSet& cs, int ngp)
 {
   std::cerr << "TriFacet<ActiveDouble>::IntegrateNormalShapeFctProduct is not implemented\n";
+  return FullM(0);
 }
 #endif
 

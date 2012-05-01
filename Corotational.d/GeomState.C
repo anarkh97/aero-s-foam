@@ -261,6 +261,7 @@ GeomState::operator=(const GeomState &g2)
 
   // now deal with element states
   numelems = g2.numelems;
+  if(es) delete [] es;
   es = new ElemState[numelems];
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];

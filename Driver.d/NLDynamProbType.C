@@ -177,7 +177,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
     if(aeroAlg < 0) {
       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
-                ch[int((timeLoop + getTime())/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100.0));
+                ch[int((timeLoop + getTime())/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100+0.5));
       if(verboseFlag) filePrint(stderr,"\n");
     }
 

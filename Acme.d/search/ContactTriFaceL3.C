@@ -34,7 +34,6 @@
 #include <new>
 
 using acme::Dot;
-using acme::Cross;
 using acme::Normalize;
 using acme::Magnitude;
 using acme::ScalarTripleProduct;
@@ -94,7 +93,7 @@ void ContactTriFaceL3<DataType>::Compute_Normal( VariableHandle CURRENT_POSITION
   // Compute the face normal as the cross product of the two vectors
   DataType* face_normal = Variable(FACE_NORMAL);
 
-  Cross(Vec01, Vec02, face_normal);
+  acme::Cross(Vec01, Vec02, face_normal);
   Normalize(face_normal);
 }
 
@@ -120,7 +119,7 @@ void ContactTriFaceL3<DataType>::Compute_Normal(VariableHandle POSITION,
   Vec02[2] = Position2[2] - Position0[2];
 
   // Compute the face normal as the cross product of the two vectors
-  Cross(Vec01,Vec02,normal);
+  acme::Cross(Vec01,Vec02,normal);
   Normalize(normal);
 }
 
@@ -148,7 +147,7 @@ void ContactTriFaceL3<DataType>::Compute_Normal(DataType** nodal_positions,
   Vec02[2] = Position2[2] - Position0[2];
 
   // Compute the face normal as the cross product of the two vectors
-  Cross(Vec01,Vec02,normal);
+  acme::Cross(Vec01,Vec02,normal);
   Normalize(normal);
 }
 
@@ -175,7 +174,7 @@ void ContactTriFaceL3<DataType>::Compute_CharacteristicLength( VariableHandle CU
 
   // Compute the face normal as the cross product of the two vectors
   DataType face_normal[3];
-  Cross(Vec01,Vec02,face_normal);
+  acme::Cross(Vec01,Vec02,face_normal);
 
   DataType* characteristiclength = Variable(CHARACTERISTIC_LENGTH);
   //
@@ -307,7 +306,7 @@ ContactTriFaceL3<DataType>::Compute_Edge_Normal( VariableHandle POSITION,
   // Compute the normal direction as the cross product of the edge tangent
   // and the face normal.
   DataType* face_normal = Variable(FACE_NORMAL);
-  Cross(edge_tangent, face_normal, edge_normal);
+  acme::Cross(edge_tangent, face_normal, edge_normal);
   Normalize(edge_normal);
 }
 
@@ -419,7 +418,7 @@ void ContactTriFaceL3<DataType>::FacetDecomposition(int& nfacets,
   Vec02[2] = Position2[2] - Position0[2];
 
   // Compute the face normal as the cross product of the two vectors
-  Cross(Vec01,Vec02,normals0);
+  acme::Cross(Vec01,Vec02,normals0);
   Normalize(normals0);
  
   if (coordinates1!=NULL) {
@@ -447,7 +446,7 @@ void ContactTriFaceL3<DataType>::FacetDecomposition(int& nfacets,
     Vec02[2] = Position2[2] - Position0[2];
 
     // Compute the face normal as the cross product of the two vectors
-    Cross(Vec01,Vec02,normals1);
+    acme::Cross(Vec01,Vec02,normals1);
     Normalize(normals1);
   }
 
@@ -476,7 +475,7 @@ void ContactTriFaceL3<DataType>::FacetDecomposition(int& nfacets,
     Vec02[2] = Position2[2] - Position0[2];
 
     // Compute the face normal as the cross product of the two vectors
-    Cross(Vec01,Vec02,normals2);
+    acme::Cross(Vec01,Vec02,normals2);
     Normalize(normals2);
   }
 }
@@ -979,7 +978,7 @@ void ContactTriFaceL3<DataType>::Compute_Node_Areas( VariableHandle POSITION,
 
   // Take the cross product
   DataType cross[3];
-  Cross(vec_0_1, vec_0_2, cross);
+  acme::Cross(vec_0_1, vec_0_2, cross);
 
   // The total area is then the 1/2 the magnitude of the vector.
   // The node area is then 1/3 of the total area.
@@ -1072,7 +1071,7 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   DataType dz2  = node_position2[2] - node_position0[2];
 
   DataType normal[3];
-  Cross(dx1,dy1,dz1, // vector a
+  acme::Cross(dx1,dy1,dz1, // vector a
               dx2,dy2,dz2, // vector b
 	      normal);     // vector c = a X b;
 
@@ -1341,7 +1340,7 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
                     node_positions[2][2] - node_positions[0][2] };
 
   DataType Normal[3];
-  Cross(v_0_1, v_0_2, Normal);
+  acme::Cross(v_0_1, v_0_2, Normal);
 
   // Compute the areas
   DataType a0 = ScalarTripleProduct(v_c_1, v_c_2, Normal);

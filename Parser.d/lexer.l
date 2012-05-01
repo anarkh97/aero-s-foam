@@ -80,7 +80,7 @@ TRAIL [a-zA-Z]*
 			}
 	    }
 
-"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODE;    }
+"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODETOKEN;    }
 
 "ZERO"[a-zA-Z]*|"zero"[a-zA-Z]*    { return ZERO;    }
 

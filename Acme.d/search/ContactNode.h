@@ -366,7 +366,7 @@ inline void ContactNode<DataType>::Unpack( char* buffer )
   exodus_id                     = i_buf[cnt++];
   shell_node_base_id            = i_buf[cnt++];
   node_type                     = (ContactSearch::ContactNode_Type) i_buf[cnt++];
-  physical_type                 = (ContactNode<DataType>::PHYSICAL_TYPE) i_buf[cnt++];
+  physical_type                 = (typename ContactNode<DataType>::PHYSICAL_TYPE) i_buf[cnt++];
   int state                     = i_buf[cnt++];
   faces.clear();
   
@@ -479,7 +479,7 @@ inline void ContactNode<DataType>::Unpack_ForSecondary( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
   ContactTopologyEntity<DataType>::Unpack_ForSecondary( buffer, DATA_LENGTH );
-  physical_type      = (ContactNode<DataType>::PHYSICAL_TYPE         )((i_buf[1]   ) & 0xf);
+  physical_type      = (typename ContactNode<DataType>::PHYSICAL_TYPE       )((i_buf[1]   ) & 0xf);
   node_type          = (ContactSearch::ContactNode_Type    )((i_buf[1]>>4) & 0xf);
   int state          = ((i_buf[1]>>12) & 0xf)-2;
   

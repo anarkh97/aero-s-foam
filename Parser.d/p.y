@@ -76,7 +76,7 @@
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
-%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODE NONINPC
+%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6
 %token QSTATIC QLOAD
@@ -724,7 +724,7 @@ OutInfo:
         | TDENFORC Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for group or one node (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
 
-        | OutInfo NODE Integer
+        | OutInfo NODETOKEN Integer
         { $$.nodeNumber = $3-1; }
         | OutInfo SURFACE
         { $$.surface = $2; }
@@ -2190,7 +2190,7 @@ AcmeControls:
         | MORTARINTEGRATIONRULE Integer NewLine
         { domain->solInfo().mortar_integration_rule = $2; }
 NodeSet:
-	NODE NewLine Node
+	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }
 	| NodeSet Node
 	{ geoSource->addNode($2.num, $2.xyz); }

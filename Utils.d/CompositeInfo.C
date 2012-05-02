@@ -48,29 +48,28 @@ LayInfo::LayInfo(int _type) : matids(0)
  type      = _type;
  maxLayer  = 4;
  numLayers = 0;
- data      = new double[maxLayer][9];
- grad      = new double[maxLayer][9];
+ data      = new double[maxLayer][12];
+ grad      = new double[maxLayer][12];
 }
 
 void
 LayInfo::add(int ln, double *v, int m)
 { 
- //cerr << "in LayInfo::add, ln = " << ln << ", v[7] = " << v[7] << ", v[8] = " << v[8] << ", m = " << m << endl;
  int i,j;
 
  //allocate
  if(ln >= maxLayer) {
    int newMaxLayer = (ln+4);
-   double (*newData)[9] = new double[newMaxLayer][9];
+   double (*newData)[12] = new double[newMaxLayer][12];
    for(i=0; i < numLayers; ++i) 
-     for(j=0; j < 9; ++j)
+     for(j=0; j < 12; ++j)
         newData[i][j] = data[i][j];
   delete [] data;
   data     = newData;
   maxLayer = newMaxLayer;
  }
  if(ln >= numLayers) numLayers = ln+1;
- for(i=0; i < 9; ++i)
+ for(i=0; i < 12; ++i)
    data[ln][i] = v[i];
 
  matids[ln] = m;  // PJSA
@@ -78,7 +77,7 @@ LayInfo::add(int ln, double *v, int m)
 
 //------------------------------------------------------------
 
-void LayInfo::setAllLayers(int nLayers, double (*d)[9])  {
+void LayInfo::setAllLayers(int nLayers, double (*d)[12])  {
 
   delete [] data;
   maxLayer = nLayers;
@@ -94,7 +93,7 @@ LayInfo::setGrad()
 {
   delete [] grad;
 
-  grad = new double[maxLayer][9];
+  grad = new double[maxLayer][12];
 }
 
 void
@@ -102,7 +101,7 @@ LayInfo::zeroGrad()
 {
   int i,j;
   for(i=0; i < numLayers; ++i)
-    for(j=0; j < 9; ++j)
+    for(j=0; j < 12; ++j)
       grad[i][j] = 0.0;
 }
 
@@ -114,6 +113,7 @@ void
 LayInfo::setLayerMaterialProperties(int k, double *d)
 {
   double E1 = d[0], E2 = d[1], nu12 = d[2], G12 = d[3], mx = d[4], my = d[5], rho = d[6];
+  double cte1 = d[7], cte2 = d[8], ta = d[9];
   data[k][0] = E1;
   data[k][1] = E2;
   data[k][2] = nu12;
@@ -121,7 +121,9 @@ LayInfo::setLayerMaterialProperties(int k, double *d)
   data[k][4] = mx; 
   data[k][5] = my; 
   data[k][6] = rho;
-  //cerr << "E1 = " << E1 << ", E2 = " << E2 << ", nu12 = " << nu12 << ", G12 = " << G12 << ", mx = " << mx << ", my = " << my << ", rho = " << rho << endl;
+  data[k][9] = cte1;
+  data[k][10] = cte2;
+  data[k][11] = ta;
 }
 
 int 

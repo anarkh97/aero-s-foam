@@ -72,7 +72,7 @@ C
 C
       real*8     ebar,epsxx,epsyy,epszz,epsxy,t2
       real*8     globalX(3) , globalY(3) , globalZ(3) , globalU(18)
-      real*8     cmpco(36,nttco) , mtlay(9,nttly) , cmpfr(9,ncmpfr)
+      real*8     cmpco(36,nttco) , mtlay(12,nttly) , cmpfr(9,ncmpfr)
       real*8     stress(msize,maxstr,maxgus) , E , nu , h(3) 
       real*8     str(6),xp(3),yp(3),zp(3)
       real*8     xg(3),yg(3),zg(3)

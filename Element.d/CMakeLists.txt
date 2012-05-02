@@ -84,6 +84,7 @@ CompShell.d/compjac.f
 CompShell.d/complay.f
 CompShell.d/compmrot.f
 CompShell.d/compms.f
+CompShell.d/compthmfr.f
 CompShell.d/Compo3NodeShell.C
 CompShell.d/Compo4NodeShell.C
 CompShell.d/compst.f

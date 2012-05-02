@@ -719,7 +719,6 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
       meant += ndTemps[i]/3;
       meant -= Tref;
 
-
      if (geomState) {
 
        // Get Nodes current coordinates

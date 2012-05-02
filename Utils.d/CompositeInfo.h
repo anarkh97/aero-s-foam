@@ -26,13 +26,13 @@ class LayInfo {
    private:
      ResizeArray<int> matids; // PJSA 3-30-05
    public:
-     double (*data)[9];
-     double (*grad)[9];
+     double (*data)[12];
+     double (*grad)[12];
 
      LayInfo(int _type);
  
      void add(int k, double *d, int m = -1); // PJSA 3-30-05 added m (layer material id)
-     void setAllLayers(int, double (*)[9]);
+     void setAllLayers(int, double (*)[12]);
      void setGrad();
      void zeroGrad();
 
@@ -50,8 +50,8 @@ class LayInfo {
 class LayMat {
   public:
     int m;
-    double data[7]; // data[] = { E1  E2  nu12  G12  mu1,12 mu2,12 rho }
-    LayMat(int _m, double *d) { m = _m; for(int i=0; i<7; ++i) data[i] = d[i]; }
+    double data[10]; // data[] = { E1  E2  nu12  G12  mu1,12 mu2,12 rho, cte1, cte2, ta }
+    LayMat(int _m, double *d) { m = _m; for(int i=0; i<10; ++i) data[i] = d[i]; }
 };
 
 #endif

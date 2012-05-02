@@ -193,9 +193,15 @@ void
 SuperElement::getThermalForce(CoordSet &cs, Vector &nodeTemp, Vector &thermalForce,
                               int glflag, GeomState *gs)
 {
+  if(!sub_extf) { // save a copy of the external force for each sub-element
+    sub_extf = new double * [nSubElems];
+    for(int i=0; i<nSubElems; ++i) sub_extf[i] = new double[subElems[i]->numDofs()];
+  }
+
   thermalForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    Vector subThermalForce(subElems[i]->numDofs());
+    Vector subThermalForce(subElems[i]->numDofs(), sub_extf[i], false);
+    subThermalForce.zero();
     Vector subNodeTemp(nodeTemp, subElems[i]->numNodes(), subElemNodes[i]);
     subElems[i]->getThermalForce(cs, subNodeTemp, subThermalForce, glflag, gs);
     thermalForce.add(subThermalForce, subElemDofs[i]);

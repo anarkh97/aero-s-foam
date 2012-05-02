@@ -216,7 +216,7 @@ C
       integer    nttly , ctyp , catt , cfrm , elm
       integer    idlay(5,nttly) , iatt , ncmpfr , medof
 C
-      real*8     rho , emass(medof,medof) , mtlay(9,nttly)
+      real*8     rho , emass(medof,medof) , mtlay(12,nttly)
       real*8     h(3) , cmpfr(9,ncmpfr) , x(3) , y(3) , z(3)
       real*8     totmas , gamma(*) , grvfor(*)
 

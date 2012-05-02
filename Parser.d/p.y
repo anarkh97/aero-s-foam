@@ -608,6 +608,20 @@ LayData:
           $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
 	  $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
 	  $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.lnum = $1-1;
+          $$.matid = -1; // PJSA 3-30-05: this means elastic constants are defined
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10;
+          $$.d[9] = $11;$$.d[10]= $12; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.lnum = $1-1;
+          $$.matid = -1; // PJSA 3-30-05: this means elastic constants are defined
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10;
+          $$.d[9] = $11;$$.d[10]= $12; $$.d[11] = $13; } 
 	;
 LayoData:
         Integer Integer Float Float NewLine // PJSA 3-30-05: elastic constants to be read later from LAYMAT
@@ -621,11 +635,27 @@ LayMat:
 LayMatData:
         Integer Float Float Float Float Float NewLine // E1 E2 nu12 G12 rho
                                                       // note: coefficients of mutual influence are zero
+                                                      //       coefficients of thermal expansion are zero
+                                                      //       reference temperature is zero
         { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-          $$.d[3] = $5; $$.d[4] = 0.0; $$.d[5] = 0.0; $$.d[6] = $6; }
+          $$.d[3] = $5; $$.d[4] = 0.0; $$.d[5] = 0.0; $$.d[6] = $6; 
+          $$.d[7] = 0; $$.d[8] = 0; $$.d[9] = 0; }
         | Integer Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho
+                                                                    // note: coefficients of thermal expansion are zero
+                                                                    //       reference temperature is zero
         { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8; }
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8;
+          $$.d[7] = 0; $$.d[8] = 0; $$.d[9] = 0; }
+        | Integer Float Float Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho, cte1, cte2
+                                                                                // note: reference temperature is zero
+        { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8;
+          $$.d[7] = $9; $$.d[8] = $10; $$.d[9] = 0; }
+        | Integer Float Float Float Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho, cte1, cte2, ta
+        { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8; 
+          $$.d[7] = $9; $$.d[8] = $10; $$.d[9] = $11; }
+        ;
 DiscrMasses:
 	DIMASS NewLine
 	| DiscrMasses Integer Integer Float NewLine

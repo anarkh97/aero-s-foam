@@ -2269,7 +2269,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
         }
         int nNodes = SurfEntities[iSurf]->GetFaceElemSet()[i]->nNodes();
         int *nodes = new int[nNodes];
-        for(int j=0; j<nNodes; ++i) nodes[nNodes-1-j] = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetNode(j);
+        for(int j=0; j<nNodes; ++j) nodes[nNodes-1-j] = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetNode(j);
         SurfEntities[iSurf]->AddFaceElement(nFaceElems+i, etype, nNodes, nodes);
         delete [] nodes;
       }

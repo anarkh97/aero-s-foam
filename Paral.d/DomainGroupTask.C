@@ -180,7 +180,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
   GenMultiSparse<Scalar> *allMats = 0;
   if(make_feti) {
-    if(domain->solInfo().type == 2) {
+    if(domain->solInfo().type == 2 || domain->solInfo().type == 3) {
       switch(solvertype) {
         default :
           cerr << " ... WARNING: in DomainGroupTask::runFor solvertype " << solvertype << " is  not implemented. Skyline solver is used instead ...\n";

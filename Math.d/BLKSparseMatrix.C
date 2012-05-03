@@ -452,7 +452,7 @@ GenBLKSparseMatrix<Scalar>::factor()
   // IFLAG = 31: insufficient work space in tmpvec.
   // IFLAG = 32: insufficient work space in iwork.
   // IFLAG = 33: insufficient work space in rwork.
-  def = 0;
+  if(def) delete [] def; def = 0;
   if(numrbm > 0) {
     def = new int[numrbm];
     for(int i=0; i<numrbm; ++i) def[i] = deftemp[i];
@@ -493,7 +493,8 @@ GenBLKSparseMatrix<Scalar>::computeRBMs()
         zem[m][i] = ns[i+m*numUncon];
     }
     if(rbm && myRbm) delete rbm;
-    rbm = new Rbm(zem,numrbm,numUncon);
+    rbm = new Rbm(zem,numrbm,numUncon,1);
+    myRbm = true;
     delete [] ns; delete [] tempvec;
   }
 }

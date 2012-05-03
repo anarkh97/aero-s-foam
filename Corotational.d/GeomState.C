@@ -268,6 +268,9 @@ GeomState::operator=(const GeomState &g2)
   emap = g2.emap;
 
 #ifdef WITH_GLOBAL_ROT
+  refCG[0] = g2.refCG[0];
+  refCG[1] = g2.refCG[1];
+  refCG[2] = g2.refCG[2];
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];

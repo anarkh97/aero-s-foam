@@ -252,6 +252,8 @@ SpringCorotator::getStiffAndForce(GeomState &geomState, CoordSet & cs,
     fprintf(stderr,"Forces: %e, ",f[i]);
   fprintf(stderr,"\n");
 */
+  delete [] dim;
+
   return;
 }
 

@@ -1990,6 +1990,14 @@ FaceSet:
           $$->SetShellThickness($4);
           domain->AddSurfaceEntity($$);
         }
+        | SURFACETOPOLOGY Integer SHELLTHICKNESS Float REVERSENORMALS NewLine 
+        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          $$->SetIsShellFace(true);
+          $$->SetShellThickness($4);
+          $$->SetReverseNormals(true);
+          domain->AddSurfaceEntity($$);
+        }
         | FaceSet Integer Integer NodeNums NewLine 
         { if($$->GetReverseNormals()) { // reverse the node numbering
             int *nodes = new int[$4.num];

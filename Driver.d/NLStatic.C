@@ -428,11 +428,14 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  for(iele=0; iele<numele; ++iele) {
    if(!packedEset[iele]->getProperty()) continue; // phantom
    kel = packedEset[iele]->stiffness(nodes, karray);
-   alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : sinfo.alphaDamp;
-   beta  = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : sinfo.betaDamp;
-   for(i=0; i<cArray[iele].dim(); ++i)
-     for(j=0; j<cArray[iele].dim(); ++j)
-       cArray[iele][i][j] += alpha*mArray[iele][i][j] + beta*kel[i][j];
+   if(packedEset[iele]->isConstraintElement()) cArray[iele].zero();
+   else {
+     alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : sinfo.alphaDamp;
+     beta  = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : sinfo.betaDamp;
+     for(i=0; i<cArray[iele].dim(); ++i)
+       for(j=0; j<cArray[iele].dim(); ++j)
+         cArray[iele][i][j] += alpha*mArray[iele][i][j] + beta*kel[i][j];
+   }
  }
  delete [] karray;
 

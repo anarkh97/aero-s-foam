@@ -102,7 +102,7 @@
 
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
@@ -1308,7 +1308,7 @@ RevoluteJoint::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-OrientJoint::examine(int sub, MultiFront *mf)
+TranslationalJoint::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

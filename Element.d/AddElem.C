@@ -105,7 +105,7 @@ extern map<int,double > weightList;
 
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
@@ -492,7 +492,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) SphericalJoint(n);
        break;
      case 121:
-       ele = new (ba) OrientJoint(n);
+       ele = new (ba) TranslationalJoint(n);
        break;
      case 122:
        ele = new (ba) UniversalJoint(n);
@@ -682,10 +682,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 }
 
 void
-Elemset::mpcelemadd(int num, LMPCons *mpc)
+Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
 {
    Element *ele;
-   ele = new (ba) MpcElement(mpc);
+   ele = new (ba) MpcElement(mpc, nlflag);
    ele->setElementType(1001);
    elemadd(num, ele);
 

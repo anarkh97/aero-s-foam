@@ -1,6 +1,6 @@
 #include <Element.d/Rigid.d/RigidSpring.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 
 RigidSpring::RigidSpring(int* _nn)
  : SuperElement(true)
@@ -12,7 +12,7 @@ RigidSpring::RigidSpring(int* _nn)
   subElems = new Element * [nSubElems];
   int indices[2] = { 0, 1 };
   subElems[0] = new SphericalJoint(indices);
-  subElems[1] = new OrientJoint(indices);
+  subElems[1] = new TranslationalJoint(indices);
 }
 
 int

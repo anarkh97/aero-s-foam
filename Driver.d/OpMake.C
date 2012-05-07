@@ -147,8 +147,11 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
-   alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
-   beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
+   if(packedEset[iele]->isConstraintElement()) { alpha = beta = 0; }
+   else {
+     alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
+     beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
+   }
    complex<double> kappa2 = packedEset[iele]->helmCoefC();
    omega2 = geoSource->shiftVal();
 

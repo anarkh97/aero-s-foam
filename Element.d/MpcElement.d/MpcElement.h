@@ -17,6 +17,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
     // for lagrange multipliers method set prop->lagrangeMult to true and prop->penalty to 0
     // for penalty method set prop->lagrangeMult to false and prop->penalty to some large number
     // for augmented lagrangian method set prop->lagrangeMult to true and prop->penalty to some large number
+    std::map<int,std::vector<int> > rotation_indices;
+    std::map<int,std::vector<double> > rotation_coefs;
 
     void addTerms(DofSet);
     void addTerms(DofSet*);
@@ -24,7 +26,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
   public:
     MpcElement(int, DofSet, int*);
     MpcElement(int, DofSet*, int*);
-    MpcElement(LMPCons *mpc);
+    MpcElement(LMPCons *mpc, bool nlflag);
    ~MpcElement();
 
     int getNumMPCs();

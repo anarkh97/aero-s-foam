@@ -188,7 +188,7 @@ Joint.d/ParallelAxesConstraintType2.C
 Joint.d/PrismaticJoint.C
 Joint.d/RevoluteJoint.C
 Joint.d/SphericalJoint.C
-Joint.d/OrientJoint.C
+Joint.d/TranslationalJoint.C
 Joint.d/UniversalJoint.C
 Joint.d/DotConstraintType1a.C
 Joint.d/RevoluteActuator.C

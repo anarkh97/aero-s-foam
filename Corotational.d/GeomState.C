@@ -268,6 +268,9 @@ GeomState::operator=(const GeomState &g2)
   emap = g2.emap;
 
 #ifdef WITH_GLOBAL_ROT
+  refCG[0] = g2.refCG[0];
+  refCG[1] = g2.refCG[1];
+  refCG[2] = g2.refCG[2];
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
@@ -591,6 +594,9 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
     }
   }
+#ifdef WITH_GLOBAL_ROT
+  computeGlobalRotation();
+#endif
 }
 
 void
@@ -1073,13 +1079,22 @@ void GeomState::computeGlobalRotation()
   double zeroRot[3] = {0,0,0};
   computeRotMat(zeroRot, deltaRot);
 
-  int iter = 3;  // number of iterations
+  int iter = 100;  // maximum number of iterations
+  double tol = 1.0e-12; // convergence tolerance
   double jac[3][3], grad[3];  //minimization gradient and jacobian
+  double l2;
+  bool converged = false;
 
   for (int it = 0; it < iter; it++)  {
     int i,j;
     // compute minimization gradients and jacobians
     computeRotGradAndJac(cg, grad, jac);
+
+   // check for convergence
+    if(it > 0 && sqrt(grad[0]*grad[0]+grad[1]*grad[1]+grad[2]*grad[2]) <= tol) {
+       converged = true;
+       break;
+    }
 
     // rotation results come back in grad
     solve(jac, grad);
@@ -1094,6 +1109,13 @@ void GeomState::computeGlobalRotation()
     for (i = 0; i < 3; ++i)
       for (j = 0; j < 3; ++j)
         gRot[i][j] = R[i][j];
+  }
+
+  if(!converged) {
+    computeRotGradAndJac(cg, grad, jac);
+    double l2 = sqrt(grad[0]*grad[0]+grad[1]*grad[1]+grad[2]*grad[2]);
+    if(l2 > tol)
+      std::cerr << "failed to converge in computeGlobalRotation, l2 norm = " << l2 << std::endl;
   }
 } 
 
@@ -1144,8 +1166,18 @@ void GeomState::computeRotMat(double *angle, double mat[3][3])
   mat[2][2] = c1*c2;
 }
 
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
 void GeomState::solve(double m[3][3], double v[3]) 
 {
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d mat(3,3);
+  for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) mat(i,j) = m[i][j];
+
+  Eigen::Map<Eigen::Vector3d> vec(v);
+  mat.selfadjointView<Eigen::Lower>().ldlt().solveInPlace(vec);
+#else
   int i,j,k;
 
   for (i = 0; i < 2; i++)
@@ -1173,6 +1205,7 @@ void GeomState::solve(double m[3][3], double v[3])
     v[i] /= m[i][i];
 
   }
+#endif
 }
 
 void GeomState::computeRotGradAndJac(double cg[3], double grad[3], double jac[3][3]) 

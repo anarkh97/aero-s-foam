@@ -1,8 +1,8 @@
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
 #include <Element.d/Joint.d/DotConstraintType1.h>
 
-OrientJoint::OrientJoint(int* _nn)
+TranslationalJoint::TranslationalJoint(int* _nn)
  : SuperElement(true)
 {
   nnodes = 2;
@@ -16,7 +16,7 @@ OrientJoint::OrientJoint(int* _nn)
 }
 
 int 
-OrientJoint::getTopNumber() 
+TranslationalJoint::getTopNumber() 
 { 
   return 106; 
 }

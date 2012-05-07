@@ -539,7 +539,7 @@ class Elemset
     Element *& operator[] (int i);
     void elemadd(int num, Element *);
     void elemadd(int num, int type, int nnodes, int *nodes);
-    void mpcelemadd(int num, LMPCons *mpc);
+    void mpcelemadd(int num, LMPCons *mpc, bool nlflag = false);
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
     void list();

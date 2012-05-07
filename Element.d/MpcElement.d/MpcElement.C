@@ -56,7 +56,7 @@ MpcElement::addTerms(DofSet *nodalDofs)
   }
 }
 
-MpcElement::MpcElement(LMPCons *mpc)
+MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
  : LMPCons(*mpc)
 {
   // count the number of nodes. also fill node numbers array
@@ -71,6 +71,45 @@ MpcElement::MpcElement(LMPCons *mpc)
     if(!found) nn[nNodes++] = nnum;
   }
   nn[nNodes] = -1;
+
+  if(nlflag) {
+    // store the original coefficients of the rotation dofs terms
+    for(int i = 0; i < nterms; ++i) {
+      if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
+        int nodeNumber = terms[i].nnum;
+        std::map<int,std::vector<double> >::iterator it = rotation_coefs.find(nodeNumber);
+        if(it == rotation_coefs.end()) {
+          std::vector<double> v(3); v[0] = v[1] = v[2] = 0;
+          v[terms[i].dofnum-3] = terms[i].coef.r_value;
+          rotation_coefs.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+          std::vector<int> k(3); k[0] = k[1] = k[2] = -1;
+          k[terms[i].dofnum-3] = i;
+          rotation_indices[nodeNumber] = k;
+        }
+        else {
+          it->second[terms[i].dofnum-3] = terms[i].coef.r_value;
+          rotation_indices[it->first][terms[i].dofnum-3] = i;
+        }
+      }
+    }
+    // insert any missing terms (all three rotation dofs should be present even if original coefs are zero)
+    for(std::map<int,std::vector<int> >::iterator it = rotation_indices.begin(); it != rotation_indices.end(); ++it) {
+      for(int j=0; j<3; ++j)
+        if(it->second[j] == -1) {
+          LMPCTerm t(it->first, j+3, 0.0);
+          addterm(&t);
+          it->second[j] = nterms-1;
+        }
+    }
+/*
+    for(std::map<int,std::vector<double> >::iterator it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
+      std::cerr << "node = " << it->first 
+                << ", rotation_coefs = " << it->second[0] << " " << it->second[1] << " " << it->second[2] 
+                << ", rotation_indices = " << rotation_indices[it->first][0] << " " << rotation_indices[it->first][1] << " "
+                << rotation_indices[it->first][2] << std::endl;
+    }
+*/
+  }
 }
 
 MpcElement::~MpcElement()
@@ -247,40 +286,76 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 void 
 MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
 { 
-  // this is for a linear constraint. Nonlinear constraints must overload this function
+  // this is for a linear constraint in nonlinear analysis. Nonlinear constraints must overload this function
   rhs = original_rhs;
+
+  // data structures to store rotation vector and updates coefficients for nodes with rotational lmpc terms
+  std::map<int, std::vector<double> > theta, updated_coefs;
+
+  // initialize the rotation dofs from the current state
+  std::map<int,std::vector<double> >::iterator it;
+  for(it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
+    int nodeNumber = it->first;
+    std::vector<double> v(3);
+    mat_to_vec(c1[nodeNumber].R, &v[0]);
+    theta[nodeNumber] = v;
+    double rotvar[3][3];
+    pseudorot_var(&v[0], rotvar);
+    mat_mult_vec(rotvar, &it->second[0], &v[0], 1);
+    updated_coefs[nodeNumber] = v;
+  }
 
   for(int i = 0; i < nterms; ++i) {
     double u;
     switch(terms[i].dofnum) {
-      case 0 : u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; break;
-      case 1 : u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y; break;
-      case 2 : u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z; break;
+      case 0 : 
+        u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; 
+        rhs.r_value -= terms[i].coef.r_value*u;
+        break;
+      case 1 : 
+        u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y;
+        rhs.r_value -= terms[i].coef.r_value*u;
+        break;
+      case 2 : 
+        u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z;
+        rhs.r_value -= terms[i].coef.r_value*u;
+        break;
       case 3 : case 4 : case 5 : {
-        double theta[3];
-        mat_to_vec(c1[terms[i].nnum].R, theta);
-        u = theta[terms[i].dofnum-3];
+        u = theta[terms[i].nnum][terms[i].dofnum-3];
+        rhs.r_value -= rotation_coefs[terms[i].nnum][terms[i].dofnum-3]*u;
+        terms[i].coef.r_value = updated_coefs[terms[i].nnum][terms[i].dofnum-3];
       } break;
     }
-    rhs.r_value -= terms[i].coef.r_value*u;
   }
 }
 
 void 
-MpcElement::getHessian(GeomState&, CoordSet&, FullSquareMatrix& _H) 
+MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H) 
 {
-  //std::cerr << "here in GenMpcElement<Scalar>::getHessian\n";
-  //std::cerr << "eigenvalues of H: " << this->H.eigenvalues().transpose() << std::endl;
-#ifdef USE_EIGEN3
   if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
-    //std::cerr << "H = \n" << this->H << std::endl;
+#ifdef USE_EIGEN3
     for(int i=0; i<H.rows(); ++i)
       for(int j=0; j<H.cols(); ++j)
         _H[i][j] = H(i,j);
+#endif
   }
   else
-#endif
+  {
     _H.zero();
+
+    // compute second variation of the rotational dof terms
+    double v[3], rotvar[3][3], scndvar[3][3];
+    std::map<int,std::vector<double> >::iterator it;
+    for(it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
+      int nodeNumber = it->first;
+      std::vector<int> dofs = rotation_indices[nodeNumber];
+      mat_to_vec(c1[nodeNumber].R, v);
+      pseudorot_2var(v, &it->second[0], scndvar);
+      for(int i = 0; i < 3; ++i)
+        for(int j = 0; j < 3; ++j)
+          _H[dofs[i]][dofs[j]] = scndvar[i][j];
+    }
+  }
 }
 
 double

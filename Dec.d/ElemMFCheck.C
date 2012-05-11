@@ -100,14 +100,21 @@
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 
+#include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
 #include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
+#include <Element.d/Joint.d/PinInSlotJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
+
+#include <Element.d/Joint.d/SphericalJointSpringCombo.h>
+#include <Element.d/Joint.d/UniversalJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
+#include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
@@ -1296,6 +1303,12 @@ RigidSolid6Dof::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+WeldedJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
 SphericalJoint::examine(int sub, MultiFront *mf)
 {
   return examineBar2(sub, mf, nn);
@@ -1337,3 +1350,32 @@ RevoluteActuator::examine(int sub, MultiFront *mf)
   return examineBeam2(sub, mf, nn);
 }
 
+PrioInfo
+PinInSlotJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+SphericalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+UniversalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PrismaticJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}

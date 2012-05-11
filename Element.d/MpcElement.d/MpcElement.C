@@ -120,6 +120,7 @@ MpcElement::~MpcElement()
 int
 MpcElement::getNumMPCs()
 {
+  if(prop && !prop->lagrangeMult && prop->penalty > 0) return 0; else
   return 1;
 }
 

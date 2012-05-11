@@ -1302,6 +1302,7 @@ Domain::prepDirectMPC()
       }
     }
   }
+  //printLMPC();
   if(nRigid > 0) {
     //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
     std::set<int> blockedNodes;

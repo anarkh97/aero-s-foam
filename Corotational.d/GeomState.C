@@ -1079,7 +1079,7 @@ void GeomState::computeGlobalRotation()
   double zeroRot[3] = {0,0,0};
   computeRotMat(zeroRot, deltaRot);
 
-  int iter = 100;  // maximum number of iterations
+  int iter = 10;  // maximum number of iterations
   double tol = 1.0e-12; // convergence tolerance
   double jac[3][3], grad[3];  //minimization gradient and jacobian
   double l2;
@@ -1111,12 +1111,14 @@ void GeomState::computeGlobalRotation()
         gRot[i][j] = R[i][j];
   }
 
+#ifndef NDEBUG
   if(!converged) {
     computeRotGradAndJac(cg, grad, jac);
     double l2 = sqrt(grad[0]*grad[0]+grad[1]*grad[1]+grad[2]*grad[2]);
     if(l2 > tol)
       std::cerr << "failed to converge in computeGlobalRotation, l2 norm = " << l2 << std::endl;
   }
+#endif
 } 
 
 void GeomState::computeRotMat(double *angle, double mat[3][3])

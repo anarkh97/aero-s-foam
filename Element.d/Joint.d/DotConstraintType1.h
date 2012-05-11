@@ -3,6 +3,10 @@
 
 #include <Element.d/MpcElement.d/MpcElement.h>
 
+// Ref: Rigid Body Dynamics of Mechanisms Vol 1, Hubert Hahn, section 5.2.1.4
+// Constraint Building Block type BB4, also known as a rotation blocker constraint
+// one constrained rotational DOF
+
 class DotConstraintType1 : public MpcElement
 {
     double (*c0)[3]; // initial frame (axes stored row-wise)

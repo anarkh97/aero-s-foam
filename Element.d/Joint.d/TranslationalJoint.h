@@ -5,6 +5,7 @@
 
 // reference: Rigid Body Dynamics of Mechanisms: Theoretical basis, Volume 1
 // Hubert Hahn, section 5.2.2.3
+// constrains three rotational dofs
 
 class TranslationalJoint : public SuperElement
 {

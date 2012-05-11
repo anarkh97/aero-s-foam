@@ -3,6 +3,10 @@
 
 #include <Element.d/SuperElement.h>
 
+// reference: Rigid Body Dynamics of Mechanisms: Theoretical basis, Volume 1
+// Hubert Hahn, section 5.2.2.6
+// constrains two translational and two rotational dofs
+
 class CylindricalJoint : public SuperElement
 {
   public:

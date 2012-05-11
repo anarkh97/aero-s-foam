@@ -771,8 +771,8 @@ void GeoSource::setUpData()
 
     // Check if element exists
     if (ele == 0) {
-       //fprintf(stderr," *** WARNING: Attribute was found for"
-       //               " non existent element %d \n",attrib[i].nele+1);
+       fprintf(stderr," *** WARNING: Attribute was found for"
+                      " non existent element %d \n",attrib[i].nele+1);
       continue;
     }
     if(attrib[i].attr < -1) { // phantom elements

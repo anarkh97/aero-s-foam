@@ -84,6 +84,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+      //std::cerr << "iele = " << iele << ", kel[iele] = \n"; kel[iele].print();
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {

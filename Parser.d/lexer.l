@@ -815,6 +815,8 @@ TRAIL [a-zA-Z]*
 
 "CONSTRMAT"|"constrmat"            { return CONSTRMAT; }
 
+"SPRINGMAT"|"springmat"            { return SPRINGMAT; }
+
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 
 "averageK"|"averagek"|"AVERAGEK"   { yylval.ival = 0; return WAVEMETHOD;}

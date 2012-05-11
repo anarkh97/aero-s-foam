@@ -85,7 +85,7 @@
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
@@ -1963,6 +1963,42 @@ MatData:
           sp.omega = $6;
           sp.phase = $7;
           sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float NewLine
+        { // use for RevoluteJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.kx = $6;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
+        { // use for UniversalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.ky = $6;
+          sp.kz = $7;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
+        { // use for SphericalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.kx = $6;
+          sp.ky = $7;
+          sp.kz = $8;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer SPRINGMAT Float NewLine
+        { // use for TorsionalSpringType1 or TranslationalSpring
+          StructProp sp;
+          sp.kx = $3;
           geoSource->addMat( $1-1, sp );
         }
 	;

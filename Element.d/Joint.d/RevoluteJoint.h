@@ -3,6 +3,10 @@
 
 #include <Element.d/SuperElement.h>
 
+// reference: Rigid Body Dynamics of Mechanisms: Theoretical basis, Volume 1
+// Hubert Hahn, section 5.2.2.5
+// constrains three translational and two rotational dofs
+
 class RevoluteJoint : public SuperElement
 {
   public:

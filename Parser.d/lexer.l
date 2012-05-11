@@ -1180,7 +1180,7 @@ TRAIL [a-zA-Z]*
 
 "surftopo"|"surfacetopo"           { return SURFACETOPOLOGY; }
 
-"REVERSE"[a-zA-Z]*|"reverse"[a-zA-Z]* { return REVERSENORMALS; }
+"REVERSE"[a-zA-Z_]*|"reverse"[a-zA-Z_]* { return REVERSENORMALS; }
 
 "SHELL_THICKNESS"|"shell_thickness" { return SHELLTHICKNESS; }
 "SURFACE_THICKNESS"|"surface_thickness" { return SHELLTHICKNESS; }

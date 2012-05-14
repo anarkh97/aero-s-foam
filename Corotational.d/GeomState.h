@@ -14,9 +14,6 @@ class Node;
 class Elemset;
 
 class NodeState {
-//  private:
-//    DirectionCosineMatrix* dRdr;        // vector of the partial derivatives of R wrt thetax, thetay and thetaz
-//    DirectionCosineMatrix* d2Rdr2;      // vector of the second parital derivatives of R wrt thetax, thetay and thetaz
   public:
     double x,   y,  z;			// x,y,z coordinates
     double d[6], v[6], a[6];	        // x,y,z velocities and accelerations

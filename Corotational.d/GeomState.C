@@ -5,7 +5,7 @@
 #include <Element.d/Element.h>
 #include <Driver.d/GeoSource.h>
 
-#define WITH_GLOBAL_ROT
+//#define COMPUTE_GLOBAL_ROTATION
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)
@@ -98,12 +98,11 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
     }
     
   }
-#ifdef WITH_GLOBAL_ROT
+
   // Initialize Global Rotation Matrix to Identity
   double zeroRot[3] = {0.0, 0.0, 0.0};
   computeRotMat(zeroRot, gRot);
   computeCG(refCG);
-#endif
 
   numelems = 0;
   if(elems) {
@@ -269,14 +268,12 @@ GeomState::operator=(const GeomState &g2)
     es[i] = g2.es[i];
   emap = g2.emap;
 
-#ifdef WITH_GLOBAL_ROT
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
   refCG[2] = g2.refCG[2];
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
-#endif
 
   return *this;
 }
@@ -338,7 +335,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
-#ifdef WITH_GLOBAL_ROT
   // Initialize Global Rotation Matrix & CG position // HB
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
@@ -346,7 +342,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
-#endif
 }
 
 void
@@ -427,7 +422,7 @@ GeomState::update(const Vector &v)
      // Increment rotation tensor R = R(dtheta)Ra
      inc_rottensor( dtheta, ns[i].R );
    }
-#ifdef WITH_GLOBAL_ROT
+#ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();
 #endif
 }
@@ -464,7 +459,7 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
      form_rottensor( theta, ns[i].R );
    }
  }
-#ifdef WITH_GLOBAL_ROT
+#ifdef COMPUTE_GLOBAL_ROTATION
  computeGlobalRotation();
 #endif
 }
@@ -596,7 +591,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
     }
   }
-#ifdef WITH_GLOBAL_ROT
+#ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();
 #endif
 }
@@ -1313,14 +1308,9 @@ void GeomState::rotate(double R[3][3], double v[3])
 
 void GeomState::getGlobalRot(double R[3][3]) 
 {
-#ifdef WITH_GLOBAL_ROT
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       R[i][j] = gRot[i][j];
-#else
-  cerr << " *** ERROR: recompile code with -DWITH_GLOBAL_ROT for nonlinear spring\n";
-  exit(-1);
-#endif
 }
 
 double

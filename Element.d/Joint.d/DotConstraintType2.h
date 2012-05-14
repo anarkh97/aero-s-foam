@@ -5,6 +5,7 @@
 
 class DotConstraintType2 : public MpcElement
 {
+  protected:
     double (*c0)[3]; // initial frame (axes stored row-wise)
     int axis;
     bool covariant_derivatives;

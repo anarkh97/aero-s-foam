@@ -1,6 +1,6 @@
 #include <Element.d/Joint.d/UniversalJointSpringCombo.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
-#include <Element.d/Joint.d/TorsionalSpringType1.h>
+#include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
 UniversalJointSpringCombo::UniversalJointSpringCombo(int* _nn)
  : SuperElement(true)
@@ -12,8 +12,8 @@ UniversalJointSpringCombo::UniversalJointSpringCombo(int* _nn)
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
   subElems[0] = new UniversalJoint(nnloc);
-  subElems[1] = new TorsionalSpringType1(nnloc, 1, 0);
-  subElems[2] = new TorsionalSpringType1(nnloc, 2, 0);
+  subElems[1] = new NonlinearTorsionalSpring(nnloc, 1, 0);
+  subElems[2] = new NonlinearTorsionalSpring(nnloc, 2, 0);
 }
 
 int 

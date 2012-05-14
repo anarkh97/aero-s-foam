@@ -1,4 +1,4 @@
- #include <cstdio>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
@@ -107,6 +107,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
 #include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
 #include <Element.d/Joint.d/DotConstraintType1.h>
+#include <Element.d/Joint.d/DotConstraintType2.h>
 #include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
@@ -115,17 +116,22 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
 #include <Element.d/Joint.d/PinInSlotJoint.h>
+#include <Element.d/Joint.d/PlanarJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
 #include <Element.d/Joint.d/PointLineDistanceConstraint.h>
 
-#include <Element.d/Joint.d/TranslationalSpring.h>
-#include <Element.d/Joint.d/TorsionalSpringType1.h>
+#include <Element.d/Joint.d/LinearTranslationalSpring.h>
+#include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
+#include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
 #include <Element.d/Joint.d/SphericalJointSpringCombo.h>
+#include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
 #include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
 #include <Element.d/Joint.d/UniversalJointSpringCombo.h>
+#include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
+#include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -502,6 +508,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
        break;
+     case 113:
+       ele = new (ba) DotConstraintType1(n, 2, 1); // rotation blocker constraint
+       break;
+     case 114:
+       ele = new (ba) DotConstraintType2(n, 0);
+       break;
      case 115:
        ele = new (ba) ConstantDistanceConstraint(n);
        break;
@@ -512,7 +524,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) ParallelAxesConstraintType2(n); // straight line point follower constraint
        break;
      case 118:
-       ele = new (ba) DotConstraintType1(n, 2, 1); // rotation blocker constraint
+       ele = new (ba) PlanarJoint(n);
        break;
      case 119:
        ele = new (ba) WeldedJoint(n);
@@ -541,14 +553,20 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 127:
        ele = new (ba) PinInSlotJoint(n);
        break;
+     case 200:
+       ele = new (ba) LinearTranslationalSpring(n);
+       break;
      case 201:
-       ele = new (ba) TranslationalSpring(n);
+       ele = new (ba) NonlinearTranslationalSpring(n, 0);
        break;
      case 202:
-       ele = new (ba) TorsionalSpringType1(n, 2, 1);
+       ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
        break;
      case 220:
        ele = new (ba) SphericalJointSpringCombo(n);
+       break;
+     case 221:
+       ele = new (ba) TranslationalJointSpringCombo(n);
        break;
      case 222:
        ele = new (ba) UniversalJointSpringCombo(n);
@@ -556,8 +574,14 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 223:
        ele = new (ba) RevoluteJointSpringCombo(n);
        break;
+     case 224:
+       ele = new (ba) CylindricalJointSpringCombo(n);
+       break;
      case 225:
        ele = new (ba) PrismaticJointSpringCombo(n);
+       break;
+     case 227:
+       ele = new (ba) PinInSlotJointSpringCombo(n);
        break;
      case 128:
        ele = new (ba) NLMembrane4(n);

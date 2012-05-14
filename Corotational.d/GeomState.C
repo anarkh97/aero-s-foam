@@ -119,6 +119,8 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
         es[numelems].numInternalStates = numStates;
         es[numelems].internalStates = new double[numStates];
         for(int j = 0; j < numStates; ++j) es[numelems].internalStates[j] = 0;
+        (*elems)[i]->setStateOffset(0);
+        (*elems)[i]->initStates(es[numelems].internalStates);
         emap[(*elems)[i]->getGlNum()] = numelems;
         numelems++;
       }
@@ -1110,7 +1112,7 @@ void GeomState::computeGlobalRotation()
       for (j = 0; j < 3; ++j)
         gRot[i][j] = R[i][j];
   }
-
+/*
 #ifndef NDEBUG
   if(!converged) {
     computeRotGradAndJac(cg, grad, jac);
@@ -1119,6 +1121,7 @@ void GeomState::computeGlobalRotation()
       std::cerr << "failed to converge in computeGlobalRotation, l2 norm = " << l2 << std::endl;
   }
 #endif
+*/
 } 
 
 void GeomState::computeRotMat(double *angle, double mat[3][3])

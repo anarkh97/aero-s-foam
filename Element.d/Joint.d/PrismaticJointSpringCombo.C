@@ -1,6 +1,6 @@
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
-#include <Element.d/Joint.d/TranslationalSpring.h>
+#include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
 
 PrismaticJointSpringCombo::PrismaticJointSpringCombo(int* _nn)
  : SuperElement(true)
@@ -12,7 +12,7 @@ PrismaticJointSpringCombo::PrismaticJointSpringCombo(int* _nn)
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
   subElems[0] = new PrismaticJoint(nnloc);
-  subElems[1] = new TranslationalSpring(nnloc);
+  subElems[1] = new NonlinearTranslationalSpring(nnloc,0);
 }
 
 int 

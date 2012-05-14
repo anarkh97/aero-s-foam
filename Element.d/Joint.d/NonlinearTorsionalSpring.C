@@ -1,27 +1,23 @@
-#include <Element.d/Joint.d/TorsionalSpringType1.h>
+#include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Joint.d/exp-map.h>
 
-TorsionalSpringType1::TorsionalSpringType1(int* _nn, int _axis1, int _axis2)
+NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2)
  : MpcElement(2, DofSet::XYZrot, _nn)
 {
   c0 = 0;
   m_axis1 = _axis1;
   m_axis2 = _axis2;
   covariant_derivatives = true;
-
-  offset = M_PI/2;
-  offset2 = 0;
-  quadrant = 0;
 }
 
-TorsionalSpringType1::~TorsionalSpringType1()
+NonlinearTorsionalSpring::~NonlinearTorsionalSpring()
 {
   if(c0) delete [] c0;
 }
 
 void
-TorsionalSpringType1::setProp(StructProp *p, bool _myProp)
+NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
 {
   prop = (_myProp) ? p : new StructProp(*p); 
   myProp = true;
@@ -32,7 +28,7 @@ TorsionalSpringType1::setProp(StructProp *p, bool _myProp)
 }
 
 void
-TorsionalSpringType1::setFrame(EFrame *elemframe) 
+NonlinearTorsionalSpring::setFrame(EFrame *elemframe) 
 { 
   if(!c0) c0 = new double[3][3];
   for(int i = 0; i < 3; ++i)
@@ -41,7 +37,7 @@ TorsionalSpringType1::setFrame(EFrame *elemframe)
 }
 
 void 
-TorsionalSpringType1::buildFrame(CoordSet& cs)
+NonlinearTorsionalSpring::buildFrame(CoordSet& cs)
 {
   // build frame if not already defined
   if(!c0) {
@@ -57,7 +53,7 @@ TorsionalSpringType1::buildFrame(CoordSet& cs)
     double l0 = std::sqrt( dx*dx + dy*dy + dz*dz );
 
     if(l0 == 0.0) {
-      cerr << " *** ERROR: division by zero in TorsionalSpringType1::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
+      cerr << " *** ERROR: division by zero in NonlinearTorsionalSpring::buildFrame between nodes " << nn[0]+1 << " and " << nn[1]+1 << endl;
       exit(-1);
     }
 
@@ -103,15 +99,18 @@ TorsionalSpringType1::buildFrame(CoordSet& cs)
   }
 
   // -ve value of constraint function
-  rhs.r_value = offset-std::acos(cth);
+  rhs.r_value = M_PI/2-std::acos(cth);
 }
 
 void 
-TorsionalSpringType1::update(GeomState& gState, CoordSet& cs, double t)
+NonlinearTorsionalSpring::update(GeomState& gState, CoordSet& cs, double t)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];
   NodeState ns2 = gState[nn[1]];
+
+  // internal states
+  updateStates((GeomState *) NULL, gState, cs);
 
   // rotated cframes
   double c1[3][3], c2[3][3];
@@ -125,10 +124,10 @@ TorsionalSpringType1::update(GeomState& gState, CoordSet& cs, double t)
   if(cth > 0.707106781 || cth < -0.707106781) {
     if(axis1 != axis2) {
       //std::cerr << "reparameterizing #1, cth = " << cth << ", offset = " << offset << std::endl;
-      if(quadrant == 0 && cth > 0)      { /*std::cerr << "going from quadrant 0 to quadrant 1\n";*/ quadrant = 1; offset2 += M_PI/2; }
-      else if(quadrant == 0 && cth < 0) { /*std::cerr << "going from quadrant 0 to quadrant 3\n";*/ quadrant = 3; offset2 -= M_PI/2; }
-      else if(quadrant == 2 && cth < 0) { /*std::cerr << "going from quadrant 2 to quadrant 3\n";*/ quadrant = 3; offset2 += M_PI/2; }
-      else if(quadrant == 2 && cth > 0) { /*std::cerr << "going from quadrant 2 to quadrant 1\n";*/ quadrant = 1; offset2 -= M_PI/2; }
+      if(quadrant == 0 && cth > 0)      { quadrant = 1; offset2 += M_PI/2; }
+      else if(quadrant == 0 && cth < 0) { quadrant = 3; offset2 -= M_PI/2; }
+      else if(quadrant == 2 && cth < 0) { quadrant = 3; offset2 += M_PI/2; }
+      else if(quadrant == 2 && cth > 0) { quadrant = 1; offset2 -= M_PI/2; }
       else std::cerr << "whoops-a-daisy\n";
 
       axis1 = m_axis2;
@@ -139,10 +138,10 @@ TorsionalSpringType1::update(GeomState& gState, CoordSet& cs, double t)
     }
     else {
       //std::cerr << "reparameterizing #2, cth = " << cth << ", offset = " << offset << std::endl;
-      if(quadrant == 1 && cth < 0)      { /*std::cerr << "going from quadrant 1 to quadrant 2\n";*/ quadrant = 2; offset2 += M_PI/2; }
-      else if(quadrant == 1 && cth > 0) { /*std::cerr << "going from quadrant 1 to quadrant 0\n";*/ quadrant = 0; offset2 -= M_PI/2; }
-      else if(quadrant == 3 && cth > 0) { /*std::cerr << "going from quadrant 3 to quadrant 0\n";*/ quadrant = 0; offset2 += M_PI/2; }
-      else if(quadrant == 3 && cth < 0) { /*std::cerr << "going from quadrant 3 to quadrant 2\n";*/ quadrant = 2; offset2 -= M_PI/2; }
+      if(quadrant == 1 && cth < 0)      { quadrant = 2; offset2 += M_PI/2; }
+      else if(quadrant == 1 && cth > 0) { quadrant = 0; offset2 -= M_PI/2; }
+      else if(quadrant == 3 && cth > 0) { quadrant = 0; offset2 += M_PI/2; }
+      else if(quadrant == 3 && cth < 0) { quadrant = 2; offset2 -= M_PI/2; }
       else std::cerr << "whoops-a-daisy\n";
 
       axis1 = m_axis1;
@@ -153,6 +152,7 @@ TorsionalSpringType1::update(GeomState& gState, CoordSet& cs, double t)
     }
     cth = (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
   }
+
   
   double dacosdcth = -1/std::sqrt(1-cth*cth); // derivative of arccos(cth) w.r.t. cth
 
@@ -201,7 +201,7 @@ TorsionalSpringType1::update(GeomState& gState, CoordSet& cs, double t)
 }
 
 void
-TorsionalSpringType1::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+NonlinearTorsionalSpring::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
 {
   H.zero();
 
@@ -288,14 +288,92 @@ TorsionalSpringType1::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatr
 }
 
 int
-TorsionalSpringType1::numStates()
+NonlinearTorsionalSpring::numStates()
 {
   return 3;
 }
 
-void 
-TorsionalSpringType1::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0)
+void
+NonlinearTorsionalSpring::initStates(double *statenp)
 {
-  // TODO: the element state variable should be stored in GeomState
+  statenp[0] = M_PI/2; // offset
+  statenp[1] = 0.0;    // offset2
+  statenp[2] = 0;      // quadrant
 }
 
+void 
+NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &)
+{
+  // TODO: consider if it is better to update the state from the reference state (i.e. the last converged solution)
+  //       rather than the current newton iteration, as we do for plasticity
+  double *statenp = gState.getElemState(getGlNum()) + stateOffset;
+  offset = statenp[0];
+  offset2 = statenp[1];
+  quadrant = statenp[2];
+
+  // nodes' current coordinates
+  NodeState ns1 = gState[nn[0]];
+  NodeState ns2 = gState[nn[1]];
+
+  // rotated cframes
+  double c1[3][3], c2[3][3];
+  mat_mult_mat(c0, ns1.R, c1, 2);
+  mat_mult_mat(c0, ns2.R, c2, 2);
+
+  int axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
+  double cth = (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
+
+  // reparameterization
+  if(cth > 0.707106781 || cth < -0.707106781) {
+    if(axis1 != axis2) {
+      //std::cerr << "reparameterizing #1, cth = " << cth << ", offset = " << offset << std::endl;
+      if(quadrant == 0 && cth > 0) { 
+        //std::cerr << "going from quadrant 0 to quadrant 1\n";
+        quadrant = 1; offset2 += M_PI/2; 
+      }
+      else if(quadrant == 0 && cth < 0) { 
+        //std::cerr << "going from quadrant 0 to quadrant 3\n";
+        quadrant = 3; offset2 -= M_PI/2;
+      }
+      else if(quadrant == 2 && cth < 0) {
+        //std::cerr << "going from quadrant 2 to quadrant 3\n";
+        quadrant = 3; offset2 += M_PI/2;
+      }
+      else if(quadrant == 2 && cth > 0) {
+        //std::cerr << "going from quadrant 2 to quadrant 1\n";
+        quadrant = 1; offset2 -= M_PI/2;
+      }
+      else std::cerr << "whoops-a-daisy\n";
+
+      if(cth > 0) offset = M_PI/2 - offset2;
+      else        offset = M_PI/2 + offset2;
+    }
+    else {
+      //std::cerr << "reparameterizing #2, cth = " << cth << ", offset = " << offset << std::endl;
+      if(quadrant == 1 && cth < 0) {
+        //std::cerr << "going from quadrant 1 to quadrant 2\n";
+        quadrant = 2; offset2 += M_PI/2;
+      }
+      else if(quadrant == 1 && cth > 0) {
+        //std::cerr << "going from quadrant 1 to quadrant 0\n";
+        quadrant = 0; offset2 -= M_PI/2;
+      }
+      else if(quadrant == 3 && cth > 0) {
+        //std::cerr << "going from quadrant 3 to quadrant 0\n";
+        quadrant = 0; offset2 += M_PI/2;
+      }
+      else if(quadrant == 3 && cth < 0) {
+        //std::cerr << "going from quadrant 3 to quadrant 2\n";
+        quadrant = 2; offset2 -= M_PI/2;
+      }
+      else std::cerr << "whoops-a-daisy\n";
+
+      if(cth > 0) offset = M_PI/2 + offset2;
+      else        offset = M_PI/2 - offset2;
+    }
+  }
+
+  statenp[0] = offset;
+  statenp[1] = offset2;
+  statenp[2] = quadrant;
+}

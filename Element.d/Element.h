@@ -288,7 +288,7 @@ class Element {
 	StructProp *prop;	// structural properties for this element
         double pressure;	// pressure force applied to element
         bool myProp;
-        int glNum, subNum;
+        int glNum, subNum, stateOffset;
         vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
@@ -510,6 +510,7 @@ class Element {
         virtual void readHistory(int) {}
         virtual int numStates() { return 0; }
         virtual void initStates(double *) {}
+        virtual void setStateOffset(int _stateOffset) { stateOffset = _stateOffset; }
 
         virtual double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
                                                 GeomState *gs, double stable_tol, int stable_maxit);

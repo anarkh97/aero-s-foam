@@ -608,6 +608,28 @@ SuperElement::numStates()
 }
 
 void
+SuperElement::setStateOffset(int _stateOffset)
+{
+  stateOffset = _stateOffset;
+
+  int k = stateOffset;
+  for(int i = 0; i < nSubElems; ++i) {
+    subElems[i]->setStateOffset(k);
+    k += subElems[i]->numStates();
+  }
+}
+
+void
+SuperElement::initStates(double *state)
+{
+  int k = stateOffset;
+  for(int i = 0; i < nSubElems; ++i) {
+    subElems[i]->initStates(state+k);
+    k += subElems[i]->numStates();
+  }
+}
+
+void
 SuperElement::makeAllDOFs()
 {
   nInternalNodes = 0;

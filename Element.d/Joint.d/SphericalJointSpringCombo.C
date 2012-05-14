@@ -1,6 +1,6 @@
 #include <Element.d/Joint.d/SphericalJointSpringCombo.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
-#include <Element.d/Joint.d/TorsionalSpringType1.h>
+#include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
 SphericalJointSpringCombo::SphericalJointSpringCombo(int* _nn)
  : SuperElement(true)
@@ -12,9 +12,9 @@ SphericalJointSpringCombo::SphericalJointSpringCombo(int* _nn)
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
   subElems[0] = new SphericalJoint(nnloc);
-  subElems[1] = new TorsionalSpringType1(nnloc, 1, 0);
-  subElems[2] = new TorsionalSpringType1(nnloc, 2, 0);
-  subElems[3] = new TorsionalSpringType1(nnloc, 2, 1);
+  subElems[1] = new NonlinearTorsionalSpring(nnloc, 1, 0);
+  subElems[2] = new NonlinearTorsionalSpring(nnloc, 2, 0);
+  subElems[3] = new NonlinearTorsionalSpring(nnloc, 2, 1);
 }
 
 int 

@@ -108,6 +108,8 @@ class SuperElement : public Element
     void makeAllDOFs();
 
     int numStates();
+    void setStateOffset(int);
+    void initStates(double *);
 };
 
 #endif

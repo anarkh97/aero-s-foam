@@ -441,7 +441,7 @@ struct SolverInfo {
                   maxvecsize = 0; 
 
                   iacc_switch = true;
-                  zeroRot = true;
+                  zeroRot = false;
 
                   dist_acme = 0;
                   allproc_acme = true;

@@ -1,7 +1,6 @@
 #ifdef USE_EIGEN3
 #include <iostream>
 #include <Solvers.d/GoldfarbIdnani.h>
-#include <Solvers.d/eiquadprog.hpp>
 using std::cerr; using std::endl;
 
 template<>
@@ -57,13 +56,20 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
   VectorXd lambda(p), mu(m);
   //note: the exceptions should be caught in the driver, see for example Driver.d/NLDynamProbType.C
   //try { 
+#ifdef CHECK_G
     if(check) {
       Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(G,Eigen::EigenvaluesOnly);
       if(es.eigenvalues().minCoeff() <= 0) throw std::runtime_error("Matrix G is not positive definite");
     }
+#endif
+#if !defined(SPARSE_G) && !defined(CHECK_G)
+    double traceG = diagG.sum();
+#else
+    double traceG = G.trace();
+#endif
 #ifdef SPARSE_G
     Eigen::SparseMatrix<double> SparseG = EiSparseMatrix::getEigenSparse();
-    double f = Eigen::solve_quadprog(SparseG, G.trace(), g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
+    double f = Eigen::solve_quadprog(SparseG, traceG, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
 #else
     double f = Eigen::solve_quadprog(G, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
 #endif

@@ -172,7 +172,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   // In order to make the nodal moments non-follower we need to make a correction...
   for(int i = 0; i < numNeuman; ++i) {
-    if(nbc[i].type == BCond::Forces && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
+    if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
+       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
       int dofs[3];
       dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
       double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];

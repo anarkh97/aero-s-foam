@@ -3315,8 +3315,9 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
   if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin() && nbc[i].type == BCond::Forces                               // see Domain::getStiffAndForce for treatment of
-         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue; // nodal moments in nonlinear analyses
+      if(sinfo.isNonLin() // see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
+         && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators)
+         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {

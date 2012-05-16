@@ -999,7 +999,7 @@ MultiDomainDynam::computeTimeInfo()
   double remainder = totalTime - maxStep*dt;
   if(std::abs(remainder)>0.01*dt){
     domain->solInfo().tmax = maxStep*dt;
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
   }
 }
 

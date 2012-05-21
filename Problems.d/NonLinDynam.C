@@ -1062,7 +1062,7 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
 
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
-    domain->getFileExchanger()->sendDisplacements(state);
+    domain->getFileExchanger()->sendDisplacements(state, -1, geomState);
     if(verboseFlag) filePrint(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
 
     domain->getTimers().sendFluidTime += getTime();

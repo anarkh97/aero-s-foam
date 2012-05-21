@@ -4,11 +4,13 @@
 #include	<Element.d/Element.h>
 #include        <Driver.d/MultiFront.h>
 class GeomState;
+class Shell3Corotator;
 
 class ThreeNodeShell : virtual public Element {
  protected:
 	int nn[3];
 	double w;
+        Shell3Corotator *corot;
 public:
 	ThreeNodeShell(int*, double _w=3);
 

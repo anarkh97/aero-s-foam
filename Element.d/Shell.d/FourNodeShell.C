@@ -60,6 +60,9 @@ FourNodeShell::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, do
   double gpsum = gp[0] + gp[1];
   int i;
   InterpPoint subip;
+  subip.gap[0] = ip.gap[0];
+  subip.gap[1] = ip.gap[1];
+  subip.gap[2] = ip.gap[2];
   if(gpsum <= 1.) {
     i = 0;
     subip.xy[0] = gp[0];
@@ -71,7 +74,7 @@ FourNodeShell::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, do
     subip.xy[1] = 1.0 - gp[1];
   }
 
-  subElems[i]->computeDisp(cs, state, subip, res);
+  subElems[i]->computeDisp(cs, state, subip, res, gs);
 }
 
 void
@@ -82,6 +85,9 @@ FourNodeShell::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
   double gpsum = gp[0] + gp[1];
   int i;
   InterpPoint subip;
+  subip.gap[0] = ip.gap[0];
+  subip.gap[1] = ip.gap[1];
+  subip.gap[2] = ip.gap[2];
   if(gpsum <= 1.) {
     i = 0;
     subip.xy[0] = gp[0];
@@ -94,7 +100,7 @@ FourNodeShell::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
   }
 
   double subres[18];
-  subElems[i]->getFlLoad(cs, subip, flF, subres);
+  subElems[i]->getFlLoad(cs, subip, flF, subres, gs);
 
   int j;
   for(j=0; j<24; ++j) res[j] = 0.0;

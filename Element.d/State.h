@@ -63,7 +63,7 @@ class State {
    // get translational Displacements and Velocities
    void getDV(int node, double[3], double[3]);
 
-   // get rotational Displacements and Velocities
+   // get translational and rotational Displacements and Velocities
    void getDVRot(int node, double[6], double[6]);
    void getTemp(int node, double[1], double[1]);
 

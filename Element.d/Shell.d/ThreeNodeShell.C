@@ -442,23 +442,101 @@ ThreeNodeShell::getCorotator(CoordSet &cs, double *kel, int fitAlgShell, int )
 {
  int flag = 0; // signals stiffness routine to keep local matrix 
  FullSquareMatrix myStiff = stiffness(cs, kel, flag);
- return new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlgShell);
+ corot = new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlgShell);
+ return corot;
 }
 
 void
-ThreeNodeShell::computeDisp(CoordSet&, State &state, const InterpPoint &ip,
-                            double *res, GeomState *gs)
+ThreeNodeShell::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip,
+                            double *res, GeomState *geomState)
 {
  const double *gp = ip.xy;
- double xyz[3][6];
- state.getDV(nn[0], xyz[0], xyz[0]+3);
- state.getDV(nn[1], xyz[1], xyz[1]+3);
- state.getDV(nn[2], xyz[2], xyz[2]+3);
+ double gap = std::sqrt(ip.gap[0]*ip.gap[0]+ip.gap[1]*ip.gap[1]+ip.gap[2]*ip.gap[2]);
+ if(gap < 1e-12 || geomState == NULL) {
 
- int j;
- for(j=0; j<6; ++j)
-    res[j] = (1.0-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+   double xyz[3][6];
+   state.getDV(nn[0], xyz[0], xyz[0]+3);
+   state.getDV(nn[1], xyz[1], xyz[1]+3);
+   state.getDV(nn[2], xyz[2], xyz[2]+3);
 
+   int j;
+   for(j=0; j<6; ++j)
+      res[j] = (1.0-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+ 
+ }
+ else {
+
+   double xyz[3][12];
+   double w[3];
+   state.getDVRot(nn[0], xyz[0], xyz[0]+6);
+   state.getDVRot(nn[1], xyz[1], xyz[1]+6);
+   state.getDVRot(nn[2], xyz[2], xyz[2]+6);
+
+   // Compute the translation and linear velocity at the interpolation point
+   int j;
+   for(j=0; j<3; ++j)
+      res[j] = (1.0-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+   for(j=0; j<3; ++j)
+      res[j+3] = (1.0-gp[0]-gp[1]) * xyz[0][j+6] + gp[0]*xyz[1][j+6] + gp[1]*xyz[2][j+6];
+
+   // Compute the angular velocity at the interpolation point
+   for(j=0; j<3; ++j)
+      w[j] = (1.0-gp[0]-gp[1]) * xyz[0][j+9] + gp[0]*xyz[1][j+9] + gp[1]*xyz[2][j+9];
+
+   // Get Nodes original coordinates (C0 configuration)
+   Node &node1 = cs.getNode(nn[0]);
+   Node &node2 = cs.getNode(nn[1]);
+   Node &node3 = cs.getNode(nn[2]);
+
+   // Get Nodes current coordinates (C0n configuration)
+   NodeState &ns1 = (*geomState)[nn[0]];
+   NodeState &ns2 = (*geomState)[nn[1]];
+   NodeState &ns3 = (*geomState)[nn[2]];   
+
+   double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18];
+
+   // C0    = initial configuration
+   // C0n   = nth configuration
+   // xl0   = C0 local coordinates
+   // xln   = C0n local coordinates
+   // t0    = transformation matrix to C0
+   // t0n   = transformation matrix to C0n
+   // vld   = local deformation vector
+
+   // Compute transformation matrices and 
+   // extract deformational displacement from C0 to C0n configurations
+
+   corot->extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
+
+   double locGap[3], gn[3], dv[3];
+   // initial configuration gap vector in C0 local coordinates
+   for(int i=0; i<3; ++i) {
+     locGap[i] = 0;
+     for(j=0; j<3; ++j)
+       locGap[i] += t0[i][j]*ip.gap[j];
+   }
+   // nth configuration gap vector in global coordinates
+   for(int i=0; i<3; ++i) {
+     gn[i] = 0;
+     for(j=0; j<3; ++j)
+       gn[i] += t0n[j][i]*locGap[j];
+   }
+
+   // correction to displacement of fluid node due to gap = t0n^T*t0*ip.gap - ip.gap
+   for(int i=0; i<3; ++i) {
+     res[i] += (gn[i] - ip.gap[i]);
+   }
+
+   // correction to velocity of fluid node due to gap = w x gn
+   crossprod(w, gn, dv);
+   for(int i=0; i<3; ++i) { 
+     res[i+3] += dv[i];
+   }
+
+   // TODO: 
+   // 1. correction to displacement due to deformational rotation (small)
+   // 2. correction to fluid load due to gap (this will involve adding moments in ThreeNodeShell::getFlLoad)
+ }
 }
 
 void

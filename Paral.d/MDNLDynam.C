@@ -233,7 +233,7 @@ MDNLDynamic::computeTimeInfo()
   double remainder = totalTime - maxStep*dt0;
   if(std::abs(remainder)>0.01*dt0){
     domain->solInfo().tmax = totalTime = maxStep*dt0;
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 
   // XXXX

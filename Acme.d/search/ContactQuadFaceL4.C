@@ -783,7 +783,6 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
                                          DataType* normals, DataType* ctrcl_facets, 
                                          DataType* ctrcl)
 {
-#if (MAX_FFI_DERIVATIVES <= 0)
   int ii1=0,ilocc=0,ilocs=0;
   int iistored=0,iconcave=0,iinside=1,iout=2;
   DataType projcv,projmv,one_third=1.0/3.0;
@@ -948,17 +947,25 @@ void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* 
   for (int i=0; i<LENGTH; ++i) {
     ctrcl[i] = ctrcl_facets[i];
   }
-#else
-  std::cerr << "ContactQuadFaceL4<DataType>::FacetStaticRestriction is not implemented properly\n";
-#endif
 }
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template<>
+void ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction(int nfacets, ActiveScalar* coordinates,
+                                         ActiveScalar* normals, ActiveScalar* ctrcl_facets,
+                                         ActiveScalar* ctrcl)
+{
+  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction is not implemented\n";
+  exit(-1);
+}
+#endif
+
 
 template<typename DataType>
 void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets, 
                                                 DataType* ctrcl_facets, 
                                                 DataType* ctrcl)
 {
-#if (MAX_FFI_DERIVATIVES <= 0)
   // There are three possibilities with each triangle
   //   1) Accepted =  1
   //   2) Rejected =  0
@@ -1017,10 +1024,19 @@ void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets,
   for (int i=0; i<LENGTH; ++i) {
     ctrcl[i] = ctrcl_facets[i];
   }
-#else
-  std::cerr << "ContactQuadFaceL4<DataType>::FacetDynamicRestriction is not implemented properly\n";
-#endif
 }
+
+#if (MAX_FFI_DERIVATIVES > 0)
+template<>
+inline void
+ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction(int nfacets,
+                                                ActiveScalar* ctrcl_facets,
+                                                ActiveScalar* ctrcl)
+{
+  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction is not implemented\n";
+  exit(-1);
+}
+#endif
 
 template<typename DataType>
 void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,

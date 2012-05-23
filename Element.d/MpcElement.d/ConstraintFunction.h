@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <unsupported/Eigen/AutoDiff>
-#include <unsupported/Eigen/NumericalDiff>
+//#include <unsupported/Eigen/NumericalDiff>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Sparse>
 #endif
@@ -365,7 +365,7 @@ public:
   template<typename T0, typename T1>
   SacadoReverseJacobian(const T0& a0, const T1& a1) : Functor(a0, a1) {}
   template<typename T0, typename T1, typename T2>
-  SacadoReverseJacobian(const T0& a0, const T1& a1, const T1& a2) : Functor(a0, a1, a2) {}
+  SacadoReverseJacobian(const T0& a0, const T1& a1, const T2& a2) : Functor(a0, a1, a2) {}
 
   typedef typename Functor::Scalar Scalar;
   typedef typename Functor::InputType InputType;

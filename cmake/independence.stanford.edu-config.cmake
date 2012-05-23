@@ -22,6 +22,7 @@
 
 
 SET(CMAKE_INCLUDE_PATH /home/avery/Intel/eigen
+                       /home/avery/Intel/sacado/src
                        /home/avery/Intel/SPOOLES
                        /home/avery/Intel/MUMPS_4.10.0/include
                        /home/avery/Intel/Zoltan/Zoltan_v3.5/include

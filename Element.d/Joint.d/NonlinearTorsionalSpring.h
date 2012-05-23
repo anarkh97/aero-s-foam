@@ -26,7 +26,7 @@ class NonlinearTorsionalSpring : public MpcElement
     void setFrame(EFrame *);
     void buildFrame(CoordSet&);
     void update(GeomState& gState, CoordSet& cs, double t);
-    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
+    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H, double);
     int numStates();
     void initStates(double *);
     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);

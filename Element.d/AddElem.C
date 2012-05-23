@@ -119,7 +119,12 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PlanarJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
-#include <Element.d/Joint.d/PointLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointPointDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointPlaneDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariPointDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariPlaneDistanceConstraint.h>
 
 #include <Element.d/Joint.d/LinearTranslationalSpring.h>
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
@@ -402,8 +407,14 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) RigidFourNodeShell(n);
        break;
      case 77:
+        ele = new (ba) PointPointDistanceConstraint(n);
+        break;
+     case 78:
        ele = new (ba) PointLineDistanceConstraint(n);
        break;
+     case 79:
+        ele = new (ba) PointPlaneDistanceConstraint(n);
+        break;
      case 80:
        ele = new (ba) ConnectedTri(n);
        break;
@@ -552,6 +563,15 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 127:
        ele = new (ba) PinInSlotJoint(n);
+       break;
+     case 177:
+       ele = new (ba) PointVariPointDistanceConstraint(n);
+       break;
+     case 178:
+       ele = new (ba) PointVariLineDistanceConstraint(n);
+       break;
+     case 179:
+       ele = new (ba) PointVariPlaneDistanceConstraint(n);
        break;
      case 200:
        ele = new (ba) LinearTranslationalSpring(n);

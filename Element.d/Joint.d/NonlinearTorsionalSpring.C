@@ -201,7 +201,7 @@ NonlinearTorsionalSpring::update(GeomState& gState, CoordSet& cs, double t)
 }
 
 void
-NonlinearTorsionalSpring::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+NonlinearTorsionalSpring::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H, double)
 {
   H.zero();
 

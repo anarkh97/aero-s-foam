@@ -182,7 +182,7 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
   for(int i = 0; i < nterms; i++)
     dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
   if(prop->lagrangeMult) {
-    if(type == 0)
+    if(type == 0 && prop->relop == 0)
       dsa.number(nn[nNodes], DofSet::LagrangeE, p+nterms);
     else
       dsa.number(nn[nNodes], DofSet::LagrangeI, p+nterms);
@@ -196,7 +196,7 @@ MpcElement::markDofs(DofSetArray &dsa)
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
   if(prop->lagrangeMult) {
-    if(type == 0)
+    if(type == 0 && prop->relop == 0)
       dsa.mark(nn[nNodes], DofSet::LagrangeE);
     else
       dsa.mark(nn[nNodes], DofSet::LagrangeI);
@@ -221,7 +221,7 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       GeomState c1(c0);
       FullSquareMatrix H(nterms);
-      getHessian(c1, c0, H);
+      if(lambda != 0) getHessian(c1, c0, H, 0); else H.zero();
       for(int i = 0; i < nterms; ++i) {
         for(int j = 0; j < nterms; ++j) {
           ret[i][j] = lambda*H[i][j];
@@ -249,7 +249,7 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   if(getSource() != mpc::ContactSurfaces)
     update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   if(t == 0 && delt > 0 && type == 0)
-    rhs.r_value = getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
+    rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
   // NOTES:
@@ -268,7 +268,7 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       FullSquareMatrix H(nterms);
-      getHessian(c1, c0, H);
+      if(lambda != 0) getHessian(c1, c0, H, t); else H.zero();
       for(int i = 0; i < nterms; ++i) {
         for(int j = 0; j < nterms; ++j) {
           Ktan[i][j] = lambda*H[i][j];
@@ -331,7 +331,7 @@ MpcElement::update(GeomState& c1, CoordSet& c0, double t)
 }
 
 void 
-MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H) 
+MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t) 
 {
   if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
 #ifdef USE_EIGEN3
@@ -370,7 +370,7 @@ MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double
 {
   // compute rhs = -(G(q)*qdot)_q * qdot assuming other terms are zero. Overload function if this assumption is not correct
   FullSquareMatrix H(nterms);
-  getHessian(*gState, cs, H);
+  getHessian(*gState, cs, H, t);
   Vector v(nterms);
   // fill v with initial velocity 
   for(int i = 0; i < nterms; ++i)
@@ -380,6 +380,7 @@ MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double
   for(int i = 0; i < nterms; ++i)
     for(int j = 0; j < nterms; ++j)
       Hv[i] += H[i][j]*v[j];
+
   return -(v*Hv);
 }
 

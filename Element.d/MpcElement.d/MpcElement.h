@@ -56,7 +56,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
     virtual void update(GeomState&, CoordSet&, double);
-    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
+    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&, double t);
     virtual double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
     virtual double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
 

@@ -881,7 +881,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  for(iele=0; iele<nEls; ++iele) {
    if(!packedEset[iele]->isPhantomElement() && !packedEset[iele]->isConstraintElement()) {
      int numNodesPerElement = packedEset[iele]->numTopNodes();
-     if(numNodesPerElement == 0) continue;
+     if(numNodesPerElement <= 1) continue;
      int eletype = packedEset[iele]->getTopNumber();
      int eid = (topFlag == 1 || topFlag == 7) ? iele+1 : packedEset[iele]->getGlNum()+1; // only renumber for -T and -M
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eid,eletype);
@@ -944,7 +944,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 
        //** same as main element writing in loop above for non phantom elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
-       if(numNodesPerElement == 0) continue;
+       if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
@@ -968,7 +968,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 
        //** same as main element writing in loop above for non constraints elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
-       if(numNodesPerElement == 0) continue;
+       if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
@@ -1287,6 +1287,7 @@ Domain::makeTopFile(int topFlag)
              int eletype = elem->getTopNumber();
              fprintf(matList,"%d %d ",e+1,eletype);
              int numNodesPerElement = elem->numTopNodes();
+             if(numNodesPerElement <= 1) continue;
              for(inode=0; inode<numNodesPerElement; ++inode) {
                elem->nodes(nodeNumber);
                fprintf(matList,"%d ",nodeTable[nodeNumber[inode]]);

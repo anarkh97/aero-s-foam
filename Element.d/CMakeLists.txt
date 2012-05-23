@@ -195,7 +195,6 @@ Joint.d/DotConstraintType1a.C
 Joint.d/RevoluteActuator.C
 Joint.d/PinInSlotJoint.C
 Joint.d/PlanarJoint.C
-Joint.d/PointLineDistanceConstraint.C
 Joint.d/LinearTranslationalSpring.C
 Joint.d/NonlinearTorsionalSpring.C
 Joint.d/NonlinearTranslationalSpring.C
@@ -214,6 +213,12 @@ Membrane.d/trirotationx.f
 Membrane.d/FourNodeMembrane.C
 MpcElement.d/FsiElement.C
 MpcElement.d/MpcElement.C
+MpcElement.d/PointPointDistanceConstraint.C
+MpcElement.d/PointLineDistanceConstraint.C
+MpcElement.d/PointPlaneDistanceConstraint.C
+MpcElement.d/PointVariPointDistanceConstraint.C
+MpcElement.d/PointVariLineDistanceConstraint.C
+MpcElement.d/PointVariPlaneDistanceConstraint.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C

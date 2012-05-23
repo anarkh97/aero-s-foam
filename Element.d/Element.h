@@ -144,6 +144,8 @@ class StructProp {
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
         double penalty; // penalty parameter for mpc type elements
         double amplitude, omega, phase; // amplitude and circular frequency of forcing term for some mpc type elements
+        double B, C;
+        int relop; // 0: equality (==), 1: inequality (<=)
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
 
 	// Fabric Material Options
@@ -182,7 +184,7 @@ class StructProp {
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
                        lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0;
-                       type = Undefined; } 
+                       B = 1.0; C = 0.0; relop = 0; type = Undefined; } 
 
 };
 

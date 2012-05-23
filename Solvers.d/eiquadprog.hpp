@@ -82,7 +82,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <Eigen/Dense>
-#include <Eigen/SparseCholesky>
+#include <Eigen/Sparse>
 
 namespace Eigen {
 

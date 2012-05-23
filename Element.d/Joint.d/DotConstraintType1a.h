@@ -17,7 +17,7 @@ class DotConstraintType1a : public MpcElement
     void setFrame(EFrame *);
     void buildFrame(CoordSet&);
     void update(GeomState& gState, CoordSet& cs, double t);
-    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
+    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H, double);
     double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
     double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
     void computePressureForce(CoordSet&, Vector& elPressureForce,

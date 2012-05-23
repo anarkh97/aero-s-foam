@@ -148,7 +148,7 @@ DotConstraintType2::update(GeomState& gState, CoordSet& cs, double)
 }
 
 void
-DotConstraintType2::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+DotConstraintType2::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H, double)
 {
   H.zero();
 

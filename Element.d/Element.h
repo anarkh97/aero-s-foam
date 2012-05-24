@@ -143,7 +143,7 @@ class StructProp {
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
         double penalty; // penalty parameter for mpc type elements
-        double amplitude, omega, phase; // amplitude and circular frequency of forcing term for some mpc type elements
+        double amplitude, omega, phase, offset; // amplitude and circular frequency of forcing term for some mpc type elements
         double B, C;
         int relop; // 0: equality (==), 1: inequality (<=)
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
@@ -183,7 +183,7 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0;
+                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0; offset = 0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; } 
 
 };

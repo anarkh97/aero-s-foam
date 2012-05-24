@@ -87,14 +87,14 @@ DotConstraintType1a::buildFrame(CoordSet& cs)
   }
 
   // -ve value of constraint function
-  rhs.r_value = ((prop) ? std::cos(prop->amplitude*std::sin(prop->phase)-M_PI/2) : 0)
+  rhs.r_value = ((prop) ? std::cos(prop->amplitude*std::sin(prop->phase)+prop->offset-M_PI/2) : 0)
                 -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
 }
 
 void 
 DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
 {
-  double ff = prop->amplitude*std::sin(prop->omega*t + prop->phase); // forcing function
+  double ff = prop->amplitude*std::sin(prop->omega*t + prop->phase) + prop->offset; // forcing function
   double TOL = M_PI/64;
   if(std::fabs(std::fmod(ff-offset,M_PI)) < TOL && t > t_reparam) { // reparameterize to stay away from singularity
     if(axis1 != axis2) {
@@ -240,11 +240,11 @@ double
 DotConstraintType1a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
 {
   double vel_rhs = 0;
-  // f(t)   = -cos(a*sin(w*t+phi)-pi/2)
-  // f'(t)  = a*w*cos(w*t+phi)*sin(a*sin(w*t+phi) - pi/2)
+  // f(t)   = -cos(a*sin(w*t+phi)+offset-pi/2)
+  // f'(t)  = a*w*cos(w*t+phi)*sin(a*sin(w*t+phi)+offset-pi/2)
   if(prop) {
-    double a = prop->amplitude, w = prop->omega, phi = prop->phase;
-    vel_rhs = a*w*std::cos(w*t+phi)*std::sin(a*std::sin(w*t+phi) - M_PI/2);
+    double a = prop->amplitude, w = prop->omega, phi = prop->phase, offset = prop->offset;
+    vel_rhs -= a*w*std::cos(w*t+phi)*std::sin(a*std::sin(w*t+phi)+offset-M_PI/2);
   }
   return vel_rhs;
 }
@@ -253,13 +253,13 @@ double
 DotConstraintType1a::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
 {
   double acc_rhs = MpcElement::getAccelerationConstraintRhs(gState, cs, t);
-  // f(t)   = -cos(a*sin(w*t+phi)-pi/2)
-  // f''(t) = (a*w*cos(w*t+phi))^2*cos(a*sin(w*t+phi) - pi/2)
-  //          - sin(a*sin(w*t+phi) - pi/2)*a*w*w*sin(w*t+phi)
+  // f(t)   = -cos(a*sin(w*t+phi)+offset-pi/2)
+  // f''(t) = (a*w*cos(w*t+phi))^2*cos(a*sin(w*t+phi)+offset-pi/2)
+  //          - sin(a*sin(w*t+phi)+offset-pi/2)*a*w*w*sin(w*t+phi)
   if(prop) {
-    double a = prop->amplitude, w = prop->omega, phi = prop->phase;
-    acc_rhs += std::pow((a*w*cos(w*t+phi)),2)*std::cos(a*sin(w*t+phi) - M_PI/2)
-               - std::sin(a*sin(w*t+phi) - M_PI/2)*a*w*w*std::sin(w*t+phi);
+    double a = prop->amplitude, w = prop->omega, phi = prop->phase, offset = prop->offset;
+    acc_rhs -= std::pow((a*w*cos(w*t+phi)),2)*std::cos(a*sin(w*t+phi)+offset-M_PI/2)
+               - std::sin(a*sin(w*t+phi)+offset-M_PI/2)*a*w*w*std::sin(w*t+phi);
   }
   return acc_rhs;
 }
@@ -268,7 +268,7 @@ void
 DotConstraintType1a::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *gs, int cflg, double t)
 {
-  rhs.r_value = prop->amplitude*std::sin(prop->omega*t + prop->phase)
+  rhs.r_value = prop->amplitude*std::sin(prop->omega*t + prop->phase) + prop->offset
                 -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);
   //rhs.r_value = std::cos(prop->amplitude*std::sin(prop->omega*t + prop->phase)-M_PI/2)
   //              -(c0[axis1][0]*c0[axis2][0] + c0[axis1][1]*c0[axis2][1] + c0[axis1][2]*c0[axis2][2]);

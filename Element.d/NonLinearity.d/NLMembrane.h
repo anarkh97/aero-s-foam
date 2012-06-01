@@ -95,6 +95,11 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     Corotator* getCorotator(CoordSet &, double *, int , int);
     int getTopNumber() { return 104; }
     FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
+#ifdef USE_EIGEN3
+    int getMassType() { return 2; } // both consistent and lumped
+#else
+    int getMassType() { return 0; } // lumped only
+#endif
     FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
     double getMass(CoordSet&);
     void getGravityForce(CoordSet& cs, double *gravityAcceleration,

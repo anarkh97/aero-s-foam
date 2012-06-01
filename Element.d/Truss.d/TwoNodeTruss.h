@@ -12,6 +12,7 @@ public:
         Element *clone();
 	void renum(int *);
         FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
+        int getMassType() { return 2; } // both consistent and lumped
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
         void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg,

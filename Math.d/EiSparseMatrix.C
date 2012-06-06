@@ -250,9 +250,10 @@ GenEiSparseMatrix<Scalar>::solve(Scalar *_rhs, Scalar *_solution)
     solution = llt.solve(rhs);
   else {
 #if EIGEN_SUPERLU_SUPPORT
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
-    rhs_copy = lu->solve(rhs_copy);
-    solution = rhs_copy;
+    //Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
+    //rhs_copy = lu->solve(rhs_copy);
+    //solution = rhs_copy;
+    solution = lu->solve(rhs);
     if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
 #else
     std::cerr << "You need SuperLU to solve this system\n";
@@ -270,9 +271,10 @@ GenEiSparseMatrix<Scalar>::solve(GenVector<Scalar> &_rhs, GenVector<Scalar> &_so
     solution = llt.solve(rhs);
   else {
 #if EIGEN_SUPERLU_SUPPORT
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
-    rhs_copy = lu->solve(rhs_copy);
-    solution = rhs_copy;
+    //Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
+    //rhs_copy = lu->solve(rhs_copy);
+    //solution = rhs_copy;
+    solution = lu->solve(rhs);
     if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
 #else
     std::cerr << "You need SuperLU to solve this system\n";
@@ -290,9 +292,10 @@ GenEiSparseMatrix<Scalar>::reSolve(Scalar *_rhs)
     rhs = llt.solve(rhs);
   else {
 #if EIGEN_SUPERLU_SUPPORT
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
-    rhs_copy = lu->solve(rhs_copy);
-    rhs = rhs_copy;
+    //Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
+    //rhs_copy = lu->solve(rhs_copy);
+    //rhs = rhs_copy;
+    rhs = lu->solve(rhs);
     if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
 #else
     std::cerr << "You need SuperLU to solve this system\n";
@@ -310,9 +313,10 @@ GenEiSparseMatrix<Scalar>::reSolve(GenVector<Scalar> &_rhs)
     rhs = llt.solve(rhs);
   else {
 #if EIGEN_SUPERLU_SUPPORT
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
-    rhs_copy = lu->solve(rhs_copy);
-    rhs = rhs_copy;
+    //Eigen::Matrix<Scalar, Eigen::Dynamic, 1> rhs_copy = rhs;
+    //rhs_copy = lu->solve(rhs_copy);
+    //rhs = rhs_copy;
+    rhs = lu->solve(rhs);
     if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
 #else
     std::cerr << "You need SuperLU to solve this system\n";

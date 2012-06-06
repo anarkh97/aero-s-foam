@@ -136,10 +136,10 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   find_package(Eigen3 3.0.90)
+   find_package(Eigen3 3.0.92)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
-     add_definitions(-DUSE_EIGEN3 -DEIGEN_AUTODIFF_SCALAR_PJSA_HACK)
+     add_definitions(-DUSE_EIGEN3)
      set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
      find_package(Cholmod)
      if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)

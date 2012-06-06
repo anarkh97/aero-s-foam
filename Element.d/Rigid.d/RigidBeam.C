@@ -16,6 +16,11 @@ extern "C" {
  void _FORTRAN(e3dmas)(double&, double*,
                        double&, double*, double*, double*,
                        double*, double*, const int&, double&, const int&);
+
+ void _FORTRAN(mass6)(double&, double&, double&, double&, double*,
+                      double&, double*, double*, double*,
+                      double*, double*, const int&, double&,
+                      const int&, double*);
 }
 
 RigidBeam::RigidBeam(int* _nn)
@@ -191,7 +196,7 @@ RigidBeam::buildFrame(CoordSet& cs)
 }
 
 FullSquareMatrix
-RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
+RigidBeam::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
         if(prop == NULL || prop->rho == 0 || prop->A == 0) {
            FullSquareMatrix ret(numDofs(),mel);
@@ -211,14 +216,24 @@ RigidBeam::massMatrix(CoordSet &cs, double *mel, int)
 
         int grvflg = 0, masflg = 0;
 
-        // Lumped Mass Matrix
         double elmass[144];
-        _FORTRAN(e3dmas)(prop->rho,elmass,prop->A,
-                 x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
+        // Lumped Mass Matrix
+        if (cmflg == 0) {
+          _FORTRAN(e3dmas)(prop->rho,elmass,prop->A,
+                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
+
+        // Consistent (Full) Mass Matrix
+        } else {
+          _FORTRAN(mass6)(prop->rho,prop->Ixx, prop->Iyy, prop->Izz,
+                          elmass,prop->A,x,y,z,gravityAcceleration,
+                          grvfor,grvflg,totmas,masflg,(double *) *elemframe);
+        }
 
         FullSquareMatrix ret(numDofs(), mel);
         ret.zero();
-        for(int i=0; i<12; ++i) ret[i][i] = elmass[13*i];
+
+        for(int i=0; i<12; ++i)
+          for(int j=0; j<12; ++j) ret[i][j] = elmass[12*i+j];
 
         return ret;
 }

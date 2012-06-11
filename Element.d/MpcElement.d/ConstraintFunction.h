@@ -8,7 +8,6 @@
 //#include <unsupported/Eigen/NumericalDiff>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Sparse>
-#endif
 
 // scalar valued rheonomic constraint, takes (x,t) as input
 template<int _NumberOfGeneralizedCoordinates,
@@ -397,5 +396,5 @@ public:
   }
 };
 #endif
-
+#endif
 #endif

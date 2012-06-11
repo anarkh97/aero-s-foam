@@ -406,6 +406,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 76:
        ele = new (ba) RigidFourNodeShell(n);
        break;
+#ifdef USE_EIGEN3
      case 77:
         ele = new (ba) PointPointDistanceConstraint(n);
         break;
@@ -415,6 +416,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 79:
         ele = new (ba) PointPlaneDistanceConstraint(n);
         break;
+#endif
      case 80:
        ele = new (ba) ConnectedTri(n);
        break;
@@ -564,6 +566,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 127:
        ele = new (ba) PinInSlotJoint(n);
        break;
+#ifdef USE_EIGEN3
      case 177:
        ele = new (ba) PointVariPointDistanceConstraint(n);
        break;
@@ -573,6 +576,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 179:
        ele = new (ba) PointVariPlaneDistanceConstraint(n);
        break;
+#endif
      case 200:
        ele = new (ba) LinearTranslationalSpring(n);
        break;

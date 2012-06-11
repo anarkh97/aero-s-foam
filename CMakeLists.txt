@@ -136,7 +136,7 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   find_package(Eigen3 3.0.92)
+   find_package(Eigen3 3.0.93)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
      add_definitions(-DUSE_EIGEN3)

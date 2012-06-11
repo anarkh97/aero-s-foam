@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/PointLineDistanceConstraint.h>
 
 PointLineDistanceConstraint::PointLineDistanceConstraint(int* _nn)
@@ -141,3 +142,4 @@ PointLineDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSqu
   H[1][2] = H[2][1] = (n2*dyz - dy*dz)/(denominator*n3);
 }
 */
+#endif

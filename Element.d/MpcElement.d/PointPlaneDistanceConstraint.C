@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/PointPlaneDistanceConstraint.h>
 
 PointPlaneDistanceConstraint::PointPlaneDistanceConstraint(int* _nn)
@@ -29,3 +30,4 @@ PointPlaneDistanceConstraint::getConstants(CoordSet& cs, Eigen::Array<double,17,
             (prop) ? prop->B : 1, (prop) ? prop->C : 0;
   iconst << ((prop) ? int(prop->relop == 1) : 0);
 }
+#endif

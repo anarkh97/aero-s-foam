@@ -199,7 +199,7 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
   // J = L^-T
   J.setIdentity();
 #ifdef SPARSE_G
-  J = chol.permutationP()*chol.matrixU().solve(J);
+  J = chol.permutationPinv()*chol.matrixU().solve(J);
 #else
   J = chol.matrixU().solve(J);
 #endif 

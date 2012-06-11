@@ -119,7 +119,7 @@ NonlinearTorsionalSpring::update(GeomState& gState, CoordSet& cs, double t)
 
   int axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
   double cth = (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
-
+/*
   // reparameterization
   if(cth > 0.707106781 || cth < -0.707106781) {
     if(axis1 != axis2) {
@@ -152,7 +152,7 @@ NonlinearTorsionalSpring::update(GeomState& gState, CoordSet& cs, double t)
     }
     cth = (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
   }
-
+*/
   
   double dacosdcth = -1/std::sqrt(1-cth*cth); // derivative of arccos(cth) w.r.t. cth
 
@@ -214,7 +214,7 @@ NonlinearTorsionalSpring::getHessian(GeomState& gState, CoordSet& cs, FullSquare
   mat_mult_mat(c0, ns1.R, c1, 2);
   mat_mult_mat(c0, ns2.R, c2, 2);
 
-  int axis1 = m_axis1, axis2 = (quadrant == 0 || quadrant == 2) ? m_axis2 : m_axis1;
+  int axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
   double cth = (c1[axis1][0]*c2[axis2][0] + c1[axis1][1]*c2[axis2][1] + c1[axis1][2]*c2[axis2][2]);
   double dacosdcth = -1/std::sqrt(1-cth*cth);
   double d2acosdcth2 = -cth/std::pow(1-cth*cth,1.5);

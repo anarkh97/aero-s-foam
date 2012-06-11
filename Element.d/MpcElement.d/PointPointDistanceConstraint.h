@@ -1,6 +1,7 @@
 #ifndef _POINTPOINTDISTANCECONSTRAINT_H_
 #define _POINTPOINTDISTANCECONSTRAINT_H_
 
+#ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/ConstraintFunction.h>
 
 template<typename Scalar>
@@ -61,4 +62,5 @@ class PointPointDistanceConstraint : public ConstraintFunctionElement<PointPoint
     void getConstants(CoordSet& cs, Eigen::Array<double,11,1>& sconst, Eigen::Array<int,1,1>& iconst);
 };
 
+#endif
 #endif

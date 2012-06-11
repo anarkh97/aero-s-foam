@@ -333,14 +333,14 @@ MpcElement::update(GeomState& c1, CoordSet& c0, double t)
 void 
 MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t) 
 {
-  if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
 #ifdef USE_EIGEN3
+  if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
     for(int i=0; i<H.rows(); ++i)
       for(int j=0; j<H.cols(); ++j)
         _H[i][j] = H(i,j);
-#endif
   }
   else
+#endif
   {
     _H.zero();
 

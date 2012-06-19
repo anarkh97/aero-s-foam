@@ -1562,7 +1562,6 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
         KiiSolver = sm;
         KiiSparse = sm;
       } break;
-      //Axel :  replacing "Spooles" by "Mumps"
       case FetiInfo::mumps: {
        GenMumpsSolver<Scalar> *sm = 0;
 #ifdef HB_COUPLED_PRECOND
@@ -1585,6 +1584,7 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
         KiiSparse = pcgSolver->getOperator();
       } break;
     }
+    KiiSolver->setPrintNullity(false);
     // Find approximate preconditioner size
     memPrec += KiiSolver->size();
   }

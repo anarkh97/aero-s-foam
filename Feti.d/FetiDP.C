@@ -1350,7 +1350,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  for(int iter = 0; true; ++iter) {
    // Arnoldi iteration (Algorithm see Saad SISC) 
-   for (int j=0; j<ReStep; j++, J++) {
+   for (int j=0; j<ReStep; j++, J++, ++iterTotal) {
 
      localSolveAndJump(z, dur, duc, Fp); // Fp = F*z
 

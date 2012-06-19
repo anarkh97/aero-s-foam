@@ -9,6 +9,7 @@ class RigidEightNodeBrick : public SuperElement
     RigidEightNodeBrick(int*);
     int getTopNumber() { return 117; }
     bool isRigidElement() { return true; }
+    bool isSafe() { return true; }
     PrioInfo examine(int sub, MultiFront*);
 };
 

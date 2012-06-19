@@ -11,6 +11,7 @@ class RigidSolid : public SuperElement
     int getTopNumber();
     int numTopNodes();
     bool isRigidElement() { return true; }
+    bool isSafe();
     PrioInfo examine(int sub, MultiFront*);
 };
 

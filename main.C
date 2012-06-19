@@ -195,6 +195,9 @@ int main(int argc, char** argv)
  weightList[53] = 2.0;
  weightList[57] = 2.0;
  weightList[58] = 2.0;
+ weightList[70] = 3.0;  // RigidEightNodeBrick
+ weightList[73] = 3.0;  // RigidThreeNodeShell
+ weightList[76] = 4.0;  // RigidFourNodeShell
  weightList[72] = 4.0;  // Brick20
  weightList[81] = 2.0;
  weightList[82] = 4.0;

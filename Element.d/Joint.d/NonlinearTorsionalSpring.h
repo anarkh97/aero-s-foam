@@ -30,6 +30,8 @@ class NonlinearTorsionalSpring : public MpcElement
     int numStates();
     void initStates(double *);
     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+
+    bool isSpring() { return true; }
 };
 
 #endif

@@ -14,6 +14,8 @@ class LinearTranslationalSpring : public ConstantDistanceConstraint
   public:
     LinearTranslationalSpring(int*);
     void setProp(StructProp *p, bool _myProp = false);
+
+    bool isSpring() { return true; }
 };
 
 #endif

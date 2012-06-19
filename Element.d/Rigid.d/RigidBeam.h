@@ -12,6 +12,7 @@ class RigidBeam : public SuperElement
     int getTopNumber() { return 106; }
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }
+    bool isSafe() { return true; }
     PrioInfo examine(int sub, MultiFront*);
     //LMPCons** getMPCs();
 

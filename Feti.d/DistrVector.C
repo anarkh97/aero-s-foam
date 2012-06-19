@@ -1,5 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
+#include <algorithm>
 
 #include <Threads.d/Paral.h>
 #include <Utils.d/MyComplex.h>
@@ -647,14 +648,15 @@ GenDistrVector<Scalar>::initialize()
 
  if(subV) subV[0] = v;
  Scalar *v2 = v;
- nT = threadManager->numThr();
+ nT = std::min(threadManager->numThr(),inf.numDom); // PJSA: currently the number of threads being larger than
+                                                    // the number of subdomains doesn't work
  int iThread, md;
 
  thV   = new Scalar *[nT];
  thLen = new int[nT];
  thOffset = new int[nT];
 
- // PJSA: Distrinfo::computeOffsets should be explicitly called before this
+ // Distrinfo::computeOffsets should be explicitly called before this
  // constructor for interface vectors
  if(inf.subOffset) infoFlag = true; else infoFlag = false;
  if(infoFlag) masterFlag = new bool[len];
@@ -668,7 +670,7 @@ GenDistrVector<Scalar>::initialize()
    for(md = iThread; md < inf.numDom; md += nT) {
      subV[md] = v2;
      subVOffset[md] = v2-v;
-     if(infoFlag) { // PJSA: re-arrange masterFlag
+     if(infoFlag) { // re-arrange masterFlag
        for(int i=0; i<inf.domLen[md]; ++i)
          masterFlag[i+subVOffset[md]] = inf.masterFlag[i+inf.subOffset[md]];
      }
@@ -730,7 +732,6 @@ GenDistrVector<Scalar>::clean_up()
    thLen=0;
  }
 
- // PJSA: new clean_up ops
  if(subVLen) {
    delete [] subVLen;
    subVLen = 0;

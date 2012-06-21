@@ -9,6 +9,9 @@ NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _ax
   m_axis1 = _axis1;
   m_axis2 = _axis2;
   covariant_derivatives = true;
+  offset = M_PI/2;
+  offset2 = 0.0;
+  quadrant = 0;
 }
 
 NonlinearTorsionalSpring::~NonlinearTorsionalSpring()

@@ -1376,15 +1376,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
        int numNodes = geoSource->numNode();
        int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
        double *data = new double[numNodesOut];
+       for(k=0; k<numNodesOut; ++k) data[k] = 0;
        for(k=0; k<numNodes; ++k) {
           int l = (outFlag) ? nodeTable[k]-1 : k;
           if(l < 0) continue;
-          if((*weight)[k] == 0.0)
-            data[l] = 0.0;
-            //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,0.0);
-          else
+          if(k < numnodes && (*weight)[k] != 0)
             data[l] = (*stress)[k]/=(*weight)[k];
-            //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p, (*stress)[k]/=(*weight)[k]);
        }
        geoSource->outputNodeScalars(fileNumber, data, numNodesOut, time);
        delete [] data;

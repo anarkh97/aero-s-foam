@@ -46,10 +46,16 @@ RigidThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
         int grvflg = 0, masflg = 0;
 
-        _FORTRAN(mass8)(x,y,z,h,prop->rho,(double *)mel,numDofs(),
+        double *elmass = new double[324];
+        _FORTRAN(mass8)(x,y,z,h,prop->rho,elmass,18,
                         gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
         FullSquareMatrix ret(numDofs(),mel);
+        ret.zero();
+
+        for(int i=0; i<18; ++i)
+          for(int j=0; j<18; ++j) ret[i][j] = elmass[18*i+j];
+        delete [] elmass;
 
         return ret;
 }

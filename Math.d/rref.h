@@ -23,7 +23,7 @@
 #include <Utils.d/MyComplex.h>
 
 template <typename T, typename Matrix>
-int rowEchelon(Matrix& M, bool reduced, int* rowmap, int* colmap, int optc = 0, double tol = 10.0) 
+int rowEchelon(Matrix& M, bool reduced, int* rowmap, int* colmap, int optc = 0, double tol = 10.0, bool usePrescribedThreshold = false) 
 {
   // M is an augmented matrix [A;b]
 #ifdef QR_ROW_ECHELON
@@ -39,7 +39,8 @@ int rowEchelon(Matrix& M, bool reduced, int* rowmap, int* colmap, int optc = 0, 
   A = A*P;
   M = Q.transpose()*M; // now M is the row echelon form of the augmented matrix: [R;Q^T*b]
   for(int i=0; i<n; ++i) colmap[i] = P.indices()[i];
-  //decA.setThreshold(tol*epsilon);
+  if(usePrescribedThreshold)
+    decA.setThreshold(tol*std::numeric_limits<T>::epsilon());
   int r = decA.rank();
 
   if(reduced) {

@@ -551,18 +551,27 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";*/
   int *colmap = new int[c.cols()];
   for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
-  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
+  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol, domain->solInfo().usePrescribedThreshold);
   //cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
   //if(rank != numLMPC)
-  //  cerr << "found " << numLMPC-rank << " redundant constraints\n";
+  //  cerr << "rowEchelon detected " << numLMPC-rank << " redundant constraints\n";
 
   // copy the coefficients of the rref matrix into the lmpc data structure 
+  double tol1 = domain->solInfo().coefFilterTol*std::numeric_limits<double>::epsilon(),
+         tol2 = domain->solInfo().rhsZeroTol   *std::numeric_limits<double>::epsilon();
   for(int i = 0; i < n; ++i) {
     lmpc[i]->terms.clear();
     lmpc[i]->nterms = 0;
+    lmpc[i]->rhs.r_value = 0;
+    if(i >= rank) {
+      if(std::fabs(c(i,m)) > domain->solInfo().inconsistentTol)
+        cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
+      continue;
+    }
     for(int j = i; j < m; ++j) {
       if(j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
-      if(std::fabs(c(i,j)) > 10*std::numeric_limits<double>::epsilon()) {
+      if(std::fabs(c(i,j)) > tol1) {  // filter out the very small coefficients
+                                      // (note: use tol1 == 0) to keep them all
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
         lmpc[i]->nterms++;
@@ -570,14 +579,8 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     if(optc) { 
       if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
-      if(std::fabs(c(i,m)) > 100*std::numeric_limits<double>::epsilon()) {
-        if(i < rank) lmpc[i]->rhs.r_value = c(i,m);
-        else {
-          cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
-          lmpc[i]->rhs.r_value = 0;
-        }
-      }
-      else lmpc[i]->rhs.r_value = 0;
+      if(std::fabs(c(i,m)) > tol2*std::numeric_limits<double>::epsilon()) // set the rhs to exactly zero if it is already very close
+        lmpc[i]->rhs.r_value = c(i,m);
     }
   }
 

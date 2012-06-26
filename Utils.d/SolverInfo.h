@@ -250,7 +250,9 @@ struct SolverInfo {
    bool lagrangeMult;
    double penalty;
    int mpcDirect;
+   bool usePrescribedThreshold;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
+   double coefFilterTol, rhsZeroTol, inconsistentTol;
 
    bool activatePodRom;
    bool snapshotsPodRom;
@@ -452,7 +454,11 @@ struct SolverInfo {
                   lagrangeMult = true;
                   penalty = 0;
                   mpcDirect = 0;
+                  usePrescribedThreshold = false;
                   mpcDirectTol = 10;
+                  coefFilterTol = 10;
+                  rhsZeroTol = 0;
+                  inconsistentTol = 1e-8;
 
                   activatePodRom = false;
                   snapshotsPodRom = false;

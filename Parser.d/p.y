@@ -3056,7 +3056,26 @@ ConstraintOptionsData:
         { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
         | DIRECT Float
         { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; }
+        | DIRECT Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2;
+          domain->solInfo().coefFilterTol = $3; }
+        | DIRECT Float Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2; 
+          domain->solInfo().coefFilterTol = $3;
+          domain->solInfo().rhsZeroTol = $4; }
+        | DIRECT Float Float Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2;
+          domain->solInfo().coefFilterTol = $3; 
+          domain->solInfo().rhsZeroTol = $4;
+          domain->solInfo().inconsistentTol = $5; }
         | MULTIPLIERS
         { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float

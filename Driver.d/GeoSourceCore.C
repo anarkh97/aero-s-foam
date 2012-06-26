@@ -579,7 +579,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     if(optc) { 
       if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
-      if(std::fabs(c(i,m)) > tol2*std::numeric_limits<double>::epsilon()) // set the rhs to exactly zero if it is already very close
+      if(std::fabs(c(i,m)) > tol2) // set the rhs to exactly zero if it is already very close
         lmpc[i]->rhs.r_value = c(i,m);
     }
   }

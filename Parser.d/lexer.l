@@ -811,11 +811,14 @@ TRAIL [a-zA-Z]*
 
 "FABMAT"|"fabmat"                  { return FABMAT;}
 
-"THERMMAT"|"thermmat"              { return THERMMAT; }
+"THERMMAT"|"thermmat"              { return THERMMAT; }  // deprecated
+"THRMAT"|"thrmat"                  { return THERMMAT; }
 
-"CONSTRMAT"|"constrmat"            { return CONSTRMAT; }
+"CONSTRMAT"|"constrmat"            { return CONSTRMAT; } // deprecated
+"CONMET"|"conmet"                  { return CONSTRMAT; }
 
-"SPRINGMAT"|"springmat"            { return SPRINGMAT; }
+"SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
+"SPRMAT"|"sprmat"                  { return SPRINGMAT; }
 
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 

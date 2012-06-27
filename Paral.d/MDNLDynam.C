@@ -268,8 +268,11 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   Kuc = 0;
   Muc = 0;
   Cuc = 0;
+  Mcc = 0;
+  Ccc = 0;
   allCorot = 0;
   localTemp = 0;
+  reactions = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -284,6 +287,8 @@ MDNLDynamic::~MDNLDynamic()
   if(Kuc) delete Kuc;
   if(Muc) delete Muc;
   if(Cuc) delete Cuc;
+  if(Mcc) delete Mcc;
+  if(Ccc) delete Ccc;
   if(localTemp) delete localTemp;
   if(allCorot) {
     execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
@@ -296,6 +301,7 @@ MDNLDynamic::~MDNLDynamic()
     if(celArray) delete [] celArray;
   }
   if(decDomain) delete decDomain;
+  if(reactions) delete reactions;
 }
 
 int
@@ -516,6 +522,9 @@ MDNLDynamic::preProcess()
   if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0 || domain->getElementSet().hasDamping()) 
     celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
+  // Allocate vector to store reaction forces
+  if(!reactions) reactions = new DistrVector(*decDomain->pbcVectorInfo());
+
   // Now make those arrays
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
 
@@ -534,6 +543,8 @@ MDNLDynamic::preProcess()
   Kuc = allOps->Kuc;
   Muc = allOps->Muc;
   Cuc = allOps->Cuc;
+  Mcc = allOps->Mcc;
+  Ccc = allOps->Ccc;
   if(allOps->K) delete allOps->K;
   times->getFetiSolverTime += getTime();
 
@@ -853,8 +864,12 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
 #endif
   }
 
+  if(domain->reactionsReqd(time, index+1)) {
+    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetReactionForce, *geomState, *refState, vel_n, acc_n, time);
+  }
+
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF, refState);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF, refState, reactions);
 }
 
 void
@@ -867,6 +882,20 @@ MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &v
   sprintf(ext,"_%d",sd->subNum()+1);
   sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
   delete [] ext;
+}
+
+void
+MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomState &refState, DistrVector &vel_n, 
+                                 DistrVector &acc_n, double &time)
+{
+  SubDomain *sd = decDomain->getSubDomain(i);
+  StackVector ri(reactions->subData(i), reactions->subLen(i));
+  StackVector velocity(vel_n.subData(i), vel_n.subLen(i));
+  StackVector acceleration(acc_n.subData(i), acc_n.subLen(i));
+  SparseMatrix *Cuci = (Cuc) ? (*Cuc)[i] : 0;
+  SparseMatrix *Ccci = (Ccc) ? (*Ccc)[i] : 0;
+  sd->computeReactionForce(ri, geomState[i], allCorot[i], kelArray[i], time, refState[i], velocity,
+                           acceleration, sd->getVcx(), sd->getAcx(), Cuci, Ccci, (*Muc)[i], (*Mcc)[i]);
 }
 
 void

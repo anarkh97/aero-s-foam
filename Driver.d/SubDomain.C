@@ -2457,6 +2457,23 @@ GenSubDomain<Scalar>::mergeForces(Scalar (*mergedF)[6], Scalar *subF)
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::mergeReactions(Scalar (*mergedF)[11], Scalar *subF)
+{
+ // TODO: just loop over dbc, cdbc
+ for(int inode = 0; inode < numnodes; ++inode) {
+   int nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
+   for(int jdof = 0; jdof < 11; ++jdof) {
+     int dof = dsa->locate(inode, 1 << jdof);
+     if(dof >= 0)  {
+       int cdof = c_dsa->invRCN(dof);
+       if(cdof >= 0) mergedF[nodeI][jdof] += subF[cdof]; // constrained
+     }
+   }
+ }
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF)
 {
  for(int inode = 0; inode < numnodes; ++inode) {
@@ -2469,6 +2486,23 @@ GenSubDomain<Scalar>::mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF)
    }
  }
 }
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::mergeDistributedReactions(Scalar (*mergedF)[11], Scalar *subF)
+{
+ // TODO: just loop over dbc, cdbc
+ for(int inode = 0; inode < numnodes; ++inode) {
+   for(int jdof = 0; jdof < 11; ++jdof) {
+     int dof = dsa->locate(inode, 1 << jdof);
+     if(dof >= 0)  {
+       int cdof = c_dsa->invRCN(dof);
+       if(cdof >= 0) mergedF[inode][jdof] += subF[cdof]; // constrained
+     }
+   }
+ }
+}
+
 
 template<class Scalar>
 void

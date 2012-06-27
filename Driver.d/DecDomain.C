@@ -1906,7 +1906,8 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot,
                                      double x, SysState<GenDistrVector<Scalar> > *distState,
-                                     GenDistrVector<Scalar> *aeroF, DistrGeomState *refState)  
+                                     GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
+                                     GenDistrVector<Scalar> *reactions)
 {
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
@@ -1952,6 +1953,16 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
       subDomain[iSub]->mergeAllVeloc(mergedVel, v_n->subData(iSub));
       subDomain[iSub]->mergeAllAccel(mergedAcc, a_n->subData(iSub));
     }
+  }
+
+  // merge reaction forces from subdomains into global array
+  Scalar (*mergedReactions)[11] = 0;
+  if(reactions) {
+    mergedReactions = new Scalar[numNodes][11];
+    for(i = 0; i < numNodes; ++i)
+      for(j=0; j<11; ++j) mergedReactions[i][j] = 0.0;
+    for(iSub = 0; iSub < numSub; ++iSub)
+      subDomain[iSub]->mergeReactions(mergedReactions, reactions->subData(iSub));
   }
 
   if(x == domain->solInfo().initialTime) {
@@ -2126,6 +2137,12 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::AeroZMom:
        if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 5, x);
        break;
+     case OutputInfo::Reactions:
+       if(reactions) getPrimalVector(i, mergedReactions, numNodes, 3, x);
+       break;
+     case OutputInfo::Reactions6:
+       if(reactions) getPrimalVector(i, mergedReactions, numNodes, 6, x);
+       break;
      default:
        filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
        break;
@@ -2137,6 +2154,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
  if(xyz) delete [] xyz;
  if(mergedVel) delete [] mergedVel;
  if(mergedAcc) delete [] mergedAcc;
+ if(mergedReactions) delete [] mergedReactions;
 
  // --- Print Problem statistics -------------------------------------
 /*
@@ -3483,13 +3501,16 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(dgt.C[0]) {
    res.C = new GenSubDOp<Scalar>(numSub, dgt.C);
    res.Cuc = new GenSubDOp<Scalar>(numSub, dgt.Cuc);
+   res.Ccc = new GenSubDOp<Scalar>(numSub, dgt.Ccc);
  }
  else {
    res.C   = 0; delete [] dgt.C;
    res.Cuc = 0; delete [] dgt.Cuc;
+   res.Ccc = 0; delete [] dgt.Ccc;
  }
  res.M   = new GenSubDOp<Scalar>(numSub, dgt.M);
  res.Muc = new GenSubDOp<Scalar>(numSub, dgt.Muc);
+ res.Mcc = new GenSubDOp<Scalar>(numSub, dgt.Mcc);
 
 // RT
  if(dgt.C_deriv[0]) {
@@ -3573,9 +3594,10 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
                                          subDomain[iSub]->Kbb, subDomain[iSub]->Kib);
   else
    allOps.K = (res.K) ? (*res.K)[iSub] : 0;
-  if(res.C)  allOps.C = (*res.C)[iSub];
+  if(res.C)    allOps.C = (*res.C)[iSub];
   if(res.Cuc)  allOps.Cuc = (*res.Cuc)[iSub];
-  if(res.M)  allOps.M = (*res.M)[iSub];
+  if(res.Ccc)  allOps.Ccc = (*res.Ccc)[iSub];
+  if(res.M)    allOps.M = (*res.M)[iSub];
   if(res.Muc)  allOps.Muc = (*res.Muc)[iSub];
   if(res.Mcc)  allOps.Mcc = (*res.Mcc)[iSub];
   if(res.Kuc)  allOps.Kuc = (*res.Kuc)[iSub];
@@ -3761,3 +3783,4 @@ GenDecDomain<Scalar>::solVecAssemblerNew() {
 
   return new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
 }
+

@@ -281,7 +281,10 @@ NonLinStatic::preProcess(bool factor)
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);
- if(!reactions) reactions = new Vector(domain->nDirichlet());
+ if(!reactions) { 
+   reactions = new Vector(domain->nDirichlet()); 
+   reactions->zero();
+ }
 
  times->makeBCs += getTime();
 

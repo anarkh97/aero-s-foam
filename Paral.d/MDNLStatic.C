@@ -30,8 +30,10 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
  StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
 
  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+ StackVector subReactions(reactions->subData(isub), reactions->subLen(isub));
+ subReactions.zero();
  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
-                      residual, lambda, 0, subRefState);
+                      residual, lambda, 0, subRefState, &subReactions);
 }
 
 double
@@ -108,6 +110,7 @@ MDNLStatic::MDNLStatic(Domain *d)
  kelArray = 0;
  allCorot = 0;
  times = 0;
+ reactions = 0;
 }
 
 MDNLStatic::~MDNLStatic()
@@ -125,6 +128,7 @@ MDNLStatic::~MDNLStatic()
     delete [] kelArray;
   }
   if(decDomain) delete decDomain;
+  if(reactions) delete reactions;
 }
 
 DistrInfo&
@@ -294,6 +298,12 @@ MDNLStatic::preProcess()
  execParal(numSub, this, &MDNLStatic::makeSubCorotators);
  times->corotatorTime += getTime();
 
+ // Allocate vector to store reaction forces
+ if(!reactions) {
+   reactions = new DistrVector(*decDomain->pbcVectorInfo());
+   reactions->zero();
+ }
+
  times->memoryPreProcess += threadManager->memoryUsed();
 
  // NOTE: count FETI memory separately from pre-process memory in
@@ -395,7 +405,7 @@ MDNLStatic::staticOutput(DistrGeomState *geomState, double lambda,
 {
   startTimerMemory(times->output, times->memoryOutput);
   decDomain->postProcessing(geomState, allCorot, lambda, (SysState<GenDistrVector<double> > *) 0,
-                            (GenDistrVector<double> *) 0, refState);
+                            (GenDistrVector<double> *) 0, refState, reactions);
   stopTimerMemory(times->output, times->memoryOutput);
 }
 

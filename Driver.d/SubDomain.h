@@ -553,7 +553,9 @@ class GenSubDomain : public BaseSub
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
+  void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF);
+  void mergeDistributedReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeElemProps(double* props, double* weights, int propType);
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);

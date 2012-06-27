@@ -37,9 +37,10 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   spMats  = new GenSparseMatrix<Scalar> *[nsub];
   M    = new GenSparseMatrix<Scalar> *[nsub];
   Muc  = new GenSparseMatrix<Scalar> *[nsub];
-  // XML Mcc  = new GenSparseMatrix<Scalar> *[nsub];
+  Mcc  = new GenSparseMatrix<Scalar> *[nsub];
   C    = new GenSparseMatrix<Scalar> *[nsub];
   Cuc  = new GenSparseMatrix<Scalar> *[nsub];
+  Ccc  = new GenSparseMatrix<Scalar> *[nsub];
   C_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   Cuc_deriv    = new GenSparseMatrix<Scalar> **[nsub];
   K    = new GenSparseMatrix<Scalar> *[nsub];
@@ -86,8 +87,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   Kuc[isub] = 0;
   M[isub] = 0;
   Muc[isub] = 0;
+  Mcc[isub] = 0;
   C[isub] = 0;
   Cuc[isub] = 0;
+  Ccc[isub] = 0;
   C_deriv[isub] = 0;
   Cuc_deriv[isub] = 0;
   if(spp) spp[isub] = 0;
@@ -125,14 +128,18 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         M[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
     }
 
-    if((cdsa->size() - dsa->size()) != 0)
+    if((cdsa->size() - dsa->size()) != 0) {
       Muc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
+      Mcc[isub] = sd[isub]->template constructCCSparse<Scalar>();
+    }
 
     if(alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping()) {
       C[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
 
-      if((cdsa->size() - dsa->size()) != 0)
+      if((cdsa->size() - dsa->size()) != 0) {
         Cuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
+        Ccc[isub] = sd[isub]->template constructCCSparse<Scalar>();
+      }
 
       if(domain->solInfo().doFreqSweep && domain->solInfo().nFreqSweepRHS > 1) {
         int numC_deriv, numRHS;
@@ -286,8 +293,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
     allOps.K = K[isub];
   allOps.C = C[isub]; 
   allOps.Cuc = Cuc[isub];
+  allOps.Ccc = Ccc[isub];
   allOps.M = M[isub];
   allOps.Muc = Muc[isub];
+  allOps.Mcc = Mcc[isub];
   allOps.Kuc = Kuc[isub];
   allOps.C_deriv = C_deriv[isub];
   allOps.Cuc_deriv = Cuc_deriv[isub];

@@ -16,6 +16,7 @@ class GenDomainGroupTask : public TaskDescr {
    GenSparseMatrix<Scalar> **Mcc;
    GenSparseMatrix<Scalar> **C;
    GenSparseMatrix<Scalar> **Cuc;
+   GenSparseMatrix<Scalar> **Ccc;
 // RT
    GenSparseMatrix<Scalar> ***C_deriv;
    GenSparseMatrix<Scalar> ***Cuc_deriv;

@@ -43,12 +43,15 @@ class MDNLDynamic
     SubDOp *M;
     SubDOp *C;
     SubDOp *Kuc, *Muc, *Cuc;
+    SubDOp *Mcc, *Ccc;
     Corotator ***allCorot;       // element corotators per subdomain
     DistrVector *localTemp;
 
     FullSquareMatrix **kelArray; // element stiffness matrices per subdomain
     FullSquareMatrix **melArray; // element mass matrices per subdomain
     FullSquareMatrix **celArray; // element damping matrices per subdomain
+
+    DistrVector *reactions;
 
     double t0;                   // initial time
     double totalTime;		 // total simulation time
@@ -201,6 +204,8 @@ class MDNLDynamic
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
+    void subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomState &refState, DistrVector &vel_n,
+                             DistrVector &acc_n, double &time);
 
     virtual bool factorWhenBuilding() const;
     void deleteSubCorotators(int isub);

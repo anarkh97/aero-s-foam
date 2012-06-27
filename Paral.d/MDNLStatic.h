@@ -26,6 +26,8 @@ class MDNLStatic
     FullSquareMatrix **kelArray;
     Corotator ***allCorot;
 
+    DistrVector *reactions;
+
     double firstDv;
     double firstRes;
     double lastRes;

@@ -1189,7 +1189,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState)
+                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1246,6 +1246,21 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     vels.reduce(masterVels, masterFlag, numFlags);
     accs.reduce(masterAccs, masterFlag, numFlags);
   }
+
+  // initialize and merge reaction forces
+  DistSVec<Scalar, 11> reacts(this->nodeInfo);
+  DistSVec<Scalar, 11> masterReacts(masterInfo);
+  if(reactions) {
+    GenDistrVector<Scalar> assembledReactions(*reactions);
+    //TODO: this->xx->assemble(assembledReactions);
+    reacts = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedReactions)[11] = (Scalar (*)[11]) reacts.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedReactions(mergedReactions, assembledReactions.subData(iSub));
+    }
+    reacts.reduce(masterReacts, masterFlag, numFlags);
+  }
+
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -1503,6 +1518,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
+     case OutputInfo::Reactions:
+       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
+       break;
+     case OutputInfo::Reactions6:
+       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
+       break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
 
@@ -13,6 +14,9 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa,
   ,lu(0)
 #endif
 {
+  for(int k=0; k < numUncon; k++)
+    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+ 
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
   zeroAll();
@@ -29,6 +33,9 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa,
   ,lu(0)
 #endif
 {
+  for(int k=0; k < numUncon; k++)
+    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
   zeroAll();
@@ -45,6 +52,9 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNum
   ,lu(0)
 #endif
 {
+  for(int k=0; k < numUncon; k++)
+    std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
+
   for(int i=0; i<numUncon+1; ++i) xunonz[i]--;
   for(int i=0; i<nnz; ++i) rowu[i]--;
   zeroAll();

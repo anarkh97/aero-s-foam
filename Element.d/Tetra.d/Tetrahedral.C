@@ -646,7 +646,7 @@ Tetrahedral::getCorotator(CoordSet &cs, double *kel, int , int )
     return new MatNLCorotator(ele);
   }
   else {
-    if(!tetCorotator) tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs);
+    tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs);
     return tetCorotator;
   }
 }

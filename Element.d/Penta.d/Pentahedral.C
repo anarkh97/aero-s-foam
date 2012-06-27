@@ -683,7 +683,7 @@ Pentahedral::getCorotator(CoordSet &cs, double *kel, int , int )
     return new MatNLCorotator(ele);
   }
   else {
-    if(!pentaCorotator) pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
+    pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
     return pentaCorotator;
   }
 }

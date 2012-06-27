@@ -134,7 +134,7 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  }
 
  // build stiffness and mass matrices
- melArray = (domain->solInfo().arpack_mode == 4) ? geomKelArray : 0;
+ melArray = (domain->solInfo().arpack_mode == 4 && domain->solInfo().buckling) ? geomKelArray : 0;
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, dMat.rigidBodyModes, kelArray, melArray);
  dMat.dynMat  = allOps.sysSolver;
  dMat.M       = allOps.M;
@@ -160,6 +160,19 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
      }
      else
        dMat.M->add(geomKelArray[iele],(*allDOFs)[iele]);
+   }
+ }
+ else if(domain->solInfo().arpack_mode == 4) { // we may also want to use mode for for eigen (non-buckling)
+                                               // if the mass matrix is indefinite
+   Connectivity *allDOFs = domain->getAllDOFs();
+   dMat.M->zeroAll();
+   int iele;
+   int size = sizeof(double)*domain->maxNumDOF()*domain->maxNumDOF();
+   double *karray = (double *) dbg_alloca(size);
+   for(iele=0; iele<domain->numElements(); ++iele) {
+     // this is an unnecessary recalculation of Element::stiffness but it will do for now
+     FullSquareMatrix kel  = domain->getElementSet()[iele]->stiffness(domain->getNodes(), karray);
+     dMat.M->add(kel,(*domain->getAllDOFs())[iele]);
    }
  }
 }

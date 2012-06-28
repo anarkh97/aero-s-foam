@@ -195,7 +195,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     double *userDefineAcc  = new double[claw->numUserDisp];
     //cerr << "getting usdd at time " << t << " for dynamOutput\n";
     userSupFunc->usd_disp(t,userDefineDisp,userDefineVel,userDefineAcc);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
@@ -549,7 +549,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc); // update bcx, vcx, acx
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false); // update bcx, vcx, acx
       delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
@@ -735,7 +735,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
       userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc);
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numSensor) {

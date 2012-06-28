@@ -3145,40 +3145,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
         }
       }
     }
-/* moved to GeoSource::checkLMPCs
-    if(domain->solInfo().dbccheck) {
-      if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
-      for(int i=0; i < numLMPC; ++i) {
-        for(int j=0; j < lmpc[i]->nterms; ++j) {
-          int mpc_node = lmpc[i]->terms[j].nnum;
-          int mpc_dof = lmpc[i]->terms[j].dofnum;
-          for(int k=0; k<numDirichlet; ++k) {
-            int dbc_node = dbc[k].nnum;
-            int dbc_dof = dbc[k].dofnum;
-            if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
-              if(!lmpc[i]->isComplex) {
-                lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
-              }
-              else {
-                lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
-              }
-            }
-          }
-          for(int k=0; k<numComplexDirichlet; ++k) {
-            int cdbc_node = cdbc[k].nnum;
-            int cdbc_dof = cdbc[k].dofnum;
-            if((cdbc_node == mpc_node) && (cdbc_dof == mpc_dof)) {
-              if(!lmpc[i]->isComplex)
-                lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * cdbc[k].reval;
-              else
-                lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * DComplex(cdbc[k].reval, cdbc[k].imval);
-            }
-          }
-         // note: could also eliminate the term from the mpc to simplify further
-        }
-      }
-    }
-*/
   }
 }
 

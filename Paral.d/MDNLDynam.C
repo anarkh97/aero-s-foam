@@ -847,7 +847,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     double *userDefineAcc  = new double[claw->numUserDisp];
     userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
     execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, *geomState, userDefineDisp);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, true);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 

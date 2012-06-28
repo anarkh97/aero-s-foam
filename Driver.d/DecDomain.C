@@ -2799,14 +2799,6 @@ void GenDecDomain<Scalar>::renumberBC()
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel) 
-{
-  int iSub;
-  for (iSub = 0; iSub < numSub; iSub++)
-    subDomain[iSub]->setUserDefBC(usrDefDisp, usrDefVel);
-}
-
-template<class Scalar>
 void GenDecDomain<Scalar>::addUserForce(GenDistrVector<Scalar> &f, Scalar *userDefineForce) 
 {
   int iSub;

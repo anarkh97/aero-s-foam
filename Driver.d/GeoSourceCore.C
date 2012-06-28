@@ -307,6 +307,7 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       int mpc_node = lmpc[i]->terms[j].nnum;
       int mpc_dof = lmpc[i]->terms[j].dofnum;
       for(int k=0; k<numDirichlet; ++k) {
+        if(dbc[k].type == BCond::Usdd) continue; // the following treatment is not appropriate for USDD's
         int dbc_node = dbc[k].nnum;
         int dbc_dof = dbc[k].dofnum;
         if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {

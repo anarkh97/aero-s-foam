@@ -3286,7 +3286,7 @@ void GenSubDomain<Scalar>::initMpcScaling()
 }
 
 template<class Scalar>
-void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc)
+void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, double *usrDefAcc, bool nlflag)
 {
   // modify boundary condition values for output purposes
   int i;
@@ -3300,6 +3300,23 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, d
     }
   }
   updateUsddInDbc(usrDefDisp, locToGlUserDispMap); // CHECK
+
+  if(nlflag) return; // don't need to adjust rhs for nonlinear dynamics
+
+  for(int i=0; i < numMPC; ++i) {
+    mpc[i]->rhs = mpc[i]->original_rhs;
+    for(int j=0; j < mpc[i]->nterms; ++j) {
+      int mpc_node = mpc[i]->terms[j].nnum;
+      int mpc_dof = mpc[i]->terms[j].dofnum;
+      for(int k=0; k<numDirichlet; ++k) {
+        int dbc_node = dbc[k].nnum;
+        int dbc_dof = dbc[k].dofnum;
+        if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
+          mpc[i]->rhs -= mpc[i]->terms[j].coef * dbc[k].val;
+        }
+      }
+    }
+  }
 }
 
 template<class Scalar>

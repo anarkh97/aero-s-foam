@@ -104,7 +104,6 @@ class GenDecDomain
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
                               GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0);
-  void setUserDefBC(double *, double *); 
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs

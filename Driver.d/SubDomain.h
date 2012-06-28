@@ -495,7 +495,7 @@ class GenSubDomain : public BaseSub
   Scalar *getBcx()  { if(!bcx_scalar) makeBcx_scalar(); return bcx_scalar; }
   double *getVcx()  { return vcx; }
   double *getAcx()  { return acx; }
-  void setUserDefBC(double *, double *, double *);
+  void setUserDefBC(double *, double *, double *, bool nlflag);
   //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
   //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);

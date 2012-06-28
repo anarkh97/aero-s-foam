@@ -325,7 +325,10 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
   int converged = 0;
   // Check for convergence
-  if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) converged = 1;
+  if((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) ||
+     (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))
+    converged = 1;
+
   // Check for divergence
   else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
 
@@ -877,7 +880,7 @@ MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &v
 {
   SubDomain *sd = decDomain->getSubDomain(i);
   StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
-  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
   sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
@@ -1191,7 +1194,7 @@ MDNLDynamic::subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, Distr
   StackVector v_ni(v_n.subData(i), v_n.subLen(i));
   StackVector a_ni(a_n.subData(i), a_n.subLen(i));
   StackVector v_pi(v_p.subData(i), v_p.subLen(i));
-  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
   sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *(geomState[i]), ext);

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdio>
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <cstdlib>
 #include <Parser.d/AuxDefs.h>
@@ -63,7 +64,7 @@
 %token COMPLEXOUTTYPE CONSTRMAT
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -71,7 +72,7 @@
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
@@ -3314,6 +3315,11 @@ NLInfo:
         | NLInfo NLTOL Float Float NewLine
         { domain->solInfo().getNLInfo().tolRes = $3;
           domain->solInfo().getNLInfo().tolInc = $4; }
+        | NLInfo NLTOL Float Float Float Float NewLine
+        { domain->solInfo().getNLInfo().tolRes = $3;
+          domain->solInfo().getNLInfo().tolInc = $4;
+          domain->solInfo().getNLInfo().absTolRes = $5;
+          domain->solInfo().getNLInfo().absTolInc = $6; }
         | NLInfo DLAMBDA Float Float NewLine
         { domain->solInfo().getNLInfo().dlambda = $3;
           domain->solInfo().getNLInfo().maxLambda = $4; }
@@ -3633,5 +3639,9 @@ Float:
 	{ $$ = $1; }
 	| DblConstant 
 	{ $$ = $1; }
+        | INFINTY
+        { $$ = std::numeric_limits<double>::infinity(); }
+        | EPSILON
+        { $$ = std::numeric_limits<double>::epsilon(); }
 	;
 %%

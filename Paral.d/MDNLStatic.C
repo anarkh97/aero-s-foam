@@ -185,12 +185,14 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  //  converged = 1;
 
  // Check to see if residual has converged
- if(relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc)
+ if((relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc) ||
+    (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))
   converged = 1;
 
  // Divergence check
  // if( normDv > 1000.0*firstDv || normRes > 1000.0*firstRes)
- if( normDv > 1000.0*firstDv)
+ //if( normDv > 1000.0*firstDv)
+ if(normRes > 10000*firstRes) // PJSA: use same criterion as NonLinStatic::checkConvergence
    converged = -1;
 
  // Store residual norm and dv norm for output

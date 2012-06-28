@@ -119,6 +119,9 @@ TRAIL [a-zA-Z]*
 "TRUE"|"true"|"True"               { yylval.ival = 1; return SWITCH; }
 "FALSE"|"false"|"False"            { yylval.ival = 0; return SWITCH; }
 
+"INF"[a-zA-Z]*|"inf"[a-zA-Z]*      { return INFINTY; }
+"EPS"[a-zA-Z]*|"eps"[a-zA-Z]*      { return EPSILON; }
+
 "DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 
 "nsubs"|"NSUBS"                    { return NSUBS; }

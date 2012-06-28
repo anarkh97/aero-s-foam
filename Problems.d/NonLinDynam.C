@@ -498,7 +498,8 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
 
      int converged = 0;
 
-     if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+     if((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) ||
+        (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)) 
        converged = 1;
 
      // Check for divergence

@@ -150,7 +150,8 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
  int converged = 0;
 
  // Check relative convergence criteria
- if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
+ if((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) ||
+    (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))
    converged = 1;
 
  // Check Divergence

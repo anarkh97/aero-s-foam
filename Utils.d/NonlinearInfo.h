@@ -19,8 +19,10 @@ struct NonlinearInfo {
    int fitAlgShell;     // fit algorithm for shell elements
    int fitAlgBeam;      // fit algorithm for beam elements
 
-   double tolRes;       // Newton iteration force residual tolerance
-   double tolInc;       // Newton iteration displacement increment tolerance
+   double tolRes;       // Newton iteration relative force residual tolerance
+   double tolInc;       // Newton iteration relative displacement increment tolerance
+   double absTolRes;    // Newton iteration absolute force residual tolerance
+   double absTolInc;    // Newton iteration absolute displacement increment tolerance
    double dlambda;      // load step increment
    double maxLambda;    // maximum load step value to attain
    double lfactor;      // scaling factor to determine step size in the load
@@ -36,6 +38,7 @@ struct NonlinearInfo {
                      reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
                      fitAlgShell = 2; fitAlgBeam =   2; dlambda = 1.0;
                      tolRes = 1.0E-6; tolInc     = std::numeric_limits<double>::infinity();
+                     absTolRes = 0.0; absTolInc  = 0.0;
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
                      extMax      = 6; unsymmetric = false; linesearch = false;
                      failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon(); }

@@ -88,6 +88,7 @@ class MDNLDynamic
 
     std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all other constraints
+    double Kcoef_p;
 
  public:
 

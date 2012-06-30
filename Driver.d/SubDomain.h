@@ -636,6 +636,7 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
   void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
+  void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();

@@ -273,6 +273,9 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   allCorot = 0;
   localTemp = 0;
   reactions = 0;
+#ifdef DEBUG_REACTIONS
+  std::ofstream rout("reactions"); 
+#endif
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -325,12 +328,13 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
   int converged = 0;
   // Check for convergence
-  if((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) ||
-     (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))
+  if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
     converged = 1;
 
   // Check for divergence
-  else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
+  else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes)) 
+    converged = -1;
 
 //#ifdef PRINT_RESIDUALS
   double relEng = normEnergy/firstEng;
@@ -479,6 +483,7 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
    decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+   Kcoef_p = Kcoef;
 
  } else
    times->norms[numSystems].rebuildTang = 0;
@@ -899,6 +904,22 @@ MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomStat
   SparseMatrix *Ccci = (Ccc) ? (*Ccc)[i] : 0;
   sd->computeReactionForce(ri, geomState[i], allCorot[i], kelArray[i], time, refState[i], velocity,
                            acceleration, sd->getVcx(), sd->getAcx(), Cuci, Ccci, (*Muc)[i], (*Mcc)[i]);
+ 
+  // TODO: the lagrange multipliers should probably be extrapolated to t^{n+1}
+  //       check if the equality constraint forces are incremental
+  sd->addCConstraintForces(mu[i], lambda[i], ri, 1/Kcoef_p);
+#ifdef DEBUG_REACTIONS
+  double rx=0,ry=0,rz=0;
+  for(int j=0; j<reactions->subLen(i)/3; ++j) {
+    rx += ri[3*j+0];
+    ry += ri[3*j+1];
+    rz += ri[3*j+2];
+  }
+  std::ofstream rout; rout.open("reactions",  ofstream::app);
+  if(i == 0) rout << time << " ";
+  rout << rx << " " << ry << " " << rz << " ";
+  if(i == decDomain->getNumSub()-1) rout << std::endl;
+#endif
 }
 
 void
@@ -969,8 +990,6 @@ MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &, double)
  DistrVector w(r);
  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
-                  // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
-                  // correctly only for the case of one contactsurfaces pair
  return sqrt(solver->getFNormSq(w));
 }
 
@@ -982,9 +1001,6 @@ MDNLDynamic::factorWhenBuilding() const {
 void
 MDNLDynamic::addConstraintForces(int isub, DistrVector& vec)
 {
-  // I need to treat the contact forces from CONTACTSURFACES separately due to search,
-  // the ith lagrange multiplier at iteration n may not correspond to the ith constraint
-  // after updating the contact surfaces
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->addConstraintForces(mu[isub], lambda[isub], localvec);  // C^T*lambda added to vec

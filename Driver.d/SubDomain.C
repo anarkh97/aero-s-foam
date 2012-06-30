@@ -5703,6 +5703,45 @@ GenSubDomain<Scalar>::addConstraintForces(std::map<std::pair<int,int>, double> &
   }
 }
 
+template<class Scalar>
+void
+GenSubDomain<Scalar>::addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s)
+{
+  bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
+  for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
+
+  vector<double>::iterator it2 = lambda.begin();
+  for(int l = 0; l < scomm->lenT(SComm::mpc); ++l) {
+    int i = scomm->mpcNb(l);
+    if(!mpcFlag[i]) continue;
+    if(mpc[i]->getSource() == mpc::ContactSurfaces) { // contact
+      std::map<std::pair<int,int>, double>::iterator it1 = mu.find(mpc[i]->id);
+      if(it1 != mu.end()) {
+        for(int j = 0; j < mpc[i]->nterms; ++j) {
+          int dof = dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
+          if(dof < 0) continue;
+          int cdof = c_dsa->invRCN(dof);
+          if(cdof >= 0)
+            fc[cdof] += s*mpc[i]->terms[j].coef*it1->second;
+        }
+      }
+    }
+    else {
+      if(it2 != lambda.end()) {
+        for(int j = 0; j < mpc[i]->nterms; ++j) {
+          int dof = dsa->locate(mpc[i]->terms[j].nnum, (1 << mpc[i]->terms[j].dofnum));
+          if(dof < 0) continue;
+          int cdof = c_dsa->invRCN(dof);
+          if(cdof >= 0)
+            fc[cdof] += s*mpc[i]->terms[j].coef*(*it2);
+        }
+        it2++;
+      }
+    }
+    mpcFlag[i] = false;
+  }
+}
+
 template<class Scalar> template<class Scalar1>
 void
 GenSubDomain<Scalar>::dispatchNodalData(FSCommPattern<Scalar> *pat, DistVec<Scalar1> *vec)

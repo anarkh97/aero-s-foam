@@ -498,14 +498,13 @@ NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual,
 
      int converged = 0;
 
-     if((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) ||
-        (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)) 
+     if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+        || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))) 
        converged = 1;
 
      // Check for divergence
-     if(normRes >= 1.0e10 * firstRes && normRes > secondRes) {
+     else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes))
        converged = -1;
-     }
 
      if(verboseFlag) {
        filePrint(stderr," Iteration # %d\n",iteration);
@@ -1149,6 +1148,14 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
   if(domain->reactionsReqd(time, step+1)) {
     domain->computeReactionForce(*reactions, geomState, allCorot, kelArray, time, refState, velocity,
                                  acceleration, vcx, acx, Cuc, Ccc, Muc, Mcc); 
+    double rx=0,ry=0,rz=0;
+    for(int j=0; j<reactions->size()/3; ++j) {
+      rx += (*reactions)[3*j+0];
+      ry += (*reactions)[3*j+1];
+      rz += (*reactions)[3*j+2];
+    }
+    std::ofstream rout; rout.open("reactions",  ofstream::app);
+    rout << time << " " << rx << " " << ry << " " << rz << " " << std::endl;
   }
 
   domain->postProcessing(geomState, force, aeroF, time, (step+1), velocity.data(), vcx,

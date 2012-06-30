@@ -1148,14 +1148,6 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
   if(domain->reactionsReqd(time, step+1)) {
     domain->computeReactionForce(*reactions, geomState, allCorot, kelArray, time, refState, velocity,
                                  acceleration, vcx, acx, Cuc, Ccc, Muc, Mcc); 
-    double rx=0,ry=0,rz=0;
-    for(int j=0; j<reactions->size()/3; ++j) {
-      rx += (*reactions)[3*j+0];
-      ry += (*reactions)[3*j+1];
-      rz += (*reactions)[3*j+2];
-    }
-    std::ofstream rout; rout.open("reactions",  ofstream::app);
-    rout << time << " " << rx << " " << ry << " " << rz << " " << std::endl;
   }
 
   domain->postProcessing(geomState, force, aeroF, time, (step+1), velocity.data(), vcx,

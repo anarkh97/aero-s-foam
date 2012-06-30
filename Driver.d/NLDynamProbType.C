@@ -161,7 +161,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double timeLoop =- getTime();
   double midtime;
   char ch[4] = { '|', '/', '-', '\\' };
-  double tolInc = domain->solInfo().getNLInfo().tolInc;
+  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() 
+                 || domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
   double dt = dt0;
   bool failed = false;
   int numConverged = 0;
@@ -234,8 +235,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
         // If the convergence criteria does not involve the solution increment, then 
         // check for convergence now (to avoid potentially unnecessary solve)
-        if(tolInc != std::numeric_limits<double>::infinity()
-           || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
+        if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
           // Assemble global tangent stiffness
           if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
@@ -250,7 +250,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         }
         // If the converged criteria does involve the solution increment, then
         // check for convergence now
-        if(tolInc != std::numeric_limits<double>::infinity()) {
+        if(useTolInc) {
           converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
         }
       }

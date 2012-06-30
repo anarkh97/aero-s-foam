@@ -753,17 +753,20 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           getCompositeData(i,time);
           break;          
         case OutputInfo::TDEnforcement: {
-          // TODO outFlag == 1
-          double *plot_data = new double[numNodes];
-          for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
-          for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
-            MortarConds[iMortar]->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
+          if(tdenforceFlag()) {
+            // TODO outFlag == 1
+            double *plot_data = new double[numNodes];
+            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
+              MortarConds[iMortar]->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
+            }
+            if(oinfo[i].nodeNumber == -1)
+              geoSource->outputNodeScalars(i, plot_data, numNodes, time);
+            else
+              geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
+            delete [] plot_data;
           }
-          if(oinfo[i].nodeNumber == -1)
-            geoSource->outputNodeScalars(i, plot_data, numNodes, time);
-          else
-            geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
-          delete [] plot_data;
+          else fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
         } break;
         case OutputInfo::Reactions: {
           Vector fc(numDirichlet);

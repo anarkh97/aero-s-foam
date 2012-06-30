@@ -1100,16 +1100,19 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           this->getElementAttr(i,THICK, time);
           break;
         case OutputInfo::TDEnforcement: {
-          double *plot_data = new double[numNodes]; 
-          for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
-          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
-            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
+          if(domain->tdenforceFlag()) {
+            double *plot_data = new double[numNodes]; 
+            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+              domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
+            }
+            if(oinfo[i].nodeNumber == -1) 
+              geoSource->outputNodeScalars(i, plot_data, numNodes, time);
+            else 
+              geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
+            delete [] plot_data;
           }
-          if(oinfo[i].nodeNumber == -1) 
-            geoSource->outputNodeScalars(i, plot_data, numNodes, time);
-          else 
-            geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
-          delete [] plot_data;
+          else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
         } break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);

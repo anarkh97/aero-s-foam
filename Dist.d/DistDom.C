@@ -505,19 +505,22 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         this->getElementAttr(iOut,THICK, time);
         break;
       case OutputInfo::TDEnforcement: {
-        DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
-        double **sub_data = new double * [this->numSub];
-        for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
-        for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
-          domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+        if(domain->tdenforceFlag()) {
+          DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
+          double **sub_data = new double * [this->numSub];
+          for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
+          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+          }
+          DistSVec<double, 1> master_data(masterInfo);
+          all_data.reduce(master_data, masterFlag, numFlags);
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+          }
+          delete [] sub_data;
         }
-        DistSVec<double, 1> master_data(masterInfo);
-        all_data.reduce(master_data, masterFlag, numFlags);
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-        }
-        delete [] sub_data;
+        else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut); 
       } break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);

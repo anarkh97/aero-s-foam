@@ -249,8 +249,8 @@ StaticSolver< Scalar, OpSolver, VecType,
       //--
     } // for (int iRHS = 0; iRHS < nRHS; ++iRHS)
     //--- 
-    //--- allOps->K is assembled with a shift proportional to M.
-    //--- The next lines cancel the shift.
+    //--- If allOps->K is assembled with a shift proportional to M,
+    //--- then the next lines cancel the shift.
     //--- 
     for (int jj = 0; jj < nRHS; ++jj)
       VtKV[jj * (1 + nRHS)] += shiftForK;

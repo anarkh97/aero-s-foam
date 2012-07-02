@@ -150,7 +150,7 @@ StaticSolver< Scalar, OpSolver, VecType,
        //--- Note that wc is referred only on the first call to this routine.
        //--- It is used to get K (as K is actually storing K - wc*wc*M)
        /*probDesc->*/ PadeLanczos_Evaluate((count+1)*nRHS, PadeLanczos_solprev, 
-                                      PadeLanczos_VtKV, PadeLanczos_Vtb, wc, sol, wc*wc);
+                                      PadeLanczos_VtKV, PadeLanczos_Vtb, wc, sol);
        if (savesol)  {
          *savedSol = *sol;
          *savedRhs = *rhs;

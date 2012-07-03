@@ -1581,7 +1581,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   if(domain->solInfo().inpc) f = (*f_copy);
 
 // RT 05/08/2010: bug in the g++ compiler
-  if(ff == 0.0) {
+  if(ff == 0.0 && !globalFlagCtc) {
      filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
      return 1.0;
   }

@@ -850,7 +850,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
     // TODO Examine when DSA can be different from c_dsa
     if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, rbm);
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
@@ -943,7 +943,7 @@ Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
     // TODO Examine when DSA can be different from c_dsa
     if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, rbm);
+    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, /*rbm*/ (Rbm*)NULL); // TODO Consider rbm issue
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSpooles<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
@@ -953,7 +953,7 @@ Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
 
 template<class Scalar>
 GenMumpsSolver<Scalar> *
-Domain::constructMumps(ConstrainedDSA *DSA, Rbm *rbm, FSCommunicator *com)
+Domain::constructMumps(ConstrainedDSA *DSA, Rbm *, FSCommunicator *com)
 {
   if(DSA == 0) DSA = c_dsa;
   if(!sinfo.getDirectMPC())

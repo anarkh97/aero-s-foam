@@ -525,7 +525,8 @@ TRAIL [a-zA-Z]*
 
 "pick_any_corner" { return PICKANYCORNER; }
 
-"DIRE"[a-zA-Z]*|"dire"[a-zA-Z]*    { return DIRECT; }
+"DIRE"[a-zA-Z]*|"dire"[a-zA-Z]*    { return DIRECT; } // deprecated
+"ELIM"[a-zA-Z]*|"elim"[a-zA-Z]*    { return DIRECT; }
 
 "MULT"[a-zA-Z]*|"mult"[a-zA-Z]*    { return MULTIPLIERS; }
 

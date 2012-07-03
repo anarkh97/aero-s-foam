@@ -1000,8 +1000,10 @@ SlzemInfo:
 RbmTolerance:
         TRBM NewLine Float NewLine
         { domain->solInfo().setTrbm($3); }
+/* 
         | TRBM NewLine Float Float NewLine
         { domain->solInfo().setTrbm($3); }
+*/
 	;
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
@@ -2278,6 +2280,34 @@ ContactSurfaces:
           $$->SetMortarType($5); 
           domain->AddMortarCond($$);
         }
+        | ContactSurfaces Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4); 
+          $$->SetInteractionType(MortarHandler::CTC); 
+          $$->SetMortarType(MortarHandler::STD); 
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4); 
+          $$->SetInteractionType(MortarHandler::CTC); 
+          $$->SetMortarType($5); 
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($5); 
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($5); 
+          domain->AddMortarCond($$);
+        }
         ;
 AcmeControls:
         ACMECNTL Integer NewLine
@@ -3051,6 +3081,10 @@ Constraints:
         { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
           domain->solInfo().penalty = $2.penalty; }
+        | CONSTRAINTS NewLine ConstraintOptionsData NewLine
+        { if(!$3.lagrangeMult && $3.penalty == 0) domain->solInfo().setDirectMPC(true);
+          domain->solInfo().lagrangeMult = $3.lagrangeMult;
+          domain->solInfo().penalty = $3.penalty; }
         ;
 ConstraintOptionsData:
         DIRECT
@@ -3083,6 +3117,7 @@ ConstraintOptionsData:
         { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
         | MULTIPLIERS PENALTY Float
         { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        ;
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??

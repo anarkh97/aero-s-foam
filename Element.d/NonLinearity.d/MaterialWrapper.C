@@ -1,5 +1,8 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
 
 template<typename Material>
 MaterialWrapper<Material>::MaterialWrapper(Material *_mat)
@@ -41,6 +44,68 @@ MaterialWrapper<Material>::getStress(Tensor *_stress, Tensor &_strain, double*)
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       (*stress)[3*i+j] = lstress[3*i+j];
+}
+
+template<>
+inline void
+MaterialWrapper<NeoHookean>::getStress(Tensor *_stress, Tensor &_strain, double* state)
+{
+  // Note: this function is called for post-processing.
+  // In this case we prefer to output the PK2 stress to be consistent with other
+  // materials, and also because the second invariant of the deviatoric PK1 stress
+  // can be negative.
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
+
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix3d,Eigen::RowMajor> F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
+  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+#endif
+}
+
+template<>
+inline void
+MaterialWrapper<MooneyRivlin>::getStress(Tensor *_stress, Tensor &_strain, double* state)
+{
+  // Note: this function is called for post-processing.
+  // In this case we prefer to output the PK2 stress to be consistent with other
+  // materials, and also because the second invariant of the deviatoric PK1 stress
+  // can be negative.
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
+
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = strain[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
+
+#ifdef USE_EIGEN3
+  Eigen::Map<Eigen::Matrix3d,Eigen::RowMajor> F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
+  s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
+#else
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+#endif
 }
 
 template<>

@@ -111,13 +111,13 @@
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/MyComplex.h>
+#include <Parser.d/AuxDefs.h>
 
 class CoordSet;
 class LMPCons;
 class Connectivity;
 class Elemset;
 class BCond;
-//class BCond;
 
 class SurfaceEntity;
 class FaceElement;
@@ -153,6 +153,7 @@ class MortarHandler {
         int DIST_ACME; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                        // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics)
         int MortarIntegrationRule;
+        ConstraintOptions *ConstraintOptionsData;
 
         double NormalSearchTol;
         double TangSearchTol;
@@ -279,6 +280,8 @@ class MortarHandler {
         void SetMortarScaling(double _MortarScaling);
         void SetMortarIntegrationRule(int _MortarIntegrationRule);
 
+        void SetConstraintOptions(ConstraintOptions& _ConstraintOptionsData);
+
         // Get methods
         // ~~~~~~~~~~~
         int GetId();
@@ -306,6 +309,8 @@ class MortarHandler {
 	int GetnMortarLMPCs();
         int GetIdFirstMortarLMPC();
         int GetIdLastMortarLMPC();
+
+        ConstraintOptions* GetConstraintOptions();
 
         // Print, display, ... methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~

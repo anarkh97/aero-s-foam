@@ -2167,6 +2167,21 @@ TiedSurfaces:
           $$->SetInteractionType(MortarHandler::TIED);
           domain->AddMortarCond($$);
         }
+        | TiedSurfaces Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetConstraintOptions($5);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($8);
+          domain->AddMortarCond($$);
+        }
         ;
 FSInterface:
         FSINTERFACE NewLine
@@ -2285,20 +2300,7 @@ ContactSurfaces:
           $$ = new MortarHandler($3, $4); 
           $$->SetInteractionType(MortarHandler::CTC); 
           $$->SetMortarType(MortarHandler::STD); 
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4); 
-          $$->SetInteractionType(MortarHandler::CTC); 
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4, $6);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5); 
+          $$->SetConstraintOptions($5);
           domain->AddMortarCond($$);
         }
         | ContactSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
@@ -2306,6 +2308,7 @@ ContactSurfaces:
           $$ = new MortarHandler($3, $4, $6, $7);
           $$->SetInteractionType(MortarHandler::CTC);
           $$->SetMortarType($5); 
+          $$->SetConstraintOptions($8);
           domain->AddMortarCond($$);
         }
         ;

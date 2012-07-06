@@ -60,14 +60,10 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    Graph *graph; // PJSA
 #endif
 
- protected:
-   int nrbm;
-   Rbm *rbm;
-
  public:
    //GenSpoolesSolver(Connectivity *nToN, DofSetArray *dsa, int *map=0);
    GenSpoolesSolver(Connectivity *nToN, EqNumberer *dsa, int *map=0);
-   GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, Rbm *rbm = 0);
+   GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa);
 
    virtual void clean_up() {
      cleanUp();
@@ -106,12 +102,6 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    Scalar  diag(int dof) const;
    Scalar &diag(int dof);
 
-   // These do not do anything!
-   int     numRBM()  { return nrbm; }
-   void    getRBMs(double *);
-   void    getRBMs(Vector *);
-   void    getRBMs(VectorSet &);
-
    void    zeroAll();
    void    cleanUp();
    double  getSolutionTime()  { return 0.0; }
@@ -132,15 +122,14 @@ class WrapSpooles : public GenSpoolesSolver<Scalar>
       DofSetArray *dsa;
       ConstrainedDSA *cdsa;
       Rbm *rbm;
-      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc, Rbm *r) {
+      CtorData(Connectivity *c, DofSetArray *d, ConstrainedDSA *dc) {
         cn = c;
         dsa = d;
         cdsa = dc;
-        rbm = r;
       }
     };
 
-    WrapSpooles(CtorData &ctd) : GenSpoolesSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.rbm) {}
+    WrapSpooles(CtorData &ctd) : GenSpoolesSolver<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa) {}
 };
 
 typedef GenSpoolesSolver<double> SpoolesSolver;

@@ -179,6 +179,7 @@ void
 GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
 {
   if(GtGtilda) {
+    std::cerr << "here in GenFetiDPSolver<Scalar>::getRBMs #1\n";
     int nRBM = numRBM();
     int iRBM;
     for(iRBM = 0; iRBM < nRBM; ++iRBM) {
@@ -188,6 +189,7 @@ GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
     }
   }
   else if(KccSolver) {
+    std::cerr << "here in GenFetiDPSolver<Scalar>::getRBMs #2\n";
     int nc = KccSolver->neqs();
     int nr = numRBM();
     Scalar *R = new Scalar[nr*nc];
@@ -212,7 +214,7 @@ void
 GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
 {
   if(GtGtilda) {
-
+    std::cerr << "here in GenFetiDPSolver<Scalar>::getRBMs #3\n";
     int numGtGsing = GtGtilda->numRBM();
     if(numGtGsing > 0 && domain->probType() == SolverInfo::Modal) {
       // get null space of GtGtilda
@@ -230,6 +232,7 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
     }
   }
   else if(KccSolver) {
+    std::cerr << "here in GenFetiDPSolver<Scalar>::getRBMs #4\n";
     int nc = KccSolver->neqs();
     int nr = numRBM();
     Scalar *R = new Scalar[nr*nc];

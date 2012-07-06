@@ -490,7 +490,7 @@ class Domain : public HData {
           *constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm=0);
 
      template<class Scalar>
-       GenSpoolesSolver<Scalar> *constructSpooles(ConstrainedDSA *CDSA = 0, Rbm *rbm=0);
+       GenSpoolesSolver<Scalar> *constructSpooles(ConstrainedDSA *CDSA = 0);
 
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);

@@ -930,11 +930,11 @@ Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
 
 template<class Scalar>
 GenSpoolesSolver<Scalar> *
-Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
+Domain::constructSpooles(ConstrainedDSA *DSA)
 {
   if(DSA == 0) DSA = c_dsa;
   if(!sinfo.getDirectMPC())
-    return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, DSA, rbm);
+    return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, DSA);
   else {
     if(nodeToNodeDirect) delete nodeToNodeDirect;
     nodeToNodeDirect = prepDirectMPC();
@@ -943,7 +943,7 @@ Domain::constructSpooles(ConstrainedDSA *DSA, Rbm *rbm)
     // TODO Examine when DSA can be different from c_dsa
     if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, /*rbm*/ (Rbm*)NULL); // TODO Consider rbm issue
+    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSpooles<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
@@ -1005,6 +1005,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 
  if(allOps.sysSolver) delete allOps.sysSolver;
  GenSolver<Scalar> *systemSolver = 0;
+ if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
+                                                                 // geometric rbms to
+                                                                 // solver in this case
 // RT: 032010 based on Phil's input
 // if(!sinfo.inpc) {
 //   if (allOps.sysSolver) delete allOps.sysSolver;
@@ -1103,6 +1106,9 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 {
  GenSolver<Scalar> *systemSolver;
  GenSparseMatrix<Scalar> *spm;
+ if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
+                                                                 // geometric rbms to
+                                                                 // solver in this case
 
  switch(sinfo.type) {
 
@@ -1339,7 +1345,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #endif
 #ifdef USE_SPOOLES
     case 8:
-      spm = constructSpooles<Scalar>(c_dsa, rbm);
+      spm = constructSpooles<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
       break;

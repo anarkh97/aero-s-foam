@@ -499,6 +499,20 @@ GenBLKSparseMatrix<Scalar>::computeRBMs()
   }
 }
 
+template<class Scalar>
+void
+GenBLKSparseMatrix<Scalar>::getNullSpace(Scalar *ns)
+{
+  if(numrbm > 0) {
+    Scalar *tempvec = new Scalar[numUncon];
+    Tblkns(nsuper, xsuper, xlindx,  lindx,
+           xlnz,    lnz, defblk, numrbm,
+           lbdef,    def,  ipcol,   invp,
+           ns,   numUncon, tempvec);
+    delete [] tempvec;
+  }
+}
+
 template<class Scalar> 
 double
 GenBLKSparseMatrix<Scalar>::getMemoryUsed()
@@ -1330,7 +1344,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0)
-    defblk = domain->solInfo().sparse_defblk; // PJSA: default is 30
+    defblk = min(numUncon-1,domain->solInfo().sparse_defblk); // note: sparse_defblk default is 30
   else
     defblk = 0;
 

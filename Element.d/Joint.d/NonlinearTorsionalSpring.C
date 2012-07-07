@@ -312,7 +312,7 @@ NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet 
   double *statenp = gState.getElemState(getGlNum()) + stateOffset;
   offset = statenp[0];
   offset2 = statenp[1];
-  quadrant = statenp[2];
+  quadrant = (int)statenp[2];
 
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];

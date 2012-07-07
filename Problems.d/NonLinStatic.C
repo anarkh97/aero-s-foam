@@ -373,7 +373,7 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  int step = std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
+  int step = (int)std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
   domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
                          (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
                          reactions);

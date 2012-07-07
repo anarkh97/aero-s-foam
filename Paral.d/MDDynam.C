@@ -129,7 +129,7 @@ MultiDomainOp::getInitState(int isub)
  StackVector   v_p(v4->subData(isub),v1->subLen(isub));
 
  if(geoSource->getCheckFileInfo()->lastRestartFile) {
-   int extlen = std::log10((double) sd[isub]->subNum()+1) + 1;
+   int extlen = (int)std::log10((double) sd[isub]->subNum()+1) + 1;
    char *ext = new char[extlen+2];
    sprintf(ext,"_%d",sd[isub]->subNum()+1);
    sd[isub]->initDispVeloc(disp, veloc, accel, v_p, ext);
@@ -168,7 +168,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   if(domain->solInfo().nRestart > 0) {
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
       SubDomain *sd = decDomain->getSubDomain(i);
-      int extlen = std::log10((double) sd->subNum()+1) + 1;
+      int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
       char *ext = new char[extlen+2];
       sprintf(ext,"_%d",sd->subNum()+1);
       if(domain->solInfo().isNonLin()) {
@@ -715,7 +715,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         StackVector v_ni(state.getVeloc().subData(i), state.getVeloc().subLen(i));
         StackVector a_ni(state.getAccel().subData(i), state.getAccel().subLen(i));
         StackVector v_pi(state.getPrevVeloc().subData(i), state.getPrevVeloc().subLen(i));
-        int extlen = std::log10((double) sd->subNum()+1) + 1;
+        int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
         char *ext = new char[extlen+2];
         sprintf(ext,"_%d",sd->subNum()+1);
         sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);

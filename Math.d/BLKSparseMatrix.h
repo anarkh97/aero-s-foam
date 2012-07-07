@@ -130,6 +130,7 @@ protected:
    double getSolutionTime() { return solveTime; }
 
    void mult(const Scalar *rhs, Scalar *result);
+   void getNullSpace(Scalar *ns);
 
  private:
    void init();

@@ -848,6 +848,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
          this->times.memoryGtGDelete = 8*sky->size();
        } else
 #endif 
+       // TODO: pass grbms...
        sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, domain->solInfo().coarseScaled); 
        KccSparse = sky;
        KccSolver = sky;
@@ -880,8 +881,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
          this->times.memoryGtGDelete = 8*BLKMatrix->size();
        } else
 #endif
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs, 
-                                                  tolerance, domain->solInfo().sparse_renum); 
+       int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
+       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs,
+                                                  tolerance, domain->solInfo().sparse_renum, sparse_ngrbms);
        BLKMatrix->zeroAll();
        KccSparse = BLKMatrix;
        KccSolver = BLKMatrix;
@@ -2474,7 +2476,10 @@ template<class Scalar>
 int
 GenFetiDPSolver<Scalar>::numRBM()
 {
-  if(GtGtilda) return GtGtilda->numRBM();
+  bool useKccSolver = (this->glNumMpc == 0 && !geometricRbms);
+  if(GtGtilda && !useKccSolver) {
+    return GtGtilda->numRBM();
+  }
   else return (KccSolver) ? KccSolver->numRBM() : 0;
 }
 
@@ -2530,6 +2535,9 @@ GenFetiDPSolver<Scalar>::reconstruct()
     paralApplyToAll(this->nsub, this->sd, &BaseSub::zeroEdgeDofSize);
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // rebuild augmentation matrix
   }
+
+  geometricRbms = 0;
+  ngrbms = 0;
 }
 
 template<class Scalar>

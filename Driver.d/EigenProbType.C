@@ -108,9 +108,6 @@ EigenSolver< EigOps, VecType, VecSet,
  //if (geoSource->shiftVal() != 0.0 || domain->solInfo().rbmflg == 0) nrmod = 0; //CBM, PJSA
  //else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
  nrmod = eM->dynMat->numRBM();
- std::cerr << "here in EigenSolver::setUp, nrmod = " << nrmod << std::endl; // PJSA: this should be the nullity of the matrix which
-                                                                            // dynMat (note: may be shifted, in which case the geometric
-                                                                            // rigid body modes are not to be used
 
  if(domain->solInfo().test_ulrich) nrmod = 0;
 
@@ -1079,7 +1076,10 @@ SymArpackSolver< EigOps, VecType, VecSet,
         nmodes = domain->solInfo().neigps+1;
         //if (diffEig != 0) { nmodes += diffEig; diffEig = 0; }
         subSpaceSize = 2*nmodes;
-        if (newShift != 0.0) rebuildSolver(newShift);
+        if (newShift != 0.0) {
+          rebuildSolver(newShift);
+          this->nrmod = this->eM->dynMat->numRBM();
+        }
         //if (geoSource->shiftVal() > 0.0) { nev += this->nrmod; this->nrmod = 0; }
 /* PJSA: shifted matrix can be singular
         if (geoSource->shiftVal() > 0.0) { this->nrmod = 0; }

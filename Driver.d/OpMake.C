@@ -1117,33 +1117,28 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
      switch( sinfo.subtype ) {
        default:
          fprintf(stderr,"Driver.d/OpMake.C - rebuildOps, sinfo.subtype = %d not implemented, going for sky\n",sinfo.subtype);
-       case 0: { //case 1:
+       case 0: {
          spm = (GenSkyMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
          makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver  = (GenSkyMatrix<Scalar>*) spm;
        }
        break;
-       case 5: { //case 2:
-	 makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray,celArray);
-         systemSolver = allOps.sysSolver;
-       }
-       break;
-       case 1: { //case 3:
+       case 1: {
          spm = (GenBLKSparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
          makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
        }
        break;
-       case 2: { //case 4:
+       case 2: {
          spm = (GenSGISparseMatrix<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
          makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenSGISparseMatrix<Scalar>*) spm;
        }
        break;
-       case 3: { //case 5:
+       case 3: {
 #ifdef NO_COMPLEX
 	 spm = dynamic_cast<SGISky*>(allOps.sysSolver);
 	 spm->zeroAll();
@@ -1155,13 +1150,47 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 #endif
        }
        break;
-       case 8: { //case 8:
+#ifdef USE_EIGEN3
+       case 4: {
+         spm = (GenEiSparseMatrix<Scalar>*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+         systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
+       }
+       break;
+#endif
+       case 5: {
+         makeFrontalOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,rbm,kelArray,melArray,celArray);
+         systemSolver = allOps.sysSolver;
+       }
+       break;
+#ifdef EIGEN_SUPERLU_SUPPORT
+       case 7: {
+         spm = (GenEiSparseMatrix<Scalar>*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+         systemSolver  = (GenEiSparseMatrix<Scalar>*) spm;
+       }
+       break;
+#endif
+#ifdef USE_SPOOLES
+       case 8: {
          spm =(GenSpoolesSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
          makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
          systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
        }
        break;
+#endif
+#ifdef USE_MUMPS
+       case 9: {
+         spm = (GenMumpsSolver<Scalar>*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
+         systemSolver   = (GenMumpsSolver<Scalar>*) spm;
+       }
+       break;
+#endif
      }
      break;
 

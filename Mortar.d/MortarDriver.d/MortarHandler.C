@@ -235,6 +235,7 @@ MortarHandler::~MortarHandler()
     delete PtrSlaveEntity;
   }
 #endif
+  if(ConstraintOptionsData) delete ConstraintOptionsData;
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -316,6 +317,8 @@ MortarHandler::Initialize()
 
   MortarScaling = 1.0;
   MortarIntegrationRule = 6;
+
+  ConstraintOptionsData = NULL;
 }
 
 /*
@@ -566,6 +569,12 @@ MortarHandler::SetMortarIntegrationRule(int _MortarIntegrationRule)
   MortarIntegrationRule = _MortarIntegrationRule;
 }
 
+void
+MortarHandler::SetConstraintOptions(ConstraintOptions& _ConstraintOptionsData)
+{
+  ConstraintOptionsData = new ConstraintOptions(_ConstraintOptionsData);
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            GET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -625,6 +634,9 @@ MortarHandler::GetInteractionType() { return(InteractionType); }
 
 MortarHandler::Geom_Type
 MortarHandler::GetGeomType() { return(GeomType); }
+
+ConstraintOptions*
+MortarHandler::GetConstraintOptions() { return (ConstraintOptionsData); }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS
@@ -905,7 +917,16 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
     for(int i=0; i<int(NodalMortars.size()); i++){
       lmpcnum--;
       LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
-      if(MortarLMPC){ MortarLMPC->id.first = Id; (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; numCTC++; }
+      if(MortarLMPC) { 
+        MortarLMPC->id.first = Id; 
+        (*LMPCArray)[numLMPC++] = MortarLMPC; 
+        nMortarLMPCs++; 
+        numCTC++; 
+        if(ConstraintOptionsData) { 
+          MortarLMPC->lagrangeMult = ConstraintOptionsData->lagrangeMult;
+          MortarLMPC->penalty = ConstraintOptionsData->penalty;
+        }
+      }
     }
   }
   else {
@@ -918,7 +939,14 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
           lmpcnum--; 
           LMPCons* MortarLMPC = NodalMortars[i].CreateMortarLMPCons(lmpcnum, dofs[j], rhs, 
                                                                     SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
-          if(MortarLMPC){ (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; }
+          if(MortarLMPC) {
+            (*LMPCArray)[numLMPC++] = MortarLMPC;
+            nMortarLMPCs++;
+            if(ConstraintOptionsData) { 
+              MortarLMPC->lagrangeMult = ConstraintOptionsData->lagrangeMult;
+              MortarLMPC->penalty = ConstraintOptionsData->penalty;
+            }
+          }
         }  
       }
     }
@@ -928,7 +956,14 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
           lmpcnum--;
           LMPCons* MortarLMPC = NodalMortars[i].CreateMortarLMPCons(lmpcnum, dofs[j], rhs,
                                                                     SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
-          if(MortarLMPC){ (*LMPCArray)[numLMPC++] = MortarLMPC; nMortarLMPCs++; }
+          if(MortarLMPC) {
+            (*LMPCArray)[numLMPC++] = MortarLMPC;
+            nMortarLMPCs++;
+            if(ConstraintOptionsData) {
+              MortarLMPC->lagrangeMult = ConstraintOptionsData->lagrangeMult;
+              MortarLMPC->penalty = ConstraintOptionsData->penalty;
+            }
+          }
         }
       }
     }

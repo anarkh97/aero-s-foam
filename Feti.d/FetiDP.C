@@ -872,6 +872,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      }
      break;
      case FetiInfo::sparse: {
+       int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
 #ifdef DISTRIBUTED
        if(this->subToSub->csize() == this->numCPUs && 
           this->fetiInfo->type != FetiInfo::nonlinear && 
@@ -881,7 +882,6 @@ GenFetiDPSolver<Scalar>::makeKcc()
          this->times.memoryGtGDelete = 8*BLKMatrix->size();
        } else
 #endif
-       int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
        BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs,
                                                   tolerance, domain->solInfo().sparse_renum, sparse_ngrbms);
        BLKMatrix->zeroAll();

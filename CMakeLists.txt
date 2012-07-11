@@ -156,12 +156,14 @@ IF(UNIX)
    ENDIF(EIGEN3_FOUND)
 
 #sacado
-    FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
-    IF(SACADO_INCLUDE_PATH)
-      MESSAGE("-- A library with SACADO API found. ")
-      add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
-      include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
-    ENDIF(SACADO_INCLUDE_PATH)
+    IF(NOT WITH_SACADO EQUAL 0)
+      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
+      IF(SACADO_INCLUDE_PATH)
+        MESSAGE("-- A library with SACADO API found. ")
+        add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
+        include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+      ENDIF(SACADO_INCLUDE_PATH)
+    ENDIF(NOT WITH_SACADO EQUAL 0)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis

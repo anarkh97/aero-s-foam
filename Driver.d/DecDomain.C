@@ -1314,8 +1314,10 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
  weight->zero();
 
  // each subdomain computes its stress vector
- execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
-           stress, weight, gs, allCorot, &fileNumber, &Findex, refState);
+ if(Findex != 16) {
+   execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
+             stress, weight, gs, allCorot, &fileNumber, &Findex, refState);
+ }
 
  int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
 
@@ -1327,9 +1329,15 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
    globalStress[i] = globalWeight[i] = 0.0;
 
  int iSub;
- for(iSub=0; iSub<numSub; ++iSub)
-   subDomain[iSub]->mergeStress(stress->subData(iSub), weight->subData(iSub),
-                                globalStress, globalWeight, numNodes);
+ for(iSub=0; iSub<numSub; ++iSub) {
+   if(Findex != 16) {
+     subDomain[iSub]->mergeStress(stress->subData(iSub), weight->subData(iSub),
+                                  globalStress, globalWeight, numNodes);
+   }
+   else {
+     subDomain[iSub]->computeContactPressure(globalStress, globalWeight);
+   }
+ }
 
  for(i=0; i < numNodes; ++i)  {
    if(globalWeight[i] == 0.0)
@@ -2051,6 +2059,9 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        break;
      case OutputInfo::StrainVM:
        getStressStrain(geomState, allCorot, i, STRAINVON, x, refState);
+       break;
+     case OutputInfo::ContactPressure:
+       getStressStrain(geomState, allCorot, i, CONPRESS, x, refState);
        break;
      case OutputInfo::EquivalentPlasticStrain:
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);

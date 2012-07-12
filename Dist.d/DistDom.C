@@ -688,8 +688,13 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
   if(printFlag != 2) {
     // each subdomain computes its stress vector
     for (iSub = 0; iSub < this->numSub; ++iSub) {
-      this->subDomain[iSub]->computeStressStrain(fileNumber, u.subData(iSub), 
-  		Findex, stress.subData(iSub), weight.subData(iSub));
+      if(Findex != 16) {
+        this->subDomain[iSub]->computeStressStrain(fileNumber, u.subData(iSub), 
+                                                   Findex, stress.subData(iSub), weight.subData(iSub));
+      }
+      else {
+        this->subDomain[iSub]->computeLocalContactPressure(stress.subData(iSub), weight.subData(iSub));
+      }
     }
 
     paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &stress);
@@ -1563,9 +1568,14 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
 
   // each subdomain computes its stress vector
   for (iSub = 0; iSub < this->numSub; ++iSub) {
-    GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
-    this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
-                                         Findex, stress.subData(iSub), weight.subData(iSub), subRefState);
+    if(Findex != 16) {
+      GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
+      this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
+                                                 Findex, stress.subData(iSub), weight.subData(iSub), subRefState);
+    }
+    else {
+      this->subDomain[iSub]->computeLocalContactPressure(stress.subData(iSub), weight.subData(iSub));
+    }
   }
 
   paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &stress);
@@ -1581,7 +1591,10 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
     Vec<Scalar> &locStress = stress(iSub);
     Vec<Scalar> &locWeight = weight(iSub);
     for(int i = 0; i < stress.subSize(iSub); ++i)
-      locStress[i] /= locWeight[i];
+      if(locWeight[i] != 0.0)
+        locStress[i] /= locWeight[i];
+      else
+        locStress[i] = 0.0;
   }
 
   // reduce the stress vector to just the master quantities

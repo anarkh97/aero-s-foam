@@ -687,6 +687,7 @@ class GenSubDomain : public BaseSub
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
+  void computeLocalContactPressure(Scalar *stress, Scalar *weight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);

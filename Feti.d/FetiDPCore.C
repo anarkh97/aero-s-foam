@@ -80,6 +80,9 @@ GenFetiDPSolver<Scalar>::makeGtG()
   else {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
     paralApply(this->nsub, this->sd, &BaseSub::getNumGroupRBM, ngrbmGr);
+#ifdef DISTRIBUTED
+   this->fetiCom->globalMax(nGroups, ngrbmGr);
+#endif
   }
 
   // 2. exchange G's between neighboring subdomains

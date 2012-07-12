@@ -681,33 +681,14 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
       if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
       ++iterations;
     }
-#if CONTACT_DEBUG_PRINT_LEVEL>=1
-    if (!converged) {
-      std::cerr << "ContactWedgeElemL6<double>::Compute_Local_Coordinates() did not converge" 
-                << std::endl;
+    if(!converged) { // in this case assume we are just testing to see if the point is inside the element and 
+                     // the derivatives are not actually required
+      active_local_coords[0] = u0;
+      active_local_coords[1] = v0;
+      active_local_coords[2] = 1.0-u0-v0;
+      active_local_coords[3] = w0;
+      return;
     }
-#endif
-    POSTCONDITION(converged);
-    if (u0<1.0+spatial_tolerance) {
-      u0 = min(u0, 1.0);
-    }
-    if (u0>-spatial_tolerance) {
-      u0 = max(u0, 0.0);
-    }
-    if (v0<1.0+spatial_tolerance) {
-      v0 = min(v0, 1.0);
-    }
-    if (v0>-spatial_tolerance) {
-      v0 = max(v0, 0.0);
-    }
-    if (abs(w0)<1.0+spatial_tolerance) {
-      w0 = min(w0, 1.0);
-      w0 = max(w0,-1.0);
-    }
-    local_coords[0] = u0;
-    local_coords[1] = v0;
-    local_coords[2] = 1.0-u0-v0;
-    local_coords[3] = w0;
   }
   //
   // repeat newton's method to get the derivatives

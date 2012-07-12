@@ -722,34 +722,13 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
       if (du<tolerance && dv<tolerance && dw<tolerance) converged = true;
       ++iterations;
     }
-#if CONTACT_DEBUG_PRINT_LEVEL>=1
-    if (!converged) {
-      std::cerr << "ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates() did not converge"
-                << std::endl;
-      std::cerr << "                     after "<<max_iterations
-                << " iterations:  du = "<<du
-                <<";  dv = "<<dv
-                <<";  dw = "<<dw<<std::endl;
+    if (!converged) { // in this case assume we are just testing to see if the point is inside the element and 
+                      // the derivatives are not actually required
+      active_local_coords[0] = u0;
+      active_local_coords[1] = v0;
+      active_local_coords[2] = w0;
+      return;
     }
-#endif
-    POSTCONDITION(converged);
-    // If it's close to any of the edges, snap to it
-    if (abs(u0)<1.0+spatial_tolerance) {
-      u0 = min(u0, 1.0);
-      u0 = max(u0,-1.0);
-    }
-    if (abs(v0)<1.0+spatial_tolerance) {
-      v0 = min(v0, 1.0);
-      v0 = max(v0,-1.0);
-    }
-    if (abs(w0)<1.0+spatial_tolerance) {
-      w0 = min(w0, 1.0);
-      w0 = max(w0,-1.0);
-    }
-
-    local_coords[0] = u0;
-    local_coords[1] = v0;
-    local_coords[2] = w0;
   }
 
   //

@@ -2515,47 +2515,13 @@ ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_
       if (ds<tolerance && dt<tolerance) converged = true;
       ++iterations;
     }
-#if CONTACT_DEBUG_PRINT_LEVEL>=2
-    if (!converged) {
-      std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge"
-           << std::endl;
-      std::cerr << "  Computing Coordinates for point (" << global_coords[0]
-           << "," << global_coords[1] << "," << global_coords[2] << ")"
-           << std::endl;
-      std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0]
-           << "," << node_positions[0][1] << "," << node_positions[0][2]
-           << ")" << std::endl;
-      std::cerr << "                            (" << node_positions[1][0]
-           << "," << node_positions[1][1] << "," << node_positions[1][2]
-           << ")" << std::endl;
-      std::cerr << "                            (" << node_positions[2][0]
-           << "," << node_positions[2][1] << "," << node_positions[2][2]
-           << ")" << std::endl;
-      std::cerr << "                            (" << node_positions[3][0]
-           << "," << node_positions[3][1] << "," << node_positions[3][2]
-           << ")" << std::endl;
-      std::cerr << "  After " << iterations << "iterations, local_coords = ("
-           << s0 << "," << t0 << ")" << std::endl;
-      std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
+    if(!converged) { // in this case assume we are just testing to see if the point is inside the element and 
+                     // the derivatives are not actually required
+      active_local_coords[0] = s0;
+      active_local_coords[1] = t0;
+      active_local_coords[2] = 0.0;
+      return;
     }
-#endif
-    POSTCONDITION(converged);
-    // If it's close to any of the edges, snap to it
-    if (abs(s0)<1.0+spatial_tolerance) {
-      s0 = min(s0, 1.0);
-      s0 = max(s0,-1.0);
-    }
-    if (abs(t0)<1.0+spatial_tolerance) {
-      t0 = min(t0, 1.0);
-      t0 = max(t0,-1.0);
-    }
-    local_coords[0] = s0;
-    local_coords[1] = t0;
-    local_coords[2] = 0.0;
-
-    local_coords[0] = s0;
-    local_coords[1] = t0;
-    local_coords[2] = 0.0;
   }
 
   //

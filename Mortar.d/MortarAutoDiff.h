@@ -12,7 +12,7 @@
 #endif
 
 // see also definition of MAX_FFI_DERIVATIVES in Acme.d/search/Contact_Defines.h
-#if defined(USE_EIGEN3) && defined(EIGEN_AUTODIFF_SCALAR_PJSA_HACK)
+#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
 #  define MAX_MORTAR_DERIVATIVES 24
 #  define MORTAR_AUTO_DIFF_EIGEN3
 #elif defined(USE_EIGEN3) && defined(USE_SACADO)

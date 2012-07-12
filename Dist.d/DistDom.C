@@ -1457,7 +1457,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::DispMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *dispMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
@@ -1472,7 +1472,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::RotMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *rotMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
@@ -1487,7 +1487,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::TotMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *totMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +

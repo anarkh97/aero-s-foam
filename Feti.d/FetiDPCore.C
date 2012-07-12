@@ -146,12 +146,12 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
     GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
     for(int i = 0; i < this->nsub; ++i)
       this->sd[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->sd[i]->localSubNum()));
-#ifdef DISTRIBUTED
-    this->fetiCom->globalSum(ngrbms, e.data());
-#endif
     for(int i = 0; i < KccSolver->numRBM(); ++i)
       for(int j = 0; j < KccSolver->neqs(); ++j)
         e[i] += fc[j]*kccrbms[i*KccSolver->neqs()+j];
+#ifdef DISTRIBUTED
+    this->fetiCom->globalSum(ngrbms, e.data());
+#endif
   }
 }
 

@@ -87,6 +87,8 @@
 #include "ContactEnforcement.h"
 #include "Search_Interface.h"
 #include "Enforcement_Interface.h"
+#else
+#define MAX_FFI_DERIVATIVES 0
 #endif
 
 // Locally define flags

@@ -3,6 +3,7 @@
 # note: for openmpi 1.2.6 + gcc 4.1 use libs built in ~avery/code.copy
 SET(CMAKE_INCLUDE_PATH 
     /lustre/home/avery/code
+    /lustre/home/avery/sacado/src
     /lustre/home/avery/code/spooles
     /lustre/home/avery/code/MUMPS_4.10.0/include
     /lustre/home/avery/code/trilinos/trilinos-10.8.4-Obj_cmake/include

@@ -147,7 +147,7 @@ typedef int MPI_Comm;
 #include <Sacado.hpp>
 #endif
 
-#if defined(USE_EIGEN3) && defined(EIGEN_AUTODIFF_SCALAR_PJSA_HACK)
+#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
 #  define MAX_FFI_DERIVATIVES 24
 #  define FFI_AUTO_DIFF_EIGEN3
 #elif defined(USE_EIGEN3) && defined(USE_SACADO)

@@ -927,7 +927,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 
    if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
-   KccSolver->setPrintNullity(false);
+   KccSolver->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
    KccSolver->parallelFactor();
    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
@@ -1583,8 +1583,8 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
   if(domain->solInfo().inpc) f = (*f_copy);
 
 // RT 05/08/2010: bug in the g++ compiler
-  if(ff == 0.0 && !globalFlagCtc) {
-     filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
+  if(ff == 0.0) {
+     //filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
      return 1.0;
   }
   else return ff;
@@ -2205,7 +2205,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == NULL) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag);
+    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG);
@@ -3020,13 +3020,13 @@ GenFetiDPSolver<Scalar>::checkStoppingCriteria(int iter, double error, double ff
   }
  
   // 2. check for convergence
-  if(sqrt(error) < MAX(this->fetiInfo->tol*sqrt(ff), this->fetiInfo->absolute_tol)) {
+  if(sqrt(error) <= std::max(this->fetiInfo->tol*sqrt(ff), this->fetiInfo->absolute_tol)) {
     this->times.iterations[this->numSystems].stagnated = 0;
     return true;
   }
 
   // 3. check for stagnation
-  if(iter > 0 && (DABS(sqrt(error)-sqrt(lastError)) < MAX(this->fetiInfo->stagnation_tol*sqrt(lastError), this->fetiInfo->absolute_stagnation_tol))) {
+  if(iter > 0 && (std::fabs(sqrt(error)-sqrt(lastError)) < std::max(this->fetiInfo->stagnation_tol*sqrt(lastError), this->fetiInfo->absolute_stagnation_tol))) {
      this->times.iterations[this->numSystems].stagnated = 1;
      return true;
   }

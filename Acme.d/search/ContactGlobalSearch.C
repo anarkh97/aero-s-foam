@@ -1192,6 +1192,10 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
     primary_topology->Variable_Handle( ContactTopology::Node_Normal );
   VariableHandle FACE_NORMAL = 
     primary_topology->Variable_Handle( ContactTopology::Face_Normal );
+  VariableHandle CENTROID =
+    primary_topology->Variable_Handle( ContactTopology::Centroid );
+  VariableHandle CHARACTERISTIC_LENGTH =
+    primary_topology->Variable_Handle( ContactTopology::Characteristic_Length );
   
   int number_of_nodes = search_topology->Number_of_Nodes();
   int number_of_faces = search_topology->Number_of_Faces();
@@ -1404,15 +1408,25 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           ContactEdge<ActiveScalar>* edge = ContactLineEdgeL2<ActiveScalar>::new_ContactLineEdgeL2(
                         active_allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
                         ContactSearch::LINEEDGEL2);
+
+          ContactNode<Real> *node[3];
+          slave_face->Get_Edge_Nodes(i, node);
+          ContactNode<ActiveScalar> *active_node[3];
+          active_slave_face->Get_Edge_Nodes(i, active_node);
+          if(slave_face->Edge(i)->Node(0) == node[0]) {
+            for (int ii=0; ii<edge->Nodes_Per_Edge(); ++ii)
+              edge->ConnectNode(ii,active_node[ii]);
+          }
+          else { // some edges can be reversed
+            for (int ii=0; ii<edge->Nodes_Per_Edge(); ++ii)
+              edge->ConnectNode(edge->Nodes_Per_Edge()-ii-1,active_node[ii]);
+          }
           active_slave_face->ConnectEdge(i, edge);
           edge->ConnectFace(active_slave_face);
-          edge->ConnectNode(0, active_slave_face->Node(i));
-          if(i+1 < active_slave_face->Edges_Per_Face())
-            edge->ConnectNode(1, active_slave_face->Node(i+1));
-          else
-            edge->ConnectNode(1, active_slave_face->Node(0));
         }
+        active_slave_face->Compute_Centroid(POSITION, CENTROID);
         active_slave_face->Compute_Normal(POSITION, FACE_NORMAL);
+        active_slave_face->Compute_CharacteristicLength(POSITION, CHARACTERISTIC_LENGTH);
 
         // convert the master face
         ContactFace<ActiveScalar> *active_master_face;
@@ -1447,15 +1461,25 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           ContactEdge<ActiveScalar>* edge = ContactLineEdgeL2<ActiveScalar>::new_ContactLineEdgeL2(
                         active_allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
                         ContactSearch::LINEEDGEL2);
+
+          ContactNode<Real> *node[3];
+          master_face->Get_Edge_Nodes(i, node);
+          ContactNode<ActiveScalar> *active_node[3];
+          active_master_face->Get_Edge_Nodes(i, active_node);
+          if(master_face->Edge(i)->Node(0) == node[0]) {
+            for (int ii=0; ii<edge->Nodes_Per_Edge(); ++ii)
+              edge->ConnectNode(ii,active_node[ii]);
+          }
+          else { // some edges can be reversed
+            for (int ii=0; ii<edge->Nodes_Per_Edge(); ++ii)
+              edge->ConnectNode(edge->Nodes_Per_Edge()-ii-1,active_node[ii]);
+          }
           active_master_face->ConnectEdge(i, edge);
           edge->ConnectFace(active_master_face);
-          edge->ConnectNode(0, active_master_face->Node(i));
-          if(i+1 < active_master_face->Edges_Per_Face())
-            edge->ConnectNode(1, active_master_face->Node(i+1));
-          else
-            edge->ConnectNode(1, active_master_face->Node(0));
         }
+        active_master_face->Compute_Centroid(POSITION, CENTROID);
         active_master_face->Compute_Normal(POSITION, FACE_NORMAL);
+        active_master_face->Compute_CharacteristicLength(POSITION, CHARACTERISTIC_LENGTH);
 
         // convert the master element
         ContactElem<ActiveScalar> *active_master_element;

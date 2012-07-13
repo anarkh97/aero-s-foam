@@ -41,6 +41,8 @@ class NLMaterial
      virtual double getEquivPlasticStrain(double *statenp) { return 0; }
 
      virtual double getThickness() { return 0; }
+
+     virtual double getPosdefifyTol() { return -1; }
 };
 
 #endif

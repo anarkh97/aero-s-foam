@@ -6,7 +6,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/mathUtility.h>
 #ifdef USE_EIGEN3
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #endif
 
 FullSquareMatrix  
@@ -457,6 +457,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     //cerr << "DBnp = "; DBnp.print();
     temp3 = DBnp || s;
     temp3 = temp3 + temp2;
+    if(jacnp < 0) std::cerr << "warning: jacnp < 0\n";
     temp3 = (weight * fabs(jacnp))*temp3;
     kTan += temp3;
 
@@ -470,6 +471,22 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     kTan += temp3;
 */
   }
+#ifdef USE_EIGEN3
+  if(material->getPosdefifyTol() >= 0) {
+    Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > K(kTan.data(),ndofs,ndofs);
+    /*if(!K.isApprox(0.5*(K+K.transpose()))) {
+      std::cerr << "Matrix K is not symmetric\n";
+    }*/
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > es(K);
+    if(es.eigenvalues().minCoeff() < -Eigen::NumTraits<double>::dummy_precision()) {
+      Eigen::VectorXd d(ndofs);
+      for(j=0; j<ndofs; ++j) 
+        if(es.eigenvalues()[j] > material->getPosdefifyTol()) d[j] = es.eigenvalues()[j]; 
+        else d[j] = 0;
+      K = es.eigenvectors()*d.asDiagonal()*es.eigenvectors().transpose();
+    }
+  }
+#endif
 
   for(j = 0; j < ndofs; ++j) {
     force[j] = - nodeforce[j];}

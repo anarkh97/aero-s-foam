@@ -62,7 +62,7 @@
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
+%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
@@ -3539,13 +3539,25 @@ MatSpec:
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
-            double params[3] = { $4, $5, $6 };
+            double params[4] = { $4, $5, $6, -1 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<NeoHookean>(params));
+          }
+        | MatSpec Integer NEOHOOKEAN Float Float Float Float NewLine
+          {
+            double params[4] = { $4, $5, $6, $7 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<NeoHookean>(params));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
-            double params[4] = { $4, $5, $6, $7 };
+            double params[5] = { $4, $5, $6, $7, -1 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<MooneyRivlin>(params));
+          }
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float Float NewLine
+          {
+            double params[5] = { $4, $5, $6, $7, $8 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<MooneyRivlin>(params));
           }

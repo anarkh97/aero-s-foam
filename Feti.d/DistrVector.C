@@ -646,7 +646,7 @@ GenDistrVector<Scalar>::initialize()
  subVLen = new int[inf.numDom];
  subVOffset = new int[inf.numDom];
 
- if(subV) subV[0] = v;
+ if(subV && inf.numDom>0) subV[0] = v;
  Scalar *v2 = v;
  nT = std::min(threadManager->numThr(),inf.numDom); // PJSA: currently the number of threads being larger than
                                                     // the number of subdomains doesn't work

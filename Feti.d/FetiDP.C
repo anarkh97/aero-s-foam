@@ -602,7 +602,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  if(groups) delete [] groups;
  groups = new int[nGroups];  // groups represented on this processor
 #ifdef DISTRIBUTED
- if(this->sd) {
+ if(this->sd && this->nsub > 0) {
    groups[0] = (*subToGroup)[this->sd[0]->subNum()][0];
    int n = 1;
    for(int i = 1; i < this->nsub; ++i) {
@@ -675,7 +675,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *zRowDim = new int[nGroups];
    int *zColDim = new int[nGroups];
    int *zColOffset = new int[nBodies];
-   int zColDim1 = (this->sd) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
+   int zColDim1 = (this->sd && this->nsub > 0) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
 #ifdef DISTRIBUTED
    zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
 #endif

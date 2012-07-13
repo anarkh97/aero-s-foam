@@ -2315,7 +2315,7 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
     CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
     CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
     CurrentMortarCond->set_search_options();
-    if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+    if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
     else CurrentMortarCond->set_node_constraints(numSub, sd);
   }
 }
@@ -2426,7 +2426,7 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
       CurrentMortarCond->set_node_configuration(1);
       CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
       CurrentMortarCond->set_search_options();
-      if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+      if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
       else {
         CurrentMortarCond->set_node_constraints(numSub, sd);
         CurrentMortarCond->make_share(numSub, sd);

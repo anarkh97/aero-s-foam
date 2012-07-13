@@ -9,6 +9,10 @@
 //#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
+#ifndef USE_ACME
+#define MAX_FFI_DERIVATIVES 0
+#endif
+
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------

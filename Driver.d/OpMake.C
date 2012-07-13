@@ -3401,15 +3401,16 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
     // compute the non-homogeneous force due to Kuc
     if(!sinfo.isNonLin() && kuc) kuc->multSubtract(Vc, f);
 
-    if(sinfo.isDynam() && userSupFunc) {
+    if(sinfo.isDynam() && userSupFunc && claw && claw->numUserDisp > 0) {
 
       GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
 
-      double *userDefineDisp = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
-      double *userDefineVel  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
-      double *userDefineAcc  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+      int glNumUserDisp = domain->getClaw()->numUserDisp;
+      double *userDefineDisp = (double *) dbg_alloca( sizeof(double)*glNumUserDisp );
+      double *userDefineVel  = (double *) dbg_alloca( sizeof(double)*glNumUserDisp );
+      double *userDefineAcc  = (double *) dbg_alloca( sizeof(double)*glNumUserDisp );
 
-      for(int i = 0; i < claw->numUserDisp; ++i) {
+      for(int i = 0; i < glNumUserDisp; ++i) {
         userDefineVel[i] = 0;
         userDefineAcc[i] = 0;
       }
@@ -3431,7 +3432,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
 
       if(cuc) {
 
-        for(int i = 0; i < claw->numUserDisp; ++i) {
+        for(int i = 0; i < glNumUserDisp; ++i) {
           userDefineVel[i] = 0;
           userDefineAcc[i] = 0;
         }

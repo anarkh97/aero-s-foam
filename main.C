@@ -638,7 +638,7 @@ int main(int argc, char** argv)
    domain->solInfo().type = 2;
    domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
-   callDec = true;
+   if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
  if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));

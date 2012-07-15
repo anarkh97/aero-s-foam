@@ -3,16 +3,13 @@
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
 
-template<class Scalar>
-GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)
+template<typename Scalar, typename SolverClass>
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)
 : SparseData(dsa,rCN,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
-#ifdef EIGEN_SUPERLU_SUPPORT
-  ,lu(0)
-#endif
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -22,16 +19,13 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa,
   zeroAll();
 }
 
-template<class Scalar>
-GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, DofSetArray *c_dsa, bool _selfadjoint)
+template<typename Scalar, typename SolverClass>
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, DofSetArray *c_dsa, bool _selfadjoint)
 : SparseData(dsa,c_dsa,cn,int(!_selfadjoint)),
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
-#ifdef EIGEN_SUPERLU_SUPPORT
-  ,lu(0)
-#endif
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -41,16 +35,13 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa,
   zeroAll();
 }
 
-template<class Scalar>
-GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
+template<typename Scalar, typename SolverClass>
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
 : SparseData(cn,eqNums,1.0E-6,0),
   selfadjoint(true),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
-#ifdef EIGEN_SUPERLU_SUPPORT
-  ,lu(0)
-#endif
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -60,32 +51,29 @@ GenEiSparseMatrix<Scalar>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNum
   zeroAll();
 }
 
-template<class Scalar>
-GenEiSparseMatrix<Scalar>::~GenEiSparseMatrix() 
+template<typename Scalar, typename SolverClass>
+GenEiSparseMatrix<Scalar,SolverClass>::~GenEiSparseMatrix() 
 {
   if(unonz) { delete [] unonz; unonz=0; }
-#ifdef EIGEN_SUPERLU_SUPPORT
-  if(lu) delete lu;
-#endif
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::zeroAll()
+GenEiSparseMatrix<Scalar,SolverClass>::zeroAll()
 {
   for(int i=0; i<nnz; ++i) unonz[i] = 0;
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::print()
+GenEiSparseMatrix<Scalar,SolverClass>::print()
 {
   std::cerr << M << std::endl;
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::add(int idof, int jdof, Scalar s)
+GenEiSparseMatrix<Scalar,SolverClass>::add(int idof, int jdof, Scalar s)
 {
   // TODO non-selfadjoint case
   if((idof < 0) || (jdof < 0)) return;
@@ -104,9 +92,9 @@ GenEiSparseMatrix<Scalar>::add(int idof, int jdof, Scalar s)
   }
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar dmass)
+GenEiSparseMatrix<Scalar,SolverClass>::addDiscreteMass(int dof, Scalar dmass)
 {
   int cdof = unconstrNum[dof];
   if(cdof < 0) return;
@@ -114,9 +102,9 @@ GenEiSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar dmass)
   unonz[diagLocator] += dmass;
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
+GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
 {
   int k,l;
   for(int i = 0; i < kel.dim(); ++i) {
@@ -134,16 +122,16 @@ GenEiSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
   }
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 double
-GenEiSparseMatrix<Scalar>::getMemoryUsed()
+GenEiSparseMatrix<Scalar,SolverClass>::getMemoryUsed()
 {
   return sizeof(Scalar)*nnz/(1024.0*1024.0);
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::mult(const Scalar *_rhs, Scalar *_result)
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const Scalar *_rhs, Scalar *_result)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(const_cast<Scalar*>(_rhs),numUncon,1), result(_result,numUncon,1);
   if(selfadjoint)
@@ -152,9 +140,9 @@ GenEiSparseMatrix<Scalar>::mult(const Scalar *_rhs, Scalar *_result)
     result = M*rhs;
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::mult(const GenVector<Scalar> &_rhs, Scalar *_result) 
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, Scalar *_result) 
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result,numUncon,1);
   if(selfadjoint)
@@ -163,9 +151,9 @@ GenEiSparseMatrix<Scalar>::mult(const GenVector<Scalar> &_rhs, Scalar *_result)
     result = M*rhs;
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
+GenEiSparseMatrix<Scalar,SolverClass>::transposeMult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
@@ -174,9 +162,9 @@ GenEiSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &_rhs, GenVecto
     result = M.adjoint()*rhs;
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::multAdd(const Scalar *_rhs, Scalar *_result)
+GenEiSparseMatrix<Scalar,SolverClass>::multAdd(const Scalar *_rhs, Scalar *_result)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(const_cast<Scalar*>(_rhs),numUncon,1), result(_result,numUncon,1);
   if(selfadjoint)
@@ -185,9 +173,9 @@ GenEiSparseMatrix<Scalar>::multAdd(const Scalar *_rhs, Scalar *_result)
     result += M*rhs;
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::mult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
+GenEiSparseMatrix<Scalar,SolverClass>::mult(const GenVector<Scalar> &_rhs, GenVector<Scalar> &_result)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), result(_result.data(),numUncon,1);
   if(selfadjoint)
@@ -196,26 +184,26 @@ GenEiSparseMatrix<Scalar>::mult(const GenVector<Scalar> &_rhs, GenVector<Scalar>
     result = M*rhs;
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 Scalar
-GenEiSparseMatrix<Scalar>::diag(int dof) const
+GenEiSparseMatrix<Scalar,SolverClass>::diag(int dof) const
 {
-  std::cerr << "GenEiSparseMatrix<Scalar>::diag is not implemented\n";
+  std::cerr << "GenEiSparseMatrix<Scalar,SolverClass>::diag is not implemented\n";
   return Scalar();
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 Scalar &
-GenEiSparseMatrix<Scalar>::diag( int dof )
+GenEiSparseMatrix<Scalar,SolverClass>::diag( int dof )
 {
   static Scalar defaultValue;
-  std::cerr << "GenEiSparseMatrix<Scalar>::diag is not implemented\n";
+  std::cerr << "GenEiSparseMatrix<Scalar,SolverClass>::diag is not implemented\n";
   return defaultValue;
 }
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 long
-GenEiSparseMatrix<Scalar>::size()
+GenEiSparseMatrix<Scalar,SolverClass>::size()
 {
   return (numUncon) ? nnz : 0;
 }
@@ -224,101 +212,55 @@ GenEiSparseMatrix<Scalar>::size()
 #include <Comm.d/Communicator.h>
 #endif
 
-template<class Scalar> 
+template<typename Scalar, typename SolverClass> 
 void
-GenEiSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
+GenEiSparseMatrix<Scalar,SolverClass>::unify(FSCommunicator *communicator)
 {
 #ifdef DISTRIBUTED
   communicator->globalSum(nnz, unonz);
 #endif
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::factor()
+GenEiSparseMatrix<Scalar,SolverClass>::factor()
 {
-  if(selfadjoint)
-    llt.compute(M);
-  else {
-#ifdef EIGEN_SUPERLU_SUPPORT
-    if(lu) delete lu;
-    lu = new Eigen::SuperLU<Eigen::SparseMatrix<Scalar> >(M);
-    if(lu->info() != Eigen::Success) std::cerr << "factor with SuperLU failed\n";
-#else
-    std::cerr << "You need SuperLU to factor this matrix\n";
-    exit(-1);
-#endif
-  }
+  solver.compute(M);
+  if(solver.info() != Eigen::Success) std::cerr << "sparse factor failed\n";
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void 
-GenEiSparseMatrix<Scalar>::solve(Scalar *_rhs, Scalar *_solution)
+GenEiSparseMatrix<Scalar,SolverClass>::solve(Scalar *_rhs, Scalar *_solution)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1), solution(_solution,numUncon,1);
-  if(selfadjoint)
-    solution = llt.solve(rhs);
-  else {
-#if EIGEN_SUPERLU_SUPPORT
-    solution = lu->solve(rhs);
-    if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
-#else
-    std::cerr << "You need SuperLU to solve this system\n";
-    exit(-1);
-#endif
-  }
+  solution = solver.solve(rhs);
+  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::solve(GenVector<Scalar> &_rhs, GenVector<Scalar> &_solution)
+GenEiSparseMatrix<Scalar,SolverClass>::solve(GenVector<Scalar> &_rhs, GenVector<Scalar> &_solution)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), solution(_solution.data(),numUncon,1);
-  if(selfadjoint)
-    solution = llt.solve(rhs);
-  else {
-#if EIGEN_SUPERLU_SUPPORT
-    solution = lu->solve(rhs);
-    if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
-#else
-    std::cerr << "You need SuperLU to solve this system\n";
-    exit(-1);
-#endif
-  }
+  solution = solver.solve(rhs);
+  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::reSolve(Scalar *_rhs)
+GenEiSparseMatrix<Scalar,SolverClass>::reSolve(Scalar *_rhs)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
-  if(selfadjoint)
-    rhs = llt.solve(rhs);
-  else {
-#if EIGEN_SUPERLU_SUPPORT
-    rhs = lu->solve(rhs);
-    if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
-#else
-    std::cerr << "You need SuperLU to solve this system\n";
-    exit(-1);
-#endif
-  }
+  rhs = solver.solve(rhs);
+  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }
 
-template<class Scalar>
+template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar>::reSolve(GenVector<Scalar> &_rhs)
+GenEiSparseMatrix<Scalar,SolverClass>::reSolve(GenVector<Scalar> &_rhs)
 {
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1);
-  if(selfadjoint)
-    rhs = llt.solve(rhs);
-  else {
-#if EIGEN_SUPERLU_SUPPORT
-    rhs = lu->solve(rhs);
-    if(lu->info() != Eigen::Success) std::cerr << "solve with SuperLU failed\n";
-#else
-    std::cerr << "You need SuperLU to solve this system\n";
-    exit(-1);
-#endif
-  }
+  rhs = solver.solve(rhs);
+  if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }

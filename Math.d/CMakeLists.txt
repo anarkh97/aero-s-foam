@@ -15,7 +15,7 @@ Skyline.d/forbackc1.f
 Skyline.d/forbackc2.f   
 Skyline.d/forbackc3.f     Skyline.d/pfactorC.f
 Skyline.d/forbackc4.f     Skyline.d/pfactor.f
-Skyline.d/forbackr1.f     Skyline.d/SGISky.C
+Skyline.d/forbackr1.f
 Skyline.d/forbackr1ns.f   Skyline.d/SkyData.C
 Skyline.d/forbackr2.f     
 Skyline.d/forbackr2ns.f   Skyline.d/SkyMatrixCore.C

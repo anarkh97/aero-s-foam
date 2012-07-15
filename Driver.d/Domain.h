@@ -31,8 +31,7 @@ typedef GenNBSparseMatrix<double> NBSparseMatrix;
 template <class Scalar> class GenDBSparseMatrix;
 typedef GenDBSparseMatrix<double> DBSparseMatrix;
 typedef GenDBSparseMatrix<DComplex> DBComplexSparseMatrix;
-template <class Scalar> class GenEiSparseMatrix;
-typedef GenEiSparseMatrix<double> EiSparseMatrix;
+template <typename Scalar, typename SolverClass> class GenEiSparseMatrix;
 template <class Scalar> class GenSkyMatrix;
 typedef GenSkyMatrix<double> SkyMatrix;
 typedef GenSkyMatrix<DComplex> SkyMatrixC;
@@ -44,10 +43,6 @@ typedef GenCuCSparse<double> CuCSparse;
 template <class Scalar> class GenBLKSparseMatrix;
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
 template <class BaseSolver, class Scalar> class GoldfarbIdnaniQpSolver;
-template <class Scalar> class GenSGISparseMatrix;
-typedef GenSGISparseMatrix<double> SGISparseMatrix;
-class SGISky;
-class UFront;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
 template <class Scalar> class GenVector;
@@ -449,17 +444,16 @@ class Domain : public HData {
                           FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
-       void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
-                           FullSquareMatrix *celArray = 0);
-
-     template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
-     template<class Scalar>
-       GenEiSparseMatrix<Scalar> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
+     template<typename Scalar, typename SolverClass>
+       GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0, bool flag=true);
+
+     template<typename Scalar, typename SolverClass>
+       GenEiSparseMatrix<Scalar,SolverClass> *constructGoldfarb(DofSetArray *dof_set_array=0,
+                           Connectivity *cn=0);
 
      template<class Scalar>
        GenCuCSparse<Scalar> *constructCuCSparse(DofSetArray *dof_set_array=0);
@@ -475,12 +469,6 @@ class Domain : public HData {
 
      template<class Scalar>
        GenBLKSparseMatrix<Scalar> *constructBLKSparseMatrix(DofSetArray*, Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenSGISparseMatrix<Scalar> *constructSGISparseMatrix(Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenSGISparseMatrix<Scalar> *constructSGISparseMatrix(int subNumber, Rbm *rbm = 0);
 
      template<class Scalar>
        GenNBSparseMatrix<Scalar> *constructNBSparseMatrix();
@@ -504,8 +492,6 @@ class Domain : public HData {
      template<class Scalar>
        Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
 
-     UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
-     SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);
      Rbm              *constructSlzem(bool printFlag = true);

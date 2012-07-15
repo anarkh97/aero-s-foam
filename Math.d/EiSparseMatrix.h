@@ -6,9 +6,12 @@
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-#include <unsupported/Eigen/SparseExtra>
+#include <Eigen/SparseCholesky>
 #ifdef EIGEN_CHOLMOD_SUPPORT
 #include <Eigen/CholmodSupport>
+#endif
+#ifdef EIGEN_UMFPACK_SUPPORT
+#include <Eigen/UmfPackSupport>
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT
 #include <Eigen/SuperLUSupport>
@@ -16,25 +19,16 @@
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 
-template<class Scalar>
+template<class Scalar, class SolverClass = Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >
 class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
    // this is a symmetric sparse matrix using CSR storage (upper triangluar part only in self-adjoint case) 
-   // and Eigen 3 implementation via MappedSparseMatrix and Cholmod (self-adjoint case) or SuperLU backend solvers.
-   // If EIGEN_CHOLMOD_SUPPORT is not defined then the Eigen implementation of the Simplicial Cholesky will be
-   // used in the self-adjoint case
+   // and Eigen 3 implementation via MappedSparseMatrix
    bool selfadjoint;
    int nnz;
    Scalar *unonz;
    Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int> M;
-#ifdef EIGEN_CHOLMOD_SUPPORT
-   Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> llt;
-#else
-   Eigen::SimplicialCholesky<Eigen::SparseMatrix<Scalar>,Eigen::Upper> llt;
-#endif
-#ifdef EIGEN_SUPERLU_SUPPORT
-   Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > *lu;
-#endif
+   SolverClass solver;
 
  public:
    GenEiSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *, bool=true);
@@ -42,7 +36,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    GenEiSparseMatrix(Connectivity *, EqNumberer *);
    virtual ~GenEiSparseMatrix();
 
-   Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int> getEigenSparse() { return M; }
+   Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int>& getEigenSparse() { return M; }
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);
@@ -85,11 +79,9 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    void print();
 };
 
-typedef GenEiSparseMatrix<double> EiSparseMatrix;
-typedef GenEiSparseMatrix<std::complex<double> > EiComplexSparseMatrix;
 
-template<class Scalar>
-class WrapEiSparseMat : public GenEiSparseMatrix<Scalar>
+template<class Scalar, class SolverClass = Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >
+class WrapEiSparseMat : public GenEiSparseMatrix<Scalar, SolverClass>
 {
   public:
     struct CtorData {
@@ -105,7 +97,7 @@ class WrapEiSparseMat : public GenEiSparseMatrix<Scalar>
       }
     };
 
-    WrapEiSparseMat(CtorData &ctd) : GenEiSparseMatrix<Scalar>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.flg) {}
+    WrapEiSparseMat(CtorData &ctd) : GenEiSparseMatrix<Scalar,SolverClass>(ctd.cn, ctd.dsa, ctd.cdsa, ctd.flg) {}
 };
 
 

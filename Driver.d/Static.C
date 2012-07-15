@@ -693,22 +693,47 @@ const char* problemTypeMessage[] = {
 const char* solverTypeMessage[] = {
 " ... Skyline Solver is Selected     ... \n",
 " ... Sparse Solver is Selected      ... \n",
-" ... SGI Sparse Solver is Selected  ... \n",
-" ... SGI Skyline Solver is Selected ... \n",
+" ... BlockSky Solver is Selected    ...\n",
+#ifdef USE_EIGEN3
+" ... SimplicalLLT Solver is Selected... \n",
+" ... SimplicalLDLT Solver is Selec'd... \n",
 #ifdef EIGEN_CHOLMOD_SUPPORT
 " ... Cholmod Solver is Selected     ... \n",
 #else
-" ... Simplicial Cholesky Solver is Selected ...\n",
+" ... Sparse Solver is Selected      ... \n",
 #endif
-" ... Frontal Solver is Selected     ... \n",
-"",
+#ifdef EIGEN_UMFPACK_SUPPORT
+" ... UmfPack Solver is Selected     ... \n",
+#else
+" ... Sparse Solver is Selected      ... \n",
+#endif
+#ifdef EIGEN_SUPERLU_SUPPORT
 " ... SuperLU Solver is Selected     ... \n",
+#else
+" ... Sparse Solver is Selected      ... \n",
+#endif
+#else
+" ... Sparse Solver is Selected      ... \n",
+" ... Sparse Solver is Selected      ... \n",
+" ... Sparse Solver is Selected      ... \n",
+" ... Sparse Solver is Selected      ... \n",
+" ... Sparse Solver is Selected      ... \n",
+#endif
+#ifdef USE_SPOOLES
 " ... Spooles Solver is Selected     ... \n",
+#else
+" ... Sparse Solver is Selected      ... \n",
+#endif
+#ifdef USE_MUMPS
 " ... Mumps Solver is Selected       ... \n",
+#else
+" ... Sparse Solver is Selected      ... \n",
+#endif
 "",
 " ... POD-GN Solver is Selected      ... \n",
 " ... POD-Galerkin Solver is Selected... \n",
-" ... Gappy-POD Solver is Selected   ... \n"
+" ... Gappy-POD Solver is Selected   ... \n",
+" ... Goldfarb-Idnani Solver is Sel'd...\n"
 };
 
 void

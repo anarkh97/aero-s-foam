@@ -44,15 +44,11 @@ const char* problemType[] = {
 const char* message[] = {
 "1. Skyline    \n",
 "1. Sparse    \n",
-"1. SGI Sparse \n",
-"1. SGI Skyline    \n",
-#ifdef EIGEN_CHOLMOD_SUPPORT
+"1. BlockSky \n",
+"1. Simplicial LLT \n",
+"1. Simplicial LDLT \n",
 "1. Cholmod Sparse \n",
-#else
-"1. Simplicial Cholesky\n",
-#endif
-"1. Frontal    \n",
-"1. BlockSky   \n",
+"1. Umfpack Sparse\n",
 "1. SuperLU Sparse \n",
 "1. Spooles Sparse\n",
 "1. Mumps Sparse\n",

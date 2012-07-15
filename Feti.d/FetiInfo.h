@@ -19,11 +19,10 @@
 // Solver types for Subdomain matrices
 // solvertype = 0       skyline			(default)
 // solvertype = 1       sparse
-// solvertype = 2       sgiSparse
-// solvertype = 3       sgiSkyline
-// solvertype = 4       cholesky
-// solvertype = 5       pcg
-// solvertype = 6       blocksky
+// solvertype = 2       blocksky
+// solvertype = 3       llt
+// solvertype = 4       ldlt
+// solvertype = 5       cholmod
 // solvertype = 7       superlu
 // solvertype = 8       spooles
 // solvertype = 9       mumps
@@ -179,8 +178,8 @@ class FetiInfo {
     enum MpcPreconditioner { noMpcPrec=0, diagCCt, globalCCt, blockDiagCCt, subBlockDiagCCt, superBlockDiagCCt, autoSelectCCt } mpc_precno;
     enum MpcBlock { subBlock, topoBlock, mortarBlock } mpc_block;
     int mpcflag;
-    enum Solvertype { skyline, sparse, sgisparse, sgisky, cholesky, pcg,
-         blocksky, superlu, spooles, mumps, diagonal } solvertype, gtgSolver, auxCoarseSolver, cctSolver;
+    enum Solvertype { skyline, sparse, blocksky, llt, ldlt, cholmod,
+         umfpack, superlu, spooles, mumps, diagonal, pcg } solvertype, gtgSolver, auxCoarseSolver, cctSolver;
     enum Scaling { noscaling=0, kscaling=1, tscaling=2 } scaling, mpc_scaling, fsi_scaling;
     enum Version { feti1, feti2, feti3, fetidp } version;
     bool rescalef; // if this is true then reassemble and apply scaling to f for every system, not just the first

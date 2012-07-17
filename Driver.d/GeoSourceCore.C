@@ -938,6 +938,65 @@ void GeoSource::setUpData()
   }
 
   for (int iOut = 0; iOut < numOutInfo; iOut++) {
+
+    switch (oinfo[iOut].type) {
+	case OutputInfo::Statevector :
+		  filePrint(stderr," *** Saving state snapshots every %d time steps to %s \n", oinfo[iOut].interval, oinfo[iOut].filename);
+		  domain->solInfo().activatePodRom = true;
+		  domain->solInfo().snapshotsPodRom = true;
+		  domain->solInfo().statevectPodRom = true;
+		  domain->solInfo().skipState = oinfo[iOut].interval;
+		  domain->solInfo().statePodRomFile = oinfo[iOut].filename; 
+                  oinfo[iOut].PodRomfile = true;
+		  break;
+	case OutputInfo::Residual :
+		  filePrint(stderr," *** Saving residual snapshots every %d time steps to %s \n", oinfo[iOut].interval, oinfo[iOut].filename);
+		  domain->solInfo().activatePodRom = true;
+		  domain->solInfo().snapshotsPodRom = true;
+		  domain->solInfo().residvectPodRom = true;
+		  domain->solInfo().skipResidual = oinfo[iOut].interval;
+                  domain->solInfo().residualPodRomFile = oinfo[iOut].filename; 
+		  oinfo[iOut].PodRomfile = true;
+                  break;
+	case OutputInfo::Jacobian :
+		  filePrint(stderr," *** Saving jacobian snapshots every %d time steps to %s \n", oinfo[iOut].interval, oinfo[iOut].filename);
+		  domain->solInfo().activatePodRom = true;
+		  domain->solInfo().snapshotsPodRom = true;
+		  domain->solInfo().jacobvectPodRom = true;
+		  domain->solInfo().skipJacobian = oinfo[iOut].interval;
+                  domain->solInfo().jacobianPodRomFile = oinfo[iOut].filename; 
+		  oinfo[iOut].PodRomfile = true;
+                  break;
+	case OutputInfo::RobData :
+		  filePrint(stderr," *** Reduced Order Basis Construction: saving to %s \n", oinfo[iOut].filename);
+		  domain->solInfo().SVDoutput = oinfo[iOut].filename; 
+   		  oinfo[iOut].PodRomfile = true;
+                  break;
+	case OutputInfo::SampleMesh :
+		  filePrint(stderr," *** Computing Hyper-Reduction Coefficients: saving to %s \n", oinfo[iOut].filename);
+		  domain->solInfo().reducedMeshFile = oinfo[iOut].filename; 
+		  oinfo[iOut].PodRomfile = true;
+                  break;
+	case OutputInfo::Accelvector :
+		  filePrint(stderr," *** Saving acceleration snapshots every %d time steps to %s \n", oinfo[iOut].interval, oinfo[iOut].filename);
+		  domain->solInfo().activatePodRom = true;
+                  domain->solInfo().snapshotsPodRom = true;
+                  domain->solInfo().accelvectPodRom = true;
+                  domain->solInfo().skipAccel = oinfo[iOut].interval;
+                  domain->solInfo().accelPodRomFile = oinfo[iOut].filename;
+		  oinfo[iOut].PodRomfile = true;
+                  break;
+        case OutputInfo::Forcevector :
+                  filePrint(stderr," *** Saving force snapshots every %d time steps to %s \n", oinfo[iOut].interval, oinfo[iOut].filename);
+                  domain->solInfo().activatePodRom = true;
+                  domain->solInfo().snapshotsPodRom = true;
+                  domain->solInfo().forcevectPodRom = true;
+                  domain->solInfo().skipForce = oinfo[iOut].interval;
+                  domain->solInfo().forcePodRomFile = oinfo[iOut].filename;
+		  oinfo[iOut].PodRomfile = true;
+                  break;
+    }
+
     if (oinfo[iOut].groupNumber > 0)  {
       if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
         fprintf(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
@@ -2898,6 +2957,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
 {
   std::pair<int, int> indices = getTimeSliceOutputFileIndices(sliceRank);
   for(int iInfo = indices.first; iInfo < indices.second; ++iInfo) {
+   if(!oinfo[iInfo].PodRomfile) {
    if (oinfo[iInfo].interval != 0) {
       char *fileName = oinfo[iInfo].filename;
       if (strlen(cinfo->outputExt) != 0) {
@@ -2915,6 +2975,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
       fflush(oinfo[iInfo].filptr);
     }
   }
+ }
 }
 
 
@@ -2925,8 +2986,9 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 
   if(numOuts == 0) { // open all output files and write their corresponding TOPDOM/DEC header
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+     if(!oinfo[iInfo].PodRomfile) {
       if(oinfo[iInfo].interval != 0) {
-
+      fprintf(stderr,"opening file %s \n", oinfo[iInfo].filename);
         char *fileName = oinfo[iInfo].filename;
         if (strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -2942,12 +3004,15 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
+     }
     }
   }
   else { // open selected output files
     for(int iOut = 0; iOut < numOuts; iOut++)  {
       iInfo = outIndex[iOut];
-      if(oinfo[iInfo].interval != 0) {
+      fprintf(stderr,"opening file %s \n", oinfo[iInfo].filename);
+      if(!oinfo[iInfo].PodRomfile) {
+       if(oinfo[iInfo].interval != 0) {
         char *fileName = oinfo[iInfo].filename;
         if(strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -2964,6 +3029,7 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
         fflush(oinfo[iInfo].filptr);
       }
     }
+   }
   }
 }
 
@@ -2971,7 +3037,9 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 void GeoSource::closeOutputFiles()
 {
   for(int i = 0; i < numOutInfo; ++i) {
+   if(!oinfo[i].PodRomfile) {
     this->closeOutputFileImpl(i);
+   }
   }
 }
 
@@ -2980,7 +3048,9 @@ void GeoSource::closeOutputFilesForPita(int sliceRank)
 {
   std::pair<int, int> indices = getTimeSliceOutputFileIndices(sliceRank);
   for (int i = indices.first; i < indices.second; ++i) {
+   if(!oinfo[i].PodRomfile) {
     this->closeOutputFileImpl(i);
+   }
   }
 }
 

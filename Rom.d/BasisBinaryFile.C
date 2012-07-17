@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <cassert>
+#include <iostream>
 
 namespace Rom {
 
@@ -29,6 +30,14 @@ BasisBinaryOutputFile::stateAdd(const NodeDof6Buffer &data, double headValue) {
 BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
   binFile_(fileName)
 {
+
+//  fprintf(stderr," binFile_.version = %f matches VERSION %f for file ", binFile_.version(),VERSION);
+//  std::cerr << fileName << std::endl;
+
+//  fprintf(stderr," binFile_.dataType = %d and NODAL_DATA_FLAG = %d \n", binFile_.dataType(), NODAL_DATA_FLAG);
+//  fprintf(stderr," binFile_.description = %s and DESC = %s \n", binFile_.description(), DESC);
+//  fprintf(stderr," binFile_.itemDimension = %d and DOFS_PER_NODE = %d \n", binFile_.itemDimension(), DOFS_PER_NODE);
+
   if (binFile_.version() != VERSION) {
     throw std::runtime_error("Incompatible binary file version");
   }

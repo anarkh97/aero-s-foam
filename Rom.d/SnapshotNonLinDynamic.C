@@ -5,6 +5,7 @@
 #include "BasisBinaryFile.h"
 #include "NodeDof6Buffer.h"
 #include "FileNameInfo.h"
+#include "BasisFileStream.h"
 
 #include <Driver.d/Domain.h>
 
@@ -21,17 +22,19 @@ namespace Rom {
 
 // Dummy class holding the implementation of SnapshotNonLinDynamic
 struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
-  class RawImpl : public Impl {
+  class sttSnapImpl : public Impl {
   public:
-    virtual void lastMidTimeIs(double t);
-    virtual void lastDeltaIs(double dt);
-    virtual void stateSnapshotAdd(const GeomState &);
-    virtual void postProcess();
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
 
     int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
     int vectorSize() const { return converter_.vectorSize(); }
 
-    explicit RawImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
+    explicit sttSnapImpl(Domain *, BasisId::Level level = BasisId::SNAPSHOTS);
 
   protected:
     template <typename VecType>
@@ -55,23 +58,45 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     BasisBinaryOutputFile stateSnapFile_;
   };
 
-  class SvdImpl : public RawImpl {
-  public:
-    virtual void stateSnapshotAdd(const GeomState &);
-    virtual void postProcess();
+// Implementation with residual snapshots
+class resSnapImpl : public Impl {
+public:
+  explicit resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
 
-    explicit SvdImpl(Domain *);
+  // Overriden functions
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
+   void postProcess();
 
-  private:
-    void orthoAndSave(const std::deque<Vector> &, BasisBinaryOutputFile &);
+private:
+  SnapshotNonLinDynamic *parent_;
+  VecNodeDof6Conversion vecNodeDof6Conversion_;
+  FileNameInfo fileInfo_;
+  BasisOutputStream residualSnapFile_;
+};
 
-    std::deque<Vector> stateSnapshot_;
+//Implementation with jacobian snapshots
+class jacSnapImpl : public Impl {
+public:
+  explicit jacSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
 
-    std::auto_ptr<const GeomState> refGeomState_;
-    Vector increment_;
+  // Overriden functions
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
+   void postProcess();
 
-    SvdOrthogonalization svdSolver_;
-  };
+private:
+  SnapshotNonLinDynamic *parent_;
+  VecNodeDof6Conversion vecNodeDof6Conversion_;
+  FileNameInfo fileInfo_;
+  BasisOutputStream jacobianSnapFile_;
+};
 
 private:
   // Dummy constructor to avoid compilation failures
@@ -80,7 +105,7 @@ private:
   {}
 };
 
-SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level level) :
+SnapshotNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
   converter_(*domain->getCDSA()),
   snapBuffer_(dofSetNodeCount()),
@@ -89,30 +114,74 @@ SnapshotNonLinDynamicDetail::RawImpl::RawImpl(Domain * domain, BasisId::Level le
   timeStamp_(domain->solInfo().initialTime)
 {}
 
+SnapshotNonLinDynamicDetail::resSnapImpl::resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain) :
+  parent_(parent),
+  vecNodeDof6Conversion_(*domain->getCDSA()),
+  fileInfo_(),
+  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
+SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :
+  parent_(parent),
+  vecNodeDof6Conversion_(*domain->getCDSA()),
+  fileInfo_(),
+  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
 void
-SnapshotNonLinDynamicDetail::RawImpl::postProcess() {
+SnapshotNonLinDynamicDetail::sttSnapImpl::postProcess() {
+  // Nothing to do
+}
+
+void
+SnapshotNonLinDynamicDetail::resSnapImpl::postProcess() {
+  // Nothing to do
+}
+
+void
+SnapshotNonLinDynamicDetail::jacSnapImpl::postProcess() {
   // Nothing to do
 }
 
 template <typename VecType>
 inline
 void
-SnapshotNonLinDynamicDetail::RawImpl::fillSnapBuffer(const VecType &snap) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &snap) {
   converter_.paddedNodeDof6(snap, snapBuffer_);
 }
 
 void
-SnapshotNonLinDynamicDetail::RawImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t) {
   timeStamp_ = t;
 }
 
 void
-SnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt) {
   timeStamp_ += dt;
 }
 
 void
-SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
+SnapshotNonLinDynamicDetail::resSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::jacSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap) {
   const CoordSet &refCoords = domain_->getNodes();
 
   for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode != iNodeEnd; ++iNode) {
@@ -138,67 +207,103 @@ SnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const GeomState &snap) {
   stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
 }
 
-SnapshotNonLinDynamicDetail::SvdImpl::SvdImpl(Domain * domain) :
-  RawImpl(domain, BasisId::POD),
-  refGeomState_(new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes())),
-  increment_(vectorSize())
-{}
+void
+SnapshotNonLinDynamicDetail::resSnapImpl::stateSnapshotAdd(const GeomState &snap) {}
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::stateSnapshotAdd(const GeomState &snap) {
-  const_cast<GeomState &>(snap).diff(*refGeomState_, increment_);
-  stateSnapshot_.push_back(increment_);
+SnapshotNonLinDynamicDetail::jacSnapImpl::stateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::postProcess() {
-  orthoAndSave(stateSnapshot_, this->stateSnapFile_);
-
-  RawImpl::postProcess();
+SnapshotNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &res) {
+  residualSnapFile_ << res;
 }
 
 void
-SnapshotNonLinDynamicDetail::SvdImpl::orthoAndSave(const std::deque<Vector> & snapshots, BasisBinaryOutputFile & out) {
-  svdSolver_.matrixSizeIs(vectorSize(), snapshots.size());
-  
-  int col = 0;
-  const std::deque<Vector>::const_iterator itEnd = snapshots.end();
-  for (std::deque<Vector>::const_iterator it = snapshots.begin(); it != itEnd; ++it) {
-    const Vector &v = *it;
-    std::copy(v.data(), v.data() + v.size(), svdSolver_.matrixCol(col));
-    ++col;
-  }
+SnapshotNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
 
-  svdSolver_.solve();
-  
-  const int orthoBasisDim = maxSizePodRom() ?
-                            std::min(maxSizePodRom(), svdSolver_.singularValueCount()) :
-                            svdSolver_.singularValueCount();
-  
-  for (int iState = 0; iState < orthoBasisDim; ++iState) {
-    fillSnapBuffer(svdSolver_.matrixCol(iState));
-    out.stateAdd(snapBuffer(), svdSolver_.singularValue(iState));
-  }
+void
+SnapshotNonLinDynamicDetail::sttSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::resSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
+  Vector snap(parent_->solVecInfo());
+//  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
+  jacobianSnapFile_ << snap;
 }
 
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
-  outputBasisType_(domain->solInfo().onlineSvdPodRom ? ORTHOGONAL : RAW),
-  impl_(NULL)
+  stateImpl_(NULL),
+  resImpl_(NULL),
+  jacImpl_(NULL)
 {}
 
 void
 SnapshotNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
+  if(domain->solInfo().statevectPodRom)
+    stateImpl_.reset(new SnapshotNonLinDynamicDetail::sttSnapImpl(this->domain));
+  if(domain->solInfo().residvectPodRom)
+    resImpl_.reset(new SnapshotNonLinDynamicDetail::resSnapImpl(this,this->domain));
+  if(domain->solInfo().jacobvectPodRom)
+    jacImpl_.reset(new SnapshotNonLinDynamicDetail::jacSnapImpl(this,this->domain));
+}
 
-  switch (outputBasisType_) {
-  case RAW:
-    impl_.reset(new SnapshotNonLinDynamicDetail::RawImpl(this->domain));
-    break;
-  case ORTHOGONAL:
-    impl_.reset(new SnapshotNonLinDynamicDetail::SvdImpl(this->domain));
-    break;
-  }
+void
+SnapshotNonLinDynamic::postProcess() {
+ if(domain->solInfo().statevectPodRom)
+  stateImpl_->postProcess();
+ if(domain->solInfo().residvectPodRom)
+  resImpl_->postProcess();
+ if(domain->solInfo().jacobvectPodRom)
+  jacImpl_->postProcess();
+}
+
+void
+SnapshotNonLinDynamic::saveMidTime(double t) {
+ if(domain->solInfo().statevectPodRom)
+        stateImpl_->lastMidTimeIs(t);
+}
+
+void
+SnapshotNonLinDynamic::saveDelta(double dt) {
+ if(domain->solInfo().statevectPodRom)
+        stateImpl_->lastDeltaIs(dt);
+}
+
+void
+SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &state) {
+ if(domain->solInfo().statevectPodRom)
+        stateImpl_->stateSnapshotAdd(state);
+}
+
+void
+SnapshotNonLinDynamic::handleResidualSnapshot(const Vector &snap) {
+ if(domain->solInfo().residvectPodRom)
+	resImpl_->handleResidualSnapshot(snap);
+}
+
+int
+SnapshotNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
+ if(domain->solInfo().jacobvectPodRom)
+    jacImpl_->handleJacobianSnapshot();
+
+  // Forward to hidden base class function
+  return NonLinDynamic::checkConvergence(iteration, normRes, residual, dv, time);
 }
 
 } /* end namespace Rom */

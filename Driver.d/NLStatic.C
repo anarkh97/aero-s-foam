@@ -1116,7 +1116,16 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       geoSource->outputNodeVectors6(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
     } break;
-
+     case OutputInfo::Statevector:
+        break;
+     case OutputInfo::Residual:
+        break;
+     case OutputInfo::Jacobian:
+        break;
+     case OutputInfo::RobData:
+        break;
+     case OutputInfo::SampleMesh:
+        break;
     default:
       fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
       break;

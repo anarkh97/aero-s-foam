@@ -254,21 +254,39 @@ struct SolverInfo {
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
    double coefFilterTol, rhsZeroTol, inconsistentTol;
 
+   const char * snapfiPodRom;
+   const char * readInROBorModes;
+   const char * SVDoutput;
+   const char * reducedMeshFile;
+   const char * statePodRomFile;
+   const char * accelPodRomFile;
+   const char * forcePodRomFile;
+   const char * residualPodRomFile;
+   const char * jacobianPodRomFile;
+   bool statevectPodRom;
+   bool accelvectPodRom;
+   bool forcevectPodRom;
+   bool residvectPodRom;
+   bool jacobvectPodRom;
+   bool readmodeCalled;
+   bool modalCalled;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
    bool svdPodRom;
    bool samplingPodRom;
    bool galerkinPodRom;
-   bool gaussNewtonPodRom;
-   bool gappyPodRom;
-   bool reducedPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
-   double aspectRatioPodRom;
    bool substractRefPodRom;
-   int skipPodRom;
+   int  skipPodRom;
+   int  skipState;
+   int  skipAccel;
+   int  skipForce;
+   int  skipResidual;
+   int  skipJacobian;
+   int  orthogPodRom;
    double tolPodRom;
 
    // Constructor
@@ -460,21 +478,39 @@ struct SolverInfo {
                   rhsZeroTol = 0;
                   inconsistentTol = 1e-8;
 
+                  snapfiPodRom = "";
+		  readInROBorModes = "";
+		  SVDoutput = "pod.rob";
+		  reducedMeshFile = "";
+		  statePodRomFile = "";
+		  accelPodRomFile = "";
+		  forcePodRomFile = "";
+		  residualPodRomFile = "";
+		  jacobianPodRomFile = "";
+		  statevectPodRom = false;
+		  accelvectPodRom = false;
+		  forcevectPodRom = false;
+		  residvectPodRom = false;
+		  jacobvectPodRom = false;
+		  readmodeCalled = false;
+		  modalCalled = false;
                   activatePodRom = false;
                   snapshotsPodRom = false;
                   checkPodRom = false;
                   svdPodRom = false;
                   samplingPodRom = false;
                   galerkinPodRom = false;
-                  gaussNewtonPodRom = false;
-                  gappyPodRom = false;
-                  reducedPodRom = false;
                   elemLumpPodRom = false;
                   onlineSvdPodRom = false;
                   maxSizePodRom = 0;
-                  aspectRatioPodRom = 1.0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+		  skipState = 1;
+		  skipAccel = 1;
+		  skipForce = 1;
+		  skipResidual = 1;
+		  skipJacobian = 1;
+		  orthogPodRom = 1;
                   tolPodRom = 1.0e-6;
                  }
 

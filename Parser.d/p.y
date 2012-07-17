@@ -88,7 +88,7 @@
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -100,7 +100,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER REDUCED ELLUMPWEIGHTS
+%token SNAPFI PODROB TRNVCT ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -311,9 +311,8 @@ Component:
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
-        | PodRom
-        | SampleNodeList
-        | ElementLumpingWeightList
+	| SvdToken
+	| Sampling
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -729,7 +728,7 @@ Output:
         { $2.finalize(numColumns); geoSource->addOutput($2); }
         ;
 OutInfo:
-        STRESSID FNAME Integer // unformatted output for all nodes
+          STRESSID FNAME Integer // unformatted output for all nodes
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; }
         | STRESSID Integer Integer FNAME Integer // formatted output for all nodes
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
@@ -1109,7 +1108,8 @@ DampInfo:
 	DAMPING Float Float NewLine
 	{ domain->solInfo().setDamping($2,$3); }
 	| DAMPING MODAL NewLine ModalValList
-	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; }
+	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 ComplexDirichletBC:
 	HDIRICHLET NewLine ComplexBCDataList
@@ -1501,7 +1501,10 @@ AxiLmpc:
 	;
 Mode:
 	READMODE FNAME NewLine
-	{ domain->readInModes($2); }
+	{ domain->solInfo().readInROBorModes = $2;
+	  domain->solInfo().readmodeCalled = true; }
+//	{ domain->readInModes($2); }
+	
 	;
 IDisp:
         IDIS NewLine
@@ -1513,7 +1516,8 @@ IDisp:
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	| IDisp MODAL NewLine ModalValList
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
-          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; }
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1586,7 +1590,8 @@ IVel:
           if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
         | IVel MODAL NewLine ModalValList
         { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
-          if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; }
+          if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
@@ -2398,8 +2403,16 @@ Attributes:
         { $$ = 0; }
 	| Attributes Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1); }
+        | Attributes Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1); 
+	  geoSource->setElementLumpingWeight($2 - 1, $5);
+	  domain->solInfo().elemLumpPodRom = true; }
 	| Attributes Integer Integer Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
+        | Attributes Integer Integer Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
+	  geoSource->setElementLumpingWeight($2 - 1, $7); 
+	  domain->solInfo().elemLumpPodRom = true; }
         | Attributes Integer Integer Integer THETA Float NewLine // PJSA: added THETA keyword to eliminate conflict
         { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); }
 	| Attributes Integer Integer IDENTITY NewLine
@@ -3604,74 +3617,55 @@ Renumbering:
           domain->solInfo().setSparseRenum($5); 
           domain->solInfo().setSpoolesRenum($7); }
 	;
-PodRom:
-  PODROM PodRomMode NewLine
-  { domain->solInfo().activatePodRom = true; }
-  | PodRom PodRomOption NewLine
+
+SvdToken:
+    SVDTOKEN NewLine
+  { domain->solInfo().activatePodRom = true; 
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().svdPodRom = true;}
+  | SvdToken SvdOption NewLine
   ;
-PodRomMode:
-  FOM
-  { domain->solInfo().snapshotsPodRom = true; }
-  | FOM CHECKTOKEN 
-  { domain->solInfo().checkPodRom = true; }
-  | GALERKIN
-  { domain->solInfo().galerkinPodRom = true;
-    domain->solInfo().subtype = 12; }
-  | GALERKIN REDUCED
-  { domain->solInfo().galerkinPodRom = true;
-    domain->solInfo().reducedPodRom = true; }
-  | GAUSSNEWTON 
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 11; }
-  | GAPPY
-  { domain->solInfo().gappyPodRom = true;
-    domain->solInfo().subtype = 13; }
-  | SVDTOKEN PodRomOfflineModeOption
-  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
-    domain->solInfo().svdPodRom = true; }
-  | SAMPLING PodRomOfflineModeOption
-  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
-    domain->solInfo().samplingPodRom = true; }
-  ;
-PodRomOfflineModeOption:
-  /* empty */
-  | GAUSSNEWTON
-  { domain->solInfo().gaussNewtonPodRom = true; }
-  | FORCE
-  { domain->solInfo().galerkinPodRom = true; }
-  ;
-PodRomOption:
-  SNAPSHOTS SWITCH
-  { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
-  | SVDTOKEN
-  { domain->solInfo().onlineSvdPodRom = true; }
+
+SvdOption:
+    SNAPFI FNAME
+  { domain->solInfo().snapfiPodRom = $2; }
+  | SNAPFI FNAME Integer 
+  { domain->solInfo().snapfiPodRom = $2;
+    if ($3 == 1) domain->solInfo().statevectPodRom = true;
+    if ($3 == 2) domain->solInfo().residvectPodRom = true;
+    if ($3 == 3) domain->solInfo().jacobvectPodRom = true;
+    if ($3 == 4) domain->solInfo().forcevectPodRom = true;
+    if ($3 == 5) domain->solInfo().accelvectPodRom = true;}
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
-  | ASPECTRATIO Float
-  { domain->solInfo().aspectRatioPodRom = $2; }
-  | REFSUBSTRACT
-  { domain->solInfo().substractRefPodRom = true; }
-  | SKIP Integer
-  { domain->solInfo().skipPodRom = $2; }
+  ;
+
+Sampling:
+    SAMPLING NewLine 
+  { domain->solInfo().activatePodRom = true; 
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().samplingPodRom = true; }
+  | Sampling SamplingOption NewLine
+  ;
+
+SamplingOption:
+    PODROB FNAME
+  { domain->solInfo().readInROBorModes = $2; }
+  | TRNVCT FNAME
+  { domain->solInfo().statePodRomFile = $2; }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; }
+  | PODSIZEMAX Integer
+  { domain->solInfo().maxSizePodRom = $2; }
   ;
-SampleNodeList:
-  SAMPLENODES NewLine
-  {}
-  | SampleNodeList Integer NewLine
-  { geoSource->sampleNodeAdd($2 - 1); }
-  ;
-ElementLumpingWeightList:
-  ELLUMPWEIGHTS NewLine
-  { domain->solInfo().elemLumpPodRom = true; }
-  | ElementLumpingWeightList Integer Float NewLine
-  { geoSource->setElementLumpingWeight($2 - 1, $3); }
-  ;
+
 Integer:
 	IntConstant
 	{ $$ = $1; }
 	;
+
 Float:
 	IntConstant
 	{ $$ = $1; }

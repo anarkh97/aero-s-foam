@@ -14,27 +14,20 @@ ADD_LIBRARY( Rom
   DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitLumpedPodProjectionNonLinDynamic.C
-  DistrExplicitGappyNonLinDynamic.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
   ElementSamplingDriver.C
-  ExplicitMeshSamplingDriver.C
   FileNameInfo.C
-  GappyNonLinDynamic.C
   LumpedPodProjectionNonLinDynamic.C
-  QrPseudoInversion.C
-  LeastSquaresSolver.C
   SparseNonNegativeLeastSquaresSolver.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C
   MeshOutput.C
-  MeshSamplingDriver.C
   MeshDesc.C
   PodProjectionNonLinDynamic.C
   RenumberingUtils.C
-  ReducedNonLinDynamic.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C

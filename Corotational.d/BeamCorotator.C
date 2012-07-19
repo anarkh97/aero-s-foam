@@ -1147,7 +1147,7 @@ BeamCorotator::formCorrectGeometricStiffness(
 
   for(i=0; i<12; i++) {
     for(j=0; j<12; j++) temp[j] = tempstiff[i][j];
-    tran_force(temp, t0nt, 3);
+    tran_force(temp, t0nt, 2);
     for(j=0; j<12; j++) stiffGeo2[i][j] += temp[j];
   }
 

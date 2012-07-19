@@ -74,8 +74,17 @@ class BeamCorotator : public Corotator {
  
    void reBuildorigK(FullSquareMatrix &);
    
-   double* dzVec;	
-   
+   void localCoord(double zVec[3], double dzVec[3], double zVecL[2][3],
+                  double dzVecL[2][3], double (* rot[2])[3][3], 
+                  double (* drot[2])[3][3], double x0[2][3],
+                  double dx0[2][3], double xn[2][3], double dxn[2][3],
+                  double t0[3][3], double dt0[3][3],double t0n[3][3], 
+                  double dt0n[3][3], double xl0[2][3], double dxl0[2][3],
+                  double xln[2][3], double dxln[2][3]);
+
+ void  dgradLocRot(double len, double dlen, double zVecL[2][3],
+                   double dzVecL[2][3], double gmat[3][12],
+                   double dgmat[3][12]);
 };
 
 

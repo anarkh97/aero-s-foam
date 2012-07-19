@@ -67,3 +67,28 @@ void vec_to_mat_new( double rvec[3], double rten[3][3] )
 
 }
 
+void dvec_to_mat( double rvec[3], double drvec[3], double rten[3][3],
+                  double drten[3][3] )
+
+/*****************************************************************
+ *  Compute the rotation tensor from a rotation matrix
+ *
+ *  Input:
+ *  rten:    rotation tensor
+ * drten:    derivative of rotation tensor
+ *
+ *  Output:
+ *  rvec:    rotation vector
+ *  drvec:  derivative of rotation vector
+ *  Coded by Bjorn Haugen
+ *****************************************************************/
+{
+
+   double q[4];
+   double dq[4];
+   
+   dvec_to_quat( rvec, drvec, q, dq );
+
+   dquat_to_mat( q, dq, rten, drten );
+
+}

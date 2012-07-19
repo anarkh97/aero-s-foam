@@ -72,19 +72,23 @@ class MultiDomDynPostProcessor
     StaticTimers *times;
     DistrVector *nodalTemps;
     DistrGeomState *geomState;
+    Corotator ***allCorot;
 
   public:
-    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0,
+                             Corotator ***_allCorot = 0) {
       decDomain = d;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
-    MultiDomDynPostProcessor(DecDomain *d, 
-		DistFlExchanger *_distFlExchanger, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, DistFlExchanger *_distFlExchanger, StaticTimers* _times,
+                             DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) {
       decDomain = d;
       distFlExchanger = _distFlExchanger;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);

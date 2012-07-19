@@ -64,7 +64,7 @@ c
 C
 C.... COMPUTE THE FIRST DEVEATORIC STRESSES
 C
-  	  comp = (sxx + syy + szz)/3.0d0
+          comp = (sxx + syy + szz)/3.0d0
           dsxx = sxx - comp
           dsyy = syy - comp
           dszz = szz - comp
@@ -79,18 +79,23 @@ C
 C
 C.... COMPUTE THE VON MISES STRESS
 C
-          vms = vms +  dsqrt(3.0d0 * j2)
+C          vms = vms +  dsqrt(3.0d0 * j2)
+CC
+C   10   continue
+CC
+C        vms = vms/nno
+CC
+CC.... DISTRIBUTE OUT TO THE NODES 
+CC
+C      do 11 n = 1, nno
+C        stress(elm,7,n) = vms
+C   11 continue
+CC
+C PJSA 10/7/2010 return the unaveraged nodal von mises effective stresses
+C If averaging is required it will be done elsewhere
+          stress(elm,7,n) = dsqrt(3.0d0 * j2)
 C
    10   continue
-C
-        vms = vms/nno
-C
-C.... DISTRIBUTE OUT TO THE NODES 
-C
-      do 11 n = 1, nno
-        stress(elm,7,n) = vms
-   11 continue
-C
         return
         end
 

@@ -337,7 +337,7 @@ PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
       }
     }
   }
-
+/* 
 // Get Element Principals
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
@@ -355,6 +355,25 @@ PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
   }
   pstress(svec,pvec);
   for (i=0; i<6; ++i) {
+    for (j=0; j<3; ++j) {
+       stress[i][j+6] = pvec[j];
+    }
+  }
+*/
+// PJSA 10/08/2010 Get Element Principals without averaging
+  double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+  double pvec[3] = {0.0,0.0,0.0};
+  for (i=0; i<6; ++i) {
+    for (j=0; j<6; ++j)
+      svec[j] = stress[i][j];
+
+    // Convert Engineering to Tensor Strains
+    if(strInd != 0) {
+      svec[3] /= 2;
+      svec[4] /= 2;
+      svec[5] /= 2;
+    }
+    pstress(svec,pvec);
     for (j=0; j<3; ++j) {
        stress[i][j+6] = pvec[j];
     }

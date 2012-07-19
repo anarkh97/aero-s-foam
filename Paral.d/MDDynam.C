@@ -249,7 +249,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
-  decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
+  if(sinfo.isNonLin())
+    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);
+  else
+    decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
 
 //  SolverInfo& sinfo = domain->solInfo();
@@ -764,11 +767,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot);
  }
  return mddPostPro;
 }

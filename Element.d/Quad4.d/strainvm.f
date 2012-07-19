@@ -81,17 +81,23 @@ C
 C
 C.... COMPUTE THE VON MISES STRAIN
 C
-          vms = vms + dsqrt(3.0d0 * j2)
+c          vms = vms + dsqrt(3.0d0 * j2)
 C
- 10     continue
+c 10     continue
 C
-        vms = vms/nno
+c        vms = vms/nno
 C
 C.... DISTRIBUTE OUT TO THE NODES
 C
-        do 20 n = 1, numnod 
-          strain(1,7,n) = vms
-20	continue
+c        do 20 n = 1, numnod 
+c          strain(1,7,n) = vms
+c20	continue
+C
+C.... COMPUTE THE VON MISES STRAIN without averaging
+C
+          strain(1,7,n) = dsqrt(3.0d0 * j2)
+C
+ 10     continue
 C
         return
         end

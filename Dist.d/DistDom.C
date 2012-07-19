@@ -352,9 +352,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(u, time, x, iOut, STRAINVON);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(u, time, x, iOut, CONPRESS);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag())
+          getStressStrain(u, time, x, iOut, CONPRESS);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::Damage:
         getStressStrain(u, time, x, iOut, DAMAGE);
         break;
@@ -1417,9 +1420,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(geomState, allCorot, time, x, iOut, STRAINVON, refState);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag()) 
+          getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;
@@ -1526,12 +1532,30 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
-     case OutputInfo::Reactions:
-       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
-       break;
-     case OutputInfo::Reactions6:
-       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
-       break;
+      case OutputInfo::Reactions:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::Reactions6:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::TDEnforcement: {
+        if(domain->tdenforceFlag()) {
+          DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
+          double **sub_data = new double * [this->numSub];
+          for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
+          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+          }
+          DistSVec<double, 1> master_data(masterInfo);
+          all_data.reduce(master_data, masterFlag, numFlags);
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+          }
+          delete [] sub_data;
+        }
+        else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;

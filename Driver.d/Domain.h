@@ -270,13 +270,13 @@ class Domain : public HData {
 
     StructProp *p; // property for new constraints
 
+  public:
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
                             Corotator **, FullSquareMatrix *, double *acceleration = 0,
                             double *acx = 0, GeomState *refState=0, Vector *reactions=0);
 
-  public:
      Domain(int iniSize = 16);
      Domain(Domain &, int nele, int *ele, int nnodes, int *nodes);
      Domain(Domain &, Elemset *elems, CoordSet *nodes);  // PJSA: for new sower

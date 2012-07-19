@@ -40,8 +40,10 @@ extern int verboseFlag;
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
-                                           StaticTimers *_times, GeomState *_geomState)
-{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; }
+                                           StaticTimers *_times, GeomState *_geomState,
+                                           Corotator **_allCorot, FullSquareMatrix *_melArray)
+{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; 
+  allCorot = _allCorot; melArray = _melArray; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -81,12 +83,24 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   //const double time = tIndex * domain->solInfo().getTimeStep();
   this->fillBcxVcx(time);
 
-  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
+  if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
     domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
-  }
+  } 
 
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx, acx);
+
+  // PJSA: need to output the stresses for nonlinear using corotator functions for some element (bt shell is an exception)
+  if(domain->solInfo().isNonLin()) {
+    int numOutInfo = geoSource->getNumOutInfo();
+    OutputInfo *oinfo = geoSource->getOutputInfo();
+    for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+      if(oinfo[iInfo].isStressOrStrain()) {
+        domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
+                                   allCorot, melArray, state.getAccel().data(), acx);
+      }
+    }
+  }
 
   stopTimerMemory(times->output, times->memoryOutput);
 }
@@ -914,7 +928,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState, allCorot, melArray);
 }
 
 void

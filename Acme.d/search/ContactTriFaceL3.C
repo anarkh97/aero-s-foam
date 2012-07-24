@@ -1056,7 +1056,9 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   if (abs(edge_dir[2])>=abs(edge_dir[0]) && abs(edge_dir[2])>=abs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
+/*
   tmax *= 1.05;
+*/
   
   DataType* node_position0 = Node(0)->Variable(POSITION);
   DataType* node_position1 = Node(1)->Variable(POSITION);

@@ -57,7 +57,7 @@ MaterialWrapper<IsotropicLinearElastic>::MaterialWrapper(double *params)
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElastic(lambda,mu,rho);
-  double posdefifyTol = -1;
+  posdefifyTol = -1;
 }
 
 template<>
@@ -70,7 +70,7 @@ MaterialWrapper<NeoHookean>::MaterialWrapper(double *params)
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new NeoHookean(lambda,mu,rho);
-  double posdefifyTol = params[3];
+  posdefifyTol = params[3];
 }
 
 template<>
@@ -86,7 +86,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H);
-  double posdefifyTol = -1;
+  posdefifyTol = -1;
 }
 
 template<>
@@ -98,7 +98,7 @@ MaterialWrapper<MooneyRivlin>::MaterialWrapper(double *params)
   double mu2    = params[2];
   double kappa  = params[3];
   mat = new MooneyRivlin(mu1, mu2, kappa, rho);
-  double posdefifyTol  = params[4];
+  posdefifyTol  = params[4];
 }
 
 #ifdef _TEMPLATE_FIX_

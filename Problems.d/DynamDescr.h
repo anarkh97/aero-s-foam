@@ -141,7 +141,7 @@ class SingleDomainDynamic
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
 
-    void getContactForce(Vector &d, Vector &ctc_f);
+    void getContactForce(Vector &d, Vector &ctc_f, double d_n_p);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
     void preProcess();

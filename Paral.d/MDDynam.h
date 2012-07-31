@@ -164,7 +164,7 @@ private:
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);
-    void getContactForce(DistrVector &, DistrVector &ctc_f);
+    void getContactForce(DistrVector &, DistrVector &ctc_f, double t_n_p);
     void computeExtForce2(SysState<DistrVector> &, DistrVector &, 
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,

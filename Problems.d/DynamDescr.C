@@ -505,7 +505,7 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
-SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
+SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
@@ -521,6 +521,20 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      domain->updateUsddInDbc(userDefineDisp);
+      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -820,7 +834,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  dMat->dynMat    = allOps.sysSolver;
  if(dMat->Msolver) { if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n"); dMat->Msolver->factor(); }
 
- if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M); 
+ if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M, allOps.Mcc); 
 
  return dMat;
 }

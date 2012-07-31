@@ -56,7 +56,7 @@ public:
   int getFilterFlag() { return domain->solInfo().filterFlags; }
   void project(Vector &v) { /* leave blank */ }
 
-  void getContactForce(Vector& d, Vector &extF) { extF.zero(); };
+  void getContactForce(Vector& d, Vector &extF, double) { extF.zero(); };
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);

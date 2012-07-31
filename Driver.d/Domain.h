@@ -892,7 +892,7 @@ class Domain : public HData {
      void SetUpSurfaces(CoordSet* cs = 0);
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
-     void MakeNodalMass(SparseMatrix *M);
+     void MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc);
      void MakeNodalMass(SubDOp *M, SubDomain **sd);
 
      void InitializeDynamicContactSearch(int numSub = 0, SubDomain **sd = 0);

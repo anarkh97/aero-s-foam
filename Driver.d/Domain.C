@@ -2388,12 +2388,12 @@ void Domain::AddContactForces(double dt, DistrVector &f)
   }
 }
 
-void Domain::MakeNodalMass(SparseMatrix *M)
+void Domain::MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      CurrentMortarCond->make_nodal_mass(M, c_dsa);
+      CurrentMortarCond->make_nodal_mass(M, c_dsa, Mcc);
       CurrentMortarCond->make_kinematic_partitioning(packedEset, nodeToElem);
     }
   }

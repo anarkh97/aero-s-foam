@@ -503,7 +503,7 @@ MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
-MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
+MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f, double t_n_p)
 {
   // DEBUG CONTACT
   times->tdenforceTime -= getTime();
@@ -520,6 +520,15 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2, decDomain->getAllSubDomains()); // update to predicted configuration
     times->updateSurfsTime += getTime();

@@ -318,7 +318,7 @@ TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
   int i,j;
   double nGrad[4][3];
   
-  //double dOmega = computeShapeGrad(cs, nGrad)/6;
+  double dOmega = computeShapeGrad(cs, nGrad)/6;
  
   // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
   double F[3][3];

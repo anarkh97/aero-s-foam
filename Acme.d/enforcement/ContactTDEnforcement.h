@@ -261,6 +261,7 @@ class ContactTDEnforcement : public ContactEnforcement {
   void Partition_Force(int, double**, double*, double*, double[3][3]);
   void Partition_Gap(double**, double*, double* );
   void Compute_Kinematic_Quantities( int iteration );
+  void Initialize_CVARS();
   void Set_CVARS();
   void Set_CGVARS();
   void Store_Shell_Final_Lofted_Positions();

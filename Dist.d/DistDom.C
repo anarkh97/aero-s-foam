@@ -509,7 +509,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
           double **sub_data = new double * [this->numSub];
           for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
           for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
@@ -1540,7 +1542,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
           double **sub_data = new double * [this->numSub];
           for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
           for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {

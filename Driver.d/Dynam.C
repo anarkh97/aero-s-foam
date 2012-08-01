@@ -756,7 +756,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           if(tdenforceFlag()) {
             // TODO outFlag == 1
             double *plot_data = new double[numNodes];
-            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            if(oinfo[i].tdenforc_var == 1) // CONFACE
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+            else
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
             for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
               MortarConds[iMortar]->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
             }

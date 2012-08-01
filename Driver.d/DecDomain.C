@@ -1105,7 +1105,10 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::TDEnforcement: {
           if(domain->tdenforceFlag()) {
             double *plot_data = new double[numNodes]; 
-            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            if(oinfo[i].tdenforc_var == 1) // CONFACE
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+            else
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
             for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
               domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
             }
@@ -2166,7 +2169,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::TDEnforcement: {
        if(domain->tdenforceFlag()) {
          double *plot_data = new double[numNodes];
-         for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+         if(oinfo[i].tdenforc_var == 1) // CONFACE
+           for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+         else
+           for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
          }

@@ -1044,6 +1044,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
   int have_interactions = contact_global_sum(topology->Number_NodeEntity_Interactions(),communicator);
   if (have_interactions==0) {
     std::memset( Force,0, number_host_code_nodes*sizeof(Real)*NDIM );
+    if(SAVE_CVARS) Initialize_CVARS();
 #ifdef CONTACT_HEARTBEAT 
     if (contact_processor_number(communicator)==0) {
       std::cout << "End of enforcement\n"<<flush;
@@ -4272,6 +4273,35 @@ void ContactTDEnforcement::Set_Save_Nodal_Vars(bool flag)
     kinematic_partition       = NULL;
   }
   
+}
+
+void ContactTDEnforcement::Initialize_CVARS()
+{
+  PRECONDITION( SAVE_CVARS );
+
+  // Initialize CVARS
+  std::memset( normal_force_mag,          0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_traction_mag,       0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_force_mag,      0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_traction_mag,   0, number_of_nodes*sizeof(Real) );
+
+  std::memset( normal_dir_x,              0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_dir_y,              0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_dir_z,              0, number_of_nodes*sizeof(Real) );
+
+  std::memset( tangential_dir_x,          0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_dir_y,          0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_dir_z,          0, number_of_nodes*sizeof(Real) );
+
+  std::memset( slipmag,                   0, number_of_nodes*sizeof(Real) );
+  std::memset( nodal_dissipation,         0, number_of_nodes*sizeof(Real) );
+  std::memset( nodal_dissipation_density, 0, number_of_nodes*sizeof(Real) );
+  std::memset( contact_area,              0, number_of_nodes*sizeof(Real) );
+  std::memset( plot_gap_cur,              0, number_of_nodes*sizeof(Real) );
+  std::memset( plot_gap_old,              0, number_of_nodes*sizeof(Real) );
+  std::memset( kinematic_partition,       0, number_of_nodes*sizeof(Real) );
+
+  for(int i=0 ; i<number_of_nodes ; ++i ) conface[i] = 0.5;
 }
 
 void ContactTDEnforcement::Set_CVARS()

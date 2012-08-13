@@ -29,6 +29,8 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
                         SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
     void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
                         GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0);
+    virtual void forceContinuity(GenDistrVector<Scalar> &u);
+
     void setsizeSfemStress(int fileNumber);  // YYY DG implementation incomplete: do the element stresses 
     int getsizeSfemStress() { return this->sizeSfemStress; } // YYY DG for both node- and element-based ?
     Scalar * getSfemStress(int fileNumber); // YYY DG implementation incomplete: do the element stresses 

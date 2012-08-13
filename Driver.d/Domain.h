@@ -681,9 +681,17 @@ class Domain : public HData {
        void scaleDisp(Scalar *u);
      template<class Scalar>
        void scaleInvDisp(Scalar *u);
+     template<class Scalar>
+       void scaleDisp(Scalar *u, double alpha);
+     template<class Scalar>
+       void forceContinuity(Scalar *u) {}
+     template<class Scalar>
+       void forceAssemble(Scalar *u) {}
 
      template<class Scalar>
      int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
+     template<class Scalar>
+     void forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11]);//DofSet::max_known_nonL_dof
 
      Connectivity *makeSommerToNode();
      Connectivity *prepDirectMPC();

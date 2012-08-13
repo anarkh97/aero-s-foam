@@ -42,6 +42,461 @@ StaticSolver< Scalar, OpSolver, VecType,
    int nRHS = domain->solInfo().nFreqSweepRHS;
    if(nRHS==0) filePrint(stderr, " *** ERROR: nRHS = 0 \n");
 
+// RTRT
+   if (domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+     probDesc->setIWaveDir(0); 
+
+     FILE *fa = fopen("adapt_params","r");
+     if (fa==0) {
+       fprintf(stderr,"File adapt_params cannot be opened. Exiting.\n");
+       exit(-1);
+     }
+     int maxP,nRHS,numS;
+     double w1,w2,cf,atol;
+     bool dgp_flag;
+     int na = fscanf(fa,"%d%d%d%d%lf%lf%lf%lf",
+            &maxP,&nRHS,&numS,&dgp_flag,&w1,&w2,&cf,&atol);
+     if (na==EOF || na<8) {
+       fprintf(stderr,"File adapt_params incorrect. Exiting.\n");
+       exit(-1);
+     }
+     int minRHS,maxRHS,deltaRHS;
+     na = fscanf(fa,"%d%d%d", &minRHS,&maxRHS,&deltaRHS);
+     fclose(fa);
+     if (!(na==EOF || na<3)) {
+       fprintf(stderr,"Adaptive derivatives %d %d %d.\n",minRHS,maxRHS,deltaRHS);
+       std::vector<double> w(maxP);
+       double *newW = new double[maxP];
+       int maxV = maxP*maxRHS;
+       int numP = 0;
+      
+       VecType **sol_prev = new VecType * [maxV+nRHS+1];
+       VecType **GP_solprev = new VecType * [maxV+nRHS+1];
+       for(int i = 0; i < maxV+nRHS+1; ++i) {
+         sol_prev[i] = new VecType(probDesc->solVecInfo());
+          GP_solprev[i] = sol_prev[i];
+       }
+       VecType **GP_orth_solprev = new VecType * [maxV];
+       for(int i = 0; i < maxV; ++i)
+         GP_orth_solprev[i] = new VecType(probDesc->solVecInfo());
+//       VecType **GP_solprev = new VecType * [maxV];
+//       for (int ii = 0; ii < maxP; ++ii)
+//         for (int iRHS = 0; iRHS < nRHS; ++iRHS)
+//           GP_solprev[iRHS + ii*nRHS] = sol_prev[iRHS+1 + ii*(nRHS+1)];
+       VecType **aa = new VecType * [maxV];
+       VecType **bb = new VecType * [maxV];
+       VecType **cc = new VecType * [maxV];
+       for(int i = 0; i < maxV; ++i) {
+         aa[i] = new VecType(probDesc->solVecInfo());
+         bb[i] = new VecType(probDesc->solVecInfo());
+         cc[i] = new VecType(probDesc->solVecInfo());
+       }
+       Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
+       int nOrtho = 0;
+//       int ncheck = 6;
+       int ncheck = 18;
+       double *wcheck = new double[ncheck];
+ncheck = 9;
+#define ADAPT2 
+#ifdef ADAPT2
+       for(int ic=0;ic<ncheck;ic++)
+         wcheck[ic] = w1 + double(ic+1)*(w2-w1)/double(ncheck+1);
+       w[numP] = w1;
+       adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
+               sol, GP_solprev, GP_orth_solprev,
+               aa,bb,cc,
+               VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+       numP++;
+
+       w[numP] = w2;
+       geoSource->setImpe(w[numP]/cf); 
+       rebuildSolver(w[numP]); 
+       adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
+               sol, GP_solprev, GP_orth_solprev,
+               aa,bb,cc,
+               VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+       numP++;
+#else
+       w[numP] = (w1+w2)/2.0;
+       for(int ic=0;ic<ncheck/2;ic++)
+         wcheck[ic] = w1 +
+                       double(ic+1)*(w[numP]-w1)/double(ncheck/2+1);
+       for(int ic=0;ic<ncheck/2;ic++)
+         wcheck[ic+ncheck/2] = w2 -
+                               double(ic+1)*(w2-w[numP])/double(ncheck/2+1);
+       adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
+               sol, GP_solprev, GP_orth_solprev,
+               aa,bb,cc,
+               VhKV, VhMV, VhCV, ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+       numP++;
+#endif
+
+       sort(w.begin(),w.begin()+numP-1);
+       while (1) {
+         int numNewP = 0;
+#ifdef ADAPT2
+         int extrap = 0;
+#else
+         int extrap = 2;
+#endif
+         for(int i=0;i<numP-1+extrap;i++) {
+           double resmax = 0.0;
+           double wmax = 0.0;
+//           int numres = 19;
+           int numres = 9;
+           double sres[numres];
+           for(int j=0;j<numres;j++) {
+#ifdef ADAPT2
+//             double wc = (w[i]+w[i+1])/2.0 +
+//               (double(j)-double(numres-1)/2.0)/double(numres)*(w[i+1]-w[i]);
+             double wc = w[i] + double(j+1)/double(numres+1)*(w[i+1]-w[i]);
+#else
+             double wl,wr;
+             if (i==0) { wl = w1; wr = w[i]; }
+             else if (i==numP) { wl = w[i-1]; wr = w2; }
+             else { wl = w[i-1]; wr = w[i]; }
+             double wc = wl + double(j+1)/double(numres+1)*(wr-wl);
+#endif
+            
+             sres[j] = adaptGPSolRes(dgp_flag,nOrtho,sol,
+                                     GP_solprev, GP_orth_solprev,
+                                     aa,bb,cc,
+                                     VhKV, VhMV, VhCV, wc, 0.0);
+             if (resmax<sres[j]) { resmax = sres[j]; wmax = wc; }
+             filePrint(stderr,"kuku %d %d %e %e\n",i,j,wc,sres[j]);
+           }
+           if (resmax>atol) {
+             newW[numNewP] = wmax;
+             numNewP++;
+           }
+         }
+         int oldNumP = numP;
+  double timex = 0.0;
+         if (numNewP>0) {
+           for(int i=0;i<numNewP;i++) {
+             w[numP] = newW[i];
+             geoSource->setImpe(w[numP]/cf); 
+  timex -= getTime();
+             rebuildSolver(w[numP]); 
+  timex += getTime();
+#ifdef ADAPT2
+             int ii;
+             for(ii=0;ii<oldNumP;ii++) if (w[ii]>w[numP]) break;
+             double wl = w[ii-1];
+             double wr = w[ii];
+#else
+             double wl;
+             double wr; 
+             int ii;
+             if (w[numP]<w[0]) { wl = w1; wr = w[0]; }
+             else if (w[numP]>w[oldNumP-1]) { wl = w[oldNumP-1]; wr = w2; }
+             else {
+               for(ii=0;ii<oldNumP;ii++) if (w[ii]>w[numP]) break;
+               wl = w[ii-1];
+               wr = w[ii];
+             }
+#endif
+ncheck = 18;
+             for(int ic=0;ic<ncheck/2;ic++)
+               wcheck[ic] = wl +
+                  double(ic+1)*(w[numP]-wl)/double(ncheck/2+1);
+             for(int ic=0;ic<ncheck/2;ic++)
+               wcheck[ic+ncheck/2] = wr -
+                  double(ic+1)*(wr-w[numP])/double(ncheck/2+1);
+      
+             adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
+                     sol, GP_solprev, GP_orth_solprev,
+                     aa,bb,cc,
+                     VhKV, VhMV, VhCV,
+                     ncheck, wcheck, ((w1+w2)/2.0)/w[numP], atol);
+             numP++;
+           }
+           sort(w.begin(),w.begin()+numP);
+         }
+         else break;
+  filePrint(stderr,"Rebuild time: %e\n",timex);
+       }
+
+
+       for(int i=0;i<=numS;i++) {
+         double wc = w1 + (double(i))/double(numS)*(w2-w1);
+         geoSource->setImpe(wc/cf); 
+         double res;
+         if (!dgp_flag)
+           res = adaptGPSolRes(0,nOrtho,sol,GP_solprev, GP_orth_solprev,
+                     aa,bb,cc,
+                               VhKV, VhMV, VhCV, wc, 0.0);
+          else {
+           res = adaptGPSolRes(1,nOrtho,sol,GP_solprev, GP_orth_solprev,
+                     aa,bb,cc,
+                               VhKV, VhMV, VhCV, wc, 0.0);
+          }
+         filePrint(stderr,"kaka %d %e %e\n",i,wc,res);
+         postProcessor->staticOutput(*sol, *rhs, false);
+       }
+
+       return;
+     }
+
+/*
+     int maxP = 20;
+     int nRHS = 3;
+     int maxV = maxP*nRHS;
+     double w1 = 4.0*1500.0;
+     double w2 = 8.0*1500.0;
+     int numS = 40;
+     double cf = 1500.00;
+*/
+
+// wheel
+/*
+     int maxP = 20;
+     int nRHS = 4;
+     double w1 = 100.0*2*M_PI;
+     double w2 = 1500.0*2*M_PI;
+     int numS = 280;
+     double cf = 1.0;
+     double atol = 1e-5;
+     bool dgp_flag = true; //false;
+*/
+
+/*
+// fsphere0
+
+     int maxP = 20;
+     int nRHS = 8;
+//     int nRHS = 4;
+     double cf = 1500.0;
+     double w1 = 9.0*cf;
+     double w2 = 18.0*cf;
+     int numS = 180;
+     double atol = 1e-4;
+     bool dgp_flag = true; //false;
+*/
+
+// fsphere2
+/*
+     int maxP = 10;
+     int nRHS = 12;
+//     int nRHS = 4;
+     double cf = 1500.0;
+     double w1 = 6.0*cf;
+     double w2 = 36.0*cf;
+     int numS = 540;
+     double atol = 1e-3;
+     bool dgp_flag = true; //false;
+*/
+
+
+// tsphsh0
+/*
+     int maxP = 20;
+//     int nRHS = 8;
+     int nRHS = 24;
+//     int nRHS = 4;
+     double cf = 1500.0;
+     double w1 = 8.0*cf;
+     double w2 = 16.0*cf;
+     int numS = 160;
+     double atol = 1e-4;
+     bool dgp_flag = false;
+*/
+
+     std::vector<double> w(maxP);
+     double *newW = new double[maxP];
+     int maxV = maxP*nRHS;
+
+     int numP = 0;
+    
+     VecType **sol_prev = new VecType * [maxV+nRHS];
+     for(int i = 0; i < maxV+nRHS; ++i)
+       sol_prev[i] = new VecType(probDesc->solVecInfo());
+     VecType **GP_orth_solprev = new VecType * [maxV];
+     for(int i = 0; i < maxV; ++i)
+       GP_orth_solprev[i] = new VecType(probDesc->solVecInfo());
+     VecType **GP_solprev = new VecType * [maxV];
+//     for (int i = 0; i < maxV; ++i)
+//       GP_solprev[i] = new VecType(probDesc->solVecInfo());
+     for (int ii = 0; ii < maxP; ++ii)
+       for (int iRHS = 0; iRHS < nRHS; ++iRHS)
+         GP_solprev[iRHS + ii*nRHS] = sol_prev[iRHS+1 + ii*(nRHS+1)];
+     Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
+
+     w[numP] = w1;
+     if (!dgp_flag) 
+       krylovGalProjection(nRHS,numP*nRHS,sol,
+                             GP_solprev, GP_orth_solprev,
+                             VhKV, VhMV, VhCV, w[numP], 0.0);
+     else {
+       int offset = numP*(nRHS+1);
+       sol_prev[offset]->zero();
+       for(int iRHS = 0; iRHS < nRHS; iRHS++) {
+         filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",iRHS);
+         if(iRHS > 0) { 
+           *sol_prev[offset+iRHS] = *sol;
+           probDesc->getFreqSweepRHS(rhs, sol_prev+offset, iRHS);
+         } 
+         else probDesc->getRHS(*rhs);
+         sol->zero();
+         allOps->sysSolver->solve(*rhs, *sol);
+         rhs->zero();
+       }
+       *sol_prev[offset+nRHS] = *sol;
+     }
+     numP++;
+     w[numP] = w2;
+     geoSource->setImpe(w[numP]/cf); 
+     rebuildSolver(w[numP]); 
+     if (!dgp_flag) 
+       krylovGalProjection(nRHS,numP*nRHS,sol,
+                           GP_solprev, GP_orth_solprev,
+                           VhKV, VhMV, VhCV, w[numP], 0.0);
+     else {
+       int offset = numP*(nRHS+1);
+       sol_prev[offset]->zero();
+       for(int iRHS = 0; iRHS < nRHS; iRHS++) {
+         filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",iRHS);
+         if(iRHS > 0) { 
+           *sol_prev[offset+iRHS] = *sol;
+           probDesc->getFreqSweepRHS(rhs, sol_prev+offset, iRHS);
+         } 
+         else probDesc->getRHS(*rhs);
+         sol->zero();
+         allOps->sysSolver->solve(*rhs, *sol);
+         rhs->zero();
+       }
+       *sol_prev[offset+nRHS] = *sol;
+        galProjection(true,(numP+1)*nRHS,sol,GP_orth_solprev, GP_solprev,
+                      VhKV, VhMV, VhCV, w[numP], 0.0);
+     }
+     numP++;
+      
+     sort(w.begin(),w.begin()+numP-1);
+     while (1) {
+       int numNewP = 0;
+       for(int i=0;i<numP-1;i++) {
+         double sres[5];
+         double resmax = 0.0;
+         double wmax = 0.0;
+         for(int j=0;j<5;j++) {
+           double wc = (w[i]+w[i+1])/2.0 +
+                         (double(j)-2)/double(5)*(w[i+1]-w[i]);
+          
+           if (!dgp_flag) 
+             sres[j] = krylovGalProjection(0,numP*nRHS,sol,
+                                           GP_solprev, GP_orth_solprev,
+                                           VhKV, VhMV, VhCV, wc, 0.0);
+           else
+             sres[j] = galProjection(false,numP*nRHS,sol,
+                                     GP_orth_solprev, GP_solprev,
+                                     VhKV, VhMV, VhCV, wc, 0.0);
+           if (resmax<sres[j]) { resmax = sres[j]; wmax = wc; }
+           filePrint(stderr,"kuku %d %d %e %e\n",i,j,wc,sres[j]);
+         }
+         if (resmax>atol) {
+           newW[numNewP] = wmax;
+           numNewP++;
+         }
+       }
+double timex = 0.0;
+timex -= getTime();
+       if (numNewP>0) {
+         for(int i=0;i<numNewP;i++) {
+           w[numP] = newW[i];
+           geoSource->setImpe(w[numP]/cf); 
+           rebuildSolver(w[numP]); 
+           if (!dgp_flag)
+             krylovGalProjection(nRHS,numP*nRHS,sol,
+                                 GP_solprev, GP_orth_solprev,
+                                 VhKV, VhMV, VhCV, w[numP], 0.0);
+           else {
+             int offset = numP*(nRHS+1);
+             sol_prev[offset]->zero();
+             for(int iRHS = 0; iRHS < nRHS; iRHS++) {
+               filePrint(stderr,"\n ... Solving RHS #%3d               ...\n",iRHS);
+               if(iRHS > 0) { 
+                 *sol_prev[offset+iRHS] = *sol;
+                 probDesc->getFreqSweepRHS(rhs, sol_prev+offset, iRHS);
+               } 
+               else probDesc->getRHS(*rhs);
+               sol->zero();
+               allOps->sysSolver->solve(*rhs, *sol);
+               rhs->zero();
+             }
+             *sol_prev[offset+nRHS] = *sol;
+              if (i+1==numNewP) galProjection(true,(numP+1)*nRHS,sol,GP_orth_solprev, GP_solprev,
+                            VhKV, VhMV, VhCV, w[numP], 0.0);
+           } 
+           numP++;
+         }
+         sort(w.begin(),w.begin()+numP);
+       }
+       else break;
+timex += getTime();
+filePrint(stderr,"Rebuild time: %e\n",timex);
+     }
+
+     for(int i=0;i<=numS;i++) {
+       double wc = w1 + (double(i))/double(numS)*(w2-w1);
+       geoSource->setImpe(wc/cf); 
+       double res;
+       if (!dgp_flag)
+         res = krylovGalProjection(0,numP*nRHS,sol,GP_solprev, GP_orth_solprev,
+                             VhKV, VhMV, VhCV, wc, 0.0);
+        else
+          res = galProjection(false,numP*nRHS,sol, GP_orth_solprev, GP_solprev,
+                              VhKV, VhMV, VhCV, wc, 0.0);
+       filePrint(stderr,"kaka %d %e %e\n",i,wc,res);
+//       if (i==numS) 
+         postProcessor->staticOutput(*sol, *rhs, false);
+//       else
+//         postProcessor->staticOutput(*sol, *rhs, true);
+     }
+
+/*
+     double res;
+     double wc;
+     for(int i=0;i<=numS;i++) {
+       wc = w1 + (double(i))/double(numS)*(w2-w1);
+       geoSource->setImpe(wc/cf); 
+       res = krylovGalProjection(0,numP*nRHS,sol,GP_solprev, GP_orth_sol_prev,
+                         VhKV, VhMV, VhCV, wc, 0.0);
+       filePrint(stderr,"kaka %d %e %e\n",i,wc,res);
+     }
+
+     wc = 940.0*2.0*M_PI;
+     geoSource->setImpe(wc/cf); 
+     rebuildSolver(wc); 
+     krylovGalProjection(nRHS,numP*nRHS,sol,
+                         GP_solprev, GP_orth_sol_prev,
+                         VhKV, VhMV, VhCV, wc, 0.0);
+     numP++;
+
+*/
+/*
+     wc = (0.25*w1+0.75*w2);
+     geoSource->setImpe(wc/cf); 
+     rebuildSolver(wc); 
+     krylovGalProjection(nRHS,numP*nRHS,sol,
+                         GP_solprev, GP_orth_sol_prev,
+                         VhKV, VhMV, VhCV, wc, 0.0);
+     numP++;
+
+
+     for(int i=0;i<=numS;i++) {
+       wc = w1 + (double(i))/double(numS)*(w2-w1);
+       geoSource->setImpe(wc/cf); 
+       res = krylovGalProjection(0,numP*nRHS,sol,GP_solprev, GP_orth_sol_prev,
+                         VhKV, VhMV, VhCV, wc, 0.0);
+       fprintf(stderr,"kuku %d %e %e\n",i,wc,res);
+       postProcessor->staticOutput(*sol, *rhs, false);
+     }
+*/
+
+     return;
+   }
+// RTRT
+
    // some initialization
    probDesc->setIWaveDir(0); 
    VecType **sol_prev = new VecType * [(nRHS+1)*padeN];
@@ -125,6 +580,14 @@ StaticSolver< Scalar, OpSolver, VecType,
          else probDesc->getRHS(*rhs);
          sol->zero();
          allOps->sysSolver->solve(*rhs, *sol);
+//         forceContinuity(*sol);
+
+/*
+         filePrint(stderr,"\n ... Dumping RHS #%3d               ...\n",iRHS);
+         *rhs = *sol;
+          scaleDisp(*rhs);
+         postProcessor->staticOutput(*rhs, *rhs,false); 
+*/
          rhs->zero();
        } // for (int iRHS = 0; iRHS < nRHS; iRHS++)
        *sol_prev[offset+nRHS] = *sol;
@@ -212,12 +675,18 @@ StaticSolver< Scalar, OpSolver, VecType,
        // now loop over all the freqencies & reconstruct solutions for each
        // starting with 2nd (1st has already been solved & output)
        StaticTimers *times = probDesc->getStaticTimers();
+double xtime = 0.0;
+xtime -= getTime();
        while((domain->frequencies->size() > 0) && ((domain->frequencies->front() < max_freq_before_rebuild) 
              || (domain->coarse_frequencies->size() == 0))) {
+
          startTimerMemory(times->timeFreqSweep, times->memoryFreqSweep);
          domain->isCoarseGridSolve = false;
          double w = domain->frequencies->front();
-         double deltaw = w - w0;
+// RT: 11/05/13
+         double deltaw;
+         if (padeN>1) deltaw = w - w0;
+         else deltaw = w - wc;
          if(domain->solInfo().isAcousticHelm()) {
            filePrint(stderr, " ... Reconstructing solution for k = %f...\n", w/domain->fluidCelerity);
          }
@@ -225,6 +694,7 @@ StaticSolver< Scalar, OpSolver, VecType,
            filePrint(stderr, " ... Reconstructing solution for f = %f ...\n", w/(2.0*PI));
          }
          //--------
+fprintf(stderr,"haha %d %e %e %e %e\n",padeN,deltaw/domain->fluidCelerity,w/domain->fluidCelerity,w0/domain->fluidCelerity,wc/domain->fluidCelerity);
          switch(domain->solInfo().freqSweepMethod) {
            case SolverInfo::Taylor : 
            {
@@ -246,9 +716,9 @@ StaticSolver< Scalar, OpSolver, VecType,
              }
            } break;
            case SolverInfo::Pade :
-             if(threadManager->numThr() > 1 && domain->solInfo().type == 2)
-               probDesc->pade(sol, sol_prev, h, deltaw);
-             else 
+//             if(threadManager->numThr() > 1 && domain->solInfo().type == 2)
+//               probDesc->pade(sol, sol_prev, h, deltaw);
+//             else 
                pade(sol, sol_prev, h, deltaw);
              break;
            case SolverInfo::Pade1 :
@@ -281,9 +751,12 @@ StaticSolver< Scalar, OpSolver, VecType,
          geoSource->setImpe(w); // for output file and/or restart
          bool printTimers = ((ncoarse+domain->frequencies->size()) > 1) ? false : true;
          stopTimerMemory(times->timeFreqSweep, times->memoryFreqSweep);
+
          postProcessor->staticOutput(*sol, *rhs, printTimers); 
          domain->frequencies->pop_front();
        } // while((domain->frequencies->size() > 0) ... )
+xtime += getTime();
+fprintf(stderr,"Projection  time: %e\n",xtime);
 
        // print out saved solution
        if (savedSol)  {
@@ -657,6 +1130,48 @@ StaticSolver< Scalar, OpSolver, VecType,
   ::scaleInvDisp(VecType &u)
 {
   probDesc->scaleInvDisp(u);
+}
+
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::scaleDisp(VecType &u, double alpha)
+{
+  probDesc->scaleDisp(u, alpha);
+}
+
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::forceContinuity(VecType &u)
+{
+  probDesc->forceContinuity(u);
+}
+
+template < class Scalar,
+           class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class ComplexVecType>
+void
+StaticSolver< Scalar, OpSolver, VecType,
+              PostProcessor, ProblemDescriptor, ComplexVecType >
+  ::forceAssemble(VecType &u)
+{
+  probDesc->forceAssemble(u);
 }
 
 

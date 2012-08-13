@@ -129,6 +129,29 @@ GenMultiDomainStatic<Scalar>::scaleInvDisp(GenDistrVector<Scalar> &u)
 
 template<class Scalar>
 void
+GenMultiDomainStatic<Scalar>::scaleDisp(GenDistrVector<Scalar> &u, double alpha)
+{
+  decDomain->scaleDisp(u, alpha);
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::forceContinuity(GenDistrVector<Scalar> &u)
+{
+  decDomain->forceContinuity(u);
+}
+
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::forceAssemble(GenDistrVector<Scalar> &u)
+{
+  decDomain->forceAssemble(u);
+}
+
+
+template<class Scalar>
+void
 GenMultiDomainStatic<Scalar>::clean()
 {
 }

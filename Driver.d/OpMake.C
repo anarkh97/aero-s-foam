@@ -1672,6 +1672,18 @@ Domain::scaleInvDisp(Scalar *u)
   }
 }
 
+template<class Scalar>
+void
+Domain::scaleDisp(Scalar *u, double alpha)
+{
+  for(int inode = 0; inode < numnodes; ++inode) {
+    int cdofs[6];
+    c_dsa->number(inode, DofSet::XYZdisp | DofSet::XYZrot, cdofs);
+    for(int jdof = 0; jdof<6; ++jdof)
+      if(cdofs[jdof] >= 0) u[cdofs[jdof]] *= alpha;
+  }
+}
+
 
 template<class Scalar>
 int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//DofSet::max_known_nonL_dof
@@ -1779,6 +1791,67 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//Dof
 
   return ++realNode;
 }
+
+
+template<class Scalar>
+void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::max_known_nonL_dof
+{
+  int inode;
+  int realNode = -1;
+  for (inode = 0; inode < numnodes; ++inode){
+
+    if(nodeToElem)
+      if(nodeToElem->num(inode) < 0) continue;
+    realNode++;
+    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+
+    if (xLoc >= 0)
+      u[xLoc] = xyz[inode][0];
+
+    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+
+    if (yLoc >= 0)
+      u[yLoc] = xyz[inode][1];
+
+    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+
+    if (zLoc >= 0)
+      u[zLoc] = xyz[inode][2];
+
+    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+
+    if (xRot >= 0)
+      u[xRot] = xyz[inode][3];
+
+    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+
+    if (yRot >= 0)
+      u[yRot] = xyz[inode][4];
+
+    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+
+    if (zRot >= 0)
+      u[zRot] = xyz[inode][5];
+
+    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+
+    if (xTemp >= 0)
+      u[xTemp] = xyz[inode][6];
+
+    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+
+    if (xHelm >= 0)
+      u[xHelm] = xyz[inode][7];
+
+    int xPot  = c_dsa->locate(inode, DofSet::Potential);
+
+    if (xPot >= 0)
+      u[xPot] = xyz[inode][10];
+  }
+
+//  return ++realNode;
+}
+
 
 
 template<class Scalar>

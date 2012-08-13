@@ -729,6 +729,49 @@ GenDecDomain<Scalar>::scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u)
 
 template<class Scalar>
 void
+GenDecDomain<Scalar>::scaleDisp(GenDistrVector<Scalar> &u, double alpha)
+{
+  execParal2R(numSub, this, &GenDecDomain<Scalar>::scaleSubDisp, u, alpha);
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha)
+{
+  subDomain[iSub]->scaleDisp(u.subData(iSub), alpha);
+}
+
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u)
+{
+
+  int numNodes = geoSource->numNode();
+
+  Scalar (*mergedDis)[11] = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
+  for(int i = 0; i < numNodes; ++i)
+    for(int j=0; j<11; j++) mergedDis[i][j] = 0.0;//DofSet::max_known_nonL_dof
+
+  for(int iSub = 0; iSub < numSub; ++iSub)
+    subDomain[iSub]->mergeAllDisp(mergedDis, u.subData(iSub));
+
+  for(int iSub = 0; iSub < numSub; ++iSub)
+    subDomain[iSub]->forceContinuity(u.subData(iSub),mergedDis);
+
+}
+
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::forceAssemble(GenDistrVector<Scalar> &u)
+{
+ ba2->assemble(u,0);
+}
+
+
+template<class Scalar>
+void
 GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f,
                                      double eigV, GenDistrVector<Scalar> *aeroF, int x, 
                                      GenMDDynamMat<Scalar> *dynOps, SysState<GenDistrVector<Scalar> > *distState, int ndflag)
@@ -3468,6 +3511,16 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1) {
    assembler = getSolVecAssembler(); 
  }
+// RT0212
+{
+   FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(communicator, cpuToSub, myCPU,
+                                                          FSCommPattern<Scalar>::CopyOnSend);
+   for(int i=0; i<numSub; ++i) subDomain[i]->setDofPlusCommSize(pat);
+   pat->finalize();
+   ba2 = new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
+}
+// RT0212
+
 
  if(domain->solInfo().inpc) res.K = new GenSubDOp<Scalar>(numSub, dgt.K, assembler);
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);

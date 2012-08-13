@@ -102,6 +102,9 @@ class SingleDomainStatic
       { clean(); preProcess(); }
     void scaleDisp(VectorType &);
     void scaleInvDisp(VectorType &);
+    void scaleDisp(VectorType &, double alpha);
+    void forceContinuity(VectorType &) {}
+    void forceAssemble(VectorType &) {}
     void clean();
     SolverType *getSolver();
     AllOps<T> *getAllOps() { return &allOps; }

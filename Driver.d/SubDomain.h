@@ -548,6 +548,7 @@ class GenSubDomain : public BaseSub
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
   void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);//DofSet::max_known_nonL_dof
   void mergeAllDisp(Scalar (*xyz)[11], Scalar *locdisp);
+  void forceContinuity(Scalar *locdisp, Scalar (*xyz)[11]);
   void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v);
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);

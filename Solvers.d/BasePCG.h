@@ -46,7 +46,6 @@ class BasePCG {
 //    int neqs() { return A->dim(); }
     int neqs() { return A->neqs(); }
     int doSolve(AnyVector& rhs, AnyVector& sol);
-
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -19,7 +19,7 @@ class NLState {
    void get_inc_displacement (Vector &, NLState &, bool=true);
    void printNode (int);
    void print(){}
-
+   void setVelocity(Vector&, Vector&, Vector&) {}
 };
 
 #endif

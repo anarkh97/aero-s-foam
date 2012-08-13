@@ -21,7 +21,7 @@
 #ifndef ContactHostGlobalID_h_
 #define ContactHostGlobalID_h_
 #ifndef CONTACT_NO_MPI
-#include <lbi_const.h>
+#include <zoltan.h>
 #endif
 #ifndef CONTACT_NO_MPI
 #include "ContactZoltanID.h"

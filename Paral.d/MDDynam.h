@@ -36,19 +36,27 @@ class GenMDDynamMat {
      GenParallelSolver<Scalar> *dynMat;
      GenParallelSolver<Scalar> *sysSolver;
    };
+   GenSubDOp<Scalar> *spMat;
+
+   GenParallelSolver<Scalar> *prec;       // preconditioner
+   GenSubDOp<Scalar> *spp;
+
    GenParallelSolver<Scalar> *Msolver;
    GenSubDOp<Scalar> *K;
+   GenSubDOp<Scalar> *Kuc;
+   GenSubDOp<Scalar> *Kcc;
    GenSubDOp<Scalar> *C;
    GenSubDOp<Scalar> *Cuc;
+   GenSubDOp<Scalar> *Ccc;
    GenSubDOp<Scalar> *M;
    GenSubDOp<Scalar> *Muc;
    GenSubDOp<Scalar> *Mcc;
-   GenSubDOp<Scalar> *Kuc;
    GenSubDOp<Scalar> **C_deriv;
    GenSubDOp<Scalar> **Cuc_deriv;
    Rbm* rigidBodyModes;
 
-   GenMDDynamMat() { dynMat = 0; Msolver = 0; K = 0; C = 0; Cuc = 0; M = 0; Muc = 0; Mcc = 0; Kuc = 0; C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
+   GenMDDynamMat() { dynMat = 0; spMat = 0; prec = 0; spp = 0; Msolver = 0; K = 0; Kuc = 0; Kcc = 0; C = 0; Cuc = 0; Ccc = 0; M = 0; Muc = 0; Mcc = 0; 
+                     C_deriv = 0; Cuc_deriv = 0; rigidBodyModes = 0; };
 };
 
 typedef GenMDDynamMat<double> MDDynamMat;
@@ -64,19 +72,23 @@ class MultiDomDynPostProcessor
     StaticTimers *times;
     DistrVector *nodalTemps;
     DistrGeomState *geomState;
+    Corotator ***allCorot;
 
   public:
-    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0,
+                             Corotator ***_allCorot = 0) {
       decDomain = d;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
-    MultiDomDynPostProcessor(DecDomain *d, 
-		DistFlExchanger *_distFlExchanger, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, DistFlExchanger *_distFlExchanger, StaticTimers* _times,
+                             DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) {
       decDomain = d;
       distFlExchanger = _distFlExchanger;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
@@ -152,7 +164,7 @@ private:
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);
-    void getContactForce(DistrVector &, DistrVector &ctc_f);
+    void getContactForce(DistrVector &, DistrVector &ctc_f, double t_n_p);
     void computeExtForce2(SysState<DistrVector> &, DistrVector &, 
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,
@@ -168,7 +180,7 @@ private:
     void getRayleighCoef(double& alpha);
 
     void addPrescContrib(SubDOp*, SubDOp*, DistrVector&, DistrVector&, 
-                         DistrVector&, DistrVector&, double t);
+                         DistrVector&, DistrVector&, double tm, double tf);
 
     SubDOp* getpK(MDDynamMat* dynOps);
     SubDOp* getpM(MDDynamMat* dynOps);

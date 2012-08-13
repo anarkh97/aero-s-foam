@@ -44,7 +44,7 @@ ContactFaceCoverageInteraction::ContactFaceCoverageInteraction( )
 }                                                                        
 
 ContactFaceCoverageInteraction::ContactFaceCoverageInteraction( 
-           ContactFace* face ) 
+           ContactFace<Real>* face ) 
 	: ContactInteractionEntity(DataArray, CT_FCI)
 {
   PRECONDITION( face );
@@ -80,7 +80,7 @@ ContactFaceCoverageInteraction::ContactFaceCoverageInteraction(
 ContactFaceCoverageInteraction* 
 ContactFaceCoverageInteraction::new_ContactFaceCoverageInteraction(
 				     ContactFixedSizeAllocator& alloc,
-				     ContactFace* face )
+				     ContactFace<Real>* face )
 {
   return new (alloc.New_Frag())
     ContactFaceCoverageInteraction( face );
@@ -206,7 +206,7 @@ void ContactFaceCoverageInteraction::Copy( ContactFaceCoverageInteraction* src )
 
 void ContactFaceCoverageInteraction::Connect_SlaveFace( ContactTopologyEntityList& hash_table )
 {   
-  slave_face = static_cast<ContactFace *>(hash_table.Find( slave_face_global_id ));
+  slave_face = static_cast<ContactFace<Real> *>(hash_table.Find( slave_face_global_id ));
   POSTCONDITION( slave_face );
 }
 

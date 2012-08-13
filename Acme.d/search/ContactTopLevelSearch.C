@@ -136,7 +136,7 @@ ContactSearch::ContactErrorCode ContactSearch::Static_Search_1_Configuration_Tie
     Real* pre_pos = NULL;
     if (primary_topology->Have_Shells()) {
       int num_primary_nodes             = primary_topology->Number_of_Primary_Nodes();
-      ContactNode** Nodes               = reinterpret_cast<ContactNode**>(primary_topology->PrimaryNodeList()->EntityList());
+      ContactNode<Real>** Nodes               = reinterpret_cast<ContactNode<Real>**>(primary_topology->PrimaryNodeList()->EntityList());
       VariableHandle CURRENT_POSITION   = primary_topology->Variable_Handle( ContactTopology::Current_Position );
       VariableHandle PREDICTED_POSITION = primary_topology->Variable_Handle( ContactTopology::Predicted_Position );
       cur_pos = new Real[3*num_primary_nodes];
@@ -176,7 +176,7 @@ ContactSearch::ContactErrorCode ContactSearch::Static_Search_1_Configuration_Tie
     // restore lofted shell positions
     if (primary_topology->Have_Shells()) {
       int num_primary_nodes = primary_topology->Number_of_Primary_Nodes();
-      ContactNode** Nodes   = reinterpret_cast<ContactNode**>(primary_topology->PrimaryNodeList()->EntityList());
+      ContactNode<Real>** Nodes   = reinterpret_cast<ContactNode<Real>**>(primary_topology->PrimaryNodeList()->EntityList());
       VariableHandle CURRENT_POSITION   = primary_topology->Variable_Handle( ContactTopology::Current_Position );
       VariableHandle PREDICTED_POSITION = primary_topology->Variable_Handle( ContactTopology::Predicted_Position );
       for (int i=0; i<num_primary_nodes; ++i) {
@@ -486,8 +486,8 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
     
     // Construct the augmented configuration by using the old displacements
     int num_primary_nodes = primary_topology->Number_of_Primary_Nodes();
-    ContactNode** Nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->PrimaryNodeList()->EntityList());
+    ContactNode<Real>** Nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->PrimaryNodeList()->EntityList());
 
     //
     // Asked to use augmented search.
@@ -495,7 +495,7 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
       Real old_time_multiplier = td_enf->Get_Old_Time_Multiplier();
       if( old_time_multiplier == 0 ) {
         for (int i=0; i<num_primary_nodes; ++i) {
-          ContactNode* node = Nodes[i];
+          ContactNode<Real>* node = Nodes[i];
           Real* pos_p = node->Variable( PREDICTED_POSITION );
           Real* pos_a = node->Variable( AUGMENTED_POSITION );
           pos_a[0] = pos_p[0]; 
@@ -529,7 +529,7 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
           //postream<<"  updating augmented position for "<<num_primary_nodes<<" nodes\n";
           //postream.flush();
           for (int i=0; i<num_primary_nodes; ++i) {
-            ContactNode* node = Nodes[i];
+            ContactNode<Real>* node = Nodes[i];
             Real* pos_p = node->Variable( PREDICTED_POSITION );
             Real* pos_a = node->Variable( AUGMENTED_POSITION );
             Real old_disp_x = disp_x_old[i];
@@ -559,7 +559,7 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
     } else { 
       // use old dynamic search method 
       for (int i=0; i<num_primary_nodes; ++i) {
-        ContactNode* node = Nodes[i];
+        ContactNode<Real>* node = Nodes[i];
         Real* pos_p = node->Variable( PREDICTED_POSITION );
         Real* pos_a = node->Variable( AUGMENTED_POSITION );
         pos_a[0] = pos_p[0]; 
@@ -668,10 +668,10 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
     // If in debug mode, do a sanity check to make sure there
     // are not too many interactions defined at each node.
     int number_of_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** Nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** Nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       int ncc = node->Number_NodeEntity_Interactions();
       PRECONDITION(ncc<=MAX_NODE_ENTITY_INTERACTIONS_PER_NODE);
     }
@@ -699,7 +699,7 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
 }
 
 int
-ContactSearch::Dynamic_Process_Method( ContactNode* node, ContactFace* face )
+ContactSearch::Dynamic_Process_Method( ContactNode<Real>* node, ContactFace<Real>* face )
 {     
 #ifdef CONTACT_DEBUG_NODE
   bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -1073,7 +1073,7 @@ ContactSearch::Print_Search_Footer()
     primary_topology->Display_NodeNode_Interactions_Summary(postream, (char*)"  ");
   }
   if (do_node_face_search) {
-    unsigned int all_search = ContactTopologyEntity::TRACK_SEARCH_SLAVE | ContactTopologyEntity::GLOBAL_SEARCH_SLAVE;
+    unsigned int all_search = ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE | ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE;
     primary_topology->Display_NodeEntity_Interactions_Summary(postream, all_search, (char*)"  ");
   }
   if (do_face_face_search) {
@@ -1175,15 +1175,15 @@ ContactSearch::Initialize_Context()
   if (!initialized_context) {
     initialized_context   = true;
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
       primary_nodes[i]->ClearContext();
     }
         
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
       primary_faces[i]->ClearContext();
     }
@@ -1206,15 +1206,15 @@ void
 ContactSearch::SetInitialContext()
 { 
   int num_primary_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** primary_nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** primary_nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (int i=0; i<num_primary_nodes; ++i) {
     primary_nodes[i]->ClearNonTiedContext();
   }
       
   int num_primary_faces = primary_topology->Number_of_Faces();
-  ContactFace** primary_faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** primary_faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<num_primary_faces; ++i) {
     primary_faces[i]->ClearNonTiedContext();
   }
@@ -1233,7 +1233,7 @@ ContactSearch::SetInitialContext()
     for (int i=first_block; i<primary_topology->Number_of_Node_Blocks(); ++i) {
       if (search_data->Is_NodeBlock_NodeNodeSlave(i)) {
         int nnodes = node_list->BlockNumEntities(i);
-        ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+        ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
         for (int j=0; j<nnodes; ++j){
           Nodes[j]->SetSlave();
         } 
@@ -1241,7 +1241,7 @@ ContactSearch::SetInitialContext()
       }
       if (search_data->Is_NodeBlock_NodeNodeMaster(i)) {
         int nnodes = node_list->BlockNumEntities(i);
-        ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+        ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
         for (int j=0; j<nnodes; ++j){
           Nodes[j]->SetMaster();
         } 
@@ -1255,24 +1255,24 @@ ContactSearch::SetInitialContext()
     for (int i=0; i<primary_topology->Number_of_Face_Blocks(); ++i) {
       if (search_data->Is_FaceBlock_NodeFaceSlave(i)) {
         int nfaces = face_list->BlockNumEntities(i);
-        ContactFace** Faces = 
-          reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+        ContactFace<Real>** Faces = 
+          reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
         for (int j=0; j<nfaces; ++j){
-          ContactFace* face = Faces[j];
+          ContactFace<Real>* face = Faces[j];
           int num_nodes = face->Nodes_Per_Face();
           for (int k=0; k<num_nodes; ++k) {
-            ContactNode* node = face->Node(k);
-            //if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-            if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE) continue;
-            if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE) continue;
+            ContactNode<Real>* node = face->Node(k);
+            //if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+            if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE) continue;
+            if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE) continue;
             node->SetSlave();
           }
         }
       }
       if (search_data->Is_FaceBlock_NodeFaceMaster(i)) {
         int nfaces = face_list->BlockNumEntities(i);
-        ContactFace** Faces = 
-          reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+        ContactFace<Real>** Faces = 
+          reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
         for (int j=0; j<nfaces; ++j){
           Faces[j]->SetMaster();
         }
@@ -1283,7 +1283,7 @@ ContactSearch::SetInitialContext()
     for (int i=1; i<primary_topology->Number_of_Node_Blocks(); ++i) {
       if (search_data->Is_NodeBlock_NodeFaceSlave(i)) {
         int nnodes = node_list->BlockNumEntities(i);
-        ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+        ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
         for (int j=0; j<nnodes; ++j){
           Nodes[j]->SetSlave();
         }
@@ -1297,8 +1297,8 @@ ContactSearch::SetInitialContext()
     for (int i=0; i<primary_topology->Number_of_Face_Blocks(); ++i) {
       if (search_data->Is_FaceBlock_FaceFaceSlave(i)) {
         int nfaces = face_list->BlockNumEntities(i);
-        ContactFace** Faces = 
-          reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+        ContactFace<Real>** Faces = 
+          reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
         for (int j=0; j<nfaces; ++j){
           Faces[j]->SetSlave();
         }
@@ -1306,8 +1306,8 @@ ContactSearch::SetInitialContext()
       }
       if (search_data->Is_FaceBlock_FaceFaceMaster(i)) {
         int nfaces = face_list->BlockNumEntities(i);
-        ContactFace** Faces = 
-          reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+        ContactFace<Real>** Faces = 
+          reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
         for (int j=0; j<nfaces; ++j){
           Faces[j]->SetMaster();
         }
@@ -1343,24 +1343,24 @@ ContactSearch::SetInitialContext()
 
 void ContactSearch::ResetContextForSearchSlaves() {
   int num_primary_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** primary_nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** primary_nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (int i=0; i<num_primary_nodes; ++i) {
-    primary_nodes[i]->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+    primary_nodes[i]->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
   }
       
   int num_primary_faces = primary_topology->Number_of_Faces();
-  ContactFace** primary_faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** primary_faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<num_primary_faces; ++i) {
-    primary_faces[i]->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+    primary_faces[i]->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
   }
   
   int num_primary_elems = primary_topology->Number_of_Elements();
   ContactElement** primary_elems = 
     reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
   for (int i=0; i<num_primary_elems; ++i) {
-    primary_elems[i]->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+    primary_elems[i]->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
   }
 }
 
@@ -1380,10 +1380,10 @@ ContactSearch::SetContextForSearchSlaves()
     int num_primary_faces = primary_topology->Number_of_Faces();  
     int num_primary_elems = primary_topology->Number_of_Elements();
 
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     ContactElement** primary_elems = 
       reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
 
@@ -1400,10 +1400,10 @@ ContactSearch::SetContextForSearchSlaves()
         for (int i=0; i<primary_topology->Number_of_Face_Blocks(); ++i) {
           if (!search_data->Is_FaceBlock_FaceFaceSlave(i)) continue;
           int nfaces = face_list->BlockNumEntities(i);
-          ContactFace** Faces = 
-            reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+          ContactFace<Real>** Faces = 
+            reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
           for (int j=0; j<nfaces; ++j){
-            Faces[j]->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+            Faces[j]->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
           }
         }
       } //if (do_face_face_search || do_coverage_search)
@@ -1416,7 +1416,7 @@ ContactSearch::SetContextForSearchSlaves()
           ContactElement** Elems = 
             reinterpret_cast<ContactElement**>(elem_list->BlockEntityList(i));
           for (int j=0; j<nelems; ++j){
-            Elems[j]->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+            Elems[j]->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
           }
         }
       } //if (do_elem_elem_search)
@@ -1427,13 +1427,13 @@ ContactSearch::SetContextForSearchSlaves()
           if (primary_topology->Node_Block(i)->Type() != POINT) continue;
           if (search_data->Is_NodeBlock_NodeNodeSlave(i)) {
             int nnodes = node_list->BlockNumEntities(i);
-            ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+            ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
             for (int j=0; j<nnodes; ++j){
-              ContactNode* node = Nodes[j];
-              if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-              if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-              if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
-              node->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+              ContactNode<Real>* node = Nodes[j];
+              if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+              if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+              if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
+              node->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
             } 
           }
         }
@@ -1445,28 +1445,28 @@ ContactSearch::SetContextForSearchSlaves()
         for (int i=0; i<primary_topology->Number_of_Face_Blocks(); ++i) {
           if (!search_data->Is_FaceBlock_NodeFaceSlave(i)) continue;
           int nfaces = face_list->BlockNumEntities(i);
-          ContactFace** Faces = 
-            reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+          ContactFace<Real>** Faces = 
+            reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
           for (int j=0; j<nfaces; ++j){
-            ContactFace* face = Faces[j];
+            ContactFace<Real>* face = Faces[j];
             int num_nodes = face->Nodes_Per_Face();
             for (int k=0; k<num_nodes; ++k) {
-              ContactNode* node = face->Node(k);
-              if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-              if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
-              node->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+              ContactNode<Real>* node = face->Node(k);
+              if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+              if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
+              node->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
             }
           }
         }
         for (int i=1; i<primary_topology->Number_of_Node_Blocks(); ++i) {
           if (!search_data->Is_NodeBlock_NodeFaceSlave(i)) continue;
           int nnodes = node_list->BlockNumEntities(i);
-          ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+          ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
           for (int j=0; j<nnodes; ++j){
-            ContactNode* node = Nodes[j];
-            if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-            if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
-            node->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+            ContactNode<Real>* node = Nodes[j];
+            if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+            if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
+            node->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
           }
         }
       } //if (do_node_face_search)
@@ -1479,24 +1479,24 @@ ContactSearch::SetContextForSearchSlaves()
       //  to reset the contexts as each are explicity set
       //
       for (int i=0; i<num_primary_nodes; ++i) {
-        ContactNode* node = primary_nodes[i];
-        if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-        if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
-        primary_nodes[i]->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        ContactNode<Real>* node = primary_nodes[i];
+        if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+        if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
+        primary_nodes[i]->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       }
         
       for (int i=0; i<num_primary_faces; ++i) {
-        primary_faces[i]->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        primary_faces[i]->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       }
     
       for (int i=0; i<num_primary_elems; ++i) {
-        primary_elems[i]->SetContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        primary_elems[i]->SetContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       }
     }
 
     if (tracking_type==LOCAL_TRACKING && tracking_step!=0) {
       for (int i=0; i<num_primary_nodes; ++i) {
-        primary_nodes[i]->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        primary_nodes[i]->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
       }
       ContactTopologyEntityList* face_list = primary_topology->FaceList();
       for (int i=0; i<primary_topology->Number_of_Face_Blocks(); ++i) {
@@ -1504,8 +1504,8 @@ ContactSearch::SetContextForSearchSlaves()
         int tracking  = 0x7ffffff;
         int slave_key = primary_topology->Face_Block(i)->Entity_Key();
         int nfaces    = face_list->BlockNumEntities(i);
-        ContactFace** BlockFaces = 
-          reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+        ContactFace<Real>** BlockFaces = 
+          reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
         for (int j=0; j<primary_topology->Number_of_Face_Blocks(); ++j) {
           int master_key = primary_topology->Face_Block(j)->Entity_Key();
           int interaction_type = (int)search_data->Get_Search_Data(INTERACTION_TYPE, 
@@ -1524,10 +1524,10 @@ ContactSearch::SetContextForSearchSlaves()
         }
         if (tracking>0) {
           for (int jj=0; jj<nfaces; ++jj){
-            ContactFace* face = BlockFaces[jj];
+            ContactFace<Real>* face = BlockFaces[jj];
             int num_nodes = face->Nodes_Per_Face();
             for (int k=0; k<num_nodes; ++k) {
-              face->Node(k)->SetContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE);
+              face->Node(k)->SetContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE);
             }
           }
         }
@@ -1545,15 +1545,15 @@ ContactSearch::SetContextForSearchSlaves()
     
     if (tracking_type==LOCAL_TRACKING && tracking_step!=0 ) {
       for (int i=0; i<num_primary_nodes; ++i) {
-        ContactNode* node = primary_nodes[i];
-        if (node->Ownership()!=ContactTopologyEntity::OWNED) {
-          node->ClearContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE );
-          node->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        ContactNode<Real>* node = primary_nodes[i];
+        if (node->Ownership()!=ContactTopologyEntity<Real>::OWNED) {
+          node->ClearContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE );
+          node->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
         } else {
-          if (node->CheckContext(ContactTopologyEntity::TRACK_SEARCH_SLAVE )) {
-            node->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+          if (node->CheckContext(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE )) {
+            node->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
             if (node->Number_NodeEntity_Interactions(STATE1)==0) {
-              node->ClearContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE);
+              node->ClearContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE);
             }
           }
         }
@@ -1563,8 +1563,8 @@ ContactSearch::SetContextForSearchSlaves()
       int n_global_nodes = 0;
       num_tracked_interactions = 0;
       for (int i=0; i<num_primary_nodes; ++i) {
-        if (primary_nodes[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_nodes;
-        if (primary_nodes[i]->CheckContext(ContactTopologyEntity::TRACK_SEARCH_SLAVE )) {
+        if (primary_nodes[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_nodes;
+        if (primary_nodes[i]->CheckContext(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE )) {
           num_tracked_interactions += primary_nodes[i]->Number_NodeEntity_Interactions(STATE1);
           ++n_track_nodes;
         }
@@ -1573,15 +1573,15 @@ ContactSearch::SetContextForSearchSlaves()
       int n_track_faces  = 0;
       int n_global_faces = 0;
       for (int i=0; i<num_primary_faces; ++i) {
-        if (primary_faces[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_faces;
-        if (primary_faces[i]->CheckContext(ContactTopologyEntity::TRACK_SEARCH_SLAVE )) ++n_track_faces;
+        if (primary_faces[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_faces;
+        if (primary_faces[i]->CheckContext(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE )) ++n_track_faces;
       }
       
       int n_track_elems  = 0;
       int n_global_elems = 0;
       for (int i=0; i<num_primary_elems; ++i) {
-        if (primary_elems[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_elems;
-        if (primary_elems[i]->CheckContext(ContactTopologyEntity::TRACK_SEARCH_SLAVE )) ++n_track_elems;
+        if (primary_elems[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_elems;
+        if (primary_elems[i]->CheckContext(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE )) ++n_track_elems;
       }
       
       int num_track_entities  = n_track_nodes+n_track_faces+n_track_elems;
@@ -1617,26 +1617,26 @@ ContactSearch::SetContextForSearchSlaves()
       #endif
     } else if (context_set) {
       for (int i=0; i<num_primary_nodes; ++i) {
-        ContactNode* node = primary_nodes[i];
-        if (node->Ownership()!=ContactTopologyEntity::OWNED) {
-          node->ClearContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE );
-          node->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
+        ContactNode<Real>* node = primary_nodes[i];
+        if (node->Ownership()!=ContactTopologyEntity<Real>::OWNED) {
+          node->ClearContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE );
+          node->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
         }
       }
       #if CONTACT_DEBUG_PRINT_LEVEL>=2 || defined(CONTACT_HEARTBEAT)
       int n_global_nodes = 0;
       for (int i=0; i<num_primary_nodes; ++i) {
-        if (primary_nodes[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_nodes;
+        if (primary_nodes[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_nodes;
       }
           
       int n_global_faces = 0;
       for (int i=0; i<num_primary_faces; ++i) {
-        if (primary_faces[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_faces;
+        if (primary_faces[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_faces;
       }
       
       int n_global_elems = 0;
       for (int i=0; i<num_primary_elems; ++i) {
-        if (primary_elems[i]->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) ++n_global_elems;
+        if (primary_elems[i]->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) ++n_global_elems;
       }
       
       num_tracked_nodes = 0;
@@ -1677,24 +1677,24 @@ ContactSearch::SetContextForGeometryUpdate()
     #endif
     // Set the geometry update context for all nodes
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
-      primary_nodes[i]->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_nodes[i]->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     } 
     // Set the geometry update context for all faces
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
-      primary_faces[i]->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_faces[i]->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
     // Set the geometry update context for all elements
     int num_primary_elems = primary_topology->Number_of_Elements();
     ContactElement** primary_elems = 
       reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
     for (int i=0; i<num_primary_elems; ++i) {
-      primary_elems[i]->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_elems[i]->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
   } else if (tracking_type==GLOBAL_TRACKING && tracking_step==1) {
     #if CONTACT_DEBUG_PRINT_LEVEL>=2 || defined(CONTACT_HEARTBEAT)
@@ -1702,18 +1702,18 @@ ContactSearch::SetContextForGeometryUpdate()
     #endif
     // Clear the geometry update context for all nodes
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
-      primary_nodes[i]->ClearContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_nodes[i]->ClearContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
         
     // Clear the geometry update context for all faces
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
-      primary_faces[i]->ClearContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_faces[i]->ClearContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
     
     // Clear the geometry update context for all elements
@@ -1721,23 +1721,23 @@ ContactSearch::SetContextForGeometryUpdate()
     ContactElement** primary_elems = 
       reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
     for (int i=0; i<num_primary_elems; ++i) {
-      primary_elems[i]->ClearContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_elems[i]->ClearContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
   
     // tag all nodes that are in proximity and all faces that are connected to them
     for(int i=0; i<primary_topology->Number_of_Node_Blocks(); ++i) {
       if (!(primary_topology->Node_Block(i)->Has_Normal_Attributes())) {
         int nnodes = primary_topology->NodeList()->BlockNumEntities(i);
-        ContactNode** nodes  = 
-          reinterpret_cast<ContactNode**>(primary_topology->NodeList()->BlockEntityList(i));
+        ContactNode<Real>** nodes  = 
+          reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->BlockEntityList(i));
         for (int j=0; j<nnodes; ++j) {
-          ContactNode* node = nodes[j];
-          if (node->in_proximity || node->CheckContext(ContactTopologyEntity::TIED)) {
-            if (!node->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) {
-              node->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+          ContactNode<Real>* node = nodes[j];
+          if (node->in_proximity || node->CheckContext(ContactTopologyEntity<Real>::TIED)) {
+            if (!node->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) {
+              node->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
               int num_faces = node->Number_Face_Connections();
               for (int k=0; k<num_faces; ++k) {
-                node->GetFace(k)->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+                node->GetFace(k)->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
               }
             }
           }
@@ -1747,16 +1747,16 @@ ContactSearch::SetContextForGeometryUpdate()
     
     // tag all faces that are in proximity and nodes that are connected to tagged faces
     for (int i=0; i<num_primary_faces; ++i) {
-      ContactFace* face = primary_faces[i];
-      if (face->in_proximity || face->CheckContext(ContactTopologyEntity::TIED)) {
-        if (!face->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) {
-          face->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      ContactFace<Real>* face = primary_faces[i];
+      if (face->in_proximity || face->CheckContext(ContactTopologyEntity<Real>::TIED)) {
+        if (!face->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) {
+          face->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
         }
       }
-      if (face->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) {
+      if (face->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) {
         for(int j=0 ; j<face->Nodes_Per_Face(); ++j ){
-          if (!face->Node(j)->CheckContext(ContactTopologyEntity::GHOSTED_FOR_SEARCH)) {
-            face->Node(j)->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+          if (!face->Node(j)->CheckContext(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH)) {
+            face->Node(j)->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
           }
         }
       }
@@ -1764,7 +1764,7 @@ ContactSearch::SetContextForGeometryUpdate()
     
     // Set the geometry update context for all elements
     for (int i=0; i<num_primary_elems; ++i) {
-      primary_elems[i]->SetContextBit(ContactTopologyEntity::GEOMETRY_UPDATE);
+      primary_elems[i]->SetContextBit(ContactTopologyEntity<Real>::GEOMETRY_UPDATE);
     }
   }
   
@@ -1772,18 +1772,18 @@ ContactSearch::SetContextForGeometryUpdate()
   if (did_update) {
     int num_tagged_nodes  = 0;
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
-      if (primary_nodes[i]->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) ++num_tagged_nodes;
+      if (primary_nodes[i]->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) ++num_tagged_nodes;
     }
         
     int num_tagged_faces  = 0;
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
-      if (primary_faces[i]->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) ++num_tagged_faces;
+      if (primary_faces[i]->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) ++num_tagged_faces;
     }
     
     int num_tagged_elems  = 0;
@@ -1791,7 +1791,7 @@ ContactSearch::SetContextForGeometryUpdate()
     ContactElement** primary_elems = 
       reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
     for (int i=0; i<num_primary_elems; ++i) {
-      if (primary_elems[i]->CheckContext(ContactTopologyEntity::GEOMETRY_UPDATE)) ++num_tagged_elems;
+      if (primary_elems[i]->CheckContext(ContactTopologyEntity<Real>::GEOMETRY_UPDATE)) ++num_tagged_elems;
     }
     #if CONTACT_DEBUG_PRINT_LEVEL>=2
     postream<<"    Tagged "<<num_tagged_nodes<<" of "<<num_primary_nodes<<" nodes for geometry update\n";
@@ -1836,28 +1836,28 @@ ContactSearch::SetContextForGhostingRCB()
   if (tracking_type==GLOBAL_TRACKING) {
     // need to include tied entities since the ghosting is persistent
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
-      ContactNode* node = primary_nodes[i];
-      node->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_GHOSTING_RCB);
-      if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)||
-          node->CheckContext(ContactTopologyEntity::TIED)) node->SetGhostRCB();
+      ContactNode<Real>* node = primary_nodes[i];
+      node->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_GHOSTING_RCB);
+      if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)||
+          node->CheckContext(ContactTopologyEntity<Real>::TIED)) node->SetGhostRCB();
     }
     
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
-      ContactFace* face = primary_faces[i];
-      if (face->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)||
-          face->CheckContext(ContactTopologyEntity::TIED)) {
+      ContactFace<Real>* face = primary_faces[i];
+      if (face->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)||
+          face->CheckContext(ContactTopologyEntity<Real>::TIED)) {
         int num_nodes = face->Nodes_Per_Face();
         for (int k=0; k<num_nodes; ++k) {
-          ContactNode* node = face->Node(k);
-          if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-          if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-          if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
+          ContactNode<Real>* node = face->Node(k);
+          if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+          if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+          if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
           node->SetGhostRCB();
         }
       }
@@ -1865,26 +1865,26 @@ ContactSearch::SetContextForGhostingRCB()
   } else {
     // do not need to include tied entities since the ghosting is not persistent
     int num_primary_nodes = primary_topology->Number_of_Nodes();
-    ContactNode** primary_nodes = 
-      reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+    ContactNode<Real>** primary_nodes = 
+      reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
     for (int i=0; i<num_primary_nodes; ++i) {
-      ContactNode* node = primary_nodes[i];
-      node->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_GHOSTING_RCB);
-      if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) node->SetGhostRCB();
+      ContactNode<Real>* node = primary_nodes[i];
+      node->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_GHOSTING_RCB);
+      if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) node->SetGhostRCB();
     }
     
     int num_primary_faces = primary_topology->Number_of_Faces();
-    ContactFace** primary_faces = 
-      reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+    ContactFace<Real>** primary_faces = 
+      reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
     for (int i=0; i<num_primary_faces; ++i) {
-      ContactFace* face = primary_faces[i];
-      if (face->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) {
+      ContactFace<Real>* face = primary_faces[i];
+      if (face->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) {
         int num_nodes = face->Nodes_Per_Face();
         for (int k=0; k<num_nodes; ++k) {
-          ContactNode* node = face->Node(k);
-          if (node->Ownership()     != ContactTopologyEntity::OWNED) continue;
-          if (node->Physical_Type() == ContactNode::SHELL_TAB_NODE)  continue;
-          if (node->Physical_Type() == ContactNode::MIXED_TAB_NODE)  continue;
+          ContactNode<Real>* node = face->Node(k);
+          if (node->Ownership()     != ContactTopologyEntity<Real>::OWNED) continue;
+          if (node->Physical_Type() == ContactNode<Real>::SHELL_TAB_NODE)  continue;
+          if (node->Physical_Type() == ContactNode<Real>::MIXED_TAB_NODE)  continue;
           node->SetGhostRCB();
         }
       }
@@ -1896,11 +1896,11 @@ ContactSearch::SetContextForGhostingRCB()
     reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
   for (int i=0; i<num_primary_elems; ++i) {
     ContactElement* elem = primary_elems[i];
-    if (elem->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) {
+    if (elem->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) {
       int num_nodes = elem->Nodes_Per_Element();
       for (int k=0; k<num_nodes; ++k) {
-        ContactNode* node = elem->Node(k);
-        if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+        ContactNode<Real>* node = elem->Node(k);
+        if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
         node->SetGhostRCB();
       }
     }
@@ -1909,8 +1909,8 @@ ContactSearch::SetContextForGhostingRCB()
   #if CONTACT_DEBUG_PRINT_LEVEL>=2 || defined(CONTACT_HEARTBEAT)
   int num_rcb_nodes = 0;
   int num_primary_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** primary_nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** primary_nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (int i=0; i<num_primary_nodes; ++i) {
     if (primary_nodes[i]->IsGhostRCB()) ++num_rcb_nodes;
   }
@@ -1937,24 +1937,24 @@ void
 ContactSearch::SetContextForGlobalSearchGhosting()
 { 
   int num_primary_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** primary_nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** primary_nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (int i=0; i<num_primary_nodes; ++i) {
-    primary_nodes[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_GLOBAL_GHOSTING);
+    primary_nodes[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_GLOBAL_GHOSTING);
   }
       
   int num_primary_faces = primary_topology->Number_of_Faces();
-  ContactFace** primary_faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** primary_faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<num_primary_faces; ++i) {
-    primary_faces[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_GLOBAL_GHOSTING);
+    primary_faces[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_GLOBAL_GHOSTING);
   }
   
   int num_primary_elems = primary_topology->Number_of_Elements();
   ContactElement** primary_elems = 
     reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
   for (int i=0; i<num_primary_elems; ++i) {
-    primary_elems[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_GLOBAL_GHOSTING);
+    primary_elems[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_GLOBAL_GHOSTING);
   }
 }
 
@@ -1966,24 +1966,24 @@ void
 ContactSearch::SetContextForTrackSearchGhosting()
 { 
   int num_primary_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** primary_nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** primary_nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (int i=0; i<num_primary_nodes; ++i) {
-    primary_nodes[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_TRACK_GHOSTING);
+    primary_nodes[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_TRACK_GHOSTING);
   }
       
   int num_primary_faces = primary_topology->Number_of_Faces();
-  ContactFace** primary_faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** primary_faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<num_primary_faces; ++i) {
-    primary_faces[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_TRACK_GHOSTING);
+    primary_faces[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_TRACK_GHOSTING);
   }
   
   int num_primary_elems = primary_topology->Number_of_Elements();
   ContactElement** primary_elems = 
     reinterpret_cast<ContactElement**>(primary_topology->ElemList()->EntityList());
   for (int i=0; i<num_primary_elems; ++i) {
-    primary_elems[i]->ClearContextBit(ContactTopologyEntity::ACTIVE_FOR_TRACK_GHOSTING);
+    primary_elems[i]->ClearContextBit(ContactTopologyEntity<Real>::ACTIVE_FOR_TRACK_GHOSTING);
   }
 }
 

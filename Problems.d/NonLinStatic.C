@@ -20,9 +20,10 @@ NonLinStatic::NonLinStatic(Domain *d)
   kelArray = 0;
   allCorot = 0;
   bcx = 0;
-  solver = solver;
+  solver = 0;
   prec = 0;
   times = 0;
+  reactions = 0;
 
   if(domain->GetnContactSurfacePairs())
      domain->InitializeStaticContactSearch(MortarHandler::CTC);
@@ -32,6 +33,7 @@ NonLinStatic::~NonLinStatic()
 {
   clean();
   if(times) delete times;
+  if(reactions) delete reactions;
 }
 
 int
@@ -90,8 +92,9 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     elementInternalForce.resize(domain->maxNumDOF());
   }
 
+  reactions->zero();
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState);
+                           kelArray, residual, lambda, 0, refState, reactions);
 
   times->buildStiffAndForce += getTime();
 
@@ -147,11 +150,13 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
  int converged = 0;
 
  // Check relative convergence criteria
- if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
+ if(iter > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
+    || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
    converged = 1;
 
  // Check Divergence
- if(normRes > 10000*firstRes) converged = -1;
+ else if(iter > 0 && normRes > 10000*firstRes)
+   converged = -1;
 
  // Store residual norm and dv norm for output
  times->norms[iter].normDv      = normDv;
@@ -274,10 +279,14 @@ NonLinStatic::preProcess(bool factor)
 
  times->makeBCs -= getTime();
  int *bc = (int *) dbg_alloca(sizeof(int)*numdof);
- bcx = new double[numdof];
+ if(!bcx) bcx = new double[numdof];
 
  // Make the boundary conditions info
  domain->make_bc(bc, bcx);
+ if(!reactions) { 
+   reactions = new Vector(domain->nDirichlet()); 
+   reactions->zero();
+ }
 
  times->makeBCs += getTime();
 
@@ -303,7 +312,7 @@ NonLinStatic::preProcess(bool factor)
                                                                        // of the number of rigid body modes
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
-                          (FullSquareMatrix *) NULL, factor);
+                          (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);
  times->timeBuild += getTime();
  buildMem += memoryUsed();
 
@@ -364,9 +373,10 @@ NonLinStatic::staticOutput(GeomState *geomState, double lambda, Vector& force,
 {
   times->output -= getTime();
   Vector dummyForce(domain->numUncon(), 0.0);
-  int step = std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
+  int step = (int)std::floor(lambda/domain->solInfo().getNLInfo().dlambda+0.5);
   domain->postProcessing(geomState, force, dummyForce, lambda, step, 0, 0, allCorot,
-                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState);
+                         (FullSquareMatrix *) 0, (double *) 0, (double *) 0, refState,
+                         reactions);
   times->output += getTime();
 }
 
@@ -415,12 +425,7 @@ NonLinStatic::getEnergy(double lambda, Vector& force, GeomState* geomState)
 double
 NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
 {
-  CoordinateMap *m = dynamic_cast<CoordinateMap *>(solver);
-  if(m) return m->norm(rhs);
-  else {
-    Vector res(rhs);
-    domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
-    return res.norm();
-  }
-
+  Vector res(rhs);
+  domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
+  return solver->getResidualNorm(res);
 }

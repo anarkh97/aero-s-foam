@@ -132,3 +132,4 @@ DualMortarQuad4::GetShapeFctVal(double* Shape, double* m)
 { 
    GetDualMortarShapeFct(Shape, m); 
 }
+

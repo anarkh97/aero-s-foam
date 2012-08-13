@@ -98,6 +98,13 @@ MDNLDynamic::subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState
 }
 
 void
+MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
+                                bool zeroRot)
+{
+  geomState->get_inc_displacement(du, *refState, zeroRot); 
+}
+
+void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
                                   DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
@@ -136,7 +143,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
   }
 
   times->correctorTime += getTime();
-  return getResidualNorm(rhs);
+  return rhs.norm();
 }
 
 void
@@ -153,10 +160,11 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineDispLast = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
 
       // get user defined motion
-      userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel);
-      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel);
+      userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel, userDefineAcc);
+      userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel, userDefineAcc);
 
       // update state
       execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
@@ -169,7 +177,7 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       if(Kuc) 
         execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subKucTransposeMultSubtractClaw, residual, userDefineDisp);
 
-      delete [] userDefineDisp; delete [] userDefineDispLast; delete [] userDefineVel;
+      delete [] userDefineDisp; delete [] userDefineDispLast; delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 
@@ -225,7 +233,7 @@ MDNLDynamic::computeTimeInfo()
   double remainder = totalTime - maxStep*dt0;
   if(std::abs(remainder)>0.01*dt0){
     domain->solInfo().tmax = totalTime = maxStep*dt0;
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 
   // XXXX
@@ -252,12 +260,51 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   kelArray = 0;
   melArray = 0;
   celArray = 0;
+  times = 0;
+  solver = 0;
+  allOps =0;
+  M = 0;
+  C = 0;
+  Kuc = 0;
+  Muc = 0;
+  Cuc = 0;
+  Mcc = 0;
+  Ccc = 0;
+  allCorot = 0;
+  localTemp = 0;
+  reactions = 0;
+#ifdef DEBUG_REACTIONS
+  std::ofstream rout("reactions"); 
+#endif
 }
 
 MDNLDynamic::~MDNLDynamic()
 {
   if(mu) delete [] mu;
   if(lambda) delete [] lambda;
+  if(times) delete times;
+  if(solver) delete solver;
+  if(allOps) delete allOps;
+  if(M) delete M;
+  if(C) delete C;
+  if(Kuc) delete Kuc;
+  if(Muc) delete Muc;
+  if(Cuc) delete Cuc;
+  if(Mcc) delete Mcc;
+  if(Ccc) delete Ccc;
+  if(localTemp) delete localTemp;
+  if(allCorot) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubCorotators);
+    delete [] allCorot;
+  }
+  if(kelArray || melArray || celArray) {
+    execParal(decDomain->getNumSub(), this, &MDNLDynamic::deleteSubElementArrays);
+    if(kelArray) delete [] kelArray;
+    if(melArray) delete [] melArray;
+    if(celArray) delete [] celArray;
+  }
+  if(decDomain) delete decDomain;
+  if(reactions) delete reactions;
 }
 
 int
@@ -281,9 +328,13 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
   int converged = 0;
   // Check for convergence
-  if(normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) converged = 1;
+  if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
+    converged = 1;
+
   // Check for divergence
-  else if(normRes >= 1.0e10 * firstRes && normRes > secondRes) converged = -1;
+  else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes)) 
+    converged = -1;
 
 //#ifdef PRINT_RESIDUALS
   double relEng = normEnergy/firstEng;
@@ -320,9 +371,10 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     if(claw->numUserDisp > 0) {
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
       execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
-      delete [] userDefineDisp; delete [] userDefineVel;
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 
@@ -407,21 +459,32 @@ MDNLDynamic::copyGeomState(DistrGeomState* geomState)
 }
 
 void
-MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta)
+MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta, double t)
 {
  times->rebuild -= getTime();
 
- if(iteration % domain->solInfo().getNLInfo().updateK == 0) {
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime)) {
    times->norms[numSystems].rebuildTang = 1;
+
+   double Kcoef, Ccoef, Mcoef;
+   if(t == domain->solInfo().initialTime) {
+     Kcoef = 0;
+     Ccoef = 0;
+     Mcoef = 1;
+   }
+   else {
+     double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+     getNewmarkParameters(beta, gamma, alphaf, alpham);
+     Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
+     Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
+     Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
+   }
    GenMDDynamMat<double> ops;
    ops.sysSolver = solver;
    ops.Kuc = Kuc;
-   double beta, gamma, alphaf, alpham, dt = 2*localDelta;
-   getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
-   double Ccoef = (domain->solInfo().order == 1) ? 0.0 : dt*gamma;
-   double Mcoef = (domain->solInfo().order == 1) ? 1 : (1-alpham)/(1-alphaf);
-   decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray);
+   decDomain->rebuildOps(ops, Mcoef, Ccoef, Kcoef, kelArray, melArray, celArray);
+   Kcoef_p = Kcoef;
+
  } else
    times->norms[numSystems].rebuildTang = 0;
 
@@ -463,7 +526,12 @@ MDNLDynamic::preProcess()
   // Allocate each subdomain's array of mass matrices
   melArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
-  if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) celArray = new FullSquareMatrix*[decDomain->getNumSub()];
+  // Allocate each subdomain's array of damping matrices
+  if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0 || domain->getElementSet().hasDamping()) 
+    celArray = new FullSquareMatrix*[decDomain->getNumSub()];
+
+  // Allocate vector to store reaction forces
+  if(!reactions) reactions = new DistrVector(*decDomain->pbcVectorInfo());
 
   // Now make those arrays
   execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
@@ -476,27 +544,20 @@ MDNLDynamic::preProcess()
   double Kcoef = 0.0;
   double Mcoef = 1.0;
   double Ccoef = 0.0;
-  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, factorWhenBuilding());
+  decDomain->buildOps(*allOps, Mcoef, Ccoef, Kcoef, (Rbm **)NULL, kelArray, true, melArray, celArray, factorWhenBuilding());
   solver = (ParallelSolver *) allOps->dynMat;
   M = allOps->M;
-  C = (domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0) ? allOps->C : 0;
+  C = allOps->C;
   Kuc = allOps->Kuc;
+  Muc = allOps->Muc;
+  Cuc = allOps->Cuc;
+  Mcc = allOps->Mcc;
+  Ccc = allOps->Ccc;
+  if(allOps->K) delete allOps->K;
   times->getFetiSolverTime += getTime();
 
   times->memoryPreProcess -= threadManager->memoryUsed();
 
-/*
-  // Allocate each subdomain's array of stiffness matrices
-  kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  // Allocate each subdomain's array of mass matrices
-  melArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  if(C) celArray = new FullSquareMatrix*[decDomain->getNumSub()];
-
-  // Now make those arrays
-  execParal(decDomain->getNumSub(), this, &MDNLDynamic::makeSubElementArrays);
-*/
   // Look if there is a user supplied routine for control
   claw = geoSource->getControlLaw();
 
@@ -535,11 +596,32 @@ MDNLDynamic::makeSubCorotators(int isub)
 }
 
 void
+MDNLDynamic::deleteSubCorotators(int isub)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  if(allCorot[isub]) {
+    for (int iElem = 0; iElem < sd->numElements(); ++iElem) {
+      if(allCorot[isub][iElem] && (allCorot[isub][iElem] != dynamic_cast<Corotator*>(sd->getElementSet()[iElem])))
+        delete allCorot[isub][iElem];
+    }
+    delete [] allCorot[isub];
+  }
+}
+
+void
 MDNLDynamic::makeSubElementArrays(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   if(celArray) sd->createKelArray(kelArray[isub], melArray[isub], celArray[isub]); 
   else sd->createKelArray(kelArray[isub], melArray[isub]);
+}
+
+void
+MDNLDynamic::deleteSubElementArrays(int isub)
+{
+  if(kelArray && kelArray[isub]) delete [] kelArray[isub];
+  if(melArray && melArray[isub]) delete [] melArray[isub];
+  if(celArray && celArray[isub]) delete [] celArray[isub];
 }
 
 void
@@ -561,7 +643,7 @@ MDNLDynamic::makeSubClawDofs(int isub)
 void
 MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
                               int tIndex, double t, DistrGeomState* geomState,
-                              DistrVector& elementInternalForce, DistrVector& aero_f)
+                              DistrVector& elementInternalForce, DistrVector& aero_f, double localDelta)
 {
   times->formRhs -= getTime();
 
@@ -571,8 +653,13 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
   }
 
-  execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
-              f, constantForce, t);
+  double beta, gamma, alphaf, alpham;
+  getNewmarkParameters(beta, gamma, alphaf, alpham);
+  double dt = 2*localDelta;
+  double t0 = domain->solInfo().initialTime;
+  double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
+  execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
+              f, constantForce, t, tm);
 
   // add the USDF forces
   if(claw && userSupFunc) {
@@ -587,9 +674,6 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   // AERO
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0) {
-
-    double gamma = sinfo.newmarkGamma;
-    double alphaf = sinfo.newmarkAlphaF;
 
     aeroForce->zero();
     int iscollocated;
@@ -649,14 +733,15 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 }
 
 void
-MDNLDynamic::subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time)
+MDNLDynamic::subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm)
 {
   StackVector localf(f.subData(isub), f.subLen(isub));
   StackVector localg(constantForce.subData(isub), constantForce.subLen(isub));
 
   SubDomain *sd = decDomain->getSubDomain(isub);
 
-  sd->computeExtForce4(localf, localg, time);
+  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0;
+  sd->computeExtForce4(localf, localg, tf, (*Kuc)[isub], userSupFunc, localCuc, tm, (*Muc)[isub]);
 }
 
 void
@@ -721,6 +806,8 @@ MDNLDynamic::printTimers(double timeLoop)
   execParal(decDomain->getNumSub(), mdpp,
            &MultiDomainPostProcessor::getMemoryK, memory);
 
+  delete mdpp;
+
   long totMemK = 0;
   for(i=0; i<decDomain->getNumSub(); ++i)
     totMemK += memory[i];
@@ -756,15 +843,17 @@ MDNLDynamic::printTimers(double timeLoop)
 
 void
 MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVector &vel_p, 
-                         double time, int index, DistrVector &ext_force, DistrVector &aeroF, DistrVector &acc_n)
+                         double time, int index, DistrVector &ext_force, DistrVector &aeroF, DistrVector &acc_n,
+                         DistrGeomState *refState)
 {
   if(claw && claw->numUserDisp) {
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
-    userSupFunc->usd_disp(time,userDefineDisp,userDefineVel);
+    double *userDefineAcc  = new double[claw->numUserDisp];
+    userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
     execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, *geomState, userDefineDisp);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
-    delete [] userDefineDisp; delete [] userDefineVel;
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, true);
+    delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
   if(domain->solInfo().nRestart > 0) {
@@ -783,8 +872,12 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
 #endif
   }
 
+  if(domain->reactionsReqd(time, index+1)) {
+    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetReactionForce, *geomState, *refState, vel_n, acc_n, time);
+  }
+
   SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF);
+  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF, refState, reactions);
 }
 
 void
@@ -792,11 +885,41 @@ MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &v
 {
   SubDomain *sd = decDomain->getSubDomain(i);
   StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
-  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
   sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
   delete [] ext;
+}
+
+void
+MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomState &refState, DistrVector &vel_n, 
+                                 DistrVector &acc_n, double &time)
+{
+  SubDomain *sd = decDomain->getSubDomain(i);
+  StackVector ri(reactions->subData(i), reactions->subLen(i));
+  StackVector velocity(vel_n.subData(i), vel_n.subLen(i));
+  StackVector acceleration(acc_n.subData(i), acc_n.subLen(i));
+  SparseMatrix *Cuci = (Cuc) ? (*Cuc)[i] : 0;
+  SparseMatrix *Ccci = (Ccc) ? (*Ccc)[i] : 0;
+  sd->computeReactionForce(ri, geomState[i], allCorot[i], kelArray[i], time, refState[i], velocity,
+                           acceleration, sd->getVcx(), sd->getAcx(), Cuci, Ccci, (*Muc)[i], (*Mcc)[i]);
+ 
+  // TODO: the lagrange multipliers should probably be extrapolated to t^{n+1}
+  //       check if the equality constraint forces are incremental
+  sd->addCConstraintForces(mu[i], lambda[i], ri, 1/Kcoef_p);
+#ifdef DEBUG_REACTIONS
+  double rx=0,ry=0,rz=0;
+  for(int j=0; j<reactions->subLen(i)/3; ++j) {
+    rx += ri[3*j+0];
+    ry += ri[3*j+1];
+    rz += ri[3*j+2];
+  }
+  std::ofstream rout; rout.open("reactions",  ofstream::app);
+  if(i == 0) rout << time << " ";
+  rout << rx << " " << ry << " " << rz << " ";
+  if(i == decDomain->getNumSub()-1) rout << std::endl;
+#endif
 }
 
 void
@@ -861,28 +984,23 @@ MDNLDynamic::sysVecInfo()
 }
 
 double
-MDNLDynamic::getResidualNorm(DistrVector &r)
+MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
  DistrVector w(r);
  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
-                  // XXXX need to make sure lambda_i is correctly mapped to C_i. I think this is done
-                  // correctly only for the case of one contactsurfaces pair
  return sqrt(solver->getFNormSq(w));
 }
 
 bool
 MDNLDynamic::factorWhenBuilding() const {
-  return domain->solInfo().iacc_switch;
+  return false; //domain->solInfo().iacc_switch;
 }
 
 void
 MDNLDynamic::addConstraintForces(int isub, DistrVector& vec)
 {
-  // I need to treat the contact forces from CONTACTSURFACES separately due to search,
-  // the ith lagrange multiplier at iteration n may not correspond to the ith constraint
-  // after updating the contact surfaces
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
   sd->addConstraintForces(mu[isub], lambda[isub], localvec);  // C^T*lambda added to vec
@@ -1092,7 +1210,7 @@ MDNLDynamic::subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, Distr
   StackVector v_ni(v_n.subData(i), v_n.subLen(i));
   StackVector a_ni(a_n.subData(i), a_n.subLen(i));
   StackVector v_pi(v_p.subData(i), v_p.subLen(i));
-  int extlen = std::log10((double) sd->subNum()+1) + 1;
+  int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
   sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *(geomState[i]), ext);

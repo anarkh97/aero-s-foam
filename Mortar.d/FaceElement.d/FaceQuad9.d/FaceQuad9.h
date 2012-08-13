@@ -74,7 +74,6 @@ class FaceQuad9: public FaceElement {
 	void   GetShapeFct(double*, double*);
 	void   GetdShapeFct(double *dShapex, double *dShapey, double *m); 
         double GetShapeFctAndJacobian(double *, double *, CoordSet&);
-        double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&);
         void   ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs);
 	// -> implementation of virtual fcts
         double* ViewRefCoords();
@@ -83,6 +82,8 @@ class FaceQuad9: public FaceElement {
         void   LocalToGlobalCoord(double*, double*, CoordSet&);
         void   GetShapeFctVal(double*, double*);
 	double GetJacobian(double*, CoordSet&);
+        double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet&);
+        void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&);
 
 	// Miscelleaneous methods
         // ~~~~~~~~~~~~~~~~~~~~~~

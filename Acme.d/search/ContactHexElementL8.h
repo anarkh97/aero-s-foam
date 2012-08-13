@@ -23,33 +23,34 @@
 
 #include "ContactElement.h"
 
-class ContactNode;
-class ContactEdge;
-class ContactFace;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
+template<typename DataType> class ContactFace;
 class ContactFixedSizeAllocator;
 
 
-class ContactHexElemL8 : public ContactElem {
+template<typename DataType>
+class ContactHexElemL8 : public ContactElem<DataType> {
 
  public:
   ContactHexElemL8(int blk_indx=-1, int indx_in_block=-1, int key=-1);
-  static ContactHexElemL8* new_ContactHexElemL8(ContactFixedSizeAllocator&,
+  static ContactHexElemL8<DataType>* new_ContactHexElemL8(ContactFixedSizeAllocator&,
                     int blk_indx=-1, int indx_in_block=-1, int key=-1);
   ~ContactHexElemL8();
   void BuildTopology(int, int, int, ContactFixedSizeAllocator*);
   void DeleteTopology(ContactFixedSizeAllocator*);
-  void UpdateTopology(ContactFace*, VariableHandle, VariableHandle,
+  void UpdateTopology(ContactFace<DataType>*, VariableHandle, VariableHandle,
                       VariableHandle, Real, bool use_node_normals=false);
   int Nodes_Per_Element() { return 8; };
   int Edges_Per_Element() { return 12; };
   int Faces_Per_Element() { return 6; };
-  void Evaluate_Shape_Functions( Real*, Real* );
-  void Compute_Local_Coordinates( Real, VariableHandle, VariableHandle,
-				  VariableHandle, Real*, Real* );
-  void Compute_Local_Coordinates( VariableHandle, Real*, Real* );
-  void Compute_Global_Coordinates( VariableHandle, Real*, Real* );
-  bool Is_Local_Coordinates_Inside_Element( Real* );
-  bool Is_Local_Coordinates_Near_Element( Real*, Real );
+  void Evaluate_Shape_Functions( DataType*, DataType* );
+  void Compute_Local_Coordinates( DataType, VariableHandle, VariableHandle,
+				  VariableHandle, DataType*, DataType* );
+  void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
+  void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* );
+  bool Is_Local_Coordinates_Inside_Element( DataType* );
+  bool Is_Local_Coordinates_Near_Element( DataType*, DataType );
   ContactSearch::ContactNode_Type Node_Type() 
     {return ContactSearch::NODE;};
   ContactSearch::ContactEdge_Type Edge_Type() 
@@ -57,39 +58,43 @@ class ContactHexElemL8 : public ContactElem {
   ContactSearch::ContactFace_Type Face_Type(int i) 
     {return faces[i]->FaceType();};
                       
-  static void Compute_Shape_Functions( Real local_coords[3], 
-                                       Real Shape_Funcs[8] );
+  static void Compute_Shape_Functions( DataType local_coords[3], 
+                                       DataType Shape_Funcs[8] );
   
-  static void Compute_Shape_Derivatives( Real local_coords[3],
-                                         Real shape_derivatives[3][8] );
+  static void Compute_Shape_Derivatives( DataType local_coords[3],
+                                         DataType shape_derivatives[3][8] );
   
-  static void Compute_Local_Coords( Real node_positions[8][3],
-				    Real global_coords[3],
-				    Real local_coords[3] );
+  static void Compute_Local_Coords( DataType node_positions[8][3],
+				    DataType global_coords[3],
+				    DataType local_coords[3] );
   
-  static void Compute_Global_Coords( Real node_positions[8][3],
-				     Real local_coords[3],
-				     Real global_coords[3] );
+  static void Compute_Global_Coords( DataType node_positions[8][3],
+				     DataType local_coords[3],
+				     DataType global_coords[3] );
 
-  static void Interpolate_Scalar( Real  local_coords[3],
-				  Real  node_scalars[8],
-				  Real& interpolated_scalar );
+  static void Interpolate_Scalar( DataType  local_coords[3],
+				  DataType  node_scalars[8],
+				  DataType& interpolated_scalar );
 
-  static void Interpolate_Vector( Real local_coords[3],
-				  Real node_vectors[8][3],
-				  Real interpolated_vector[3] );
+  static void Interpolate_Vector( DataType local_coords[3],
+				  DataType node_vectors[8][3],
+				  DataType interpolated_vector[3] );
 
-  inline ContactNode **Nodes() {return nodes;};
-  inline ContactEdge **Edges() {return edges;};
-  inline ContactFace **Faces() {return faces;};
+  inline ContactNode<DataType> **Nodes() {return nodes;};
+  inline ContactEdge<DataType> **Edges() {return edges;};
+  inline ContactFace<DataType> **Faces() {return faces;};
   inline int *Node_Ids() {return node_ids;};
   inline int *Edge_Ids() {return edge_ids;};
   inline int *Face_Ids() {return face_ids;};
 
+  using ContactElem<DataType>::Node;
+  using ContactElem<DataType>::Edge;
+  using ContactElem<DataType>::Face;
+
  private:
-  ContactNode* nodes[8];
-  ContactEdge* edges[12];
-  ContactFace* faces[6];
+  ContactNode<DataType>* nodes[8];
+  ContactEdge<DataType>* edges[12];
+  ContactFace<DataType>* faces[6];
   int node_ids[16];
   int edge_ids[24];
   int face_ids[12];
@@ -139,11 +144,11 @@ class ContactCartesianHexElementL8 : public ContactElement {
 				  Real  node_scalars[8],
 				  Real& interpolated_scalar );
 
-  inline ContactNode** Nodes() {return nodes;};
+  inline ContactNode<Real>** Nodes() {return nodes;};
   inline connection_data* NodeInfo() {return Node_Info;};
 
  private:
-  ContactNode* nodes[8];
+  ContactNode<Real>* nodes[8];
   connection_data Node_Info[16];
 
 };
@@ -195,11 +200,11 @@ class ContactHexElementL8 : public ContactElement {
 				  Real  node_scalars[8],
 				  Real& interpolated_scalar );
 
-  inline ContactNode** Nodes() {return nodes;};
+  inline ContactNode<Real>** Nodes() {return nodes;};
   inline connection_data* NodeInfo() {return Node_Info;};
 
  private:
-  ContactNode* nodes[8];
+  ContactNode<Real>* nodes[8];
   connection_data Node_Info[8];
 
 };

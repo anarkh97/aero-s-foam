@@ -1,7 +1,8 @@
-#include <Element.d/Joint.d/PointLineDistanceConstraint.h>
+#ifdef USE_EIGEN3
+#include <Element.d/MpcElement.d/PointLineDistanceConstraint.h>
 
 PointLineDistanceConstraint::PointLineDistanceConstraint(int* _nn)
- : MpcElement(1, DofSet::XYZdisp, _nn)
+ : ConstraintFunctionElement<PointLineDistanceConstraintFunction>(1, DofSet::XYZdisp, _nn, 0) 
 {
 }
 
@@ -14,9 +15,26 @@ PointLineDistanceConstraint::setFrame(EFrame *elemframe)
   }
 }
 
+void
+PointLineDistanceConstraint::getConstants(CoordSet& cs, Eigen::Array<double,14,1>& sconst, Eigen::Array<int,1,1>& iconst)
+{
+  // note: StructProps::relop = -1 --> f(x) <= 0
+  //                          = 0  --> f(x) = 0
+  //                          = +1 --> f(x) >= 0 in this case ConstraintFunction::operator() returns -f(x)
+  //                                             and we enforce -f(x) <= 0
+  this->type = (prop) ? int(prop->relop != 0) : 0;
+
+  sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z, x1[0], x1[1], x1[2], x2[0], x2[1], x2[2],
+            (prop) ? prop->amplitude : 0, (prop) ? prop->omega : 0, (prop) ? prop->phase : 0,
+            (prop) ? prop->B : 1, (prop) ? prop->C : 0;
+  iconst << ((prop) ? int(prop->relop == 1) : 0);
+}
+
+/*
 void 
 PointLineDistanceConstraint::buildFrame(CoordSet& cs)
 {
+  using std::sqrt;
   Node &nd = cs.getNode(nn[0]);
   double x0[3] = { nd.x, nd.y, nd.z };
 
@@ -41,15 +59,10 @@ PointLineDistanceConstraint::buildFrame(CoordSet& cs)
   rhs.r_value = 0;
 }
 
-int 
-PointLineDistanceConstraint::getTopNumber() 
-{ 
-  return 506; 
-}
-
 void 
 PointLineDistanceConstraint::update(GeomState& gState, CoordSet& cs, double)
 {
+  using std::sqrt;
   // node's current coordinates
   NodeState &nd = gState[nn[0]];
   double x0[3] = { nd.x, nd.y, nd.z };
@@ -78,8 +91,9 @@ PointLineDistanceConstraint::update(GeomState& gState, CoordSet& cs, double)
 }
 
 void
-PointLineDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+PointLineDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H, double)
 {
+  using std::sqrt;
   // node's current coordinates
   NodeState &nd = gState[nn[0]];
   double x0[3] = { nd.x, nd.y, nd.z };
@@ -127,4 +141,5 @@ PointLineDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSqu
   H[0][2] = H[2][0] = (n2*dxz - dx*dz)/(denominator*n3);
   H[1][2] = H[2][1] = (n2*dyz - dy*dz)/(denominator*n3);
 }
-
+*/
+#endif

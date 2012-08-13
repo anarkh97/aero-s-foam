@@ -1302,6 +1302,7 @@ Domain::prepDirectMPC()
       }
     }
   }
+  //printLMPC();
   if(nRigid > 0) {
     //std::cerr << "found " << nRigid << " rigid beam/shell/solid6 elements in the element set\n";
     std::set<int> blockedNodes;
@@ -2254,6 +2255,27 @@ void Domain::SetUpSurfaces(CoordSet* cs)
   if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
 #endif
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
+
+    // For acme shells it is necessary to include both sides of the element in the face block
+    // currently we only use acme shells when we are using the tdenforcement module of acme
+    // to compute the contact forces. In other cases we don't use acme shells since acme doesn't
+    // support the extraction of interactions for shells
+    if(SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag()) {
+      int nFaceElems = SurfEntities[iSurf]->GetnFaceElems();
+      for(int i = 0; i < nFaceElems; ++i) {
+        int etype = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetFaceElemType();
+        if(etype != 1 && etype != 3) {
+          cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
+          exit(-1);
+        }
+        int nNodes = SurfEntities[iSurf]->GetFaceElemSet()[i]->nNodes();
+        int *nodes = new int[nNodes];
+        for(int j=0; j<nNodes; ++j) nodes[nNodes-1-j] = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetNode(j);
+        SurfEntities[iSurf]->AddFaceElement(nFaceElems+i, etype, nNodes, nodes);
+        delete [] nodes;
+      }
+    }
+
 #ifdef MORTAR_DEBUG
     //filePrint(stderr," ------------------------------------------------------------------------\n");
     //filePrint(stderr,"  average normal of face element of surface %2d BEFORE local renumbering\n",SurfEntities[iSurf]->ID());
@@ -2288,12 +2310,12 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
-    CurrentMortarCond->build_search(numSub, sd);
+    CurrentMortarCond->build_search(true, numSub, sd);
     CurrentMortarCond->build_td_enforcement();
     CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
     CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
     CurrentMortarCond->set_search_options();
-    if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+    if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
     else CurrentMortarCond->set_node_constraints(numSub, sd);
   }
 }
@@ -2366,12 +2388,12 @@ void Domain::AddContactForces(double dt, DistrVector &f)
   }
 }
 
-void Domain::MakeNodalMass(SparseMatrix *M)
+void Domain::MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      CurrentMortarCond->make_nodal_mass(M, c_dsa);
+      CurrentMortarCond->make_nodal_mass(M, c_dsa, Mcc);
       CurrentMortarCond->make_kinematic_partitioning(packedEset, nodeToElem);
     }
   }
@@ -2397,12 +2419,14 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
       CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
-      CurrentMortarCond->build_search(numSub, sd);
+      CurrentMortarCond->SetMortarScaling(sinfo.mortar_scaling);
+      CurrentMortarCond->SetMortarIntegrationRule(sinfo.mortar_integration_rule);
+      CurrentMortarCond->build_search(false, numSub, sd);
       CurrentMortarCond->set_search_data(4); // interaction_type = 4 (FaceFace) 
       CurrentMortarCond->set_node_configuration(1);
       CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
       CurrentMortarCond->set_search_options();
-      if(numSub == 0) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
+      if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
       else {
         CurrentMortarCond->set_node_constraints(numSub, sd);
         CurrentMortarCond->make_share(numSub, sd);
@@ -2454,10 +2478,16 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
-      CurrentMortarCond->CreateFFIPolygon();
+#if (MAX_MORTAR_DERIVATIVES > 0)
+      if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag())
+        CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
+      else
+#endif
+      CurrentMortarCond->CreateFFIPolygon<double>();
       CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
       num_interactions += CurrentMortarCond->GetnFFI();
+      CurrentMortarCond->DeleteFFIData();
     }
   }
   if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
@@ -2502,7 +2532,12 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
     filePrint(stderr," -> time spent in the ACME search: %e s\n",time/1000);
     time = -getTime();
 #endif
-    CurrentMortarCond->CreateFFIPolygon();
+#if (MAX_MORTAR_DERIVATIVES > 0)
+    if(CurrentMortarCond->GetInteractionType()==MortarHandler::CTC && !tdenforceFlag())
+      CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
+    else
+#endif
+    CurrentMortarCond->CreateFFIPolygon<double>();
 #ifdef MORTAR_TIMINGS
     time += getTime();
     filePrint(stderr," -> time spent in building the Mortar B matrices: %e s\n",time/1000);
@@ -2666,10 +2701,6 @@ void Domain::WriteToFileMortarLMPCs(FILE *file)
 int
 Domain::pressureFlag() { return geoSource->pressureFlag(); }
 
-// returns the value of the preload force flag
-int
-Domain::preloadFlag() { return geoSource->preloadFlag(); }
-
 // function that returns composite layer info
 LayInfo *Domain::getLayerInfo(int num) { return geoSource->getLayerInfo(num); }
 
@@ -2708,6 +2739,7 @@ Domain::initialize()
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
+ g_dsa = 0;
 }
 
 Domain::~Domain()
@@ -2780,6 +2812,9 @@ Domain::~Domain()
  if(nodeTable) delete [] nodeTable;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
  if(p) delete p;
+ for(int i=0; i<contactSurfElems.size(); ++i)
+   packedEset.deleteElem(contactSurfElems[i]);
+ if(g_dsa) delete g_dsa;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -3110,40 +3145,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
         }
       }
     }
-/* moved to GeoSource::checkLMPCs
-    if(domain->solInfo().dbccheck) {
-      if(verboseFlag) filePrint(stderr," ... Checking for MPCs involving constrained DOFs ...\n");
-      for(int i=0; i < numLMPC; ++i) {
-        for(int j=0; j < lmpc[i]->nterms; ++j) {
-          int mpc_node = lmpc[i]->terms[j].nnum;
-          int mpc_dof = lmpc[i]->terms[j].dofnum;
-          for(int k=0; k<numDirichlet; ++k) {
-            int dbc_node = dbc[k].nnum;
-            int dbc_dof = dbc[k].dofnum;
-            if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
-              if(!lmpc[i]->isComplex) {
-                lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * dbc[k].val;
-              }
-              else {
-                lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * dbc[k].val;
-              }
-            }
-          }
-          for(int k=0; k<numComplexDirichlet; ++k) {
-            int cdbc_node = cdbc[k].nnum;
-            int cdbc_dof = cdbc[k].dofnum;
-            if((cdbc_node == mpc_node) && (cdbc_dof == mpc_dof)) {
-              if(!lmpc[i]->isComplex)
-                lmpc[i]->rhs.r_value -= lmpc[i]->terms[j].coef.r_value * cdbc[k].reval;
-              else
-                lmpc[i]->rhs.c_value -= lmpc[i]->terms[j].coef.c_value * DComplex(cdbc[k].reval, cdbc[k].imval);
-            }
-          }
-         // note: could also eliminate the term from the mpc to simplify further
-        }
-      }
-    }
-*/
   }
 }
 
@@ -3565,24 +3566,15 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 void
 Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  // first store the lagrange multipliers
-  std::map<std::pair<int,int>,double> mu; 
-  std::map<std::pair<int,int>,double>::iterator it;
+  // copy the lagrange multipliers from geomState
+  std::vector<double> mu;
   if(sinfo.lagrangeMult) {
-    for(std::vector<int>::iterator i = contactSurfElems.begin(); i != contactSurfElems.end(); ++i) {
-      if(packedEset[*i]->numInternalNodes() == 1) {
-        int in = (*elemToNode)[*i][packedEset[*i]->numNodes()-1];
-        LMPCons *lmpc = dynamic_cast<LMPCons*>(packedEset[*i]);
-        mu[lmpc->id] = (*geomState)[in].x;
+    for(int i = 0; i < numLMPC; ++i) {
+      if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+        mu.push_back(geomState->getMultiplier(lmpc[i]->id));
       }
     }
-    // count the number of contact surface lmpcs with lagrange multipliers
-    int count3 = 0;
-    for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->getSource() == mpc::ContactSurfaces) count3++;
-    }
-
-    geomState->resizeNodeState(count3-contactSurfElems.size()); // resizing the node state vector allows the lagrange multipliers to be stored
+    geomState->clearMultiplierNodes();
   }
 
   if(!p) p = new StructProp(); 
@@ -3590,10 +3582,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   p->penalty = sinfo.penalty;
   p->type = StructProp::Constraint;
   int count = 0;
-  int nEle = packedEset.size();
+  int nEle = packedEset.last();
   int count1 = 0;
-  int lastNode = geomState->numNodes();
-  if(sinfo.lagrangeMult) lastNode -= contactSurfElems.size();
+  int nNode = geomState->numNodes();
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
@@ -3601,13 +3592,10 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         packedEset[contactSurfElems[count]]->setProp(p);
-        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+          int in[1] = { nNode++ };
           packedEset[contactSurfElems[count]]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         count1++;
       }
@@ -3616,12 +3604,9 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
         packedEset[nEle]->setProp(p);
         if(packedEset[nEle]->numInternalNodes() == 1) {
-          int in[1] = { lastNode++ };
+          int in[1] = { nNode++ };
           packedEset[nEle]->setInternalNodes(in);
-          if((it = mu.find(lmpc[i]->id)) != mu.end())
-            (*geomState)[in[0]].x = it->second;
-          else
-            (*geomState)[in[0]].x = 0;
+          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -3639,6 +3624,6 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   packedEset.setEmax(nEle-count2); // because element set is packed
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
   numele = packedEset.last(); 
-  numnodes = lastNode;
+  numnodes = geomState->numNodes();
 }
 

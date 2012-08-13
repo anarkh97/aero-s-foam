@@ -45,6 +45,7 @@ public:
   void printState(const char* = "");
   void printRotation(const char* = "ModalGeomState.glR");
   void print(){}
+  void setVelocity(Vector&, Vector&, Vector&) {}
 
   friend class NLModalDescr;
 };

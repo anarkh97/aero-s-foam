@@ -26,7 +26,7 @@ public:
   class Updater;
 
   // Hooks in NLDynamSolver
-  virtual double getResidualNorm(const Vector &);
+  virtual double getResidualNorm(const Vector &, GeomState &, double);
   int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time); // relies on function hiding
 
 protected:

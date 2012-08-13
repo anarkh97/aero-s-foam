@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>
@@ -601,7 +602,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
  if(groups) delete [] groups;
  groups = new int[nGroups];  // groups represented on this processor
 #ifdef DISTRIBUTED
- if(this->sd) {
+ if(this->sd && this->nsub > 0) {
    groups[0] = (*subToGroup)[this->sd[0]->subNum()][0];
    int n = 1;
    for(int i = 1; i < this->nsub; ++i) {
@@ -674,7 +675,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
    int *zRowDim = new int[nGroups];
    int *zColDim = new int[nGroups];
    int *zColOffset = new int[nBodies];
-   int zColDim1 = (this->sd) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
+   int zColDim1 = (this->sd && this->nsub > 0) ? this->sd[0]->zColDim() : 0;  // (6 for 3D, 3 for 2D)
 #ifdef DISTRIBUTED
    zColDim1 = this->fetiCom->globalMax(zColDim1);  // enforce it to be the same
 #endif
@@ -847,6 +848,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
          this->times.memoryGtGDelete = 8*sky->size();
        } else
 #endif 
+       // TODO: pass grbms...
        sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, domain->solInfo().coarseScaled); 
        KccSparse = sky;
        KccSolver = sky;
@@ -870,6 +872,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      }
      break;
      case FetiInfo::sparse: {
+       int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
 #ifdef DISTRIBUTED
        if(this->subToSub->csize() == this->numCPUs && 
           this->fetiInfo->type != FetiInfo::nonlinear && 
@@ -879,8 +882,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
          this->times.memoryGtGDelete = 8*BLKMatrix->size();
        } else
 #endif
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs, 
-                                                  tolerance, domain->solInfo().sparse_renum); 
+       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs,
+                                                  tolerance, domain->solInfo().sparse_renum, sparse_ngrbms);
        BLKMatrix->zeroAll();
        KccSparse = BLKMatrix;
        KccSolver = BLKMatrix;
@@ -924,7 +927,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 
    if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
-   KccSolver->setPrintNullity(false);
+   KccSolver->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
    KccSolver->parallelFactor();
    stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
 
@@ -1016,7 +1019,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
 #ifdef DISTRIBUTED
   status_change1 = this->fetiCom->globalMax((int) status_change1);
 #endif
-  
+
   if(status_change1) {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::sendMpcStatus, mpcPat, flag);
     mpcPat->exchange();
@@ -1081,9 +1084,10 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
     else { // gradient projection step
       Scalar rp = r_k*p;
       Scalar pFp = p*Fp; 
+      //if(ScalarTypes::lessThan(pFp, 0)) throw std::runtime_error("FETI operator is not positive semidefinite");
       Scalar delta_f = nu*nu/2.0*pFp + nu*rp;
       if(this->fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
-        cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << endl;
+        cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << ", pFp = " << pFp << ", nu = " << nu << ", rp = " << rp << endl;
       if(ScalarTypes::lessThanEq(delta_f, 0)) break; // sequence is monotonic (note: check for gcr and gmres)
       else {
         if(i < this->fetiInfo->linesearch_maxit) { 
@@ -1091,8 +1095,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
           nu *= this->fetiInfo->linesearch_tau;
         }
         else {
-          if(this->myCPU == 0) cerr << " warning: linesearch did not converge\n";
-          exit(-1);
+          throw std::runtime_error("linesearch did not converge");
         }
       }
     }
@@ -1349,7 +1352,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  for(int iter = 0; true; ++iter) {
    // Arnoldi iteration (Algorithm see Saad SISC) 
-   for (int j=0; j<ReStep; j++, J++) {
+   for (int j=0; j<ReStep; j++, J++, ++iterTotal) {
 
      localSolveAndJump(z, dur, duc, Fp); // Fp = F*z
 
@@ -1581,7 +1584,7 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 
 // RT 05/08/2010: bug in the g++ compiler
   if(ff == 0.0) {
-     filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
+     //filePrint(stderr, " *** WARNING: norm of rhs = 0 \n");
      return 1.0;
   }
   else return ff;
@@ -2202,7 +2205,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
 
   if(GtGtilda == NULL) {
     GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
-    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag);
+    GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
   } else
   GtGtilda->zeroAll();
   execParal(nGroups1, this, &GenFetiDPSolver<Scalar>::assembleGtG);
@@ -2473,7 +2476,10 @@ template<class Scalar>
 int
 GenFetiDPSolver<Scalar>::numRBM()
 {
-  if(GtGtilda) return GtGtilda->numRBM();
+  bool useKccSolver = (this->glNumMpc == 0 && !geometricRbms);
+  if(GtGtilda && !useKccSolver) {
+    return GtGtilda->numRBM();
+  }
   else return (KccSolver) ? KccSolver->numRBM() : 0;
 }
 
@@ -2529,6 +2535,9 @@ GenFetiDPSolver<Scalar>::reconstruct()
     paralApplyToAll(this->nsub, this->sd, &BaseSub::zeroEdgeDofSize);
     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::makeQ);  // rebuild augmentation matrix
   }
+
+  geometricRbms = 0;
+  ngrbms = 0;
 }
 
 template<class Scalar>
@@ -2978,6 +2987,8 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
      buildCCt();
 */
    }
+   if(subsWithMpcs) { delete subsWithMpcs; subsWithMpcs = 0; }
+   if(mpcSubMap) { delete [] mpcSubMap; mpcSubMap = 0; }
  }
 
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::cleanMpcData);
@@ -3009,13 +3020,13 @@ GenFetiDPSolver<Scalar>::checkStoppingCriteria(int iter, double error, double ff
   }
  
   // 2. check for convergence
-  if(sqrt(error) < MAX(this->fetiInfo->tol*sqrt(ff), this->fetiInfo->absolute_tol)) {
+  if(sqrt(error) <= std::max(this->fetiInfo->tol*sqrt(ff), this->fetiInfo->absolute_tol)) {
     this->times.iterations[this->numSystems].stagnated = 0;
     return true;
   }
 
   // 3. check for stagnation
-  if(iter > 0 && (DABS(sqrt(error)-sqrt(lastError)) < MAX(this->fetiInfo->stagnation_tol*sqrt(lastError), this->fetiInfo->absolute_stagnation_tol))) {
+  if(iter > 0 && (std::fabs(sqrt(error)-sqrt(lastError)) < std::max(this->fetiInfo->stagnation_tol*sqrt(lastError), this->fetiInfo->absolute_stagnation_tol))) {
      this->times.iterations[this->numSystems].stagnated = 1;
      return true;
   }

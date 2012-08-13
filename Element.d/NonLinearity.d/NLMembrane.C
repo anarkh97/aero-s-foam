@@ -1,8 +1,9 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
-#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
-#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
+#include <Element.d/NonLinearity.d/2DMat.h>
 #include <Math.d/TTensor.h>
+#include <Corotational.d/utilities.h>
+#include <Corotational.d/GeomState.h>
 
 template <int n>
 void
@@ -279,32 +280,25 @@ TriMembraneShapeFunct::getGradU(Grad2D &gradU,
 }
 
 static TriMembraneShapeFunct shpFct;
-static StructProp nullProp;
 
-NLMembrane::NLMembrane(int *nd, bool isLinKin)
+NLMembrane::NLMembrane(int *nd)
+ : material(NULL)
 {
-  int i;
-  for(i = 0; i < 3; ++i)
+  for(int i = 0; i < 3; ++i)
     n[i] = nd[i];
-  linearKinematics = isLinKin;
-  material = 0;
 }
 
-void
-NLMembrane::setProp(StructProp *p)
+NLMembrane::~NLMembrane()
 {
-  material = new BilinPlasKinHardMat(p);
-  prop = p;
+  if(material && useDefaultMaterial) delete material;
 }
 
 int
 NLMembrane::getNumGaussPoints()
 {
   return 1;
+  //return 3;
 }
-
-extern LinearStrain linearStrain;
-extern GreenLagrangeStrain greenLagrangeStrain;
 
 void
 NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight)
@@ -314,6 +308,21 @@ NLMembrane::getGaussPointAndWeight(int n, double *point, double &weight)
   point[1] = third;
   point[2] = 0.0;
   weight = 1.0;
+/*
+  double w_save[3] = {
+    0.33333333333333333333,
+    0.33333333333333333333,
+    0.33333333333333333333 };
+  double xy_save[2*3] = {
+    0.66666666666666666667,  0.16666666666666666667,
+    0.16666666666666666667,  0.66666666666666666667,
+    0.16666666666666666667,  0.16666666666666666667 };
+
+  point[0] = xy_save[2*n+0];
+  point[1] = xy_save[2*n+1];
+  point[2] = 0.0;
+  weight = w_save[n];
+*/
 }
 
 void
@@ -345,21 +354,13 @@ NLMembrane::dofs(DofSetArray &dsa, int*df)
   return df;
 }
 
-StrainEvaluator *
-NLMembrane::getStrainEvaluator()
-{
-  return 0;
-}
-
-static LinearStrain2D<9> linStrain;
-static GLStrain2D<9> glStrain;
+LinearStrain2D<9> linStrain2D;
+GLStrain2D<9> glStrain2D;
 
 GenStrainEvaluator<TwoDTensorTypes<9> > *
 NLMembrane::getGenStrainEvaluator()
 {
-  // fprintf(stderr, linearKinematics ? "Linear Strain\n" : "Non Linear Strain\n");
-  return linearKinematics ? (GenStrainEvaluator<TwoDTensorTypes<9> > *)&linStrain 
-            : (GenStrainEvaluator<TwoDTensorTypes<9> > *)&glStrain;
+  return material->getGenStrainEvaluator();
 }
 
 NLMaterial *
@@ -377,20 +378,37 @@ NLMembrane::getShapeFunction()
 void
 NLMembrane::markDofs(DofSetArray &dsa)
 {
-  dsa.mark(n, 3,  DofSet::XYZdisp);
+  dsa.mark(n, 3, DofSet::XYZdisp);
 }
 
 void
 NLMembrane::setMaterial(NLMaterial *m)
 {
   material = m;
-  prop = &nullProp;
+}
+
+int
+NLMembrane::numInternalNodes()
+{
+  // this function is called after setMaterial
+  useDefaultMaterial = (material == NULL);
+  if(useDefaultMaterial) material = new ElaLinIsoMat2D(prop);
+  return 0;
 }
 
 void
-NLMembrane::computePressureForce(Node *nodes,Vector& force,
-                                 double *gs, int cflg)
+NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
+                                 GeomState *geomState, int cflg, double)
 {
+  Node nodes[3];
+  double gs[9];
+  for(int i = 0; i < 3; ++i) { 
+    nodes[i] = *cs[n[i]];
+    gs[3*i  ] = (*geomState)[n[i]].x;
+    gs[3*i+1] = (*geomState)[n[i]].y;
+    gs[3*i+2] = (*geomState)[n[i]].z;
+  }
+
   double d[2][3] = { { nodes[1].x+gs[3]-nodes[0].x-gs[0], 
                        nodes[1].y+gs[4]-nodes[0].y-gs[1],
                        nodes[1].z+gs[5]-nodes[0].z-gs[2] },
@@ -406,3 +424,245 @@ NLMembrane::computePressureForce(Node *nodes,Vector& force,
   for(int i=0; i < 3; ++i)
     force[i] = force[i+3]=force[i+6] = 1.0/6.0*p*n[i];
 }
+
+#include <Corotational.d/PhantomCorotator.h>
+#include <Corotational.d/MatNLCorotator.h>
+Corotator*
+NLMembrane::getCorotator(CoordSet &, double *, int , int)
+{
+  if(prop == NULL) return new PhantomCorotator();
+  else return new MatNLCorotator(this, false);
+}
+
+FullSquareMatrix
+NLMembrane::stiffness(CoordSet& cs, double *k, int flg)
+{
+  if(prop == NULL) { 
+    FullSquareMatrix ret(9,k);
+    ret.zero();
+    return ret;
+  }
+  else {
+    return GenGaussIntgElement<TwoDTensorTypes<9> >::stiffness(cs,k,flg);
+  }
+}
+
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
+
+FullSquareMatrix
+NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
+{
+  FullSquareMatrix ret(9,mel);
+  if(prop == NULL) { ret.zero(); return ret; }
+
+  if(cmflg) { // consistent mass matrix
+#ifdef USE_EIGEN3
+    double mass = getMass(cs);
+    Eigen::Map<Eigen::Matrix<double,9,9> > M(mel);
+    M << 2, 0, 0, 1, 0, 0, 1, 0, 0,
+         0, 2, 0, 0, 1, 0, 0, 1, 0,
+         0, 0, 2, 0, 0, 1, 0, 0, 1,
+         1, 0, 0, 2, 0, 0, 1, 0, 0,
+         0, 1, 0, 0, 2, 0, 0, 1, 0,
+         0, 0, 1, 0, 0, 2, 0, 0, 1,
+         1, 0, 0, 1, 0, 0, 2, 0, 0,
+         0, 1, 0, 0, 1, 0, 0, 2, 0,
+         0, 0, 1, 0, 0, 1, 0, 0, 2;
+     M *= mass/12;
+#else
+     std::cerr << " ERROR: consistent mass matrix for NLMembrane element requires Eigen3 library\n";
+     exit(-1);
+#endif
+  }
+  else { // lumped mass matrix
+
+    double mass = getMass(cs);
+    double massPerNode = mass/3.0;
+
+    ret.zero();
+    for(int i = 0; i < 9; ++i)
+      ret[i][i] = massPerNode;
+  }
+
+  return ret;
+}
+
+double
+NLMembrane::getMass(CoordSet& cs)
+{
+  if(prop == NULL) return 0;
+
+  Node &nd1 = cs.getNode(n[0]);
+  Node &nd2 = cs.getNode(n[1]);
+  Node &nd3 = cs.getNode(n[2]);
+
+  double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+
+  v1[0] = r3[0] - r1[0];
+  v1[1] = r3[1] - r1[1];
+  v1[2] = r3[2] - r1[2];
+
+  v2[0] = r2[0] - r1[0];
+  v2[1] = r2[1] - r1[1];
+  v2[2] = r2[2] - r1[2];
+
+  crossprod(v1, v2, v3);
+
+  double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+  double density = prop->rho;
+  double t       = prop->eh;
+
+  double mass = area*t*density;
+
+  return mass;
+}
+
+void
+NLMembrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
+                            Vector& gravityForce, int gravflg, GeomState *geomState)
+{
+  // TODO
+  gravityForce.zero();
+}
+
+void
+NLMembrane::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
+                        Vector& elDisp, int strInd, int, double *ndTemps,
+                        double ylayer, double zlayer, int avgnum)
+{
+  // TODO
+  stress.zero();
+  weight.zero();
+}
+
+void
+NLMembrane::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
+                         Vector& elDisp, int strInd, int, double *ndTemps)
+{
+  // TODO
+  stress.zero();
+  weight.zero();
+}
+
+#include <Element.d/State.h>
+#include <Hetero.d/InterpPoint.h>
+void
+NLMembrane::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip,
+                        double *res, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  double xyz[3][6];
+  state.getDV(n[0], xyz[0], xyz[0]+3);
+  state.getDV(n[1], xyz[1], xyz[1]+3);
+  state.getDV(n[2], xyz[2], xyz[2]+3);
+
+  for(int j = 0; j < 6; ++j)
+    res[j] = (1.0-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+}
+
+void
+NLMembrane::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
+                      double *resF, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  for(int i = 0; i < 3; ++i) {
+    resF[i]   = (1.0-gp[0]-gp[1]) * flF[i];
+    resF[3+i] = gp[0] * flF[i];
+    resF[6+i] = gp[1] * flF[i];
+  }
+}
+
+// Four node membrane comprising two three node membranes, 3 dof per node
+NLMembrane4::NLMembrane4(int *nodenums)
+{
+  int i,j,k;
+  nn = new int[4];
+  for(i=0; i<4; ++i) nn[i] = nodenums[i];
+
+  nSubElems = 2;
+  subElems = new Element * [2];
+  subElemNodes = new int * [2];
+  subElemDofs = new int * [2];
+
+  subElemNodes[0] = new int[3];
+  subElemNodes[0][0] = 0; subElemNodes[0][1] = 1; subElemNodes[0][2] = 3;
+
+  subElemNodes[1] = new int[3];
+  subElemNodes[1][0] = 2; subElemNodes[1][1] = 3; subElemNodes[1][2] = 1;
+
+  for(i=0; i<2; ++i) {
+    int tmp[3];
+    subElemDofs[i] = new int[9];
+    for(j=0; j<3; ++j) {
+      int nij = subElemNodes[i][j];
+      tmp[j] = nodenums[nij]; // global node numbers
+      for(k=0;k<3;++k) {
+        subElemDofs[i][3*j+k] = 3*nij+k;
+      }
+    }
+    subElems[i] = new NLMembrane(tmp);
+  }
+  nnodes = 4;
+  ndofs = 12;
+}
+
+int
+NLMembrane4::getTopNumber()
+{
+  return 102;
+}
+
+void
+NLMembrane4::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  double gpsum = gp[0] + gp[1];
+  int i;
+  InterpPoint subip;
+  if(gpsum <= 1.) {
+    i = 0;
+    subip.xy[0] = gp[0];
+    subip.xy[1] = gp[1];
+  }
+  else {
+    i = 1;
+    subip.xy[0] = 1.0 - gp[0];
+    subip.xy[1] = 1.0 - gp[1];
+  }
+
+  subElems[i]->computeDisp(cs, state, subip, res);
+}
+
+void
+NLMembrane4::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
+                       double *res, GeomState *gs)
+{
+  const double *gp = ip.xy;
+  double gpsum = gp[0] + gp[1];
+  int i;
+  InterpPoint subip;
+  if(gpsum <= 1.) {
+    i = 0;
+    subip.xy[0] = gp[0];
+    subip.xy[1] = gp[1];
+  }
+  else {
+    i = 1;
+    subip.xy[0] = 1.0 - gp[0];
+    subip.xy[1] = 1.0 - gp[1];
+  }
+
+  double subres[9];
+  subElems[i]->getFlLoad(cs, subip, flF, subres);
+
+  int j;
+  for(j=0; j<12; ++j) res[j] = 0.0;
+  for(j=0; j<9; ++j) res[subElemDofs[i][j]] = subres[j];
+}
+

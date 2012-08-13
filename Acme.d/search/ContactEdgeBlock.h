@@ -44,8 +44,8 @@ class ContactEdgeBlock {
   inline int Number_of_Edges() { return number_of_edges; };
   ContactBlockEntityList* EdgeList() { return edge_list; };
 
-  void Insert_Edge( ContactEdge* );
-  void Delete_Edge( ContactEdge* );
+  void Insert_Edge( ContactEdge<Real>* );
+  void Delete_Edge( ContactEdge<Real>* );
 #ifndef CONTACT_NO_MPI
   void Insert_Edge( char* );
 #endif

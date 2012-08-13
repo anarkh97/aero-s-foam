@@ -54,7 +54,7 @@ class ScratchVariable {
     return data_array + (object_num * size_per_object);
   }
 
-  inline Real* Get_Scratch(const ContactTopologyEntity *entity) {
+  inline Real* Get_Scratch(const ContactTopologyEntity<Real> *entity) {
     return Get_Scratch(entity->EnfArrayIndex());
   }
 

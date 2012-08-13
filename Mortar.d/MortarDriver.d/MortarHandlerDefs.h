@@ -12,6 +12,7 @@
 
 // for timing purpose
 //#define HB_MORTAR_TIMER
+//#define PJSA_ACME_TIMER
 
 // for using thread level parallelization when assembling the nodal 
 // mortar LMPC from the FFI M & N contributions

@@ -27,7 +27,7 @@
 
 ContactNodeSurfaceInteraction::ContactNodeSurfaceInteraction( 
    InteractionSource source,
-   ContactNode* Node,
+   ContactNode<Real>* Node,
    ContactAnalyticSurface* Surface,
    int node_entity_key,
    Real* physical_face_normal,
@@ -125,7 +125,7 @@ ContactNodeSurfaceInteraction*
 ContactNodeSurfaceInteraction::new_ContactNodeSurfaceInteraction(
                                      ContactFixedSizeAllocator& alloc,
                                      InteractionSource interaction_source,
-                                     ContactNode* Node,
+                                     ContactNode<Real>* Node,
                                      ContactAnalyticSurface* Surface,
 				     int   node_entity_key,
                                      Real* physical_face_normal,

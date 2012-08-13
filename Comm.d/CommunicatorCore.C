@@ -264,12 +264,14 @@ Communicator::remoteSize()
 
 bool Communicator::globalMax(bool b)
 {
-  int buff;
 #ifdef USE_MPI
+  int buff;
   int data = (b) ? 1 : 0;
   MPI_Allreduce(&data, &buff, 1, CommTrace<int>::MPIType, MPI_MAX, comm);
-#endif
   return buff != 0;
+#else
+  return b;
+#endif
 }
 
 #ifdef NO_COMPLEX_MPI

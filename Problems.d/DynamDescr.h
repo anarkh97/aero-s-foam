@@ -29,13 +29,16 @@ class Rbm;
 class SDDynamPostProcessor {
     Domain *domain;
     double *bcx;
-    double *vcx;
+    double *vcx, *acx;
     StaticTimers *times;
     GeomState *geomState;
+    Corotator **allCorot;
+    FullSquareMatrix *melArray;
 
   public:
-    SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
-                         StaticTimers *_times, GeomState *_geomState = 0);
+    SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
+                         StaticTimers *_times, GeomState *_geomState = 0,
+                         Corotator **_allCorot = 0, FullSquareMatrix *_melArray = 0);
 
     ~SDDynamPostProcessor();
 
@@ -69,9 +72,10 @@ class SingleDomainDynamic
     double *bcx;	// displacement bc values
     double *userDefineDisp;
     double *vcx;	// velocity bc values
+    double *acx;        // acceleration bc values
     StaticTimers *times;
     int    *nodeOrder;
-    SparseMatrix *kuc;
+    SparseMatrix *kuc, *muc, *cuc;
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
 
@@ -103,14 +107,15 @@ class SingleDomainDynamic
     void addCtrl(Vector &f, double *controlForce);
     void addCtrl(Vector &, double *, double *);
     void addUserForce(Vector&f, double *userDefineForce);
-    void setBC(double *userDefineDisp, double *userDefineVel);
+    void setBC(double *userDefineDisp, double *userDefineVel, double *userDefineAcc);
  public:
     SingleDomainDynamic(Domain *d); 
     ~SingleDomainDynamic();
 
     int* boundary() { return bc;}
-    double* boundaryValue() { return bcx;}
-    double* boundaryVeloc() { return vcx;}
+    double* boundaryValue() { return bcx; }
+    double* boundaryVeloc() { return vcx; }
+    double* boundaryAccel() { return acx; }
 
     void trProject(Vector &f);
     void project(Vector &v);
@@ -136,7 +141,7 @@ class SingleDomainDynamic
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
 
-    void getContactForce(Vector &d, Vector &ctc_f);
+    void getContactForce(Vector &d, Vector &ctc_f, double d_n_p);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
     void preProcess();
@@ -145,9 +150,8 @@ class SingleDomainDynamic
     GenSolver<double> *getSolver();
     SDDynamPostProcessor *getPostProcessor();
     void printTimers(DynamMat *, double);
-    void addPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& dnc,
-                         Vector& vnc, Vector& anc, Vector& result,
-                         double t, double *pt_dt=0);
+    //void getPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& vnc,
+    //                     Vector& anc, Vector& result, double tm, double tf);
     double betaDamp() const;
     double alphaDamp() const; 
     void setDamping( double betaDamp, double alphaDamp );

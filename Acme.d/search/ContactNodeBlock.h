@@ -58,8 +58,8 @@ class ContactNodeBlock {
   void Delete_Node_List( );
   void Delete_Nodes( );
   void Add_Nodes( int, int*, int*, ContactType*  );
-  void Insert_Node( ContactNode* );
-  void Delete_Node( ContactNode* );
+  void Insert_Node( ContactNode<Real>* );
+  void Delete_Node( ContactNode<Real>* );
 #ifndef CONTACT_NO_MPI
   void Insert_Node( char* );
   void Insert_Node_ForSecondary( char* );

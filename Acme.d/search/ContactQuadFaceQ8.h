@@ -39,7 +39,7 @@ class ContactFixedSizeAllocator;
                              E0
 */
 
-class ContactQuadFaceQ8 : public ContactFace {
+class ContactQuadFaceQ8 : public ContactFace<Real> {
 
  public:
   ContactQuadFaceQ8(ContactFixedSizeAllocator*, int blk_indx=-1, 
@@ -50,8 +50,8 @@ class ContactQuadFaceQ8 : public ContactFace {
   ~ContactQuadFaceQ8();
   ContactSearch::ContactEdge_Type Edge_Type() 
     {return ContactSearch::LINEEDGEQ3;};
-  void Get_Edge_Nodes( int, ContactNode** );
-  int Get_Edge_Number( ContactNode** );
+  void Get_Edge_Nodes( int, ContactNode<Real>** );
+  int Get_Edge_Number( ContactNode<Real>** );
   int Get_Edge_Number( Real* );
 
   void Compute_Normal(VariableHandle, VariableHandle );
@@ -68,7 +68,7 @@ class ContactQuadFaceQ8 : public ContactFace {
   void Evaluate_Shape_Functions( Real* local_coords, Real* shape_funcs );
   bool Is_Inside_Face( Real* local_coords );
   inline bool IsPlanar(VariableHandle) {return false;};
-  ContactFace* Neighbor( Real* local_coords );
+  ContactFace<Real>* Neighbor( Real* local_coords );
   
   void Get_Close_Edges( Real*, int&, int&, int& );
   void FacetDecomposition(int &, 
@@ -84,7 +84,7 @@ class ContactQuadFaceQ8 : public ContactFace {
                       
   void Compute_Node_Areas( VariableHandle, VariableHandle, Real* );
 
-  int FaceEdge_Intersection(VariableHandle, ContactEdge*, Real*);
+  int FaceEdge_Intersection(VariableHandle, ContactEdge<Real>*, Real*);
   
   static void Compute_Shape_Functions( Real local_coords[2], 
                                        Real shape_funcs[8] );
@@ -114,8 +114,8 @@ class ContactQuadFaceQ8 : public ContactFace {
 
  protected:
  private:
-  ContactNode* nodes[8];
-  ContactEdge* edges[4];
+  ContactNode<Real>* nodes[8];
+  ContactEdge<Real>* edges[4];
   connection_data Node_Info[8];
   connection_data Edge_Info[4];
 

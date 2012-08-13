@@ -143,7 +143,9 @@ class StructProp {
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
         double penalty; // penalty parameter for mpc type elements
-        double amplitude, omega, phase; // amplitude and circular frequency of forcing term for some mpc type elements
+        double amplitude, omega, phase, offset; // amplitude and circular frequency of forcing term for some mpc type elements
+        double B, C;
+        int relop; // 0: equality (==), 1: inequality (<=)
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
 
 	// Fabric Material Options
@@ -181,8 +183,8 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0;
-                       type = Undefined; } 
+                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0; offset = 0;
+                       B = 1.0; C = 0.0; relop = 0; type = Undefined; } 
 
 };
 
@@ -237,7 +239,7 @@ public:
         CoordSet & operator = (const CoordSet & other);
 
 	// Member functions
-        int size();
+        int size() const;
         void  nodeadd(int n, double*xyz);
         void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
@@ -287,13 +289,12 @@ class Element {
   protected:
 	StructProp *prop;	// structural properties for this element
         double pressure;	// pressure force applied to element
-        double preload;
         bool myProp;
-        int glNum, subNum;
+        int glNum, subNum, stateOffset;
         vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
-        Element() { prop = 0; pressure = 0.0; preload = 0.0;
+        Element() { prop = 0; pressure = 0.0;
         _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
@@ -315,9 +316,9 @@ class Element {
 	virtual void setPressure(double pres, MFTTData *mftt = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
-        // By default ingore any element preload
-        virtual void setPreLoad(double load, int &flg) { }
-        virtual double getPreLoad() { return preload; }
+        // By default ignore any element preload
+        virtual void setPreLoad(std::vector<double> &load) { }
+        virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
         int getGlNum()  { return glNum; }
@@ -409,9 +410,7 @@ class Element {
                                                                                  // can make it different to numNodes for elements that aren't
                                                                                  // supported by xpost eg RigidSolid6Dof
         virtual void computePressureForce(CoordSet& cs,Vector& elPressureForce,
-                                          GeomState *gs=0, int cflg = 0);
-        virtual void computePressureForce(Node *nd,Vector& elPressureForce,
-                                          double *gs=0, int cflg = 0);
+                                          GeomState *gs = 0, int cflg = 0, double t = 0);
 	virtual double * getMidPoint(CoordSet &)  { return 0; }
 	/* toxa: use this midPoint instead */
 	//virtual void getMidPoint(CoordSet &, double* result)  { assert(0); }
@@ -513,6 +512,7 @@ class Element {
         virtual void readHistory(int) {}
         virtual int numStates() { return 0; }
         virtual void initStates(double *) {}
+        virtual void setStateOffset(int _stateOffset) { stateOffset = _stateOffset; }
 
         virtual double computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs,
                                                 GeomState *gs, double stable_tol, int stable_maxit);
@@ -542,7 +542,7 @@ class Elemset
     Element *& operator[] (int i);
     void elemadd(int num, Element *);
     void elemadd(int num, int type, int nnodes, int *nodes);
-    void mpcelemadd(int num, LMPCons *mpc);
+    void mpcelemadd(int num, LMPCons *mpc, bool nlflag = false);
     void fsielemadd(int num, LMPCons *fsi);
     void setEmax(int max)  { emax = max; }
     void list();

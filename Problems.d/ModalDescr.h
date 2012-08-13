@@ -56,7 +56,7 @@ public:
   int getFilterFlag() { return domain->solInfo().filterFlags; }
   void project(Vector &v) { /* leave blank */ }
 
-  void getContactForce(Vector& d, Vector &extF) { extF.zero(); };
+  void getContactForce(Vector& d, Vector &extF, double) { extF.zero(); };
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);
@@ -89,6 +89,8 @@ public:
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
+  void addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& dnc, Vector& vnc, Vector& anc,
+                       Vector& result, double tm, double tf) { result.zero(); } // TODO
 };
 #ifdef _TEMPLATE_FIX_
   #include <Problems.d/ModalDescrTem.C>

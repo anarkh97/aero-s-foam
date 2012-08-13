@@ -353,7 +353,7 @@ class ContactTopology {
   void Size_ElementElement_Interactions( int&, int& );
   void Get_ElementElement_Interactions( int*, int*, int*, int*, int*, Real* );
   void Update_State();
-  bool Faces_Connected( ContactFace*, ContactFace* );
+  bool Faces_Connected( ContactFace<Real>*, ContactFace<Real>* );
   ContactSearch* Search() { return search; }
 
   inline void Number_of_Nodes( int n ) { number_of_nodes = n; };
@@ -368,8 +368,8 @@ class ContactTopology {
   void Connect_Faces_to_Nodes();
   void Connect_Faces_to_Edges();
   void Construct_and_Connect_Edges( ContactSearch::ContactErrorCode& );
-  int Get_Faces_Connected_to_Nodes( ContactNode*, ContactNode*,
-				    ContactFace**,ContactFace**,
+  int Get_Faces_Connected_to_Nodes( ContactNode<Real>*, ContactNode<Real>*,
+				    ContactFace<Real>**,ContactFace<Real>**,
 				    ContactSearch::ContactErrorCode& );
   void Compute_Owners(ContactSearch::ContactErrorCode&);
 
@@ -384,9 +384,9 @@ class ContactTopology {
 
   void Compute_Owners_For_Entity( ContactSymComm*, ContactTopologyEntityList*, int );
   void Compute_Edge_Comm_List(ContactSearch::ContactErrorCode& );
-  void Find_Shared_Edge_Candidates( std::vector< std::pair<ContactTopologyEntity*,int> >* );
-  void Complete_Edge_Comm_List( int, std::vector< std::pair<ContactTopologyEntity*,int> >*, int*);
-  int  Compare_Edges( ContactEdge*, ContactEdge* );
+  void Find_Shared_Edge_Candidates( std::vector< std::pair<ContactTopologyEntity<Real>*,int> >* );
+  void Complete_Edge_Comm_List( int, std::vector< std::pair<ContactTopologyEntity<Real>*,int> >*, int*);
+  int  Compare_Edges( ContactEdge<Real>*, ContactEdge<Real>* );
   void Assign_Secondary_Ownership( ContactZoltan*, VariableHandle );
   inline std::vector<ContactInteractionEntity::entity_data*>* QueryLinkList()
     { return query_linklist;};
@@ -398,22 +398,22 @@ class ContactTopology {
 
   void Delete_All_Interactions( );
 
-  static void SortEntityList( int, ContactTopologyEntity** );
-  static void SortEntityList1( int, ContactEdge** );
+  static void SortEntityList( int, ContactTopologyEntity<Real>** );
+  static void SortEntityList1( int, ContactEdge<Real>** );
 
   //
   //  Check if an edge is less than another edge based on the global IDs
   //  of the edge end nodes.
   //
-  static bool EdgeLessThan( ContactEdge* edge1, ContactEdge* edge2);
+  static bool EdgeLessThan( ContactEdge<Real>* edge1, ContactEdge<Real>* edge2);
 
 #ifdef CONTACT_DEBUG_NODE
   ContactSearch::ContactErrorCode Add_Debug_Node( int );
   void Display_Debug_Node_IDs( ContactParOStream& );
   void Display_Debug_Nodes( ContactParOStream& );
-  bool Is_a_Debug_Node(ContactNode*);
+  bool Is_a_Debug_Node(ContactNode<Real>*);
   int Number_Debug_Nodes() { return number_debug_nodes; };
-  ContactNode* Debug_Node( int i ){
+  ContactNode<Real>* Debug_Node( int i ){
     PRECONDITION( i <= number_debug_nodes && i >= 0);
     return debug_nodes[i];
   };
@@ -505,7 +505,7 @@ class ContactTopology {
   int number_debug_nodes;
   ContactHostGlobalID** debug_node_global_ids;
   int* debug_node_exodus_ids;
-  ContactNode** debug_nodes;
+  ContactNode<Real>** debug_nodes;
 #endif
 
   // Error Handler
@@ -680,7 +680,7 @@ class ContactTopology {
 #endif
 };
 
-inline bool ContactTopology::EdgeLessThan( ContactEdge* edge1, ContactEdge* edge2) {
+inline bool ContactTopology::EdgeLessThan( ContactEdge<Real>* edge1, ContactEdge<Real>* edge2) {
   PRECONDITION(edge1->Nodes_Per_Edge() == edge2->Nodes_Per_Edge());    
   //
   //  Extract the edge nodes

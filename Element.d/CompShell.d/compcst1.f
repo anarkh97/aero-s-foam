@@ -44,7 +44,7 @@ C.....Global Variables
 C
       integer     type , nlayer , idlayer(5,nlayer)
       real*8      e , nu , thick , coef(36) , d(3,3)
-      real*8      x(3) , y(3) , z(3) , mtlayer(8,nlayer)
+      real*8      x(3) , y(3) , z(3) , mtlayer(12,nlayer)
       real*8      eframe(3,3) , aframe(3,3)
       character   effect*2
 C

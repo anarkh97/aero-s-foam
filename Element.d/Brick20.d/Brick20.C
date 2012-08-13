@@ -222,17 +222,21 @@ Vector& elDisp, int strInd,int,double* )
           }
         }
 
-// Get Element Principals
+// Get Element Principals for each node without averaging
         double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
         double pvec[3] = {0.0,0.0,0.0};
-        for (j=0; j<6; ++j) {
-          for (i=0; i<8; ++i) {
-            svec[j] += stress[i][j];
-          }
-          svec[j] /= 8;
-        }
-        pstress(svec,pvec);
+
         for (i=0; i<8; ++i) {
+          for (j=0; j<6; ++j) {
+            svec[j] = stress[i][j];
+          }
+// Convert Engineering to Tensor Strains
+          if(strInd != 0) {
+            svec[3] /= 2;
+            svec[4] /= 2;
+            svec[5] /= 2;
+          }
+          pstress(svec,pvec);
           for (j=0; j<3; ++j) {
             stress[i][j+6] = pvec[j];
           }

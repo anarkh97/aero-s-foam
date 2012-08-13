@@ -81,6 +81,7 @@ class FacePoint1: public FaceElement {
         void   GetShapeFctVal(double*, double*);
 	double GetJacobian(double*, CoordSet&);
         double GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet& cs);
+        void   GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet& cs);
 
 	// Miscelleaneous methods
         // ~~~~~~~~~~~~~~~~~~~~~~

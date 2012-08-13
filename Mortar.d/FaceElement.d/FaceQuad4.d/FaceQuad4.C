@@ -178,125 +178,6 @@ FaceQuad4::GetVertices(int* p, std::map<int,int>& renumTable) { GetNodes(p, renu
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
-void
-FaceQuad4::GetShapeFct(double *Shape, double *m)
-{
-  double x = m[0];
-  double y = m[1];
-
-  double d1 = 0.5*(1.0+x);
-  double d2 = 0.5*(1.0+y);
-  double d3 = 1.0-d1;
-  double d4 = 1.0-d2;
-
-  Shape[0] = d3*d4;
-  Shape[1] = d4*d1;
-  Shape[2] = d1*d2;
-  Shape[3] = d2*d3;
-}
-
-void
-FaceQuad4::GetdShapeFct(double* dShapex, double* dShapey, double* m)
-{
-  double x = m[0];
-  double y = m[1];
-  double onequart = 1./4.;
-
-  double xm = 1.-x;
-  double xp = 1.+x;
-  double ym = 1.-y;
-  double yp = 1.+y;
-
-  dShapex[0] = -onequart*ym;
-  dShapex[1] =  onequart*ym;
-  dShapex[2] =  onequart*yp;
-  dShapex[3] = -onequart*yp;
-
-  dShapey[0] = -onequart*xm;
-  dShapey[1] = -onequart*xp;
-  dShapey[2] =  onequart*xp;
-  dShapey[3] =  onequart*xm;
-}
-
-double
-FaceQuad4::GetShapeFctAndJacobian(double *Shape, double *m, CoordSet &cs)
-{
-  double x = m[0];
-  double y = m[1];
-
-  double d1 = 0.5*(1.0+x);
-  double d2 = 0.5*(1.0+y);
-  double d3 = 1.0-d1;
-  double d4 = 1.0-d2;
-
-  Shape[0] = d3*d4;
-  Shape[1] = d4*d1;
-  Shape[2] = d1*d2;
-  Shape[3] = d2*d3;
-
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-
-  double X[4], Y[4], Z[4];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-
-  double a[4], b[4], c[4];
-  a[0] = (Y[1]-Y[0])*(Z[3]-Z[0]) - (Y[3]-Y[0])*(Z[1]-Z[0]);
-  a[1] = (Y[1]-Y[0])*(Z[2]-Z[1]) - (Y[2]-Y[1])*(Z[1]-Z[0]);
-  a[2] = (Y[2]-Y[3])*(Z[2]-Z[1]) - (Y[2]-Y[1])*(Z[2]-Z[3]);
-  a[3] = (Y[2]-Y[3])*(Z[3]-Z[0]) - (Y[3]-Y[0])*(Z[2]-Z[3]);
-
-  b[0] = (Z[1]-Z[0])*(X[3]-X[0]) - (Z[3]-Z[0])*(X[1]-X[0]);
-  b[1] = (Z[1]-Z[0])*(X[2]-X[1]) - (Z[2]-Z[1])*(X[1]-X[0]);
-  b[2] = (Z[2]-Z[3])*(X[2]-X[1]) - (Z[2]-Z[1])*(X[2]-X[3]);
-  b[3] = (Z[2]-Z[3])*(X[3]-X[0]) - (Z[3]-Z[0])*(X[2]-X[3]);
-
-  c[0] = (X[1]-X[0])*(Y[3]-Y[0]) - (X[3]-X[0])*(Y[1]-Y[0]);
-  c[1] = (X[1]-X[0])*(Y[2]-Y[1]) - (X[2]-X[1])*(Y[1]-Y[0]);
-  c[2] = (X[2]-X[3])*(Y[2]-Y[1]) - (X[2]-X[1])*(Y[2]-Y[3]);
-  c[3] = (X[2]-X[3])*(Y[3]-Y[0]) - (X[3]-X[0])*(Y[2]-Y[3]);
-
-  double N[3];
-  N[0] = Shape[0]*a[0]+Shape[1]*a[1]+Shape[2]*a[2]+Shape[3]*a[3];
-  N[1] = Shape[0]*b[0]+Shape[1]*b[1]+Shape[2]*b[2]+Shape[3]*b[3];
-  N[2] = Shape[0]*c[0]+Shape[1]*c[1]+Shape[2]*c[2]+Shape[3]*c[3];
-
-  return(0.25*sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]));
-}
-
-void
-FaceQuad4::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs)
-{
-  // Compute shape functions' derivatives w.r.t. the local coordinates
-  double dShapex[4], dShapey[4];
-  GetdShapeFct(dShapex, dShapey, m);
-
-  // Compute dM/dx & dM/dy
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-
-  double X[4], Y[4], Z[4];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-
-  dMdx[0] = dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2] + dShapex[3]*X[3];
-  dMdx[1] = dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2] + dShapex[3]*Y[3];
-  dMdx[2] = dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2] + dShapex[3]*Z[3];
-
-  dMdy[0] = dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2] + dShapey[3]*X[3];
-  dMdy[1] = dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2] + dShapey[3]*Y[3];
-  dMdy[2] = dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2] + dShapey[3]*Z[3];
-}
-
 /*
 void
 FaceQuad4::IsoParamInterpolation(double* V, double* m, double* NdVals, int nComps=1, int* NdMap=0)
@@ -337,33 +218,30 @@ IsoParamInterpolation(double* V, double* Shape, double* NdVals, int nNds, int nC
 void
 FaceQuad4::LocalToGlobalCoord(double* M, double* m, CoordSet &cs)
 {
-  // input  : m, the local coordinates of some point P on the face
-  //         cs, the global coordinates of the vertices of the face 
-  // output : M, the global x,y,z coordinates of P
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-  Node &nd4 = cs.getNode(Nodes[3]);
-
-  double Shape[4];
-  GetShapeFct(Shape,m);
-
-  double X[4], Y[4], Z[4];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-  X[3] = nd4.x; Y[3] = nd4.y; Z[3] = nd4.z;
-
-  M[0] = Shape[0]*X[0]+Shape[1]*X[1]+Shape[2]*X[2]+Shape[3]*X[3];
-  M[1] = Shape[0]*Y[0]+Shape[1]*Y[1]+Shape[2]*Y[2]+Shape[3]*Y[3];
-  M[2] = Shape[0]*Z[0]+Shape[1]*Z[1]+Shape[2]*Z[2]+Shape[3]*Z[3];
+  LocalToGlobalCoordTemp(M, m, cs);
 }
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+FaceQuad4::LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs)
+{
+  LocalToGlobalCoordTemp(M, m, cs);
+}
+#endif
 
 void 
 FaceQuad4::GetShapeFctVal(double *Shape, double *m)
 {
   GetShapeFct(Shape, m);
 }
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+FaceQuad4::GetShapeFctVal(ActiveDouble *Shape, ActiveDouble *m)
+{
+  GetShapeFct(Shape, m);
+}
+#endif
 
 #ifndef NICER_IMPLEMENTATION
 double
@@ -460,7 +338,6 @@ FaceQuad4::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordS
   if(NormN!=0.0){
     Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
   }
-  //cerr << "here in FaceQuad4::GetIsoParamMappingNormalAndJacobian, Normal = " << Normal[0] << " " << Normal[1] << " " << Normal[2] << ", J = " << 0.25*NormN << endl;
   return(0.25*NormN); 
 }
 
@@ -485,34 +362,35 @@ FaceQuad4::GetJacobian(double* m, CoordSet& cs)
 double
 FaceQuad4::GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet& cs)
 {
-  // Compute dM/dx & dM/dy
-  double dMdx[3], dMdy[3];
-  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
+  GetIsoParamMappingNormalJacobianProduct(Normal, m, cs);
 
-  // N = dM/dx x dM/dy
-  Normal[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
-  Normal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
-  Normal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
-
-  // PJSA normalizing the Normal seems to be unnecessary since the normal is re-multiplied by it's norm later
-  //      this just makes the derivatives more complicated to compute
-  return 1.0;
-/*
   double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
 
-  if(NormN!=0.0){
+  if(NormN != 0.0) {
    Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
   }
-  //cerr << "here in FaceQuad4::GetIsoParamMappingNormalAndJacobian, Normal = " << Normal[0] << " " << Normal[1] << " " << Normal[2] << ", J = " << NormN << endl;
   return(NormN);
-*/
 }
 #endif
 
 void
-FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
+FaceQuad4::GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet& cs)
 {
-  // This function computes dNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
+  GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+}
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+FaceQuad4::GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet& cs)
+{
+  GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+}
+#endif
+
+void
+FaceQuad4::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
+{
+  // This function computes dJNormal which is the Jacobian matrix of J times the unit Normal
   // It is used to compute the gradient of the gap function
 
   // Compute shape functions' derivatives w.r.t. the local coordinates
@@ -523,17 +401,17 @@ FaceQuad4::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
   double dMdx[3], dMdy[3];
   ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
 
-  // Compute dNormal
+  // Compute dJNormal
   for(int i = 0; i < 4; ++ i) {
-    dNormal[3*i  ][0] = 0;
-    dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
-    dNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
-    dNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
-    dNormal[3*i+1][1] = 0;
-    dNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
-    dNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
-    dNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
-    dNormal[3*i+2][2] = 0;
+    dJNormal[3*i  ][0] = 0;
+    dJNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
+    dJNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
+    dJNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
+    dJNormal[3*i+1][1] = 0;
+    dJNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
+    dJNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
+    dJNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
+    dJNormal[3*i+2][2] = 0;
   }
 }
 

@@ -36,9 +36,15 @@ SuperElement::~SuperElement()
 }
 
 void
-SuperElement::setPreLoad(double load, int &flg)
+SuperElement::setPreLoad(std::vector<double> &load)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load, flg);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPreLoad(load);
+}
+
+std::vector<double>
+SuperElement::getPreLoad()
+{
+  return subElems[0]->getPreLoad();
 }
 
 void
@@ -187,9 +193,15 @@ void
 SuperElement::getThermalForce(CoordSet &cs, Vector &nodeTemp, Vector &thermalForce,
                               int glflag, GeomState *gs)
 {
+  if(!sub_extf) { // save a copy of the external force for each sub-element
+    sub_extf = new double * [nSubElems];
+    for(int i=0; i<nSubElems; ++i) sub_extf[i] = new double[subElems[i]->numDofs()];
+  }
+
   thermalForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    Vector subThermalForce(subElems[i]->numDofs());
+    Vector subThermalForce(subElems[i]->numDofs(), sub_extf[i], false);
+    subThermalForce.zero();
     Vector subNodeTemp(nodeTemp, subElems[i]->numNodes(), subElemNodes[i]);
     subElems[i]->getThermalForce(cs, subNodeTemp, subThermalForce, glflag, gs);
     thermalForce.add(subThermalForce, subElemDofs[i]);
@@ -407,7 +419,7 @@ SuperElement::getCorotator(CoordSet &cs, double *d, int i1, int i2)
 
 void 
 SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
-                                   GeomState *gs, int cflg)
+                                   GeomState *gs, int cflg, double t)
 {
   if(!sub_extf) { // save a copy of the external force for each sub-element
     sub_extf = new double * [nSubElems];
@@ -418,7 +430,7 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
     subElementPressureForce.zero();
-    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg);
+    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
     elPressureForce.add(subElementPressureForce, subElemDofs[i]);
   }
 /*
@@ -593,6 +605,28 @@ SuperElement::numStates()
   int ns = 0;
   for(int i = 0; i < nSubElems; ++i) ns += subElems[i]->numStates();
   return ns;
+}
+
+void
+SuperElement::setStateOffset(int _stateOffset)
+{
+  stateOffset = _stateOffset;
+
+  int k = stateOffset;
+  for(int i = 0; i < nSubElems; ++i) {
+    subElems[i]->setStateOffset(k);
+    k += subElems[i]->numStates();
+  }
+}
+
+void
+SuperElement::initStates(double *state)
+{
+  int k = stateOffset;
+  for(int i = 0; i < nSubElems; ++i) {
+    subElems[i]->initStates(state+k);
+    k += subElems[i]->numStates();
+  }
 }
 
 void

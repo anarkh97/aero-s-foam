@@ -8,6 +8,7 @@
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
+#include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -138,10 +139,15 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
                                                                         expmat->ematpro[6]);
         break;
       case 6 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],
+                                                           expmat->ematpro[6], expmat->ematpro[7]);
         break;
       case 7 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        break;
+      case 8 :
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        break;
       }
     }
   }
@@ -431,6 +437,22 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
 }
 
 void
+BelytschkoTsayShell::extractDeformations(GeomState &geomState, CoordSet &cs,
+                                         double *vld, int &nlflag)
+{
+  int iloc,jloc;
+  for(int i = 0; i < nnode; ++i) {
+    iloc = i*ndime;
+    for(int j = 0; j < nndof; ++j) {
+      jloc = i*nndof+j;
+      vld[jloc] = geomState[nn[i]].d[j];
+    }
+    //mat_to_vec(geomState[nn[i]].R,edisp+i*nndof+3); // EXP
+  }
+  nlflag = 1;
+}
+
+void
 BelytschkoTsayShell::computeDisp(CoordSet& cs, State& state, const InterpPoint& ip,
                                  double *res, GeomState *gs)
 {
@@ -473,7 +495,7 @@ BelytschkoTsayShell::getTopNumber()
 
 void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                          GeomState *geomState, int cflg)
+                                          GeomState *geomState, int cflg, double)
 {
 /* now the pressure force is added in the same routine as the internal force
   int opttrc = 0; // 0 : pressure
@@ -824,7 +846,7 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
     // compute the length of the longest side
     // ----------------------------------------
     double lmax = 0;
-    double n[5] = { 0, 1, 2, 3, 0 };
+    int n[5] = { 0, 1, 2, 3, 0 };
     for(int k = 0; k < 4; ++k) { 
       int i = n[k], j = n[k+1];
       double lij = std::sqrt(std::pow(ecurn(0,j)-ecurn(0,i),2)+std::pow(ecurn(1,j)-ecurn(1,i),2)

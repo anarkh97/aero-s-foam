@@ -39,12 +39,13 @@ class ContactFixedSizeAllocator;
                              E0
 */
 
-class ContactShellQuadFaceL4 : public ContactQuadFaceL4 {
+template<typename DataType>
+class ContactShellQuadFaceL4 : public ContactQuadFaceL4<DataType> {
 
   public :
     ContactShellQuadFaceL4( ContactFixedSizeAllocator*, 
                             int blk_indx=-1, int indx_in_block=-1, int key=-1);
-  static ContactShellQuadFaceL4* new_ContactShellQuadFaceL4(
+  static ContactShellQuadFaceL4<DataType>* new_ContactShellQuadFaceL4(
 		    ContactFixedSizeAllocator*,
                     int blk_indx=-1, int indx_in_block=-1, int key=-1);
 

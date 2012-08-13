@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactQuadFaceL4_C_
+#define ContactQuadFaceL4_C_
+
 #include "allocators.h"
 #include "ContactNode.h"
 #include "ContactQuadFaceL4.h"
@@ -30,45 +33,52 @@
 #include <cmath>
 #include <new>
 
-ContactQuadFaceL4::ContactQuadFaceL4( ContactFixedSizeAllocator* alloc,
+template<typename DataType>
+ContactQuadFaceL4<DataType>::ContactQuadFaceL4( ContactFixedSizeAllocator* alloc,
                                       int Block_Index, 
 				      int Index_in_Block, int key ) 
-  : ContactFace( alloc, ContactSearch::QUADFACEL4,
+  : ContactFace<DataType>( alloc, ContactSearch::QUADFACEL4,
                  Block_Index, Index_in_Block, key, 
                  nodes, edges, Node_Info, Edge_Info)
 {}
 
-ContactQuadFaceL4* ContactQuadFaceL4::new_ContactQuadFaceL4(
+template<typename DataType>
+ContactQuadFaceL4<DataType>* ContactQuadFaceL4<DataType>::new_ContactQuadFaceL4(
                         ContactFixedSizeAllocator* alloc,
                         int Block_Index, int Index_in_Block, int key)
 {
   return new (alloc[ContactSearch::ALLOC_ContactQuadFaceL4].New_Frag())
-             ContactQuadFaceL4(alloc, Block_Index, Index_in_Block, key);
+             ContactQuadFaceL4<DataType>(alloc, Block_Index, Index_in_Block, key);
 }
 
+template<typename DataType>
 void ContactQuadFaceL4_SizeAllocator(ContactFixedSizeAllocator& alloc)
 {
-  alloc.Resize( sizeof(ContactQuadFaceL4),
+  alloc.Resize( sizeof(ContactQuadFaceL4<DataType>),
                 100,  // block size
-                0);  // initial block size
-  alloc.Set_Name( "ContactQuadFaceL4 allocator" );
+                0,   // initial block size
+                sizeof(DataType) );
+  alloc.Set_Name( "ContactQuadFaceL4<DataType> allocator" );
 }
 
-ContactQuadFaceL4::~ContactQuadFaceL4() {}
+template<typename DataType>
+ContactQuadFaceL4<DataType>::~ContactQuadFaceL4() {}
 
-void ContactQuadFaceL4::Compute_Normal(VariableHandle CURRENT_POSITION,
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle CURRENT_POSITION,
 				       VariableHandle FACE_NORMAL )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
-  ContactNode* node2 = Node(2);
-  ContactNode* node3 = Node(3);
-  Real* Position0 = node0->Variable(CURRENT_POSITION);
-  Real* Position1 = node1->Variable(CURRENT_POSITION);
-  Real* Position2 = node2->Variable(CURRENT_POSITION);
-  Real* Position3 = node3->Variable(CURRENT_POSITION);
+  using std::sqrt;
+  ContactNode<DataType>* node0 = Node(0);
+  ContactNode<DataType>* node1 = Node(1);
+  ContactNode<DataType>* node2 = Node(2);
+  ContactNode<DataType>* node3 = Node(3);
+  DataType* Position0 = node0->Variable(CURRENT_POSITION);
+  DataType* Position1 = node1->Variable(CURRENT_POSITION);
+  DataType* Position2 = node2->Variable(CURRENT_POSITION);
+  DataType* Position3 = node3->Variable(CURRENT_POSITION);
   // Compute the vector from node 0 to node 2 & from node 1 to node 3
-  Real Vec02[3],Vec13[3];
+  DataType Vec02[3],Vec13[3];
   Vec02[0] = Position2[0] - Position0[0];
   Vec02[1] = Position2[1] - Position0[1];
   Vec02[2] = Position2[2] - Position0[2];
@@ -76,13 +86,13 @@ void ContactQuadFaceL4::Compute_Normal(VariableHandle CURRENT_POSITION,
   Vec13[1] = Position3[1] - Position1[1];
   Vec13[2] = Position3[2] - Position1[2];
   // Compute the face normal as the cross product of the two vectors
-  Real* face_normal = Variable(FACE_NORMAL);
+  DataType* face_normal = Variable(FACE_NORMAL);
   face_normal[0] = Vec02[1]*Vec13[2] - Vec02[2]*Vec13[1];
   face_normal[1] = Vec02[2]*Vec13[0] - Vec02[0]*Vec13[2];
   face_normal[2] = Vec02[0]*Vec13[1] - Vec02[1]*Vec13[0];
-  Real Mag = std::sqrt( face_normal[0]*face_normal[0] + 
-		        face_normal[1]*face_normal[1] +
-		        face_normal[2]*face_normal[2] );
+  DataType Mag = sqrt( face_normal[0]*face_normal[0] + 
+		       face_normal[1]*face_normal[1] +
+		       face_normal[2]*face_normal[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     face_normal[0] *= Mag;
@@ -91,15 +101,17 @@ void ContactQuadFaceL4::Compute_Normal(VariableHandle CURRENT_POSITION,
   }
 }
 
-void ContactQuadFaceL4::Compute_Normal(VariableHandle POSITION,
-                                       Real* normal, Real* local_coords )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Normal(VariableHandle POSITION,
+                                       DataType* normal, DataType* local_coords )
 {
-  Real shape_derivatives[2][4];
-  Real e1[3] = {0.0, 0.0, 0.0};
-  Real e2[3] = {0.0, 0.0, 0.0};
+  using std::sqrt;
+  DataType shape_derivatives[2][4];
+  DataType e1[3] = {0.0, 0.0, 0.0};
+  DataType e2[3] = {0.0, 0.0, 0.0};
   Compute_Shape_Derivatives( local_coords, shape_derivatives );
   for (int i=0; i<4; ++i) {
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     e1[0] += shape_derivatives[0][i]*node_position[0];
     e1[1] += shape_derivatives[0][i]*node_position[1];
     e1[2] += shape_derivatives[0][i]*node_position[2];
@@ -107,27 +119,29 @@ void ContactQuadFaceL4::Compute_Normal(VariableHandle POSITION,
     e2[1] += shape_derivatives[1][i]*node_position[1];
     e2[2] += shape_derivatives[1][i]*node_position[2];
   }
-  Real  a=0.0, b=0.0, c=0.0;
+  DataType  a=0.0, b=0.0, c=0.0;
   for (int i=0; i<3; ++i) {
     a += e1[i]*e1[i];
     b += e2[i]*e2[i];
     c += e1[i]*e2[i];
   }
-  Real detJ = std::sqrt(a*b-c*c);
+  DataType detJ = sqrt(a*b-c*c);
   normal[0] = (e1[1]*e2[2]-e1[2]*e2[1])/detJ;
   normal[1] = (e2[0]*e1[2]-e1[0]*e2[2])/detJ;
   normal[2] = (e1[0]*e2[1]-e2[0]*e1[1])/detJ;
 }
 
-void ContactQuadFaceL4::Compute_Normal(Real** nodal_positions,
-                                       Real* local_coords, Real* normal )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Normal(DataType** nodal_positions,
+                                       DataType* local_coords, DataType* normal )
 {
-  Real shape_derivatives[2][4];
-  Real e1[3] = {0.0, 0.0, 0.0};
-  Real e2[3] = {0.0, 0.0, 0.0};
+  using std::sqrt;
+  DataType shape_derivatives[2][4];
+  DataType e1[3] = {0.0, 0.0, 0.0};
+  DataType e2[3] = {0.0, 0.0, 0.0};
   Compute_Shape_Derivatives( local_coords, shape_derivatives );
   for (int i=0; i<4; ++i) {
-    Real* node_position = nodal_positions[i];
+    DataType* node_position = nodal_positions[i];
     e1[0] += shape_derivatives[0][i]*node_position[0];
     e1[1] += shape_derivatives[0][i]*node_position[1];
     e1[2] += shape_derivatives[0][i]*node_position[2];
@@ -135,31 +149,33 @@ void ContactQuadFaceL4::Compute_Normal(Real** nodal_positions,
     e2[1] += shape_derivatives[1][i]*node_position[1];
     e2[2] += shape_derivatives[1][i]*node_position[2];
   }
-  Real  a=0.0, b=0.0, c=0.0;
+  DataType  a=0.0, b=0.0, c=0.0;
   for (int i=0; i<3; ++i) {
     a += e1[i]*e1[i];
     b += e2[i]*e2[i];
     c += e1[i]*e2[i];
   }
-  Real detJ = std::sqrt(a*b-c*c);
+  DataType detJ = sqrt(a*b-c*c);
   normal[0] = (e1[1]*e2[2]-e1[2]*e2[1])/detJ;
   normal[1] = (e2[0]*e1[2]-e1[0]*e2[2])/detJ;
   normal[2] = (e1[0]*e2[1]-e2[0]*e1[1])/detJ;
 }
 
-void ContactQuadFaceL4::Compute_CharacteristicLength(VariableHandle CURRENT_POSITION,
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_CharacteristicLength(VariableHandle CURRENT_POSITION,
 				                     VariableHandle CHARACTERISTIC_LENGTH )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
-  ContactNode* node2 = Node(2);
-  ContactNode* node3 = Node(3);
-  Real* Position0 = node0->Variable(CURRENT_POSITION);
-  Real* Position1 = node1->Variable(CURRENT_POSITION);
-  Real* Position2 = node2->Variable(CURRENT_POSITION);
-  Real* Position3 = node3->Variable(CURRENT_POSITION);
+  using std::sqrt;
+  ContactNode<DataType>* node0 = Node(0);
+  ContactNode<DataType>* node1 = Node(1);
+  ContactNode<DataType>* node2 = Node(2);
+  ContactNode<DataType>* node3 = Node(3);
+  DataType* Position0 = node0->Variable(CURRENT_POSITION);
+  DataType* Position1 = node1->Variable(CURRENT_POSITION);
+  DataType* Position2 = node2->Variable(CURRENT_POSITION);
+  DataType* Position3 = node3->Variable(CURRENT_POSITION);
   // Compute the vector from node 0 to node 2 & from node 1 to node 3
-  Real Vec02[3],Vec13[3];
+  DataType Vec02[3],Vec13[3];
   Vec02[0] = Position2[0] - Position0[0];
   Vec02[1] = Position2[1] - Position0[1];
   Vec02[2] = Position2[2] - Position0[2];
@@ -167,23 +183,24 @@ void ContactQuadFaceL4::Compute_CharacteristicLength(VariableHandle CURRENT_POSI
   Vec13[1] = Position3[1] - Position1[1];
   Vec13[2] = Position3[2] - Position1[2];
   // Compute the face normal as the cross product of the two vectors
-  Real face_normal[3];
+  DataType face_normal[3];
   face_normal[0] = Vec02[1]*Vec13[2] - Vec02[2]*Vec13[1];
   face_normal[1] = Vec02[2]*Vec13[0] - Vec02[0]*Vec13[2];
   face_normal[2] = Vec02[0]*Vec13[1] - Vec02[1]*Vec13[0];
 
-  Real* characteristiclength = Variable(CHARACTERISTIC_LENGTH);
-  *characteristiclength = std::sqrt( face_normal[0]*face_normal[0] + 
-		                     face_normal[1]*face_normal[1] +
-		                     face_normal[2]*face_normal[2] ) / 2.0;
+  DataType* characteristiclength = Variable(CHARACTERISTIC_LENGTH);
+  *characteristiclength = sqrt( face_normal[0]*face_normal[0] + 
+		                face_normal[1]*face_normal[1] +
+		                face_normal[2]*face_normal[2] ) / 2.0;
 }
 
-void ContactQuadFaceL4::Compute_Centroid( VariableHandle CURRENT_POSITION,
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Centroid( VariableHandle CURRENT_POSITION,
 					  VariableHandle CENTROID )
 {
   // For the time being, compute the centroid as the average of the four nodes
-  Real* centroid = Variable(CENTROID);
-  Real* node_position = Node(0)->Variable(CURRENT_POSITION);
+  DataType* centroid = Variable(CENTROID);
+  DataType* node_position = Node(0)->Variable(CURRENT_POSITION);
   centroid[0] = node_position[0];
   centroid[1] = node_position[1];
   centroid[2] = node_position[2];
@@ -198,7 +215,8 @@ void ContactQuadFaceL4::Compute_Centroid( VariableHandle CURRENT_POSITION,
   centroid[2] *= 0.25;
 }
 
-void ContactQuadFaceL4::Get_Edge_Nodes( int i, ContactNode** node )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Get_Edge_Nodes( int i, ContactNode<DataType>** node )
 {
   PRECONDITION( i>=0 && i<4 );
   switch( i ){
@@ -220,19 +238,20 @@ void ContactQuadFaceL4::Get_Edge_Nodes( int i, ContactNode** node )
     break;
   default:
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
-    std::cerr << "Invalid Edge request in ContactQuadFaceL4::Get_Edge_Nodes" << std::endl;
+    std::cerr << "Invalid Edge request in ContactQuadFaceL4<DataType>::Get_Edge_Nodes" << std::endl;
 #endif
     POSTCONDITION( 0 );
   }
 }
 
-int ContactQuadFaceL4::Get_Edge_Number( ContactNode** edge_nodes )
+template<typename DataType>
+int ContactQuadFaceL4<DataType>::Get_Edge_Number( ContactNode<DataType>** edge_nodes )
 {
   PRECONDITION( edge_nodes[0] && edge_nodes[1] );
   PRECONDITION( edge_nodes[0] != edge_nodes[1] );
   int i1=-1,i2=-1;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    ContactNode* node = Node(i);
+    ContactNode<DataType>* node = Node(i);
     if( edge_nodes[0] == node ) i1 = i;
     if( edge_nodes[1] == node ) i2 = i;
   }
@@ -276,40 +295,44 @@ int ContactQuadFaceL4::Get_Edge_Number( ContactNode** edge_nodes )
   return( -1 );
 }
 
-int ContactQuadFaceL4::Get_Edge_Number( Real* local_coords )
+template<typename DataType>
+int ContactQuadFaceL4<DataType>::Get_Edge_Number( DataType* local_coords )
 {
-  Real tol(1.0e-8);
-  if (std::fabs(local_coords[1] - -1.0)<tol && 
-      std::fabs(local_coords[3] - -1.0)<tol) return(0);
-  if (std::fabs(local_coords[0] -  1.0)<tol && 
-      std::fabs(local_coords[2] -  1.0)<tol) return(1);
-  if (std::fabs(local_coords[1] -  1.0)<tol && 
-      std::fabs(local_coords[3] -  1.0)<tol) return(2);
-  if (std::fabs(local_coords[0] - -1.0)<tol && 
-      std::fabs(local_coords[2] - -1.0)<tol) return(3);
+  using std::abs;
+  DataType tol(1.0e-8);
+  // PJSA: the explicit typecast of abs argument is a workaround of flaw in Eigen's AutoDiffScalar
+  if (abs(DataType(local_coords[1] - -1.0))<tol && 
+      abs(DataType(local_coords[3] - -1.0))<tol) return(0);
+  if (abs(DataType(local_coords[0] -  1.0))<tol && 
+      abs(DataType(local_coords[2] -  1.0))<tol) return(1);
+  if (abs(DataType(local_coords[1] -  1.0))<tol && 
+      abs(DataType(local_coords[3] -  1.0))<tol) return(2);
+  if (abs(DataType(local_coords[0] - -1.0))<tol && 
+      abs(DataType(local_coords[2] - -1.0))<tol) return(3);
   return( -1 );
 }
 
+template<typename DataType>
 void 
-ContactQuadFaceL4::Compute_Edge_Normal( VariableHandle POSITION,
+ContactQuadFaceL4<DataType>::Compute_Edge_Normal( VariableHandle POSITION,
 					VariableHandle FACE_NORMAL,
 					int Edge,
-					Real* edge_normal)
+					DataType* edge_normal)
 {
-  ContactNode *edge_node[2];
+  ContactNode<DataType> *edge_node[2];
   Get_Edge_Nodes( Edge, edge_node );
 
   // Compute the tangent direction as a vector from node 1 to node 2
-  Real* position1 = edge_node[0]->Variable(POSITION);
-  Real* position2 = edge_node[1]->Variable(POSITION);
-  Real edge_tangent[3];
+  DataType* position1 = edge_node[0]->Variable(POSITION);
+  DataType* position2 = edge_node[1]->Variable(POSITION);
+  DataType edge_tangent[3];
   edge_tangent[0] = position2[0] - position1[0];
   edge_tangent[1] = position2[1] - position1[1];
   edge_tangent[2] = position2[2] - position1[2];
 
   // Compute the normal direction as the cross product of the edge tangent
   // and the face normal.
-  Real* f_normal = Variable(FACE_NORMAL);
+  DataType* f_normal = Variable(FACE_NORMAL);
   edge_normal[0] = edge_tangent[1]*f_normal[2] - edge_tangent[2]*f_normal[1];
   edge_normal[1] = edge_tangent[2]*f_normal[0] - edge_tangent[0]*f_normal[2];
   edge_normal[2] = edge_tangent[0]*f_normal[1] - edge_tangent[1]*f_normal[0];
@@ -319,7 +342,8 @@ ContactQuadFaceL4::Compute_Edge_Normal( VariableHandle POSITION,
 
 
 
-bool ContactQuadFaceL4::Is_Inside_Face( Real* local_coords )
+template<typename DataType>
+bool ContactQuadFaceL4<DataType>::Is_Inside_Face( DataType* local_coords )
 {
   if( local_coords[0] >= -1.0 && local_coords[0] <= 1.0 &&
       local_coords[1] >= -1.0 && local_coords[1] <= 1.0 )
@@ -327,7 +351,8 @@ bool ContactQuadFaceL4::Is_Inside_Face( Real* local_coords )
   return false;
 }
 
-ContactFace* ContactQuadFaceL4::Neighbor( Real* local_coords )
+template<typename DataType>
+ContactFace<DataType>* ContactQuadFaceL4<DataType>::Neighbor( DataType* local_coords )
 {
   bool off_edge_0 = local_coords[1] < -1 ? true : false;
   bool off_edge_1 = local_coords[0] >  1 ? true : false;
@@ -383,13 +408,14 @@ ContactFace* ContactQuadFaceL4::Neighbor( Real* local_coords )
   }
   // we should never get here.
   POSTCONDITION( 0 );
-  return (ContactFace*) NULL;
+  return (ContactFace<DataType>*) NULL;
 }
 
-void ContactQuadFaceL4::Get_Close_Edges( Real* local_coords, int& number,
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Get_Close_Edges( DataType* local_coords, int& number,
 					 int& edge_1_id, int& edge_2_id ){
-  Real  xi = local_coords[0];
-  Real eta = local_coords[1];
+  DataType  xi = local_coords[0];
+  DataType eta = local_coords[1];
 
   int edge_case = 0;
 
@@ -456,19 +482,21 @@ void ContactQuadFaceL4::Get_Close_Edges( Real* local_coords, int& number,
   }
 }
 
-bool ContactQuadFaceL4::IsPlanar(VariableHandle POSITION)
+template<typename DataType>
+bool ContactQuadFaceL4<DataType>::IsPlanar(VariableHandle POSITION)
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
-  ContactNode* node2 = Node(2);
-  ContactNode* node3 = Node(3);
-  Real* Position0 = node0->Variable(POSITION);
-  Real* Position1 = node1->Variable(POSITION);
-  Real* Position2 = node2->Variable(POSITION);
-  Real* Position3 = node3->Variable(POSITION);
+  using std::sqrt;
+  ContactNode<DataType>* node0 = Node(0);
+  ContactNode<DataType>* node1 = Node(1);
+  ContactNode<DataType>* node2 = Node(2);
+  ContactNode<DataType>* node3 = Node(3);
+  DataType* Position0 = node0->Variable(POSITION);
+  DataType* Position1 = node1->Variable(POSITION);
+  DataType* Position2 = node2->Variable(POSITION);
+  DataType* Position3 = node3->Variable(POSITION);
   // Compute the vector from node 0 to node 1, from node 0 to node 3,
   // from node 2 to node 1, and node 2 to node 3
-  Real Vec01[3],Vec03[3],Vec23[3],Vec21[3];
+  DataType Vec01[3],Vec03[3],Vec23[3],Vec21[3];
   Vec01[0] = Position1[0] - Position0[0];
   Vec01[1] = Position1[1] - Position0[1];
   Vec01[2] = Position1[2] - Position0[2];
@@ -482,32 +510,32 @@ bool ContactQuadFaceL4::IsPlanar(VariableHandle POSITION)
   Vec21[1] = Position1[1] - Position2[1];
   Vec21[2] = Position1[2] - Position2[2];
   // Compute the face normal as the cross product of the two vectors
-  Real normal0[3], normal1[3], Mag;
+  DataType normal0[3], normal1[3], Mag;
   normal0[0] = Vec01[1]*Vec03[2] - Vec01[2]*Vec03[1];
   normal0[1] = Vec01[2]*Vec03[0] - Vec01[0]*Vec03[2];
   normal0[2] = Vec01[0]*Vec03[1] - Vec01[1]*Vec03[0];
   normal1[0] = Vec23[1]*Vec21[2] - Vec23[2]*Vec21[1];
   normal1[1] = Vec23[2]*Vec21[0] - Vec23[0]*Vec21[2];
   normal1[2] = Vec23[0]*Vec21[1] - Vec23[1]*Vec21[0];
-  Mag = std::sqrt( normal0[0]*normal0[0] + 
-	           normal0[1]*normal0[1] +
-	           normal0[2]*normal0[2] );
+  Mag = sqrt( normal0[0]*normal0[0] + 
+	      normal0[1]*normal0[1] +
+	      normal0[2]*normal0[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     normal0[0] *= Mag;
     normal0[1] *= Mag;
     normal0[2] *= Mag;
   }
-  Mag = std::sqrt( normal1[0]*normal1[0] + 
-	           normal1[1]*normal1[1] +
-	           normal1[2]*normal1[2] );
+  Mag = sqrt( normal1[0]*normal1[0] + 
+	      normal1[1]*normal1[1] +
+	      normal1[2]*normal1[2] );
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     normal1[0] *= Mag;
     normal1[1] *= Mag;
     normal1[2] *= Mag;
   }
-  Real dot = normal0[0]*normal1[0] + 
+  DataType dot = normal0[0]*normal1[0] + 
              normal0[1]*normal1[1] +
              normal0[2]*normal1[2];
   if (dot<=0.999999) 
@@ -516,11 +544,13 @@ bool ContactQuadFaceL4::IsPlanar(VariableHandle POSITION)
     return true;
 }
 
-void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
-          Real* coordinates0, Real* normals0, VariableHandle POSITION0,
-          Real* coordinates1, Real* normals1, VariableHandle POSITION1,
-          Real* coordinates2, Real* normals2, VariableHandle POSITION2) 
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::FacetDecomposition(int& nfacets,
+          DataType* coordinates0, DataType* normals0, VariableHandle POSITION0,
+          DataType* coordinates1, DataType* normals1, VariableHandle POSITION1,
+          DataType* coordinates2, DataType* normals2, VariableHandle POSITION2) 
 {
+  using std::sqrt;
   int i, j;
   bool is_planar = IsPlanar(POSITION0);
   if (coordinates1!=NULL && is_planar) {
@@ -529,10 +559,10 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
   // if quad is planar then only decompose it into two triangles
   if (is_planar) {
     nfacets             = 2;
-    Real* Position0     = Node(0)->Variable(POSITION0);
-    Real* Position1     = Node(1)->Variable(POSITION0);
-    Real* Position2     = Node(2)->Variable(POSITION0);
-    Real* Position3     = Node(3)->Variable(POSITION0);
+    DataType* Position0     = Node(0)->Variable(POSITION0);
+    DataType* Position1     = Node(1)->Variable(POSITION0);
+    DataType* Position2     = Node(2)->Variable(POSITION0);
+    DataType* Position3     = Node(3)->Variable(POSITION0);
     coordinates0[0+3*0] = Position0[0];
     coordinates0[1+3*0] = Position0[1];
     coordinates0[2+3*0] = Position0[2];
@@ -604,8 +634,8 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
 	// need to calculate the centroid locally because stored value is
 	// only at CURRENT_POSITION and we don't know if CURRENT or PREDICTED
 	// position is being asked for.
-    Real centroid[3];
-    Real* node_position = Node(0)->Variable(POSITION0);
+    DataType centroid[3];
+    DataType* node_position = Node(0)->Variable(POSITION0);
     centroid[0] = node_position[0];
     centroid[1] = node_position[1];
     centroid[2] = node_position[2];
@@ -619,8 +649,8 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
     centroid[1] /= 4;
     centroid[2] /= 4;
     for (i=0, j=1; i<4; ++i, j=(i+1)%4) {
-      Real* node_position1 = Node(i)->Variable(POSITION0);
-      Real* node_position2 = Node(j)->Variable(POSITION0);
+      DataType* node_position1 = Node(i)->Variable(POSITION0);
+      DataType* node_position2 = Node(j)->Variable(POSITION0);
       coordinates0[0+9*i]   = node_position1[0];
       coordinates0[1+9*i]   = node_position1[1];
       coordinates0[2+9*i]   = node_position1[2];
@@ -646,8 +676,8 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
       centroid[1] /= 4;
       centroid[2] /= 4;
       for (i=0, j=1; i<4; ++i, j=(i+1)%4) {
-	Real* node_position1  = Node(i)->Variable(POSITION1);
-	Real* node_position2  = Node(j)->Variable(POSITION1);
+	DataType* node_position1  = Node(i)->Variable(POSITION1);
+	DataType* node_position2  = Node(j)->Variable(POSITION1);
 	coordinates1[0+9*i]   = node_position1[0];
 	coordinates1[1+9*i]   = node_position1[1];
 	coordinates1[2+9*i]   = node_position1[2];
@@ -674,8 +704,8 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
       centroid[1] /= 4;
       centroid[2] /= 4;
       for (i=0, j=1; i<4; ++i, j=(i+1)%4) {
-	Real* node_position1 = Node(i)->Variable(POSITION2);
-	Real* node_position2 = Node(j)->Variable(POSITION2);
+	DataType* node_position1 = Node(i)->Variable(POSITION2);
+	DataType* node_position2 = Node(j)->Variable(POSITION2);
 	coordinates2[0+9*i]  = node_position1[0];
 	coordinates2[1+9*i]  = node_position1[1];
 	coordinates2[2+9*i]  = node_position1[2];
@@ -691,17 +721,17 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
   for (i=0; i<nfacets; ++i) {
     // compute vectors from centroid to other  
     // two nodes defining master surface triangle
-    Real vx0  = coordinates0[6+9*i] - coordinates0[0+9*i];
-    Real vy0  = coordinates0[7+9*i] - coordinates0[1+9*i];
-    Real vz0  = coordinates0[8+9*i] - coordinates0[2+9*i];
-    Real vx00 = coordinates0[3+9*i] - coordinates0[0+9*i];
-    Real vy00 = coordinates0[4+9*i] - coordinates0[1+9*i];
-    Real vz00 = coordinates0[5+9*i] - coordinates0[2+9*i];
+    DataType vx0  = coordinates0[6+9*i] - coordinates0[0+9*i];
+    DataType vy0  = coordinates0[7+9*i] - coordinates0[1+9*i];
+    DataType vz0  = coordinates0[8+9*i] - coordinates0[2+9*i];
+    DataType vx00 = coordinates0[3+9*i] - coordinates0[0+9*i];
+    DataType vy00 = coordinates0[4+9*i] - coordinates0[1+9*i];
+    DataType vz00 = coordinates0[5+9*i] - coordinates0[2+9*i];
     // i,j,k components of the normal to the plane
-    Real a4i        = -vy0*vz00+vy00*vz0;
-    Real a4j        =  vx0*vz00-vx00*vz0;
-    Real a4k        = -vx0*vy00+vx00*vy0;
-    Real snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+    DataType a4i        = -vy0*vz00+vy00*vz0;
+    DataType a4j        =  vx0*vz00-vx00*vz0;
+    DataType a4k        = -vx0*vy00+vx00*vy0;
+    DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
     normals0[0+3*i] = a4i*snmag;
     normals0[1+3*i] = a4j*snmag;
     normals0[2+3*i] = a4k*snmag;
@@ -710,17 +740,17 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
     for (i=0; i<nfacets; ++i) {
       // compute vectors from centroid to other  
       // two nodes defining master surface triangle
-      Real vx0  = coordinates1[6+9*i] - coordinates1[0+9*i];
-      Real vy0  = coordinates1[7+9*i] - coordinates1[1+9*i];
-      Real vz0  = coordinates1[8+9*i] - coordinates1[2+9*i];
-      Real vx00 = coordinates1[3+9*i] - coordinates1[0+9*i];
-      Real vy00 = coordinates1[4+9*i] - coordinates1[1+9*i];
-      Real vz00 = coordinates1[5+9*i] - coordinates1[2+9*i];
+      DataType vx0  = coordinates1[6+9*i] - coordinates1[0+9*i];
+      DataType vy0  = coordinates1[7+9*i] - coordinates1[1+9*i];
+      DataType vz0  = coordinates1[8+9*i] - coordinates1[2+9*i];
+      DataType vx00 = coordinates1[3+9*i] - coordinates1[0+9*i];
+      DataType vy00 = coordinates1[4+9*i] - coordinates1[1+9*i];
+      DataType vz00 = coordinates1[5+9*i] - coordinates1[2+9*i];
       // i,j,k components of the normal to the plane
-      Real a4i        = -vy0*vz00+vy00*vz0;
-      Real a4j        =  vx0*vz00-vx00*vz0;
-      Real a4k        = -vx0*vy00+vx00*vy0;
-      Real snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+      DataType a4i        = -vy0*vz00+vy00*vz0;
+      DataType a4j        =  vx0*vz00-vx00*vz0;
+      DataType a4k        = -vx0*vy00+vx00*vy0;
+      DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
       normals1[0+3*i] = a4i*snmag;
       normals1[1+3*i] = a4j*snmag;
       normals1[2+3*i] = a4k*snmag;
@@ -730,17 +760,17 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
     for (i=0; i<nfacets; ++i) {
       // compute vectors from centroid to other  
       // two nodes defining master surface triangle
-      Real vx0  = coordinates2[6+9*i] - coordinates2[0+9*i];
-      Real vy0  = coordinates2[7+9*i] - coordinates2[1+9*i];
-      Real vz0  = coordinates2[8+9*i] - coordinates2[2+9*i];
-      Real vx00 = coordinates2[3+9*i] - coordinates2[0+9*i];
-      Real vy00 = coordinates2[4+9*i] - coordinates2[1+9*i];
-      Real vz00 = coordinates2[5+9*i] - coordinates2[2+9*i];
+      DataType vx0  = coordinates2[6+9*i] - coordinates2[0+9*i];
+      DataType vy0  = coordinates2[7+9*i] - coordinates2[1+9*i];
+      DataType vz0  = coordinates2[8+9*i] - coordinates2[2+9*i];
+      DataType vx00 = coordinates2[3+9*i] - coordinates2[0+9*i];
+      DataType vy00 = coordinates2[4+9*i] - coordinates2[1+9*i];
+      DataType vz00 = coordinates2[5+9*i] - coordinates2[2+9*i];
       // i,j,k components of the normal to the plane
-      Real a4i        = -vy0*vz00+vy00*vz0;
-      Real a4j        =  vx0*vz00-vx00*vz0;
-      Real a4k        = -vx0*vy00+vx00*vy0;
-      Real snmag      = 1.0/std::sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
+      DataType a4i        = -vy0*vz00+vy00*vz0;
+      DataType a4j        =  vx0*vz00-vx00*vz0;
+      DataType a4k        = -vx0*vy00+vx00*vy0;
+      DataType snmag      = 1.0/sqrt(a4i*a4i+a4j*a4j+a4k*a4k);
       normals2[0+3*i] = a4i*snmag;
       normals2[1+3*i] = a4j*snmag;
       normals2[2+3*i] = a4k*snmag;
@@ -748,14 +778,15 @@ void ContactQuadFaceL4::FacetDecomposition(int& nfacets,
   }
 }
 
-void ContactQuadFaceL4::FacetStaticRestriction(int nfacets, Real* coordinates, 
-                                         Real* normals, Real* ctrcl_facets, 
-                                         Real* ctrcl)
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::FacetStaticRestriction(int nfacets, DataType* coordinates, 
+                                         DataType* normals, DataType* ctrcl_facets, 
+                                         DataType* ctrcl)
 {
   int ii1=0,ilocc=0,ilocs=0;
   int iistored=0,iconcave=0,iinside=1,iout=2;
-  Real projcv,projmv,one_third=1.0/3.0;
-  Real dctds,xmc,ymc,zmc,xms,yms,zms,vecmix,vecmiy,vecmiz;
+  DataType projcv,projmv,one_third=1.0/3.0;
+  DataType dctds,xmc,ymc,zmc,xms,yms,zms,vecmix,vecmiy,vecmiz;
   // Contract the closest point projection of the Node-with-N_Triangles
   // into a single contact with the bilinear QUAD master surface.
   for (int ipass=0; ipass<nfacets; ++ipass) {
@@ -918,9 +949,22 @@ void ContactQuadFaceL4::FacetStaticRestriction(int nfacets, Real* coordinates,
   }
 }
 
-void ContactQuadFaceL4::FacetDynamicRestriction(int nfacets, 
-                                                Real* ctrcl_facets, 
-                                                Real* ctrcl)
+#if (MAX_FFI_DERIVATIVES > 0)
+template<>
+void ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction(int nfacets, ActiveScalar* coordinates,
+                                         ActiveScalar* normals, ActiveScalar* ctrcl_facets,
+                                         ActiveScalar* ctrcl)
+{
+  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetStaticRestriction is not implemented\n";
+  exit(-1);
+}
+#endif
+
+
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::FacetDynamicRestriction(int nfacets, 
+                                                DataType* ctrcl_facets, 
+                                                DataType* ctrcl)
 {
   // There are three possibilities with each triangle
   //   1) Accepted =  1
@@ -982,15 +1026,28 @@ void ContactQuadFaceL4::FacetDynamicRestriction(int nfacets,
   }
 }
 
-void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
+#if (MAX_FFI_DERIVATIVES > 0)
+template<>
+inline void
+ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction(int nfacets,
+                                                ActiveScalar* ctrcl_facets,
+                                                ActiveScalar* ctrcl)
+{
+  std::cerr << "ContactQuadFaceL4<ActiveScalar>::FacetDynamicRestriction is not implemented\n";
+  exit(-1);
+}
+#endif
+
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
 				       VariableHandle NODE_NORMAL,
 				       VariableHandle FACE_NORMAL,
 				       VariableHandle CURVATURE,
 			ContactSearch::Smoothing_Resolution resolution,
-				       Real percentage,
-				       Real* coordinates,
-				       Real* smooth_normal,
-                                       Real critical_curvature )
+				       DataType percentage,
+				       DataType* coordinates,
+				       DataType* smooth_normal,
+                                       DataType critical_curvature )
 {
   //
   //  3--k-------------------l--2
@@ -1030,16 +1087,18 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
   //      the normal at node 2 is computed by the value along the smoothed 
   //      edge.
   
+  using std::abs;
+  using std::sqrt;
 
-  Real upper_bound =  1.0 - percentage;
-  Real lower_bound = -1.0 + percentage;
-  Real* face_normal = Variable(FACE_NORMAL);
-  Real node_position[4][3];
-  Real node_normal[4][3];
-  Real contact_point[3];
-  Real coords[2];
+  DataType upper_bound =  1.0 - percentage;
+  DataType lower_bound = -1.0 + percentage;
+  DataType* face_normal = Variable(FACE_NORMAL);
+  DataType node_position[4][3];
+  DataType node_normal[4][3];
+  DataType contact_point[3];
+  DataType coords[2];
   bool smooth_edge0,smooth_edge1;
-  Real curvature0,curvature1;
+  DataType curvature0,curvature1;
 
   coords[0] = coordinates[0];
   coords[1] = coordinates[1];
@@ -1062,7 +1121,7 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     //  2-------------------3
     //
 
-    if( fabs(GetEdgeCurvature(0)) > critical_curvature) {
+    if( abs(GetEdgeCurvature(0)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1111,7 +1170,7 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     //  |  |
     //  1--2
     //
-    if(fabs(GetEdgeCurvature(1)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(1)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1156,7 +1215,7 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     //  |        D          |
     //  0-------------------1
     //
-    if(fabs(GetEdgeCurvature(2)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(2)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1205,7 +1264,7 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     //  |  |
     //  3--0
     //
-    if(fabs(GetEdgeCurvature(3)) > critical_curvature) {
+    if(abs(GetEdgeCurvature(3)) > critical_curvature) {
       // No smoothing is needed
       smooth_normal[0] = face_normal[0];
       smooth_normal[1] = face_normal[1];
@@ -1252,8 +1311,8 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(0);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1324,8 +1383,8 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(1);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1396,8 +1455,8 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(2);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1468,8 +1527,8 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
     curvature1 = GetEdgeCurvature(3);
     smooth_edge0 = true;
     smooth_edge1 = true;
-    if( fabs(curvature0)>critical_curvature) smooth_edge0 = false;
-    if( fabs(curvature1)>critical_curvature) smooth_edge1 = false;
+    if( abs(curvature0)>critical_curvature) smooth_edge0 = false;
+    if( abs(curvature1)>critical_curvature) smooth_edge1 = false;
     if( !smooth_edge0 && !smooth_edge1 ){
       // No smoothing is needed along either edge, so return the face normal
       smooth_normal[0] = face_normal[0];
@@ -1531,7 +1590,7 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
   }
 
   // Compute Contact Point in sub area
-  Real local_coords[3];
+  DataType local_coords[3];
   Compute_Local_Coords( node_position, contact_point,
 			&(local_coords[0]));
 
@@ -1540,10 +1599,10 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
 				  smooth_normal );
 
   // Now make smooth_normal a unit vector
-  Real Mag = smooth_normal[0]*smooth_normal[0] + 
+  DataType Mag = smooth_normal[0]*smooth_normal[0] + 
              smooth_normal[1]*smooth_normal[1] +
              smooth_normal[2]*smooth_normal[2];
-  Mag = std::sqrt(Mag);
+  Mag = sqrt(Mag);
   if( Mag > 0.0){
     Mag = 1.0/Mag;
     smooth_normal[0] *= Mag;
@@ -1552,21 +1611,22 @@ void ContactQuadFaceL4::Smooth_Normal( VariableHandle CURRENT_POSITION,
   }
 }
 
-void ContactQuadFaceL4:: Compute_Node_Areas( VariableHandle POSITION, 
+template<typename DataType>
+void ContactQuadFaceL4<DataType>:: Compute_Node_Areas( VariableHandle POSITION, 
                                              VariableHandle FACE_NORMAL,
-                                             Real* node_areas )
+                                             DataType* node_areas )
 {
   // Get the Nodal Positions
-  Real* pos_0 = Node(0)->Variable( POSITION );
-  Real* pos_1 = Node(1)->Variable( POSITION );
-  Real* pos_2 = Node(2)->Variable( POSITION );
-  Real* pos_3 = Node(3)->Variable( POSITION );
+  DataType* pos_0 = Node(0)->Variable( POSITION );
+  DataType* pos_1 = Node(1)->Variable( POSITION );
+  DataType* pos_2 = Node(2)->Variable( POSITION );
+  DataType* pos_3 = Node(3)->Variable( POSITION );
 
   // Get the face normal
-  Real* fnorm = Variable( FACE_NORMAL );
+  DataType* fnorm = Variable( FACE_NORMAL );
 
   // Compute vectors between nodes
-  Real vec_0_1[3], vec_2_1[3], vec_2_3[3], vec_3_0[3], vec_0_2[3], vec_3_1[3];
+  DataType vec_0_1[3], vec_2_1[3], vec_2_3[3], vec_3_0[3], vec_0_2[3], vec_3_1[3];
   vec_0_1[0] = pos_1[0] - pos_0[0];
   vec_0_1[1] = pos_1[1] - pos_0[1];
   vec_0_1[2] = pos_1[2] - pos_0[2];
@@ -1587,7 +1647,7 @@ void ContactQuadFaceL4:: Compute_Node_Areas( VariableHandle POSITION,
   vec_3_1[2] = pos_1[2] - pos_3[2];
 
   // Compute three inward normals
-  Real s1[3], s2[3], s3[3];
+  DataType s1[3], s2[3], s3[3];
   s1[0] = 3.0 * ( vec_0_2[2]*vec_3_1[1] - vec_0_2[1]*vec_3_1[2] );
   s1[1] = 3.0 * ( vec_0_2[0]*vec_3_1[2] - vec_0_2[2]*vec_3_1[0] );
   s1[2] = 3.0 * ( vec_0_2[1]*vec_3_1[0] - vec_0_2[0]*vec_3_1[1] );
@@ -1599,7 +1659,7 @@ void ContactQuadFaceL4:: Compute_Node_Areas( VariableHandle POSITION,
   s3[2] = vec_3_0[1]*vec_2_1[0] - vec_3_0[0]*vec_2_1[1];
 
   // Compute the nodal areas
-  Real v0[3], v1[3], v2[3], v3[3];
+  DataType v0[3], v1[3], v2[3], v3[3];
   v0[0] =   s1[0] - s2[0] - s3[0]; 
   v0[1] =   s1[1] - s2[1] - s3[1]; 
   v0[2] =   s1[2] - s2[2] - s3[2]; 
@@ -1619,22 +1679,25 @@ void ContactQuadFaceL4:: Compute_Node_Areas( VariableHandle POSITION,
   node_areas[3] = (v3[0]*fnorm[0] + v3[1]*fnorm[1] + v3[2]*fnorm[2] ) / 24.0;
 }
 
-int ContactQuadFaceL4::FaceEdge_Intersection(VariableHandle POSITION,
-                                             ContactEdge* edge, Real* coords)
+template<typename DataType>
+int ContactQuadFaceL4<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
+                                             ContactEdge<DataType>* edge, DataType* coords)
 {
+  using std::sqrt;
+  using std::abs;
   int intersection=0;
 #if 0
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
-  std::cerr << "ContactQuadFaceL4::FaceEdge_Intersection not yet implemented\n";
+  std::cerr << "ContactQuadFaceL4<DataType>::FaceEdge_Intersection not yet implemented\n";
 #endif
   POSTCONDITION( 0 );
   return intersection;
 #else
   // first do a bounding box check
   int i, j;
-  Real edge_min[3], edge_max[3];
-  Real face_min[3], face_max[3];
-  Real* node_position = Node(0)->Variable(POSITION);
+  DataType edge_min[3], edge_max[3];
+  DataType face_min[3], face_max[3];
+  DataType* node_position = Node(0)->Variable(POSITION);
   for (j=0; j<3; ++j) {
     face_min[j] = node_position[j];
     face_max[j] = node_position[j];
@@ -1664,34 +1727,36 @@ int ContactQuadFaceL4::FaceEdge_Intersection(VariableHandle POSITION,
        edge_max[2]<face_min[2] )  return intersection;
   
   // Compute edge ray
-  Real dir_mag=0.0;
-  Real edge_pnt[3];
-  Real edge_dir[3];
-  Real* edge_node_position0 = edge->Node(0)->Variable(POSITION);
-  Real* edge_node_position1 = edge->Node(1)->Variable(POSITION);
+  DataType dir_mag=0.0;
+  DataType edge_pnt[3];
+  DataType edge_dir[3];
+  DataType* edge_node_position0 = edge->Node(0)->Variable(POSITION);
+  DataType* edge_node_position1 = edge->Node(1)->Variable(POSITION);
   for (j=0; j<3; ++j) {
     edge_pnt[j] = edge_node_position0[j];
     edge_dir[j] = edge_node_position1[j]-edge_node_position0[j];
     dir_mag += edge_dir[j]*edge_dir[j];
   }
-  dir_mag = 1.0/std::sqrt(dir_mag);
+  dir_mag = 1.0/sqrt(dir_mag);
   edge_dir[0] *= dir_mag;
   edge_dir[1] *= dir_mag;
   edge_dir[2] *= dir_mag;
-  Real tmax;
-  if (std::fabs(edge_dir[0])>=std::fabs(edge_dir[1]) && std::fabs(edge_dir[0])>=std::fabs(edge_dir[2])) {
+  DataType tmax;
+  if (abs(edge_dir[0])>=abs(edge_dir[1]) && abs(edge_dir[0])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[0]-edge_node_position0[0])/edge_dir[0];
   } else
-  if (std::fabs(edge_dir[1])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[1])>=std::fabs(edge_dir[2])) {
+  if (abs(edge_dir[1])>=abs(edge_dir[0]) && abs(edge_dir[1])>=abs(edge_dir[2])) {
     tmax = (edge_node_position1[1]-edge_node_position0[1])/edge_dir[1];
   } else
-  if (std::fabs(edge_dir[2])>=std::fabs(edge_dir[0]) && std::fabs(edge_dir[2])>=std::fabs(edge_dir[1])) {
+  if (abs(edge_dir[2])>=abs(edge_dir[0]) && abs(edge_dir[2])>=abs(edge_dir[1])) {
     tmax = (edge_node_position1[2]-edge_node_position0[2])/edge_dir[2];
   }
+/*
   tmax *= 1.05;
+*/
   
   // subdivide the q4 into four tri3's
-  Real center[3];
+  DataType center[3];
   center[0] = center[1] = center[2] = 0.0;
   for (i=0; i<Nodes_Per_Face(); ++i) {
     node_position = Node(i)->Variable(POSITION);
@@ -1706,34 +1771,34 @@ int ContactQuadFaceL4::FaceEdge_Intersection(VariableHandle POSITION,
   for (i=0; i<4; ++i) {
     int p0 = i;
     int p1 = (i+1)%4;
-    Real* node_position0 = center;
-    Real* node_position1 = Node(p0)->Variable(POSITION);
-    Real* node_position2 = Node(p1)->Variable(POSITION);
+    DataType* node_position0 = center;
+    DataType* node_position1 = Node(p0)->Variable(POSITION);
+    DataType* node_position2 = Node(p1)->Variable(POSITION);
     // compute normal of tri3
-    Real normal[3], n_mag;
-    Real dx1  = node_position1[0] - node_position0[0];
-    Real dy1  = node_position1[1] - node_position0[1];
-    Real dz1  = node_position1[2] - node_position0[2];
-    Real dx2  = node_position2[0] - node_position0[0];
-    Real dy2  = node_position2[1] - node_position0[1];
-    Real dz2  = node_position2[2] - node_position0[2];
+    DataType normal[3], n_mag;
+    DataType dx1  = node_position1[0] - node_position0[0];
+    DataType dy1  = node_position1[1] - node_position0[1];
+    DataType dz1  = node_position1[2] - node_position0[2];
+    DataType dx2  = node_position2[0] - node_position0[0];
+    DataType dy2  = node_position2[1] - node_position0[1];
+    DataType dz2  = node_position2[2] - node_position0[2];
     normal[0] = dy1*dz2-dz1*dy2;
     normal[1] = dz1*dx2-dx1*dz2;
     normal[2] = dx1*dy2-dy1*dx2;
-    n_mag     = 1.0/std::sqrt(normal[0]*normal[0]+
-                              normal[1]*normal[1]+
-                              normal[2]*normal[2]);
+    n_mag     = 1.0/sqrt(normal[0]*normal[0]+
+                         normal[1]*normal[1]+
+                         normal[2]*normal[2]);
     normal[0] *= n_mag;
     normal[1] *= n_mag;
     normal[2] *= n_mag;
   
     // determine (edge ray)/(face plane) intersection
-    Real n_dot_d = normal[0]*edge_dir[0] +
+    DataType n_dot_d = normal[0]*edge_dir[0] +
                    normal[1]*edge_dir[1] +
                    normal[2]*edge_dir[2];
     // if (edge ray) and (tri3 plane) are parallel => no intersection
-    if (std::fabs(n_dot_d)<1.0e-10) continue;
-    Real q[3], P[3], t;
+    if (abs(n_dot_d)<1.0e-10) continue;
+    DataType q[3], P[3], t;
     q[0] = node_position0[0]-edge_pnt[0];
     q[1] = node_position0[1]-edge_pnt[1];
     q[2] = node_position0[2]-edge_pnt[2];
@@ -1744,10 +1809,10 @@ int ContactQuadFaceL4::FaceEdge_Intersection(VariableHandle POSITION,
     P[2] = edge_pnt[2] + edge_dir[2]*t;
  
     // now determine if this point is inside the face
-    Real u0, u1, u2, v0, v1, v2;
-    Real nx = normal[0]*normal[0];
-    Real ny = normal[1]*normal[1];
-    Real nz = normal[2]*normal[2];
+    DataType u0, u1, u2, v0, v1, v2;
+    DataType nx = normal[0]*normal[0];
+    DataType ny = normal[1]*normal[1];
+    DataType nz = normal[2]*normal[2];
     if (nx>=ny && nx>=nz) {
       u0 = P[1] - node_position0[1];
       v0 = P[2] - node_position0[2];
@@ -1775,7 +1840,7 @@ int ContactQuadFaceL4::FaceEdge_Intersection(VariableHandle POSITION,
     /*==========================================*/
     /* BEGIN BARYCENTRIC INTERSECTION ALGORITHM */
     /*==========================================*/
-    Real alpha, beta;
+    DataType alpha, beta;
     if (u1!=0.0)    {  /* common case */
         beta = (v0*u1 - u0*v1)/(v2*u1 - u2*v1);
         if ((beta>=0.0) && (beta<=1.0)) {
@@ -1801,11 +1866,11 @@ c
 c now improve on the estimate with a tangent constructed at the 
 c estimated intersection
   int max_iterations = 200;
-  Real  J[3][3], invJ[3][3];
-  Real* node_position0 = Node(0)->Variable(POSITION);
-  Real* node_position1 = Node(1)->Variable(POSITION);
-  Real* node_position2 = Node(2)->Variable(POSITION);
-  Real* node_position3 = Node(3)->Variable(POSITION);
+  DataType  J[3][3], invJ[3][3];
+  DataType* node_position0 = Node(0)->Variable(POSITION);
+  DataType* node_position1 = Node(1)->Variable(POSITION);
+  DataType* node_position2 = Node(2)->Variable(POSITION);
+  DataType* node_position3 = Node(3)->Variable(POSITION);
 
   J[0][0] = edge_node_position0[0]-edge_node_position1[0];
   J[1][0] = edge_node_position0[1]-edge_node_position1[1];
@@ -1840,10 +1905,10 @@ c estimated intersection
 
 
   
-  Real detJ  =  J[0][0]*J[1][1]*J[2][2]-J[1][1]*J[2][1]-
+  DataType detJ  =  J[0][0]*J[1][1]*J[2][2]-J[1][1]*J[2][1]-
                 J[0][1]*J[1][0]*J[2][2]-J[2][0]*J[1][2]+
                 J[0][2]*J[1][0]*J[2][1]-J[2][0]*J[1][1];
-  Real detJI = 1.0/detJ;
+  DataType detJI = 1.0/detJ;
                 
   invJ[0][0] =  (J[1][1]*J[2][2]-J[1][2]*J[2][1])*detJI;
   invJ[0][1] = -(J[0][1]*J[2][2]-J[2][1]*J[0][2])*detJI;
@@ -2041,19 +2106,21 @@ c
 #endif
 }
 
-void ContactQuadFaceL4::Evaluate_Shape_Functions( Real* local_coords,
-						  Real* shape_functions )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Evaluate_Shape_Functions( DataType* local_coords,
+						  DataType* shape_functions )
 {
   Compute_Shape_Functions(local_coords, shape_functions);
 }
 
-void ContactQuadFaceL4::Compute_Global_Coordinates( VariableHandle POSITION,
-						    Real* local_coords,
-						    Real* global_coords )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Global_Coordinates( VariableHandle POSITION,
+						    DataType* local_coords,
+						    DataType* global_coords )
 {
-  Real node_positions[4][3];
+  DataType node_positions[4][3];
   for(int i=0; i<4; ++i ){
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     for (int j=0; j<3; ++j) {
       node_positions[i][j] = node_position[j];
     }
@@ -2061,34 +2128,35 @@ void ContactQuadFaceL4::Compute_Global_Coordinates( VariableHandle POSITION,
   Compute_Global_Coords(node_positions, local_coords, global_coords);
 }
 
-void ContactQuadFaceL4::Compute_Local_Coordinates( Real Config_Param,
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Local_Coordinates( DataType Config_Param,
 					           VariableHandle POSITION0, 
 					           VariableHandle POSITION1, 
 						   VariableHandle FACE_NORMAL,
-						   Real* global_coords,
-						   Real* local_coords )
+						   DataType* global_coords,
+						   DataType* local_coords )
 {
   int i, j;
-  Real node_positions[4][3];
+  DataType node_positions[4][3];
   if (Config_Param == 0.0) {
     for (i=0; i<Nodes_Per_Face(); ++i) {
-      Real* node_position = Node(i)->Variable(POSITION0);
+      DataType* node_position = Node(i)->Variable(POSITION0);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = node_position[j];
       }
     }
   } else if (Config_Param == 1.0) {
     for (i=0; i<Nodes_Per_Face(); ++i) {
-      Real* node_position = Node(i)->Variable(POSITION1);
+      DataType* node_position = Node(i)->Variable(POSITION1);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = node_position[j];
       }
     }
   } else {
-    Real alpha = 1.0 - Config_Param, beta = Config_Param;
+    DataType alpha = 1.0 - Config_Param, beta = Config_Param;
     for (i=0; i<Nodes_Per_Face(); ++i) {
-      Real* node_position0 = Node(i)->Variable(POSITION0);
-      Real* node_position1 = Node(i)->Variable(POSITION1);
+      DataType* node_position0 = Node(i)->Variable(POSITION0);
+      DataType* node_position1 = Node(i)->Variable(POSITION1);
       for (j=0; j<3; ++j) {
         node_positions[i][j] = alpha*node_position0[j]+beta*node_position1[j];
       }
@@ -2097,14 +2165,15 @@ void ContactQuadFaceL4::Compute_Local_Coordinates( Real Config_Param,
   Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
-void ContactQuadFaceL4::Compute_Local_Coordinates( VariableHandle POSITION,
-						   Real* global_coords,
-						   Real* local_coords )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
+						   DataType* global_coords,
+						   DataType* local_coords )
 {
   int i, j;
-  Real node_positions[4][3];
+  DataType node_positions[4][3];
   for (i=0; i<Nodes_Per_Face(); ++i) {
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     for (j=0; j<3; ++j) {
       node_positions[i][j] = node_position[j];
     }
@@ -2123,8 +2192,9 @@ void ContactQuadFaceL4::Compute_Local_Coordinates( VariableHandle POSITION,
 /*************************************************************************/
 /*************************************************************************/
 
-void ContactQuadFaceL4::Compute_Shape_Functions( Real* local_coords,
-						 Real* shape_functions )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Shape_Functions( DataType* local_coords,
+						 DataType* shape_functions )
 {
   shape_functions[0] = 0.25*(1.0-local_coords[0])*(1.0-local_coords[1]);
   shape_functions[1] = 0.25*(1.0+local_coords[0])*(1.0-local_coords[1]);
@@ -2132,8 +2202,9 @@ void ContactQuadFaceL4::Compute_Shape_Functions( Real* local_coords,
   shape_functions[3] = 0.25*(1.0-local_coords[0])*(1.0+local_coords[1]);
 }
 
-void ContactQuadFaceL4::Compute_Shape_Derivatives( Real* local_coords,
-						   Real shape_derivs[2][4] )
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Shape_Derivatives( DataType* local_coords,
+						   DataType shape_derivs[2][4] )
 {
   shape_derivs[0][0] = -0.25*(1.0-local_coords[1]);
   shape_derivs[0][1] =  0.25*(1.0-local_coords[1]);
@@ -2146,30 +2217,36 @@ void ContactQuadFaceL4::Compute_Shape_Derivatives( Real* local_coords,
   shape_derivs[1][3] =  0.25*(1.0-local_coords[0]);
 }
 
+template<typename DataType>
 void 
-ContactQuadFaceL4::Compute_Local_Coords( Real node_positions[MAX_NODES_PER_FACE][3], 
-					 Real global_coords[3],
-					 Real local_coords[3] )
+ContactQuadFaceL4<DataType>::Compute_Local_Coords( DataType node_positions[MAX_NODES_PER_FACE][3], 
+					 DataType global_coords[3],
+					 DataType local_coords[3] )
 {
   Compute_Quad_Local_Coords(node_positions, global_coords, local_coords);
 }
 
+template<typename DataType>
 void 
-ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_FACE][3], 
-					 Real global_coords[3],
-					 Real local_coords[3] )
+ContactQuadFaceL4<DataType>::Compute_Quad_Local_Coords( DataType node_positions[MAX_NODES_PER_FACE][3], 
+					 DataType global_coords[3],
+					 DataType local_coords[3] )
 {
+  using std::sqrt;
+  using std::abs;
+  using std::min;
+  using std::max;
   int  i, j;
   int  nnodes=4;
-  Real spatial_tolerance = 1.0e-10;
+  DataType spatial_tolerance = 1.0e-10;
   //
   // check for coincidence with one of the face nodes
   //
   for (i=0; i<nnodes; ++i) {
-    Real dx = node_positions[i][0]-global_coords[0];
-    Real dy = node_positions[i][1]-global_coords[1];
-    Real dz = node_positions[i][2]-global_coords[2];
-    Real d  = std::sqrt(dx*dx+dy*dy+dz*dz);
+    DataType dx = node_positions[i][0]-global_coords[0];
+    DataType dy = node_positions[i][1]-global_coords[1];
+    DataType dz = node_positions[i][2]-global_coords[2];
+    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
     if (d<spatial_tolerance) break;
   }
   switch (i) {
@@ -2201,11 +2278,11 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
   int  iterations=0;
   int  max_iterations=500;
   bool converged = false;
-  Real tolerance = 1.0e-12;
-  Real s, s0=0.0, s1, ds=0.0; 
-  Real t, t0=0.0, t1, dt=0.0;
-  Real coords[3];
-  Real J[3][2], f[3], shape_derivatives[2][4];
+  DataType tolerance = 1.0e-12;
+  DataType s, s0=0.0, s1, ds=0.0; 
+  DataType t, t0=0.0, t1, dt=0.0;
+  DataType coords[3];
+  DataType J[3][2], f[3], shape_derivatives[2][4];
   
   while (!converged && iterations<max_iterations) {
     coords[0] = s0;
@@ -2223,7 +2300,7 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
         J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
       }
     }
-    Real JT[2][3];
+    DataType JT[2][3];
     JT[0][0] = J[0][0];
     JT[0][1] = J[1][0];
     JT[0][2] = J[2][0];
@@ -2231,14 +2308,14 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
     JT[1][1] = J[1][1];
     JT[1][2] = J[2][1];
     
-    Real JTJ[2][2];
+    DataType JTJ[2][2];
     JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
     JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
     JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
     JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
     
-    Real invJTJ[2][2];
-    Real detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+    DataType invJTJ[2][2];
+    DataType detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
     invJTJ[0][0] =  JTJ[1][1]*detJTJ;
     invJTJ[0][1] = -JTJ[0][1]*detJTJ;
     invJTJ[1][0] = -JTJ[1][0]*detJTJ;
@@ -2246,16 +2323,16 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
 
     // APPLY NEWTON ALGORITHM
 
-    Real dx = f[0]-global_coords[0];
-    Real dy = f[1]-global_coords[1];
-    Real dz = f[2]-global_coords[2];
+    DataType dx = f[0]-global_coords[0];
+    DataType dy = f[1]-global_coords[1];
+    DataType dz = f[2]-global_coords[2];
     s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
     t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
     
     s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
     t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
-    ds = std::fabs(s1-s0);
-    dt = std::fabs(t1-t0);
+    ds = abs(s1-s0);
+    dt = abs(t1-t0);
     s0 = s1;
     t0 = t1;
     if (ds<tolerance && dt<tolerance) converged = true;
@@ -2263,36 +2340,37 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
   }
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   if (!converged) {
-    std::cerr << "ContactQuadFaceL4::Compute_Local_Coords() did not converge" 
-	 << std::endl;
+    std::cerr << "ContactQuadFaceL4<DataType>::Compute_Local_Coords() did not converge" 
+	      << std::endl;
     std::cerr << "  Computing Coordinates for point (" << global_coords[0]
-	 << "," << global_coords[1] << "," << global_coords[2] << ")"
-	 << std::endl;
+	      << "," << global_coords[1] << "," << global_coords[2] << ")"
+	      << std::endl;
     std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0] 
-	 << "," << node_positions[0][1] << "," << node_positions[0][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[0][1] << "," << node_positions[0][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[1][0] 
-	 << "," << node_positions[1][1] << "," << node_positions[1][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[1][1] << "," << node_positions[1][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[2][0] 
-	 << "," << node_positions[2][1] << "," << node_positions[2][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[2][1] << "," << node_positions[2][2]
+	      << ")" << std::endl;
     std::cerr << "                            (" << node_positions[3][0] 
-	 << "," << node_positions[3][1] << "," << node_positions[3][2]
-	 << ")" << std::endl;
+	      << "," << node_positions[3][1] << "," << node_positions[3][2]
+	      << ")" << std::endl;
     std::cerr << "  After " << iterations << "iterations, local_coords = ("
-	 << s0 << "," << t0 << ")" << std::endl;
+	      << s0 << "," << t0 << ")" << std::endl;
     std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
   }
 #endif
+  POSTCONDITION(converged);
   // If it's close to any of the edges, snap to it
-  if (std::fabs(s0)<1.0+spatial_tolerance) {
-    s0 = std::min(s0, 1.0);
-    s0 = std::max(s0,-1.0);
+  if (abs(s0)<1.0+spatial_tolerance) {
+    s0 = min(s0, 1.0);
+    s0 = max(s0,-1.0);
   }
-  if (std::fabs(t0)<1.0+spatial_tolerance) {
-    t0 = std::min(t0, 1.0);
-    t0 = std::max(t0,-1.0);
+  if (abs(t0)<1.0+spatial_tolerance) {
+    t0 = min(t0, 1.0);
+    t0 = max(t0,-1.0);
   }
   local_coords[0] = s0;
   local_coords[1] = t0;
@@ -2300,11 +2378,255 @@ ContactQuadFaceL4::Compute_Quad_Local_Coords( Real node_positions[MAX_NODES_PER_
   
 }
 
-void ContactQuadFaceL4::Compute_Global_Coords( Real node_positions[4][3],
-					       Real local_coords[2],
-					       Real global_coords[3] )
+#if (MAX_FFI_DERIVATIVES > 0)
+template<>
+inline void 
+ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_node_positions[MAX_NODES_PER_FACE][3], 
+			 		 ActiveScalar active_global_coords[3],
+					 ActiveScalar active_local_coords[3] )
 {
-  Real N[4];
+  int  i, j;
+  const int  nnodes=4;
+
+  double node_positions[nnodes][3], global_coords[3], local_coords[3];
+  for(i=0; i<3; ++i) {
+    global_coords[i] = GetActiveScalarValue(active_global_coords[i]);
+    for(j=0; j<nnodes; ++j)
+      node_positions[j][i] = GetActiveScalarValue(active_node_positions[j][i]);
+  }
+
+  using std::sqrt;
+  using std::abs;
+  using std::min;
+  using std::max;
+
+  double spatial_tolerance = 1.0e-10;
+  //
+  // check for coincidence with one of the face nodes
+  //
+  for (i=0; i<nnodes; ++i) {
+    double dx = node_positions[i][0]-global_coords[0];
+    double dy = node_positions[i][1]-global_coords[1];
+    double dz = node_positions[i][2]-global_coords[2];
+    double d  = sqrt(dx*dx+dy*dy+dz*dz);
+    if (d<spatial_tolerance) break;
+  }
+  switch (i) {
+  case 0:
+    local_coords[0] = -1.0;
+    local_coords[1] = -1.0;
+    break;
+  case 1:
+    local_coords[0] =  1.0;
+    local_coords[1] = -1.0;
+    break;
+  case 2:
+    local_coords[0] =  1.0;
+    local_coords[1] =  1.0;
+    break;
+  case 3:
+    local_coords[0] = -1.0;
+    local_coords[1] =  1.0;
+    break;
+  }
+  if (i<nnodes) {
+    local_coords[2] = 0.0;
+  }
+  else {
+    //
+    // use newton's method to iterate (values only)
+    //
+    int  iterations=0;
+    int  max_iterations=500;
+    bool converged = false;
+    double tolerance = 1.0e-12;
+    double s, s0=0.0, s1, ds=0.0; 
+    double t, t0=0.0, t1, dt=0.0;
+    double J[3][2], f[3], shape_derivatives[2][4], shape_functions[4];
+    double JT[2][3], JTJ[2][2], invJTJ[2][2];
+  
+    while (!converged && iterations<max_iterations) {
+      local_coords[0] = s0;
+      local_coords[1] = t0;
+
+      // BUILD JACOBIAN AND INVERT
+      shape_derivatives[0][0] = -0.25*(1.0-local_coords[1]);
+      shape_derivatives[0][1] =  0.25*(1.0-local_coords[1]);
+      shape_derivatives[0][2] =  0.25*(1.0+local_coords[1]);
+      shape_derivatives[0][3] = -0.25*(1.0+local_coords[1]);
+  
+      shape_derivatives[1][0] = -0.25*(1.0-local_coords[0]);
+      shape_derivatives[1][1] = -0.25*(1.0+local_coords[0]);
+      shape_derivatives[1][2] =  0.25*(1.0+local_coords[0]);
+      shape_derivatives[1][3] =  0.25*(1.0-local_coords[0]);
+
+      for (i=0; i<2; ++i) {
+        J[0][i] = 0.0;
+        J[1][i] = 0.0;
+        J[2][i] = 0.0;
+        for (j=0; j<nnodes; ++j) {
+          J[0][i] += shape_derivatives[i][j]*node_positions[j][0];
+          J[1][i] += shape_derivatives[i][j]*node_positions[j][1];
+          J[2][i] += shape_derivatives[i][j]*node_positions[j][2];
+        }
+      }
+      JT[0][0] = J[0][0];
+      JT[0][1] = J[1][0];
+      JT[0][2] = J[2][0];
+      JT[1][0] = J[0][1];
+      JT[1][1] = J[1][1];
+      JT[1][2] = J[2][1];
+    
+      JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
+      JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
+      JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
+      JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
+    
+      double detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+      invJTJ[0][0] =  JTJ[1][1]*detJTJ;
+      invJTJ[0][1] = -JTJ[0][1]*detJTJ;
+      invJTJ[1][0] = -JTJ[1][0]*detJTJ;
+      invJTJ[1][1] =  JTJ[0][0]*detJTJ;
+
+      // APPLY NEWTON ALGORITHM
+      shape_functions[0] = 0.25*(1.0-local_coords[0])*(1.0-local_coords[1]);
+      shape_functions[1] = 0.25*(1.0+local_coords[0])*(1.0-local_coords[1]);
+      shape_functions[2] = 0.25*(1.0+local_coords[0])*(1.0+local_coords[1]);
+      shape_functions[3] = 0.25*(1.0-local_coords[0])*(1.0+local_coords[1]);
+      f[0] = 0.0;
+      f[1] = 0.0;
+      f[2] = 0.0;
+      for( int i=0 ; i<nnodes ; ++i ){
+        for (int j=0; j<3; ++j) {
+          f[j] += shape_functions[i]*node_positions[i][j];
+        }
+      }
+
+      double dx = f[0]-global_coords[0];
+      double dy = f[1]-global_coords[1];
+      double dz = f[2]-global_coords[2];
+      s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+      t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    
+      s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+      t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+      ds = abs(s1-s0);
+      dt = abs(t1-t0);
+      s0 = s1;
+      t0 = t1;
+      if (ds<tolerance && dt<tolerance) converged = true;
+      ++iterations;
+    }
+    if(!converged) { // in this case assume we are just testing to see if the point is inside the element and 
+                     // the derivatives are not actually required
+      active_local_coords[0] = s0;
+      active_local_coords[1] = t0;
+      active_local_coords[2] = 0.0;
+      return;
+    }
+  }
+
+  //
+  // use newton's method to iterate, starting from solution of previous solve so only one iteration will be required
+  //
+  int  iterations=0;
+  int  max_iterations=500;
+  bool converged = false;
+  ActiveScalar tolerance = 1.0e-12;
+  ActiveScalar s, s0=local_coords[0], s1, ds=0.0; 
+  ActiveScalar t, t0=local_coords[1], t1, dt=0.0;
+  ActiveScalar J[3][2], f[3], shape_derivatives[2][4];
+  ActiveScalar JT[2][3], JTJ[2][2], invJTJ[2][2];
+  
+  while (!converged && iterations<max_iterations) {
+    active_local_coords[0] = s0;
+    active_local_coords[1] = t0;
+
+    // BUILD JACOBIAN AND INVERT
+    Compute_Shape_Derivatives(active_local_coords, shape_derivatives);
+    for (i=0; i<2; ++i) {
+      J[0][i] = 0.0;
+      J[1][i] = 0.0;
+      J[2][i] = 0.0;
+      for (j=0; j<nnodes; ++j) {
+        J[0][i] += shape_derivatives[i][j]*active_node_positions[j][0];
+        J[1][i] += shape_derivatives[i][j]*active_node_positions[j][1];
+        J[2][i] += shape_derivatives[i][j]*active_node_positions[j][2];
+      }
+    }
+    JT[0][0] = J[0][0];
+    JT[0][1] = J[1][0];
+    JT[0][2] = J[2][0];
+    JT[1][0] = J[0][1];
+    JT[1][1] = J[1][1];
+    JT[1][2] = J[2][1];
+    
+    JTJ[0][0] = JT[0][0]*J[0][0] + JT[0][1]*J[1][0] + JT[0][2]*J[2][0];
+    JTJ[0][1] = JT[0][0]*J[0][1] + JT[0][1]*J[1][1] + JT[0][2]*J[2][1];
+    JTJ[1][0] = JT[1][0]*J[0][0] + JT[1][1]*J[1][0] + JT[1][2]*J[2][0];
+    JTJ[1][1] = JT[1][0]*J[0][1] + JT[1][1]*J[1][1] + JT[1][2]*J[2][1];
+    
+    ActiveScalar detJTJ  = 1.0/(JTJ[0][0]*JTJ[1][1]-JTJ[0][1]*JTJ[1][0]);
+    invJTJ[0][0] =  JTJ[1][1]*detJTJ;
+    invJTJ[0][1] = -JTJ[0][1]*detJTJ;
+    invJTJ[1][0] = -JTJ[1][0]*detJTJ;
+    invJTJ[1][1] =  JTJ[0][0]*detJTJ;
+
+    // APPLY NEWTON ALGORITHM
+    Compute_Global_Coords( active_node_positions, active_local_coords, f );
+    ActiveScalar dx = f[0]-active_global_coords[0];
+    ActiveScalar dy = f[1]-active_global_coords[1];
+    ActiveScalar dz = f[2]-active_global_coords[2];
+    s = JT[0][0]*dx + JT[0][1]*dy + JT[0][2]*dz;
+    t = JT[1][0]*dx + JT[1][1]*dy + JT[1][2]*dz;
+    
+    s1 = s0-(invJTJ[0][0]*s+invJTJ[0][1]*t);
+    t1 = t0-(invJTJ[1][0]*s+invJTJ[1][1]*t);
+    ds = abs(s1-s0);
+    dt = abs(t1-t0);
+    s0 = s1;
+    t0 = t1;
+    if (ds<tolerance && dt<tolerance) converged = true;
+    ++iterations;
+  }
+#if CONTACT_DEBUG_PRINT_LEVEL>=2
+  if (!converged) {
+    std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge"
+              << std::endl;
+    std::cerr << "  Computing Coordinates for point (" << global_coords[0]
+              << "," << global_coords[1] << "," << global_coords[2] << ")"
+              << std::endl;
+    std::cerr << "  Face Nodal Coordinates:   (" << node_positions[0][0]
+              << "," << node_positions[0][1] << "," << node_positions[0][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[1][0]
+              << "," << node_positions[1][1] << "," << node_positions[1][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[2][0]
+              << "," << node_positions[2][1] << "," << node_positions[2][2]
+              << ")" << std::endl;
+    std::cerr << "                            (" << node_positions[3][0]
+              << "," << node_positions[3][1] << "," << node_positions[3][2]
+              << ")" << std::endl;
+    std::cerr << "  After " << iterations << "iterations, local_coords = ("
+              << s0 << "," << t0 << ")" << std::endl;
+    std::cerr << "  Going to continuing processing anyway!!!" << std::endl;
+  }
+#endif
+  POSTCONDITION(converged);
+
+  active_local_coords[0] = s0;
+  active_local_coords[1] = t0;
+  active_local_coords[2] = 0.0;
+}
+#endif
+
+template<typename DataType>
+void ContactQuadFaceL4<DataType>::Compute_Global_Coords( DataType node_positions[4][3],
+					       DataType local_coords[2],
+					       DataType global_coords[3] )
+{
+  DataType N[4];
   int  nnodes=4;
   global_coords[0] = 0.0;
   global_coords[1] = 0.0;
@@ -2317,11 +2639,12 @@ void ContactQuadFaceL4::Compute_Global_Coords( Real node_positions[4][3],
   }
 }
 
-void  ContactQuadFaceL4::Interpolate_Scalar( Real  local_coords[2],
-					     Real  node_scalars[4],
-					     Real& interpolated_scalar )
+template<typename DataType>
+void  ContactQuadFaceL4<DataType>::Interpolate_Scalar( DataType  local_coords[2],
+					     DataType  node_scalars[4],
+					     DataType& interpolated_scalar )
 {
-  Real N[4];
+  DataType N[4];
   int  nnodes=4;
   interpolated_scalar = 0.0;
   Compute_Shape_Functions(local_coords, N);
@@ -2330,11 +2653,12 @@ void  ContactQuadFaceL4::Interpolate_Scalar( Real  local_coords[2],
   }
 }
 
-void  ContactQuadFaceL4::Interpolate_Vector( Real local_coords[2],
-					     Real node_vectors[4][3],
-					     Real interpolated_vector[3] )
+template<typename DataType>
+void  ContactQuadFaceL4<DataType>::Interpolate_Vector( DataType local_coords[2],
+					     DataType node_vectors[4][3],
+					     DataType interpolated_vector[3] )
 {
-  Real N[4];
+  DataType N[4];
   int  nnodes=4;
   interpolated_vector[0] = 0.0;
   interpolated_vector[1] = 0.0;
@@ -2346,3 +2670,5 @@ void  ContactQuadFaceL4::Interpolate_Vector( Real local_coords[2],
     }
   }
 }
+
+#endif  // #define ContactQuadFaceL4_C_

@@ -17,6 +17,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
     // for lagrange multipliers method set prop->lagrangeMult to true and prop->penalty to 0
     // for penalty method set prop->lagrangeMult to false and prop->penalty to some large number
     // for augmented lagrangian method set prop->lagrangeMult to true and prop->penalty to some large number
+    std::map<int,std::vector<int> > rotation_indices;
+    std::map<int,std::vector<double> > rotation_coefs;
 
     void addTerms(DofSet);
     void addTerms(DofSet*);
@@ -24,7 +26,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
   public:
     MpcElement(int, DofSet, int*);
     MpcElement(int, DofSet*, int*);
-    MpcElement(LMPCons *mpc);
+    MpcElement(LMPCons *mpc, bool nlflag);
    ~MpcElement();
 
     int getNumMPCs();
@@ -54,13 +56,15 @@ class MpcElement : public Element, public Corotator, public LMPCons
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
     virtual void update(GeomState&, CoordSet&, double);
-    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&);
+    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&, double t);
+    virtual double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    virtual double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
 
     PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }
 
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *gs, int cflg);
+                              GeomState *gs = 0, int cflg = 0, double t = 0);
     int getTopNumber() { return 101; }
 
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,

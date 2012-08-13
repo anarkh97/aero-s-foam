@@ -122,7 +122,7 @@ public:
 
   void getConstForce(Vector &constF);
   void getExternalForce(Vector &extF, Vector &gravF, int tIndex,
-    double time, ModalGeomState* mgs, Vector &elemIntF, Vector& aeroF);
+    double time, ModalGeomState* mgs, Vector &elemIntF, Vector& aeroF, double delta);
 
   int getInitState(Vector &dsp, Vector &vel, Vector &acc, Vector &vel_p);
 
@@ -148,10 +148,13 @@ public:
   void updateStates(ModalGeomState *refState, ModalGeomState& geomState) {}
   double getStiffAndForce(ModalGeomState &mgs,
     Vector &res, double midtime = -1, ModalGeomState * = NULL);
-  void reBuild(ModalGeomState &mgs, int iter = 0, double delta = 0){ solver->mat.factor(); }
+  void reBuild(ModalGeomState &mgs, int iter, double delta, double t){ if(t != domain->solInfo().initialTime) solver->mat.factor(); }
+
+  void getIncDisplacement(ModalGeomState *geomState, Vector &du, ModalGeomState *refState,
+                          bool zeroRot);
 
   void evalRHS(Vector &res, Vector &rhs, ModalGeomState &mgs);
-  void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState *refState=NULL) { cerr << "NLModalDescr::formRHSinitializer is not implemented\n"; }
+  void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState *refState=NULL);
   void formRHSpredictor(Vector &res, Vector &rhs, ModalGeomState &mgs);
   double formRHScorrector(Vector& res, Vector& rhs, ModalGeomState& mgs);
 
@@ -166,7 +169,7 @@ public:
                         int tIndex, int parity,
                         int aeroAlg){}
   void dynamOutput(ModalGeomState* mgs, Vector& vel, Vector& vel_p,
-    double time, int tIndex, Vector& extF, Vector &aeroF, Vector &acc);
+    double time, int tIndex, Vector& extF, Vector &aeroF, Vector &acc, ModalGeomState *refState);
   void printTimers(double timeLoop){ /* leave blank for now */ }
 
   int getNumStages(){ return 1; }
@@ -177,14 +180,14 @@ public:
   void test2(ModalGeomState* = 0);
   void test(ModalGeomState* = 0);
   void printCoefs();
-  double getResidualNorm(Vector &rhs) { return rhs.norm(); }
+  double getResidualNorm(Vector &rhs, ModalGeomState &, double) { return rhs.norm(); }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
   int getThermoeFlag() { return domain->solInfo().thermoeFlag; }
   int getThermohFlag() { return domain->solInfo().thermohFlag; }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
-  void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham) { cerr << "NLModalDescr::getNewmarkParameters is not implemented\n"; }
+  void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham);
 };
 
 #endif

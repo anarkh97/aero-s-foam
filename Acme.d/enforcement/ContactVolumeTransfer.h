@@ -24,7 +24,7 @@
 #include "ContactSearch.h"
 #include "ContactEnforcement.h"
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactTopology;
 
 class ContactVolumeTransfer : public ContactEnforcement {

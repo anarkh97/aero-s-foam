@@ -62,7 +62,7 @@ class ObjectBoundingBoxHierarchy : public ContactBoundingBox{
 
   static void search_for_overlap(const ObjectBoundingBoxHierarchy *const hierarchy_start_ptr,
                                  const ContactBoundingBox &search_box,
-                                 ContactNode **Nodes,
+                                 ContactNode<Real> **Nodes,
                                  ACME::ContactNode_Vector &node_list);
   //
   //  Search for overlaps in a hybrid tree, tree one contains the roots nodes for sets of trees in root_tree
@@ -70,7 +70,7 @@ class ObjectBoundingBoxHierarchy : public ContactBoundingBox{
   static void search_for_overlap_hybrid_tree(const ObjectBoundingBoxHierarchy *const tree1,
                                              const ObjectBoundingBoxHierarchy *const *const tree2_ptrs,
 				             const ContactBoundingBox &search_box, 
-					     ContactNode **Nodes, 
+					     ContactNode<Real> **Nodes, 
 					     ACME::Int_Vector &node_keys,
                                              ACME::ContactNode_Vector &node_list,
                                              std::vector<bool> &valid_inter);
@@ -108,7 +108,7 @@ class ObjectBoundingBoxHierarchy : public ContactBoundingBox{
   //
   static void search_for_overlap_key_aware(const ObjectBoundingBoxHierarchy *const tree1,
 				           const ContactBoundingBox &search_box, 
-					   ContactNode **Nodes, 
+					   ContactNode<Real> **Nodes, 
 				           ACME::Int_Vector &node_keys,
                                            ACME::ContactNode_Vector &node_list,
                                            std::vector<bool> &valid_inter,

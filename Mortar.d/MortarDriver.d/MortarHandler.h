@@ -100,6 +100,7 @@
 #ifndef _MORTARHANDLER_H_
 #define _MORTARHANDLER_H_
 
+#include <Mortar.d/MortarAutoDiff.h>
 // Locally define flags
 #include <Mortar.d/MortarDriver.d/MortarHandlerDefs.h>
 
@@ -110,6 +111,7 @@
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/MyComplex.h>
+#include <Parser.d/AuxDefs.h>
 
 class CoordSet;
 class LMPCons;
@@ -119,7 +121,7 @@ class BCond;
 
 class SurfaceEntity;
 class FaceElement;
-class FFIPolygon;
+template <class Scalar> class FFIPolygon;
 class MortarElement;
 class NodalMortarShapeFct;
 
@@ -140,6 +142,7 @@ template <class Scalar> class FSCommPattern;
 template <class Scalar> class GenSubDOp;
 typedef GenSubDOp<double> SubDOp;
 
+
 class MortarHandler {
 
         int Id;
@@ -149,11 +152,14 @@ class MortarHandler {
         int FrictionModel; // TD_FRICTIONLESS=1, TD_CONSTANT_FRICTION=2, TD_TIED=3, TD_SPOT_WELD=4, TD_PRESSURE_DEPENDENT=5, TD_VELOCITY_DEPENDENT=6, 
         int DIST_ACME; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                        // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics)
+        int MortarIntegrationRule;
+        ConstraintOptions *ConstraintOptionsData;
 
         double NormalSearchTol;
         double TangSearchTol;
         double TDEnfConvTol;
         double FrictionCoef[4];
+        double MortarScaling;
 
         bool NoSecondary;
 
@@ -192,7 +198,7 @@ class MortarHandler {
         double* ACMEFFI_data;
     
         // Mortar data (FFIPolygon, etc, ...)
-        std::vector<FFIPolygon>          CtcPolygons; // Face-Face-Interaction polygons built from the ACME data
+        //std::vector<FFIPolygon> CtcPolygons;          // Face-Face-Interaction polygons built from the ACME data
 	std::vector<MortarElement*>      MortarEls;   // "Mortar els" built on the "active" slace face els
 	std::vector<NodalMortarShapeFct> NodalMortars;// "global" mortar shape fct associated to each "active" slave node
 
@@ -208,10 +214,13 @@ class MortarHandler {
         int gIdFirstLMPC;         
         int gIdLastLMPC;         
         
-	void ComputeOneFFIMandN(int iFFI, CoordSet& cs);
-	void MakeOneNodalMortarLMPC(int i, bool Dual=false);
+        template<typename Scalar>
+	void ComputeOneFFIMandN(int iFFI, CoordSet& cs, std::vector<FFIPolygon<Scalar> > &CtcPolygons);
+        template<typename Scalar>
+	void MakeOneNodalMortarLMPC(int i, std::vector<FFIPolygon<Scalar> > &CtcPolygons, bool Dual=false);
 
         bool SelfContact;
+        bool AutoDiff;
 
   public:
         // Public data 
@@ -268,6 +277,10 @@ class MortarHandler {
         void SetNoSecondary(bool _NoSecondary);
         void SetSelfContact(bool _SelfContact);
         void SetDistAcme(int _DistAcme);
+        void SetMortarScaling(double _MortarScaling);
+        void SetMortarIntegrationRule(int _MortarIntegrationRule);
+
+        void SetConstraintOptions(ConstraintOptions& _ConstraintOptionsData);
 
         // Get methods
         // ~~~~~~~~~~~
@@ -297,6 +310,8 @@ class MortarHandler {
         int GetIdFirstMortarLMPC();
         int GetIdLastMortarLMPC();
 
+        ConstraintOptions* GetConstraintOptions();
+
         // Print, display, ... methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         void Print();
@@ -314,7 +329,8 @@ class MortarHandler {
         // Mortar methods
         // ~~~~~~~~~~~~~~
         void CreateFFIPolygon(CoordSet& cs); // DEPRECATED
-        void CreateFFIPolygon();
+        template<typename Scalar>
+          void CreateFFIPolygon();
     
         void AddMortarLMPCs(ResizeArray<LMPCons*>*, int& numLMPC, int& numCtc, int nDofs=0, int* Dofs=0);
         void AddWetFSI(ResizeArray<LMPCons*>* FSIArray, int& numFSI);
@@ -339,7 +355,7 @@ class MortarHandler {
 
   public:
         // New methods to allow more direct interfacing with ACME
-        void build_search(int numSub = 0, SubDomain **sd = 0);
+        void build_search(bool tdenforceFlag = false, int numSub = 0, SubDomain **sd = 0);
         void set_search_data(int interaction_type); // interaction_type: 1 = NodeFace, 2 = NodeSurface, 3 = NodeNode, 3 = FaceFace, 4 = FaceCoverage, 5 = ElementElement
         void set_node_configuration(int config_type); // config_type: 1 = current, 2 = predicted
         void set_node_configuration(int config_type, int numSub, SubDomain **sd);
@@ -349,7 +365,7 @@ class MortarHandler {
         void perform_search(int search_algorithm, double dt_old = 0.0, double dt = 0.0); // search_algorithm: 1 = static-1, 2 = static-2, 3 = dynamic-2, 4 = augmented dynamic-2
         void get_interactions(int interaction_type); // interaction_type: 1 = NodeFace, 2 = NodeSurface, 3 = NodeNode, 4 = FaceFace, 5 = FaceCoverage, 6 = ElementElement
         void build_td_enforcement();
-        void make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa);
+        void make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa, SparseMatrix *Mcc);
         void make_nodal_mass(SubDOp *M, SubDomain **sd);
         void make_kinematic_partitioning(Elemset &packedEset, Connectivity *nodeToElem);
         void make_kinematic_partitioning(int numSub, SubDomain **sd);
@@ -366,4 +382,9 @@ class MortarHandler {
         void remove_gap(Vector &d);
         void make_share(int numSub, SubDomain **sd);
 };
+
+#ifdef _TEMPLATE_FIX_
+  #include <Mortar.d/MortarDriver.d/MortarHandlerCore.C>
+#endif
+
 #endif

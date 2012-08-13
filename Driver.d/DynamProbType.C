@@ -598,6 +598,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    VecType &Md_n_h = workVec.get_Md_n_h();
    VecType &Cd_n_h = workVec.get_Cd_n_h();
    VecType   &tmp1 = workVec.get_tmp1();
+   VecType    &dnc = workVec.get_dnc();
+   VecType    &vnc = workVec.get_vnc();
+   VecType    &anc = workVec.get_anc();
 
    // Get initial time and time index
    int n = 0;
@@ -612,13 +615,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      if(domain->solInfo().order == 1) {
        if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
        dynOps.K->mult(d_n, tmp1);
-       v_n.linC(ext_f, -1.0, tmp1);
+       v_n = ext_f - tmp1;
        dynOps.Msolver->reSolve(v_n);
      }
      else {
        if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
        dynOps.K->mult(d_n, tmp1);
-       a_n.linC(ext_f, -1.0, tmp1);
+       a_n = ext_f - tmp1;
        if(dynOps.C) {
          dynOps.C->mult(v_n, tmp1);
          a_n -= tmp1;
@@ -656,54 +659,38 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
      if(domain->solInfo().order == 1) { // heat (XXXX CURRENTLY ONLY IMPLEMENTED FOR alpham = alphaf = 1/2)
        // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
-       d_n_h.linC(d_n, dt/2.0*(1.0-2.0*gamma), v_n);
+       d_n_h = 1.0*d_n + (dt/2.0*(1.0-2.0*gamma))*v_n;
        dynOps.M->mult( d_n_h, Md_n_h );
-       rhs.linC( Md_n_h, gamma*dt, ext_f );
+       rhs = 1.0*Md_n_h + gamma*dt*ext_f;
        dynOps.dynMat->reSolve( rhs );
 
        // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
-       d_n.linC(2.0, rhs, -1.0, d_n);
+       d_n = 2.0*rhs - 1.0*d_n;
 
        // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
-       v_n_p.linC(2.0/(gamma*dt), d_n, -2.0/(gamma*dt), rhs);
-       if(gamma != 1.0) v_n_p.linAdd(-(1.0-gamma)/gamma, v_n);
+       v_n_p = 2/(gamma*dt)*(d_n - rhs);
+       if(gamma != 1.0) v_n_p -= (1.0-gamma)/gamma*v_n;
      }
      else { // mech, acou
        // ... Construct R.H.S. vector
-       // ... d_n_h = ((1-alpham)/(1-alphaf))*d_n 
-       //           + dt*(1-alpham)*v_n 
-       //           + dt*dt*((1-alpham)/2 - beta)*a_n
-       // (if alphaf=alpham=0.5,beta=0.25: d_n_h = d_n + dt*0.5*v_n + zero*a_n)
+       // First: d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n + dt*dt*((1-alpham)/2 - beta)*a_n
+       d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n + dt*dt*((1-alpham)/2 - beta)*a_n;
 
-       // First: d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n 
-       d_n_h.linC( ((1.0-alpham)/(1.0-alphaf)), d_n, dt*(1.0-alpham), v_n );
-
-       // Second: d_n_h = d_n_h + dt*dt*((1-alpham)/2 - beta)*a_n
-       d_n_h.linC( d_n_h, dt*dt*(0.5*(1.0-alpham)-beta), a_n );
-
-       // Third: Multiply by Mass Matrix M
+       // Second: Multiply by Mass Matrix M
        dynOps.M->mult( d_n_h, Md_n_h );
 
-       // Accumulate in rhs vector: rhs = Md_n_h + beta*dt*dt*ext_f
-       rhs.linC( Md_n_h, beta*dt*dt, ext_f );
+       // Third: Accumulate in rhs vector: rhs = Md_n_h + beta*dt*dt*ext_f
+       rhs = 1.0*Md_n_h + beta*dt*dt*ext_f;
 
        if(dynOps.C) {
-         // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
-         // ...       - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
-         // (if alphaf=alpham=gamma=0.5,beta=0.25: d_n_h = dt*0.5*d_n - zero*v_n - zero*a_n)
+         // Fourth: d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
+         d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma*(1-alphaf))*v_n - dt*dt*dt*0.5*(1-alphaf)*(2*beta - gamma)*a_n;
 
-         // ... d_n_h = dt*gamma*d_n - dt*dt*(beta-gamma(1-alphaf))*v_n
-         d_n_h.linC( dt*gamma, d_n, dt*dt*(gamma*(1.0-alphaf)-beta), v_n );
-
-         // ... d_n_h = d_n_h - dt*dt*dt*0.5(1-alphaf)*(2*beta - gamma)*a_n
-         d_n_h.linC( d_n_h, dt*dt*dt*0.5*(alphaf-1.0)*(2.0*beta - gamma), a_n );
-
-         // Multiply by Damping Matrix C
+         // Fifth: Multiply by Damping Matrix C
          dynOps.C->mult( d_n_h, Cd_n_h );
   
-         // Accumulate in rhs vector 
+         // Sixth: Accumulate in rhs vector 
          rhs += Cd_n_h;
-
        }
 
        dynOps.dynMat->reSolve( rhs ); // Now rhs contains d_(n+1-alphaf)
@@ -713,25 +700,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
        // one time step forward
        // d_n_p = 1/(1-alphaf)*[d_(n+1-alphaf)-alphaf*d_n] = d_(n+1)
-       d_n_p.linC(rhs,(-1.0*alphaf),d_n);
-       d_n_p *= (1.0/(1-alphaf));
+       d_n_p = 1/(1-alphaf)*(1.0*rhs-alphaf*d_n);
    
        // a_n_p = 1/(dt^2*beta)*[d_(n+1)-d_n] - 1/(dt*beta)*v_n + (1-1/(2*beta))*a_n = a_(n+1)
-       a_n_p = d_n_p;
-       a_n_p -= d_n;
-       a_n_p *= (1.0/(dt*dt*beta));
-       a_n_p.linAdd( (-1.0/(dt*beta)), v_n, (1.0-1.0/(2.0*beta)), a_n );
+       a_n_p = 1/(dt*dt*beta)*(d_n_p-d_n) -1/(dt*beta)*v_n + (1-1/(2*beta))*a_n;
 
        // v_n_h = gamma/(beta*dt)*[d_(n+1-alphaf) - d_n] + (1.0-(1.0-alphaf)*gamma/beta)*v_n + dt*(1.0-alphaf)*(2.0*beta-gamma)/(2*beta)*a_n
-       v_n_h =  rhs;
-       v_n_h -= d_n;
-       v_n_h *= (gamma/(beta*dt));
-       v_n_h.linAdd( (1.0-(gamma*(1.0-alphaf)/beta)), v_n,
-                     (dt*0.5*(1.0-alphaf)*(2.0*beta-gamma)/beta), a_n);
+       v_n_h = gamma/(beta*dt)*(rhs-d_n) + (1-(1-alphaf)*gamma/beta)*v_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*a_n;
 
        // v_n_p = 1/(1-alphaf)*(v_n_h - alphaf*v_n) = v_(n+1)
-       v_n_p.linC(v_n_h,(-1.0*alphaf),v_n);
-       v_n_p *= (1.0/(1-alphaf));
+       v_n_p = 1/(1-alphaf)*(1.0*v_n_h - alphaf*v_n);
      
        // Now swap v_n_p -> v_n and d_n_p -> d_n
        v_p = v_n;
@@ -863,14 +841,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
   if(dynOps.C) {
     dynOps.C->mult(v_n,tmp2);
-    fint.linC(fint,1.0,tmp2);
+    fint += tmp2;
   }
-  a_n.linC(1.0, fext, -1.0, fint);
+  a_n = fext - fint;
   handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
   if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
-    probDesc->getContactForce(tmp1, tmp2);
+    probDesc->getContactForce(tmp1, tmp2, t_n+dt_n_h);
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
@@ -980,7 +958,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       dynOps.dynMat->reSolve(a_n);
       if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
-        probDesc->getContactForce(tmp1, tmp2);
+        probDesc->getContactForce(tmp1, tmp2, t_n+2*dt_n_h);
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }

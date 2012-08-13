@@ -49,7 +49,7 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
   //! \param iH Kinematic hardening modulus
   KorkolisKyriakidesPlaneStressMaterial(double iLambda, double iMu, 
 					double iSigmaY, double iK = 0., 
-					double iH = 0.);
+					double iH = 0., double iTol1 = 1.0e-6, double iTol2 = 1.0e-6);
   
   //! Destructor
   virtual ~KorkolisKyriakidesPlaneStressMaterial();
@@ -95,7 +95,19 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
   
   //! Returns shear modulus of material
   virtual double GetShearModulus() const;
-  
+
+  //! Set the plastic strain in the material
+  void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
+
+  //! Set the equivalent plastic strain in the material
+  void SetMaterialEquivalentPlasticStrain(double equivEPSplastic);
+
+  //! Set the back stress in the material
+  void SetMaterialBackStress(const std::vector<double> &BackStress);
+
+  //! Print the internal variables
+  void Print();
+
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector
   //! \param TOL Input. Tolerance to use for check
@@ -109,7 +121,7 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
   //! Returns true if calculations went well and false otherwise
   //! \param EPS Input. Elastic strain, 3x1
   //! \param CS Output. Computed cauchy stress, 3x1
-  //! \param C Ouput. Elastic modulii 3x3
+  //! \param C Output. Elastic modulii 3x3
   virtual bool ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 						  std::vector<double> *CS, 
 						  std::vector<double> *C=0) const;
@@ -197,7 +209,10 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
   
   //! Kinematic hardening modulus
   double H;
-  
+
+  //! Tolerances for convergence of nonlinear solve
+  double Tol1, Tol2;
+
   //! Plastic strain 
   std::vector<double> EPSplastic;
   

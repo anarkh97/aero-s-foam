@@ -37,13 +37,13 @@ class ContactNodeSurfaceInteraction : public ContactNodeEntityInteraction {
 
  public:
 
-  ContactNodeSurfaceInteraction( InteractionSource, ContactNode*, 
+  ContactNodeSurfaceInteraction( InteractionSource, ContactNode<Real>*, 
 				 ContactAnalyticSurface*,
                                  int, Real*, Real, Real*, Real*, Real *, Real, int, bool, bool, bool, bool);
   ContactNodeSurfaceInteraction();
   ContactNodeSurfaceInteraction(const ContactNodeSurfaceInteraction &cnsi);
   static ContactNodeSurfaceInteraction* new_ContactNodeSurfaceInteraction(
-            ContactFixedSizeAllocator&, InteractionSource, ContactNode*,
+            ContactFixedSizeAllocator&, InteractionSource, ContactNode<Real>*,
             ContactAnalyticSurface*, int, Real*, Real, Real*, Real*, Real*, Real, int, bool, bool, bool, bool );
   static ContactNodeSurfaceInteraction* new_ContactNodeSurfaceInteraction(
              ContactFixedSizeAllocator& );     

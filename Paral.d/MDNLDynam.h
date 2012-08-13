@@ -42,13 +42,16 @@ class MDNLDynamic
     MDDynamMat *allOps;
     SubDOp *M;
     SubDOp *C;
-    SubDOp *Kuc;
+    SubDOp *Kuc, *Muc, *Cuc;
+    SubDOp *Mcc, *Ccc;
     Corotator ***allCorot;       // element corotators per subdomain
     DistrVector *localTemp;
 
     FullSquareMatrix **kelArray; // element stiffness matrices per subdomain
     FullSquareMatrix **melArray; // element mass matrices per subdomain
     FullSquareMatrix **celArray; // element damping matrices per subdomain
+
+    DistrVector *reactions;
 
     double t0;                   // initial time
     double totalTime;		 // total simulation time
@@ -85,6 +88,7 @@ class MDNLDynamic
 
     std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all other constraints
+    double Kcoef_p;
 
  public:
 
@@ -119,7 +123,10 @@ class MDNLDynamic
     void getConstForce(DistrVector &gravityForce);
     void getExternalForce(DistrVector &externalForce, DistrVector &constantForce,
                           int tIndex, double time, DistrGeomState *geomState, 
-                          DistrVector &elementInternalForce, DistrVector &aeroF);
+                          DistrVector &elementInternalForce, DistrVector &aeroF, double localDelta);
+
+    void getIncDisplacement(DistrGeomState *geomState, DistrVector &du, DistrGeomState *refState,
+                            bool zeroRot);
 
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
                            DistrVector& residual, DistrVector& rhs, double localDelta);
@@ -149,17 +156,18 @@ class MDNLDynamic
                             DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
 
     // reBuild assembles new dynamic stiffness matrix
-    void reBuild(DistrGeomState& geomState, int iter, double localDelta);
+    void reBuild(DistrGeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
     void dynamOutput(DistrGeomState* geomState, DistrVector& velocity, DistrVector &vp,
-                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration);
+                     double time, int timestep, DistrVector& force, DistrVector &aeroF, DistrVector &acceleration,
+                     DistrGeomState *refState);
     void dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                           DistrVector& velocity, DistrVector& bkVelocity,
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
                           int aeroAlg);
 
-    double getResidualNorm(DistrVector &vec);
+    double getResidualNorm(DistrVector &vec, DistrGeomState &, double);
 
     int getAeroAlg();
     int getThermoeFlag();
@@ -175,7 +183,7 @@ class MDNLDynamic
     void makeSubDofs(int isub);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
-    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double time);
+    void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm);
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
@@ -197,8 +205,12 @@ class MDNLDynamic
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
+    void subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomState &refState, DistrVector &vel_n,
+                             DistrVector &acc_n, double &time);
 
     virtual bool factorWhenBuilding() const;
+    void deleteSubCorotators(int isub);
+    void deleteSubElementArrays(int isub);
 };
 
 #endif

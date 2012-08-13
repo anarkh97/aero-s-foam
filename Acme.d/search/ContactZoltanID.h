@@ -23,7 +23,9 @@
 
 #ifndef CONTACT_NO_MPI
 
-#include "lbi_const.h"
+#include "zoltan.h"
+typedef ZOLTAN_ID_TYPE *LB_ID_PTR;
+typedef ZOLTAN_ID_TYPE  LB_ID_TYPE;
 
 class ContactHostGlobalID;
 

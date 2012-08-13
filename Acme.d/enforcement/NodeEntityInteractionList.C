@@ -57,7 +57,7 @@ void NodeEntityInteractionList::Finalize() {
       int cnei_index = cnei_list.Get_Index(i);
       if (cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
         ContactNodeFaceInteraction *cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
-	ContactFace* face = cnfi->Face();
+	ContactFace<Real>* face = cnfi->Face();
 	const int num_face_nodes = face->Nodes_Per_Face();
 	num_face_nodes_per_interaction[cnei_index] = num_face_nodes;
 	first_face_node_index[cnei_index] = total_face_nodes;

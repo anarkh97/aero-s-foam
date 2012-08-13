@@ -4,11 +4,13 @@
 #include	<Element.d/Element.h>
 #include        <Driver.d/MultiFront.h>
 class GeomState;
+class Shell3Corotator;
 
 class ThreeNodeShell : virtual public Element {
  protected:
 	int nn[3];
 	double w;
+        Shell3Corotator *corot;
 public:
 	ThreeNodeShell(int*, double _w=3);
 
@@ -44,7 +46,7 @@ public:
 
 	int getTopNumber();
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs, int cflg);
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
 				  
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
 	                     int glfag, GeomState *gs=0);

@@ -414,7 +414,7 @@ TimoshenkoBeam::getTopNumber()
 
 void
 TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                     GeomState *geomState, int cflg)
+                                     GeomState *geomState, int cflg, double)
 {
   double normal[3],normal2[3];
   double px = 0.0;

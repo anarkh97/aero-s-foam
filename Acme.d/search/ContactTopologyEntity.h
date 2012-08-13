@@ -28,9 +28,10 @@
 #include "contact_assert.h"
 #include "ContactBoundingBox.h"
 #ifndef CONTACT_NO_MPI
-#include "lbi_const.h"
+#include "zoltan.h"
 #endif
 
+template<typename DataType>
 class ContactTopologyEntity {
 
  public:
@@ -79,8 +80,8 @@ class ContactTopologyEntity {
   int  fcs_index;
 
   // Constructors/Destructors
-  ContactTopologyEntity(Real *data_array_, const ContactType base_type_);
-  ContactTopologyEntity( int, int, Real *data_array_, const ContactType base_type_);
+  ContactTopologyEntity(DataType *data_array_, const ContactType base_type_);
+  ContactTopologyEntity( int, int, DataType *data_array_, const ContactType base_type_);
   virtual ~ContactTopologyEntity();
 
   // Access Functions
@@ -133,8 +134,8 @@ class ContactTopologyEntity {
   
   // Access Functions
   inline ContactType Base_Type() {return base_type;};
-  inline Real*  DataArray_Buffer() {return data_array;};
-  inline Real* Variable( const VariableHandle & vh) {return DataArray_Buffer()+vh;};
+  inline DataType*  DataArray_Buffer() {return data_array;};
+  inline DataType* Variable( const VariableHandle & vh) {return DataArray_Buffer()+vh;};
   
   void Display(ContactParOStream&);
   
@@ -183,8 +184,8 @@ class ContactTopologyEntity {
   inline int  Size_ForSecondary(const int data_array_length);
   inline void Pack_ForSecondary( char*, const int data_array_length );
   inline void Unpack_ForSecondary( char*, const int data_array_length );
-  inline void Pack_ForSecondary( char*, Real* DataArray, const int data_array_length );
-  inline void Unpack_ForSecondary( char*, Real* DataArray, const int data_array_length );
+  inline void Pack_ForSecondary( char*, DataType* DataArray, const int data_array_length );
+  inline void Unpack_ForSecondary( char*, DataType* DataArray, const int data_array_length );
   inline void Copy_ForSecondary( ContactTopologyEntity*, const int data_array_length );
   
   inline int  Size_ForDataUpdate(const int data_array_length);
@@ -226,7 +227,7 @@ class ContactTopologyEntity {
 
 
   ContactType base_type;
-  Real *data_array;
+  DataType *data_array;
 
   ContactHostGlobalID global_id;
   bool shared;
@@ -246,12 +247,14 @@ class ContactTopologyEntity {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack functions that are to be used for DLB
 //--------------------------------------------------------------------
-inline int ContactTopologyEntity::Size(const int data_array_length)
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::Size(const int data_array_length)
 {
-  return( NUMBER_PACKED_VARS*sizeof(int)+data_array_length*sizeof(Real) );
+  return( NUMBER_PACKED_VARS*sizeof(int)+data_array_length*sizeof(DataType) );
 }
 
-inline void ContactTopologyEntity::Pack( char* buffer, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Pack( char* buffer, const int data_array_length )
 {
   // Note that the first location (0) is reserved for the entity type.
   // and the second location (1) is reserved for derived type.
@@ -269,12 +272,13 @@ inline void ContactTopologyEntity::Pack( char* buffer, const int data_array_leng
   i_buffer[PRIM_PROC_INDEX]  = primary_proc_array_index;
   i_buffer[HOST_INDEX]       = host_array_index;
   i_buffer[OWNERSHIP]        = ownership;
-  Real* buf_loc = reinterpret_cast<Real*> 
+  DataType* buf_loc = reinterpret_cast<DataType*> 
     (buffer+NUMBER_PACKED_VARS*sizeof(int));
-  std::memcpy(buf_loc,DataArray_Buffer(),data_array_length*sizeof(Real));
+  std::memcpy(buf_loc,DataArray_Buffer(),data_array_length*sizeof(DataType));
 }
 
-inline void ContactTopologyEntity::Unpack( char* buffer, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Unpack( char* buffer, const int data_array_length )
 {
   //We're unpacking an int into an enum. This will fail if the compiler doesn't
   //use ints to store enums. So preconditioning that here.
@@ -293,9 +297,9 @@ inline void ContactTopologyEntity::Unpack( char* buffer, const int data_array_le
   proc_array_index         = i_buffer[PROC_INDEX];
   primary_proc_array_index = i_buffer[PRIM_PROC_INDEX];
   owner_proc_array_index   = i_buffer[OWNER_PROC_INDEX];
-  Real* buf_loc            = reinterpret_cast<Real*> 
+  DataType* buf_loc            = reinterpret_cast<DataType*> 
     (buffer+NUMBER_PACKED_VARS*sizeof(int));
-  std::memcpy(DataArray_Buffer(),buf_loc,data_array_length*sizeof(Real));
+  std::memcpy(DataArray_Buffer(),buf_loc,data_array_length*sizeof(DataType));
 
   //
   //  NKC note, should investigate making Pack / Unpack consitently handle
@@ -306,7 +310,8 @@ inline void ContactTopologyEntity::Unpack( char* buffer, const int data_array_le
   //if(my_proc != owner) ownership = NOT_OWNED;
 }
 
-inline void ContactTopologyEntity::Copy( ContactTopologyEntity* src, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Copy( ContactTopologyEntity* src, const int data_array_length )
 {
   global_id                = src->global_id;
   block_id                 = src->block_id;
@@ -318,21 +323,23 @@ inline void ContactTopologyEntity::Copy( ContactTopologyEntity* src, const int d
   proc_array_index         = src->proc_array_index;
   primary_proc_array_index = src->primary_proc_array_index;
   owner_proc_array_index   = src->owner_proc_array_index;
-  std::memcpy(DataArray_Buffer(),src->DataArray_Buffer(),data_array_length*sizeof(Real));
+  std::memcpy(DataArray_Buffer(),src->DataArray_Buffer(),data_array_length*sizeof(DataType));
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
 //--------------------------------------------------------------------
-inline int ContactTopologyEntity::Size_ForSecondary(const int data_array_length)
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::Size_ForSecondary(const int data_array_length)
 {
   int num_packed_vars = PROC_INDEX;
-  return( num_packed_vars*sizeof(int)+data_array_length*sizeof(Real) );
+  return( num_packed_vars*sizeof(int)+data_array_length*sizeof(DataType) );
 }
 
+template<typename DataType>
 inline void 
-ContactTopologyEntity::Pack_ForSecondary( char* buffer, 
+ContactTopologyEntity<DataType>::Pack_ForSecondary( char* buffer, 
                                           const int data_array_length )
 {
   int num_packed_vars = PROC_INDEX;
@@ -349,13 +356,14 @@ ContactTopologyEntity::Pack_ForSecondary( char* buffer,
   i_buffer[SEC_OWNER]        = secondary_owner;
   i_buffer[OWNER_PROC_INDEX] = owner_proc_array_index;
   i_buffer[HOST_INDEX]       = host_array_index;
-  Real* buf_loc = reinterpret_cast<Real*> 
+  DataType* buf_loc = reinterpret_cast<DataType*> 
     (buffer+num_packed_vars*sizeof(int));
-  std::memcpy(buf_loc,DataArray_Buffer(),data_array_length*sizeof(Real));
+  std::memcpy(buf_loc,DataArray_Buffer(),data_array_length*sizeof(DataType));
 }
 
+template<typename DataType>
 inline void 
-ContactTopologyEntity::Unpack_ForSecondary( char* buffer,  
+ContactTopologyEntity<DataType>::Unpack_ForSecondary( char* buffer,  
                                             const int data_array_length )
 {
   int num_packed_vars = PROC_INDEX;
@@ -369,14 +377,15 @@ ContactTopologyEntity::Unpack_ForSecondary( char* buffer,
   secondary_owner        = i_buffer[SEC_OWNER];
   owner_proc_array_index = i_buffer[OWNER_PROC_INDEX];
   host_array_index       = i_buffer[HOST_INDEX];
-  Real* buf_loc   = reinterpret_cast<Real*> 
+  DataType* buf_loc   = reinterpret_cast<DataType*> 
     (buffer+num_packed_vars*sizeof(int));
-  std::memcpy(DataArray_Buffer(),buf_loc,data_array_length*sizeof(Real));
+  std::memcpy(DataArray_Buffer(),buf_loc,data_array_length*sizeof(DataType));
 }
 
+template<typename DataType>
 inline void 
-ContactTopologyEntity::Pack_ForSecondary( char* buffer, 
-                                          Real* DataArray, 
+ContactTopologyEntity<DataType>::Pack_ForSecondary( char* buffer, 
+                                          DataType* DataArray, 
                                           const int data_array_length )
 {
   int num_packed_vars = PROC_INDEX;
@@ -393,14 +402,15 @@ ContactTopologyEntity::Pack_ForSecondary( char* buffer,
   i_buffer[SEC_OWNER]        = secondary_owner;
   i_buffer[OWNER_PROC_INDEX] = owner_proc_array_index;
   i_buffer[HOST_INDEX]       = host_array_index;
-  Real* buf_loc = reinterpret_cast<Real*> 
+  DataType* buf_loc = reinterpret_cast<DataType*> 
     (buffer+num_packed_vars*sizeof(int));
-  std::memcpy(buf_loc,DataArray,data_array_length*sizeof(Real));
+  std::memcpy(buf_loc,DataArray,data_array_length*sizeof(DataType));
 }
 
+template<typename DataType>
 inline void 
-ContactTopologyEntity::Unpack_ForSecondary( char* buffer, 
-                                            Real* DataArray, 
+ContactTopologyEntity<DataType>::Unpack_ForSecondary( char* buffer, 
+                                            DataType* DataArray, 
                                             const int data_array_length )
 {
   int num_packed_vars = PROC_INDEX;
@@ -414,12 +424,13 @@ ContactTopologyEntity::Unpack_ForSecondary( char* buffer,
   secondary_owner        = i_buffer[SEC_OWNER];
   owner_proc_array_index = i_buffer[OWNER_PROC_INDEX];
   host_array_index       = i_buffer[HOST_INDEX];
-  Real* buf_loc   = reinterpret_cast<Real*> 
+  DataType* buf_loc   = reinterpret_cast<DataType*> 
     (buffer+num_packed_vars*sizeof(int));
-  std::memcpy(DataArray,buf_loc,data_array_length*sizeof(Real));
+  std::memcpy(DataArray,buf_loc,data_array_length*sizeof(DataType));
 }
 
-inline void ContactTopologyEntity::Copy_ForSecondary( ContactTopologyEntity* src, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Copy_ForSecondary( ContactTopologyEntity* src, const int data_array_length )
 {
   base_type                = src->base_type;
   global_id                = src->global_id;
@@ -429,30 +440,34 @@ inline void ContactTopologyEntity::Copy_ForSecondary( ContactTopologyEntity* src
   secondary_owner          = src->secondary_owner;
   owner_proc_array_index   = src->owner_proc_array_index;
   host_array_index         = src->host_array_index;
-  std::memcpy(DataArray_Buffer(),src->DataArray_Buffer(),data_array_length*sizeof(Real));
+  std::memcpy(DataArray_Buffer(),src->DataArray_Buffer(),data_array_length*sizeof(DataType));
 }
 
-inline int ContactTopologyEntity::Size_ForDataUpdate(const int data_array_length)
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::Size_ForDataUpdate(const int data_array_length)
 {
-  return( data_array_length*sizeof(Real)+sizeof(int) );
+  return( data_array_length*sizeof(DataType)+sizeof(int) );
 }
 
-inline void ContactTopologyEntity::Pack_ForDataUpdate( char* buffer, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Pack_ForDataUpdate( char* buffer, const int data_array_length )
 {
   int* i_buffer = reinterpret_cast<int*>(buffer);
   //i_buffer[0]   = Base_Type();
   i_buffer[0]   = block_id;
-  Real* buf_loc = reinterpret_cast<Real*>(buffer+sizeof(int));
-  std::memcpy(buf_loc, DataArray_Buffer(), data_array_length*sizeof(Real));
+  DataType* buf_loc = reinterpret_cast<DataType*>(buffer+sizeof(int));
+  std::memcpy(buf_loc, DataArray_Buffer(), data_array_length*sizeof(DataType));
 }
 
-inline void ContactTopologyEntity::Unpack_ForDataUpdate( char* buffer, const int data_array_length )
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::Unpack_ForDataUpdate( char* buffer, const int data_array_length )
 {
-  Real* buf_loc = reinterpret_cast<Real*>(buffer+sizeof(int));
-  std::memcpy(DataArray_Buffer(), buf_loc, data_array_length*sizeof(Real));
+  DataType* buf_loc = reinterpret_cast<DataType*>(buffer+sizeof(int));
+  std::memcpy(DataArray_Buffer(), buf_loc, data_array_length*sizeof(DataType));
 }
 
-inline int ContactTopologyEntity::PackConnection( ContactTopologyEntity* entity,
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::PackConnection( ContactTopologyEntity* entity,
                                                   int* buffer)
 {
   int* buf = buffer;
@@ -467,7 +482,8 @@ inline int ContactTopologyEntity::PackConnection( ContactTopologyEntity* entity,
   return 4;
 }
 
-inline int ContactTopologyEntity::PackConnection( connection_data* data,
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::PackConnection( connection_data* data,
                                                   int* buffer)
 {
   int* buf = buffer;
@@ -478,7 +494,8 @@ inline int ContactTopologyEntity::PackConnection( connection_data* data,
   return 4;
 }
 
-inline void ContactTopologyEntity::PackConnection( ContactTopologyEntity* entity,
+template<typename DataType>
+inline void ContactTopologyEntity<DataType>::PackConnection( ContactTopologyEntity* entity,
                                                    connection_data* data)
 {
   if (entity) {
@@ -489,7 +506,8 @@ inline void ContactTopologyEntity::PackConnection( ContactTopologyEntity* entity
   }
 }
 
-inline int ContactTopologyEntity::UnPackConnection( connection_data* data, 
+template<typename DataType>
+inline int ContactTopologyEntity<DataType>::UnPackConnection( connection_data* data, 
                                                     int* buffer)
 {
   int* buf                     = buffer;

@@ -53,7 +53,7 @@ void ContactCommList::Allocate() {
     comm_proc_ids = new int[num_comm_partners];
     num_to_proc   = new int[num_comm_partners];
     offset        = new int[num_comm_partners];
-    entity_list   = new ContactTopologyEntity*[num_entities];
+    entity_list   = new ContactTopologyEntity<Real>*[num_entities];
   }
 }
 
@@ -73,7 +73,7 @@ void ContactCommList::Print(const char* line_prefix) {
     cout<<line_prefix<<"  Entities"<<endl;
     for(int j = 0; j < num_to_proc[i]; ++j) {
       int index = entity_index_list[offset[i] + j];
-      ContactTopologyEntity *entity = entity_list[offset[i] + j];
+      ContactTopologyEntity<Real> *entity = entity_list[offset[i] + j];
       cout<<line_prefix<<"    entity_id: "<<entity->Global_ID()<<", index = "<<index<<endl;
     }
   }
@@ -90,7 +90,7 @@ void ContactCommList::Print(const char* line_prefix, ContactParOStream& os) {
     os<<line_prefix<<"  Entities"<<"\n";
     for(int j = 0; j < num_to_proc[i]; ++j) {
       int index = entity_index_list[offset[i] + j];
-      ContactTopologyEntity *entity = entity_list[offset[i] + j];
+      ContactTopologyEntity<Real> *entity = entity_list[offset[i] + j];
       os<<line_prefix<<"    entity_id: "<<entity->Global_ID()<<", index = "<<index<<"\n";
     }
   }
@@ -161,13 +161,13 @@ void ContactCommList::CreateFromListAddition(const ContactCommList &com1,
   }
   //
   //  Allocate the temporary communication object arrays
-  //  entity_list_temp is a matrix of ContactTopologyEntity pointers.
+  //  entity_list_temp is a matrix of ContactTopologyEntity<Real> pointers.
   //  The matrix has num_procs rows and num_to_send/receive length for each row.
   //
-  ContactTopologyEntity*** entity_list_temp = new ContactTopologyEntity**[num_procs];
+  ContactTopologyEntity<Real>*** entity_list_temp = new ContactTopologyEntity<Real>**[num_procs];
   for(int iproc = 0; iproc < num_procs; ++iproc) {
     new_com_list_size[iproc] = com1_list_size[iproc] + com2_list_size[iproc];
-    entity_list_temp[iproc] = new ContactTopologyEntity*[new_com_list_size[iproc]];
+    entity_list_temp[iproc] = new ContactTopologyEntity<Real>*[new_com_list_size[iproc]];
   }
   //
   //  Loop over the lists from the input comm specs to created a combined sorted
@@ -179,8 +179,8 @@ void ContactCommList::CreateFromListAddition(const ContactCommList &com1,
     int com2_index = 0;
     int new_com_index = 0;
     while(true) {
-      ContactTopologyEntity* com1_entity = NULL;
-      ContactTopologyEntity* com2_entity = NULL;
+      ContactTopologyEntity<Real>* com1_entity = NULL;
+      ContactTopologyEntity<Real>* com2_entity = NULL;
       if(com1_index < com1_list_size[iproc]) com1_entity = com1.entity_list[com1_offset[iproc] + com1_index];
       if(com2_index < com2_list_size[iproc]) com2_entity = com2.entity_list[com2_offset[iproc] + com2_index];
       if(com1_entity && com2_entity) {
@@ -227,7 +227,7 @@ void ContactCommList::CreateFromListAddition(const ContactCommList &com1,
   comm_proc_ids = new int[num_comm_partners];
   num_to_proc   = new int[num_comm_partners];
   offset        = new int[num_comm_partners];
-  entity_list   = new ContactTopologyEntity*[num_entities];
+  entity_list   = new ContactTopologyEntity<Real>*[num_entities];
   //
   //  Fill the communication data
   //
@@ -289,7 +289,7 @@ void ContactCommList::CreateFromIDs(const int num,
     comm_proc_ids = new int[num_comm_partners];
     num_to_proc = new int[num_comm_partners];
     offset = new int[num_comm_partners];
-    entity_list = new ContactTopologyEntity*[num_entities];
+    entity_list = new ContactTopologyEntity<Real>*[num_entities];
     std::memcpy( comm_proc_ids, iscratch, 
 	    num_comm_partners*sizeof(int) );
     int entity_index = 0;
@@ -300,7 +300,7 @@ void ContactCommList::CreateFromIDs(const int num,
       for(int j=0 ; j<num_entities ; ++j ){
 	if( procs[j] == comm_proc ){
 	  ContactHostGlobalID GID( &gids[j*ZOLTAN_GID_SIZE] );
-	  entity_list[entity_index++] = (ContactTopologyEntity*) entity_hash.find( GID );
+	  entity_list[entity_index++] = (ContactTopologyEntity<Real>*) entity_hash.find( GID );
 	  ++num_to_proc[i];
 	}
       }
@@ -351,7 +351,7 @@ void ContactCommList::CreateFromIDs(const int num,
     comm_proc_ids = new int[num_comm_partners];
     num_to_proc = new int[num_comm_partners];
     offset = new int[num_comm_partners];
-    entity_list = new ContactTopologyEntity*[num_entities];
+    entity_list = new ContactTopologyEntity<Real>*[num_entities];
     std::memcpy( comm_proc_ids, iscratch, 
 	    num_comm_partners*sizeof(int) );
     int entity_index = 0;
@@ -362,8 +362,8 @@ void ContactCommList::CreateFromIDs(const int num,
       for(int j=0 ; j<num_entities ; ++j ){
 	if( procs[j] == comm_proc ){
 	  ContactHostGlobalID GID( &gids[j*ZOLTAN_GID_SIZE] );
-          ContactTopologyEntity *entity = lookup_list.Find(GID);
-          if(entity == NULL) entity = (ContactTopologyEntity*)entity_hash.find(GID );
+          ContactTopologyEntity<Real> *entity = lookup_list.Find(GID);
+          if(entity == NULL) entity = (ContactTopologyEntity<Real>*)entity_hash.find(GID );
 	  entity_list[entity_index++] = entity;
 	  ++num_to_proc[i];
 	}
@@ -427,7 +427,7 @@ void ContactCommList::CreateFromIDs(const int num,
     comm_proc_ids = new int[num_comm_partners];
     num_to_proc = new int[num_comm_partners];
     offset = new int[num_comm_partners];
-    entity_list = new ContactTopologyEntity*[num_entities];
+    entity_list = new ContactTopologyEntity<Real>*[num_entities];
     std::memcpy( comm_proc_ids, iscratch, 
 	         num_comm_partners*sizeof(int) );
     int entity_index = 0;
@@ -441,7 +441,7 @@ void ContactCommList::CreateFromIDs(const int num,
            (entity_type==CT_NODE && base_type==CT_SHELL_NODE) ) {
 	  if( procs[j] == comm_proc ){
 	    ContactHostGlobalID GID( &gids[j*ZOLTAN_GID_SIZE] );
-            ContactTopologyEntity* entity = lookup_list->Find(GID);
+            ContactTopologyEntity<Real>* entity = lookup_list->Find(GID);
             POSTCONDITION(entity);
 	    entity_list[entity_index++] = entity;
 	    ++num_to_proc[i];
@@ -489,7 +489,7 @@ void ContactCommList::CreateFromIDs(const int num,
     comm_proc_ids = new int[num_comm_partners];
     num_to_proc   = new int[num_comm_partners];
     offset        = new int[num_comm_partners];
-    entity_list   = new ContactTopologyEntity*[num_entities];
+    entity_list   = new ContactTopologyEntity<Real>*[num_entities];
     std::memcpy( comm_proc_ids, iscratch, 
 	         num_comm_partners*sizeof(int) );
     int entity_index = 0;
@@ -500,7 +500,7 @@ void ContactCommList::CreateFromIDs(const int num,
       for(int j=0 ; j<num_entities ; ++j ){
 	if( procs[j] == comm_proc ){
 	  ContactHostGlobalID GID( &gids[j*ZOLTAN_GID_SIZE] );
-          ContactTopologyEntity *entity = lookup_list.Find(GID);
+          ContactTopologyEntity<Real> *entity = lookup_list.Find(GID);
 	  entity_list[entity_index++] = entity;
 	  ++num_to_proc[i];
           POSTCONDITION(entity != NULL);
@@ -528,7 +528,7 @@ void ContactCommList::CreateFromIDs(const int num,
 ContactCommList::ContactCommList(const int  Num_Comm_Partners,
                                  const int* Num_to_Proc,
                                  const int* Comm_Proc_IDs,
-                                 ContactTopologyEntity** Entity_List) :
+                                 ContactTopologyEntity<Real>** Entity_List) :
   entity_index_list(NULL) {
 
   int i;
@@ -553,9 +553,9 @@ ContactCommList::ContactCommList(const int  Num_Comm_Partners,
   for( i=0 ; i<num_comm_partners ; ++i ) 
     num_entities += Num_to_Proc[i];
   if( num_entities ){
-    entity_list = new ContactTopologyEntity*[num_entities];
+    entity_list = new ContactTopologyEntity<Real>*[num_entities];
     std::memcpy( entity_list, Entity_List,
-	    num_entities*sizeof(ContactTopologyEntity*) );
+	    num_entities*sizeof(ContactTopologyEntity<Real>*) );
   } else
     entity_list = NULL;
 }

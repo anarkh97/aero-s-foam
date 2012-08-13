@@ -196,7 +196,7 @@ PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vect
 }
 
 double
-PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual) {
+PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, GeomState &, double) {
   return getSolver()->projectAndComputeNorm(residual);
 }
 

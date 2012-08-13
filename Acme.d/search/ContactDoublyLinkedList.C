@@ -34,7 +34,7 @@ ContactTopologyDLL::ContactTopologyDLL() {
 ContactTopologyDLL::~ContactTopologyDLL() {
 }
 
-int ContactTopologyDLL::Append( ContactTopologyEntity* entity ) {
+int ContactTopologyDLL::Append( ContactTopologyEntity<Real>* entity ) {
   data.push_back(entity);
   num_entities++;
   return data.size() - 1;
@@ -49,7 +49,7 @@ void ContactTopologyDLL::Clear() {
 void ContactTopologyDLL::Display(ContactParOStream& postream)
 {
   IteratorStart();
-  while( ContactTopologyEntity* entity=IteratorForward() ){
+  while( ContactTopologyEntity<Real>* entity=IteratorForward() ){
     entity->Display(postream);
   }
 }

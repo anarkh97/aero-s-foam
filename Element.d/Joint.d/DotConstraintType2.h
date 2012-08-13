@@ -5,8 +5,10 @@
 
 class DotConstraintType2 : public MpcElement
 {
+  protected:
     double (*c0)[3]; // initial frame (axes stored row-wise)
     int axis;
+    bool covariant_derivatives;
 
   public:
     DotConstraintType2(int*, int);
@@ -14,7 +16,7 @@ class DotConstraintType2 : public MpcElement
     void setFrame(EFrame *);
     void buildFrame(CoordSet&);
     void update(GeomState& gState, CoordSet& cs, double);
-    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H);
+    void getHessian(GeomState& gState, CoordSet&, FullSquareMatrix& H, double);
 };
 
 #endif

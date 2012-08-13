@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactNode_C_
+#define ContactNode_C_
+
 #include "allocators.h"
 #include "ContactNode.h"
 #include "ContactEdge.h"
@@ -31,12 +34,13 @@
 
 using namespace std;
 
-ContactNode::ContactNode(ContactFixedSizeAllocator* alloc,
+template<typename DataType>
+ContactNode<DataType>::ContactNode(ContactFixedSizeAllocator* alloc,
                          ContactSearch::ContactNode_Type Type, 
                          int Block_Index, 
                          int Host_Index_in_Block,
 			 ContactType cetype ) 
-  : ContactTopologyEntity( Block_Index, Host_Index_in_Block, DataArray, cetype), 
+  : ContactTopologyEntity<DataType>( Block_Index, Host_Index_in_Block, DataArray, cetype), 
     allocators(alloc) {
   node_type = Type;
   shell_node_base_id = -1;
@@ -44,7 +48,8 @@ ContactNode::ContactNode(ContactFixedSizeAllocator* alloc,
   physical_type = CONTINUUM_NODE;
 }
 
-ContactNode* ContactNode::new_ContactNode( ContactFixedSizeAllocator* alloc,
+template<typename DataType>
+ContactNode<DataType>* ContactNode<DataType>::new_ContactNode( ContactFixedSizeAllocator* alloc,
 					   ContactSearch::ContactNode_Type Type,
 					   int Block_Index, 
 					   int Host_Index_in_Block,
@@ -54,15 +59,18 @@ ContactNode* ContactNode::new_ContactNode( ContactFixedSizeAllocator* alloc,
     ContactNode(alloc, Type, Block_Index, Host_Index_in_Block, cetype );
 }
 
+template<typename DataType>
 void ContactNode_SizeAllocator( ContactFixedSizeAllocator& alloc)
 {
-  alloc.Resize( sizeof(ContactNode),
+  alloc.Resize( sizeof(ContactNode<DataType>),
                 100,  // block size
-                0);  // initial block size
+                0,    // initial block size
+                sizeof(DataType) );
   alloc.Set_Name( "ContactNode allocator" );
 }
 
-ContactNode::~ContactNode()
+template<typename DataType>
+ContactNode<DataType>::~ContactNode()
 {
   for(int i = 0; i < NodeNodeInteractions.size(); ++i) {
     ContactInteractionEntity* link=NULL;
@@ -82,20 +90,23 @@ ContactNode::~ContactNode()
   NodeEntityInteractions.clear();
 }
 
-void ContactNode::Delete_Face_Connections( )
+template<typename DataType>
+void ContactNode<DataType>::Delete_Face_Connections( )
 {
   faces.clear();
 }
 
-void ContactNode::Connect_Face(ContactFace* Face )
+template<typename DataType>
+void ContactNode<DataType>::Connect_Face(ContactFace<DataType>* Face )
 {
-  faces.push_back(pair<ContactFace*,int>(Face,-1));
+  faces.push_back(pair<ContactFace<DataType>*,int>(Face,-1));
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack functions that are to be used for DLB
 //--------------------------------------------------------------------
-int ContactNode::Size_Interactions(int state)
+template<typename DataType>
+int ContactNode<DataType>::Size_Interactions(int state)
 {
   int size = 2*sizeof(int);
  
@@ -118,7 +129,8 @@ int ContactNode::Size_Interactions(int state)
   return size;
 }
 
-void ContactNode::Pack_Interactions( char* Buffer, int state )
+template<typename DataType>
+void ContactNode<DataType>::Pack_Interactions( char* Buffer, int state )
 {
   int cnt      = 0;
   char* buffer = Buffer;
@@ -144,11 +156,12 @@ void ContactNode::Pack_Interactions( char* Buffer, int state )
   }
 }
 
-void ContactNode::Unpack_Interactions( char* buffer, int state )
+template<typename DataType>
+void ContactNode<DataType>::Unpack_Interactions( char* buffer, int state )
 {
   int* i_buf = reinterpret_cast<int*>(buffer);
   
-  //status_flag = (ContactTopologyEntity::ActiveStatus)i_buf[2];
+  //status_flag = (ContactTopologyEntity<DataType>::ActiveStatus)i_buf[2];
   int num_interactions = i_buf[1];
   char* buf = buffer+2*sizeof(int);
   for (int n=0; n<num_interactions; ++n) {
@@ -189,7 +202,8 @@ void ContactNode::Unpack_Interactions( char* buffer, int state )
   }
 }
 
-void ContactNode::Copy_Interactions( ContactNode* src, int state )
+template<typename DataType>
+void ContactNode<DataType>::Copy_Interactions( ContactNode* src, int state )
 {
   if(state < src->NodeNodeInteractions.size()) {
     ContactInteractionEntity* entity;
@@ -219,7 +233,8 @@ void ContactNode::Copy_Interactions( ContactNode* src, int state )
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
 //--------------------------------------------------------------------
-int ContactNode::Size_Interactions_ForSecondary(int state)
+template<typename DataType>
+int ContactNode<DataType>::Size_Interactions_ForSecondary(int state)
 {
   int size = sizeof(int);
 
@@ -238,7 +253,8 @@ int ContactNode::Size_Interactions_ForSecondary(int state)
   return size;
 }
 
-void ContactNode::Pack_Interactions_ForSecondary( char* Buffer, int state )
+template<typename DataType>
+void ContactNode<DataType>::Pack_Interactions_ForSecondary( char* Buffer, int state )
 {
   char* buffer = Buffer;
   int* i_buf   = reinterpret_cast<int*> (buffer);
@@ -263,7 +279,8 @@ void ContactNode::Pack_Interactions_ForSecondary( char* Buffer, int state )
   }
 }
 
-void ContactNode::Unpack_Interactions_ForSecondary( char* buffer, int state )
+template<typename DataType>
+void ContactNode<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int state )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
   int num_interactions = *i_buf;
@@ -306,7 +323,8 @@ void ContactNode::Unpack_Interactions_ForSecondary( char* buffer, int state )
   }
 }
 
-void ContactNode::Copy_Interactions_ForSecondary( ContactNode* src, int state )
+template<typename DataType>
+void ContactNode<DataType>::Copy_Interactions_ForSecondary( ContactNode* src, int state )
 {
 
   if(state < src->NodeNodeInteractions.size()) {
@@ -334,8 +352,9 @@ void ContactNode::Copy_Interactions_ForSecondary( ContactNode* src, int state )
   }
 }
 
+template<typename DataType>
 ContactNodeNodeInteraction* 
-ContactNode::Get_NodeNode_Interaction(int interaction_number, int state )
+ContactNode<DataType>::Get_NodeNode_Interaction(int interaction_number, int state )
 {
   ContactInteractionEntity* entity=NULL;
 
@@ -350,8 +369,9 @@ ContactNode::Get_NodeNode_Interaction(int interaction_number, int state )
   return nni;
 }
 
+template<typename DataType>
 void 
-ContactNode::Add_NodeNode_Interaction( 
+ContactNode<DataType>::Add_NodeNode_Interaction( 
                 ContactNodeNodeInteraction* nni, int state )
 {
   PRECONDITION( nni );
@@ -362,8 +382,9 @@ ContactNode::Add_NodeNode_Interaction(
   NodeNodeInteractions[state].Append(nni);
 }
 
+template<typename DataType>
 void 
-ContactNode::Delete_NodeNode_Interaction( 
+ContactNode<DataType>::Delete_NodeNode_Interaction( 
                 ContactNodeNodeInteraction* nni, int state )
 {
   ContactInteractionEntity* link=NULL;
@@ -382,8 +403,9 @@ ContactNode::Delete_NodeNode_Interaction(
   }
 }
 
+template<typename DataType>
 void 
-ContactNode::Delete_NodeNode_Interactions( int state )
+ContactNode<DataType>::Delete_NodeNode_Interactions( int state )
 {
   ContactInteractionEntity* link=NULL;
 
@@ -399,8 +421,9 @@ ContactNode::Delete_NodeNode_Interactions( int state )
   NodeNodeInteractions[state].Clear();
 }
 
+template<typename DataType>
 void 
-ContactNode::Display_NodeNode_Interactions( ContactParOStream& postream,
+ContactNode<DataType>::Display_NodeNode_Interactions( ContactParOStream& postream,
 					    int state )
 {
 
@@ -423,8 +446,9 @@ ContactNode::Display_NodeNode_Interactions( ContactParOStream& postream,
   }
 }
 
+template<typename DataType>
 void
-ContactNode::Add_NodeEntity_Interaction(ContactNodeEntityInteraction* nei,
+ContactNode<DataType>::Add_NodeEntity_Interaction(ContactNodeEntityInteraction* nei,
 				        int state )
 {
   PRECONDITION( nei );
@@ -435,8 +459,9 @@ ContactNode::Add_NodeEntity_Interaction(ContactNodeEntityInteraction* nei,
   NodeEntityInteractions[state].push_back(nei);
 }
 
+template<typename DataType>
 void
-ContactNode::Store_NodeEntity_Interaction(int interaction_number,
+ContactNode<DataType>::Store_NodeEntity_Interaction(int interaction_number,
 					  ContactNodeEntityInteraction* nei,
 					  int state )
 {
@@ -456,8 +481,9 @@ ContactNode::Store_NodeEntity_Interaction(int interaction_number,
   NodeEntityInteractions[state][interaction_number] = nei;
 }
   
+template<typename DataType>
 void 
-ContactNode::Delete_NodeEntity_Interaction(ContactNodeEntityInteraction* nei, 
+ContactNode<DataType>::Delete_NodeEntity_Interaction(ContactNodeEntityInteraction* nei, 
                                            int state )
 {
 
@@ -478,8 +504,9 @@ ContactNode::Delete_NodeEntity_Interaction(ContactNodeEntityInteraction* nei,
   }
 }
 
+template<typename DataType>
 void 
-ContactNode::Delete_NodeEntity_Interactions( int state )
+ContactNode<DataType>::Delete_NodeEntity_Interactions( int state )
 {
   if(state >= NodeEntityInteractions.size()) return;
   for (int i=0; i<NodeEntityInteractions[state].size(); ++i) {
@@ -488,8 +515,9 @@ ContactNode::Delete_NodeEntity_Interactions( int state )
   NodeEntityInteractions[state].clear();
 }
   
+template<typename DataType>
 void 
-ContactNode::Display_NodeEntity_Interactions( ContactParOStream& postream,
+ContactNode<DataType>::Display_NodeEntity_Interactions( ContactParOStream& postream,
 					      int state )
 {
   if(state >= NodeEntityInteractions.size()) return;
@@ -517,31 +545,31 @@ ContactNode::Display_NodeEntity_Interactions( ContactParOStream& postream,
     postream << "\t\t Old Gap     = "
              << cnei->Scalar_Var(ContactNodeFaceInteraction::GAP_OLD)
              << "\n";
-    Real* pbdir = cnei->Get_Pushback_Dir();
+    DataType* pbdir = cnei->Get_Pushback_Dir();
     postream << "\t\t PB Dir  = " << pbdir[0] << " " << pbdir[1] << " "
              << pbdir[2] << "\n";
-    Real* coords = cnei->Get_Coordinates();
+    DataType* coords = cnei->Get_Coordinates();
     postream << "\t\t Coords  = " << coords[0] << " "
              << coords[1] << " " << coords[2] << "\n";
-    Real* norm = cnei->Get_Normal();
+    DataType* norm = cnei->Get_Normal();
     postream << "\t\t Normal  = " << norm[0] << " "
              << norm[1] << " " << norm[2] << "\n";
     int node_entity_key = cnei->Get_Node_Key();
     postream << "\t\t Node Entity Key = " 
              << node_entity_key << "\n"; 
-    Real* pnorm = cnei->Get_Physical_Face_Normal();
+    DataType* pnorm = cnei->Get_Physical_Face_Normal();
     postream << "\t\t PF Normal = " << pnorm[0] << " " 
              << pnorm[1] << " " << pnorm[2] << "\n";
-    Real& node_area = cnei->Get_Node_Area();
+    DataType& node_area = cnei->Get_Node_Area();
     postream << "\t\t Node Area = " 
              << node_area << "\n"; 
-    Real& time_to_contact = cnei->Get_Time_To_Contact();
+    DataType& time_to_contact = cnei->Get_Time_To_Contact();
     postream << "\t\t Time to Contact = " 
              << time_to_contact << "\n"; 
 
     if(cnfi != NULL){
       for (int k=0; k<cnfi->NumSharedFaces(); ++k) {
-        ContactTopologyEntity::connection_data *face_info = cnfi->SharedFaceData(k);
+        typename ContactTopologyEntity<DataType>::connection_data *face_info = cnfi->SharedFaceData(k);
         postream<<"\t\t neighbor face "<<k<<" = ("
                   <<face_info->host_gid[0]<<", "
                   <<face_info->host_gid[1]<<") on proc "
@@ -551,8 +579,9 @@ ContactNode::Display_NodeEntity_Interactions( ContactParOStream& postream,
   }
 }
 
+template<typename DataType>
 void 
-ContactNode::Print_NodeEntity_Interactions( int state )
+ContactNode<DataType>::Print_NodeEntity_Interactions( int state )
 {
 
   if(state >= NodeEntityInteractions.size()) return;
@@ -570,22 +599,22 @@ ContactNode::Print_NodeEntity_Interactions( int state )
       std::cout << "\t\t Old Gap     = "
            << cnfi->Scalar_Var(ContactNodeFaceInteraction::GAP_OLD)
            << "\n";
-      Real* pbdir = cnfi->Get_Pushback_Dir();
+      DataType* pbdir = cnfi->Get_Pushback_Dir();
       std::cout << "\t\t PB Dir  = " << pbdir[0] << " " << pbdir[1] << " "
            << pbdir[2] << "\n";
-      Real* coords = 
+      DataType* coords = 
         cnfi->Vector_Var(ContactNodeFaceInteraction::COORDINATES);
       std::cout << "\t\t Coords  = " << coords[0] << " "
            << coords[1] << " " << coords[2] << "\n";
-      Real* norm =
+      DataType* norm =
         cnfi->Vector_Var(ContactNodeFaceInteraction::NORMAL_DIR);
       std::cout << "\t\t Normal  = " << norm[0] << " "
            << norm[1] << " " << norm[2] << "\n";
-      Real& node_entity_key = 
+      DataType& node_entity_key = 
         cnfi->Scalar_Var(ContactNodeFaceInteraction::NODE_ENTITY_KEY);
       std::cout << "\t\t Node Entity Key = " 
            << node_entity_key << "\n"; 
-      Real* pnorm =
+      DataType* pnorm =
         cnfi->Vector_Var(ContactNodeFaceInteraction::PHYSICAL_FACE_NORMAL);
       std::cout << "\t\t PF Normal = " << pnorm[0] << " " 
            << pnorm[1] << " " << pnorm[2] << "\n";
@@ -599,15 +628,15 @@ ContactNode::Print_NodeEntity_Interactions( int state )
            << " id = "<<cnsi->SurfaceID()<< "\n";
       std::cout << "\tGap = " 
            << cnsi->Scalar_Var(ContactNodeSurfaceInteraction::GAP_CUR) << "\n";
-      Real* cpoint = 
+      DataType* cpoint = 
         cnsi->Vector_Var(ContactNodeSurfaceInteraction::CONTACT_POINT);
       std::cout << "\tContact Point: " << cpoint[0] << " " << cpoint[1] 
            << " " << cpoint[2] << "\n";
-      Real* snorm = 
+      DataType* snorm = 
         cnsi->Get_Normal();
       std::cout << "\tSurface Normal: " << snorm[0] << " " << snorm[1]
            << " " << snorm[2] << "\n";
-      Real* pfnorm = 
+      DataType* pfnorm = 
         cnsi->Vector_Var(ContactNodeSurfaceInteraction::PHYSICAL_FACE_NORMAL);
       std::cout << "\tPF Normal: " << pfnorm[0] << " " << pfnorm[1]
            << " " << pfnorm[2] << "\n";
@@ -615,8 +644,9 @@ ContactNode::Print_NodeEntity_Interactions( int state )
   }
 }
 
+template<typename DataType>
 void
-ContactNode::Update_Interactions( ) {
+ContactNode<DataType>::Update_Interactions( ) {
   int tot_num_interactions = 0;
   for(int istate = 0; istate < NodeEntityInteractions.size(); ++istate) {
     tot_num_interactions += NodeEntityInteractions[istate].size();
@@ -646,7 +676,8 @@ ContactNode::Update_Interactions( ) {
   if(tot_num_interactions == 0) NodeEntityInteractions.clear();
 }
 
-int ContactNode::Number_NodeFace_Interactions(const int state) const{
+template<typename DataType>
+int ContactNode<DataType>::Number_NodeFace_Interactions(const int state) const{
   if(state >= NodeEntityInteractions.size()) return 0;
   int count = 0;
   for(int i = 0; i < NodeEntityInteractions[state].size(); ++i) {
@@ -657,7 +688,8 @@ int ContactNode::Number_NodeFace_Interactions(const int state) const{
   return count;
 }
 
-int ContactNode::Number_NodeSurface_Interactions(const int state) const{
+template<typename DataType>
+int ContactNode<DataType>::Number_NodeSurface_Interactions(const int state) const{
   if(state >= NodeEntityInteractions.size()) return 0;
   int count = 0;
   for(int i = 0; i < NodeEntityInteractions[state].size(); ++i) {
@@ -668,7 +700,8 @@ int ContactNode::Number_NodeSurface_Interactions(const int state) const{
   return count;
 }
 
-int ContactNode::Get_Owning_Entity() {
+template<typename DataType>
+int ContactNode<DataType>::Get_Owning_Entity() {
   //
   //  Check if the node has a defined entity key
   //
@@ -692,7 +725,8 @@ int ContactNode::Get_Owning_Entity() {
 
 
 
-int ContactNode::Num_Tied_Interactions(int istate) {
+template<typename DataType>
+int ContactNode<DataType>::Num_Tied_Interactions(int istate) {
   if(istate >= NodeEntityInteractions.size()) return 0;
   int count = 0;
   for(int i = 0; i < NodeEntityInteractions[istate].size(); ++i) {
@@ -702,7 +736,8 @@ int ContactNode::Num_Tied_Interactions(int istate) {
   return count;
 }
 
-int ContactNode::Num_Tracked_Interactions(int istate) {
+template<typename DataType>
+int ContactNode<DataType>::Num_Tracked_Interactions(int istate) {
   if(istate >= NodeEntityInteractions.size()) return 0;
   int count = 0;
   for(int i = 0; i < NodeEntityInteractions[istate].size(); ++i) {
@@ -716,7 +751,8 @@ int ContactNode::Num_Tracked_Interactions(int istate) {
 //  Return the entity key that the faces of a given physical face belong to.
 //  Note, could be ambigous, i.e., faces in multiple keys in that case return the first entity key found
 //
-int ContactNode::GetFacePFEntityKey(int physical_face_num) {
+template<typename DataType>
+int ContactNode<DataType>::GetFacePFEntityKey(int physical_face_num) {
   int num_face = faces.size();
   for(int iface = 0; iface < num_face; ++iface) {
     if(faces[iface].second != physical_face_num) continue;
@@ -725,16 +761,22 @@ int ContactNode::GetFacePFEntityKey(int physical_face_num) {
   return -1;
 }
 
-bool ContactNode::ConnectedToFace(const ContactHostGlobalID &id) {
+template<typename DataType>
+bool ContactNode<DataType>::ConnectedToFace(const ContactHostGlobalID &id) {
   for(int iface = 0; iface < faces.size(); ++iface) {
     if(GetFace(iface)->Global_ID() == id) return true;
   }
   return false;
 }
 
-bool sort_face_pair_by_id(const pair<ContactFace*,int> &d1, const pair<ContactFace*,int> &d2) {
+template<typename DataType>
+bool sort_face_pair_by_id(const pair<ContactFace<DataType>*,int> &d1, const pair<ContactFace<DataType>*,int> &d2) {
   return(d1.first->Global_ID() < d2.first->Global_ID());
 }
-void ContactNode::SortConnectedFaces() {
-  sort(faces.begin(), faces.end(), sort_face_pair_by_id);
+
+template<typename DataType>
+void ContactNode<DataType>::SortConnectedFaces() {
+  sort(faces.begin(), faces.end(), sort_face_pair_by_id<DataType>);
 }
+
+#endif  // #ifdef ContactNode_C_

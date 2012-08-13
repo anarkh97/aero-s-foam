@@ -6,7 +6,7 @@
 template<typename doublereal>
 ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
   int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe)
-  : nlayer(_nlayer), mtlayer(_mtlayer,9,_nlayer), couple(_couple), aframe(_aframe)
+  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe)
 {
 // .....COMPUTE THE THICKNESS FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
 // .....IT IS ASSUMED CONSTANT AND EQUAL TO THE SUM OF EACH LAYER'S THICKNESS 

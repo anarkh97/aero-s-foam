@@ -7,6 +7,8 @@
 
 //Declaration of the material properties
 class StrainEvaluator;
+template <typename Tensor> class GenStrainEvaluator;
+template <int n> class TwoDTensorTypes;
 
 class NLMaterial
 {
@@ -32,10 +34,15 @@ class NLMaterial
 
      virtual double getDensity() { return 0; } // PJSA
 
-     virtual StrainEvaluator * getStrainEvaluator() = 0; // return default strain evaluator 
-                                                         // note: some materials can be used with strain evaluators other than the default one
+     virtual StrainEvaluator * getStrainEvaluator() { return NULL; } // return default strain evaluator 
+
+     virtual GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() { return NULL; }
 
      virtual double getEquivPlasticStrain(double *statenp) { return 0; }
+
+     virtual double getThickness() { return 0; }
+
+     virtual double getPosdefifyTol() { return -1; }
 };
 
 #endif

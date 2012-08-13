@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/Memory.h>
@@ -439,7 +440,8 @@ GenBLKSparseMatrix<Scalar>::factor()
           deftemp, tol, iprow,  ipcol, tmpsiz, 
           tmpvec, iwsiz, iwork, rwsize, rwork, iflag);
   if(iflag != 0)
-    fprintf(stderr, "Error during sparse factor %d\n",iflag);
+    //fprintf(stderr, "Error during sparse factor %d\n",iflag);
+    throw std::runtime_error("Error during sparse factor");
 
   if(numrbm != lbdef) {
     //fprintf(stderr,"Num rbm = %d last block (size %d) %d tol %e\n",numrbm, defblk, lbdef, tol); 
@@ -450,7 +452,7 @@ GenBLKSparseMatrix<Scalar>::factor()
   // IFLAG = 31: insufficient work space in tmpvec.
   // IFLAG = 32: insufficient work space in iwork.
   // IFLAG = 33: insufficient work space in rwork.
-  def = 0;
+  if(def) delete [] def; def = 0;
   if(numrbm > 0) {
     def = new int[numrbm];
     for(int i=0; i<numrbm; ++i) def[i] = deftemp[i];
@@ -491,8 +493,23 @@ GenBLKSparseMatrix<Scalar>::computeRBMs()
         zem[m][i] = ns[i+m*numUncon];
     }
     if(rbm && myRbm) delete rbm;
-    rbm = new Rbm(zem,numrbm,numUncon);
+    rbm = new Rbm(zem,numrbm,numUncon,1);
+    myRbm = true;
     delete [] ns; delete [] tempvec;
+  }
+}
+
+template<class Scalar>
+void
+GenBLKSparseMatrix<Scalar>::getNullSpace(Scalar *ns)
+{
+  if(numrbm > 0) {
+    Scalar *tempvec = new Scalar[numUncon];
+    Tblkns(nsuper, xsuper, xlindx,  lindx,
+           xlnz,    lnz, defblk, numrbm,
+           lbdef,    def,  ipcol,   invp,
+           ns,   numUncon, tempvec);
+    delete [] tempvec;
   }
 }
 
@@ -1327,7 +1344,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0)
-    defblk = domain->solInfo().sparse_defblk; // PJSA: default is 30
+    defblk = min(numUncon-1,domain->solInfo().sparse_defblk); // note: sparse_defblk default is 30
   else
     defblk = 0;
 

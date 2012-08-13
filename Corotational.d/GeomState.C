@@ -5,7 +5,7 @@
 #include <Element.d/Element.h>
 #include <Driver.d/GeoSource.h>
 
-#define WITH_GLOBAL_ROT
+//#define COMPUTE_GLOBAL_ROTATION
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)
@@ -98,12 +98,11 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
     }
     
   }
-#ifdef WITH_GLOBAL_ROT
+
   // Initialize Global Rotation Matrix to Identity
   double zeroRot[3] = {0.0, 0.0, 0.0};
   computeRotMat(zeroRot, gRot);
   computeCG(refCG);
-#endif
 
   numelems = 0;
   if(elems) {
@@ -119,6 +118,8 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
         es[numelems].numInternalStates = numStates;
         es[numelems].internalStates = new double[numStates];
         for(int j = 0; j < numStates; ++j) es[numelems].internalStates[j] = 0;
+        (*elems)[i]->setStateOffset(0);
+        (*elems)[i]->initStates(es[numelems].internalStates);
         emap[(*elems)[i]->getGlNum()] = numelems;
         numelems++;
       }
@@ -131,11 +132,11 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0) 
+GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0)
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0) 
+GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0)
 {
   numnodes = cs.size();                 // Number of nodes
   ns.resize(numnodes);
@@ -176,6 +177,14 @@ GeomState::~GeomState()
 }
 
 void
+GeomState::clearMultiplierNodes()
+{
+  numnodes -= multiplier_nodes.size();
+  ns.resize(numnodes);
+  multiplier_nodes.clear();
+}
+
+void
 GeomState::resizeLocAndFlag(DofSetArray &cdsa)
 {
   // note ns has already been resized
@@ -183,9 +192,9 @@ GeomState::resizeLocAndFlag(DofSetArray &cdsa)
   loc.resize(ns.size());
   flag.resize(ns.size());
 
-  for(int i = numnodes; i < ns.size(); ++i) {
+  for(int i = numnodes-multiplier_nodes.size(); i < ns.size(); ++i) {
 
-    loc[i].resize(9); for(int j=0; j<6; ++j) loc[i][j] = -1;
+    loc[i].resize(6); for(int j=0; j<6; ++j) loc[i][j] = -1;
     int dof;
     if((dof = cdsa.locate( i, DofSet::LagrangeE )) > -1) {
       loc[i][0] = dof;
@@ -199,7 +208,6 @@ GeomState::resizeLocAndFlag(DofSetArray &cdsa)
       flag[i] = 0;
     }
   }
-  numnodes = ns.size();
 }
 
 void
@@ -224,19 +232,49 @@ GeomState::printNode(int i)
 GeomState &
 GeomState::operator=(const GeomState &g2)
 {
-  int i,j;
-  for(i=0; i<numnodes; ++i)
-    ns[i] = g2.ns[i];
+  // note: unlike the copy constructor, the assignment operator does not copy X0 or refCG
+  if(numnodes != g2.numNodes()) {
+    numnodes = g2.numNodes();
+    ns.resize(g2.numNodes());
+    loc.resize(g2.numNodes());
+    flag.resize(g2.numNodes());
+  }
 
+  numReal = g2.numReal;
+
+  // Copy dof locations
+  for(int i = 0; i < numnodes; ++i) {
+    loc[i].resize(6);
+    loc[i][0] = g2.loc[i][0];
+    loc[i][1] = g2.loc[i][1];
+    loc[i][2] = g2.loc[i][2];
+    loc[i][3] = g2.loc[i][3];
+    loc[i][4] = g2.loc[i][4];
+    loc[i][5] = g2.loc[i][5];
+  }
+
+  // Copy node states
+  for(int i = 0; i < numnodes; ++i) {
+    ns[i]  = g2.ns[i];
+    flag[i]= g2.flag[i];
+  }
+  multiplier_nodes = g2.multiplier_nodes;
+
+  // now deal with element states
+  numelems = g2.numelems;
+  if(es) delete [] es;
+  es = new ElemState[numelems];
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
   emap = g2.emap;
 
-#ifdef WITH_GLOBAL_ROT
-  for(i=0; i<3; ++i)
-    for(j=0; j<3; ++j)
+  refCG[0] = g2.refCG[0];
+  refCG[1] = g2.refCG[1];
+  refCG[2] = g2.refCG[2];
+  for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
-#endif
+
   return *this;
 }
 
@@ -260,7 +298,7 @@ GeomState::extract(double *p)
   }
 }
 
-GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
+GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier_nodes(g2.multiplier_nodes)
 {
   // Copy number of nodes
   numnodes = g2.numnodes;
@@ -275,8 +313,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   numReal = g2.numReal;
 
   // Copy dof locations
-  int i;
-  for(i = 0; i < numnodes; ++i) {
+  for(int i = 0; i < numnodes; ++i) {
     loc[i].resize(6); 
     loc[i][0] = g2.loc[i][0];
     loc[i][1] = g2.loc[i][1];
@@ -287,7 +324,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   }
 
   // Copy node states
-  for(i = 0; i < numnodes; ++i) {
+  for(int i = 0; i < numnodes; ++i) {
     ns[i]  = g2.ns[i];
     flag[i]= g2.flag[i];
   }
@@ -298,7 +335,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
-#ifdef WITH_GLOBAL_ROT
   // Initialize Global Rotation Matrix & CG position // HB
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
@@ -306,7 +342,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap)
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
-#endif
 }
 
 void
@@ -387,7 +422,7 @@ GeomState::update(const Vector &v)
      // Increment rotation tensor R = R(dtheta)Ra
      inc_rottensor( dtheta, ns[i].R );
    }
-#ifdef WITH_GLOBAL_ROT
+#ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();
 #endif
 }
@@ -424,7 +459,7 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
      form_rottensor( theta, ns[i].R );
    }
  }
-#ifdef WITH_GLOBAL_ROT
+#ifdef COMPUTE_GLOBAL_ROTATION
  computeGlobalRotation();
 #endif
 }
@@ -477,6 +512,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
 
   // Update translational velocity and accelerations
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
 
     // Update translational velocities and accelerations
     if(loc[i][0] >= 0) {
@@ -523,6 +559,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
     ss.ns[i].x = ns[i].x = tcoef*(ns[i].x - alphaf*ss.ns[i].x);
     ss.ns[i].y = ns[i].y = tcoef*(ns[i].y - alphaf*ss.ns[i].y);
     ss.ns[i].z = ns[i].z = tcoef*(ns[i].z - alphaf*ss.ns[i].z);
@@ -532,6 +569,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
     if(alphaf == 0.0) {
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
@@ -553,6 +591,9 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
     }
   }
+#ifdef COMPUTE_GLOBAL_ROTATION
+  computeGlobalRotation();
+#endif
 }
 
 void
@@ -634,6 +675,8 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
+    if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
+    
     // Update incremental translational displacements
     if(loc[inode][0] >= 0) incVec[loc[inode][0]] = ns[inode].x - ss.ns[inode].x;
     if(loc[inode][1] >= 0) incVec[loc[inode][1]] = ns[inode].y - ss.ns[inode].y;
@@ -708,26 +751,31 @@ GeomState::zeroRotDofs(Vector& vec)
   }
 }
 
-// updating prescribed displacements for nonlinear statics
+// incremental update of prescribed displacements for nonlinear statics
 // i.e. non-zero displacement boundary conditions
-
 void
 GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
                                         double delta)
 {
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[numnodes][3];
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
 
-  // initialize to zero, rotational prescribed dofs
+  // initialize the rotation dofs from the current state
   int i;
-  for(i=0; i<numnodes; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
+  for(i=0; i<numDirichlet; ++i) {
+    int nodeNumber = dbc[i].nnum;
+    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+    if(it == dth.end()) {
+      std::vector<double> v(3);
+      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    }
+  }
 
   for(i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
-    
 
     // we multiply the total prescribed value by delta which
     // is a parameter prescribed by the user in the input file
@@ -750,6 +798,72 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
                 ns[nodeNumber].z += prescribedValue;
                 break;
         case 3:
+                dth[nodeNumber][0] += prescribedValue;
+                break;
+        case 4:
+                dth[nodeNumber][1] += prescribedValue;
+                break;
+        case 5:
+                dth[nodeNumber][2] += prescribedValue;
+                break;
+        default:
+                break;
+    }
+
+  }
+
+  // Take care of rotational degrees of freedom for
+  // the prescribed displacements
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
+  }
+}
+
+// update prescribed displacements for nonlinear dynamics
+// i.e. displacement boundary and initial conditions prescribed with
+// DISP and IDISP
+void
+GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
+                                        CoordSet &cs)
+{
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
+
+  // initialize the rotation dofs from the current state
+  int i;
+  for(i=0; i<numDirichlet; ++i) {
+    int nodeNumber = dbc[i].nnum;
+    int dofNumber  = dbc[i].dofnum;
+    if(cs[nodeNumber] && (dofNumber == 3 || dofNumber == 4 || dofNumber == 5)) {
+      std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+      if(it == dth.end()) {
+        std::vector<double> v(3);
+        mat_to_vec(ns[nodeNumber].R, &v[0]);
+        dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+      }
+    }
+  }
+
+  for(i=0; i<numDirichlet; ++i) {
+
+    int nodeNumber = dbc[i].nnum;
+    if(!cs[nodeNumber]) continue;
+
+    int dofNumber  = dbc[i].dofnum;
+
+    double prescribedValue = dbc[i].val;
+
+    switch(dofNumber) {
+        case 0:
+                ns[nodeNumber].x = cs[nodeNumber]->x + prescribedValue;
+                break;
+        case 1:
+                ns[nodeNumber].y = cs[nodeNumber]->y + prescribedValue;
+                break;
+        case 2:
+                ns[nodeNumber].z = cs[nodeNumber]->z + prescribedValue;
+                break;
+        case 3:
                 dth[nodeNumber][0] = prescribedValue;
                 break;
         case 4:
@@ -764,14 +878,11 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
 
   }
 
-  // Take care of rotational degrees of freedom
-  for(i=0; i<numnodes; ++i) {
-    if(dth[i][0] == 0.0 && dth[i][1] == 0.0 && dth[i][2] == 0.0) continue;
-    //  inc_rottensor( dth[i], ns[i].R );
-    form_rottensor( dth[i], ns[i].R );
+  // Take care of rotational degrees of freedom for
+  // the prescribed displacements
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
   }
-
-  delete [] dth;
 }
 
 // update prescribed displacements for nonlinear dynamics
@@ -782,13 +893,21 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
                                         CoordSet &cs )
 {
   if(claw->numUserDisp == 0) return;
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[claw->numUserDisp][3];
 
-  // initialize to zero, rotational prescribed dofs
+  // data structure to store rotation vectors of nodes with rotational prescribed dofs
+  std::map<int,std::vector<double> > dth;
+
+  // initialize the rotation dofs from the current state
   int i;
-  for(i=0; i<claw->numUserDisp; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
+  for(i=0; i<claw->numUserDisp; ++i) {
+    int nodeNumber = claw->userDisp[i].nnum;
+    std::map<int,std::vector<double> >::iterator it = dth.find(nodeNumber);
+    if(it == dth.end()) {
+      std::vector<double> v(3);
+      mat_to_vec(ns[nodeNumber].R, &v[0]);
+      dth.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
+    }
+  }
 
   for(i=0; i<claw->numUserDisp; ++i) {
   
@@ -800,22 +919,22 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
     
     switch(dofNumber) {
     	case 0: 
-		ns[nodeNumber].x = ( cs[nodeNumber]->x + v[i] );
+		ns[nodeNumber].x = cs[nodeNumber]->x + v[i];
 		break;
 	case 1:
-		ns[nodeNumber].y = ( cs[nodeNumber]->y + v[i] );
+		ns[nodeNumber].y = cs[nodeNumber]->y + v[i];
 		break;
 	case 2:
-		ns[nodeNumber].z = ( cs[nodeNumber]->z + v[i] );
+		ns[nodeNumber].z = cs[nodeNumber]->z + v[i];
 		break;
 	case 3:
-	        dth[i][0] = v[i];
+                dth[nodeNumber][0] = v[i];
 		break;
 	case 4:
-	        dth[i][1] = v[i];
+                dth[nodeNumber][1] = v[i];
 		break;
 	case 5:
-	        dth[i][2] = v[i];
+                dth[nodeNumber][2] = v[i];
 		break;
 	default:
 		break;
@@ -825,17 +944,9 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
 
   // Take care of rotational degrees of freedom for
   // the prescribed displacements
-  for(i=0; i<claw->numUserDisp; ++i) {
-    if(dth[i][0] == 0.0 &&
-       dth[i][1] == 0.0 &&
-       dth[i][2] == 0.0) continue;
-    //inc_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
-    form_rottensor( dth[i], ns[claw->userDisp[i].nnum].R );
+  for(std::map<int,std::vector<double> >::iterator it = dth.begin(); it != dth.end(); ++it) {
+    form_rottensor( &(it->second[0]), ns[it->first].R );
   }
-
- // check whether this is the appropriate method of
- // deleting this data structure!
- delete [] dth;
 }
 
 /*
@@ -941,6 +1052,25 @@ GeomState::getTotalNumElemStates()
  return n;
 }
 
+void
+GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
+{
+  NodeState n;
+  n.x = value;
+  ns.push_back(n);
+  multiplier_nodes[lmpc_id] = numnodes++;
+}
+
+double
+GeomState::getMultiplier(std::pair<int,int> &lmpc_id)
+{
+  std::map<std::pair<int,int>,int>::iterator it;
+  if((it = multiplier_nodes.find(lmpc_id)) != multiplier_nodes.end())
+    return ns[it->second].x;
+  else
+    return 0;
+}
+
 void GeomState::computeGlobalRotation() 
 {
   double cg[3];
@@ -951,13 +1081,22 @@ void GeomState::computeGlobalRotation()
   double zeroRot[3] = {0,0,0};
   computeRotMat(zeroRot, deltaRot);
 
-  int iter = 3;  // number of iterations
+  int iter = 10;  // maximum number of iterations
+  double tol = 1.0e-12; // convergence tolerance
   double jac[3][3], grad[3];  //minimization gradient and jacobian
+  double l2;
+  bool converged = false;
 
   for (int it = 0; it < iter; it++)  {
     int i,j;
     // compute minimization gradients and jacobians
     computeRotGradAndJac(cg, grad, jac);
+
+   // check for convergence
+    if(it > 0 && sqrt(grad[0]*grad[0]+grad[1]*grad[1]+grad[2]*grad[2]) <= tol) {
+       converged = true;
+       break;
+    }
 
     // rotation results come back in grad
     solve(jac, grad);
@@ -973,6 +1112,16 @@ void GeomState::computeGlobalRotation()
       for (j = 0; j < 3; ++j)
         gRot[i][j] = R[i][j];
   }
+/*
+#ifndef NDEBUG
+  if(!converged) {
+    computeRotGradAndJac(cg, grad, jac);
+    double l2 = sqrt(grad[0]*grad[0]+grad[1]*grad[1]+grad[2]*grad[2]);
+    if(l2 > tol)
+      std::cerr << "failed to converge in computeGlobalRotation, l2 norm = " << l2 << std::endl;
+  }
+#endif
+*/
 } 
 
 void GeomState::computeRotMat(double *angle, double mat[3][3])
@@ -1022,8 +1171,18 @@ void GeomState::computeRotMat(double *angle, double mat[3][3])
   mat[2][2] = c1*c2;
 }
 
+#ifdef USE_EIGEN3
+#include <Eigen/Dense>
+#endif
 void GeomState::solve(double m[3][3], double v[3]) 
 {
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d mat(3,3);
+  for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) mat(i,j) = m[i][j];
+
+  Eigen::Map<Eigen::Vector3d> vec(v);
+  mat.selfadjointView<Eigen::Lower>().ldlt().solveInPlace(vec);
+#else
   int i,j,k;
 
   for (i = 0; i < 2; i++)
@@ -1051,6 +1210,7 @@ void GeomState::solve(double m[3][3], double v[3])
     v[i] /= m[i][i];
 
   }
+#endif
 }
 
 void GeomState::computeRotGradAndJac(double cg[3], double grad[3], double jac[3][3]) 
@@ -1153,14 +1313,9 @@ void GeomState::rotate(double R[3][3], double v[3])
 
 void GeomState::getGlobalRot(double R[3][3]) 
 {
-#ifdef WITH_GLOBAL_ROT
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       R[i][j] = gRot[i][j];
-#else
-  cerr << " *** ERROR: recompile code with -DWITH_GLOBAL_ROT for nonlinear spring\n";
-  exit(-1);
-#endif
 }
 
 double

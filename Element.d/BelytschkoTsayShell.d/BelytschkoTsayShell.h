@@ -79,6 +79,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int* nodes(int* = 0);
     Corotator *getCorotator(CoordSet&, double*, int , int);
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double delt, double);
+    void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,
                     GeomState*);
@@ -87,7 +88,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     int getTopNumber();
     void computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState* gs, int cflg);
+                              GeomState* gs = 0, int cflg = 0, double t = 0);
               
     void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, 
                      int glfag, GeomState* gs = 0);

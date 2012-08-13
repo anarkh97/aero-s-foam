@@ -57,7 +57,7 @@ ContactNodeFaceInteraction::ContactNodeFaceInteraction( )
   number_shared_faces         = 0;
 }
 
-ContactNodeFaceInteraction::ContactNodeFaceInteraction( ContactNode* Node ) 
+ContactNodeFaceInteraction::ContactNodeFaceInteraction( ContactNode<Real>* Node ) 
   : ContactNodeEntityInteraction(false, false, false, false, Node, NULL, 0, NODE_FACE_INTERACTION, CT_NFI)
 {
   Set_NodeEntityData();
@@ -68,8 +68,8 @@ ContactNodeFaceInteraction::ContactNodeFaceInteraction( ContactNode* Node )
 
 ContactNodeFaceInteraction::ContactNodeFaceInteraction( 
                                                   InteractionSource Source,
-                                                  ContactNode* Node,
-                                                  ContactFace* Face_,
+                                                  ContactNode<Real>* Node,
+                                                  ContactFace<Real>* Face_,
                                                   Real* Data,
                                                   int node_data_key,
                                                   Real* Physical_Face_Normal,
@@ -127,7 +127,7 @@ ContactNodeFaceInteraction::ContactNodeFaceInteraction(
 
   if (IS_TRACKED && !(IS_TIED || IS_INFSLIP || IS_GLUED) && include_neighbors) {
 #ifdef INCLUDE_ALL_FACES
-    ContactTopologyEntity::connection_data* shared_face_info = Face()->NeighborInfo();
+    ContactTopologyEntity<Real>::connection_data* shared_face_info = Face()->NeighborInfo();
     for (int i=0; i<Face()->Edges_Per_Face(); ++i) {
       if (shared_face_info[i].owner>=0) {
         shared_face_data[number_shared_faces++] = shared_face_info[i];
@@ -142,7 +142,7 @@ ContactNodeFaceInteraction::ContactNodeFaceInteraction(
     Face()->Get_Close_Edges(local_coords, nedges, edge1, edge2);
     if (Face()->NumberOfNeighbors()>0 && nedges>0) {
       PRECONDITION(number_shared_faces<Face()->NumberOfNeighbors());
-      ContactTopologyEntity::connection_data* shared_face_info = Face()->NeighborInfo();
+      ContactTopologyEntity<Real>::connection_data* shared_face_info = Face()->NeighborInfo();
       if (shared_face_info[edge1].owner>=0) {
         shared_face_data[number_shared_faces++] = shared_face_info[edge1];
       }
@@ -173,8 +173,8 @@ ContactNodeFaceInteraction*
 ContactNodeFaceInteraction::new_ContactNodeFaceInteraction(
 				     ContactFixedSizeAllocator& alloc,
 				     InteractionSource Source,
-				     ContactNode* Node,
-				     ContactFace* Face,
+				     ContactNode<Real>* Node,
+				     ContactFace<Real>* Face,
 				     Real* Data,
 				     int node_entity_key,
 				     Real* physical_face_normal,
@@ -194,7 +194,7 @@ ContactNodeFaceInteraction::new_ContactNodeFaceInteraction(
 ContactNodeFaceInteraction* 
 ContactNodeFaceInteraction::new_ContactNodeFaceInteraction(
 				     ContactFixedSizeAllocator& alloc,
-				     ContactNode* node )
+				     ContactNode<Real>* node )
 {
   PRECONDITION( node );
   return new (alloc.New_Frag())
@@ -250,7 +250,7 @@ void BlendUnitVectors(const Real* vec_a, const Real* vec_b, const Real a_ratio, 
 
 void ComputeZoneNormal(VariableHandle &POSITION, 
                        VariableHandle &FACE_NORMAL, 
-                       ContactFace* face, 
+                       ContactFace<Real>* face, 
                        const int edge_id, 
                        const Real *pushback_dir,
                        const Real *face_normal,
@@ -432,7 +432,7 @@ int ContactNodeFaceInteraction::Size()
 {
   return(ContactInteractionEntity::Size()+
          sizeof(entity_data)+sizeof(int)+
-         number_shared_faces*sizeof(ContactTopologyEntity::connection_data)+
+         number_shared_faces*sizeof(ContactTopologyEntity<Real>::connection_data)+
          (NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS)*sizeof(Real));
 }
 
@@ -576,7 +576,7 @@ char* ContactNodeFaceInteraction::Unpack_ForSecondary( char* buffer )
   return buff;
 }
 
-int ContactNodeFaceInteraction::PackConnection( ContactTopologyEntity::connection_data* data,
+int ContactNodeFaceInteraction::PackConnection( ContactTopologyEntity<Real>::connection_data* data,
                                                        int* buffer )
 {
   int* buf = buffer;
@@ -587,7 +587,7 @@ int ContactNodeFaceInteraction::PackConnection( ContactTopologyEntity::connectio
   return 4;
 }
 
-int ContactNodeFaceInteraction::UnPackConnection( ContactTopologyEntity::connection_data* data, 
+int ContactNodeFaceInteraction::UnPackConnection( ContactTopologyEntity<Real>::connection_data* data, 
                                                          int* buffer)
 {
   int* buf                     = buffer;
@@ -711,7 +711,7 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
   Face()->Evaluate_Shape_Functions( local_coords, shape_functions );
 
   for( int i=0 ; i<Face()->Nodes_Per_Face() ; ++i ){
-    ContactNode* nd = Face()->Node(i);
+    ContactNode<Real>* nd = Face()->Node(i);
     Real* pp = nd->Variable(POSITION);
     contact_point[0] += shape_functions[i]*pp[0];
     contact_point[1] += shape_functions[i]*pp[1];
@@ -793,13 +793,13 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
   Real  contact_point[] = {0.0, 0.0, 0.0};
   Real  shape_functions[MAX_NODES_PER_FACE];
   Real* local_coords = Vector_Var(COORDINATES);
-  ContactFace* face = Face();
+  ContactFace<Real>* face = Face();
   PRECONDITION( face != NULL );
   PRECONDITION( face->Nodes_Per_Face() <= MAX_NODES_PER_FACE );
   face->Evaluate_Shape_Functions( local_coords, shape_functions );
 
   for( int i=0 ; i<face->Nodes_Per_Face() ; ++i ){
-    ContactNode* nd = face->Node(i);
+    ContactNode<Real>* nd = face->Node(i);
     Real* pp = nd->Variable(POSITION);
     contact_point[0] += shape_functions[i]*pp[0];
     contact_point[1] += shape_functions[i]*pp[1];
@@ -861,13 +861,13 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
   Real contact_point[] = {0.0, 0.0, 0.0};
   Real shape_functions[MAX_NODES_PER_FACE];
   Real* local_coords = Vector_Var(COORDINATES);
-  ContactFace* face = Face();
+  ContactFace<Real>* face = Face();
   PRECONDITION( face != NULL );
   PRECONDITION( face->Nodes_Per_Face() <= MAX_NODES_PER_FACE );
   face->Evaluate_Shape_Functions( local_coords, shape_functions );
 
   for( int i=0 ; i<face->Nodes_Per_Face() ; ++i ){
-    ContactNode* nd = face->Node(i);
+    ContactNode<Real>* nd = face->Node(i);
     Real* pp = nd->Variable(POSITION);
     contact_point[0] += shape_functions[i]*pp[0];
     contact_point[1] += shape_functions[i]*pp[1];
@@ -938,7 +938,7 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
   int nodes_per_face = ContactSearch::Number_Nodes_Per_Face(face_type);
   switch (face_type) {
   case ContactSearch::QUADFACEL4:
-    ContactQuadFaceL4::Compute_Shape_Functions( local_coords, 
+    ContactQuadFaceL4<Real>::Compute_Shape_Functions( local_coords, 
                                                 shape_functions );
     break;
   case ContactSearch::QUADFACEQ8:
@@ -950,7 +950,7 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
                                                 shape_functions );
     break;
   case ContactSearch::TRIFACEL3:
-    ContactTriFaceL3::Compute_Shape_Functions( local_coords, 
+    ContactTriFaceL3<Real>::Compute_Shape_Functions( local_coords, 
                                                shape_functions );
     break;
   case ContactSearch::TRIFACEQ6:
@@ -958,11 +958,11 @@ ContactNodeFaceInteraction::Update_Tied_Interaction(VariableHandle POSITION,
                                                shape_functions );
     break;
   case ContactSearch::SHELLQUADFACEL4:
-    ContactShellQuadFaceL4::Compute_Shape_Functions( local_coords, 
+    ContactShellQuadFaceL4<Real>::Compute_Shape_Functions( local_coords, 
                                                      shape_functions );
     break;
   case ContactSearch::SHELLTRIFACEL3:
-    ContactShellTriFaceL3::Compute_Shape_Functions( local_coords, 
+    ContactShellTriFaceL3<Real>::Compute_Shape_Functions( local_coords, 
                                                     shape_functions );
     break;
   case ContactSearch::LINEFACEL2:
@@ -1044,7 +1044,7 @@ void ContactNodeFaceInteraction::Get_Avg_Face_Normal(Real *return_normal,
   Face()->Compute_Local_Coordinates( NODE_COORDS, coordinates, local_coords );
   Face()->Evaluate_Shape_Functions( local_coords, shape_functions );
   for( int i=0 ; i<Face()->Nodes_Per_Face() ; ++i ){
-    ContactNode* nd = Face()->Node(i);
+    ContactNode<Real>* nd = Face()->Node(i);
     Real* ndnrml = nd->Variable(NODE_NORMAL); // assembled node normal
     return_normal[0] += shape_functions[i]*ndnrml[0];
     return_normal[1] += shape_functions[i]*ndnrml[1];

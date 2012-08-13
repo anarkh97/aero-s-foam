@@ -31,15 +31,20 @@
 #include "ContactEdge.h"
 #include "ContactBoundingBox.h"
 
-class ContactFace;
+template<typename DataType> class ContactFace;
 class ContactNodeNodeInteraction;
 class ContactNodeEntityInteraction;
 class ContactNodeFaceInteraction;
 class ContactNodeSurfaceInteraction;
 
-class ContactNode : public ContactTopologyEntity {
+template<typename DataType>
+class ContactNode : public ContactTopologyEntity<DataType> {
 
  public:
+
+  using ContactTopologyEntity<DataType>::DataArray_Buffer;
+  using ContactTopologyEntity<DataType>::Base_Type;
+  using ContactTopologyEntity<DataType>::Variable;
 
   enum PHYSICAL_TYPE { CONTINUUM_NODE, MIXED_NODE, SHELL_NODE, SHELL_TAB_NODE,
                        MIXED_TAB_NODE };
@@ -77,18 +82,18 @@ class ContactNode : public ContactTopologyEntity {
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
 
-  inline ContactFace* GetFace( int i );
+  inline ContactFace<DataType>* GetFace( int i );
   inline int          GetFacePFIndex(int i);
   int                 GetFacePFEntityKey(int physical_face_num);
   bool                ConnectedToFace(const ContactHostGlobalID &id);
   void                SortConnectedFaces();
-  inline std::vector<std::pair<ContactFace*, int> >& ConnectedFaces() { return faces; };
+  inline std::vector<std::pair<ContactFace<DataType>*, int> >& ConnectedFaces() { return faces; };
 
 
 
   // Functions to connect up the topology
   void Delete_Face_Connections( );
-  void Connect_Face(ContactFace* );
+  void Connect_Face(ContactFace<DataType>* );
 
   inline int Number_Face_Connections() {return faces.size();};
   inline ContactSearch::ContactNode_Type NodeType() {return node_type;};
@@ -141,14 +146,14 @@ class ContactNode : public ContactTopologyEntity {
   // Restart Pack/Unpack Functions
 
   inline int Restart_Size() {return DataArray_Length();}
-  inline void Restart_Pack( Real* buffer ) {
-    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(Real) );
+  inline void Restart_Pack( DataType* buffer ) {
+    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(DataType) );
   }
-  inline void Restart_Unpack( Real* buffer ){
-    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(Real) );
+  inline void Restart_Unpack( DataType* buffer ){
+    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(DataType) );
   }
 
-  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(Real));};
+  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(DataType));};
 
   inline bool Is_a_Shell_Node() { 
     if( Base_Type() == CT_NODE ) return false;
@@ -243,7 +248,7 @@ class ContactNode : public ContactTopologyEntity {
                                            const VariableHandle &PREDICTED_POSITION,
                                            const VariableHandle &REMAINING_GAP,
                                            const int  auto_tol,
-                                           const Real box_inflation,
+                                           const DataType box_inflation,
                                            ContactBoundingBox &box);
                                            
   inline void ComputeBoundingBoxForSearch( const int num_configs,
@@ -251,11 +256,13 @@ class ContactNode : public ContactTopologyEntity {
                                            const VariableHandle &PREDICTED_POSITION,
                                            const VariableHandle &REMAINING_GAP,
                                            const int  auto_tol,
-                                           const Real box_inflation,
-                                           const Real box_expand,
+                                           const DataType box_inflation,
+                                           const DataType box_expand,
                                            ContactBoundingBox &box);
 
  protected:
+  using ContactTopologyEntity<DataType>::entity_key;
+  using ContactTopologyEntity<DataType>::owner_proc_array_index;
   ContactSearch::ContactNode_Type node_type;
   ContactFixedSizeAllocator* allocators;
   int shell_node_base_id;
@@ -270,7 +277,7 @@ class ContactNode : public ContactTopologyEntity {
   //   0->2 = physical face 0,1, or 2
   //   >3   = Extra face set that is part of no physcial face
   //
-  std::vector<std::pair<ContactFace*,int> > faces;
+  std::vector<std::pair<ContactFace<DataType>*,int> > faces;
   PHYSICAL_TYPE physical_type;
 
   inline int NumberOfStates() const {return 2;};
@@ -278,7 +285,7 @@ class ContactNode : public ContactTopologyEntity {
 
 
 
-  Real DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
+  DataType DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
   
   std::vector<ContactInteractionDLL> NodeNodeInteractions;
   std::vector< std::vector<ContactNodeEntityInteraction*> >NodeEntityInteractions;
@@ -286,11 +293,13 @@ class ContactNode : public ContactTopologyEntity {
 
 
 
-inline ContactFace* ContactNode::GetFace( int i ) {
+template<typename DataType>
+inline ContactFace<DataType>* ContactNode<DataType>::GetFace( int i ) {
   PRECONDITION( i>=0 && i<faces.size() );
   return( faces[i].first );
 }
-inline int ContactNode::GetFacePFIndex( int i ) {
+template<typename DataType>
+inline int ContactNode<DataType>::GetFacePFIndex( int i ) {
   PRECONDITION( i>=0 && i<faces.size() );
   return( faces[i].second );
 }
@@ -298,9 +307,10 @@ inline int ContactNode::GetFacePFIndex( int i ) {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack functions that are to be used for DLB
 //--------------------------------------------------------------------
-inline int ContactNode::Size(int state)
+template<typename DataType>
+inline int ContactNode<DataType>::Size(int state)
 {
-  int size = ContactTopologyEntity::Size(DataArray_Length()) + 6*sizeof(int);
+  int size = ContactTopologyEntity<DataType>::Size(DataArray_Length()) + 6*sizeof(int);
   if (state>=0) {
     size += Size_Interactions(state);
   } else if (state==-1) { 
@@ -311,11 +321,12 @@ inline int ContactNode::Size(int state)
   return size;
 }
 
-inline void ContactNode::Pack(char* buffer, int state )
+template<typename DataType>
+inline void ContactNode<DataType>::Pack(char* buffer, int state )
 {
   char* buff = buffer;
-  ContactTopologyEntity::Pack( buff, DataArray_Length() );
-  buff += ContactTopologyEntity::Size(DataArray_Length());
+  ContactTopologyEntity<DataType>::Pack( buff, DataArray_Length() );
+  buff += ContactTopologyEntity<DataType>::Size(DataArray_Length());
   
   // NOTE: If the location of the 'state' variable in the buffer array
   // is hard coded into the ContactShellNode Pack() function so if anything 
@@ -342,11 +353,12 @@ inline void ContactNode::Pack(char* buffer, int state )
   }
 }
 
-inline void ContactNode::Unpack( char* buffer )
+template<typename DataType>
+inline void ContactNode<DataType>::Unpack( char* buffer )
 {
   char* buff = buffer;
-  ContactTopologyEntity::Unpack( buff, DataArray_Length() );
-  buff += ContactTopologyEntity::Size(DataArray_Length());
+  ContactTopologyEntity<DataType>::Unpack( buff, DataArray_Length() );
+  buff += ContactTopologyEntity<DataType>::Size(DataArray_Length());
   
   int cnt                       = 0;
   int* i_buf                    = reinterpret_cast<int*>( buff );
@@ -354,7 +366,7 @@ inline void ContactNode::Unpack( char* buffer )
   exodus_id                     = i_buf[cnt++];
   shell_node_base_id            = i_buf[cnt++];
   node_type                     = (ContactSearch::ContactNode_Type) i_buf[cnt++];
-  physical_type                 = (ContactNode::PHYSICAL_TYPE) i_buf[cnt++];
+  physical_type                 = (typename ContactNode<DataType>::PHYSICAL_TYPE) i_buf[cnt++];
   int state                     = i_buf[cnt++];
   faces.clear();
   
@@ -370,9 +382,10 @@ inline void ContactNode::Unpack( char* buffer )
   }
 }
 
-inline void ContactNode::Copy( ContactNode* src, int state )
+template<typename DataType>
+inline void ContactNode<DataType>::Copy( ContactNode* src, int state )
 {
-  ContactTopologyEntity::Copy( src, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Copy( src, DataArray_Length() );
   entity_key                    = src->entity_key;
   exodus_id                     = src->exodus_id;
   shell_node_base_id            = src->shell_node_base_id;
@@ -392,28 +405,32 @@ inline void ContactNode::Copy( ContactNode* src, int state )
 //for data xfer for search, don't send NODE_GHOST_GAP, PROJ_DIR, or LOFTING_VECTOR
 #define DATA_LENGTH (DataArray_Length()-3*3)
 
-inline int ContactNode::Size_ForDataUpdate()
+template<typename DataType>
+inline int ContactNode<DataType>::Size_ForDataUpdate()
 {
-  return( ContactTopologyEntity::Size_ForDataUpdate(DATA_LENGTH) );
+  return( ContactTopologyEntity<DataType>::Size_ForDataUpdate(DATA_LENGTH) );
 }
 
-inline void ContactNode::Pack_ForDataUpdate( char* buffer )
+template<typename DataType>
+inline void ContactNode<DataType>::Pack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Pack_ForDataUpdate( buffer, DATA_LENGTH );
+  ContactTopologyEntity<DataType>::Pack_ForDataUpdate( buffer, DATA_LENGTH );
 }
 
-inline void ContactNode::Unpack_ForDataUpdate( char* buffer )
+template<typename DataType>
+inline void ContactNode<DataType>::Unpack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Unpack_ForDataUpdate( buffer, DATA_LENGTH );
+  ContactTopologyEntity<DataType>::Unpack_ForDataUpdate( buffer, DATA_LENGTH );
 }
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
 //--------------------------------------------------------------------
-inline int ContactNode::Size_ForSecondary(int state)
+template<typename DataType>
+inline int ContactNode<DataType>::Size_ForSecondary(int state)
 {
-  int size = ContactTopologyEntity::Size_ForSecondary(DATA_LENGTH) + 2*sizeof(int);
+  int size = ContactTopologyEntity<DataType>::Size_ForSecondary(DATA_LENGTH) + 2*sizeof(int);
   if (state>=0) {
     size += Size_Interactions_ForSecondary(state);
   } else if (state==-1) {
@@ -424,12 +441,13 @@ inline int ContactNode::Size_ForSecondary(int state)
   return size;
 }
 
-void ContactNode::Pack_ForSecondary(char* buffer, int state )
+template<typename DataType>
+void ContactNode<DataType>::Pack_ForSecondary(char* buffer, int state )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
-  ContactTopologyEntity::Pack_ForSecondary( buffer, DATA_LENGTH );
+  ContactTopologyEntity<DataType>::Pack_ForSecondary( buffer, DATA_LENGTH );
   
-  // ContactTopologyEntity packs in location 0 as BaseType
+  // ContactTopologyEntity<DataType> packs in location 0 as BaseType
   // and here we packin some misc stuff in location 1.
   i_buf[1] = physical_type |  node_type<<4 | (state+2)<<12;
   
@@ -439,7 +457,7 @@ void ContactNode::Pack_ForSecondary(char* buffer, int state )
   // function there.
   int cnt      = 0;
   char* buff   = buffer;
-  buff        += ContactTopologyEntity::Size_ForSecondary(DATA_LENGTH);
+  buff        += ContactTopologyEntity<DataType>::Size_ForSecondary(DATA_LENGTH);
   i_buf        = reinterpret_cast<int*> (buff);
   i_buf[cnt++] = entity_key;
   i_buf[cnt++] = exodus_id;
@@ -456,16 +474,17 @@ void ContactNode::Pack_ForSecondary(char* buffer, int state )
   }
 }
 
-inline void ContactNode::Unpack_ForSecondary( char* buffer )
+template<typename DataType>
+inline void ContactNode<DataType>::Unpack_ForSecondary( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
-  ContactTopologyEntity::Unpack_ForSecondary( buffer, DATA_LENGTH );
-  physical_type      = (ContactNode::PHYSICAL_TYPE         )((i_buf[1]   ) & 0xf);
+  ContactTopologyEntity<DataType>::Unpack_ForSecondary( buffer, DATA_LENGTH );
+  physical_type      = (typename ContactNode<DataType>::PHYSICAL_TYPE       )((i_buf[1]   ) & 0xf);
   node_type          = (ContactSearch::ContactNode_Type    )((i_buf[1]>>4) & 0xf);
   int state          = ((i_buf[1]>>12) & 0xf)-2;
   
   char* buff         = buffer;
-  buff              += ContactTopologyEntity::Size_ForSecondary(DATA_LENGTH);
+  buff              += ContactTopologyEntity<DataType>::Size_ForSecondary(DATA_LENGTH);
   int cnt            = 0;
   i_buf              = reinterpret_cast<int*> ( buff );
   entity_key         = i_buf[cnt++];
@@ -485,9 +504,10 @@ inline void ContactNode::Unpack_ForSecondary( char* buffer )
   }
 }
 
-inline void ContactNode::Copy_ForSecondary( ContactNode* src, int state )
+template<typename DataType>
+inline void ContactNode<DataType>::Copy_ForSecondary( ContactNode* src, int state )
 {
-  ContactTopologyEntity::Copy_ForSecondary( src, DATA_LENGTH );
+  ContactTopologyEntity<DataType>::Copy_ForSecondary( src, DATA_LENGTH );
   entity_key    = src->entity_key;
   exodus_id     = src->exodus_id;
   node_type     = src->node_type;
@@ -504,13 +524,14 @@ inline void ContactNode::Copy_ForSecondary( ContactNode* src, int state )
   }
 }
 
+template<typename DataType>
 inline void 
-ContactNode::ComputeBoundingBoxForSearch( const int num_configs,
+ContactNode<DataType>::ComputeBoundingBoxForSearch( const int num_configs,
                                           const VariableHandle &REMAINING_GAP,
                                           const VariableHandle &CURRENT_POSITION,
                                           const VariableHandle &PREDICTED_POSITION,
                                           const int  auto_tol,
-                                          const Real box_inflation,
+                                          const DataType box_inflation,
                                           ContactBoundingBox &box)
 {
   box.set_point(Variable(CURRENT_POSITION));
@@ -519,7 +540,7 @@ ContactNode::ComputeBoundingBoxForSearch( const int num_configs,
     box.add_tolerance(Variable(REMAINING_GAP));
   }
   if (auto_tol) {
-    Real box_tol[3] = {0.0, 0.0, 0.0};
+    DataType box_tol[3] = {0.0, 0.0, 0.0};
     box.get_dimensions(box_tol);
     for (int i=0; i<3; ++i) {
       box_tol[i] *= box_inflation;
@@ -528,14 +549,15 @@ ContactNode::ComputeBoundingBoxForSearch( const int num_configs,
   }
 }
 
+template<typename DataType>
 inline void 
-ContactNode::ComputeBoundingBoxForSearch( const int num_configs,
+ContactNode<DataType>::ComputeBoundingBoxForSearch( const int num_configs,
                                           const VariableHandle &REMAINING_GAP,
                                           const VariableHandle &CURRENT_POSITION,
                                           const VariableHandle &PREDICTED_POSITION,
                                           const int  auto_tol,
-                                          const Real box_inflation,
-                                          const Real box_expand,
+                                          const DataType box_inflation,
+                                          const DataType box_expand,
                                           ContactBoundingBox &box)
 {
   box.set_point(Variable(CURRENT_POSITION));
@@ -545,7 +567,7 @@ ContactNode::ComputeBoundingBoxForSearch( const int num_configs,
     box.add_tolerance(box_expand);
   }
   if (auto_tol) {
-    Real box_tol[3] = {0.0, 0.0, 0.0};
+    DataType box_tol[3] = {0.0, 0.0, 0.0};
     box.add_tolerance(box_expand);
     box.get_dimensions(box_tol);
     for (int i=0; i<3; ++i) {

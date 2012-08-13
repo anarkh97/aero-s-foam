@@ -27,7 +27,7 @@ ContactShellNode::ContactShellNode( ContactFixedSizeAllocator* alloc,
                                     ContactSearch::ContactNode_Type Type, 
 				    int Block_Index, 
 				    int Index_in_Block )
-  : ContactNode( alloc, Type, Block_Index, Index_in_Block, 
+  : ContactNode<Real>( alloc, Type, Block_Index, Index_in_Block, 
 		 CT_SHELL_NODE )
 {
   previous_lofting[0] = 0.0;

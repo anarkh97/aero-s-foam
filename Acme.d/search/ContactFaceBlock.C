@@ -65,7 +65,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
   switch( type ){
   case ContactSearch::LINEFACEL2:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactLineFaceL2::new_ContactLineFaceL2(
+      ContactFace<Real>* face = ContactLineFaceL2::new_ContactLineFaceL2(
            search->Get_Allocators(),
            block_index,hostID++,entity_key);
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -75,7 +75,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::LINEFACEQ3:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactLineFaceQ3::new_ContactLineFaceQ3(
+      ContactFace<Real>* face = ContactLineFaceQ3::new_ContactLineFaceQ3(
            search->Get_Allocators(),
            block_index,hostID++,entity_key);
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -85,7 +85,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::QUADFACEL4:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceL4::new_ContactQuadFaceL4(
+      ContactFace<Real>* face = ContactQuadFaceL4<Real>::new_ContactQuadFaceL4(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -95,7 +95,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::QUADFACEQ8:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceQ8::new_ContactQuadFaceQ8(
+      ContactFace<Real>* face = ContactQuadFaceQ8::new_ContactQuadFaceQ8(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -105,7 +105,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::QUADFACEQ9:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceQ9::new_ContactQuadFaceQ9(
+      ContactFace<Real>* face = ContactQuadFaceQ9::new_ContactQuadFaceQ9(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -115,7 +115,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::TRIFACEL3:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactTriFaceL3::new_ContactTriFaceL3(
+      ContactFace<Real>* face = ContactTriFaceL3<Real>::new_ContactTriFaceL3(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -125,7 +125,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::TRIFACEQ6:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactTriFaceQ6::new_ContactTriFaceQ6(
+      ContactFace<Real>* face = ContactTriFaceQ6::new_ContactTriFaceQ6(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -135,7 +135,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::SHELLQUADFACEL4:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(
+      ContactFace<Real>* face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -145,7 +145,7 @@ ContactFaceBlock::ContactFaceBlock( ContactSearch::ContactFace_Type Type,
     break;
   case ContactSearch::SHELLTRIFACEL3:
     for( j=0 ; j<number_of_faces ; ++j ) {
-      ContactFace* face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(
+      ContactFace<Real>* face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(
            search->Get_Allocators(),
            block_index,hostID++,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -198,7 +198,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
   switch( type ){
   case ContactSearch::LINEFACEL2:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactLineFaceL2::new_ContactLineFaceL2(
+      ContactFace<Real>* face = ContactLineFaceL2::new_ContactLineFaceL2(
            search->Get_Allocators(),id,-1,entity_key);
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -206,7 +206,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::LINEFACEQ3:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactLineFaceQ3::new_ContactLineFaceQ3(
+      ContactFace<Real>* face = ContactLineFaceQ3::new_ContactLineFaceQ3(
            search->Get_Allocators(),id,-1,entity_key);
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -214,7 +214,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::QUADFACEL4:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceL4::new_ContactQuadFaceL4(
+      ContactFace<Real>* face = ContactQuadFaceL4<Real>::new_ContactQuadFaceL4(
            search->Get_Allocators(),id,-1,entity_key );
       POSTCONDITION(face);
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
@@ -223,7 +223,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::QUADFACEQ8:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceQ8::new_ContactQuadFaceQ8(
+      ContactFace<Real>* face = ContactQuadFaceQ8::new_ContactQuadFaceQ8(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -231,7 +231,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::QUADFACEQ9:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactQuadFaceQ9::new_ContactQuadFaceQ9(
+      ContactFace<Real>* face = ContactQuadFaceQ9::new_ContactQuadFaceQ9(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -239,7 +239,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::TRIFACEL3:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactTriFaceL3::new_ContactTriFaceL3(
+      ContactFace<Real>* face = ContactTriFaceL3<Real>::new_ContactTriFaceL3(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -247,7 +247,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::TRIFACEQ6:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactTriFaceQ6::new_ContactTriFaceQ6(
+      ContactFace<Real>* face = ContactTriFaceQ6::new_ContactTriFaceQ6(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -255,7 +255,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::SHELLQUADFACEL4:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(
+      ContactFace<Real>* face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -263,7 +263,7 @@ ContactFaceBlock::Add_Faces( int Number_of_Faces, int* host_ids )
     break;
   case ContactSearch::SHELLTRIFACEL3:
     for( j=0 ; j<Number_of_Faces ; ++j ) {
-      ContactFace* face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(
+      ContactFace<Real>* face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(
            search->Get_Allocators(),id,-1,entity_key );
       face->Global_ID(host_ids[2*j],host_ids[2*j+1]);
       face_list->Insert(face);
@@ -292,15 +292,15 @@ void ContactFaceBlock::Delete_Faces()
          topology->Search()->Get_Allocators());
     POSTCONDITION(alloc!=NULL);
     face_list->IteratorStart();
-    while (ContactTopologyEntity* entity = face_list->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
-      face->~ContactFace();
+    while (ContactTopologyEntity<Real>* entity = face_list->IteratorForward()) {
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
+      face->~ContactFace<Real>();
       alloc->Delete_Frag(face);
     }
   }
 }
 
-void ContactFaceBlock::Insert_Face( ContactFace* face )
+void ContactFaceBlock::Insert_Face( ContactFace<Real>* face )
 {
   PRECONDITION( face );
   face_list->Insert(face);
@@ -322,7 +322,7 @@ void ContactFaceBlock::Insert_Face_ForSecondary( char* buffer )
 }
 #endif
 
-void ContactFaceBlock::Delete_Face( ContactFace* face )
+void ContactFaceBlock::Delete_Face( ContactFace<Real>* face )
 {
   PRECONDITION( face );
   face_list->Delete(face);
@@ -337,11 +337,11 @@ void ContactFaceBlock::ComputeBoundingBox(int nconfigs,
   if( face_list ){
     local_bounding_box.Reset();
     face_list->IteratorStart();
-    while (ContactTopologyEntity* entity = face_list->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+    while (ContactTopologyEntity<Real>* entity = face_list->IteratorForward()) {
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactBoundingBox object_box;
       for (int k=0; k<face->Nodes_Per_Face(); ++k) {
-        ContactNode* node = face->Node(k);
+        ContactNode<Real>* node = face->Node(k);
         Real* position = node->Variable(POSITION1);
         object_box.add_point(position);
         if (nconfigs>1) {

@@ -67,7 +67,6 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numCoefData = 0;
   numLayMat = 0;
   prsflg = 0;
-  prlflg = 0;
 
   constpflg = 1;
   constqflg = 1;
@@ -308,6 +307,7 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       int mpc_node = lmpc[i]->terms[j].nnum;
       int mpc_dof = lmpc[i]->terms[j].dofnum;
       for(int k=0; k<numDirichlet; ++k) {
+        if(dbc[k].type == BCond::Usdd) continue; // the following treatment is not appropriate for USDD's
         int dbc_node = dbc[k].nnum;
         int dbc_dof = dbc[k].dofnum;
         if((dbc_node == mpc_node) && (dbc_dof == mpc_dof)) {
@@ -348,7 +348,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   int nEle = elemSet.last();
   if(numLMPC) {
     for(int i = 0; i < numLMPC; ++i) {
-      elemSet.mpcelemadd(nEle, lmpc[i]);
+      elemSet.mpcelemadd(nEle, lmpc[i], domain->solInfo().isNonLin());
       // if constraint options have been set and they are different from the defaults
       // then create a StructProp and set attribute for this mpc element
       if((lmpc[i]->lagrangeMult != -1) && 
@@ -366,7 +366,10 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
-  domain->setNumLMPC(0);
+ for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+ lmpc.deleteArray();
+ lmpc.restartArray();
+ domain->setNumLMPC(0);
 }
 
 // Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)
@@ -420,8 +423,10 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     //std::cerr << "Number of components = " << renumb.numComp << std::endl;
 
     // Determine for each MPC which DOF will be slave
-    vector<int> mpcSlaveDOF(numLMPC, -1);
-    vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    std::vector<int> mpcSlaveDOF(numLMPC);
+    for(int i=0; i<numLMPC;++i) mpcSlaveDOF[i] = -1;
+    std::vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    for(int i=0; i<dofToLMPC->csize(); ++i) dofSlaveOf[i] = -1;
     int nMPCtoView = numLMPC;
     for(int i = 0; i < dofToLMPC->csize(); ++i)
       if(dofToLMPC->num(i) == 1) {
@@ -547,18 +552,27 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";*/
   int *colmap = new int[c.cols()];
   for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
-  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol);
-  /*cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
-  if(rank != numLMPC)
-    cerr << "found " << numLMPC-rank << " redundant constraints\n";*/
+  int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol, domain->solInfo().usePrescribedThreshold);
+  //cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
+  //if(rank != numLMPC)
+  //  cerr << "rowEchelon detected " << numLMPC-rank << " redundant constraints\n";
 
   // copy the coefficients of the rref matrix into the lmpc data structure 
+  double tol1 = domain->solInfo().coefFilterTol*std::numeric_limits<double>::epsilon(),
+         tol2 = domain->solInfo().rhsZeroTol   *std::numeric_limits<double>::epsilon();
   for(int i = 0; i < n; ++i) {
     lmpc[i]->terms.clear();
     lmpc[i]->nterms = 0;
+    lmpc[i]->rhs.r_value = 0;
+    if(i >= rank) {
+      if(std::fabs(c(i,m)) > domain->solInfo().inconsistentTol)
+        cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
+      continue;
+    }
     for(int j = i; j < m; ++j) {
       if(j > i && j < rank) continue; // for reduced row echelon form these terms are zero by definition
-      if(std::fabs(c(i,j)) > std::numeric_limits<double>::epsilon()) {
+      if(std::fabs(c(i,j)) > tol1) {  // filter out the very small coefficients
+                                      // (note: use tol1 == 0) to keep them all
         LMPCTerm t(col2pair[colmap[j]].first, col2pair[colmap[j]].second, c(i,j));
         lmpc[i]->terms.push_back(t);
         lmpc[i]->nterms++;
@@ -566,14 +580,8 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     if(optc) { 
       if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
-      if(std::fabs(c(i,m)) > 100*std::numeric_limits<double>::epsilon()) {
-        if(i < rank) lmpc[i]->rhs.r_value = c(i,m);
-        else {
-          cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
-          lmpc[i]->rhs.r_value = 0;
-        }
-      }
-      else lmpc[i]->rhs.r_value = 0;
+      if(std::fabs(c(i,m)) > tol2) // set the rhs to exactly zero if it is already very close
+        lmpc[i]->rhs.r_value = c(i,m);
     }
   }
 
@@ -690,6 +698,15 @@ void GeoSource::setUpData()
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
 
+  // Set up element preload
+  for(vector<pair<int,std::vector<double> > >::iterator i = eleprl.begin(); i != eleprl.end(); ++i) {
+    int elemNum = i->first;
+    if(elemSet[elemNum])
+     elemSet[elemNum]->setPreLoad(i->second);
+   else
+     fprintf(stderr," *** WARNING: Preload was found for non-existent element %d\n", elemNum+1);
+  }
+
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
@@ -758,8 +775,8 @@ void GeoSource::setUpData()
 
     // Check if element exists
     if (ele == 0) {
-       //fprintf(stderr," *** WARNING: Attribute was found for"
-       //               " non existent element %d \n",attrib[i].nele+1);
+       fprintf(stderr," *** WARNING: Attribute was found for"
+                      " non existent element %d \n",attrib[i].nele+1);
       continue;
     }
     if(attrib[i].attr < -1) { // phantom elements
@@ -1188,12 +1205,28 @@ void GeoSource::setElementPressure(int elemNum, double pressure)
  eleprs.push_back(pair<int,double>(elemNum,pressure));
 }
 
+/*
 void GeoSource::setElementPreLoad(int elemNum, double preload)
 {
  if(elemSet[elemNum])
-   elemSet[elemNum]->setPreLoad(preload,prlflg);
+   elemSet[elemNum]->setPreLoad(preload);
  else
    fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
+}
+*/
+
+void GeoSource::setElementPreLoad(int elemNum, double _preload)
+{
+ std::vector<double> preload; 
+ preload.push_back(_preload);
+ eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
+}
+
+void GeoSource::setElementPreLoad(int elemNum, double _preload[3])
+{
+ std::vector<double> preload;
+ for(int i=0; i<3; ++i) preload.push_back(_preload[i]);
+ eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
 }
 
 void GeoSource::setConsistentPFlag(int _constpflg)
@@ -1673,384 +1706,6 @@ int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
   return numValues;
 }
 
-/* templated and moved to GeoSource.C
-//-----------------------------------------------------------------
-void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[6],
-	 			   int outputSize, double time)//DofSet::max_known_nonL_dof
-{
-  // 6 dof output should include node number (for IDISP6)
-  int w = oinfo[fileNum].width;
-  int p = oinfo[fileNum].precision;
-
-  if (time >= 0.0) {
-    if (outputSize == 1)
-      fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-    else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-  }
-
- if (oinfo[fileNum].groupNumber > 0) {
-
-   if (nodeGroup.find(oinfo[fileNum].groupNumber) == nodeGroup.end())
-     return;
-
-    int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
-
-    while (it != nodeGroup[group].end() )  {
-
-      int inode = *it;
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
-                w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
-                w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
-      it++;
-    }
-  } else {
-    if (outputSize == 1) {
-      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-              w, p, xyz[0][0], w, p, xyz[0][1], w, p, xyz[0][2], w, p, xyz[0][3],
-              w, p, xyz[0][4], w, p, xyz[0][5]);
-    } else {
-      for (int inode = 0; inode < outputSize; inode++)  {
-        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                  w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
-                  w, p, xyz[inode][4], w, p, xyz[inode][5]);
-      }
-    }
-  }
-
-  fflush(oinfo[fileNum].filptr);
-}
-
-//-----------------------------------------------------------------
-
-void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[6],
-                                   int outputSize, double time)//DofSet::max_known_nonL_dof
-{
-  // 6 dof output should include node number (for IDISP6)
-  int i;
-  int w = oinfo[fileNum].width;
-  int p = oinfo[fileNum].precision;
-
-  switch(oinfo[fileNum].complexouttype) {
-    default:
-    case OutputInfo::realimag :
-      // print real part or both real & imag parts for single node output
-      if(time >= 0.0) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-      }
-      if (oinfo[fileNum].groupNumber > 0)  {
-  
-        int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
-
-        while (it != nodeGroup[group].end() )  {
-          int inode = *it;
-          filePrint(oinfo[fileNum].filptr,
-            " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-            inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
-            w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(), w, p, xyz[inode][2].real(),
-            w, p, xyz[inode][3].real(), w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
-            w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(), w, p, xyz[inode][2].imag(),
-            w, p, xyz[inode][3].imag(), w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
-          it++;
-        }
-      }
-      else  {
-        for(int inode = 0; inode < outputSize; inode++) {
-          if(outputSize == 1)
-            fprintf(oinfo[fileNum].filptr,
-                  " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
-                  w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
-                  w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
-                  w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
-                  w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
-                  w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
-          else
-            filePrint(oinfo[fileNum].filptr,
-                  " %d, % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n", inode+1,
-                  w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(),
-                  w, p, xyz[inode][2].real(), w, p, xyz[inode][3].real(),
-                  w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real());
-        }
-      
-        // print imaginary part
-        if(outputSize != 1) {
-          if(time >= 0.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
-          }
-          for(int inode = 0; inode < outputSize; inode++)  {
-            filePrint(oinfo[fileNum].filptr,
-                    " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                    w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(),
-                    w, p, xyz[inode][2].imag(), w, p, xyz[inode][3].imag(),
-                    w, p, xyz[inode][4].imag(), w, p, xyz[inode][5].imag());
-          }
-        }
-      }
-      break;
-    case OutputInfo::modulusphase :
-      // print modulus or modulus & phase for single node output
-      if(time >= 0.0) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-      }
-      if (oinfo[fileNum].groupNumber > 0)  {
-
-        int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
-
-        while (it != nodeGroup[group].end() )  {
-          int inode = *it;
-          filePrint(oinfo[fileNum].filptr,
-            " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
-                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
-                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
-                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),
-                  w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
-                  w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
-                  w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
-          it++;
-        }
-      }
-      else  {
-        for(int inode = 0; inode < outputSize; inode++)  {
-          if(outputSize == 1)
-            fprintf(oinfo[fileNum].filptr,
-                  " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
-                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
-                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),    //CRW
-                  w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
-                  w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
-                  w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
-          else
-            filePrint(oinfo[fileNum].filptr,
-                    " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                    w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
-                    w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
-                    w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]));    //CRW
-        }
-      
-        // print phase
-        if(outputSize != 1) {
-          if(time >= 0.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-          }
-          for(int inode = 0; inode < outputSize; inode++)  {
-            filePrint(oinfo[fileNum].filptr,
-                    " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                    w, p, arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
-                    w, p, arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
-                    w, p, arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
-          }
-        }
-      }
-      break;
-    case OutputInfo::animate :
-      if(outputSize != 1) {
-        double phi = 0;
-        double incr = 2.0*PI/double(oinfo[fileNum].ncomplexout);
-        for(i=0; i<oinfo[fileNum].ncomplexout; ++i) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,phi);
-          for(int j = 0; j < outputSize; j++) {
-            double proj[6];
-            for(int k=0; k<6; ++k)
-              proj[k] = std::abs(xyz[j][k])*cos(arg(xyz[j][k])-phi);    //CRW
-            filePrint(oinfo[fileNum].filptr,
-                      " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                      w, p, proj[0], w, p, proj[1], w, p, proj[2],
-                      w, p, proj[3], w, p, proj[4], w, p, proj[5]);
-          }
-          phi += incr;
-        }
-      }
-      else cerr << " *** WARNING: animate not supported for single-node or node group output \n";
-      break;
-  }
-
-
-  fflush(oinfo[fileNum].filptr);
-}
-
-//-----------------------------------------------------------------
-
-// NOTE: This works only for 1 cluster
-
-void GeoSource::outputNodeVectors(int fileNum, double (*glv)[], int outputSize, double time)  {
-
-  int w = oinfo[fileNum].width;
-  int p = oinfo[fileNum].precision;
-
-  if(time >= 0.0) {
-    if(outputSize == 1)
-      fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-    else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-  }
-
-  if (oinfo[fileNum].groupNumber > 0)  {
-
-    int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
-
-    while (it != nodeGroup[group].end() )  {
-
-      int inode = *it;
-
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
-                w, p, glv[inode][0], w, p, glv[inode][1], w, p, glv[inode][2]);
-      it++;
-    }
-
-  } else {
-    if (outputSize == 1) {
-      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-              w, p, glv[0][0], w, p, glv[0][1], w, p, glv[0][2]);
-    } else {
-      for (int i = 0; i < outputSize; i++) {
-        filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                  w, p, glv[i][0], w, p, glv[i][1], w, p, glv[i][2]);
-      }
-    }
-    fflush(oinfo[fileNum].filptr);
-  }
-}
-
-void GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[3], int outputSize, double time) {
-
-  int i;
-  int w = oinfo[fileNum].width;
-  int p = oinfo[fileNum].precision;
-
-  switch(oinfo[fileNum].complexouttype) {
-    default:
-    case OutputInfo::realimag :
-      // print real part (or both real & imag in the case of 1 node output
-      if(time >= 0.0) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
-      }
-      if (oinfo[fileNum].groupNumber > 0)  {
-
-        int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
-
-        while (it != nodeGroup[group].end() )  {
-
-         int inode = *it;
-         filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
-              w,p,glv[inode][0].real(), w,p,glv[inode][0].imag(), w,p,glv[inode][1].real(),
-              w,p,glv[inode][1].imag(), w,p,glv[inode][2].real(), w,p,glv[inode][2].imag());
-          it++;
-        }
-
-      }
-      else  {
-        int i;
-        for (i = 0; i < outputSize; i++) {
-          if (outputSize == 1)
-            fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-                  w,p,glv[i][0].real(), w,p,glv[i][0].imag(), w,p,glv[i][1].real(),
-                  w,p,glv[i][1].imag(), w,p,glv[i][2].real(), w,p,glv[i][2].imag());
-          else
-            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                    w,p,glv[i][0].real(), w,p,glv[i][1].real(), w,p,glv[i][2].real());
-        }
-        // print imaginary part
-        if (outputSize != 1) {
-          if (time >= 0.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
-          }
-          for (i = 0; i < outputSize; i++)  {
-            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                    w,p,glv[i][0].imag(), w,p,glv[i][1].imag(), w,p,glv[i][2].imag());
-          }
-        }
-      }
-      break;
-    case OutputInfo::modulusphase :
-      // print modulus or both modulus and phase in the case of 1 node output
-      if(time >= 0.0) {
-        if(outputSize == 1)
-          fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
-      }
-      if (oinfo[fileNum].groupNumber > 0)  {
-
-        int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
-
-        while (it != nodeGroup[group].end() )  {
-
-          int inode = *it;
-          fprintf(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z, w,p,
-              std::abs(glv[inode][0]), w,p,std::abs(glv[inode][1]), w,p,std::abs(glv[inode][2]),
-              w,p,arg(glv[inode][0]), w,p,arg(glv[inode][1]), w,p,arg(glv[inode][2]));
-          it++;
-        }
-
-      }
-      else  {
-
-        for (i = 0; i < outputSize; i++)  {
-          if (outputSize == 1)
-            fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-                  w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]),    //CRW
-                  w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
-         else
-           filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                    w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]));    //CRW
-        }
-        // print phase
-        if (outputSize != 1) {
-          if (time >= 0.0) {
-            filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,time);
-          }
-          for (i = 0; i < outputSize; i++)  {
-            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                      w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
-          }
-        }
-      }
-      break;
-    case OutputInfo::animate :
-      if(outputSize != 1) {
-        double phi = 0;
-        double incr = 2.0*PI/double(oinfo[fileNum].ncomplexout);
-        for(i=0; i<oinfo[fileNum].ncomplexout; ++i) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,phi);
-          for(int j = 0; j < outputSize; j++) {
-            double proj[3];
-            for(int k=0; k<3; ++k)
-              proj[k] = std::abs(glv[j][k])*cos(arg(glv[j][k])-phi);    //CRW
-            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                      w,p,proj[0], w,p,proj[1], w,p,proj[2]);
-          }
-          phi += incr;
-        }
-      }
-      else cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
-      break;
-  }
-
-  fflush(oinfo[fileNum].filptr);
-}
-*/
 //------------------------------------------------------------
 
 void GeoSource::outputNodeScalars(int fileNum, double *data,
@@ -2059,7 +1714,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  if(time >= 0.0) {
+  if(time != -1.0) {
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
     else
@@ -2099,8 +1754,8 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
   switch(oinfo[fileNum].complexouttype) {
     default:
     case OutputInfo::realimag :
-      // print real part
-      if(time >= 0.0) {
+      // print real part, or in the case group option both the real and imaginary parts
+      if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
@@ -2127,8 +1782,8 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].real());
         }
         // print imaginary part
-        if(time >= 0.0) {
-          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+        if(time != -1.0) {
+          if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for (i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, data[i].imag());
@@ -2136,11 +1791,11 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       break;
     case OutputInfo::modulusphase :
       // print modulus
-      if(time >= 0.0) {
+      if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       if (oinfo[fileNum].groupNumber > 0)  {
 
@@ -2163,7 +1818,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));    //CRW
         }
         // print phase part
-        if (time >= 0.0) {
+        if (time != -1.0) {
           if(outputSize != 1) filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
         }
         for (i = 0; i < outputSize; i++)
@@ -2199,11 +1854,11 @@ void GeoSource::outputElemVectors(int fileNum, double *data,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  if(time >= 0.0) {
+  if(time != -1.0) {
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
     else
-      filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
   for(int i = 0; i < outputSize; i++) {
@@ -2229,11 +1884,11 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
     default:
     case OutputInfo::realimag :
       // output real part or both real & imag parts in the case of single node output
-      if(time >= 0.0) {
+      if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
@@ -2246,8 +1901,8 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       }
       // output imaginary part
       if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+        if(time != -1.0) {
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for(i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
@@ -2256,11 +1911,11 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       break;
    case OutputInfo::modulusphase :
       // output modulus part or both modulus & phase in the case of single node output
-      if(time >= 0.0) {
+      if(time != -1.0) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
         else
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
@@ -2273,8 +1928,8 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       }
       // output phase part
       if(outputSize != 1) {
-        if(time >= 0.0) {
-          filePrint(oinfo[fileNum].filptr,"  % *.*E  \n", w, p, time);
+        if(time != -1.0) {
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
         }
         for(i = 0; i < outputSize; i++)
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
@@ -3649,9 +3304,11 @@ void GeoSource::outputElemStress(int fileNum, double *stressData,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  if(time >= 0.0) {
-    filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-    if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+  if(time != -1.0) {
+    if(numOutElems == 1)
+      fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+    else
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 
   for(int i = 0; i < numOutElems; i++)  {
@@ -3670,23 +3327,15 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  // print real part
-  if(time >= 0.0)
-    filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, freq());
-  for(int i = 0; i < numOutElems; i++)  {
-    int numNodes = offsets[i+1] - offsets[i];
-    for (int iNode = 0; iNode < numNodes; iNode++)
-      filePrint(oinfo[fileNum].filptr," % *.*e", w, p, stressData[offsets[i]+iNode].real());
-    filePrint(oinfo[fileNum].filptr,"\n");
-  }
-
   switch(oinfo[fileNum].complexouttype) {
     default:
     case OutputInfo::realimag :
       // print real part
-      if(time >= 0.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+      if(time != -1.0) {
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3695,9 +3344,11 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
         filePrint(oinfo[fileNum].filptr,"\n");
       }
       // print imaginary part
-      if(time >= 0.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+      if(time != -1.0) {
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3708,9 +3359,11 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
       break;
     case OutputInfo::modulusphase :
       // print modulus
-      if(time >= 0.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+      if(time != -1.0) {
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
@@ -3719,9 +3372,11 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
         filePrint(oinfo[fileNum].filptr,"\n");
       }
       // print phase part
-      if(time >= 0.0) {
-        filePrint(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
-        if(numOutElems != 1) filePrint(oinfo[fileNum].filptr,"\n");
+      if(time != -1.0) {
+        if(numOutElems == 1)
+          filePrint(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
+        else 
+          filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
       }
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];

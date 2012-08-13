@@ -2,10 +2,8 @@
 #include <Element.d/Element.h>
 #include <Element.d/Beam.d/EulerBeam.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
-#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
-#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/Membrane.d/Membrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
@@ -80,6 +78,7 @@
 #include <Element.d/Helm.d/HelmBrick32.h>
 #include <Element.d/Helm.d/HelmPenta26.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
 
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Element.d/MpcElement.d/FsiElement.h>
@@ -101,14 +100,25 @@
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 
+#include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
+#include <Element.d/Joint.d/PinInSlotJoint.h>
+#include <Element.d/Joint.d/PlanarJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
+
+#include <Element.d/Joint.d/SphericalJointSpringCombo.h>
+#include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
+#include <Element.d/Joint.d/UniversalJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
+#include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
+#include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
+#include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
@@ -337,7 +347,7 @@ FourNodeQuad::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-FourNodeQuad3D::examine(int sub, MultiFront *mf)
+NLMembrane4::examine(int sub, MultiFront *mf)
 {
   return examineQuad4(sub, mf, nn);
 }
@@ -467,9 +477,9 @@ Triangle3::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-ThreeNodeTri3D::examine(int sub, MultiFront *mf)
+NLMembrane::examine(int sub, MultiFront *mf)
 {
-  return examineTri3(sub, mf, nn);
+  return examineTri3(sub, mf, n);
 }
 
 PrioInfo
@@ -1297,6 +1307,12 @@ RigidSolid6Dof::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+WeldedJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
 SphericalJoint::examine(int sub, MultiFront *mf)
 {
   return examineBar2(sub, mf, nn);
@@ -1309,7 +1325,7 @@ RevoluteJoint::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-OrientJoint::examine(int sub, MultiFront *mf)
+TranslationalJoint::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }
@@ -1338,3 +1354,56 @@ RevoluteActuator::examine(int sub, MultiFront *mf)
   return examineBeam2(sub, mf, nn);
 }
 
+PrioInfo
+PinInSlotJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PlanarJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+SphericalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+TranslationalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+UniversalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+CylindricalJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PrismaticJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PinInSlotJointSpringCombo::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}

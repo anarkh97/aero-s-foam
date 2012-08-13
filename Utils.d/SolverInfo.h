@@ -196,6 +196,7 @@ struct SolverInfo {
    int sparse_maxsup, sparse_defblk;
 
    double goldfarb_tol;
+   bool goldfarb_check;
 
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
@@ -243,12 +244,15 @@ struct SolverInfo {
                   //       dist_acme == 2 requires a special decomposition, master and slave must be in the same subdomain
    bool allproc_acme; // true: use all available processors, false: use only processors with subdomain/s having surface interactions
    bool ffi_debug;
+   double mortar_scaling;
+   int mortar_integration_rule;
 
    bool lagrangeMult;
    double penalty;
    int mpcDirect;
+   bool usePrescribedThreshold;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
-   bool mpcDual;
+   double coefFilterTol, rhsZeroTol, inconsistentTol;
 
    bool activatePodRom;
    bool snapshotsPodRom;
@@ -371,6 +375,7 @@ struct SolverInfo {
                   spooles_msglvl = 0;
                   spooles_renum = 0;
                   goldfarb_tol = 1.0;
+                  goldfarb_check = false;
                   explicitK = false;
                   localScaled = false;
                   coarseScaled = false;
@@ -438,17 +443,22 @@ struct SolverInfo {
                   maxvecsize = 0; 
 
                   iacc_switch = true;
-                  zeroRot = true;
+                  zeroRot = false;
 
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
+                  mortar_scaling = 1.0;
+                  mortar_integration_rule = 6;
 
                   lagrangeMult = true;
                   penalty = 0;
                   mpcDirect = 0;
+                  usePrescribedThreshold = false;
                   mpcDirectTol = 10;
-                  mpcDual = false;
+                  coefFilterTol = 10;
+                  rhsZeroTol = 0;
+                  inconsistentTol = 1e-8;
 
                   activatePodRom = false;
                   snapshotsPodRom = false;

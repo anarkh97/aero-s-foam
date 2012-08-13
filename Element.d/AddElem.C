@@ -1,4 +1,4 @@
- #include <cstdio>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
@@ -16,7 +16,6 @@
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
 #include <Element.d/Quad4.d/Quad.h>
-#include <Element.d/Quad4.d/FourNodeQuad3D.h>
 #include <Element.d/Brick.d/EightNodeBrick.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -32,7 +31,6 @@
 #include <Element.d/FelippaShell.d/FelippaShellX2.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Triangle3.d/ThermTriangle.h>
-#include <Element.d/Triangle3.d/ThreeNodeTri3D.h>
 #include <Element.d/ThermQuad.d/ThermQuadGal.h>
 #include <Element.d/ThermQuad.d/Therm3DQuad.h>
 #include <Element.d/Brick.d/ThermBrick.h>
@@ -105,15 +103,40 @@ extern map<int,double > weightList;
 //#include <Element.d/Rigid.d/RBE2.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 
+#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
+#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
+#include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
+#include <Element.d/Joint.d/DotConstraintType1.h>
+#include <Element.d/Joint.d/DotConstraintType2.h>
+#include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
-#include <Element.d/Joint.d/OrientJoint.h>
+#include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/UniversalJoint.h>
 #include <Element.d/Joint.d/CylindricalJoint.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
+#include <Element.d/Joint.d/PinInSlotJoint.h>
+#include <Element.d/Joint.d/PlanarJoint.h>
 
 #include <Element.d/Joint.d/RevoluteActuator.h>
-#include <Element.d/Joint.d/PointLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointPointDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointPlaneDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariPointDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariLineDistanceConstraint.h>
+#include <Element.d/MpcElement.d/PointVariPlaneDistanceConstraint.h>
+
+#include <Element.d/Joint.d/LinearTranslationalSpring.h>
+#include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
+#include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
+
+#include <Element.d/Joint.d/SphericalJointSpringCombo.h>
+#include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
+#include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
+#include <Element.d/Joint.d/UniversalJointSpringCombo.h>
+#include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
+#include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
+#include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -383,9 +406,17 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 76:
        ele = new (ba) RigidFourNodeShell(n);
        break;
+#ifdef USE_EIGEN3
      case 77:
+        ele = new (ba) PointPointDistanceConstraint(n);
+        break;
+     case 78:
        ele = new (ba) PointLineDistanceConstraint(n);
        break;
+     case 79:
+        ele = new (ba) PointPlaneDistanceConstraint(n);
+        break;
+#endif
      case 80:
        ele = new (ba) ConnectedTri(n);
        break;
@@ -490,11 +521,32 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
        break;
+     case 113:
+       ele = new (ba) DotConstraintType1(n, 2, 1); // rotation blocker constraint
+       break;
+     case 114:
+       ele = new (ba) DotConstraintType2(n, 0);
+       break;
+     case 115:
+       ele = new (ba) ConstantDistanceConstraint(n);
+       break;
+     case 116:
+       ele = new (ba) ParallelAxesConstraintType1(n);
+       break;
+     case 117:
+       ele = new (ba) ParallelAxesConstraintType2(n); // straight line point follower constraint
+       break;
+     case 118:
+       ele = new (ba) PlanarJoint(n);
+       break;
+     case 119:
+       ele = new (ba) WeldedJoint(n);
+       break;
      case 120:
-       ele = new (ba) SphericalJoint(n);
+       ele = new (ba) SphericalJoint(n); 
        break;
      case 121:
-       ele = new (ba) OrientJoint(n);
+       ele = new (ba) TranslationalJoint(n);
        break;
      case 122:
        ele = new (ba) UniversalJoint(n);
@@ -511,12 +563,57 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 126:
        ele = new (ba) RevoluteActuator(n);
        break;
+     case 127:
+       ele = new (ba) PinInSlotJoint(n);
+       break;
+#ifdef USE_EIGEN3
+     case 177:
+       ele = new (ba) PointVariPointDistanceConstraint(n);
+       break;
+     case 178:
+       ele = new (ba) PointVariLineDistanceConstraint(n);
+       break;
+     case 179:
+       ele = new (ba) PointVariPlaneDistanceConstraint(n);
+       break;
+#endif
+     case 200:
+       ele = new (ba) LinearTranslationalSpring(n);
+       break;
+     case 201:
+       ele = new (ba) NonlinearTranslationalSpring(n, 0);
+       break;
+     case 202:
+       ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
+       break;
+     case 220:
+       ele = new (ba) SphericalJointSpringCombo(n);
+       break;
+     case 221:
+       ele = new (ba) TranslationalJointSpringCombo(n);
+       break;
+     case 222:
+       ele = new (ba) UniversalJointSpringCombo(n);
+       break;
+     case 223:
+       ele = new (ba) RevoluteJointSpringCombo(n);
+       break;
+     case 224:
+       ele = new (ba) CylindricalJointSpringCombo(n);
+       break;
+     case 225:
+       ele = new (ba) PrismaticJointSpringCombo(n);
+       break;
+     case 227:
+       ele = new (ba) PinInSlotJointSpringCombo(n);
+       break;
      case 128:
-       ele = new (ba) FourNodeQuad3D(n);
+       ele = new (ba) NLMembrane4(n);
        break;
      case 129:
-       ele = new (ba) ThreeNodeTri3D(n);
+       ele = new (ba) NLMembrane(n);
        break;
+/* deprecated: now the strain measure defined by the material model
      case 201:
        ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure
        break;
@@ -532,6 +629,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 204:
        ele = new (ba) NLMembrane(n, true);
        break;
+*/
      case 2020:
        ele = new (ba) Compo4NodeShell(n);
        break;
@@ -682,10 +780,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 }
 
 void
-Elemset::mpcelemadd(int num, LMPCons *mpc)
+Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
 {
    Element *ele;
-   ele = new (ba) MpcElement(mpc);
+   ele = new (ba) MpcElement(mpc, nlflag);
    ele->setElementType(1001);
    elemadd(num, ele);
 

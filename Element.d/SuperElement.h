@@ -45,7 +45,8 @@ class SuperElement : public Element
     void setGlNum(int gn, int sn = 0);
 
     void setProp(StructProp *p, bool _myProp = false); 
-    void setPreLoad(double load, int &flg);
+    void setPreLoad(std::vector<double> &load);
+    std::vector<double> getPreLoad();
     void setFrame(EFrame *frame);
     void buildFrame(CoordSet &cs);
     void setOffset(double *o);
@@ -85,7 +86,7 @@ class SuperElement : public Element
 
     Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
     void computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                              GeomState *gs=0, int cflg = 0);
+                              GeomState *gs=0, int cflg = 0, double t = 0);
 
     double* getMidPoint(CoordSet &cs);
     double* getCompositeData(int nl);
@@ -107,6 +108,8 @@ class SuperElement : public Element
     void makeAllDOFs();
 
     int numStates();
+    void setStateOffset(int);
+    void initStates(double *);
 };
 
 #endif

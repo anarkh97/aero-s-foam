@@ -80,7 +80,7 @@ TRAIL [a-zA-Z]*
 			}
 	    }
 
-"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODE;    }
+"NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODETOKEN;    }
 
 "ZERO"[a-zA-Z]*|"zero"[a-zA-Z]*    { return ZERO;    }
 
@@ -118,6 +118,9 @@ TRAIL [a-zA-Z]*
 "NO"|"no"|"No"                     { yylval.ival = 0; return SWITCH; }
 "TRUE"|"true"|"True"               { yylval.ival = 1; return SWITCH; }
 "FALSE"|"false"|"False"            { yylval.ival = 0; return SWITCH; }
+
+"INF"[a-zA-Z]*|"inf"[a-zA-Z]*      { return INFINTY; }
+"EPS"[a-zA-Z]*|"eps"[a-zA-Z]*      { return EPSILON; }
 
 "DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 
@@ -414,25 +417,25 @@ TRAIL [a-zA-Z]*
 
 "spar"[a-zA-Z]*|"SPAR"[a-zA-Z]*    { yylval.ival = 1; return SOLVERTYPE; }
 
-"sgisparse"[a-zA-Z]*|"SGISPARSE"[a-zA-Z]* { yylval.ival = 2; return SOLVERTYPE; }
+"bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 2; return SOLVERTYPE; }
 
-"sgisky"[a-zA-Z]*|"SGISKY"[a-zA-Z]* { yylval.ival = 3; return SOLVERTYPE; }
+"llt"[a-zA-Z]*|"LLT"[a-zA-Z]*      { yylval.ival = 3; return SOLVERTYPE; }
 
-"simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+"ldlt"[a-zA-Z]*|"LDLT"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
-"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
-"fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
-
-"bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
+"umfp"[a-zA-Z]*|"UMFP"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
 
 "supe"[a-zA-Z]*|"SUPE"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
 
-"spooles"[a-zA-Z]*|"SPOOLES"[a-zA-Z]* { yylval.ival = 8; return SOLVERTYPE; }
+"spoo"[a-zA-Z]*|"SPOO"[a-zA-Z]*    { yylval.ival = 8; return SOLVERTYPE; }
 
-"mumps"|"MUMPS" { yylval.ival = 9; return SOLVERTYPE; }
+"mump"[a-zA-Z]*|"MUMP"[a-zA-Z]*    { yylval.ival = 9; return SOLVERTYPE; }
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
+
+"gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
 "mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }
 
@@ -465,6 +468,8 @@ TRAIL [a-zA-Z]*
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
 
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
+
+"goldfarb_check"|"GOLDFARB_CHECK"  { return GOLDFARBCHECK; }
 
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
@@ -518,11 +523,14 @@ TRAIL [a-zA-Z]*
 
 "pick_any_corner" { return PICKANYCORNER; }
 
-"DIRE"[a-zA-Z]*|"dire"[a-zA-Z]*    { return DIRECT; }
+"DIRE"[a-zA-Z]*|"dire"[a-zA-Z]*    { return DIRECT; } // deprecated
+"ELIM"[a-zA-Z]*|"elim"[a-zA-Z]*    { return DIRECT; }
 
 "MULT"[a-zA-Z]*|"mult"[a-zA-Z]*    { return MULTIPLIERS; }
 
 "CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
+
+"RIGID"|"rigid"                    { return RIGID; }
 
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
@@ -805,9 +813,14 @@ TRAIL [a-zA-Z]*
 
 "FABMAT"|"fabmat"                  { return FABMAT;}
 
-"THERMMAT"|"thermmat"              { return THERMMAT; }
+"THERMMAT"|"thermmat"              { return THERMMAT; }  // deprecated
+"THRMAT"|"thrmat"                  { return THERMMAT; }
 
-"CONSTRMAT"|"constrmat"            { return CONSTRMAT; }
+"CONSTRMAT"|"constrmat"            { return CONSTRMAT; } // deprecated
+"CONMET"|"conmet"                  { return CONSTRMAT; }
+
+"SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
+"SPRMAT"|"sprmat"                  { return SPRINGMAT; }
 
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 
@@ -1039,7 +1052,7 @@ TRAIL [a-zA-Z]*
 
 "shapestc"|"SHAPESTC"              { yylval.ival = OutputInfo::ShapeStc;     return STRESSID; }
 
-"rigid"|"RIGID"                    { yylval.ival = OutputInfo::Rigid;        return STRESSID; }
+"rigidbod"|"RIGIDBOD"              { yylval.ival = OutputInfo::Rigid;        return STRESSID; }
 
 "composit"|"COMPOSIT"              { yylval.ival = OutputInfo::Composit;     return STRESSID; }
 
@@ -1133,6 +1146,8 @@ TRAIL [a-zA-Z]*
 
 "linearplanestress"|"LINEARPLANESTRESS"|"LinearPlaneStress" { return LINPLSTRESS; }
 
+"hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
+
 "linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
@@ -1151,7 +1166,8 @@ TRAIL [a-zA-Z]*
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
 "kk"|"KK"                                               { yylval.ival = 6; return OPTCTV; }
-"kkexp"[a-zA-Z]*|"KKEXP"[a-zA-Z]*                       { yylval.ival = 7; return OPTCTV; }
+"kkexp"|"KKEXP"                                         { yylval.ival = 7; return OPTCTV; }
+"kkexp2"|"KKEXP2"                                       { yylval.ival = 8; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
 
@@ -1169,12 +1185,16 @@ TRAIL [a-zA-Z]*
 
 "surftopo"|"surfacetopo"           { return SURFACETOPOLOGY; }
 
-"REVERSE"[a-zA-Z]*|"reverse"[a-zA-Z]* { return REVERSENORMALS; }
+"REVERSE"[a-zA-Z_]*|"reverse"[a-zA-Z_]* { return REVERSENORMALS; }
 
 "SHELL_THICKNESS"|"shell_thickness" { return SHELLTHICKNESS; }
 "SURFACE_THICKNESS"|"surface_thickness" { return SHELLTHICKNESS; }
 
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
+
+"mortar_scal"[a-zA-Z]*             { return MORTARSCALING; }
+
+"mortar_inte"[a-zA-Z_]*             { return MORTARINTEGRATIONRULE; }
 
 "SEARCH_TOL"|"search_tol"          { return SEARCHTOL; }
 

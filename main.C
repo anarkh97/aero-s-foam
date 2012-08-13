@@ -132,6 +132,7 @@ int verboseFlag = 0;
 int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
+int debugFlag = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -194,6 +195,9 @@ int main(int argc, char** argv)
  weightList[53] = 2.0;
  weightList[57] = 2.0;
  weightList[58] = 2.0;
+ weightList[70] = 3.0;  // RigidEightNodeBrick
+ weightList[73] = 3.0;  // RigidThreeNodeShell
+ weightList[76] = 4.0;  // RigidFourNodeShell
  weightList[72] = 4.0;  // Brick20
  weightList[81] = 2.0;
  weightList[82] = 4.0;
@@ -320,6 +324,7 @@ int main(int argc, char** argv)
    {"with-sower",0,0, 1010},
    {"sower",0,0, 1010},
    {"nclus", 1, 0, 1012},
+   {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
  };
  // end getopt_long
@@ -392,6 +397,9 @@ int main(int argc, char** argv)
       case 1005 :
 	nosa=true;
 	break;
+      case 1006 :
+        debugFlag = 1;
+        break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);
@@ -622,7 +630,7 @@ int main(int argc, char** argv)
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
  if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
-    && !domain->solInfo().mpcDual) {
+    && domain->solInfo().subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
    if(verboseFlag) {
      filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
      filePrint(stderr, " ***          Using FETI-DP instead.\n");
@@ -630,7 +638,7 @@ int main(int argc, char** argv)
    domain->solInfo().type = 2;
    domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
-   callDec = true;
+   if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
  if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
@@ -737,10 +745,10 @@ int main(int argc, char** argv)
 
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
- //   type == 1 && iterType == 0 (PCG) is a Domain Decomposition method only if a decomposition is provided or requested
+ //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
-    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 0 && domain_decomp)
+    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)) {
 
    if(parallel_proc) {

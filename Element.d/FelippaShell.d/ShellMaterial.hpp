@@ -75,7 +75,7 @@ template<typename doublereal>
 class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
 {
     int nlayer;
-    Eigen::Map<Eigen::Matrix<doublereal,9,Eigen::Dynamic> > mtlayer;
+    Eigen::Map<Eigen::Matrix<doublereal,12,Eigen::Dynamic> > mtlayer;
     bool couple;
     doublereal *aframe;
     doublereal thick;

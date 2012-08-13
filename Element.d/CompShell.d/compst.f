@@ -124,7 +124,7 @@ C
 C
       real*8     nu , h(3) , e , estiff(medof,medof)
       real*8     X(3) , Y(3) , Z(3) , cmpco(36,nttco)
-      real*8     mtlay(9,nttly) , cmpfr(9,ncmpfr)
+      real*8     mtlay(12,nttly) , cmpfr(9,ncmpfr)
 C
 C.....LOCAL DIMENSION OF THE STIFFNESS MATRIX
 C.....(3 NODES AND 6 DOFS PER NODE = 18 DOFS TOTAL)

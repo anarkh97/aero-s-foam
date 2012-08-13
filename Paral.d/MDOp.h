@@ -13,22 +13,21 @@ typedef GenDistrVector<double> DistrVector;
 class DistrGeomState;
 template <class Scalar> class GenSubDOp;
 typedef GenSubDOp<double> SubDOp;
+class ControlInterface;
 
 class MultiDomainOp : public TaskDescr {
     SubDomain **sd;
-    //CuCSparse **Kuc;
     DistrVector *v1, *v2, *v3, *v4;
-    double c1;    // obviously c1 refers to the time, duh
-    double *userDefDisps;
+    double c1, c2;
+    ControlInterface *userSupFunc;
     double **temprcvd;
-    SubDOp* Kuc;
+    SubDOp *Kuc, *Cuc, *Muc;
 
     void  (MultiDomainOp::*f)(int);
  public:
-    //MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-    //              DistrVector* _v1, DistrVector* _v2, double c, CuCSparse **Kuc);
-    MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
-                  DistrVector*, DistrVector*, double, double*, SubDOp*);
+    MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **,
+                  DistrVector*, DistrVector*, double, SubDOp*,
+                  ControlInterface*, SubDOp*, double, SubDOp*);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,
                   DistrVector*, DistrVector*, DistrVector*, DistrVector*);
     MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **,

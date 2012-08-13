@@ -219,7 +219,7 @@
       RETURN
 *
    10 CONTINUE
-      write(6,*) '***** INFO = ', INFO
+*      write(6,*) '***** INFO = ', INFO
       INFO = INFO + J - 1
       RETURN
 *

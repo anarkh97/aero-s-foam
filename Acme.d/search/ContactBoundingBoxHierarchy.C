@@ -601,7 +601,7 @@ bool ObjectBoundingBoxHierarchy::find_any_overlap_loop(const ObjectBoundingBoxHi
 
 void ObjectBoundingBoxHierarchy::search_for_overlap(const ObjectBoundingBoxHierarchy *const hierarchy_start_ptr,
 						    const ContactBoundingBox &object_box, 
-                                                    ContactNode **Nodes,
+                                                    ContactNode<Real> **Nodes,
                                                     ACME::ContactNode_Vector &node_list) {
 
   ObjectBoundingBoxHierarchy const* current_object  = hierarchy_start_ptr;
@@ -636,7 +636,7 @@ void ObjectBoundingBoxHierarchy::search_for_overlap(const ObjectBoundingBoxHiera
 void ObjectBoundingBoxHierarchy::search_for_overlap_hybrid_tree(const ObjectBoundingBoxHierarchy *const tree1,
                                                                 const ObjectBoundingBoxHierarchy *const *const tree2_ptrs,
 							        const ContactBoundingBox &search_box, 
-					      		        ContactNode **Nodes, 
+					      		        ContactNode<Real> **Nodes, 
 					                        ACME::Int_Vector &node_keys,
                                                                 ACME::ContactNode_Vector &node_list,
                                                                 vector<bool> &valid_inter) {
@@ -735,7 +735,7 @@ void ObjectBoundingBoxHierarchy::search_for_overlap_recurse_sym(const ObjectBoun
 //
 void ObjectBoundingBoxHierarchy::search_for_overlap_key_aware(const ObjectBoundingBoxHierarchy *const tree1,
 			      	  	   	              const ContactBoundingBox &search_box, 
-					      	              ContactNode **Nodes, 
+					      	              ContactNode<Real> **Nodes, 
 					                      ACME::Int_Vector &node_keys,
                                                               ACME::ContactNode_Vector &node_list,
                                                               vector<bool> &valid_inter,
@@ -756,7 +756,7 @@ void ObjectBoundingBoxHierarchy::search_for_overlap_key_aware(const ObjectBoundi
         *(stack_ptr1++) = current_object1++ + (right_child_offset1);
         continue;
       }
-      ContactNode *cur_node = Nodes[-right_child_offset1];
+      ContactNode<Real> *cur_node = Nodes[-right_child_offset1];
       node_list.push_back(cur_node);
       node_keys.push_back(node_key);
     }

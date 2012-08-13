@@ -26,7 +26,7 @@
 
 #ifndef CONTACT_NO_MPI
 #include "mpi.h"
-class ContactTopologyEntity;
+template <typename DataType> class ContactTopologyEntity;
 class ContactTopologyEntityHash;
 class ContactTopologyEntityList;
 class ContactHostGlobalID;
@@ -34,7 +34,7 @@ class ContactHostGlobalID;
 class ContactSymComm {
   
  public:
-  ContactSymComm( int, const int*, const int*, ContactTopologyEntity** );
+  ContactSymComm( int, const int*, const int*, ContactTopologyEntity<Real>** );
   ContactSymComm();
   ~ContactSymComm();
   
@@ -49,7 +49,7 @@ class ContactSymComm {
     PRECONDITION( i<num_comm_partners || num_comm_partners==0 );
     return num_to_proc[i];
   }
-  inline ContactTopologyEntity** Entity_List( int i ){
+  inline ContactTopologyEntity<Real>** Entity_List( int i ){
     PRECONDITION( i<num_comm_partners || num_comm_partners==0 );
     if (num_comm_partners==0)
       return NULL;
@@ -76,7 +76,7 @@ class ContactSymComm {
   int* comm_proc_ids;       // Processor ids (num_com_partners long)
   int* num_to_proc;         // Number to each proc (num_com_partners long)
   int* offset;              // Offset in entity_list for comm_partner i 
-  ContactTopologyEntity** entity_list;
+  ContactTopologyEntity<Real>** entity_list;
 
   int allocated_procs;
   int allocated_entities;

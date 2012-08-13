@@ -588,7 +588,7 @@ ContactTDEnforcement::Enforce_Symmetry_on_Nodes( int n1, int n2 )
   // Verify someone has this node even if I don't
   int have_node_n1 = 0;
   int num_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (int i=0; i<num_nodes; ++i) {
     if( Nodes[i]->Exodus_ID() == n1 ){
       have_node_n1 = true;
@@ -774,7 +774,7 @@ ContactTDEnforcement::Extract_Nodal_Restart_Variable( int n, Real* data, int* no
       int hi, lo;
       topology->Shell_Handler()->Acme_NodeGID_for_Host_Node(i,0,hi,lo);
       ContactHostGlobalID first_gid(hi,lo);
-      ContactNode * node = static_cast<ContactNode*>
+      ContactNode<Real> * node = static_cast<ContactNode<Real>*>
         (topology->NodeList()->Find(first_gid));
       ContactShellNode * shell_node = dynamic_cast<ContactShellNode*>(node);
       if (NULL != shell_node) {
@@ -783,8 +783,8 @@ ContactTDEnforcement::Extract_Nodal_Restart_Variable( int n, Real* data, int* no
         node_id[i]=node->Exodus_ID();
       }
     } else {
-      ContactNode * node =
-        static_cast<ContactNode*>(topology->NodeList()->Find(i));
+      ContactNode<Real> * node =
+        static_cast<ContactNode<Real>*>(topology->NodeList()->Find(i));
       node_id[i]=node->Exodus_ID();
     }
   }
@@ -1028,7 +1028,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
     }
   }  
   for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       int index = Get_Node_Host_Array_Index(dn);
       postream << "TD Enforcement (m, rho, c) for Node "
@@ -1044,6 +1044,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
   int have_interactions = contact_global_sum(topology->Number_NodeEntity_Interactions(),communicator);
   if (have_interactions==0) {
     std::memset( Force,0, number_host_code_nodes*sizeof(Real)*NDIM );
+    if(SAVE_CVARS) Initialize_CVARS();
 #ifdef CONTACT_HEARTBEAT 
     if (contact_processor_number(communicator)==0) {
       std::cout << "End of enforcement\n"<<flush;
@@ -1186,7 +1187,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 
 #ifdef CONTACT_DEBUG_NODE
     for(int cdn_i=0 ; cdn_i<Number_Debug_Nodes() ; cdn_i++ ){
-      ContactNode* dn = Debug_Node( cdn_i );
+      ContactNode<Real>* dn = Debug_Node( cdn_i );
       if( dn ){
         Real* pred_coords = NEW_POSITION.Get_Scratch(dn);
         postream << "New Predicted Configuration for Node "
@@ -1500,7 +1501,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 
 #ifdef CONTACT_DEBUG_NODE
     for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-      ContactNode* dn = Debug_Node( i );
+      ContactNode<Real>* dn = Debug_Node( i );
       if( dn ){
         const int node_index = dn->EnfArrayIndex();
 	Real m_sn_dbg   = *(NODAL_MASS.  Get_Scratch(node_index));
@@ -1526,9 +1527,9 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
       Real inc_force_norm = 0.0;
       
       f_inc = INC_FORCE.Get_Data();
-      ContactTopologyEntity **e = topology->NodeList()->EntityList();
+      ContactTopologyEntity<Real> **e = topology->NodeList()->EntityList();
       for(int i=0 ; i<number_of_nodes ; ++i ){
-	if ( e[i]->Ownership() == ContactTopologyEntity::OWNED ) {
+	if ( e[i]->Ownership() == ContactTopologyEntity<Real>::OWNED ) {
 	  inc_force_norm += f_inc[0]*f_inc[0];
 	  inc_force_norm += f_inc[1]*f_inc[1];
 	  inc_force_norm += f_inc[2]*f_inc[2];
@@ -1666,7 +1667,7 @@ ContactTDEnforcement::Compute_Contact_Force( Real DT_old, Real DT,
 
 #ifdef CONTACT_DEBUG_NODE
   for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       int index = Get_Node_Host_Array_Index(dn);
       postream << "TD Enforcement Contact Force for Node = "
@@ -1803,7 +1804,7 @@ void ContactTDEnforcement::Debug_Dump(int iteration)
       ContactNodeEntityInteraction* cnei  = cnei_group.Get_Interaction(i);
       int interaction_index = cnei_group.Get_Index(i);
       Real* slip     = NEI_TOTAL_SLIP.Get_Scratch(interaction_index);
-      ContactNode* node = cnei->Node();
+      ContactNode<Real>* node = cnei->Node();
       Real dissipation = 0.0;
       for (int k=0; k< NDIM; ++k) { dissipation += f_tot[k]*slip[k];}
       if (dissipation > ZERO_TOL) {
@@ -1911,8 +1912,8 @@ ContactSearch::ContactErrorCode ContactTDEnforcement::Symmetry_Node_Correction()
         bool PRINT_THIS_NODE = topology->Is_a_Debug_Node( cnfi->Node() );
         int node_id = -1;
 #endif
-        ContactFace* face = NULL;
-        ContactNode* paired_node = NULL;
+        ContactFace<Real>* face = NULL;
+        ContactNode<Real>* paired_node = NULL;
 
         int node_face_index = -1;
         bool is_a_symmetry_node = false;
@@ -1949,7 +1950,7 @@ ContactSearch::ContactErrorCode ContactTDEnforcement::Symmetry_Node_Correction()
         if( paired_node ){
           POSTCONDITION(face!=NULL);
           POSTCONDITION(node_face_index>=0);
-	  ContactNode* slave_node = cnfi->Node();
+	  ContactNode<Real>* slave_node = cnfi->Node();
 
           VariableHandle PREDICTED_POSITION = topology->Variable_Handle( ContactTopology::Predicted_Position );
 	  Real* sn_pos = slave_node->Variable(PREDICTED_POSITION);
@@ -2124,7 +2125,7 @@ void ContactTDEnforcement::Compute_Penalty_Forces()
 #ifdef CONTACT_DEBUG_NODE
   postream.flush();
   for( int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       int node_index = dn->EnfArrayIndex();
       Real m_sn  = *(NODAL_MASS.     Get_Scratch(node_index));
@@ -2159,7 +2160,7 @@ void ContactTDEnforcement::Apply_Face_Forces(Real face_force[3],
     //  translates and rotates.
     //
     Real* x_face[MAX_NODES_PER_FACE];
-    ContactFace* face = cnfi->Face();
+    ContactFace<Real>* face = cnfi->Face();
     Real node_positions[MAX_NODES_PER_FACE][3];
     Real n_dir[3] = {0,0,0}; 
     Real gap0 = cnei->Get_Gap_Initial();
@@ -2318,12 +2319,12 @@ void ContactTDEnforcement::Assemble_Nodal_Forces_and_Masses()
       Real* a_sn =   SN_ACCELERATION.Get_Scratch(node_index);
 #ifdef CONTACT_DEBUG_NODE
       for( int i=0 ; i<Number_Debug_Nodes() ; i++ ){
-	ContactNode* dn = Debug_Node( i );
+	ContactNode<Real>* dn = Debug_Node( i );
 	if (!dn) continue;
 	ContactNodeEntityInteraction * cnei = 
 	  cnei_group.Get_Interaction(ncc-1);
 	if (!cnei) continue;
-	ContactNode* node = cnei->Node();
+	ContactNode<Real>* node = cnei->Node();
 	if( dn->Exodus_ID() == node->Exodus_ID() ){
 	  postream << "Node " << dn->Exodus_ID() << " in assemble loop, mult constr.\n";
 	}
@@ -2376,7 +2377,7 @@ void ContactTDEnforcement::Assemble_Nodal_Forces_and_Masses()
 #ifdef CONTACT_DEBUG_NODE
   postream.flush();
   for( int i=0 ; i<Number_Debug_Nodes() ; i++ ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       Real* af = ASSEMBLED_FORCE.Get_Scratch(dn);
       postream << "Interface at Node " << dn->Exodus_ID() << "\n";
@@ -2433,7 +2434,7 @@ void ContactTDEnforcement::Response_Prediction(Real mult)
   }
 #ifdef CONTACT_DEBUG_NODE
   for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       const int node_index = dn->EnfArrayIndex();
       Real m = *(NODAL_MASS.  Get_Scratch(node_index));
@@ -2539,11 +2540,11 @@ void ContactTDEnforcement::Response_Correction()
       }
 #ifdef CONTACT_DEBUG_NODE
       for( int i=0 ; i<Number_Debug_Nodes() ; i++ ){
-	ContactNode* dn = Debug_Node( i );
+	ContactNode<Real>* dn = Debug_Node( i );
 	if (!dn) continue;
 	ContactNodeEntityInteraction  *cnei = cnei_group.Get_Interaction(0);
 	if (!cnei) continue;
-	ContactNode* node = cnei->Node();
+	ContactNode<Real>* node = cnei->Node();
 	if( dn->Exodus_ID() == node->Exodus_ID() ){
 	  postream << "Master surface acceleration for node : "
 		   << node->Exodus_ID()
@@ -2580,7 +2581,7 @@ void ContactTDEnforcement::Response_Correction()
     
 #ifdef CONTACT_DEBUG_NODE
   for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       const int node_index = dn->EnfArrayIndex();
       Real m = *(NODAL_MASS.  Get_Scratch(node_index));
@@ -2806,7 +2807,7 @@ void ContactTDEnforcement::Response_Constitutive_Correction()
   }  
 #ifdef CONTACT_DEBUG_NODE
   for(int i=0 ; i<Number_Debug_Nodes() ; ++i ){
-    ContactNode* dn = Debug_Node( i );
+    ContactNode<Real>* dn = Debug_Node( i );
     if( dn ){
       const int node_index = dn->EnfArrayIndex();
       Real  m   = *(NODAL_MASS.    Get_Scratch(node_index));
@@ -3747,8 +3748,8 @@ ContactTDEnforcement::Auto_Kinematic_Partition( ContactNodeFaceInteraction *cnfi
   Real kin_partition = 0.5;
 
   // Get the Node and Face for this interaction
-  ContactNode* node = cnfi->Node();
-  ContactFace* face = cnfi->Face();
+  ContactNode<Real>* node = cnfi->Node();
+  ContactFace<Real>* face = cnfi->Face();
 
   int node_index = node->EnfArrayIndex();
   Real density_sn   = *(NODAL_DENSITY.Get_Scratch(node_index));
@@ -4274,6 +4275,35 @@ void ContactTDEnforcement::Set_Save_Nodal_Vars(bool flag)
   
 }
 
+void ContactTDEnforcement::Initialize_CVARS()
+{
+  PRECONDITION( SAVE_CVARS );
+
+  // Initialize CVARS
+  std::memset( normal_force_mag,          0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_traction_mag,       0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_force_mag,      0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_traction_mag,   0, number_of_nodes*sizeof(Real) );
+
+  std::memset( normal_dir_x,              0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_dir_y,              0, number_of_nodes*sizeof(Real) );
+  std::memset( normal_dir_z,              0, number_of_nodes*sizeof(Real) );
+
+  std::memset( tangential_dir_x,          0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_dir_y,          0, number_of_nodes*sizeof(Real) );
+  std::memset( tangential_dir_z,          0, number_of_nodes*sizeof(Real) );
+
+  std::memset( slipmag,                   0, number_of_nodes*sizeof(Real) );
+  std::memset( nodal_dissipation,         0, number_of_nodes*sizeof(Real) );
+  std::memset( nodal_dissipation_density, 0, number_of_nodes*sizeof(Real) );
+  std::memset( contact_area,              0, number_of_nodes*sizeof(Real) );
+  std::memset( plot_gap_cur,              0, number_of_nodes*sizeof(Real) );
+  std::memset( plot_gap_old,              0, number_of_nodes*sizeof(Real) );
+  std::memset( kinematic_partition,       0, number_of_nodes*sizeof(Real) );
+
+  for(int i=0 ; i<number_of_nodes ; ++i ) conface[i] = 0.5;
+}
+
 void ContactTDEnforcement::Set_CVARS()
 {
   PRECONDITION( SAVE_CVARS );
@@ -4454,9 +4484,9 @@ void ContactTDEnforcement::Store_Shell_Final_Lofted_Positions()
 
 
   for(int i=0 ; i<number_of_nodes ; ++i, xp += 3, xf += 3, m += 1, f+= 3 ){
-    ContactNode* node = enforcement_node_list[i];
+    ContactNode<Real>* node = enforcement_node_list[i];
     if( !node->Is_a_Shell_Node() ) continue;
-    if( node->Physical_Type() == ContactNode::SHELL_NODE ){
+    if( node->Physical_Type() == ContactNode<Real>::SHELL_NODE ){
       ContactShellNode* snode = static_cast<ContactShellNode*> (node);
       Real* loft = snode->Previous_Lofting();
 #ifdef CONTACT_DEBUG_NODE
@@ -4516,7 +4546,7 @@ void ContactTDEnforcement::Assemble_Shell_Forces()
       int hi_cdn, lo_cdn;
       sh->Acme_NodeGID_for_Host_Node(i,0,hi_cdn,lo_cdn);
       ContactHostGlobalID gid_cdn(hi_cdn,lo_cdn);
-      ContactNode* node_cdn = static_cast<ContactNode*>
+      ContactNode<Real>* node_cdn = static_cast<ContactNode<Real>*>
          (topology->NodeList()->Find(gid_cdn));
       POSTCONDITION(node_cdn);
       bool PRINT_THIS_NODE = topology->Is_a_Debug_Node(node_cdn);
@@ -4531,7 +4561,7 @@ void ContactTDEnforcement::Assemble_Shell_Forces()
         int hi, lo;
         sh->Acme_NodeGID_for_Host_Node(i,j,hi,lo);
         ContactHostGlobalID gid(hi,lo);
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
           (topology->NodeList()->Find(gid));
         POSTCONDITION(node);
 	Real* f = INC_FORCE.Get_Scratch(node);
@@ -4555,7 +4585,7 @@ void ContactTDEnforcement::Assemble_Shell_Forces()
         int hi, lo;
         sh->Acme_NodeGID_for_Host_Node(i,j,hi,lo);
         ContactHostGlobalID gid(hi,lo);
-        ContactNode* node = static_cast<ContactNode*>
+        ContactNode<Real>* node = static_cast<ContactNode<Real>*>
           (topology->NodeList()->Find(gid));
         POSTCONDITION(node);
 	Real* f = INC_FORCE.Get_Scratch(node);
@@ -4580,7 +4610,7 @@ void ContactTDEnforcement::Compute_Extra_Ghosting_Length()
   VariableHandle REMAINING_GAP  = topology->Variable_Handle( ContactTopology::Remaining_Gap );
   VariableHandle NODE_GHOST_GAP = topology->Variable_Handle( ContactTopology::Node_Ghost_Gap );
   for(int i=0 ; i<number_of_nodes ; ++i ){
-    ContactNode* node = enforcement_node_list[i];
+    ContactNode<Real>* node = enforcement_node_list[i];
     Real* remaining_gap = node->Variable( REMAINING_GAP  );
     Real* ghost_gap     = node->Variable( NODE_GHOST_GAP );
     for( int j=0 ; j<dimensionality ; ++j ) {
@@ -4621,8 +4651,8 @@ void ContactTDEnforcement::Compute_Extra_Ghosting_Length()
 	{ 
           ContactNodeFaceInteraction * cnfi = dynamic_cast<ContactNodeFaceInteraction*>(cnei_group.Get_Interaction(i));
 	  if (!cnfi) continue;
-	  ContactNode* node = cnfi->Node();
-	  ContactFace* face = cnfi->Face();
+	  ContactNode<Real>* node = cnfi->Node();
+	  ContactFace<Real>* face = cnfi->Face();
 	  if( topology->Is_a_Debug_Node( node ) ){
 	    postream << "Compute Extra Ghost Len for Node " 
 	  	   << node->Exodus_ID() << " and face " 
@@ -4661,8 +4691,8 @@ void ContactTDEnforcement::Compute_Extra_Ghosting_Length()
     ContactNodeEntityInteraction *cnei = extra_constraints[iconst];
     ContactNodeFaceInteraction *cnfi = dynamic_cast<ContactNodeFaceInteraction*>(cnei);
     if(cnfi == NULL) continue;
-    ContactNode *node = cnei->Node();
-    ContactFace *face = cnfi->Face();
+    ContactNode<Real> *node = cnei->Node();
+    ContactFace<Real> *face = cnfi->Face();
     const int node_index = node->EnfArrayIndex();
     Real* node_pos = NEW_POSITION.Get_Scratch(node_index);
     Real contact_point[3];
@@ -4674,7 +4704,7 @@ void ContactTDEnforcement::Compute_Extra_Ghosting_Length()
     Real *coordinates = cnfi->Vector_Var(ContactNodeFaceInteraction::COORDINATES);
     face->Evaluate_Shape_Functions(coordinates, face_shape_function);    
     for(int j=0 ; j<num_face_nodes ; ++j ){
-      ContactNode *face_node = face->Node(j);
+      ContactNode<Real> *face_node = face->Node(j);
       Real *coord = NEW_POSITION.Get_Scratch(face_node->EnfArrayIndex());
       contact_point[0] += face_shape_function[j]*coord[0];
       contact_point[1] += face_shape_function[j]*coord[1];

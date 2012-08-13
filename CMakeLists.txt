@@ -1,5 +1,7 @@
 PROJECT (FEM)
 
+#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
+
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
@@ -134,10 +136,10 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   find_package(Eigen3 3.0.90)
+   find_package(Eigen3 3.1)
    IF(EIGEN3_FOUND)
      include_directories(${EIGEN3_INCLUDE_DIR})
-     add_definitions(-DUSE_EIGEN3)
+     add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF)
      set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
      find_package(Cholmod)
      if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
@@ -145,6 +147,12 @@ IF(UNIX)
        add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
        SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
      endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+     find_package(Umfpack)
+     if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
+       include_directories(${UMFPACK_INCLUDES})
+       add_definitions(-DEIGEN_UMFPACK_SUPPORT)
+       SET(EXTRALIBRARIES ${UMFPACK_LIBRARIES} ${EXTRALIBRARIES})
+     endif(UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
      find_package(SuperLU)
      if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
        include_directories(${SUPERLU_INCLUDES})
@@ -152,6 +160,16 @@ IF(UNIX)
        SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
      endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
    ENDIF(EIGEN3_FOUND)
+
+#sacado
+    IF(NOT WITH_SACADO EQUAL 0)
+      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
+      IF(SACADO_INCLUDE_PATH)
+        MESSAGE("-- A library with SACADO API found. ")
+        add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
+        include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
+      ENDIF(SACADO_INCLUDE_PATH)
+    ENDIF(NOT WITH_SACADO EQUAL 0)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis
@@ -247,6 +265,15 @@ IF(UNIX)
 #      add_definitions(-DUSE_METIS)
 #      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
 #    ENDIF(METIS_LIBRARY)
+
+  FIND_PACKAGE(Boost 1.35)
+  if(Boost_FOUND)
+    add_definitions(-DUSE_BOOST)
+    include_directories(${Boost_INCLUDE_DIRS})
+  else(Boost_FOUND)
+    unset(Boost_INCLUDE_DIR CACHE)
+    unset(Boost_LIBRARY_DIRS CACHE)
+  endif(Boost_FOUND)
 
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)

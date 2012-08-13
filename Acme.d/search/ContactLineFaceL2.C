@@ -33,7 +33,7 @@
 ContactLineFaceL2::ContactLineFaceL2( ContactFixedSizeAllocator* alloc,
                                       int Block_Index, 
 				      int Index_in_Block, int key ) 
-  : ContactFace( alloc, ContactSearch::LINEFACEL2,
+  : ContactFace<Real>( alloc, ContactSearch::LINEFACEL2,
                  Block_Index, Index_in_Block, key, 
                  nodes, edges, Node_Info, Edge_Info)
 {}
@@ -68,8 +68,8 @@ void ContactLineFaceL2::Evaluate_Shape_Functions( Real* local_coords,
 void ContactLineFaceL2::Compute_Normal( VariableHandle CURRENT_POSITION,
 					VariableHandle FACE_NORMAL )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0    = node0->Variable(CURRENT_POSITION);
   Real* Position1    = node1->Variable(CURRENT_POSITION);
   Real* face_normal  = Variable(FACE_NORMAL);
@@ -85,8 +85,8 @@ void ContactLineFaceL2::Compute_Normal( VariableHandle CURRENT_POSITION,
 void ContactLineFaceL2::Compute_Normal( VariableHandle POSITION,
 					Real* normal, Real* local_coords )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0    = node0->Variable(POSITION);
   Real* Position1    = node1->Variable(POSITION);
   // The vector from node 0 to 1 can be written as (a,b).
@@ -115,8 +115,8 @@ void ContactLineFaceL2::Compute_Normal( Real** nodal_positions,
 void ContactLineFaceL2::Compute_CharacteristicLength( VariableHandle CURRENT_POSITION,
 				                      VariableHandle CHARACTERISTIC_LENGTH )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   
@@ -130,8 +130,8 @@ void ContactLineFaceL2::Compute_CharacteristicLength( VariableHandle CURRENT_POS
 void ContactLineFaceL2::Compute_Centroid( VariableHandle CURRENT_POSITION,
 					  VariableHandle CENTROID )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   
@@ -231,10 +231,10 @@ bool ContactLineFaceL2::Is_Inside_Face( Real* local_coords )
   return false;
 }
 
-ContactFace* ContactLineFaceL2::Neighbor( Real* local_coords )
+ContactFace<Real>* ContactLineFaceL2::Neighbor( Real* local_coords )
 {
   PRECONDITION( 0 );
-  return (ContactFace*) NULL;
+  return (ContactFace<Real>*) NULL;
 }
 
 void ContactLineFaceL2::FacetDecomposition(int& nfacets, 
@@ -255,8 +255,8 @@ void ContactLineFaceL2::FacetDecomposition(int& nfacets,
     coordinates0[1+3*j] = node_position[1];
     coordinates0[2+3*j] = node_position[2];
   }
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0 = node0->Variable(POSITION0);
   Real* Position1 = node1->Variable(POSITION0);
   
@@ -320,7 +320,7 @@ void ContactLineFaceL2::Smooth_Normal( VariableHandle, VariableHandle,
 }
 
 int ContactLineFaceL2::FaceEdge_Intersection(VariableHandle POSITION,
-                                             ContactEdge* edge, Real* coords)
+                                             ContactEdge<Real>* edge, Real* coords)
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   std::cerr << "ContactLineFaceL2::FaceEdge_Intersection not yet implemented\n";

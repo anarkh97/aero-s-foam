@@ -29,15 +29,18 @@
 #include "ContactDoublyLinkedList.h"
 #include "ContactNode.h"
 
-class ContactNode;
-class ContactEdge;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
 class ContactFaceFaceInteraction;
 class ContactFaceFaceInteraction;
 class ContactFaceCoverageInteraction;
 
-class ContactFace : public ContactTopologyEntity {
+template<typename DataType>
+class ContactFace : public ContactTopologyEntity<DataType> {
 
  public:
+
+  using ContactTopologyEntity<DataType>::DataArray_Buffer;
 
   enum Ctrcl_Index{MSPARAM = 0,  ICPOINTX = 1,  ICPOINTY = 2,  ICPOINTZ  = 3,
                    IPENMAG = 4,  IPUSHX   = 5,  IPUSHY   = 6,  IPUSHZ    = 7,
@@ -65,10 +68,10 @@ class ContactFace : public ContactTopologyEntity {
                int Block_Index,
 	       int Host_Index_in_Block, 
                int key,
-               ContactNode **node_list_,
-               ContactEdge **edge_list_,
-               connection_data *node_info_list_,
-               connection_data *edge_info_list_);
+               ContactNode<DataType> **node_list_,
+               ContactEdge<DataType> **edge_list_,
+               typename ContactTopologyEntity<DataType>::connection_data *node_info_list_,
+               typename ContactTopologyEntity<DataType>::connection_data *edge_info_list_);
 
   virtual ~ContactFace();
 
@@ -89,71 +92,71 @@ class ContactFace : public ContactTopologyEntity {
     return EDGES_PER_FACE[face_type];
   };
 
-  inline ContactNode**     Nodes()    {return node_list;};
-  inline connection_data*  NodeInfo() {return node_info_list;};
-  inline ContactEdge**     Edges()    {return edge_list;};
-  inline connection_data*  EdgeInfo() {return edge_info_list;};
+  inline ContactNode<DataType>**     Nodes()    {return node_list;};
+  inline typename ContactTopologyEntity<DataType>::connection_data*  NodeInfo() {return node_info_list;};
+  inline ContactEdge<DataType>**     Edges()    {return edge_list;};
+  inline typename ContactTopologyEntity<DataType>::connection_data*  EdgeInfo() {return edge_info_list;};
 
 
   virtual ContactSearch::ContactEdge_Type Edge_Type() = 0;
-  inline ContactNode* Node( const int i );
+  inline ContactNode<DataType>* Node( const int i );
   static void Initialize_Lookup_Arrays();
 
 
   // This function get the two nodes that terminate edge i
-  virtual void Get_Edge_Nodes( int, ContactNode**) = 0;
-  virtual int  Get_Edge_Number( ContactNode** ) = 0;
-  virtual int  Get_Edge_Number( Real* ) = 0;
+  virtual void Get_Edge_Nodes( int, ContactNode<DataType>**) = 0;
+  virtual int  Get_Edge_Number( ContactNode<DataType>** ) = 0;
+  virtual int  Get_Edge_Number( DataType* ) = 0;
   virtual void Compute_Normal(VariableHandle, VariableHandle ) = 0;
-  virtual void Compute_Normal(VariableHandle, Real*, Real* ) = 0;
-  virtual void Compute_Normal(Real**, Real*, Real* ) = 0;
+  virtual void Compute_Normal(VariableHandle, DataType*, DataType* ) = 0;
+  virtual void Compute_Normal(DataType**, DataType*, DataType* ) = 0;
   virtual void Compute_CharacteristicLength(VariableHandle, VariableHandle ) = 0;
   virtual void Compute_Centroid( VariableHandle, VariableHandle ) = 0;
   virtual void Compute_Edge_Normal( VariableHandle, VariableHandle,
-				    int , Real*) = 0;
-  virtual void Compute_Local_Coordinates( Real, VariableHandle, 
+				    int , DataType*) = 0;
+  virtual void Compute_Local_Coordinates( DataType, VariableHandle, 
                                           VariableHandle, VariableHandle, 
-		                          Real*, Real* ) = 0;
+		                          DataType*, DataType* ) = 0;
 
-  virtual void Compute_Local_Coords(Real node_positions[MAX_NODES_PER_FACE][3], 
-				    Real global_coords[3],
-			            Real local_coords[3]) = 0;
+  virtual void Compute_Local_Coords(DataType node_positions[MAX_NODES_PER_FACE][3], 
+				    DataType global_coords[3],
+			            DataType local_coords[3]) = 0;
 
 
-  virtual void Compute_Local_Coordinates( VariableHandle, Real*, Real* ) = 0;
-  virtual void Compute_Global_Coordinates( VariableHandle, Real*, Real* ) = 0;
-  virtual void Evaluate_Shape_Functions( Real* local_coord, 
-					 Real* shape_fnc) = 0;
-  virtual bool Is_Inside_Face( Real* Local_Coordinates ) = 0;
-  virtual ContactFace* Neighbor( Real* Local_Coordinates ) = 0;
+  virtual void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual void Evaluate_Shape_Functions( DataType* local_coord, 
+					 DataType* shape_fnc) = 0;
+  virtual bool Is_Inside_Face( DataType* Local_Coordinates ) = 0;
+  virtual ContactFace* Neighbor( DataType* Local_Coordinates ) = 0;
 
   // this is provided for the curvature modification 
-  virtual void Get_Close_Edges( Real*, int&, int&, int& ) = 0;
-  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(Real));};
+  virtual void Get_Close_Edges( DataType*, int&, int&, int& ) = 0;
+  inline void Initialize_Memory() {std::memset(DataArray, 0, DataArray_Length()*sizeof(DataType));};
 
   virtual void FacetDecomposition(int& nfacets, 
-                                  Real* coords0       , Real* normal0       , 
+                                  DataType* coords0       , DataType* normal0       , 
 				  VariableHandle POSITION0,
-                                  Real* coords1 = NULL, Real* normal1 = NULL, 
+                                  DataType* coords1 = NULL, DataType* normal1 = NULL, 
 				  VariableHandle POSITION1 = 0,
-                                  Real* coords2 = NULL, Real* normal2 = NULL, 
+                                  DataType* coords2 = NULL, DataType* normal2 = NULL, 
 				  VariableHandle POSITION2 = 0) = 0;
-  virtual void FacetStaticRestriction(int, Real*, Real*, Real*, Real*) = 0;
-  virtual void FacetDynamicRestriction(int, Real*, Real*) = 0;
-  virtual int  FaceEdge_Intersection(VariableHandle, ContactEdge*, Real*) = 0;
+  virtual void FacetStaticRestriction(int, DataType*, DataType*, DataType*, DataType*) = 0;
+  virtual void FacetDynamicRestriction(int, DataType*, DataType*) = 0;
+  virtual int  FaceEdge_Intersection(VariableHandle, ContactEdge<DataType>*, DataType*) = 0;
   virtual bool IsPlanar(VariableHandle) = 0;
  
 #ifndef CONTACT_NO_MPI
-  Real MaxSize(VariableHandle POSITION);
+  DataType MaxSize(VariableHandle POSITION);
 #endif
 
   int DataArray_Length() {return NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS;};
-  inline ContactEdge* Edge( const int i );
-  void ConnectNode( const int, ContactNode* );
-  void ConnectEdge( const int, ContactEdge* );
+  inline ContactEdge<DataType>* Edge( const int i );
+  void ConnectNode( const int, ContactNode<DataType>* );
+  void ConnectEdge( const int, ContactEdge<DataType>* );
 
-  inline ContactEdge* Clockwise_Edge( ContactEdge* );
-  inline void Clockwise_EdgeNode( int, ContactNode** );
+  inline ContactEdge<DataType>* Clockwise_Edge( ContactEdge<DataType>* );
+  inline void Clockwise_EdgeNode( int, ContactNode<DataType>** );
 
   inline ContactSearch::ContactFace_Type FaceType() {return face_type;};
 
@@ -185,19 +188,19 @@ class ContactFace : public ContactTopologyEntity {
   // Restart Pack/Unpack Functions
 
   inline int Restart_Size() {return DataArray_Length();}
-  inline void Restart_Pack( Real* buffer ) {
-    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(Real) );
+  inline void Restart_Pack( DataType* buffer ) {
+    std::memcpy( buffer, DataArray_Buffer(), DataArray_Length()*sizeof(DataType) );
   }
-  inline void Restart_Unpack( Real* buffer ){
-    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(Real) );
+  inline void Restart_Unpack( DataType* buffer ){
+    std::memcpy( DataArray_Buffer(), buffer, DataArray_Length()*sizeof(DataType) );
   }
 
   virtual void Smooth_Normal( VariableHandle, VariableHandle, VariableHandle,
 			      VariableHandle, 
 			      ContactSearch::Smoothing_Resolution,
-			      Real, Real*, Real*, Real ) = 0;
+			      DataType, DataType*, DataType*, DataType ) = 0;
   
-  virtual void Compute_Node_Areas( VariableHandle, VariableHandle, Real* ) = 0;
+  virtual void Compute_Node_Areas( VariableHandle, VariableHandle, DataType* ) = 0;
 
   inline int Number_Interactions(int state = 0) {
     int num_ffi = 0;
@@ -248,27 +251,27 @@ class ContactFace : public ContactTopologyEntity {
   void SetNeighborFacesInfo( );
   
   int NumberOfNeighbors() { return number_of_neighbors; };
-  connection_data* NeighborInfo() { return neighbor_face_info; };
+  typename ContactTopologyEntity<DataType>::connection_data* NeighborInfo() { return neighbor_face_info; };
 
   void SetEdgeCurvature(VariableHandle);
 
-  void SetEdgeCurvature(VariableHandle &var, ContactEdge *edge);
+  void SetEdgeCurvature(VariableHandle &var, ContactEdge<DataType> *edge);
 
 
-  Real GetEdgeCurvature(int);
+  DataType GetEdgeCurvature(int);
   
-  void GetEdgeInfo(ContactNode* node, ContactNode** edge_nodes, 
+  void GetEdgeInfo(ContactNode<DataType>* node, ContactNode<DataType>** edge_nodes, 
                    int* edge_nums);
 
   void SetEdgeSmoothedNormal(VariableHandle);
-  void GetEdgeSmoothedNormal(int, Real*);
+  void GetEdgeSmoothedNormal(int, DataType*);
   
   void ComputeBoundingBoxForSearch(const int num_configs,
                                    const VariableHandle &NODE_COORD_START,
                                    const VariableHandle &NODE_COORD_END,
                                    const int  auto_tol,
-                                   const Real box_inflation,
-                                   const Real user_tol,
+                                   const DataType box_inflation,
+                                   const DataType user_tol,
                                    ContactBoundingBox &box_c,
                                    ContactBoundingBox &box_p,
                                    ContactBoundingBox &box_s);
@@ -277,10 +280,10 @@ class ContactFace : public ContactTopologyEntity {
                                    const VariableHandle &NODE_COORD_START,
                                    const VariableHandle &NODE_COORD_END,
                                    const int  auto_tol,
-                                   const Real box_inflation,
-                                   const Real* max_node_motion,
-                                   const Real max_remaining_gap_mag,
-                                   const Real user_search_tol,
+                                   const DataType box_inflation,
+                                   const DataType* max_node_motion,
+                                   const DataType max_remaining_gap_mag,
+                                   const DataType user_search_tol,
                                    ContactBoundingBox &box_c,
                                    ContactBoundingBox &box_p,
                                    ContactBoundingBox &box_s);
@@ -288,6 +291,8 @@ class ContactFace : public ContactTopologyEntity {
   
 
  protected:
+  using ContactTopologyEntity<DataType>::entity_key;
+  using ContactTopologyEntity<DataType>::block_id;
   int number_of_neighbors;
   ContactSearch::ContactFace_Type face_type;
   ContactFixedSizeAllocator* allocators;
@@ -303,16 +308,16 @@ class ContactFace : public ContactTopologyEntity {
   // The edges and node arrays are actually owned in the derived class
   // but we hold a pointer to them to provide access through the base class.
   
-  ContactNode **node_list;
-  ContactEdge **edge_list;
-  connection_data *node_info_list;   
-  connection_data *edge_info_list;
+  ContactNode<DataType> **node_list;
+  ContactEdge<DataType> **edge_list;
+  typename ContactTopologyEntity<DataType>::connection_data *node_info_list;   
+  typename ContactTopologyEntity<DataType>::connection_data *edge_info_list;
 
-  connection_data* neighbor_face_info;
+  typename ContactTopologyEntity<DataType>::connection_data* neighbor_face_info;
   
 //  int entity_key;
 
-  Real DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
+  DataType DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
   
   inline int NumberOfStates() const {return 2;};
 
@@ -320,17 +325,20 @@ class ContactFace : public ContactTopologyEntity {
   std::vector<ContactInteractionDLL> FaceCoverageInteractions;
 };
 
-inline ContactNode* ContactFace::Node( const int i ) { 
+template<typename DataType>
+inline ContactNode<DataType>* ContactFace<DataType>::Node( const int i ) { 
   PRECONDITION( i>=0 && i<Nodes_Per_Face() );
   return( Nodes()[i] );
 }
 
-inline ContactEdge* ContactFace::Edge( const int i ) { 
+template<typename DataType>
+inline ContactEdge<DataType>* ContactFace<DataType>::Edge( const int i ) { 
   PRECONDITION( i>=0 && i<Edges_Per_Face() );
   return( Edges()[i] );
 }
 
-inline ContactEdge* ContactFace::Clockwise_Edge( ContactEdge* edge ) {
+template<typename DataType>
+inline ContactEdge<DataType>* ContactFace<DataType>::Clockwise_Edge( ContactEdge<DataType>* edge ) {
   int i;
   // Find this edge in the edge list
   for( i=0 ; i<Edges_Per_Face() ; ++i){
@@ -346,7 +354,8 @@ inline ContactEdge* ContactFace::Clockwise_Edge( ContactEdge* edge ) {
   return NULL;
 }
 
-inline void ContactFace::Clockwise_EdgeNode( int edge, ContactNode** edge_nodes)
+template<typename DataType>
+inline void ContactFace<DataType>::Clockwise_EdgeNode( int edge, ContactNode<DataType>** edge_nodes)
 {
   int n1 = edge==Edges_Per_Face()-1?0:edge+1;
   int n2 =   n1==Edges_Per_Face()-1?0:n1+1;
@@ -357,35 +366,37 @@ inline void ContactFace::Clockwise_EdgeNode( int edge, ContactNode** edge_nodes)
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack functions that are to be used for DLB
 //--------------------------------------------------------------------
-inline int ContactFace::Size(int include_neighbors)
+template<typename DataType>
+inline int ContactFace<DataType>::Size(int include_neighbors)
 {
   if (include_neighbors) {
-    return( ContactTopologyEntity::Size(DataArray_Length()) + sizeof(int) +
-	    Nodes_Per_Face()*sizeof(connection_data) +
-	    Edges_Per_Face()*sizeof(connection_data) +
-            Edges_Per_Face()*sizeof(connection_data));
+    return( ContactTopologyEntity<DataType>::Size(DataArray_Length()) + sizeof(int) +
+	    Nodes_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data) +
+	    Edges_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data) +
+            Edges_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data));
   } else {
-    return( ContactTopologyEntity::Size(DataArray_Length()) + sizeof(int) +
-            Nodes_Per_Face()*sizeof(connection_data) +
-	    Edges_Per_Face()*sizeof(connection_data));
+    return( ContactTopologyEntity<DataType>::Size(DataArray_Length()) + sizeof(int) +
+            Nodes_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data) +
+	    Edges_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data));
   }
 }
 
-inline void ContactFace::Pack( char* buffer, int include_neighbors )
+template<typename DataType>
+inline void ContactFace<DataType>::Pack( char* buffer, int include_neighbors )
 {
   int* i_buf = reinterpret_cast<int*>(buffer);
-  // ContactTopologyEntity packs in location 0 as ContactFace and here we pack
+  // ContactTopologyEntity<DataType> packs in location 0 as ContactFace and here we pack
   // in the derived type in location 1.
   i_buf[1] = face_type;
-  ContactTopologyEntity::Pack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Pack( buffer, DataArray_Length() );
   // Add the entity data for the nodes and edges
-  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity::Size(DataArray_Length()));
+  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Node(i)), &i_buf[cnt]);
+    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
   }
   for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Edge(i)), &i_buf[cnt]);
+    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
   }
   if (include_neighbors) {
     i_buf[cnt++] = number_of_neighbors;
@@ -397,14 +408,15 @@ inline void ContactFace::Pack( char* buffer, int include_neighbors )
   }
 }
 
-inline void ContactFace::Unpack( char* buffer )
+template<typename DataType>
+inline void ContactFace<DataType>::Unpack( char* buffer )
 {
-  ContactTopologyEntity::Unpack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Unpack( buffer, DataArray_Length() );
   entity_key = block_id;
 
   PRECONDITION( ((int*)buffer)[1] == face_type );
   // Store off the entity data for the nodes and edge
-  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity::Size(DataArray_Length()) );
+  int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity<DataType>::Size(DataArray_Length()) );
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
     cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
@@ -414,29 +426,30 @@ inline void ContactFace::Unpack( char* buffer )
   }
   number_of_neighbors = i_buf[cnt++];
   if (number_of_neighbors>0) {
-    neighbor_face_info = new connection_data[Edges_Per_Face()];
+    neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
       cnt += UnPackConnection(&neighbor_face_info[i], &i_buf[cnt]);
     }
   }
 }
 
-inline void ContactFace::Copy( ContactFace* src, int include_neighbors )
+template<typename DataType>
+inline void ContactFace<DataType>::Copy( ContactFace* src, int include_neighbors )
 {
-  ContactTopologyEntity::Copy( src, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Copy( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Node(i)), &NodeInfo()[i]);
+    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
   }
   for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Edge(i)), &EdgeInfo()[i]);
+    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
   }
   if (include_neighbors) {
     if (neighbor_face_info) delete [] neighbor_face_info;
     neighbor_face_info  = NULL;
     number_of_neighbors = src->number_of_neighbors;
     if (number_of_neighbors>0) {
-      neighbor_face_info = new connection_data[Edges_Per_Face()];
+      neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
       for (int i=0; i<Edges_Per_Face(); ++i) {
         neighbor_face_info[i] = src->neighbor_face_info[i];
       }
@@ -452,45 +465,47 @@ inline void ContactFace::Copy( ContactFace* src, int include_neighbors )
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
 //--------------------------------------------------------------------
-inline int ContactFace::Size_ForSecondary(int include_neighbors, 
+template<typename DataType>
+inline int ContactFace<DataType>::Size_ForSecondary(int include_neighbors, 
                                           int include_edgeinfo)
 {
-  int cnt = sizeof(int) + Nodes_Per_Face()*sizeof(connection_data);
+  int cnt = sizeof(int) + Nodes_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data);
   if (include_edgeinfo) {
-    cnt += ContactTopologyEntity::Size_ForSecondary(DataArray_Length());
-    cnt += Edges_Per_Face()*sizeof(connection_data);
+    cnt += ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length());
+    cnt += Edges_Per_Face()*sizeof(typename ContactTopologyEntity<DataType>::connection_data);
   } else {
-    cnt += ContactTopologyEntity::Size_ForSecondary(DataArray_Length());
+    cnt += ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length());
   }
   if (include_neighbors) {
-    cnt += number_of_neighbors*(sizeof(connection_data)+sizeof(int));
+    cnt += number_of_neighbors*(sizeof(typename ContactTopologyEntity<DataType>::connection_data)+sizeof(int));
   }
   return cnt;
 }
 
-inline void ContactFace::Pack_ForSecondary( char* buffer, 
+template<typename DataType>
+inline void ContactFace<DataType>::Pack_ForSecondary( char* buffer, 
                                             int include_neighbors, 
                                             int include_edgeinfo )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
-  // ContactTopologyEntity packs in location 0 as ContactFace and here we pack
+  // ContactTopologyEntity<DataType> packs in location 0 as ContactFace and here we pack
   // in the derived type in location 1.
   i_buf[1] = face_type;
   
   if (include_edgeinfo) {
-    ContactTopologyEntity::Pack_ForSecondary( buffer, DataArray_Length() );
+    ContactTopologyEntity<DataType>::Pack_ForSecondary( buffer, DataArray_Length() );
   } else {
-    ContactTopologyEntity::Pack_ForSecondary( buffer, &DataArray[Edge0_Curvature], DataArray_Length() );
+    ContactTopologyEntity<DataType>::Pack_ForSecondary( buffer, &DataArray[Edge0_Curvature], DataArray_Length() );
   }
-  i_buf[SEC_OWNER] |= include_edgeinfo<<24;
-  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity::Size_ForSecondary(DataArray_Length()));
+  i_buf[ContactTopologyEntity<DataType>::SEC_OWNER] |= include_edgeinfo<<24;
+  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Node(i)), &i_buf[cnt]);
+    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
   }
   if (include_edgeinfo) {
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      cnt += PackConnection(reinterpret_cast<ContactTopologyEntity*>(Edge(i)), &i_buf[cnt]);
+      cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
     }
   }
   if (include_neighbors) {
@@ -509,21 +524,22 @@ inline void ContactFace::Pack_ForSecondary( char* buffer,
   }
 }
 
-inline void ContactFace::Unpack_ForSecondary( char* buffer )
+template<typename DataType>
+inline void ContactFace<DataType>::Unpack_ForSecondary( char* buffer )
 {
   int* i_buf = reinterpret_cast<int*>( buffer );
   PRECONDITION( i_buf[1] == face_type );
-  int include_edgeinfo = i_buf[SEC_OWNER]>>24;
-  i_buf[SEC_OWNER] &= 0xFFFFFF;
+  int include_edgeinfo = i_buf[ContactTopologyEntity<DataType>::SEC_OWNER]>>24;
+  i_buf[ContactTopologyEntity<DataType>::SEC_OWNER] &= 0xFFFFFF;
   if (include_edgeinfo) {
-    ContactTopologyEntity::Unpack_ForSecondary( buffer, DataArray_Length() );
+    ContactTopologyEntity<DataType>::Unpack_ForSecondary( buffer, DataArray_Length() );
   } else {
-    ContactTopologyEntity::Unpack_ForSecondary( buffer, &DataArray[Edge0_Curvature], DataArray_Length() );
+    ContactTopologyEntity<DataType>::Unpack_ForSecondary( buffer, &DataArray[Edge0_Curvature], DataArray_Length() );
   }
   entity_key = block_id;
 
   // Store off the entity data for the nodes and edge
-  i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity::Size_ForSecondary(DataArray_Length()) );
+  i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length()) );
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i){
     cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
@@ -533,7 +549,7 @@ inline void ContactFace::Unpack_ForSecondary( char* buffer )
       cnt += UnPackConnection(&EdgeInfo()[i], &i_buf[cnt]);
     }
   }
-  neighbor_face_info = new connection_data[Edges_Per_Face()];
+  neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
   for (int i=0; i<Edges_Per_Face(); ++i) {
     neighbor_face_info[i].owner = -1;;
   }
@@ -548,18 +564,19 @@ inline void ContactFace::Unpack_ForSecondary( char* buffer )
   }
 }
 
-inline void ContactFace::Copy_ForSecondary( ContactFace* src, 
+template<typename DataType>
+inline void ContactFace<DataType>::Copy_ForSecondary( ContactFace* src, 
                                             int include_neighbors, 
                                             int include_edgeinfo )
 {
-  ContactTopologyEntity::Copy_ForSecondary( src, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Copy_ForSecondary( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Node(i)), &NodeInfo()[i]);
+    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
   }
   if (include_edgeinfo) {
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      PackConnection(reinterpret_cast<ContactTopologyEntity*>(src->Edge(i)), &EdgeInfo()[i]);
+      PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
     }
   }
   if (include_neighbors) {
@@ -567,14 +584,14 @@ inline void ContactFace::Copy_ForSecondary( ContactFace* src,
     neighbor_face_info  = NULL;
     number_of_neighbors = src->number_of_neighbors;
     if (number_of_neighbors>0) {
-      neighbor_face_info = new connection_data[Edges_Per_Face()];
+      neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
       for (int i=0; i<Edges_Per_Face(); ++i) {
         neighbor_face_info[i] = src->neighbor_face_info[i];
       }
     }
   } else {
     if (neighbor_face_info) delete [] neighbor_face_info;
-    neighbor_face_info = new connection_data[Edges_Per_Face()];
+    neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
     for (int i=0; i<Edges_Per_Face(); ++i) {
       neighbor_face_info[i].owner = -1;;
     }
@@ -582,19 +599,22 @@ inline void ContactFace::Copy_ForSecondary( ContactFace* src,
   }
 }
 
-inline int ContactFace::Size_ForDataUpdate()
+template<typename DataType>
+inline int ContactFace<DataType>::Size_ForDataUpdate()
 {
-  return( ContactTopologyEntity::Size_ForDataUpdate(DataArray_Length()) );
+  return( ContactTopologyEntity<DataType>::Size_ForDataUpdate(DataArray_Length()) );
 }
 
-inline void ContactFace::Pack_ForDataUpdate( char* buffer )
+template<typename DataType>
+inline void ContactFace<DataType>::Pack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Pack_ForDataUpdate( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Pack_ForDataUpdate( buffer, DataArray_Length() );
 }
 
-inline void ContactFace::Unpack_ForDataUpdate( char* buffer )
+template<typename DataType>
+inline void ContactFace<DataType>::Unpack_ForDataUpdate( char* buffer )
 {
-  ContactTopologyEntity::Unpack_ForDataUpdate( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Unpack_ForDataUpdate( buffer, DataArray_Length() );
 }
 
 #endif // #ifdef ContactFace_h_

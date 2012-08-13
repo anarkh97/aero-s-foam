@@ -22,7 +22,7 @@
 #define ContactAsymComm_h_
 
 #ifndef CONTACT_NO_MPI
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "Contact_Defines.h"
 #include "contact_assert.h"
 #include "ContactTopologyEntity.h"
@@ -55,8 +55,8 @@ class ContactAsymComm {
 		   const int* Num_Import_to_Proc,
 		   const int* Export_Comm_Proc_IDs,
 		   const int* Import_Comm_Proc_IDs,
-		   ContactTopologyEntity** Export_Entity_List,
-		   ContactTopologyEntity** Import_Entity_List );
+		   ContactTopologyEntity<Real>** Export_Entity_List,
+		   ContactTopologyEntity<Real>** Import_Entity_List );
   ContactAsymComm( const int Num_Export_Comm_Partners,
 		   const int Num_Import_Comm_Partners,
 		   const int* Num_Export_to_Proc,
@@ -80,8 +80,8 @@ class ContactAsymComm {
   inline int* Import_Comm_Proc_IDs() { return import_list.comm_proc_ids; };
   inline int* Num_Export_to_Procs() { return export_list.num_to_proc; };
   inline int* Num_Import_from_Procs() { return import_list.num_to_proc; };
-  inline ContactTopologyEntity** Export_Entity_Lists() { return export_list.entity_list; };
-  inline ContactTopologyEntity** Import_Entity_Lists() { return import_list.entity_list; };
+  inline ContactTopologyEntity<Real>** Export_Entity_Lists() { return export_list.entity_list; };
+  inline ContactTopologyEntity<Real>** Import_Entity_Lists() { return import_list.entity_list; };
 
   inline int* Export_Index_List() {return export_list.entity_index_list; };
   inline int* Import_Index_List() {return import_list.entity_index_list; };
@@ -103,11 +103,11 @@ class ContactAsymComm {
     return import_list.num_to_proc[i];
   }
 
-  inline ContactTopologyEntity** Export_Entity_List( int i ){
+  inline ContactTopologyEntity<Real>** Export_Entity_List( int i ){
     PRECONDITION( i>=0 && i<export_list.num_comm_partners );
     return export_list.entity_list+export_list.offset[i];
   }
-  inline ContactTopologyEntity** Import_Entity_List( int i ){
+  inline ContactTopologyEntity<Real>** Import_Entity_List( int i ){
     PRECONDITION( i>=0 && i<import_list.num_comm_partners );
     return import_list.entity_list+import_list.offset[i];
   }

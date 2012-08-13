@@ -246,6 +246,10 @@ void execParal6R(int n, TA *, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**), T
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
 void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH&, TI&), TB&, TC&, TD&, TE&, TG&, TH&, TI&);
 
+// 1 reference, 3 object and 3 pointer-to-pointer arguments execute in parallel
+template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
+void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC, TD, TE, TG**, TH**, TI**), TB&, TC, TD, TE, TG**, TH**, TI**);
+
 // five reference and two object arguments execute in parallel
 template <class TA, class TB, class TC, class TD, class TE, class TG, class TH, class TI>
 void execParal7R(int n, TA *, void (TA::*f)(int, TB&, TC&, TD&, TE&, TG&, TH, TI), TB&, TC&, TD&, TE&, TG&, TH, TI);

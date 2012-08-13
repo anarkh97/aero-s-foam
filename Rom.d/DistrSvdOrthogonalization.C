@@ -64,7 +64,8 @@ DistrSvdOrthogonalization::DistrSvdOrthogonalization(Communicator * comm, int ro
 
   blacsHandle_ = Csys2blacs_handle(*communicator_->getCommunicator());
   context_ = blacsHandle_;
-  Cblacs_gridinit(&context_, "R", rowCpus, colCpus);
+  char order[] = "R";
+  Cblacs_gridinit(&context_, order, rowCpus, colCpus);
   Cblacs_gridinfo(context_, &rowCpus_, &colCpus_, &localCpuRow_, &localCpuCol_);
  
   assert(rowCpus_ == rowCpus);

@@ -53,8 +53,8 @@ class ContactFaceBlock {
   ContactBoundingBox* GlobalBoundingBox() { return &global_bounding_box; };
   void ComputeBoundingBox(int, VariableHandle, VariableHandle, MPI_Comm&);
 
-  void Insert_Face( ContactFace* );
-  void Delete_Face( ContactFace* );
+  void Insert_Face( ContactFace<Real>* );
+  void Delete_Face( ContactFace<Real>* );
 #ifndef CONTACT_NO_MPI
   void Insert_Face( char* );
   void Insert_Face_ForSecondary( char* );

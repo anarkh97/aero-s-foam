@@ -69,7 +69,7 @@ class ContactInteractionEntity {
   inline Real* Variable( VariableHandle & vh) {return DataArray_Buffer()+vh;};
   
   virtual void Display(ContactParOStream&);
-  inline void SetEntityData( entity_data*, ContactTopologyEntity*);
+  inline void SetEntityData( entity_data*, ContactTopologyEntity<Real>*);
 
  protected:
   Real *data_array;
@@ -204,7 +204,7 @@ inline int ContactInteractionEntity::UnPackEntityData(entity_data* data,
 }
 
 inline void ContactInteractionEntity::SetEntityData( entity_data* data, 
-                                                     ContactTopologyEntity* entity)
+                                                     ContactTopologyEntity<Real>* entity)
 {
   data->type                      = entity->Base_Type(); 
   data->owner                     = entity->Owner(); 

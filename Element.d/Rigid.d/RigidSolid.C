@@ -109,3 +109,9 @@ RigidSolid::numTopNodes()
   } 
 }
 
+bool
+RigidSolid::isSafe()
+{
+  return (nnodes >= 4);
+}
+

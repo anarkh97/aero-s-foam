@@ -127,7 +127,7 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     
         double detF = F[0][0]*F[1][1]*F[2][2]+F[0][1]*F[1][2]*F[2][0]+F[0][2]*F[1][0]*F[2][1]
                      -F[0][0]*F[1][2]*F[2][1]-F[0][1]*F[1][0]*F[2][2]-F[0][2]*F[1][1]*F[2][0];
-        if(detF < 0) cerr << " *** WARNING: in BrickCorotator::getStiffAndForce |F| = " << detF << endl;
+        //if(detF < 0) cerr << " *** WARNING: in BrickCorotator::getStiffAndForce |F| = " << detF << endl;
 
    
         // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
@@ -391,7 +391,7 @@ BrickCorotator::getNLAllStress(FullM& stress,Vector& weight,
       }
     }
   }
-
+/* 
 // Get Element Principals
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
@@ -409,6 +409,25 @@ BrickCorotator::getNLAllStress(FullM& stress,Vector& weight,
   }
   pstress(svec,pvec);
   for (i=0; i<8; ++i) {
+    for (j=0; j<3; ++j) {
+       stress[i][j+6] = pvec[j];
+    }
+  }
+*/
+// PJSA 10/08/2010 Get Element Principals without averaging
+  double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+  double pvec[3] = {0.0,0.0,0.0};
+  for (i=0; i<8; ++i) {
+    for (j=0; j<6; ++j)
+      svec[j] = stress[i][j];
+
+    // Convert Engineering to Tensor Strains
+    if(strInd != 0) {
+      svec[3] /= 2;
+      svec[4] /= 2;
+      svec[5] /= 2;
+    }
+    pstress(svec,pvec);
     for (j=0; j<3; ++j) {
        stress[i][j+6] = pvec[j];
     }

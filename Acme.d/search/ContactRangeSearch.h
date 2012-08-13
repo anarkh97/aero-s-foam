@@ -33,7 +33,7 @@
 #endif
 
 class ContactTopology;
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactSearch;
 //
 //  This range search class holds data necessary for doing a node on face range searches.
@@ -96,7 +96,7 @@ class ContactNodeFaceRangeSearch {
 
   Real *max_remaining_gap;
   Real *max_node_motion;
-  ContactNode **Nodes;
+  ContactNode<Real> **Nodes;
   std::vector<int> node_entity_keys;
   ContactTopology *search_topology; 
   ContactSearch *search;

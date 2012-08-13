@@ -104,7 +104,7 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 
 template<class Scalar>
 GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa,
-                                           ConstrainedDSA *c_dsa, Rbm *_rbm) 
+                                           ConstrainedDSA *c_dsa) 
  : SparseData(_dsa,c_dsa,nToN)
 {
   init();
@@ -124,12 +124,6 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
 
   InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
 #endif
-
-  // PJSA 4-13-05: store pointer to geometric RBM
-  if(_rbm) {
-    rbm = _rbm;
-    nrbm  = rbm->numRBM();
-  }
 }
 
 template<class Scalar>
@@ -832,31 +826,7 @@ GenSpoolesSolver<Scalar>::init()
   isScaled = domain->solInfo().spooles_scale;
   msglvl = domain->solInfo().spooles_msglvl;
   msgfile = (msglvl > 0) ? fopen("spooles_msgfile","w") : NULL;
-  nrbm = 0;
-  rbm = 0;
   _size = 0;
-}
-
-
-template<class Scalar>
-void
-GenSpoolesSolver<Scalar>::getRBMs(double *rigidBodyModes)
-{
-  if(rbm) rbm->getRBMs(rigidBodyModes);
-}
-
-template<class Scalar>
-void
-GenSpoolesSolver<Scalar>::getRBMs(Vector *rigidBodyModes)
-{
-  if(rbm) rbm->getRBMs(rigidBodyModes);
-}
-
-template<class Scalar>
-void
-GenSpoolesSolver<Scalar>::getRBMs(VectorSet& rigidBodyModes)
-{
-  if(rbm) rbm->getRBMs(rigidBodyModes);
 }
 
 template<>

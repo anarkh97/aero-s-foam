@@ -66,7 +66,7 @@ class BaseSub : virtual public Domain
   int *weightPlus;
   double *bcx;
   DComplex *bcxC; // FETI-H
-  double *vcx;
+  double *vcx, *acx;
   int *locToGlSensorMap;
   int *locToGlActuatorMap;
   int *locToGlUserDispMap;
@@ -494,7 +494,8 @@ class GenSubDomain : public BaseSub
   void addCtrl(Scalar *, Scalar *);
   Scalar *getBcx()  { if(!bcx_scalar) makeBcx_scalar(); return bcx_scalar; }
   double *getVcx()  { return vcx; }
-  void setUserDefBC(double *, double *);
+  double *getAcx()  { return acx; }
+  void setUserDefBC(double *, double *, double *, bool nlflag);
   //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
   //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);
@@ -553,7 +554,9 @@ class GenSubDomain : public BaseSub
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
+  void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF);
+  void mergeDistributedReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeElemProps(double* props, double* weights, int propType);
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
@@ -569,7 +572,8 @@ class GenSubDomain : public BaseSub
   void fSend(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fScale(Scalar *locF, FSCommPattern<Scalar> *vPat, Scalar *locFw = 0);
   void fSplit(Scalar *locF);
-  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda=1.0);
+  void updatePrescribedDisp(GeomState *geomState, Scalar deltaLambda);
+  void updatePrescribedDisp(GeomState *geomState);
   Scalar displacementNorm(Scalar *displacement);
   void firstAssemble(GenSparseMatrix<Scalar> *K);
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
@@ -633,6 +637,7 @@ class GenSubDomain : public BaseSub
   Scalar getMpcRhs_primal(int iMPC);
   void constraintProduct(int num_vect, const double* R[], Scalar** V, int trans);
   void addConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &f);
+  void addCConstraintForces(std::map<std::pair<int,int>, double> &mu, std::vector<double> &lambda, GenVector<Scalar> &fc, double s);
   void locateMpcDofs();
   void makeLocalMpcToDof(); //HB: create the LocalMpcToDof connectivity for a given DofSetArray 
   void makeLocalMpcToMpc();
@@ -683,6 +688,7 @@ class GenSubDomain : public BaseSub
   void subtractMpcRhs(Scalar *interfvec);
   void setLocalLambda(Scalar *localLambda);
   void computeContactPressure(Scalar *globStress, Scalar *globWeight);
+  void computeLocalContactPressure(Scalar *stress, Scalar *weight);
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);

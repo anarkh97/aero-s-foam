@@ -25,7 +25,7 @@
 #include "ContactEnforcement.h"
 #include "ContactTDEnfModel.h"
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 class ContactNodeFaceInteraction;
 class ContactNodeSurfaceInteraction;
 class ContactTopology;

@@ -66,8 +66,8 @@ ContactTDFaceFaceEnf::Compute_Forces( const Real* mass, Real* force )
   // Loop over the face-face interactions
   for( i=0 ; i<number_face_face_interactions ; ++i ){
     ContactFaceFaceInteraction* ffi = face_face_interaction_list[i];
-    ContactFace* slave_face = ffi->SlaveFace();
-    ContactFace* master_face = ffi->MasterFace();
+    ContactFace<Real>* slave_face = ffi->SlaveFace();
+    ContactFace<Real>* master_face = ffi->MasterFace();
     POSTCONDITION( slave_face && master_face );
     std::cout << "Slave  Face = " << slave_face->Global_ID() << std::endl;
     std::cout << "Master Face = " << master_face->Global_ID() << std::endl;

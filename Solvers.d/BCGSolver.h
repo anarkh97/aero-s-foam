@@ -17,6 +17,7 @@ class GenBCGSolver : public GenSolver<Scalar> {
    ~GenBCGSolver() {};
    int neqs() { return A->neqs(); }
    void solve(AnyVector &, AnyVector &);
+   void reSolve(AnyVector &rhs) { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    double getSolutionTime() { return solveTime; }
    long size() { return 0; }
 };

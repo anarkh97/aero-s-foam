@@ -76,13 +76,12 @@ struct FrameData {
 struct LayerData {
   int lnum;
   int matid;
-  double d[9];
+  double d[12];
 };
 
 struct ConstraintOptions {
   bool lagrangeMult;
   double penalty;
-  bool mpcDual;
 };
 
 extern double fetiHTol;

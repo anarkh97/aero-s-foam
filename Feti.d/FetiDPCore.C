@@ -34,7 +34,13 @@ GenFetiDPSolver<Scalar>::computeProjectedDisplacement(GenDistrVector<Scalar> &u)
     GtGtilda->getNullSpace(zem);
     GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
     // build global RBMs 
-    paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+    if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+    else {
+      // TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
+      std::cerr << " *** WARNING: FetiDPSolver::computeProjectedDisplacement requires GRBM or \"corners none\"\n";
+      return;
+    }
 
     GenVector<Scalar> beta(numGtGsing, 0.0);
     // 1. compute beta = Rstar_g^t * u
@@ -74,6 +80,9 @@ GenFetiDPSolver<Scalar>::makeGtG()
   else {
     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeTrbmG, kccrbms, KccSolver->numRBM(), KccSolver->neqs());
     paralApply(this->nsub, this->sd, &BaseSub::getNumGroupRBM, ngrbmGr);
+#ifdef DISTRIBUTED
+   this->fetiCom->globalMax(nGroups, ngrbmGr);
+#endif
   }
 
   // 2. exchange G's between neighboring subdomains
@@ -140,12 +149,12 @@ GenFetiDPSolver<Scalar>::makeE(GenDistrVector<Scalar> &f)
     GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
     for(int i = 0; i < this->nsub; ++i)
       this->sd[i]->assembleTrbmE(kccrbms, KccSolver->numRBM(), KccSolver->neqs(), e.data(), fr.subData(this->sd[i]->localSubNum()));
-#ifdef DISTRIBUTED
-    this->fetiCom->globalSum(ngrbms, e.data());
-#endif
     for(int i = 0; i < KccSolver->numRBM(); ++i)
       for(int j = 0; j < KccSolver->neqs(); ++j)
         e[i] += fc[j]*kccrbms[i*KccSolver->neqs()+j];
+#ifdef DISTRIBUTED
+    this->fetiCom->globalSum(ngrbms, e.data());
+#endif
   }
 }
 
@@ -178,7 +187,8 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::getRBMs(Scalar *globRBM)
 {
-  if(GtGtilda) {
+  bool useKccSolver = (this->glNumMpc == 0 && !geometricRbms);
+  if(GtGtilda && !useKccSolver) {
     int nRBM = numRBM();
     int iRBM;
     for(iRBM = 0; iRBM < nRBM; ++iRBM) {
@@ -211,8 +221,8 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
 {
-  if(GtGtilda) {
-
+  bool useKccSolver = (this->glNumMpc == 0 && !geometricRbms);
+  if(GtGtilda && !useKccSolver) {
     int numGtGsing = GtGtilda->numRBM();
     if(numGtGsing > 0 && domain->probType() == SolverInfo::Modal) {
       // get null space of GtGtilda
@@ -220,7 +230,14 @@ GenFetiDPSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &globRBM)
       GtGtilda->getNullSpace(zem);
       GenFullM<Scalar> X(zem, ngrbms, numGtGsing, 1);
       // build global RBMs
-      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+      if(geometricRbms || this->fetiInfo->corners == FetiInfo::noCorners)
+        paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::buildGlobalRBMs, X, cornerToSub);
+      else {
+        // TODO: GenSubDomain::Rstar first needs to be filled from the nullspace of Kcc^*
+        std::cerr << " *** WARNING: FetiDPSolver::getRBMs requires GRBM or \"corners none\"\n";
+        globRBM.zero();
+        return;
+      }
     }
 
     int nRBM = numRBM();

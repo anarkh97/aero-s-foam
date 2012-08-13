@@ -3,6 +3,10 @@
 
 #include <Element.d/SuperElement.h>
 
+// reference: Rigid Body Dynamics of Mechanisms: Theoretical basis, Volume 1
+// Hubert Hahn, section 5.2.2.7
+// constrains three rotational and two translational dofs
+
 class PrismaticJoint : public SuperElement
 {
   public:

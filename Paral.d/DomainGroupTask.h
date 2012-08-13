@@ -16,14 +16,17 @@ class GenDomainGroupTask : public TaskDescr {
    GenSparseMatrix<Scalar> **Mcc;
    GenSparseMatrix<Scalar> **C;
    GenSparseMatrix<Scalar> **Cuc;
+   GenSparseMatrix<Scalar> **Ccc;
 // RT
    GenSparseMatrix<Scalar> ***C_deriv;
    GenSparseMatrix<Scalar> ***Cuc_deriv;
 // RT end
    GenSparseMatrix<Scalar> **K;
    GenSparseMatrix<Scalar> **Kuc;
+   GenSparseMatrix<Scalar> **spp;
+   GenSolver<Scalar> **sps;
    Rbm **rbms; // geometric based RBMs
-   FullSquareMatrix **kelArray, **melArray;
+   FullSquareMatrix **kelArray, **melArray, **celArray;
    double coeM, coeC, coeK;
    double alpha, beta;
    int numSommer;
@@ -32,7 +35,7 @@ class GenDomainGroupTask : public TaskDescr {
 
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 
-                      int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray);
+                      int, int solvertype, FSCommunicator *, FullSquareMatrix **_melArray, FullSquareMatrix **_celArray);
    virtual ~GenDomainGroupTask();
    void runFor(int isub, bool make_feti);
 };

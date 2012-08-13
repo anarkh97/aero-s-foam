@@ -20,6 +20,7 @@ class CoordSet;
 class FaceElement;
 class MortarElement;
 
+template<class Scalar>
 class FFIPolygon {
   private:
 	double Area;                 // (approximate) area 
@@ -28,8 +29,8 @@ class FFIPolygon {
         FaceElement* MasterFace;     // ptr to the associated master face el.
         FaceElement* SlaveFace ;     // ptr to the associated salve face el.
 
-        typedef std::pair<TriFacet, TriFacet> Facet_pair_t; // first  -> master
-                                                            // second -> slave
+        typedef std::pair<TriFacet<Scalar>, TriFacet<Scalar> > Facet_pair_t; // first  -> master
+                                                                             // second -> slave
         std::vector<Facet_pair_t> Facets;
 
         FullM M;                     // store the (FFI contibution to) M matrix (Mortar-Slave)
@@ -37,17 +38,20 @@ class FFIPolygon {
 
         Vector NormalGeoGaps;        // store the (FFI contibution to) the "geometrical" normal gaps (Slave-Master)
 
+        FullM *dM;                   // store the (FFI contibution to) derivative of the M matrix (Mortar-Slave)
+        FullM *dN;                   // store the (FFI contibution to) derivative of the N matrix (Mortar-Master)
 #ifdef HB_ACME_FFI_DEBUG
-        double (*VertexLlCoordOnSFaceEl)[2];
-        double (*VertexLlCoordOnMFaceEl)[2];
+        Scalar (*VertexLlCoordOnSFaceEl)[2];
+        Scalar (*VertexLlCoordOnMFaceEl)[2];
 #endif
+        double* ACME_FFI_LocalCoordData;
         // Helper methods
         // ~~~~~~~~~~~~~~
-        static TriFacet& MasterFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
+        static TriFacet<Scalar>& MasterFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
         { 
           return FacetSet[i].first; 
         }
-        static TriFacet& SlaveFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
+        static TriFacet<Scalar>& SlaveFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
         { 
           return FacetSet[i].second; 
         }
@@ -88,6 +92,10 @@ class FFIPolygon {
 
         Vector* GetPtrNormalGeoGaps() { return &NormalGeoGaps; }
 
+        FullM* GetdM() { return dM; }
+
+        FullM* GetdN() { return dN; }
+
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         void Print(); 
@@ -100,7 +108,7 @@ class FFIPolygon {
 #endif
 	// Triangularization methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~
-	void CreateTriangularization(double*);
+	void CreateTriangularization(Scalar*);
 
         // Integration methods
         // ~~~~~~~~~~~~~~~~~~~ 
@@ -125,11 +133,19 @@ class FFIPolygon {
         void ComputeGradNormalM(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
         void ComputeGradNormalN(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
 
-	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet&, CoordSet&, int ngp=6);
+	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet&, CoordSet&, int ngp=6, double offset=0.);
 
         // Space/memory allocation/desallocation methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   private:
+        void PrepLocalCoordData();
 };
+
+#ifdef _TEMPLATE_FIX_
+  #include <Mortar.d/FFIPolygon.d/FFIPolygon.C>
+#endif
+
 #endif
 
 /*

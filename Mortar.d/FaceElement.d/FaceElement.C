@@ -11,7 +11,7 @@
 #include <Utils.d/Connectivity.h>
 
 #include <Mortar.d/FaceElement.d/FaceElement.h>
-#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
+//#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS

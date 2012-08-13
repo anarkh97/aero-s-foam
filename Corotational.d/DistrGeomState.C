@@ -49,6 +49,12 @@ DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
   else gs[isub] = new GeomState(*(g2[isub]));
 }
 
+DistrGeomState::~DistrGeomState()
+{
+  for(int i=0; i<numSub; ++ i) delete gs[i];
+  delete [] gs;
+}
+
 // Subdomain update
 void
 DistrGeomState::subUpdate(int isub, DistrVector &v)

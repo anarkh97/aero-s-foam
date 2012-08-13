@@ -24,17 +24,21 @@
 
 extern ModeData modeData;
 
-MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
-                             DistrVector *_v1, DistrVector*_v2, double c,
-                             double *_userDefDisps, SubDOp* _Kuc)
+MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int), SubDomain **_sd,
+                             DistrVector *_v1, DistrVector *_v2, double _c1,
+                             SubDOp *_Kuc, ControlInterface *_userSupFunc,
+                             SubDOp *_Cuc, double _c2, SubDOp *_Muc)
 {
+ f  = _f;
+ sd = _sd;
  v1 = _v1;
  v2 = _v2;
- f  = _f;
- c1 = c;
- sd = _sd;
- userDefDisps = _userDefDisps;
+ c1 = _c1;
  Kuc = _Kuc;
+ userSupFunc = _userSupFunc;
+ Cuc = _Cuc;
+ c2 = _c2;
+ Muc = _Muc;
 }
 
 MultiDomainOp::MultiDomainOp(void (MultiDomainOp::*_f)(int),  SubDomain **_sd,
@@ -98,8 +102,8 @@ MultiDomainOp::computeExtForce(int isub)
   // Get the pointer to the part of the vector cnst_f corresponding to subdomain isub
   StackVector localg(v2->subData(isub),v2->subLen(isub));
 
-  int *userDataMap = sd[isub]->getUserDispDataMap();
-  sd[isub]->computeExtForce4(localf, localg, c1, (*Kuc)[isub]/*, userDefDisps, userDataMap*/); //XXXX broken
+  SparseMatrix *localCuc = (Cuc) ? (*Cuc)[isub] : 0; 
+  sd[isub]->computeExtForce4(localf, localg, c1, (*Kuc)[isub], userSupFunc, localCuc, c2, (*Muc)[isub]);
 }
 
 void
@@ -125,7 +129,7 @@ MultiDomainOp::getInitState(int isub)
  StackVector   v_p(v4->subData(isub),v1->subLen(isub));
 
  if(geoSource->getCheckFileInfo()->lastRestartFile) {
-   int extlen = std::log10((double) sd[isub]->subNum()+1) + 1;
+   int extlen = (int)std::log10((double) sd[isub]->subNum()+1) + 1;
    char *ext = new char[extlen+2];
    sprintf(ext,"_%d",sd[isub]->subNum()+1);
    sd[isub]->initDispVeloc(disp, veloc, accel, v_p, ext);
@@ -164,7 +168,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   if(domain->solInfo().nRestart > 0) {
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
       SubDomain *sd = decDomain->getSubDomain(i);
-      int extlen = std::log10((double) sd->subNum()+1) + 1;
+      int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
       char *ext = new char[extlen+2];
       sprintf(ext,"_%d",sd->subNum()+1);
       if(domain->solInfo().isNonLin()) {
@@ -188,10 +192,11 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     //double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
+    double *userDefineAcc  = new double[claw->numUserDisp];
     //cerr << "getting usdd at time " << t << " for dynamOutput\n";
-    userSupFunc->usd_disp(t,userDefineDisp,userDefineVel);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
-    delete [] userDefineDisp; delete [] userDefineVel;
+    userSupFunc->usd_disp(t,userDefineDisp,userDefineVel,userDefineAcc);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
+    delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
   // Send displacements to fluid code (except explicit C0)
@@ -244,7 +249,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
-  decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
+  if(sinfo.isNonLin())
+    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);
+  else
+    decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
 
 //  SolverInfo& sinfo = domain->solInfo();
@@ -398,7 +406,7 @@ MultiDomainDynam::makeSubElementArrays(int isub)
  
   // update geomState with IDISP6 if GEPS is requested (geometric prestress / linear only)
   if((sd->numInitDisp6() > 0) && (domain->solInfo().gepsFlg == 1)) // GEPS
-   (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6());
+   (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
   Vector elementInternalForce(sd->maxNumDOF(), 0.0);
@@ -411,7 +419,7 @@ MultiDomainDynam::initSubPrescribedDisplacement(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   if(sd->nDirichlet() > 0) 
-    (*geomState)[isub]->updatePrescribedDisplacement(sd->getDBC(), sd->nDirichlet());
+    (*geomState)[isub]->updatePrescribedDisplacement(sd->getDBC(), sd->nDirichlet(), sd->getNodes());
 }
 
 void
@@ -495,7 +503,7 @@ MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
-MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
+MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f, double t_n_p)
 {
   // DEBUG CONTACT
   times->tdenforceTime -= getTime();
@@ -512,6 +520,15 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2, decDomain->getAllSubDomains()); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -542,9 +559,10 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     if(claw->numUserDisp) {
       userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel); // update bcx, vcx
-      delete [] userDefineVel;
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false); // update bcx, vcx, acx
+      delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 
@@ -571,8 +589,12 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
 
   // add f(t) to cnst_f
+  double dt = domain->solInfo().getTimeStep();
+  double alpham = domain->solInfo().newmarkAlphaM;
+  double t0 = domain->solInfo().initialTime;
+  double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
-                     decDomain->getAllSubDomains(), &f, &cnst_f, t, userDefineDisp, dynMat->Kuc);
+                     decDomain->getAllSubDomains(), &f, &cnst_f, t, dynMat->Kuc, userSupFunc, dynMat->Cuc, tm, dynMat->Muc);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   if(userDefineDisp) delete [] userDefineDisp;
 
@@ -705,7 +727,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         StackVector v_ni(state.getVeloc().subData(i), state.getVeloc().subLen(i));
         StackVector a_ni(state.getAccel().subData(i), state.getAccel().subLen(i));
         StackVector v_pi(state.getPrevVeloc().subData(i), state.getPrevVeloc().subLen(i));
-        int extlen = std::log10((double) sd->subNum()+1) + 1;
+        int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
         char *ext = new char[extlen+2];
         sprintf(ext,"_%d",sd->subNum()+1);
         sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);
@@ -723,9 +745,10 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
     if(claw->numUserDisp) {
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel);
-      delete [] userDefineDisp; delete [] userDefineVel;
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numSensor) {
       double *ctrdisp = new double[claw->numSensor];
@@ -753,11 +776,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot);
  }
  return mddPostPro;
 }
@@ -830,10 +853,11 @@ MultiDomainDynam::getRayleighCoef(double& alpha)
 
 void
 MultiDomainDynam::addPrescContrib(SubDOp*, SubDOp*, DistrVector&,
-                                  DistrVector&, DistrVector&, DistrVector&,
-                                  double time)
+                                  DistrVector&, DistrVector&, DistrVector& result,
+                                  double tm, double tf)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: addPrescContrib not implemented here\n");
+  result.zero(); // TODO
+  //filePrint(stderr, "Paral.d/MDDynam.C: addPrescContrib not implemented here\n");
 }
 
 SubDOp*
@@ -987,7 +1011,7 @@ MultiDomainDynam::computeTimeInfo()
   double remainder = totalTime - maxStep*dt;
   if(std::abs(remainder)>0.01*dt){
     domain->solInfo().tmax = maxStep*dt;
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
   }
 }
 

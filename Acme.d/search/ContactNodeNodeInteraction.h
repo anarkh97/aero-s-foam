@@ -48,22 +48,22 @@ class ContactNodeNodeInteraction : public ContactInteractionEntity {
 #include "contact_variables.undefine"
 		     NUMBER_VECTOR_VARS };
 
-  ContactNodeNodeInteraction( ContactNode*, ContactNode*,
+  ContactNodeNodeInteraction( ContactNode<Real>*, ContactNode<Real>*,
                               int, Real );
   ContactNodeNodeInteraction( ContactNodeNodeInteraction& nni );
   ContactNodeNodeInteraction();
   static ContactNodeNodeInteraction* new_ContactNodeNodeInteraction(
             ContactFixedSizeAllocator&, 
-            ContactNode*, ContactNode*,
+            ContactNode<Real>*, ContactNode<Real>*,
             int, Real );
   static ContactNodeNodeInteraction* new_ContactNodeNodeInteraction(
              ContactFixedSizeAllocator& );     
   ~ContactNodeNodeInteraction();
 
-  inline ContactNode* SlaveNode() { return slave_node; };
+  inline ContactNode<Real>* SlaveNode() { return slave_node; };
   inline entity_data* SlaveNodeEntityData() {return &slave_node_entity_data;};
   int Set_SlaveNodeEntityData();
-  inline ContactNode* MasterNode() { return master_node; };
+  inline ContactNode<Real>* MasterNode() { return master_node; };
   inline entity_data* MasterNodeEntityData() {return &master_node_entity_data;};
   int Set_MasterNodeEntityData();
 
@@ -83,9 +83,9 @@ class ContactNodeNodeInteraction : public ContactInteractionEntity {
   void Restart_Unpack( Real* buffer );
 
   void Connect_SlaveNode( ContactTopologyEntityList& );
-  void Connect_SlaveNode( ContactNode* );
+  void Connect_SlaveNode( ContactNode<Real>* );
   void Connect_MasterNode( ContactTopologyEntityList& );
-  void Connect_MasterNode( ContactNode* );
+  void Connect_MasterNode( ContactNode<Real>* );
 
   inline bool     Is_Tied() { return is_tied; };
   inline void     Is_Tied( bool IS_TIED ) { is_tied = IS_TIED; };
@@ -94,9 +94,9 @@ class ContactNodeNodeInteraction : public ContactInteractionEntity {
   inline void Initialize_Memory() {std::memset(DataArray_Buffer(), 0, DataArray_Length()*sizeof(Real));};
  private:
   
-  ContactNode* slave_node;
+  ContactNode<Real>* slave_node;
   entity_data  slave_node_entity_data;
-  ContactNode* master_node;
+  ContactNode<Real>* master_node;
   entity_data  master_node_entity_data;
   
   Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS];

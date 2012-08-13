@@ -82,6 +82,7 @@ class FaceTri6: public FaceElement {
         void   GetShapeFctVal(double *Shape, double *m);
 	double GetJacobian(double *m, CoordSet &cs);
         double GetIsoParamMappingNormalAndJacobian(double *N, double *m, CoordSet &cs);
+        void   GetIsoParamMappingNormalJacobianProduct(double*, double*, CoordSet&);
 
 	// Miscelleaneous methods
         // ~~~~~~~~~~~~~~~~~~~~~~

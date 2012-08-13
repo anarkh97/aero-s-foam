@@ -19,7 +19,7 @@
 
 
 #include "Contact_Defines.h"
-#include "lbi_const.h"
+#include "zoltan.h"
 
 extern "C" {
   ZOLTAN_NUM_OBJ_FN            ContactQueryNumObjects;

@@ -14,9 +14,6 @@ class Node;
 class Elemset;
 
 class NodeState {
-//  private:
-//    DirectionCosineMatrix* dRdr;        // vector of the partial derivatives of R wrt thetax, thetay and thetaz
-//    DirectionCosineMatrix* d2Rdr2;      // vector of the second parital derivatives of R wrt thetax, thetay and thetaz
   public:
     double x,   y,  z;			// x,y,z coordinates
     double d[6], v[6], a[6];	        // x,y,z velocities and accelerations
@@ -48,6 +45,7 @@ class GeomState {
      int numelems;
      ElemState *es;
      std::map<int,int> emap;
+     std::map<std::pair<int,int>,int> multiplier_nodes;
 
    public:
      // Default Constructor
@@ -64,7 +62,7 @@ class GeomState {
 
      NodeState & operator[](int i)  { return ns[i]; }
      const NodeState & operator[](int i) const { return ns[i]; }
-     void resizeNodeState(int count) { ns.resize(numnodes+count); }
+     void clearMultiplierNodes();
      void resizeLocAndFlag(DofSetArray &cdsa);
 
      double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
@@ -72,7 +70,7 @@ class GeomState {
      int getTotalNumElemStates();
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }
-     int numNodes() { return numnodes; }
+     int numNodes() const { return numnodes; }
 
      void getPositions(double *positions);
      void getRotations(double *rotations);
@@ -88,10 +86,12 @@ class GeomState {
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
      virtual void setVelocity(const Vector &, const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
-                                       double delta = 1.0);
+                                       double delta);
+     void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
+                                       CoordSet &cs);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
-                                       CoordSet &cs );
+                                       CoordSet &cs);
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham,
                                        bool zeroRot);
@@ -117,6 +117,9 @@ class GeomState {
 			       double  grad[3], double jac[3][3]);
      void rotate(double mat[3][3], double vec[3]);
      void setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf);
+
+     void addMultiplierNode(std::pair<int,int> &lmpc_id, double value);
+     double getMultiplier(std::pair<int,int> &lmpc_id);
 };
 
 #endif

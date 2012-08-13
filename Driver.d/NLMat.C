@@ -83,7 +83,7 @@ NLMatProbDesc::preProcess()
     AllOps<double> allOps;
 
     domain.buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                            (FullSquareMatrix *) NULL, true);
+                            (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, true);
 
     solver = allOps.sysSolver;
     spm = allOps.spm;
@@ -103,7 +103,7 @@ NLMatProbDesc::preProcess()
    double Ccoef = 0.0;
 
    domain.buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, (FullSquareMatrix *) NULL,
-                           (FullSquareMatrix *) NULL, true);
+                           (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, true);
 
    M      = allOps.M;
    Mcc    = allOps.Mcc;
@@ -382,7 +382,8 @@ NLMatProbDesc::updatePrescribedDisplacement(NLState *state, double lambda)
   if(claw != 0) {
    double *userDefinedDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
    double *userDefinedVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
-   userSupFunc->usd_disp( lambda, userDefinedDisp, userDefinedVel );
+   double *userDefinedAcc  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
+   userSupFunc->usd_disp( lambda, userDefinedDisp, userDefinedVel, userDefinedAcc );
    int i;
    for(i=0; i<claw->numUserDisp; ++i) {
 
@@ -406,7 +407,8 @@ NLMatProbDesc::updatePrescribedDisplacement(NLState *state, double t,
   if(claw != 0) {
    double *userDefinedDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
    double *userDefinedVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
-   userSupFunc->usd_disp( t, userDefinedDisp, userDefinedVel );
+   double *userDefinedAcc  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
+   userSupFunc->usd_disp( t, userDefinedDisp, userDefinedVel, userDefinedAcc );
    int i;
    for(i=0; i<claw->numUserDisp; ++i) {
 
@@ -587,7 +589,7 @@ NLMatProbDesc::getInitialTime(int &initTimeIndex, double &initTime)
 
 void
 NLMatProbDesc::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double& t,
-                            NLState* geomState, Vector& elemNonConForce, Vector &aeroF)
+                            NLState* geomState, Vector& elemNonConForce, Vector &aeroF, double delta)
 {
  // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
  times->formRhs -= getTime();
@@ -632,7 +634,7 @@ NLMatProbDesc::getExternalForce(Vector& rhs, Vector& gf, int tIndex, double& t,
 void
 NLMatProbDesc::dynamOutput(NLState* state, Vector& velocity,
                            Vector& vp, double time, int step, 
-                           Vector& force, Vector &aeroF, Vector &acceleration)
+                           Vector& force, Vector &aeroF, Vector &acceleration, NLState*)
 {  
   //if(solver->numRBM() != 0)
   //  fprintf(stderr,"\n --- Number of RBM %4d             ...\n",
@@ -665,11 +667,13 @@ NLMatProbDesc::getStiffAndForce(NLState& state, Vector& residual,
  
  double *userDefinedDisp = 0;
  double *userDefinedVel  = 0;
+ double *userDefinedAcc  = 0;
  
  if( midtime != -1.0 && claw != 0 ) {
    userDefinedDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
    userDefinedVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
-   userSupFunc->usd_disp( midtime, userDefinedDisp, userDefinedVel );
+   userDefinedAcc  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
+   userSupFunc->usd_disp( midtime, userDefinedDisp, userDefinedVel, userDefinedAcc );
    int i;
    for(i=0; i<claw->numUserDisp; ++i) {
   
@@ -847,23 +851,31 @@ NLMatProbDesc::checkConvergence(int iteration, double normRes,
 }
 
 void
-NLMatProbDesc::reBuild(NLState &, int iteration, double delta)
+NLMatProbDesc::reBuild(NLState &, int iteration, double delta, double t)
 {
  times->rebuild -= getTime();
 
  // Rebuild every updateK iterations
- if( iteration % domain.solInfo().getNLInfo().updateK == 0 ) {
+ if( iteration % domain.solInfo().getNLInfo().updateK == 0 || t == domain.solInfo().initialTime) {
 /* PJSA
    solver->reBuild(kelArray, melArray, delta);
 */
+   double Kcoef, Ccoef, Mcoef;
+   if(t == domain.solInfo().initialTime) {
+     Kcoef = 0;
+     Ccoef = 0;
+     Mcoef = 1;
+   }
+   else {
+     double beta, gamma, alphaf, alpham, dt = 2*delta;
+     getNewmarkParameters(beta, gamma, alphaf, alpham);
+     Kcoef = dt*dt*beta;
+     Ccoef = dt*gamma;
+     Mcoef = (1-alpham)/(1-alphaf);
+   }
    spm->zeroAll();
    AllOps<double> ops;
    ops.Kuc = kuc;
-   double beta, gamma, alphaf, alpham, dt = 2*delta;
-   getNewmarkParameters(beta, gamma, alphaf, alpham);
-   double Kcoef = dt*dt*beta;
-   double Ccoef = dt*gamma;
-   double Mcoef = (1-alpham)/(1-alphaf);
    domain.makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray);
    solver->factor();
  }

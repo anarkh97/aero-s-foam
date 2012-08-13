@@ -13,14 +13,19 @@
 #include <Element.d/Element.h>
 #include <Utils.d/resize_array.h>
 #include <Math.d/matrix.h>
+#include <Mortar.d/MortarAutoDiff.h>
 
 //class CoordSet;
-class FFIPolygon;
+//class FFIPolygon;
 class DofSetArray;
 //class State;
 //class GeomState;
 struct InterpPoint;
 class Connectivity;
+
+#ifdef USE_EIGEN3
+#include <Eigen/Sparse>
+#endif
 
 // ACME headers
 #ifdef USE_ACME
@@ -56,7 +61,7 @@ class FaceElement {
         // ~~~~~~~~~~~~~~~~~~~~~~
         virtual void Renumber(std::map<int,int>& OldToNewNodeIds)=0;
  	
-        // Get methods
+        // Get and set methods
         // ~~~~~~~~~~~
 	// -> pure interface methods
 	virtual int nNodes()=0;    
@@ -109,31 +114,40 @@ class FaceElement {
         // Mapping & shape fct methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// -> pure interface methods
- 	//virtual void GetShapeFct(double* Shape, double* m)=0;
  	virtual void GetShapeFctVal(double* Shape, double* m)=0;
-
         virtual double GetJacobian(double* m, CoordSet &cs)=0;
-        virtual double GetIsoParamMappingNormalAndJacobian(double*, double*, CoordSet &cs)=0;
-
-        virtual void LocalToGlobalCoord(double*, double*, CoordSet&)=0;
+        virtual double GetIsoParamMappingNormalAndJacobian(double* Normal, double* m, CoordSet &cs)=0;
+        virtual void GetIsoParamMappingNormalJacobianProduct(double* JNormal, double* m, CoordSet &cs)=0;
+        virtual void LocalToGlobalCoord(double* M, double* m, CoordSet &cs)=0;
+#if (MAX_MORTAR_DERIVATIVES > 0)
+        virtual void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
+          { std::cerr << "FaceElement::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m) is not implemented\n"; }
+        virtual void GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m, MadCoordSet &cs)
+          { std::cerr << "FaceElement::GetIsoParamMappingNormalJacobianProduct(ActiveDouble* JNormal, ActiveDouble* m,"
+                      << " MadCoordSet &cs) is not implemented\n"; }
+        virtual void LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs)
+          { std::cerr << "FaceElement::LocalToGlobalCoord(ActiveDouble* M, ActiveDouble* m, MadCoordSet &cs) is not implemented\n"; }
+#endif
 
         virtual FullM ScalarMass(CoordSet& , double rho, int ngp)=0;
         virtual void IntegrateShapeFcts(double*, CoordSet&, double rho, int ngp)=0;
 
         virtual double* ViewRefCoords();
-        virtual void GetdNormal(double dNormal[][3], double* m, CoordSet& cs) { 
-          std::cerr << "FaceElement::GetdNormal not implemented\n"; exit(-1); }
+        virtual void GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
+          { std::cerr << "FaceElement::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs) is not implemented\n"; }
 
 	// Print, display ... methods
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 	virtual void print()=0;
 
-        virtual int numDofs() {fprintf(stderr,"function numDofs() undefined for this type of element!\n"); return 0;}	
-        virtual int* dofs(DofSetArray &, int*, int*) {fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0;}
-        virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*, int*) {
-          fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
-        virtual void getFlLoad(const InterpPoint&, double*, double*) {
-          fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n");}
+        virtual int numDofs() 
+          { fprintf(stderr,"function numDofs() undefined for this type of element!\n"); return 0; }
+        virtual int* dofs(DofSetArray &, int*, int*) 
+          { fprintf(stderr,"function dofs(...) undefined for this type of element!\n"); return 0; }
+        virtual void computeDisp(CoordSet&, State&, const InterpPoint&, double*, GeomState*, int*) 
+          { fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n"); }
+        virtual void getFlLoad(const InterpPoint&, double*, double*)
+          { fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n"); }
 
 	// FFI methods
 	// ~~~~~~~~~~~

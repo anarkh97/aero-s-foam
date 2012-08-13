@@ -29,10 +29,22 @@ class StdMortarTri3: public MortarElement {
 	// Shape fct methods
 	// ~~~~~~~~~~~~~~~~~
 	// -> local methods
-	void GetStdMortarShapeFct(double* Shape, double* m);
+        template<typename Scalar>
+	  void GetStdMortarShapeFct(Scalar* Shape, Scalar* m);
 	void GetShapeFct(double* Shape, double* m);
 
 	// -> implementation of virtual methods
 	void GetShapeFctVal(double* Shape, double* m);
+#if (MAX_MORTAR_DERIVATIVES > 0)
+        void GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m);
+#endif
 };
+
+template<typename Scalar>
+void
+StdMortarTri3::GetStdMortarShapeFct(Scalar* Shape, Scalar* m)
+{
+   GetPtrMasterFace()->GetShapeFctVal(Shape, m);
+}
+
 #endif

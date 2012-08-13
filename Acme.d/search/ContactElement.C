@@ -18,6 +18,9 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#ifndef ContactElement_C_
+#define ContactElement_C_
+
 #include "ContactSearch.h"
 #include "ContactElement.h"
 #include "ContactFace.h"
@@ -31,18 +34,21 @@
 #include <cstring>
 #include <cmath>
 
-ContactElem::ContactElem(ContactSearch::ContactElem_Type Type, 
+template<typename DataType>
+ContactElem<DataType>::ContactElem(ContactSearch::ContactElem_Type Type, 
 			 int Block_Index, int Host_Index_in_Block, int key)
-  : ContactTopologyEntity( Block_Index, Host_Index_in_Block, DataArray, CT_ELEM)
+  : ContactTopologyEntity<DataType>( Block_Index, Host_Index_in_Block, DataArray, CT_ELEM)
 {
   type       = Type;
   entity_key = key;
 }
 
-ContactElem::~ContactElem()
+template<typename DataType>
+ContactElem<DataType>::~ContactElem()
 {}
 
-void ContactElem::ConnectNode( int num, ContactNode* node )
+template<typename DataType>
+void ContactElem<DataType>::ConnectNode( int num, ContactNode<DataType>* node )
 {
   PRECONDITION( num < Nodes_Per_Element() );
   PRECONDITION( Nodes() );
@@ -51,14 +57,16 @@ void ContactElem::ConnectNode( int num, ContactNode* node )
 
 
 
-void ContactElem::ConnectEdge( int num, ContactEdge* edge )
+template<typename DataType>
+void ContactElem<DataType>::ConnectEdge( int num, ContactEdge<DataType>* edge )
 {
   PRECONDITION( num < Edges_Per_Element() );
   PRECONDITION( Edges() );
   Edges()[num] = edge;
 }
 
-void ContactElem::ConnectFace( int num, ContactFace* face )
+template<typename DataType>
+void ContactElem<DataType>::ConnectFace( int num, ContactFace<DataType>* face )
 {
   PRECONDITION( num < Faces_Per_Element() );
   PRECONDITION( Faces() );
@@ -66,24 +74,26 @@ void ContactElem::ConnectFace( int num, ContactFace* face )
 }
 
 
-int ContactElem::Size()
+template<typename DataType>
+int ContactElem<DataType>::Size()
 {
-  return( ContactTopologyEntity::Size(DataArray_Length()) + 
+  return( ContactTopologyEntity<DataType>::Size(DataArray_Length()) + 
 	  2*(Nodes_Per_Element()+
              Edges_Per_Element()+
              Faces_Per_Element())*sizeof(int) );
 }
 
-void ContactElem::Pack( char* buffer )
+template<typename DataType>
+void ContactElem<DataType>::Pack( char* buffer )
 {
   int i;
   int* i_buf = reinterpret_cast<int*>(buffer);
-  // ContactTopologyEntity packs in location 0 as ContactFace and here we pack
+  // ContactTopologyEntity<DataType> packs in location 0 as ContactFace<DataType> and here we pack
   // in the derived type in location 1.
   i_buf[1] = type;
-  ContactTopologyEntity::Pack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Pack( buffer, DataArray_Length() );
   // Add the global ids of the nodes
-  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity::Size(DataArray_Length()));
+  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size(DataArray_Length()));
   int index = 0;
   for( i=0 ; i<Nodes_Per_Element() ; ++i ){
     i_buf[index++] = Node(i)->Global_ID().HiInt();
@@ -102,14 +112,15 @@ void ContactElem::Pack( char* buffer )
                              Faces_Per_Element()) );
 }
 
-void ContactElem::Unpack( char* buffer )
+template<typename DataType>
+void ContactElem<DataType>::Unpack( char* buffer )
 {
-  ContactTopologyEntity::Unpack( buffer, DataArray_Length() );
+  ContactTopologyEntity<DataType>::Unpack( buffer, DataArray_Length() );
   entity_key = block_id;
 
   PRECONDITION( ((int*)buffer)[1] == type );
   // Store off the global ids of the nodes
-  int* i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity::Size(DataArray_Length()) );
+  int* i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity<DataType>::Size(DataArray_Length()) );
   std::memcpy( Node_Ids(), i_buf, 2*Nodes_Per_Element()*sizeof(int) );
   i_buf += 2*Nodes_Per_Element();
   std::memcpy( Edge_Ids(), i_buf, 2*Edges_Per_Element()*sizeof(int) );
@@ -118,27 +129,28 @@ void ContactElem::Unpack( char* buffer )
 }
 
 #ifndef CONTACT_NO_MPI
-Real ContactElem::MaxSize( VariableHandle POSITION )
+template<typename DataType>
+DataType ContactElem<DataType>::MaxSize( VariableHandle POSITION )
 {
   int  i, j;
-  Real size=0.0, node_positions[8][3];
+  DataType size=0.0, node_positions[8][3];
   
   for (i=0; i<Nodes_Per_Element(); ++i) {
-    Real* node_position = Node(i)->Variable(POSITION);
+    DataType* node_position = Node(i)->Variable(POSITION);
     for (j=0; j<3; ++j) {
       node_positions[i][j] = node_position[j];
     }
   }
   for (i=0,j=1; i<Edges_Per_Element(); ++i,j=(i+1)%Edges_Per_Element()) {
-    Real dx = node_positions[i][0]-node_positions[j][0];
-    Real dy = node_positions[i][1]-node_positions[j][1];
-    Real dz = node_positions[i][2]-node_positions[j][2];
+    DataType dx = node_positions[i][0]-node_positions[j][0];
+    DataType dy = node_positions[i][1]-node_positions[j][1];
+    DataType dz = node_positions[i][2]-node_positions[j][2];
     size = std::max(size,std::sqrt(dx*dx+dy*dy+dz*dz));
   }
   for (i=0,j=1; i<Faces_Per_Element(); ++i,j=(i+1)%Faces_Per_Element()) {
-    Real dx = node_positions[i][0]-node_positions[j][0];
-    Real dy = node_positions[i][1]-node_positions[j][1];
-    Real dz = node_positions[i][2]-node_positions[j][2];
+    DataType dx = node_positions[i][0]-node_positions[j][0];
+    DataType dy = node_positions[i][1]-node_positions[j][1];
+    DataType dz = node_positions[i][2]-node_positions[j][2];
     size = std::max(size,std::sqrt(dx*dx+dy*dy+dz*dz));
   }
   return (size);
@@ -149,7 +161,7 @@ ContactElement::ContactElement( ContactFixedSizeAllocator* alloc,
                                 ContactSearch::ContactElement_Type Type, 
 				int Block_Index, int Host_Index_in_Block, 
 				int key)
-  : ContactTopologyEntity( Block_Index, Host_Index_in_Block, DataArray, CT_ELEMENT), allocators(alloc)
+  : ContactTopologyEntity<Real>( Block_Index, Host_Index_in_Block, DataArray, CT_ELEMENT), allocators(alloc)
 {
   type = Type;
   entity_key = key;
@@ -479,14 +491,14 @@ ContactElement::ComputeBoundingBoxForSearch(const int num_configs,
   box.Reset();
   if (num_configs>1) {
     for(int inode=0 ; inode<num_element_nodes ; ++inode ){
-      ContactNode* node = Nodes()[inode];
+      ContactNode<Real>* node = Nodes()[inode];
       node_box.set_point(node->Variable(NODE_COORD_START));
       node_box.add_point(node->Variable(NODE_COORD_END));
       box.add_box(node_box);
     }
   } else {
     for(int inode=0 ; inode<num_element_nodes ; ++inode ){
-      ContactNode* node = Nodes()[inode];
+      ContactNode<Real>* node = Nodes()[inode];
       box.add_point(node->Variable(NODE_COORD_START));
     }
   }
@@ -502,3 +514,4 @@ ContactElement::ComputeBoundingBoxForSearch(const int num_configs,
   }
 }
 
+#endif  // #define ContactElement_C_

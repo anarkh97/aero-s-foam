@@ -24,9 +24,9 @@
 #include "ContactEdge.h"
 
 class ContactFixedSizeAllocator;
-class ContactNode;
+template<typename DataType> class ContactNode;
 
-class ContactLineEdgeQ3 : public ContactEdge {
+class ContactLineEdgeQ3 : public ContactEdge<Real> {
 
  public:
   ContactLineEdgeQ3( int block_index=-1, int host_index_in_block=-1 );
@@ -37,7 +37,7 @@ class ContactLineEdgeQ3 : public ContactEdge {
 
  protected:
  private:
-  ContactNode* nodes[3];
+  ContactNode<Real>* nodes[3];
 };
 
 #endif // ContactLineEdgeQ3_h_

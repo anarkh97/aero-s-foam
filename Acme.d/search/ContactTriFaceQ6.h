@@ -25,8 +25,8 @@
 #include "ContactEdge.h"
 
 class ContactFixedSizeAllocator;
-class ContactNode;
-class ContactEdge;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactEdge;
 
 /* This class represents the quadratic six node triangle face with the
    following fortran numbering convention.
@@ -43,7 +43,7 @@ class ContactEdge;
                               E0
 */
 
-class ContactTriFaceQ6 : public ContactFace {
+class ContactTriFaceQ6 : public ContactFace<Real> {
  public:
   ContactTriFaceQ6( ContactFixedSizeAllocator*, int blk_indx=-1, 
                     int indx_in_block=-1, int key=-1 );
@@ -54,8 +54,8 @@ class ContactTriFaceQ6 : public ContactFace {
   ~ContactTriFaceQ6( );
   ContactSearch::ContactEdge_Type Edge_Type() 
     {return ContactSearch::LINEEDGEQ3;};
-  void Get_Edge_Nodes( int, ContactNode**);
-  int Get_Edge_Number( ContactNode** );
+  void Get_Edge_Nodes( int, ContactNode<Real>**);
+  int Get_Edge_Number( ContactNode<Real>** );
   int Get_Edge_Number( Real* );
 
   void Compute_Normal(VariableHandle, VariableHandle );
@@ -72,7 +72,7 @@ class ContactTriFaceQ6 : public ContactFace {
   void Evaluate_Shape_Functions( Real* local_coords, Real* shape_funcs );
   bool Is_Inside_Face( Real* local_coords );
   inline bool IsPlanar(VariableHandle) {return false;};
-  ContactFace* Neighbor( Real* local_coords );
+  ContactFace<Real>* Neighbor( Real* local_coords );
   void Get_Close_Edges( Real*, int&, int&, int& );
   void FacetDecomposition(int &, 
                           Real*, Real*, VariableHandle,
@@ -87,7 +87,7 @@ class ContactTriFaceQ6 : public ContactFace {
 
   void Compute_Node_Areas( VariableHandle, VariableHandle, Real* );
                       
-  int FaceEdge_Intersection(VariableHandle, ContactEdge*, Real*);
+  int FaceEdge_Intersection(VariableHandle, ContactEdge<Real>*, Real*);
   
   static void Compute_Shape_Functions( Real local_coords[3], 
                                        Real shape_funcs[6] );
@@ -113,8 +113,8 @@ class ContactTriFaceQ6 : public ContactFace {
 
  protected:
  private:
-  ContactNode* nodes[6];
-  ContactEdge* edges[3];
+  ContactNode<Real>* nodes[6];
+  ContactEdge<Real>* edges[3];
   connection_data Node_Info[6];
   connection_data Edge_Info[3];
 };

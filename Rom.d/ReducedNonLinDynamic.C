@@ -108,7 +108,7 @@ ReducedNonLinDynamic::preProcess() {
   // If a user defined displacement is used, then vcx_ will contain the user defined velocities also.
   vcx_.resize(unconstrainedDofCount);
   std::fill_n(vcx_.begin(), vcx_.size(), 0.0);
-
+/* PJSA 3/5/2012: why should the initial velocities be in vcx??
   {
     const BCond* velBc = domain_->getInitVelocity();
     for (int iBc = 0; iBc < domain_->numInitVelocity(); ++iBc) {
@@ -118,6 +118,7 @@ ReducedNonLinDynamic::preProcess() {
       }
     }
   }
+*/
 
   fullMatrix_.reset(domain_->constructDBSparseMatrix<double>());
   std::auto_ptr<SparseMatrix> fullDampingMatrix;
@@ -325,14 +326,14 @@ void
 ReducedNonLinDynamic::updatePrescribedDisplacement(GeomState *geomState) const {
   // Initial conditions
   if (domain_->numInitDisp6() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getInitDisp6(), domain_->numInitDisp6());
+    geomState->updatePrescribedDisplacement(domain_->getInitDisp6(), domain_->numInitDisp6(), domain_->getNodes());
   } else if (domain_->numInitDisp() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getInitDisp(), domain_->numInitDisp());
+    geomState->updatePrescribedDisplacement(domain_->getInitDisp(), domain_->numInitDisp(), domain_->getNodes());
   }
   
   // Boundary conditions
   if (domain_->nDirichlet() > 0) {
-    geomState->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet());
+    geomState->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
 }
 
@@ -345,7 +346,7 @@ ReducedNonLinDynamic::getConstForce(Vector &constantForce) const {
 
 void
 ReducedNonLinDynamic::getExternalForce(Vector &externalForce, const Vector &constantForce, int /*timeIndex*/, double time,
-                                       const GeomState * /*geomState*/, Vector & /*elemNonConForce*/, const Vector & /*aeroForce*/) const {
+                                       const GeomState * /*geomState*/, Vector & /*elemNonConForce*/, const Vector & /*aeroForce*/, double /*delta*/) const {
   externalForce = constantForce;
 
   // Add time-dependent component of external forces to time-independent (constant) component
@@ -361,9 +362,9 @@ ReducedNonLinDynamic::getStiffAndForce(GeomState &geomState, Vector &residual, V
 }
 
 void
-ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration, double delta) {
+ReducedNonLinDynamic::reBuild(GeomState &geomState, int iteration, double delta, double t) {
   // Rebuild every updateK iterations
-  if (iteration % domain_->solInfo().getNLInfo().updateK == 0) {
+  if (iteration % domain_->solInfo().getNLInfo().updateK == 0 && t != domain_->solInfo().initialTime) {
     // Recompute tangent stiffness matrix
     {
       fullMatrix_->zeroAll();
@@ -480,7 +481,8 @@ ReducedNonLinDynamic::checkConvergence(int iteration, double residualNorm, Vecto
 void
 ReducedNonLinDynamic::dynamOutput(GeomState *geomState, Vector &velocity, Vector & /*velocity_p*/,
                                   double time, int step,
-                                  Vector &externalForce, Vector &aeroForce, Vector &acceleration) {
+                                  Vector &externalForce, Vector &aeroForce, Vector &acceleration,
+                                  GeomState *refState) {
   Vector fullVelocity(fullSolVecInfo());
   Vector fullAcceleration(fullSolVecInfo());
   Vector fullExternalForce(fullSolVecInfo());
@@ -493,7 +495,7 @@ ReducedNonLinDynamic::dynamOutput(GeomState *geomState, Vector &velocity, Vector
   domain_->postProcessing(geomState, fullExternalForce, fullAeroForce, time, step + 1,
                           fullVelocity.data(), toArray(vcx_),
                           toArray(corotators_), melArray_, fullAcceleration.data(),
-                          NULL, NULL);
+                          NULL, refState, NULL);
 }
 
 void

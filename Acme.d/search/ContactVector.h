@@ -27,7 +27,7 @@
 #include <Contact_Defines.h>
 #include <ContactBoundingBox.h>
 
-class ContactNode;
+template<typename DataType> class ContactNode;
 
 namespace ACME {
   //
@@ -248,7 +248,7 @@ namespace ACME {
 
 
   //
-  //  For all practical purposes, ACME::ContactNode_Vector is a equivalent to the simple STL vector std::vector<ContactNode*>
+  //  For all practical purposes, ACME::ContactNode_Vector is a equivalent to the simple STL vector std::vector<ContactNode<Real>*>
   //  However ACME current forbids templates so, here is a single limited instantiation of that class 
   //
 
@@ -269,16 +269,16 @@ namespace ACME {
       length(length_),
       capacity(length_)
       {
-	data = new ContactNode*[length];
+	data = new ContactNode<Real>*[length];
       }
 
     //
     //  Create a vector of length length_ with all elements having data init_data
     //
-    ContactNode_Vector(const int length_, ContactNode *const init_data) :
+    ContactNode_Vector(const int length_, ContactNode<Real> *const init_data) :
       length(length_),
       capacity(length_),
-      data(new ContactNode*[length_]){
+      data(new ContactNode<Real>*[length_]){
       for(int i = 0; i < length; ++i) {
         data[i] = init_data;
       }
@@ -289,13 +289,13 @@ namespace ACME {
     //
     //  Subset of used STL vector operators...
     //
-    inline ContactNode* &operator[](const int index) const{
+    inline ContactNode<Real>* &operator[](const int index) const{
       return data[index];
     }
     //
     //  Add a single entry to the back of the list.  Use the standard 50% size increase, starting at size 16; 
     //   
-    inline void push_back(ContactNode *const new_entry) {
+    inline void push_back(ContactNode<Real> *const new_entry) {
       if(length + 1> capacity) {
         if(capacity == 0) {
           capacity = 16;
@@ -303,8 +303,8 @@ namespace ACME {
           capacity *= 3;
 	  capacity /= 2;
 	}
-        ContactNode **new_data = new ContactNode*[capacity];
-	std::memcpy(new_data, data, length*sizeof(ContactNode*));
+        ContactNode<Real> **new_data = new ContactNode<Real>*[capacity];
+	std::memcpy(new_data, data, length*sizeof(ContactNode<Real>*));
         if(data != 0) delete [] data;
         data = new_data;
       }
@@ -332,7 +332,7 @@ namespace ACME {
       clear();
       length = new_size;
       capacity = new_size;
-      data = new ContactNode*[capacity];
+      data = new ContactNode<Real>*[capacity];
     }
     //
     //  Return the current length of the list
@@ -343,7 +343,7 @@ namespace ACME {
     //
     //  Get a direct pointer to the data buffer
     //
-    inline ContactNode** get_buffer() {
+    inline ContactNode<Real>** get_buffer() {
       return data;
     }
     //
@@ -357,7 +357,7 @@ namespace ACME {
     //
     //  Does the vector contain a entry?
     //
-    inline bool contain(ContactNode *const test) {
+    inline bool contain(ContactNode<Real> *const test) {
       for(int i = 0; i < length; ++i) {
         if(test == data[i]) return true;
       }
@@ -368,7 +368,7 @@ namespace ACME {
   private:
     int length;
     int capacity;
-    ContactNode **data;
+    ContactNode<Real> **data;
   };
 
 

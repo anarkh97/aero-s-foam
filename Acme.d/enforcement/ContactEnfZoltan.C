@@ -20,7 +20,7 @@
 
 #ifndef CONTACT_NO_MPI
 #include "ContactEnfZoltan.h"
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "ContactEnforcement.h"
 #include "ContactZoltan.h"
 #include "ContactTopologyEntityHash.h"
@@ -179,7 +179,7 @@ void ContactEnfMigrateNodeSizes(void *data,
   ZOLTAN_ID_PTR lid = lids;
   for( int i=0 ; i<num_ids ; ++i ){
     int entity_index  = ContactZoltanLID::Index(lid);
-    ContactNode* node = static_cast<ContactNode*>
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                         (topology->NodeList()->Find(entity_index));
     POSTCONDITION(node);
     sizes[i] = node->Size();
@@ -201,7 +201,7 @@ void ContactEnfMigratePackNodes(void *data,
   ZOLTAN_ID_PTR lid = lids;
   for( int i=0 ; i<num_ids ; ++i ){
     int entity_index  = ContactZoltanLID::Index(lid);
-    ContactNode* node = static_cast<ContactNode*>
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                         (topology->NodeList()->Find(entity_index));
     POSTCONDITION(node);
 
@@ -220,7 +220,7 @@ void ContactEnfMigrateUnpackNodes(void *data, int num_gid_entries,
   ContactEnforcement* enforcement = (ContactEnforcement *)data;
   ContactSearch*      search      = enforcement->Search();
   ContactTopology*    topology    = search->Get_Primary_Topology();
-  ContactNode**       node_list   = enforcement->Phantom_Nodes();
+  ContactNode<Real>**       node_list   = enforcement->Phantom_Nodes();
   ContactFixedSizeAllocator* allocs = search->Get_Allocators();
   
   int num_primary_nodes = topology->Number_of_Nodes();
@@ -231,7 +231,7 @@ void ContactEnfMigrateUnpackNodes(void *data, int num_gid_entries,
     switch( entity_type ) {
     case CT_NODE:
       {
-	node_list[i] = ContactNode::new_ContactNode(allocs,
+	node_list[i] = ContactNode<Real>::new_ContactNode(allocs,
 		         ContactSearch::NODE );
 	break;
       }
@@ -294,7 +294,7 @@ void ContactEnfMigratePackSharedNodes(void *data,
   ZOLTAN_ID_PTR lid = lids;
   for( int i=0 ; i<num_ids ; ++i ){
     int entity_index  = ContactZoltanLID::Index(lid);
-    ContactNode* node = static_cast<ContactNode*>
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>
                         (topology->NodeList()->Find(entity_index));
     POSTCONDITION(node);
     int index = node->temp_tag;
@@ -399,7 +399,7 @@ void ContactEnfMigrateFaceSizes(void *data,
   for( int i=0 ; i<num_ids ; ++i ){
     ZOLTAN_ID_PTR lid = &(lids[i*num_lid_entries]);
     int entity_index  = ContactZoltanLID::Index(lid);
-    ContactFace* face = static_cast<ContactFace*>
+    ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                         (topology->FaceList()->Find(entity_index));
     POSTCONDITION(face);
     sizes[i] = face->Size();
@@ -421,7 +421,7 @@ void ContactEnfMigratePackFaces(void *data,
   for( int i=0 ; i<num_ids ; ++i ){
     ZOLTAN_ID_PTR lid = &(lids[i*num_lid_entries]);
     int entity_index  = ContactZoltanLID::Index(lid);
-    ContactFace* face = static_cast<ContactFace*>
+    ContactFace<Real>* face = static_cast<ContactFace<Real>*>
                         (topology->FaceList()->Find(entity_index));
     POSTCONDITION(face);
     char* buf = &(Buf[indices[i]]);
@@ -439,7 +439,7 @@ void ContactEnfMigrateUnpackFaces(void *data, int num_gid_entries,
   ContactEnforcement* enforcement   = (ContactEnforcement *)data;
   ContactSearch*      search        = enforcement->Search();
   ContactTopology*    topology      = search->Get_Primary_Topology();
-  ContactFace**       face_list     = enforcement->Phantom_Faces();
+  ContactFace<Real>**       face_list     = enforcement->Phantom_Faces();
   ContactFixedSizeAllocator* allocs = search->Get_Allocators();
   
   int num_primary_faces = topology->Number_of_Faces();

@@ -36,7 +36,7 @@ class ContactBlockEntityList : public ContactTopologyDLL {
 
   struct hash {
     ContactHostGlobalID id;
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     int list_index;
     struct hash *prev;
     struct hash *next;
@@ -50,20 +50,20 @@ class ContactBlockEntityList : public ContactTopologyDLL {
   void CleanUp();
   void Insert( char* );
   void Insert_ForSecondary( char* );
-  void Insert( ContactTopologyEntity* );
-  void Delete( ContactTopologyEntity* );
+  void Insert( ContactTopologyEntity<Real>* );
+  void Delete( ContactTopologyEntity<Real>* );
 
   void SetupHash( int );
   void Rehash();
   //void UseHash(int s) {do_hash=s;};
   void UseHash(int s) {SetupHash(s);};
   
-  ContactTopologyEntity*  Find( ContactHostGlobalID& );
-  ContactTopologyEntity*  Find( ContactTopologyEntity::connection_data* );
-  ContactTopologyEntity*  Find( ContactInteractionEntity::entity_data* );
+  ContactTopologyEntity<Real>*  Find( ContactHostGlobalID& );
+  ContactTopologyEntity<Real>*  Find( ContactTopologyEntity<Real>::connection_data* );
+  ContactTopologyEntity<Real>*  Find( ContactInteractionEntity::entity_data* );
 #ifndef CONTACT_NO_MPI
-  ContactTopologyEntity*  CreateEntity(char*);
-  ContactTopologyEntity*  CreateEntity_ForSecondary(char*);
+  ContactTopologyEntity<Real>*  CreateEntity(char*);
+  ContactTopologyEntity<Real>*  CreateEntity_ForSecondary(char*);
 #endif
   
   friend std::ostream& operator<<( std::ostream& os, const ContactBlockEntityList& hash );

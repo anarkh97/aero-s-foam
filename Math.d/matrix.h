@@ -43,7 +43,7 @@ class GenFullM {
    GenFullM(int nr);         // Creates an NxN matrix
    GenFullM(int nr, int nc); // Creates an NxM matrix
    GenFullM(int nr, int nc, Scalar init_val); // Creates an NxM matrix initialized a[i][j] = init_val
-   GenFullM(const GenFullM<Scalar> &m,int nr, int sr, int nc, int sc);
+   GenFullM(const GenFullM<Scalar> &m, int nr, int sr, int nc, int sc);
    GenFullM(const GenFullM<Scalar> &m);
    GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int *cols); 
    GenFullM(const GenFullM<Scalar> &m, int nr, int *rows, int nc, int sc); 

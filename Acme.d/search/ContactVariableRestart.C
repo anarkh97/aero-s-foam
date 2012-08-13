@@ -85,7 +85,7 @@ int ContactSearch::Number_Edge_Restart_Variables()
 
 int ContactSearch::Number_Face_Restart_Variables()
 {
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   
   int num_ffi_l = primary_topology->Number_FaceFace_Interactions();
   int num_fci_l = primary_topology->Number_FaceCoverage_Interactions();
@@ -105,7 +105,7 @@ int ContactSearch::Number_Face_Restart_Variables()
       int max_ffi_verts_l = 0;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         max_ffi_l = std::max(max_ffi_l,face->Number_FaceFace_Interactions());
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
@@ -129,7 +129,7 @@ int ContactSearch::Number_Face_Restart_Variables()
       int max_fci_verts_l = 0;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         max_fci_l = std::max(max_fci_l,face->Number_FaceCoverage_Interactions());
         ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
         if(interactions != NULL) {
@@ -162,7 +162,7 @@ int ContactSearch::Number_Element_Restart_Variables()
   if (num_eei>0) {
     num_elem_vars = 1; // num_eei
     int max_eei_l = 0;
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     primary_topology->ElemList()->IteratorStart();
     while (entity=primary_topology->ElemList()->IteratorForward()) {
       ContactElement* element = static_cast<ContactElement*>(entity);
@@ -349,7 +349,7 @@ ContactSearch::Extract_Nodal_Restart_Variable( int n , Real* data, int *node_id 
   // loop over nodes to fill data array for this piece of data
   //
   for( int i=0 ; i<nnod ; ++i){
-    ContactNode* node=NULL;
+    ContactNode<Real>* node=NULL;
 
     // Compute ids of nodes to pass to host code and get pointer to node
     if (have_shells) {
@@ -359,7 +359,7 @@ ContactSearch::Extract_Nodal_Restart_Variable( int n , Real* data, int *node_id 
       primary_topology->Shell_Handler()->
         Acme_NodeGID_for_Host_Node(i,0,hi,lo);
       ContactHostGlobalID first_gid(hi,lo);
-      node = static_cast<ContactNode*>
+      node = static_cast<ContactNode<Real>*>
         (primary_topology->NodeList()->Find(first_gid));
       ContactShellNode * shell_node =
         dynamic_cast<ContactShellNode*>(node);
@@ -384,13 +384,13 @@ ContactSearch::Extract_Nodal_Restart_Variable( int n , Real* data, int *node_id 
       primary_topology->Shell_Handler()->
         Acme_NodeGID_for_Host_Node(i,host_to_acme_node,hi,lo);
       ContactHostGlobalID gid(hi,lo);
-      node = static_cast<ContactNode*>
+      node = static_cast<ContactNode<Real>*>
         (primary_topology->NodeList()->Find(gid));
 
     } else {
 
       // getting the node is easy if you don't have shells
-      node = static_cast<ContactNode*>
+      node = static_cast<ContactNode<Real>*>
                (primary_topology->NodeList()->Find(i));
       node_id[i]=node->Exodus_ID();
     }
@@ -559,7 +559,7 @@ ContactSearch::Implant_Nodal_Restart_Variable( int n, Real* data )
   // loop over nodes to fill data array for this piece of data
   //
   for( int i=0 ; i<nnod ; ++i){
-    ContactNode* node=NULL;
+    ContactNode<Real>* node=NULL;
     int host_node_index = -1;
 
     if (have_shells) {
@@ -572,7 +572,7 @@ ContactSearch::Implant_Nodal_Restart_Variable( int n, Real* data )
       primary_topology->Shell_Handler()->
         Acme_NodeGID_for_Host_Node(i,host_to_acme_node,hi,lo);
       ContactHostGlobalID gid(hi,lo);
-      node = static_cast<ContactNode*>(primary_topology->NodeList()->Find(gid));
+      node = static_cast<ContactNode<Real>*>(primary_topology->NodeList()->Find(gid));
 
       // also get base node -- it is one that points to proper location
       // in host code indexing
@@ -584,7 +584,7 @@ ContactSearch::Implant_Nodal_Restart_Variable( int n, Real* data )
         host_node_index = node->HostGlobalArrayIndex();
       }
     } else {
-      node = static_cast<ContactNode*>(primary_topology->NodeList()->Find(i));
+      node = static_cast<ContactNode<Real>*>(primary_topology->NodeList()->Find(i));
       host_node_index = node->HostGlobalArrayIndex();
     }
     POSTCONDITION(node);
@@ -727,7 +727,7 @@ ContactSearch::Implant_Edge_Restart_Variable( int n , Real* data )
 ContactSearch::ContactErrorCode 
 ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
 {
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   ContactInteractionEntity* interaction;
   if( n>Number_Face_Restart_Variables()  || n<=0 ){
     errors->Add_Error_Message("Variable Index is unreasonable");
@@ -742,14 +742,14 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
     i = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       data[i++] = face->Number_FaceFace_Interactions();
     }
   } else if (n==2) {
     i = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       data[i++] = face->Number_FaceCoverage_Interactions();
     }
   } else {
@@ -758,7 +758,7 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
     int max_ffi_verts_l = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       max_ffi_l = std::max(max_ffi_l,face->Number_FaceFace_Interactions());
       ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
@@ -779,7 +779,7 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
     int max_fci_verts_l = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
       if(interactions != NULL) {
         interactions->IteratorStart();
@@ -808,7 +808,7 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
       ContactFaceFaceInteraction* cffi;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         int cnt=0;
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions != NULL) {
@@ -862,7 +862,7 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
       ContactFaceCoverageInteraction* cfci;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         int cnt=0;
         ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
         if(interactions != NULL) {
@@ -907,7 +907,7 @@ ContactSearch::Extract_Face_Restart_Variable( int n , Real* data )
 ContactSearch::ContactErrorCode 
 ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
 {
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   if( n>Number_Face_Restart_Variables()  || n<=0 ){
     errors->Add_Error_Message("Variable Index is unreasonable");
     return INVALID_ID;
@@ -920,7 +920,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
     i = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       int num_faceface_interactions = (int) data[i++];
       for( int j=0 ; j<num_faceface_interactions ; ++j){
         cffi = ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
@@ -932,7 +932,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
     i = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       int num_facecoverage_interactions = (int) data[i++];
       for( int j=0 ; j<num_facecoverage_interactions ; ++j){
         cfci = ContactFaceCoverageInteraction::new_ContactFaceCoverageInteraction(
@@ -946,7 +946,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
     int max_ffi_verts_l = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       max_ffi_l = std::max(max_ffi_l, face->Number_FaceFace_Interactions());
       ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
@@ -966,7 +966,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
     int max_fci_verts_l = 0;
     primary_topology->FaceList()->IteratorStart();
     while (entity=primary_topology->FaceList()->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
       if(interactions != NULL) {
         interactions->IteratorStart();
@@ -993,7 +993,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
       i = 0;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         int cnt=0;
         ContactInteractionEntity* interaction = NULL;
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
@@ -1047,7 +1047,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
       i = 0;
       primary_topology->FaceList()->IteratorStart();
       while (entity=primary_topology->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         int cnt = 0;
         ContactInteractionEntity* interaction = NULL;
         ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
@@ -1096,7 +1096,7 @@ ContactSearch::Implant_Face_Restart_Variable( int n , Real* data )
 ContactSearch::ContactErrorCode 
 ContactSearch::Extract_Element_Restart_Variable( int n , Real* data )
 {
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   ContactInteractionEntity* interaction;
   if( n>Number_Element_Restart_Variables() || n<=0 ){
     errors->Add_Error_Message("Variable Index is unreasonable");
@@ -1161,7 +1161,7 @@ ContactSearch::Extract_Element_Restart_Variable( int n , Real* data )
 ContactSearch::ContactErrorCode 
 ContactSearch::Implant_Element_Restart_Variable( int n , Real* data )
 {
-  ContactTopologyEntity* entity;
+  ContactTopologyEntity<Real>* entity;
   ContactInteractionEntity* interaction;
   
   if( n>Number_Element_Restart_Variables()  || n<=0 ){
@@ -1244,8 +1244,8 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
   vector< vector<int> >face_ids_to_send(total_num_procs);
 
   primary_topology->NodeList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->NodeList()->IteratorForward()) {  
-    ContactNode* node = static_cast<ContactNode*>(entity);
+  while (ContactTopologyEntity<Real>* entity=primary_topology->NodeList()->IteratorForward()) {  
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
 
 
     ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
@@ -1281,7 +1281,7 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
       //  Look up the current face
       //
       ContactHostGlobalID gid(global_id_0, global_id_1);
-      ContactTopologyEntity *face = primary_topology->FaceList()->Find(gid);
+      ContactTopologyEntity<Real> *face = primary_topology->FaceList()->Find(gid);
       face_data_export[iproc].push_back(face->HostArrayIndex());
       face_data_export[iproc].push_back(face->ProcArrayIndex());
       face_data_export[iproc].push_back(face->OwnerProcArrayIndex());
@@ -1298,8 +1298,8 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
   //
   vector<int> import_list_index(total_num_procs, 0);
   primary_topology->NodeList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->NodeList()->IteratorForward()) {  
-    ContactNode* node = static_cast<ContactNode*>(entity);
+  while (ContactTopologyEntity<Real>* entity=primary_topology->NodeList()->IteratorForward()) {  
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
     ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
     for (int i=0; i<node->Number_NodeEntity_Interactions(); ++i) {
       if (interactions[i]->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
@@ -1318,8 +1318,8 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
   // enforcement.
   //
   primary_topology->NodeList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->NodeList()->IteratorForward()) {
-    ContactNode* node = static_cast<ContactNode*>(entity);
+  while (ContactTopologyEntity<Real>* entity=primary_topology->NodeList()->IteratorForward()) {
+    ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
     ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
     for (int i=0; i<node->Number_NodeEntity_Interactions(); ++i) {
       if (interactions[i]->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
@@ -1329,8 +1329,8 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
     }
   }
   primary_topology->FaceList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->FaceList()->IteratorForward()) {
-    ContactFace* face = static_cast<ContactFace*>(entity);
+  while (ContactTopologyEntity<Real>* entity=primary_topology->FaceList()->IteratorForward()) {
+    ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
     ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
@@ -1342,8 +1342,8 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
     }
   }
   primary_topology->FaceList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->FaceList()->IteratorForward()) {
-    ContactFace* face = static_cast<ContactFace*>(entity);
+  while (ContactTopologyEntity<Real>* entity=primary_topology->FaceList()->IteratorForward()) {
+    ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
     ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
@@ -1355,7 +1355,7 @@ ContactSearch::ContactErrorCode ContactSearch::Complete_Restart() {
     }
   }
   primary_topology->ElemList()->IteratorStart();
-  while (ContactTopologyEntity* entity=primary_topology->ElemList()->IteratorForward()) {
+  while (ContactTopologyEntity<Real>* entity=primary_topology->ElemList()->IteratorForward()) {
     ContactElement* element = static_cast<ContactElement*>(entity);
     ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
     interactions->IteratorStart();

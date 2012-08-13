@@ -72,8 +72,8 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
                                 bool is_tracked_,
                                 bool is_glued_,
                                 //bool track_initial_gap_,
-                                ContactNode* node_,
-                                ContactTopologyEntity* entity_,
+                                ContactNode<Real>* node_,
+                                ContactTopologyEntity<Real>* entity_,
                                 int Location,
                                 InteractionType type_,
                                 ContactType base_type_);
@@ -92,12 +92,12 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
    inline int  DataArray_Length();  
    inline void Initialize_Memory();
 
-   inline ContactTopologyEntity*                 Entity();
+   inline ContactTopologyEntity<Real>*                 Entity();
    inline const ContactInteractionEntity::entity_data* Get_Entity_Data();
    inline int                                          Set_Entity_Data();
    inline int                                          Get_Entity_Owner();
 
-   inline ContactNode*                                 Node();
+   inline ContactNode<Real>*                                 Node();
    inline const ContactInteractionEntity::entity_data* NodeEntityData();
    inline int                                          Set_NodeEntityData();
 
@@ -123,7 +123,7 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
    void Connect_Node( ContactTopologyEntityList& );
    void Connect_Node( ContactTopologyEntityHash& );
    void Connect_Node( ContactTopology* );
-   void Connect_Node( ContactNode* );
+   void Connect_Node( ContactNode<Real>* );
 
    virtual void Connect_Entity( ContactTopology* ) = 0;
 
@@ -187,8 +187,8 @@ class ContactNodeEntityInteraction : public ContactInteractionEntity {
    //bool track_initial_gap;
    int location;
    Real DataArray[NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS];
-   ContactNode* node;
-   ContactTopologyEntity* entity;
+   ContactNode<Real>* node;
+   ContactTopologyEntity<Real>* entity;
    ContactInteractionEntity::entity_data node_entity_data;
    ContactInteractionEntity::entity_data entity_entity_data;
    InteractionType type;
@@ -206,7 +206,7 @@ inline void ContactNodeEntityInteraction::Initialize_Memory()
   std::memset(DataArray_Buffer(), 0, DataArray_Length()*sizeof(Real));
 }
 
-inline ContactTopologyEntity* ContactNodeEntityInteraction::Entity(){
+inline ContactTopologyEntity<Real>* ContactNodeEntityInteraction::Entity(){
   return entity;
 }
 
@@ -237,7 +237,7 @@ inline int ContactNodeEntityInteraction::Get_Entity_Owner(){
   return entity_entity_data.owner;
 }
 
-inline ContactNode* ContactNodeEntityInteraction::Node()
+inline ContactNode<Real>* ContactNodeEntityInteraction::Node()
 {
   return node;
 }

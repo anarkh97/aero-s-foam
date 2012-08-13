@@ -56,7 +56,9 @@ public:
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
         void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs, int cflg);
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
+        void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 
+	                     GeomState *gs=0);
 
         virtual int getCompositeLayer() { return numLayers;  }
 

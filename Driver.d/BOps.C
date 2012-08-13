@@ -5,7 +5,7 @@ GenSubDomain<Scalar>::multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw
   // localvec += Br^T * interfvec
   int i, iDof, k;
   bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
-  for(i=0; i<numMPC; ++i) mpcFlag[i] = true;
+  for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
 
   for(iDof = 0; iDof < totalInterfSize; ++iDof) {
     switch(boundDofFlag[iDof]) {
@@ -20,8 +20,7 @@ GenSubDomain<Scalar>::multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw
         if(mpcFlag[locMpcNb]) { 
           SubLMPCons<Scalar> *m = mpc[locMpcNb];
           for(k = 0; k < m->nterms; k++) {
-            //int dof = cc_dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
-            int dof =(m->terms)[k].ccdof; // PJSA 9-12-07
+            int dof =(m->terms)[k].ccdof;
             Scalar coef = (m->terms)[k].coef;
             if(dof >= 0) localvec[dof] += interfvec[iDof]*coef;
           }
@@ -54,16 +53,13 @@ GenSubDomain<Scalar>::multBr(Scalar *localvec, Scalar *interfvec, Scalar *uc, Sc
        SubLMPCons<Scalar> *m = mpc[locMpcNb];
        interfvec[iDof] = 0;
        for(k = 0; k < m->nterms; k++) {
-         //int cc_dof = cc_dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
-         int cc_dof = (m->terms)[k].ccdof; // PJSA 9-12-07
+         int cc_dof = (m->terms)[k].ccdof;
          Scalar coef = (m->terms)[k].coef;
          if(cc_dof >= 0) interfvec[iDof] += localvec[cc_dof] * coef;  // not a corner
          else {
-           //int c_dof = c_dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
-           int c_dof = (m->terms)[k].cdof; // PJSA 9-12-07
+           int c_dof = (m->terms)[k].cdof;
            if(c_dof >= 0) { // corner or wet interface
-             //int dof = dsa->locate((m->terms)[k].nnum, (1 << (m->terms)[k].dofnum));
-             int dof = (m->terms)[k].dof; // PJSA 9-12-07
+             int dof = (m->terms)[k].dof;
              if((dof >= 0) && (cornerMap[dof] >= 0)) {  // corner
                if(cornerEqNums[cornerMap[dof]] >= 0)
                  interfvec[iDof] += uc[cornerEqNums[cornerMap[dof]]] * coef;

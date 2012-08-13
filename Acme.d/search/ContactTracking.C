@@ -96,7 +96,7 @@ ContactSearch::Dynamic_Tracking_Search_2_Configuration()
     for( k=0 ; k<search_topology->Number_of_Node_Blocks() ; ++k){
       ContactNodeBlock* node_block = search_topology->Node_Block(k);
       int num_nodes_in_block = node_block->Number_of_Nodes();
-      ContactNode** nodes = node_block->Nodes();
+      ContactNode<Real>** nodes = node_block->Nodes();
       for( i=0 ; i<num_nodes_in_block ; ++i){
         ContactNodeFaceInteraction* cnfi = 
           nodes[i]->Get_NodeFace_Interaction( j, 1 );
@@ -159,7 +159,7 @@ ContactSearch::Dynamic_Tracking_Search_2_Configuration()
 
 
 
-void ContactSearch::Update_Interaction( ContactNode* node, ContactFace* face,
+void ContactSearch::Update_Interaction( ContactNode<Real>* node, ContactFace<Real>* face,
 					VariableHandle POSITION, 
 					VariableHandle NODE_NORMAL,
 					VariableHandle FACE_NORMAL )
@@ -188,7 +188,7 @@ void ContactSearch::Update_Interaction( ContactNode* node, ContactFace* face,
   int number_close_edges=0,edge_0,edge_1;
   Real local_coords[3];
   face->Get_Close_Edges( local_coords, number_close_edges, edge_0, edge_1 );
-  ContactFace* neighbor;
+  ContactFace<Real>* neighbor;
   switch( number_close_edges ){
   case 0:
     // We are strictly inside this face and should only process this face
@@ -200,12 +200,12 @@ void ContactSearch::Update_Interaction( ContactNode* node, ContactFace* face,
     break;
   case 2:
     // Grab the node at the shared edge
-    ContactEdge* edge0 = face->Edge( edge_0 );
-    ContactNode* node0_e0 = edge0->Node(0);
-    ContactNode* node1_e0 = edge0->Node(edge0->Nodes_Per_Edge()-1);
-    ContactEdge* edge1 = face->Edge( edge_1 );
-    ContactNode* node0_e1 = edge1->Node(0);
-    ContactNode* common_node;
+    ContactEdge<Real>* edge0 = face->Edge( edge_0 );
+    ContactNode<Real>* node0_e0 = edge0->Node(0);
+    ContactNode<Real>* node1_e0 = edge0->Node(edge0->Nodes_Per_Edge()-1);
+    ContactEdge<Real>* edge1 = face->Edge( edge_1 );
+    ContactNode<Real>* node0_e1 = edge1->Node(0);
+    ContactNode<Real>* common_node;
     if( node0_e1 == node0_e0 || node0_e1 == node1_e0 )
       common_node = node0_e1;
     else
@@ -223,8 +223,8 @@ void ContactSearch::Update_Interaction( ContactNode* node, ContactFace* face,
 
 
 
-void ContactSearch::Process_Tracking_Face( ContactFace* face, 
-					   ContactNode* node,
+void ContactSearch::Process_Tracking_Face( ContactFace<Real>* face, 
+					   ContactNode<Real>* node,
 					   VariableHandle POSITION,
 					   VariableHandle NODE_NORMAL,
 					   VariableHandle FACE_NORMAL )

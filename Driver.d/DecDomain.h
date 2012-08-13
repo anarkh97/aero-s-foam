@@ -45,7 +45,7 @@ class GenDecDomain
   DistrInfo internalInfo, internalInfo2;
   DistrInfo *masterSolVecInfo_;
   DistrInfo nodeInfo;
-  DistrInfo *nodeVecInfo;
+  DistrInfo *nodeVecInfo, *eleVecInfo, *bcVecInfo;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 
@@ -93,10 +93,10 @@ class GenDecDomain
   Connectivity * getElemToSub() { return elemToSub; }
   GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
-                bool make_feti = true, FullSquareMatrix **melArray = 0, bool factor = true);
+                bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);
   DiagParallelSolver<Scalar> *getDiagSolver(int nSub, GenSubDomain<Scalar> **, GenSolver<Scalar> **);
-  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
-  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**);
+  void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
+  void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**, FullSquareMatrix**);
   int getNumSub() { return numSub; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
   virtual void preProcess();
@@ -104,8 +104,7 @@ class GenDecDomain
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0);
-  void setUserDefBC(double *, double *); 
+                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0);
   DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs

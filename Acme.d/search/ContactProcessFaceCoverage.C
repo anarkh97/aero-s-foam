@@ -83,10 +83,10 @@ ContactSearch::Process_Face_Coverage()
   t3_node_positions[2][2] =  0.0;
   
   int number_of_faces = primary_topology->Number_of_Faces();
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
@@ -95,7 +95,7 @@ ContactSearch::Process_Face_Coverage()
 	Real tol = 1.0e-6;
 	ContactFaceFaceInteraction* cffi = 
 	  static_cast<ContactFaceFaceInteraction*> (interaction);
-	//ContactFace* face = cffi->SlaveFace();
+	//ContactFace<Real>* face = cffi->SlaveFace();
 	POSTCONDITION(face==cffi->SlaveFace());
 #if CONTACT_DEBUG_PRINT_LEVEL>=8
 	postream << "\n=======================================================\n";
@@ -185,7 +185,7 @@ ContactSearch::Process_Face_Coverage()
 	    //if (vertices[j].slave_edge_id>0 || 
 	    //    vertices[j0].slave_edge_id>0) edge_node = 1;
 	    if( face->FaceType() == ContactSearch::TRIFACEL3){
-	      ContactTriFaceL3* t3face = static_cast<ContactTriFaceL3*>(face);
+	      ContactTriFaceL3<Real>* t3face = static_cast<ContactTriFaceL3<Real>*>(face);
 	      Real local_coords[3];
 	      Real global_coords[3];
 	      local_coords[0] = x;
@@ -572,7 +572,7 @@ ContactSearch::Process_Face_Coverage()
 		  global_coords[0] = x;
 		  global_coords[1] = y;
 		  global_coords[2] = 0.0;
-		  ContactTriFaceL3* t3face = static_cast<ContactTriFaceL3*>(face);
+		  ContactTriFaceL3<Real>* t3face = static_cast<ContactTriFaceL3<Real>*>(face);
 		  t3face->Compute_Local_Coords(t3_node_positions, global_coords, local_coords);
 		  x = local_coords[0];
 		  y = local_coords[1];
@@ -656,7 +656,7 @@ ContactSearch::Process_Face_Coverage()
 		  global_coords[0] = x;
 		  global_coords[1] = y;
 		  global_coords[2] = 0.0;
-		  ContactTriFaceL3* t3face = static_cast<ContactTriFaceL3*>(face);
+		  ContactTriFaceL3<Real>* t3face = static_cast<ContactTriFaceL3<Real>*>(face);
 		  t3face->Compute_Local_Coords(t3_node_positions, global_coords, local_coords);
 		  x = local_coords[0];
 		  y = local_coords[1];

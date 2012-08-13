@@ -24,7 +24,7 @@
 #ifndef CONTACT_NO_MPI
 
 #include "Contact_Defines.h"
-#include "lbi_const.h"
+#include "zoltan.h"
 
 // External call back function to size/pack/unpack objects
 

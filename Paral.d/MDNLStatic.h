@@ -26,6 +26,8 @@ class MDNLStatic
     FullSquareMatrix **kelArray;
     Corotator ***allCorot;
 
+    DistrVector *reactions;
+
     double firstDv;
     double firstRes;
     double lastRes;
@@ -87,7 +89,9 @@ class MDNLStatic
                              DistrGeomState *refState);
 
     void makeSubCorotators(int isub);
+    void deleteSubCorotators(int isub);
     void makeSubKelArrays(int isub);
+    void deleteSubKelArrays(int isub);
     void makeSubDofs(int isub);
     void updatePrescribedDisp(int isub, DistrGeomState& geomState);
     void subGetRHS(int isub, DistrVector& rhs);

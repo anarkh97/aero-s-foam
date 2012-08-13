@@ -105,8 +105,9 @@ EigenSolver< EigOps, VecType, VecSet,
  probDesc->buildEigOps( *eM );
 
  // ... get the number of rigid body modes
- if (geoSource->shiftVal() != 0.0 || domain->solInfo().rbmflg == 0) nrmod = 0; //CBM, PJSA
- else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
+ //if (geoSource->shiftVal() != 0.0 || domain->solInfo().rbmflg == 0) nrmod = 0; //CBM, PJSA
+ //else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
+ nrmod = eM->dynMat->numRBM();
 
  if(domain->solInfo().test_ulrich) nrmod = 0;
 
@@ -293,7 +294,8 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-  if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
+  //if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
+  if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
 
   // ... initialize the first set of vectors
   this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -673,7 +675,8 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  // ... Store the rbms in the first this->nrmod vectors of VecSet Z
- if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
+ //if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
+ if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
 
  // ... initialize the first set of vectors
  this->probDesc->initQ((*Z)+this->nrmod,nsub);
@@ -1058,9 +1061,14 @@ SymArpackSolver< EigOps, VecType, VecSet,
         nmodes = (counter == domain->solInfo().nshifts) ? nev-myTotalEig : nev/domain->solInfo().nshifts+1; 
         if (diffEig != 0 && counter != domain->solInfo().nshifts) { nmodes += diffEig; diffEig = 0; }
         subSpaceSize = 2*nmodes;
-        if (newShift != 0.0) rebuildSolver(newShift);
+        if (newShift != 0.0) {
+          rebuildSolver(newShift);
+          this->nrmod = this->eM->dynMat->numRBM();
+        }
         //if (geoSource->shiftVal() > 0.0) { nev += this->nrmod; this->nrmod = 0; }
+/* PJSA: shifted matrix can be singular
         if (geoSource->shiftVal() > 0.0) { this->nrmod = 0; }
+*/
       }
       else if (domain->solInfo().lbound >= 0.0 && domain->solInfo().ubound > 0.0) {
         sprintf(which,"LA");
@@ -1068,9 +1076,14 @@ SymArpackSolver< EigOps, VecType, VecSet,
         nmodes = domain->solInfo().neigps+1;
         //if (diffEig != 0) { nmodes += diffEig; diffEig = 0; }
         subSpaceSize = 2*nmodes;
-        if (newShift != 0.0) rebuildSolver(newShift);
+        if (newShift != 0.0) {
+          rebuildSolver(newShift);
+          this->nrmod = this->eM->dynMat->numRBM();
+        }
         //if (geoSource->shiftVal() > 0.0) { nev += this->nrmod; this->nrmod = 0; }
+/* PJSA: shifted matrix can be singular
         if (geoSource->shiftVal() > 0.0) { this->nrmod = 0; }
+*/
       } 
       else if (domain->solInfo().nshifts <= 1) {
         filePrint(stderr," *** WARNING: Number of shifts = %d. Performing one single-shift eigen calculation.\n", domain->solInfo().nshifts);
@@ -1132,7 +1145,8 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
 
     // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-    if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); // PJSA this->eM->dynMat->getRBMs((*Z));
+    //if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); // PJSA this->eM->dynMat->getRBMs((*Z));
+    if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
  
     // ... copy the this->nrmod Z vectors to vector set Q
     for(i=0; i<this->nrmod; ++i) (*Q)[i] = (*Z)[i];

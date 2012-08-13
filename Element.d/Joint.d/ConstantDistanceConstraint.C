@@ -65,7 +65,7 @@ ConstantDistanceConstraint::update(GeomState& gState, CoordSet& cs, double)
 }
 
 void
-ConstantDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H)
+ConstantDistanceConstraint::getHessian(GeomState& gState, CoordSet& cs, FullSquareMatrix& H, double)
 {
   // nodes' current coordinates
   NodeState ns1 = gState[nn[0]];

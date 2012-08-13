@@ -47,6 +47,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
 {
   weight = 1.0;
+  if(strInd > 13) { stress.zero(); return; } // TODO: eqplstrn
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -907,7 +908,7 @@ FelippaShell::getTopNumber()
 
 void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                   GeomState *geomState, int cflg)
+                                   GeomState *geomState, int cflg, double)
 { 
      double px = 0.0;
      double py = 0.0;

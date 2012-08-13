@@ -10,7 +10,7 @@
 // Std C/C++ lib
 #include <cstdio>
 #include <cstdlib>
-//#include <iostream.h>
+#include <limits>
 
 // STL
 #include <algorithm>
@@ -24,37 +24,45 @@
 
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
-#include <Mortar.d/NodalMortarShapeFct.d/NodalMortarShapeFct.h>
+//#include <Mortar.d/NodalMortarShapeFct.d/NodalMortarShapeFct.h>
 #include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS
 // -----------------------------------------------------------------------------------------------------
-NodalMortarShapeFct::NodalMortarShapeFct()
+inline NodalMortarShapeFct::NodalMortarShapeFct()
 : NodalData()
 , LinkedSlaveNodes()
 , LinkedMasterNodes()
 , SlaveMPCCoeffs()
 , MasterMPCCoeffs() 
+#ifdef USE_EIGEN3
+, SlaveMPCCoeffDerivs()
+, MasterMPCCoeffDerivs()
+#endif
 { }
 
-NodalMortarShapeFct::NodalMortarShapeFct(int ref_node, double ref_coeff)
+inline NodalMortarShapeFct::NodalMortarShapeFct(int ref_node, double ref_coeff)
 : NodalData(1, node_pair_t(ref_node, ref_coeff))
 , LinkedSlaveNodes()
 , LinkedMasterNodes()
 , SlaveMPCCoeffs()
 , MasterMPCCoeffs() 
+#ifdef USE_EIGEN3
+, SlaveMPCCoeffDerivs()
+, MasterMPCCoeffDerivs()
+#endif
 { }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            DESTRUCTORS
 // -----------------------------------------------------------------------------------------------------
-NodalMortarShapeFct::~NodalMortarShapeFct() { }
+inline NodalMortarShapeFct::~NodalMortarShapeFct() { }
 
 // -----------------------------------------------------------------------------------------------------
 //                                   INITILIZATION & CLEAN/CLEAR METHODS 
 // -----------------------------------------------------------------------------------------------------
-void 
+inline void 
 NodalMortarShapeFct::ClearData()
 {
   NodalData.clear();
@@ -62,9 +70,13 @@ NodalMortarShapeFct::ClearData()
   LinkedMasterNodes.clear();
   SlaveMPCCoeffs.clear();
   MasterMPCCoeffs.clear();
+#ifdef USE_EIGEN3
+  SlaveMPCCoeffDerivs.resize(0,0);
+  MasterMPCCoeffDerivs.resize(0,0);
+#endif
 }
 
-void 
+inline void 
 NodalMortarShapeFct::Reset()
 {
   ClearData();
@@ -73,7 +85,7 @@ NodalMortarShapeFct::Reset()
 // -----------------------------------------------------------------------------------------------------
 //                                            SET METHODS
 // -----------------------------------------------------------------------------------------------------
-void 
+inline void 
 NodalMortarShapeFct::SetRefData(int ref_node, double ref_coeff)
 {
   NodalData.insert(NodalData.begin(), node_pair_t(ref_node, ref_coeff)); // ref node is first one
@@ -86,7 +98,7 @@ NodalMortarShapeFct::SetRefData(int ref_node, double ref_coeff)
 // -----------------------------------------------------------------------------------------------------
 //                                            MORTAR LMPC METHODS
 // -----------------------------------------------------------------------------------------------------
-void
+inline void
 NodalMortarShapeFct::MakeSlaveLink(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, bool Dual)
 // ***************************************************************************************
 // Look for the SLAVE nodes that belongs to the support of the nodal mortar shape fct
@@ -121,8 +133,9 @@ NodalMortarShapeFct::MakeSlaveLink(Connectivity* SlaveNodeToFaces, FaceElemSet* 
   std::vector<int>(LinkedSlaveNodes.begin(),Ilast).swap(LinkedSlaveNodes);
 }
 
+template<class Scalar>
 void
-NodalMortarShapeFct::MakeMasterLink(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon* ContactPolygons)
+NodalMortarShapeFct::MakeMasterLink(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon<Scalar>* ContactPolygons)
 // ***************************************************************************************
 // Look for the MASTER nodes that belongs (throught FFIs) to the support of the nodal 
 // mortar shape fct
@@ -134,7 +147,6 @@ NodalMortarShapeFct::MakeMasterLink(Connectivity* SlaveNodeToFaces, FaceElemSet*
 //    ContactPolygons : array of the FFIs
 // ***************************************************************************************
 {
-  //cerr <<"In NodalMortarShapeFct::MakeMasterLink"<<endl;
   LinkedMasterNodes.reserve(8);
 
   for(int inode=0; inode<GetnNodes(); inode++) {
@@ -158,8 +170,9 @@ NodalMortarShapeFct::MakeMasterLink(Connectivity* SlaveNodeToFaces, FaceElemSet*
   std::vector<int>(LinkedMasterNodes.begin(),Ilast).swap(LinkedMasterNodes);
 }
 
+template<class Scalar>
 void
-NodalMortarShapeFct::BuildMortarLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon* ContactPolygons)
+NodalMortarShapeFct::BuildMortarLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon<Scalar>* ContactPolygons)
 // ***************************************************************************************
 // Build the mortar LMPC coefficients by "assembling" the contributions of all the FFIs
 // belongins to the support of the nodal mortar shape fct 
@@ -182,10 +195,8 @@ NodalMortarShapeFct::BuildMortarLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet
       int jface = (*SlaveNodeToFaces)[cnode][iface];
       for(int iFFI=0, nFFIs=SlaveToFFI->num(jface); iFFI<nFFIs; iFFI++){
         int jFFI = (*SlaveToFFI)[jface][iFFI];
-        FFIPolygon* FFI = &(ContactPolygons[jFFI]);
+        FFIPolygon<Scalar>* FFI = &(ContactPolygons[jFFI]);
         FaceElement* slaveface  = FFI->GetPtrSlaveFace();
-        //slaveface->print();
-        //masterface->print(); 
         FullM* M = FFI->GetPtrM(); 
         int i = slaveface->GetNodeIndex(cnode); // with a trick this could also be moved outside the iFFI loop
         // can be optimized if dual mortar space used by not looping over all the slaveface's node 
@@ -210,8 +221,9 @@ NodalMortarShapeFct::BuildMortarLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet
   }
 }
 
+template<class Scalar>
 void
-NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon* ContactPolygons)
+NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, Connectivity* SlaveToFFI, FFIPolygon<Scalar>* ContactPolygons)
 // ***************************************************************************************
 // Build the mortar LMPC coefficients by "assembling" the contributions of all the FFIs
 // belonging to the support of the nodal mortar shape fct 
@@ -226,7 +238,13 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
 {
   SlaveMPCCoeffs.assign(3*LinkedSlaveNodes.size(), 0.0);
   MasterMPCCoeffs.assign(3*LinkedMasterNodes.size(), 0.0); 
-  MPCRhs = 0.0;
+  MPCRhs = 0;
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+  SlaveMPCCoeffDerivs.resize(3*LinkedSlaveNodes.size(),3*LinkedSlaveNodes.size()+3*LinkedMasterNodes.size());
+  SlaveMPCCoeffDerivs.setZero();
+  MasterMPCCoeffDerivs.resize(3*LinkedMasterNodes.size(),3*LinkedSlaveNodes.size()+3*LinkedMasterNodes.size());
+  MasterMPCCoeffDerivs.setZero();
+#endif
 
   for(int inode=0; inode<GetnNodes(); inode++){
     int cnode = GetNodeId(inode);
@@ -235,14 +253,14 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
       int jface = (*SlaveNodeToFaces)[cnode][iface];
       for(int iFFI=0, nFFIs=SlaveToFFI->num(jface); iFFI<nFFIs; iFFI++){
         int jFFI = (*SlaveToFFI)[jface][iFFI];
-        FFIPolygon* FFI = &(ContactPolygons[jFFI]);
+        FFIPolygon<Scalar>* FFI = &(ContactPolygons[jFFI]);
         FaceElement* slaveface  = FFI->GetPtrSlaveFace();
-        //slaveface->print();
-        //masterface->print(); 
+        FaceElement* masterface = FFI->GetPtrMasterFace();
         FullM* M = FFI->GetPtrM(); 
+        FullM* dM = FFI->GetdM();
         int i = slaveface->GetNodeIndex(cnode); // with a trick this could also be moved outside the iFFI loop
         // can be optimized if dual mortar space used by not looping over all the slaveface's node 
-        for(int j=0, nNds=slaveface->nNodes(); j<nNds; j++) {
+        for(int j=0; j<slaveface->nNodes(); j++) {
           std::vector<int>::iterator I(std::lower_bound(LinkedSlaveNodes.begin(), 
                                                         LinkedSlaveNodes.end(), slaveface->GetNode(j)));
           if(I != LinkedSlaveNodes.end()) {
@@ -250,17 +268,57 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
             SlaveMPCCoeffs[3*k]   += Aq*(*M)[i][3*j];
             SlaveMPCCoeffs[3*k+1] += Aq*(*M)[i][3*j+1];
             SlaveMPCCoeffs[3*k+2] += Aq*(*M)[i][3*j+2];
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+            for(int l=0; l<slaveface->nNodes(); l++) {
+              std::vector<int>::iterator J(std::lower_bound(LinkedSlaveNodes.begin(),
+                                                            LinkedSlaveNodes.end(), slaveface->GetNode(l)));
+              if(J != LinkedSlaveNodes.end()) {
+                int m(std::distance(LinkedSlaveNodes.begin(), J));
+                for(int p=0; p<3; ++p)
+                  for(int q=0; q<3; ++q)
+                    SlaveMPCCoeffDerivs(3*k+p,3*m+q) += Aq*dM[i][3*j+p][MAX_MORTAR_DERIVATIVES/2+3*l+q];
+              }
+            }
+            for(int l=0; l<masterface->nNodes(); l++) {
+              int m(std::distance(LinkedMasterNodes.begin(),
+                                  std::lower_bound(LinkedMasterNodes.begin(),
+                                                   LinkedMasterNodes.end(), masterface->GetNode(l))));
+              for(int p=0; p<3; ++p)
+                for(int q=0; q<3; ++q)
+                  SlaveMPCCoeffDerivs(3*k+p,3*LinkedSlaveNodes.size()+3*m+q) += Aq*dM[i][3*j+p][3*l+q];
+            }
+#endif
           }
         }
-        FaceElement* masterface = FFI->GetPtrMasterFace();
         FullM* N = FFI->GetPtrN(); 
-        for(int j=0, nNds=masterface->nNodes(); j<nNds; j++) {
+        FullM* dN = FFI->GetdN();
+        for(int j=0; j<masterface->nNodes(); j++) {
           int k(std::distance(LinkedMasterNodes.begin(), 
                               std::lower_bound(LinkedMasterNodes.begin(), 
                                                LinkedMasterNodes.end(), masterface->GetNode(j))));
           MasterMPCCoeffs[3*k]   += Aq*(*N)[i][3*j];
           MasterMPCCoeffs[3*k+1] += Aq*(*N)[i][3*j+1];
           MasterMPCCoeffs[3*k+2] += Aq*(*N)[i][3*j+2];
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+          for(int l=0; l<slaveface->nNodes(); l++) {
+            std::vector<int>::iterator J(std::lower_bound(LinkedSlaveNodes.begin(),
+                                                          LinkedSlaveNodes.end(), slaveface->GetNode(l)));
+            if(J != LinkedSlaveNodes.end()) {
+              int m(std::distance(LinkedSlaveNodes.begin(), J));
+              for(int p=0; p<3; ++p)
+                for(int q=0; q<3; ++q)
+                  MasterMPCCoeffDerivs(3*k+p,3*m+q) += Aq*dN[i][3*j+p][MAX_MORTAR_DERIVATIVES/2+3*l+q];
+            }
+          }
+          for(int l=0; l<masterface->nNodes(); l++) {
+            int m(std::distance(LinkedMasterNodes.begin(),
+                                std::lower_bound(LinkedMasterNodes.begin(),
+                                                 LinkedMasterNodes.end(), masterface->GetNode(l))));
+            for(int p=0; p<3; ++p)
+              for(int q=0; q<3; ++q)
+                MasterMPCCoeffDerivs(3*k+p,3*LinkedSlaveNodes.size()+3*m+q) += Aq*dN[i][3*j+p][3*l+q];
+          }
+#endif
         }
         Vector* g = FFI->GetPtrNormalGeoGaps();
         MPCRhs -= Aq*(*g)[i];
@@ -272,7 +330,7 @@ NodalMortarShapeFct::BuildMortarCtcLMPC(Connectivity* SlaveNodeToFaces, FaceElem
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS
 // -----------------------------------------------------------------------------------------------------
-void
+inline void
 NodalMortarShapeFct::print(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 {
    fprintf(stderr,"---------------------------------------\n");
@@ -324,7 +382,7 @@ NodalMortarShapeFct::print(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 }
 
 
-LMPCons*
+inline LMPCons*
 NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs, 
                                          int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 // ***************************************************************************************
@@ -332,18 +390,18 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
 // current nodal mortar shape fct
 // ***************************************************************************************
 {
-  //cerr <<"In NodalMortarShapeFct::CreateMortarLMPCons:"<<endl;
   LMPCTerm SlaveTerm;
 
   LMPCons* MortarLMPC = NULL;
   double tol = 0.0; // we may use a (relative) tolerance to filter the small term
   for(int i = 0; i < int(LinkedSlaveNodes.size()); i++){
-    if(std::abs<double>(SlaveMPCCoeffs[i]) > tol) {
+    if(fabs(SlaveMPCCoeffs[i]) > tol) {
       SlaveTerm.nnum   = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
       SlaveTerm.dofnum = dof;
       SlaveTerm.coef.r_value = SlaveMPCCoeffs[i];
       if(MortarLMPC == NULL) {
         MortarLMPC = new LMPCons(lmpcnum, rhs, &SlaveTerm);
+        MortarLMPC->type = 0;
         MortarLMPC->setType(mpc::Equality);
         MortarLMPC->setSource(mpc::TiedSurfaces);
       }
@@ -353,19 +411,19 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
 
  LMPCTerm MasterTerm;
  for(int i = 0; i < int(LinkedMasterNodes.size()); i++){
-   if(std::abs<double>(MasterMPCCoeffs[i]) > tol) {
+   if(fabs(MasterMPCCoeffs[i]) > tol) {
      MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
      MasterTerm.dofnum = dof;
      MasterTerm.coef.r_value = -MasterMPCCoeffs[i];
      if(MortarLMPC == NULL) {
         MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
+        MortarLMPC->type = 0;
         MortarLMPC->setType(mpc::Equality);
         MortarLMPC->setSource(mpc::TiedSurfaces);
       }
       else MortarLMPC->addterm(&MasterTerm);
     }
   }
-  //if(MortarLMPC) MortarLMPC->normalize(); // TODO consider
 #ifdef MORTAR_WARNING
   if(!created){
     fprintf(stderr," ### WARNING: in NodalMortarShapeFct::CreateMortarLMPCons(...): no MortarLMPC has been created !!!\n");
@@ -375,20 +433,26 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
   return MortarLMPC;
 }
 
-LMPCons*
-NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
+inline LMPCons*
+NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
 {
   double rhs = MPCRhs;
-  // Note: the following lmpcnum is a temporary fix, since it is only unique within a single contact surface pair
-  int lmpcnum = -(SlaveLlToGlNodeMap[GetNodeId(0)]+1); // XXXX global id of the slave node.
   LMPCTerm SlaveTerm;
                                                                                                                                              
   LMPCons* MortarLMPC = NULL;
-  double tol = 0.0; // we may use a (relative) tolerance to filter the small term
+  double tol = std::numeric_limits<double>::epsilon(); // we may use a (relative) tolerance to filter the small term
   int dofs[3] = {0,1,2};
+  std::vector<int> indices;
   for(int i = 0; i < int(LinkedSlaveNodes.size()); i++) {
     for(int idof = 0; idof < 3; idof++) {
-      if(std::abs<double>(SlaveMPCCoeffs[3*i+idof]) > tol) {
+// filter based on both the mpc coef AND the row/col of the derivative matrix all zero. I think it is possible that the
+// coef is zero but the derivative matrix is non-zero. in this case we should keep the zero coef term.
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+      if(fabs(SlaveMPCCoeffs[3*i+idof]) > tol || SlaveMPCCoeffDerivs.row(3*i+idof).norm() > tol) {
+#else
+      if(fabs(SlaveMPCCoeffs[3*i+idof]) > tol) {
+#endif
+        indices.push_back(3*i+idof);
         SlaveTerm.nnum   = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
         SlaveTerm.dofnum = dofs[idof];
         SlaveTerm.coef.r_value = SlaveMPCCoeffs[3*i+idof];
@@ -403,17 +467,19 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
     }
   }
 
- //double maxcoefnorm = -1; int maxnode; // DEBUG
  LMPCTerm MasterTerm;
  for(int i = 0; i < int(LinkedMasterNodes.size()); i++) {
-   //double coefnorm = 0; // DEBUG
    for(int idof = 0; idof < 3; idof++){
-     if(std::abs<double>(MasterMPCCoeffs[3*i+idof]) > tol) {
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+     if(fabs(MasterMPCCoeffs[3*i+idof]) > tol || MasterMPCCoeffDerivs.row(3*i+idof).norm() > tol) {
+#else
+     if(fabs(MasterMPCCoeffs[3*i+idof]) > tol) {
+#endif
+       indices.push_back(3*LinkedSlaveNodes.size()+3*i+idof);
        MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
        MasterTerm.dofnum = dofs[idof];
        MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof];
-       //coefnorm += MasterMPCCoeffs[3*i+idof]*MasterMPCCoeffs[3*i+idof]; // DEBUG
-       if(MortarLMPC == NULL){
+       if(MortarLMPC == NULL) {
          MortarLMPC = new LMPCons(lmpcnum, rhs, &MasterTerm);
          MortarLMPC->type = 1; // this is to be phased out
          MortarLMPC->setType(mpc::Inequality);
@@ -422,18 +488,37 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int* SlaveLlToGlNodeMap, int* Master
          MortarLMPC->addterm(&MasterTerm);
      }
    }
-   //if(coefnorm > maxcoefnorm) { maxcoefnorm = coefnorm; maxnode = MasterTerm.nnum; } // DEBUG
  }
  if(MortarLMPC) MortarLMPC->id.second = SlaveLlToGlNodeMap[GetNodeId(0)];
- //cerr << SlaveTerm.nnum+1 << " " << maxnode+1 << "  1 0 0 " << endl; // DEBUG
- //if(MortarLMPC) MortarLMPC->normalize(); // TODO: reconsider
 
+#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
+/*
+ int n = 3*LinkedSlaveNodes.size()+3*LinkedMasterNodes.size();
+ MortarLMPC->H.resize(n,n);
+ MortarLMPC->H << SlaveMPCCoeffDerivs, -MasterMPCCoeffDerivs;
+*/
+ if(MortarLMPC) {
+   int n = 3*LinkedSlaveNodes.size()+3*LinkedMasterNodes.size();
+   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Hfull(n,n);
+   Hfull << SlaveMPCCoeffDerivs, -MasterMPCCoeffDerivs;
+
+   int m = indices.size();
+   MortarLMPC->H.resize(m,m);
+   for(int i=0; i<m; ++i)
+     for(int j=0; j<m; ++j)
+       MortarLMPC->H(i,j) = Hfull(indices[i],indices[j]);
+ }
+ //std::cerr << "here is the matrix H\n" << MortarLMPC->H << std::endl;
+ //std::cerr << "here are the " << n << " eigenvalues of H:\n" << MortarLMPC->H.eigenvalues().transpose() << std::endl;
+#endif
+ //if(MortarLMPC) MortarLMPC->print(); else std::cerr << "MortarLMPC is NULL\n";
  return MortarLMPC;
 }
 
+template<class Scalar>
 void
 NodalMortarShapeFct::BuildWetFSICoupling(Connectivity* SlaveNodeToFaces, FaceElemSet* FaceSet, 
-                                         Connectivity* SlaveToFFI, FFIPolygon* ContactPolygons)
+                                         Connectivity* SlaveToFFI, FFIPolygon<Scalar>* ContactPolygons)
 // ***************************************************************************************
 // Build the wet FSI LMPC coefficients by "assembling" the contributions of all the FFIs
 // belongins to the support of the nodal mortar shape fct 
@@ -451,23 +536,14 @@ NodalMortarShapeFct::BuildWetFSICoupling(Connectivity* SlaveNodeToFaces, FaceEle
   for(int inode=0; inode<GetnNodes(); inode++){
     int cnode = GetNodeId(inode);
     double Aq = GetNodalCoeff(inode); 
-    //int offset = SlaveNodeToFaces->offset(cnode);
-    //int k = SlaveNodesToArrayIndiceMap[cnode];
-    //cerr << " inode = "<<inode<<", cnode = "<<cnode<< endl; //", k = "<<k<<endl;
-    //cerr << " num(cnode) = " << SlaveNodeToFaces->num(cnode)<< endl;
     for(int iface=0, nFaces=SlaveNodeToFaces->num(cnode); iface<nFaces; iface++){
       int jface = (*SlaveNodeToFaces)[cnode][iface];
-      //cerr << "  iface = " << iface <<", jface = "<<jface<<endl;
       for(int iFFI=0, nFFIs=SlaveToFFI->num(jface); iFFI<nFFIs; iFFI++){
         int jFFI = (*SlaveToFFI)[jface][iFFI];
-        //cerr <<"   jFFI = "<<jFFI<<endl;
-        FFIPolygon* FFI = &(ContactPolygons[jFFI]);
+        FFIPolygon<Scalar>* FFI = &(ContactPolygons[jFFI]);
         FaceElement* slaveface  = FFI->GetPtrSlaveFace();
         FaceElement* masterface = FFI->GetPtrMasterFace();
-        //slaveface->print();
-        //masterface->print(); 
         FullM* N = FFI->GetPtrN(); 
-        //cerr << "    -------------------------------"<<endl; 
         int i = slaveface->GetNodeIndex(cnode); // with a trick this could also be moved outside the iFFI loop
         for(int j=0, nNds=masterface->nNodes(); j<nNds; j++){
           int k(std::distance(LinkedMasterNodes.begin(), 
@@ -483,17 +559,14 @@ NodalMortarShapeFct::BuildWetFSICoupling(Connectivity* SlaveNodeToFaces, FaceEle
   }
 }
 
-LMPCons*
+inline LMPCons*
 NodalMortarShapeFct::CreateWetFSICons(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
-//NodalMortarShapeFct::CreateWetFSICons(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap, double rtol, double atol)
 // ***************************************************************************************
 // For reusing the standard LMPC code: create the LMPConstrain associated with the
 // current nodal mortar shape fct
 // ***************************************************************************************
 {
-  //cerr <<"In NodalMortarShapeFct::CreateWetFSICons:"<<endl;
-
-  LMPCons* WetFSICons=0; // = new LMPCons(lmpcnum, rhs);
+  LMPCons* WetFSICons = NULL;
 
   int lmpcnum = SlaveLlToGlNodeMap ? SlaveLlToGlNodeMap[GetRefNode()] : GetRefNode();
   int dofs[3] = {0,1,2};
@@ -502,7 +575,6 @@ NodalMortarShapeFct::CreateWetFSICons(int* SlaveLlToGlNodeMap, int* MasterLlToGl
   for(int i=0; i<int(LinkedMasterNodes.size()); i++){
     for(int idof=0; idof<3; idof++){
       if(MasterMPCCoeffs[3*i+idof]!=0.0) { // skip zero coeff. (we may use a (relative) tolerance to filter the small term)
-        //MasterTerm.nnum   = MasterLlToGlNodeMap[LinkedMasterNodes[i]];
         MasterTerm.nnum   = MasterLlToGlNodeMap ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
         MasterTerm.dofnum = dofs[idof];
         MasterTerm.coef.r_value = -MasterMPCCoeffs[3*i+idof]; // minus because we compute the coeffs. using the normal to the fluid

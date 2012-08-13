@@ -45,12 +45,6 @@ StdMortarTri3::nMortarShapeFct() { return 3; }
 // LOCAL METHODS
 // -------------
 void
-StdMortarTri3::GetStdMortarShapeFct(double* Shape, double* m)
-{
-   GetPtrMasterFace()->GetShapeFctVal(Shape, m);
-}
-
-void
 StdMortarTri3::GetShapeFct(double* Shape, double* m)
 { 
    GetStdMortarShapeFct(Shape, m); 
@@ -64,3 +58,12 @@ StdMortarTri3::GetShapeFctVal(double* Shape, double* m)
 { 
    GetStdMortarShapeFct(Shape, m); 
 }
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+StdMortarTri3::GetShapeFctVal(ActiveDouble* Shape, ActiveDouble* m)
+{
+   GetStdMortarShapeFct(Shape, m);
+}
+#endif
+

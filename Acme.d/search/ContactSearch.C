@@ -153,7 +153,7 @@ ContactSearch::ContactSearch( int  Dimensionality,
   delete_ghosting   = 0;
   ws_size           = 1;
   max_facets        = 32;
-  data_size         = ContactFace::LENGTH;
+  data_size         = ContactFace<Real>::LENGTH;
   ctrl              = new Real[24*ws_size];
   ctrcl             = new Real[data_size*ws_size];
   ctrcl_facets      = new Real[data_size*max_facets*ws_size];
@@ -174,8 +174,8 @@ ContactSearch::ContactSearch( int  Dimensionality,
   //  Initialize static face data arrays for fast lookup of face type
   //  information from the base class
   //
-  ContactFace::Initialize_Lookup_Arrays();
-  ContactEdge::Initialize_Lookup_Arrays();
+  ContactFace<Real>::Initialize_Lookup_Arrays();
+  ContactEdge<Real>::Initialize_Lookup_Arrays();
 
   int i;
   error              = NO_ERROR;
@@ -387,20 +387,20 @@ ContactSearch::ContactSearch( int  Dimensionality,
   // created in the secondary decomposition) so its not done as part
   // of the constructor.
   int number_of_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->Initialize_Memory();
   }
   int number_of_edges = primary_topology->Number_of_Edges();
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(primary_topology->EdgeList()->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(primary_topology->EdgeList()->EntityList());
   for (i=0; i<number_of_edges; ++i) {
     Edges[i]->Initialize_Memory();
   }
   int number_of_faces = primary_topology->Number_of_Faces();
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->Initialize_Memory();
   }
@@ -514,6 +514,14 @@ ContactSearch::~ContactSearch()
     delete [] allocators;
   }
   delete scratch_allocator;
+#if (MAX_FFI_DERIVATIVES > 0)
+  if (active_allocators) {
+    for (int i=0; i<ALLOC_NUM_ALLOCATED_ENTITIES; ++i) {
+      active_allocators[i].Purge();
+    }
+    delete [] active_allocators;
+  }
+#endif
   if( num_tables ){
     for( int i=0 ; i<num_tables ; ++i ) delete tables[i];
     delete [] tables;
@@ -537,6 +545,9 @@ ContactSearch::~ContactSearch()
   zoltan             = NULL;
 #endif
   allocators         = NULL;
+#if (MAX_FFI_DERIVATIVES > 0)
+  active_allocators  = NULL;
+#endif
   tables             = NULL;
   enforcement        = NULL;
   
@@ -667,20 +678,20 @@ ContactSearch::UpdateSearch( const int* num_node_deaths_per_block,
   // of the constructor.
   int i;
   int number_of_nodes = primary_topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(primary_topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(primary_topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->Initialize_Memory();
   }
   int number_of_edges = primary_topology->Number_of_Edges();
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(primary_topology->EdgeList()->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(primary_topology->EdgeList()->EntityList());
   for (i=0; i<number_of_edges; ++i) {
     Edges[i]->Initialize_Memory();
   }
   int number_of_faces = primary_topology->Number_of_Faces();
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(primary_topology->FaceList()->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(primary_topology->FaceList()->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->Initialize_Memory();
   }
@@ -725,7 +736,7 @@ void ContactSearch::create_zoltan_object( ContactErrorCode& error )
   //========================
   int zoltan_error;
   zoltan = new ContactZoltan(SearchComm, zoltan_error);
-  if( zoltan_error == LB_FATAL ){
+  if( zoltan_error == ZOLTAN_FATAL ){
     error = ZOLTAN_ERROR;
     errors->Add_Error_Message("Error Creating Zoltan Object");
     return;
@@ -787,18 +798,18 @@ ContactSearch::Set_Zoltan_Method(char *zoltan_method)
 void ContactSearch::Set_Up_Allocators()
 {
   allocators = new ContactFixedSizeAllocator[ALLOC_NUM_ALLOCATED_ENTITIES];
-  ContactNode_SizeAllocator(allocators[ALLOC_ContactNode]);
-  ContactLineEdgeL2_SizeAllocator(allocators[ALLOC_ContactLineEdgeL2]);
+  ContactNode_SizeAllocator<Real>(allocators[ALLOC_ContactNode]);
+  ContactLineEdgeL2_SizeAllocator<Real>(allocators[ALLOC_ContactLineEdgeL2]);
   ContactLineEdgeQ3_SizeAllocator(allocators[ALLOC_ContactLineEdgeQ3]);
   ContactLineFaceL2_SizeAllocator(allocators[ALLOC_ContactLineFaceL2]);
   ContactLineFaceQ3_SizeAllocator(allocators[ALLOC_ContactLineFaceQ3]);
-  ContactQuadFaceL4_SizeAllocator(allocators[ALLOC_ContactQuadFaceL4]);
+  ContactQuadFaceL4_SizeAllocator<Real>(allocators[ALLOC_ContactQuadFaceL4]);
   ContactQuadFaceQ8_SizeAllocator(allocators[ALLOC_ContactQuadFaceQ8]);
   ContactQuadFaceQ9_SizeAllocator(allocators[ALLOC_ContactQuadFaceQ9]);
-  ContactTriFaceL3_SizeAllocator(allocators[ALLOC_ContactTriFaceL3]);
+  ContactTriFaceL3_SizeAllocator<Real>(allocators[ALLOC_ContactTriFaceL3]);
   ContactTriFaceQ6_SizeAllocator(allocators[ALLOC_ContactTriFaceQ6]);
-  ContactHexElemL8_SizeAllocator(allocators[ALLOC_ContactHexElemL8]);
-  ContactWedgeElemL6_SizeAllocator(allocators[ALLOC_ContactWedgeElemL6]);
+  ContactHexElemL8_SizeAllocator<Real>(allocators[ALLOC_ContactHexElemL8]);
+  ContactWedgeElemL6_SizeAllocator<Real>(allocators[ALLOC_ContactWedgeElemL6]);
   ContactNodeNodeInteraction_SizeAllocator(
 	 allocators[ALLOC_ContactNodeNodeInteraction]);
   ContactNodeFaceInteraction_SizeAllocator(
@@ -817,12 +828,49 @@ void ContactSearch::Set_Up_Allocators()
   ContactFaceFaceGraphNode_SizeAllocator(allocators[ALLOC_ContactFaceFaceGraphNode]);
   ContactCartesianHexElementL8_SizeAllocator(allocators[ALLOC_ContactCartesianHexElementL8]);
   ContactHexElementL8_SizeAllocator(allocators[ALLOC_ContactHexElementL8]);
-  ContactShellQuadFaceL4_SizeAllocator(allocators[ALLOC_ContactShellQuadFaceL4]);
-  ContactShellTriFaceL3_SizeAllocator(allocators[ALLOC_ContactShellTriFaceL3]);
+  ContactShellQuadFaceL4_SizeAllocator<Real>(allocators[ALLOC_ContactShellQuadFaceL4]);
+  ContactShellTriFaceL3_SizeAllocator<Real>(allocators[ALLOC_ContactShellTriFaceL3]);
   ContactShellNode_SizeAllocator(allocators[ALLOC_ContactShellNode]);
 
   // Right now set the block size to 10000
   scratch_allocator = new ContactSequentialAllocator( 100000,1 ) ;
+
+#if (MAX_FFI_DERIVATIVES > 0)
+  active_allocators = new ContactFixedSizeAllocator[ALLOC_NUM_ALLOCATED_ENTITIES];
+  ContactNode_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactNode]);
+  ContactLineEdgeL2_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactLineEdgeL2]);
+  ContactLineEdgeQ3_SizeAllocator(active_allocators[ALLOC_ContactLineEdgeQ3]);
+  ContactLineFaceL2_SizeAllocator(active_allocators[ALLOC_ContactLineFaceL2]);
+  ContactLineFaceQ3_SizeAllocator(active_allocators[ALLOC_ContactLineFaceQ3]);
+  ContactQuadFaceL4_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactQuadFaceL4]);
+  ContactQuadFaceQ8_SizeAllocator(active_allocators[ALLOC_ContactQuadFaceQ8]);
+  ContactQuadFaceQ9_SizeAllocator(active_allocators[ALLOC_ContactQuadFaceQ9]);
+  ContactTriFaceL3_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactTriFaceL3]);
+  ContactTriFaceQ6_SizeAllocator(active_allocators[ALLOC_ContactTriFaceQ6]);
+  ContactHexElemL8_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactHexElemL8]);
+  ContactWedgeElemL6_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactWedgeElemL6]);
+  ContactNodeNodeInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeNodeInteraction]);
+  ContactNodeFaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeFaceInteraction]);
+  ContactNodeSurfaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactNodeSurfaceInteraction]);
+  ContactFaceFaceInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactFaceFaceInteraction]);
+  ContactFaceCoverageInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactFaceCoverageInteraction]);
+  ContactElementElementInteraction_SizeAllocator(
+         active_allocators[ALLOC_ContactElementElementInteraction]);
+  ContactPolyVert_SizeAllocator(active_allocators[ALLOC_ContactPolyVert]);
+  ContactPolyEdge_SizeAllocator(active_allocators[ALLOC_ContactPolyEdge]);
+  ContactPoly_SizeAllocator(active_allocators[ALLOC_ContactPoly]);
+  ContactFaceFaceGraphNode_SizeAllocator(active_allocators[ALLOC_ContactFaceFaceGraphNode]);
+  ContactCartesianHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactCartesianHexElementL8]);
+  ContactHexElementL8_SizeAllocator(active_allocators[ALLOC_ContactHexElementL8]);
+  ContactShellQuadFaceL4_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactShellQuadFaceL4]);
+  ContactShellTriFaceL3_SizeAllocator<ActiveScalar>(active_allocators[ALLOC_ContactShellTriFaceL3]);
+  ContactShellNode_SizeAllocator(active_allocators[ALLOC_ContactShellNode]);
+#endif
 }
 
 int ContactSearch::Number_of_Errors()
@@ -1352,7 +1400,7 @@ const ContactTable* ContactSearch::Get_Table( int ID )
 
 ContactSearch::ContactErrorCode
 ContactSearch::Interaction_Definition( int num_configs, ContactSearch::Topology use_topology,
-                                       ContactTopologyEntity::SearchContext status )
+                                       ContactTopologyEntity<Real>::SearchContext status )
 {
   ContactTopology *topology(0);
   switch(use_topology){
@@ -1403,15 +1451,15 @@ ContactSearch::Interaction_Definition( int num_configs, ContactSearch::Topology 
   PRECONDITION( Max_Interactions_Per_Node() == 3 );
   ContactNodeEntityInteraction* nei_list[3];
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
 #ifdef CONTACT_DEBUG_NODE
       bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
 #endif
       //if this node is not locally owned then skip it.
-      if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+      if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
       
       //if this node doesn't have any node/entity interactions then skip it.
       if(node->Number_NodeEntity_Interactions() == 0) continue;
@@ -1546,7 +1594,7 @@ ContactSearch::Interaction_Definition( int num_configs, ContactSearch::Topology 
           //so doing this only for the node face interactions
           if(cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION){
             ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction *>(cnei);
-            ContactFace* face  = cnfi->Face();
+            ContactFace<Real>* face  = cnfi->Face();
             Real* Coordinates  = cnfi->Get_Coordinates();
             Real* Contactpoint = cnfi->Get_Contact_Point();
 	    VariableHandle COORD_HANDLE;
@@ -1703,7 +1751,7 @@ ContactSearch::Interaction_Definition( int num_configs, ContactSearch::Topology 
 	    continue;
 	  }
 
-          if( compute_node_areas == ACTIVE && status==ContactTopologyEntity::GLOBAL_SEARCH_SLAVE ){
+          if( compute_node_areas == ACTIVE && status==ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE ){
             if (!(source == ContactNodeFaceInteraction::RETRIEVED_TIED || source == ContactNodeFaceInteraction::RETRIEVED_GLUED) ){
               Real& slave_node_area = cnei->Get_Node_Area();
               slave_node_area = 0.0;
@@ -1734,7 +1782,7 @@ ContactSearch::Interaction_Definition( int num_configs, ContactSearch::Topology 
 
 	        for( int iface=0 ; iface<num_connected_faces ; ++iface ){
                   if(node->GetFacePFIndex(iface) != cur_physical_face) continue;
-		  ContactFace* Face = node->GetFace(iface);
+		  ContactFace<Real>* Face = node->GetFace(iface);
 		  Real slave_node_areas[MAX_NODES_PER_FACE];
 		  PRECONDITION( Face->Nodes_Per_Face() <= MAX_NODES_PER_FACE );
 		  VariableHandle POSITION = CURRENT_POSITION;
@@ -1864,7 +1912,7 @@ ContactSearch::Process_Interaction( VariableHandle NODE_COORDS,
   //        >= 0, interaction replaced/added return interaction number
   action = -1;
 
-  ContactNode* node = cnei->Node();
+  ContactNode<Real>* node = cnei->Node();
 #ifdef CONTACT_DEBUG_NODE
   bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
   if (PRINT_THIS_NODE)
@@ -2146,7 +2194,7 @@ void ContactSearch::Get_ElementElement_Interactions( int* slave_element_block_id
 
 int ContactSearch::Cull_Node_List_New( ACME::ContactNode_Vector &node_list, 
 				       int* physical_faces,
-				       ContactFace* face,
+				       ContactFace<Real>* face,
 				       VariableHandle NODE_NORMAL,
 				       VariableHandle FACE_NORMAL,
 				       int number_of_configurations, 
@@ -2199,7 +2247,7 @@ int ContactSearch::Cull_Node_List_New( ACME::ContactNode_Vector &node_list,
 
   int nodes_per_face = face->Nodes_Per_Face();
   PRECONDITION( nodes_per_face <= MAX_NODES_PER_FACE );
-  ContactNode** face_nodes = face->Nodes();
+  ContactNode<Real>** face_nodes = face->Nodes();
   Real* face_normal = face->Variable(FACE_NORMAL);
 
   // Get the variable handles I need
@@ -2211,7 +2259,7 @@ int ContactSearch::Cull_Node_List_New( ACME::ContactNode_Vector &node_list,
   int pairs = 0;
   int list_size = node_list.size();
   for( i=0 ; i<list_size ; ++i ){
-    ContactNode *node = node_list[i];
+    ContactNode<Real> *node = node_list[i];
 
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -2230,7 +2278,7 @@ int ContactSearch::Cull_Node_List_New( ACME::ContactNode_Vector &node_list,
       postream << "      Face Normal = " << fnv[0] << " " 
 	       << fnv[1] << " " << fnv[2] << "\n";
       for( int idbgn=0 ; idbgn<face->Nodes_Per_Face() ; idbgn++ ){
-	ContactNode* nd = face->Node(idbgn); 
+	ContactNode<Real>* nd = face->Node(idbgn); 
 	int id;
 	if (nd->Is_a_Shell_Node()) {
 	  id = static_cast<ContactShellNode*> (nd)->Shell_Node_Base_ID();
@@ -2618,7 +2666,7 @@ int ContactSearch::Cull_Node_List_New( ACME::ContactNode_Vector &node_list,
 }
 
 int ContactSearch::Cull_Node_List( int list_size, int* list, 
-				   ContactNode* mnode, Real* distance)
+				   ContactNode<Real>* mnode, Real* distance)
 {
   // This function culls down a node list for a given pair based on the 
   // following criteria
@@ -2638,7 +2686,7 @@ int ContactSearch::Cull_Node_List( int list_size, int* list,
 
   int pairs = 0;
   for( i=0 ; i<list_size ; ++i ){
-    ContactNode* snode = static_cast<ContactNode*>
+    ContactNode<Real>* snode = static_cast<ContactNode<Real>*>
                          (search_topology->NodeList()->Find(list[i]));
     bool valid = true;
     
@@ -2696,7 +2744,7 @@ int ContactSearch::Cull_Node_List( int list_size, int* list,
 }
 
 int ContactSearch::Cull_Node_List_New1( ACME::ContactNode_Vector &node_list, 
-				        ContactFace* face,
+				        ContactFace<Real>* face,
 				        VariableHandle NODE_NORMAL,
 				        VariableHandle FACE_NORMAL,
 				        int number_of_configurations, 
@@ -2719,12 +2767,12 @@ int ContactSearch::Cull_Node_List_New1( ACME::ContactNode_Vector &node_list,
   PRECONDITION( nodes_per_face <= MAX_NODES_PER_FACE );
   // Get the variable handles I need
 
-  ContactNode** face_nodes = face->Nodes();
+  ContactNode<Real>** face_nodes = face->Nodes();
 
   int pairs = 0;
   int list_size = node_list.size();
   for( i=0 ; i<list_size ; ++i ){
-    ContactNode *node = node_list[i];
+    ContactNode<Real> *node = node_list[i];
 
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -2743,7 +2791,7 @@ int ContactSearch::Cull_Node_List_New1( ACME::ContactNode_Vector &node_list,
       postream << "      Face Normal = " << fnv[0] << " " 
 	       << fnv[1] << " " << fnv[2] << "\n";
       for( int idbgn=0 ; idbgn<face->Nodes_Per_Face() ; idbgn++ ){
-	ContactNode* nd = face->Node(idbgn);
+	ContactNode<Real>* nd = face->Node(idbgn);
 	int id;
 	if (nd->Is_a_Shell_Node()) {
 	  id = static_cast<ContactShellNode*> (nd)->Shell_Node_Base_ID();
@@ -2886,11 +2934,11 @@ ContactSearch::Set_Initial_Gap()
   ContactTopology *topology = primary_topology;
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
-    if(node->Ownership() == ContactTopologyEntity::OWNED){
+    ContactNode<Real>* node = Nodes[i];
+    if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
       for (int j=0; j<node->Number_NodeEntity_Interactions(); ++j) {
         ContactNodeEntityInteraction* cnei = interactions[j];
@@ -2937,12 +2985,12 @@ ContactSearch::Retrieve_Glued_Interactions(VariableHandle POSITION,
   int cnt = 0;
   #endif
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   if (no_physical_faces) {
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
-      if(node->Ownership() == ContactTopologyEntity::OWNED){
+      ContactNode<Real>* node = Nodes[i];
+      if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
         int num_glued_at_node = 0;
         ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(1);
         for (int j=0; j<node->Number_NodeEntity_Interactions(1); ++j) {
@@ -2964,8 +3012,8 @@ ContactSearch::Retrieve_Glued_Interactions(VariableHandle POSITION,
     }//end loop over all nodes
   } else {
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
-      if(node->Ownership() == ContactTopologyEntity::OWNED){
+      ContactNode<Real>* node = Nodes[i];
+      if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
         int num_glued_at_node = 0;
         ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(1);
         for (int j=0; j<node->Number_NodeEntity_Interactions(1); ++j) {
@@ -3007,7 +3055,7 @@ ContactSearch::Retrieve_Glued_Interactions(VariableHandle POSITION,
 void 
 ContactSearch::Retrieve_Tied_Interactions(VariableHandle POSITION, 
                                           ContactSearch::Topology use_topology, 
-                                          ContactTopologyEntity::SearchContext status)
+                                          ContactTopologyEntity<Real>::SearchContext status)
 {
   // If there are no tied interactions requested by the user, then we could 
   // simply return but this is hard to tell with enforcement models so just check
@@ -3034,13 +3082,13 @@ ContactSearch::Retrieve_Tied_Interactions(VariableHandle POSITION,
   int cnt = 0;
 #endif
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     //if(node->CheckContext(status) &&
-    //   node->Ownership() == ContactTopologyEntity::OWNED){
-    if(node->Ownership() == ContactTopologyEntity::OWNED){
+    //   node->Ownership() == ContactTopologyEntity<Real>::OWNED){
+    if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
       int num_tied_at_node = 0;
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(1); ++j) {
@@ -3092,11 +3140,11 @@ ContactSearch::Retrieve_Tied_Interactions_From_Primary(VariableHandle POSITION)
   #endif
   int my_proc         = contact_processor_number( SearchComm );
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
-    if(node->Ownership() == ContactTopologyEntity::OWNED){
+    ContactNode<Real>* node = Nodes[i];
+    if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
       int num_tied_at_node = 0;
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(STATE1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(STATE1); ++j) {
@@ -3105,9 +3153,9 @@ ContactSearch::Retrieve_Tied_Interactions_From_Primary(VariableHandle POSITION)
           #if CONTACT_DEBUG_PRINT_LEVEL>=2 || defined(CONTACT_HEARTBEAT)
           ++cnt;
           #endif
-          node->SetContextBit(ContactTopologyEntity::TIED);
-          node->ClearContextBit(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE);
-          node->ClearContextBit(ContactTopologyEntity::TRACK_SEARCH_SLAVE);
+          node->SetContextBit(ContactTopologyEntity<Real>::TIED);
+          node->ClearContextBit(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE);
+          node->ClearContextBit(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE);
           if (cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
             ContactNodeFaceInteraction *cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
             if (cnfi->FaceEntityData()->owner != my_proc) continue;
@@ -3168,22 +3216,22 @@ ContactSearch::Retrieve_Tracked_Interactions(ContactSearch::SearchType search_ty
   POSTCONDITION(POSITION>=0);
   
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = 
-      reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = 
+      reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
   ContactTopologyEntityList* face_list = topology->FaceList();
   // There is the possibility some of the interactions are tied and/or tracked so loop 
   // through all of them and copy all the tied and valid tracked interactions from the
   // old state to the new state
   int my_proc = contact_processor_number( SearchComm );
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
     #endif
     // Only process nodes that are owned by the local processor 
     // and are tagged to be processed by the tracked search.
-    if(node->CheckContext(ContactTopologyEntity::TRACK_SEARCH_SLAVE) &&
-       node->Ownership() == ContactTopologyEntity::OWNED){
+    if(node->CheckContext(ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE) &&
+       node->Ownership() == ContactTopologyEntity<Real>::OWNED){
       int interaction_num     = 0;
       int num_tracked_at_node = 0;
       int num_interactions    = node->Number_NodeEntity_Interactions(ContactSearch::STATE1);
@@ -3201,7 +3249,7 @@ ContactSearch::Retrieve_Tracked_Interactions(ContactSearch::SearchType search_ty
           ContactNodeFaceInteraction *cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
           int status0 = 0;
           int status1 = 0;
-          ContactFace* face = cnfi->Face();
+          ContactFace<Real>* face = cnfi->Face();
           int nfaces = cnfi->NumSharedFaces();
           bool check_shared_edge_faces = false;
           #ifdef CONTACT_DEBUG_NODE
@@ -3254,15 +3302,15 @@ ContactSearch::Retrieve_Tracked_Interactions(ContactSearch::SearchType search_ty
           }
           if (check_shared_edge_faces) {
             for (int k=0; k<nfaces; ++k) {
-              ContactTopologyEntity::connection_data *face_info = cnfi->SharedFaceData(k);
+              ContactTopologyEntity<Real>::connection_data *face_info = cnfi->SharedFaceData(k);
               ContactHostGlobalID GID( face_info->host_gid[0], face_info->host_gid[1] );
-              ContactFace* NeighborFace = NULL;
+              ContactFace<Real>* NeighborFace = NULL;
               if (face_info->owner == my_proc) {
-                NeighborFace = static_cast<ContactFace*>(face_list->Find(GID));
+                NeighborFace = static_cast<ContactFace<Real>*>(face_list->Find(GID));
                 POSTCONDITION(NeighborFace);
               } else {
                 int block    = face_info->owner_proc_array_index;
-                NeighborFace = static_cast<ContactFace*>
+                NeighborFace = static_cast<ContactFace<Real>*>
                    (topology->Ghosted_Face_Block(block)->FaceList()->Find( GID ));
                 POSTCONDITION(NeighborFace);
               }
@@ -3315,7 +3363,7 @@ ContactSearch::Retrieve_Tracked_Interactions(ContactSearch::SearchType search_ty
 }
 
 int
-ContactSearch::CheckForNodeFaceInteraction(ContactNode* node, ContactFace* face,
+ContactSearch::CheckForNodeFaceInteraction(ContactNode<Real>* node, ContactFace<Real>* face,
                                            ContactSearch::SearchType search_type,
                                            ContactNodeFaceInteraction* old_cnfi, 
                                            int old_interaction_num,
@@ -3380,14 +3428,14 @@ ContactSearch::CheckForNodeFaceInteraction(ContactNode* node, ContactFace* face,
     Real dot_product = 0;
     for( int k=0 ; k<dimensionality ; ++k )
       dot_product += face_normal[k]*node_normal[k];
-    if( (node->Physical_Type()!=ContactNode::SHELL_NODE && dot_product>=0.0 ) ||
-        (node->Physical_Type()==ContactNode::SHELL_NODE && dot_product> 0.0 ) ){
+    if( (node->Physical_Type()!=ContactNode<Real>::SHELL_NODE && dot_product>=0.0 ) ||
+        (node->Physical_Type()==ContactNode<Real>::SHELL_NODE && dot_product> 0.0 ) ){
 #ifdef CONTACT_DEBUG_NODE
       if( PRINT_THIS_NODE ){
-        if (node->Physical_Type()==ContactNode::SHELL_NODE && dot_product>0.0) {
+        if (node->Physical_Type()==ContactNode<Real>::SHELL_NODE && dot_product>0.0) {
           postream << "        node_ptype == SHELL_NODE and dot_product = "<<dot_product<<"\n";
         }
-        if (node->Physical_Type()!=ContactNode::SHELL_NODE && dot_product>=0.0) {
+        if (node->Physical_Type()!=ContactNode<Real>::SHELL_NODE && dot_product>=0.0) {
           postream << "        node_ptype != SHELL_NODE and dot_product = "<<dot_product<<"\n";
         }
       }
@@ -3773,7 +3821,7 @@ ContactSearch::CheckForNodeFaceInteraction(ContactNode* node, ContactFace* face,
 void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag, 
 					   Real* max_gap,
                                            ContactSearch::Topology use_topology,
-                                           ContactTopologyEntity::SearchContext status )
+                                           ContactTopologyEntity<Real>::SearchContext status )
 {
   ContactTopology *topology(0);
   switch(use_topology){
@@ -3803,20 +3851,20 @@ void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag,
   VariableHandle REMAINING_GAP    = topology->Variable_Handle( ContactTopology::Remaining_Gap );
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes =  reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes =  reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
 
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     
     //if this node is not locally owned then skip it.
-    if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+    if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
     
     //if this node doesn't have the right status then skip it.
     //if(!node->CheckContext(status)) continue;
     
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
-    if( node->Ownership() != ContactTopologyEntity::OWNED ) PRINT_THIS_NODE = false;
+    if( node->Ownership() != ContactTopologyEntity<Real>::OWNED ) PRINT_THIS_NODE = false;
 #endif
 
     Real* pgap = node->Variable( REMAINING_GAP );
@@ -3837,7 +3885,7 @@ void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag,
           if(cnei->Get_Type() == ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
             ContactNodeFaceInteraction*  cnfi = 
               static_cast<ContactNodeFaceInteraction*>(cnei);
-            ContactFace* face = cnfi->Face();
+            ContactFace<Real>* face = cnfi->Face();
             POSTCONDITION(face);
             postream << "with Face " << face->Global_ID();
             break;
@@ -3855,12 +3903,12 @@ void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag,
         Real  contact_point2[3];
         if(cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION){
           ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
-          ContactFace* face = cnfi->Face();
+          ContactFace<Real>* face = cnfi->Face();
           PRECONDITION( MAX_NODES_PER_FACE >= face->Nodes_Per_Face() );
           face->Evaluate_Shape_Functions( coordinates, shape_functions );
           contact_point2[0]=0.0; contact_point2[1]=0.0; contact_point2[2]=0.0;
           for( int k=0 ; k<face->Nodes_Per_Face() ; ++k ){
-            ContactNode* Node = face->Node(k);
+            ContactNode<Real>* Node = face->Node(k);
             Real* coord = Node->Variable(CURRENT_POSITION);
             contact_point2[0] += shape_functions[k]*coord[0];
             contact_point2[1] += shape_functions[k]*coord[1];
@@ -3942,17 +3990,17 @@ void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag,
   VariableHandle REMAINING_GAP = topology->Variable_Handle( ContactTopology::Remaining_Gap );
 
   int number_of_nodes = topology->Number_of_Nodes();
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(topology->NodeList()->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(topology->NodeList()->EntityList());
 
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     
     //if this node is not locally owned then skip it.
-    if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+    if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
     
 #ifdef CONTACT_DEBUG_NODE
     bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
-    if( node->Ownership() != ContactTopologyEntity::OWNED ) PRINT_THIS_NODE = false;
+    if( node->Ownership() != ContactTopologyEntity<Real>::OWNED ) PRINT_THIS_NODE = false;
 #endif
 
     Real* pgap = node->Variable( REMAINING_GAP );
@@ -4016,7 +4064,7 @@ void ContactSearch::Compute_Remaining_Gap( Real* max_gap_mag,
 //   PRECONDITION( cnfi->Face()->Nodes_Per_Face() <= MAX_NODES_PER_FACE );
 //   contact_point_motion[0]=contact_point_motion[1]=contact_point_motion[2] = 0.0;
 //   for( int i=0 ; i<cnfi->Face()->Nodes_Per_Face() ; ++i ){
-//     ContactNode* node = cnfi->Face()->Node(i);
+//     ContactNode<Real>* node = cnfi->Face()->Node(i);
 //     Real* c0 = node->Variable(CURRENT_POSITION);
 //     Real* cp = node->Variable(PREDICTED_POSITION);
 //     contact_point_motion[0] += shape_functions[i]*(cp[0]-c0[0]);
@@ -4102,7 +4150,7 @@ void ContactSearch::Partition_Between_GapCur_and_GapOld(
     PRECONDITION( cnfi->Face()->Nodes_Per_Face() <= MAX_NODES_PER_FACE );
     contact_point_motion[0]=contact_point_motion[1]=contact_point_motion[2] = 0.0;
     for( int i=0 ; i<cnfi->Face()->Nodes_Per_Face() ; ++i ){
-      ContactNode* node = cnfi->Face()->Node(i);
+      ContactNode<Real>* node = cnfi->Face()->Node(i);
       Real* c0 = node->Variable(CURRENT_POSITION);
       Real* cp = node->Variable(PREDICTED_POSITION);
       contact_point_motion[0] += shape_functions[i]*(cp[0]-c0[0]);
@@ -4214,7 +4262,7 @@ ContactSearch::Compete_Interactions( VariableHandle NODE_COORDS,
   ContactNodeFaceInteraction *cnfi2 = dynamic_cast<ContactNodeFaceInteraction*>(cnei2);
   
 #ifdef CONTACT_DEBUG_NODE
-  ContactNode* dn = cnfi1->Node();
+  ContactNode<Real>* dn = cnfi1->Node();
   bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( dn );
   if( PRINT_THIS_NODE ){
     postream << "    Compete_Interactions Competing faces for Node ("
@@ -4265,8 +4313,8 @@ int Concavity(ContactNodeFaceInteraction* cnfi1,
 	      ContactNodeFaceInteraction* cnfi2,
               VariableHandle &CENTROID,
               VariableHandle &FACE_NORMAL) {
-  ContactFace* face_1 = cnfi1->Face(); // interaction face
-  ContactFace* face_2 = cnfi2->Face(); // interaction face
+  ContactFace<Real>* face_1 = cnfi1->Face(); // interaction face
+  ContactFace<Real>* face_2 = cnfi2->Face(); // interaction face
   Real* centroid_1    = face_1->Variable(CENTROID);
   Real* centroid_2    = face_2->Variable(CENTROID);
   Real* normal_1      = face_1->Variable(FACE_NORMAL);
@@ -4314,8 +4362,8 @@ bool Connected_Smooth(ContactNodeFaceInteraction* cnfi1,
   // if curvature_between_faces is less than sharp_smooth_curvature then
   // faces are connected_smooth
   //
-  ContactFace* face_1          = cnfi1->Face(); // interaction face
-  ContactFace* face_2          = cnfi2->Face(); // interaction face
+  ContactFace<Real>* face_1          = cnfi1->Face(); // interaction face
+  ContactFace<Real>* face_2          = cnfi2->Face(); // interaction face
   Real* normal_1               = face_1->Variable(FACE_NORMAL);
   Real* normal_2               = face_2->Variable(FACE_NORMAL);
   Real cos_angle_between_faces = Dot(normal_1, normal_2);
@@ -4342,7 +4390,7 @@ ContactSearch::Compete_Interactions_Connected( ContactNodeFaceInteraction* cnfi1
   PRECONDITION( search_topology->Faces_Connected(cnfi1->Face(),cnfi2->Face()));
   
 #ifdef CONTACT_DEBUG_NODE
-  ContactNode* dn = cnfi1->Node();
+  ContactNode<Real>* dn = cnfi1->Node();
   bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( dn );
   if( PRINT_THIS_NODE ){
     postream << "      Compete_Interactions_Connected\n";
@@ -4548,7 +4596,7 @@ ContactSearch::Compete_Interactions_Unconnected(
   PRECONDITION( cefi1->Node() == cefi2->Node() );
   
 #ifdef CONTACT_DEBUG_NODE
-  ContactNode* dn = cefi1->Node();
+  ContactNode<Real>* dn = cefi1->Node();
   bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( dn );
   if( PRINT_THIS_NODE ){
     postream << "Compete_Interactions_Unconnected\n";
@@ -4774,7 +4822,7 @@ void ContactSearch::Register_Timers()
 //
 void ContactSearch::Process_Analytic_Surfaces(
                                               ObjectBoundingBoxHierarchy *node_hierarchy,
-                                              ContactNode** Nodes,
+                                              ContactNode<Real>** Nodes,
                                               int interaction_source,
                                               VariableHandle position_var,
                                               VariableHandle position_var_2
@@ -4816,7 +4864,7 @@ void ContactSearch::Process_Analytic_Surfaces(
 #endif
     
     for( int j=0 ; j<list_size ; ++j ) {
-      ContactNode *node = Nodes[list[j]];
+      ContactNode<Real> *node = Nodes[list[j]];
       
       bool PRINT_THIS_NODE = false;
 #ifdef CONTACT_DEBUG_NODE
@@ -4921,7 +4969,7 @@ void ContactSearch::Process_Analytic_Surfaces(
 //
 void ContactSearch::Process_Analytic_Surfaces_New(
                                               ObjectBoundingBoxHierarchy **node_hierarchy_ptrs,
-                                              ContactNode **Nodes,
+                                              ContactNode<Real> **Nodes,
                                               int interaction_source,
                                               VariableHandle position_var,
                                               VariableHandle position_var_2) {
@@ -4998,7 +5046,7 @@ void ContactSearch::Process_Analytic_Surfaces_New(
      
     int num_nodes = node_list.size();
     for( int j=0 ; j<num_nodes ; ++j ) {
-      ContactNode *node = node_list[j];
+      ContactNode<Real> *node = node_list[j];
 
       bool PRINT_THIS_NODE = false;
 #ifdef CONTACT_DEBUG_NODE
@@ -5103,7 +5151,7 @@ void ContactSearch::Process_Analytic_Surfaces(Real* position,
                                               Real* scratch,
                                               int* rank2, 
                                               int*  list,
-                                              ContactNode** Nodes, int* node_map,
+                                              ContactNode<Real>** Nodes, int* node_map,
                                               int interaction_source,
                                               VariableHandle position_var_1,
                                               VariableHandle position_var_2) {
@@ -5124,12 +5172,12 @@ void ContactSearch::Process_Analytic_Surfaces(Real* position,
     Compute_Nodes_in_Box(ne, xmin, xmax, position, index, num_active_nodes, 
                          scratch, rank2, list_size, list);
     for( int j=0 ; j<list_size ; ++j ) {
-      ContactNode *node = NULL;
+      ContactNode<Real> *node = NULL;
       if (node_map) 
         node = Nodes[node_map[list[j]-1]];
       else
         node = Nodes[list[j]-1];
-      if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+      if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
 
       bool PRINT_THIS_NODE = false;
 #ifdef CONTACT_DEBUG_NODE
@@ -5227,9 +5275,9 @@ void ContactSearch::Process_Analytic_Surfaces(Real* position,
 
 void ContactSearch::process_node_face_interactions(const int &list_size, 
                                                    ACME::ContactNode_Vector &list,
-                                                   ContactFace *face, 
+                                                   ContactFace<Real> *face, 
                                                    const VariableHandle &CALCULATION_POSITION,
-                                                   ContactNode **Nodes,
+                                                   ContactNode<Real> **Nodes,
                                                    const VariableHandle &NODE_NORMAL,
                                                    Real &REL_TANG_TOL_VAR,
                                                    Real &user_tang_tol,
@@ -5242,7 +5290,7 @@ void ContactSearch::process_node_face_interactions(const int &list_size,
     face->FacetDecomposition(nfacets,ms_coordinates_c,
 			     ms_normals_c,CALCULATION_POSITION);
     for( int k=0 ; k<list_size ; ++k ){
-      ContactNode *node = list[k];
+      ContactNode<Real> *node = list[k];
       int npairs = 1;
 #ifdef CONTACT_DEBUG_NODE
       bool PRINT_THIS_NODE = primary_topology->Is_a_Debug_Node( node );
@@ -5428,7 +5476,7 @@ void Find_Physical_Face(int num_physical_faces, Real** PF_normals, Real * face_n
 }
 
 int ContactSearch::Number_Nodes_Per_Face( ContactFace_Type face_type) {
-  return ContactFace::Nodes_Per_Face(face_type);
+  return ContactFace<Real>::Nodes_Per_Face(face_type);
 }
 
 ContactSearch::ContactEdge_Type ContactSearch::Face_Edge_Type(ContactFace_Type face_type) {
@@ -5469,11 +5517,11 @@ ContactSearch::ContactEdge_Type ContactSearch::Face_Edge_Type(ContactFace_Type f
   return edge_type;
 }
 
-ContactFace* ContactSearch::New_ContactFace(ContactFace_Type face_type,   ContactFixedSizeAllocator* alloc) {
-  ContactFace* face=NULL;
+ContactFace<Real>* ContactSearch::New_ContactFace(ContactFace_Type face_type,   ContactFixedSizeAllocator* alloc) {
+  ContactFace<Real>* face=NULL;
   switch( face_type ){
   case ContactSearch::QUADFACEL4 :
-    face = ContactQuadFaceL4::new_ContactQuadFaceL4(alloc);
+    face = ContactQuadFaceL4<Real>::new_ContactQuadFaceL4(alloc);
     break;
   case ContactSearch::QUADFACEQ8 :
     face = ContactQuadFaceQ8::new_ContactQuadFaceQ8(alloc);
@@ -5482,16 +5530,16 @@ ContactFace* ContactSearch::New_ContactFace(ContactFace_Type face_type,   Contac
     face = ContactQuadFaceQ9::new_ContactQuadFaceQ9(alloc);
     break;
   case ContactSearch::TRIFACEL3 :
-    face = ContactTriFaceL3::new_ContactTriFaceL3(alloc);
+    face = ContactTriFaceL3<Real>::new_ContactTriFaceL3(alloc);
     break;
   case ContactSearch::TRIFACEQ6 :
     face = ContactTriFaceQ6::new_ContactTriFaceQ6(alloc);
     break;
   case ContactSearch::SHELLQUADFACEL4 :
-    face = ContactShellQuadFaceL4::new_ContactShellQuadFaceL4(alloc);
+    face = ContactShellQuadFaceL4<Real>::new_ContactShellQuadFaceL4(alloc);
     break;
   case ContactSearch::SHELLTRIFACEL3 :
-    face = ContactShellTriFaceL3::new_ContactShellTriFaceL3(alloc);
+    face = ContactShellTriFaceL3<Real>::new_ContactShellTriFaceL3(alloc);
     break;
   case ContactSearch::LINEFACEL2 :
     face = ContactLineFaceL2::new_ContactLineFaceL2(alloc);
@@ -5550,20 +5598,20 @@ Real ContactSearch::ComputeCurvatureFromAngle(const Real angle)      {
   return (1.0-cos((PI*angle)/180.0));
 }
 
-void ContactSearch::Delete_ContactTopologyEntity(ContactTopologyEntity* entity,
+void ContactSearch::Delete_ContactTopologyEntity(ContactTopologyEntity<Real>* entity,
                                                  ContactFixedSizeAllocator *alloc_array) {
   switch (entity->Base_Type()) {
   case (CT_NODE):
     {
-      ContactNode* node = static_cast<ContactNode*>(entity);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
       ContactFixedSizeAllocator* alloc = &alloc_array[ContactSearch::ALLOC_ContactNode];
-      node->~ContactNode();
+      node->~ContactNode<Real>();
       alloc->Delete_Frag(node);
     }
     break;
   case (CT_SHELL_NODE):
     {
-      ContactNode* node = static_cast<ContactNode*>(entity);
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(entity);
       ContactFixedSizeAllocator* alloc = &alloc_array[ContactSearch::ALLOC_ContactShellNode];
       (static_cast<ContactShellNode*> (node))->~ContactShellNode();
       alloc->Delete_Frag(node);
@@ -5572,7 +5620,7 @@ void ContactSearch::Delete_ContactTopologyEntity(ContactTopologyEntity* entity,
   case (CT_EDGE):
     {
       ContactFixedSizeAllocator* alloc = NULL;
-      ContactEdge* edge = static_cast<ContactEdge*>(entity);
+      ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(entity);
       switch (edge->EdgeType()){
       case ContactSearch::LINEEDGEL2:
 	alloc = &alloc_array[ContactSearch::ALLOC_ContactLineEdgeL2];
@@ -5584,15 +5632,15 @@ void ContactSearch::Delete_ContactTopologyEntity(ContactTopologyEntity* entity,
 	POSTCONDITION(false);
 	break;
       }
-      edge->~ContactEdge();
+      edge->~ContactEdge<Real>();
       alloc->Delete_Frag(edge);
     }
     break;
   case (CT_FACE):
     {
-      ContactFace* face = static_cast<ContactFace*>(entity);
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactFixedSizeAllocator* alloc = Get_ContactFaceAlloc(face->FaceType(), alloc_array);
-      face->~ContactFace();
+      face->~ContactFace<Real>();
       alloc->Delete_Frag(face);
     }
     break;

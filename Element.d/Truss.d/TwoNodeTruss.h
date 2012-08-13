@@ -6,11 +6,13 @@
 class TwoNodeTruss : public virtual Element 
 {
         int nn[2];
+        double preload;
 public:
 	TwoNodeTruss(int*);
         Element *clone();
 	void renum(int *);
         FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
+        int getMassType() { return 2; } // both consistent and lumped
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
         void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg,
@@ -30,7 +32,8 @@ public:
         void getThermalForce(CoordSet &cs, Vector &ndTemps,
                              Vector &ThermalForce, int glflag, 
                              GeomState *gs);
-        void setPreLoad(double load, int &flg);
+        void setPreLoad(std::vector<double> &load);
+        std::vector<double> getPreLoad();
 	bool isSafe() { return false; }
 	bool isStart() {return false; }
 #ifndef SALINAS

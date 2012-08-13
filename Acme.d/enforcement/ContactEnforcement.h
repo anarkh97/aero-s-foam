@@ -36,8 +36,8 @@
 
 class ContactSearch;
 class ContactTopology;
-class ContactNode;
-class ContactFace;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactFace;
 class ContactElement;
 class ContactAsymComm;
 class ContactSymComm;
@@ -111,8 +111,8 @@ class ContactEnforcement {
   int& Number_Imported_Phantom_Faces() { return num_imported_phantom_faces; };
   int& Number_Imported_Phantom_Elements() 
     { return num_imported_phantom_elements; };
-  ContactNode** Phantom_Nodes() { return phantom_nodes; };
-  ContactFace** Phantom_Faces() { return phantom_faces; };
+  ContactNode<Real>** Phantom_Nodes() { return phantom_nodes; };
+  ContactFace<Real>** Phantom_Faces() { return phantom_faces; };
   ContactElement** Phantom_Elements() { return phantom_elements; };
 
   int * Shared_Node_Export_Info() { return shared_node_export_info; };
@@ -239,8 +239,8 @@ class ContactEnforcement {
 
   ContactSearch* search;
   ContactTopology* topology;
-  ContactNode** enforcement_node_list;
-  ContactFace** enforcement_face_list;
+  ContactNode<Real>** enforcement_node_list;
+  ContactFace<Real>** enforcement_face_list;
   ContactElement** enforcement_element_list;
   ContactEnforcementData enforcement_data;
 
@@ -269,7 +269,7 @@ class ContactEnforcement {
 #ifdef CONTACT_DEBUG_NODE
   // Debug node functions
   int Number_Debug_Nodes();
-  ContactNode* Debug_Node(int i);
+  ContactNode<Real>* Debug_Node(int i);
 #endif
   ContactParOStream& ParOStream();
   ContactCommBuffer* CommBuffer();
@@ -302,7 +302,7 @@ class ContactEnforcement {
 
   // this returns the host array index for arrays that will be passed
   // back to the host codes.
-  int Get_Node_Host_Array_Index(ContactNode * node);
+  int Get_Node_Host_Array_Index(ContactNode<Real> * node);
 
   // Restart Variables
   int Number_Base_General_Restart_Variables() {return 1;};
@@ -379,8 +379,8 @@ class ContactEnforcement {
   int num_imported_phantom_faces;
   int num_imported_phantom_nodes;
   int num_imported_phantom_elements;
-  ContactNode** phantom_nodes;
-  ContactFace** phantom_faces;
+  ContactNode<Real>** phantom_nodes;
+  ContactFace<Real>** phantom_faces;
   ContactElement** phantom_elements;
 
   int count_shared_node_import;

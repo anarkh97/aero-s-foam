@@ -24,7 +24,7 @@
 #ifndef CONTACT_NO_MPI
 
 #include <mpi.h>
-#include <lbi_const.h>
+#include <zoltan.h>
 #include <zz_const.h>
 #include "Contact_Defines.h"
 #include "contact_assert.h"

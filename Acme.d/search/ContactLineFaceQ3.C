@@ -33,7 +33,7 @@
 ContactLineFaceQ3::ContactLineFaceQ3( ContactFixedSizeAllocator* alloc,
                                       int Block_Index, 
 				      int Index_in_Block, int key ) 
-  : ContactFace( alloc, ContactSearch::LINEFACEQ3,
+  : ContactFace<Real>( alloc, ContactSearch::LINEFACEQ3,
                  Block_Index, Index_in_Block ,key, 
                  nodes, edges, Node_Info, Edge_Info)
 {}
@@ -165,8 +165,8 @@ void ContactLineFaceQ3::Compute_Normal( Real** nodal_positions,
 void ContactLineFaceQ3::Compute_CharacteristicLength( VariableHandle CURRENT_POSITION,
 				                      VariableHandle CHARACTERISTIC_LENGTH )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   Real* characteristiclength = Variable(CHARACTERISTIC_LENGTH);
@@ -178,8 +178,8 @@ void ContactLineFaceQ3::Compute_CharacteristicLength( VariableHandle CURRENT_POS
 void ContactLineFaceQ3::Compute_Centroid( VariableHandle CURRENT_POSITION,
 					  VariableHandle CENTROID )
 {
-  ContactNode* node0 = Node(0);
-  ContactNode* node1 = Node(1);
+  ContactNode<Real>* node0 = Node(0);
+  ContactNode<Real>* node1 = Node(1);
   Real* Position0 = node0->Variable(CURRENT_POSITION);
   Real* Position1 = node1->Variable(CURRENT_POSITION);
   
@@ -278,10 +278,10 @@ bool ContactLineFaceQ3::Is_Inside_Face( Real* local_coords )
   return false;
 }
 
-ContactFace* ContactLineFaceQ3::Neighbor( Real* local_coords )
+ContactFace<Real>* ContactLineFaceQ3::Neighbor( Real* local_coords )
 {
   PRECONDITION( 0 );
-  return (ContactFace*) NULL;
+  return (ContactFace<Real>*) NULL;
 }
 
 void ContactLineFaceQ3::FacetDecomposition(int& nfacets, 
@@ -673,7 +673,7 @@ void ContactLineFaceQ3::Smooth_Normal( VariableHandle, VariableHandle,
 }
 
 int ContactLineFaceQ3::FaceEdge_Intersection(VariableHandle POSITION,
-                                             ContactEdge* edge, Real* coords)
+                                             ContactEdge<Real>* edge, Real* coords)
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=1
   std::cerr << "ContactLineFaceQ3::FaceEdge_Intersection not yet implemented\n";

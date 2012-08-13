@@ -30,8 +30,10 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
  StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
 
  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+ StackVector subReactions(reactions->subData(isub), reactions->subLen(isub));
+ subReactions.zero();
  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
-                      residual, lambda, 0, subRefState);
+                      residual, lambda, 0, subRefState, &subReactions);
 }
 
 double
@@ -65,6 +67,12 @@ MDNLStatic::makeSubKelArrays(int isub)
 }
 
 void
+MDNLStatic::deleteSubKelArrays(int isub)
+{
+ if(kelArray[isub]) delete [] kelArray[isub];
+}
+
+void
 MDNLStatic::makeSubCorotators(int isub)
 {
  SubDomain *sd  = decDomain->getSubDomain(isub);
@@ -72,6 +80,20 @@ MDNLStatic::makeSubCorotators(int isub)
  allCorot[isub] = new Corotator*[numele];
  sd->createCorotators(allCorot[isub]);
 }
+
+void
+MDNLStatic::deleteSubCorotators(int isub)
+{
+ SubDomain *sd = decDomain->getSubDomain(isub);
+ if(allCorot[isub]) {
+   for (int iElem = 0; iElem < sd->numElements(); ++iElem) {
+     if(allCorot[isub][iElem] && (allCorot[isub][iElem] != dynamic_cast<Corotator*>(sd->getElementSet()[iElem])))
+       delete allCorot[isub][iElem];
+   }
+   delete [] allCorot[isub];
+ }
+}
+
 
 MDNLStatic::MDNLStatic(Domain *d)
 {
@@ -84,12 +106,29 @@ MDNLStatic::MDNLStatic(Domain *d)
 #endif
  numSystems = 0;
  mu = 0; lambda = 0;
+ solver = 0;
+ kelArray = 0;
+ allCorot = 0;
+ times = 0;
+ reactions = 0;
 }
 
 MDNLStatic::~MDNLStatic()
 {
   if(mu) delete [] mu;
   if(lambda) delete [] lambda;
+  if(solver) delete solver;
+  if(times) delete times;
+  if(allCorot) {
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::deleteSubCorotators);
+    delete [] allCorot;
+  }
+  if(kelArray) {
+    execParal(decDomain->getNumSub(), this, &MDNLStatic::deleteSubKelArrays);
+    delete [] kelArray;
+  }
+  if(decDomain) delete decDomain;
+  if(reactions) delete reactions;
 }
 
 DistrInfo&
@@ -140,18 +179,13 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
  
  int converged = 0;
 
- // KHP: Charbel requested convergence be monitored based on residual only.
- // Check incremental displacement
- //if(relativeDv <= domain->solInfo().getNLInfo().tolRes)
- //  converged = 1;
-
- // Check to see if residual has converged
- if(relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc)
+ // Convergence check
+ if(iter > 0 && ((relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc) 
+    || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
   converged = 1;
 
  // Divergence check
- // if( normDv > 1000.0*firstDv || normRes > 1000.0*firstRes)
- if( normDv > 1000.0*firstDv)
+ if(iter > 0 && normRes > 10000*firstRes)
    converged = -1;
 
  // Store residual norm and dv norm for output
@@ -259,6 +293,12 @@ MDNLStatic::preProcess()
  execParal(numSub, this, &MDNLStatic::makeSubCorotators);
  times->corotatorTime += getTime();
 
+ // Allocate vector to store reaction forces
+ if(!reactions) {
+   reactions = new DistrVector(*decDomain->pbcVectorInfo());
+   reactions->zero();
+ }
+
  times->memoryPreProcess += threadManager->memoryUsed();
 
  // NOTE: count FETI memory separately from pre-process memory in
@@ -269,6 +309,12 @@ MDNLStatic::preProcess()
  GenMDDynamMat<double> allOps;
  decDomain->buildOps(allOps, 0.0, 0.0, 1.0);
  solver = allOps.sysSolver;
+ if(allOps.K) delete allOps.K;
+ if(allOps.Kuc) delete allOps.Kuc;
+ if(allOps.M) delete allOps.M;
+ if(allOps.Muc) delete allOps.Muc;
+ if(allOps.C) delete allOps.C;
+ if(allOps.Cuc) delete allOps.Cuc;
  times->getFetiSolverTime += getTime();
 
  // Make subdomain's array of stiffness matrices
@@ -354,7 +400,7 @@ MDNLStatic::staticOutput(DistrGeomState *geomState, double lambda,
 {
   startTimerMemory(times->output, times->memoryOutput);
   decDomain->postProcessing(geomState, allCorot, lambda, (SysState<GenDistrVector<double> > *) 0,
-                            (GenDistrVector<double> *) 0, refState);
+                            (GenDistrVector<double> *) 0, refState, reactions);
   stopTimerMemory(times->output, times->memoryOutput);
 }
 
@@ -379,6 +425,8 @@ MDNLStatic::printTimers()
 
   execParal(decDomain->getNumSub(), mdpp,
            &MultiDomainPostProcessor::getMemoryK, memory);
+
+  delete mdpp;
 
   long totMemK = 0;
   for(i=0; i<decDomain->getNumSub(); ++i)
@@ -407,7 +455,7 @@ MDNLStatic::printTimers()
 
   times->printTimers(domain, solver->getTimers(),
                      solver->getSolutionTime());
-		    
+
   times->timeTimers += getTime();
 }
 

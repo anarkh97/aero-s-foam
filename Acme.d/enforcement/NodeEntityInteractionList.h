@@ -35,8 +35,8 @@
 
 class ContactSearch;
 class ContactTopology;
-class ContactNode;
-class ContactFace;
+template<typename DataType> class ContactNode;
+template<typename DataType> class ContactFace;
 class ContactElement;
 class ContactAsymComm;
 class ContactSymComm;

@@ -23,7 +23,7 @@
 
 #ifndef CONTACT_NO_MPI
 
-#include "lbi_const.h"
+#include "zoltan.h"
 #include "Contact_Defines.h"
 #include "ContactZoltanID.h"
 #include <vector>

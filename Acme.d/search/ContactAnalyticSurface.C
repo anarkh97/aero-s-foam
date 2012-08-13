@@ -22,7 +22,7 @@
 
 ContactAnalyticSurface::ContactAnalyticSurface( 
     ContactSearch::AnalyticSurface_Type Type, int Host_Index, int Entity_Key )
-  : ContactTopologyEntity( 0, Host_Index, NULL, CT_ANALYTIC_SURFACE)
+  : ContactTopologyEntity<Real>( 0, Host_Index, NULL, CT_ANALYTIC_SURFACE)
 {
   type = Type;
   entity_key = Entity_Key;
@@ -32,7 +32,7 @@ ContactAnalyticSurface::ContactAnalyticSurface(
 
 ContactAnalyticSurface::ContactAnalyticSurface( 
     ContactSearch::AnalyticSurface_Type Type, int Host_Index)
-  : ContactTopologyEntity( 0, Host_Index, NULL, CT_ANALYTIC_SURFACE)
+  : ContactTopologyEntity<Real>( 0, Host_Index, NULL, CT_ANALYTIC_SURFACE)
 {
   type = Type;
   entity_key = -1;
@@ -43,7 +43,7 @@ ContactAnalyticSurface::ContactAnalyticSurface(
 ContactAnalyticSurface::ContactAnalyticSurface( 
     ContactSearch::AnalyticSurface_Type Type, 
     ContactAnalyticSurface* surf)
-  : ContactTopologyEntity( 0, surf->host_array_index, NULL, CT_ANALYTIC_SURFACE)
+  : ContactTopologyEntity<Real>( 0, surf->host_array_index, NULL, CT_ANALYTIC_SURFACE)
 {
   type = Type;
   entity_key = surf->entity_key;

@@ -39,9 +39,11 @@ extern int verboseFlag;
 
 // SDDynamPostProcessor implementation
 
-SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx,
-                                           StaticTimers *_times, GeomState *_geomState)
-{ domain = d; bcx = _bcx; vcx = _vcx; times = _times; geomState = _geomState; }
+SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
+                                           StaticTimers *_times, GeomState *_geomState,
+                                           Corotator **_allCorot, FullSquareMatrix *_melArray)
+{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; 
+  allCorot = _allCorot; melArray = _melArray; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -81,12 +83,24 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   //const double time = tIndex * domain->solInfo().getTimeStep();
   this->fillBcxVcx(time);
 
-  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
+  if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
     domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
-  }
+  } 
 
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
-                      state.getAccel(), state.getPrevVeloc(), vcx);
+                      state.getAccel(), state.getPrevVeloc(), vcx, acx);
+
+  // PJSA: need to output the stresses for nonlinear using corotator functions for some element (bt shell is an exception)
+  if(domain->solInfo().isNonLin()) {
+    int numOutInfo = geoSource->getNumOutInfo();
+    OutputInfo *oinfo = geoSource->getOutputInfo();
+    for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+      if(oinfo[iInfo].isStressOrStrain()) {
+        domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
+                                   allCorot, melArray, state.getAccel().data(), acx);
+      }
+    }
+  }
 
   stopTimerMemory(times->output, times->memoryOutput);
 }
@@ -101,7 +115,7 @@ SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f,
 
   // PJSA 4-9-08 ext_f passed here may not be for the correct time
   domain->pitaDynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
-                          state.getAccel(), state.getPrevVeloc(), vcx,
+                          state.getAccel(), state.getPrevVeloc(), vcx, acx,
                           sliceRank, time);
 
   stopTimerMemory(times->output, times->memoryOutput);
@@ -109,19 +123,26 @@ SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f,
 
 // Update bcx for time dependent prescribed displacements and velocities
 void
-SDDynamPostProcessor::fillBcxVcx(double time) {
+SDDynamPostProcessor::fillBcxVcx(double time)
+{
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
     double *userDefineDisp = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
     double *userDefineVel  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
-    userSupFunc->usd_disp(time, userDefineDisp, userDefineVel);
+    double *userDefineAcc  = (double *) dbg_alloca(sizeof(double)*claw->numUserDisp);
+    for(int i=0; i<claw->numUserDisp; ++i) {
+      userDefineVel[i] = 0;
+      userDefineAcc[i] = 0;
+    }
+    userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
     DofSetArray *dsa = domain->getDSA();
     for(int i = 0; i < claw->numUserDisp; ++i) {
       int dof = dsa->locate(claw->userDisp[i].nnum,1 << claw->userDisp[i].dofnum);
       if(dof >= 0) {
         bcx[dof] = userDefineDisp[i];
         vcx[dof] = userDefineVel[i];
+        acx[dof] = userDefineAcc[i];
       }
     }
   }
@@ -138,6 +159,9 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   geomState = 0; 
   userDefineDisp = 0;
   dprev = 0;
+  bcx = 0;
+  vcx = 0;
+  acx = 0;
 
   flExchanger = domain->getFileExchanger();
 }
@@ -145,6 +169,9 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
 SingleDomainDynamic::~SingleDomainDynamic()
 {
   if(dprev) delete dprev;
+  if(bcx) delete [] bcx;
+  if(vcx) delete [] vcx;
+  if(acx) delete [] acx;
 }
 
 //#define DEBUG_RBM_FILTER
@@ -382,9 +409,14 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
     if(claw->numUserDisp) {
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel);
-      setBC(userDefineDisp, userDefineVel);
-      delete [] userDefineDisp; delete [] userDefineVel;
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
+      setBC(userDefineDisp, userDefineVel, userDefineAcc);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numSensor) {
       double *ctrdisp = new double[claw->numSensor];
@@ -421,7 +453,7 @@ SingleDomainDynamic::extractControlData(SysState<Vector> &state, double *ctrdsp,
       if(dof2 >= 0) { // constrained
         ctrdsp[i] = bcx[dof2];
         ctrvel[i] = vcx[dof2];
-        ctracc[i] = 0.0; // XXXX prescribed acceleration not supported
+        ctracc[i] = acx[dof2];
       }
     }
   }
@@ -452,7 +484,7 @@ SingleDomainDynamic::addUserForce(Vector&f, double *userDefineForce)
 */
 
 void
-SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
+SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel, double *userDefineAcc)
 {
   // update time-dependent prescribed displacements and velocities
   DofSetArray *dsa = domain->getDSA();
@@ -461,6 +493,7 @@ SingleDomainDynamic::setBC(double *userDefineDisp, double* userDefineVel)
     if(dof >= 0) {
       bcx[dof] = userDefineDisp[i];
       vcx[dof] = userDefineVel[i];
+      acx[dof] = userDefineAcc[i];
     }
   }
 }
@@ -472,7 +505,7 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
-SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
+SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
@@ -488,6 +521,20 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      domain->updateUsddInDbc(userDefineDisp);
+      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -517,10 +564,15 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     if(claw->numUserDisp) { // USDD
       userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
-      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel);
-      setBC(userDefineDisp, userDefineVel); // update bcx, vcx
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
+      setBC(userDefineDisp, userDefineVel, userDefineAcc); // update bcx, vcx, acx
       domain->updateUsddInDbc(userDefineDisp);
-      delete [] userDefineVel;
+      delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numUserForce) { // USDF
       double *userDefineForce = new double[claw->numUserForce];
@@ -571,7 +623,11 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // add f(t) to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
-  domain->computeExtForce4(ext_f, cnst_f, t, kuc);
+  double dt = domain->solInfo().getTimeStep();
+  double alpham = domain->solInfo().newmarkAlphaM;
+  double t0 = domain->solInfo().initialTime;
+  double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
+  domain->computeExtForce4(ext_f, cnst_f, t, kuc, userSupFunc, cuc, tm, muc);
   if(userDefineDisp) delete [] userDefineDisp;
 
   // add aeroelastic forces from fluid dynamics code
@@ -622,7 +678,8 @@ SingleDomainDynamic::preProcess()
   domain->make_bc(bc, bcx);
   delete [] bc;
   vcx = new double[numdof]; 
-  for(int i=0; i<numdof; ++i) vcx[i] = 0.0;
+  acx = new double[numdof];
+  for(int i=0; i<numdof; ++i) { acx[i] = vcx[i] = 0.0; }
   times->makeBCs += getTime();
 
   times->makeDOFs -= getTime();
@@ -650,7 +707,7 @@ SingleDomainDynamic::preProcess()
     // for nonlinear explicit we only need to initialize geomState with the constant constrained displacements (DISP).
     // the geomState is always updated before use with the current unconstrained displacments plus any time-dependent constrained displacements (USDD)
     if(domain->nDirichlet() > 0) { 
-      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet()); 
+      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet(), domain->getNodes()); 
     }
   }
 
@@ -687,17 +744,17 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  allOps.Muc = domain->constructCuCSparse<double>();
  allOps.Kuc = domain->constructCuCSparse<double>();
  allOps.Mcc = domain->constructCCSparse<double>();
+ allOps.Kcc = domain->constructCCSparse<double>();
 
  // Rayleigh Damping coefficients
  double alpha = domain->solInfo().alphaDamp;
  double beta  = domain->solInfo().betaDamp;
 
  // Damping Matrix: C = alpha*M + beta*K + D
- // note #1: for explicit central difference time integration (newmarkBeta = 0.0) rayleigh mass damping is embedded
- //          and therefore it is not necessary to assemble the C matrix.
- if((alpha != 0.0 && domain->solInfo().newmarkBeta != 0.0) || beta != 0.0 || domain->solInfo().ATDARBFlag != -2.0) {
+ if(alpha != 0.0 || beta != 0.0 || domain->getElementSet().hasDamping() || domain->solInfo().ATDARBFlag != -2.0) {
    allOps.C   = domain->constructDBSparseMatrix<double>();
    allOps.Cuc = domain->constructCuCSparse<double>();
+   allOps.Ccc = domain->constructCCSparse<double>();
  }
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
@@ -765,18 +822,19 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    modeDecompPreProcess(allOps.M);
  }
 
- dMat->K      = allOps.K;
- dMat->M      = allOps.M;
- dMat->C      = allOps.C;
- dMat->Cuc    = allOps.Cuc;
- dMat->Muc    = allOps.Muc;
- dMat->Mcc    = allOps.Mcc;
- kuc          = allOps.Kuc;
- dMat->kuc    = allOps.Kuc;
- dMat->dynMat = allOps.sysSolver;
+ dMat->K         = allOps.K;
+ dMat->M         = allOps.M;
+ dMat->C         = allOps.C;
+ cuc = dMat->Cuc = allOps.Cuc;
+ dMat->Ccc       = allOps.Ccc;
+ muc = dMat->Muc = allOps.Muc;
+ dMat->Mcc       = allOps.Mcc;
+ kuc = dMat->Kuc = allOps.Kuc;
+ dMat->Kcc       = allOps.Kcc;
+ dMat->dynMat    = allOps.sysSolver;
  if(dMat->Msolver) { if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n"); dMat->Msolver->factor(); }
 
- if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M); 
+ if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M, allOps.Mcc); 
 
  return dMat;
 }
@@ -884,7 +942,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain, bcx, vcx, times, geomState);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState, allCorot, melArray);
 }
 
 void
@@ -905,90 +963,61 @@ SingleDomainDynamic::printTimers(DynamMat *dynamMat, double timeLoop)
 
 }
 
+/*
 void
-SingleDomainDynamic::addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc,
-                                     Vector& dnc, Vector& vnc, Vector& anc,
-                                     Vector& result, double t, double *pt_dt)
+SingleDomainDynamic::getPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& vnc,
+                                     Vector& anc, Vector& result, double tm, double tf)
 {
+  result.zero();
 
- double dt    = domain->solInfo().getTimeStep();
- double beta  = domain->solInfo().newmarkBeta;
- double gamma = domain->solInfo().newmarkGamma;
+  if( claw && userSupFunc ) {
 
- // Compute acceleration at constrained degrees of freedom
- anc *= (1.0 - 1.0/(2.0*beta));
- anc.linAdd( -(1.0/(dt*dt*beta)), dnc, -(1.0/(dt*beta)), vnc );
+    double *userDefineDisp = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+    double *userDefineVel  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+    double *userDefineAcc  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
 
- // prescribed displacement boundary conditions at half time step
- Vector dn_h(dnc);
+    for(int i = 0; i < claw->numUserDisp; ++i) {
+      userDefineVel[i] = 0;
+      userDefineAcc[i] = 0;
+    }
+    userSupFunc->usd_disp( tm, userDefineDisp, userDefineVel, userDefineAcc );
 
- double *userDefineDisp = 0;
- double *userDefineVel  = 0;
+    anc.zero();
+    for(int i=0; i<claw->numUserDisp; ++i) {
+      int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
+                                          1 << claw->userDisp[i].dofnum );
+      if(dof < 0) continue;
+      int dof1 = domain->getCDSA()->invRCN( dof );
+      if(dof1 >= 0) {
+        anc[dof1] = userDefineAcc[i];
+      }
+    }
 
- int i;
- if( claw && userSupFunc ) {
+    Muc->multSubtract(anc.data(), result.data()); // fu -= Muc * a_c^{n+1-alpha_m}
 
-   userDefineDisp = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+    if(Cuc) {
 
-   userDefineVel  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
+      for(int i = 0; i < claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp( tf, userDefineDisp, userDefineVel, userDefineAcc );
 
-   userSupFunc->usd_disp( t+dt/2.0, userDefineDisp, userDefineVel );
+      vnc.zero();
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
+                                            1 << claw->userDisp[i].dofnum );
+        if(dof < 0) continue;
+        int dof1 = domain->getCDSA()->invRCN( dof );
+        if(dof1 >= 0)
+          vnc[dof1] = userDefineVel[i];
+      }
 
-   for(i=0; i<claw->numUserDisp; ++i) {
-     int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
-                                         1 << claw->userDisp[i].dofnum );
-     if(dof < 0) continue;
-     int dof1 = domain->getCDSA()->invRCN( dof );
-     if(dof1 >= 0)
-       dn_h[dof1] = userDefineDisp[i];
-   }
-
-   userSupFunc->usd_disp( t, userDefineDisp, userDefineVel );
-
-   for(i=0; i<claw->numUserDisp; ++i) {
-     int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
-                                         1 << claw->userDisp[i].dofnum );
-     if(dof < 0) continue;
-     int dof1 = domain->getCDSA()->invRCN( dof );
-     if(dof1 >= 0) {
-       dnc[dof1] = userDefineDisp[i];
-       vnc[dof1] = userDefineVel[i];
-     }
-   }
-  
- }
-
- // update acceleration at constrained points
- anc.linAdd( 1.0/(dt*dt*beta), dnc );
-
- Vector dis( dnc );
-
- // dis = dnc + 0.5*dt*vnc + dt*dt*(0.25 - beta)*anc
- dis.linAdd( 0.5*dt, vnc, dt*dt*(0.25 - beta), anc);
- 
- Muc->mult( dis, result );
-
- // Viscous Damping Matrix contributions
-
- if( Cuc ) {
-
-   // dis = (dt*gamma) * dnc - (dt*dt*(beta - 0.5*gamma)) * vnc 
-   //         - (dt*dt*dt*(0.5*beta - 0.25*gamma)) * anc
-   //         - (dt*gamma) * dn_h
-
-   dis.linC( dt*gamma, dnc, -(dt*dt*(beta - 0.5*gamma)), vnc );
-
-   dis.linAdd( -(dt*dt*dt*(0.5*beta - 0.25*gamma)), anc );
-
-   dis.linAdd( -dt*gamma, dn_h );
-
-   dis *= -1.0;
-
-   Cuc->mult( dis, result );
-
- }
-
+      Cuc->multSubtract(vnc.data(), result.data()); // fu -= Cuc * v_c^{n+1-alpha_f}
+    }
+  }
 }
+*/
 
 double
 SingleDomainDynamic::betaDamp() const {

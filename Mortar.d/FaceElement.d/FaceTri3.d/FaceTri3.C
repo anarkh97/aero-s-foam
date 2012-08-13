@@ -155,6 +155,7 @@ FaceTri3::GetACMEFFIFaceElemType() { return GetACMEFaceElemType(); }
 int
 FaceTri3::GetACMEFFIFaceElemType() { return GetACMEFaceElemType(); }
 #endif
+
 // -----------------------------------------------------------------------------------------------------
 //                                      MAPPING & SHAPE FUNCTION METHODS 
 // -----------------------------------------------------------------------------------------------------
@@ -162,84 +163,16 @@ FaceTri3::GetACMEFFIFaceElemType() { return GetACMEFaceElemType(); }
 void
 FaceTri3::LocalToGlobalCoord(double *M, double *m, CoordSet &cs)
 {
-   Node &nd1 = cs.getNode(Nodes[0]);
-   Node &nd2 = cs.getNode(Nodes[1]);
-   Node &nd3 = cs.getNode(Nodes[2]);
-
-   double r = m[0];
-   double s = m[1];
-   double t = 1.-r-s; 
-
-   double X[3], Y[3], Z[3];
-   X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-   X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-   X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-
-   //M[0] = t*X[0]+r*X[1]+s*X[2];
-   //M[1] = t*Y[0]+r*Y[1]+s*Y[2];
-   //M[2] = t*Z[0]+r*Z[1]+s*Z[2];
-   // !! idem ACME !!
-   M[0] = r*X[0]+s*X[1]+t*X[2];
-   M[1] = r*Y[0]+s*Y[1]+t*Y[2];
-   M[2] = r*Z[0]+s*Z[1]+t*Z[2];
+  return LocalToGlobalCoordTemp(M, m, cs);
 }
 
-void 
-FaceTri3::GetShapeFct(double *Shape, double *m)
-{
-   double r = m[0];
-   double s = m[1];
-   double t = 1.-r-s; 
-
-   //Shape[0] = t;
-   //Shape[1] = r;
-   //Shape[2] = s;
-   // !! idem ACME !! 
-   Shape[0] = r;
-   Shape[1] = s;
-   Shape[2] = t;
-}
-
+#if (MAX_MORTAR_DERIVATIVES > 0)
 void
-FaceTri3::GetdShapeFct(double* dShapex, double* dShapey, double* m)
+FaceTri3::LocalToGlobalCoord(ActiveDouble *M, ActiveDouble *m, MadCoordSet &cs)
 {
-  double x = m[0];
-  double y = m[1];
-
-  dShapex[0] = 1;
-  dShapex[1] = 0;
-  dShapex[2] = -1;
-
-  dShapey[0] = 0;
-  dShapey[1] = 1;
-  dShapey[2] = -1;
+  return LocalToGlobalCoordTemp(M, m, cs);
 }
-
-void
-FaceTri3::ComputedMdxAnddMdy(double *dMdx, double *dMdy, double *m, CoordSet &cs)
-{
-  // Compute shape functions' derivatives w.r.t. the local coordinates
-  double dShapex[3], dShapey[3];
-  GetdShapeFct(dShapex, dShapey, m);
-
-  // Compute dM/dx & dM/dy
-  Node &nd1 = cs.getNode(Nodes[0]);
-  Node &nd2 = cs.getNode(Nodes[1]);
-  Node &nd3 = cs.getNode(Nodes[2]);
-
-  double X[3], Y[3], Z[3];
-  X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-  X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-  X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-
-  dMdx[0] = dShapex[0]*X[0] + dShapex[1]*X[1] + dShapex[2]*X[2];
-  dMdx[1] = dShapex[0]*Y[0] + dShapex[1]*Y[1] + dShapex[2]*Y[2];
-  dMdx[2] = dShapex[0]*Z[0] + dShapex[1]*Z[1] + dShapex[2]*Z[2];
-
-  dMdy[0] = dShapey[0]*X[0] + dShapey[1]*X[1] + dShapey[2]*X[2];
-  dMdy[1] = dShapey[0]*Y[0] + dShapey[1]*Y[1] + dShapey[2]*Y[2];
-  dMdy[2] = dShapey[0]*Z[0] + dShapey[1]*Z[1] + dShapey[2]*Z[2];
-}
+#endif
 
 void 
 FaceTri3::GetShapeFctVal(double *Shape, double *m)
@@ -247,88 +180,51 @@ FaceTri3::GetShapeFctVal(double *Shape, double *m)
    GetShapeFct(Shape, m);
 }
 
-double
-FaceTri3::GetShapeFctAndJacobian(double *Shape, double *m, CoordSet &cs)
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+FaceTri3::GetShapeFctVal(ActiveDouble *Shape, ActiveDouble *m)
 {
-   double r = m[0];
-   double s = m[1];
-   double t = 1.-r-s; 
-
-   //Shape[0] = t;
-   //Shape[1] = r;
-   //Shape[2] = s;
-   // !! idem ACME !! 
-   Shape[0] = r;
-   Shape[1] = s;
-   Shape[2] = t;
-
-   return(GetJacobian(cs));
+   GetShapeFct(Shape, m);
 }
+#endif
 
 double
 FaceTri3::GetJacobian(double *m, CoordSet &cs)
 {
-   return(GetJacobian(cs));
-}
-
-double
-FaceTri3::GetJacobian(CoordSet &cs)
-{
-   // J = 2*Area = ||12 x 13||
-   Node &nd1 = cs.getNode(Nodes[0]);
-   Node &nd2 = cs.getNode(Nodes[1]);
-   Node &nd3 = cs.getNode(Nodes[2]);
-
-   double X[3], Y[3], Z[3];
-   X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-   X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-   X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-
-   double V12[3], V13[3];
-   V12[0] = X[1]-X[0]; V12[1] = Y[1]-Y[0]; V12[2] = Z[1]-Z[0];
-   V13[0] = X[2]-X[0]; V13[1] = Y[2]-Y[0]; V13[2] = Z[2]-Z[0];
-
-   double N[3];
-   N[0] = V12[1]*V13[2] - V12[2]*V13[1];
-   N[1] = V12[2]*V13[0] - V12[0]*V13[2];
-   N[2] = V12[0]*V13[1] - V12[1]*V13[0];
-
-   return(sqrt(N[0]*N[0]+N[1]*N[1]+N[2]*N[2]));
+   return(GetJacobian<double,CoordSet>(cs));
 }
 
 double
 FaceTri3::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordSet &cs)
 {
-   // J = 2*Area = ||12 x 13||
-   Node &nd1 = cs.getNode(Nodes[0]);
-   Node &nd2 = cs.getNode(Nodes[1]);
-   Node &nd3 = cs.getNode(Nodes[2]);
-
-   double X[3], Y[3], Z[3];
-   X[0] = nd1.x; Y[0] = nd1.y; Z[0] = nd1.z;
-   X[1] = nd2.x; Y[1] = nd2.y; Z[1] = nd2.z;
-   X[2] = nd3.x; Y[2] = nd3.y; Z[2] = nd3.z;
-
-   double V12[3], V13[3];
-   V12[0] = X[1]-X[0]; V12[1] = Y[1]-Y[0]; V12[2] = Z[1]-Z[0];
-   V13[0] = X[2]-X[0]; V13[1] = Y[2]-Y[0]; V13[2] = Z[2]-Z[0];
-
-   Normal[0] = V12[1]*V13[2] - V12[2]*V13[1];
-   Normal[1] = V12[2]*V13[0] - V12[0]*V13[2];
-   Normal[2] = V12[0]*V13[1] - V12[1]*V13[0];
+   GetIsoParamMappingNormalJacobianProduct(Normal, m, cs);
 
    double NormN = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
    
    if(NormN!=0.0){
-      Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
+     Normal[0] /= NormN; Normal[1] /= NormN; Normal[2] /= NormN;
    }
    return(NormN); // !! A CONTROLER !! 
 }
 
 void
-FaceTri3::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
+FaceTri3::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, CoordSet &cs)
 {
-  // This function computes dNormal which is the Jacobian (matrix) of the Normal multiplied by the verticies' coordinates
+   GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+}
+
+#if (MAX_MORTAR_DERIVATIVES > 0)
+void
+FaceTri3::GetIsoParamMappingNormalJacobianProduct(ActiveDouble *JNormal, ActiveDouble *m, MadCoordSet &cs)
+{
+   GetIsoParamMappingNormalJacobianProductTemp(JNormal, m, cs);
+}
+#endif
+
+void
+FaceTri3::GetdJNormal(double dJNormal[][3], double* m, CoordSet& cs)
+{
+  // This function computes dJNormal which is the Jacobian (matrix) of J times the unit normal 
   // It is used to compute the gradient of the gap function
 
   // Compute shape functions' derivatives w.r.t. the local coordinates
@@ -339,23 +235,54 @@ FaceTri3::GetdNormal(double dNormal[][3], double* m, CoordSet& cs)
   double dMdx[3], dMdy[3];
   ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
 
-  // Compute dNormal
+  // Compute dJNormal
   for(int i = 0; i < 3; ++ i) {
-    dNormal[3*i  ][0] = 0;
-    dNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
-    dNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
-    dNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
-    dNormal[3*i+1][1] = 0;
-    dNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
-    dNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
-    dNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
-    dNormal[3*i+2][2] = 0;
+    dJNormal[3*i  ][0] = 0;
+    dJNormal[3*i  ][1] = dMdx[2]*dShapey[i] - dShapex[i]*dMdy[2];
+    dJNormal[3*i  ][2] = dShapex[i]*dMdy[1] - dMdx[1]*dShapey[i];
+    dJNormal[3*i+1][0] = dShapex[i]*dMdy[2] - dMdx[2]*dShapey[i];
+    dJNormal[3*i+1][1] = 0;
+    dJNormal[3*i+1][2] = dMdx[0]*dShapey[i] - dShapex[i]*dMdy[0];
+    dJNormal[3*i+2][0] = dMdx[1]*dShapey[i] - dShapex[i]*dMdy[1];
+    dJNormal[3*i+2][1] = dShapex[i]*dMdy[0] - dMdx[0]*dShapey[i];
+    dJNormal[3*i+2][2] = 0;
   }
-  //std::cerr << "dNormal[][0] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][0] << " "; std::cerr << std::endl;
-  //std::cerr << "dNormal[][1] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][1] << " "; std::cerr << std::endl;
-  //std::cerr << "dNormal[][2] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][2] << " "; std::cerr << std::endl;
-}
+/*
 
+//  std::cerr << "dNormal[][0] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][0] << " "; std::cerr << std::endl;
+//  std::cerr << "dNormal[][1] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][1] << " "; std::cerr << std::endl;
+//  std::cerr << "dNormal[][2] = "; for(int i=0; i<9; ++i) std::cerr << dNormal[i][2] << " "; std::cerr << std::endl;
+
+  Node &nd1 = cs.getNode(Nodes[0]);
+  Node &nd2 = cs.getNode(Nodes[1]);
+  Node &nd3 = cs.getNode(Nodes[2]);
+
+  double x1,y1,z1,x2,y2,z2,x3,y3,z3;
+  x1 = nd1.x; y1 = nd1.y; z1 = nd1.z;
+  x2 = nd2.x; y2 = nd2.y; z2 = nd2.z;
+  x3 = nd3.x; y3 = nd3.y; z3 = nd3.z;
+
+//  This is an alternative expression for dJNormal
+//  double dN0[9][3] = {
+//    {       0, z3 - z2, y2 - y3},
+//    { z2 - z3,       0, x3 - x2},
+//    { y3 - y2, x2 - x3,       0},
+//    {       0, z1 - z3, y3 - y1},
+//    { z3 - z1,       0, x1 - x3},
+//    { y1 - y3, x3 - x1,       0},
+//    {       0, z2 - z1, y1 - y2},
+//    { z1 - z2,       0, x2 - x1},
+//    { y2 - y1, x1 - x2,       0} };
+
+//  std::cerr << "dN0[][0] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][0] << " "; std::cerr << std::endl;
+//  std::cerr << "dN0[][1] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][1] << " "; std::cerr << std::endl;
+//  std::cerr << "dN0[][2] =     "; for(int i=0; i<9; ++i) std::cerr << dN0[i][2] << " "; std::cerr << std::endl;
+
+  for(int i=0;i<9;++i)
+    for(int j=0;j<3;++j)
+      dJNormal[i][j] = dN0[i][j];
+*/
+}
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
@@ -375,7 +302,7 @@ FaceTri3::ScalarMass(CoordSet &cs, double rho, int ngp)
 {
    FullM Mass;
    Mass.zero();
-   double Area = 0.5*GetJacobian(cs);
+   double Area = 0.5*GetJacobian<double,CoordSet>(cs);
    Area *= rho/24;
    Mass[0][0] = 2.*Area; Mass[0][1] =    Area; Mass[0][1] =    Area;
    Mass[1][0] =    Area; Mass[1][1] = 2.*Area; Mass[1][1] =    Area;
@@ -387,7 +314,7 @@ FaceTri3::ScalarMass(CoordSet &cs, double rho, int ngp)
 void 
 FaceTri3::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int ngp)
 {
-   double Area = 0.5*GetJacobian(cs);
+   double Area = 0.5*GetJacobian<double,CoordSet>(cs);
    Area *= rho/6;
    ShapeIntg[0] = Area;
    ShapeIntg[1] = Area;

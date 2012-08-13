@@ -60,13 +60,13 @@ public:
   
   void getConstForce(GenVector<double> &constantForce) const;
   void getExternalForce(GenVector<double> &externalForce, const GenVector<double> &constantForce, int tIndex, double time,
-                        const GeomState *geomState, GenVector<double> &elementInternalForce, const GenVector<double> &aeroF) const;
+                        const GeomState *geomState, GenVector<double> &elementInternalForce, const GenVector<double> &aeroF, double delta) const;
   
   // Form element stiffness matrices and return the residual force = external - internal forces
   double getStiffAndForce(GeomState &geomState, GenVector<double> &residual, GenVector<double> &elementInternalForce, double midtime, GeomState *refState);
 
   // Assemble new dynamic stiffness matrix
-  void reBuild(GeomState& geomState, int iter, double delta);
+  void reBuild(GeomState& geomState, int iter, double delta, double t);
 
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs); // dummy
   void formRHSinitializer(GenVector<double> &fext, GenVector<double> &velocity, GenVector<double> &elementInternalForce, GeomState &geomState, GenVector<double> &rhs, GeomState *refState);
@@ -75,7 +75,8 @@ public:
   int checkConvergence(int iter, double rN, GenVector<double> &residual, GenVector<double> &dv, double time);
 
   void dynamOutput(GeomState *geomState, GenVector<double> &velocity, GenVector<double> &vp,
-                   double time, int timestep, GenVector<double> &force, GenVector<double> &aeroF, GenVector<double> &acceleration);
+                   double time, int timestep, GenVector<double> &force, GenVector<double> &aeroF, GenVector<double> &acceleration,
+                   GeomState *refState);
   void processLastOutput();
   
   void dynamCommToFluid(GeomState *geomState, GeomState *bkGeomState,
@@ -84,6 +85,8 @@ public:
                         int step, int parity, int aeroAlg);
   
   void printTimers(double timeLoop);
+
+  double getResidualNorm(GenVector<double> &res, GeomState &, double) { return res.norm(); }
 
 private:
   int fullSolVecInfo() const;

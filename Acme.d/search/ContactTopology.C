@@ -82,7 +82,6 @@
 //temporary include
 #include "mpi.h"
 #include "zoltan.h"
-#include "lbi_const.h"
 #include "ContactZoltan.h"
 #include "ContactZoltanComm.h"
 #include "ContactZoltanCommUtils.h"
@@ -384,7 +383,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
                                            host_ids,
 					   &node_entity_types[number_of_nodes],
 					   this );
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     node_blocks[i]->NodeList()->IteratorStart();
     while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
       entity->HostGlobalArrayIndex(entity->HostArrayIndex()+offset);
@@ -399,8 +398,8 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
                                no_parallel_consistency==ContactSearch::INACTIVE);
   number_of_nodes = node_list->NumEntities();
   number_of_primary_nodes = node_list->NumEntities();
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->OwnerProcArrayIndex(Nodes[i]->ProcArrayIndex());
     Nodes[i]->PrimaryProcArrayIndex(Nodes[i]->ProcArrayIndex());
@@ -410,7 +409,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
   // Set the entity key for nodes in block 1 if needed
   if (number_of_element_blocks + number_of_face_blocks == 0) {
     int nnodes = node_list->BlockNumEntities(0);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(0));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(0));
     for (int j=0; j<nnodes; ++j) {
       nodes[j]->Entity_Key( 0 );
     }
@@ -420,7 +419,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
   for( i=1 ; i<number_of_node_blocks ; ++i ){
     int entity_key = base_key + (i-1);
     int nnodes = node_list->BlockNumEntities(i);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
     for (int j=0; j<nnodes; ++j) {
       nodes[j]->Entity_Key( entity_key );
     }
@@ -440,7 +439,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
 #if CONTACT_DEBUG_PRINT_LEVEL>=5
     int* fconn = face_connectivity;
 #endif
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     offset      = 0;
     host_ids    = (int*)global_face_ids;
     face_blocks = new ContactFaceBlock*[number_face_blocks];
@@ -479,8 +478,8 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
                                  no_parallel_consistency==ContactSearch::INACTIVE);
     number_of_faces = face_list->NumEntities();
     number_of_primary_faces = face_list->NumEntities();
-    ContactFace** Faces = 
-      reinterpret_cast<ContactFace**>(face_list->EntityList());
+    ContactFace<Real>** Faces = 
+      reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
     for (i=0; i<number_of_faces; ++i) {
       Faces[i]->OwnerProcArrayIndex(Faces[i]->ProcArrayIndex());
       Faces[i]->PrimaryProcArrayIndex(Faces[i]->ProcArrayIndex());
@@ -492,12 +491,12 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
     for( i=0 ; i<number_of_face_blocks ; ++i ){
       face_blocks[i]->FaceList()->IteratorStart();
       while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
-        ContactFace* face = static_cast<ContactFace*>(entity);
+        ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         for( k=0 ; k<face->Nodes_Per_Face() ; ++k ){
           int n = face_connectivity[index++]-1; // -1 Fortran->C
           ContactHostGlobalID global_id( global_node_ids[2*n+0], 
                                          global_node_ids[2*n+1] );
-          ContactNode* node = static_cast<ContactNode*>(node_list->Find(global_id));
+          ContactNode<Real>* node = static_cast<ContactNode<Real>*>(node_list->Find(global_id));
           PRECONDITION( node );
           face->ConnectNode(k, node);
         }
@@ -517,7 +516,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
 #if CONTACT_DEBUG_PRINT_LEVEL>=5
     const int* econn = element_connectivity;
 #endif
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     offset         = 0;
     host_ids       = (int*)global_element_ids;
     element_blocks = new ContactElementBlock*[number_element_blocks];
@@ -574,7 +573,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
           int n = element_connectivity[index++]-1; // -1 Fortran->C
           ContactHostGlobalID global_id( global_node_ids[2*n+0], 
                                          global_node_ids[2*n+1] );
-          ContactNode* node = static_cast<ContactNode*>(node_list->Find(global_id));
+          ContactNode<Real>* node = static_cast<ContactNode<Real>*>(node_list->Find(global_id));
           PRECONDITION( node );
           element->ConnectNode(k, node);
         }
@@ -621,15 +620,15 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
   int num_node_comm_ent = 0;
   for( i=0 ; i<number_comm_partners ; ++i )
     num_node_comm_ent += number_nodes_to_partner[i];
-  ContactTopologyEntity** node_ent_comm_list = NULL;
+  ContactTopologyEntity<Real>** node_ent_comm_list = NULL;
   if( num_node_comm_ent ){
-    node_ent_comm_list = new ContactTopologyEntity*[num_node_comm_ent];
+    node_ent_comm_list = new ContactTopologyEntity<Real>*[num_node_comm_ent];
     for( i=0 ; i<num_node_comm_ent ; ++i ) {
       int index = comm_nodes[i]-1;
       int base  = 2*index;
       ContactHostGlobalID global_id( global_node_ids[base+0], 
                                      global_node_ids[base+1] );
-      ContactNode* node = static_cast<ContactNode*>(node_list->Find(global_id));
+      ContactNode<Real>* node = static_cast<ContactNode<Real>*>(node_list->Find(global_id));
       POSTCONDITION(node);
       node_ent_comm_list[i] = node;
       node->Shared(true);
@@ -680,7 +679,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
   contact_swap_edge_faces(SearchComm, *Edge_SymComm, *comm_buffer);
 #endif
 
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->SetNeighborFacesInfo();
   }
@@ -991,15 +990,15 @@ ContactSearch::ContactErrorCode ContactTopology::Add_Debug_Node( int exodus_id )
   // See if I have this node
   // NOTE -- assuming max of 100 shells nodes created from this one
   //         host code node
-  ContactNode* new_debug_nodes[100];
+  ContactNode<Real>* new_debug_nodes[100];
   for ( int i= 0; i < 100; ++i) new_debug_nodes[i] = NULL;
   int owning_proc = -1;
   int on_processor_id = -1;
   int num_debug_acme_nodes = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     bool found_debug_node = false;
     if ( node->Is_a_Shell_Node() ) {
       if( (static_cast<ContactShellNode*>(node))->Shell_Node_Base_ID() 
@@ -1056,9 +1055,9 @@ ContactSearch::ContactErrorCode ContactTopology::Add_Debug_Node( int exodus_id )
     std::memcpy( debug_node_global_ids, old_gids, 
 	    number_debug_nodes*sizeof(ContactGlobalID*) );
     delete [] old_gids;
-    ContactNode** old_nodes = debug_nodes;
-    debug_nodes = new ContactNode*[number_debug_nodes+num_debug_acme_nodes];
-    std::memcpy( debug_nodes, old_nodes, number_debug_nodes*sizeof(ContactNode*) );
+    ContactNode<Real>** old_nodes = debug_nodes;
+    debug_nodes = new ContactNode<Real>*[number_debug_nodes+num_debug_acme_nodes];
+    std::memcpy( debug_nodes, old_nodes, number_debug_nodes*sizeof(ContactNode<Real>*) );
     delete [] old_nodes;
     int* old_ids = debug_node_exodus_ids;
     debug_node_exodus_ids = new int[number_debug_nodes+num_debug_acme_nodes];
@@ -1066,7 +1065,7 @@ ContactSearch::ContactErrorCode ContactTopology::Add_Debug_Node( int exodus_id )
     delete [] old_ids;
   } else {
     debug_node_global_ids = new ContactHostGlobalID*[num_debug_acme_nodes];
-    debug_nodes = new ContactNode*[num_debug_acme_nodes];
+    debug_nodes = new ContactNode<Real>*[num_debug_acme_nodes];
     debug_node_exodus_ids = new int[num_debug_acme_nodes];
   }
   for ( int i = 0; i < num_debug_acme_nodes; ++i ) {
@@ -1079,7 +1078,7 @@ ContactSearch::ContactErrorCode ContactTopology::Add_Debug_Node( int exodus_id )
   return ContactSearch::NO_ERROR;
 }
 
-bool ContactTopology::Is_a_Debug_Node( ContactNode* node )
+bool ContactTopology::Is_a_Debug_Node( ContactNode<Real>* node )
 {
 #ifdef CONTACT_DEBUG_NODE
   for( int i=0 ; i<number_debug_nodes ; ++i ){
@@ -1121,7 +1120,7 @@ void ContactTopology::Display_Debug_Nodes( ContactParOStream& postream )
     for( j=0 ; j<number_debug_nodes ; ++j ){
       if( debug_node_global_ids[j]->HiInt() == 
 	  contact_processor_number( SearchComm ) ) {
-	ContactNode* debug_node = debug_nodes[j];
+	ContactNode<Real>* debug_node = debug_nodes[j];
 	PRECONDITION( debug_node );
 	Real* cur0 = debug_node->Variable(CURRENT_POSITION);
 	postream << "\nDebug Information for Node ( host id:" 
@@ -1225,7 +1224,7 @@ void ContactTopology::Add_Analytic_Surface( ContactAnalyticSurface* surface )
 {
   // Add the new surface
   int my_proc   = contact_processor_number(SearchComm);
-  surface->Ownership(ContactTopologyEntity::OWNED);
+  surface->Ownership(ContactTopologyEntity<Real>::OWNED);
   surface->Owner(my_proc);
   surface->Secondary_Owner(my_proc);
 
@@ -1261,9 +1260,9 @@ ContactTopology::Set_NodeBlk_RemainingGap( int id,
   } else {
     // Note that the ID is in fortran numbering so decrement by 1
     int nnodes = primary_node_list->BlockNumEntities(id-1);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
     for (int i=0; i<nnodes; ++i) {
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       int index = node->HostArrayIndex();
       Real* remaining_gap = node->Variable(REMAINING_GAP);
       for( int j=0 ; j<dimensionality ; ++j ) {
@@ -1289,9 +1288,9 @@ ContactTopology::Set_NodeBlk_GhostingGap( int id,
   } else {
     // Note that the ID is in fortran numbering so decrement by 1
     int nnodes = primary_node_list->BlockNumEntities(id-1);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
     for (int i=0; i<nnodes; ++i) {
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       int index = node->HostArrayIndex();
       Real* ghosting_gap = node->Variable(NODE_GHOST_GAP);
       for( int j=0 ; j<dimensionality ; ++j ) {
@@ -1318,9 +1317,9 @@ ContactTopology::Set_NodeBlk_KinConstr( int id, const int* num_kcs,
   } else {
     // Note that the ID is in fortran numbering so decrement by 1
     int nnodes = primary_node_list->BlockNumEntities(id-1);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
     for (int i=0; i<nnodes; ++i) {
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       int index = node->HostArrayIndex();
       Real* num_kc = node->Variable(NUM_KIN_CONSTR);
       num_kc[0] = num_kcs[index];
@@ -1352,9 +1351,9 @@ ContactTopology::Set_NodeBlk_Positions( int id, const Real* positions )
 #endif
     // Note that the ID is in fortran numbering so decrement by 1
     int nnodes = primary_node_list->BlockNumEntities(id-1);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
     for (int i=0; i<nnodes; ++i) {
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       int index = node->HostArrayIndex();
       Real* position = node->Variable(CURRENT_POSITION);
       for( int j=0 ; j<dimensionality ; ++j ) {
@@ -1395,9 +1394,9 @@ ContactTopology::Set_NodeBlk_Positions_2( int id, const Real* positions )
 #endif
     // Note that the ID is in fortran numbering so decrement by 1
     int nnodes = primary_node_list->BlockNumEntities(id-1);
-    ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+    ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
     for (int i=0; i<nnodes; ++i) {
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       int index = node->HostArrayIndex();
       Real* position = node->Variable(PREDICTED_POSITION);
       for( int j=0 ; j<dimensionality ; ++j ) {
@@ -1447,9 +1446,9 @@ ContactTopology::Set_NodeBlk_Attributes(
       Real rmax = 0.0;
       // Note that the ID is in fortran numbering so decrement by 1
       int nnodes = primary_node_list->BlockNumEntities(id-1);
-      ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+      ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
       for (int i=0; i<nnodes; ++i) {
-        ContactNode* node = nodes[i];
+        ContactNode<Real>* node = nodes[i];
         int index = node->HostArrayIndex();
         Real* attribute = node->Variable(NODE_RADIUS);
         *attribute = attributes[index];
@@ -1471,9 +1470,9 @@ ContactTopology::Set_NodeBlk_Attributes(
 #endif
       // Note that the ID is in fortran numbering so decrement by 1
       int nnodes = primary_node_list->BlockNumEntities(id-1);
-      ContactNode** nodes = reinterpret_cast<ContactNode**>(primary_node_list->BlockEntityList(id-1));
+      ContactNode<Real>** nodes = reinterpret_cast<ContactNode<Real>**>(primary_node_list->BlockEntityList(id-1));
       for (int i=0; i<nnodes; ++i) {
-        ContactNode* node = nodes[i];
+        ContactNode<Real>* node = nodes[i];
         int index = node->HostArrayIndex();
         Real* attribute = node->Variable(NODE_NORMAL);
         for( int j=0 ; j<dimensionality ; ++j ) {
@@ -1523,7 +1522,7 @@ ContactTopology::Set_FaceBlk_Attributes(
   int i;
   ContactFaceBlock* block = face_blocks[id-1];
   int nfaces = primary_face_list->BlockNumEntities(id-1);
-  ContactFace** faces  = reinterpret_cast<ContactFace**>(primary_face_list->BlockEntityList(id-1));
+  ContactFace<Real>** faces  = reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(id-1));
   switch( attr ){
   case ContactSearch::SHELL_THICKNESS:{
     if( nfaces ){
@@ -1532,16 +1531,16 @@ ContactTopology::Set_FaceBlk_Attributes(
       switch( block->Type() ){
       case( ContactSearch::SHELLQUADFACEL4 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellQuadFaceL4* face = 
-            static_cast<ContactShellQuadFaceL4*>(faces[i]);
+	  ContactShellQuadFaceL4<Real>* face = 
+            static_cast<ContactShellQuadFaceL4<Real>*>(faces[i]);
 	  face->Thickness( attributes[face->HostArrayIndex()] );
 	}
 	break;
       }
       case( ContactSearch::SHELLTRIFACEL3 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellTriFaceL3* face = 
-            static_cast<ContactShellTriFaceL3*>(faces[i]);
+	  ContactShellTriFaceL3<Real>* face = 
+            static_cast<ContactShellTriFaceL3<Real>*>(faces[i]);
 	  face->Thickness( attributes[face->HostArrayIndex()] );
 	}
 	break;
@@ -1560,16 +1559,16 @@ ContactTopology::Set_FaceBlk_Attributes(
       switch( block->Type() ){
       case( ContactSearch::SHELLQUADFACEL4 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellQuadFaceL4* face = 
-            static_cast<ContactShellQuadFaceL4*>(faces[i]);
+	  ContactShellQuadFaceL4<Real>* face = 
+            static_cast<ContactShellQuadFaceL4<Real>*>(faces[i]);
 	  face->Lofting_Factor( attributes[face->HostArrayIndex()] );
 	}
 	break;
       }
       case( ContactSearch::SHELLTRIFACEL3 ):{
         for (i=0; i<nfaces; ++i) {
-	  ContactShellTriFaceL3* face = 
-            static_cast<ContactShellTriFaceL3*>(faces[i]);
+	  ContactShellTriFaceL3<Real>* face = 
+            static_cast<ContactShellTriFaceL3<Real>*>(faces[i]);
 	  face->Lofting_Factor( attributes[face->HostArrayIndex()] );
 	}
 	break;
@@ -1592,12 +1591,12 @@ ContactTopology::Set_FaceBlk_Attributes(
 
 void ContactTopology::Connect_Faces_to_Nodes()
 {
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
 
   for (int i=0; i<number_of_faces; ++i) {
     for (int k=0; k<Faces[i]->Nodes_Per_Face(); ++k) {
-      ContactNode* node = Faces[i]->Node(k);
+      ContactNode<Real>* node = Faces[i]->Node(k);
       node->Connect_Face( Faces[i] );
     }
   }
@@ -1612,8 +1611,8 @@ void ContactTopology::Construct_and_Connect_Edges(
 {
   PRECONDITION( number_of_edges == 0 );
   int i,j,k,n;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
 
   // set temp_tag to the face number in the list
   int count = 0;
@@ -1637,9 +1636,9 @@ void ContactTopology::Construct_and_Connect_Edges(
   for( i=0 ; i<number_of_face_blocks ; ++i ){
     edge_types[face_blocks[i]->EdgeType()]++;
     int nfaces = face_list->BlockNumEntities(i);
-    ContactFace** faces  = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+    ContactFace<Real>** faces  = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
     for (k=0; k<nfaces; ++k) {
-      ContactFace* face = faces[k];
+      ContactFace<Real>* face = faces[k];
       int index = face->temp_tag;
       for( j=0 ; j<face->Edges_Per_Face() ; ++j ){
 	if( table[index*max_edges+j] == 0 ){
@@ -1647,15 +1646,15 @@ void ContactTopology::Construct_and_Connect_Edges(
           edge_count[face_blocks[i]->EdgeType()]++;
 	  table[index*max_edges+j] = edge_count[face_blocks[i]->EdgeType()];
 	  // Get the nodes that make up the edge
-	  ContactNode *node[3];
+	  ContactNode<Real> *node[3];
 	  face->Get_Edge_Nodes( j,node );
 	  // Get the faces that connect to these two nodes (1 or 2)
-	  ContactFace *face1,*face2;
+	  ContactFace<Real> *face1,*face2;
 	  int Number_Of_Faces = Get_Faces_Connected_to_Nodes( node[0],node[1],
 							      &face1,&face2,
 							      error_code );
 	  if( Number_Of_Faces == 2 ){ 
-	    ContactFace* neighbor=NULL;
+	    ContactFace<Real>* neighbor=NULL;
 	    if( face1 != face )
 	      neighbor = face1;
 	    else if( face2 != face )
@@ -1703,16 +1702,16 @@ void ContactTopology::Construct_and_Connect_Edges(
 	for( i=0 ; i<number_of_face_blocks ; ++i ){
 	  if(face_blocks[i]->EdgeType()==n) {
             int nfaces = face_list->BlockNumEntities(i);
-            ContactFace** faces  = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(i));
+            ContactFace<Real>** faces  = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(i));
             for (k=0; k<nfaces; ++k) {
-              ContactFace* face = faces[k];
+              ContactFace<Real>* face = faces[k];
 	      int ind = face->temp_tag;
 	      for( j=0 ; j<face->Edges_Per_Face() ; ++j ){
-		ContactNode *node[3];
+		ContactNode<Real> *node[3];
 		int edge_id = table[ind*max_edges+j]-1;
 		PRECONDITION( edge_id>=0 && edge_id<number_of_edges );
                 ContactHostGlobalID global_id( myproc, offset[block]+edge_id+1 );
-                ContactEdge* edge = static_cast<ContactEdge*>(edge_blocks[block]->EdgeList()->Find(global_id));
+                ContactEdge<Real>* edge = static_cast<ContactEdge<Real>*>(edge_blocks[block]->EdgeList()->Find(global_id));
                 POSTCONDITION(edge);
 		face->ConnectEdge( j, edge );
 		face->Get_Edge_Nodes( j, node );
@@ -1730,8 +1729,8 @@ void ContactTopology::Construct_and_Connect_Edges(
     edge_list->BuildList(edge_blocks, number_of_edge_blocks,
                          no_parallel_consistency==ContactSearch::INACTIVE);
     edge_list->SortByNodeGID();
-    ContactEdge** Edges = 
-      reinterpret_cast<ContactEdge**>(edge_list->EntityList());
+    ContactEdge<Real>** Edges = 
+      reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
     POSTCONDITION(number_of_edges == edge_list->NumEntities());
     for (i=0; i<number_of_edges; ++i) {
       Edges[i]->OwnerProcArrayIndex(Edges[i]->ProcArrayIndex());
@@ -1754,12 +1753,12 @@ void ContactTopology::Connect_Faces_to_Edges()
   int i,k;
 
   // Connect the faces to the edges
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   int nfaces = face_list->NumEntities();
   for( i=0 ; i<nfaces ; ++i ){
     for( k=0 ; k<Faces[i]->Edges_Per_Face() ; ++k ){
-      ContactEdge* edge = Faces[i]->Edge(k);
+      ContactEdge<Real>* edge = Faces[i]->Edge(k);
       edge->ConnectFace( Faces[i] );
     }
   }
@@ -1767,17 +1766,17 @@ void ContactTopology::Connect_Faces_to_Edges()
 
 
 
-int ContactTopology::Get_Faces_Connected_to_Nodes( ContactNode* node0, 
-						   ContactNode* node1,
-						   ContactFace** face1,
-						   ContactFace** face2,
+int ContactTopology::Get_Faces_Connected_to_Nodes( ContactNode<Real>* node0, 
+						   ContactNode<Real>* node1,
+						   ContactFace<Real>** face1,
+						   ContactFace<Real>** face2,
 				    ContactSearch::ContactErrorCode& error_code)
 {
   PRECONDITION( node0 && node1 );
   int nfaces = 0;
   int num_face_con = 0;
   for( int i=0 ; i<node0->Number_Face_Connections() ; ++i ){
-    ContactFace* face = node0->GetFace(i);
+    ContactFace<Real>* face = node0->GetFace(i);
     for( int j=0 ; j<node1->Number_Face_Connections() ; ++j ){
       if( face == node1->GetFace(j) ){
         int mwg = num_face_con;
@@ -1865,12 +1864,12 @@ void ContactTopology::Display(ContactParOStream& postream)
   postream << "     Number of Faces    = " << number_of_faces << "\n";
   postream << "     Number of Elements = " << number_of_elements << "\n";
 #if CONTACT_DEBUG_PRINT_LEVEL>=7
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(edge_list->EntityList());
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
 #endif
 #if CONTACT_DEBUG_PRINT_LEVEL>=8
   postream << "\n\n  Contact Node     Global ID    Exodus ID         POSITION\n";
@@ -1879,7 +1878,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   int oldprecision = std::cout.precision();
   std::cout.precision(16);
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     postream << "	 "  << i << "		   "  
              << node->Global_ID() 
              << "	   "
@@ -1901,7 +1900,7 @@ void ContactTopology::Display(ContactParOStream& postream)
 #if CONTACT_DEBUG_PRINT_LEVEL>=7
   postream << "\n\n  Node Connectivity for Faces " << "\n";
   for( int i=0 ; i<number_of_faces ; ++i ){
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     postream << "    Face " << face->Global_ID() 
            << " has node connectivity ";
     for( int k=0 ; k<face->Nodes_Per_Face() ; ++k )
@@ -1911,7 +1910,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   if( dimensionality == 3){
     postream << "\n\n  Edge Connectivity for Faces " << "\n";
     for( int i=0 ; i<number_of_faces ; ++i ){
-        ContactFace* face = Faces[i];
+        ContactFace<Real>* face = Faces[i];
 	postream << "    Face " << face->Global_ID() 
 	     << " has edge connectivity ";
 	for( int k=0 ; k<face->Edges_Per_Face() ; ++k )
@@ -1920,7 +1919,7 @@ void ContactTopology::Display(ContactParOStream& postream)
     }
     postream << "\n\n  Node Connectivity for Edges and Curvature" << "\n";
     for( int i=0 ; i<number_of_edges ; ++i ){
-      ContactEdge* edge = Edges[i];
+      ContactEdge<Real>* edge = Edges[i];
       postream << "    Edge " << edge->Global_ID() 
              << " has node connectivity ";
       for( int k=0 ; k<edge->Nodes_Per_Edge() ; ++k ){
@@ -1931,7 +1930,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   }
   postream << "\n\n  Face Connectivity for Nodes\n";
   for( int i=0 ; i<number_of_nodes ; ++i ){
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     postream << "    Node " << node->Global_ID() << " has connectivity ";
     for( int k=0 ; k<node->Number_Face_Connections() ; ++k ) {
       postream << node->GetFace(k)->Global_ID() << " ";
@@ -1941,7 +1940,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   if( dimensionality == 3){
     postream << "\n\n  Face Connectivity for Edges\n";
     for( int i=0 ; i<number_of_edges ; ++i ){
-      ContactEdge* edge = Edges[i];
+      ContactEdge<Real>* edge = Edges[i];
       postream << "    Edge " << edge->Global_ID() << " has connectivity ";
       for( int k=0 ; k<edge->Number_Face_Connections() ; ++k )
         postream << edge->Face(k)->Global_ID() << " ";
@@ -1954,7 +1953,7 @@ void ContactTopology::Display(ContactParOStream& postream)
 #if CONTACT_DEBUG_PRINT_LEVEL>=8
   postream << "\n\n Node Normals\n";
   for( int i=0 ; i<number_of_nodes ; ++i ){
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     postream << "   Node " << node->Global_ID() << " has normal ";
     for( int k=0 ; k<dimensionality ; ++k ) {
       postream << node->Variable(NODE_NORMAL)[k] << "  ";
@@ -1964,7 +1963,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   
   postream << "\n\n Face Normals\n";
   for( int i=0 ; i<number_of_faces ; ++i ){
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     postream << "   Face " << face->Global_ID() << " has normal ";
     for( int k=0 ; k<dimensionality ; ++k )
       postream << face->Variable(FACE_NORMAL)[k] << "  ";
@@ -1972,7 +1971,7 @@ void ContactTopology::Display(ContactParOStream& postream)
   }
   postream << "\n\n Face Centroids\n";
   for( int i=0 ; i<number_of_faces ; ++i ){
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     postream << "   Face " << face->Global_ID() << " has centroid ";
     for( int k=0 ; k<dimensionality ; ++k )
       postream << face->Variable(CENTROID)[k] << "  ";
@@ -2038,10 +2037,10 @@ ContactTopology::Display_Entities( ContactParOStream& postream, int comm_flag )
                    << Node_SymComm->Comm_Proc_ID(i) << "\n";
           postream << "    number of nodes: " 
                    << Node_SymComm->Num_to_Proc(i) << "\n";
-          ContactTopologyEntity** nodes_to_print = Node_SymComm->Entity_List(i);
+          ContactTopologyEntity<Real>** nodes_to_print = Node_SymComm->Entity_List(i);
           for ( j = 0; j < Node_SymComm->Num_to_Proc(i); ++j ) {
-            ContactNode * node = 
-              static_cast<ContactNode *>(nodes_to_print[j]);
+            ContactNode<Real> * node = 
+              static_cast<ContactNode<Real> *>(nodes_to_print[j]);
             postream << "       node " << j+1 
                      << "  " << node->Global_ID() << "\n";
           }
@@ -2057,10 +2056,10 @@ ContactTopology::Display_Entities( ContactParOStream& postream, int comm_flag )
                    << Node_AsymComm->Export_Comm_Proc_ID(i) << "\n";
           postream << "    number of nodes: " 
                    << Node_AsymComm->Num_Export_to_Proc(i) << "\n";
-          ContactTopologyEntity** nodes_to_print = Node_AsymComm->Export_Entity_List(i);
+          ContactTopologyEntity<Real>** nodes_to_print = Node_AsymComm->Export_Entity_List(i);
           for ( j = 0; j < Node_AsymComm->Num_Export_to_Proc(i); ++j ) {
-            ContactNode * node = 
-              static_cast<ContactNode *>(nodes_to_print[j]);
+            ContactNode<Real> * node = 
+              static_cast<ContactNode<Real> *>(nodes_to_print[j]);
             postream << "       node " << j+1 
                      << "  " << node->Global_ID() << "\n";
           }
@@ -2072,10 +2071,10 @@ ContactTopology::Display_Entities( ContactParOStream& postream, int comm_flag )
                    << Node_AsymComm->Import_Comm_Proc_ID(i) << "\n";
           postream << "    number of nodes: " 
                    << Node_AsymComm->Num_Import_from_Proc(i) << "\n";
-          ContactTopologyEntity** nodes_to_print = Node_AsymComm->Import_Entity_List(i);
+          ContactTopologyEntity<Real>** nodes_to_print = Node_AsymComm->Import_Entity_List(i);
           for ( j = 0; j < Node_AsymComm->Num_Import_from_Proc(i); ++j ) {
-            ContactNode * node = 
-              static_cast<ContactNode *>(nodes_to_print[j]);
+            ContactNode<Real> * node = 
+              static_cast<ContactNode<Real> *>(nodes_to_print[j]);
             postream << "       node " << j+1 
                      << "  " << node->Global_ID() << "\n";
           }
@@ -2095,11 +2094,11 @@ ContactTopology::Display_Entities( ContactParOStream& postream, int comm_flag )
                    << Edge_SymComm->Comm_Proc_ID(i) << "\n";
           postream << "    number of edges: " 
                    << Edge_SymComm->Num_to_Proc(i) << "\n";
-          ContactTopologyEntity** edges_to_print = Edge_SymComm->Entity_List(i);
+          ContactTopologyEntity<Real>** edges_to_print = Edge_SymComm->Entity_List(i);
           for ( j = 0; j < Edge_SymComm->Num_to_Proc(i); ++j ) {
             postream << "       edge " << j+1 << "\n";
-            ContactEdge * edge = 
-              static_cast<ContactEdge *>(edges_to_print[j]);
+            ContactEdge<Real> * edge = 
+              static_cast<ContactEdge<Real> *>(edges_to_print[j]);
             int num_nodes = edge->Nodes_Per_Edge();
             for ( k = 0; k < num_nodes; ++k ) {
               postream << "         node " << k+1 << ":";
@@ -2201,8 +2200,8 @@ ContactTopology::Display_NodeNode_Interactions( ContactParOStream& postream,
                                                 int state )
 {
   int cnt = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
     Nodes[i]->Display_NodeNode_Interactions(postream, state);
     cnt += Nodes[i]->Number_NodeNode_Interactions(state);
@@ -2217,8 +2216,8 @@ ContactTopology::Display_NodeNode_Interactions_Summary( ContactParOStream& postr
                                                         char* margin, int state )
 {
   int cnt = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
     cnt += Nodes[i]->Number_NodeNode_Interactions(state);
   }
@@ -2230,8 +2229,8 @@ ContactTopology::Display_NodeEntity_Interactions( ContactParOStream& postream,
                                                   int state )
 {
   int cnt = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
     Nodes[i]->Display_NodeEntity_Interactions(postream, state);
     cnt += Nodes[i]->Number_NodeEntity_Interactions(state);
@@ -2250,11 +2249,11 @@ ContactTopology::Display_NodeEntity_Interactions_Summary( ContactParOStream& pos
   int cnt2 = 0;
   int cnt3 = 0;
   int cnt4 = 0;
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
-    if (node->CheckContext(status) && node->Ownership() == ContactTopologyEntity::OWNED) {
-      //PRECONDITION(node->Ownership() == ContactTopologyEntity::OWNED);
+    ContactNode<Real>* node = Nodes[i];
+    if (node->CheckContext(status) && node->Ownership() == ContactTopologyEntity<Real>::OWNED) {
+      //PRECONDITION(node->Ownership() == ContactTopologyEntity<Real>::OWNED);
       cnt0 += node->Number_NodeEntity_Interactions(state);
       cnt1 += node->Number_NodeFace_Interactions(state);
       cnt2 += node->Number_NodeSurface_Interactions(state);
@@ -2279,12 +2278,12 @@ ContactTopology::Display0_NodeEntity_Interactions_Summary( unsigned int status, 
   int cnt2 = 0;
   int cnt3 = 0;
   int cnt4 = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
-    if (node->Ownership() == ContactTopologyEntity::OWNED) {
-//      PRECONDITION(node->Ownership() == ContactTopologyEntity::OWNED);
+      ContactNode<Real>* node = Nodes[i];
+    if (node->Ownership() == ContactTopologyEntity<Real>::OWNED) {
+//      PRECONDITION(node->Ownership() == ContactTopologyEntity<Real>::OWNED);
       cnt1 += node->Number_NodeFace_Interactions(state);
       cnt2 += node->Number_NodeSurface_Interactions(state);
       cnt3 += node->Num_Tracked_Interactions(state);
@@ -2312,8 +2311,8 @@ ContactTopology::Display_FaceFace_Interactions( ContactParOStream& postream,
                                                 int state )
 {
   int cnt = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     Faces[i]->Display_FaceFace_Interactions(postream, state);
     cnt += Faces[i]->Number_FaceFace_Interactions(state);
@@ -2328,8 +2327,8 @@ ContactTopology::Display_FaceFace_Interactions_Summary( ContactParOStream& postr
                                                         char* margin, int state )
 {
   int cnt = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     cnt += Faces[i]->Number_FaceFace_Interactions();
   }
@@ -2341,8 +2340,8 @@ ContactTopology::Display_FaceCoverage_Interactions( ContactParOStream& postream,
                                                     int state )
 {
   int cnt = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     Faces[i]->Display_FaceCoverage_Interactions(postream, state);
     cnt += Faces[i]->Number_FaceCoverage_Interactions();
@@ -2357,8 +2356,8 @@ ContactTopology::Display_FaceCoverage_Interactions_Summary( ContactParOStream& p
                                                             char* margin, int state )
 {
   int cnt = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     cnt += Faces[i]->Number_FaceCoverage_Interactions(state);
   }
@@ -2403,51 +2402,51 @@ void ContactTopology::Set_Up_Variable_Handles()
   int var_handle_offset = 0;
   
   // The first locations in Var_Handles are the Node_Scalar_Vars
-  for( i=0 ; i<ContactNode::NUMBER_SCALAR_VARS ; ++i )
+  for( i=0 ; i<ContactNode<Real>::NUMBER_SCALAR_VARS ; ++i )
     Var_Handles[var_handle_offset+i] = index++;
-  var_handle_offset += ContactNode::NUMBER_SCALAR_VARS;
+  var_handle_offset += ContactNode<Real>::NUMBER_SCALAR_VARS;
   // The next locations in Var_Handles are the Node_Vector_Vars
-  for( i=0 ; i<ContactNode::NUMBER_VECTOR_VARS ; ++i ){
+  for( i=0 ; i<ContactNode<Real>::NUMBER_VECTOR_VARS ; ++i ){
     Var_Handles[var_handle_offset+i] = index;
     index += 3;
   }
-  var_handle_offset += ContactNode::NUMBER_VECTOR_VARS;
+  var_handle_offset += ContactNode<Real>::NUMBER_VECTOR_VARS;
 
   // The next locations are the Edge_Scalar_Vars
   index = 0;
-  for( i=0 ; i<ContactEdge::NUMBER_SCALAR_VARS ; ++i )
+  for( i=0 ; i<ContactEdge<Real>::NUMBER_SCALAR_VARS ; ++i )
     Var_Handles[var_handle_offset+i] = index++;
-  var_handle_offset += ContactEdge::NUMBER_SCALAR_VARS;
+  var_handle_offset += ContactEdge<Real>::NUMBER_SCALAR_VARS;
   // The next locations in Var_Handles are the Edge_Vector_Vars
-  for( i=0 ; i<ContactEdge::NUMBER_VECTOR_VARS ; ++i ){
+  for( i=0 ; i<ContactEdge<Real>::NUMBER_VECTOR_VARS ; ++i ){
     Var_Handles[var_handle_offset+i] = index;
     index += 3;
   }
-  var_handle_offset += ContactEdge::NUMBER_VECTOR_VARS;
+  var_handle_offset += ContactEdge<Real>::NUMBER_VECTOR_VARS;
 
   // The next locations are the Face_Scalar_Vars
   index = 0;
-  for( i=0 ; i<ContactFace::NUMBER_SCALAR_VARS ; ++i )
+  for( i=0 ; i<ContactFace<Real>::NUMBER_SCALAR_VARS ; ++i )
     Var_Handles[var_handle_offset+i] = index++;
-  var_handle_offset += ContactFace::NUMBER_SCALAR_VARS;
+  var_handle_offset += ContactFace<Real>::NUMBER_SCALAR_VARS;
   // The next locations in Var_Handles are the Face_Vector_Vars
-  for( i=0 ; i<ContactFace::NUMBER_VECTOR_VARS ; ++i ){
+  for( i=0 ; i<ContactFace<Real>::NUMBER_VECTOR_VARS ; ++i ){
     Var_Handles[var_handle_offset+i] = index;
     index += 3;
   }
-  var_handle_offset += ContactFace::NUMBER_VECTOR_VARS;
+  var_handle_offset += ContactFace<Real>::NUMBER_VECTOR_VARS;
 
   // The next location are the Elem_Scalar_Vars
   index = 0;
-  for( i=0 ; i<ContactElem::NUMBER_SCALAR_VARS ; ++i )
+  for( i=0 ; i<ContactElem<Real>::NUMBER_SCALAR_VARS ; ++i )
     Var_Handles[var_handle_offset+i] = index++;
-  var_handle_offset += ContactElem::NUMBER_SCALAR_VARS;
+  var_handle_offset += ContactElem<Real>::NUMBER_SCALAR_VARS;
   // The next locations in Var_Handles are the Elem_Vector_Vars
-  for( i=0 ; i<ContactElem::NUMBER_VECTOR_VARS ; ++i ){
+  for( i=0 ; i<ContactElem<Real>::NUMBER_VECTOR_VARS ; ++i ){
     Var_Handles[var_handle_offset+i] = index;
     index += 3;
   }
-  var_handle_offset += ContactElem::NUMBER_VECTOR_VARS;
+  var_handle_offset += ContactElem<Real>::NUMBER_VECTOR_VARS;
 
   // The next location are the Element_Scalar_Vars
   index = 0;
@@ -2496,12 +2495,12 @@ void ContactTopology::Set_Up_Variable_Handles()
 
 
 
-bool ContactTopology::Faces_Connected( ContactFace* face1, ContactFace* face2 )
+bool ContactTopology::Faces_Connected( ContactFace<Real>* face1, ContactFace<Real>* face2 )
 {
   PRECONDITION( face1 && face2 );
 
   for( int i=0 ; i<face1->Nodes_Per_Face() ; ++i ){
-    ContactNode* node = face1->Node(i);
+    ContactNode<Real>* node = face1->Node(i);
     for( int j=0 ; j<face2->Nodes_Per_Face() ; ++j )
       if( node == face2->Node(j) ) return true;
   }
@@ -2513,14 +2512,14 @@ void ContactTopology::Update_State()
 {
   int i;
 
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
     Nodes[i]->Update_Interactions();
   }
 
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
     Faces[i]->Update_Interactions();
   }
@@ -2539,19 +2538,19 @@ void ContactTopology::Delete_All_Interactions()
   ContactInteractionEntity* link;
   ContactInteractionDLL* interactions;
   
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     for (j=0; j<number_of_states; ++j) {
       node->Delete_NodeEntity_Interactions(j);
       node->Delete_NodeNode_Interactions(j);
     }
   }
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     for (j=0; j<number_of_states; ++j) {
       interactions = face->Get_FaceFace_Interactions(j);
       if(interactions != NULL) {
@@ -2595,8 +2594,8 @@ void ContactTopology::Delete_All_Interactions()
 int ContactTopology::Number_NodeFace_Interactions()
 {
   int n = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     n += Nodes[i]->Number_NodeFace_Interactions();
   }
@@ -2606,8 +2605,8 @@ int ContactTopology::Number_NodeFace_Interactions()
 int ContactTopology::Number_NodeEntity_Interactions()
 {
   int n = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     n += Nodes[i]->Number_NodeEntity_Interactions();
   }
@@ -2617,8 +2616,8 @@ int ContactTopology::Number_NodeEntity_Interactions()
 int ContactTopology::Number_NodeNode_Interactions()
 {
   int n = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     n += Nodes[i]->Number_NodeNode_Interactions();
   }
@@ -2630,8 +2629,8 @@ void ContactTopology::Size_NodeFace_Interactions( int& num_interactions,
 {
   data_size = SIZE_NODEFACE_INTERACTION_DATA;
   num_interactions = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     num_interactions += Nodes[i]->Number_NodeFace_Interactions();
   }
@@ -2650,10 +2649,10 @@ void ContactTopology::Get_NodeFace_Interactions(int* Node_block_ids,
 
   // pack a dense array of interaction data
   // assumes host code gives enough space for data array
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
     for (int j=0; j<node->Number_NodeEntity_Interactions(); ++j) {
       if (interactions[j]->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
@@ -2700,8 +2699,8 @@ void ContactTopology::Size_NodeNode_Interactions( int& num_interactions,
 {
   data_size = SIZE_NODENODE_INTERACTION_DATA;
   num_interactions = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     num_interactions += Nodes[i]->Number_NodeNode_Interactions();
   }
@@ -2716,8 +2715,8 @@ void ContactTopology::Get_NodeNode_Interactions(int* slave_node_block_ids,
 {
   int index = 0;
   const int data_size = SIZE_NODENODE_INTERACTION_DATA;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     ContactInteractionDLL* interactions = Nodes[i]->Get_NodeNode_Interactions();
     if(interactions != NULL) {
@@ -2740,8 +2739,8 @@ void ContactTopology::Get_NodeNode_Interactions(int* slave_node_block_ids,
 int ContactTopology::Number_NodeSurface_Interactions()
 {
   int n = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     n += Nodes[i]->Number_NodeSurface_Interactions();
   }
@@ -2753,8 +2752,8 @@ void ContactTopology::Size_NodeSurface_Interactions( int& num_interactions,
 {
   data_size = SIZE_NODESURFACE_INTERACTION_DATA;
   num_interactions = 0;
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
     num_interactions += Nodes[i]->Number_NodeSurface_Interactions();
   }
@@ -2770,10 +2769,10 @@ void ContactTopology::Get_NodeSurface_Interactions( int* Node_block_ids,
 
   // pack a dense array of interaction data
   // assumes host code gives enough space for data array
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions();
     for (int j=0; j<node->Number_NodeEntity_Interactions(); ++j) {
       if (interactions[j]->Get_Type()!=ContactNodeEntityInteraction::NODE_SURFACE_INTERACTION) continue;
@@ -2812,8 +2811,8 @@ void ContactTopology::Get_NodeSurface_Interactions( int* Node_block_ids,
 int ContactTopology::Number_FaceFace_Interactions()
 {
   int n = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
     n += Faces[i]->Number_FaceFace_Interactions();
   }
@@ -2826,10 +2825,10 @@ void ContactTopology::Size_FaceFace_Interactions( int& num_interactions,
   data_size = 0;
   num_interactions = 0;
   
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
@@ -2852,10 +2851,10 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
 {
   int index0 = 0;
   int index1 = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
@@ -2893,6 +2892,29 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
   	*interaction_data++ = vertices[j].master_x;
   	*interaction_data++ = vertices[j].master_y;
   	index1 += 4;
+#if (MAX_FFI_DERIVATIVES > 0)
+        int k;
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].slave_x_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].slave_y_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].master_x_derivatives[k];
+        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
+          *interaction_data++ = vertices[j].master_y_derivatives[k];
+        index1 += 4*MAX_FFI_DERIVATIVES;
+#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].slave_x_second_derivatives[k];
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].slave_y_second_derivatives[k];
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].master_x_second_derivatives[k];
+        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
+          *interaction_data++ = vertices[j].master_y_second_derivatives[k];
+        index1 += 4*MAX_FFI_SECOND_DERIVATIVES;
+#endif
+#endif
       }
       ++index0;
     }
@@ -2902,8 +2924,8 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
 int ContactTopology::Number_FaceCoverage_Interactions()
 {
   int n = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
     n += Faces[i]->Number_FaceCoverage_Interactions();
   }
@@ -2916,10 +2938,10 @@ void ContactTopology::Size_FaceCoverage_Interactions( int& num_interactions,
   data_size = 0;
   num_interactions = 0;
   
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
@@ -2940,10 +2962,10 @@ void ContactTopology::Get_FaceCoverage_Interactions( int* face_block_ids,
 {
   int index0 = 0;
   int index1 = 0;
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
@@ -3027,26 +3049,26 @@ void ContactTopology::Compute_Owners(ContactSearch::ContactErrorCode& error_code
   int i;
   int my_proc = contact_processor_number(SearchComm);
 
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
-    Nodes[i]->Ownership(ContactTopologyEntity::OWNED);
+    Nodes[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     Nodes[i]->Owner(my_proc);
     Nodes[i]->Secondary_Owner(my_proc);
   }
 
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(edge_list->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
   for (i=0; i<number_of_edges; ++i) {
-    Edges[i]->Ownership(ContactTopologyEntity::OWNED);
+    Edges[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     Edges[i]->Owner(my_proc);
     Edges[i]->Secondary_Owner(my_proc);
   }
 
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
-    Faces[i]->Ownership(ContactTopologyEntity::OWNED);
+    Faces[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     Faces[i]->Owner(my_proc);
     Faces[i]->Secondary_Owner(my_proc);
   }
@@ -3054,7 +3076,7 @@ void ContactTopology::Compute_Owners(ContactSearch::ContactErrorCode& error_code
   ContactElement** Elements = 
     reinterpret_cast<ContactElement**>(elem_list->EntityList());
   for (i=0; i<number_of_elements; ++i) {
-    Elements[i]->Ownership(ContactTopologyEntity::OWNED);
+    Elements[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     Elements[i]->Owner(my_proc);
     Elements[i]->Secondary_Owner(my_proc);
   }
@@ -3083,7 +3105,7 @@ void ContactTopology::Compute_Owners_For_Entity(
 {
   int i,j; // counters
   int number_of_entities = entity_list->NumEntities();
-  ContactTopologyEntity** Entity = entity_list->EntityList();
+  ContactTopologyEntity<Real>** Entity = entity_list->EntityList();
   if ( 0 == comm_list->Num_Comm_Partners() ) {
     // need this to balance the global sync in contact_swapadd_data_array()
     contact_global_sync(SearchComm);
@@ -3109,9 +3131,9 @@ void ContactTopology::Compute_Owners_For_Entity(
     int proc_id = comm_list->Comm_Proc_ID(i);
     int num_shared_entities = comm_list->Num_to_Proc(i);
     if ( proc_id < local_proc_id ) {
-      ContactTopologyEntity ** comm_entities = comm_list->Entity_List(i);
+      ContactTopologyEntity<Real> ** comm_entities = comm_list->Entity_List(i);
       for ( j = 0; j < num_shared_entities; ++j ) {
-	ContactTopologyEntity * entity = comm_entities[j];
+	ContactTopologyEntity<Real> * entity = comm_entities[j];
 	if (entity->temp_tag > proc_id) entity->temp_tag = proc_id;
       }
     }
@@ -3125,7 +3147,7 @@ void ContactTopology::Compute_Owners_For_Entity(
   int * id_data = new int[stride*entity_list->NumEntities()];
   for (j=0; j<number_of_entities; ++j) {
     if ( local_proc_id == Entity[j]->temp_tag ){
-      Entity[j]->Ownership(ContactTopologyEntity::OWNED);
+      Entity[j]->Ownership(ContactTopologyEntity<Real>::OWNED);
       id_data[i  ] = Entity[j]->Owner();
       id_data[i+1] = Entity[j]->OwnerProcArrayIndex();
       if (gid) {
@@ -3133,7 +3155,7 @@ void ContactTopology::Compute_Owners_For_Entity(
         id_data[i+3] = Entity[j]->Global_ID().LoInt();
       }
     } else {
-      Entity[j]->Ownership(ContactTopologyEntity::NOT_OWNED);
+      Entity[j]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
       id_data[i  ] = 0;
       id_data[i+1] = 0;
       if (gid) {
@@ -3168,7 +3190,7 @@ void ContactTopology::Compute_Edge_Comm_List(
 {
   //allocate linked list to hold shared edges
 
-  std::vector< std::pair<ContactTopologyEntity*, int> > shared_edge_list;
+  std::vector< std::pair<ContactTopologyEntity<Real>*, int> > shared_edge_list;
 
   //----------------------
   // find all the edges which are shared between processors
@@ -3203,14 +3225,14 @@ void ContactTopology::Compute_Edge_Comm_List(
   //
 
   for(int i = 0; i < shared_edge_list.size(); ++i) {
-    std::pair<ContactTopologyEntity*, int> &entry = shared_edge_list[i];
+    std::pair<ContactTopologyEntity<Real>*, int> &entry = shared_edge_list[i];
     int dest = entry.second;
     for (int j = 0; j<num_partners; ++j) {
       int partner = Node_SymComm->Comm_Proc_ID(j);
       if ( partner == dest){
 	send_num_edges[j*2]++;
 	send_num_edges[j*2+1] += 
-	  ((ContactEdge*)entry.first)->Nodes_Per_Edge();
+	  ((ContactEdge<Real>*)entry.first)->Nodes_Per_Edge();
 	break;
       }
     }
@@ -3266,11 +3288,11 @@ void ContactTopology::Compute_Edge_Comm_List(
     int partner = Node_SymComm->Comm_Proc_ID(i);
 
     for(int j = 0; j < shared_edge_list.size(); ++j) {
-      std::pair<ContactTopologyEntity*,int> &entry = shared_edge_list[j];
+      std::pair<ContactTopologyEntity<Real>*,int> &entry = shared_edge_list[j];
 
       int dest = entry.second;
       if ( dest == partner) {
-	ContactEdge * edge = (ContactEdge*) entry.first;
+	ContactEdge<Real> * edge = (ContactEdge<Real>*) entry.first;
 	int num_nodes = edge->Nodes_Per_Edge();
 	send_edge[index] = num_nodes;
 	++index;
@@ -3306,17 +3328,17 @@ void ContactTopology::Compute_Edge_Comm_List(
   // locally connected to the edge.
 
   for(int i = 0; i < shared_edge_list.size(); ++i) {
-    std::pair<ContactTopologyEntity *, int> &entry = shared_edge_list[i];
-    ContactEdge* edge = (ContactEdge*) entry.first;
+    std::pair<ContactTopologyEntity<Real> *, int> &entry = shared_edge_list[i];
+    ContactEdge<Real>* edge = (ContactEdge<Real>*) entry.first;
     edge->temp_tag = edge->Number_Face_Connections();    
   }
 
   
   for(int i = 0; i < shared_edge_list.size(); ++i) {
-    std::pair<ContactTopologyEntity *, int> &entry = shared_edge_list[i];
+    std::pair<ContactTopologyEntity<Real> *, int> &entry = shared_edge_list[i];
     int dest = entry.second;
     int found = 0;
-    ContactEdge * local_edge = (ContactEdge*) entry.first;
+    ContactEdge<Real> * local_edge = (ContactEdge<Real>*) entry.first;
     for (int j = 0; j < num_partners; ++j){
       int partner = Node_SymComm->Comm_Proc_ID(j);
       if ( dest == partner) {
@@ -3367,8 +3389,8 @@ void ContactTopology::Compute_Edge_Comm_List(
       // the count of shared edges is more than 1, thus in parallel
       // this edge represents more than 2 faces sharing an edge.
       // flag this as an invalid mesh.
-      ContactNode *Node0 = local_edge->Node(0);
-      ContactNode *Node1 = local_edge->Node(1);
+      ContactNode<Real> *Node0 = local_edge->Node(0);
+      ContactNode<Real> *Node1 = local_edge->Node(1);
 
       std::sprintf(message, 
 	      "More than two faces connected to an edge at nodes (%d, %d) & (%d, %d)",
@@ -3418,7 +3440,7 @@ void ContactTopology::Compute_Edge_Comm_List(
 
 #ifndef CONTACT_NO_MPI
 void ContactTopology::Find_Shared_Edge_Candidates( 
-      std::vector< std::pair<ContactTopologyEntity*,int> > *shared_edge_list)
+      std::vector< std::pair<ContactTopologyEntity<Real>*,int> > *shared_edge_list)
 {
   // skip all this if no nodes communicate to other processors.
   if (Node_SymComm->Num_Comm_Partners()!=0) {
@@ -3427,17 +3449,17 @@ void ContactTopology::Find_Shared_Edge_Candidates(
     int * proc_list = new int[Node_SymComm->Num_Comm_Partners()];
     
     // find all edges which are shared with another processor
-    ContactEdge** Edges = 
-      reinterpret_cast<ContactEdge**>(edge_list->EntityList());
+    ContactEdge<Real>** Edges = 
+      reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
     for (int i=0; i<number_of_edges; ++i) {
-      ContactEdge* edge = Edges[i];
+      ContactEdge<Real>* edge = Edges[i];
       
       PRECONDITION (edge->Number_Face_Connections() <= 2);
 
       // find all processors that share node 1
       int num_procs = 0;
       for (int j = 0; j < Node_SymComm->Num_Comm_Partners(); ++j ) {
-	ContactTopologyEntity ** nodes = Node_SymComm->Entity_List(j);
+	ContactTopologyEntity<Real> ** nodes = Node_SymComm->Entity_List(j);
 	for (int k = 0; k < Node_SymComm->Num_to_Proc(j); ++k ) {
 	  if ( nodes[k]->Global_ID() == edge->Node(0)->Global_ID()){
 	    proc_list[num_procs] = j;
@@ -3453,7 +3475,7 @@ void ContactTopology::Find_Shared_Edge_Candidates(
       // nodes are shared by same processors
       for (int j = 0; j < num_procs; ++j) {
 	int sharing_proc = proc_list[j];
-	ContactTopologyEntity ** nodes = Node_SymComm->Entity_List(sharing_proc);
+	ContactTopologyEntity<Real> ** nodes = Node_SymComm->Entity_List(sharing_proc);
 	int num_nodes_sharing_proc = Node_SymComm->Num_to_Proc(sharing_proc);
 	int found_edge = 1;
 	// loop over remaining nodes on edge
@@ -3475,7 +3497,7 @@ void ContactTopology::Find_Shared_Edge_Candidates(
 	}
 	// if edge is shared, add to linked list
 	if (found_edge) {
-	  shared_edge_list->push_back( std::pair<ContactTopologyEntity*,int> (edge, 
+	  shared_edge_list->push_back( std::pair<ContactTopologyEntity<Real>*,int> (edge, 
 				       Node_SymComm->Comm_Proc_ID(sharing_proc)));
 	}
       } // end of loop on procs which share node 1
@@ -3488,7 +3510,7 @@ void ContactTopology::Find_Shared_Edge_Candidates(
 
 #ifndef CONTACT_NO_MPI
 void ContactTopology::Complete_Edge_Comm_List( int num_partners,
-      std::vector< std::pair<ContactTopologyEntity*,int> > *shared_edge_list, int* send_num_edges)
+      std::vector< std::pair<ContactTopologyEntity<Real>*,int> > *shared_edge_list, int* send_num_edges)
 {
 
   // we have now confirmed all edges that are actually shared, and found those
@@ -3513,12 +3535,12 @@ void ContactTopology::Complete_Edge_Comm_List( int num_partners,
   }
 
   //  now build the entity list
-  ContactTopologyEntity ** comm_edge_list = new ContactTopologyEntity*[total_num_edges];
+  ContactTopologyEntity<Real> ** comm_edge_list = new ContactTopologyEntity<Real>*[total_num_edges];
   int * count_edges_to_partner = new int[number_comm_partners];
   for (int i = 0; i < number_comm_partners; ++i ) count_edges_to_partner[i]=0;
 
   for(int i = 0; i < shared_edge_list->size(); ++i) {
-    std::pair<ContactTopologyEntity*, int> &entry = (*shared_edge_list)[i];
+    std::pair<ContactTopologyEntity<Real>*, int> &entry = (*shared_edge_list)[i];
 
     int dest = entry.second;
     if (dest < 0) continue;
@@ -3527,13 +3549,13 @@ void ContactTopology::Complete_Edge_Comm_List( int num_partners,
 
 	// add edge to list, and make list sorted
 	PRECONDITION(count_edges_to_partner[j] <= number_edges_to_partner[j]);
-	ContactEdge * new_edge = (ContactEdge*) entry.first;
+	ContactEdge<Real> * new_edge = (ContactEdge<Real>*) entry.first;
         new_edge->Shared(true);
 	int assigned = 0;
 	int offset = send_offsets[j];
 	for (int k = 0; k < count_edges_to_partner[j]; ++k) {
-	  ContactEdge * stored_edge = 
-	    static_cast<ContactEdge *>(comm_edge_list[offset+k]);
+	  ContactEdge<Real> * stored_edge = 
+	    static_cast<ContactEdge<Real> *>(comm_edge_list[offset+k]);
 	  // Compare_Edges is > 0 if second edge is less than first
 	  if ( Compare_Edges(stored_edge,new_edge) > 0) {
 	    for (int l = count_edges_to_partner[j]; l > k; --l)
@@ -3567,7 +3589,7 @@ void ContactTopology::Complete_Edge_Comm_List( int num_partners,
 #endif
 
 #ifndef CONTACT_NO_MPI
-int ContactTopology::Compare_Edges(ContactEdge * edge1, ContactEdge * edge2){
+int ContactTopology::Compare_Edges(ContactEdge<Real> * edge1, ContactEdge<Real> * edge2){
   // Compare_Edges compares two edges and returns zero if edge1 is less
   //  than edge2, or 1 if edge1 is greater than edge2.
   PRECONDITION(edge1->Nodes_Per_Edge() <= 3);
@@ -3674,22 +3696,22 @@ void ContactTopology::Assign_Secondary_Ownership(ContactZoltan* zoltan,
 
   Real *position;
   
-  ContactNode** Nodes = 
-    reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = 
+    reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     position = node->Variable(POSITION);
     zoltan->Point_Assign(position,&proc_num);
     node->Secondary_Owner(proc_num);
   }
 
-  ContactEdge** Edges = 
-    reinterpret_cast<ContactEdge**>(edge_list->EntityList());
+  ContactEdge<Real>** Edges = 
+    reinterpret_cast<ContactEdge<Real>**>(edge_list->EntityList());
   for (i=0; i<number_of_edges; ++i) {
-    ContactEdge* edge = Edges[i];
-    if( edge->Ownership() == ContactTopologyEntity::OWNED ){
+    ContactEdge<Real>* edge = Edges[i];
+    if( edge->Ownership() == ContactTopologyEntity<Real>::OWNED ){
       for( j=0 ; j<edge->Nodes_Per_Edge() ; ++j ){
-	if( edge->Node(j)->Ownership() == ContactTopologyEntity::OWNED ){
+	if( edge->Node(j)->Ownership() == ContactTopologyEntity<Real>::OWNED ){
 	  edge->Secondary_Owner( edge->Node(j)->Secondary_Owner() );
 	  break;
 	}
@@ -3702,13 +3724,13 @@ void ContactTopology::Assign_Secondary_Ownership(ContactZoltan* zoltan,
     }
   }
 
-  ContactFace** Faces = 
-    reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = 
+    reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
-    if( face->Ownership() == ContactTopologyEntity::OWNED ){
+    ContactFace<Real>* face = Faces[i];
+    if( face->Ownership() == ContactTopologyEntity<Real>::OWNED ){
       for( j=0 ; j<face->Nodes_Per_Face() ; ++j ){
-	if( face->Node(j)->Ownership() == ContactTopologyEntity::OWNED ){
+	if( face->Node(j)->Ownership() == ContactTopologyEntity<Real>::OWNED ){
 	  face->Secondary_Owner( face->Node(j)->Secondary_Owner() );
 	  break;
 	}
@@ -3725,7 +3747,7 @@ void ContactTopology::Assign_Secondary_Ownership(ContactZoltan* zoltan,
     reinterpret_cast<ContactElement**>(elem_list->EntityList());
   for (i=0; i<number_of_elements; ++i) {
     ContactElement* element = Elements[i];
-    if( element->Ownership() == ContactTopologyEntity::OWNED ){
+    if( element->Ownership() == ContactTopologyEntity<Real>::OWNED ){
       Real* centroid = element->Variable(ELEMENT_CENTROID);
       zoltan->Point_Assign( centroid, &proc_num );
       element->Secondary_Owner( proc_num );
@@ -3735,10 +3757,10 @@ void ContactTopology::Assign_Secondary_Ownership(ContactZoltan* zoltan,
 #endif
 
 void 
-ContactTopology::SortEntityList(int cnt, ContactTopologyEntity** list)
+ContactTopology::SortEntityList(int cnt, ContactTopologyEntity<Real>** list)
 {
   if (cnt>1) {
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     int k = cnt>>1;
     int n = cnt;
     for (;;) {
@@ -3765,10 +3787,10 @@ ContactTopology::SortEntityList(int cnt, ContactTopologyEntity** list)
 }
 
 void 
-ContactTopology::SortEntityList1(int cnt, ContactEdge** list)
+ContactTopology::SortEntityList1(int cnt, ContactEdge<Real>** list)
 {
   if (cnt>1) {
-    ContactEdge* entity;
+    ContactEdge<Real>* entity;
     int k = cnt>>1;
     int n = cnt;
     for (;;) {
@@ -3906,14 +3928,14 @@ void ContactTopology::Compute_Max_Relative_Node_Motion( Real* max_relative_motio
     local_min_motion[i] =  BIGNUM;
   }
 
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   //
   //  Determine the maximum and minimum displacement for each node in the three
   //  coordinate axes.
   //
   for (i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
-    if (node->Ownership() != ContactTopologyEntity::OWNED) continue;
+    ContactNode<Real>* node = Nodes[i];
+    if (node->Ownership() != ContactTopologyEntity<Real>::OWNED) continue;
     Real* pos_c = node->Variable(CURRENT_POSITION);
     Real* pos_p = node->Variable(PREDICTED_POSITION);
     for( j=0 ; j<dimensionality ; ++j ) {
@@ -3952,23 +3974,23 @@ ContactTopology::GhostTiedFaces()
     have_tied_ghosting    = true;
     num_tied_import       = 0;
     int num_off_processor = 0;
-    ContactNode** Nodes   = reinterpret_cast<ContactNode**>(node_list->EntityList());
+    ContactNode<Real>** Nodes   = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       node->temp_tag1   = 0;
-      if(node->Ownership() == ContactTopologyEntity::OWNED){
+      if(node->Ownership() == ContactTopologyEntity<Real>::OWNED){
         ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(ContactSearch::STATE0);
         for (int j=0; j<node->Number_NodeEntity_Interactions(ContactSearch::STATE0); ++j) {
           ContactNodeEntityInteraction* cnei = interactions[j];
           if( cnei->Is_Tied() || cnei->Is_InfSlip() ){
-            node->SetContextBit(ContactTopologyEntity::TIED);
+            node->SetContextBit(ContactTopologyEntity<Real>::TIED);
             if (cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
               ContactNodeFaceInteraction *cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
               if (cnfi->FaceEntityData()->owner != my_proc) {
                 ++num_off_processor;
                 node->temp_tag1 = 1;
               } else {
-                cnfi->Face()->SetContextBit(ContactTopologyEntity::TIED);
+                cnfi->Face()->SetContextBit(ContactTopologyEntity<Real>::TIED);
               }
             }
           }//end is tied if
@@ -3987,7 +4009,7 @@ ContactTopology::GhostTiedFaces()
     // and add the face to the import list if it is off-processor.
     //=============================================================
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       if (node->temp_tag1==0) continue;
       ContactNodeEntityInteraction** interactions = 
         node->Get_NodeEntity_Interactions(ContactSearch::STATE0);
@@ -4049,17 +4071,17 @@ ContactTopology::GhostTiedFaces()
                                                 search->ParOStream());
     }
   } else {
-    ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+    ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(ContactSearch::STATE0);
       for (int j=0; j<node->Number_NodeEntity_Interactions(ContactSearch::STATE0); ++j) {
         ContactNodeEntityInteraction* cnei = interactions[j];
         if( cnei->Is_Tied() || cnei->Is_InfSlip() ){
-          node->SetContextBit(ContactTopologyEntity::TIED);
+          node->SetContextBit(ContactTopologyEntity<Real>::TIED);
           if (cnei->Get_Type()==ContactNodeEntityInteraction::NODE_FACE_INTERACTION) {
             ContactNodeFaceInteraction *cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
-            cnfi->Face()->SetContextBit(ContactTopologyEntity::TIED);
+            cnfi->Face()->SetContextBit(ContactTopologyEntity<Real>::TIED);
           }
         }//end is tied if
       }//end loop over all interactions on node
@@ -4155,11 +4177,11 @@ ContactTopology::GhostNFIfaces(int flag)
     // where the master face is off-processor that will have to be
     // connected to it's interaction at the end of this function.
     //=============================================================
-    ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+    ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       node->temp_tag1 = 0;
-      //if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+      //if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
       ContactNodeEntityInteraction** interactions = 
         node->Get_NodeEntity_Interactions(ContactSearch::STATE1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(ContactSearch::STATE1); ++j) {
@@ -4180,7 +4202,7 @@ ContactTopology::GhostNFIfaces(int flag)
         }
         if (cnfi->Is_Tracked()) {
           for (int k=0; k<cnfi->NumSharedFaces(); ++k) {
-            ContactTopologyEntity::connection_data *face_info = cnfi->SharedFaceData(k);
+            ContactTopologyEntity<Real>::connection_data *face_info = cnfi->SharedFaceData(k);
             if (face_info->owner != my_proc) {
               // Neighbor face is off-processor so add it to the import list
               PRECONDITION(face_info->owner>=0);
@@ -4246,12 +4268,12 @@ ContactTopology::GhostNFIfaces(int flag)
       for (int i=0; i<number_of_face_blocks; ++i) {
         ContactBlockEntityList* block_face_list = ghosted_face_blocks[i]->FaceList();
         block_face_list->IteratorStart();
-        while (ContactTopologyEntity* entity=block_face_list->IteratorForward()) {
-          ContactFace* face = static_cast<ContactFace*>(entity);
-          ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+        while (ContactTopologyEntity<Real>* entity=block_face_list->IteratorForward()) {
+          ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
+          ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
           POSTCONDITION( node_info );
           for(int j=0 ; j<face->Nodes_Per_Face() ; ++j){
-            ContactNode* node = static_cast<ContactNode *>(node_list->Find(&node_info[j]));
+            ContactNode<Real>* node = static_cast<ContactNode<Real> *>(node_list->Find(&node_info[j]));
             if (!node) {
               zoltan_pid = node_info[j].owner;
 	      ContactHostGlobalID GID( node_info[j].host_gid[0], 
@@ -4343,19 +4365,19 @@ ContactTopology::GhostNFIfaces(int flag)
       for (int i=0; i<number_of_face_blocks; ++i) {
         ContactBlockEntityList* entity_list = ghosted_face_blocks[i]->FaceList();
         entity_list->IteratorStart();
-        while (ContactTopologyEntity* entity=entity_list->IteratorForward()) {
-          ContactFace* face = static_cast<ContactFace*>(entity);
+        while (ContactTopologyEntity<Real>* entity=entity_list->IteratorForward()) {
+          ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
           //connect the nodes to the face
-          ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+          ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
           POSTCONDITION( node_info );
           for(int j=0 ; j<face->Nodes_Per_Face() ; ++j){
-            ContactNode* node = NULL;
+            ContactNode<Real>* node = NULL;
             for (int k=0; k<number_of_node_blocks; ++k) {
-              node = static_cast<ContactNode *>(ghosted_node_blocks[k]->NodeList()->Find(&node_info[j]));
+              node = static_cast<ContactNode<Real> *>(ghosted_node_blocks[k]->NodeList()->Find(&node_info[j]));
               if (node) break;
             }
             if (!node) {
-              node = static_cast<ContactNode *>(node_list->Find(&node_info[j]));
+              node = static_cast<ContactNode<Real> *>(node_list->Find(&node_info[j]));
             }
             POSTCONDITION(node);
             face->ConnectNode( j, node );
@@ -4371,8 +4393,8 @@ ContactTopology::GhostNFIfaces(int flag)
       // connected to it's interaction.
       //==============================================================
       for (int i=0; i<number_of_nodes; ++i) {
-        ContactNode* node = Nodes[i];
-        //if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+        ContactNode<Real>* node = Nodes[i];
+        //if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
         if (node->temp_tag1) {
           bool found_invalid = false;
           ContactNodeEntityInteraction** interactions = 
@@ -4386,7 +4408,7 @@ ContactTopology::GhostNFIfaces(int flag)
               ContactHostGlobalID GID( cnfi->FaceEntityData()->host_gid[0], 
                                        cnfi->FaceEntityData()->host_gid[1] );
               int block = cnfi->FaceEntityData()->block_id;
-              ContactFace* face = static_cast<ContactFace *>
+              ContactFace<Real>* face = static_cast<ContactFace<Real> *>
                 (ghosted_face_blocks[block]->FaceList()->Find( cnfi->FaceEntityData() ));
               if (face!=NULL) {
                 cnfi->Connect_Face( face );
@@ -4460,9 +4482,9 @@ ContactTopology::UpdateGhostedNFIfaces()
     // from track or 'no secondary'
     //================================================================
     int my_proc = contact_processor_number( SearchComm );
-    ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+    ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(ContactSearch::STATE1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(ContactSearch::STATE1); ++j) {
         ContactNodeEntityInteraction* cnei = interactions[j];
@@ -4473,7 +4495,7 @@ ContactTopology::UpdateGhostedNFIfaces()
           ContactHostGlobalID GID( cnfi->FaceEntityData()->host_gid[0], 
                                    cnfi->FaceEntityData()->host_gid[1] );
           int block = cnfi->FaceEntityData()->block_id;
-          ContactFace* face = static_cast<ContactFace *>
+          ContactFace<Real>* face = static_cast<ContactFace<Real> *>
             (ghosted_face_blocks[block]->FaceList()->Find( cnfi->FaceEntityData() ));
           if (face!=NULL) {
             cnfi->Connect_Face( face );
@@ -4510,10 +4532,10 @@ ContactTopology::DeleteGhostedNFIfaces()
       }
       // unconnect all the ghosted faces to the appropriate interaction
       int my_proc = contact_processor_number( SearchComm );
-      ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+      ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
       for (int i=0; i<number_of_nodes; ++i) {
-        ContactNode* node = Nodes[i];
-        //if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+        ContactNode<Real>* node = Nodes[i];
+        //if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
         if (node->temp_tag1) {
           ContactNodeEntityInteraction** interactions = 
             node->Get_NodeEntity_Interactions(ContactSearch::STATE0);
@@ -4523,7 +4545,7 @@ ContactTopology::DeleteGhostedNFIfaces()
                 cnei->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
             ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
             if (cnfi->FaceEntityData()->owner != my_proc) {
-              cnfi->Connect_Face( (ContactFace*)NULL );
+              cnfi->Connect_Face( (ContactFace<Real>*)NULL );
             }
           }
           interactions = node->Get_NodeEntity_Interactions(ContactSearch::STATE1);
@@ -4533,7 +4555,7 @@ ContactTopology::DeleteGhostedNFIfaces()
                 cnei->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
             ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction*>(cnei);
             if (cnfi->FaceEntityData()->owner != my_proc) {
-              cnfi->Connect_Face( (ContactFace*)NULL );
+              cnfi->Connect_Face( (ContactFace<Real>*)NULL );
             }
           }
         }
@@ -4577,8 +4599,8 @@ ContactTopology::DoGhosting(VariableHandle POSITION, const Real& reasonable_gap)
   LB_ID_TYPE zoltan_gid[ZOLTAN_GID_SIZE];
   int        zoltan_pid;
     
-  ContactNode**    nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactFace**    faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>**    nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactFace<Real>**    faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   ContactElement** elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
         
   if (GhostFaces_ZoltanComm!=NULL) {
@@ -4655,7 +4677,7 @@ ContactTopology::DoGhosting(VariableHandle POSITION, const Real& reasonable_gap)
   //=======================================================================
 
   for (int ii=0; ii<number_of_faces; ++ii) {
-    ContactFace* face = faces[ii];
+    ContactFace<Real>* face = faces[ii];
     // get bounding box
     ContactBoundingBox face_current_box;
     ContactBoundingBox face_predicted_box;
@@ -4748,7 +4770,7 @@ ContactTopology::DoGhosting(VariableHandle POSITION, const Real& reasonable_gap)
   //  T O P _ L E V E L   N O D E S   ( B L O C K S   1 - N )
   //=========================================================================
   // In this block, we are only moving "POINTS" not "NODES", 
-  // we know they are all ContactNode's not ContactShellNodes 
+  // we know they are all ContactNode<Real>'s not ContactShellNodes 
   // so I won't even check
   int base = 0;
   if (number_of_face_blocks+number_of_element_blocks > 0) base=1;
@@ -4756,13 +4778,13 @@ ContactTopology::DoGhosting(VariableHandle POSITION, const Real& reasonable_gap)
     ContactNodeBlock* node_block = node_blocks[i];
     if( node_block->Type() == ContactSearch::POINT ){
       int nnodes = node_list->BlockNumEntities(i);
-      ContactNode** block_nodes  = 
-	reinterpret_cast<ContactNode**>(node_list->BlockEntityList(i));
+      ContactNode<Real>** block_nodes  = 
+	reinterpret_cast<ContactNode<Real>**>(node_list->BlockEntityList(i));
           
       if (node_block->Has_Radius_Attributes()) {
 	for (int j=0; j<nnodes; ++j) {
-	  ContactNode* node = block_nodes[j];
-	  if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+	  ContactNode<Real>* node = block_nodes[j];
+	  if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
 	  Real* position =  node->Variable(POSITION);
 	  Real  radius   = *node->Variable(NODE_RADIUS);
 
@@ -4790,8 +4812,8 @@ ContactTopology::DoGhosting(VariableHandle POSITION, const Real& reasonable_gap)
 	}
       } else {
 	for (int j=0; j<nnodes; ++j) {
-	  ContactNode* node = block_nodes[j];
-	  if (!node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+	  ContactNode<Real>* node = block_nodes[j];
+	  if (!node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
 	  if (node->Secondary_Owner()!=my_proc_id) {
 	    // off processor - add to communication object
 	    node->ZoltanLID(CT_NODE, zoltan_lid);
@@ -4847,8 +4869,8 @@ ContactTopology::DeleteGhosting()
     number_of_nodes    = node_list->NumEntities();
     number_of_faces    = face_list->NumEntities();
     number_of_elements = elem_list->NumEntities();
-    ContactNode**    nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-    ContactFace**    faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+    ContactNode<Real>**    nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+    ContactFace<Real>**    faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
     ContactElement** elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
     
 #if CONTACT_DEBUG_PRINT_LEVEL>=3
@@ -4865,26 +4887,26 @@ ContactTopology::DeleteGhosting()
     
     for (int i=0; i<number_of_nodes; ++i) {
       if (nodes[i]->Owner()==my_proc_id)  {
-        nodes[i]->Ownership(ContactTopologyEntity::OWNED);
+        nodes[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
       } else {
-        nodes[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+        nodes[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
         //PRECONDITION(nodes[i]->Number_Interactions(1)==0);
       }
     }
     
     for (int i=0; i<number_of_faces; ++i) {
       if (faces[i]->Owner()==my_proc_id)  {
-        faces[i]->Ownership(ContactTopologyEntity::OWNED);
+        faces[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
       } else {
-        faces[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+        faces[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
       }
     }
     
     for (int i=0; i<number_of_elements; ++i) {
       if (elems[i]->Owner()==my_proc_id)  {
-        elems[i]->Ownership(ContactTopologyEntity::OWNED);
+        elems[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
       } else {
-        elems[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+        elems[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
       }
     }
     
@@ -4896,9 +4918,9 @@ ContactTopology::DeleteGhosting()
         nodes[i]->Delete_Face_Connections();
       }
       for (int i=0; i<number_of_faces; ++i) {
-        ContactFace* face = faces[i];
+        ContactFace<Real>* face = faces[i];
         for(int k=0 ; k<face->Nodes_Per_Face() ; ++k ){
-          ContactNode* node = face->Node(k);
+          ContactNode<Real>* node = face->Node(k);
           node->Connect_Face( face );
         }
       }
@@ -4909,9 +4931,9 @@ ContactTopology::DeleteGhosting()
     
     if (search->Do_NodeNode_Search()) {
       // unconnect all the ghosted nodes from the appropriate interaction
-      ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+      ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
       for (int i=0; i<number_of_nodes; ++i) {
-        ContactNode* node = Nodes[i];
+        ContactNode<Real>* node = Nodes[i];
         ContactInteractionDLL* interactions = node->Get_NodeNode_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
@@ -4919,7 +4941,7 @@ ContactTopology::DeleteGhosting()
             ContactNodeNodeInteraction* cnni = 
               static_cast<ContactNodeNodeInteraction*>(interaction);
             if (cnni->MasterNodeEntityData()->owner != my_proc) {
-              cnni->Connect_MasterNode( (ContactNode*)NULL );
+              cnni->Connect_MasterNode( (ContactNode<Real>*)NULL );
             }
           }
         }
@@ -4928,17 +4950,17 @@ ContactTopology::DeleteGhosting()
     
     if (search->Do_NodeFace_Search()) {
       // unconnect all the ghosted faces from the appropriate interaction
-      ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+      ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
       for (int i=0; i<number_of_nodes; ++i) {
-        ContactNode* node = Nodes[i];
-        if (node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE)) continue;
+        ContactNode<Real>* node = Nodes[i];
+        if (node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE)) continue;
         ContactNodeEntityInteraction** interactions = 
           node->Get_NodeEntity_Interactions(0);
         for (int j=0; j<node->Number_NodeEntity_Interactions(0); ++j) {
           if (interactions[j]->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
           ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction*>(interactions[j]);
           if (cnfi->FaceEntityData()->owner != my_proc) {
-            cnfi->Connect_Face( (ContactFace*)NULL );
+            cnfi->Connect_Face( (ContactFace<Real>*)NULL );
           }
         }
         interactions = node->Get_NodeEntity_Interactions(1);
@@ -4946,7 +4968,7 @@ ContactTopology::DeleteGhosting()
           if (interactions[j]->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
           ContactNodeFaceInteraction* cnfi = static_cast<ContactNodeFaceInteraction*>(interactions[j]);
           if (cnfi->FaceEntityData()->owner != my_proc) {
-            cnfi->Connect_Face( (ContactFace*)NULL );
+            cnfi->Connect_Face( (ContactFace<Real>*)NULL );
           }
         }
       }
@@ -4954,9 +4976,9 @@ ContactTopology::DeleteGhosting()
     
     if (search->Do_FaceFace_Search()) {
       // unconnect all the ghosted faces from the appropriate interaction
-      ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+      ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
       for (int i=0; i<number_of_faces; ++i) {
-        ContactFace* face = Faces[i];
+        ContactFace<Real>* face = Faces[i];
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
@@ -4964,7 +4986,7 @@ ContactTopology::DeleteGhosting()
           ContactFaceFaceInteraction* cffi = 
             static_cast<ContactFaceFaceInteraction*>(interaction);
           if (cffi->MasterFaceEntityData()->owner != my_proc) {
-            cffi->Connect_MasterFace( (ContactFace*)NULL );
+            cffi->Connect_MasterFace( (ContactFace<Real>*)NULL );
           }
         }
       }
@@ -5025,8 +5047,8 @@ ContactTopology::DoGhosting_New_NodeFace(VariableHandle POSITION, const Real &re
   LB_ID_TYPE zoltan_lid[ZOLTAN_LID_SIZE];
   LB_ID_TYPE zoltan_gid[ZOLTAN_GID_SIZE];
     
-  ContactNode**    nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactFace**    faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>**    nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactFace<Real>**    faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   ContactElement** elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
         
   if (GhostFaces_ZoltanComm!=NULL) {
@@ -5096,11 +5118,11 @@ ContactTopology::DoGhosting_New_NodeFace(VariableHandle POSITION, const Real &re
   //
   local_nodes.reserve(number_of_nodes);
   for(int inode = 0; inode < number_of_nodes; ++inode) {
-    ContactNode *node = nodes[inode];
+    ContactNode<Real> *node = nodes[inode];
     if (node->Secondary_Owner() != my_proc_id ||                    
-        !node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE) ||
-        node->Physical_Type()   == ContactNode::SHELL_TAB_NODE ||
-        node->Physical_Type()   == ContactNode::MIXED_TAB_NODE) continue;
+        !node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE) ||
+        node->Physical_Type()   == ContactNode<Real>::SHELL_TAB_NODE ||
+        node->Physical_Type()   == ContactNode<Real>::MIXED_TAB_NODE) continue;
     ContactBoundingBox node_BB;
     node->ComputeBoundingBoxForSearch(num_configs,
                                       NODE_GHOST_GAP, 
@@ -5119,14 +5141,14 @@ ContactTopology::DoGhosting_New_NodeFace(VariableHandle POSITION, const Real &re
   local_faces.reserve(number_of_faces);
   const int num_face_blocks = Number_of_Face_Blocks();
   for(int iface_block = 0; iface_block < num_face_blocks; ++iface_block) {
-    ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(iface_block));    
+    ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(iface_block));    
     int num_faces = face_list->BlockNumEntities(iface_block);
     //
     //  Add each face to the list
     //
     
     for(int iface = 0; iface < num_faces; ++iface, ++global_face_index) {    
-      ContactFace *face = Faces[iface];
+      ContactFace<Real> *face = Faces[iface];
       PRECONDITION(face->Nodes_Per_Face() > 0);
       ContactBoundingBox face_current_box;
       ContactBoundingBox face_predicted_box;
@@ -5267,7 +5289,7 @@ ContactTopology::DoGhosting_New_NodeFace(VariableHandle POSITION, const Real &re
 	if(ObjectBoundingBoxHierarchy::find_any_overlap_loop(received_node_hierarchy, 
 							     send_face_boxes[iface])) {
 	  const int face_index = send_face_boxes[iface].get_object_number();
-	  ContactFace *face = faces[face_index];
+	  ContactFace<Real> *face = faces[face_index];
 	  face->ZoltanLID(CT_FACE, zoltan_lid);
 	  face->ZoltanGID(CT_FACE, zoltan_gid);
 	  GhostFaces_ZoltanComm->Add_Export(zoltan_lid,zoltan_gid,iproc);
@@ -5312,8 +5334,8 @@ ContactTopology::DoCaptureGhosting_New_NodeFace(VariableHandle POSITION, const R
   LB_ID_TYPE zoltan_lid[ZOLTAN_LID_SIZE];
   LB_ID_TYPE zoltan_gid[ZOLTAN_GID_SIZE];
     
-  ContactNode**    nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactFace**    faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>**    nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactFace<Real>**    faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   ContactElement** elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
         
   if (GhostFaces_ZoltanComm!=NULL) {
@@ -5386,11 +5408,11 @@ ContactTopology::DoCaptureGhosting_New_NodeFace(VariableHandle POSITION, const R
   //
   local_nodes.reserve(number_of_nodes);
   for(int inode = 0; inode < number_of_nodes; ++inode) {
-    ContactNode *node = nodes[inode];
+    ContactNode<Real> *node = nodes[inode];
     if (node->Secondary_Owner() != my_proc_id ||                    
-        !node->CheckContext(ContactTopologyEntity::GLOBAL_SEARCH_SLAVE) ||
-        node->Physical_Type()   == ContactNode::SHELL_TAB_NODE ||
-        node->Physical_Type()   == ContactNode::MIXED_TAB_NODE) continue;
+        !node->CheckContext(ContactTopologyEntity<Real>::GLOBAL_SEARCH_SLAVE) ||
+        node->Physical_Type()   == ContactNode<Real>::SHELL_TAB_NODE ||
+        node->Physical_Type()   == ContactNode<Real>::MIXED_TAB_NODE) continue;
     ContactBoundingBox node_BB;
     node->ComputeBoundingBoxForSearch(num_configs,
                                       NODE_GHOST_GAP, 
@@ -5410,14 +5432,14 @@ ContactTopology::DoCaptureGhosting_New_NodeFace(VariableHandle POSITION, const R
   local_faces.reserve(number_of_faces);
   const int num_face_blocks = Number_of_Face_Blocks();
   for(int iface_block = 0; iface_block < num_face_blocks; ++iface_block) {
-    ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->BlockEntityList(iface_block));    
+    ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->BlockEntityList(iface_block));    
     int num_faces = face_list->BlockNumEntities(iface_block);
     //
     //  Add each face to the list
     //
     
     for(int iface = 0; iface < num_faces; ++iface, ++global_face_index) {    
-      ContactFace *face = Faces[iface];
+      ContactFace<Real> *face = Faces[iface];
       PRECONDITION(face->Nodes_Per_Face() > 0);
       ContactBoundingBox face_current_box;
       ContactBoundingBox face_predicted_box;
@@ -5558,7 +5580,7 @@ ContactTopology::DoCaptureGhosting_New_NodeFace(VariableHandle POSITION, const R
 	if(ObjectBoundingBoxHierarchy::find_any_overlap_loop(received_node_hierarchy, 
 							     send_face_boxes[iface])) {
 	  const int face_index = send_face_boxes[iface].get_object_number();
-	  ContactFace *face = faces[face_index];
+	  ContactFace<Real> *face = faces[face_index];
 	  face->ZoltanLID(CT_FACE, zoltan_lid);
 	  face->ZoltanGID(CT_FACE, zoltan_gid);
 	  GhostFaces_ZoltanComm->Add_Export(zoltan_lid,zoltan_gid,iproc);
@@ -5587,11 +5609,11 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   ContactParOStream& postream = search->ParOStream();
   
   // initialize the flag indicating entities are to be updated from off-processor
-  ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+  ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for (int i=0; i<number_of_nodes; ++i) {
     Nodes[i]->temp_tag1 = 0;
   }
-  ContactFace** Faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for (int i=0; i<number_of_faces; ++i) {
     Faces[i]->temp_tag1 = 0;
   }
@@ -5599,7 +5621,7 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   // tag all faces that are connected to nodes in proximity
   // (so the physical face calculation has all the info)
   for (int i=0; i<number_of_nodes; ++i) {
-    ContactNode* node = Nodes[i];
+    ContactNode<Real>* node = Nodes[i];
     if (node->in_proximity) {
       node->temp_tag1 = 1;
       int num_faces = node->Number_Face_Connections();
@@ -5611,17 +5633,17 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   
   // tag all faces that are in proximity
   for (int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     if (face->in_proximity) face->temp_tag1 = 1;
   }
   
   // tag all nodes connected to tagged faces
   for (int i=0; i<number_of_faces; ++i) {
-    ContactFace* face = Faces[i];
+    ContactFace<Real>* face = Faces[i];
     if (face->temp_tag1>0) {
       int num_nodes = face->Nodes_Per_Face();
       for (int j=0; j<num_nodes; ++j) {
-        ContactNode* node = face->Node(j);
+        ContactNode<Real>* node = face->Node(j);
         node->temp_tag1 = 1;
       }
     }
@@ -5633,7 +5655,7 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   for (int i=0; i<number_of_node_blocks; ++i) {
     ContactBlockEntityList* ghost_node_list = ghosted_node_blocks[i]->NodeList();
     ghost_node_list->IteratorStart();
-    while (ContactTopologyEntity* entity=ghost_node_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=ghost_node_list->IteratorForward()) {
       if (entity->temp_tag1>0) ++num_nodes;
     }
   }
@@ -5644,7 +5666,7 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   for (int i=0; i<number_of_face_blocks; ++i) {
     ContactBlockEntityList* ghost_face_list = ghosted_face_blocks[i]->FaceList();
     ghost_face_list->IteratorStart();
-    while (ContactTopologyEntity* entity=ghost_face_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=ghost_face_list->IteratorForward()) {
       if (entity->temp_tag1>0) ++num_faces;
     }
   }
@@ -5671,7 +5693,7 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   for (int i=0; i<number_of_node_blocks; ++i) {
     ContactBlockEntityList* ghost_node_list = ghosted_node_blocks[i]->NodeList();
     ghost_node_list->IteratorStart();
-    while (ContactTopologyEntity* entity=ghost_node_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=ghost_node_list->IteratorForward()) {
       if (entity->temp_tag1>0) {
         entity->ZoltanGID(CT_NODE,&ghosted_import_gids[num_entity*ZOLTAN_GID_SIZE]);
         ghosted_import_pids[num_entity++] = entity->Owner();
@@ -5683,7 +5705,7 @@ void ContactTopology::UpdateGhostingSetupForNoSecondary()
   for (int i=0; i<number_of_face_blocks; ++i) {
     ContactBlockEntityList* ghost_face_list = ghosted_face_blocks[i]->FaceList();
     ghost_face_list->IteratorStart();
-    while (ContactTopologyEntity* entity=ghost_face_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=ghost_face_list->IteratorForward()) {
       if (entity->temp_tag1>0) {
         entity->ZoltanGID(CT_FACE,&ghosted_import_gids[num_entity*ZOLTAN_GID_SIZE]);
         ghosted_import_pids[num_entity++] = entity->Owner();
@@ -5745,9 +5767,9 @@ void ContactTopology::UpdateGhosting()
     // from track or 'no secondary'
     //================================================================
     int my_proc = contact_processor_number( SearchComm );
-    ContactNode** Nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
+    ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
     for (int i=0; i<number_of_nodes; ++i) {
-      ContactNode* node = Nodes[i];
+      ContactNode<Real>* node = Nodes[i];
       ContactNodeEntityInteraction** interactions = node->Get_NodeEntity_Interactions(1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(1); ++j) {
         if (interactions[j]->Get_Type()!=ContactNodeEntityInteraction::NODE_FACE_INTERACTION) continue;
@@ -5756,7 +5778,7 @@ void ContactTopology::UpdateGhosting()
           ContactHostGlobalID GID( cnfi->FaceEntityData()->host_gid[0], 
                                    cnfi->FaceEntityData()->host_gid[1] );
           int block = cnfi->FaceEntityData()->block_id;
-          ContactFace* face = static_cast<ContactFace *>
+          ContactFace<Real>* face = static_cast<ContactFace<Real> *>
             (ghosted_face_blocks[block]->FaceList()->Find( cnfi->FaceEntityData() ));
           if (face!=NULL) {
             cnfi->Connect_Face( face );
@@ -5774,8 +5796,8 @@ void ContactTopology::MigrateExportedData()
 #if CONTACT_DEBUG_PRINT_LEVEL>=3 || defined(CONTACT_ANALYZE_DATA_XFER)
   ContactParOStream& postream = search->ParOStream();
 #endif
-  ContactNode**    nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  ContactFace**    faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  ContactNode<Real>**    nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  ContactFace<Real>**    faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   ContactElement** elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
   int my_proc_id      = contact_processor_number(SearchComm);
   LB_ID_TYPE zoltan_lid[ZOLTAN_LID_SIZE];
@@ -5819,12 +5841,12 @@ void ContactTopology::MigrateExportedData()
   for(int i=0 ; i<number_of_face_blocks ; ++i ){
     ContactBlockEntityList* block_face_list = ghosted_face_blocks[i]->FaceList();
     block_face_list->IteratorStart();
-    while(ContactTopologyEntity* entity = block_face_list->IteratorForward() ){
-      ContactFace* face = static_cast<ContactFace*>(entity);
-      ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+    while(ContactTopologyEntity<Real>* entity = block_face_list->IteratorForward() ){
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
+      ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<face->Nodes_Per_Face() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(NodeList()->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(NodeList()->Find(&node_info[j]));
 	if (!node) {
 	  //
 	  //  Add the node to the import list
@@ -5839,12 +5861,12 @@ void ContactTopology::MigrateExportedData()
   for(int i=0 ; i<number_of_element_blocks ; ++i ){
     ContactBlockEntityList* block_element_list = element_blocks[i]->ElemList();
     block_element_list->IteratorStart();
-    while(ContactTopologyEntity* entity=block_element_list->IteratorForward() ){
+    while(ContactTopologyEntity<Real>* entity=block_element_list->IteratorForward() ){
       ContactElement* element = static_cast<ContactElement*>(entity);
-      ContactTopologyEntity::connection_data *node_info = element->NodeInfo();
+      ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<element->Nodes_Per_Element() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(NodeList()->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(NodeList()->Find(&node_info[j]));
 	if (!node) {
 	  //
 	  //  Add the node to the import list
@@ -5910,7 +5932,7 @@ void ContactTopology::MigrateExportedData()
     int export_size = 0;
     for(int inode = 0; inode < num_to_export; ++inode) {
       int node_index = current_export_ids[inode];
-      ContactNode *node = nodes[node_index];
+      ContactNode<Real> *node = nodes[node_index];
       export_size += node->Size(state1);
     }
     //
@@ -5924,7 +5946,7 @@ void ContactTopology::MigrateExportedData()
     //
     for(int inode = 0; inode < num_to_export; ++inode) {
       int node_index = current_export_ids[inode];
-      ContactNode *node = nodes[node_index];
+      ContactNode<Real> *node = nodes[node_index];
       node->Pack(send_buffer_ptr, -2);
       buf += node->Size(state1);
     }
@@ -5949,15 +5971,15 @@ void ContactTopology::MigrateExportedData()
   }
                                               
   for(int i=0 ; i<number_of_face_blocks ; ++i ){
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     ContactBlockEntityList* block_face_list = ghosted_face_blocks[i]->FaceList();
     block_face_list->IteratorStart();
     while( entity=block_face_list->IteratorForward() ){
-      ContactFace* face = static_cast<ContactFace*>(entity);
-      ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
+      ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<face->Nodes_Per_Face() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(NodeList()->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(NodeList()->Find(&node_info[j]));
 	if (!node) {
 	  if (node_info[j].owner!=my_proc_id) {
 	    zoltan_pid = node_info[j].owner;
@@ -5973,16 +5995,16 @@ void ContactTopology::MigrateExportedData()
   }
 
   for(int i=0 ; i<number_of_element_blocks ; ++i ){
-    ContactTopologyEntity* entity;
+    ContactTopologyEntity<Real>* entity;
     ContactBlockEntityList* block_element_list = element_blocks[i]->ElemList();
     block_element_list->IteratorStart();
     while( entity=block_element_list->IteratorForward() ){
       ContactElement* element = static_cast<ContactElement*>(entity);
         
-      ContactTopologyEntity::connection_data *node_info = element->NodeInfo();
+      ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<element->Nodes_Per_Element() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(NodeList()->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(NodeList()->Find(&node_info[j]));
 	if (!node) {
 	  if (node_info[j].owner!=my_proc_id) {
 	    zoltan_pid = node_info[j].owner;
@@ -6054,8 +6076,8 @@ void ContactTopology::MigrateExportedData()
   number_of_nodes    = node_list->NumEntities();
   number_of_faces    = face_list->NumEntities();
   number_of_elements = elem_list->NumEntities();
-  nodes = reinterpret_cast<ContactNode**>(node_list->EntityList());
-  faces = reinterpret_cast<ContactFace**>(face_list->EntityList());
+  nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
+  faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
     
 #ifdef CONTACT_TIMINGS
@@ -6076,25 +6098,25 @@ void ContactTopology::MigrateExportedData()
     
   for (int i=0; i<number_of_nodes; ++i) {
     if (nodes[i]->Secondary_Owner()==my_proc_id)  {
-      nodes[i]->Ownership(ContactTopologyEntity::OWNED);
+      nodes[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     } else {
-      nodes[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+      nodes[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
     }
   }
     
   for (int i=0; i<number_of_faces; ++i) {
     if (faces[i]->Secondary_Owner()==my_proc_id)  {
-      faces[i]->Ownership(ContactTopologyEntity::OWNED);
+      faces[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     } else {
-      faces[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+      faces[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
     }
   }
     
   for (int i=0; i<number_of_elements; ++i) {
     if (elems[i]->Secondary_Owner()==my_proc_id)  {
-      elems[i]->Ownership(ContactTopologyEntity::OWNED);
+      elems[i]->Ownership(ContactTopologyEntity<Real>::OWNED);
     } else {
-      elems[i]->Ownership(ContactTopologyEntity::NOT_OWNED);
+      elems[i]->Ownership(ContactTopologyEntity<Real>::NOT_OWNED);
     }
   }
   
@@ -6109,12 +6131,12 @@ void ContactTopology::MigrateExportedData()
   for (int i=0; i<number_of_face_blocks; ++i) {
     ContactBlockEntityList* block_list = ghosted_face_blocks[i]->FaceList();
     block_list->IteratorStart();
-    while (ContactTopologyEntity* entity=block_list->IteratorForward()) {
-      ContactFace* face = static_cast<ContactFace*>(entity);
-      ContactTopologyEntity::connection_data *node_info = face->NodeInfo();
+    while (ContactTopologyEntity<Real>* entity=block_list->IteratorForward()) {
+      ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
+      ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<face->Nodes_Per_Face() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(node_list->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(node_list->Find(&node_info[j]));
 	POSTCONDITION(node);
 	face->ConnectNode( j, node );
       }
@@ -6126,12 +6148,12 @@ void ContactTopology::MigrateExportedData()
   for (int i=0; i<number_of_element_blocks; ++i) {
     ContactBlockEntityList* block_list = ghosted_element_blocks[i]->ElemList();
     block_list->IteratorStart();
-    while (ContactTopologyEntity* entity=block_list->IteratorForward()) {
+    while (ContactTopologyEntity<Real>* entity=block_list->IteratorForward()) {
       ContactElement* element = static_cast<ContactElement*>(entity);
-      ContactTopologyEntity::connection_data *node_info = element->NodeInfo();
+      ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
       POSTCONDITION( node_info );
       for(int j=0 ; j<element->Nodes_Per_Element() ; ++j){
-	ContactNode* node = static_cast<ContactNode *>(node_list->Find(&node_info[j]));
+	ContactNode<Real>* node = static_cast<ContactNode<Real> *>(node_list->Find(&node_info[j]));
 	POSTCONDITION(node);
 	element->ConnectNode( j, node );
       }
@@ -6146,9 +6168,9 @@ void ContactTopology::MigrateExportedData()
       nodes[i]->Delete_Face_Connections();
     }
     for (int i=0; i<number_of_faces; ++i) {
-      ContactFace* face = faces[i];
+      ContactFace<Real>* face = faces[i];
       for(int k=0 ; k<face->Nodes_Per_Face() ; ++k ){
-        ContactNode* node = face->Node(k);
+        ContactNode<Real>* node = face->Node(k);
         node->Connect_Face(face );
       }
     }
@@ -6165,7 +6187,7 @@ void ContactTopology::MigrateExportedData()
     // connect all the ghosted faces to the appropriate interaction
     for (int i=0; i<number_of_nodes; ++i) {
       bool found_invalid = false;
-      ContactNode* node = nodes[i];
+      ContactNode<Real>* node = nodes[i];
       ContactNodeEntityInteraction** interactions = 
 	node->Get_NodeEntity_Interactions(1);
       for (int j=0; j<node->Number_NodeEntity_Interactions(1); ++j) {
@@ -6205,27 +6227,27 @@ void ContactTopology::MigrateExportedData()
   }
 
   for(int i=0 ; i<number_of_node_blocks ; ++i ){
-    ContactTopologyEntity* entity = NULL;
+    ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = ghosted_node_blocks[i]->NodeList();
     block_list->IteratorStart();
     while( entity=block_list->IteratorForward() ){
-      entity->SetContextBit(ContactTopologyEntity::GHOSTED_FOR_SEARCH);
+      entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }                                     
   for(int i=0 ; i<number_of_face_blocks ; ++i ){
-    ContactTopologyEntity* entity = NULL;
+    ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = ghosted_face_blocks[i]->FaceList();
     block_list->IteratorStart();
     while( entity=block_list->IteratorForward() ){
-      entity->SetContextBit(ContactTopologyEntity::GHOSTED_FOR_SEARCH);
+      entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }
   for(int i=0 ; i<number_of_element_blocks ; ++i ){
-    ContactTopologyEntity* entity = NULL;
+    ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = element_blocks[i]->ElemList();
     block_list->IteratorStart();
     while( entity=block_list->IteratorForward() ){
-      entity->SetContextBit(ContactTopologyEntity::GHOSTED_FOR_SEARCH);
+      entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }
   

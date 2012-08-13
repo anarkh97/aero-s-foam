@@ -26,14 +26,14 @@
  public: 
 
 #ifndef CONTACT_NO_MPI
-  virtual int Size() { return (ContactFace::Size() + sizeof(Real)); };
+  virtual int Size() { return (ContactFace<DataType>::Size() + sizeof(Real)); };
   virtual void Pack( char* buffer ){ 
-    ContactFace::Pack(buffer);
-    std::memcpy( buffer+ContactFace::Size(), &thickness, sizeof(Real) );
+    ContactFace<DataType>::Pack(buffer);
+    std::memcpy( buffer+ContactFace<DataType>::Size(), &thickness, sizeof(Real) );
   };
   virtual void Unpack( char* buffer ){
-    ContactFace::Unpack(buffer);
-    std::memcpy( &thickness, buffer+ContactFace::Size(), sizeof(Real) );
+    ContactFace<DataType>::Unpack(buffer);
+    std::memcpy( &thickness, buffer+ContactFace<DataType>::Size(), sizeof(Real) );
   };
 #endif
 

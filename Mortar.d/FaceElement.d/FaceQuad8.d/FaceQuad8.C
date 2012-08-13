@@ -369,6 +369,19 @@ FaceQuad8::GetIsoParamMappingNormalAndJacobian(double *Normal, double *m, CoordS
   return(NormN); // !!! TO CHECK !!!
 }
 
+void
+FaceQuad8::GetIsoParamMappingNormalJacobianProduct(double *JNormal, double *m, CoordSet &cs)
+{
+  // Compute dM/dx & dM/dy
+  double dMdx[3], dMdy[3];
+  ComputedMdxAnddMdy(dMdx, dMdy, m, cs);
+
+  // N = dM/dx x dM/dy
+  JNormal[0] = dMdx[1]*dMdy[2] - dMdx[2]*dMdy[1];
+  JNormal[1] = dMdx[2]*dMdy[0] - dMdx[0]*dMdy[2];
+  JNormal[2] = dMdx[0]*dMdy[1] - dMdx[1]*dMdy[0];
+}
+
 // --------------------------------------
 // IMPLEMENTATION OF PURE VIRTUAL METHODS
 // --------------------------------------

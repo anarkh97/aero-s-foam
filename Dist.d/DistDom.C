@@ -388,9 +388,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(u, time, x, iOut, STRAINVON);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(u, time, x, iOut, CONPRESS);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag())
+          getStressStrain(u, time, x, iOut, CONPRESS);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::Damage:
         getStressStrain(u, time, x, iOut, DAMAGE);
         break;
@@ -541,19 +544,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         this->getElementAttr(iOut,THICK, time);
         break;
       case OutputInfo::TDEnforcement: {
-        DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
-        double **sub_data = new double * [this->numSub];
-        for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
-        for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
-          domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+        if(domain->tdenforceFlag()) {
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
+          double **sub_data = new double * [this->numSub];
+          for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
+          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+          }
+          DistSVec<double, 1> master_data(masterInfo);
+          all_data.reduce(master_data, masterFlag, numFlags);
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+          }
+          delete [] sub_data;
         }
-        DistSVec<double, 1> master_data(masterInfo);
-        all_data.reduce(master_data, masterFlag, numFlags);
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-        }
-        delete [] sub_data;
+        else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut); 
       } break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);
@@ -721,8 +729,13 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
   if(printFlag != 2) {
     // each subdomain computes its stress vector
     for (iSub = 0; iSub < this->numSub; ++iSub) {
-      this->subDomain[iSub]->computeStressStrain(fileNumber, u.subData(iSub), 
-  		Findex, stress.subData(iSub), weight.subData(iSub));
+      if(Findex != 16) {
+        this->subDomain[iSub]->computeStressStrain(fileNumber, u.subData(iSub), 
+                                                   Findex, stress.subData(iSub), weight.subData(iSub));
+      }
+      else {
+        this->subDomain[iSub]->computeLocalContactPressure(stress.subData(iSub), weight.subData(iSub));
+      }
     }
 
     paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, nodePat, &stress);
@@ -1225,7 +1238,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState)
+                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1282,6 +1295,21 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     vels.reduce(masterVels, masterFlag, numFlags);
     accs.reduce(masterAccs, masterFlag, numFlags);
   }
+
+  // initialize and merge reaction forces
+  DistSVec<Scalar, 11> reacts(this->nodeInfo);
+  DistSVec<Scalar, 11> masterReacts(masterInfo);
+  if(reactions) {
+    GenDistrVector<Scalar> assembledReactions(*reactions);
+    //TODO: this->xx->assemble(assembledReactions);
+    reacts = 0;
+    for(iSub = 0; iSub < this->numSub; ++iSub) {
+      Scalar (*mergedReactions)[11] = (Scalar (*)[11]) reacts.subData(iSub);
+      this->subDomain[iSub]->mergeDistributedReactions(mergedReactions, assembledReactions.subData(iSub));
+    }
+    reacts.reduce(masterReacts, masterFlag, numFlags);
+  }
+
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -1430,9 +1458,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(geomState, allCorot, time, x, iOut, STRAINVON, refState);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag()) 
+          getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;
@@ -1475,7 +1506,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::DispMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *dispMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
@@ -1490,7 +1521,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::RotMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *rotMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
@@ -1505,7 +1536,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::TotMod:
         for(iSub = 0; iSub < this->numSub; ++iSub) {
           int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[8] = (Scalar (*)[8]) masterDisps.subData(iSub);
+          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
           Scalar *totMod = new Scalar[size];
           for(int iNode=0; iNode<size; ++iNode) {
             totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
@@ -1539,6 +1570,32 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
+      case OutputInfo::Reactions:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::Reactions6:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::TDEnforcement: {
+        if(domain->tdenforceFlag()) {
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
+          double **sub_data = new double * [this->numSub];
+          for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
+          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+          }
+          DistSVec<double, 1> master_data(masterInfo);
+          all_data.reduce(master_data, masterFlag, numFlags);
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+          }
+          delete [] sub_data;
+        }
+        else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;
@@ -1575,9 +1632,14 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
 
   // each subdomain computes its stress vector
   for (iSub = 0; iSub < this->numSub; ++iSub) {
-    GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
-    this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
-                                         Findex, stress.subData(iSub), weight.subData(iSub), subRefState);
+    if(Findex != 16) {
+      GeomState *subRefState = (refState) ? (*refState)[iSub] : 0;
+      this->subDomain[iSub]->computeStressStrain((*gs)[iSub], allCorot[iSub], fileNumber,
+                                                 Findex, stress.subData(iSub), weight.subData(iSub), subRefState);
+    }
+    else {
+      this->subDomain[iSub]->computeLocalContactPressure(stress.subData(iSub), weight.subData(iSub));
+    }
   }
 
   paralApply(this->numSub, this->subDomain, &GenSubDomain<Scalar>::template dispatchNodalData<Scalar>, this->nodePat, &stress);
@@ -1593,7 +1655,10 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
     Vec<Scalar> &locStress = stress(iSub);
     Vec<Scalar> &locWeight = weight(iSub);
     for(int i = 0; i < stress.subSize(iSub); ++i)
-      locStress[i] /= locWeight[i];
+      if(locWeight[i] != 0.0)
+        locStress[i] /= locWeight[i];
+      else
+        locStress[i] = 0.0;
   }
 
   // reduce the stress vector to just the master quantities

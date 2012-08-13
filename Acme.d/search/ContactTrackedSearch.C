@@ -230,7 +230,7 @@ ContactSearch::TrackedSearch(SearchType search_type,
     timer.Start_Timer( track_id_time );
   #endif
   Interaction_Definition( num_configs, ContactSearch::PRIMARY, 
-                          ContactTopologyEntity::TRACK_SEARCH_SLAVE );
+                          ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE );
   #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
     timer.Stop_Timer( track_id_time );
   #endif
@@ -260,11 +260,11 @@ ContactSearch::TrackedSearch(SearchType search_type,
 
 #if CONTACT_DEBUG_PRINT_LEVEL>=2
   primary_topology->Display_NodeEntity_Interactions_Summary(
-      postream, ContactTopologyEntity::TRACK_SEARCH_SLAVE, (char*)"    ", 0);
+      postream, ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE, (char*)"    ", 0);
 #else
 #ifdef CONTACT_HEARTBEAT       
   primary_topology->Display0_NodeEntity_Interactions_Summary(
-      ContactTopologyEntity::TRACK_SEARCH_SLAVE, (char*)"    ", 0 );
+      ContactTopologyEntity<Real>::TRACK_SEARCH_SLAVE, (char*)"    ", 0 );
 #endif
 #endif
 

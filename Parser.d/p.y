@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdio>
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <cstdlib>
 #include <Parser.d/AuxDefs.h>
@@ -61,31 +62,31 @@
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL 
+%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL
+%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
-%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC
+%token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
-%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODE NONINPC
+%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY
 %token OPTIMIZATION OUTPUT OUTPUT6
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS
+%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
-%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF
+%token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
@@ -93,8 +94,8 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC
-%token SURFACETOPOLOGY MORTARTIED SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
@@ -608,6 +609,20 @@ LayData:
           $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
 	  $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
 	  $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.lnum = $1-1;
+          $$.matid = -1; // PJSA 3-30-05: this means elastic constants are defined
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10;
+          $$.d[9] = $11;$$.d[10]= $12; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.lnum = $1-1;
+          $$.matid = -1; // PJSA 3-30-05: this means elastic constants are defined
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10;
+          $$.d[9] = $11;$$.d[10]= $12; $$.d[11] = $13; } 
 	;
 LayoData:
         Integer Integer Float Float NewLine // PJSA 3-30-05: elastic constants to be read later from LAYMAT
@@ -621,11 +636,27 @@ LayMat:
 LayMatData:
         Integer Float Float Float Float Float NewLine // E1 E2 nu12 G12 rho
                                                       // note: coefficients of mutual influence are zero
+                                                      //       coefficients of thermal expansion are zero
+                                                      //       reference temperature is zero
         { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-          $$.d[3] = $5; $$.d[4] = 0.0; $$.d[5] = 0.0; $$.d[6] = $6; }
+          $$.d[3] = $5; $$.d[4] = 0.0; $$.d[5] = 0.0; $$.d[6] = $6; 
+          $$.d[7] = 0; $$.d[8] = 0; $$.d[9] = 0; }
         | Integer Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho
+                                                                    // note: coefficients of thermal expansion are zero
+                                                                    //       reference temperature is zero
         { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8; }
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8;
+          $$.d[7] = 0; $$.d[8] = 0; $$.d[9] = 0; }
+        | Integer Float Float Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho, cte1, cte2
+                                                                                // note: reference temperature is zero
+        { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8;
+          $$.d[7] = $9; $$.d[8] = $10; $$.d[9] = 0; }
+        | Integer Float Float Float Float Float Float Float Float Float Float NewLine // E1 E2 nu12 G12 mu1,12 mu2,12 rho, cte1, cte2, ta
+        { $$.matid = $1-1; $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7; $$.d[6] = $8; 
+          $$.d[7] = $9; $$.d[8] = $10; $$.d[9] = $11; }
+        ;
 DiscrMasses:
 	DIMASS NewLine
 	| DiscrMasses Integer Integer Float NewLine
@@ -724,7 +755,7 @@ OutInfo:
         | TDENFORC Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for group or one node (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
 
-        | OutInfo NODE Integer
+        | OutInfo NODETOKEN Integer
         { $$.nodeNumber = $3-1; }
         | OutInfo SURFACE
         { $$.surface = $2; }
@@ -969,8 +1000,10 @@ SlzemInfo:
 RbmTolerance:
         TRBM NewLine Float NewLine
         { domain->solInfo().setTrbm($3); }
+/* 
         | TRBM NewLine Float Float NewLine
         { domain->solInfo().setTrbm($3); }
+*/
 	;
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
@@ -1750,6 +1783,17 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.lagrangeMult = bool($17);
+          sp.penalty = $18;
+          sp.type = StructProp::Constraint;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
 	{ StructProp sp; 
 	  sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
@@ -1769,6 +1813,18 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.lagrangeMult = bool($21);
+          sp.penalty = $22;
+          sp.type = StructProp::Constraint;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer Float Float Float Float Float Float Float NewLine
         { StructProp sp;
           sp.A = $2; sp.E = $3; sp.nu = $4; sp.rho = $5;
@@ -1781,6 +1837,14 @@ MatData:
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13;  
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float NewLine
+        { StructProp sp;  // this is for spring with stiffness-proportional damping : GID Kx Ky Kz lx1 ...
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.betaDamp = $15;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
@@ -1904,6 +1968,66 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT Integer Float Float Float Float Float NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.amplitude = $5;
+          sp.omega = $6;
+          sp.phase = $7;
+          sp.offset = $8;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float Float Float Float Float Float Integer NewLine
+        { StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.amplitude = $5;
+          sp.omega = $6;
+          sp.phase = $7;
+          sp.B = $8;
+          sp.C = $9;
+          sp.relop = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float NewLine
+        { // use for RevoluteJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.kx = $6;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
+        { // use for UniversalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.ky = $6;
+          sp.kz = $7;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
+        { // use for SphericalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.type = StructProp::Constraint;
+          sp.kx = $6;
+          sp.ky = $7;
+          sp.kz = $8;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer SPRINGMAT Float NewLine
+        { // use for TorsionalSpringType1 or TranslationalSpring
+          StructProp sp;
+          sp.kx = $3;
+          geoSource->addMat( $1-1, sp );
+        }
 	;
 ElemSet:
 	TOPOLOGY NewLine Element
@@ -1929,6 +2053,14 @@ FaceSet:
           $$->SetShellThickness($4);
           domain->AddSurfaceEntity($$);
         }
+        | SURFACETOPOLOGY Integer SHELLTHICKNESS Float REVERSENORMALS NewLine 
+        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+          $$ = new SurfaceEntity($2);
+          $$->SetIsShellFace(true);
+          $$->SetShellThickness($4);
+          $$->SetReverseNormals(true);
+          domain->AddSurfaceEntity($$);
+        }
         | FaceSet Integer Integer NodeNums NewLine 
         { if($$->GetReverseNormals()) { // reverse the node numbering
             int *nodes = new int[$4.num];
@@ -1936,6 +2068,7 @@ FaceSet:
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
             delete [] nodes;
           }
+/* moved to  Domain::SetUpSurfaces
           else if($$->GetIsShellFace()) { // for acme shell it is necessary to include both sides of the element in the face block
             int etype;
             if($3 == 1) etype = 5; // SHELLQUADFACEL4
@@ -1947,6 +2080,7 @@ FaceSet:
             $$->AddFaceElement(2*($2-1)+1, etype, $4.num, nodes);
             delete [] nodes;
           }
+*/
           else $$->AddFaceElement($2-1, $3, $4.num, $4.nd);
         }
 	; 
@@ -2031,6 +2165,21 @@ TiedSurfaces:
           $$->SetTDEnfParams($8, $9);
           $$->SetFrictionCoef($10);
           $$->SetInteractionType(MortarHandler::TIED);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetConstraintOptions($5);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($8);
           domain->AddMortarCond($$);
         }
         ;
@@ -2146,14 +2295,34 @@ ContactSurfaces:
           $$->SetMortarType($5); 
           domain->AddMortarCond($$);
         }
+        | ContactSurfaces Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4); 
+          $$->SetInteractionType(MortarHandler::CTC); 
+          $$->SetMortarType(MortarHandler::STD); 
+          $$->SetConstraintOptions($5);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($5); 
+          $$->SetConstraintOptions($8);
+          domain->AddMortarCond($$);
+        }
         ;
 AcmeControls:
         ACMECNTL Integer NewLine
         { domain->solInfo().dist_acme = $2; }
         | FFIDEBUG Integer NewLine
         { domain->solInfo().ffi_debug = bool($2); }
+        | MORTARSCALING Float NewLine
+        { domain->solInfo().mortar_scaling = $2; }
+        | MORTARINTEGRATIONRULE Integer NewLine
+        { domain->solInfo().mortar_integration_rule = $2; }
 NodeSet:
-	NODE NewLine Node
+	NODETOKEN NewLine Node
 	{ geoSource->addNode($3.num, $3.xyz); }
 	| NodeSet Node
 	{ geoSource->addNode($2.num, $2.xyz); }
@@ -2214,7 +2383,7 @@ Frame:
             $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
             $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
         | Integer THIRDNODE Integer NewLine
-        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d) }
+        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d); }
 	;
 BoffsetList:
 	BOFFSET NewLine
@@ -2282,13 +2451,22 @@ Lumped:
 	;
 Preload:
         PRELOAD NewLine
-        { fprintf(stderr," ... PreLoad in Truss Elements      ... \n");}
+        { }
         | Preload Integer Float NewLine
         { geoSource->setElementPreLoad( $2-1, $3 ); }
-        | Preload Integer Integer Float NewLine
+        | Preload Integer THRU Integer Float NewLine
         { int i;
-          for(i=$2; i<($3+1); ++i)
-            geoSource->setElementPreLoad( i-1, $4 );
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, $5 );
+        }
+        | Preload Integer Float Float Float NewLine
+        { double load[3] = { $3, $4, $5 };
+          geoSource->setElementPreLoad( $2-1, load ); }
+        | Preload Integer THRU Integer Float Float Float NewLine
+        { double load[3] = { $5, $6, $7 };
+          int i;
+          for(i=$2; i<($4+1); ++i)
+            geoSource->setElementPreLoad( i-1, load );
         }
 	;
 IterSolver:
@@ -2447,6 +2625,8 @@ Solver:
 	{ domain->solInfo().mumps_cntl[$2] = $3; }
         | GOLDFARBTOL Float NewLine
         { domain->solInfo().goldfarb_tol = $2; }
+        | GOLDFARBCHECK SWITCH NewLine
+        { domain->solInfo().goldfarb_check = bool($2); }
 	| Solver MAXITR Integer NewLine 
 	{ domain->solInfo().fetiInfo.maxit = $3; }
         | DEBUGICNTL Integer Integer NewLine
@@ -2715,8 +2895,10 @@ Solver:
         { domain->solInfo().fetiInfo.gmresResidual = bool($2); }
         | PICKANYCORNER Integer NewLine
         { domain->solInfo().fetiInfo.pickAnyCorner = $2; }
+/* deprecated
         | FRONTAL NewLine
 	{ domain->solInfo().fetiInfo.solvertype = FetiInfo::frontal; }
+*/
         | NLPREC NewLine
         { domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
           domain->solInfo().fetiInfo.nlPrecFlg = 1; 
@@ -2901,23 +3083,44 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty;
-          domain->solInfo().mpcDual = $2.mpcDual; }
+          domain->solInfo().penalty = $2.penalty; }
+        | CONSTRAINTS NewLine ConstraintOptionsData NewLine
+        { if(!$3.lagrangeMult && $3.penalty == 0) domain->solInfo().setDirectMPC(true);
+          domain->solInfo().lagrangeMult = $3.lagrangeMult;
+          domain->solInfo().penalty = $3.penalty; }
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; $$.mpcDual = false; } // Direct elimination of slave dofs
+        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
         | DIRECT Float
         { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; }
+        | DIRECT Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2;
+          domain->solInfo().coefFilterTol = $3; }
+        | DIRECT Float Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2; 
+          domain->solInfo().coefFilterTol = $3;
+          domain->solInfo().rhsZeroTol = $4; }
+        | DIRECT Float Float Float Float
+        { $$.lagrangeMult = false; $$.penalty = 0.0;
+          domain->solInfo().usePrescribedThreshold = true;
+          domain->solInfo().mpcDirectTol = $2;
+          domain->solInfo().coefFilterTol = $3; 
+          domain->solInfo().rhsZeroTol = $4;
+          domain->solInfo().inconsistentTol = $5; }
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = false; } // Treatment of constraints through Lagrange multipliers method
+        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; $$.mpcDual = false; } // Treatment of constraints through penalty method
+        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; $$.mpcDual = false; } // Treatment of constraints through augmented Lagrangian method
-        | MULTIPLIERS DUALMORTAR
-        { $$.lagrangeMult = true; $$.penalty = 0.0; $$.mpcDual = true; }
+        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        ;
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
@@ -3150,6 +3353,11 @@ NLInfo:
         | NLInfo NLTOL Float Float NewLine
         { domain->solInfo().getNLInfo().tolRes = $3;
           domain->solInfo().getNLInfo().tolInc = $4; }
+        | NLInfo NLTOL Float Float Float Float NewLine
+        { domain->solInfo().getNLInfo().tolRes = $3;
+          domain->solInfo().getNLInfo().tolInc = $4;
+          domain->solInfo().getNLInfo().absTolRes = $5;
+          domain->solInfo().getNLInfo().absTolInc = $6; }
         | NLInfo DLAMBDA Float Float NewLine
         { domain->solInfo().getNLInfo().dlambda = $3;
           domain->solInfo().getNLInfo().maxLambda = $4; }
@@ -3174,6 +3382,9 @@ NLInfo:
 */
         | NLInfo FAILSAFE NewLine
         { domain->solInfo().getNLInfo().failsafe = true; }
+        | NLInfo FAILSAFE Float NewLine
+        { domain->solInfo().getNLInfo().failsafe = true;
+          domain->solInfo().getNLInfo().failsafe_tol = $3; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -3315,6 +3526,11 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new ElaLinIsoMat2D($4, $5, $6, $7));
          }
+        | MatSpec Integer SVKPLSTRESS Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat2D($4, $5, $6, $7));
+         }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {
             double params[3] = { $4, $5, $6 };
@@ -3323,13 +3539,25 @@ MatSpec:
           }
         | MatSpec Integer NEOHOOKEAN Float Float Float NewLine
           {
-            double params[3] = { $4, $5, $6 };
+            double params[4] = { $4, $5, $6, -1 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<NeoHookean>(params));
+          }
+        | MatSpec Integer NEOHOOKEAN Float Float Float Float NewLine
+          {
+            double params[4] = { $4, $5, $6, $7 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<NeoHookean>(params));
           }
         | MatSpec Integer MOONEYRIVLIN Float Float Float Float NewLine
           {
-            double params[4] = { $4, $5, $6, $7 };
+            double params[5] = { $4, $5, $6, $7, -1 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<MooneyRivlin>(params));
+          }
+        | MatSpec Integer MOONEYRIVLIN Float Float Float Float Float NewLine
+          {
+            double params[5] = { $4, $5, $6, $7, $8 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<MooneyRivlin>(params));
           }
@@ -3461,5 +3689,9 @@ Float:
 	{ $$ = $1; }
 	| DblConstant 
 	{ $$ = $1; }
+        | INFINTY
+        { $$ = std::numeric_limits<double>::infinity(); }
+        | EPSILON
+        { $$ = std::numeric_limits<double>::epsilon(); }
 	;
 %%

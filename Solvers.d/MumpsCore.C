@@ -71,13 +71,15 @@ template<>
 void
 GenMumpsSolver<DComplex>::copyToMumpsLHS(mumps_double_complex *&m, DComplex *&d, int len)
 {
+/*
   m = new mumps_double_complex[len]; // this is inefficient ... doubles memory use
   for(int i=0; i<len; ++i) {
     m[i].r = d[i].real();
     m[i].i = d[i].imag();
   }
   delete [] d; d = 0;
-  //m = reinterpret_cast<mumps_double_complex *>(d);
+*/
+  m = reinterpret_cast<mumps_double_complex *>(d);
 }
 
 template<>

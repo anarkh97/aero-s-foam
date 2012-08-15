@@ -1503,8 +1503,10 @@ Mode:
 	READMODE FNAME NewLine
 	{ domain->solInfo().readInROBorModes = $2;
 	  domain->solInfo().readmodeCalled = true; }
-//	{ domain->readInModes($2); }
-	
+	| READMODE FNAME Integer NewLine
+	{ domain->solInfo().readInROBorModes = $2;
+          domain->solInfo().readmodeCalled = true; 
+ 	  domain->solInfo().maxSizePodRom = $3; }	
 	;
 IDisp:
         IDIS NewLine

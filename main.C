@@ -746,7 +746,8 @@ int main(int argc, char** argv)
 		domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));}
 	else if (!domain->solInfo().samplingPodRom) {
 	domain->solInfo().activatePodRom = true;
-	domain->solInfo().galerkinPodRom = true;}
+	domain->solInfo().galerkinPodRom = true;
+        domain->solInfo().subtype = 12;}
 }
 
 

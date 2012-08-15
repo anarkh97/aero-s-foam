@@ -386,6 +386,7 @@ PodProjectionNonLinDynamic::getSolver() {
 
 int
 PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
+  if(domain->solInfo().jacobvectPodRom)
   jacImpl_->handleJacobianSnapshot();
 
   // Forward to hidden base class function
@@ -399,6 +400,7 @@ PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, GeomState &,
 
 void
 PodProjectionNonLinDynamic::handleResidualSnapshot(const Vector &snap) {
+  if(domain->solInfo().residvectPodRom)
   resImpl_->handleResidualSnapshot(snap);
 }
 
@@ -409,16 +411,19 @@ PodProjectionNonLinDynamic::factorWhenBuilding() const {
 
 void
 PodProjectionNonLinDynamic::saveMidTime(double t) {
+  if(domain->solInfo().statevectPodRom)
   sttImpl_->lastMidTimeIs(t);
 }
 
 void
 PodProjectionNonLinDynamic::saveDelta(double dt) {
+  if(domain->solInfo().statevectPodRom)
   sttImpl_->lastDeltaIs(dt);
 }
 
 void
 PodProjectionNonLinDynamic::saveStateSnapshot(const GeomState &state) {
+  if(domain->solInfo().statevectPodRom)
   sttImpl_->stateSnapshotAdd(state);
 }
 

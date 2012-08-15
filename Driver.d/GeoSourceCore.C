@@ -2988,7 +2988,6 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
      if(!oinfo[iInfo].PodRomfile) {
       if(oinfo[iInfo].interval != 0) {
-      fprintf(stderr,"opening file %s \n", oinfo[iInfo].filename);
         char *fileName = oinfo[iInfo].filename;
         if (strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -3010,7 +3009,6 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
   else { // open selected output files
     for(int iOut = 0; iOut < numOuts; iOut++)  {
       iInfo = outIndex[iOut];
-      fprintf(stderr,"opening file %s \n", oinfo[iInfo].filename);
       if(!oinfo[iInfo].PodRomfile) {
        if(oinfo[iInfo].interval != 0) {
         char *fileName = oinfo[iInfo].filename;

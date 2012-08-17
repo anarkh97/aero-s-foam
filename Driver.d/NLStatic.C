@@ -253,7 +253,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
-
+/*
   if(claw && claw->numActuator) {
     for(int i = 0; i < numNeuman; ++i) {
       if(nbc[i].type != BCond::Actuators) continue;
@@ -267,7 +267,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
- 
+*/ 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();

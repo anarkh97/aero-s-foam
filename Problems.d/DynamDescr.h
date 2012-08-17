@@ -168,7 +168,7 @@ class SingleDomainDynamic
     void modeDecompPreProcess(SparseMatrix*M);
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
-    void getInternalForce(Vector&, Vector&, double t);
+    void getInternalForce(Vector&, Vector&, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();

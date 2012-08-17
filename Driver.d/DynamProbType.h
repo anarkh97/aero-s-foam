@@ -118,7 +118,7 @@ private:
 
      int checkSteadyState(double time, double step, double criteria=-1.0);
 
-     void getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time);
+     void getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time, int tIndex);
 
      ProblemDescriptor *probDesc;
      PostProcessor *postProcessor;

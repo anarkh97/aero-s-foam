@@ -60,7 +60,7 @@ public:
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);
-  void getInternalForce(Vector &d, Vector &f, double t);
+  void getInternalForce(Vector &d, Vector &f, double t, int tIndex);
 
   void printTimers(ModalOps *, double) { /* leave blank */}
 

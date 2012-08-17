@@ -105,12 +105,10 @@ SuperCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
     FullSquareMatrix subK(ndofs);
-    subK.zero();
     double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
     subElemCorotators[i]->getInternalForce(geomState, cs, subK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
-    elK.add(subK, subElemDofs);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
     delete [] subf;
   }

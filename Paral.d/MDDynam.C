@@ -937,10 +937,10 @@ MultiDomainDynam::modeDecomp(double t, int tIndex, DistrVector& d_n)
 }
 
 void 
-MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t)
+MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex)
 {
   if(domain->solInfo().isNonLin())  // PJSA 3-31-08
-    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t);
+    execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
   else {
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
@@ -976,12 +976,17 @@ MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp)
 }
 
 void
-MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double t)
+MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &tIndex)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   Vector residual(f.subLen(isub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
-  sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+  }
+  else {
+    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+  }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual
 }

@@ -284,6 +284,40 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   }
 }
 
+void
+MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, double* f, double delt, double t)
+{
+  for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
+  if(getSource() != mpc::ContactSurfaces)
+    update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+  if(t == 0 && delt > 0 && type == 0)
+    rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
+
+  // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
+  // NOTES:
+  //  1. penalty method is the particular case with prop->lagrangeMult is set to false
+  //  2. multipliers method is the particular case with prop->penalty set to 0
+  //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
+
+  if(prop->lagrangeMult || prop->penalty != 0) {
+    double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
+      if(prop->lagrangeMult) {
+        f[nterms] = -lambda/prop->penalty;
+      }
+    }
+    else {
+      if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
+      for(int i = 0; i < nterms; ++i) {
+        if(!(type == 1 && prop->lagrangeMult)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
+                                                   // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
+
+      }
+      if(prop->lagrangeMult) f[nterms] = -rhs.r_value;
+    }
+  }
+}
+
 void 
 MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
 { 

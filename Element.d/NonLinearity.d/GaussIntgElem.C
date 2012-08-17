@@ -508,6 +508,105 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
   //cerr << "K = "; kTan.print();
 }
 
+void 
+GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
+                            double *dispnp, double *statenp,
+                            double *force, double)
+{
+  //for(int i=0; i<8; ++i) cerr << nodes[i].x+dispn[3*i+0] << "," << nodes[i].y+dispn[3*i+1] << "," << nodes[i].z+dispn[3*i+2] << " ";
+  //cerr << endl;
+  int ndofs = numDofs();
+  ShapeFunction *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  StrainEvaluator *strainEvaluator = getStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Obtain the storage for gradU ( 3x3 )
+  Tensor &gradUn = *shapeF->getGradUInstance();
+  Tensor &gradUnp = *shapeF->getGradUInstance();
+  // Obtain the storage for dgradUdqk ( ndof x3x3 )
+  Tensor &dgradUdqkn = *shapeF->getDgradUDqkInstance();
+  Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
+
+  // NDofsx3x3x-> 6xNDofs
+  Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
+  Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
+
+  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
+  Tensor &DBn = *strainEvaluator->getDBInstance(ndofs);
+  Tensor &DBnp = *strainEvaluator->getDBInstance(ndofs);
+
+  Tensor &Dnp = *strainEvaluator->getTMInstance();
+  Tensor &en = *strainEvaluator->getStrainInstance();
+  Tensor &enp = *strainEvaluator->getStrainInstance();
+  Tensor &s = *strainEvaluator->getStressInstance();
+  
+  Tensor_d1s0 nodeforce(ndofs);
+  Tensor_d1s0 temp0(ndofs);
+
+  int i,j;
+  int ngp = getNumGaussPoints();
+  int nstatepgp = material->getNumStates();
+  
+  //fprintf(stderr,"Je suis dans integrate\n");
+  
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight, jacn, jacnp;
+    StackVector dispVecn(dispn, ndofs);
+    StackVector dispVecnp(dispnp, ndofs); 
+ 
+    getGaussPointAndWeight(i, point, weight);
+/* PJSA seems to be unnecessary
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
+    shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
+*/
+/* PJSA seems to be unnecessary
+    strainEvaluator->getE(en, gradUn);
+    strainEvaluator->getE(enp, gradUnp);  
+*/
+    shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
+    shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
+
+    // TODO: DB is not required in this function...
+    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+
+    //material->updateStates(en, enp, state + nstatepgp*i);
+    //material->getStress(&s, e, 0);       
+    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
+    material->integrate(&s, &Dnp, en, enp,
+                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+
+    //std::cerr << "s = "; s.print();
+    //std::cerr << "Dnp = "; Dnp.print();
+    temp0 = s || Bnp;
+    temp0 = (weight*jacnp)*temp0;
+    nodeforce = nodeforce + temp0;
+  }
+
+  for(j = 0; j < ndofs; ++j) {
+    force[j] = - nodeforce[j];}
+
+  delete &gradUn;
+  delete &gradUnp;
+  delete &dgradUdqkn;
+  delete &dgradUdqknp;
+  delete &Bn;
+  delete &DBn;
+  delete &Bnp;
+  delete &DBnp;
+  delete &en;
+  delete &enp;
+  delete &s;
+  delete &Dnp;
+
+  //cerr << "K = "; kTan.print();
+}
+
 void
 GaussIntgElement::initStates(double *st)
 {

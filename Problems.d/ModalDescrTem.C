@@ -230,7 +230,7 @@ void ModalDescr<Scalar>::computeExtForce2(SysState<Vector>& state, Vector &extF,
 //------------------------------------------------------------------------------
 
 template <class Scalar>
-void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t){
+void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t, int tIndex){
 /*PRE: d is the value of the modal coordinates
  POST: return the modal internal force in f
 */

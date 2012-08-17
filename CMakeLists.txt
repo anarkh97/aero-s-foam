@@ -291,8 +291,8 @@ if(MPI_FOUND)
    IF(NOT APPLE)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
-       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt
+       Driver Elem Feti HelmAxi solver Corotational Mortar Math 
+       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt 
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                            PROPERTIES 
@@ -349,8 +349,8 @@ add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
-     Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
-     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
+     Driver Elem Feti HelmAxi solver Corotational Mortar Math
+     Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
   add_subdirectory(Acme.d)

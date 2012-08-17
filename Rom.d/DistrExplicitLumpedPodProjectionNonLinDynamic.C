@@ -26,7 +26,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
 }
 
 void
-DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t) {
+DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
   execParal2R(decDomain->getNumSub(),
               this, &DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,
               f, t);

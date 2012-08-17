@@ -257,12 +257,115 @@ BarCorotator::getDExternalForceDu(GeomState &geomState, CoordSet &cs,
 
 void 
 BarCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
-                               FullSquareMatrix &elK, double *f, double dt, double t)
+                               FullSquareMatrix &elK, double *f, double, double)
+/*******************************************************************
+ *
+ * Purpose :
+ *  Compute Internal force vector
+ *  for Co-rotated bar element in current configuration.
+ *
+ * Input Variables:
+ *  geomState : current configuration 
+ *  cs        : coordinate set, contains reference configuration
+ *
+ * Local Variables:
+ * x0[i][j] : global coordinate component j of node i in reference configuration
+ * xn[i][j] : global coordinate component j of node i in current configuration
+ * t[i]     : transformation matrix (1st vector only) for current state
+ * t0[i]    : transformation matrix (1st vector only) for initial state
+ * l0       : original length 
+ * ld       : deformed length
+ * a0       : Cross-sectional area
+ * em       : Elastic modulus
+ * e        : Green-Lagrange (GL) strain
+ * sigma    : PK2 axial stress
+ * p        : axial force in local coordinates
+ * preload  : axial preload
+ * f0       : internal force vector in initial configuration due to preload
+ *
+ * Output :
+ *  f        : internal force vector in current configuration
+ *
+ *****************************************************************/
 {
+ // Declare local variables 
+ int    i, j;
+ double kt[6][6], xn[2][3], x0[2][3], t[3], t0[3], f0[6];
+ 
+ double a0 = prop->A;  //cross-sectional area
+ double em = prop->E;  //Young's modulus
+ 
+ // Get original coordinates of bar's nodes
+ Node &node1 = cs.getNode(n1);
+ Node &node2 = cs.getNode(n2);
+ 
+ double dx = node2.x - node1.x;
+ double dy = node2.y - node1.y;
+ double dz = node2.z - node1.z;
+ double l0 = sqrt(dx*dx + dy*dy + dz*dz);
 
-  getStiffAndForce(geomState, cs, elK, f, dt, t);
+ // Get current Node State
+ NodeState &ns1 = geomState[n1];
+ NodeState &ns2 = geomState[n2];
 
-}				  
+ // Set coordinates of C0 configuration
+ x0[0][0] = node1.x;
+ x0[0][1] = node1.y;
+ x0[0][2] = node1.z;
+ x0[1][0] = node2.x;
+ x0[1][1] = node2.y;
+ x0[1][2] = node2.z;
+
+ // Set coordinates of Cn configuration 
+ xn[0][0] = ns1.x; // xn coordinate of node 1
+ xn[0][1] = ns1.y; // yn coordinate of node 1
+ xn[0][2] = ns1.z; // zn coordinate of node 1
+ xn[1][0] = ns2.x; // xn coordinate of node 2
+ xn[1][1] = ns2.y; // yn coordinate of node 2
+ xn[1][2] = ns2.z; // zn coordinate of node 2
+
+ // Compute deformed length: ld
+        dx = xn[1][0] - xn[0][0];
+        dy = xn[1][1] - xn[0][1];
+        dz = xn[1][2] - xn[0][2];
+ double ld = sqrt(dx*dx + dy*dy + dz*dz);
+
+ // Form transformation tensor: t (1st vector only)
+ // for current state 
+ t[0] = dx/ld;
+ t[1] = dy/ld;
+ t[2] = dz/ld;
+
+ // Form transformation tensor: t0 (1st vector only)
+ // for initial state 
+ dx = x0[1][0] - x0[0][0];
+ dy = x0[1][1] - x0[0][1];
+ dz = x0[1][2] - x0[0][2];
+ t0[0] = dx/l0;
+ t0[1] = dy/l0;
+ t0[2] = dz/l0;
+ 
+ // Compute current GL-strain
+ double e = (ld - l0)/l0;
+  
+ // Compute current PK2-stress
+ double sigma = em*e;
+
+ // Compute current axial force: p
+ double p = sigma*a0;
+
+ // Add Preload
+ p += preload;
+
+ // Form current internal force: f
+ formInternalForce(t, p, f);
+
+ // Form initial internal force: f0
+ formInternalForce(t0, preload, f0);
+
+ for(i=0; i<6; ++i)
+   f[i] -= f0[i];
+}
 
 //-----------------------------------------------------------------------
 

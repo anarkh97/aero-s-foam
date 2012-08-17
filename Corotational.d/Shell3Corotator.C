@@ -221,25 +221,18 @@ Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
 
- // Form unprojected internal forces and initialize stiffness matrix
-
- int i,j;
- for(i=0; i<18; ++i) {
-  locF[i] = 0.0;
-  for(j=0; j<18; ++j)
-    elK[i][j] = origK[i][j];
- }
+ // Form unprojected internal forces
 
  // compute locF (local Force) as origK*vld 
 
- _FORTRAN(dgemv)('N',18,18,1.0,(double *)elK.data(),18,vld,1,0.0,locF,1);
+ _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
 
  // Compute gradients of the nodal deformational pseudorotations
  // Correct element stiffness and internal force
 
  double rotvar[3][3][3];
 
- int inode;
+ int inode,i;
  for(inode=0; inode<3; ++inode)
    pseudorot_var( vld+inode*6+3, rotvar[inode] );
 

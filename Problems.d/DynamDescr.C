@@ -840,12 +840,17 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 }
 
 void
-SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t)
+SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex)
 {
   if(domain->solInfo().isNonLin()) {
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
-    domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+    if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+    }
+    else {
+      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+    }
     f.linC(-1.0,residual); // f = -residual
   }
   else {

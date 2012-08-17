@@ -194,7 +194,7 @@ private:
     void modeDecompPreProcess(SparseMatrix* M);
     void modeDecomp(double t, int tIndex, DistrVector& d_n);
 
-    void getInternalForce(DistrVector &d, DistrVector &f, double t);
+    void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();
@@ -217,7 +217,7 @@ private:
     int getAeroheatFlag();
    
   private:
-    void subGetInternalForce(int isub, DistrVector &res, double t);
+    void subGetInternalForce(int isub, DistrVector &res, double &t, int &tIndex);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);

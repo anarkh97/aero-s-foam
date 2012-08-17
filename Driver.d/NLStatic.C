@@ -253,21 +253,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
-/*
-  if(claw && claw->numActuator) {
-    for(int i = 0; i < numNeuman; ++i) {
-      if(nbc[i].type != BCond::Actuators) continue;
-      int uDofNum  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
-      if(uDofNum >= 0)
-        residual[uDofNum] += lambda*nbc[i].val; // XXXX need to multiply by weight for multidomain
-      else if(reactions) {
-        int cDofNum = c_dsa->invRCN(dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum)));
-        if(cDofNum >= 0)
-          (*reactions)[cDofNum] -= lambda*nbc[i].val;
-      }
-    }
-  }
-*/ 
+ 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele) 
       kel[iele].symmetrize();

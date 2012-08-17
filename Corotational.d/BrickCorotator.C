@@ -234,6 +234,155 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 //  cerr << "K = "; K.print();
 }
 
+void
+BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+                                 FullSquareMatrix &, double *f, double dt, double t)
+{
+  int i,j,k;
+  int numLinGaussPts = 2;
+  double nGrad[8][3];
+  
+  //initialize forces 
+  for (i = 0; i < 24; i++)  {
+    f[i] = 0;
+  }
+
+  // reformat cs to accomodate fortran routine
+  double xNodes[8], yNodes[8], zNodes[8];
+  for (i = 0; i < 8; i++)  {
+    xNodes[i] = cs[nodeNum[i]]->x;
+    yNodes[i] = cs[nodeNum[i]]->y;
+    zNodes[i] = cs[nodeNum[i]]->z;
+  }
+  //for(int i=0; i<8; ++i) cerr << geomState[nodeNum[i]].x << "," << geomState[nodeNum[i]].y << "," << geomState[nodeNum[i]].z << " ";
+  //cerr << endl;
+
+  int fortran = 1;  // fortran routines start from index 1
+  int pt1, pt2, pt3;
+  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++)  {
+    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++)  {
+      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++)  {
+        // get gauss point
+        double xi, eta, mu, wt;
+        _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2, 
+	 		 numLinGaussPts, pt3, xi,  eta, mu, wt);
+
+        //compute shape functions
+        double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
+        double dOmega;  //det of jacobian
+      
+        _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
+                         shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
+
+        // get volume
+        // dOmega is here off by a factor of 1/4
+        // this divides all by a factor of 4 later
+  	dOmega *= wt;
+  	dOmega /= 4;
+  
+	for (i = 0; i < 8; ++i)  {
+          nGrad[i][0] = shapeGradX[i];   
+          nGrad[i][1] = shapeGradY[i];   
+          nGrad[i][2] = shapeGradZ[i];   
+        }
+   
+  	// now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
+  	double F[3][3];
+  
+  	for(j = 0; j < 3; ++j)
+    	  F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+            	  + geomState[nodeNum[1]].x * nGrad[1][j]
+            	  + geomState[nodeNum[2]].x * nGrad[2][j]
+            	  + geomState[nodeNum[3]].x * nGrad[3][j]
+	    	  + geomState[nodeNum[4]].x * nGrad[4][j]
+  	    	  + geomState[nodeNum[5]].x * nGrad[5][j]
+		  + geomState[nodeNum[6]].x * nGrad[6][j]
+		  + geomState[nodeNum[7]].x * nGrad[7][j];
+	
+	for(j = 0; j < 3; ++j)
+    	  F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+            	  + geomState[nodeNum[1]].y * nGrad[1][j]
+            	  + geomState[nodeNum[2]].y * nGrad[2][j]
+            	  + geomState[nodeNum[3]].y * nGrad[3][j]
+	    	  + geomState[nodeNum[4]].y * nGrad[4][j]
+  	    	  + geomState[nodeNum[5]].y * nGrad[5][j]
+		  + geomState[nodeNum[6]].y * nGrad[6][j]
+		  + geomState[nodeNum[7]].y * nGrad[7][j];
+	
+    	for(j = 0; j < 3; ++j)
+    	  F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+            	  + geomState[nodeNum[1]].z * nGrad[1][j]
+            	  + geomState[nodeNum[2]].z * nGrad[2][j]
+            	  + geomState[nodeNum[3]].z * nGrad[3][j]
+	    	  + geomState[nodeNum[4]].z * nGrad[4][j]
+  	    	  + geomState[nodeNum[5]].z * nGrad[5][j]
+		  + geomState[nodeNum[6]].z * nGrad[6][j]
+		  + geomState[nodeNum[7]].z * nGrad[7][j];
+  	
+    
+        double detF = F[0][0]*F[1][1]*F[2][2]+F[0][1]*F[1][2]*F[2][0]+F[0][2]*F[1][0]*F[2][1]
+                     -F[0][0]*F[1][2]*F[2][1]-F[0][1]*F[1][0]*F[2][2]-F[0][2]*F[1][1]*F[2][0];
+        //if(detF < 0) cerr << " *** WARNING: in BrickCorotator::getStiffAndForce |F| = " << detF << endl;
+
+   
+        // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
+        // here these are off by factor of 2
+  	double e_11 = (F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
+  	double e_22 = (F[0][1]*F[0][1]+F[1][1]*F[1][1]+F[2][1]*F[2][1]-1.0);
+  	double e_33 = (F[0][2]*F[0][2]+F[1][2]*F[1][2]+F[2][2]*F[2][2]-1.0);
+  	double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
+  	double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
+  	double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+  	double sigma[6];
+  
+  	double E2 = em*nu/((1+nu)*(1-2*nu));
+  	double E1 = E2+em/(1+nu);
+        // no factor of 1/2 on G2 due to using tensor strain
+  	double G2 = em/(1+nu);
+        // these here are off by a factor of 2
+  	sigma[0] = E1*e_11+E2*(e_22+e_33);
+  	sigma[1] = E1*e_22+E2*(e_11+e_33);
+  	sigma[2] = E1*e_33+E2*(e_11+e_22);
+        // these here are off by a factor of 4
+  	sigma[3] = 2*G2*e_12;
+  	sigma[4] = 2*G2*e_13;
+  	sigma[5] = 2*G2*e_23;
+
+  	// Compute de_ij/dUl for the symmetric part
+  	// First we get df_ij/dUl in a very compact form.
+  	// df_ij/dUl=dN_p/dX_j delta_iq; with p = int(l/3)+1 and l-1=q-1 mod(3)
+  	// this means that df_ij/dUl is already contained in dN_k/dX_j
+  	double dedU[24][6];
+  	for(i = 0; i < 8; ++i)
+    	  for(j = 0; j < 3; ++j) {
+      	    dedU[3*i+j][0] = 2*nGrad[i][0]*F[j][0];
+            dedU[3*i+j][1] = 2*nGrad[i][1]*F[j][1];
+      	    dedU[3*i+j][2] = 2*nGrad[i][2]*F[j][2];
+      	    dedU[3*i+j][3] = (nGrad[i][0]*F[j][1]+nGrad[i][1]*F[j][0]);
+      	    dedU[3*i+j][4] = (nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
+      	    dedU[3*i+j][5] = (nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
+    	  }
+        // all dedU terms are here off by a factor of 2
+
+  	// Get the force:
+	for(i = 0; i < 24; ++i)
+    	  f[i] += dOmega*( dedU[i][0]*sigma[0] + 
+                           dedU[i][1]*sigma[1] + 
+                           dedU[i][2]*sigma[2] + 
+                           dedU[i][3]*sigma[3] + 
+           	           dedU[i][4]*sigma[4] + 
+                           dedU[i][5]*sigma[5]);
+        // normal terms of f are
+        // (1/4)*(2*2) = 1 => right level
+        // shear terms of f are
+        // (1/4)*(2*4)*(1/2 for off-diag mult) = 1 => right level
+      }
+    }		
+  }	
+ 
+}
+
 //-------------------------------------------------------------------------------
 
 double

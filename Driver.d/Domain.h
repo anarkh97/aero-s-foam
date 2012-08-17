@@ -339,6 +339,22 @@ class Domain : public HData {
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
                                        GeomState *refState);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const GeomState *refState, const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getInternalForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL, Vector *reactions = NULL);
+     void getWeightedInternalForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda, double time,
+                                       GeomState *refState);
+
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);

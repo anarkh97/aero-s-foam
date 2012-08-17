@@ -30,7 +30,8 @@ struct SolverInfo {
           AxiHelm, MatNonLinStatic, MatNonLinDynam,
           Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
-          None };
+          None }; // note to developers: if you add a new entry in ths enum then
+                  // you should also modify problemTypeMessage in Driver.d/Static.C
    
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...

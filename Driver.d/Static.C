@@ -687,7 +687,12 @@ const char* problemTypeMessage[] = {
 " ... Acoustic Frequency Sweep Analysis   ... \n",
 " ... Helmholtz Direction Sweep Analysis ... \n",
 " ... HelmholtzMF Analysis           ... \n",
-" ... HelmholtzSO Analysis           ... \n"
+" ... HelmholtzSO Analysis           ... \n",
+" ... Computing Decomposition        ... \n",
+" ... Nonlin. Themal Dynamic Analysis... \n",
+" ... Discontinuous Enrichment Method... \n",
+" ... POD ROM Offline Computations   ... \n",
+""
 };
 
 const char* solverTypeMessage[] = {

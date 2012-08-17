@@ -1822,8 +1822,7 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
   Vector elementInternalForce(maxNumDOF(), 0.0);
   Vector residual(numUncon(), 0.0);
   fc.zero();
-  // TODO: this can be replaced with getInternalForce when implemented
-  getStiffAndForce(*geomState, elementInternalForce, corotators, kel, residual, lambda, 0.0, refState, &fc);
+  getInternalForce(*geomState, elementInternalForce, corotators, kel, residual, lambda, 0.0, refState, &fc);
 }
 
 // nonlinear dynamics
@@ -1839,8 +1838,7 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
   Vector residual(numUncon(), 0.0);
   fc.zero();
 
-  // TODO: this can be replaced with getInternalForce when implemented
-  getStiffAndForce(*geomState, elementInternalForce, corotators, kel, residual, 1.0, time, refState, &fc);
+  getInternalForce(*geomState, elementInternalForce, corotators, kel, residual, 1.0, time, refState, &fc);
 
   CuCSparse *cuc = dynamic_cast<CuCSparse *>(_cuc);
   if(cuc) cuc->transposeMultAddNew(Vu.data(), fc.data()); // fc += Cuc^T * Vu

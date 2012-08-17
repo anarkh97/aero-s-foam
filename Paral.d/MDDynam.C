@@ -981,11 +981,12 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   SubDomain *sd = decDomain->getSubDomain(isub);
   Vector residual(f.subLen(isub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+  // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
   }
   else {
-    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
   }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual

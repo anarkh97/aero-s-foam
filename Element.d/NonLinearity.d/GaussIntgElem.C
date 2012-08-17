@@ -375,8 +375,6 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
                             FullSquareMatrix &kTan,
                             double *force, double)
 {
-  //for(int i=0; i<8; ++i) cerr << nodes[i].x+dispn[3*i+0] << "," << nodes[i].y+dispn[3*i+1] << "," << nodes[i].z+dispn[3*i+2] << " ";
-  //cerr << endl;
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
 
@@ -427,49 +425,27 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
-/* PJSA seems to be unnecessary
-    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
-*/
-/* PJSA seems to be unnecessary
-    strainEvaluator->getE(en, gradUn);
-    strainEvaluator->getE(enp, gradUnp);  
-*/
+
     shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
 
     strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-    //material->updateStates(en, enp, state + nstatepgp*i);
-    //material->getStress(&s, e, 0);       
-    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
     material->integrate(&s, &Dnp, en, enp,
                         staten + nstatepgp*i, statenp + nstatepgp*i, 0);
 
-    //std::cerr << "s = "; s.print();
-    //std::cerr << "Dnp = "; Dnp.print();
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
     nodeforce = nodeforce + temp0;
     temp1 =  Dnp || Bnp;
     temp2 =   Bnp||temp1;
-    //cerr << "DBnp = "; DBnp.print();
     temp3 = DBnp || s;
     temp3 = temp3 + temp2;
     if(jacnp < 0) std::cerr << "warning: jacnp < 0\n";
     temp3 = (weight * fabs(jacnp))*temp3;
     kTan += temp3;
 
-/*
-    temp1 =  D || B;
-    temp2 =   B||temp1;
-    temp3 = DB || s;
-    temp3 = temp3 + temp2;
-    temp3 = (weight * fabs(jac))*temp3;
-
-    kTan += temp3;
-*/
   }
 #ifdef USE_EIGEN3
   if(material->getPosdefifyTol() >= 0) {
@@ -504,8 +480,6 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
   delete &enp;
   delete &s;
   delete &Dnp;
-
-  //cerr << "K = "; kTan.print();
 }
 
 void 
@@ -513,8 +487,6 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
                             double *dispnp, double *statenp,
                             double *force, double)
 {
-  //for(int i=0; i<8; ++i) cerr << nodes[i].x+dispn[3*i+0] << "," << nodes[i].y+dispn[3*i+1] << "," << nodes[i].z+dispn[3*i+2] << " ";
-  //cerr << endl;
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
 
@@ -535,11 +507,6 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
   Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
   Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
 
-  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-  Tensor &DBn = *strainEvaluator->getDBInstance(ndofs);
-  Tensor &DBnp = *strainEvaluator->getDBInstance(ndofs);
-
-  Tensor &Dnp = *strainEvaluator->getTMInstance();
   Tensor &en = *strainEvaluator->getStrainInstance();
   Tensor &enp = *strainEvaluator->getStrainInstance();
   Tensor &s = *strainEvaluator->getStressInstance();
@@ -560,29 +527,16 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
     StackVector dispVecnp(dispnp, ndofs); 
  
     getGaussPointAndWeight(i, point, weight);
-/* PJSA seems to be unnecessary
-    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-    shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
-*/
-/* PJSA seems to be unnecessary
-    strainEvaluator->getE(en, gradUn);
-    strainEvaluator->getE(enp, gradUnp);  
-*/
+
     shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
 
-    // TODO: DB is not required in this function...
-    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
-    strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+    strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+    strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
-    //material->updateStates(en, enp, state + nstatepgp*i);
-    //material->getStress(&s, e, 0);       
-    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
-    material->integrate(&s, &Dnp, en, enp,
+    material->integrate(&s, en, enp,
                         staten + nstatepgp*i, statenp + nstatepgp*i, 0);
 
-    //std::cerr << "s = "; s.print();
-    //std::cerr << "Dnp = "; Dnp.print();
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
     nodeforce = nodeforce + temp0;
@@ -596,15 +550,10 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
   delete &dgradUdqkn;
   delete &dgradUdqknp;
   delete &Bn;
-  delete &DBn;
   delete &Bnp;
-  delete &DBnp;
   delete &en;
   delete &enp;
   delete &s;
-  delete &Dnp;
-
-  //cerr << "K = "; kTan.print();
 }
 
 void

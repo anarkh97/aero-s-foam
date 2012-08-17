@@ -31,6 +31,10 @@ class LinearStrain2D : public GenStrainEvaluator<TwoDTensorTypes<n> >
 {
   void getE(typename TwoDTensorTypes<n>::StrainTensor &e,
             typename TwoDTensorTypes<n>::GradUTensor &gradU);
+  void getEandB(typename TwoDTensorTypes<n>::StrainTensor &e,
+                typename TwoDTensorTypes<n>::BTensor &B,
+                typename TwoDTensorTypes<n>::GradUTensor &gradU,
+                typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk);
   void getEBandDB(typename TwoDTensorTypes<n>::StrainTensor &e, 
                   typename TwoDTensorTypes<n>::BTensor &B, 
                   typename TwoDTensorTypes<n>::DBTensor &DB,
@@ -44,6 +48,10 @@ class GLStrain2D : public GenStrainEvaluator<TwoDTensorTypes<n> >
   public:
     void getE(typename TwoDTensorTypes<n>::StrainTensor &e,
               typename TwoDTensorTypes<n>::GradUTensor &gradU);
+    void getEandB(typename TwoDTensorTypes<n>::StrainTensor &e,
+                  typename TwoDTensorTypes<n>::BTensor &B,
+                  typename TwoDTensorTypes<n>::GradUTensor &gradU,
+                  typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk);
     void getEBandDB(typename TwoDTensorTypes<n>::StrainTensor &e, 
                     typename TwoDTensorTypes<n>::BTensor &B, 
                     typename TwoDTensorTypes<n>::DBTensor &DB,

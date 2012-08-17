@@ -40,6 +40,10 @@ class ExpMat : public NLMaterial
                    double *staten, double *statenp, double)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
+    void integrate(Tensor *stress, Tensor &en, Tensor &enp,
+                   double *staten, double *statenp, double)
+      { std::cerr << "ExpMat::integrate is not implemented\n"; }
+
     void initStates(double *) {}
 
     double getDensity() { return ematpro[2]; } 

@@ -30,7 +30,13 @@ MatNLCorotator::getStiffAndForce(GeomState *refState, GeomState &curState, Coord
       dispn[3*i+1] = (*refState)[nn[i]].y-nodes[i].y;
       dispn[3*i+2] = (*refState)[nn[i]].z-nodes[i].z;
     }
-    staten = refState->getElemState(ele->getGlNum());
+    if(refState == &curState) {
+      double *staten_ = refState->getElemState(ele->getGlNum());
+      staten = new double[ele->numStates()];
+      for(int i = 0; i < ele->numStates(); ++i) staten[i] = staten_[i];
+    }
+    else
+      staten = refState->getElemState(ele->getGlNum());
   }
   else {
     for(int i = 0; i < ele->numDofs(); ++i) dispn[i] = 0.0;
@@ -52,7 +58,7 @@ MatNLCorotator::getStiffAndForce(GeomState *refState, GeomState &curState, Coord
   delete [] nn;
   delete [] nodes;
   delete [] dispn;
-  if(!refState) delete [] staten;
+  if(!refState || refState == &curState) delete [] staten;
   delete [] dispnp;
 }
 
@@ -73,7 +79,13 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
       dispn[3*i+1] = (*refState)[nn[i]].y-nodes[i].y;
       dispn[3*i+2] = (*refState)[nn[i]].z-nodes[i].z;
     }
-    staten = refState->getElemState(ele->getGlNum());
+    if(refState == &curState) {
+      double *staten_ = refState->getElemState(ele->getGlNum());
+      staten = new double[ele->numStates()];
+      for(int i = 0; i < ele->numStates(); ++i) staten[i] = staten_[i];
+    }
+    else 
+      staten = refState->getElemState(ele->getGlNum());
   }
   else {
     for(int i = 0; i < ele->numDofs(); ++i) dispn[i] = 0.0;
@@ -95,7 +107,7 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
   delete [] nn;
   delete [] nodes;
   delete [] dispn;
-  if(!refState) delete [] staten;
+  if(!refState || refState == &curState) delete [] staten;
   delete [] dispnp;
 }
 

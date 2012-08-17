@@ -845,11 +845,12 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
   if(domain->solInfo().isNonLin()) {
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
+    // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
     if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
     }
     else {
-      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
     }
     f.linC(-1.0,residual); // f = -residual
   }

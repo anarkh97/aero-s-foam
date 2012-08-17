@@ -30,6 +30,9 @@ class NLMaterial
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                             double *staten, double *statenp, double dt = 0.0) = 0;
 
+     virtual void integrate(Tensor *stress, Tensor &en, Tensor &enp,
+                            double *staten, double *statenp, double dt = 0.0) = 0;
+
      virtual void initStates(double *) = 0;
 
      virtual double getDensity() { return 0; } // PJSA

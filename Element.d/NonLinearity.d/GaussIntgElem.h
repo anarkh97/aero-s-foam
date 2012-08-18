@@ -606,11 +606,6 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
   typename TensorType::BTensor Bn;
   typename TensorType::BTensor Bnp;
 
-  // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-  typename TensorType::DBTensor DBn;
-  typename TensorType::DBTensor DBnp;
-
-  typename TensorType::DTensor Dnp;
   typename TensorType::StressTensor en;
   typename TensorType::StressTensor enp;
   typename TensorType::StressTensor s;
@@ -641,14 +636,14 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
-    strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
+    strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+    strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
     //material->updateStates(en, enp, state + nstatepgp*i);
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
-    material->integrate(&s, &Dnp, en, enp,
+    material->integrate(&s, en, enp,
                         staten + nstatepgp*i,statenp + nstatepgp*i , 0);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of

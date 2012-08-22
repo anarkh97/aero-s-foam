@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <list>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -271,6 +272,8 @@ struct SolverInfo {
    bool substractRefPodRom;
    int skipPodRom;
    double tolPodRom;
+
+   std::list<int> loadcases;
 
    // Constructor
    SolverInfo() { filterFlags = 0;

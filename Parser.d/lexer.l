@@ -228,6 +228,8 @@ TRAIL [a-zA-Z]*
 
 "STAT"[a-zA-Z]*|"stat"[a-zA-Z]*    { return STATS; }
 
+"CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
+
 "AXIHDIR"|"axihdir"                { return AXIHDIR; }
 
 "AXIHNEU"|"axihneu"                { return AXIHNEU; }

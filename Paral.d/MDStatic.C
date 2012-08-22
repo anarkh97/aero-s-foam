@@ -53,7 +53,10 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 {
- filePrint(stderr," ... Building the Force             ...\n");
+ if(domain->solInfo().loadcases.size() > 0)
+   filePrint(stderr," ... Building the Force (Case %2d)   ...\n", domain->solInfo().loadcases.front());
+ else
+   filePrint(stderr," ... Building the Force             ...\n");
 
  times->formRhs -= getTime();
  execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);

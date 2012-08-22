@@ -61,7 +61,7 @@
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
-%token COMPLEXOUTTYPE CONSTRMAT
+%token COMPLEXOUTTYPE CONSTRMAT CASES
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
@@ -168,8 +168,7 @@ Component:
 	| Attributes
 	{}
 	| Materials
-        | IterSolver
-	| Solver
+        | Statics
 	| Pressure
 	| Lumped
         {}
@@ -1594,28 +1593,21 @@ ITemp:
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
 NeumanBC:
-/*
-        FORCE NewLine
-        | NeumanBC BCDataList
-        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Forces; 
-          geoSource->setNeuman($2->n,$2->d); }
-        | NeumanBC SURF BC_Data
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0] = $3;
-          geoSource->addSurfaceNeuman(1,surf_bc); }
-*/
         FORCE NewLine
         { $$ = new BCList; }
+        | FORCE Integer NewLine
+        { $$ = new BCList($2); }
         | NeumanBC BC_Data
-        { $2.type = BCond::Forces; $$->add($2); }
+        { $2.type = BCond::Forces; $2.caseid = $$->caseid; $$->add($2); }
         | NeumanBC Integer THRU Integer Integer Float NewLine
-        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces); $$->add(bc); } }
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces, $$->caseid); $$->add(bc); } }
         | NeumanBC Integer THRU Integer STEP Integer Integer Float NewLine
-        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces); $$->add(bc); } }
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces, $$->caseid); $$->add(bc); } }
         | NeumanBC SURF BC_Data
         { BCond *surf_bc = new BCond[1];
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Forces;
+          surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
         ;
 BCDataList:
@@ -1754,7 +1746,10 @@ ComplexMPCLine:
 ComplexNeumanBC:
 	HNEUMAN NewLine ComplexBCDataList
         { $$ = $3; }
-	;
+        | HNEUMAN Integer NewLine ComplexBCDataList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].caseid = $2;
+          $$ = $4; }
+        ;
 ComplexBCDataList:
 	ComplexBC_Data
 	{ $$ = new ComplexBCList; $$->add($1); }
@@ -2469,6 +2464,17 @@ Preload:
             geoSource->setElementPreLoad( i-1, load );
         }
 	;
+Statics:
+        Solver
+        | IterSolver
+        | Statics CASES CasesList NewLine
+        ;
+CasesList:
+        Integer
+        { domain->solInfo().loadcases.push_back($1); }
+        | CasesList Integer
+        { domain->solInfo().loadcases.push_back($2); }
+        ;
 IterSolver:
         STATS NewLine ITERTYPE NewLine
         { domain->solInfo().type = 1;

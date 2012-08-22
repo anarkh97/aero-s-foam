@@ -41,7 +41,8 @@ struct BCond {
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
          Sensors, Undefined, Lmpc } type;
-  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; };
+  int caseid;
+  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _caseid = 0) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; caseid = _caseid; };
 };
 
 // Complex Boundary Condition Structure
@@ -50,7 +51,8 @@ struct ComplexBCond {
   int    dofnum; // dof number
   double reval;  // real value of bc
   double imval;  // imaginary value of bc
-  void setData(int _nnum, int _dofnum, double _reval, double _imval) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; };
+  int caseid;
+  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _caseid = 0) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; caseid = _caseid; };
 };
 
 

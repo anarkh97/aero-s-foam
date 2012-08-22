@@ -182,7 +182,8 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     time = eigV;
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
-  else time = eigV; //x*domain->solInfo().getTimeStep();
+  else time = eigV;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -196,8 +197,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
   // open binary output files
   if(x == domain->solInfo().initialTimeIndex) {
-    if(!numRes) numRes = new int[numOutInfo];
-    for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
+    if(!numRes) {
+      numRes = new int[numOutInfo];
+      for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
+    }
   }
 
   if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
@@ -225,7 +228,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::Farfield && 
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
          oinfo[iInfo].type != OutputInfo::AeroForce) {
-        numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
           if(oinfo[iInfo].dataType == 1) {

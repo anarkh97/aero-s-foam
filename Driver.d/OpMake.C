@@ -1848,6 +1848,8 @@ template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 {
+  int caseid = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
   // ... ZERO FORCE VECTOR INITIALLY
@@ -1856,6 +1858,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
   int i;
   for(i=0; i < numNeuman; ++i) {
+    if(nbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     ScalarTypes::addScalar(force[dof], nbc[i].val);
@@ -1863,6 +1866,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 
   // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
   for(i=0; i < numComplexNeuman; ++i) {
+    if(cnbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
     ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
@@ -3126,12 +3130,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   else freq = domain->getFrequencyOrWavenumber();
 
   if (geoSource->isShifted() || domain->probType() == SolverInfo::Modal) time = freq;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  if(numOutInfo && firstOutput && ndflag==0)
+  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   // organize displacements

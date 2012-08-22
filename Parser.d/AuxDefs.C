@@ -17,11 +17,12 @@ GeoSource *geoSource = new GeoSource;
 std::map<int,double > weightList;    // allows to change the weight of each class of elements dynamically
 
 
-BCList::BCList()
+BCList::BCList(int _caseid)
 {
  maxbc = 32;
  d     = new BCond[maxbc];
  n     = 0;
+ caseid = _caseid;
 }
 
 void

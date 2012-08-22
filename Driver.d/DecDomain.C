@@ -792,7 +792,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     time = eigV;
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
-  else time = eigV; //x*domain->solInfo().getTimeStep();
+  else time = eigV;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();

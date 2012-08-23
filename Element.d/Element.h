@@ -80,17 +80,21 @@ class StructProp {
     union {
         double  A;      // Cross-sectional area
         double kx;
+        double amplitude;
         };
     union {
 	double	E;      // Elastic modulus
 	double d0;      // Initial stiffness of nonlin element
         double ky;
+        double offset;
 	};
     union {
 	double	nu; 	// Poisson's ratio
 	double a;	// shear-t contribution ratio
         double kz;
         double lambda;  // damage control
+        double omega;
+        double c1;      // 1st parameter of an elementary prescribed motion function
 	};
      union {
 	double  rho; 	// Mass density per unit volume
@@ -100,12 +104,18 @@ class StructProp {
 	double  C1;	// Non-uniform torsion constant
 	double b;       // shear-s contribution ratio
 	double xo;      // Plastic parameter    -January 2002 - JMP
+        double phase;
+        double c2;      // 2nd parameter of an elementary prescribed motion function
 	};
      union {
 	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
+        double  c3;     // 3rd parameter of an elementary prescribed motion function
         };
+     union {
 	double  Iyy;	// Cross-sectional moment of inertia about local y-axis
+        double  c4;     // 4th parameter of an elementary prescribed motion function
+        };
 	double  Izz;	// Cross-sectional moment of inertia about local z-axis
      union {
 	double c; 	// Thermal convection coefficient
@@ -145,7 +155,7 @@ class StructProp {
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
         double penalty; // penalty parameter for mpc type elements
-        double amplitude, omega, phase, offset; // amplitude and circular frequency of forcing term for some mpc type elements
+        int funtype; // prescribed motion function type: 0 for sinusoidal, 1 for bounded ramp
         double B, C;
         int relop; // 0: equality (==), 1: inequality (<=)
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
@@ -185,8 +195,8 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
 		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0; offset = 0;
-                       B = 1.0; C = 0.0; relop = 0; type = Undefined; } 
+                       lagrangeMult = true; penalty = 0.0;
+                       B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0; } 
 
 };
 

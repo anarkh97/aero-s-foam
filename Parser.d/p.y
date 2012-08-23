@@ -64,7 +64,7 @@
 %token COMPLEXOUTTYPE CONSTRMAT CASES
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -117,7 +117,7 @@
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
-%type <ival>     FETIPREC FETI2TYPE 
+%type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE 
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
@@ -1984,6 +1984,48 @@ MatData:
           sp.B = $8;
           sp.C = $9;
           sp.relop = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 2-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 3-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.c3 = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 4-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.c3 = $10;
+          sp.c4 = $11;
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }

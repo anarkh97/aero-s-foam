@@ -824,6 +824,12 @@ TRAIL [a-zA-Z]*
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
 "SPRMAT"|"sprmat"                  { return SPRINGMAT; }
 
+"SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
+"RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
+"TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }
+"TRAP"[a-zA-Z]*|"trap"[a-zA-Z]*|"Trap"[a-zA-Z]*  { yylval.ival = 3; return ELEMENTARYFUNCTIONTYPE; }
+"SSHA"[a-zA-Z]*|"ssha"[a-zA-Z]*|"Ssha"[a-zA-Z]*  { yylval.ival = 4; return ELEMENTARYFUNCTIONTYPE; }
+
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 
 "averageK"|"averagek"|"AVERAGEK"   { yylval.ival = 0; return WAVEMETHOD;}

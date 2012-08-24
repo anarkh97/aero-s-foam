@@ -2548,6 +2548,10 @@ Solver:
           domain->solInfo().setProbType(SolverInfo::Static);
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
+        | STATS NewLine SOLVERTYPE UNSYMMETRIC NewLine
+        { domain->solInfo().setSolver($3);
+          domain->solInfo().setProbType(SolverInfo::Static);
+          domain->solInfo().getNLInfo().unsymmetric = true; }
         | STATS NewLine ITERTYPE Integer NewLine
         { domain->solInfo().setSolver($3,$4);    
           domain->solInfo().setProbType(SolverInfo::Static); }

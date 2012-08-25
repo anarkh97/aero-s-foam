@@ -47,7 +47,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
 
   private:
     Domain * domain_;
-    
+    int stateSkip_;    
     VecNodeDof6Conversion converter_;
     NodeDof6Buffer snapBuffer_;
 
@@ -72,6 +72,8 @@ public:
    void postProcess();
 
 private:
+  Domain * domain_;
+  int accelSkip_;
   SnapshotNonLinDynamic *parent_;
   VecNodeDof6Conversion vecNodeDof6Conversion_;
   FileNameInfo fileInfo_;
@@ -92,6 +94,8 @@ public:
    void postProcess();
 
 private:
+  Domain * domain_;
+  int jacSkip_;
   SnapshotNonLinDynamic *parent_;
   VecNodeDof6Conversion vecNodeDof6Conversion_;
   FileNameInfo fileInfo_;
@@ -107,6 +111,7 @@ private:
 
 SnapshotNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
+  stateSkip_(0),
   converter_(*domain->getCDSA()),
   snapBuffer_(dofSetNodeCount()),
   fileInfo_(),
@@ -115,6 +120,8 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, BasisId::
 {}
 
 SnapshotNonLinDynamicDetail::resSnapImpl::resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain) :
+  domain_(domain),
+  accelSkip_(0),
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
@@ -122,6 +129,8 @@ SnapshotNonLinDynamicDetail::resSnapImpl::resSnapImpl(SnapshotNonLinDynamic *par
 {}
 
 SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :
+  domain_(domain),
+  jacSkip_(0),
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
@@ -182,6 +191,8 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt) {
 
 void
 SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+  ++stateSkip_;
+  if(stateSkip_ >= domain_->solInfo().skipState) {
   const CoordSet &refCoords = domain_->getNodes();
 
   for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode != iNodeEnd; ++iNode) {
@@ -205,6 +216,8 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap
   }
 
   stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
+  stateSkip_ = 0;
+ }
 }
 
 void
@@ -220,7 +233,10 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &r
 
 void
 SnapshotNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &res) {
-  residualSnapFile_ << res;
+  ++accelSkip_;
+  if(accelSkip_ >= domain_->solInfo().skipAccel) {
+   residualSnapFile_ << res;
+   accelSkip_ = 0;}
 }
 
 void
@@ -240,9 +256,12 @@ SnapshotNonLinDynamicDetail::resSnapImpl::handleJacobianSnapshot() {
 
 void
 SnapshotNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
+  ++jacSkip_;
+  if(jacSkip_ >= domain_->solInfo().skipJacobian) {
   Vector snap(parent_->solVecInfo());
 //  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
   jacobianSnapFile_ << snap;
+  jacSkip_ = 0;}
 }
 
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :

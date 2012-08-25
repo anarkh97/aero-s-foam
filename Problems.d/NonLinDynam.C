@@ -371,24 +371,6 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       setBC(userDefineDisp, userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
-
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel  = new double[claw->numSensor];
-      double *ctracc  = new double[claw->numSensor];
-      double *ctrfrc  = new double[claw->numActuator];
-
-      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // XXXX f(v,a) currently not supported
-
-      // KHP: we need the state of the control sensors to pass to
-      //      the user supplied control function
-      extractControlDisp(&geomState, ctrdisp);
-
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      domain->updateActuatorsInNbc(ctrfrc);
-
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
-    }
   }
 
   if(domain->GetnContactSurfacePairs()) {
@@ -641,13 +623,31 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   // ... BUILD THE EXTERNAL FORCE at t_{n+1-alphaf}
   times->formRhs -= getTime();
 
-  // update USDF
+  // update USDF and ACTUATORS
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
       double *userDefinedForce = new double[claw->numUserForce];
       userSupFunc->usd_forc(t, userDefinedForce);
       domain->updateUsdfInNbc(userDefinedForce);
       delete [] userDefinedForce;
+    }
+
+    if(claw->numActuator > 0) {
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel  = new double[claw->numSensor];
+      double *ctracc  = new double[claw->numSensor];
+      double *ctrfrc  = new double[claw->numActuator];
+
+      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // TODO f(v,a) currently not supported
+
+      // KHP: we need the state of the control sensors to pass to
+      //      the user supplied control function
+      extractControlDisp(geomState, ctrdisp);
+
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
+      domain->updateActuatorsInNbc(ctrfrc);
+
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 

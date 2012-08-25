@@ -11,9 +11,7 @@
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
-#include <Math.d/SGISparseMatrix.h>
 #include <Math.d/BLKSparseMatrix.h>
-#include <Math.d/Skyline.d/SGISky.h>
 #include <Timers.d/GetTime.h>
 #include <Control.d/ControlInterface.h>
 #include <Threads.d/PHelper.h>
@@ -189,43 +187,54 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   if(make_feti) {
     if(domain->solInfo().type == 2 || domain->solInfo().type == 3) {
       switch(solvertype) {
-        default :
-          cerr << " ... WARNING: in DomainGroupTask::runFor solvertype " << solvertype << " is  not implemented. Skyline solver is used instead ...\n";
         case 0 : {
           GenSkyMatrix<Scalar> *skmat = sd[isub]->template constructSkyMatrix<Scalar>(sd[isub]->getCCDSA(), 0);
           dynMats[isub] = skmat;
           spMats[isub] = skmat;
         } break;
-        case 1 : {
+        default : case 1 : {
           GenBLKSparseMatrix<Scalar> *bsmat = sd[isub]->template constructBLKSparseMatrix<Scalar>(sd[isub]->getCCDSA(), 0);
           bsmat->zeroAll();
           dynMats[isub] = bsmat;
           spMats[isub]  = bsmat;
         } break;
         case 2 : {
-          GenSGISparseMatrix<Scalar> *sgimat = sd[isub]->template constructSGISparseMatrix<Scalar>(isub, 0);
-          dynMats[isub] = sgimat;
-          spMats[isub]  = sgimat;
-        } break;
-        case 3 : {
-          SGISky *sgisky = sd[isub]->constructSGISkyMatrix(0);
-          dynMats[isub] = dynamic_cast<GenSolver<Scalar> *>(sgisky);
-          spMats[isub] = dynamic_cast<GenSparseMatrix<Scalar> *>(sgisky);
+          GenBlockSky<Scalar> *skmat = sd[isub]->template constructBlockSky<Scalar>(sd[isub]->getCCDSA());
+          dynMats[isub] = skmat;
+          spMats[isub] = skmat;
         } break;
 #ifdef USE_EIGEN3
+        case 3: {
+          GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
+          dynMats[isub] = eism;
+          spMats[isub] = eism;
+        } break;
         case 4: {
-          GenEiSparseMatrix<Scalar> *eism = sd[isub]->template constructEiSparseMatrix<Scalar>(sd[isub]->getCCDSA());
+          GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
+          dynMats[isub] = eism;
+          spMats[isub] = eism;
+        } break;
+#ifdef EIGEN_CHOLMOD_SUPPORT
+        case 5: {
+          GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(sd[isub]->getCCDSA());
+          dynMats[isub] = eism;
+          spMats[isub] = eism;
+        } break;
+#endif
+#ifdef EIGEN_UMFPACK_SUPPORT
+        case 6: {
+          GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(sd[isub]->getCCDSA(), sd[isub]->getNodeToNode(), false);
           dynMats[isub] = eism;
           spMats[isub] = eism;
         } break;
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT
         case 7: {
-          GenEiSparseMatrix<Scalar> *eism = sd[isub]->template constructEiSparseMatrix<Scalar>(sd[isub]->getCCDSA(),
-                                                                                               sd[isub]->getNodeToNode(), false);
+          GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > > *eism = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(sd[isub]->getCCDSA(), sd[isub]->getNodeToNode(), false);
           dynMats[isub] = eism;
           spMats[isub] = eism;
         } break;
+#endif
 #endif
 #ifdef USE_SPOOLES
         case 8 : {
@@ -260,7 +269,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           break;
 #ifdef USE_EIGEN3
         case 4:
-          spMats[isub] = sd[isub]->template constructEiSparseMatrix<Scalar>();
+          spMats[isub] = sd[isub]->template constructEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >();
           break;
 #endif
       }

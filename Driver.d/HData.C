@@ -130,7 +130,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(dom->nbc[i].nnum, 1 << dom->nbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCLOAD && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated FORCE (node %d, dof %d)\n",dom->nbc[i].nnum,dom->nbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated FORCE (node %d, dof %d)\n",dom->nbc[i].nnum,dom->nbc[i].dofnum);
      }
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(dom->nbc[i].val, 0.0);
@@ -141,7 +141,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(dom->dbc[i].nnum, 1 << dom->dbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCFIXED && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated DISP (node %d, dof %d)\n",dom->dbc[i].nnum,dom->dbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated DISP (node %d, dof %d)\n",dom->dbc[i].nnum,dom->dbc[i].dofnum);
      }
      bc[dof] = BCFIXED;
      bcxC[dof] = ComplexD(dom->dbc[i].val, 0.0);
@@ -152,7 +152,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCLOAD && iDir==0) {
-          fprintf(stderr,"WARNING: check input, found repeated HFORCE (node %d, dof %d)\n",cnbc[i].nnum,cnbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated HFORCE (node %d, dof %d)\n",cnbc[i].nnum,cnbc[i].dofnum);
      }
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(cnbc[i].reval, cnbc[i].imval);
@@ -163,7 +163,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCFIXED && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);   
+       //fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);   
      }
      if (implicitFlag) {
        Node nd = dom->nodes.getNode(cdbc[i].nnum);

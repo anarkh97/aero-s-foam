@@ -383,30 +383,6 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 
   if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
-  // add the ACTUATOR forces
-  if(claw && userSupFunc) {
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel  = new double[claw->numSensor];
-      double *ctracc  = new double[claw->numSensor];
-      double *ctrfrc  = new double[claw->numActuator];
-
-      for(int i=0; i<claw->numSensor; ++i) ctrvel[i] = ctracc[i] = 0.0; // not supported
-#ifdef DISTRIBUTED
-      for(int i=0; i<claw->numSensor; ++i) ctrdisp[i] = std::numeric_limits<double>::min();
-#endif
-      for(int i=0; i<decDomain->getNumSub(); ++i) subExtractControlDisp(i, geomState, ctrdisp);
-#ifdef DISTRIBUTED
-      structCom->globalMax(claw->numSensor, ctrdisp);
-#endif
-
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      decDomain->addCtrl(residual, ctrfrc);
-
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
-    }
-  }
-
   times->buildStiffAndForce += getTime();
 
   return sqrt(solver->getFNormSq(residual));
@@ -661,13 +637,34 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
               f, constantForce, t, tm);
 
-  // add the USDF forces
+  // add the USDF and ACTUATOR forces
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
       double *userDefineForce = new double[claw->numUserForce];
       userSupFunc->usd_forc(t, userDefineForce);
       decDomain->addUserForce(f, userDefineForce);
-      delete [] userDefineForce; 
+      delete [] userDefineForce;
+    }
+
+    if(claw->numActuator > 0) {
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel  = new double[claw->numSensor];
+      double *ctracc  = new double[claw->numSensor];
+      double *ctrfrc  = new double[claw->numActuator];
+
+      for(int i=0; i<claw->numSensor; ++i) ctrvel[i] = ctracc[i] = 0.0; // not supported
+#ifdef DISTRIBUTED
+      for(int i=0; i<claw->numSensor; ++i) ctrdisp[i] = std::numeric_limits<double>::min();
+#endif
+      for(int i=0; i<decDomain->getNumSub(); ++i) subExtractControlDisp(i, *geomState, ctrdisp);
+#ifdef DISTRIBUTED
+      structCom->globalMax(claw->numSensor, ctrdisp);
+#endif
+
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
+      decDomain->addCtrl(f, ctrfrc);
+
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 

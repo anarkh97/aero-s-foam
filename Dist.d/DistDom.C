@@ -182,7 +182,8 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     time = eigV;
     if(domain->solInfo().doEigSweep) x = this->outEigCount++;
   }
-  else time = eigV; //x*domain->solInfo().getTimeStep();
+  else time = eigV;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -196,8 +197,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
   // open binary output files
   if(x == domain->solInfo().initialTimeIndex) {
-    if(!numRes) numRes = new int[numOutInfo];
-    for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
+    if(!numRes) {
+      numRes = new int[numOutInfo];
+      for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
+    }
   }
 
   if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
@@ -225,7 +228,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
          oinfo[iInfo].type != OutputInfo::Farfield && 
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
          oinfo[iInfo].type != OutputInfo::AeroForce) {
-        numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
           if(oinfo[iInfo].dataType == 1) {
@@ -352,9 +354,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(u, time, x, iOut, STRAINVON);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(u, time, x, iOut, CONPRESS);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag())
+          getStressStrain(u, time, x, iOut, CONPRESS);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::Damage:
         getStressStrain(u, time, x, iOut, DAMAGE);
         break;
@@ -506,7 +511,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo); all_data = 0;
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
           double **sub_data = new double * [this->numSub];
           for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
           for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
@@ -1431,9 +1438,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::StrainVM:
         getStressStrain(geomState, allCorot, time, x, iOut, STRAINVON, refState);
         break;
-      case OutputInfo::ContactPressure:
-        getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
-        break;
+      case OutputInfo::ContactPressure: {
+        if(!domain->tdenforceFlag()) 
+          getStressStrain(geomState, allCorot, time, x, iOut, CONPRESS, refState);
+        else
+          filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;
@@ -1540,12 +1550,32 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
-     case OutputInfo::Reactions:
-       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
-       break;
-     case OutputInfo::Reactions6:
-       if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
-       break;
+      case OutputInfo::Reactions:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 3, 0);
+        break;
+      case OutputInfo::Reactions6:
+        if(reactions) getPrimal(reacts, masterReacts, time, x, iOut, 6, 0);
+        break;
+      case OutputInfo::TDEnforcement: {
+        if(domain->tdenforceFlag()) {
+          DistSVec<double, 1> all_data(this->nodeInfo);
+          if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
+          else all_data = 0;
+          double **sub_data = new double * [this->numSub];
+          for(iSub = 0; iSub < this->numSub; ++iSub) sub_data[iSub] = (double *) all_data.subData(iSub);
+          for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+            domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[iOut].tdenforc_var, sub_data, this->numSub, this->subDomain);
+          }
+          DistSVec<double, 1> master_data(masterInfo);
+          all_data.reduce(master_data, masterFlag, numFlags);
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            geoSource->writeNodeScalarToFile((double *) master_data.subData(iSub), master_data.subSize(iSub), this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+          }
+          delete [] sub_data;
+        }
+        else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
+      } break;
      case OutputInfo::Statevector:
         break;
      case OutputInfo::Accelvector:

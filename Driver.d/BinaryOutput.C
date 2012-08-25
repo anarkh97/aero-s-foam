@@ -286,8 +286,8 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
     timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for endl
 
     int numNodesPerElem = totData/nElem;
-    if(glSub==0) cerr << " *** WARNING: text file output for element stresses in distributed mode is only correctly\n"
-                      << " ***          implemented for models in which all elements have the same number of nodes \n";
+    if(glSub==0 && time == 0) cerr << " *** WARNING: text file output for element stresses in distributed mode is only correctly\n"
+                                   << " ***          implemented for models in which all elements have the same number of nodes \n";
      
     int k = 0;
     for(int i=0; i<numData/numNodesPerElem; ++i) {

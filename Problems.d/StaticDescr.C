@@ -169,7 +169,10 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::getRHS(VectorType &rhs)
 {
- filePrint(stderr," ... Building the Force             ...\n");
+ if(domain->solInfo().loadcases.size() > 0)
+   filePrint(stderr," ... Building the Force (Case %2d)   ...\n", domain->solInfo().loadcases.front());
+ else
+   filePrint(stderr," ... Building the Force             ...\n");
 
  // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
  startTimerMemory(times->formRhs, times->memoryRhs);

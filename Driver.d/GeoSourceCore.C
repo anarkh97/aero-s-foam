@@ -2033,10 +2033,10 @@ void GeoSource::getTextDecomp(bool sowering)
     f = fopen("DECOMPOSITION","r");
 
     if(f == 0) {
-      fprintf(stderr," **************************************************\n");
-      fprintf(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
-      fprintf(stderr," ***        Please provide a DECOMPOSITION file ***\n");
-      fprintf(stderr," **************************************************\n");
+      filePrint(stderr," **************************************************\n");
+      filePrint(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
+      filePrint(stderr," ***        Please provide a DECOMPOSITION file ***\n");
+      filePrint(stderr," **************************************************\n");
       exit(-1);
     }
 

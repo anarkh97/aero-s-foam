@@ -3,7 +3,6 @@
 #include <Element.d/Element.h>
 #include <Corotational.d/BarThermalCorotator.h>
 #include <Corotational.d/TemperatureState.h> 
-/* #include <Corotational.d/utilities.h> */
 
 BarThermalCorotator::BarThermalCorotator(int _n1, int _n2, double _P, 
                                          double _eps, double _sigma, double _Tr, CoordSet& cs)
@@ -52,10 +51,6 @@ BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
  int    i, j, k;
  double kt[2][2], ff[2], xn[2];
 
- // Get original coordinates of bar's nodes
- //Node &node1 = cs.getNode(n1);
- //Node &node2 = cs.getNode(n2);
-
  // Get current Node State
  NodeState &tn1 = ts[n1];
  NodeState &tn2 = ts[n2];
@@ -72,6 +67,47 @@ BarThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
    for(j=0; j<2; ++j)
      elK[i][j] = kt[i][j];
  
+ // Form internal force
+ formInternalForce( xn, l0, P, eps, sigma, Tr, ff);
+
+ // Copy internal force to element f matrix
+ for(k=0; k<2; ++k)
+   f[k]=ff[k];
+}
+
+void
+BarThermalCorotator::getInternalForce(GeomState &ts, CoordSet &cs, 
+                                      FullSquareMatrix &elK, double *f, double dt, double t)
+/*******************************************************************
+ *
+ * Purpose :
+ *  Compute internal force vector
+ *  for bar thermal element in current configuration.
+ *
+ * Input Variables:
+ *  ts        : current temperature 
+ *  cs        : coordinate set, contains reference configuration
+ *
+ * Local Variables:
+ * xn : temperature in the current configuration
+ *
+ * Output :
+ * f        : element internal force
+ *
+ *****************************************************************/
+{
+ // Declare local variables 
+ int    i, j, k;
+ double ff[2], xn[2];
+
+ // Get current Node State
+ NodeState &tn1 = ts[n1];
+ NodeState &tn2 = ts[n2];
+
+ // Set temperature of Cn configuration 
+ xn[0] = tn1.x; // temperature of node 1
+ xn[1] = tn2.x; // temperature of node 2
+
  // Form internal force
  formInternalForce( xn, l0, P, eps, sigma, Tr, ff);
 

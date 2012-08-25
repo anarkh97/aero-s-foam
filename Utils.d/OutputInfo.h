@@ -13,7 +13,7 @@
 
 struct OutputInfo {
    enum Type
-        { Displacement, Temperature, StressXX,    StressYY,    StressZZ,
+        { Displacement=0, Temperature, StressXX,    StressYY,    StressZZ,
           StressXY,     StressYZ,    StressXZ,    StrainXX,    StrainYY,
           StrainZZ,     StrainXY,    StrainYZ,    StrainXZ,    HeatFlXX,
           HeatFlXY,     HeatFlXZ,    GrdTempX,    GrdTempY,    GrdTempZ,
@@ -154,6 +154,41 @@ struct OutputInfo {
      }
    };
 
+ bool isStressOrStrain() {
+   switch(type) {
+     case StressXX: 
+     case StressYY:
+     case StressZZ:
+     case StressXY:
+     case StressYZ:
+     case StressXZ:
+     case StrainXX:
+     case StrainYY:
+     case StrainZZ:
+     case StrainXY:
+     case StrainYZ:
+     case StrainXZ:
+     case StressVM:
+     case StressPR1:
+     case StressPR2:
+     case StressPR3:
+     case StrainPR1:
+     case StrainPR2:
+     case StrainPR3:
+     case StrainVM:
+     case StressPR1Direc:
+     case StressPR2Direc:
+     case StressPR3Direc:
+     case StrainPR1Direc:
+     case StrainPR2Direc:
+     case StrainPR3Direc:
+     case EquivalentPlasticStrain:
+       return true; 
+       break;
+     default:
+       return false;
+   }
+ }
  
  void copyParam(const OutputInfo& oI) {
     *this = oI;  

@@ -488,6 +488,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     int first_node, last_node, last_node_out;
     
     OutputInfo *oinfo = geoSource->getOutputInfo();
+    if(sinfo.isNonLin() && oinfo[i].isStressOrStrain()) continue; // PJSA: see Domain::postProcessing in NLStatic.C
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 
     //    added to "clean" dynamOutput 
@@ -506,7 +507,6 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
       success = processOutput(oinfo[i].type, d_n, bcx, i, time);
       if (success) continue;
       success = 1;
-
 
       int nNodes = last_node-first_node;
       int nNodesOut = last_node_out-first_node;
@@ -756,7 +756,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           if(tdenforceFlag()) {
             // TODO outFlag == 1
             double *plot_data = new double[numNodes];
-            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            if(oinfo[i].tdenforc_var == 1) // CONFACE
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+            else
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
             for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
               MortarConds[iMortar]->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
             }

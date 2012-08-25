@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <list>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -30,7 +31,8 @@ struct SolverInfo {
           AxiHelm, MatNonLinStatic, MatNonLinDynam,
           Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
-          None };
+          None }; // note to developers: if you add a new entry in ths enum then
+                  // you should also modify problemTypeMessage in Driver.d/Static.C
    
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
@@ -288,6 +290,8 @@ struct SolverInfo {
    int  skipJacobian;
    int  orthogPodRom;
    double tolPodRom;
+
+   std::list<int> loadcases;
 
    // Constructor
    SolverInfo() { filterFlags = 0;

@@ -72,19 +72,23 @@ class MultiDomDynPostProcessor
     StaticTimers *times;
     DistrVector *nodalTemps;
     DistrGeomState *geomState;
+    Corotator ***allCorot;
 
   public:
-    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0,
+                             Corotator ***_allCorot = 0) {
       decDomain = d;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
-    MultiDomDynPostProcessor(DecDomain *d, 
-		DistFlExchanger *_distFlExchanger, StaticTimers* _times, DistrGeomState *_geomState = 0) {
+    MultiDomDynPostProcessor(DecDomain *d, DistFlExchanger *_distFlExchanger, StaticTimers* _times,
+                             DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) {
       decDomain = d;
       distFlExchanger = _distFlExchanger;
       times = _times;
       geomState = _geomState;
+      allCorot = _allCorot;
     }
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
@@ -160,7 +164,7 @@ private:
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);
-    void getContactForce(DistrVector &, DistrVector &ctc_f);
+    void getContactForce(DistrVector &, DistrVector &ctc_f, double t_n_p);
     void computeExtForce2(SysState<DistrVector> &, DistrVector &, 
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,
@@ -190,7 +194,7 @@ private:
     void modeDecompPreProcess(SparseMatrix* M);
     void modeDecomp(double t, int tIndex, DistrVector& d_n);
 
-    void getInternalForce(DistrVector &d, DistrVector &f, double t);
+    void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();
@@ -213,7 +217,7 @@ private:
     int getAeroheatFlag();
    
   private:
-    void subGetInternalForce(int isub, DistrVector &res, double t);
+    void subGetInternalForce(int isub, DistrVector &res, double &t, int &tIndex);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);

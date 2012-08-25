@@ -22,8 +22,9 @@ class Corotator {
     virtual void getDExternalForceDu(GeomState &geomState, CoordSet &cs,
                                      FullSquareMatrix &elK, double *locF){}
 
-    virtual void getInternalForce(GeomState &, CoordSet &,
-                                  FullSquareMatrix &, double *, double, double) {}
+    virtual void getInternalForce(GeomState &geomState, CoordSet &cs,
+                                  FullSquareMatrix &K, double *f, double dt, double t) 
+    { getStiffAndForce(geomState, cs, K, f, dt, t); }
 
     virtual void getExternalForce(GeomState &, CoordSet &,  double *) {}
 
@@ -62,6 +63,9 @@ class Corotator {
     virtual void getStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &c0,
                                   FullSquareMatrix &elk, double *f, double dt, double t)
       { getStiffAndForce(curState, c0, elk, f, dt, t); }
+    virtual void getInternalForce(GeomState *refState, GeomState &curState, CoordSet &c0,
+                                  FullSquareMatrix &tmp, double *f, double dt, double t) 
+      { getInternalForce(curState, c0, tmp, f, dt, t); }
 
     virtual void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                                GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,

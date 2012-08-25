@@ -278,8 +278,8 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCLOAD) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " FORCE (node %d, dof %d)\n",nbc[i].nnum,nbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " FORCE (node %d, dof %d)\n",nbc[i].nnum,nbc[i].dofnum);
    }
    bc[dof] = BCLOAD;
    bcx[dof] = DComplex(nbc[i].val,0.0);
@@ -290,9 +290,9 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCLOAD) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " HFORCE (node %d, dof %d)\n",
-                         cnbc[i].nnum,cnbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " HFORCE (node %d, dof %d)\n",
+        //                 cnbc[i].nnum,cnbc[i].dofnum);
    }
    bc[dof] = BCLOAD;
    bcx[dof] = DComplex(cnbc[i].reval,cnbc[i].imval);
@@ -303,8 +303,8 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(dbc[i].nnum, 1 << dbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCFIXED) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " DISP (node %d, dof %d)\n",dbc[i].nnum,dbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " DISP (node %d, dof %d)\n",dbc[i].nnum,dbc[i].dofnum);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = DComplex(dbc[i].val,0.0);
@@ -315,9 +315,9 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCFIXED) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " HDISP (node %d, dof %d)\n",
-                       cdbc[i].nnum,cdbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " HDISP (node %d, dof %d)\n",
+        //               cdbc[i].nnum,cdbc[i].dofnum);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = DComplex(cdbc[i].reval, cdbc[i].imval);
@@ -2388,12 +2388,12 @@ void Domain::AddContactForces(double dt, DistrVector &f)
   }
 }
 
-void Domain::MakeNodalMass(SparseMatrix *M)
+void Domain::MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      CurrentMortarCond->make_nodal_mass(M, c_dsa);
+      CurrentMortarCond->make_nodal_mass(M, c_dsa, Mcc);
       CurrentMortarCond->make_kinematic_partitioning(packedEset, nodeToElem);
     }
   }
@@ -3255,7 +3255,7 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; }
+        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; bc[k].caseid = surface_nbc[i].caseid; }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;

@@ -792,7 +792,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     time = eigV;
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
-  else time = eigV; //x*domain->solInfo().getTimeStep();
+  else time = eigV;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -888,9 +889,12 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::StrainVM:
           getStressStrain(u,i,STRAINVON, time);
           break;
-        case OutputInfo::ContactPressure:
-          getStressStrain(u, i, CONPRESS, time);
-          break;
+        case OutputInfo::ContactPressure: {
+          if(!domain->tdenforceFlag())
+            getStressStrain(u, i, CONPRESS, time);
+          else 
+            filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
+        } break;
         case OutputInfo::Damage:
           getStressStrain(u, i, DAMAGE, time);
           break;
@@ -1102,7 +1106,10 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::TDEnforcement: {
           if(domain->tdenforceFlag()) {
             double *plot_data = new double[numNodes]; 
-            for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+            if(oinfo[i].tdenforc_var == 1) // CONFACE
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+            else
+              for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
             for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
               domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
             }
@@ -2074,9 +2081,12 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::StrainVM:
        getStressStrain(geomState, allCorot, i, STRAINVON, x, refState);
        break;
-     case OutputInfo::ContactPressure:
-       getStressStrain(geomState, allCorot, i, CONPRESS, x, refState);
-       break;
+     case OutputInfo::ContactPressure: {
+       if(!domain->tdenforceFlag()) 
+         getStressStrain(geomState, allCorot, i, CONPRESS, x, refState);
+       else
+         filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
+     } break;
      case OutputInfo::EquivalentPlasticStrain:
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
@@ -2171,6 +2181,24 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::Reactions6:
        if(reactions) getPrimalVector(i, mergedReactions, numNodes, 6, x);
        break;
+     case OutputInfo::TDEnforcement: {
+       if(domain->tdenforceFlag()) {
+         double *plot_data = new double[numNodes];
+         if(oinfo[i].tdenforc_var == 1) // CONFACE
+           for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.5;
+         else
+           for(int iNode=0; iNode<numNodes; ++iNode) plot_data[iNode] = 0.0;
+         for(int iMortar=0; iMortar<domain->GetnMortarConds(); iMortar++) {
+           domain->GetMortarCond(iMortar)->get_plot_variable(oinfo[i].tdenforc_var,plot_data);
+         }
+         if(oinfo[i].nodeNumber == -1)
+           geoSource->outputNodeScalars(i, plot_data, numNodes, x);
+         else
+           geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, x);
+         delete [] plot_data;
+       }
+       else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
+     } break;
      case OutputInfo::Statevector:
        break;
      case OutputInfo::Accelvector:

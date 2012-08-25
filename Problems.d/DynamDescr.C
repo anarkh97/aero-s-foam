@@ -40,8 +40,10 @@ extern int verboseFlag;
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
-                                           StaticTimers *_times, GeomState *_geomState)
-{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; }
+                                           StaticTimers *_times, GeomState *_geomState,
+                                           Corotator **_allCorot, FullSquareMatrix *_melArray)
+{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; 
+  allCorot = _allCorot; melArray = _melArray; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -81,12 +83,24 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   //const double time = tIndex * domain->solInfo().getTimeStep();
   this->fillBcxVcx(time);
 
-  if(domain->solInfo().nRestart > 0 && domain->solInfo().isNonLin()) {
+  if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
     domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
-  }
+  } 
 
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx, acx);
+
+  // PJSA: need to output the stresses for nonlinear using corotator functions for some element (bt shell is an exception)
+  if(domain->solInfo().isNonLin()) {
+    int numOutInfo = geoSource->getNumOutInfo();
+    OutputInfo *oinfo = geoSource->getOutputInfo();
+    for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+      if(oinfo[iInfo].isStressOrStrain()) {
+        domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
+                                   allCorot, melArray, state.getAccel().data(), acx);
+      }
+    }
+  }
 
   stopTimerMemory(times->output, times->memoryOutput);
 }
@@ -491,7 +505,7 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
-SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
+SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
@@ -507,6 +521,20 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      domain->updateUsddInDbc(userDefineDisp);
+      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -806,18 +834,24 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  dMat->dynMat    = allOps.sysSolver;
  if(dMat->Msolver) { if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n"); dMat->Msolver->factor(); }
 
- if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M); 
+ if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M, allOps.Mcc); 
 
  return dMat;
 }
 
 void
-SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t)
+SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex)
 {
   if(domain->solInfo().isNonLin()) {
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
-    domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t);
+    // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
+    if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
+    }
+    else {
+      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
+    }
     f.linC(-1.0,residual); // f = -residual
   }
   else {
@@ -914,7 +948,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState, allCorot, melArray);
 }
 
 void

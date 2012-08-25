@@ -102,6 +102,35 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
   (*stress) = (*tm)||enp;
 }
 
+void
+ElaLinIsoMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                        double *, double *, double)
+{
+  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
+  double lambdadivnu = (nu != 0) ? lambda/nu : E;
+
+  Tensor_d0s4_Ss12s34 *tm = new Tensor_d0s4_Ss12s34();
+  Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
+  Tensor_d0s2_Ss12 *stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
+
+  (*tm)[0][0] = lambdadivnu*(1-nu);
+  (*tm)[1][1] = lambdadivnu*(1-2*nu)/2;
+  (*tm)[2][2] = lambdadivnu*(1-2*nu)/2;
+  (*tm)[3][3] = lambdadivnu*(1-nu);
+  (*tm)[4][4] = lambdadivnu*(1-2*nu)/2;
+  (*tm)[5][5] = lambdadivnu*(1-nu);
+  (*tm)[0][3] = lambdadivnu*nu;
+  (*tm)[3][0] = lambdadivnu*nu;
+  (*tm)[0][5] = lambdadivnu*nu;
+  (*tm)[5][0] = lambdadivnu*nu;
+  (*tm)[3][5] = lambdadivnu*nu;
+  (*tm)[5][3] = lambdadivnu*nu;
+
+  (*stress) = (*tm)||enp;
+
+  delete tm;
+}
+
 extern LinearStrain linearStrain;
 
 StrainEvaluator *

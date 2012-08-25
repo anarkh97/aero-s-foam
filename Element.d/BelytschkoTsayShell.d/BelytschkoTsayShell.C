@@ -437,6 +437,22 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
 }
 
 void
+BelytschkoTsayShell::extractDeformations(GeomState &geomState, CoordSet &cs,
+                                         double *vld, int &nlflag)
+{
+  int iloc,jloc;
+  for(int i = 0; i < nnode; ++i) {
+    iloc = i*ndime;
+    for(int j = 0; j < nndof; ++j) {
+      jloc = i*nndof+j;
+      vld[jloc] = geomState[nn[i]].d[j];
+    }
+    //mat_to_vec(geomState[nn[i]].R,edisp+i*nndof+3); // EXP
+  }
+  nlflag = 1;
+}
+
+void
 BelytschkoTsayShell::computeDisp(CoordSet& cs, State& state, const InterpPoint& ip,
                                  double *res, GeomState *gs)
 {

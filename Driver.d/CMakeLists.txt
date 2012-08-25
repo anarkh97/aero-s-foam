@@ -1,7 +1,7 @@
 ADD_LIBRARY(Driver DecDomainCore.C
 GeoSourceCore.C HData.C Mpc.C BaseSub.C
 MultiFront.C Dynam.C TempDynam.C
-OpMakeCore.C NLStatic.C Static.C
+NLDynam.C NLStatic.C Static.C 
 SubDomainCore.C Domain.C SComm.C
 Eigen.C MPIComm.C SubDomainFactory.C
 PolygonSet.C NLMat.C Sower.C CornerMaker.C

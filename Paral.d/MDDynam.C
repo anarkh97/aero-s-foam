@@ -249,7 +249,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
 
-  decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
+  if(sinfo.isNonLin())
+    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);
+  else
+    decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
 
 //  SolverInfo& sinfo = domain->solInfo();
@@ -500,7 +503,7 @@ MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
-MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
+MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f, double t_n_p)
 {
   // DEBUG CONTACT
   times->tdenforceTime -= getTime();
@@ -517,6 +520,15 @@ MultiDomainDynam::getContactForce(DistrVector &d, DistrVector &ctc_f)
     geomState->update(dinc);
     (*dprev) = d;
 #endif
+    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+    if(claw && userSupFunc && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
+      execParal1R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 2, decDomain->getAllSubDomains()); // update to predicted configuration
     times->updateSurfsTime += getTime();
@@ -764,11 +776,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot);
  }
  return mddPostPro;
 }
@@ -925,10 +937,10 @@ MultiDomainDynam::modeDecomp(double t, int tIndex, DistrVector& d_n)
 }
 
 void 
-MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t)
+MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex)
 {
   if(domain->solInfo().isNonLin())  // PJSA 3-31-08
-    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t);
+    execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
   else {
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
@@ -964,12 +976,18 @@ MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp)
 }
 
 void
-MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double t)
+MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &tIndex)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   Vector residual(f.subLen(isub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
-  sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t); // residual -= internal force
+  // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
+  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
+  }
+  else {
+    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
+  }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual
 }

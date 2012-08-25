@@ -105,16 +105,35 @@ SuperCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   for(i=0; i<nSubElems; ++i) {
     int ndofs = superElem->getSubElemNumDofs(i);
     FullSquareMatrix subK(ndofs);
-    subK.zero();
     double *subf = new double[ndofs];
     for(j=0; j<ndofs; ++j) subf[j] = 0.0;
     subElemCorotators[i]->getInternalForce(geomState, cs, subK, subf, dt, t);
     int *subElemDofs = superElem->getSubElemDofs(i);
-    elK.add(subK, subElemDofs);
     for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
     delete [] subf;
   }
 }
+
+void
+SuperCorotator::getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
+                                 FullSquareMatrix &elK, double *f, double dt, double t)
+{
+  int i, j;
+  elK.zero();
+  for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    FullSquareMatrix subK(ndofs);
+    double *subf = new double[ndofs];
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    subElemCorotators[i]->getInternalForce(refState, geomState, cs, subK, subf, dt, t);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
+    delete [] subf;
+  }
+}
+
 
 void
 SuperCorotator::getExternalForce(GeomState &geomState, CoordSet &cs,

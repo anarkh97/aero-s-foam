@@ -17,7 +17,6 @@ TriangleThermalCorotator::TriangleThermalCorotator(int _n1, int _n2, int _n3, do
  Tr    = _Tr;           // Temperature of the enclosure receiving the radiation
 }
 
-
 void
 TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs, 
                                            FullSquareMatrix &elK, double *f, double dt, double t)
@@ -65,6 +64,49 @@ TriangleThermalCorotator::getStiffAndForce(GeomState &ts, CoordSet &cs,
    for(j=0; j<3; ++j)
      elK[i][j] = kt[i][j];
  
+ // Form internal force
+ formInternalForce( xn, A, eps, sigma, Tr, ff);
+
+ // Copy internal force to element f matrix
+ for(j=0; j<3; ++j)
+   f[j] = ff[j];
+}
+
+void
+TriangleThermalCorotator::getInternalForce(GeomState &ts, CoordSet &cs, 
+                                           FullSquareMatrix &elK, double *f, double dt, double t)
+/*******************************************************************
+ *
+ * Purpose :
+ *  Compute internal force vector
+ *  for triangle thermal element in current configuration.
+ *
+ * Input Variables:
+ *  ts        : current temperature 
+ *  cs        : coordinate set, contains reference configuration
+ *
+ * Local Variables:
+ * xn         : temperature in the current configuration
+ *
+ * Output :
+ * elK      : element tangent stiffness matrix
+ *
+ *****************************************************************/
+{
+ // Declare local variables 
+ int    i, j;
+ double ff[3], xn[3];
+
+ // Get current temperature state
+ NodeState &tn1 = ts[n1];
+ NodeState &tn2 = ts[n2];
+ NodeState &tn3 = ts[n3];
+
+ // Set temperature of Cn configuration 
+ xn[0] = tn1.x; // temperature of node 1
+ xn[1] = tn2.x; // temperature of node 2
+ xn[2] = tn3.x; // temperature of node 3
+
  // Form internal force
  formInternalForce( xn, A, eps, sigma, Tr, ff);
 

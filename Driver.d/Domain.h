@@ -31,8 +31,7 @@ typedef GenNBSparseMatrix<double> NBSparseMatrix;
 template <class Scalar> class GenDBSparseMatrix;
 typedef GenDBSparseMatrix<double> DBSparseMatrix;
 typedef GenDBSparseMatrix<DComplex> DBComplexSparseMatrix;
-template <class Scalar> class GenEiSparseMatrix;
-typedef GenEiSparseMatrix<double> EiSparseMatrix;
+template <typename Scalar, typename SolverClass> class GenEiSparseMatrix;
 template <class Scalar> class GenSkyMatrix;
 typedef GenSkyMatrix<double> SkyMatrix;
 typedef GenSkyMatrix<DComplex> SkyMatrixC;
@@ -44,10 +43,6 @@ typedef GenCuCSparse<double> CuCSparse;
 template <class Scalar> class GenBLKSparseMatrix;
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
 template <class BaseSolver, class Scalar> class GoldfarbIdnaniQpSolver;
-template <class Scalar> class GenSGISparseMatrix;
-typedef GenSGISparseMatrix<double> SGISparseMatrix;
-class SGISky;
-class UFront;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
 template <class Scalar> class GenVector;
@@ -275,13 +270,13 @@ class Domain : public HData {
 
     StructProp *p; // property for new constraints
 
+  public:
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
                             Corotator **, FullSquareMatrix *, double *acceleration = 0,
                             double *acx = 0, GeomState *refState=0, Vector *reactions=0);
 
-  public:
      Domain(int iniSize = 16);
      Domain(Domain &, int nele, int *ele, int nnodes, int *nodes);
      Domain(Domain &, Elemset *elems, CoordSet *nodes);  // PJSA: for new sower
@@ -348,6 +343,22 @@ class Domain : public HData {
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
                                        GeomState *refState);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const GeomState *refState, const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getInternalForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL, Vector *reactions = NULL);
+     void getWeightedInternalForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda, double time,
+                                       GeomState *refState);
+
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
@@ -453,17 +464,16 @@ class Domain : public HData {
                           FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
-       void makeFrontalOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
-                           Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
-                           FullSquareMatrix *celArray = 0);
-
-     template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
-     template<class Scalar>
-       GenEiSparseMatrix<Scalar> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
+     template<typename Scalar, typename SolverClass>
+       GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0, bool flag=true);
+
+     template<typename Scalar, typename SolverClass>
+       GenEiSparseMatrix<Scalar,SolverClass> *constructGoldfarb(DofSetArray *dof_set_array=0,
+                           Connectivity *cn=0);
 
      template<class Scalar>
        GenCuCSparse<Scalar> *constructCuCSparse(DofSetArray *dof_set_array=0);
@@ -479,12 +489,6 @@ class Domain : public HData {
 
      template<class Scalar>
        GenBLKSparseMatrix<Scalar> *constructBLKSparseMatrix(DofSetArray*, Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenSGISparseMatrix<Scalar> *constructSGISparseMatrix(Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenSGISparseMatrix<Scalar> *constructSGISparseMatrix(int subNumber, Rbm *rbm = 0);
 
      template<class Scalar>
        GenNBSparseMatrix<Scalar> *constructNBSparseMatrix();
@@ -508,8 +512,6 @@ class Domain : public HData {
 //     template<class Scalar>
 //      Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
 
-     UFront           *constructFrontal(int maxFrontSize, Rbm *rbm=0);
-     SGISky           *constructSGISkyMatrix(Rbm *rbm=0);
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);
      Rbm              *constructSlzem(bool printFlag = true);
@@ -910,7 +912,7 @@ class Domain : public HData {
      void SetUpSurfaces(CoordSet* cs = 0);
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
-     void MakeNodalMass(SparseMatrix *M);
+     void MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc);
      void MakeNodalMass(SubDOp *M, SubDomain **sd);
 
      void InitializeDynamicContactSearch(int numSub = 0, SubDomain **sd = 0);

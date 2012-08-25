@@ -68,7 +68,7 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
     double traceG = G.trace();
 #endif
 #ifdef SPARSE_G
-    Eigen::SparseMatrix<double> SparseG = EiSparseMatrix::getEigenSparse();
+    Eigen::SparseMatrix<double> SparseG = this->getEigenSparse();
     double f = Eigen::solve_quadprog(SparseG, traceG, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
 #else
     double f = Eigen::solve_quadprog(G, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);

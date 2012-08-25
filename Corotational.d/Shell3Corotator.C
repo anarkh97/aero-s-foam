@@ -106,8 +106,8 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  for(inode=0; inode<3; ++inode)
    pseudorot_var( vld+inode*6+3, rotvar[inode] );
 
-  leftmult_rotvar( 3, 1, rotvar, elK);
-  rightmult_rotvar( 3, 0, rotvar, elK); 
+ leftmult_rotvar( 3, 1, rotvar, elK);
+ rightmult_rotvar( 3, 0, rotvar, elK); 
 
  double fe[18];
 
@@ -176,7 +176,7 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
  for(i=0; i<18; ++i)
    for(j=0; j<18; ++j)
      elK[i][j] += stiffGeo1[i][j] + stiffGeo2[i][j];
-  
+ 
   _FORTRAN(trirotation)( elK.data(), (double*)t0n );
 
  // transform internal force vector from local to global coordinates
@@ -194,7 +194,6 @@ void
 Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
                                   FullSquareMatrix &elK, double *f, double dt, double t)
 {
-
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode( n1 );
  Node &node2 = cs.getNode( n2 );
@@ -222,26 +221,18 @@ Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
 
- // Form unprojected internal forces and initialize stiffness matrix
+ // Form unprojected internal forces
 
- int i,j;
- for(i=0; i<18; ++i) locF[i] = 0.0;
-
- for(i=0; i<18; ++i) {
-  locF[i] = 0.0;
-  for(j=0; j<18; ++j)
-    elK[i][j] = origK[i][j];
- }
  // compute locF (local Force) as origK*vld 
 
- _FORTRAN(dgemv)('N',18,18,1.0,(double *)elK.data(),18,vld,1,0.0,locF,1);
+ _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
 
  // Compute gradients of the nodal deformational pseudorotations
  // Correct element stiffness and internal force
 
  double rotvar[3][3][3];
 
- int inode;
+ int inode,i;
  for(inode=0; inode<3; ++inode)
    pseudorot_var( vld+inode*6+3, rotvar[inode] );
 
@@ -1068,7 +1059,7 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
       innerVal = s0[0]*sn[0] + s0[1]*sn[1];
       if (innerVal < 0.0){
          //fprintf(stderr,"\nWARNING OBTUSE ANGLE 2-3 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
-         alpha = 3.14159 - asin(sn[0]*s0[1] - s0[0]*sn[1] );
+         alpha = M_PI - asin(sn[0]*s0[1] - s0[0]*sn[1] );
       }
       else  alpha = asin( sn[0]*s0[1] - s0[0]*sn[1] );
 
@@ -1086,7 +1077,7 @@ Shell3Corotator::localCoord(double x0[3][3], double xn[3][3],
       innerVal = s0[0]*sn[0] + s0[1]*sn[1];
       if (innerVal < 0.0){
           //fprintf(stderr,"\nWARNING OBTUSE ANGLE 3-1 In localCoord: %10.6e: %d %d %d\n",innerVal,n1+1,n2+1,n3+1);
-          alpha += 3.14159 - asin( sn[0]*s0[1] - s0[0]*sn[1] );
+          alpha += M_PI - asin( sn[0]*s0[1] - s0[0]*sn[1] );
       }
       else alpha += asin( sn[0]*s0[1] - s0[0]*sn[1] );
       alpha = -alpha/3.0;
@@ -1279,176 +1270,159 @@ Shell3Corotator::formCorrectGeometricStiffness(double rotvar[3][3][3],
       exit(-1);
     }
 
-     int i, j, k, inod;
-     static int p[5]={0,1,2,0,1};
-     double fspin[18][3], fproj[18][3];
-     //zero stiffness matricies
-     for (i=0;i<18;i++) 
-         for (j=0;j<18;j++){
-              if (j <= 2) {
-                fspin[i][j] = 0.0;
-                fproj[i][j] = 0.0;
-                }
-	      stiffGeo1[i][j]=0.0;
-	      stiffGeo2[i][j]=0.0;
-	 }
+  int i, j, k, inod;
+  static int p[5]={0,1,2,0,1};
+  double fspin[18][3], fproj[18][3];
+  //zero stiffness matricies
+  for(i=0; i<18; i++) 
+    for(j=0; j<18; j++) {
+      if(j <= 2) {
+        fspin[i][j] = 0.0;
+        fproj[i][j] = 0.0;
+      }
+      stiffGeo1[i][j]=0.0;
+      stiffGeo2[i][j]=0.0;
+    }
          
 	 
-    //First Compute Kgeo1-- Rotational Geometric Stiffness
+  //First Compute Kgeo1-- Rotational Geometric Stiffness
     
-       // Fspin with both axial and moment contributions
-          spinAxialAndMoment( f, fspin );
+  // Fspin with both axial and moment contributions
+  spinAxialAndMoment(f, fspin);
 
+  // Geometric stiffness contribution Kgeo1 = -Fspin*Gmat ,Fspin(H'f)
+  for(i=0; i<18; ++i) {
+    for(j=0; j<18; ++j) {
+      stiffGeo1[i][j] = -( fspin[i][0]*gmat[0][j]
+                          +fspin[i][1]*gmat[1][j]
+                          +fspin[i][2]*gmat[2][j] );
+    }
+  }
 
-       // Geometric stiffness contribution Kgeo1 = -Fspin*Gmat ,Fspin(H'f)
+  // Geometric stiffness contribution Kgeo2 -- Equilibrium Projection
+  // 
+  // Fspin with only axial contributions
+  spinAxial(fe, fspin);
 
-          for( i=0; i<18; ++i ) {
-              for( j=0; j<18; ++j ) {
-                   stiffGeo1[i][j] = -(  fspin[i][0]*gmat[0][j]
-                                        +fspin[i][1]*gmat[1][j]
-                                        +fspin[i][2]*gmat[2][j] );
-               }
-           }
-
-    // Geometric stiffness contribution Kgeo2 -- Equilibrium Projection
-       // 
-       // Fspin with only axial contributions
-          spinAxial( fe, fspin );
-
-       // Compute Fproj' = Fspin'*Pmat
-
-         for( i=0; i<3; ++i ) {
-            for( j=0; j<18; ++j ) {
-                fproj[j][i] = 0.0;
-                for( k=0; k<18; ++k )
-                    fproj[j][i] += fspin[k][i]*pmat[k][j];
-                } 
-             }
+  // Compute Fproj' = Fspin'*Pmat
+  for(i=0; i<3; ++i) {
+    for(j=0; j<18; ++j) {
+      fproj[j][i] = 0.0;
+      for(k=0; k<18; ++k)
+        fproj[j][i] += fspin[k][i]*pmat[k][j];
+     } 
+  }
    
-      for( i=0; i<18; ++i )
-         for( j=0; j<18; ++j )
-             stiffGeo2[i][j] = -( gmat[0][i]*fproj[j][0]
-			         +gmat[1][i]*fproj[j][1]
-                                 +gmat[2][i]*fproj[j][2] );
-
+  for(i=0; i<18; ++i)
+    for(j=0; j<18; ++j)
+      stiffGeo2[i][j] = -( gmat[0][i]*fproj[j][0]
+                          +gmat[1][i]*fproj[j][1]
+                          +gmat[2][i]*fproj[j][2] );
  
-              //compute part from variation of G'
-
-	      double xnij[3][3],  vxnij[3][3], ynij[3][3], vynij[3][3];
-	      double length[3], vlength[3], svx[3], vsvx[3], svy[3], vsvy[3];
-	      double A, vA;
-	      double Gvar[3][18];
-	      for (i=0;i<3;i++)
-	          for (j=0;j<18;j++)
-		      Gvar[i][j] = 0.0;
-	      //Vector temp(18,0.0);
+  //compute part from variation of G'
+  double xnij[3][3],  vxnij[3][3], ynij[3][3], vynij[3][3];
+  double length[3], vlength[3], svx[3], vsvx[3], svy[3], vsvy[3];
+  double A, vA;
+  double Gvar[3][18];
+  for(i=0; i<3; i++)
+    for(j=0; j<18; j++)
+      Gvar[i][j] = 0.0;
            
-	      double temp[18],temp2[18];
-	      // Compute nodal delta coordinates
-                 for( i=0; i<3; i++ ) 
-                    for( j=0; j<3; j++ ) {
-                       xnij[i][j] = xln[i][0] - xln[j][0];
-		       ynij[i][j] = xln[i][1] - xln[j][1];
-                    }
-	      // Compute side lengths, heights and side unit vectors for each node
-	       for(inod=0; inod<3; ++inod) {
-                   j = p[inod+1];
-                   k = p[inod+2];
-                   length[inod] = sqrt(xnij[k][j]*xnij[k][j]+ynij[k][j]*ynij[k][j]);
-                   svx[inod]    = xnij[k][j]/length[inod];
-                   svy[inod]    = ynij[k][j]/length[inod];
-                   }   
-		 
-		
-	      //Compute Area
-	      A = 0.5*(xnij[1][0]*ynij[2][0]-xnij[2][0]*ynij[1][0]);    
-	     
-	     
-	      //Loop over each variation--Fitalg ==2
-	      for (i=0;i<18;++i){
-		 
-		 // vld = HPTv  
-		 
-		 //temp.zero(); // this was the old way that segmented
-                 for (j=0;j<18;j++) temp[j] = 0.0;
-		 temp[i]=1.0;
-		 
-		 for (j=0;j<18;j++){
-		         temp2[j] =0.0;    
-		     for (k=0;k<18;k++)
-		         temp2[j] += pmat[j][k]*temp[k];	 
-		         }
-                 for(inod=0; inod<3; ++inod)
-                     for(j=0; j<3; ++j) {
-                         temp[6*inod+j]   = temp2[6*inod+j];
-                         temp[6*inod+j+3] = rotvar[inod][j][0]*temp2[6*inod+3] +
-                                            rotvar[inod][j][1]*temp2[6*inod+4] +
-                                            rotvar[inod][j][2]*temp2[6*inod+5];
-   }
-		 
-		 for( k=0; k<3; k++ ) 
-                    for( j=0; j<3; j++ ) {
-                       vxnij[k][j] = temp[k*6    ] - temp[j*6    ];
-		       vynij[k][j] = temp[k*6 + 1] - temp[j*6 + 1];
-                       }
-		 
-		 
-                   for(inod=0; inod<3; ++inod) {
-                       j = p[inod+1];
-                       k = p[inod+2];
-                       vlength[inod] = (vxnij[k][j]*xnij[k][j]+
-		                            vynij[k][j]*ynij[k][j])/length[inod];
-                       vsvx[inod]    =vxnij[k][j]/length[inod]-
-                                      xnij[k][j]*vlength[inod]/
-				      (length[inod]*length[inod]);
-                       vsvy[inod]    = vynij[k][j]/length[inod]-
-		                       ynij[k][j]*vlength[inod]/
-				      (length[inod]*length[inod]);;
-                       } 	   	   
+  double temp[18],temp2[18];
+  // Compute nodal delta coordinates
+  for(i=0; i<3; i++) 
+    for(j=0; j<3; j++) {
+      xnij[i][j] = xln[i][0] - xln[j][0];
+      ynij[i][j] = xln[i][1] - xln[j][1];
+    }
+  // Compute side lengths, heights and side unit vectors for each node
+  for(inod=0; inod<3; ++inod) {
+    j = p[inod+1];
+    k = p[inod+2];
+    length[inod] = sqrt(xnij[k][j]*xnij[k][j]+ynij[k][j]*ynij[k][j]);
+    svx[inod]    = xnij[k][j]/length[inod];
+    svy[inod]    = ynij[k][j]/length[inod];
+  }   
+  //Compute Area
+  A = 0.5*(xnij[1][0]*ynij[2][0]-xnij[2][0]*ynij[1][0]);    
 
-		       
-		 vA = 0.5*( vxnij[1][0]*ynij[2][0] + xnij[1][0]*vynij[2][0]
-		           -vxnij[2][0]*ynij[1][0] - xnij[2][0]*vynij[1][0]);
-		
-	
-		 //create Gvar	   
-		 for (inod=0;inod<3;inod++){
-		    j = p[inod+1];
-                    k = p[inod+2];
-		    Gvar[0][inod*6+2] = 0.5*(vxnij[k][j]/A -xnij[k][j]*vA/A/A);
-		    Gvar[1][inod*6+2] = 0.5*(vynij[k][j]/A -ynij[k][j]*vA/A/A);
-		    Gvar[2][inod*6  ] = ((-vsvy[j]*length[j]+svy[j]*vlength[j])/(length[j]*length[j])		    
-                                       +( vsvy[k]*length[k]-svy[k]*vlength[k])/(length[k]*length[k]))/3.0;
-		    Gvar[2][inod*6+1] = (( vsvx[j]*length[j]-svx[j]*vlength[j])/(length[j]*length[j])
-                                       +(-vsvx[k]*length[k]+svx[k]*vlength[k])/(length[k]*length[k]))/3.0;
-		     }   
+  //Loop over each variation--Fitalg ==2
+  for(i=0; i<18; ++i) {
+		 
+    // vld = HPTv  
+    for(j=0; j<18; j++) temp[j] = 0.0;
+    temp[i] = 1.0;
 
-		    //create partial derivative of P wrt G
-		    int nod,dof;
-		    double PvarPartG[18][18];
-		    for( nod=0; nod<3; nod++ ) {
-                    for( dof=0; dof<18; dof++ ) {
+    for(j=0; j<18; j++) {
+      temp2[j] = 0.0;    
+      for(k=0; k<18; k++)
+        temp2[j] += pmat[j][k]*temp[k];	 
+    }
+    for(inod=0; inod<3; ++inod)
+      for(j=0; j<3; ++j) {
+        temp[6*inod+j]   = temp2[6*inod+j];
+        temp[6*inod+j+3] = rotvar[inod][j][0]*temp2[6*inod+3] +
+                           rotvar[inod][j][1]*temp2[6*inod+4] +
+                           rotvar[inod][j][2]*temp2[6*inod+5];
+      }
 
-                     // Translation part
-                     PvarPartG[nod*6  ][dof] = -xln[nod][2]*Gvar[1][dof]
-					       +xln[nod][1]*Gvar[2][dof];
-                     PvarPartG[nod*6+1][dof] =  xln[nod][2]*Gvar[0][dof]
-                                               -xln[nod][0]*Gvar[2][dof];
-                     PvarPartG[nod*6+2][dof] = -xln[nod][1]*Gvar[0][dof]
-                                               +xln[nod][0]*Gvar[1][dof];
-                     // Rotation part
-                        PvarPartG[nod*6+3][dof] = -Gvar[0][dof];
-                        PvarPartG[nod*6+4][dof] = -Gvar[1][dof];
-                        PvarPartG[nod*6+5][dof] = -Gvar[2][dof];
-                        }
+    for(k=0; k<3; k++) 
+      for(j=0; j<3; j++) {
+        vxnij[k][j] = temp[k*6    ] - temp[j*6    ];
+        vynij[k][j] = temp[k*6 + 1] - temp[j*6 + 1];
+      }
 
-                     }
+    for(inod=0; inod<3; ++inod) {
+      j = p[inod+1];
+      k = p[inod+2];
+      vlength[inod] = (vxnij[k][j]*xnij[k][j]+
+                       vynij[k][j]*ynij[k][j])/length[inod];
+      vsvx[inod]    = vxnij[k][j]/length[inod]-
+                      xnij[k][j]*vlength[inod]/
+                      (length[inod]*length[inod]);
+      vsvy[inod]    = vynij[k][j]/length[inod]-
+                      ynij[k][j]*vlength[inod]/
+                      (length[inod]*length[inod]);;
+    } 	   	   
+
+    vA = 0.5*( vxnij[1][0]*ynij[2][0] + xnij[1][0]*vynij[2][0]
+              -vxnij[2][0]*ynij[1][0] - xnij[2][0]*vynij[1][0]);
+
+    //create Gvar	   
+    for(inod=0; inod<3; inod++) {
+      j = p[inod+1];
+      k = p[inod+2];
+      Gvar[0][inod*6+2] = 0.5*(vxnij[k][j]/A -xnij[k][j]*vA/A/A);
+      Gvar[1][inod*6+2] = 0.5*(vynij[k][j]/A -ynij[k][j]*vA/A/A);
+      Gvar[2][inod*6  ] = ((-vsvy[j]*length[j]+svy[j]*vlength[j])/(length[j]*length[j])
+                          +( vsvy[k]*length[k]-svy[k]*vlength[k])/(length[k]*length[k]))/3.0;
+      Gvar[2][inod*6+1] = (( vsvx[j]*length[j]-svx[j]*vlength[j])/(length[j]*length[j])
+                          +(-vsvx[k]*length[k]+svx[k]*vlength[k])/(length[k]*length[k]))/3.0;
+    }   
+
+    //create partial derivative of P wrt G
+    int nod,dof;
+    double PvarPartG[18][18];
+    for(nod=0; nod<3; nod++) {
+      for(dof=0; dof<18; dof++) {
+
+        // Translation part
+        PvarPartG[nod*6  ][dof] = -xln[nod][2]*Gvar[1][dof]
+                                  +xln[nod][1]*Gvar[2][dof];
+        PvarPartG[nod*6+1][dof] =  xln[nod][2]*Gvar[0][dof]
+                                  -xln[nod][0]*Gvar[2][dof];
+        PvarPartG[nod*6+2][dof] = -xln[nod][1]*Gvar[0][dof]
+                                  +xln[nod][0]*Gvar[1][dof];
+        // Rotation part
+        PvarPartG[nod*6+3][dof] = -Gvar[0][dof];
+        PvarPartG[nod*6+4][dof] = -Gvar[1][dof];
+        PvarPartG[nod*6+5][dof] = -Gvar[2][dof];
+      }
+    }
 		
-		_FORTRAN(dgemv)('N',18,18,1.0,(double*)PvarPartG,18,fe,1,0.0,temp2,1);
-		for (j=0;j<18;j++) stiffGeo2[j][i] += temp2[j];
-		
-               }
-	 
+    _FORTRAN(dgemv)('N',18,18,1.0,(double*)PvarPartG,18,fe,1,0.0,temp2,1);
+    for(j=0; j<18; j++) stiffGeo2[j][i] += temp2[j];
+  }
 }
 
 //-------------------------------------------------------------------------

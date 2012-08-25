@@ -2325,7 +2325,7 @@ MortarHandler::remove_gap(Vector &d)
 }
 
 void
-MortarHandler::make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa)
+MortarHandler::make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa, SparseMatrix *Mcc)
 {
   int num_nodes = PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices();
   mass = new double[num_nodes];

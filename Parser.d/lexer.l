@@ -230,6 +230,8 @@ TRAIL [a-zA-Z]*
 
 "STATI"[a-zA-Z]*|"stati"[a-zA-Z]*|"STAT"|"stat"    { return STATS; }
 
+"CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
+
 "AXIHDIR"|"axihdir"                { return AXIHDIR; }
 
 "AXIHNEU"|"axihneu"                { return AXIHNEU; }
@@ -419,23 +421,21 @@ TRAIL [a-zA-Z]*
 
 "spar"[a-zA-Z]*|"SPAR"[a-zA-Z]*    { yylval.ival = 1; return SOLVERTYPE; }
 
-"sgisparse"[a-zA-Z]*|"SGISPARSE"[a-zA-Z]* { yylval.ival = 2; return SOLVERTYPE; }
+"bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 2; return SOLVERTYPE; }
 
-"sgisky"[a-zA-Z]*|"SGISKY"[a-zA-Z]* { yylval.ival = 3; return SOLVERTYPE; }
+"llt"[a-zA-Z]*|"LLT"[a-zA-Z]*      { yylval.ival = 3; return SOLVERTYPE; }
 
-"simp"[a-zA-Z]*|"SIMP"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+"ldlt"[a-zA-Z]*|"LDLT"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
-"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
+"chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
-"fron"[a-zA-Z]*|"FRON"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
-
-"bloc"[a-zA-Z]*|"BLOC"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
+"umfp"[a-zA-Z]*|"UMFP"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
 
 "supe"[a-zA-Z]*|"SUPE"[a-zA-Z]*    { yylval.ival = 7; return SOLVERTYPE; }
 
-"spooles"[a-zA-Z]*|"SPOOLES"[a-zA-Z]* { yylval.ival = 8; return SOLVERTYPE; }
+"spoo"[a-zA-Z]*|"SPOO"[a-zA-Z]*    { yylval.ival = 8; return SOLVERTYPE; }
 
-"mumps"|"MUMPS" { yylval.ival = 9; return SOLVERTYPE; }
+"mump"[a-zA-Z]*|"MUMP"[a-zA-Z]*    { yylval.ival = 9; return SOLVERTYPE; }
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
@@ -825,6 +825,12 @@ TRAIL [a-zA-Z]*
 
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
 "SPRMAT"|"sprmat"                  { return SPRINGMAT; }
+
+"SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
+"RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
+"TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }
+"TRAP"[a-zA-Z]*|"trap"[a-zA-Z]*|"Trap"[a-zA-Z]*  { yylval.ival = 3; return ELEMENTARYFUNCTIONTYPE; }
+"SSHA"[a-zA-Z]*|"ssha"[a-zA-Z]*|"Ssha"[a-zA-Z]*  { yylval.ival = 4; return ELEMENTARYFUNCTIONTYPE; }
 
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 

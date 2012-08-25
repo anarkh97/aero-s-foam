@@ -38,7 +38,7 @@ struct NonlinearInfo {
                      reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
                      fitAlgShell = 2; fitAlgBeam =   2; dlambda = 1.0;
                      tolRes = 1.0E-6; tolInc     = std::numeric_limits<double>::infinity();
-                     absTolRes = 0.0; absTolInc  = 0.0;
+                     absTolRes = 0.0; absTolInc  = std::numeric_limits<double>::infinity();
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
                      extMax      = 6; unsymmetric = false; linesearch = false;
                      failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon(); }

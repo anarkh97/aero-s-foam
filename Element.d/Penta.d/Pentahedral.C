@@ -246,23 +246,21 @@ Pentahedral::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
           }
         }
 
-// Get Element Principals
+// Get Element Principals for each node without averaging
         double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
         double pvec[3] = {0.0,0.0,0.0};
-        for (j=0; j<6; ++j) {
-          for (i=0; i<6; ++i) {
-            svec[j] += stress[i][j];
-          }
-          svec[j] /= 6;
-        }
-// Convert Engineering to Tensor Strains
-        if(strInd != 0) {
-          svec[3] /= 2;
-          svec[4] /= 2;
-          svec[5] /= 2;
-        }
-        pstress(svec,pvec);
+
         for (i=0; i<6; ++i) {
+          for (j=0; j<6; ++j) {
+            svec[j] = stress[i][j];
+          }
+// Convert Engineering to Tensor Strains
+          if(strInd != 0) {
+            svec[3] /= 2;
+            svec[4] /= 2;
+            svec[5] /= 2;
+          }
+          pstress(svec,pvec);
           for (j=0; j<3; ++j) {
             stress[i][j+6] = pvec[j];
           }
@@ -710,7 +708,7 @@ Pentahedral::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
   // Flags sands17 to calculate Von Mises stress and/or Von Mises strain
   bool vmflg     = (strInd==6) ? true : false;
   bool strainFlg = (strInd==13)? true : false;
-  bool meanVms   = true; //HB: to force averaging the  Von Mises stress & strain. 
+  bool meanVms   = false; //HB: to force averaging the  Von Mises stress & strain. 
                          //    I don't really know the rational behind that, but its is necessary 
 			 //    if we want to recover the same result as the old (fortran based) implementation
    
@@ -848,20 +846,19 @@ Pentahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
         stress[i][j] = elStrain[i][j];
   }       
   
-  // Get Element Principals
+  // Get Element Principals without averaging
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
-  for(int j=0; j<6; ++j){ // get average stress/strain  
-    for(int i=0; i<nnodes; ++i) 
-      svec[j] += stress[i][j];
-    svec[j] /= nnodes;
-  }
-  // Convert Engineering to Tensor Strains
-  if(strInd != 0) { svec[3] /= 2; svec[4] /= 2; svec[5] /= 2; }
-  pstress(svec,pvec); // compute principal stress (or strain) & direction
-  for(int i=0; i<nnodes; ++i) 
+  for(int i=0; i<nnodes; ++i){
+    for(int j=0; j<6; ++j) 
+      svec[j] = stress[i][j];
+ 
+    // Convert Engineering to Tensor Strains
+    if(strInd != 0) { svec[3] /= 2; svec[4] /= 2; svec[5] /= 2; }
+    pstress(svec,pvec); // compute principal stress (or strain) & direction
     for(int j=0; j<3; ++j) 
       stress[i][j+6] = pvec[j];
+  }
 }
 
 void

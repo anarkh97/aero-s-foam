@@ -598,13 +598,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
    x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-//#define DEBUG_EXPLICIT
-#ifndef DEBUG_EXPLICIT
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
-#else
-   // TODO need to implement Corotator::getInternalForce
-   andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
-#endif
  }
 
  // Compute gradients of the nodal deformational pseudorotations

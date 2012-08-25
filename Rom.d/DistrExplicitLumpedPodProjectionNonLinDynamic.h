@@ -14,7 +14,7 @@ public:
 
   // Overriding via hiding
   void preProcess(); // Additional pre-processing
-  void getInternalForce(DistrVector &d, DistrVector &f, double t); // Alternate internal force computation
+  void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex); // Alternate internal force computation
 
 private:
   void buildPackedElementWeights();

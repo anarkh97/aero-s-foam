@@ -14,6 +14,7 @@ class MaterialWrapper : public NLMaterial
 {
   protected:
     Material *mat;
+    double posdefifyTol;
 
   public:
     MaterialWrapper(Material*);
@@ -35,6 +36,9 @@ class MaterialWrapper : public NLMaterial
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                    double *staten, double *statenp, double);
 
+    void integrate(Tensor *stress, Tensor &en, Tensor &enp,
+                   double *staten, double *statenp, double);
+
     void initStates(double *);
 
     double getDensity();
@@ -42,6 +46,8 @@ class MaterialWrapper : public NLMaterial
     StrainEvaluator * getStrainEvaluator();
 
     double getEquivPlasticStrain(double *statenp);
+
+    double getPosdefifyTol() { return posdefifyTol; }
 };
 
 template<>
@@ -54,6 +60,7 @@ MaterialWrapper<IsotropicLinearElastic>::MaterialWrapper(double *params)
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElastic(lambda,mu,rho);
+  posdefifyTol = -1;
 }
 
 template<>
@@ -66,6 +73,7 @@ MaterialWrapper<NeoHookean>::MaterialWrapper(double *params)
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new NeoHookean(lambda,mu,rho);
+  posdefifyTol = params[3];
 }
 
 template<>
@@ -81,6 +89,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double lambda = E*nu/((1.+nu)*(1.-2.*nu));
   double mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H);
+  posdefifyTol = -1;
 }
 
 template<>
@@ -92,6 +101,7 @@ MaterialWrapper<MooneyRivlin>::MaterialWrapper(double *params)
   double mu2    = params[2];
   double kappa  = params[3];
   mat = new MooneyRivlin(mu1, mu2, kappa, rho);
+  posdefifyTol  = params[4];
 }
 
 #ifdef _TEMPLATE_FIX_

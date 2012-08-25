@@ -365,7 +365,7 @@ class MortarHandler {
         void perform_search(int search_algorithm, double dt_old = 0.0, double dt = 0.0); // search_algorithm: 1 = static-1, 2 = static-2, 3 = dynamic-2, 4 = augmented dynamic-2
         void get_interactions(int interaction_type); // interaction_type: 1 = NodeFace, 2 = NodeSurface, 3 = NodeNode, 4 = FaceFace, 5 = FaceCoverage, 6 = ElementElement
         void build_td_enforcement();
-        void make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa);
+        void make_nodal_mass(SparseMatrix *M, ConstrainedDSA *c_dsa, SparseMatrix *Mcc);
         void make_nodal_mass(SubDOp *M, SubDomain **sd);
         void make_kinematic_partitioning(Elemset &packedEset, Connectivity *nodeToElem);
         void make_kinematic_partitioning(int numSub, SubDomain **sd);

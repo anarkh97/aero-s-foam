@@ -737,7 +737,7 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0){
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None)
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
    }
 

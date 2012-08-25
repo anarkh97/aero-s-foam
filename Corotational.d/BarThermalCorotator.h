@@ -21,6 +21,9 @@ class BarThermalCorotator : public Corotator {
      void   getStiffAndForce(GeomState &ts, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f, double dt, double t);
 
+     void   getInternalForce(GeomState &ts, CoordSet &cs,
+                             FullSquareMatrix &elk, double *f, double dt, double t);
+
      void   formInternalForce(double t[2], double l0, double P, double eps, double sigma, double Tr, double *f);
 
      void   formTangentStiffness(double xn[2],double l0, 

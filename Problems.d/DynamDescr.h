@@ -32,10 +32,13 @@ class SDDynamPostProcessor {
     double *vcx, *acx;
     StaticTimers *times;
     GeomState *geomState;
+    Corotator **allCorot;
+    FullSquareMatrix *melArray;
 
   public:
     SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
-                         StaticTimers *_times, GeomState *_geomState = 0);
+                         StaticTimers *_times, GeomState *_geomState = 0,
+                         Corotator **_allCorot = 0, FullSquareMatrix *_melArray = 0);
 
     ~SDDynamPostProcessor();
 
@@ -138,7 +141,7 @@ class SingleDomainDynamic
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
 
-    void getContactForce(Vector &d, Vector &ctc_f);
+    void getContactForce(Vector &d, Vector &ctc_f, double d_n_p);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
     void preProcess();
@@ -165,7 +168,7 @@ class SingleDomainDynamic
     void modeDecompPreProcess(SparseMatrix*M);
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
-    void getInternalForce(Vector&, Vector&, double t);
+    void getInternalForce(Vector&, Vector&, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();

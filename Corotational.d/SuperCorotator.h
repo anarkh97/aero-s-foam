@@ -26,6 +26,7 @@ class SuperCorotator : public Corotator
   void getStiffAndForce(GeomState *refState, GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getDExternalForceDu(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
   void getInternalForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
+  void getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getExternalForce(GeomState &geomState, CoordSet &cs,  double *f);
 
   void formGeometricStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);

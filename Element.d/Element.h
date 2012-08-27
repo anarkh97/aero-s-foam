@@ -158,7 +158,10 @@ class StructProp {
         int funtype; // prescribed motion function type: 0 for sinusoidal, 1 for bounded ramp
         double B, C;
         int relop; // 0: equality (==), 1: inequality (<=)
+        int constraint_hess;
+        double constraint_hess_eps;
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
+        double k1, k2, k3;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -194,9 +197,10 @@ class StructProp {
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
-		       zmin = 0.0; zmax = 0.0; isReal = false; 
+                       zmin = 0.0; zmax = 0.0; isReal = false; 
                        lagrangeMult = true; penalty = 0.0;
-                       B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0; } 
+                       B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
+                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
 
 };
 

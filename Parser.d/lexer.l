@@ -532,6 +532,8 @@ TRAIL [a-zA-Z]*
 
 "CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
 
+"HESSI"[a-zA-Z]*|"hessi"[a-zA-Z]*  { return HESSIAN; }
+
 "RIGID"|"rigid"                    { return RIGID; }
 
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }

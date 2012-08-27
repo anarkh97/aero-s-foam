@@ -10,6 +10,7 @@ class PinInSlotJointSpringCombo : public SuperElement
     int getTopNumber();
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront*);
+    void setProp(StructProp *p, bool myProp);
 };
 
 #endif

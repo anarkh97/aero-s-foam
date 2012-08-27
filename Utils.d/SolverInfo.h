@@ -255,6 +255,8 @@ struct SolverInfo {
    bool usePrescribedThreshold;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
    double coefFilterTol, rhsZeroTol, inconsistentTol;
+   int constraint_hess;
+   double constraint_hess_eps;
 
    bool activatePodRom;
    bool snapshotsPodRom;
@@ -463,6 +465,8 @@ struct SolverInfo {
                   coefFilterTol = 10;
                   rhsZeroTol = 0;
                   inconsistentTol = 1e-8;
+                  constraint_hess = 1;
+                  constraint_hess_eps = 0;
 
                   activatePodRom = false;
                   snapshotsPodRom = false;

@@ -70,7 +70,7 @@
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
-%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
+%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN HESSIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
@@ -2035,7 +2035,7 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
+          sp.k1 = $6;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
@@ -2044,8 +2044,8 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.ky = $6;
-          sp.kz = $7;
+          sp.k1 = $6;
+          sp.k2 = $7;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
@@ -2054,15 +2054,15 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
-          sp.ky = $7;
-          sp.kz = $8;
+          sp.k1 = $6;
+          sp.k2 = $7;
+          sp.k3 = $8;
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float NewLine
         { // use for TorsionalSpringType1 or TranslationalSpring
           StructProp sp;
-          sp.kx = $3;
+          sp.k1 = $3;
           geoSource->addMat( $1-1, sp );
         }
 	;
@@ -3143,35 +3143,70 @@ Constraints:
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        { // Direct elimination of slave dofs
+          $$.lagrangeMult = false;
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
+        }
         | DIRECT Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; }
         | DIRECT Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; }
         | DIRECT Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; 
           domain->solInfo().coefFilterTol = $3;
           domain->solInfo().rhsZeroTol = $4; }
         | DIRECT Float Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; 
           domain->solInfo().rhsZeroTol = $4;
           domain->solInfo().inconsistentTol = $5; }
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        { // Treatment of constraints through Lagrange multipliers method
+          $$.lagrangeMult = true; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        { // Treatment of constraints through penalty method
+          $$.lagrangeMult = false;
+          $$.penalty = $2;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        { // Treatment of constraints through augmented Lagrangian method
+          $$.lagrangeMult = true;
+          $$.penalty = $3;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
+        | ConstraintOptionsData HESSIAN Integer
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = 0; }
+        | ConstraintOptionsData HESSIAN Integer Float
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = $4; }
         ;
 HelmInfo:
         HELMHOLTZ NewLine

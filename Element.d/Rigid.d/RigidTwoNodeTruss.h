@@ -1,7 +1,7 @@
 #ifndef _RIGIDTWONODETRUSS_H_
 #define _RIGIDTWONODETRUSS_H_
 
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ConstantDistanceConstraint.h>
 
 class RigidTwoNodeTruss : public ConstantDistanceConstraint
 {

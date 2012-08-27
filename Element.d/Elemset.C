@@ -155,10 +155,13 @@ class SetAccess<std::pair<Elemset, DofSet> >
     }
 };
 
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidBeam.h>
+#endif
 void
 Elemset::collapseRigid6(std::set<int> &blockedNodes)
 {
+#ifdef USE_EIGEN3
   SetAccess<std::pair<Elemset, DofSet> > sa(*this, DofSet(DofSet::DispAndRot));
   Connectivity eToN(sa);
   Connectivity *nToE = eToN.reverse();
@@ -230,6 +233,9 @@ Elemset::collapseRigid6(std::set<int> &blockedNodes)
   delete [] elem;
   elem = newSet;
   emax = iEl;
+#else
+  std::cerr << "warning: USE_EIGEN3 is not defined\n";
+#endif
 }
 
 bool

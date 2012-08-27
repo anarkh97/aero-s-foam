@@ -7,6 +7,7 @@
 #include <unsupported/Eigen/AutoDiff>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Sparse>
+#include <iostream>
 
 // scalar valued rheonomic constraint, takes (x,t) as input
 template<int _NumberOfGeneralizedCoordinates,

@@ -40,7 +40,7 @@ struct BCond {
   enum BCType { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors, Undefined, Lmpc } type;
+         Sensors, Undefined, Lmpc, PointPointDistance, PointLineDistance, PointPlaneDistance } type;
   int caseid;
   void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _caseid = 0) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; caseid = _caseid; };
 };

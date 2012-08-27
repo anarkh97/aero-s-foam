@@ -61,7 +61,7 @@
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
-%token COMPLEXOUTTYPE CONSTRMAT CASES
+%token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
@@ -94,7 +94,7 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
@@ -116,7 +116,7 @@
 %type <frame>    Frame
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
-%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
+%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE 
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
@@ -165,6 +165,7 @@ Component:
         | ComplexLMPConstrain 
 	| ElemSet
 	| FrameDList
+        | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
 	| Materials
@@ -305,6 +306,8 @@ Component:
         | HEInterface
         {}
         | ContactSurfaces
+        {}
+        | ConstrainedSurfaces
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
@@ -1177,6 +1180,17 @@ DirichletBC:
           geoSource->addSurfaceDirichlet(1,surf_bc); }
 */
         ;
+ConstrainedSurfaces:
+        CONSTRAINEDSURFACES NewLine
+        /*                    surface_id type   attribute_id csframe_id */
+        | ConstrainedSurfaces Integer    CSTYPE Integer      Integer      NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $2-1;
+          surf_bc[0].type = (BCond::BCType) $3; //BCond::PointPlaneDistance;
+          surf_bc[0].dofnum = $4-1;
+          surf_bc[0].val = $5-1;
+          geoSource->addSurfaceConstraint(1,surf_bc);
+        }
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Pdir; $$ = $3; }
@@ -2404,6 +2418,11 @@ ComplexBC_Data:
 	| Integer Integer Float NewLine
 	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.reval = $3; $$.imval = 0.0; }
 	;
+ConstrainedSurfaceFrameDList:
+        CSFRAMES NewLine
+        | ConstrainedSurfaceFrameDList Frame
+        { geoSource->setCSFrame($2.num,$2.d); }
+        ;
 FrameDList:
         EFRAMES NewLine
 /*
@@ -3653,6 +3672,24 @@ MatSpec:
             double params[6] = { $4, $5, $6, $7, $8, $9 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, 1.0e-6, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, $11 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {

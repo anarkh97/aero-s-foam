@@ -3291,6 +3291,54 @@ Domain::ProcessSurfaceBCs()
     }
   }
 
+  BCond *surface_cfe;
+  int numSurfaceConstraint = geoSource->getSurfaceConstraint(surface_cfe);
+  for(int i=0; i<numSurfaceConstraint; ++i) {
+    double frame_data[9];
+    EFrame *ef;
+    for(int j=0; j<geoSource->getNumCSframes(); ++j) {
+      EFrameData &efd = geoSource->getCSframes()[j];
+      if(int(surface_cfe[i].val) == efd.elnum) {
+        ef = &efd.frame;
+        for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) frame_data[3*k+l] = efd.frame[k][l];
+        break;
+      }
+    }
+    for(int j=0; j<nSurfEntity; j++) {
+      int SurfId = SurfEntities[j]->ID();
+      if(SurfId-1 == surface_cfe[i].nnum) {
+        int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
+        int nNodes = SurfEntities[j]->GetnNodes();
+        switch(surface_cfe[i].type) {
+          case BCond::PointPointDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 77, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
+          case BCond::PointLineDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 78, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
+          case BCond::PointPlaneDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 79, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
+        }
+      }
+    }
+  }
+
 }
 
 

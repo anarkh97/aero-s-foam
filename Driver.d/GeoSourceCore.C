@@ -40,7 +40,7 @@ extern Sfem *sfem;
 //----------------------------------------------------------------------
 
 GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16), elemSet(iniSize*16),
-   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), cframes(0, iniSize)
+   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize)
 {
   decJustCalled=false;
   exitAfterDec=false;
@@ -63,6 +63,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   namax = 0;
   numEframes = 0;
   numCframes = 0;
+  numCSframes = 0;
   numLayInfo = 0;
   numCoefData = 0;
   numLayMat = 0;
@@ -134,6 +135,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
   surface_dbc = surface_nbc = surface_pres = 0;
+  surface_cfe = 0;
 
   maxattrib = -1; // PJSA
   optDec = 0;
@@ -274,6 +276,21 @@ int GeoSource::setFrame(int el, double *data)
      efd[numEframes].frame[i][j] = data[i*3+j];
 
   numEframes++;
+
+  return 0;
+}
+
+//----------------------------------------------------------------------
+
+int GeoSource::setCSFrame(int el, double *data)
+{
+  csfd[numCSframes].elnum = el;
+  int i,j;
+  for(i = 0; i < 3; ++i)
+   for(j = 0; j < 3; ++j)
+     csfd[numCSframes].frame[i][j] = data[i*3+j];
+
+  numCSframes++;
 
   return 0;
 }
@@ -1332,6 +1349,12 @@ int GeoSource::getSurfacePressure(BCond *&bc)
 {
   bc = surface_pres;
   return numSurfacePressure;
+}
+
+int GeoSource::getSurfaceConstraint(BCond *&bc)
+{
+  bc = surface_cfe;
+  return numSurfaceConstraint;
 }
 
 void GeoSource::computeGlobalNumElements()
@@ -2609,6 +2632,42 @@ int GeoSource::addSurfacePressure(int _numSurfacePressure, BCond *_surface_pres)
 
 //-------------------------------------------------------------------
 
+int GeoSource::addSurfaceConstraint(int _numSurfaceConstraint, BCond *_surface_cfe)
+{
+  if(surface_cfe) {
+
+    // Allocate memory for correct number of cfe
+    BCond *nd = new BCond[numSurfaceConstraint+_numSurfaceConstraint];
+
+    // copy old cfe
+    int i;
+    for(i = 0; i < numSurfaceConstraint; ++i)
+       nd[i] = surface_cfe[i];
+
+    // copy new cfe
+    for(i = 0; i<_numSurfaceConstraint; ++i)
+      nd[i+numSurfaceConstraint] = _surface_cfe[i];
+
+    // set correct number of cfe
+    numSurfaceConstraint += _numSurfaceConstraint;
+
+    // delete old array of cfe
+    delete [] surface_cfe;
+
+    // set new pointer to correct number of cfe
+    surface_cfe = nd;
+
+  }
+
+  else {
+    numSurfaceConstraint = _numSurfaceConstraint;
+    surface_cfe          = _surface_cfe;
+  }
+
+  return 0;
+}
+
+//-------------------------------------------------------------------
 
 void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 	int (*matchRanges)[2], int numMatchRanges, int subNum,

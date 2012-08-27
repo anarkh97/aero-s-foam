@@ -739,7 +739,7 @@ int main(int argc, char** argv)
  }
  if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None)
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
-   }
+  
 
  if(domain->solInfo().readmodeCalled) {
 	if(domain->solInfo().modalCalled || domain->solInfo().modal) {

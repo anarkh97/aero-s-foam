@@ -100,6 +100,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numSurfaceDirichlet = 0;
   numSurfaceNeuman = 0;
   numSurfacePressure = 0;
+  numSurfaceConstraint = 0;
 
   // PITA
   // Initial seed conditions

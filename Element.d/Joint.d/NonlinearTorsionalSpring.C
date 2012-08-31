@@ -1,8 +1,8 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
 
-NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2, int _rotdescr)
- : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2, _rotdescr)
+NonlinearTorsionalSpring::NonlinearTorsionalSpring(int* _nn, int _axis1, int _axis2)
+ : AngleType1ConstraintElement(_nn, _axis1, _axis2, M_PI/2)
 {
   m_axis1 = _axis1;
   m_axis2 = _axis2;

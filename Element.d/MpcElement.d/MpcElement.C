@@ -212,7 +212,7 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   ret.zero();
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
       if(prop->lagrangeMult) {
         ret[nterms][nterms] = -1/prop->penalty;
       }
@@ -257,9 +257,9 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   //  2. multipliers method is the particular case with prop->penalty set to 0
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
-  if(prop->lagrangeMult || prop->penalty != 0) {
+  if(prop->lagrangeMult || prop->penalty != 0.0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) { //
       if(prop->lagrangeMult) {
         Ktan[nterms][nterms] = -1/prop->penalty;
         f[nterms] = -lambda/prop->penalty;
@@ -299,9 +299,9 @@ MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, dou
   //  2. multipliers method is the particular case with prop->penalty set to 0
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
-  if(prop->lagrangeMult || prop->penalty != 0) {
+  if(prop->lagrangeMult || prop->penalty != 0.0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) { //
       if(prop->lagrangeMult) {
         f[nterms] = -lambda/prop->penalty;
       }
@@ -444,9 +444,9 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
   // this function computes the constraint force vector for linear statics and dynamics
   // see comments in getStiffAndForce (nonlinear version)
   f.zero();
-  if(prop->lagrangeMult || prop->penalty != 0) {
+  if(prop->lagrangeMult || prop->penalty != 0.0) {
     double lambda = 0;
-    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
+    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
       if(prop->lagrangeMult) {
         f[nterms] = lambda/prop->penalty;
       }

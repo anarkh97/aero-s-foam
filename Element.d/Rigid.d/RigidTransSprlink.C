@@ -1,5 +1,6 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidTransSprlink.h>
-#include <Element.d/Joint.d/LinearConstraintType1.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 
 RigidTransSprlink::RigidTransSprlink(int* _nn)
  : SuperElement(true)
@@ -17,18 +18,20 @@ RigidTransSprlink::setProp(StructProp* _prop, bool _myProp)
   int indices[2] = { 0, 1 };
   int count = 0;
   if(_prop->kx != 0.0) {
-    DofSet xx[2] = { DofSet::Xdisp,  DofSet::Xdisp };
-    subElems[count++] = new LinearConstraintType1(indices, xx);
+    subElems[count++] = new MpcElement(2, DofSet::Xdisp, indices);
   }
   if(_prop->ky != 0.0) {
-    DofSet yy[2] = { DofSet::Ydisp,  DofSet::Ydisp };
-    subElems[count++] = new LinearConstraintType1(indices, yy);
+    subElems[count++] = new MpcElement(2, DofSet::Ydisp, indices);
   }
   if(_prop->kz != 0.0) {
-    DofSet zz[2] = { DofSet::Zdisp,  DofSet::Zdisp };
-    subElems[count++] = new LinearConstraintType1(indices, zz);
+    subElems[count++] = new MpcElement(2, DofSet::Zdisp, indices);
   }
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->buildFrame(*css); // since these elements had not been instantiated when
-                                                                    // SupereElement::buildFrame was called
+  for(int i=0; i<nSubElems; ++i) {
+    LMPCons* mpc = dynamic_cast<LMPCons*>(subElems[i]);
+    mpc->terms[0].coef.r_value = 1.0;
+    mpc->terms[1].coef.r_value = -1.0;
+  }
+
   SuperElement::setProp(_prop, _myProp);
 }
+#endif

@@ -45,6 +45,14 @@ copy(const GenVector<Scalar> &v, Scalar *target) {
   std::copy(originBuf, originBuf + v.size(), target);
 }
 
+template <typename Scalar, typename OutputIterator>
+inline
+void
+copy(const GenVector<Scalar> &v, OutputIterator target) {
+  const double *originBuf = v.data();
+  std::copy(originBuf, originBuf + v.size(), target);
+}
+
 inline
 std::string
 getMeshFilename(const FileNameInfo &fileInfo) {

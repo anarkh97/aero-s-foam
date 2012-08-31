@@ -162,6 +162,8 @@ TRAIL [a-zA-Z]*
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }
 
+"CSFR"[a-zA-Z]*|"csfr"[a-zA-Z]*    { return CSFRAMES; }
+
 "THIRDNODE"|"thirdnode"            { return THIRDNODE; }
 
 "BOFF"[a-zA-Z]*|"boff"[a-zA-Z]*    { return BOFFSET; }
@@ -533,6 +535,8 @@ TRAIL [a-zA-Z]*
 "MULT"[a-zA-Z]*|"mult"[a-zA-Z]*    { return MULTIPLIERS; }
 
 "CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
+
+"HESSI"[a-zA-Z]*|"hessi"[a-zA-Z]*  { return HESSIAN; }
 
 "RIGID"|"rigid"                    { return RIGID; }
 
@@ -1186,6 +1190,8 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
+"isotropiclinearelasticj2plasticplanestress"|"ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS"|"IsotropicLinearElasticJ2PlasticPlaneStress" { return ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS; }
+
 "hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
@@ -1233,6 +1239,14 @@ TRAIL [a-zA-Z]*
 "TIEDSURFACES"|"tiedsurfaces"      { return TIEDSURFACES; }
 
 "CONTACTSURFACES"|"contactsurfaces" { return CONTACTSURFACES; }
+
+"CONSTRAINEDSURFACES"|"constrainedsurfaces" { return CONSTRAINEDSURFACES; }
+
+"POINTPOINT"|"pointpoint"|"PointPoint" { yylval.ival = BCond::PointPointDistance; return CSTYPE; }
+
+"POINTLINE"|"pointline"|"PointLine"    { yylval.ival = BCond::PointLineDistance; return CSTYPE; }
+
+"POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
 "NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
 

@@ -1,9 +1,8 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
-#include <Corotational.d/utilities.h>
-#include <Element.d/Joint.d/exp-map.h>
 
-NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis)
- : DotConstraintType2(_nn, _axis)
+NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis, int _node)
+ : DotType2ConstraintElement(_nn, _axis, _node)
 {}
 
 void
@@ -11,16 +10,14 @@ NonlinearTranslationalSpring::setProp(StructProp *p, bool _myProp)
 {
   prop = (_myProp) ? p : new StructProp(*p);
   myProp = true;
-  if(axis == 0) prop->penalty = prop->kx;
-  else if(axis == 1) prop->penalty = prop->ky;
-  else prop->penalty = prop->kz;
+  prop->penalty = prop->k1;
   prop->lagrangeMult = false;
 }
 
 void 
 NonlinearTranslationalSpring::buildFrame(CoordSet& cs)
 {
-  DotConstraintType2::buildFrame(cs);
+  DotType2ConstraintElement::buildFrame(cs);
   sp0 = -rhs.r_value;
   rhs.r_value = 0;
 }
@@ -28,6 +25,7 @@ NonlinearTranslationalSpring::buildFrame(CoordSet& cs)
 void 
 NonlinearTranslationalSpring::update(GeomState& gState, CoordSet& cs, double t)
 {
-  DotConstraintType2::update(gState, cs, t);
+  DotType2ConstraintElement::update(gState, cs, t);
   rhs.r_value += sp0;
 }
+#endif

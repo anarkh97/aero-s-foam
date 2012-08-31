@@ -1,5 +1,6 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidEightNodeBrick.h>
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
+#include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 
 RigidEightNodeBrick::RigidEightNodeBrick(int *_nn)
  : SuperElement(true)
@@ -28,5 +29,6 @@ RigidEightNodeBrick::RigidEightNodeBrick(int *_nn)
                         {2,7},
                         {0,7}};
   for(int i = 0; i < nSubElems; ++i)
-    subElems[i] = new ConstantDistanceConstraint(indices[i]);
+    subElems[i] = new RigidTwoNodeTruss(indices[i]);
 }
+#endif

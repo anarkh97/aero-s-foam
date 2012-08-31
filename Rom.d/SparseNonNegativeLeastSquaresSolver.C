@@ -3,7 +3,13 @@
 #include <Utils.d/linkfc.h>
 
 #include <stdexcept>
+#ifdef USE_STXXL
+#include "stxxl_matrix2d.hpp"
+#else
+#include <Eigen/Core>
+#endif
 
+/*
 extern "C" {
   // Approximately solve the sparse non-negative least-squares problem
   //   min support(x) st ||A * x - b|| < reltol * ||b|| and x >= 0
@@ -18,6 +24,8 @@ extern "C" {
                         double *b, double *x, const double *reltol, double *rnorm, double *w,
                         double *zz, double *zz2, int *index, int *mode);
 }
+*/
+#include "LawsonHanson.d/spnnls.cpp"
 
 namespace Rom {
 
@@ -26,7 +34,7 @@ SparseNonNegativeLeastSquaresSolver::SparseNonNegativeLeastSquaresSolver() :
   unknownCount_(0),
   matrixLeadDim_(0),
   relativeTolerance_(1.0e-6),
-  matrixBuffer_(0),
+  matrixBuffer_(),
   rhsBuffer_(0),
   solutionBuffer_(0),
   dualSolutionBuffer_(0),
@@ -41,8 +49,7 @@ SparseNonNegativeLeastSquaresSolver::problemSizeIs(int eqnCount, int unkCount) {
 
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
-  
-  matrixBuffer_.sizeIs(matrixLeadDim_ * unknownCount());
+  matrixBuffer_.resize(matrixLeadDim_ * unknownCount());
   rhsBuffer_.sizeIs(equationCount());
   solutionBuffer_.sizeIs(unknownCount());
   dualSolutionBuffer_.sizeIs(unknownCount());
@@ -58,10 +65,19 @@ SparseNonNegativeLeastSquaresSolver::solve() {
   SimpleBuffer<Scalar> workspace2(unknownCount());
   SimpleBuffer<int> index(unknownCount());
   int info;
-
+/*
   _FORTRAN(spnnls)(matrixBuffer_.array(), &matrixLeadDim_, &equationCount_, &unknownCount_,
                    rhsBuffer_.array(), solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
                    workspace.array(), workspace2.array(), index.array(), &info);
+*/
+#ifdef USE_STXXL
+  stxxl_matrix2d<Scalar> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
+#else
+  Eigen::Map<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > A(&matrixBuffer_[0], matrixLeadDim_, unknownCount_);
+#endif
+  spnnls(A, matrixLeadDim_, equationCount_, unknownCount_,
+         rhsBuffer_.array(), solutionBuffer_.array(), relativeTolerance_, errorMagnitude_, dualSolutionBuffer_.array(),
+         workspace.array(), workspace2.array(), index.array(), info); 
 
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

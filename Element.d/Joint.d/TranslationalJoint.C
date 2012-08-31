@@ -1,6 +1,7 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/TranslationalJoint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
-#include <Element.d/Joint.d/DotConstraintType1.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/RotationBlockerConstraint.h>
 
 TranslationalJoint::TranslationalJoint(int* _nn)
  : SuperElement(true)
@@ -11,8 +12,8 @@ TranslationalJoint::TranslationalJoint(int* _nn)
   nSubElems = 2;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new ParallelAxesConstraintType1(nnloc);
-  subElems[1] = new DotConstraintType1(nnloc, 2, 1);
+  subElems[0] = new ParallelAxesConstraint(nnloc);
+  subElems[1] = new RotationBlockerConstraint(nnloc, 2, 1);
 }
 
 int 
@@ -20,3 +21,4 @@ TranslationalJoint::getTopNumber()
 { 
   return 106; 
 }
+#endif

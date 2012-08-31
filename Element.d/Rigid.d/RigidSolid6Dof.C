@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
 
@@ -48,3 +49,4 @@ RigidSolid6Dof::numTopNodes()
     default : return 2;
   }
 }
+#endif

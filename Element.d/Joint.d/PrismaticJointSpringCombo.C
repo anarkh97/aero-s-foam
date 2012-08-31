@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJoint.h>
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
@@ -20,3 +21,4 @@ PrismaticJointSpringCombo::getTopNumber()
 { 
   return 106; 
 }
+#endif

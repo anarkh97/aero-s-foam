@@ -135,7 +135,8 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     geomState_->explicitUpdate(domain_->getNodes(), displac);
     // Evaluate and store elementary contributions at training configuration
     for (int iElem = 0; iElem != elementCount(); ++iElem) {
-      domain_->getElemStiffAndForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+      //domain_->getElemStiffAndForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+      domain_->getElemInternalForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
       double * const targetBuffer = elemContributions[iElem].data() + (podVectorCount * iSnap);
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {

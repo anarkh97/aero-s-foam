@@ -111,6 +111,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
 
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+    for(int iele = 0; iele < numele;  ++iele)
+      kel[iele].symmetrize();
 }
 
 void
@@ -134,7 +137,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       packedEset[iele]->setPressure(p0);
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(sinfo.newmarkBeta != 0.0) {
+      if(kel && sinfo.newmarkBeta != 0.0) {
         FullSquareMatrix elementLoadStiffnessMatrix(kel[iele].dim());
         elementLoadStiffnessMatrix.zero();
         corotators[iele]->getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
@@ -148,7 +151,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
 
       // Assemble element pressure forces into residual force vector
-      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
         int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(uDofNum >= 0)
           residual[uDofNum] += elementForce[idof];
@@ -202,22 +205,24 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         }
       }
       // tangent stiffness contribution: 
-      pseudorot_2var(r, m0, rotvar);
-      for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
-                                                                          // at which the nodal moment is applied
-        int iele = (*nodeToElem)[nbc[i].nnum][inode];
-        int eledofs[3] = { -1, -1, -1 };
-        for(int j = 0; j < 3; ++j) {
-          for(int k = 0; k < allDOFs->num(iele); ++k)
-            if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
-        }
-        if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
-          // found an element with the 3 rotation dofs of node nbc[i].nnum so we can add the load stiffness
-          // contribution of the nodal moment to the tangent stiffness matrix of this element
-          for(int j = 0; j < 3; ++j)
-            for(int k = 0; k < 3; ++k)
-              kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
-          break;
+      if(kel) {
+        pseudorot_2var(r, m0, rotvar);
+        for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                            // at which the nodal moment is applied
+          int iele = (*nodeToElem)[nbc[i].nnum][inode];
+          int eledofs[3] = { -1, -1, -1 };
+          for(int j = 0; j < 3; ++j) {
+            for(int k = 0; k < allDOFs->num(iele); ++k)
+              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+          }
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
+            // found an element with the 3 rotation dofs of node nbc[i].nnum so we can add the load stiffness
+            // contribution of the nodal moment to the tangent stiffness matrix of this element
+            for(int j = 0; j < 3; ++j)
+              for(int k = 0; k < 3; ++k)
+                kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
+            break;
+          }
         }
       }
     }
@@ -243,7 +248,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       elementForce *= lambda;
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(sinfo.newmarkBeta != 0.0)
+      if(kel && sinfo.newmarkBeta != 0.0)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
                                               elementForce.data());
 */
@@ -251,7 +256,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
 
       // Assemble element thermal forces into residual force vector
-      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
         int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(uDofNum >= 0)
           residual[uDofNum] += elementForce[idof];
@@ -263,11 +268,6 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
- 
-  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
-    for(int iele = 0; iele < numele;  ++iele) 
-      kel[iele].symmetrize();
-    
 }
 
 void
@@ -304,7 +304,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     }
   }
 
- getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL);
 
 }
 

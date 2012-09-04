@@ -97,115 +97,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  if(domain->pressureFlag()) {
-    double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
-    double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
-    double p0;
-    for(int iele = 0; iele < numele;  ++iele) {
-      // If there is a zero pressure defined, skip the element
-      if((p0 = packedEset[iele]->getPressure()) == 0) continue;
-
-      // Compute (linear) element pressure force in the local coordinates
-      elementForce.zero();
-      packedEset[iele]->setPressure(p0*loadFactor);
-      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      packedEset[iele]->setPressure(p0);
-
-      // Determine the elemental force for the corrotated system
-      corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
-
-      // Assemble element pressure forces into residual force vector
-      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
-        int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += elementForce[idof];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= elementForce[idof];
-        }
-      }
-    }
-  }
-
-  // pressure using surfacetopo
-  int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
-  double mfttFactor = (domain->mftval && sinfo.isDynam()) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
-  for(int iele = 0; iele < numNeum; ++iele) {
-    neum[iele]->dofs(*dsa, edofs);
-    elementForce.zero();
-    neum[iele]->neumVector(nodes, elementForce, 0, &geomState);
-    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
-      int uDofNum = c_dsa->getRCN(edofs[idof]);
-      if(uDofNum >= 0)
-        residual[uDofNum] += lambda*mfttFactor*elementForce[idof];
-      else if(reactions) {
-        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-        if(cDofNum >= 0)
-          (*reactions)[cDofNum] -= lambda*mfttFactor*elementForce[idof];
-      }
-    }
-  }
-
-  // In order to make the nodal moments non-follower we need to make a correction...
-  for(int i = 0; i < numNeuman; ++i) {
-    if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
-       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
-      int dofs[3];
-      dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
-      double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
-      m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
-      mat_to_vec(geomState[nbc[i].nnum].R,r);
-      pseudorot_var(r, rotvar);
-      mat_mult_vec(rotvar,m0,m,1);
-      for(int j = 0; j < 3; ++j) {
-        int uDofNum = c_dsa->getRCN(dofs[j]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += m[j];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN(dofs[j]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= m[j];
-        }
-      }
-    }
-  }
-
-  if(domain->thermalFlag()) {
-    if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
-    Vector elementTemp(maxNumNodes);
-    for(int iele = 0; iele < numele;  ++iele) {
-      // By convention phantom elements do not have thermal load
-      if(packedEset[iele]->getProperty() == 0) continue;
-
-      // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
-      for(int inod = 0; inod < elemToNode->num(iele); ++inod) {
-        double t = temprcvd[(*elemToNode)[iele][inod]];
-        elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
-      }
-
-      // Compute element thermal force in the local coordinates
-      elementForce.zero();
-      packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
-/*
-      elementForce *= lambda;
-*/
-      // Determine the elemental force for the corrotated system
-      corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
-
-      // Assemble element thermal forces into residual force vector
-      for(int idof = 0; idof < kel[iele].dim(); ++idof) {
-        int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += elementForce[idof];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= elementForce[idof];
-        }
-      }
-    }
-  }
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
 }
 
 void
@@ -240,5 +132,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
       }
     }
   }
+
+  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL);
 }
 

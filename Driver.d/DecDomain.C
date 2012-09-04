@@ -1122,17 +1122,11 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
         } break;
         case OutputInfo::Statevector:
-          break;
         case OutputInfo::Accelvector:
-          break;
         case OutputInfo::Forcevector:
-          break;
         case OutputInfo::Residual:
-          break;
         case OutputInfo::Jacobian:
-          break;
         case OutputInfo::RobData:
-          break;
         case OutputInfo::SampleMesh:
           break;
         default:
@@ -2200,17 +2194,11 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
      case OutputInfo::Statevector:
-       break;
      case OutputInfo::Accelvector:
-       break;
      case OutputInfo::Forcevector:
-       break;
      case OutputInfo::Residual:
-       break;
      case OutputInfo::Jacobian:
-       break;
      case OutputInfo::RobData:
-        break;
      case OutputInfo::SampleMesh:
         break;
      default:

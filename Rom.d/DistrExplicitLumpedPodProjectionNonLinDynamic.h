@@ -19,7 +19,7 @@ public:
 private:
   void buildPackedElementWeights();
   
-  void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double t);
+  void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
   void subBuildPackedElementWeights(int iSub);
 
   std::vector<std::map<int, double> > packedElementWeights_;

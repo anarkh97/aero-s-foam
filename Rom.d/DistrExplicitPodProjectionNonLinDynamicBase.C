@@ -37,7 +37,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
-  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionSubspaceSize);
+  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
   projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());

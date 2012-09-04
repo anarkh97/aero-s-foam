@@ -73,23 +73,23 @@ BasisOrthoDriver::solve() {
 
   std::vector<BasisId::Type> workload;
 
-       if(domain_->solInfo().statevectPodRom) {
+  if(domain_->solInfo().statevectPodRom) {
 	workload.push_back(BasisId::STATE);
-        fprintf(stderr,"For State SVD, workload size = %d \n", workload.size());}
+        fprintf(stderr,"For State SVD, workload size = %zd \n", workload.size());}
   else if(domain_->solInfo().residvectPodRom) {
 	workload.push_back(BasisId::RESIDUAL);
-	fprintf(stderr,"For Residual SVD, workload size = %d \n", workload.size());}
+	fprintf(stderr,"For Residual SVD, workload size = %zd \n", workload.size());}
   else if(domain_->solInfo().jacobvectPodRom) {
         workload.push_back(BasisId::JACOBIAN);
-	fprintf(stderr,"For Jacobian SVD, workload size = %d \n", workload.size());}
+	fprintf(stderr,"For Jacobian SVD, workload size = %zd \n", workload.size());}
   else if(domain_->solInfo().forcevectPodRom) {
         workload.push_back(BasisId::FORCE);
-	fprintf(stderr,"For Force SVD, workload size = %d \n", workload.size());}
+	fprintf(stderr,"For Force SVD, workload size = %zd \n", workload.size());}
   else if(domain_->solInfo().accelvectPodRom) {
         workload.push_back(BasisId::ACCELERATION);
-	fprintf(stderr,"For Acceleration SVD, workload size = %d \n", workload.size());}
+	fprintf(stderr,"For Acceleration SVD, workload size = %zd \n", workload.size());}
   else { workload.push_back(BasisId::STATE);
-	fprintf(stderr,"For default SVD, workload size = %d \n", workload.size());}
+	fprintf(stderr,"For default SVD, workload size = %zd \n", workload.size());}
 
   typedef VectorTransform<double *> VecTrans;
   std::auto_ptr<VecTrans> transform(domain_->solInfo().substractRefPodRom ?

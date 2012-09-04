@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
 
 //     SUBROUTINE SPNNLS  (A,MDA,M,N,B,X,RELTOL,RNORM,W,ZZ,ZZ2,INDEX,MODE)
@@ -391,4 +392,4 @@ int spnnls(AnyMatrix &A, int mda, int m, int
     rnorm = sqrt(sm);
     return 0;
 }
-
+#endif

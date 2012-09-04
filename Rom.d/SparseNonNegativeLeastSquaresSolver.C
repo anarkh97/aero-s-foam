@@ -6,7 +6,9 @@
 #ifdef USE_STXXL
 #include "stxxl_matrix2d.hpp"
 #else
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 #endif
 
 /*
@@ -70,6 +72,7 @@ SparseNonNegativeLeastSquaresSolver::solve() {
                    rhsBuffer_.array(), solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
                    workspace.array(), workspace2.array(), index.array(), &info);
 */
+#ifdef USE_EIGEN3
 #ifdef USE_STXXL
   stxxl_matrix2d<Scalar> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
 #else
@@ -77,7 +80,11 @@ SparseNonNegativeLeastSquaresSolver::solve() {
 #endif
   spnnls(A, matrixLeadDim_, equationCount_, unknownCount_,
          rhsBuffer_.array(), solutionBuffer_.array(), relativeTolerance_, errorMagnitude_, dualSolutionBuffer_.array(),
-         workspace.array(), workspace2.array(), index.array(), info); 
+         workspace.array(), workspace2.array(), index.array(), info);
+#else
+  std::cerr << "error: USE_EIGEN3 is not defined\n";
+  exit(-1);
+#endif
 
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

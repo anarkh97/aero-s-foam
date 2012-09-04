@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
 
 int h12(int mode, int lpivot, int l1, 
@@ -124,4 +125,4 @@ int h12(int mode, int lpivot, int l1,
 
     return 0;
 }
-
+#endif

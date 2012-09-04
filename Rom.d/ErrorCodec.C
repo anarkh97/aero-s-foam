@@ -74,7 +74,6 @@ int main (int argc, char *argv[]) {
       // second: loop of nodes
       for(int counter=0;counter<num_nodes;counter++) {
         // third: loop over dofs
-//	for(int i=0;i<3;i++) {
 	  truth_file>>a1; truth_file>>b1; truth_file>>c1;
  	  comp_file>>a2; comp_file>>b2; comp_file>>c2;
 
@@ -87,7 +86,6 @@ int main (int argc, char *argv[]) {
           sumx2 += pow(a1,2);
           sumy2 += pow(b1,2);
           sumz2 += pow(c1,2);
-//	}
      }
 
      //sum 2-norm for timestep,"num_time_step" (sum(n=1->n_t)[|v^n - v^n_I|]

@@ -28,25 +28,25 @@ FileNameInfo::basisFileName(const BasisId &id) const {
 
  if(domain->solInfo().svdPodRom) {
   if (id.level() == 0) {
-     filePrint(stderr,"*** Performing SVD decomposition on %s \n", domain->solInfo().snapfiPodRom);
-	builder << domain->solInfo().snapfiPodRom; }
+     //filePrint(stderr,"*** Performing SVD decomposition on %s \n", domain->solInfo().snapfiPodRom);
+     builder << domain->solInfo().snapfiPodRom; }
   else if (id.level() == 1){
-     filePrint(stderr,"*** Saving Basis to file %s \n", domain->solInfo().SVDoutput);
-	builder << domain->solInfo().SVDoutput; } }
+     //filePrint(stderr,"*** Saving Basis to file %s \n", domain->solInfo().SVDoutput);
+     builder << domain->solInfo().SVDoutput; } }
  else {
   if(id.level() == 0) {
     if(id.type() == 0) 
-	builder << domain->solInfo().statePodRomFile;
+        builder << domain->solInfo().statePodRomFile;
     if(id.type() == 1) 
-	builder << domain->solInfo().residualPodRomFile;
+        builder << domain->solInfo().residualPodRomFile;
     if(id.type() == 2)
-	builder << domain->solInfo().jacobianPodRomFile;
+        builder << domain->solInfo().jacobianPodRomFile;
     if(id.type() == 3)
-	builder << domain->solInfo().forcePodRomFile;
+        builder << domain->solInfo().forcePodRomFile;
     if(id.type() == 4)
-	builder << domain->solInfo().accelPodRomFile;}
+        builder << domain->solInfo().accelPodRomFile;}
   else if(id.level() == 1) {
-	builder << domain->solInfo().readInROBorModes;}
+        builder << domain->solInfo().readInROBorModes;}
      }
 
   std::string mystrg;

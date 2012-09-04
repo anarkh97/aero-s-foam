@@ -811,6 +811,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::ModeError: // don't print warning message since these are
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
           break;
+        case OutputInfo::Statevector: // don't print warning message for these either
+        case OutputInfo::Residual:
+        case OutputInfo::Jacobian:
+        case OutputInfo::RobData:
+        case OutputInfo::SampleMesh:
+          break;
 
         default:
           success = 0;

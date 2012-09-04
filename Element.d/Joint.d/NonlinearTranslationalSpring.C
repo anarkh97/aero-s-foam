@@ -1,8 +1,8 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
 
-NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis, int _node)
- : DotType2ConstraintElement(_nn, _axis, _node)
+NonlinearTranslationalSpring::NonlinearTranslationalSpring(int* _nn, int _axis)
+ : DotType2ConstraintElement(_nn, _axis)
 {}
 
 void

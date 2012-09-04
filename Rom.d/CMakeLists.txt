@@ -36,8 +36,8 @@ ADD_LIBRARY( Rom
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
-  LawsonHanson.d/diff.f
-  LawsonHanson.d/g1.f
-  LawsonHanson.d/h12.f
-  LawsonHanson.d/spnnls.f
+  LawsonHanson.d/diff.cpp
+  LawsonHanson.d/g1.cpp
+  LawsonHanson.d/h12.cpp
+  LawsonHanson.d/spnnls.cpp
 )

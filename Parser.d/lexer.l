@@ -156,7 +156,7 @@ TRAIL [a-zA-Z]*
 
 "THETA"|"theta"                    { return THETA; }
 
-"HRC"|"hrc"			   { return HRC; }
+HRC"|"hrc"			   { return HRC; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 

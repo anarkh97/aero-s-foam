@@ -1,7 +1,5 @@
 PROJECT (FEM)
 
-#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
-
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
@@ -258,6 +256,21 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${SCALAPACK_LIBRARY} ${BLACS_LIBRARIES})
       endif(BLACS_FOUND AND SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
+
+#stxxl
+    IF(NOT WITH_STXXL EQUAL 0)
+      FIND_LIBRARY(STXXL_LIBRARY NAMES stxxl
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_PATH(STXXL_INCLUDE_PATH stxxl.h
+                PATHS /usr/include usr/local/include)
+      if(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
+        MESSAGE("-- A library with STXXL API found.")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include stxxl/bits/defines.h")
+        add_definitions(-DUSE_STXXL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
+        SET(INC_DIR ${INC_DIR} ${STXXL_INCLUDE_PATH})
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
+      ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
+    ENDIF(NOT WITH_STXXL EQUAL 0)
 
 # metis
 #    FIND_LIBRARY(METIS_LIBRARY NAMES metis

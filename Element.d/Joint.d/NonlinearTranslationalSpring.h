@@ -15,7 +15,7 @@ class NonlinearTranslationalSpring : public DotType2ConstraintElement
     double sp0; // scalar projection of d onto c0 in the undeformed configuration
 
   public:
-    NonlinearTranslationalSpring(int*, int, int = 0);
+    NonlinearTranslationalSpring(int*, int);
     void setProp(StructProp *p, bool _myProp = false);
     void buildFrame(CoordSet&);
     void update(GeomState& gState, CoordSet& cs, double);

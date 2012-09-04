@@ -923,7 +923,7 @@ int main(int argc, char** argv)
      } break;
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
-          filePrint(stderr, "Non-Linear Explicit Dynamic solver\n");
+         // filePrint(stderr, "Non-Linear Explicit Dynamic solver\n");
          if (!domain->solInfo().activatePodRom) {
            MultiDomainDynam dynamProb(domain);
            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
@@ -1262,7 +1262,7 @@ int main(int argc, char** argv)
              dynaSolver.solve();
            }
            else { // implicit
-              filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");
+             // filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");
              if (!domain->solInfo().activatePodRom) {
                NonLinDynamic nldynamic(domain);
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
